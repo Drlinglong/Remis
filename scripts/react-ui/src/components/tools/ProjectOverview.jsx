@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Text, Group, Button } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../../utils/api';
 import { useSidebar } from '../../context/SidebarContext';
 
 import ProjectHeader from '../project/ProjectHeader';
@@ -10,7 +10,7 @@ import ProjectPathManager from '../project/ProjectPathManager';
 import ProjectFileList from '../project/ProjectFileList';
 import ProjectSidebar from '../project/ProjectSidebar';
 
-const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, onPathsUpdated, onDeleteForever, onManageProject }) => {
+const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, onFileStatusChange, onPathsUpdated, onDeleteForever, onManageProject }) => {
     const { t } = useTranslation();
     const [notes, setNotes] = useState(''); // Current input for new note
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -18,7 +18,7 @@ const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, 
     const [refreshSidebarTrigger, setRefreshSidebarTrigger] = useState(0);
 
     // Sidebar Context
-    const { setSidebarContent, setSidebarWidth, sidebarWidth } = useSidebar();
+    const { setSidebarContent, setSidebarWidth, sidebarWidth, setSidebarCollapsed } = useSidebar();
 
     // Cleanup sidebar on unmount
     useEffect(() => {
@@ -32,6 +32,7 @@ const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, 
         if (!sidebarWidth || sidebarWidth < 300) {
             setSidebarWidth(350);
         }
+        setSidebarCollapsed(false); // Expand sidebar
         setSidebarContent(
             <ProjectSidebar
                 projectId={projectDetails.project_id}
@@ -52,7 +53,7 @@ const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, 
     const onSaveNote = async () => {
         if (!notes.trim()) return;
         try {
-            await axios.post(`/api/project/${projectDetails.project_id}/notes`, { notes });
+            await api.post(`/api/project/${projectDetails.project_id}/notes`, { notes });
             setNotes(''); // Clear input
             setRefreshSidebarTrigger(prev => prev + 1); // Trigger sidebar refresh
         } catch (error) {
@@ -69,7 +70,7 @@ const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, 
     const confirmDeleteNote = async () => {
         if (!deleteNoteId) return;
         try {
-            await axios.delete(`/api/project/${projectDetails.project_id}/notes/${deleteNoteId}`);
+            await api.delete(`/api/project/${projectDetails.project_id}/notes/${deleteNoteId}`);
             setDeleteModalOpen(false);
             setDeleteNoteId(null);
             setRefreshSidebarTrigger(prev => prev + 1); // Trigger sidebar refresh
@@ -109,6 +110,7 @@ const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, 
             <ProjectFileList
                 projectDetails={projectDetails}
                 handleProofread={handleProofread}
+                onFileStatusChange={onFileStatusChange}
             />
 
             {/* Delete Note Confirmation Modal */}

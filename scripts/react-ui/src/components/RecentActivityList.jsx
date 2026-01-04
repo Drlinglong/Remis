@@ -51,9 +51,15 @@ const RecentActivityList = ({ id, className, activities, loading }) => {
                                         {activity.title}
                                     </Text>
                                     <Text c="dimmed" size="xs">
-                                        {activity.description.includes('Status updated to:')
-                                            ? t('recent_activity_desc_status_updated', { status: statusMap[activity.description.split(': ')[1]] || activity.description.split(': ')[1] })
-                                            : t(`recent_activity_desc_${activity.type}`, activity.description)} • {dayjs(activity.timestamp).fromNow()}
+                                        {activity.type === 'file_update' && activity.description.includes(' to ')
+                                            ? t('recent_activity_desc_status_updated', {
+                                                status: t(`project_management.kanban.columns.${activity.description.split(' to ')[1]}`, activity.description.split(' to ')[1])
+                                            })
+                                            : activity.description.includes('Status updated to:')
+                                                ? t('recent_activity_desc_status_updated', {
+                                                    status: statusMap[activity.description.split(': ')[1]] || activity.description.split(': ')[1]
+                                                })
+                                                : t(`recent_activity_desc_${activity.type}`, activity.description)} • {dayjs(activity.timestamp).fromNow()}
                                     </Text>
                                 </div>
                                 <Badge variant="light" size="xs">

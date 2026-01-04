@@ -25,9 +25,10 @@ $startTime = Get-Date
 $allPassed = $true
 
 # ============================================
+# ============================================
 # 1. Python Backend Tests
 # ============================================
-Write-Host "[1/3] Running Python Tests (pytest)..." -ForegroundColor Yellow
+Write-Host "[1/4] Running Python Tests (pytest)..." -ForegroundColor Yellow
 
 try {
     $pytestResult = pytest --quiet --tb=line 2>&1
@@ -48,9 +49,10 @@ try {
 Write-Host ""
 
 # ============================================
+# ============================================
 # 2. Frontend Linting (ESLint)
 # ============================================
-Write-Host "[2/3] Running Frontend Linting (ESLint)..." -ForegroundColor Yellow
+Write-Host "[2/4] Running Frontend Linting (ESLint)..." -ForegroundColor Yellow
 
 $frontendDir = "scripts\react-ui"
 
@@ -85,9 +87,50 @@ if (Test-Path $frontendDir) {
 Write-Host ""
 
 # ============================================
-# 3. Git Status Check
 # ============================================
-Write-Host "[3/3] Checking Git Status..." -ForegroundColor Yellow
+# 3. Frontend Unit Tests (Vitest)
+# ============================================
+Write-Host "[3/4] Running Frontend Tests (Vitest)..." -ForegroundColor Yellow
+
+if (Test-Path "scripts\react-ui") {
+    Push-Location "scripts\react-ui"
+    try {
+        # Using CI=true to ensure it runs once and exits
+        $env:CI = "true"
+        
+        # Temporarily relax error preference because npm writes warnings to stderr
+        # which causes PowerShell to throw when ErrorActionPreference is Stop
+        $oldEAP = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        
+        $vitestResult = npm run test -- 2>&1
+        $vitestExitCode = $LASTEXITCODE
+        
+        $ErrorActionPreference = $oldEAP
+        
+        if ($vitestExitCode -eq 0) {
+            Write-Host "  ✓ Frontend tests PASSED" -ForegroundColor Green
+        } else {
+            Write-Host "  ✗ Frontend tests FAILED" -ForegroundColor Red
+            # Write-Host $vitestResult -ForegroundColor Red
+            $allPassed = $false
+        }
+    } catch {
+        Write-Host "  ⚠ Frontend tests skipped (error)" -ForegroundColor Yellow
+    } finally {
+        $env:CI = $null
+        Pop-Location
+    }
+} else {
+    Write-Host "  ⚠ Frontend directory not found" -ForegroundColor Yellow
+}
+
+Write-Host ""
+
+# ============================================
+# 4. Git Status Check
+# ============================================
+Write-Host "[4/4] Checking Git Status..." -ForegroundColor Yellow
 
 $gitStatus = git status --porcelain
 

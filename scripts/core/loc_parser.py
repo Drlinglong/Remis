@@ -7,8 +7,8 @@ from pathlib import Path
 
 from scripts.utils import read_text_bom, write_text_bom
 
-# KEY:0 "Tekst"
-ENTRY_RE = re.compile(r'^\s*([A-Za-z0-9_\.\-]+):[0-9]*\s*"(.*)"\s*$')
+# Robust Paradox Regex: Allows spaces around colon. KEY : VERSION "VALUE"
+ENTRY_RE = re.compile(r'^\s*([A-Za-z0-9_\.\-]+)\s*:\s*([0-9]*)\s*"(.*)"', re.MULTILINE)
 
 def parse_loc_file(path: Path) -> list[tuple[str, str]]:
     """
@@ -27,11 +27,18 @@ def parse_loc_file(path: Path) -> list[tuple[str, str]]:
             # Paradox metadata.json is usually a dict.
             if isinstance(data, dict):
                 for k, v in data.items():
+                    # Fix: key_map is a list of dicts like {'key_part': 'remis.1.t', 'line_num': 5}
+                    # We need to extract the actual key string
+                    entry_key = k.strip()
+                    # Normalize: ensure no trailing colon (legacy consistency)
+                    if entry_key.endswith(":"):
+                        entry_key = entry_key[:-1].strip()
+                    
                     if isinstance(v, str):
-                        entries.append((k, v))
+                        entries.append((entry_key, v))
                     else:
                         # Handle nested or non-string values as string representation
-                        entries.append((k, str(v)))
+                        entries.append((entry_key, str(v)))
             elif isinstance(data, list):
                  # Handle list if necessary (unlikely for loc, but possible for metadata)
                  pass
@@ -43,8 +50,24 @@ def parse_loc_file(path: Path) -> list[tuple[str, str]]:
         for line in read_text_bom(path).splitlines():
             match = ENTRY_RE.match(line)
             if match:
-                key, value = match.groups()
-                entries.append((key, value))
+                base_key, version, value = match.groups()
+                # Universal Normalization: Strip spaces and recombine to 'key:version' or just 'key'
+                full_key = f"{base_key.strip()}:{version.strip()}" if version.strip() else base_key.strip()
+                
+                # --- [UNIFICATION] Filtering Logic matching QuoteExtractor ---
+                # 1. Skip if value is same as key (self-referencing)
+                if full_key == value:
+                    continue
+                
+                # 2. Skip if value is empty
+                if not value:
+                    continue
+                
+                # 3. Skip if value is a pure variable (e.g. $VAR$)
+                if value.startswith('$') and value.endswith('$') and value.count('$') == 2:
+                    continue
+                
+                entries.append((full_key, value))
     return entries
 
 
@@ -74,8 +97,19 @@ def parse_loc_file_with_lines(path: Path) -> list[tuple[str, str, int]]:
         for i, line in enumerate(lines):
             match = ENTRY_RE.match(line)
             if match:
-                key, value = match.groups()
-                entries.append((key, value, i + 1))
+                base_key, version, value = match.groups()
+                # Universal Normalization: Strip spaces and recombine
+                full_key = f"{base_key.strip()}:{version.strip()}" if version.strip() else base_key.strip()
+
+                # --- [UNIFICATION] Filtering Logic matching QuoteExtractor ---
+                if full_key == value:
+                    continue
+                if not value:
+                    continue
+                if value.startswith('$') and value.endswith('$') and value.count('$') == 2:
+                    continue
+
+                entries.append((full_key, value, i + 1))
     return entries
 
 

@@ -19,6 +19,8 @@ def get_config():
     
     # Load overrides from AppData
     provider_overrides = config_manager.get_value("provider_config", {})
+    
+    logging.info(f"[CONFIG] API_PROVIDERS count: {len(API_PROVIDERS)}")
 
     for pid, pconf in API_PROVIDERS.items():
         # Merge overrides
@@ -46,7 +48,8 @@ def get_config():
     return {
         "game_profiles": GAME_PROFILES,
         "languages": LANGUAGES,
-        "api_providers": api_providers_list
+        "api_providers": api_providers_list,
+        "rpm_limit": config_manager.get_value("rpm_limit", 40)
     }
 
 @router.get("/api/api-keys")
@@ -76,8 +79,9 @@ def get_api_keys():
             
         providers.append({
             "id": provider_id,
-            "name": provider_id.replace("_", " ").title(),
+            "name": config.get("name", provider_id.replace("_", " ").title()),
             "description": config.get("description", ""),
+            "description_key": config.get("description_key", ""),
             "is_keyless": is_keyless,
             "has_key": has_key,
             "masked_key": masked_key,
@@ -154,3 +158,25 @@ def update_provider_config(payload: UpdateProviderConfigRequest):
     config_manager.set_value("provider_config", current_overrides)
     
     return {"status": "success"}
+
+@router.post("/api/config/rpm")
+def update_rpm_limit(payload: dict):
+    """Updates the global RPM limit."""
+    rpm = payload.get("rpm")
+    if rpm is None:
+        raise HTTPException(status_code=400, detail="RPM value is required")
+    
+    try:
+        rpm_val = int(rpm)
+        config_manager.set_value("rpm_limit", rpm_val)
+        
+        # Update current rate limiter immediately
+        from scripts.utils.rate_limiter import rate_limiter
+        rate_limiter.update_rpm(rpm_val)
+        
+        return {"status": "success", "rpm": rpm_val}
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid RPM value")
+    except Exception as e:
+        logging.error(f"Failed to update RPM limit: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -36,7 +36,8 @@ HOOKS: List[Callable[[str, list[str], list[str], dict[int, dict]], None]] = []
 try:
     import importlib.util
 
-    spec = importlib.util.find_spec("hooks.file_parser_hook")
+    # [FIX] Use absolute package path 'scripts.hooks.file_parser_hook'
+    spec = importlib.util.find_spec("scripts.hooks.file_parser_hook")
     if spec is not None:
         module: ModuleType = importlib.util.module_from_spec(spec)  # type: ignore
         spec.loader.exec_module(module)  # type: ignore
@@ -45,7 +46,9 @@ try:
             if isinstance(_hooks, list):
                 HOOKS.extend(_hooks)
 except Exception as e:  # pragma: no cover – hook opcjonalny
-    logging.error(f"[parser-hook] ⚠️  Failed to load hooks: {e}")
+    # Warn but don't fail, unless it's critical. 
+    # With the new path, it should work if properly bundled.
+    logging.warning(f"[parser-hook] ⚠️  Failed to load hooks: {e}")
 
 
 def extract_translatable_content(

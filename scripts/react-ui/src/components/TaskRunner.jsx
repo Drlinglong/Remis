@@ -14,7 +14,8 @@ import {
     Code,
     useMantineTheme,
     Alert,
-    SimpleGrid
+    SimpleGrid,
+    Loader
 } from '@mantine/core';
 import {
     IconChevronDown,
@@ -32,7 +33,7 @@ import {
     IconCloudUpload
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../utils/api';
 import notificationService from '../services/notificationService';
 
 const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
@@ -95,14 +96,14 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
         const folderPath = zipPath.replace('.zip', '');
 
         try {
-            await axios.post('/api/system/open_folder', { path: folderPath });
+            await api.post('/api/system/open_folder', { path: folderPath });
         } catch (error) {
             console.error("Failed to open folder:", error);
             // Fallback: Try opening the parent directory
             try {
                 // If folder doesn't exist (maybe deleted?), open parent
                 const parentDir = zipPath.substring(0, zipPath.lastIndexOf('\\'));
-                await axios.post('/api/system/open_folder', { path: parentDir });
+                await api.post('/api/system/open_folder', { path: parentDir });
             } catch (e) {
                 console.error("Failed to open parent folder:", e);
             }
@@ -120,7 +121,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
         const folderName = zipName.replace('.zip', '');
 
         try {
-            const response = await axios.post('/api/tools/deploy_mod', {
+            const response = await api.post('/api/tools/deploy_mod', {
                 output_folder_name: folderName,
                 game_id: translationDetails.gameId
             });
@@ -143,9 +144,9 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     // Render Report Card
     if (isCompleted) {
         return (
-            <Stack spacing="xl" mt="xl">
+            <Stack gap="xl" mt="xl">
                 <Paper p="xl" radius="lg" withBorder bg={theme.colors.dark[7]}>
-                    <Stack align="center" spacing="lg">
+                    <Stack align="center" gap="lg">
                         <ThemeIcon size={80} radius="xl" color="green" variant="light">
                             <IconCircleCheck size={50} />
                         </ThemeIcon>
@@ -158,7 +159,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                             })}
                         </Text>
 
-                        <SimpleGrid cols={3} spacing="lg" w="100%" mt="md">
+                        <SimpleGrid cols={3} gap="lg" w="100%" mt="md">
                             {/* Error Report */}
                             <Alert
                                 icon={<IconBug size={20} />}
@@ -273,7 +274,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                     backgroundColor: theme.colors.dark[7]
                 }}
             >
-                <Stack align="center" spacing="md">
+                <Stack align="center" gap="md">
                     <ThemeIcon size={60} radius="xl" color={isFailed ? "red" : "blue"} variant="light">
                         {isFailed ? <IconAlertCircle size={40} /> : <IconTerminal2 size={40} />}
                     </ThemeIcon>

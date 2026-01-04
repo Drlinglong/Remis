@@ -4,11 +4,17 @@
     position: relative;
     border-radius: 16px;
     overflow: hidden;
-    background: var(--glass-bg) !important;
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-elevation);
+    background: linear-gradient(135deg, rgba(28, 126, 214, 0.15) 0%, rgba(34, 139, 230, 0.05) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    transition: all 0.3s ease;
+}
+
+.welcomeBanner:hover {
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .welcomeBanner::before {
@@ -18,8 +24,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(28, 126, 214, 0.2) 0%, rgba(34, 139, 230, 0.1) 100%);
+    background: radial-gradient(circle at top right, rgba(50, 150, 255, 0.1), transparent 60%);
     z-index: 1;
+    pointer-events: none;
 }
 
 .bannerContent {
@@ -35,20 +42,40 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     color: var(--text-main) !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+}
+
+.glassCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
 .cardTitle {
     font-family: var(--font-header);
     color: var(--text-highlight);
     margin-bottom: 16px;
+    letter-spacing: 0.5px;
 }
 
 .actionButton {
     backdrop-filter: blur(4px);
     transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .actionButton:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes float {
+    0% { transform: translateY(0px) rotate(-15deg); }
+    50% { transform: translateY(-15px) rotate(-12deg); }
+    100% { transform: translateY(0px) rotate(-15deg); }
+}
+
+.floatingIcon {
+    animation: float 6s ease-in-out infinite;
 }

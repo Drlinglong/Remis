@@ -2,25 +2,22 @@ import sqlite3
 import os
 import shutil
 import uuid
+import re
 import datetime
 import logging
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
+from pathlib import Path
 from scripts.app_settings import PROJECTS_DB_PATH, SOURCE_DIR, GAME_ID_ALIASES
 
 # Configure logger
 logger = logging.getLogger(__name__)
 
 from scripts.core.project_json_manager import ProjectJsonManager
-# from scripts.services import kanban_service # Circular import if we import instance here? 
-# project_manager is imported in services.py. 
-# So we should probably import the instance inside methods OR import class and instantiated?
-# Better: Import the service instance at the top of the file if possible, or inside methods if circular.
-# services.py imports ProjectManager. So importing services here is Circular.
-# Solution: Import the CLASS here, or inject it? 
-# Or just import services inside the methods?
-# Let's import inside methods for now to be safe, or import the module scripts.core.services.kanban_service
 from scripts.core.services.kanban_service import KanbanService
+from scripts.core.archive_manager import archive_manager
+from scripts.core.loc_parser import parse_loc_file
+from scripts.utils.i18n_utils import paradox_to_iso
 
 @dataclass
 class Project:
@@ -285,6 +282,60 @@ class ProjectManager:
         self.repository.touch_project(project_id)
         logger.info(f"Saved kanban and synchronized status for project {project_id}")
 
+    async def update_file_status_with_kanban_sync(self, project_id: str, file_id: str, status: str):
+        """Updates file status in DB and also moves it in the Kanban JSON."""
+        project = self.get_project(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+
+        # 1. Update DB Status
+        self.repository.update_file_status_by_id(file_id, status)
+
+        # 2. Update Kanban Board (JSON sidecar)
+        try:
+            board = self.kanban_service.get_board(project['source_path'])
+            tasks = board.get("tasks", {})
+            
+            # Find the task corresponding to this file_id
+            target_key = None
+            if file_id in tasks:
+                target_key = file_id
+            else:
+                # Fallback: search values for internal id (ID alignment issue)
+                for tid, t_obj in tasks.items():
+                    if t_obj.get('id') == file_id:
+                        target_key = tid
+                        break
+            
+            if target_key:
+                # If key is misaligned, fix it now
+                if target_key != file_id:
+                    tasks[file_id] = tasks.pop(target_key)
+                    target_key = file_id
+                    logger.info(f"ProjectManager: Aligned task key during status update: {file_id}")
+
+                old_status = tasks[target_key].get('status')
+                if old_status != status:
+                    tasks[target_key]['status'] = status
+                    self.kanban_service.save_board(project['source_path'], board)
+                    
+                    # Log activity
+                    file_name = tasks[target_key].get('title', file_id)
+                    self.repository.add_activity_log(
+                        project_id, 
+                        'file_update', 
+                        f"Changed status of '{file_name}' to {status}"
+                    )
+            else:
+                # If task doesn't exist in Kanban but exists in DB, we should probably trigger a sync
+                logger.warning(f"Task for file {file_id} not found in Kanban. Triggering sync...")
+                self.refresh_project_files(project_id)
+
+        except Exception as e:
+            logger.error(f"Failed to sync kanban after individual file update: {e}")
+
+        self.repository.touch_project(project_id)
+
     def update_file_status(self, project_id: str, file_path: str, status: str):
         """Updates the status of a file in a project."""
         # Find file_id or update by path via repo if repo supports it
@@ -405,3 +456,147 @@ class ProjectManager:
             # Non-fatal, but should be noted
         
         logger.info(f"Updated metadata for project {project_id}: game_id={game_id}, source_language={source_language}")
+
+    def upload_project_translations(self, project_id: str) -> Dict[str, Any]:
+        """
+        Scans existing translation files in the project and uploads them to the archive.
+        """
+        project = self.get_project(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+
+        source_path = project['source_path']
+        project_name = project['name']
+
+        # 1. Get Project Config
+        json_manager = ProjectJsonManager(source_path)
+        config = json_manager.get_config()
+        translation_dirs = config.get('translation_dirs', [])
+        
+        if not translation_dirs:
+            return {"status": "warning", "message": "No translation directories configured."}
+
+        # 2. Parse Source Files to build the "Expected Structure"
+        # We need this to identify which filename a key belongs to in the archive
+        source_files_data = []
+        all_source_keys = {} # key -> filename
+        
+        # We search for .yml/.yaml in source_path
+        for root, _, files in os.walk(source_path):
+            for file in files:
+                if file.endswith(('.yml', '.yaml')):
+                    full_path = Path(os.path.join(root, file))
+                    try:
+                        entries = parse_loc_file(full_path)
+                        if entries:
+                            filename = os.path.basename(full_path)
+                            source_files_data.append({
+                                'filename': filename,
+                                'key_map': [e[0] for e in entries],
+                                'texts_to_translate': [e[1] for e in entries]
+                            })
+                            for e in entries:
+                                all_source_keys[e[0]] = filename
+                    except Exception as e:
+                        logger.error(f"Failed to parse source file {full_path}: {e}")
+
+        if not source_files_data:
+            return {"status": "warning", "message": "No source files found to match against."}
+
+        # 3. Initialize Archive Version
+        mod_id = archive_manager.get_or_create_mod_entry(project_name, project_id)
+        if not mod_id:
+            return {"status": "error", "message": "Failed to initialize mod archive entry."}
+        
+        version_id = archive_manager.create_source_version(mod_id, source_files_data)
+        if not version_id:
+            return {"status": "error", "message": "Failed to create source version snapshot."}
+
+        # 4. Scan and Parse Translation Files
+        # We will collect translations into file_results grouped by source filename
+        file_results = {} # target_iso -> {source_filename -> [translated_texts]}
+        match_count = 0
+        
+        from scripts.schemas.common import LanguageCode
+
+        for trans_dir in translation_dirs:
+            if not os.path.exists(trans_dir): continue
+            for root, _, files in os.walk(trans_dir):
+                for file in files:
+                    if file.endswith(('.yml', '.yaml', '.txt')):
+                        full_path = Path(os.path.join(root, file))
+                        
+                        # Detect Language Code from filename (_l_xxxx.yml)
+                        lang_code_iso = "zh-CN" # Default
+                        lang_match = re.search(r"_l_(\w+)\.(yml|yaml)$", file, re.IGNORECASE)
+                        if lang_match:
+                            try:
+                                lang_code_iso = LanguageCode.from_str(lang_match.group(1)).value
+                            except: pass
+                        
+                        if lang_code_iso not in file_results:
+                            file_results[lang_code_iso] = {}
+
+                        try:
+                            # Use loc_parser which now captures KEY:version
+                            entries = parse_loc_file(full_path)
+                            if not entries: continue
+                            
+                            for key, value in entries:
+                                source_filename = all_source_keys.get(key)
+                                # [FALLBACK] If no exact match, try without :version suffix
+                                if not source_filename and ":" in key:
+                                    source_filename = all_source_keys.get(key.split(':')[0])
+                                
+                                if source_filename:
+                                    # Find index of key in source file
+                                    # Use find instead of next(...) for clarity
+                                    source_file_data = next((fd for fd in source_files_data if fd['filename'] == source_filename), None)
+                                    if not source_file_data: continue
+
+                                    if source_filename not in file_results[lang_code_iso]:
+                                        file_results[lang_code_iso][source_filename] = list(source_file_data['texts_to_translate'])
+                                    
+                                    try:
+                                        # Try exact match first, then fallback
+                                        try:
+                                            idx = source_file_data['key_map'].index(key)
+                                        except ValueError:
+                                            if ":" in key:
+                                                idx = source_file_data['key_map'].index(key.split(':')[0])
+                                            else:
+                                                # Also try matching key with any version suffix if source_file_data has them
+                                                idx = -1
+                                                for i, k in enumerate(source_file_data['key_map']):
+                                                    if k.split(':')[0] == key:
+                                                        idx = i
+                                                        break
+                                                if idx == -1: raise ValueError("Key not found")
+
+                                        file_results[lang_code_iso][source_filename][idx] = value
+                                        match_count += 1
+                                    except ValueError:
+                                        pass
+                        except Exception as e:
+                            logger.error(f"Failed to parse translation file {full_path}: {e}")
+
+        # 5. Archive the results
+        if match_count > 0:
+            for lang_iso, results in file_results.items():
+                if results:
+                    archive_manager.archive_translated_results(version_id, results, source_files_data, lang_iso)
+            
+            # Add activity log
+            self.repository.add_activity_log(
+                project_id,
+                'archive_update',
+                f"Uploaded {match_count} translations to archive using exact key:version matching."
+            )
+            
+            return {
+                "status": "success", 
+                "message": f"Successfully uploaded {match_count} translations across {len(file_results)} files.",
+                "match_count": match_count
+            }
+        else:
+            return {"status": "info", "message": "No matching keys found in translation files."}

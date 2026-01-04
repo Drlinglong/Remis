@@ -116,7 +116,8 @@ def run_translation_workflow_v2(
     target_lang_codes: List[str], api_provider: str, mod_context: str,
     selected_glossary_ids: List[int], model_name: Optional[str], use_main_glossary: bool,
     custom_lang_config: Optional[CustomLangConfig] = None,
-    project_id: Optional[str] = None
+    project_id: Optional[str] = None,
+    use_resume: bool = True
 ):
     i18n.load_language('en_US')
     tasks[task_id]["status"] = "processing"
@@ -210,12 +211,23 @@ def run_translation_workflow_v2(
             if main_glossary and main_glossary['glossary_id'] not in final_glossary_ids:
                 final_glossary_ids.append(main_glossary['glossary_id'])
         
+        override_path = None
+        if project_id:
+            try:
+                proj = project_manager.get_project(project_id)
+                if proj and 'source_path' in proj:
+                    override_path = proj['source_path']
+                    logging.info(f"Using override source path from project: {override_path}")
+            except Exception as e:
+                logging.error(f"Failed to fetch override path: {e}")
+
         logging.info("Calling initial_translate.run...")
         initial_translate.run(
             mod_name=mod_name, game_profile=game_profile, source_lang=source_lang,
             target_languages=target_languages, selected_provider=api_provider,
             mod_context=mod_context, selected_glossary_ids=final_glossary_ids,
-            model_name=model_name, use_glossary=True, progress_callback=progress_callback
+            model_name=model_name, use_glossary=True, progress_callback=progress_callback,
+            override_path=override_path, project_id=project_id, use_resume=use_resume
         )
         logging.info("Returned from initial_translate.run")
         tasks[task_id]["status"] = "completed"
@@ -288,7 +300,8 @@ def start_translation_project(request: InitialTranslationRequest, background_tas
         request.model,
         request.use_main_glossary,
         request.custom_lang_config,
-        project_id=request.project_id
+        project_id=request.project_id,
+        use_resume=request.use_resume
     )
 
     # Auto-register translation path (Optimistic registration)
@@ -410,7 +423,8 @@ async def start_translation_v2(
         payload.model_name,
         payload.use_main_glossary,
         payload.custom_lang_config,
-        project_id=None # Path-based upload might not have project ID
+        project_id=None, # Path-based upload might not have project ID
+        use_resume=payload.use_resume
     )
 
     return {"task_id": task_id, "message": "翻译任务已开始"}

@@ -44,13 +44,13 @@
 
 .navLink[data-active="true"] {
     background-color: rgba(255, 255, 255, 0.15) !important;
-    color: var(--color-primary) !important;
-    border: 1px solid var(--color-primary);
+    color: var(--text-highlight) !important;
+    border: 1px solid var(--text-highlight);
     /* Optional: outline active state */
 }
 
 .navLink[data-active="true"] .icon {
-    color: var(--color-primary) !important;
+    color: var(--text-highlight) !important;
 }
 
 /* Sci-Fi Glow Effect for Icons */
@@ -85,4 +85,38 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     color: var(--text-main) !important;
+}
+
+/* Tutorial Button Pulse Effect */
+@keyframes pulseGlow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(255, 193, 7, 0);
+        transform: scale(1.02);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+        transform: scale(1);
+    }
+}
+
+.tutorialButton {
+    composes: navLink;
+    border: 1px solid var(--text-highlight) !important;
+    color: var(--text-highlight) !important;
+    animation: pulseGlow 2s infinite ease-in-out;
+    background: rgba(255, 193, 7, 0.1) !important; /* Slight yellow tint */
+}
+
+.tutorialButton .icon {
+    color: var(--text-highlight) !important;
+    filter: drop-shadow(0 0 2px var(--text-highlight));
+}
+
+.tutorialButton:hover {
+    background: rgba(255, 193, 7, 0.2) !important;
+    animation: none; /* Stop pulsing on hover */
 }

@@ -10,7 +10,7 @@ import {
     IconCheck, IconX, IconBulb, IconQuote,
     IconGavel, IconSparkles
 } from '@tabler/icons-react';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const API_BASE_URL = '/api';
 
@@ -51,7 +51,7 @@ const JudgmentCourt = () => {
 
     const fetchProjects = async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/projects`);
+            const response = await api.get(`${API_BASE_URL}/projects`);
             setProjects(response.data);
             if (response.data.length > 0) {
                 setSelectedProject(response.data[0].project_id);
@@ -64,7 +64,7 @@ const JudgmentCourt = () => {
     const fetchCandidates = async (projectId) => {
         setLoading(true);
         try {
-            const response = await axios.get(`${API_BASE_URL}/neologisms?project_id=${projectId}`);
+            const response = await api.get(`${API_BASE_URL}/neologisms?project_id=${projectId}`);
             setCandidates(response.data);
             if (response.data.length > 0 && !selectedId) {
                 setSelectedId(response.data[0].id);
@@ -83,7 +83,7 @@ const JudgmentCourt = () => {
 
         setProcessing(true);
         try {
-            await axios.post(`${API_BASE_URL}/neologisms/${selectedId}/approve`, {
+            await api.post(`${API_BASE_URL}/neologisms/${selectedId}/approve`, {
                 project_id: selectedProject,
                 final_translation: editSuggestion,
                 glossary_id: 1
@@ -101,7 +101,7 @@ const JudgmentCourt = () => {
         if (!selectedId || !selectedProject) return;
         setProcessing(true);
         try {
-            await axios.post(`${API_BASE_URL}/neologisms/${selectedId}/reject`, {
+            await api.post(`${API_BASE_URL}/neologisms/${selectedId}/reject`, {
                 project_id: selectedProject
             });
             notifications.show({ title: 'Rejected', message: 'Term ignored', color: 'gray' });

@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import styles from './Layout.module.css';
 import { FEATURES } from '../../config/features';
 import { useTutorial } from '../../context/TutorialContext';
+import ThemeContext from '../../ThemeContext';
 
 // Navigation items configuration
 const navItems = [
@@ -31,9 +32,9 @@ const navItems = [
     { icon: IconChecklist, label: 'page_title_proofreading', path: '/proofreading' },
     // Conditionally include Neologism Tribunal
     ...(FEATURES.ENABLE_NEOLOGISM_TRIBUNAL ? [{ icon: IconSparkles, label: 'neologism_review.title', path: '/neologism-review' }] : []),
-    { icon: IconTools, label: 'page_title_tools', path: '/tools' },
+    { icon: IconTools, label: 'page_title_tools', path: '/tools', id: 'nav-tools' },
     // { icon: IconBook, label: 'page_title_docs', path: '/docs' },
-    { icon: IconSettings, label: 'page_title_settings', path: '/settings' },
+    { icon: IconSettings, label: 'page_title_settings', path: '/settings', id: 'nav-settings' },
 ];
 
 const developmentItems = [
@@ -42,15 +43,17 @@ const developmentItems = [
     { icon: IconBulb, label: 'page_title_in_conception', path: '/in-conception' },
 ];
 
-function NavbarLink({ icon: Icon, label, active, onClick, expanded }) {
+function NavbarLink({ icon: Icon, label, active, onClick, expanded, id, className }) {
     const { t } = useTranslation();
+    const { theme } = React.useContext(ThemeContext);
 
     return (
         <Tooltip label={t(label)} position="right" transitionProps={{ duration: 0 }} disabled={expanded}>
             <UnstyledButton
+                id={id}
                 onClick={onClick}
                 data-active={active || undefined}
-                className={styles.navLink}
+                className={`${styles.navLink} ${className || ''}`}
                 style={{
                     width: '100%',
                     padding: '10px', /* equivalent to theme.spacing.xs approximately */
@@ -83,6 +86,7 @@ export function AppSider() {
             active={location.pathname === link.path}
             onClick={() => navigate(link.path)}
             expanded={expanded}
+            id={link.id}
         />
     ));
 
@@ -114,9 +118,29 @@ export function AppSider() {
             }}
         >
             <Stack justify="center" gap={0} mb="md" align="center" style={{ height: 60, flexShrink: 0 }}>
-                <Text className={styles.sidebarHeader} fw={700} size={expanded ? "lg" : "xl"} style={{ transition: 'font-size 200ms' }}>
-                    {expanded ? "Remis" : "R"}
-                </Text>
+                {expanded ? (
+                    <img
+                        src="/Project Remis.png"
+                        alt="Remis Logo"
+                        style={{
+                            height: '40px',
+                            objectFit: 'contain',
+                            filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.3))'
+                        }}
+                    />
+                ) : (
+                    <img
+                        src="/Project Remis.png"
+                        alt="R"
+                        style={{
+                            height: '32px',
+                            width: '32px',
+                            objectFit: 'cover',
+                            objectPosition: 'center',
+                            borderRadius: '4px'
+                        }}
+                    />
+                )}
             </Stack>
 
             <Stack gap="xs" style={{ flex: 1 }}>
@@ -125,15 +149,18 @@ export function AppSider() {
 
             <Stack gap="xs" mt="md" pt="md" style={{ borderTop: '1px solid var(--glass-border)' }}>
                 {devLinks}
-                <NavbarLink
-                    icon={IconQuestionMark}
-                    label="tutorial.sidebar_tutorial_btn"
-                    active={false}
-                    onClick={() => {
-                        startTour();
-                    }}
-                    expanded={expanded}
-                />
+                <Box id="tutorial-sidebar-link" style={{ width: '100%' }}>
+                    <NavbarLink
+                        icon={IconQuestionMark}
+                        label="tutorial.sidebar_tutorial_btn"
+                        active={false}
+                        onClick={() => {
+                            startTour();
+                        }}
+                        expanded={expanded}
+                        className={styles.tutorialButton} // Add pulse animation class
+                    />
+                </Box>
             </Stack>
         </Box>
     );

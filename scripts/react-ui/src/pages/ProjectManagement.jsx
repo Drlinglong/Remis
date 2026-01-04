@@ -4,12 +4,15 @@ import {
   Stack, Badge, ScrollArea, Table, Box, Tabs, Center, Paper, BackgroundImage,
   ActionIcon, SimpleGrid, Overlay, Input, Tooltip, Checkbox, Alert
 } from '@mantine/core';
-import { IconPlus, IconFolder, IconEdit, IconArrowLeft, IconSearch, IconBooks, IconCompass, IconArrowRight, IconArchive, IconTrash, IconRestore, IconAlertTriangle } from '@tabler/icons-react';
+import { IconPlus, IconFolder, IconEdit, IconArrowLeft, IconSearch, IconBooks, IconCompass, IconArrowRight, IconArchive, IconTrash, IconRestore, IconAlertTriangle, IconUpload } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import { useTranslation } from 'react-i18next';
+import { useNotification } from '../context/NotificationContext';
 import { useTutorial } from '../context/TutorialContext';
 import { open } from '@tauri-apps/plugin-dialog';
+import notificationService from '../services/notificationService';
+import { usePersistentState } from '../hooks/usePersistentState';
 
 // Restore original components
 import { KanbanBoard } from '../components/tools/KanbanBoard';
@@ -23,22 +26,33 @@ import cardOpenProject from '../assets/card_open_project.png'; // Reusing for Ar
 
 import { normalizeGameId, toIsoLang } from '../utils/paradoxMapping';
 
-const API_BASE = '/api';
+// API_BASE is handled by axios instance 'api'
+
 
 export default function ProjectManagement() {
   const { t } = useTranslation();
   const { setPageContext } = useTutorial();
+  const { notificationStyle } = useNotification();
   const [projects, setProjects] = useState([]);
+  const [availableGames, setAvailableGames] = useState([]);
+  const [availableLanguages, setAvailableLanguages] = useState([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteSourceFiles, setDeleteSourceFiles] = useState(false);
 
   // View Mode: 'active' | 'archives'
-  const [viewMode, setViewMode] = useState('active');
+  const [viewMode, setViewMode] = usePersistentState('pm_view_mode', 'active');
+
+  // Persistence: Store Project ID only
+  const [selectedProjectId, setSelectedProjectId] = usePersistentState('pm_selected_project_id', null);
+  // Computed selected project
+  const selectedProject = projects.find(p => p.project_id === selectedProjectId) || null;
+
+  // Persistence: Active Tab (Overview/Kanban)
+  const [activeTab, setActiveTab] = usePersistentState('pm_active_tab', 'overview');
 
   // Selection State
-  const [selectedProject, setSelectedProject] = useState(null);
   // const [projectFiles, setProjectFiles] = useState([]); // Unused
   const [projectDetails, setProjectDetails] = useState(null); // For Overview
 
@@ -46,7 +60,7 @@ export default function ProjectManagement() {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectPath, setNewProjectPath] = useState('');
   const [newProjectGame, setNewProjectGame] = useState('stellaris');
-  const [newProjectSourceLang, setNewProjectSourceLang] = useState('english');
+  const [newProjectSourceLang, setNewProjectSourceLang] = useState('en');
 
   // Manage Project State
   const [manageModalOpen, setManageModalOpen] = useState(false);
@@ -57,7 +71,30 @@ export default function ProjectManagement() {
 
   useEffect(() => {
     fetchProjects();
+    fetchGameConfig();
   }, [viewMode]);
+
+  const fetchGameConfig = async () => {
+    try {
+      const res = await api.get('/api/config');
+      if (res.data && res.data.game_profiles) {
+        const profiles = Object.values(res.data.game_profiles).map(p => ({
+          value: p.id,
+          label: p.name
+        }));
+        setAvailableGames(profiles);
+      }
+      if (res.data && res.data.languages) {
+        const langs = Object.values(res.data.languages).map(l => ({
+          value: l.code,
+          label: l.name
+        }));
+        setAvailableLanguages(langs);
+      }
+    } catch (error) {
+      console.error("Failed to fetch game config", error);
+    }
+  };
 
   useEffect(() => {
     if (selectedProject) {
@@ -77,13 +114,13 @@ export default function ProjectManagement() {
     try {
       let res;
       if (viewMode === 'active') {
-        res = await axios.get(`${API_BASE}/projects?status=active`);
+        res = await api.get(`/api/projects?status=active`);
         setProjects(res.data);
       } else {
         // Fetch both archived and deleted for archives view
         const [archivedRes, deletedRes] = await Promise.all([
-          axios.get(`${API_BASE}/projects?status=archived`),
-          axios.get(`${API_BASE}/projects?status=deleted`)
+          api.get(`/api/projects?status=archived`),
+          api.get(`/api/projects?status=deleted`)
         ]);
         setProjects([...archivedRes.data, ...deletedRes.data]);
       }
@@ -95,8 +132,8 @@ export default function ProjectManagement() {
   const fetchProjectFiles = async (projectId) => {
     try {
       const [filesRes, configRes] = await Promise.all([
-        axios.get(`${API_BASE}/project/${projectId}/files`),
-        axios.get(`${API_BASE}/project/${projectId}/config`)
+        api.get(`/api/project/${projectId}/files`),
+        api.get(`/api/project/${projectId}/config`)
       ]);
 
       const files = filesRes.data;
@@ -138,7 +175,7 @@ export default function ProjectManagement() {
 
   const handleCreateProject = async () => {
     try {
-      await axios.post(`${API_BASE}/project/create`, {
+      await api.post(`/api/project/create`, {
         name: newProjectName,
         folder_path: newProjectPath,
         game_id: newProjectGame,
@@ -191,9 +228,12 @@ export default function ProjectManagement() {
   const handleUpdateNotes = async (notes) => {
     if (!selectedProject) return;
     try {
-      await axios.post(`${API_BASE}/project/${selectedProject.project_id}/notes`, { notes });
-      // Update local state
-      setSelectedProject(prev => ({ ...prev, notes }));
+      await api.post(`/api/project/${selectedProject.project_id}/notes`, { notes });
+      // Update local state in the projects list
+      setProjects(prev => prev.map(p =>
+        p.project_id === selectedProject.project_id ? { ...p, notes } : p
+      ));
+      // Update details view
       setProjectDetails(prev => ({ ...prev, notes }));
     } catch (error) {
       console.error("Failed to update notes", error);
@@ -204,20 +244,22 @@ export default function ProjectManagement() {
   const handleUpdateStatus = async (status) => {
     if (!selectedProject) return;
     try {
-      await axios.post(`${API_BASE}/project/${selectedProject.project_id}/status`, { status });
+      await api.post(`/api/project/${selectedProject.project_id}/status`, { status });
       // If status changes such that it leaves the current view, we might want to go back or refresh
       // But for now, just update local state and refresh list
-      setSelectedProject(prev => ({ ...prev, status }));
+      setProjects(prev => prev.map(p =>
+        p.project_id === selectedProject.project_id ? { ...p, status } : p
+      ));
       setProjectDetails(prev => ({ ...prev, status }));
       fetchProjects(); // Refresh list to reflect changes
 
       // If we archived/deleted while in active view, go back to list
       if (viewMode === 'active' && status !== 'active') {
-        setSelectedProject(null);
+        setSelectedProjectId(null);
       }
       // If we restored while in archives view, go back to list
       if (viewMode === 'archives' && status === 'active') {
-        setSelectedProject(null);
+        setSelectedProjectId(null);
       }
 
     } catch (error) {
@@ -226,17 +268,33 @@ export default function ProjectManagement() {
     }
   };
 
+  const handleFileStatusChange = async (fileId, status) => {
+    if (!selectedProject) return;
+    try {
+      await api.put(`/api/project/${selectedProject.project_id}/file/${fileId}/status`, { status });
+      // Refresh only files to update the list and avoid full project refresh if possible
+      // But fetchProjectFiles actually updates projectDetails which is what we need
+      fetchProjectFiles(selectedProject.project_id);
+    } catch (error) {
+      console.error("Failed to update file status", error);
+      alert("Failed to update file status");
+    }
+  };
+
   const handleOpenManage = () => {
     if (selectedProject) {
-      // Normalization Map
-      const gameMap = { 'victoria3': 'vic3', 'hearts of iron iv': 'hoi4' };
-      const langMap = { 'zh-cn': 'simp_chinese' };
+      // Normalization Map: Handle legacy IDs (e.g., old projects might use 'vic3', new config uses 'victoria3')
+      const gameMap = { 'vic3': 'victoria3', 'victoria 3': 'victoria3' };
+      // const langMap = { 'zh-cn': 'simp_chinese' }; // Generally standard
 
       let gId = (selectedProject.game_id || 'stellaris').toLowerCase();
-      let sLang = (selectedProject.source_language || 'english').toLowerCase();
-
+      // If the current ID is in our map (e.g. vic3), convert it to canonical (victoria3). 
+      // Otherwise, keep it as is (e.g. eu4, stellaris).
       setEditGameId(gameMap[gId] || gId);
-      setEditSourceLang(langMap[sLang] || sLang);
+
+      let sLang = selectedProject.source_language || 'en';
+      setEditSourceLang(sLang);
+
       setManageModalOpen(true);
     }
   };
@@ -244,17 +302,17 @@ export default function ProjectManagement() {
   const handleUpdateMetadata = async () => {
     if (!selectedProject) return;
     try {
-      await axios.post(`${API_BASE}/project/${selectedProject.project_id}/metadata`, {
+      await api.post(`/api/project/${selectedProject.project_id}/metadata`, {
         game_id: editGameId,
         source_language: editSourceLang
       });
 
       // Update local state
-      setSelectedProject(prev => ({
-        ...prev,
-        game_id: editGameId,
-        source_language: editSourceLang
-      }));
+      setProjects(prev => prev.map(p =>
+        p.project_id === selectedProject.project_id
+          ? { ...p, game_id: editGameId, source_language: editSourceLang }
+          : p
+      ));
 
       // Also update projectDetails if it exists
       if (projectDetails) {
@@ -265,23 +323,47 @@ export default function ProjectManagement() {
         }));
       }
 
+      notificationService.success(t('api_key_success_title'), notificationStyle);
       setManageModalOpen(false);
-      fetchProjects(); // Refresh list
+
     } catch (error) {
-      alert(`Failed to update project: ${error.response?.data?.detail || error.message}`);
+      alert(`Failed to update project: ${error.response?.data?.detail || error.message} `);
     }
   };
 
   const handleDeleteForever = async () => {
     if (!selectedProject) return;
     try {
-      await axios.delete(`${API_BASE}/project/${selectedProject.project_id}?delete_files=${deleteSourceFiles}`);
+      await api.delete(`/api/project/${selectedProject.project_id}?delete_files=${deleteSourceFiles}`);
       setDeleteModalOpen(false);
-      setSelectedProject(null);
+      setSelectedProjectId(null);
       setDeleteSourceFiles(false);
       fetchProjects();
     } catch (error) {
       alert(`Failed to delete project: ${error.response?.data?.detail || error.message}`);
+    }
+  };
+
+  const handleRefreshFiles = async () => {
+    if (!selectedProject) return;
+    try {
+      await api.post(`/api/project/${selectedProject.project_id}/refresh`);
+      fetchProjectFiles(selectedProject.project_id);
+      setProjectDetails(prev => ({ ...prev, refreshKey: Date.now() }));
+    } catch (error) {
+      console.error("Failed to refresh files", error);
+    }
+  };
+
+  const handleUploadTranslations = async () => {
+    if (!selectedProject) return;
+    try {
+      const res = await api.post(`/api/project/${selectedProject.project_id}/upload-translations`);
+      notificationService.success(res.data.message || "Translations uploaded successfully", notificationStyle);
+      handleRefreshFiles(); // Refresh to show logs in activity
+    } catch (error) {
+      console.error("Failed to upload translations", error);
+      notificationService.error(`Failed: ${error.response?.data?.detail || error.message}`, notificationStyle);
     }
   };
 
@@ -301,11 +383,11 @@ export default function ProjectManagement() {
           <BackgroundImage src={heroBg} radius="md" style={{ height: '100%' }}>
             <Overlay color="#000" opacity={0.6} zIndex={1} radius="md" />
             <Center p="md" style={{ height: '100%', position: 'relative', zIndex: 2, flexDirection: 'column' }}>
-              <Title order={1} style={{ color: '#fff', fontSize: '3rem', textShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
+              <Title order={1} className={styles.heroTitle}>
                 {viewMode === 'active' ? t('page_title_project_management') : t('project_management.archives_title')}
               </Title>
-              <Text c="dimmed" size="lg" mt="sm">
-                {viewMode === 'active' ? 'Manage your localization projects with steampunk precision.' : t('project_management.actions.archives_desc')}
+              <Text size="lg" mt="sm" className={styles.heroSubtitle}>
+                {viewMode === 'active' ? t('project_management.hero_desc') : t('project_management.actions.archives_desc')}
               </Text>
 
               <Group mt="xl">
@@ -334,23 +416,21 @@ export default function ProjectManagement() {
           {viewMode === 'active' && (
             <>
               <Title order={3} mb="md">Actions</Title>
-              <SimpleGrid cols={3} spacing="lg" breakpoints={[{ maxWidth: 'sm', cols: 1 }]}>
+              <SimpleGrid cols={3} gap="lg" breakpoints={[{ maxWidth: 'sm', cols: 1 }]}>
 
                 {/* Create New Card */}
                 <Card
                   id="create-project-btn"
-                  shadow="sm"
                   padding="lg"
                   radius="md"
-                  withBorder
                   className={styles.actionCard}
                   onClick={() => setIsCreateModalOpen(true)}
                 >
                   <Card.Section>
                     <BackgroundImage src={cardNewProject} style={{ height: 140 }} />
                   </Card.Section>
-                  <Group position="apart" mt="md" mb="xs">
-                    <Text weight={500}>{t('project_management.actions.create_new')}</Text>
+                  <Group justify="space-between" mt="md" mb="xs">
+                    <Text fw={500}>{t('project_management.actions.create_new')}</Text>
                     <Badge color="pink" variant="light">New</Badge>
                   </Group>
                   <Text size="sm" color="dimmed">
@@ -360,18 +440,16 @@ export default function ProjectManagement() {
 
                 {/* Archives Card */}
                 <Card
-                  shadow="sm"
                   padding="lg"
                   radius="md"
-                  withBorder
                   className={styles.actionCard}
                   onClick={() => setViewMode('archives')}
                 >
                   <Card.Section>
                     <BackgroundImage src={cardOpenProject} style={{ height: 140 }} />
                   </Card.Section>
-                  <Group position="apart" mt="md" mb="xs">
-                    <Text weight={500}>{t('project_management.actions.archives')}</Text>
+                  <Group justify="space-between" mt="md" mb="xs">
+                    <Text fw={500}>{t('project_management.actions.archives')}</Text>
                     <Badge color="gray" variant="light">View</Badge>
                   </Group>
                   <Text size="sm" color="dimmed">
@@ -382,63 +460,48 @@ export default function ProjectManagement() {
             </>
           )}
 
-          <Title order={3} mt="xl" mb="md">{viewMode === 'active' ? 'Recent Projects' : 'Archived Projects'}</Title>
+          <Title order={3} mt="xl" mb="md">
+            {viewMode === 'active' ? t('page_title_project_management') : t('project_management.archives_title')}
+            <Badge ml="md" size="lg" variant="outline">
+              {filteredProjects.length}
+            </Badge>
+          </Title>
 
-          {filteredProjects.length === 0 ? (
-            <Text c="dimmed" fs="italic">
-              {viewMode === 'active' ? t('no_existing_mods') : t('project_management.empty_archives')}
-            </Text>
-          ) : (
-            <SimpleGrid cols={2} spacing="md">
-              {filteredProjects.map((p) => (
-                <Paper
-                  key={p.project_id}
-                  p="md"
-                  withBorder
-                  className={styles.projectRow}
-                  onClick={() => setSelectedProject(p)}
-                  style={{ opacity: p.status === 'deleted' ? 0.6 : 1 }}
-                >
-                  <Group>
-                    {p.status === 'deleted' ? <IconTrash size={32} color="red" /> : <IconBooks size={32} color="var(--mantine-color-blue-6)" />}
-                    <Box style={{ flex: 1 }}>
-                      <Text weight={600} size="lg" td={p.status === 'deleted' ? 'line-through' : 'none'}>{p.name}</Text>
-                      <Text size="xs" c="dimmed">{p.game_id} • {p.source_path}</Text>
-                    </Box>
-                    <Badge color={p.status === 'active' ? 'blue' : p.status === 'archived' ? 'orange' : 'red'}>
-                      {t(`project_management.status.${p.status}`)}
-                    </Badge>
-                    <IconArrowRight size={18} color="gray" />
-                  </Group>
-                </Paper>
-              ))}
-            </SimpleGrid>
-          )}
-
+          <SimpleGrid cols={3} gap="lg" breakpoints={[{ maxWidth: 'sm', cols: 1 }]}>
+            {filteredProjects.map(project => (
+              <Card
+                key={project.project_id}
+                padding="lg"
+                radius="md"
+                onClick={() => setSelectedProjectId(project.project_id)}
+                className={styles.projectCard}
+              >
+                <Group justify="space-between" mb="xs">
+                  <Text fw={500} className={styles.projectTitle}>{project.name}</Text>
+                  <Badge color={project.status === 'active' ? 'blue' : 'gray'}>{project.game_id}</Badge>
+                </Group>
+                <Text size="sm" color="dimmed" lineClamp={2}>
+                  {project.notes || t('project_management.no_notes', "No notes")}
+                </Text>
+                <Group mt="md">
+                  <Text size="xs" color="dimmed">
+                    {t('project_management.last_updated', 'Last updated')}: {new Date(project.last_updated || Date.now()).toLocaleDateString()}
+                  </Text>
+                </Group>
+              </Card>
+            ))}
+          </SimpleGrid>
         </ScrollArea>
       </div>
     );
   };
 
-  const handleRefreshFiles = async () => {
-    if (!selectedProject) return;
-    try {
-      await axios.post(`${API_BASE}/project/${selectedProject.project_id}/refresh`);
-      fetchProjectFiles(selectedProject.project_id);
-      setProjectDetails(prev => ({ ...prev, refreshKey: Date.now() }));
-    } catch (error) {
-      console.error("Failed to refresh files", error);
-    }
-  };
-
-  // View 2: Project Dashboard
   const renderProjectDashboard = () => (
-    <div className={styles.container} style={{ overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Header with Back Button */}
-      <Paper p="md" radius={0} style={{ background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid var(--glass-border)', backdropFilter: 'blur(10px)' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Paper p="md" shadow="xs" style={{ zIndex: 10 }}>
         <Group justify="space-between">
           <Group>
-            <Button variant="subtle" onClick={() => setSelectedProject(null)} leftSection={<IconArrowLeft size={16} />}>
+            <Button variant="subtle" onClick={() => setSelectedProjectId(null)} leftSection={<IconArrowLeft size={16} />}>
               {t('button_back')}
             </Button>
             <Title order={3} style={{ fontFamily: 'var(--font-header)', color: 'var(--text-highlight)' }}>
@@ -449,20 +512,27 @@ export default function ProjectManagement() {
             </Badge>
           </Group>
           <Group>
-            <Button variant="light" size="xs" onClick={handleRefreshFiles}>{t('project_management.refresh_files')}</Button>
+            <Tooltip label={t('project_management.upload_translations_desc')}>
+              <Button variant="light" color="cyan" size="xs" leftSection={<IconUpload size={14} />} onClick={handleUploadTranslations}>
+                {t('project_management.upload_translations')}
+              </Button>
+            </Tooltip>
+            <Tooltip label={t('project_management.tooltip_refresh')}>
+              <Button variant="light" size="xs" onClick={handleRefreshFiles}>{t('project_management.refresh_files')}</Button>
+            </Tooltip>
             <Badge size="lg">{selectedProject.game_id}</Badge>
           </Group>
         </Group>
       </Paper>
 
-      <Tabs defaultValue="overview" variant="outline" radius="md" style={{ flex: 1, display: 'flex', flexDirection: 'column' }} classNames={{
+      <Tabs value={activeTab} onChange={setActiveTab} variant="outline" radius="md" style={{ flex: 1, display: 'flex', flexDirection: 'column' }} classNames={{
         root: styles.tabsRoot,
         list: styles.tabsList,
         panel: styles.tabsPanel
       }}>
         <Tabs.List style={{ paddingLeft: '1rem', paddingTop: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
-          <Tabs.Tab value="overview">{t('homepage_chart_pie_title')}</Tabs.Tab>
-          <Tabs.Tab value="taskboard" id="kanban-tab-control">任务看板</Tabs.Tab>
+          <Tabs.Tab value="overview">{t('project_management.tabs_overview')}</Tabs.Tab>
+          <Tabs.Tab value="taskboard" id="kanban-tab-control">{t('project_management.tabs_kanban')}</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="overview" style={{ flex: 1, overflow: 'hidden', padding: '1rem', minHeight: 0 }}>
@@ -471,6 +541,7 @@ export default function ProjectManagement() {
               projectDetails={projectDetails}
               handleProofread={handleProofread}
               handleStatusChange={handleUpdateStatus}
+              onFileStatusChange={handleFileStatusChange}
               handleNotesChange={handleUpdateNotes}
               onPathsUpdated={() => fetchProjectFiles(selectedProject.project_id)}
               onDeleteForever={() => setDeleteModalOpen(true)}
@@ -498,27 +569,27 @@ export default function ProjectManagement() {
       >
         <Stack>
           <TextInput
-            label="Project Name"
-            placeholder="My Awesome Mod"
+            label={t('form_label_project_name')}
+            placeholder={t('form_placeholder_project_name')}
             value={newProjectName}
             onChange={(e) => setNewProjectName(e.currentTarget.value)}
           />
           <Group align="flex-end">
             <TextInput
-              label="Folder Path"
-              placeholder="C:/Mods/MyMod"
-              description="Select the root folder of your mod."
+              label={t('form_label_folder_path')}
+              placeholder={t('form_placeholder_folder_path')}
+              description={t('form_desc_folder_path')}
               value={newProjectPath}
               onChange={(e) => setNewProjectPath(e.currentTarget.value)}
               style={{ flex: 1 }}
             />
             <Button onClick={handleBrowseFolder} leftSection={<IconFolder size={16} />}>
-              Browse
+              {t('btn_browse')}
             </Button>
           </Group>
           <Select
-            label="Game"
-            data={[
+            label={t('form_label_game')}
+            data={availableGames.length > 0 ? availableGames : [
               { value: 'stellaris', label: 'Stellaris' },
               { value: 'hoi4', label: 'Hearts of Iron IV' },
               { value: 'vic3', label: 'Victoria 3' },
@@ -529,17 +600,11 @@ export default function ProjectManagement() {
             onChange={(val) => setNewProjectGame(val)}
           />
           <Select
-            label="Source Language"
-            description="The language of the original files (e.g., english)."
-            data={[
-              { value: 'english', label: 'English' },
-              { value: 'simp_chinese', label: 'Simplified Chinese' },
-              { value: 'german', label: 'German' },
-              { value: 'french', label: 'French' },
-              { value: 'russian', label: 'Russian' },
-              { value: 'spanish', label: 'Spanish' },
-              { value: 'japanese', label: 'Japanese' },
-              { value: 'korean', label: 'Korean' }
+            label={t('form_label_source_language')}
+            description={t('form_desc_source_language')}
+            data={availableLanguages.length > 0 ? availableLanguages : [
+              { value: 'en', label: 'English' },
+              { value: 'zh-CN', label: 'Simplified Chinese' }
             ]}
             value={newProjectSourceLang}
             onChange={(val) => setNewProjectSourceLang(val)}
@@ -562,12 +627,12 @@ export default function ProjectManagement() {
       >
         <Stack>
           <Alert color="red" variant="light" icon={<IconAlertTriangle size={16} />}>
-            <Text size="sm" fw={600}>此操作不可撤销！</Text>
-            <Text size="xs" c="dimmed" mt={4}>删除后项目配置将永久丢失，请谨慎操作。</Text>
+            <Text size="sm" fw={600}>{t('project_management.delete_modal_warning')}</Text>
+            <Text size="xs" c="dimmed" mt={4}>{t('project_management.delete_modal_warning_desc')}</Text>
           </Alert>
 
           <Text size="sm">
-            确认要永久删除以下项目吗？
+            {t('project_management.delete_modal_question')}
           </Text>
           <Paper withBorder p="xs" bg="rgba(255, 0, 0, 0.05)">
             <Text size="sm" fw={600}>{selectedProject?.name}</Text>
@@ -579,8 +644,8 @@ export default function ProjectManagement() {
             onChange={(e) => setDeleteSourceFiles(e.currentTarget.checked)}
             label={
               <div>
-                <Text size="sm" fw={600} c="red">同时删除硬盘上的原始文件</Text>
-                <Text size="xs" c="dimmed">如果勾选，将永久删除项目文件夹中的所有原始文件</Text>
+                <Text size="sm" fw={600} c="red">{t('project_management.delete_modal_source_files_label')}</Text>
+                <Text size="xs" c="dimmed">{t('project_management.delete_modal_source_files_desc')}</Text>
               </div>
             }
             color="red"
@@ -593,7 +658,7 @@ export default function ProjectManagement() {
               {t('button_cancel')}
             </Button>
             <Button color="red" leftSection={<IconTrash size={16} />} onClick={handleDeleteForever}>
-              {deleteSourceFiles ? '删除配置 + 原始文件' : '仅删除配置'}
+              {deleteSourceFiles ? t('project_management.delete_modal_btn_with_files') : t('project_management.delete_modal_btn_config_only')}
             </Button>
           </Group>
         </Stack>
@@ -608,7 +673,7 @@ export default function ProjectManagement() {
         <Stack>
           <Select
             label={t('form_label_game')}
-            data={[
+            data={availableGames.length > 0 ? availableGames : [
               { value: 'stellaris', label: 'Stellaris' },
               { value: 'hoi4', label: 'Hearts of Iron IV' },
               { value: 'vic3', label: 'Victoria 3' },
@@ -620,17 +685,11 @@ export default function ProjectManagement() {
           />
           <Select
             label={t('form_label_source_language')}
-            data={[
-              { value: 'english', label: 'English' },
-              { value: 'simp_chinese', label: 'Simplified Chinese' },
-              { value: 'german', label: 'German' },
-              { value: 'french', label: 'French' },
-              { value: 'russian', label: 'Russian' },
-              { value: 'spanish', label: 'Spanish' },
-              { value: 'japanese', label: 'Japanese' },
-              { value: 'korean', label: 'Korean' }
+            data={availableLanguages.length > 0 ? availableLanguages : [
+              { value: 'en', label: 'English' },
+              { value: 'zh-CN', label: 'Simplified Chinese' }
             ]}
-            value={editSourceLang ? editSourceLang.toLowerCase() : ''}
+            value={editSourceLang}
             onChange={setEditSourceLang}
           />
           <Group justify="flex-end" mt="md">

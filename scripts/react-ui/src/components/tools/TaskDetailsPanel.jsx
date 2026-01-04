@@ -47,7 +47,7 @@ export const TaskDetailsPanel = ({ task, onUpdate, onDelete }) => {
     if (!task) return <Text>{t('project_management.details.no_task_selected')}</Text>;
 
     return (
-        <Stack spacing="md" p="xs">
+        <Stack gap="md" p="xs">
             <Group justify="space-between">
                 <Badge
                     color={task.type === 'file' ? 'blue' : 'yellow'}
@@ -82,7 +82,7 @@ export const TaskDetailsPanel = ({ task, onUpdate, onDelete }) => {
 
             {/* File Specific Info */}
             {task.type === 'file' && (
-                <Stack spacing={4}>
+                <Stack gap={4}>
                     <Text size="sm" fw={500} c="dimmed">{t('project_management.details.file_path')}</Text>
                     <Text size="xs" c="dimmed" style={{ wordBreak: 'break-all' }}>
                         {task.filePath}
@@ -104,7 +104,7 @@ export const TaskDetailsPanel = ({ task, onUpdate, onDelete }) => {
                 value={localComments}
                 onChange={handleCommentChange}
             />
-            <Text size="xs" c="dimmed" align="right">
+            <Text size="xs" c="dimmed" ta="right">
                 <IconDeviceFloppy size={12} style={{ marginRight: 4 }} />
                 {t('project_management.details.auto_saving')}
             </Text>

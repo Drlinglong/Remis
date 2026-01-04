@@ -18,7 +18,7 @@ export const KanbanBoard = ({ projectId }) => {
         deleteTask
     } = useKanban(projectId);
 
-    const { setSidebarContent, setSidebarWidth } = useSidebar();
+    const { setSidebarContent, setSidebarWidth, setSidebarCollapsed } = useSidebar();
     const [activeId, setActiveId] = useState(null); // For DragOverlay
 
     // Sensors for drag detection
@@ -71,7 +71,8 @@ export const KanbanBoard = ({ projectId }) => {
                 onDelete={deleteTask}
             />
         );
-        setSidebarWidth(350); // Expand sidebar
+        setSidebarWidth(350);
+        setSidebarCollapsed(false); // Expand sidebar
     };
 
     const handleAddNote = (columnId) => {

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "remis-mod-factory",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "identifier": "com.remis.modfactory",
   "build": {
     "frontendDist": "../dist",
@@ -13,10 +13,13 @@
     "windows": [
       {
         "title": "Remis Mod Factory",
-        "width": 800,
-        "height": 600,
+        "width": 1280,
+        "height": 800,
+        "minWidth": 1024,
+        "minHeight": 720,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "center": true
       }
     ],
     "security": {
@@ -31,10 +34,25 @@
     ],
     "icon": [
       "icons/32x32.png",
+      "icons/64x64.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
+      "icons/icon.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": [
+      "../../reset_user_data.bat"
+    ],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "displayLanguageSelector": true,
+        "languages": [
+          "English",
+          "SimpChinese"
+        ]
+      }
+    }
   }
 }

@@ -1,0 +1,66 @@
+{
+    "metadata": {
+        "description": "Europa Universalis V (Project Caesar) Demo 汉化词典",
+        "sources": [
+            "Remis Demo Mod"
+        ],
+        "last_updated": "2026-01-04T04:15:00+11:00"
+    },
+    "entries": [
+        {
+            "translations": {
+                "en": "Aeterna Roma",
+                "zh-CN": "永恒罗马"
+            },
+            "id": "eu5_aeterna_roma",
+            "metadata": {
+                "part_of_speech": "Noun",
+                "remarks": "拉丁语，意为'永恒的罗马'，代表罗马的不朽精神与永恒荣光"
+            }
+        },
+        {
+            "translations": {
+                "en": "Project Caesar",
+                "zh-CN": "凯撒计划"
+            },
+            "id": "eu5_project_caesar",
+            "metadata": {
+                "part_of_speech": "Noun",
+                "remarks": "经济改革计划的代号，旨在绕过腐败贵族重建帝国经济"
+            }
+        },
+        {
+            "translations": {
+                "en": "Solidus Nova",
+                "zh-CN": "新索利多斯金币"
+            },
+            "id": "eu5_solidus_nova",
+            "metadata": {
+                "part_of_speech": "Noun",
+                "remarks": "新铸造的金币货币，不掺杂铜，由血与铁背书"
+            }
+        },
+        {
+            "translations": {
+                "en": "The Purple Silence",
+                "zh-CN": "紫色静默"
+            },
+            "id": "eu5_purple_silence",
+            "metadata": {
+                "part_of_speech": "Noun",
+                "remarks": "秘密情报网络的名称，其成员携带共和国的pugio（匕首）"
+            }
+        },
+        {
+            "translations": {
+                "en": "Legio Renovatio",
+                "zh-CN": "复兴军团"
+            },
+            "id": "eu5_legio_renovatio",
+            "metadata": {
+                "part_of_speech": "Noun",
+                "remarks": "拉丁语，意为'复兴军团'，代表重建的帝国军事力量"
+            }
+        }
+    ]
+}

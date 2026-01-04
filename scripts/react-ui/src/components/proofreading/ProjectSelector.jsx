@@ -52,7 +52,7 @@ const ProjectSelector = ({
     // Actually, we probably don't need to force reset, but let's ensure the selector shows the right specific value.
 
     return (
-        <Group spacing="xs" noWrap align="center">
+        <Group gap="xs" wrap="nowrap" align="center">
             {/* Game Filter */}
             <Select
                 placeholder={t('common.filter_game')}

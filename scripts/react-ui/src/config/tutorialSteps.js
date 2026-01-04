@@ -48,14 +48,137 @@ export const getTutorialSteps = (t, pageName) => {
                     side: "right",
                     align: 'start'
                 }
+            },
+            {
+                element: '#nav-settings',
+                popover: {
+                    title: t('tutorial.home.settings_link.title'),
+                    description: t('tutorial.home.settings_link.desc'),
+                    side: "right",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#tutorial-sidebar-link',
+                popover: {
+                    title: t('tutorial.home.tutorial_btn.title'),
+                    description: t('tutorial.home.tutorial_btn.desc'),
+                    side: "right",
+                    align: 'start'
+                }
+            }
+        ],
+        'settings': [
+            {
+                element: '#settings-tab-general',
+                popover: {
+                    title: t('tutorial.settings.general.title'),
+                    description: t('tutorial.settings.general.desc'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#settings-theme-group',
+                popover: {
+                    title: t('tutorial.settings.theme.title'),
+                    description: t('tutorial.settings.theme.desc'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#settings-tab-version',
+                popover: {
+                    title: t('tutorial.settings.version.title'),
+                    description: t('tutorial.settings.version.desc'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#settings-tab-api',
+                popover: {
+                    title: t('tutorial.settings.api.title'),
+                    description: t('tutorial.settings.api.desc'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            }
+        ],
+        'settings-api': [
+            {
+                element: '#api-storage-info',
+                popover: {
+                    title: t('tutorial.settings.api_guide.title'),
+                    description: t('tutorial.settings.api_guide.desc'),
+                    side: "bottom",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#api-providers-accordion',
+                popover: {
+                    title: t('tutorial.settings.api.title'),
+                    description: t('tutorial.settings.api.desc'),
+                    side: "bottom",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#api-providers-accordion',
+                popover: {
+                    title: t('tutorial.settings.api_regions.title'),
+                    description: t('tutorial.settings.api_regions.desc'),
+                    side: "bottom",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#api-provider-card-gemini',
+                popover: {
+                    title: t('tutorial.settings.api_provider.title'),
+                    description: t('tutorial.settings.api_provider.desc'),
+                    side: "right",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#api-provider-card-gemini',
+                popover: {
+                    title: t('tutorial.settings.api_cost.title'),
+                    description: t('tutorial.settings.api_cost.desc'),
+                    side: "right",
+                    align: 'start'
+                }
+            }
+        ],
+        'tools': [
+            {
+                element: '#thumbnail-toolbox',
+                popover: {
+                    title: t('tutorial.tools.thumbnail.toolbox.title'),
+                    description: t('tutorial.tools.thumbnail.toolbox.desc'),
+                    side: "right",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#thumbnail-upload-area',
+                popover: {
+                    title: t('tutorial.tools.thumbnail.drag.title'),
+                    description: t('tutorial.tools.thumbnail.drag.desc'),
+                    side: "top",
+                    align: 'center'
+                }
             }
         ],
         'project-management': [ // Fallback
             {
                 element: '#project-list-container',
                 popover: {
-                    title: t('tutorial.project_management.list.title', 'Project List'),
-                    description: t('tutorial.project_management.list.desc', 'View and manage all your localization projects here.'),
+                    title: t('tutorial.project_management.list.title'),
+                    description: t('tutorial.project_management.list.desc'),
                     side: "bottom",
                     align: 'center'
                 }
@@ -63,32 +186,41 @@ export const getTutorialSteps = (t, pageName) => {
         ],
         'project-management-list': [
             {
-                element: '#project-list-container',
+                element: '#create-project-btn',
                 popover: {
-                    title: t('tutorial.project_management.list.title', 'Project List'),
-                    description: t('tutorial.project_management.list.desc', 'View and manage all your localization projects here.'),
-                    side: "bottom",
-                    align: 'center'
+                    title: t('tutorial.project_management.create.title'),
+                    description: t('tutorial.project_management.create.desc'),
+                    side: "right",
+                    align: 'start'
                 }
             },
             {
-                element: '#create-project-btn',
+                element: '#project-list-container',
                 popover: {
-                    title: t('tutorial.project_management.create.title', 'Create Project'),
-                    description: t('tutorial.project_management.create.desc', 'Click here to start a new localization project from a folder.'),
-                    side: "right",
-                    align: 'start'
+                    title: t('tutorial.project_management.list.title'),
+                    description: t('tutorial.project_management.list.desc'),
+                    side: "bottom",
+                    align: 'center'
                 }
             }
         ],
         'project-management-dashboard': [
             {
-                element: '#new-task-btn',
+                element: '#project-stats-grid',
                 popover: {
-                    title: t('tutorial.project_management.new_task.title'),
-                    description: t('tutorial.project_management.new_task.desc'),
-                    side: "right",
-                    align: 'start'
+                    title: t('tutorial.project_management.stats.title'),
+                    description: t('tutorial.project_management.stats.desc'),
+                    side: "bottom",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#start-translation-btn',
+                popover: {
+                    title: t('tutorial.project_management.start.title'),
+                    description: t('tutorial.project_management.start.desc'),
+                    side: "left",
+                    align: 'center'
                 }
             },
             {
@@ -103,8 +235,8 @@ export const getTutorialSteps = (t, pageName) => {
             {
                 element: '#kanban-tab-control',
                 popover: {
-                    title: t('tutorial.project_management.tabs.title', 'Task Board'),
-                    description: t('tutorial.project_management.tabs.desc', 'Switch to the Task Board tab to see your Kanban board.'),
+                    title: t('tutorial.project_management.tabs.title'),
+                    description: t('tutorial.project_management.tabs.desc'),
                     side: "bottom",
                     align: 'center'
                 }
@@ -114,8 +246,8 @@ export const getTutorialSteps = (t, pageName) => {
             {
                 element: '#translation-project-list',
                 popover: {
-                    title: t('tutorial.translation.select.title', 'Select Project'),
-                    description: t('tutorial.translation.select.desc', 'Please select a project to begin the translation process.'),
+                    title: t('tutorial.translation.select.title'),
+                    description: t('tutorial.translation.select.desc'),
                     side: "bottom",
                     align: 'center'
                 }
@@ -125,8 +257,8 @@ export const getTutorialSteps = (t, pageName) => {
             {
                 element: '#translation-config-card',
                 popover: {
-                    title: t('tutorial.translation.config.title', 'Configure Translation'),
-                    description: t('tutorial.translation.config.desc', 'Set up your source/target languages and choosing an AI model.'),
+                    title: t('tutorial.translation.config.title'),
+                    description: t('tutorial.translation.config.desc'),
                     side: "right",
                     align: 'start'
                 }
@@ -134,8 +266,8 @@ export const getTutorialSteps = (t, pageName) => {
             {
                 element: '#translation-start-btn',
                 popover: {
-                    title: t('tutorial.translation.start.title', 'Start Batch'),
-                    description: t('tutorial.translation.start.desc', 'Click this to begin the automated translation batch.'),
+                    title: t('tutorial.translation.start.title'),
+                    description: t('tutorial.translation.start.desc'),
                     side: "top",
                     align: 'end'
                 }
@@ -145,8 +277,8 @@ export const getTutorialSteps = (t, pageName) => {
             {
                 element: '#task-runner-container',
                 popover: {
-                    title: t('tutorial.translation.processing.title', 'Processing'),
-                    description: t('tutorial.translation.processing.desc', 'The AI is now translating your files. You can watch the real-time logs here.'),
+                    title: t('tutorial.translation.processing.title'),
+                    description: t('tutorial.translation.processing.desc'),
                     side: "top",
                     align: 'center'
                 }

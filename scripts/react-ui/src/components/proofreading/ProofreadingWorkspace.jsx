@@ -58,13 +58,13 @@ const ProofreadingWorkspace = ({
 
     return (
         <>
-            <Stack spacing="xs" mb="xs">
-                <Group position="apart">
-                    <Group spacing="xs">
+            <Stack gap="xs" mb="xs">
+                <Group justify="space-between">
+                    <Group gap="xs">
                         <Text size="sm" c="dimmed">{t('proofreading.mode.soft_protection')}</Text>
                     </Group>
 
-                    <Group spacing="xs">
+                    <Group gap="xs">
                         <Tooltip label="Errors">
                             <Badge color="red" leftSection={<IconX size={10} />} size="sm">{stats.error}</Badge>
                         </Tooltip>
@@ -154,7 +154,7 @@ const ProofreadingWorkspace = ({
                             style={{ marginBottom: 8, padding: '6px', minHeight: '52px', display: 'flex', alignItems: 'center' }}
                             styles={{ message: { marginTop: 0 } }}
                         >
-                            <Stack spacing={0}>
+                            <Stack gap={0}>
                                 <Text size="xs" c="dimmed" fw={500}>
                                     {t('proofreading.hint.final_source')}
                                 </Text>
@@ -180,9 +180,9 @@ const ProofreadingWorkspace = ({
             {validationResults.length > 0 && (
                 <Paper withBorder p="xs" mt="xs" h={120} style={{ overflowY: 'auto' }}>
                     <Text fw={500} size="sm" mb="xs">{t('proofreading.validation_results')}</Text>
-                    <Stack spacing={4}>
+                    <Stack gap={4}>
                         {validationResults.map((res, idx) => (
-                            <Group key={idx} spacing="xs" noWrap>
+                            <Group key={idx} gap="xs" wrap="nowrap">
                                 <Badge color={res.level === 'error' ? 'red' : 'yellow'} size="xs">
                                     {res.level.toUpperCase()}
                                 </Badge>

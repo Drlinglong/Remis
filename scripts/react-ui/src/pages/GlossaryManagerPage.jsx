@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
     Select, Input, Title, Button, Group, LoadingOverlay,
-    Tooltip, Text, Paper, ScrollArea, Table, ActionIcon, Stack
+    Tooltip, Text, Paper, ScrollArea, Table, ActionIcon, Stack,
+    Modal
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconPlus, IconTrash, IconDots } from '@tabler/icons-react';
+import { IconPlus, IconTrash, IconDots, IconTrashX } from '@tabler/icons-react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -27,7 +28,7 @@ import styles from './GlossaryManager.module.css';
  */
 const GlossaryManagerPage = () => {
     const { t } = useTranslation();
-    const { setSidebarWidth } = useSidebar();
+    const { setSidebarWidth, setSidebarCollapsed } = useSidebar();
     const { setPageContext } = useTutorial();
 
     useEffect(() => {
@@ -42,11 +43,13 @@ const GlossaryManagerPage = () => {
     const [isFileCreateModalVisible, setIsFileCreateModalVisible] = useState(false);
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
     const [deletingItemId, setDeletingItemId] = useState(null);
+    const [isDeleteGlossaryModalVisible, setIsDeleteGlossaryModalVisible] = useState(false);
 
     // 行点击处理
     const handleRowClick = (entry) => {
         setSelectedTerm(entry);
         setSidebarWidth(450);
+        setSidebarCollapsed(false);
     };
 
     // 关闭面板
@@ -55,7 +58,7 @@ const GlossaryManagerPage = () => {
         setSidebarWidth(300);
     };
 
-    // 删除确认
+    // 删除词条确认
     const showDeleteModal = (id) => {
         setDeletingItemId(id);
         setIsDeleteModalVisible(true);
@@ -69,6 +72,15 @@ const GlossaryManagerPage = () => {
             if (selectedTerm && selectedTerm.id === deletingItemId) {
                 setSelectedTerm(null);
             }
+        }
+    };
+
+    // 删除整本词典确认
+    const handleDeleteGlossaryConfirm = async () => {
+        const success = await glossary.handleDeleteGlossary();
+        if (success) {
+            setIsDeleteGlossaryModalVisible(false);
+            setSelectedTerm(null);
         }
     };
 
@@ -187,13 +199,26 @@ const GlossaryManagerPage = () => {
                                     ? glossary.selectedFile.title
                                     : t('glossary_select_file_prompt')}
                             </Title>
-                            <Button
-                                leftSection={<IconPlus size={16} />}
-                                onClick={() => handleRowClick({})}
-                                disabled={!glossary.selectedFile.key}
-                            >
-                                {t('glossary_add_entry')}
-                            </Button>
+                            <Group gap="xs">
+                                <Button
+                                    leftSection={<IconPlus size={16} />}
+                                    onClick={() => handleRowClick({})}
+                                    disabled={!glossary.selectedFile.key}
+                                >
+                                    {t('glossary_add_entry')}
+                                </Button>
+                                <Tooltip label={t('glossary_delete_glossary_tooltip')}>
+                                    <Button
+                                        color="red"
+                                        variant="outline"
+                                        leftSection={<IconTrashX size={16} />}
+                                        onClick={() => setIsDeleteGlossaryModalVisible(true)}
+                                        disabled={!glossary.selectedFile.key}
+                                    >
+                                        {t('glossary_delete_glossary')}
+                                    </Button>
+                                </Tooltip>
+                            </Group>
                         </Group>
 
                         <Group mb="md" gap="xs">
@@ -318,6 +343,26 @@ const GlossaryManagerPage = () => {
                 selectedTargetLang={glossary.selectedTargetLang}
                 isSaving={glossary.isSaving}
             />
+
+            {/* Delete Glossary Confirmation Modal */}
+            <Modal
+                opened={isDeleteGlossaryModalVisible}
+                onClose={() => setIsDeleteGlossaryModalVisible(false)}
+                title={t('glossary_delete_glossary_confirm_title')}
+                centered
+            >
+                <Text mb="lg">
+                    {t('glossary_delete_glossary_confirm_message', { name: glossary.selectedFile.title })}
+                </Text>
+                <Group justify="flex-end">
+                    <Button variant="default" onClick={() => setIsDeleteGlossaryModalVisible(false)}>
+                        {t('cancel')}
+                    </Button>
+                    <Button color="red" onClick={handleDeleteGlossaryConfirm} loading={glossary.isSaving}>
+                        {t('btn_confirm_reset')}
+                    </Button>
+                </Group>
+            </Modal>
         </div>
     );
 };

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../utils/api';
 
 const API_BASE = '/api';
 
@@ -18,7 +18,7 @@ export const useKanban = (projectId) => {
         const loadData = async () => {
             setIsLoading(true);
             try {
-                const res = await axios.get(`${API_BASE}/project/${projectId}/kanban`);
+                const res = await api.get(`${API_BASE}/project/${projectId}/kanban`);
                 const data = res.data;
 
                 if (data.tasks) {
@@ -46,7 +46,7 @@ export const useKanban = (projectId) => {
         newTasks.forEach(t => tasksMap[t.id] = t);
 
         try {
-            await axios.post(`${API_BASE}/project/${projectId}/kanban`, {
+            await api.post(`${API_BASE}/project/${projectId}/kanban`, {
                 tasks: tasksMap,
                 columns: newColumns || columns, // Ensure we save columns even if not passed
                 column_order: newColumns || columns
@@ -109,9 +109,9 @@ export const useKanban = (projectId) => {
         setIsLoading(true);
         try {
             // Trigger backend refresh
-            await axios.post(`${API_BASE}/project/${projectId}/refresh`);
+            await api.post(`${API_BASE}/project/${projectId}/refresh`);
             // Reload data
-            const res = await axios.get(`${API_BASE}/project/${projectId}/kanban`);
+            const res = await api.get(`${API_BASE}/project/${projectId}/kanban`);
             const data = res.data;
             if (data.tasks) setTasks(Object.values(data.tasks));
             if (data.column_order) setColumns(data.column_order);

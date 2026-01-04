@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { notifications } from '@mantine/notifications';
-import axios from 'axios';
+import { usePersistentState } from './usePersistentState';
+import api from '../utils/api';
 
 /**
  * 词典管理的数据和操作 Hook
@@ -10,18 +11,18 @@ const useGlossaryActions = () => {
     // ==================== 状态 ====================
     const [treeData, setTreeData] = useState([]);
     const [data, setData] = useState([]);
-    const [selectedGame, setSelectedGame] = useState(null);
-    const [selectedFile, setSelectedFile] = useState({
+    const [selectedGame, setSelectedGame] = usePersistentState('glossary_selected_game', null);
+    const [selectedFile, setSelectedFile] = usePersistentState('glossary_selected_file', {
         key: null,
         title: 'No file selected',
         gameId: null,
         glossaryId: null
     });
     const [targetLanguages, setTargetLanguages] = useState([]);
-    const [selectedTargetLang, setSelectedTargetLang] = useState('');
-    const [searchScope, setSearchScope] = useState('file');
-    const [filtering, setFiltering] = useState('');
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 });
+    const [selectedTargetLang, setSelectedTargetLang] = usePersistentState('glossary_target_lang', '');
+    const [searchScope, setSearchScope] = usePersistentState('glossary_search_scope', 'file');
+    const [filtering, setFiltering] = usePersistentState('glossary_filtering', '');
+    const [pagination, setPagination] = usePersistentState('glossary_pagination', { pageIndex: 0, pageSize: 25 });
     const [rowCount, setRowCount] = useState(0);
 
     const [isLoadingTree, setIsLoadingTree] = useState(true);
@@ -34,8 +35,8 @@ const useGlossaryActions = () => {
             setIsLoadingTree(true);
             try {
                 const [treeResponse, configResponse] = await Promise.all([
-                    axios.get('/api/glossary/tree'),
-                    axios.get('/api/config')
+                    api.get('/api/glossary/tree'),
+                    api.get('/api/config')
                 ]);
 
                 setTreeData(treeResponse.data);
@@ -78,7 +79,7 @@ const useGlossaryActions = () => {
                     setIsLoadingContent(false);
                     return;
                 }
-                response = await axios.get(
+                response = await api.get(
                     `/api/glossary/content?glossary_id=${selectedFile.glossaryId}&page=${pageIndex + 1}&pageSize=${pageSize}`
                 );
             } else {
@@ -99,7 +100,7 @@ const useGlossaryActions = () => {
                     return;
                 }
 
-                response = await axios.post('/api/glossary/search', payload);
+                response = await api.post('/api/glossary/search', payload);
             }
 
             setData(response.data.entries);
@@ -145,9 +146,9 @@ const useGlossaryActions = () => {
         setIsSaving(true);
         try {
             if (payload.id) {
-                await axios.put(`/api/glossary/entry/${payload.id}`, payload);
+                await api.put(`/api/glossary/entry/${payload.id}`, payload);
             } else {
-                await axios.post(
+                await api.post(
                     `/api/glossary/entry?glossary_id=${selectedFile.glossaryId}`,
                     payload
                 );
@@ -176,7 +177,7 @@ const useGlossaryActions = () => {
     const handleDelete = async (id) => {
         setIsSaving(true);
         try {
-            await axios.delete(`/api/glossary/entry/${id}`);
+            await api.delete(`/api/glossary/entry/${id}`);
 
             notifications.show({
                 title: 'Success',
@@ -211,7 +212,7 @@ const useGlossaryActions = () => {
 
         setIsSaving(true);
         try {
-            await axios.post('/api/glossary/file', {
+            await api.post('/api/glossary/file', {
                 game_id: selectedGame,
                 file_name: fileName
             });
@@ -223,7 +224,7 @@ const useGlossaryActions = () => {
             });
 
             // Reload tree
-            const treeResponse = await axios.get('/api/glossary/tree');
+            const treeResponse = await api.get('/api/glossary/tree');
             setTreeData(treeResponse.data);
 
             return true;
@@ -231,6 +232,40 @@ const useGlossaryActions = () => {
             notifications.show({
                 title: 'Error',
                 message: 'Failed to create file.',
+                color: 'red'
+            });
+            return false;
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDeleteGlossary = async () => {
+        if (!selectedFile.glossaryId) return false;
+
+        setIsSaving(true);
+        try {
+            await api.delete(`/api/glossary/file/${selectedFile.glossaryId}`);
+
+            notifications.show({
+                title: 'Success',
+                message: 'Glossary deleted successfully!',
+                color: 'green'
+            });
+
+            // Reset selection and reload tree
+            setSelectedFile({ key: null, title: 'No file selected', gameId: null, glossaryId: null });
+            setData([]);
+            setRowCount(0);
+
+            const treeResponse = await api.get('/api/glossary/tree');
+            setTreeData(treeResponse.data);
+
+            return true;
+        } catch (error) {
+            notifications.show({
+                title: 'Error',
+                message: 'Failed to delete glossary.',
                 color: 'red'
             });
             return false;
@@ -268,6 +303,7 @@ const useGlossaryActions = () => {
         handleSave,
         handleDelete,
         handleCreateFile,
+        handleDeleteGlossary,
         fetchGlossaryContent,
     };
 };

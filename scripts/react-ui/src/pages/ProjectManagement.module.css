@@ -5,12 +5,13 @@
     display: flex;
     gap: 1rem;
     padding: 1rem;
-    /* Remove header height (approx 60-80px) from viewport height */
-    height: calc(100vh - 80px);
+    height: 100%;
+    /* Take full height of parent */
     overflow-x: auto;
-    overflow-y: auto;
+    overflow-y: hidden;
+    /* Vertical scroll should be on taskList */
     width: 100%;
-    /* Use flex-start alignment so columns don't stretch weirdly if content is short */
+    min-width: 0;
     align-items: flex-start;
 }
 
@@ -131,21 +132,182 @@
     color: var(--text-main);
 }
 
-/* --- Added for ProjectFileList --- */
+/* --- Added for ProjectFileList & General Cards --- */
 .glassCard {
-    background: var(--glass-bg, rgba(30, 30, 30, 0.6));
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--glass-bg, rgba(30, 30, 30, 0.6)) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1)) !important;
+    border-radius: var(--card-radius, 12px) !important;
+    box-shadow: var(--shadow-elevation, 0 8px 32px rgba(0, 0, 0, 0.2)) !important;
+    color: var(--text-main) !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
 }
 
-.table {
-    /* Ensure table doesn't overflow or block clicks */
-    width: 100%;
-    border-collapse: collapse;
+.glassCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
-.table thead tr th {
-    background-color: rgba(0, 0, 0, 0.2) !important; /* Force darker header */
-    color: var(--text-highlight);
+.actionCard {
+    background: var(--glass-bg, rgba(30, 30, 30, 0.6)) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1)) !important;
+    border-radius: var(--card-radius, 12px) !important;
+    box-shadow: var(--shadow-elevation, 0 8px 32px rgba(0, 0, 0, 0.2)) !important;
+    color: var(--text-main) !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+    cursor: pointer;
+}
+
+.projectCard {
+    background: var(--glass-bg, rgba(30, 30, 30, 0.6)) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1)) !important;
+    border-radius: var(--card-radius, 12px) !important;
+    box-shadow: var(--shadow-elevation, 0 8px 32px rgba(0, 0, 0, 0.2)) !important;
+    color: var(--text-main) !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+    cursor: pointer;
+}
+
+.projectTitle {
+    color: var(--text-main);
+    font-family: var(--font-header);
+    font-weight: 600;
+}
+
+.heroTitle {
+    color: #fff !important;
+    font-size: 3.5rem !important;
+    font-weight: 900 !important;
+    text-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(0, 0, 0, 0.3) !important;
+    font-family: var(--font-header);
+    letter-spacing: 1px;
+}
+
+.heroSubtitle {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 500 !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 12px;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+    display: inline-block;
+}
+
+/* Byzantine Contrast Fix */
+:global([data-theme='byzantine']) .projectTitle {
+    color: var(--text-highlight) !important;
+}
+
+/* Force better readability for dimmed text in Byzantine */
+:global([data-theme='byzantine']) .mantine-Text-root[data-dimmed="true"] {
+    color: var(--text-muted) !important;
+}
+
+:global([data-theme='byzantine']) :where(.mantine-Text-root, .mantine-Title-root) {
+    color: var(--text-main);
+}
+
+.tabsRoot {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.tabsPanel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* --- Start Translation Button Aesthetics --- */
+@keyframes pulseGlow {
+    0% {
+        box-shadow: 0 0 5px rgba(0, 188, 212, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(0, 188, 212, 0.6);
+    }
+
+    100% {
+        box-shadow: 0 0 5px rgba(0, 188, 212, 0.2);
+    }
+}
+
+@keyframes shimmerPulse {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.startTranslationButton {
+    background: linear-gradient(135deg,
+            var(--mantine-color-indigo-6) 0%,
+            var(--mantine-color-cyan-5) 50%,
+            var(--mantine-color-indigo-6) 100%) !important;
+    background-size: 200% auto !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    animation: pulseGlow 3s infinite ease-in-out !important;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px !important;
+}
+
+.startTranslationButton:hover {
+    background-position: right center !important;
+    transform: translateY(-4px) scale(1.02) !important;
+    box-shadow: 0 12px 28px rgba(0, 188, 212, 0.45) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.startTranslationButton:active {
+    transform: translateY(-1px) scale(0.98) !important;
+    box-shadow: 0 4px 10px rgba(0, 188, 212, 0.3) !important;
+}
+
+.startTranslationButton::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(to bottom right,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0) 40%,
+            rgba(255, 255, 255, 0.15) 50%,
+            rgba(255, 255, 255, 0) 60%,
+            rgba(255, 255, 255, 0) 100%);
+    transform: rotate(45deg);
+    pointer-events: none;
+    animation: shimmerPulse 6s infinite linear;
+}
+
+.startBtnLabel {
+    font-size: 1.4rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 2px !important;
+    text-transform: uppercase;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.startBtnIcon {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }

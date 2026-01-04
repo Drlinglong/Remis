@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Stack, Group, Title, ActionIcon, Text, Paper } from '@mantine/core';
 import { IconX, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../../utils/api';
 import { useSidebar } from '../../context/SidebarContext';
 
 const ProjectSidebar = ({ projectId, onDeleteNote }) => {
@@ -12,7 +12,7 @@ const ProjectSidebar = ({ projectId, onDeleteNote }) => {
 
     const fetchHistory = async () => {
         try {
-            const res = await axios.get(`/api/project/${projectId}/notes`);
+            const res = await api.get(`/api/project/${projectId}/notes`);
             setHistory(res.data);
         } catch (error) {
             console.error("Failed to load notes history", error);

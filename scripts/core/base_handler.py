@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 
 from scripts.utils import i18n
-from scripts.app_settings import MAX_RETRIES, FALLBACK_FORMAT_PROMPT
+from scripts.app_settings import MAX_RETRIES, FALLBACK_FORMAT_PROMPT, APP_DATA_DIR
 from scripts.core.parallel_processor import BatchTask
 from scripts.utils.punctuation_handler import generate_punctuation_prompt
 from scripts.core.glossary_manager import glossary_manager
@@ -103,7 +103,17 @@ class BaseApiHandler(ABC):
         )
 
         glossary_prompt_part = ""
-        if glossary_manager.get_glossary_for_translation():
+        # [DEBUG] Check glossary state before extraction
+        loaded_glossary = glossary_manager.get_glossary_for_translation()
+        if loaded_glossary:
+            entry_count = len(loaded_glossary.get('entries', []))
+            self.logger.info(f"[DEBUG-HANDLER] Glossary loaded with {entry_count} entries. Attempting extraction...")
+            if entry_count == 0:
+                self.logger.warning(f"[DEBUG-HANDLER] Glossary object exists but has 0 entries!")
+        else:
+            self.logger.info(f"[DEBUG-HANDLER] No glossary loaded (get_glossary_for_translation returned None).")
+
+        if loaded_glossary:
             relevant_terms = glossary_manager.extract_relevant_terms(
                 chunk, source_lang["code"], target_lang["code"]
             )
@@ -143,7 +153,33 @@ class BaseApiHandler(ABC):
                 "- Ensure the JSON format is strictly followed.\n"
             )
 
+        import os
+        import locale
+        import sys
+        
         prompt = base_prompt + context_prompt_part + glossary_prompt_part + format_prompt_part + punctuation_prompt_part + final_warning
+        
+        # [DEBUG] Save prompt to a temporary file in the AppData root (more reliable for frozen apps)
+        try:
+            debug_path = os.path.join(APP_DATA_DIR, "debug_prompt.txt")
+            with open(debug_path, "a", encoding="utf-8") as f:
+                import datetime
+                timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                sys_enc = sys.getdefaultencoding()
+                loc_enc = locale.getpreferredencoding()
+                
+                f.write(f"\n--- [{timestamp}] BATCH START (Game: {game_profile['id']}) ---\n")
+                f.write(f"DEBUG INFO: sys_enc={sys_enc}, loc_enc={loc_enc}, frozen={getattr(sys, 'frozen', False)}\n")
+                if glossary_prompt_part:
+                    f.write(f"GLOSSARY DETECTED (Len: {len(glossary_prompt_part)})\n")
+                else:
+                    f.write("NO GLOSSARY INJECTED\n")
+                
+                f.write(prompt)
+                f.write(f"\n\n--- BATCH END ---\n")
+        except Exception as de:
+            self.logger.error(f"Failed to write debug prompt: {de}")
+            
         return prompt
 
     def _parse_response(self, response: str, original_texts: list[str], target_lang_code: str) -> list[str] | None:
@@ -168,6 +204,9 @@ class BaseApiHandler(ABC):
 
         for attempt in range(MAX_RETRIES):
             try:
+                # Apply global rate limiting
+                from scripts.utils.rate_limiter import rate_limiter
+                rate_limiter.wait()
 
                 raw_response = self._call_api(self.client, prompt)
                 translated_texts = self._parse_response(raw_response, task.texts, task.file_task.target_lang["code"])

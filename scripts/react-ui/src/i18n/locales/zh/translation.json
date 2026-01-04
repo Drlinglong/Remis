@@ -1,4 +1,27 @@
 {
+  "settings_system_maintenance": "系统维护",
+  "settings_reset_db_title": "重置项目数据库",
+  "settings_reset_db_desc": "清空所有内部项目记录。主要针对数据库出现异常状态或卡死时使用。此操作安全：不会删除磁盘上的任何文件。",
+  "modal_reset_db_title": "⚠️ 危险：重置项目数据库",
+  "modal_reset_db_confirm_text": "您确定要清空内部数据库吗？",
+  "modal_reset_db_impact_title": "此操作将：",
+  "modal_reset_db_impact_1": "从“最近打开”列表中移除所有项目。",
+  "modal_reset_db_impact_2": "清除仪表盘中的所有文件状态（待办/完成/校对）。",
+  "modal_reset_db_safe_title": "此操作将不会：",
+  "modal_reset_db_safe_1": "删除您的翻译成果。",
+  "modal_reset_db_safe_2": "删除您的源文件。",
+  "modal_reset_db_safe_3": "修改磁盘上的任何文件。",
+  "btn_reset_db": "重置数据库",
+  "settings_api_label_key": "密钥 (Key):",
+  "settings_api_label_model": "模型 (Model):",
+  "settings_api_label_url": "接口地址 (URL):",
+  "settings_api_label_configure": "配置",
+  "settings_api_label_configuration": "详细配置",
+  "btn_confirm_reset": "确认重置",
+  "enter_system": "进入系统",
+  "splash_language_menu": "语言菜单",
+  "msg_reset_success": "数据库已成功重置。应用程序将重新加载。",
+  "msg_reset_fail": "重置数据库失败：",
   "progress_translating_model": "正在使用 {{model}} 模型翻译 {{total_files}} 个文件中的 {{total_batches}} 个批次...",
   "progress_status": "已经完成了 {{processed_files}} 个文件，{{completed_batches}} 个批次，还剩下 {{remaining_files}} 个文件，{{remaining_batches}} 个批次",
   "translation_completed": "翻译完成！",
@@ -44,6 +67,8 @@
   "common.nothing_found": "未找到结果",
   "settings_language": "语言",
   "settings_theme": "主题",
+  "settings_rpm_limit": "API RPM 限制 (全局)",
+  "settings_rpm_limit_desc": "每分钟最大并发请求数 (所有模型共享)",
   "theme_light": "浅色",
   "theme_dark": "深色",
   "theme_victorian": "维多利亚",
@@ -61,20 +86,45 @@
   "homepage_chart_pie_title": "项目状态概览",
   "homepage_chart_bar_title": "游戏术语库分析",
   "homepage_pie_chart_translated": "已翻译",
-  "homepage_pie_chart_proofreading": "待校对",
+  "homepage_pie_chart_proofreading": "校对中",
   "homepage_pie_chart_untranslated": "未翻译",
   "homepage_bar_chart_terms": "术语数量",
   "homepage_slogans": [
     "维多利亚3：经济的轰鸣，时代的眼泪",
     "群星：仰望星空，脚踏...等等，我们没有脚",
-    "钢铁雄心4：今天的意大利面，决定了明天的罗马"
+    "钢铁雄心4：今天的意大利面，决定了明天的罗马",
+    "欧陆风云4：再打最后一仗...咦，天亮了？",
+    "十字军之王3：我的附庸的附庸，不是我的附庸",
+    "钢铁雄心4：大洗澡（大清洗）后，我们的将领现在更忠诚了（也更少了）",
+    "欧陆风云5：请记住，这是一个关于‘地理’的游戏",
+    "维多利亚3：生活水平提高后，底层民众的脾气也见涨了"
   ],
+  "homepage_greetings": {
+    "morning": [
+      "早安，陛下。",
+      "元帅，前线捷报已至。",
+      "晨安，枢密院成员们正在等待您的指示。",
+      "帝国已经准备好迎接新的一天了。"
+    ],
+    "afternoon": [
+      "午安，陛下。",
+      "欢迎回来，主管，科研船发现了一些有趣的东西。",
+      "今天的下午茶时间，我们要讨论一下香料贸易吗？",
+      "时代的巨轮正在滚动，阁下。"
+    ],
+    "evening": [
+      "晚安，阁下。明天我们再谈如何瓜分欧洲。",
+      "该休息了，陛下。暗杀您的阴谋已经暂时被挫败了。",
+      "星辰指引着我们的归途。",
+      "夜深了，是时候部署秘密警察了。"
+    ]
+  },
   "homepage_quick_links": "快速链接",
   "homepage_quick_link_toolbox": "工具箱",
   "homepage_quick_link_glossary": "词汇表管理",
   "homepage_quick_link_proofreading": "校对",
   "homepage_stat_total_projects": "项目总数",
-  "homepage_stat_words_translated": "已翻译词数",
+  "homepage_stat_words_translated": "已翻译文件数",
   "homepage_stat_active_tasks": "活跃任务",
   "homepage_stat_completion_rate": "完成率",
   "game_name_vic3": "维多利亚3",
@@ -97,6 +147,11 @@
   "glossary_variants": "变体",
   "glossary_actions": "操作",
   "glossary_delete_confirm": "您确定要删除此词条吗？",
+  "glossary_delete_glossary": "删除词典",
+  "glossary_delete_glossary_tooltip": "删除整本词典及其所有词条",
+  "glossary_delete_glossary_confirm_title": "确认删除词典",
+  "glossary_delete_glossary_confirm_message": "您确定要删除词典 \"{{name}}\" 吗？此操作将删除该词典中的所有词条，且不可撤销。",
+  "cancel": "取消",
   "glossary_no_file_selected": "未选择文件",
   "glossary_edit_entry": "编辑词条",
   "glossary_variants_tooltip": "使用逗号分隔多个变体",
@@ -118,6 +173,8 @@
   "placeholder_event_renderer_description": "这里是事件渲染器工具的占位符。",
   "page_title_ui_debugger": "UI调试器",
   "placeholder_ui_debugger_description": "这里是UI调试器工具的占位符。",
+  "thumbnail_generator.description": "添加国旗、文本或自定义标识。点击“一键添加所有旗帜”快速生成维多利亚3风格的封面。",
+  "thumbnail_generator.drag_hint": "直接拖放您的项目Logo到此处即可实时预览效果。",
   "thumbnail_generator.toolbox_title": "工具箱",
   "thumbnail_generator.canvas_title": "画布",
   "thumbnail_generator.inspector_title": "属性检查器",
@@ -148,6 +205,16 @@
   "initial_translation_step_configure": "配置",
   "initial_translation_step_translate": "翻译",
   "initial_translation_step_download": "下载",
+  "initial_translation_step_finish": "完成",
+  "initial_translation_step_core_settings": "核心配置",
+  "initial_translation_step_model": "AI 模型",
+  "initial_translation_step_readonly_hint": "如需改动请返回项目管理页面",
+  "form_label_project_name": "项目名称",
+  "form_label_folder_path": "文件夹路径",
+  "form_desc_folder_path": "选择您的 Mod 根目录。也可以直接选择你的创意工坊文件目录，例如：I:\\SteamLibrary\\steamapps\\workshop\\content\\12345678（其中的一串数字是创意工坊物品 ID）。",
+  "form_placeholder_project_name": "例如：我的伟大 Mod",
+  "form_placeholder_folder_path": "C:/Mods/MyMod",
+  "btn_browse": "浏览",
   "initial_translation_upload_text": "点击或拖拽 .zip Mod文件到此区域上传",
   "initial_translation_upload_hint": "支持包含您的Mod本地化文件的单个 .zip 文件。",
   "form_label_game": "游戏",
@@ -156,6 +223,7 @@
   "form_label_api_provider": "API供应商",
   "form_placeholder_game": "选择一个游戏",
   "form_placeholder_source_language": "选择源语言",
+  "form_desc_source_language": "原始文件的语言（例如：english）。",
   "form_placeholder_target_languages": "选择目标语言",
   "form_placeholder_api_provider": "选择一个API供应商",
   "form_option_custom_language": "✨ 自定义语言 / 英文套壳...",
@@ -274,6 +342,8 @@
   "form_label_additional_prompt": "额外提示词注入",
   "form_placeholder_additional_prompt": "为 AI 添加自定义指令...",
   "form_label_clean_source": "清理源文件",
+  "form_label_use_resume": "使用断点续传",
+  "form_desc_use_resume": "允许使用断点续传数据库，在上次工作中断的地方继续进行。",
   "warning_clean_source": "警告：这将删除翻译源文件夹中除元数据和本地化文件之外的所有文件和文件夹。请谨慎使用。",
   "tab_import_folder": "导入文件夹",
   "tab_existing_mod": "选择现有 Mod",
@@ -286,6 +356,24 @@
   "settings_general": "常规",
   "settings_api": "API 设置",
   "api_settings_description": "配置各个 AI 提供商的 API 密钥。",
+  "api_group_usa": "国际 / 美国服务",
+  "api_group_china": "中国大陆服务",
+  "api_group_local": "本地模型服务",
+  "api_guide_title": "新手引导：如何获取 API Key",
+  "api_guide_what_is_apikey": "API Key 是您访问 AI 服务的通行证。本软件通过它连接到云端的大模型（如 GPT-4, Google Gemini 等）来帮您翻译。没有它，软件就像“断网”了一样无法工作。",
+  "api_guide_video_tutorial": "视频教程",
+  "api_guide_video_desc_1": "如何获取 OpenAI/ChatGPT API Key",
+  "api_guide_video_desc_2": "Google Gemini API Key 免费获取指南",
+  "api_guide_video_deepseek_title": "【什么是API？DeepSeek技巧升级2.0～】",
+  "api_guide_video_deepseek_desc": "B站 DeepSeek API 入门教程",
+  "api_guide_video_beginner_title": "【喂饭包会！快来实现你的第一次大模型API调用！】",
+  "api_guide_video_beginner_desc": "B站 零基础 API 调用教程",
+  "api_guide_video_youtube_1": "DeepSeek API 指南 (英文)",
+  "api_guide_video_youtube_2": "API Key 新手教程 (英文)",
+  "api_guide_warning_title": "重要注意事项",
+  "api_guide_warning_cost": "使用 API 服务（尤其是 OpenAI）通常是按量计费的。您可能需要绑定信用卡。请务必确认服务商的收费标准，以免产生意外费用。",
+  "api_guide_warning_security": "危险：请务必保管好您的 API 密钥！切勿在公开场合（截屏/录屏）泄露。一旦被盗用，攻击者可以刷爆您的额度。如果这是您的个人电脑，我们的软件会将密钥安全地加密存储在本地。",
+  "api_guide_disclaimer": "免责声明：以上视频链接仅作教学推荐，内容非本软件作者制作。视频内容可能随时间推移而过时，请以官方文档为准。",
   "api_settings_storage_info": "API 密钥可以从环境变量中读取，也可以在此处输入。在此处输入的密钥将安全存储在您的用户配置文件 (AppData) 中。",
   "api_key_no_required": "无需密钥",
   "api_key_active": "已配置",
@@ -339,6 +427,8 @@
   "project_management.manage_paths.title": "管理翻译目录",
   "project_management.manage_paths.current_dirs": "当前翻译目录",
   "project_management.manage_paths.no_dirs": "未配置翻译目录",
+  "project_management.source_dir": "源文件目录",
+  "project_management.translation_dir": "翻译输出目录",
   "project_management.manage_paths.add_new": "添加新目录",
   "project_management.manage_paths.placeholder": "输入或浏览目录路径",
   "project_management.manage_paths.browse": "浏览",
@@ -347,7 +437,19 @@
   "project_management.manage_paths.save": "保存更改",
   "project_management.manage_paths_button": "管理路径",
   "project_management.refresh_files": "刷新文件",
+  "project_management.upload_translations": "翻译上载",
+  "project_management.upload_translations_desc": "将磁盘上已有的翻译文件成果同步到数据库（归档），以便未来增量更新时自动服用这些内容。",
+  "project_management.hero_desc": "用蒸汽朋克般的精密感管理您的本地化项目。",
+  "project_management.overview_title": "项目概览",
+  "project_management.manage_project": "项目设置",
+  "project_management.tabs_kanban": "任务看板",
+  "project_management.tabs_overview": "状态概览",
   "project_management.delete_project": "删除项目",
+  "project_management.tooltip_refresh": "如果您在源文件或翻译输出目录中增加或删除了文件，可以在此刷新文件详情列表",
+  "project_management.tooltip_archive": "使用此功能封存项目。已归档项目可以在项目管理 - 档案馆中浏览，或重新让其回到活跃状态。",
+  "project_management.tooltip_manage_paths": "经 Remis 翻译产生的 mod 会被自动添加到翻译输出目录。也可以使用此按钮手动增加翻译输出目录（例如添加你磁盘上已有的翻译文件）。一个项目可以有不止一个翻译目录。",
+  "project_management.tooltip_proofread": "前往校对页面校对此文件",
+  "project_management.tooltip_start_translation": "前往翻译页面开始翻译项目",
   "project_management.actions.create_new": "创建新项目",
   "project_management.actions.create_new_desc": "从本地 Mod 文件夹开始新的翻译之旅。",
   "project_management.actions.archives": "档案馆",
@@ -365,6 +467,13 @@
   "project_management.confirm_archive": "您确定要归档此项目吗？它将移至档案馆。",
   "project_management.confirm_delete_forever": "您确定要永久删除此项目吗？此操作不可撤销。",
   "project_management.confirm_restore": "您确定要恢复此项目吗？",
+  "project_management.delete_modal_warning": "此操作不可撤销！",
+  "project_management.delete_modal_warning_desc": "删除后项目配置将永久丢失，请谨慎操作。",
+  "project_management.delete_modal_question": "确认要永久删除以下项目吗？",
+  "project_management.delete_modal_source_files_label": "同时删除硬盘上的原始文件",
+  "project_management.delete_modal_source_files_desc": "如果勾选，将永久删除项目文件夹中的所有原始文件",
+  "project_management.delete_modal_btn_config_only": "仅删除配置",
+  "project_management.delete_modal_btn_with_files": "删除配置 + 原始文件",
   "project_management.add_note": "添加备注",
   "project_management.view_notes_history": "查看历史备注",
   "project_management.notes_history_title": "备注历史",
@@ -383,11 +492,12 @@
   "project_management.file_list.table.actions": "操作",
   "project_management.file_type.source": "源文件",
   "project_management.file_type.translation": "翻译",
-  "project_management.file_status.todo": "待处理",
-  "project_management.file_status.in_progress": "进行中",
+  "project_management.file_status.todo": "待办",
+  "project_management.file_status.in_progress": "翻译中",
   "project_management.file_status.failed": "翻译失败",
-  "project_management.file_status.done": "已翻译",
+  "project_management.file_status.done": "已完工",
   "project_management.file_status.proofreading": "校对中",
+  "project_management.file_status.paused": "挂起",
   "project_management.overview.total_files": "文件总数",
   "project_management.overview.total_lines": "总行数",
   "project_management.overview.translated": "已翻译",
@@ -510,6 +620,14 @@
       "navigation": {
         "title": "功能导航",
         "desc": "通过左侧边栏切换不同功能模块：从项目看板到高级校对。"
+      },
+      "tutorial_btn": {
+        "title": "教学引导",
+        "desc": "点击这个引导，都能打开对应页面的指导。"
+      },
+      "settings_link": {
+        "title": "系统设置",
+        "desc": "重要：前往此处配置您的 API 密钥，或者自定义工作台的主题样式。"
       }
     },
     "glossary": {
@@ -526,50 +644,7 @@
         "desc": "直接在这里编辑原词、译词及变体，所有更改会实时保存到 SQLite。"
       }
     },
-    "project_management": {
-      "list": {
-        "title": "项目列表",
-        "desc": "在这里查看和管理您的所有本地化项目。"
-      },
-      "create": {
-        "title": "创建项目",
-        "desc": "点击此处从文件夹开始一个新的本地化项目。"
-      },
-      "kanban": {
-        "title": "任务看板",
-        "desc": "直观管理所有本地化项目。支持拖拽任务以更新文件的翻译状态。"
-      },
-      "new_task": {
-        "title": "新建任务",
-        "desc": "除了文件任务，您还可以创建自定义的笔记任务来记录灵感。"
-      },
-      "paths": {
-        "title": "路径管理",
-        "desc": "配置 Mod 的源文件目录与输出目录，实现一键部署的基础。"
-      },
-      "tabs": {
-        "title": "任务看板",
-        "desc": "切换到任务看板标签页查看您的看板。"
-      }
-    },
-    "translation": {
-      "select": {
-        "title": "选择项目",
-        "desc": "请选择一个项目来开始翻译流程。"
-      },
-      "config": {
-        "title": "配置翻译",
-        "desc": "设置源/目标语言并选择 AI 模型。"
-      },
-      "start": {
-        "title": "开始批处理",
-        "desc": "点击此按钮开始自动翻译任务。"
-      },
-      "processing": {
-        "title": "处理中",
-        "desc": "AI 正在翻译您的文件。您可以在此处查看实时日志。"
-      }
-    },
+    "sidebar_tutorial_btn": "教学引导",
     "proofreading": {
       "mod_select": {
         "title": "模块选择",
@@ -584,12 +659,143 @@
         "desc": "运行自动校验，检查缺失标签、损坏变量或术语不一致。"
       }
     },
-    "sidebar_tutorial_btn": "教学引导",
     "auto_start_prompt": {
       "title": "新手引导",
       "message": "检测到您是第一次使用此版本，是否需要开启快速入门教学？",
       "confirm": "开启教学",
       "cancel": "不用了，我自己摸索"
+    },
+    "settings": {
+      "general": {
+        "title": "常规设置",
+        "desc": "切换语言和基本配置项。"
+      },
+      "theme": {
+        "title": "美学风格选择",
+        "desc": "在精心打磨的主题之间切换。每个主题都能彻底改变工作台的氛围，从字体到纹理都各具特色。"
+      },
+      "api": {
+        "title": "API 配置看板",
+        "desc": "在这里您可以管理所有 AI 服务提供商。点击卡片右下角的‘配置’按钮即可开始。”"
+      },
+      "api_guide": {
+        "title": "新手入坑：什么是 API Key？",
+        "desc": "API Key 是访问 AI 服务的通行证。没有它软件无法工作。<br/><br/><b>视频教程:</b><br/>请点击下方的按钮观看 Bilibili 或 YouTube 上的保姆级这一教程。<br/><br/><i>注：视频非本软件作者制作，内容可能过时，仅供参考。</i>"
+      },
+      "api_regions": {
+        "title": "服务商与安全警告",
+        "desc": "提示：使用 API 通常是按量计费的。<b>务必保管好 Key</b>，切勿泄露以防产生巨额账单。您可以根据地区选择：国际 (Google/OpenAI)、中国大陆 (DeepSeek/Qwen) 或本地模型 (Ollama)。"
+      },
+      "api_provider": {
+        "title": "配置服务商",
+        "desc": "点击‘配置’按钮即可填入您的 API 密钥并选择默认的翻译模型（如 gemini-3-flash-preview）。输入完 API Key 记得点击保存。"
+      },
+      "api_cost": {
+        "title": "性价比与配额",
+        "desc": "对于大部分翻译任务，无需使用旗舰模型，可以使用性价比较高的模型。同时我们限制了模型的思考额度，以降低 API 花费。"
+      },
+      "version": {
+        "title": "版本与反馈",
+        "desc": "在这里您可以查看当前版本，快速打开日志文件夹或前往 GitHub Issue 区。我们非常欢迎您提出新功能需求或反馈 Bug（请务必附上日志）。"
+      }
+    },
+    "tools": {
+      "tabs": {
+        "title": "工具箱标签",
+        "desc": "在封面图生成器、工坊描述生成器等不同工具之间切换。"
+      },
+      "thumbnail": {
+        "canvas": {
+          "title": "设计画布",
+          "desc": "您的主工作区。您可以拖放一张背景图到这里开始设计。"
+        },
+        "toolbox": {
+          "title": "生成器工具箱",
+          "desc": "只需要点几下鼠标，就能轻松地在原始封面的基础上增加国旗或语言，将其转化为适当的翻译mod封面。"
+        },
+        "drag": {
+          "title": "拖拽上传",
+          "desc": "拖拽上传背景图片，你还可以在背景图片上上传并叠放自定义标识。"
+        }
+      }
+    },
+    "project_management": {
+      "list": {
+        "title": "项目列表",
+        "desc": "在这里查看和管理您的所有本地化项目。"
+      },
+      "create": {
+        "title": "从零开始",
+        "desc": "你可以从这里从零开始创建你的第一个翻译项目。开始翻译之前，请确定你已经在设置-API页面里已经准备好你的API key。"
+      },
+      "new_task": {
+        "title": "新建任务",
+        "desc": "不仅是文件任务，还可以创建自定义笔记任务。"
+      },
+      "stats": {
+        "title": "项目概览",
+        "desc": "在这里快速查看当前项目的总文件数、行数以及翻译与校对的进度百分比。"
+      },
+      "start": {
+        "title": "核心行动：开始翻译",
+        "desc": "一切就绪后，点击这个醒目的按钮进入翻译配置页面，开启 AI 自动化翻译流程。"
+      },
+      "paths": {
+        "title": "路径管理",
+        "desc": "配置每个 Mod 的源路径和导出路径。"
+      },
+      "tabs": {
+        "title": "任务看板",
+        "desc": "切换到看板视图来推拽管理任务进度。"
+      }
+    },
+    "translation": {
+      "select": {
+        "title": "选择项目",
+        "desc": "请选择一个项目以开始翻译流程。"
+      },
+      "config": {
+        "title": "配置翻译",
+        "desc": "设置源语言、目标语言并选择 AI 模型。"
+      },
+      "start": {
+        "title": "开始批处理",
+        "desc": "点击此按钮开始自动翻译任务。"
+      },
+      "processing": {
+        "title": "处理中",
+        "desc": "AI 正在翻译您的文件。您可以在此处查看实时日志。"
+      }
+    }
+  },
+  "translation_page": {
+    "title": "选择项目",
+    "subtitle": "选择一个项目以开始翻译",
+    "search_placeholder": "搜索项目...",
+    "filter_game_placeholder": "按游戏筛选",
+    "no_projects_found": "未找到项目。",
+    "no_projects_action": "未找到项目。请在项目管理中创建一个。",
+    "go_to_project_management": "前往项目管理",
+    "table_header": {
+      "game": "游戏",
+      "mod_name": "Mod 名称",
+      "action": "操作"
+    },
+    "button": {
+      "select": "选择",
+      "selected": "已选择"
+    },
+    "resume_modal": {
+      "title": "发现中断的会话",
+      "content": "发现此 Mod 存在中断的翻译会话。",
+      "completed_files": "已完成文件：",
+      "estimated_progress": "预估进度：",
+      "previous_model": "上次使用的模型：",
+      "question": "您想从上次中断的地方继续，还是重新开始？",
+      "start_over": "重新开始",
+      "resume": "继续任务",
+      "cleared_message": "检查点已清除，重新开始。",
+      "clear_error": "清除检查点失败。"
     }
   },
   "version_info": {
@@ -603,5 +809,43 @@
     "star_encouragement": "如果您觉得这个项目对您有帮助，点个 Star 🌟 就是对我们最大的鼓励！",
     "github_link_text": "访问仓库",
     "open_logs_btn": "打开日志目录"
-  }
+  },
+  "api_desc_gemini": "Google Gemini (官方对接)",
+  "api_desc_gemini_cli": "通过Google Gemini CLI调用，每天1000次免费，支持并行处理",
+  "api_desc_openai": "OpenAI 官方接口 (GPT-5/4o/mini)",
+  "api_desc_grok": "通过xAI官方API访问grok-4-fast-reasoning模型",
+  "api_desc_anthropic": "Anthropic 官方接口 (Claude 4.5/3.5 Sonnet & Haiku)",
+  "api_desc_qwen": "阿里云通义千问 (Qwen) - 北京节点",
+  "api_desc_deepseek": "DeepSeek-V3/R1 (非思考模式) - 与OpenAI API兼容",
+  "api_desc_kimi": "月之暗面 (Moonshot AI) Kimi 大模型 (包含最新 K2 系列)",
+  "api_desc_minimax": "Minimax 海螺 M2 系列 (M2.1, M2.1-lightning)",
+  "api_desc_zhipu": "智谱 AI (Zhipu AI) GLM-4 系列 (包含 4.7/4.6/4.5)",
+  "api_desc_nvidia": "NVIDIA NIM APIs - 包含 minimax-m2.1, glm-4.7 等最新模型",
+  "api_desc_siliconflow": "通过硅基流动（SiliconFlow）调用AI模型",
+  "api_desc_modelscope": "通过魔搭（ModelScope）调用AI模型",
+  "api_desc_ollama": "本地Ollama模型，无需API密钥",
+  "api_desc_lm_studio": "连接到本地运行的 LM Studio 服务 (默认端口 1234)",
+  "api_desc_vllm": "连接到本地运行的 vLLM 服务 (默认端口 8000)",
+  "api_desc_koboldcpp": "连接到本地运行的 KoboldCPP 服务 (默认端口 5001)",
+  "api_desc_oobabooga": "连接到 Oobabooga Text Gen WebUI (需开启 OpenAI 扩展, 默认端口 5000)",
+  "api_desc_custom": "（需要技术知识）连接到您自选的任何兼容OpenAI的API服务",
+  "project_management.no_notes": "暂无备注",
+  "project_management.last_updated": "最后更新",
+  "context_sidebar.translation_context": "翻译任务上下文",
+  "context_sidebar.translation_info": "选择一个Mod以在此处查看详细信息。",
+  "context_sidebar.translation_history": "翻译日志将显示在这里。",
+  "context_sidebar.project_details": "项目详情",
+  "context_sidebar.project_info": "选择一个项目任务以查看属性。",
+  "context_sidebar.project_history": "近期项目活动。",
+  "context_sidebar.glossary_term": "术语详情",
+  "context_sidebar.glossary_info": "选择一个术语以查看定义和变体。",
+  "context_sidebar.glossary_history": "术语编辑历史。",
+  "context_sidebar.tab_info": "信息",
+  "context_sidebar.tab_history": "历史",
+  "homepage_pie_chart_status_title": "项目进度",
+  "homepage_pie_chart_distribution_title": "游戏分布",
+  "homepage_pie_chart_todo": "待办",
+  "homepage_pie_chart_in_progress": "翻译中",
+  "homepage_pie_chart_paused": "挂起",
+  "homepage_pie_chart_done": "已完工"
 }

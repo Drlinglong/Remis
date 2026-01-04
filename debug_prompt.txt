@@ -1,0 +1,129 @@
+
+--- [2026-01-05 01:47:04] BATCH START (Game: eu5) ---
+You are a professional translator specializing in the grand strategy game Europa Universalis V, set in the Late Medieval and Early Modern period (starting 1337). Translate the following numbered list of texts from English to 简体中文.\nThe tone must be appropriate for a deep simulation of population, estates, and locations.CRITICAL CONTEXT: The mod you are translating is ''. Use this information to ensure all translations are thematically appropriate.
+🔍 CRITICAL GLOSSARY INSTRUCTIONS - HIGH PRIORITY 🔍
+The following terms must be translated strictly according to the glossary to maintain consistency:
+
+Glossary Reference:
+• [EXACT] 'The Purple Silence' → '紫色静默'
+  Remarks: 秘密情报网络的名称，其成员携带共和国的pugio（匕首）
+• [EXACT] 'Legio Renovatio' → '复兴军团'
+  Remarks: 拉丁语，意为'复兴军团'，代表重建的帝国军事力量
+• [EXACT] 'Project Caesar' → '凯撒计划'
+  Remarks: 经济改革计划的代号，旨在绕过腐败贵族重建帝国经济
+• [EXACT] 'Aeterna Roma' → '永恒罗马'
+  Remarks: 拉丁语，意为'永恒的罗马'，代表罗马的不朽精神与永恒荣光
+• [EXACT] 'Solidus Nova' → '新索利多斯金币'
+  Remarks: 新铸造的金币货币，不掺杂铜，由血与铁背书
+• [EXACT] 'Remis' → '蕾姆丝'
+  Remarks: Project Remis的看板娘，设定是一位罗马公主。
+
+Match Type Explanation:
+• EXACT: Exact match, highest priority
+• PHONETIC: Phonetic/Homophone match (potential typo in source)
+• VARIANT: Variant match, such as plural forms, synonyms, abbreviations
+• ABBREVIATION: Abbreviation match, such as organization abbreviations, person name abbreviations
+• PARTIAL: Smart partial match, automatically identifies abbreviation and full name relationships
+• FUZZY: Fuzzy match, tolerates spelling errors and minor differences
+
+Translation Requirements:
+1. The above terms must be translated strictly according to the glossary, no arbitrary changes allowed
+2. Variant forms of terms should also be translated to the same target language equivalent
+3. For phonetic matches, be aware that the source text might contain a homophone typo; use the glossary term as the correct reference.
+4. For abbreviation and partial match terms, choose the most appropriate translation based on context
+5. For fuzzy match terms, translate reasonably based on context and glossary
+6. Maintain consistency and accuracy of game terminology
+7. Term placement in sentences should be natural and appropriate
+8. If encountering terms not in the glossary, translate reasonably based on context
+
+Please ensure strict adherence to the above glossary reference during translation.
+
+    "CRITICAL FORMATTING: Your response MUST be a valid JSON array (a list of strings), with the EXACT same number of items as the input array (19 items)."
+    "Each string in the JSON array must be the translation of the corresponding item in the input array.
+"
+    "DO NOT add any explanations or notes outside the JSON structure.
+"
+    "Example for 2 items: ["translation for item 1", "translation for item 2"]
+
+"
+    "CRITICAL DATA HYGIENE RULE: Your task is to translate meaningful text. If you encounter an input line that is clearly a placeholder, empty, or contains only non-linguistic characters (e.g., only spaces, "...", "???", "tbd", "todo", "wip"), you MUST NOT attempt to translate it or return it as is. Instead, you MUST return the exact string "WARNING: Source localization entry is incomplete" as the translation for that specific line number.you MUST return the string "WARNING: Source localization entry is incomplete" **enclosed in double quotes** as a valid JSON array element.
+
+"
+    "🚨 CRITICAL QUOTE RULE: DO NOT add extra quotes around your translations!
+"
+    "The game engine will handle quote formatting automatically. Adding quotes will break the display!
+"
+    "EXAMPLE: If input is 'software', output should be '软件', NOT '"软件"'!
+
+"
+    "🚨 CRITICAL SPACING RULE: PRESERVE spaces after formatting commands!
+"
+    "❌ WRONG: #BOLDtext#! (missing space after #BOLD)
+"
+    "✅ CORRECT: #BOLD text#! (space after #BOLD)
+"
+    "❌ WRONG: #Ltext#! (missing space after #L)
+"
+    "✅ CORRECT: #L text#! (space after #L)
+"
+    "❌ WRONG: #italictext#! (missing space after #italic)
+"
+    "✅ CORRECT: #italic text#! (space after #italic)
+"
+    "Formatting commands MUST be followed by a space to work properly!
+
+"
+    "🚨 CRITICAL TOKEN PRESERVATION RULE:
+"
+    "The text contains special placeholders [[_NL_]] and [[_QT_]].
+"
+    "You MUST preserve these placeholders EXACTLY as they are.
+"
+    "DO NOT translate them. DO NOT replace them with real punctuation.
+"
+    "Treat [[_QT_]] as if it were a variable name like $VARIABLE$.
+
+"
+    "EXAMPLE:
+"
+    "- Input: "Hello[[_NL_]]World [[_QT_]]quoted text[[_QT_]]"
+"
+    "- Correct Output: "你好[[_NL_]]世界 [[_QT_]]引用文本[[_QT_]]"
+"
+    "- Incorrect Output: "你好\n世界 "引用文本"" (This will break the system!)
+
+"
+    "There are two types of special syntax:
+"
+    "1. **Variables** like `$variable$`, `[Concept('key', '$concept_name$')]`, `[SCOPE.some.Function]`. You MUST preserve these variables completely. DO NOT translate any text inside them.
+"
+    "2. **Formatting Tags** like `#R ... #!`, `§Y...§!`. You MUST preserve the tags themselves (e.g., `#R`, `#!`), but you SHOULD translate the plain text that is inside them.
+"
+    "3. **Icon Tags** like `@prestige!`, `£minerals£`. These are variables. You MUST preserve them completely. DO NOT translate any text inside them.
+"
+    "4. **Internal Keys** like `mm_strategic_region` or `com_topbar_interests`. These are strings that often contain underscores and no spaces. They are code references and MUST NOT be translated. Preserve them completely.
+"
+    "--- INPUT LIST ---
+1. "The Ghost of the Palatine"
+2. "A mysterious woman arrives at the court, claiming to represent the memory of Rome itself."
+3. "The treasury is empty. The Venetians mock our galleys, and the Ottomans sharpen their scimitars across the straits. In the throne room of the Blachernae Palace, the mood is one of funeral silence.\n\nInto this gloom steps a woman who calls herself Remis. She wears the silk of a Byzantine princess, but beneath her cloak lies the iron breastplate of a Republican Legionary. She does not bow to [Root.Monarch.GetName]. Instead, she looks at the crumbling mosaics and sighs in a dialect of Latin not spoken for a thousand years:\n\n\[[_QT_]]Consul, Basileus, Emperor... whatever you call yourself today. You have forgotten §RAeterna Roma§!. You govern a city of ghosts, while the barbarians measure the curtains for their new mosques.\[[_QT_]]"
+4. "Who are you to speak to the Basileus this way?"
+5. "If you have gold, you are welcome. If you have advice, speak."
+6. "Operation: §HProject Caesar§!"
+7. "Remis proposes a radical restructuring of the imperial economy, bypassing the corrupt nobility."
+8. "Remis has presented a scroll she calls §YProject Caesar§!. It is terrifying in its efficiency. It calls for the immediate dissolution of the pronoia grants that have bled our tax revenue dry.\n\n\[[_QT_]]We will mint a new currency,\[[_QT_]] she declares, tossing a heavy coin onto the council table. \[[_QT_]]The §YSolidus Nova§!. It will not be debased by copper like your current coins. It will be backed by the only resource we have left: the blood of our patriots and the iron of our resolve.\[[_QT_]]\n\nThe nobility is furious, but the merchants in Galata are listening."
+9. "Enact the reforms. The aristocracy be damned."
+10. "We cannot risk a civil war now."
+11. "The Purple Silence"
+12. "Dissenters are vanishing. Remis claims it is necessary for survival."
+13. "Rumors are spreading through the hippodrome. They say that Remis has established a network of informants known only as §RThe Purple Silence§!. These agents do not carry the Varangian axe; they carry the Republican pugio (dagger).\n\nLast night, a Senator who was secretly negotiating with the Serbian King Stefan Dušan was found dead. On his desk was a note written in archaic script: \[[_QT_]]The Republic has no need for traitors.\[[_QT_]]\n\nRemis stands before you, her face unreadable. \[[_QT_]]To rebuild the §YLegio Renovatio§!, we must first excise the cancer within. Do not look away, Caesar. This is what survival looks like.\[[_QT_]]"
+14. "Necessary evil."
+15. "This is tyranny!"
+16. "Roma Invicta"
+17. "The Ottomans have been pushed back. The Eagle flies over Anatolia once more."
+18. "The campaign was brutal. But where your generals saw only hills and valleys, Remis saw the ghost of Trajan's legions. She directed the §YLegio Renovatio§! with a memory that spanned centuries.\n\nNow, standing on the reclaimed shores of Anatolia, she looks West, towards Rome, and East, towards Jerusalem. She is no longer just a mix of eras; she is the singularity of them.\n\n\[[_QT_]]The §RAeterna Roma§! does not die,\[[_QT_]] she whispers, the wind catching her Tyrian purple cloak. \[[_QT_]]It merely sleeps. And today, it wakes.\[[_QT_]]"
+19. "Roma Invicta!"
+--- END OF INPUT LIST ---"
+
+
+--- BATCH END ---

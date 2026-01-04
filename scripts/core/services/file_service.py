@@ -62,7 +62,8 @@ class FileService:
                         logger.error(f"Failed to count lines for {full_path}: {e}")
 
                     files_found.append({
-                        'file_id': str(uuid.uuid5(uuid.NAMESPACE_URL, full_path)),
+                        # Use lower() for path to ensure case-insensitivity on Windows
+                        'file_id': str(uuid.uuid5(uuid.NAMESPACE_URL, full_path.lower().replace('\\', '/'))),
                         'project_id': project_id,
                         'file_path': full_path,
                         'status': 'todo',

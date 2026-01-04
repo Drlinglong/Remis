@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Title, Text, Paper, Group, Badge, Button, ScrollArea, Box, LoadingOverlay } from '@mantine/core';
 import { IconArchive, IconArrowLeft, IconRefresh } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 
 const API_BASE = '/api';
 
@@ -14,7 +14,7 @@ export default function ArchivesPage() {
   const fetchArchivedProjects = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}/projects/archives`);
+      const res = await api.get(`${API_BASE}/projects/archives`);
       setProjects(res.data);
     } catch (error) {
       console.error("Failed to load archived projects", error);
@@ -29,7 +29,7 @@ export default function ArchivesPage() {
 
   const handleRestoreProject = async (projectId) => {
     try {
-      await axios.put(`${API_BASE}/project/${projectId}/status`, { status: 'active' });
+      await api.put(`${API_BASE}/project/${projectId}/status`, { status: 'active' });
       fetchArchivedProjects(); // Refresh the list
     } catch (error) {
       console.error("Failed to restore project", error);
@@ -84,7 +84,7 @@ export default function ArchivesPage() {
                 <Paper key={p.project_id} p="md" withBorder mb="sm" radius="md">
                   <Group justify="space-between">
                     <Box>
-                      <Text weight={600} size="lg">{p.name}</Text>
+                      <Text fw={600} size="lg">{p.name}</Text>
                       <Text size="xs" c="dimmed">{p.game_id} • {p.source_path}</Text>
                       {p.notes && <Text size="sm" mt="xs">Notes: {p.notes}</Text>}
                     </Box>

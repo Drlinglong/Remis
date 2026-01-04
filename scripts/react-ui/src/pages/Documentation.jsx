@@ -4,7 +4,7 @@ import { Grid, Title, Select, Loader, Paper, ScrollArea, NavLink, Box, Group, Te
 import { IconFileText, IconFolder, IconFolderOpen } from '@tabler/icons-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
-import axios from 'axios';
+import api from '../utils/api';
 
 // Map language codes to their display names for a better UI.
 const languageNameMap = {
@@ -19,7 +19,7 @@ const getLanguageName = (code) => {
 
 const fetchDocLanguages = async () => {
     try {
-        const response = await axios.get('/api/docs-languages');
+        const response = await api.get('/api/docs-languages');
         return response.data;
     } catch (error) {
         console.error("Failed to fetch doc languages:", error);
@@ -29,7 +29,7 @@ const fetchDocLanguages = async () => {
 
 const fetchDocTree = async () => {
     try {
-        const response = await axios.get('/api/docs-tree');
+        const response = await api.get('/api/docs-tree');
         return response.data;
     } catch (error) {
         console.error("Failed to fetch doc tree:", error);
@@ -41,7 +41,7 @@ const fetchDocContent = async (path) => {
     if (!path) return 'No file selected.';
     console.log(`Fetching content from API for path: ${path}`);
     try {
-        const response = await axios.get('/api/doc-content', {
+        const response = await api.get('/api/doc-content', {
             params: { path: path }
         });
         return response.data;

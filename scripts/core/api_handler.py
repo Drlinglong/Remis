@@ -16,6 +16,7 @@ from .grok_handler import GrokHandler
 from .ollama_handler import OllamaHandler
 from .modelscope_handler import ModelScopeHandler
 from .siliconflow_handler import SiliconFlowHandler
+from .nvidia_handler import NvidiaHandler
 from .yourfavourite_handler import YourFavouriteHandler
 
 
@@ -43,6 +44,8 @@ def get_handler(provider_name: str, model_name: str = None) -> 'BaseApiHandler':
             return ModelScopeHandler(provider_name, model_id=model_name)
         elif provider_name == "siliconflow":
             return SiliconFlowHandler(provider_name, model_id=model_name)
+        elif provider_name == "nvidia":
+            return NvidiaHandler(provider_name, model_id=model_name)
         elif provider_name == "your_favourite_api":
             return YourFavouriteHandler(provider_name, model_id=model_name)
         else:

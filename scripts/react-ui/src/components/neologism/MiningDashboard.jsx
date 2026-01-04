@@ -8,7 +8,7 @@ import { notifications } from '@mantine/notifications';
 import {
     IconRadar2, IconCpu, IconFileText, IconSparkles
 } from '@tabler/icons-react';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const API_BASE_URL = '/api';
 
@@ -41,7 +41,7 @@ const MiningDashboard = () => {
 
     const fetchProjects = async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/projects`);
+            const response = await api.get(`${API_BASE_URL}/projects`);
             setProjects(response.data.map(p => ({ value: p.project_id, label: p.name })));
         } catch (error) {
             console.error("Failed to fetch projects", error);
@@ -50,7 +50,7 @@ const MiningDashboard = () => {
 
     const fetchFiles = async (projectId) => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/files`);
+            const response = await api.get(`${API_BASE_URL}/projects/${projectId}/files`);
             setFiles(response.data);
         } catch (error) {
             console.error("Failed to fetch files", error);
@@ -61,7 +61,7 @@ const MiningDashboard = () => {
         if (!selectedProject) return;
         setScanning(true);
         try {
-            await axios.post(`${API_BASE_URL}/neologisms/mine`, {
+            await api.post(`${API_BASE_URL}/neologisms/mine`, {
                 project_id: selectedProject,
                 api_provider: apiProvider,
                 target_lang: targetLang,

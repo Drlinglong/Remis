@@ -28,7 +28,7 @@ const StatCard = ({ title, value, icon, color, progress, trend, className }) => 
                 </div>
             </Group>
 
-            {trend && (
+            {!!trend && (
                 <Group gap={2}>
                     <Text c={trend > 0 ? 'teal' : 'red'} fz="sm" fw={500}>
                         {trend}%

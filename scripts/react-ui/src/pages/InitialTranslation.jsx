@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
 import { useTranslationContext } from '../context/TranslationContext';
@@ -35,12 +35,13 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { IconAlertCircle, IconCheck, IconX, IconSettings, IconRefresh, IconDownload, IconArrowLeft, IconPlayerStop, IconChevronDown, IconChevronUp, IconFolder, IconFolderOpen, IconPlayerPlay, IconLanguage, IconRobot, IconAdjustments, IconSearch } from '@tabler/icons-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTutorial } from '../context/TutorialContext';
 import '../App.css';
 import layoutStyles from '../components/layout/Layout.module.css';
 
 import TaskRunner from '../components/TaskRunner';
+import { usePersistentState } from '../hooks/usePersistentState';
 
 const InitialTranslation = () => {
   const { t } = useTranslation();
@@ -71,9 +72,10 @@ const InitialTranslation = () => {
 
   // Project State
   const [projects, setProjects] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [gameFilter, setGameFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = usePersistentState('trans_search_query', '');
+  const [gameFilter, setGameFilter] = usePersistentState('trans_game_filter', 'all');
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [logs, setLogs] = useState([]);
   const [status, setStatus] = useState(null);
@@ -96,6 +98,7 @@ const InitialTranslation = () => {
       selected_glossary_ids: [],
       use_main_glossary: true,
       clean_source: false,
+      use_resume: true,
       // Custom Language Fields
       custom_name: '',
       custom_key: 'l_english',
@@ -113,7 +116,7 @@ const InitialTranslation = () => {
   });
 
   useEffect(() => {
-    axios.get('/api/config')
+    api.get('/api/config')
       .then(response => {
         setConfig(response.data);
       })
@@ -123,16 +126,21 @@ const InitialTranslation = () => {
       });
 
     // Fetch Projects
-    axios.get('/api/projects')
+    api.get('/api/projects')
       .then(response => {
-        setProjects(response.data.map(p => ({ value: p.project_id, label: p.name, game_id: p.game_id })));
+        setProjects(response.data.map(p => ({
+          value: p.project_id,
+          label: p.name,
+          game_id: p.game_id,
+          source_language: p.source_language
+        })));
       })
       .catch(error => {
         console.error("Failed to load projects", error);
       });
 
     // Fetch Prompts for Custom Global Prompt
-    axios.get('/api/prompts')
+    api.get('/api/prompts')
       .then(response => {
         if (response.data.custom_global_prompt) {
           form.setFieldValue('mod_context', response.data.custom_global_prompt);
@@ -140,6 +148,17 @@ const InitialTranslation = () => {
       })
       .catch(err => console.error("Failed to fetch prompts", err));
   }, [notificationStyle]);
+
+  // Handle projectId from URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const projectIdFromUrl = params.get('projectId');
+    if (projectIdFromUrl && projects.length > 0) {
+      if (projectIdFromUrl !== selectedProjectId || active === 0) {
+        handleProjectSelect(projectIdFromUrl);
+      }
+    }
+  }, [location.search, active, projects, selectedProjectId]);
 
   useEffect(() => {
     setPageContext(`translation-step-${active}`);
@@ -212,8 +231,19 @@ const InitialTranslation = () => {
   // Polling Logic removed from here (now in TranslationContext)
 
   const handleProjectSelect = (projectId) => {
-    setSelectedProjectId(projectId);
-    setActive(1); // Auto-advance to configuration
+    const project = projects.find(p => p.value === projectId);
+    if (project) {
+      setSelectedProjectId(projectId);
+      // Auto-set source language from project metadata if available
+      if (project.source_language) {
+        // Source language might be ISO code (en, zh-CN) while config.languages is keyed by "1", "2"...
+        const langConfig = Object.values(config.languages).find(l => l.code === project.source_language);
+        if (langConfig) {
+          form.setFieldValue('source_lang_code', langConfig.code);
+        }
+      }
+      setActive(1); // Auto-advance to configuration
+    }
   };
 
   const handleBack = () => {
@@ -223,12 +253,18 @@ const InitialTranslation = () => {
   };
 
   const handleStartClick = async (values) => {
+    // If use_resume is disabled, skip checkpoint check and start fresh
+    if (!values.use_resume) {
+      startTranslation(values);
+      return;
+    }
+
     // 1. Check for existing checkpoint
     const modName = projects.find(p => p.value === selectedProjectId)?.label;
     if (!modName) return;
 
     try {
-      const response = await axios.post('/api/translation/checkpoint-status', {
+      const response = await api.post('/api/translation/checkpoint-status', {
         mod_name: modName,
         target_lang_codes: values.english_disguise ? ['custom'] : values.target_lang_codes
       });
@@ -260,7 +296,7 @@ const InitialTranslation = () => {
     if (pendingFormValues) {
       const modName = projects.find(p => p.value === selectedProjectId)?.label;
       try {
-        await axios.delete('/api/translation/checkpoint', {
+        await api.delete('/api/translation/checkpoint', {
           data: {
             mod_name: modName,
             target_lang_codes: pendingFormValues.english_disguise ? ['custom'] : pendingFormValues.target_lang_codes
@@ -302,6 +338,7 @@ const InitialTranslation = () => {
       selected_glossary_ids: values.selected_glossary_ids,
       use_main_glossary: values.use_main_glossary,
       clean_source: values.clean_source,
+      use_resume: values.use_resume,
     };
 
     if (values.english_disguise) {
@@ -321,7 +358,7 @@ const InitialTranslation = () => {
     setActive(2);
     setIsProcessing(true);
 
-    axios.post('/api/translate/start', payload)
+    api.post('/api/translate/start', payload)
       .then(response => {
         setTaskId(response.data.task_id);
         notificationService.success("Translation started!", notificationStyle);
@@ -349,13 +386,13 @@ const InitialTranslation = () => {
         <Stack gap="xl" pb="xl" w="100%">
           <Box w="100%">
             <Stepper active={active} onStepClick={setActive} allowNextStepsSelect={false}>
-              <Stepper.Step label="Select Project" description="Choose a project">
+              <Stepper.Step label={t('translation_page.title')} description={t('translation_page.subtitle')}>
               </Stepper.Step>
               <Stepper.Step label={t('initial_translation_step_configure')} description={t('initial_translation_step_configure_desc', 'Settings')}>
               </Stepper.Step>
               <Stepper.Step label={t('initial_translation_step_translate')} description={t('initial_translation_step_translate_desc', 'Processing')}>
               </Stepper.Step>
-              <Stepper.Step label="Finish" description="Done">
+              <Stepper.Step label={t('initial_translation_step_finish')} description={t('initial_translation_step_download_desc')}>
               </Stepper.Step>
             </Stepper>
           </Box>
@@ -364,7 +401,7 @@ const InitialTranslation = () => {
             <Container fluid px="xl" id="translation-project-list" style={{ maxWidth: '100%', width: '100%' }}> {/* Use fluid container for maximum width */}
               <Stack gap="lg">
                 <Title order={2} ta="center" mb="lg" style={{ letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--mantine-color-blue-4)' }}>
-                  Select a Project to Translate
+                  {t('translation_page.subtitle')}
                 </Title>
 
                 {projects.length > 0 ? (
@@ -372,7 +409,7 @@ const InitialTranslation = () => {
                     {/* --- Search & Filter Bar --- */}
                     <Group mb="md" grow>
                       <TextInput
-                        placeholder="Search projects..."
+                        placeholder={t('translation_page.search_placeholder')}
                         leftSection={<IconSearch size={16} />}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.currentTarget.value)}
@@ -380,9 +417,9 @@ const InitialTranslation = () => {
                         radius="md"
                       />
                       <Select
-                        placeholder="Filter by Game"
+                        placeholder={t('translation_page.filter_game_placeholder')}
                         data={[
-                          { value: 'all', label: 'All Games' },
+                          { value: 'all', label: t('common.all_games') },
                           ...Object.values(config.game_profiles).map(p => ({ value: p.id, label: p.name.split('(')[0].trim() }))
                         ]}
                         value={gameFilter}
@@ -396,9 +433,9 @@ const InitialTranslation = () => {
                     {/* --- Project List Header --- */}
                     <Card p="sm" radius="md" mb="xs" bg="rgba(0, 0, 0, 0.3)" withBorder style={{ borderColor: 'var(--mantine-color-dark-4)' }}>
                       <Group>
-                        <Text fw={700} size="sm" c="dimmed" style={{ width: '150px', textTransform: 'uppercase', letterSpacing: '1px' }}>Game</Text>
-                        <Text fw={700} size="sm" c="dimmed" style={{ flex: 1, textTransform: 'uppercase', letterSpacing: '1px' }}>Mod Name</Text>
-                        <Text fw={700} size="sm" c="dimmed" style={{ width: '80px', textAlign: 'right', textTransform: 'uppercase', letterSpacing: '1px' }}>Action</Text>
+                        <Text fw={700} size="sm" c="dimmed" style={{ width: '150px', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('translation_page.table_header.game')}</Text>
+                        <Text fw={700} size="sm" c="dimmed" style={{ flex: 1, textTransform: 'uppercase', letterSpacing: '1px' }}>{t('translation_page.table_header.mod_name')}</Text>
+                        <Text fw={700} size="sm" c="dimmed" style={{ width: '80px', textAlign: 'right', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('translation_page.table_header.action')}</Text>
                       </Group>
                     </Card>
 
@@ -454,14 +491,14 @@ const InitialTranslation = () => {
                                       handleProjectSelect(project.value);
                                     }}
                                   >
-                                    {selectedProjectId === project.value ? "SELECTED" : "SELECT"}
+                                    {selectedProjectId === project.value ? t('translation_page.button.selected') : t('translation_page.button.select')}
                                   </Button>
                                 </Group>
                               </Card>
                             );
                           })}
                         {projects.length === 0 && (
-                          <Text c="dimmed" ta="center" py="xl">No projects found.</Text>
+                          <Text c="dimmed" ta="center" py="xl">{t('translation_page.no_projects_found')}</Text>
                         )}
                       </Stack>
                     </ScrollArea>
@@ -470,8 +507,8 @@ const InitialTranslation = () => {
                   <Center p="xl">
                     <Stack align="center">
                       <IconFolderOpen size={48} stroke={1.5} color="var(--mantine-color-gray-5)" />
-                      <Text c="dimmed">No projects found. Please create one in Project Management.</Text>
-                      <Button variant="subtle" onClick={() => navigate('/')}>Go to Project Management</Button>
+                      <Text c="dimmed">{t('translation_page.no_projects_action')}</Text>
+                      <Button variant="subtle" onClick={() => navigate('/')}>{t('translation_page.go_to_project_management')}</Button>
                     </Stack>
                   </Center>
                 )}
@@ -490,33 +527,59 @@ const InitialTranslation = () => {
                           <ThemeIcon size="lg" radius="md" variant="light" color="blue">
                             <IconSettings size={20} />
                           </ThemeIcon>
-                          <Text size="lg" fw={500}>Core Settings</Text>
+                          <Text size="lg" fw={500}>{t('initial_translation_step_core_settings')}</Text>
                         </Group>
 
-                        {/* Game Display */}
+                        {/* Project Name (Read Only) */}
                         {selectedProjectId && (
                           <TextInput
-                            label={t('form_label_game')}
-                            value={(() => {
-                              const project = projects.find(p => p.value === selectedProjectId);
-                              if (!project) return 'Unknown';
-                              // Try direct lookup or find by ID
-                              const profile = config.game_profiles[project.game_id] ||
-                                Object.values(config.game_profiles).find(p => p.id === project.game_id);
-                              return profile ? profile.name : 'Unknown';
-                            })()}
+                            label={t('form_label_project_name')}
+                            value={projects.find(p => p.value === selectedProjectId)?.label || 'Unknown'}
                             disabled
                             variant="filled"
                           />
                         )}
 
-                        <Select
-                          label={t('form_label_source_language')}
-                          placeholder={t('form_placeholder_source_language')}
-                          leftSection={<IconLanguage size={16} />}
-                          data={Object.values(config.languages).map(l => ({ value: l.code, label: l.name }))}
-                          {...form.getInputProps('source_lang_code')}
-                        />
+                        {/* Game & Source Language Row */}
+                        {selectedProjectId && (
+                          <Grid>
+                            <Grid.Col span={6}>
+                              <Tooltip label={t('initial_translation_step_readonly_hint')} withArrow>
+                                <div>
+                                  <TextInput
+                                    label={t('form_label_game')}
+                                    value={(() => {
+                                      const project = projects.find(p => p.value === selectedProjectId);
+                                      if (!project) return 'Unknown';
+                                      const profile = config.game_profiles[project.game_id] ||
+                                        Object.values(config.game_profiles).find(p => p.id === project.game_id);
+                                      return profile ? profile.name : 'Unknown';
+                                    })()}
+                                    disabled
+                                    variant="filled"
+                                  />
+                                </div>
+                              </Tooltip>
+                            </Grid.Col>
+                            <Grid.Col span={6}>
+                              <Tooltip label={t('initial_translation_step_readonly_hint')} withArrow>
+                                <div>
+                                  <TextInput
+                                    label={t('form_label_source_language')}
+                                    value={(() => {
+                                      const project = projects.find(p => p.value === selectedProjectId);
+                                      if (!project) return 'Unknown';
+                                      const langConfig = Object.values(config.languages).find(l => l.code === project.source_language);
+                                      return langConfig ? langConfig.name : 'Unknown';
+                                    })()}
+                                    disabled
+                                    variant="filled"
+                                  />
+                                </div>
+                              </Tooltip>
+                            </Grid.Col>
+                          </Grid>
+                        )}
 
                         {!form.values.english_disguise && (
                           <MultiSelect
@@ -540,7 +603,7 @@ const InitialTranslation = () => {
                         {availableModels.length > 0 && (
                           <Group align="flex-end" gap={5} style={{ width: '100%' }}>
                             <Select
-                              label="Model"
+                              label={t('initial_translation_step_model')}
                               data={availableModels}
                               {...form.getInputProps('model_name')}
                               style={{ flex: 1 }}
@@ -587,6 +650,11 @@ const InitialTranslation = () => {
                               description={t('warning_clean_source')}
                               color="red"
                               {...form.getInputProps('clean_source', { type: 'checkbox' })}
+                            />
+                            <Switch
+                              label={t('form_label_use_resume')}
+                              description={t('form_desc_use_resume')}
+                              {...form.getInputProps('use_resume', { type: 'checkbox' })}
                             />
                           </Stack>
 
@@ -692,37 +760,36 @@ const InitialTranslation = () => {
         </Stack >
       </ScrollArea >
 
-      {/* Resume Confirmation Modal */}
       < Modal
         opened={resumeModalOpen}
         onClose={() => setResumeModalOpen(false)}
-        title={< Group ><IconAlertCircle color="orange" /> <Text fw={700}>Interrupted Session Found</Text></Group >}
+        title={< Group ><IconAlertCircle color="orange" /> <Text fw={700}>{t('translation_page.resume_modal.title')}</Text></Group >}
         centered
       >
         <Stack>
           <Text>
-            Found an interrupted translation session for this mod.
+            {t('translation_page.resume_modal.content')}
           </Text>
           {checkpointInfo && (
             <Alert color="blue" variant="light">
-              <Text size="sm"><b>Completed Files:</b> {checkpointInfo.completed_count}</Text>
+              <Text size="sm"><b>{t('translation_page.resume_modal.completed_files')}</b> {checkpointInfo.completed_count}</Text>
               {checkpointInfo.total_files_estimate > 0 && (
-                <Text size="sm"><b>Estimated Progress:</b> {Math.round((checkpointInfo.completed_count / checkpointInfo.total_files_estimate) * 100)}%</Text>
+                <Text size="sm"><b>{t('translation_page.resume_modal.estimated_progress')}</b> {Math.round((checkpointInfo.completed_count / checkpointInfo.total_files_estimate) * 100)}%</Text>
               )}
               {checkpointInfo.metadata?.model_name && (
-                <Text size="sm"><b>Previous Model:</b> {checkpointInfo.metadata.model_name}</Text>
+                <Text size="sm"><b>{t('translation_page.resume_modal.previous_model')}</b> {checkpointInfo.metadata.model_name}</Text>
               )}
             </Alert>
           )}
           <Text size="sm" c="dimmed">
-            Do you want to resume from where it left off, or start over from the beginning?
+            {t('translation_page.resume_modal.question')}
           </Text>
           <Group justify="flex-end" mt="md">
             <Button variant="default" onClick={handleStartOver} leftSection={<IconRefresh size={16} />}>
-              Start Over
+              {t('translation_page.resume_modal.start_over')}
             </Button>
             <Button onClick={handleResume} leftSection={<IconPlayerPlay size={16} />}>
-              Resume
+              {t('translation_page.resume_modal.resume')}
             </Button>
           </Group>
         </Stack>

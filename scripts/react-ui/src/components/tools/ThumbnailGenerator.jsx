@@ -277,7 +277,8 @@ const ThumbnailGenerator = () => {
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             const file = e.dataTransfer.files[0];
             if (file.type.startsWith('image/')) {
-                handleBackgroundImageUpload({ target: { files: [file] } });
+                // Treat dropped images as Mod Images (Logos)
+                processAndAddImage(file, true);
             }
         }
     };
@@ -400,7 +401,7 @@ const ThumbnailGenerator = () => {
     return (
         <Grid>
             <Grid.Col span={{ base: 12, md: 3 }}>
-                <Paper withBorder p="md">
+                <Paper id="thumbnail-toolbox" withBorder p="md">
                     <Stack>
                         <Title order={4}>{t('thumbnail_generator.toolbox_title')}</Title>
                         <Button leftSection={<IconUpload size={14} />} onClick={() => modImageInputRef.current?.click()}>
@@ -431,26 +432,39 @@ const ThumbnailGenerator = () => {
                 <Paper withBorder p="md" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     {isCanvasEmpty ? (
                         <Paper
+                            id="thumbnail-upload-area"
                             withBorder
                             p="md"
                             onClick={() => bgImageInputRef.current?.click()}
-                            style={(theme) => ({
-                                width: 512,
-                                height: 512,
+                            style={{
+                                width: '100%',
+                                maxWidth: '512px',
+                                aspectRatio: '1/1',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 justifyContent: 'center',
                                 alignItems: 'center',
                                 cursor: 'pointer',
-                                backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0],
-                                border: `2px dashed ${theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[4]}`,
-                            })}
+                                background: 'var(--glass-bg, rgba(30, 30, 30, 0.3))',
+                                border: '2px dashed var(--mantine-color-dimmed)',
+                                backdropFilter: 'blur(5px)',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onDrop={handleDrop}
+                            onDragOver={handleDragOver}
                         >
-                            <IconUpload size={48} style={{ color: (theme) => theme.colorScheme === 'dark' ? theme.colors.dark[3] : theme.colors.gray[5] }} />
-                            <Text color="dimmed" mt="md">{t('thumbnail_generator.canvas_placeholder')}</Text>
+                            <IconUpload size={48} color="var(--mantine-color-dimmed)" />
+                            <Text c="dimmed" mt="md">{t('thumbnail_generator.canvas_placeholder')}</Text>
+                            <Text c="dimmed" size="xs" mt="xs">{t('thumbnail_generator.drag_hint')}</Text>
                         </Paper>
                     ) : (
-                        <div id="thumbnail-canvas" ref={canvasContainerRef} style={{ width: 512, height: 512 }}>
+                        <div
+                            id="thumbnail-canvas"
+                            ref={canvasContainerRef}
+                            style={{ width: 512, height: 512 }}
+                            onDrop={handleDrop}
+                            onDragOver={handleDragOver}
+                        >
                             <Stage width={512} height={512} onMouseDown={checkDeselect} onTouchStart={checkDeselect}>
                                 <Layer>
                                     <Rect width={512} height={512} fill={backgroundColor} />

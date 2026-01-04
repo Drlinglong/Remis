@@ -1,21 +1,22 @@
-# scripts/core/glossary_manager.py
 import sqlite3
 import json
 import logging
 import re
+import threading
 from typing import Dict, List, Any, Optional
 
-from scripts.app_settings import PROJECT_ROOT
+from scripts import app_settings
 from scripts.utils import i18n
 from scripts.utils.phonetics_engine import PhoneticsEngine
 
-DB_PATH = f"{PROJECT_ROOT}/data/database.sqlite"
+# DB_PATH is now accessed dynamically to prevent path leaks in frozen environments
 
 class GlossaryManager:
     """游戏专用词典管理器 (SQLite 版本)"""
     
     def __init__(self):
         self._conn = None
+        self._lock = threading.Lock()
         self.current_game_id: Optional[str] = None
         self.in_memory_glossary: Dict[str, Any] = {'entries': []}
         self.fuzzy_matching_mode: str = 'loose'
@@ -24,19 +25,23 @@ class GlossaryManager:
     @property
     def connection(self):
         """Lazy load database connection."""
-        if self._conn is None:
-            self._conn = self._create_connection()
+        with self._lock:
+            if self._conn is None:
+                self._conn = self._create_connection()
         return self._conn
 
     def _create_connection(self):
         """创建并返回一个数据库连接"""
+        db_path = app_settings.DATABASE_PATH
         try:
-            conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+            conn = sqlite3.connect(db_path, check_same_thread=False)
             conn.row_factory = sqlite3.Row
-            logging.info(f"Successfully connected to SQLite database at {DB_PATH}")
+            # Ensure text is returned as str (Unicode) in all environments
+            conn.text_factory = str
+            logging.info(f"Successfully connected to SQLite database at {db_path}")
             return conn
         except Exception as e:
-            logging.error(f"Error connecting to database at {DB_PATH}: {e}")
+            logging.error(f"Error connecting to database at {db_path}: {e}")
             return None
 
     def get_available_glossaries(self, game_id: str) -> List[Dict]:
@@ -215,7 +220,8 @@ class GlossaryManager:
         
         if not selected_glossary_ids:
             logging.warning("No glossary IDs provided. Clearing in-memory glossary.")
-            self.in_memory_glossary = {'entries': []}
+            with self._lock:
+                self.in_memory_glossary = {'entries': []}
             return True
 
         try:
@@ -225,21 +231,32 @@ class GlossaryManager:
             cursor.execute(query, selected_glossary_ids)
             rows = cursor.fetchall()
             
-            self.in_memory_glossary = {'entries': []}
+            new_entries = []
             for row in rows:
                 entry = dict(row)
-                entry['translations'] = json.loads(entry['translations'])
-                entry['abbreviations'] = json.loads(entry['abbreviations']) if entry['abbreviations'] else {}
-                entry['variants'] = json.loads(entry['variants']) if entry['variants'] else {}
-                entry['raw_metadata'] = json.loads(entry['raw_metadata']) if entry['raw_metadata'] else {}
-                self.in_memory_glossary['entries'].append(entry)
+                try:
+                    # Robust loading if it's already a dict (shouldn't happen with sqlite but safe)
+                    if isinstance(entry['translations'], str):
+                        entry['translations'] = json.loads(entry['translations'])
+                except Exception as je:
+                    logging.warning(f"Failed to parse translations JSON for entry {entry.get('entry_id')}: {je}")
+                    continue
+                
+                entry['abbreviations'] = json.loads(entry['abbreviations']) if entry['abbreviations'] and isinstance(entry['abbreviations'], str) else {}
+                entry['variants'] = json.loads(entry['variants']) if entry['variants'] and isinstance(entry['variants'], str) else {}
+                entry['raw_metadata'] = json.loads(entry['raw_metadata']) if entry['raw_metadata'] and isinstance(entry['raw_metadata'], str) else {}
+                new_entries.append(entry)
             
-            logging.info(i18n.t("log_glossary_loaded_from_selected", entries_count=len(rows), glossaries_count=len(selected_glossary_ids)))
+            with self._lock:
+                self.in_memory_glossary = {'entries': new_entries}
+            
+            logging.info(i18n.t("log_glossary_loaded_from_selected", entries_count=len(new_entries), glossaries_count=len(selected_glossary_ids)))
             return True
 
         except Exception as e:
             logging.error(f"Failed to load selected glossaries: {e}")
-            self.in_memory_glossary = {'entries': []}
+            with self._lock:
+                self.in_memory_glossary = {'entries': []}
             return False
 
     def add_entry(self, glossary_id: int, entry_data: Dict) -> bool:
@@ -304,10 +321,25 @@ class GlossaryManager:
     def extract_relevant_terms(self, texts: List[str], source_lang: str, target_lang: str) -> List[Dict]:
         glossary = self.get_glossary_for_translation()
         if not glossary or not glossary.get('entries'):
+            # [DEBUG]
+            # logging.debug(f"[Glossary] No glossary loaded or empty entries. In-memory keys: {list(glossary.keys()) if glossary else 'None'}")
             return []
+        
+        # [DEBUG] Log extraction attempt
+        logging.info(f"[Glossary] Extracting terms for {len(texts)} texts. Lang: {source_lang}->{target_lang}. Total loaded entries: {len(glossary.get('entries', []))}")
+
         relevant_terms = []
         all_text = " ".join(texts).lower()
         matches = self._smart_term_matching(all_text, source_lang, target_lang)
+        
+        # [DEBUG]
+        if not matches:
+             # Sample checking first entry to see why it didn't match
+             first_entry = glossary['entries'][0]
+             translations = first_entry.get('translations', {})
+             s_term = translations.get(source_lang, "")
+             logging.info(f"[Glossary] No matches found. Sample check - Entry: {first_entry.get('entry_id')}, SourceLang '{source_lang}' term: '{s_term}'. Term in Text: {s_term.lower() in all_text if s_term else 'N/A'}")
+
         for match in matches:
             relevant_terms.append({
                 'translations': {
@@ -321,7 +353,10 @@ class GlossaryManager:
                 'confidence': match['confidence']
             })
         relevant_terms.sort(key=lambda x: (x['confidence'], len(x['translations'][source_lang])), reverse=True)
-        logging.info(i18n.t("glossary_terms_extracted", count=len(relevant_terms), text_count=len(texts)))
+        
+        if relevant_terms:
+            logging.info(i18n.t("glossary_terms_extracted", count=len(relevant_terms), text_count=len(texts)))
+        
         return relevant_terms
 
     def _smart_term_matching(self, text: str, source_lang: str, target_lang: str) -> List[Dict]:
@@ -338,8 +373,15 @@ class GlossaryManager:
             pe_lang = 'zh' if 'zh' in source_lang else source_lang
             text_fingerprint = self.phonetics_engine.generate_fingerprint(text, pe_lang)
 
+        logged_sample = False
         for entry in glossary.get('entries', []):
             translations = entry.get('translations', {})
+            
+            # [DEBUG] Log snippet to diagnose key mismatch
+            if not logged_sample:
+                 logging.info(f"[DEBUG-GLOSSARY] Matching terms. ReqSource: '{source_lang}', ReqTarget: '{target_lang}'. Entry Keys available: {list(translations.keys())}")
+                 logged_sample = True
+
             source_term = translations.get(source_lang, "")
             target_term = translations.get(target_lang, "")
             if not source_term or not target_term:
@@ -569,6 +611,39 @@ class GlossaryManager:
         else:
             logging.warning(f"Invalid fuzzy matching mode: {mode}. Using default 'loose' mode.")
             self.fuzzy_matching_mode = 'loose'
+
+    def create_glossary_file(self, game_id: str, file_name: str) -> bool:
+        """Creates a new glossary file (record) for a game."""
+        if not self.connection: return False
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("""
+                INSERT INTO glossaries (game_id, name, description, is_main)
+                VALUES (?, ?, ?, 0)
+            """, (game_id, file_name, f"User created glossary for {game_id}"))
+            self.connection.commit()
+            logging.info(f"Created new glossary file '{file_name}' for game {game_id}")
+            return True
+        except Exception as e:
+            logging.error(f"Failed to create glossary file: {e}")
+            return False
+
+    def delete_glossary(self, glossary_id: int) -> bool:
+        """Deletes an entire glossary file and all its entries."""
+        if not self.connection: return False
+        try:
+            cursor = self.connection.cursor()
+            # First delete all entries belonging to this glossary
+            cursor.execute("DELETE FROM entries WHERE glossary_id = ?", (glossary_id,))
+            entries_deleted = cursor.rowcount
+            # Then delete the glossary itself
+            cursor.execute("DELETE FROM glossaries WHERE glossary_id = ?", (glossary_id,))
+            self.connection.commit()
+            logging.info(f"Successfully deleted glossary {glossary_id} and {entries_deleted} entries")
+            return True
+        except Exception as e:
+            logging.error(f"Failed to delete glossary {glossary_id}: {e}")
+            return False
 
     def get_glossary_stats(self) -> Dict[str, Any]:
         """Returns statistics about the glossary database."""

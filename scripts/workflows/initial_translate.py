@@ -8,9 +8,9 @@ from scripts.core.glossary_manager import glossary_manager
 from scripts.core.proofreading_tracker import create_proofreading_tracker
 from scripts.core.parallel_processor import ParallelProcessor, FileTask
 from scripts.core.loc_parser import parse_loc_file
-from scripts.core.project_manager import ProjectManager
 from scripts.core.archive_manager import archive_manager
 from scripts.core.checkpoint_manager import CheckpointManager
+from scripts.shared.services import project_manager
 from scripts.app_settings import SOURCE_DIR, DEST_DIR, LANGUAGES, RECOMMENDED_MAX_WORKERS, ARCHIVE_RESULTS_AFTER_TRANSLATION, CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE, OLLAMA_CHUNK_SIZE
 from scripts.utils import i18n
 
@@ -27,7 +27,9 @@ def run(mod_name: str,
         use_glossary: bool = True,
         project_id: Optional[str] = None,
         custom_lang_config: Optional[dict] = None,
-        progress_callback: Optional[Any] = None):
+        progress_callback: Optional[Any] = None,
+        override_path: Optional[str] = None,
+        use_resume: bool = True):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info("Entered initial_translate.run")
 
@@ -81,7 +83,7 @@ def run(mod_name: str,
     # checkpoint_manager = CheckpointManager(output_dir_path, current_config=current_config)
 
     # ───────────── 4. 发现所有源文件 (Discovery Phase) ─────────────
-    all_file_paths = discover_files(mod_name, game_profile, source_lang)
+    all_file_paths = discover_files(mod_name, game_profile, source_lang, override_path=override_path)
 
     if not all_file_paths:
         logging.warning(i18n.t("no_localisable_files_found", lang_name=source_lang['name']))
@@ -137,8 +139,19 @@ def run(mod_name: str,
         if not file_data["texts_to_translate"]: continue
         total_batches += (len(file_data["texts_to_translate"]) + chunk_size - 1) // chunk_size
 
+    # Determine display name for archive (consistent with ProjectManager and Proofreading)
+    archive_mod_name = mod_name # Fallback to folder name
+    if project_id:
+        try:
+            from scripts.shared.services import project_manager
+            proj = project_manager.get_project(project_id)
+            if proj:
+                archive_mod_name = proj['name']
+        except Exception as e:
+            logging.error(f"Failed to fetch project name for archive: {e}")
+
     # 创建源版本快照
-    mod_id = archive_manager.get_or_create_mod_entry(mod_name, f"local_{mod_name}")
+    mod_id = archive_manager.get_or_create_mod_entry(archive_mod_name, f"local_{mod_name}")
     if not mod_id:
         logging.error("Failed to get/create mod entry in database. Aborting.")
         return
@@ -181,6 +194,11 @@ def run(mod_name: str,
         # Use a unique checkpoint file for each language to prevent conflicts in batch mode
         checkpoint_filename = f".remis_checkpoint_{target_lang.get('code', 'unknown')}.json"
         checkpoint_manager = CheckpointManager(output_dir_path, current_config=current_config, checkpoint_filename=checkpoint_filename)
+
+        # If use_resume is False, clear any existing checkpoint for a fresh start
+        if not use_resume:
+            checkpoint_manager.clear_checkpoint()
+            logging.info(f"use_resume is False - cleared checkpoint for {target_lang.get('code')}")
 
 
 
@@ -337,6 +355,20 @@ def run(mod_name: str,
                 # 标记断点
                 checkpoint_manager.mark_file_completed(file_task.filename)
 
+                # --- [SYNC] Update Database Status ---
+                if project_id:
+                    try:
+                        # Find the file in DB to update its status
+                        source_file_path = os.path.join(file_task.root, file_task.filename)
+                        # We use the repository directly or via project_manager if it has a helper
+                        # For now, let's use repository via project_manager for consistency
+                        import uuid
+                        # Re-generate the file_id using the same logic as FileService
+                        fid = str(uuid.uuid5(uuid.NAMESPACE_URL, source_file_path.lower().replace('\\', '/')))
+                        project_manager.repository.update_file_status_by_id(fid, 'translated')
+                    except Exception as e:
+                        logging.error(f"Failed to update DB status for {file_task.filename}: {e}")
+
                 # 实时归档翻译结果 (Incremental Archiving)
                 if version_id:
                     try:
@@ -370,6 +402,17 @@ def run(mod_name: str,
     
     logging.info(i18n.t("translation_workflow_completed"))
     logging.info(i18n.t("output_folder_created", folder=output_folder_name))
+
+    # ───────────── 9. 自动同步项目 ─────────────
+    if project_id:
+        try:
+            logging.info(f"Automatically syncing project {project_id}...")
+            # 1. 注册输出目录
+            project_manager.add_translation_path(project_id, output_dir_path)
+            # 2. 触发全量刷新以确保 UI 一致
+            project_manager.refresh_project_files(project_id)
+        except Exception as e:
+            logging.error(f"Failed to auto-sync project: {e}")
 
 
 def _handle_empty_file(file_info, orig, texts, km, source_lang, target_lang, game_profile, output_folder_name, mod_name, proofreading_tracker):
@@ -514,13 +557,16 @@ def process_metadata_for_language(mod_name, handler, source_lang, target_lang, o
         logging.exception(i18n.t("metadata_processing_failed", error=e))
 
 
-def discover_files(mod_name: str, game_profile: dict, source_lang: dict) -> List[dict]:
+def discover_files(mod_name: str, game_profile: dict, source_lang: dict, override_path: Optional[str] = None) -> List[dict]:
     """
     Discover all localizable files in the mod directory.
     Supports recursive search for EU5-style multi-module structures.
     """
     source_loc_folder = game_profile["source_localization_folder"]
-    mod_root_path = os.path.join(SOURCE_DIR, mod_name)
+    if override_path:
+        mod_root_path = override_path
+    else:
+        mod_root_path = os.path.join(SOURCE_DIR, mod_name)
     source_loc_path = os.path.join(mod_root_path, source_loc_folder)
     cust_loc_root = os.path.join(mod_root_path, "customizable_localization")
 

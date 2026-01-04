@@ -21,8 +21,9 @@ def load_language(lang_code=None):
         lang_code = _default_lang
     
     # 获取项目根目录的路径
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-    lang_file_path = os.path.join(project_root, 'data', 'lang', f'{lang_code}.json')
+    # Use app_settings to find data dir robustly (works in frozen & dev)
+    from scripts import app_settings
+    lang_file_path = os.path.join(app_settings.DATA_DIR, 'lang', f'{lang_code}.json')
 
     try:
         with open(lang_file_path, 'r', encoding='utf-8') as f:

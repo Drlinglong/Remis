@@ -2,30 +2,37 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-// Modern Dark Theme Colors
-const COLORS = ['#4dabf7', '#69db7c', '#ffd43b']; // Mantine Blue 4, Green 4, Yellow 4
+// Modern Dark Theme Colors mapped by status (Matching KanbanColumn.jsx logic)
+const STATUS_COLORS = {
+  'todo': '#adb5bd',         // Gray
+  'in_progress': '#339af0',  // Blue
+  'proofreading': '#d9a300', // Yellow (Darker for visibility)
+  'paused': '#fb8c00',       // Orange
+  'done': '#40c057',         // Green
+};
 
 const ProjectStatusPieChart = ({ data: dynamicData }) => {
   const { t } = useTranslation();
 
   const statusMap = {
-    'done': t('homepage_pie_chart_translated'),
-    'proofreading': t('homepage_pie_chart_proofreading'),
-    'todo': t('homepage_pie_chart_untranslated'),
-    'Done': t('homepage_pie_chart_translated'),
-    'Proofreading': t('homepage_pie_chart_proofreading'),
-    'Todo': t('homepage_pie_chart_untranslated')
+    'todo': t('project_management.kanban.columns.todo'),
+    'in_progress': t('project_management.kanban.columns.in_progress'),
+    'proofreading': t('project_management.kanban.columns.proofreading'),
+    'paused': t('project_management.kanban.columns.paused'),
+    'done': t('project_management.kanban.columns.done'),
   };
 
   const defaultData = [
-    { name: t('homepage_pie_chart_translated'), value: 0 },
-    { name: t('homepage_pie_chart_proofreading'), value: 0 },
-    { name: t('homepage_pie_chart_untranslated'), value: 0 },
+    { name: 'todo', value: 0 },
+    { name: 'in_progress', value: 0 },
+    { name: 'proofreading', value: 0 },
+    { name: 'paused', value: 0 },
+    { name: 'done', value: 0 },
   ];
 
   const data = dynamicData && dynamicData.length > 0
-    ? dynamicData.map(d => ({ ...d, name: statusMap[d.name] || d.name }))
-    : defaultData;
+    ? dynamicData.map(d => ({ ...d, displayName: statusMap[d.name.toLowerCase()] || d.name }))
+    : defaultData.map(d => ({ ...d, displayName: statusMap[d.name] }));
 
   return (
     <ResponsiveContainer width="100%" height={300}>
@@ -38,10 +45,11 @@ const ProjectStatusPieChart = ({ data: dynamicData }) => {
           outerRadius={100}
           paddingAngle={5}
           dataKey="value"
+          nameKey="displayName"
           stroke="none"
         >
           {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name.toLowerCase()] || '#adb5bd'} />
           ))}
         </Pie>
         <Tooltip

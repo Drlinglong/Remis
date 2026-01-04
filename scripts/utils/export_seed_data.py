@@ -11,7 +11,13 @@ sys.path.insert(0, project_root)
 from scripts import app_settings
 
 # Configuration
-KEEP_PROJECT_NAMES = ["Remis_Demo_Stellaris", "Remis_Demo_Vic3"]
+# Configuration
+# Exact names from the DB (as seen in diagnostic output)
+KEEP_PROJECT_NAMES = [
+    "Project Remis - Demo Mod - Stellaris", 
+    "蕾姆丝计划 - 演示Mod - 维多利亚3",
+    "Project Remis - Demo Mod -EU5"
+]
 OUTPUT_FILE_MAIN = os.path.join(project_root, 'data', 'seed_data_main.sql')
 OUTPUT_FILE_PROJECTS = os.path.join(project_root, 'data', 'seed_data_projects.sql')
 
@@ -67,9 +73,19 @@ def export_table_data(cursor, table_name, condition=None, params=None):
 
 def sanitize_path(path):
     path = path.replace("\\", "/")
+    # Handle development paths mapping to demos
+    if "/source_mod/" in path:
+        parts = path.split("/source_mod/")
+        return "{{DEMO_ROOT}}/demos/" + parts[1]
     if "/demos/" in path:
         parts = path.split("/demos/")
         return "{{DEMO_ROOT}}/demos/" + parts[1]
+    
+    # If it's a translation output path in the user's workspace, try to sanitize it
+    if "/my_translation/" in path:
+         # For seed data, we probably want to clear this or point to a default
+         return ""
+         
     return path
 
 def main():

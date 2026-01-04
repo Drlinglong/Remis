@@ -91,6 +91,34 @@ def find_source_template(target_path: str, source_lang: str, current_lang: str, 
     except Exception as e:
         logger.warning(f"Strategy 2 failed: {e}")
 
+    # --- Strategy 3: Direct Disk Search in Source Path (The "Bunker Buster") ---
+    # Scans the actual source directory recursively. Robust against DB sync issues.
+    try:
+        if project_id:
+             # Calculate expected source filename (re-use from Strategy 2 logic)
+            filename = os.path.basename(target_path)
+            current_suffix = f"_l_{current_lang}"
+            source_suffix = f"_l_{source_lang}"
+            
+            if current_suffix.lower() in filename.lower():
+                expected_source_filename = re.sub(re.escape(current_suffix), source_suffix, filename, flags=re.IGNORECASE)
+                
+                project = project_manager.get_project(project_id)
+                if project and project.get('source_path') and os.path.exists(project['source_path']):
+                    source_dir = project['source_path']
+                    logger.info(f"Strategy 3: Searching for '{expected_source_filename}' in '{source_dir}'")
+                    
+                    found_file = False
+                    for root, dirs, files in os.walk(source_dir):
+                        for f in files:
+                            if f.lower() == expected_source_filename.lower():
+                                full_path = os.path.join(root, f)
+                                logger.info(f"Strategy 3 found source file: {full_path}")
+                                return full_path
+    
+    except Exception as e:
+        logger.warning(f"Strategy 3 failed: {e}")
+
     return ""
 
 @router.get("/api/proofread/{project_id}/{file_id}")
@@ -169,8 +197,8 @@ def get_proofread_data(project_id: str, file_id: str):
 
     # 6. 准备中间栏数据 (AI Draft) - 来自数据库
     # 数据库查询使用 Template Path (Source Path)
-    # Fix 1: Use Mod Folder Name as mod_name (matching initial_translate.py)
-    mod_name = os.path.basename(project['source_path'])
+    # [FIX] Use Project Display Name as mod_name (matching ProjectManager.upload logic)
+    mod_name = project['name']
     
     # Fix 2: Convert language key (e.g. "english") to code (e.g. "en") using strict schema
     from scripts.schemas.common import LanguageCode
@@ -182,6 +210,14 @@ def get_proofread_data(project_id: str, file_id: str):
             
     logger.debug(f"Fetching DB entries for mod='{mod_name}', file='{template_file_path}', lang='{lang_code}'")
     db_entries = archive_manager.get_entries(mod_name, template_file_path, lang_code)
+    
+    # [FALLBACK] If no entries found with display name, try with folder name (for older projects)
+    if not db_entries:
+        folder_mod_name = os.path.basename(project['source_path'])
+        if folder_mod_name != mod_name:
+            logger.debug(f"No entries for display name '{mod_name}'. Trying folder name '{folder_mod_name}'...")
+            db_entries = archive_manager.get_entries(folder_mod_name, template_file_path, lang_code)
+
     logger.debug(f"Found {len(db_entries)} entries in DB.")
     db_translation_map = {e['key']: e['translation'] for e in db_entries if e['translation']}
     
@@ -207,13 +243,33 @@ def get_proofread_data(project_id: str, file_id: str):
         key = key_info['key_part'].strip()
         
         # AI 翻译
-        # Fix: DB stores keys as stringified indices ("0", "1"...), not the actual key string ("remis_event.1.t")
-        # This is because initial_translate.py passed the key_map dict keys (indices) to archive_manager.
-        ai_trans = db_translation_map.get(str(i), text)
+        # [FIX] Support:
+        # 1. Actual keys (key:version format used in new uploads/trans)
+        # 2. Stringified indices (str(i) format used in legacy initial_translate)
+        # 3. Pure keys (key format used in legacy uploads)
+        ai_trans = db_translation_map.get(key)
+        if ai_trans is None:
+            ai_trans = db_translation_map.get(str(i))
+        if ai_trans is None and ":" in key:
+            pure_curr_key = key.split(':')[0]
+            ai_trans = db_translation_map.get(pure_curr_key)
+        
+        # [NEW FALLBACK] Legacy trailing colon support
+        if ai_trans is None:
+            ai_trans = db_translation_map.get(key + ":")
+        
+        if ai_trans is None:
+            ai_trans = text # Final fallback
+
         ai_translated_texts.append(ai_trans)
         
         # 磁盘现有翻译
-        disk_trans = disk_translation_map.get(key, ai_trans) 
+        disk_trans = disk_translation_map.get(key)
+        if disk_trans is None and ":" in key:
+            disk_trans = disk_translation_map.get(key.split(':')[0])
+        if disk_trans is None:
+            disk_trans = ai_trans
+            
         disk_translated_texts.append(disk_trans)
         
         entries.append({

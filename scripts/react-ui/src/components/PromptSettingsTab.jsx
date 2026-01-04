@@ -29,7 +29,7 @@ import {
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../utils/api';
 
 // Internal Component: Expandable Textarea
 const ExpandableTextarea = ({ label, value, onChange, readOnly, placeholder, minRows = 4, maxRows = 30, rightSection }) => {
@@ -118,7 +118,7 @@ const PromptSettingsTab = () => {
 
     const fetchPrompts = async () => {
         try {
-            const response = await axios.get('/api/prompts');
+            const response = await api.get('/api/prompts');
             setPromptsData(response.data);
             setCustomGlobalPrompt(response.data.custom_global_prompt || '');
 
@@ -143,7 +143,7 @@ const PromptSettingsTab = () => {
         if (!selectedGameId) return;
         setSubmittingSystem(true);
         try {
-            await axios.post('/api/prompts/system', {
+            await api.post('/api/prompts/system', {
                 game_id: selectedGameId,
                 prompt_template: currentSystemPrompt
             });
@@ -169,7 +169,7 @@ const PromptSettingsTab = () => {
         if (!selectedGameId) return;
         setSubmittingFormat(true);
         try {
-            await axios.post('/api/prompts/format', {
+            await api.post('/api/prompts/format', {
                 game_id: selectedGameId,
                 format_prompt: currentFormatPrompt
             });
@@ -194,7 +194,7 @@ const PromptSettingsTab = () => {
     const handleSaveCustomPrompt = async () => {
         setSubmittingCustom(true);
         try {
-            await axios.post('/api/prompts/custom', {
+            await api.post('/api/prompts/custom', {
                 custom_prompt: customGlobalPrompt
             });
             notifications.show({
@@ -228,7 +228,7 @@ const PromptSettingsTab = () => {
                 reset_format: resetTarget === 'format'
             };
 
-            await axios.post('/api/prompts/reset', payload);
+            await api.post('/api/prompts/reset', payload);
 
             notifications.show({
                 title: t('success'),
@@ -264,7 +264,7 @@ const PromptSettingsTab = () => {
         : null;
 
     return (
-        <Stack spacing="xl">
+        <Stack gap="xl">
             {/* --- Warnings --- */}
             <Alert variant="light" color="orange" title={t('prompt_settings_warning_title')} icon={<IconAlertTriangle />}>
                 {t('prompt_settings_warning_desc')}
@@ -293,13 +293,13 @@ const PromptSettingsTab = () => {
                                 <Text size="sm" c="dimmed">{t('prompt_settings_system_desc')}</Text>
 
                                 <Group justify="space-between" align="center">
-                                    <Group spacing="xs">
+                                    <Group gap="xs">
                                         <Text size="sm" fw={600}>{t('current_prompt', 'Current Prompt')}</Text>
                                         {selectedGameData.is_overridden && (
                                             <Badge color="orange" variant="light">{t('overridden', 'Overridden')}</Badge>
                                         )}
                                     </Group>
-                                    <Group spacing="xs">
+                                    <Group gap="xs">
                                         <Tooltip label={selectedGameData.is_overridden ? t('reset_desc', 'Reset to default') : t('reset_disabled_desc', 'No override to reset')}>
                                             <span style={{ display: 'inline-block' }}> {/* Wrapper for disabled button tooltip */}
                                                 <Button
@@ -323,7 +323,7 @@ const PromptSettingsTab = () => {
                                     </Group>
                                 </Group>
 
-                                <Group spacing={5}>
+                                <Group gap={5}>
                                     {variables.map(v => (
                                         <Tooltip label={v.desc} key={v.label}>
                                             <Badge
@@ -364,13 +364,13 @@ const PromptSettingsTab = () => {
                                 </Text>
 
                                 <Group justify="space-between" align="center">
-                                    <Group spacing="xs">
+                                    <Group gap="xs">
                                         <Text size="sm" fw={600}>{t('current_rules', 'Current Rules')}</Text>
                                         {selectedGameData.is_format_overridden && (
                                             <Badge color="orange" variant="light">{t('overridden', 'Overridden')}</Badge>
                                         )}
                                     </Group>
-                                    <Group spacing="xs">
+                                    <Group gap="xs">
                                         <Tooltip label={selectedGameData.is_format_overridden ? t('reset_desc', 'Reset to default') : t('reset_disabled_desc', 'No override to reset')}>
                                             <span style={{ display: 'inline-block' }}>
                                                 <Button
@@ -395,7 +395,7 @@ const PromptSettingsTab = () => {
                                 </Group>
 
                                 {/* Common format variables */}
-                                <Group spacing={5}>
+                                <Group gap={5}>
                                     <Tooltip label="Input chunk size">
                                         <Badge
                                             variant="outline" color="gray"

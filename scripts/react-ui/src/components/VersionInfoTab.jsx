@@ -2,18 +2,18 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Stack, Group, Text, Title, Paper, Anchor, Alert, ThemeIcon, List, Box, Divider, Button } from '@mantine/core';
 import { IconBrandGithub, IconInfoCircle, IconStar, IconBug, IconFileCode, IconFolderOpen } from '@tabler/icons-react';
-import axios from 'axios';
+import api from '../utils/api';
 import { notifications } from '@mantine/notifications';
 
 const VersionInfoTab = () => {
     const { t } = useTranslation();
-    const version = "v2.1.0-stable"; // Project version
-    const lastUpdated = "2026-01-02"; // Last updated date
+    const version = "v2.0.0 Technical Preview"; // Project version
+    const lastUpdated = "2026-01-04"; // Last updated date
     const githubRepoUrl = "https://github.com/Drlinglong/V3_Mod_Localization_Factory";
 
     const handleOpenLogs = async () => {
         try {
-            await axios.post('/api/system/open-logs');
+            await api.post('/api/system/open-logs');
         } catch (error) {
             notifications.show({
                 title: 'Error',
@@ -25,7 +25,7 @@ const VersionInfoTab = () => {
 
     const handleOpenUrl = async (url) => {
         try {
-            await axios.post('/api/system/open-url', { url });
+            await api.post('/api/system/open-url', { url });
         } catch (error) {
             window.open(url, '_blank'); // Fallback
         }

@@ -29,6 +29,7 @@ class InitialTranslationRequest(BaseModel):
     selected_glossary_ids: Optional[List[int]] = []
     use_main_glossary: bool = True
     clean_source: bool = False
+    use_resume: bool = True
     custom_lang_config: Optional[CustomLangConfig] = None
 
     @field_validator('source_lang_code', mode='before')
@@ -57,6 +58,7 @@ class TranslationRequestV2(BaseModel):
     use_main_glossary: bool = True
     clean_source: bool = False
     is_existing_source: bool = False
+    use_resume: bool = True
     custom_lang_config: Optional[CustomLangConfig] = None
 
     @field_validator('source_lang_code', mode='before')

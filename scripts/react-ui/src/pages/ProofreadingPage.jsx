@@ -18,6 +18,7 @@ import {
 import layoutStyles from '../components/layout/Layout.module.css';
 import { useTutorial } from '../context/TutorialContext';
 import useProofreadingState from '../hooks/useProofreadingState';
+import { usePersistentState } from '../hooks/usePersistentState';
 import ProjectSelector from '../components/proofreading/ProjectSelector';
 import { SourceFileSelector, AIFileSelector } from '../components/proofreading/ProofreadingFileList';
 import ProofreadingWorkspace from '../components/proofreading/ProofreadingWorkspace';
@@ -33,8 +34,8 @@ const ProofreadingPage = () => {
   const state = useProofreadingState();
 
   // 本地 UI 状态
-  const [activeTab, setActiveTab] = useState('file');
-  const [zoomLevel, setZoomLevel] = useState('1');
+  const [activeTab, setActiveTab] = usePersistentState('proofread_active_tab', 'file');
+  const [zoomLevel, setZoomLevel] = usePersistentState('proofread_zoom_level', '1');
 
   useEffect(() => {
     setPageContext('proofreading');
@@ -79,7 +80,7 @@ const ProofreadingPage = () => {
 
           <Group>
 
-            <Group spacing="xs">
+            <Group gap="xs">
               <Text size="xs" c="dimmed" mr={4}>{t('common.page_scale', 'Scale')}:</Text>
               <Select
                 value={zoomLevel}
@@ -105,62 +106,35 @@ const ProofreadingPage = () => {
               >
                 {t('proofreading.open_folder')}
               </Button>
-              <Tabs value={activeTab} onChange={setActiveTab} variant="pills" radius="md">
-                <Tabs.List>
-                  <Tabs.Tab value="file" leftSection={<IconFileText size={14} />}>{t('proofreading.tab_file_mode')}</Tabs.Tab>
-                  <Tabs.Tab value="free" leftSection={<IconEdit size={14} />}>{t('proofreading.tab_free_mode')}</Tabs.Tab>
-                </Tabs.List>
-              </Tabs>
             </Group>
           </Group>
         </Group>
 
         {/* Main Content */}
         <div id="proofreading-main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', zoom: zoomLevel }}>
-          <Tabs value={activeTab} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-            {/* File Mode Tab */}
-            <Tabs.Panel value="file" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <ProofreadingWorkspace
-                originalContentStr={state.originalContentStr}
-                aiContentStr={state.aiContentStr}
-                finalContentStr={state.finalContentStr}
-                onFinalContentChange={state.setFinalContentStr}
-                originalEditorRef={state.originalEditorRef}
-                aiEditorRef={state.aiEditorRef}
-                finalEditorRef={state.finalEditorRef}
-                validationResults={state.validationResults}
-                stats={state.stats}
-                loading={state.loading}
-                saving={state.saving}
-                keyChangeWarning={state.keyChangeWarning}
-                saveModalOpen={state.saveModalOpen}
-                onValidate={state.handleValidate}
-                onSave={state.handleSaveClick}
-                onConfirmSave={state.confirmSave}
-                onCancelSave={() => state.setSaveModalOpen(false)}
-                fileInfo={state.fileInfo}
-                onOpenFolder={state.handleOpenFolder}
-                sourceFileSelector={sourceFileSelector}
-                aiFileSelector={aiFileSelector}
-              />
-            </Tabs.Panel>
-
-            {/* Free Mode Tab */}
-            <Tabs.Panel value="free" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <FreeLinterMode
-                linterContent={state.linterContent}
-                onLinterContentChange={state.setLinterContent}
-                linterGameId={state.linterGameId}
-                onGameIdChange={state.setLinterGameId}
-                linterResults={state.linterResults}
-                linterLoading={state.linterLoading}
-                linterError={state.linterError}
-                onValidate={state.handleLinterValidate}
-              />
-            </Tabs.Panel>
-
-          </Tabs>
+          <ProofreadingWorkspace
+            originalContentStr={state.originalContentStr}
+            aiContentStr={state.aiContentStr}
+            finalContentStr={state.finalContentStr}
+            onFinalContentChange={state.setFinalContentStr}
+            originalEditorRef={state.originalEditorRef}
+            aiEditorRef={state.aiEditorRef}
+            finalEditorRef={state.finalEditorRef}
+            validationResults={state.validationResults}
+            stats={state.stats}
+            loading={state.loading}
+            saving={state.saving}
+            keyChangeWarning={state.keyChangeWarning}
+            saveModalOpen={state.saveModalOpen}
+            onValidate={state.handleValidate}
+            onSave={state.handleSaveClick}
+            onConfirmSave={state.confirmSave}
+            onCancelSave={() => state.setSaveModalOpen(false)}
+            fileInfo={state.fileInfo}
+            onOpenFolder={state.handleOpenFolder}
+            sourceFileSelector={sourceFileSelector}
+            aiFileSelector={aiFileSelector}
+          />
         </div>
       </Paper>
     </div>

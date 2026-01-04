@@ -198,6 +198,8 @@ class ProjectRepository:
         conn = self._get_connection()
         try:
             cursor = conn.cursor()
+            # First delete all associated files to prevent orphans and constraint errors
+            cursor.execute("DELETE FROM project_files WHERE project_id = ?", (project_id,))
             cursor.execute("DELETE FROM projects WHERE project_id = ?", (project_id,))
             conn.commit()
         finally:
@@ -256,9 +258,11 @@ class ProjectRepository:
             cursor.executemany('''
                 INSERT INTO project_files (file_id, project_id, file_path, status, original_key_count, line_count, file_type)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(project_id, file_path) DO UPDATE SET
+                ON CONFLICT(file_id) DO UPDATE SET
+                    status = excluded.status,
                     line_count = excluded.line_count,
-                    file_type = excluded.file_type
+                    file_type = excluded.file_type,
+                    file_path = excluded.file_path
             ''', data_tuples)
             
             conn.commit()
@@ -357,21 +361,33 @@ class ProjectRepository:
             status_keys = {row['status']: row['total_keys'] or 0 for row in file_stats}
             
             total_keys = sum(status_keys.values())
-            translated_keys = status_keys.get('done', 0) + status_keys.get('proofreading', 0)
+            # We consider 'done' and 'proofreading' as progress, but maybe only 'done' for 'Words Translated' stat in the card
+            translated_keys = status_keys.get('done', 0)
             
-            completion_rate = (translated_keys / total_keys * 100) if total_keys > 0 else 0
+            # Completion rate uses done + proofreading
+            completed_keys = status_keys.get('done', 0) + status_keys.get('proofreading', 0)
+            completion_rate = (completed_keys / total_keys * 100) if total_keys > 0 else 0
+
+            # 4. Game Distribution
+            cursor.execute("SELECT game_id, COUNT(*) as count FROM projects GROUP BY game_id")
+            game_stats = cursor.fetchall()
+            game_distribution = [{"name": row['game_id'], "value": row['count']} for row in game_stats]
             
             return {
                 "total_projects": total_projects,
                 "active_projects": active_projects,
                 "total_files": sum(status_counts.values()),
                 "status_distribution": [
-                    {"name": "Done", "value": status_counts.get('done', 0)},
-                    {"name": "Proofreading", "value": status_counts.get('proofreading', 0)},
-                    {"name": "Todo", "value": status_counts.get('todo', 0)}
+                    {"name": "todo", "value": status_counts.get('todo', 0)},
+                    {"name": "in_progress", "value": status_counts.get('in_progress', 0)},
+                    {"name": "proofreading", "value": status_counts.get('proofreading', 0)},
+                    {"name": "paused", "value": status_counts.get('paused', 0)},
+                    {"name": "done", "value": status_counts.get('done', 0)}
                 ],
+                "game_distribution": game_distribution,
                 "total_keys": total_keys,
                 "translated_keys": translated_keys,
+                "translated_files": status_counts.get('done', 0),
                 "completion_rate": round(completion_rate, 1)
             }
         finally:

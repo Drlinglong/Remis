@@ -79,6 +79,7 @@ yarn-error.log*
 /scripts/react-ui/src-tauri/.cargo/
 /scripts/react-ui/src-tauri/gen/
 /scripts/react-ui/src-tauri/binaries/
+/scripts/react-ui/src-tauri/*.exe
 
 # Migration scripts (temporary)
 migrate_projects_db.py
@@ -89,6 +90,8 @@ migrate_projects_db.py
 /ui/frontend/dist/
 /archive/build_release_scripts/get-pip.py
 /archive/build_release_scripts/python-3.10.11-embed-amd64.zip
+/archive/release/
+/dist_test/
 
 # Environment files with secrets
 .env

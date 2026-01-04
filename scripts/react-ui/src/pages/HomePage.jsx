@@ -5,10 +5,12 @@ import { Grid, Card, Title, Text, ThemeIcon, Group, Stack, Box, Button, Backgrou
 import { IconRocket, IconRefresh, IconChartBar, IconVocabulary, IconChecklist, IconActivity, IconTools } from '@tabler/icons-react';
 import ActionCard from '../components/ActionCard';
 import ProjectStatusPieChart from '../components/ProjectStatusPieChart';
+import ProjectDistributionPieChart from '../components/ProjectDistributionPieChart';
 import GlossaryAnalysisBarChart from '../components/GlossaryAnalysisBarChart';
 import StatCard from '../components/StatCard';
 import RecentActivityList from '../components/RecentActivityList';
 
+import api from '../utils/api';
 import styles from './HomePage.module.css';
 import { useTutorial, getTutorialKey } from '../context/TutorialContext';
 
@@ -31,7 +33,8 @@ const HomePage = () => {
   });
   const [charts, setCharts] = useState({
     project_status: [],
-    glossary_analysis: []
+    glossary_analysis: [],
+    project_distribution: []
   });
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,9 +47,20 @@ const HomePage = () => {
     }
 
     const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Good Morning');
-    else if (hour < 18) setGreeting('Good Afternoon');
-    else setGreeting('Good Evening');
+    let timeKey = 'morning';
+    if (hour >= 12 && hour < 18) timeKey = 'afternoon';
+    else if (hour >= 18 || hour < 5) timeKey = 'evening';
+
+    const timeGreetings = t('homepage_greetings', { returnObjects: true })?.[timeKey];
+    if (Array.isArray(timeGreetings) && timeGreetings.length > 0) {
+      const randomGreetingIndex = Math.floor(Math.random() * timeGreetings.length);
+      setGreeting(timeGreetings[randomGreetingIndex]);
+    } else {
+      // Fallback
+      if (hour < 12) setGreeting('Good Morning');
+      else if (hour < 18) setGreeting('Good Afternoon');
+      else setGreeting('Good Evening');
+    }
 
     fetchDashboardData();
 
@@ -61,13 +75,11 @@ const HomePage = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/system/stats');
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data.stats);
-        setCharts(data.charts);
-        setRecentActivity(data.recent_activity);
-      }
+      const response = await api.get('/api/system/stats');
+      const data = response.data;
+      setStats(data.stats);
+      setCharts(data.charts);
+      setRecentActivity(data.recent_activity);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
     } finally {
@@ -117,8 +129,8 @@ const HomePage = () => {
             p={40}
           >
             <Stack style={{ position: 'relative', zIndex: 2 }}>
-              <Title order={1} className={styles.cardTitle} style={{ fontSize: '2.5rem', fontWeight: 800 }}>
-                {greeting}, User!
+              <Title order={1} className={styles.cardTitle} style={{ fontSize: '2.4rem', fontWeight: 800 }}>
+                {greeting}
               </Title>
               <Text size="lg" style={{ opacity: 0.9, maxWidth: '600px', color: 'var(--text-main)' }}>
                 "{slogan}"
@@ -142,13 +154,14 @@ const HomePage = () => {
             {/* Decorative Background Elements */}
             <IconRocket
               size={300}
+              className={styles.floatingIcon}
               style={{
                 position: 'absolute',
                 right: -50,
                 bottom: -50,
-                opacity: 0.1,
+                opacity: 0.08,
                 color: 'var(--text-highlight)',
-                transform: 'rotate(-15deg)'
+                pointerEvents: 'none'
               }}
             />
           </Box>
@@ -211,7 +224,16 @@ const HomePage = () => {
                     <Title order={4} className={styles.cardTitle}>{t('homepage_chart_pie_title')}</Title>
                     <ActionIcon variant="subtle" color="gray" onClick={fetchDashboardData} loading={loading}><IconRefresh size={16} /></ActionIcon>
                   </Group>
-                  <ProjectStatusPieChart data={charts.project_status} />
+                  <Grid>
+                    <Grid.Col span={{ base: 12, md: 6 }}>
+                      <Text ta="center" size="sm" c="dimmed" mb="xs">{t('homepage_pie_chart_status_title', 'By Status')}</Text>
+                      <ProjectStatusPieChart data={charts.project_status} />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, md: 6 }}>
+                      <Text ta="center" size="sm" c="dimmed" mb="xs">{t('homepage_pie_chart_distribution_title', 'By Game')}</Text>
+                      <ProjectDistributionPieChart data={charts.project_distribution} />
+                    </Grid.Col>
+                  </Grid>
                 </Card>
                 <Card shadow="sm" padding="lg" radius="md" withBorder className={styles.glassCard}>
                   <Group justify="space-between" mb="md">

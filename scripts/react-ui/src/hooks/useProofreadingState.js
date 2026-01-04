@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
-import axios from 'axios';
+import { usePersistentState } from './usePersistentState';
+import api from '../utils/api';
 import { toParadoxLang } from '../utils/paradoxMapping';
 import { groupFiles as performGrouping } from '../utils/fileGrouping';
 
@@ -16,7 +17,7 @@ const useProofreadingState = () => {
     const [projects, setProjects] = useState([]);
     const [selectedProject, setSelectedProject] = useState(null);
 
-    const [projectFilter, setProjectFilter] = useState('');
+    const [projectFilter, setProjectFilter] = usePersistentState('proofread_project_filter', '');
 
     // ==================== 文件导航状态 ====================
     const [sourceFiles, setSourceFiles] = useState([]);
@@ -46,6 +47,55 @@ const useProofreadingState = () => {
     const [linterLoading, setLinterLoading] = useState(false);
     const [linterError, setLinterError] = useState(null);
 
+    // Persistence: Unsaved Draft Cache
+    // We only track the single most recent file being edited
+    const [draftCache, setDraftCache] = usePersistentState('remis_draft_cache', null);
+
+    // Effect: Auto-save draft content
+    useEffect(() => {
+        if (fileInfo && finalContentStr !== undefined) {
+            // Only save if we have meaningful content or at least loaded content
+            // Using a timeout to debounce could be better, but for now direct is fine for minimal latency
+            const timer = setTimeout(() => {
+                setDraftCache({
+                    projectId: fileInfo.project_id,
+                    fileId: fileInfo.file_id,
+                    content: finalContentStr,
+                    timestamp: Date.now()
+                });
+            }, 500); // 500ms debounce
+            return () => clearTimeout(timer);
+        }
+    }, [finalContentStr, fileInfo, setDraftCache]);
+
+    // Persistence: Last active session
+    useEffect(() => {
+        const pId = searchParams.get('projectId');
+        const fId = searchParams.get('fileId');
+        if (pId && fId) {
+            sessionStorage.setItem('remis_last_proofread_session', JSON.stringify({ projectId: pId, fileId: fId }));
+        }
+    }, [searchParams]);
+
+    // Persistence: Resume session if URL is clean
+    useEffect(() => {
+        const pId = searchParams.get('projectId');
+        const fId = searchParams.get('fileId');
+
+        if (!pId && !fId) {
+            try {
+                const saved = sessionStorage.getItem('remis_last_proofread_session');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    // Restore session immediately if we have a saved ID
+                    if (parsed.projectId) {
+                        setSearchParams({ projectId: parsed.projectId, fileId: parsed.fileId }, { replace: true });
+                    }
+                }
+            } catch (e) { console.error("Failed to restore session", e); }
+        }
+    }, [searchParams, setSearchParams]);
+
     // ==================== 编辑器引用 ====================
     const originalEditorRef = useRef(null);
     const aiEditorRef = useRef(null);
@@ -55,7 +105,7 @@ const useProofreadingState = () => {
     // ==================== 数据获取函数 ====================
     const fetchProjects = useCallback(async () => {
         try {
-            const res = await axios.get('/api/projects?status=active');
+            const res = await api.get('/api/projects?status=active');
             setProjects(res.data);
         } catch (error) {
             console.error("Failed to load projects", error);
@@ -102,10 +152,19 @@ const useProofreadingState = () => {
     const parseEditorContentToEntries = useCallback((content) => {
         const entries = [];
         // Support keys with dots, underscores, and hyphens. Support optional digit index.
-        const regex = /^\s*([\w\.-]+)(?:\s*:\s*\d+)?\s*"((?:[^"\\]|\\.)*)"/gm;
+        // Match key followed by optional spaces, then colon, then optional spaces, then optional version digits
+        const regex = /^\s*([\w\.-]+)\s*:\s*(\d*)\s*"((?:[^"\\]|\\.)*)"/gm;
         let match;
+        const headers = ["l_english", "l_simp_chinese", "l_french", "l_german", "l_spanish", "l_russian", "l_polish", "l_japanese", "l_korean", "l_turkish", "l_braz_por"];
+
         while ((match = regex.exec(content)) !== null) {
-            entries.push({ key: match[1], value: match[2] });
+            const keyBase = match[1].trim();
+            const version = match[2].trim();
+            if (headers.some(h => keyBase.startsWith(h))) continue; // Skip headers
+
+            // Universal Normalization: key:version (no spaces)
+            const fullKey = version ? `${keyBase}:${version}` : keyBase;
+            entries.push({ key: fullKey, value: match[3] });
         }
         return entries;
     }, []);
@@ -115,7 +174,7 @@ const useProofreadingState = () => {
         try {
             if (sourceFilePath && sourceFilePath.trim() !== '') {
                 try {
-                    const readRes = await axios.post('/api/system/read_file', { file_path: sourceFilePath });
+                    const readRes = await api.post('/api/system/read_file', { file_path: sourceFilePath });
                     setOriginalContentStr(readRes.data.content || "");
                 } catch (readError) {
                     console.error("Failed to read source file:", readError);
@@ -126,22 +185,38 @@ const useProofreadingState = () => {
             }
 
             if (targetId) {
-                const resTarget = await axios.get(`/api/proofread/${pId}/${targetId}`);
+                const resTarget = await api.get(`/api/proofread/${pId}/${targetId}`);
                 const data = resTarget.data;
                 setFileInfo({ path: data.file_path, project_id: pId, file_id: targetId });
                 setEntries(data.entries || []);
 
+                let contentToSet = "";
                 if (data.ai_content) {
+                    contentToSet = data.final_content || data.ai_content;
                     setAiContentStr(data.ai_content);
-                    setFinalContentStr(data.final_content || data.ai_content);
                 } else if (data.file_content) {
+                    contentToSet = data.file_content;
                     setAiContentStr(data.file_content);
-                    setFinalContentStr(data.file_content);
                 } else {
                     const { aiStr, finalStr } = alignEntries(data.entries || []);
                     setAiContentStr(aiStr);
-                    setFinalContentStr(finalStr);
+                    contentToSet = finalStr;
                 }
+
+                // Restore draft if exists
+                try {
+                    const savedRaw = sessionStorage.getItem('remis_draft_cache');
+                    if (savedRaw) {
+                        const draft = JSON.parse(savedRaw);
+                        if (draft && draft.projectId === pId && draft.fileId === targetId) {
+                            contentToSet = draft.content;
+                            notifications.show({ title: 'Draft Restored', message: 'Restored unsaved changes from session cache.', color: 'blue' });
+                        }
+                    }
+                } catch (e) { console.error("Failed to restore draft", e); }
+
+                setFinalContentStr(contentToSet);
+
             } else {
                 setAiContentStr("");
                 setFinalContentStr("");
@@ -165,57 +240,12 @@ const useProofreadingState = () => {
         setSourceFiles(sources);
         setTargetFilesMap(targetsMap);
 
-        const urlFileId = searchParams.get('fileId');
-
-        if (urlFileId) {
-            let foundSource = null;
-            let foundTarget = null;
-
-            const isSource = sources.find(s => s.file_id === urlFileId);
-            if (isSource) {
-                foundSource = isSource;
-                if (targetsMap[isSource.file_id]?.length > 0) {
-                    foundTarget = targetsMap[isSource.file_id][0];
-                }
-            } else {
-                for (const sId in targetsMap) {
-                    const t = targetsMap[sId].find(t => t.file_id === urlFileId);
-                    if (t) {
-                        foundSource = sources.find(s => s.file_id === sId);
-                        foundTarget = t;
-                        break;
-                    }
-                }
-            }
-
-            if (foundSource) {
-                setCurrentSourceFile(foundSource);
-                if (foundTarget) {
-                    setCurrentTargetFile(foundTarget);
-                    loadEditorData(selectedProject.project_id, foundSource.file_path, foundTarget.file_id);
-                } else {
-                    setCurrentTargetFile(null);
-                    loadEditorData(selectedProject.project_id, foundSource.file_path, null);
-                }
-            }
-
-        } else if (sources.length > 0) {
-            const firstSource = sources[0];
-            setCurrentSourceFile(firstSource);
-            const targets = targetsMap[firstSource.file_id];
-            if (targets && targets.length > 0) {
-                setCurrentTargetFile(targets[0]);
-                loadEditorData(selectedProject.project_id, firstSource.file_path, targets[0].file_id);
-            } else {
-                setCurrentTargetFile(null);
-                loadEditorData(selectedProject.project_id, firstSource.file_path, null);
-            }
-        }
-    }, [selectedProject, searchParams, loadEditorData]);
+        // Note: Selection logic moved to useEffect to prevent race conditions.
+    }, [selectedProject]);
 
     const fetchProjectFiles = useCallback(async (projectId) => {
         try {
-            const res = await axios.get(`/api/project/${projectId}/files`);
+            const res = await api.get(`/api/project/${projectId}/files`);
             if (res.data) {
                 groupFiles(res.data);
             }
@@ -271,7 +301,7 @@ const useProofreadingState = () => {
                 virtualContent += ` ${e.key}:0 "${e.value}"\n`;
             });
 
-            const response = await axios.post('/api/validate/localization', {
+            const response = await api.post('/api/validate/localization', {
                 game_id: selectedProject.game_id || 'victoria3',
                 content: virtualContent,
                 source_lang_code: 'en_US'
@@ -314,7 +344,7 @@ const useProofreadingState = () => {
                 target_language: `l_${toParadoxLang(selectedProject.source_language || 'english')}` // Heuristic: default to source lang if unknown, or ideally user should select target
             };
 
-            await axios.post('/api/proofread/save', savePayload);
+            await api.post('/api/proofread/save', savePayload);
 
             notifications.show({ title: 'Saved', message: 'File saved successfully.', color: 'green' });
 
@@ -339,7 +369,7 @@ const useProofreadingState = () => {
         try {
             const path = fileInfo.path.replace(/\\/g, '/');
             const dirPath = path.substring(0, path.lastIndexOf('/'));
-            await axios.post('/api/system/open_folder', { path: dirPath });
+            await api.post('/api/system/open_folder', { path: dirPath });
             notifications.show({ title: 'Success', message: 'Folder opened', color: 'green' });
         } catch (error) {
             notifications.show({ title: 'Error', message: 'Failed to open folder', color: 'red' });
@@ -352,7 +382,7 @@ const useProofreadingState = () => {
         setLinterError(null);
         setLinterResults([]);
         try {
-            const response = await axios.post('/api/validate/localization', {
+            const response = await api.post('/api/validate/localization', {
                 game_id: linterGameId,
                 content: linterContent,
                 source_lang_code: 'en_US'
@@ -371,7 +401,7 @@ const useProofreadingState = () => {
         fetchProjects();
     }, [fetchProjects]);
 
-    // URL 参数同步
+    // URL 参数同步 - 选中项目
     useEffect(() => {
         const pId = searchParams.get('projectId');
         if (pId && projects.length > 0 && !selectedProject) {
@@ -379,6 +409,66 @@ const useProofreadingState = () => {
             if (proj) setSelectedProject(proj);
         }
     }, [searchParams, projects, selectedProject]);
+
+    // URL 参数同步 - 选中文件 (Enforce URL source of truth)
+    useEffect(() => {
+        // Only run if we have data to select from
+        if (sourceFiles.length > 0 && selectedProject) {
+            const urlFileId = searchParams.get('fileId');
+
+            let resolvedSource = null;
+            let resolvedTarget = null;
+
+            if (urlFileId) {
+                // Try as source
+                resolvedSource = sourceFiles.find(s => String(s.file_id) === String(urlFileId));
+                if (resolvedSource) {
+                    if (targetFilesMap[resolvedSource.file_id]?.length > 0) {
+                        resolvedTarget = targetFilesMap[resolvedSource.file_id][0];
+                    }
+                } else {
+                    // Try as target
+                    for (const sId in targetFilesMap) {
+                        const foundT = targetFilesMap[sId].find(t => String(t.file_id) === String(urlFileId));
+                        if (foundT) {
+                            resolvedSource = sourceFiles.find(s => String(s.file_id) === sId);
+                            resolvedTarget = foundT;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Fallback / Default logic
+            if (!resolvedSource) {
+                console.log("[Effect] No valid file resolved from URL. Defaulting to first file.");
+                resolvedSource = sourceFiles[0];
+                if (targetFilesMap[resolvedSource.file_id]?.length > 0) {
+                    resolvedTarget = targetFilesMap[resolvedSource.file_id][0];
+                }
+            }
+
+            if (resolvedSource) {
+                // If selection mismatch, force update
+                const isMismatch = !currentSourceFile ||
+                    String(currentSourceFile.file_id) !== String(resolvedSource.file_id) ||
+                    (resolvedTarget && (!currentTargetFile || String(currentTargetFile.file_id) !== String(resolvedTarget.file_id)));
+
+                if (isMismatch) {
+                    console.log(`[Effect] Applying selection: ${resolvedSource.file_path}`);
+                    setCurrentSourceFile(resolvedSource);
+                    setCurrentTargetFile(resolvedTarget);
+                    loadEditorData(selectedProject.project_id, resolvedSource.file_path, resolvedTarget ? resolvedTarget.file_id : null);
+
+                    // Sync URL if it differed (e.g. fallback or initial load)
+                    const targetId = resolvedTarget ? resolvedTarget.file_id : resolvedSource.file_id;
+                    if (String(urlFileId) !== String(targetId)) {
+                        setSearchParams({ projectId: selectedProject.project_id, fileId: targetId }, { replace: true });
+                    }
+                }
+            }
+        }
+    }, [searchParams, sourceFiles, targetFilesMap, selectedProject, currentSourceFile, currentTargetFile, loadEditorData, setSearchParams]);
 
     // 项目切换：获取文件
     useEffect(() => {
@@ -391,15 +481,20 @@ const useProofreadingState = () => {
     useEffect(() => {
         if (!entries.length || !finalContentStr) return;
 
-        // Regex to extract keys from content: 
-        // Matches: key:0 "value"
-        // Improved: Allow whitespace around ':' and before key
-        // Support keys with dots, underscores, and hyphens. Match any :digit index or just colon.
+        // Regex to extract keys from content
         const currentKeys = new Set();
-        const regex = /^\s*([\w\.-]+)\s*:\s*\d*\s*"/gm;
+        // Match key followed by colon and optional version, allow spaces
+        const regex = /^\s*([\w\.-]+)\s*:\s*(\d*)\s*"/gm;
         let match;
+        const headers = ["l_english", "l_simp_chinese", "l_french", "l_german", "l_spanish", "l_russian", "l_polish", "l_japanese", "l_korean", "l_turkish", "l_braz_por"];
+
         while ((match = regex.exec(finalContentStr)) !== null) {
-            currentKeys.add(match[1]);
+            const keyBase = match[1].trim();
+            const version = match[2].trim();
+            if (headers.some(h => keyBase.startsWith(h))) continue; // Skip headers
+
+            const fullKey = version ? `${keyBase}:${version}` : keyBase;
+            currentKeys.add(fullKey);
         }
 
         const originalKeys = new Set(entries.map(e => e.key));

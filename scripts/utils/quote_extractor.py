@@ -165,19 +165,26 @@ class QuoteExtractor:
                 key_part = "add_custom_loc"
                 value_part = stripped.split("=", 1)[1]
             else:
-                # --- Handle the classic Paradox-yml format: key:0 "Text" ---
+                # --- Handle the classic Paradox-yml format: key:0 "Text" or key : 0 "Text" ---
                 # Skip headers like l_english, l_polish etc.
                 if any(stripped.startswith(pref) for pref in (
                     "l_english", "l_simp_chinese", "l_french", "l_german",
-                    "l_spanish", "l_russian", "l_polish"
+                    "l_spanish", "l_russian", "l_polish", "l_japanese", "l_korean", "l_turkish", "l_braz_por"
                 )):
                     continue
 
-                # Split the line into key and value parts at the first colon.
-                parts = stripped.split(":", 1)
-                if len(parts) < 2:
+                # Use unified regex to extract key and version
+                from scripts.core.loc_parser import ENTRY_RE
+                match = ENTRY_RE.match(stripped)
+                if not match:
                     continue
-                key_part, value_part = parts[0], parts[1]
+                
+                base_key, version, value_tmp = match.groups()
+                # Universal Normalization: No spaces, handle version
+                key_part = f"{base_key.strip()}:{version.strip()}" if version.strip() else base_key.strip()
+                
+                # Split at first colon for value_part (for legacy reasons/file patching)
+                value_part = stripped.split(":", 1)[1]
 
                 # 使用统一的引号提取方法
                 value = QuoteExtractor.extract_from_line(line)

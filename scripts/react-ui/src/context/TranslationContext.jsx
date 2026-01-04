@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
+import { usePersistentState } from '../hooks/usePersistentState';
 
 const TranslationContext = createContext();
 
@@ -12,12 +13,12 @@ export const useTranslationContext = () => {
 };
 
 export const TranslationProvider = ({ children }) => {
-    const [activeStep, setActiveStep] = useState(0);
+    const [activeStep, setActiveStep] = usePersistentState('trans_active_step', 0);
     const [taskId, setTaskId] = useState(null);
     const [taskStatus, setTaskStatus] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [translationDetails, setTranslationDetails] = useState(null);
-    const [selectedProjectId, setSelectedProjectId] = useState(null);
+    const [selectedProjectId, setSelectedProjectId] = usePersistentState('trans_selected_project_id', null);
 
     // Reset translation state
     const resetTranslation = useCallback(() => {
@@ -34,7 +35,7 @@ export const TranslationProvider = ({ children }) => {
         if (taskId && isProcessing) {
             interval = setInterval(async () => {
                 try {
-                    const response = await axios.get(`/api/status/${taskId}`);
+                    const response = await api.get(`/api/status/${taskId}`);
                     if (response.status === 200) {
                         setTaskStatus(response.data);
                         if (response.data.status === 'completed' || response.data.status === 'failed') {

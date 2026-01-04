@@ -60,12 +60,15 @@ def setup_logger():
         print(f"[LOGGER] Failed to setup file handler: {e}")
 
     # Console Handler (保留控制台输出，用于黑框调试)
-    stream_handler = logging.StreamHandler()
-    # Console output can be simpler
-    stream_formatter = logging.Formatter('%(levelname)s: %(message)s')
-    stream_handler.setFormatter(stream_formatter)
-    stream_handler.setLevel(logging.INFO)
-    logger.addHandler(stream_handler)
+    try:
+        stream_handler = logging.StreamHandler()
+        # Console output can be simpler
+        stream_formatter = logging.Formatter('%(levelname)s: %(message)s')
+        stream_handler.setFormatter(stream_formatter)
+        stream_handler.setLevel(logging.INFO)
+        logger.addHandler(stream_handler)
+    except Exception as e:
+        print(f"[LOGGER] Safe StreamHandler failed: {e}")
 
     logging.info(f"Logger initialized. Writing to: {LOGS_DIR}")
     

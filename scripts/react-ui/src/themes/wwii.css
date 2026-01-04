@@ -86,11 +86,14 @@ html.wwii .mantine-Button-root:active {
 /* Inputs: Typed Field */
 html.wwii .mantine-Input-input,
 html.wwii .mantine-Select-input,
-html.wwii .mantine-Paper-root {
+html.wwii .mantine-Paper-root,
+html.wwii .mantine-Card-root {
     background-color: #fcf5e5;
     /* Paper white */
     border: 1px dashed #2A2A1E;
     color: #2A2A1E;
+    --mantine-color-text: #2A2A1E;
+    --mantine-color-dimmed: #56563D;
     font-family: "Courier New", monospace;
 }
 

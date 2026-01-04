@@ -60,12 +60,22 @@ def load_api_keys_to_env():
                 env_var = API_PROVIDERS[provider_id].get("api_key_env")
                 if env_var and key:
                     os.environ[env_var] = key
+                    
+        # Load RPM limit if present
+        rpm_limit = config.get("rpm_limit")
+        if rpm_limit:
+            from scripts.utils.rate_limiter import rate_limiter
+            rate_limiter.update_rpm(int(rpm_limit))
+            
     except Exception:
         pass
 
 
 # Global switch for archiving translation results
 ARCHIVE_RESULTS_AFTER_TRANSLATION = True
+
+# --- API Configuration Default ---
+DEFAULT_RPM_LIMIT = 40
 
 # --- 项目信息 ----------------------------------------------------
 PROJECT_NAME = "Paradox Mod 本地化工厂 - Paradox Mod Localization Factory"
@@ -114,11 +124,17 @@ def get_app_root():
 def get_app_data_dir():
     """Returns the user data directory (AppData)."""
     appdata = os.getenv('APPDATA')
+    
+    # [FIX] Differentiate between Dev and Production to prevent data collision
+    # Frozen (EXE/Installer) -> RemisModFactory
+    # Not Frozen (python scripts/web_server.py) -> RemisModFactoryDev
+    app_folder = "RemisModFactory" if getattr(sys, 'frozen', False) else "RemisModFactoryDev"
+    
     if not appdata:
         # Fallback for non-standard environments
-        base_dir = os.path.join(os.path.expanduser("~"), ".remis")
+        base_dir = os.path.join(os.path.expanduser("~"), f".{app_folder.lower()}")
     else:
-        base_dir = os.path.join(appdata, "RemisModFactory")
+        base_dir = os.path.join(appdata, app_folder)
     
     os.makedirs(base_dir, exist_ok=True)
     return base_dir
@@ -136,9 +152,9 @@ def get_resource_dir():
         return os.path.dirname(sys.executable)
     return get_app_root()
 
-PROJECT_ROOT = get_app_root()
-APP_DATA_DIR = get_app_data_dir()
-RESOURCE_DIR = get_resource_dir()
+PROJECT_ROOT = get_app_root().replace("\\", "/")
+APP_DATA_DIR = get_app_data_dir().replace("\\", "/")
+RESOURCE_DIR = get_resource_dir().replace("\\", "/")
 
 # Data directory for static assets (in dev) or resources (in prod)
 # In dev: PROJECT_ROOT/data
@@ -146,16 +162,19 @@ RESOURCE_DIR = get_resource_dir()
 # For now, let's assume we ship a 'data' folder in resources
 DATA_DIR = os.path.join(RESOURCE_DIR, 'data') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'data')
 
-SOURCE_DIR = os.path.join(PROJECT_ROOT, 'source_mod')
-DEST_DIR = os.path.join(PROJECT_ROOT, 'my_translation')
+SOURCE_DIR = os.path.join(APP_DATA_DIR, 'source_mod') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'source_mod')
+DEST_DIR = os.path.join(APP_DATA_DIR, 'my_translation') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'my_translation')
 
 # --- Database Paths ---
 # All user databases live in AppData
-PROJECTS_DB_PATH = os.path.join(APP_DATA_DIR, "projects.sqlite")
-MODS_CACHE_DB_PATH = os.path.join(APP_DATA_DIR, "mods_cache.sqlite")
+# [Unified Database] remis.sqlite containing both Glossary and Projects
+REMIS_DB_PATH = os.path.join(APP_DATA_DIR, "remis.sqlite")
+
+PROJECTS_DB_PATH = REMIS_DB_PATH
+MODS_CACHE_DB_PATH = os.path.join(APP_DATA_DIR, "mods_cache.sqlite") # Keep separate? Yes, cache is cache.
 TRANSLATION_PROGRESS_DB_PATH = os.path.join(APP_DATA_DIR, "translation_progress.sqlite")
 # The main glossary database
-DATABASE_PATH = os.path.join(APP_DATA_DIR, "database.sqlite")
+DATABASE_PATH = REMIS_DB_PATH
 
 # --- API Provider Configuration ---
 DEFAULT_API_PROVIDER = "gemini"
@@ -172,6 +191,7 @@ API_PROVIDERS = {
         "base_url": "https://generativelanguage.googleapis.com",
         "enable_thinking": False,
         "thinking_budget": 0,
+        "description_key": "api_desc_gemini"
     },
     "gemini_cli": {
         "cli_path": "gemini",
@@ -186,7 +206,20 @@ API_PROVIDERS = {
         "max_retries": GEMINI_CLI_MAX_RETRIES,
         "max_daily_calls": 1000,
         "name": "Gemini CLI",
-        "description": "通过Google Gemini CLI调用，每天1000次免费，使用2.5 Pro模型，支持并行处理"
+        "description_key": "api_desc_gemini_cli"
+    },
+    "anthropic": {
+        "api_key_env": "ANTHROPIC_API_KEY",
+        "base_url": "https://api.anthropic.com/v1",
+        "name": "Anthropic Claude",
+        "default_model": "claude-4-5-sonnet",
+        "available_models": [
+            "claude-4-5-sonnet",
+            "claude-4-5-haiku",
+            "claude-3-5-sonnet-20241022",
+            "claude-3-5-haiku-20241022"
+        ],
+        "description_key": "api_desc_anthropic"
     },
     "openai": {
         "api_key_env": "OPENAI_API_KEY",
@@ -199,7 +232,8 @@ API_PROVIDERS = {
             "gpt-5-nano"
         ],
         "enable_thinking": False,
-        "reasoning_effort": "minimal"
+        "reasoning_effort": "minimal",
+        "description_key": "api_desc_openai"
     },
     "qwen": {
         "api_key_env": "DASHSCOPE_API_KEY",
@@ -213,6 +247,7 @@ API_PROVIDERS = {
         "region": "beijing",
         "name": "Qwen (通义千问)",
         "enable_thinking": False,
+        "description_key": "api_desc_qwen"
     },
     "grok": {
         "api_key_env": "XAI_API_KEY",
@@ -223,7 +258,7 @@ API_PROVIDERS = {
             "grok-4-1-fast-reasoning",
             "grok-4-1-fast-non-reasoning"
         ],
-        "description": "通过xAI官方API访问grok-4-fast-reasoning模型"
+        "description_key": "api_desc_grok"
     },
     "deepseek": {
         "api_key_env": "DEEPSEEK_API_KEY",
@@ -239,10 +274,11 @@ API_PROVIDERS = {
         ],
         "name": "DeepSeek (深度求索)",
         "enable_thinking": False,
-        "description": "DeepSeek-V3.2-Exp (Non-thinking Mode) - 与OpenAI API兼容"
+        "description_key": "api_desc_deepseek"
     },
     "ollama": {
         "base_url_env": "OLLAMA_BASE_URL",
+        "base_url": "http://localhost:11434/v1",
         "default_model": "qwen3:4b",
         "available_models": [
             "llama3.2",
@@ -257,14 +293,14 @@ API_PROVIDERS = {
         "chunk_size": OLLAMA_CHUNK_SIZE,
         "max_retries": OLLAMA_MAX_RETRIES,
         "name": "Ollama (Local)",
-        "description": "本地Ollama模型，无需API密钥"
+        "description_key": "api_desc_ollama"
     },
     "modelscope": {
         "api_key_env": "MODELSCOPE_API_KEY",
         "base_url": "https://api-inference.modelscope.cn/v1/",
         "default_model": "deepseek-ai/DeepSeek-V3.2-Exp",
         "name": "ModelScope (魔搭)",
-        "description": "通过魔搭（ModelScope）调用AI模型"
+        "description_key": "api_desc_modelscope"
     },
     "siliconflow": {
         "api_key_env": "SILICONFLOW_API_KEY",
@@ -277,14 +313,104 @@ API_PROVIDERS = {
             "Llama-3.3-70B-Instruct"
         ],
         "name": "SiliconFlow (硅基流动)",
-        "description": "通过硅基流动（SiliconFlow）调用AI模型"
+        "description_key": "api_desc_siliconflow"
+    },
+    "lm_studio": {
+        "base_url_env": "LM_STUDIO_BASE_URL",
+        "default_model": "local-model",
+        "base_url": "http://localhost:1234/v1",
+        "name": "LM Studio",
+        "description_key": "api_desc_lm_studio",
+        "chunk_size": OLLAMA_CHUNK_SIZE,
+        "max_retries": OLLAMA_MAX_RETRIES
+    },
+    "vllm": {
+        "base_url_env": "VLLM_BASE_URL",
+        "default_model": "vllm-model", 
+        "base_url": "http://localhost:8000/v1",
+        "name": "vLLM",
+        "description_key": "api_desc_vllm",
+        "chunk_size": OLLAMA_CHUNK_SIZE,
+        "max_retries": OLLAMA_MAX_RETRIES
+    },
+    "koboldcpp": {
+        "base_url_env": "KOBOLD_BASE_URL",
+        "default_model": "kobold-model",
+        "base_url": "http://localhost:5001/v1", 
+        "name": "KoboldCPP", 
+        "description_key": "api_desc_koboldcpp",
+        "chunk_size": OLLAMA_CHUNK_SIZE,
+        "max_retries": OLLAMA_MAX_RETRIES
+    },
+    "oobabooga": {
+        "base_url_env": "OOBA_BASE_URL",
+        "default_model": "ooba-model",
+        "base_url": "http://localhost:5000/v1",
+        "name": "Oobabooga (Text Gen WebUI)",
+        "description_key": "api_desc_oobabooga",
+        "chunk_size": OLLAMA_CHUNK_SIZE,
+        "max_retries": OLLAMA_MAX_RETRIES
+    },
+    "kimi": {
+        "api_key_env": "KIMI_API_KEY",
+        "base_url": "https://api.moonshot.cn/v1",
+        "default_model": "moonshot-v1-8k",
+        "available_models": [
+            "moonshotai/kimi-p1-ultra",
+            "deepseek/deepseek-r1",
+            "deepseek/deepseek-v3",
+            "nvidia/llama-3.1-nemotron-70b-instruct",
+            "kimi-k2-turbo"
+        ],
+        "name": "Kimi (Moonshot AI)",
+        "description_key": "api_desc_kimi"
+    },
+    "minimax": {
+        "api_key_env": "MINIMAX_API_KEY",
+        "base_url": "https://api.minimaxi.com/v1",
+        "default_model": "MiniMax-M2.1",
+        "available_models": [
+            "MiniMax-M2.1",
+            "MiniMax-M2.1-lightning",
+            "MiniMax-M2",
+            "abab6.5-chat"
+        ],
+        "name": "Minimax (海螺)",
+        "description_key": "api_desc_minimax"
+    },
+    "zhipu": {
+        "api_key_env": "ZHIPU_API_KEY",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4/",
+        "default_model": "glm-4-plus",
+        "available_models": [
+            "glm-4.7",
+            "glm-4.6",
+            "glm-4.5",
+            "glm-4.5-air",
+            "glm-4.5-flash",
+            "glm-4-plus",
+            "glm-4-air",
+            "glm-4-flash"
+        ],
+        "name": "ChatGLM (Zhipu AI)",
+        "description_key": "api_desc_zhipu"
+    },
+    "nvidia": {
+        "api_key_env": "NVIDIA_API_KEY",
+        "name": "NVIDIA NIM",
+        "base_url": "https://integrate.api.nvidia.com/v1",
+        "default_model": "minimaxai/minimax-m2.1",
+        "available_models": [
+            "minimaxai/minimax-m2.1"
+        ],
+        "description_key": "api_desc_nvidia"
     },
     "your_favourite_api": {
         "api_key_env": "YOUR_FAVOURITE_API_KEY",
         "base_url": "YOUR_BASE_URL_HERE",
         "default_model": "YOUR_MODEL_NAME_HERE",
         "name": "Custom (OpenAI Compatible)",
-        "description": "（需要技术知识）连接到您自选的任何兼容OpenAI的API服务"
+        "description_key": "api_desc_custom"
     },
 }
 

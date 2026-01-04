@@ -4,7 +4,7 @@ import sys
 from scripts import app_settings
 from scripts.core.services.kanban_service import KanbanService
 from scripts.core.services.file_service import FileService
-from scripts.core.glossary_manager import GlossaryManager
+from scripts.core.glossary_manager import glossary_manager
 from scripts.core.project_manager import ProjectManager
 from scripts.core.archive_manager import ArchiveManager
 from scripts.core.repositories.project_repository import ProjectRepository
@@ -14,7 +14,7 @@ from scripts.core.repositories.project_repository import ProjectRepository
 
 # 1. Base Services / Managers / Repositories
 project_repository = ProjectRepository()
-glossary_manager = GlossaryManager()
+# glossary_manager imported from scripts.core.glossary_manager
 archive_manager = ArchiveManager()
 kanban_service = KanbanService()
 

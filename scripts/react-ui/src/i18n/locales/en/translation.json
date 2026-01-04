@@ -1,4 +1,27 @@
 {
+  "settings_system_maintenance": "System Maintenance",
+  "settings_reset_db_title": "Reset Project Database",
+  "settings_reset_db_desc": "Clear all internal project records. Primarily used when the database is in an abnormal state or stuck. This is safe: no files on disk will be deleted.",
+  "modal_reset_db_title": "⚠️ DANGER: Reset Project Database",
+  "modal_reset_db_confirm_text": "Are you sure you want to wipe the internal database?",
+  "modal_reset_db_impact_title": "This action will:",
+  "modal_reset_db_impact_1": "Remove all projects from the 'Open Recent' list.",
+  "modal_reset_db_impact_2": "Clear all file status (Todo/Done/Proofreading) in the dashboard.",
+  "modal_reset_db_safe_title": "This action will NOT:",
+  "modal_reset_db_safe_1": "Delete your translations.",
+  "modal_reset_db_safe_2": "Delete your source files.",
+  "modal_reset_db_safe_3": "Modify any file on your disk.",
+  "btn_reset_db": "Reset Database",
+  "settings_api_label_key": "Key:",
+  "settings_api_label_model": "Model:",
+  "settings_api_label_url": "URL:",
+  "settings_api_label_configure": "Configure",
+  "settings_api_label_configuration": "Configuration",
+  "btn_confirm_reset": "Confirm Reset",
+  "enter_system": "ENTER SYSTEM",
+  "splash_language_menu": "Language Menu",
+  "msg_reset_success": "Database reset successfully. The application will now reload.",
+  "msg_reset_fail": "Failed to reset database: ",
   "nav_home": "Homepage",
   "nav_docs": "Documentation",
   "page_title_home": "Homepage",
@@ -17,6 +40,8 @@
   "common.nothing_found": "No results found",
   "settings_language": "Language",
   "settings_theme": "Theme",
+  "settings_rpm_limit": "Global RPM Limit",
+  "settings_rpm_limit_desc": "Maximum requests per minute (Shared across all providers)",
   "theme_light": "Light",
   "theme_dark": "Dark",
   "theme_victorian": "Victorian",
@@ -47,7 +72,7 @@
   "homepage_quick_link_glossary": "Glossary Manager",
   "homepage_quick_link_proofreading": "Proofreading",
   "homepage_stat_total_projects": "Total Projects",
-  "homepage_stat_words_translated": "Words Translated",
+  "homepage_stat_words_translated": "Files Translated",
   "homepage_stat_active_tasks": "Active Tasks",
   "homepage_stat_completion_rate": "Completion Rate",
   "game_name_vic3": "Victoria 3",
@@ -69,6 +94,11 @@
   "glossary_variants": "Variants",
   "glossary_actions": "Actions",
   "glossary_delete_confirm": "Are you sure you want to delete this entry?",
+  "glossary_delete_glossary": "Delete Glossary",
+  "glossary_delete_glossary_tooltip": "Delete this entire glossary and all its entries",
+  "glossary_delete_glossary_confirm_title": "Confirm Glossary Deletion",
+  "glossary_delete_glossary_confirm_message": "Are you sure you want to delete \"{{name}}\"? This will remove all entries and cannot be undone.",
+  "cancel": "Cancel",
   "glossary_no_file_selected": "No file selected",
   "glossary_edit_entry": "Edit Entry",
   "glossary_variants_tooltip": "Separate multiple variants with a comma",
@@ -127,6 +157,7 @@
   "form_label_api_provider": "API Provider",
   "form_placeholder_game": "Select a game",
   "form_placeholder_source_language": "Select source language",
+  "form_desc_source_language": "The language of the original files (e.g., English).",
   "form_placeholder_target_languages": "Select target language(s)",
   "form_placeholder_api_provider": "Select an API provider",
   "form_option_custom_language": "✨ Custom Language / English Disguise...",
@@ -238,9 +269,21 @@
   "project_management.details.status": "Status",
   "project_management.details.file_path": "File Path",
   "project_management.details.lines": "Lines",
+  "project_management.manage_paths.title": "Manage Translation Directories",
+  "project_management.manage_paths.current_dirs": "Current Translation Directories",
+  "project_management.manage_paths.no_dirs": "No translation directories configured",
+  "project_management.source_dir": "Source Directory",
+  "project_management.translation_dir": "Translation Directory",
+  "project_management.manage_paths.add_new": "Add New Directory",
+  "project_management.manage_paths.placeholder": "Enter or browse directory path",
+  "project_management.manage_paths.browse": "Browse",
+  "project_management.manage_paths.add": "Add",
+  "project_management.manage_paths.cancel": "Cancel",
   "project_management.manage_paths.save": "Save Changes",
   "project_management.manage_paths_button": "Manage Paths",
   "project_management.refresh_files": "Refresh Files",
+  "project_management.upload_translations": "Upload Results",
+  "project_management.upload_translations_desc": "Sync existing translation files on disk to the archive DB to reuse them for future incremental updates.",
   "project_management.details.comments": "Comments & Notes",
   "project_management.details.placeholder_comments": "Add your notes here...",
   "project_management.details.auto_saving": "Auto-saving...",
@@ -254,6 +297,8 @@
   "form_label_additional_prompt": "Additional Prompt Injection",
   "form_placeholder_additional_prompt": "Add custom instructions for the AI...",
   "form_label_clean_source": "Clean Source Files",
+  "form_label_use_resume": "Use Resume Data",
+  "form_desc_use_resume": "Allows using the resume database to continue from where the last work was interrupted.",
   "warning_clean_source": "WARNING: This will delete all files in the translation source folder EXCEPT metadata and localization files. Use with caution.",
   "tab_import_folder": "Import Folder",
   "tab_existing_mod": "Select Existing Mod",
@@ -262,10 +307,38 @@
   "initial_translation_step_upload_desc": "Select Mod",
   "initial_translation_step_configure_desc": "Settings",
   "initial_translation_step_translate_desc": "Processing",
-  "initial_translation_step_download_desc": "Finish",
+  "initial_translation_step_download_desc": "Done",
+  "initial_translation_step_finish": "Finish",
+  "initial_translation_step_core_settings": "Core Settings",
+  "initial_translation_step_model": "AI Model",
+  "initial_translation_step_readonly_hint": "To change this, please return to the Project Management page",
+  "form_label_project_name": "Project Name",
+  "form_label_folder_path": "Folder Path",
+  "form_desc_folder_path": "Select the root folder of your mod. You can also directly select your Steam Workshop content folder, e.g., I:\\SteamLibrary\\steamapps\\workshop\\content\\12345678 (where the number is the Workshop item ID).",
+  "form_placeholder_project_name": "e.g., My Awesome Mod",
+  "form_placeholder_folder_path": "C:/Mods/MyMod",
+  "btn_browse": "Browse",
   "settings_general": "General",
   "settings_api": "API Settings",
   "api_settings_description": "Configure API keys for various AI providers.",
+  "api_group_usa": "International / USA",
+  "api_group_china": "China Services",
+  "api_group_local": "Local LLM Services",
+  "api_guide_title": "Beginner's Guide: How to Get an API Key",
+  "api_guide_what_is_apikey": "An API Key is your passport to accessing cloud AI services. This software uses it to connect to large language models (like GPT-4, Google Gemini, etc.) to help you translate. Without it, the software is like being 'offline' and cannot function.",
+  "api_guide_video_tutorial": "Video Tutorials",
+  "api_guide_video_desc_1": "How to Get an OpenAI/ChatGPT API Key - 2026 Updated",
+  "api_guide_video_desc_2": "How To Get Your FREE Google Gemini API Key (2025)",
+  "api_guide_video_deepseek_title": "[DeepSeek API Upgrade Tips]",
+  "api_guide_video_deepseek_desc": "DeepSeek API Tutorial (Bilibili/Chinese)",
+  "api_guide_video_beginner_title": "[First Time API Call Tutorial]",
+  "api_guide_video_beginner_desc": "Bilibili: API Tutorial for Beginners",
+  "api_guide_video_youtube_1": "DeepSeek API Guide",
+  "api_guide_video_youtube_2": "API Key Tutorial for Beginners",
+  "api_guide_warning_title": "Important Warnings",
+  "api_guide_warning_cost": "Using API services (especially OpenAI) typically incurs usage fees. You may need to link a credit card. Please verifying the provider's pricing to avoid unexpected costs.",
+  "api_guide_warning_security": "DANGER: Keep your API Key secret! Never reveal it in public (screenshots/screen recordings). If stolen, attackers can drain your credits. On this personal computer, our software stores your keys securely and encrypted locally.",
+  "api_guide_disclaimer": "Disclaimer: The above video links are for reference only, and are not created by the author of this software. The content may become outdated over time; please refer to the official documentation.",
   "api_settings_storage_info": "API keys can be read from environment variables or entered here. Keys entered here are securely stored in your user configuration file (AppData).",
   "api_key_no_required": "No Key Required",
   "api_key_active": "Active",
@@ -304,17 +377,15 @@
   "proofreading.warning.key_modified": "KEY MODIFIED",
   "proofreading.warning.key_modified_title": "Warning: Key Modification Detected",
   "proofreading.warning.key_modified_desc": "Modifying keys can break localization. Only proceed if you know what you are doing.",
-  "proofreading.modal.title": "High Risk Action",
-  "proofreading.modal.content_1": "You have modified one or more **Keys** in the localization file.",
-  "proofreading.modal.content_2": "Changing keys usually results in **Missing Localization** errors in the game unless you also updated the game code referencing these keys.",
   "proofreading.modal.confirm": "Are you absolutely sure you want to save these changes?",
-  "proofreading.modal.button_cancel": "Cancel",
   "proofreading.modal.button_confirm": "Yes, I know what I'm doing",
   "proofreading.mode.soft_protection": "3-Column Editor (Soft Protection)",
   "proofreading.hint.comments_ignored": "Modifications to comments will be ignored upon saving. Patching mode only targets Keys to prevent accidental file corruption.",
   "proofreading.hint.original_source": "Source: Original file on disk.",
   "proofreading.hint.ai_source": "Source: Raw translation from database.",
   "proofreading.hint.final_source": "Source: Translated file on disk.",
+  "project_management.overview_title": "Project Overview",
+  "project_management.manage_project": "Manage Project",
   "project_management.delete_project": "Delete Project",
   "project_management.actions.create_new": "Create New Project",
   "project_management.actions.create_new_desc": "Start a new localization journey from a local mod folder.",
@@ -340,6 +411,7 @@
   "project_management.note_added": "Note added",
   "project_management.note_deleted": "Note deleted",
   "project_management.delete_note_confirm_title": "Delete Note",
+  "project_management.hero_desc": "Manage your localization projects with steampunk precision.",
   "project_management.open_translation_dir": "Open Translation Directory",
   "project_management.file_list_title": "File Details List ({{count}} files)",
   "project_management.file_list.table.name": "File Name",
@@ -355,11 +427,26 @@
   "project_management.file_status.failed": "Failed",
   "project_management.file_status.done": "Done",
   "project_management.file_status.proofreading": "Proofreading",
+  "project_management.file_status.paused": "Paused",
   "project_management.overview.total_files": "Total Files",
   "project_management.overview.total_lines": "Total Lines",
   "project_management.overview.translated": "Translated",
   "project_management.overview.to_be_proofread": "To Be Proofread",
   "project_management.details.lines_count": "Lines: {{count}}",
+  "project_management.tabs_kanban": "Task Kanban",
+  "project_management.tabs_overview": "Status Overview",
+  "project_management.tooltip_refresh": "If you have added or removed files in the source or translation output directories, you can refresh the file list here",
+  "project_management.tooltip_archive": "Archive the project. Archived projects can be viewed in the Project Archives or restored to active status.",
+  "project_management.tooltip_manage_paths": "Mods translated by Remis are automatically added to the translation output directory. You can also use this button to manually add translation directories (e.g., adding existing translation files from your disk). A project can have more than one translation directory.",
+  "project_management.tooltip_proofread": "Go to the Proofreading page to proofread this file",
+  "project_management.tooltip_start_translation": "Go to the Translation page to start translating the project",
+  "project_management.delete_modal_warning": "This action cannot be undone!",
+  "project_management.delete_modal_warning_desc": "Project configuration will be permanently lost. Please proceed with caution.",
+  "project_management.delete_modal_question": "Are you sure you want to permanently delete the following project?",
+  "project_management.delete_modal_source_files_label": "Also delete original files on disk",
+  "project_management.delete_modal_source_files_desc": "If checked, all original files in the project folder will be permanently deleted.",
+  "project_management.delete_modal_btn_config_only": "Delete Config Only",
+  "project_management.delete_modal_btn_with_files": "Delete Config + Original Files",
   "glossary_editor": {
     "language": "Language",
     "value": "Value",
@@ -481,6 +568,14 @@
       "navigation": {
         "title": "Navigation",
         "desc": "Switch between different modules using the sidebar: from Kanban to Proofreading."
+      },
+      "tutorial_btn": {
+        "title": "Tutorial Guide",
+        "desc": "Click this button to reopen the tutorial for the current page at any time."
+      },
+      "settings_link": {
+        "title": "System Settings",
+        "desc": "Crucial: Head here to configure your API keys and customize the workbench theme."
       }
     },
     "glossary": {
@@ -503,24 +598,28 @@
         "desc": "View and manage all your localization projects here."
       },
       "create": {
-        "title": "Create Project",
-        "desc": "Click here to start a new localization project from a folder."
-      },
-      "kanban": {
-        "title": "Task Kanban",
-        "desc": "Visually manage all localization projects. Drag tasks to update file status."
+        "title": "Start from Scratch",
+        "desc": "Create your first translation project. Ensure your API Key is ready in Settings -> API before starting."
       },
       "new_task": {
         "title": "New Task",
-        "desc": "Create file tasks or custom note tasks to track your workflow."
+        "desc": "Create file-based tasks or even just custom notes for your mod."
+      },
+      "stats": {
+        "title": "Project Overview",
+        "desc": "Quickly check total files, lines, and the percentage of translation and proofreading progress."
+      },
+      "start": {
+        "title": "Key Action: Start Translation",
+        "desc": "When everything is ready, click this button to enter the translation configuration and start the AI-powered process."
       },
       "paths": {
         "title": "Path Management",
-        "desc": "Configure source and output paths for your mods."
+        "desc": "Configure source and export paths for each specific Mod."
       },
       "tabs": {
         "title": "Task Board",
-        "desc": "Switch to the Task Board tab to see your Kanban board."
+        "desc": "Navigate between file overview and the Kanban board for visual task management."
       }
     },
     "translation": {
@@ -561,6 +660,90 @@
       "message": "It seems it's your first time here. Would you like a quick tour?",
       "confirm": "Start Tour",
       "cancel": "No thanks"
+    },
+    "settings": {
+      "general": {
+        "title": "General Settings",
+        "desc": "Switch languages and basic configuration items."
+      },
+      "theme": {
+        "title": "Aesthetic Selection",
+        "desc": "Switch between carefully crafted themes. Each theme changes the entire workbench vibe, from fonts to textures."
+      },
+      "api": {
+        "title": "API Configuration Dashboard",
+        "desc": "Here you can manage all AI service providers. Click the 'Configure' button on each card to start."
+      },
+      "api_guide": {
+        "title": "Getting Started: What is an API Key?",
+        "desc": "An API Key is your passport to AI services. Without it, the software cannot function.<br/><br/><b>Video Tutorials:</b><br/>Please click the buttons below to watch the tutorial videos on YouTube.<br/><br/><i>Note: These videos are not created by the author and may be outdated.</i>"
+      },
+      "api_regions": {
+        "title": "Regions & Security Warnings",
+        "desc": "<b>Protect your Key!</b> Never share it publicly. Usage typically incurs costs. Choose based on your region: International (OpenAI/Gemini), China (DeepSeek), or Local (Ollama)."
+      },
+      "api_provider": {
+        "title": "Configure Provider",
+        "desc": "Click the 'Configure' button to enter your API key and select your default translation model (e.g., gemini-3-flash-preview). Remember to click Save after entering your API key."
+      },
+      "api_cost": {
+        "title": "Cost Efficiency & Quota",
+        "desc": "For most translation tasks, there's no need to use flagship models; cost-effective models are sufficient. We also limit the 'thinking' quota to reduce API costs."
+      },
+      "version": {
+        "title": "Version & Feedback",
+        "desc": "Here you can check the version, open the logs folder, or visit the GitHub Issue tracker. We welcome feature requests and bug reports (please attach logs)."
+      }
+    },
+    "tools": {
+      "tabs": {
+        "title": "Toolbox Tabs",
+        "desc": "Switch between different tools like Thumbnail Generator, Workshop Description Generator, etc."
+      },
+      "thumbnail": {
+        "canvas": {
+          "title": "Design Canvas",
+          "desc": "Your main workspace. You can drag and drop a background image here to start."
+        },
+        "toolbox": {
+          "title": "Generator Toolbox",
+          "desc": "Just a few clicks to easily add flags or languages to an original cover, transforming it into a proper translation mod cover."
+        },
+        "drag": {
+          "title": "Drag to Upload",
+          "desc": "Drag and drop to upload a background image, and you can also upload and overlay custom logos on top of it."
+        }
+      }
+    }
+  },
+  "translation_page": {
+    "title": "Select Project",
+    "subtitle": "Select a Project to Translate",
+    "search_placeholder": "Search projects...",
+    "filter_game_placeholder": "Filter by Game",
+    "no_projects_found": "No projects found.",
+    "no_projects_action": "No projects found. Please create one in Project Management.",
+    "go_to_project_management": "Go to Project Management",
+    "table_header": {
+      "game": "Game",
+      "mod_name": "Mod Name",
+      "action": "Action"
+    },
+    "button": {
+      "select": "SELECT",
+      "selected": "SELECTED"
+    },
+    "resume_modal": {
+      "title": "Interrupted Session Found",
+      "content": "Found an interrupted translation session for this mod.",
+      "completed_files": "Completed Files:",
+      "estimated_progress": "Estimated Progress:",
+      "previous_model": "Previous Model:",
+      "question": "Do you want to resume from where it left off, or start over from the beginning?",
+      "start_over": "Start Over",
+      "resume": "Resume",
+      "cleared_message": "Checkpoint cleared. Starting fresh.",
+      "clear_error": "Failed to clear checkpoint."
     }
   },
   "version_info": {
@@ -574,5 +757,43 @@
     "star_encouragement": "If you find this project helpful, giving us a Star 🌟 on GitHub would be the greatest encouragement!",
     "github_link_text": "Visit Repository",
     "open_logs_btn": "Open Logs Directory"
-  }
+  },
+  "api_desc_gemini": "Google Gemini (Official API)",
+  "api_desc_gemini_cli": "Via Google Gemini CLI, 1000 free calls/day, supports parallel processing",
+  "api_desc_openai": "Official OpenAI API (GPT-5/4o/mini)",
+  "api_desc_grok": "Access Grok-4 fast-reasoning model via official xAI API",
+  "api_desc_anthropic": "Official Anthropic API (Claude 4.5/3.5 Sonnet & Haiku)",
+  "api_desc_qwen": "Alibaba Cloud Qwen (Tongyi Qianwen) - Beijing Region",
+  "api_desc_deepseek": "DeepSeek-V3/R1 (Non-thinking Mode) - OpenAI Compatible",
+  "api_desc_kimi": "Moonshot AI Kimi Model (Includes latest K2 series)",
+  "api_desc_minimax": "Minimax Hailuo M2 Series (M2.1, M2.1-lightning)",
+  "api_desc_zhipu": "Zhipu AI GLM-4 Series (Includes 4.7/4.6/4.5)",
+  "api_desc_nvidia": "NVIDIA NIM APIs - Includes latest models like minimax-m2.1, glm-4.7",
+  "api_desc_siliconflow": "AI Models via SiliconFlow",
+  "api_desc_modelscope": "AI Models via ModelScope",
+  "api_desc_ollama": "Local Ollama Models, no API Key required",
+  "api_desc_lm_studio": "Connect to local LM Studio (Default Port 1234)",
+  "api_desc_vllm": "Connect to local vLLM Service (Default Port 8000)",
+  "api_desc_koboldcpp": "Connect to local KoboldCPP Service (Default Port 5001)",
+  "api_desc_oobabooga": "Connect to Oobabooga Text Gen WebUI (OpenAI Extension, Port 5000)",
+  "api_desc_custom": "(Advanced) Connect to any OpenAI-compatible API service",
+  "project_management.no_notes": "No notes",
+  "project_management.last_updated": "Last updated",
+  "context_sidebar.translation_context": "Translation Context",
+  "context_sidebar.translation_info": "Select a mod to see details here.",
+  "context_sidebar.translation_history": "Translation logs will appear here.",
+  "context_sidebar.project_details": "Project Details",
+  "context_sidebar.project_info": "Select a project task to view properties.",
+  "context_sidebar.project_history": "Recent project activity.",
+  "context_sidebar.glossary_term": "Glossary Term",
+  "context_sidebar.glossary_info": "Select a term to view definitions and variants.",
+  "context_sidebar.glossary_history": "Term edit history.",
+  "context_sidebar.tab_info": "Info",
+  "context_sidebar.tab_history": "History",
+  "homepage_pie_chart_status_title": "Project Progress",
+  "homepage_pie_chart_distribution_title": "Game Distribution",
+  "homepage_pie_chart_todo": "To Do",
+  "homepage_pie_chart_in_progress": "In Progress",
+  "homepage_pie_chart_paused": "Paused",
+  "homepage_pie_chart_done": "Done"
 }

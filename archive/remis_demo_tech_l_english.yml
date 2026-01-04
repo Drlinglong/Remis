@@ -1,0 +1,13 @@
+﻿l_english:
+ # ==========================================================================
+ # File: Technology & Components
+ # Context: Technobabble and proprietary terms.
+ # ==========================================================================
+ tech_argentum_refinement:0 "§YArgentum-9§! Refinement"
+ tech_argentum_refinement_desc:0 "By compressing raw void energy within a hyper-dense lattice, we can synthesize a highly unstable isotope: §HArgentum-9§!. This substance is the core power source for the power armor of the §YVigilantes Aeturni§!, granting them reaction times that border on precognition. It hums with a sound that some describe as 'the weeping of stars'."
+ tech_sublimation_implant:0 "Sublimation Neural Interface"
+ tech_sublimation_implant_desc:0 "To realize the grand vision of §LPax Remisia§!, we must eliminate the friction of individual misunderstanding. By mandating the §RSublimation Protocol§! chip for all Level-5 citizens, we synchronize their emotional baselines with the Central Palace. Happiness is no longer a pursuit; it is a broadcast."
+
+ # Component: Weapon
+ component_sol_lance:0 "Sol-Lance"
+ component_sol_lance_desc:0 "A directed-energy weapon that focuses the fury of a captive star. As the Empress once stated: \"The light of the Sol-Lance does not merely burn; it reveals the truth hidden in the dark.\""

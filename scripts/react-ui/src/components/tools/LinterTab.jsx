@@ -16,7 +16,7 @@ import {
 } from '@mantine/core';
 import { IconCheck, IconAlertTriangle, IconInfoCircle, IconX } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../../utils/api';
 import layoutStyles from '../layout/Layout.module.css';
 
 const LinterTab = () => {
@@ -35,7 +35,7 @@ const LinterTab = () => {
         setResults([]);
 
         try {
-            const response = await axios.post('/api/validate/localization', {
+            const response = await api.post('/api/validate/localization', {
                 game_id: gameId,
                 content: content,
                 source_lang_code: 'en_US' // Hardcoded for now, could be selectable
@@ -70,8 +70,8 @@ const LinterTab = () => {
     return (
         <Container size="xl" py="md">
             <Paper withBorder p="md" radius="md" className={layoutStyles.glassCard}>
-                <Stack spacing="md">
-                    <Group position="apart">
+                <Stack gap="md">
+                    <Group justify="space-between">
                         <Title order={3}>Localization Linter</Title>
                         <Select
                             label="Game Profile"
@@ -102,7 +102,7 @@ const LinterTab = () => {
                         styles={{ input: { fontFamily: 'monospace' } }}
                     />
 
-                    <Group position="right">
+                    <Group justify="flex-end">
                         <Button
                             onClick={handleValidate}
                             loading={loading}

@@ -9,9 +9,8 @@ import styles from './Layout.module.css';
 export function ContextualSider() {
     const location = useLocation();
     const { t } = useTranslation();
-    const { sidebarContent, sidebarWidth } = useSidebar();
+    const { sidebarContent, sidebarWidth, sidebarCollapsed, setSidebarCollapsed } = useSidebar();
     const [activeTab, setActiveTab] = useState('info');
-    const [collapsed, setCollapsed] = useState(false);
     const [content, setContent] = useState(null);
 
     // Determine content based on route
@@ -20,30 +19,30 @@ export function ContextualSider() {
 
         if (path.startsWith('/translation')) {
             setContent({
-                title: 'Translation Context',
-                info: 'Select a mod to see details here.',
-                history: 'Translation logs will appear here.'
+                title: t('context_sidebar.translation_context', 'Translation Context'),
+                info: t('context_sidebar.translation_info', 'Select a mod to see details here.'),
+                history: t('context_sidebar.translation_history', 'Translation logs will appear here.')
             });
         } else if (path.startsWith('/project-management') || path === '/') {
             setContent({
-                title: 'Project Details',
-                info: 'Select a project task to view properties.',
-                history: 'Recent project activity.'
+                title: t('context_sidebar.project_details', 'Project Details'),
+                info: t('context_sidebar.project_info', 'Select a project task to view properties.'),
+                history: t('context_sidebar.project_history', 'Recent project activity.')
             });
         } else if (path.startsWith('/glossary-manager')) {
             setContent({
-                title: 'Glossary Term',
-                info: 'Select a term to view definitions and variants.',
-                history: 'Term edit history.'
+                title: t('context_sidebar.glossary_term', 'Glossary Term'),
+                info: t('context_sidebar.glossary_info', 'Select a term to view definitions and variants.'),
+                history: t('context_sidebar.glossary_history', 'Term edit history.')
             });
         } else {
             setContent(null); // Hide for pages without context
         }
-    }, [location.pathname]);
+    }, [location.pathname, t]);
 
     if (!content) return null;
 
-    if (collapsed) {
+    if (sidebarCollapsed) {
         return (
             <Box
                 className={styles.sidebarRight}
@@ -58,10 +57,12 @@ export function ContextualSider() {
                 }}
             >
                 <Tooltip label="Expand Context" position="left">
-                    <ActionIcon variant="subtle" onClick={() => setCollapsed(false)} className={styles.icon}>
+                    <ActionIcon variant="subtle" onClick={() => setSidebarCollapsed(false)} className={styles.icon}>
                         <IconLayoutSidebarRightExpand size={20} />
                     </ActionIcon>
                 </Tooltip>
+                {/* Always render portal target if content exists, even if collapsed, to avoid portal failures */}
+                <div id="glossary-detail-portal" style={{ display: 'none' }} />
             </Box>
         );
     }
@@ -70,7 +71,7 @@ export function ContextualSider() {
         <Box
             className={styles.sidebarRight}
             style={{
-                width: collapsed ? 50 : sidebarWidth,
+                width: sidebarCollapsed ? 50 : sidebarWidth,
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
@@ -81,7 +82,7 @@ export function ContextualSider() {
             <Group justify="space-between" p="md" style={{ borderBottom: '1px solid var(--glass-border)' }}>
                 <Text fw={600} size="sm" className={styles.sidebarHeader}>{content.title}</Text>
                 <Tooltip label="Collapse" position="left">
-                    <ActionIcon variant="subtle" size="sm" onClick={() => setCollapsed(true)} className={styles.icon}>
+                    <ActionIcon variant="subtle" size="sm" onClick={() => setSidebarCollapsed(true)} className={styles.icon}>
                         <IconLayoutSidebarRightCollapse size={16} />
                     </ActionIcon>
                 </Tooltip>
@@ -95,8 +96,8 @@ export function ContextualSider() {
                     value={activeTab}
                     onChange={setActiveTab}
                     data={[
-                        { label: 'Info', value: 'info', icon: <IconInfoCircle size={14} /> },
-                        { label: 'History', value: 'history', icon: <IconHistory size={14} /> },
+                        { label: t('context_sidebar.tab_info', 'Info'), value: 'info', icon: <IconInfoCircle size={14} /> },
+                        { label: t('context_sidebar.tab_history', 'History'), value: 'history', icon: <IconHistory size={14} /> },
                     ]}
                     styles={{
                         root: { backgroundColor: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)' },

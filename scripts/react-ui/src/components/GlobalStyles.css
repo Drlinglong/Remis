@@ -145,3 +145,24 @@ body,
         linear-gradient(to bottom right, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.2)),
         repeating-linear-gradient(0deg, transparent 0, transparent 1px, rgba(139, 69, 19, 0.02) 1px, rgba(139, 69, 19, 0.02) 3px);
 }
+
+/* --- Tutorial (Driver.js) Enhancements --- */
+.driver-popover.driverjs-popover {
+    max-width: 450px !important;
+    /* Increase width for better readability of video links */
+    min-width: 320px;
+}
+
+.driver-popover-description {
+    line-height: 1.6 !important;
+}
+
+.driver-popover-description a {
+    color: var(--mantine-color-blue-6);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.driver-popover-description a:hover {
+    color: var(--mantine-color-blue-8);
+}

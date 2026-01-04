@@ -1,0 +1,33 @@
+﻿l_english:
+ # ==========================================================================
+ # Project Remis Demo: The Birth of the Empire
+ # File: Narrative Events
+ # Context: High-density narrative text to test streaming and formatting stability.
+ # ==========================================================================
+
+ # --------------------------------------------------------------------------
+ # Event 1: The Proclamation (The "I love democracy" moment)
+ # Neologism Targets: The Curia Caelestis, Sublimation Protocol, Pax Remisia
+ # --------------------------------------------------------------------------
+ remis_crisis.1.t:0 "Dawn of a New Order"
+ remis_crisis.1.desc:0 "Amidst thunderous applause, liberty died. Empress Remis declares the reorganization of the Galactic Republic."
+ 
+ # TEST: Very long text block with internal quotes and variables.
+ remis_crisis.1.desc_text:0 "The skyline of §H[Root.GetCapitalName]§! was obscured by the shadows of a thousand Titan-class warships, blotting out the sun like a swarm of locusts. deep within the heart of §YThe Curia Caelestis§!, Supreme Chancellor Remis rose from her hovering podium.\n\nHer voice, amplified by the psychic network, resonated in the minds of every sentient being across the sector:\n\n\"Citizens! The chaos of the Republic has festered for too long. We have been bled dry by the greed of megacorporations and the incompetence of a gridlocked senate. But today, the bleeding stops. To ensure the stability and security of our future, I am authorizing the immediate activation of the §RSublimation Protocol§!.\"\n\nShe paused, her golden eyes scanning the terrified delegates, her smile cold and absolute:\n\n\"We are not merely building a government; we are forging an eternal sanctuary. This is not just law; this is §LPax Remisia§!. Under this peace, dissent is obsolete, and silence is the highest virtue.\""
+
+ remis_crisis.1.a:0 "So this is how liberty dies..."
+ remis_crisis.1.b:0 "Hail the Empress! (Join the §YVigilantes Aeturni§!)"
+ remis_crisis.1.c:0 "We will never kneel! (Declare War)"
+
+ # --------------------------------------------------------------------------
+ # Event 2: The Purge (Testing Dialogue and "Nested" logic)
+ # Neologism Targets: Vigilantes Aeturni
+ # --------------------------------------------------------------------------
+ remis_crisis.2.t:0 "Silence in the Halls"
+ remis_crisis.2.desc:0 "Political opponents are disappearing at an alarming rate."
+ 
+ # TEST: Dialogue heavy, checking if AI breaks the "quote" structure.
+ remis_crisis.2.desc_text:0 "It started as a rumor. Then, it became a pattern. Senators who voiced opposition to the new regime simply ceased to attend sessions. When asked about their whereabouts, the new head of security merely smiled and adjusted his gloves.\n\n\"Senator Valerius? I believe he has... retired to a countryside estate to reflect on the virtues of loyalty,\" said the officer of the §YVigilantes Aeturni§!, his hand resting casually on his sidearm. \"It is amazing how clarifying the §LPax Remisia§! can be for a clouded mind. One moment, you are shouting about 'rights'; the next, you realize that 'duty' is the only word that matters.\"\n\nBehind him, the heavy doors of the detention block slammed shut, muffling a sound that was suspiciously like a scream."
+ 
+ remis_crisis.2.a:0 "I see nothing. I hear nothing."
+ remis_crisis.2.b:0 "This tyranny cannot stand."

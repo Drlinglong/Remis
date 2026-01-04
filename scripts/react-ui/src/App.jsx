@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 // import { MantineProvider } from '@mantine/core'; // Removed unused import
 import '@mantine/core/styles.css';
@@ -12,6 +12,7 @@ import { TranslationProvider } from './context/TranslationContext';
 import { TutorialProvider } from './context/TutorialContext';
 import { MainLayout } from './components/layout/MainLayout';
 import SplashScreen from './components/SplashScreen';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import './App.css';
 
@@ -54,30 +55,32 @@ const App = () => {
     const [isReady, setIsReady] = useState(false);
 
     return (
-        <ThemeProvider>
-            <GlobalStyles />
-            <NotificationProvider>
-                {!isReady ? (
-                    <SplashScreen onReady={() => setIsReady(true)} />
-                ) : (
-                    <SidebarProvider>
-                        <TranslationProvider>
-                            <Router>
-                                <TutorialProvider>
-                                    <MainLayout>
-                                        <Routes>
-                                            {appRouteConfig.map(route => (
-                                                <Route key={route.path} path={route.path} element={route.element} />
-                                            ))}
-                                        </Routes>
-                                    </MainLayout>
-                                </TutorialProvider>
-                            </Router>
-                        </TranslationProvider>
-                    </SidebarProvider>
-                )}
-            </NotificationProvider>
-        </ThemeProvider>
+        <ErrorBoundary>
+            <ThemeProvider>
+                <GlobalStyles />
+                <NotificationProvider>
+                    {!isReady ? (
+                        <SplashScreen onReady={() => setIsReady(true)} />
+                    ) : (
+                        <SidebarProvider>
+                            <TranslationProvider>
+                                <Router>
+                                    <TutorialProvider>
+                                        <MainLayout>
+                                            <Routes>
+                                                {appRouteConfig.map(route => (
+                                                    <Route key={route.path} path={route.path} element={route.element} />
+                                                ))}
+                                            </Routes>
+                                        </MainLayout>
+                                    </TutorialProvider>
+                                </Router>
+                            </TranslationProvider>
+                        </SidebarProvider>
+                    )}
+                </NotificationProvider>
+            </ThemeProvider>
+        </ErrorBoundary>
     );
 };
 

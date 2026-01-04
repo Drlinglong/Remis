@@ -1,0 +1,21 @@
+﻿l_english:
+ # ==========================================================================
+ # File: Traditions & Ascension Perks
+ # Context: Cultural values and abstract philosophy.
+ # ==========================================================================
+
+ # Tree Name
+ tradition_pax_remisia_name:0 "§LPax Remisia§!"
+ tradition_pax_remisia_desc:0 "True peace is not the absence of war, but the absence of dissent. We hold Order as the highest of all virtues, eclipsing the petty chaotic nature of Freedom."
+ 
+ # Tradition 1
+ tr_pax_remisia_vigilance_name:0 "Eternal Vigilance"
+ tr_pax_remisia_vigilance_desc:0 "Our §YVigilantes Aeturni§! are everywhere. Every whisper in a dark alley, every skipped beat of a treacherous heart, falls under the gaze of the Empire. Privacy is the shield of the guilty."
+
+ # Tradition 2
+ tr_pax_remisia_argentum_economy_name:0 "Argentum Standard"
+ tr_pax_remisia_argentum_economy_desc:0 "By monopolizing the extraction of §HArgentum-9§!, we hold the galaxy by its throat. Any system that dares to rebel will find its reactors cold and its cities dark within a standard week."
+
+ # Ascension Perk
+ ap_absolute_sublimation_name:0 "Absolute Sublimation"
+ ap_absolute_sublimation_desc:0 "The individual is fragile; the collective is eternal. We shall complete the §RSublimation Protocol§!, merging the consciousness of all subjects into a singular, harmonious will. We shall become the State, in body and in soul."

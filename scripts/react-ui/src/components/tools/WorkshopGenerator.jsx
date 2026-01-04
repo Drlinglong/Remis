@@ -16,7 +16,7 @@ import {
   Tooltip
 } from '@mantine/core';
 import { IconCopy, IconAlertCircle } from '@tabler/icons-react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
 import { notifications } from '@mantine/notifications';
 
@@ -46,8 +46,8 @@ const WorkshopGenerator = () => {
     const fetchData = async () => {
       try {
         const [projectsResponse, configResponse] = await Promise.all([
-          axios.get('/api/projects'),
-          axios.get('/api/config')
+          api.get('/api/projects'),
+          api.get('/api/config')
         ]);
 
         const projectData = projectsResponse.data;
@@ -124,7 +124,7 @@ const WorkshopGenerator = () => {
     }
 
     try {
-      const response = await axios.post('/api/tools/generate_workshop_description', {
+      const response = await api.post('/api/tools/generate_workshop_description', {
         item_id: finalItemId,
         project_id: finalProjectId,
         user_template: userTemplate,

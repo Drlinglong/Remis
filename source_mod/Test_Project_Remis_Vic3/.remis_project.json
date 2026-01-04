@@ -1,12 +1,19 @@
 {
     "kanban": {
+        "columns": [
+            "todo",
+            "in_progress",
+            "proofreading",
+            "paused",
+            "done"
+        ],
         "tasks": {
-            "8646e2d7-2d1e-56d3-a7b9-cc96ecc54d42": {
-                "id": "8646e2d7-2d1e-56d3-a7b9-cc96ecc54d42",
+            "a6047e4a-7972-5e44-a1cd-2334a18a4010": {
+                "id": "a6047e4a-7972-5e44-a1cd-2334a18a4010",
                 "type": "file",
                 "title": "remis_demo_l_simp_chinese.yml",
                 "filePath": "J:\\V3_Mod_Localization_Factory\\source_mod\\Test_Project_Remis_Vic3\\localization\\simp_chinese\\remis_demo_l_simp_chinese.yml",
-                "status": "todo",
+                "status": "done",
                 "comments": "",
                 "priority": "medium",
                 "meta": {
@@ -16,60 +23,77 @@
                     "rel_path": "localization\\simp_chinese\\remis_demo_l_simp_chinese.yml"
                 }
             },
-            "b4325ec2-4c56-549a-ae83-5a73ffb77ee0": {
-                "id": "b4325ec2-4c56-549a-ae83-5a73ffb77ee0",
+            "ce683bec-e770-5189-a803-bebe88421bfe": {
+                "id": "ce683bec-e770-5189-a803-bebe88421bfe",
+                "type": "file",
+                "title": ".remis_project.json",
+                "filePath": "J:\\V3_Mod_Localization_Factory\\source_mod\\Test_Project_Remis_Vic3\\.remis_project.json",
+                "status": "done",
+                "comments": "Configuration/Metadata File",
+                "priority": "low",
+                "meta": {
+                    "lines": 92,
+                    "file_type": "config",
+                    "rel_path": ".remis_project.json"
+                }
+            },
+            "cf7f1cd6-0075-56b9-998e-216909e2f307": {
+                "id": "cf7f1cd6-0075-56b9-998e-216909e2f307",
+                "type": "file",
+                "title": ".remis_checkpoint_en.json",
+                "filePath": "J:\\V3_Mod_Localization_Factory\\my_translation\\Multilanguage-Test_Project_Remis_Vic3\\.remis_checkpoint_en.json",
+                "status": "todo",
+                "meta": {
+                    "lines": 10,
+                    "file_type": "translation",
+                    "lang": "unknown",
+                    "parent_task_id": null,
+                    "rel_path": ".remis_checkpoint_en.json"
+                }
+            },
+            "214d3b19-8b65-5fdb-9fff-61b13e9a4dd8": {
+                "id": "214d3b19-8b65-5fdb-9fff-61b13e9a4dd8",
+                "type": "file",
+                "title": "校对进度表 Proofreading Progress.csv",
+                "filePath": "J:\\V3_Mod_Localization_Factory\\my_translation\\Multilanguage-Test_Project_Remis_Vic3\\校对进度表 Proofreading Progress.csv",
+                "status": "todo",
+                "meta": {
+                    "lines": 3,
+                    "file_type": "translation",
+                    "lang": "unknown",
+                    "parent_task_id": null,
+                    "rel_path": "校对进度表 Proofreading Progress.csv"
+                }
+            },
+            "99ff5435-3d61-53fc-867c-e4dadf07828c": {
+                "id": "99ff5435-3d61-53fc-867c-e4dadf07828c",
                 "type": "file",
                 "title": "remis_demo_l_english.yml",
                 "filePath": "J:\\V3_Mod_Localization_Factory\\my_translation\\Multilanguage-Test_Project_Remis_Vic3\\localization\\english\\simp_chinese\\remis_demo_l_english.yml",
-                "status": "proofreading",
-                "comments": "",
-                "priority": "medium",
+                "status": "todo",
                 "meta": {
                     "lines": 67,
                     "file_type": "translation",
                     "lang": "english",
-                    "parent_task_id": "8646e2d7-2d1e-56d3-a7b9-cc96ecc54d42",
+                    "parent_task_id": "a6047e4a-7972-5e44-a1cd-2334a18a4010",
                     "rel_path": "remis_demo_l_english.yml"
                 }
             },
-            "0ea979b1-bbc8-5a4e-a926-63e766a50466": {
-                "id": "0ea979b1-bbc8-5a4e-a926-63e766a50466",
+            "b6227bfe-0a3b-5ad5-8a1c-17f0156a7c9f": {
+                "id": "b6227bfe-0a3b-5ad5-8a1c-17f0156a7c9f",
                 "type": "file",
                 "title": "remis_demo_l_japanese.yml",
                 "filePath": "J:\\V3_Mod_Localization_Factory\\my_translation\\Multilanguage-Test_Project_Remis_Vic3\\localization\\japanese\\simp_chinese\\remis_demo_l_japanese.yml",
-                "status": "proofreading",
-                "comments": "",
-                "priority": "medium",
+                "status": "todo",
                 "meta": {
                     "lines": 67,
                     "file_type": "translation",
                     "lang": "japanese",
-                    "parent_task_id": "8646e2d7-2d1e-56d3-a7b9-cc96ecc54d42",
+                    "parent_task_id": "a6047e4a-7972-5e44-a1cd-2334a18a4010",
                     "rel_path": "remis_demo_l_japanese.yml"
-                }
-            },
-            "5106092e-ef70-5169-b2eb-8669422a1cc3": {
-                "id": "5106092e-ef70-5169-b2eb-8669422a1cc3",
-                "type": "file",
-                "title": ".remis_project.json",
-                "filePath": "J:\\V3_Mod_Localization_Factory\\source_mod\\Test_Project_Remis_Vic3\\.remis_project.json",
-                "status": "proofreading",
-                "comments": "Configuration/Metadata File",
-                "priority": "low",
-                "meta": {
-                    "lines": 32,
-                    "file_type": "config",
-                    "rel_path": ".remis_project.json"
                 }
             }
         },
-        "columns": [
-            "todo",
-            "in_progress",
-            "proofreading",
-            "paused",
-            "done"
-        ],
         "column_order": [
             "todo",
             "in_progress",

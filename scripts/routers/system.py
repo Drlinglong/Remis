@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from scripts.shared.services import project_manager, glossary_manager
-from scripts.app_settings import TRANSLATION_PROGRESS_DB_PATH
+from scripts.app_settings import TRANSLATION_PROGRESS_DB_PATH, PROJECT_ROOT
 import sqlite3
 
 import webbrowser
@@ -49,13 +49,14 @@ async def get_system_stats():
         return {
             "stats": {
                 "total_projects": dashboard_stats["total_projects"],
-                "words_translated": dashboard_stats["translated_keys"], # Using keys as proxy
+                "words_translated": dashboard_stats["translated_files"], 
                 "active_tasks": dashboard_stats["active_projects"],
                 "completion_rate": dashboard_stats["completion_rate"]
             },
             "charts": {
                 "project_status": dashboard_stats["status_distribution"],
-                "glossary_analysis": glossary_stats["game_distribution"]
+                "glossary_analysis": glossary_stats["game_distribution"],
+                "project_distribution": dashboard_stats.get("game_distribution", [])
             },
             "recent_activity": recent_activities
         }
@@ -72,8 +73,21 @@ async def open_folder(request: OpenFolderRequest):
     Opens a local folder in the system's file explorer.
     """
     path = request.path
+    
+    # [FIX] Try to resolve relative path against PROJECT_ROOT
+    if not os.path.isabs(path):
+        # logging.info(f"Resolving relative path: {path} relative to {PROJECT_ROOT}")
+        abs_path = os.path.join(PROJECT_ROOT, path)
+        if os.path.exists(abs_path):
+            path = abs_path
+    elif not os.path.exists(path):
+        # Fallback: maybe it's relative but os.path.isabs returned True (unlikely on Windows for non-drive paths, but safe to check)
+        abs_path = os.path.join(PROJECT_ROOT, path)
+        if os.path.exists(abs_path):
+            path = abs_path
+
     if not os.path.exists(path):
-        raise HTTPException(status_code=404, detail=f"Path not found: {path}")
+        raise HTTPException(status_code=404, detail=f"Path not found: {path} (Resolved: {request.path})")
     
     if not os.path.isdir(path):
         raise HTTPException(status_code=400, detail=f"Path is not a directory: {path}")
@@ -268,3 +282,20 @@ async def patch_file(request: PatchFileRequest):
     except Exception as e:
         logger.error(f"Failed to patch file {request.file_path}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to patch file: {str(e)}")
+@router.get("/debug/config")
+async def debug_config():
+    """
+    Diagnostic endpoint to verify app_settings and API_PROVIDERS in frozen mode.
+    """
+    from scripts import app_settings
+    import sys
+    
+    return {
+        "is_frozen": getattr(sys, "frozen", False),
+        "resource_dir": app_settings.RESOURCE_DIR,
+        "app_data_dir": app_settings.APP_DATA_DIR,
+        "projects_db_path": app_settings.PROJECTS_DB_PATH,
+        "api_providers_count": len(app_settings.API_PROVIDERS),
+        "api_providers_keys": list(app_settings.API_PROVIDERS.keys()),
+        "sys_path": sys.path[:5], # First few items
+    }

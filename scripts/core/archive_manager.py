@@ -44,8 +44,23 @@ class ArchiveManager:
         cursor.execute("CREATE TABLE IF NOT EXISTS mods (mod_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
         cursor.execute("CREATE TABLE IF NOT EXISTS mod_identities (identity_id INTEGER PRIMARY KEY AUTOINCREMENT, mod_id INTEGER NOT NULL, remote_file_id TEXT NOT NULL UNIQUE, FOREIGN KEY (mod_id) REFERENCES mods (mod_id))")
         cursor.execute("CREATE TABLE IF NOT EXISTS source_versions (version_id INTEGER PRIMARY KEY AUTOINCREMENT, mod_id INTEGER NOT NULL, snapshot_hash TEXT NOT NULL UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (mod_id) REFERENCES mods (mod_id))")
-        cursor.execute("CREATE TABLE IF NOT EXISTS source_entries (source_entry_id INTEGER PRIMARY KEY AUTOINCREMENT, version_id INTEGER NOT NULL, entry_key TEXT NOT NULL, source_text TEXT NOT NULL, UNIQUE(version_id, entry_key), FOREIGN KEY (version_id) REFERENCES source_versions (version_id))")
+        
+        # [MODIFIED] Unique constraint includes file_path to support duplicate keys in different files
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS source_entries (
+                source_entry_id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                version_id INTEGER NOT NULL, 
+                entry_key TEXT NOT NULL, 
+                source_text TEXT NOT NULL, 
+                file_path TEXT DEFAULT '',
+                UNIQUE(version_id, file_path, entry_key), 
+                FOREIGN KEY (version_id) REFERENCES source_versions (version_id)
+            )
+        """)
         cursor.execute("CREATE TABLE IF NOT EXISTS translated_entries (translated_entry_id INTEGER PRIMARY KEY AUTOINCREMENT, source_entry_id INTEGER NOT NULL, language_code TEXT NOT NULL, translated_text TEXT NOT NULL, last_translated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(source_entry_id, language_code), FOREIGN KEY (source_entry_id) REFERENCES source_entries (source_entry_id))")
+        
+        # [MIGRATION] If old unique constraint exists without file_path, we might need to recreate it
+        # But for this local cache, we'll just check if the column exists (handled in create_source_version)
         conn.commit()
 
     def get_or_create_mod_entry(self, mod_name: str, remote_file_id: str) -> Optional[int]:
@@ -116,12 +131,18 @@ class ArchiveManager:
                 # Or simpler: For now, I will assume keys are unique enough or I will rely on the structure.
                 # Wait, the key map is needed.
                 # The previous code: zip(file_data['key_map'], file_data['texts_to_translate'])
-                for key, text in zip(file_data['key_map'], file_data['texts_to_translate']):
-                    # We are losing file_path here. This is a flaw in the original schema for my new requirement.
-                    # I will modify the schema to include file_path.
-                    source_entries.append((version_id, key, text, file_data.get('filename', 'unknown')))
+                for key_info, text in zip(file_data['key_map'], file_data['texts_to_translate']):
+                    # Use full key-header block (e.g. 'key:0') as entry_key
+                    if isinstance(key_info, dict):
+                        # Combine key_part and potential colon part if we update QuoteExtractor
+                        # For now, QuoteExtractor will be updated to include :0 in key_part
+                        entry_key = key_info['key_part'].strip()
+                    else:
+                        entry_key = str(key_info)
+                    
+                    source_entries.append((version_id, entry_key, text, file_data.get('filename', 'unknown')))
 
-            # Check if file_path column exists, if not add it
+            # Ensure file_path column exists
             cursor.execute("PRAGMA table_info(source_entries)")
             columns = [col['name'] for col in cursor.fetchall()]
             if 'file_path' not in columns:
@@ -148,13 +169,31 @@ class ArchiveManager:
                 file_data = next((fd for fd in all_files_data if fd['filename'] == filename), None)
                 if not file_data or not translated_texts: continue
 
-                for key, translated_text in zip(file_data['key_map'], translated_texts):
+                for key_info, translated_text in zip(file_data['key_map'], translated_texts):
+                    # Fix: key_map is a list of dicts like {'key_part': 'remis.1.t', 'line_num': 5}
+                    # We need to extract the actual key string
+                    entry_key = key_info['key_part'].strip() if isinstance(key_info, dict) else str(key_info)
+                    
+                    # Normalize: ensure no trailing colon (legacy consistency)
+                    if entry_key.endswith(":"):
+                        entry_key = entry_key[:-1].strip()
+                
                     # Find source entry
                     cursor.execute(
                         "SELECT source_entry_id FROM source_entries WHERE version_id = ? AND entry_key = ? AND file_path = ?",
-                        (version_id, key, filename)
+                        (version_id, entry_key, filename)
                     )
                     row = cursor.fetchone()
+                    
+                    # [FALLBACK] If not found and key has :version, try without version (for legacy compatibility)
+                    if not row and ":" in entry_key:
+                        pure_key = entry_key.split(':')[0]
+                        cursor.execute(
+                            "SELECT source_entry_id FROM source_entries WHERE version_id = ? AND entry_key = ? AND file_path = ?",
+                            (version_id, pure_key, filename)
+                        )
+                        row = cursor.fetchone()
+
                     if row:
                         source_entry_id = row['source_entry_id']
                         upsert_data.append((source_entry_id, target_lang_code, translated_text))
@@ -218,7 +257,16 @@ class ArchiveManager:
         cursor.execute(query, (language, version_id, filename))
         rows = cursor.fetchall()
 
-        return [dict(row) for row in rows]
+        # [FALLBACK] Build a smart map. If we have keys like 'remis.1.t' in DB, 
+        # but the request expects 'remis.1.t:0', we need to return both or translate them.
+        # Actually, the consumer (proofreading.py) will do the mapping.
+        # But we can help by providing both if needed or ensuring the key format is flexible.
+        results = []
+        for row in rows:
+            entry = dict(row)
+            results.append(entry)
+            
+        return results
 
     def update_translations(self, mod_name: str, file_path: str, entries: List[Dict[str, Any]], language: str = "zh-CN"):
         """

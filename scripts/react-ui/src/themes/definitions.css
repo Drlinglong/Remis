@@ -16,13 +16,17 @@
    ========================================= */
 [data-theme='byzantine'] {
   /* Core Palette */
-  --color-primary: #66023C;  /* Tyrian Purple */
-  --color-accent: #D4AF37;   /* Byzantine Gold */
+  --color-primary: #66023C;
+  /* Tyrian Purple */
+  --color-accent: #D4AF37;
+  /* Byzantine Gold */
 
   /* Text */
-  --text-main: #FFFDD0;      /* Ivory Cream */
+  --text-main: #FFFDD0;
+  /* Ivory Cream */
   --text-muted: rgba(255, 253, 208, 0.7);
-  --text-highlight: #FFD700; /* Gold Highlight */
+  --text-highlight: #FFD700;
+  /* Gold Highlight */
 
   /* Materials */
   --glass-bg: linear-gradient(135deg, rgba(40, 0, 20, 0.9), rgba(60, 0, 30, 0.85));
@@ -30,11 +34,21 @@
   --card-radius: 8px;
 
   /* Effects */
-  --shadow-elevation: 0 4px 12px rgba(0,0,0,0.5);
+  --shadow-elevation: 0 4px 12px rgba(0, 0, 0, 0.5);
 
   /* Typography */
   --font-header: "Cinzel", serif;
   --font-body: "Lato", sans-serif;
+
+  /* Global Mantine Overrides for this theme */
+  --mantine-color-text: var(--text-main);
+  --mantine-color-dimmed: var(--text-muted);
+  --mantine-color-anchor: var(--color-accent);
+}
+
+/* Force inheritance for common elements that might have their own color defaults */
+[data-theme='byzantine'] :is(.mantine-Text-root, .mantine-Title-root, .mantine-Table-thead, .mantine-Table-tbody) {
+  color: var(--text-main);
 }
 
 /* =========================================
@@ -43,22 +57,29 @@
    ========================================= */
 [data-theme='victorian'] {
   /* Core Palette */
-  --color-primary: #004D40;  /* Deep Teal */
-  --color-accent: #B8860B;   /* Brass/Bronze */
-  --color-danger: #800020;   /* Burgundy */
+  --color-primary: #004D40;
+  /* Deep Teal */
+  --color-accent: #B8860B;
+  /* Brass/Bronze */
+  --color-danger: #800020;
+  /* Burgundy */
 
   /* Text */
-  --text-main: #E0F2F1;      /* Very light teal/white for readability on dark glass */
+  --text-main: #E0F2F1;
+  /* Very light teal/white for readability on dark glass */
   --text-muted: #80CBC4;
-  --text-highlight: #FFD54F; /* Amber/Gold */
+  --text-highlight: #FFD54F;
+  /* Amber/Gold */
 
   /* Materials */
-  --glass-bg: rgba(20, 30, 25, 0.95); /* Dark Greenish Black */
+  --glass-bg: rgba(20, 30, 25, 0.95);
+  /* Dark Greenish Black */
   --glass-border: 3px double var(--color-accent);
   --card-radius: 2px;
 
   /* Effects */
-  --shadow-elevation: 4px 4px 0px rgba(0, 0, 0, 0.4); /* Hard shadow */
+  --shadow-elevation: 4px 4px 0px rgba(0, 0, 0, 0.4);
+  /* Hard shadow */
 
   /* Typography */
   --font-header: "Playfair Display", serif;
@@ -71,21 +92,26 @@
    ========================================= */
 [data-theme='scifi'] {
   /* Core Palette */
-  --color-primary: #00F3FF;  /* Neon Cyan */
-  --color-accent: #BC00FF;   /* Laser Purple */
+  --color-primary: #00F3FF;
+  /* Neon Cyan */
+  --color-accent: #BC00FF;
+  /* Laser Purple */
 
   /* Text */
-  --text-main: #E0F7FA;      /* Cyan Tinted White */
+  --text-main: #E0F7FA;
+  /* Cyan Tinted White */
   --text-muted: #546E7A;
   --text-highlight: #00FFCC;
 
   /* Materials */
-  --glass-bg: rgba(10, 20, 30, 0.85); /* Void Black/Blue */
+  --glass-bg: rgba(10, 20, 30, 0.85);
+  /* Void Black/Blue */
   --glass-border: 1px solid rgba(0, 243, 255, 0.4);
   --card-radius: 0px;
 
   /* Effects */
-  --shadow-elevation: 0 0 15px rgba(0, 243, 255, 0.15); /* Glow */
+  --shadow-elevation: 0 0 15px rgba(0, 243, 255, 0.15);
+  /* Glow */
   --shadow-glow: 0 0 10px rgba(0, 243, 255, 0.3);
 
   /* Typography */
@@ -99,21 +125,27 @@
    ========================================= */
 [data-theme='wwii'] {
   /* Core Palette */
-  --color-primary: #6C7A89;  /* Steel Gray */
-  --color-accent: #A0522D;   /* Rust Red */
+  --color-primary: #6C7A89;
+  /* Steel Gray */
+  --color-accent: #A0522D;
+  /* Rust Red */
 
   /* Text */
-  --text-main: #F5E6D3;      /* Manila Folder Color (Light) */
+  --text-main: #F5E6D3;
+  /* Manila Folder Color (Light) */
   --text-muted: #8B8B83;
-  --text-highlight: #CD5C5C; /* Stamp Red */
+  --text-highlight: #CD5C5C;
+  /* Stamp Red */
 
   /* Materials */
-  --glass-bg: rgba(42, 42, 30, 0.95); /* Dark Olive Drab */
-  --glass-border: 1px solid #8B7355;  /* Gunmetal */
+  --glass-bg: rgba(42, 42, 30, 0.95);
+  /* Dark Olive Drab */
+  --glass-border: 1px solid #8B7355;
+  /* Gunmetal */
   --card-radius: 0px;
 
   /* Effects */
-  --shadow-elevation: 2px 2px 5px rgba(0,0,0,0.6);
+  --shadow-elevation: 2px 2px 5px rgba(0, 0, 0, 0.6);
 
   /* Typography */
   --font-header: "Courier New", monospace;
@@ -126,23 +158,29 @@
    ========================================= */
 [data-theme='medieval'] {
   /* Core Palette */
-  --color-primary: #8B0000;  /* Royal Red */
-  --color-accent: #DAA520;   /* Gold Leaf */
+  --color-primary: #8B0000;
+  /* Royal Red */
+  --color-accent: #DAA520;
+  /* Gold Leaf */
 
   /* Text */
-  --text-main: #F5E6D3;      /* Parchment White */
+  --text-main: #F5E6D3;
+  /* Parchment White */
   --text-muted: #C4A875;
   --text-highlight: #FFD700;
 
   /* Materials */
-  --glass-bg: rgba(30, 20, 10, 0.92); /* Dark Wood/Leather */
-  --glass-border: 3px solid #B8860B;  /* Gold Border */
+  --glass-bg: rgba(30, 20, 10, 0.92);
+  /* Dark Wood/Leather */
+  --glass-border: 3px solid #B8860B;
+  /* Gold Border */
   --card-radius: 12px;
 
   /* Effects */
-  --shadow-elevation: 3px 3px 8px rgba(0,0,0,0.5);
+  --shadow-elevation: 3px 3px 8px rgba(0, 0, 0, 0.5);
 
   /* Typography */
-  --font-header: "Cinzel", serif; /* Fallback to Cinzel or local MedievalSharp if available */
+  --font-header: "Cinzel", serif;
+  /* Fallback to Cinzel or local MedievalSharp if available */
   --font-body: "Times New Roman", serif;
 }

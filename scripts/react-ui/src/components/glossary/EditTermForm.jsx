@@ -57,9 +57,9 @@ const EditTermForm = ({
                 : [];
 
             form.setValues({
-                source: selectedTerm.source,
+                source: selectedTerm.source || '',
                 translation: (selectedTerm.translations && selectedTerm.translations[selectedTargetLang]) || '',
-                notes: selectedTerm.notes,
+                notes: selectedTerm.notes || '',
                 variants: variantsArray,
                 abbreviations: abbreviationsArray,
                 metadata: JSON.stringify(selectedTerm.metadata || {}, null, 2),

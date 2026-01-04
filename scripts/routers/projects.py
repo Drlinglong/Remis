@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any
 
 from scripts.shared.services import project_manager
 from scripts.core.project_json_manager import ProjectJsonManager
-from scripts.schemas.project import CreateProjectRequest, UpdateProjectStatusRequest, UpdateProjectNotesRequest, UpdateProjectMetadataRequest
+from scripts.schemas.project import CreateProjectRequest, UpdateProjectStatusRequest, UpdateProjectNotesRequest, UpdateProjectMetadataRequest, UpdateFileStatusRequest
 from scripts.schemas.config import UpdateConfigRequest
 
 router = APIRouter()
@@ -121,12 +121,36 @@ def save_project_kanban(project_id: str, kanban_data: Dict[str, Any]):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.put("/api/project/{project_id}/file/{file_id}/status")
+async def update_file_status(project_id: str, file_id: str, request: UpdateFileStatusRequest):
+    """Updates a single file's status, syncs with Kanban, and logs activity."""
+    try:
+        await project_manager.update_file_status_with_kanban_sync(project_id, file_id, request.status)
+        return {"status": "success", "message": f"File status updated to {request.status}"}
+    except Exception as e:
+        logging.error(f"Error updating individual file status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/api/project/{project_id}/refresh")
 def refresh_project_files(project_id: str):
     try:
         project_manager.refresh_project_files(project_id)
         return {"status": "success"}
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/api/project/{project_id}/upload-translations")
+def upload_project_translations(project_id: str):
+    """Scans and uploads existing translations to the archive."""
+    try:
+        result = project_manager.upload_project_translations(project_id)
+        if result.get("status") == "error":
+            raise HTTPException(status_code=500, detail=result.get("message"))
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logging.error(f"Error uploading translations: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/api/project/{project_id}/config")

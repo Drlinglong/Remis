@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Paper, Group, Text, Button, Modal, Stack, TextInput, ActionIcon } from '@mantine/core';
+import { Paper, Group, Text, Button, Modal, Stack, TextInput, ActionIcon, Tooltip } from '@mantine/core';
 import { IconFolder, IconPlus, IconTrash, IconExternalLink } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { open } from '@tauri-apps/plugin-dialog';
-import axios from 'axios';
+import api from '../../utils/api';
 import styles from '../../pages/ProjectManagement.module.css';
 
 const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
@@ -45,7 +45,7 @@ const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
 
     const handleSavePaths = async () => {
         try {
-            const response = await axios.post(`/api/project/${projectDetails.project_id}/config`, {
+            const response = await api.post(`/api/project/${projectDetails.project_id}/config`, {
                 translation_dirs: translationDirs
             });
             console.log('Save response:', response.data);
@@ -62,7 +62,7 @@ const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
     const handleOpenFolder = async (path) => {
         if (!path) return;
         try {
-            await axios.post('/api/system/open_folder', { path });
+            await api.post('/api/system/open_folder', { path });
         } catch (error) {
             console.error("Failed to open folder", error);
             alert(`Failed to open folder: ${error.message}`);
@@ -72,7 +72,7 @@ const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
     return (
         <>
             <Paper withBorder p="md" radius="md" className={styles.glassCard}>
-                <Group position="apart">
+                <Group justify="space-between">
                     <div>
                         <Group gap={4}>
                             <Text size="sm" fw={500}>{t('project_management.source_dir')}:</Text>
@@ -95,14 +95,16 @@ const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
                             {projectDetails.translation_dirs ? projectDetails.translation_dirs.join(', ') : 'Default'}
                         </Text>
                     </div>
-                    <Button
-                        id="manage-paths-btn"
-                        variant="outline"
-                        size="xs"
-                        onClick={handleOpenManagePaths}
-                    >
-                        {t('project_management.manage_paths_button')}
-                    </Button>
+                    <Tooltip label={t('project_management.tooltip_manage_paths')}>
+                        <Button
+                            id="manage-paths-btn"
+                            variant="outline"
+                            size="xs"
+                            onClick={handleOpenManagePaths}
+                        >
+                            {t('project_management.manage_paths_button')}
+                        </Button>
+                    </Tooltip>
                 </Group>
             </Paper>
 
@@ -120,7 +122,7 @@ const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
                         ) : (
                             <Stack gap="xs">
                                 {translationDirs.map((dir, index) => (
-                                    <Group key={index} position="apart">
+                                    <Group key={index} justify="space-between">
                                         <Text size="sm" style={{ flex: 1, wordBreak: 'break-all' }}>{dir}</Text>
                                         <ActionIcon color="red" onClick={() => handleRemoveDir(index)}>
                                             <IconTrash size={16} />
