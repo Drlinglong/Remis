@@ -6,10 +6,9 @@
   <strong>Paradox Mod Localization Factory</strong>
 
   <p>
-    <a href="https://github.com/Drlinglong/V3_Mod_Localization_Factory/releases/latest"><img src="https://img.shields.io/github/v/release/Drlinglong/V3_Mod_Localization_Factory?style=for-the-badge&logo=github&label=Release&labelColor=1a1a2e&color=4ecdc4" alt="Release Version"></a>
-    <img src="https://img.shields.io/badge/Python-3.10-blue?style=for-the-badge&logo=python&labelColor=1a1a2e" alt="Python Version">
-    </a>
-    <img src="https://img.shields.io/github/license/Drlinglong/V3_Mod_Localization_Factory?style=for-the-badge&label=License&labelColor=1a1a2e&color=lightgrey" alt="License">
+    <a href="https://github.com/Drlinglong/Remis/releases/latest"><img src="https://img.shields.io/github/v/release/Drlinglong/Remis?style=for-the-badge&logo=github&label=Release&labelColor=1a1a2e&color=4ecdc4" alt="Release Version"></a>
+    <img src="https://img.shields.io/badge/Platform-Windows-blue?style=for-the-badge&logo=windows&labelColor=1a1a2e" alt="Platform">
+    <img src="https://img.shields.io/github/license/Drlinglong/Remis?style=for-the-badge&label=License&labelColor=1a1a2e&color=lightgrey" alt="License">
   </p>
 
   <p>
@@ -19,230 +18,198 @@
 
 </div>
 
-> Say goodbye to copy-pasting, embrace automation. This project aims to provide a "one-click" efficient localization solution for Paradox games' Mods (such as Victoria 3, Stellaris, etc.).
+> **Say goodbye to copy-pasting, embrace automation.** An AI-powered desktop application for localizing Paradox game mods — making translation accessible to everyone.
 
-## 1. Project Vision: Translation Should Not Be a Barrier
-Not everyone is fluent in eight languages.
+<p align="center">
+  <img src="gfx/screenshot_en1.jpg" width="80%" alt="Main Interface Preview">
+</p>
 
-Even if you are, you might not want to rack your brain translating every sentence of a Mod after a long day at work.
+---
 
-The original intention of this project is to simplify this process – allowing you to:
+## ✨ Feature Highlights
 
-**See a Mod you like, click a few times, and play it in your native language.**
+### 🏗️ Project-Centric Workflow
+Say goodbye to the CLI era! The new desktop app adopts a **project management** approach — create a project, import your mod, translate with one click, and track all progress automatically.
 
-It's not born for "perfect translation," but to ensure that translation no longer hinders the spread of creativity.
+<p align="center">
+  <img src="gfx/screenshot_en2.jpg" width="80%" alt="Project Status Overview">
+</p>
 
-We hope that:
-* Players can localize excellent Mods from the workshop with one click, even if it's a rough translation, to enjoy the game smoothly;
-* Multilingual creators can quickly build a first draft and then refine it, no longer trapped in repetitive work;
-* Local communities can participate in the global Mod ecosystem with a lower barrier to entry.
+### 📚 Powerful Glossary Management
+Built-in intelligent glossary system ensures AI translates game terminology like a veteran player. Supports **phonetic search, fuzzy matching, and abbreviation recognition**, with cross-game glossary management.
 
-This is a tool that allows creativity to flow freely, an engineering project serving "expression, understanding, and re-creation."
+<p align="center">
+  <img src="gfx/screenshot_en3.jpg" width="80%" alt="Glossary Manager">
+</p>
 
-In the era of artificial intelligence and large language models, language should not and will not be a barrier to communication between player communities.
+### ✏️ Professional Proofreading Workspace
+After translation, enter a **side-by-side comparison** proofreading mode. AI drafts are automatically archived for easy review and refinement.
 
-***
+<p align="center">
+  <img src="gfx/screenshot_en4.jpg" width="80%" alt="Proofreading Workspace">
+</p>
 
-## 2. Why Is It So Easy to Use? – Core Features at a Glance
+### 🛠️ Utility Toolbox
+Built-in tools like **Cover Image Maker**, with more features coming soon!
 
-We've hidden complex technology behind the scenes, so you can enjoy the purest and simplest localization experience.
+<p align="center">
+  <img src="gfx/screenshot_en5.jpg" width="80%" alt="Toolbox">
+</p>
 
-#### **Powerful AI Translation Core**
-*   **Multiple AI Engines to Choose From**: Built-in support for industry-leading AI translation services such as Gemini, OpenAI, DeepSeek, Grok, Ollama, [ModelScope, and SiliconFlow](./docs/en/user-guides/using_modelscope_and_siliconflow.md), and even allows technical users to [connect to any custom service](./docs/en/user-guides/using_custom_openai_api.md). You can choose the one that suits you best.
-*   **Game Terminology, Accurate Translation**: Features an intelligent glossary system. It acts like an experienced player who understands the game, automatically recognizing specialized terms like "convoy" or "ideology" and ensuring consistent translation throughout the Mod, avoiding the stiffness of machine translation.
-*   **No Fear of Strange Files**: Paradox game file formats can sometimes be "tricky," but our tool handles them with ease, ensuring all text can be found and translated.
-*   **No Fear of Large Files**: Encountering a huge text file with tens of thousands of lines? The tool automatically breaks it into smaller chunks for stable and reliable processing.
-*   **Perfect Preservation of Original Format**: Translated files maintain the exact same layout and comments as the original, with zero impact on the Mod itself.
-*   **CLI Tool Support**: Supports Google's official Gemini CLI tool, allowing you to enjoy thousands of free, high-quality AI translations daily without additional cost.
+### ⚙️ Flexible Translation Configuration
+Supports multiple AI providers: **Gemini, OpenAI, DeepSeek, Grok, Ollama, NVIDIA NIM, OpenRouter**, and more. Choose from 5 beautiful themes.
 
-#### **Tailored for Paradox Games**
-*   **Supports Multiple Games**: Pre-configured for mainstream Paradox games like Victoria 3, Stellaris, Hearts of Iron 4, ready to use out of the box.
-*   **"One-Click Multi-Language" Mode**: Want to translate an English Mod into Chinese, Japanese, and German simultaneously? No problem, with one click, the tool automatically generates localization files for all languages.
-*   **Intelligent Mod Information Handling**: Beyond just game text, the tool automatically translates Mod titles, descriptions, processes metadata and cover images, generating a complete localized package.
-*   **Contextually Accurate Translation**: Before translating, you can input the Mod's theme (e.g., "This is a Mod about magic"), allowing the AI to better understand the background and provide more appropriate translations.
+<p align="center">
+  <img src="gfx/screenshot_en6.jpg" width="80%" alt="Translation Configuration">
+</p>
 
-#### **Effortless Auxiliary Functions**
-*   **Automatic Proofreading List Generation**: After translation, a `Proofreading Progress.csv` file is automatically generated. You can open it with Excel to clearly see the comparison between the original and translated text, facilitating refinement.
-*   **Automatic "Health Check" After Translation**: The tool checks translated files for format errors and generates a report, helping you identify issues in advance.
-*   **Safety First**: In case of network interruption or AI error during translation, the tool retains a copy of the original file as a backup, ensuring your Mod is not damaged.
+---
 
-> Curious about how the "Localization Factory" works internally? We've prepared an easy-to-read [overview of the technical details](./docs/en/user-guides/how_the_factory_works.md) for everyone!
+## 📥 Download & Install
 
-***
+Thanks to the new **Tauri** packaging technology, installation is simpler than ever:
 
-## 3. How to Use
+1. 📦 Download the latest **installer** (`.exe`) from the [Releases page](https://github.com/Drlinglong/Remis/releases/latest)
+2. 🖱️ Double-click to run and follow the installation wizard
+3. 🚀 Launch the app and follow the **built-in tutorial** to configure your API
 
-Thanks to new packaging technology, using this project has become easier than ever. **No Python installation, no environment configuration required, truly plug-and-play.**
+> **💡 Quick Note**
+> 
+> This tool is an "AI translation porter" — you'll need your own API key.
+> On first launch, the app will guide you to select an AI service (e.g., Gemini, OpenAI) and enter your API key.
+> 
+> **⚠️ API usage may incur costs. Keep your key safe!**
 
-### Step 1: Download and Unzip
-1.  Download the latest **Portable** compressed package (e.g., `Project_Remis_v1.1.0.zip`) from the release page.
-2.  Unzip it to any location on your computer.
-3.  Run `setup.bat`, which will automatically install dependencies and guide you to enter your API key, setting it as an environment variable for subsequent localization processes.
+---
 
-> **Want to run models locally? (Technical Knowledge Required)**
-> If you have some technical background, are concerned about data privacy, or want to work offline, you can try using Ollama for localization.
-> **Warning:** Using local models requires manual configuration, and the translation quality is often **significantly inferior** to large online models (like Gemini/GPT). We do not recommend this feature if you are unfamiliar with command lines or configuration files.
-> [If you insist on using it, you must first click here to read the Ollama Setup and User Guide](./docs/en/user-guides/using_ollama.md).
+## 🚀 Quick Start
 
-> **Important Note: Prepare Your API Key!**
-> This tool is an "AI translation porter"; it does not provide translation capabilities itself. You need to use your own AI service API Key for translation.
-> During operation, the program will prompt you to select an AI service and enter the corresponding API Key. Please ensure you have a valid API Key for your chosen AI service (e.g., Gemini, OpenAI, etc.).
-> For users of **ModelScope** or **SiliconFlow**, we highly recommend reading [this guide](./docs/en/user-guides/using_modelscope_and_siliconflow.md) to configure your preferred model for the best experience.
->  **Important Reminder**:
->  Applying for an API key requires account registration and binding a bank card.
->  Using the API may incur costs, subject to the service provider's billing terms.
->  Please **keep your API key safe**, otherwise your bank card may be overcharged!
-### Step 2: Place Mod Source Files
-1.  Open the unzipped folder, and you will see a folder named `source_mod`.
-2.  Copy and paste the entire Mod folder you want to localize into `source_mod`.
+The app includes an **interactive guided tutorial** that walks you through:
 
-    > **Strong Recommendation**: For easier identification, it's best to rename Mod folders downloaded from the workshop (which often have a string of numbers) to the Mod's actual name.
+1. **Configure AI Service** — Select your translation engine and enter API key
+2. **Create Translation Project** — Import mod folder, select game type
+3. **Start Translation** — Configure source and target languages, click start
+4. **Proofread & Refine** — Review and polish translations in the proofreading workspace
+5. **One-Click Deploy** — Deploy translations to your game directory
 
-    The correct directory structure should look like this:
-    ```
-    Project_Remis_v1.1.0/              # <-- Root directory after unzipping
-    ├── app/                           # <-- Core program files (do not modify)
-    │   ├── source_mod/                # <-- 1. Place your Mod folders here
-    │   │   └── Your Mod Name/
-    │   │       └── ...
-    │   └── my_translation/            # <-- 3. Localized Mods will appear here
-    ├── packages/
-    ├── python-embed/
-    ├── setup.bat                      # <-- (First run) Automatic installation and configuration
-    └── run.bat                        # <-- 2. Double-click me to start localization!
-    ```
+> The app includes **3 demo mods** (Stellaris, Victoria 3, EU5) — try the complete translation workflow immediately!
 
-### Step 3: Run Localization!
-1.  **First Use**: Please double-click `setup.bat` first. It will automatically install dependencies and guide you to set up your API key.
-2.  **Start Localization**: Double-click `run.bat`.
-3.  Then, you just need to follow the Chinese prompts step-by-step:
-    *   Select the interface language and the AI service to use.
-    *   Select the game you want to play.
-    *   Select which Mod you want to localize.
-    *   Select the original language of the Mod and the language you want to translate it into.
-    *   Choose to enable or disable fuzzy matching for the glossary.
-    *   Confirm all your selections in the project overview, then start the translation!
-3.  Wait for the program to finish running. Upon success, the localized Mod package will automatically appear in the `my_translation` folder.
+---
 
-### Step 4: Enable the Mod in Game
-1.  Go to the `my_translation` folder and find the newly generated localized Mod package (e.g., `zh-CN-Your Mod Name`).
-2.  Copy this entire folder to the corresponding `mod` directory of the game.
-    *   **Victoria 3**: `C:\Users\YourUsername\Documents\Paradox Interactive\Victoria 3\mod`
-    *   **Stellaris**: `C:\Users\YourUsername\Documents\Paradox Interactive\Stellaris\mod`
-    *   **Hearts of Iron IV**: `C:\Users\YourUsername\Documents\Paradox Interactive\Hearts of Iron IV\mod`
-    *   **Crusader Kings III**: `C:\Users\YourUsername\Documents\Paradox Interactive\Crusader Kings III\mod`
-3.  Launch the game launcher, and in the "Playsets," enable both the **Original Mod** and the **Localized Mod**.
-4.  **Crucial Step**: Ensure the **Localized Mod** is sorted **below** the Original Mod in the list.
-5.  Start the game and enjoy your native language experience!
+## 🎮 Enable Mod in Game
 
-### Troubleshooting
-- **Program crashes or errors?**
-  - **API Key Issue**: Please check if your API Key is correct, valid, and if your account balance is sufficient.
-  - **Incomplete Mod Files**: Please ensure you copied the entire Mod folder, not just the `localization` folder within it.
-- **Translation not taking effect?**
-  - Check if the loading order of the localized Mod in the game launcher is **below** the original Mod.
-  - Try deleting fake localization files in the original mod. Some mods come with **fake localization files**, which can prevent localization patches from taking effect. You need to manually delete these files.
-  - Go to `SteamLibrary\\steamapps\\workshop\\content\\529340\\3535929411 (replace this string of numbers with the workshop ID of the MOD you are localizing)\\localization`, and **delete all folders except the original language folder of the MOD**.
-  - For example, if the original mod is in English, you need to delete all folders under `localization` except the `english` folder.
-  - You can also choose to **overwrite** the content of this localization patch into the original MOD folder. This can reduce annoying verification processes, and Steam will no longer try to re-download missing fake localization files from the workshop.
-- **Poor translation quality?**
-  - You can try adding or modifying glossary files for the corresponding game in the `data/glossary` folder, which can significantly improve the accuracy of terminology.
-  - When starting the translation, entering the Mod's theme or keywords as prompted can also help the AI better understand the context.
+After translation, you need to enable the localization mod in-game:
 
-If you encounter further issues, please refer to the [Frequently Asked Questions (FAQ)](docs/en/user-guides/faq.md) for more detailed solutions.
+1. Open the `my_translation` folder and locate the generated localization package (e.g., `zh-CN-YourModName`)
+2. Copy this folder to your game's `mod` directory:
+   - **Victoria 3**: `C:\Users\YourUsername\Documents\Paradox Interactive\Victoria 3\mod`
+   - **Stellaris**: `C:\Users\YourUsername\Documents\Paradox Interactive\Stellaris\mod`
+   - **Hearts of Iron IV**: `C:\Users\YourUsername\Documents\Paradox Interactive\Hearts of Iron IV\mod`
+   - **Crusader Kings III**: `C:\Users\YourUsername\Documents\Paradox Interactive\Crusader Kings III\mod`
+3. In the game launcher's "Playsets," enable both the **original mod** and the **localization mod**
+4. **Crucial step**: Ensure the **localization mod** loads **after** the original mod
 
-***
+> 💡 The app also provides a **one-click deploy** feature that automates these steps.
 
-## 4. Glossary System: The Secret Weapon to Make AI Speak "Human Language"
+---
 
-### 4.1. How Does It Work?
-Simply put, a glossary is a "game terminology cheat sheet."
+## ❓ Troubleshooting
 
-Before translation begins, we hand this cheat sheet to the AI and tell it: "When you encounter these words, you must translate them strictly according to the cheat sheet; no improvisation allowed."
+| Issue | Solution |
+|-------|----------|
+| **Translation not working** | Ensure localization mod loads **after** the original mod |
+| **Original mod has fake localization** | Delete all language folders except the original language in the mod's `localization` directory |
+| **API errors** | Verify your API key and check account balance |
+| **Poor translation quality** | Add specialized terms in the Glossary Manager, or provide mod theme description |
 
-**For example:**
-*   **Without a glossary**: AI might randomly translate '''convoy''' into "escort," "motorcade," or "guard."
-*   **With a glossary**: AI will strictly follow our requirements and accurately translate it as "fleet" everywhere.
+For more help, see [Frequently Asked Questions (FAQ)](docs/en/user-guides/faq.md).
 
-This mechanism ensures the professionalism and consistency of the localized Mod.
+---
 
-### 4.2. Where Are the Glossary Files?
-You can find and edit the glossary files for each game in the `data/glossary/` directory:
-*   **Victoria 3**: `data/glossary/victoria3/glossary.json`
-*   **Stellaris**: `data/glossary/stellaris/glossary.json`
+## 📖 Glossary System
 
-### 4.3. Glossary Source and Acknowledgments
-The game-specific glossaries for this project are derived from the following excellent official and community localization projects. We extend our sincerest gratitude to all original contributors!
+### How It Works
+The glossary is a "game terminology reference sheet." Before translation, we provide this reference to the AI, ensuring specific terms are translated consistently.
 
-*   **Victoria 3 Glossary Sources**: Victoria 3 Localization Update V1.2, Morgenröte | Chinese, Better Politics Mod Simplified Chinese Localization, Milk Localization
-*   **Stellaris Glossary Sources**: Pigeon Group Localization Glossary, Shrouded Regions Localization Glossary, L-Network Stellaris Mod Localization Collection Glossary
+**Example:**
+- ❌ Without glossary: AI might translate `convoy` as "escort," "motorcade," or "guard"
+- ✅ With glossary: AI consistently translates it as "fleet"
 
-***
+### Glossary Locations
+You can edit directly in the **Glossary Manager**, or manually modify:
+- **Victoria 3**: `data/glossary/victoria3/glossary.json`
+- **Stellaris**: `data/glossary/stellaris/glossary.json`
 
-## 5. Project Architecture
-If you are interested in developing and debugging this project, please refer to the [project documentation](docs/documentation-center.md).
-The diagram below illustrates the internal structure of this project, which ensures the tool's stability and future extensibility.
+### Glossary Credits
+- **Victoria 3**: Victoria 3 Localization V1.2, Morgenröte Chinese, Better Politics Mod CN, Milk Localization
+- **Stellaris**: Pigeon Group Glossary, Shrouded Regions Glossary, L-Network Stellaris Mod Collection
+
+---
+
+## 🏛️ Project Architecture
+
+Built with **Tauri + React + Python**, combining a desktop-class user experience with a powerful AI translation engine.
+
 ```
-scripts/
-├── main.py                           # [Main Launcher] The sole program entry point
-├── config.py                         # [Global Configuration] Stores language database, API settings, etc.
+remis-mod-factory/
+├── src-tauri/                     # [Desktop Shell] Tauri/Rust desktop framework
 │
-├── core/                             # [Core Engine] Reusable underlying functional modules
-│   ├── api_handler.py                # [API Handler Factory] Unified management of different AI service interfaces
-│   ├── gemini_handler.py             # [Gemini Handler] Google Gemini API interface
-│   ├── gemini_cli_handler.py         # [Gemini CLI Handler] Calls Google's official CLI
-│   ├── openai_handler.py             # [OpenAI Handler] OpenAI API interface
-│   ├── qwen_handler.py               # [Qwen Handler] Alibaba Cloud Tongyi Qianwen API interface
-│   ├── deepseek_handler.py           # [DeepSeek Handler] DeepSeek API interface
-│   ├── grok_handler.py               # [Grok Handler] Grok API interface
-│   ├── ollama_handler.py             # [Ollama Handler] Ollama local deployment interface
-│   ├── glossary_manager.py           # [Glossary Manager] Game-specific terminology glossary loading and management
-│   ├── file_parser.py                # [File Parser] Parses Paradox's unique .yml format
-│   ├── file_builder.py               # [File Builder] Reconstructs localization files
-│   ├── directory_handler.py          # [Directory Handler] Handles folder structures
-│   ├── asset_handler.py              # [Asset Handler] Processes metadata and asset files
-│   ├── proofreading_tracker.py       # [Proofreading Tracker] Generates proofreading progress table
-│   ├── post_processing_manager.py    # [Post-processing Manager] Format validation and report generation ✨
-│   ├── parallel_processor.py         # [Parallel Processor] Concurrent processing of multiple files
-│   └── ... (Other core modules)
+├── scripts/
+│   ├── react-ui/                  # [Frontend] React + Mantine UI
+│   │   ├── src/
+│   │   │   ├── pages/             # Page components (Projects/Glossary/Proofread/Tools...)
+│   │   │   ├── components/        # Reusable UI components
+│   │   │   └── hooks/             # Custom React hooks
+│   │   └── ...
+│   │
+│   ├── web_server.py              # [Backend] FastAPI web server
+│   ├── routers/                   # API routing layer
+│   ├── services/                  # Business service layer
+│   │
+│   ├── core/                      # [Core Engine] Reusable underlying modules
+│   │   ├── api_handler.py         # AI API handler factory
+│   │   ├── gemini_handler.py      # Google Gemini interface
+│   │   ├── openai_handler.py      # OpenAI interface
+│   │   ├── glossary_manager.py    # Glossary manager
+│   │   ├── file_parser.py         # Paradox YML file parser
+│   │   └── ...
+│   │
+│   └── workflows/                 # [Workflows] Translation business processes
+│       └── initial_translate.py   # Initial translation workflow
 │
-├── workflows/                        # [Workflows] Specific business processes
-│   └── initial_translate.py          # [Initial Translation] The main translation workflow
-│
-├── hooks/                            # [Hook System] Extends parser functionality
-│   └── file_parser_hook.py          # [File Parsing Hook] Custom file parsing logic
-│
-└── utils/                            # [Utility Tools] General functional modules
-    ├── post_process_validator.py     # [Post-processing Validator] Game-specific syntax rule validation ✨
-    ├── punctuation_handler.py        # [Punctuation Handler] Multi-language punctuation conversion
-    └── ... (Other utility tools)
+└── data/                          # [Data] Glossaries, config, cache
+    ├── glossary/                  # Game glossaries
+    └── database.sqlite            # Local database
 ```
 
-***
+> Want to dive deeper? Check out the [Developer Documentation](docs/documentation-center.md).
 
-## 6. Collaboration and Future Plans
-This project is an open-source project that grows with your feedback and my assistance. We have many exciting features planned for the future and have already initiated them in GitHub Issues.
+---
 
-We welcome any form of feedback, suggestions, and code contributions!
+## 🤝 Contributing
 
-***
+This is an open-source project that grows with community feedback. Issues, PRs, and suggestions are always welcome!
 
-### License
+---
 
-This project adopts a **dual-license model**:
+## 📜 License
 
-1.  **Code Section** (all `.py` source code files)
-    Uses **[GNU Affero General Public License v3.0 (AGPL-3.0)](https://www.gnu.org/licenses/agpl-3.0.html)**
-    Simply put, you are free to use, modify, and distribute the code, but any modified version must also be open source, and if you use it in an online service, you must also provide the source code.
+This project uses a **dual-license model**:
 
-2.  **Data and Documentation Section** (glossaries, `.md` documents, etc.)
-    Uses **[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans)**
-    Simply put, you are free to share and modify, but you must provide attribution, cannot use it for commercial purposes, and derivative works must adopt the same license.
+1. **Code** (`.py`, `.jsx`, `.rs`, etc.)  
+   Licensed under **[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html)**
 
-### ❤️ Credits and Attribution
+2. **Data & Documentation** (glossaries, `.md` files, etc.)  
+   Licensed under **[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)**
 
-If you have used the "Paradox Mod Localization Factory" to create or assist in creating your mod's localization files and have uploaded them to the Steam Workshop or any other platform, we kindly ask that you include a small credit in your mod's description with a link back to this tool's GitHub repository.
+### ❤️ Credits
 
-Your attribution is the best way to support this project and helps other mod authors discover this tool. Thank you very much for your support!
+If you use this tool to create mod localizations and upload to the Workshop, we'd appreciate a mention with a link to the repository:
 
-**Repository URL:** `https://github.com/Drlinglong/V3_Mod_Localization_Factory` 
+**`https://github.com/Drlinglong/Remis`**
+
+---
+
+<div align="center">
+  <i>Roma Invicta!</i> 🦅
+</div>

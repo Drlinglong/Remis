@@ -3,10 +3,10 @@
   <h1>Project Remis</h1>
   <strong>P社Mod本地化工厂 (Paradox Mod Localization Factory)</strong>
   <p>
-    <a href="https://github.com/Drlinglong/V3_Mod_Localization_Factory/releases/latest"><img src="https://img.shields.io/github/v/release/Drlinglong/V3_Mod_Localization_Factory?style=for-the-badge&logo=github&label=Release&labelColor=1a1a2e&color=4ecdc4" alt="Release Version"></a>
+    <a href="https://github.com/Drlinglong/Remis/releases/latest"><img src="https://img.shields.io/github/v/release/Drlinglong/Remis?style=for-the-badge&logo=github&label=Release&labelColor=1a1a2e&color=4ecdc4" alt="Release Version"></a>
     <img src="https://img.shields.io/badge/Python-3.10-blue?style=for-the-badge&logo=python&labelColor=1a1a2e" alt="Python Version">
     </a>
-    <img src="https://img.shields.io/github/license/Drlinglong/V3_Mod_Localization_Factory?style=for-the-badge&label=License&labelColor=1a1a2e&color=lightgrey" alt="License">
+    <img src="https://img.shields.io/github/license/Drlinglong/Remis?style=for-the-badge&label=License&labelColor=1a1a2e&color=lightgrey" alt="License">
   </p>
 
   <p>
@@ -242,4 +242,4 @@ scripts/
 
 您的署名是对我们工作的最大认可和支持，也能帮助到更多有需要的Mod作者。非常感谢！
 
-**仓库地址:** `https://github.com/Drlinglong/V3_Mod_Localization_Factory` 
+**仓库地址:** `https://github.com/Drlinglong/Remis` 
