@@ -482,6 +482,15 @@ def _run_post_processing(mod_name, game_profile, target_lang, source_lang, outpu
 
 def _build_dest_dir(file_task: FileTask, target_lang: dict, output_folder_name: str, game_profile: dict) -> str:
     """构建目标目录路径"""
+    # Collect all known language folder names for robust checking
+    known_lang_folders = set()
+    for lang_def in LANGUAGES.values():
+        if "name_en" in lang_def:
+            known_lang_folders.add(lang_def["name_en"].lower())
+        if "key" in lang_def:
+            known_lang_folders.add(lang_def["key"][2:].lower()) # e.g. "english" from "l_english"
+        known_lang_folders.add("english") # Always include english
+            
     if file_task.is_custom_loc:
         cust_loc_root = os.path.join(SOURCE_DIR, file_task.mod_name, "customizable_localization")
         rel = os.path.relpath(file_task.root, cust_loc_root)
@@ -496,49 +505,44 @@ def _build_dest_dir(file_task: FileTask, target_lang: dict, output_folder_name: 
             rel_from_loc_root = os.path.relpath(file_task.root, file_task.loc_root)
             
             # 2. 处理语言文件夹替换
-            # 我们需要把 source_lang 文件夹替换为 target_lang 文件夹
-            # 假设结构是 [lang_folder]/[subfolders]
             parts = rel_from_loc_root.split(os.sep)
-            if parts and (parts[0] == file_task.source_lang.get("name_en", "").lower() or \
-                          parts[0] == "english" or \
-                          parts[0] == file_task.source_lang.get("code", "")):
-                 # 替换第一个文件夹为目标语言 key (去掉 l_)
-                 # e.g. english -> simp_chinese
+            
+            # Check if the first folder is a known language folder
+            if parts and parts[0].lower() in known_lang_folders:
+                 # Replace with target language folder
                  parts[0] = target_lang["key"][2:]
             else:
-                 # 如果没有语言文件夹，或者无法识别，则直接插入目标语言文件夹
-                 # 这通常不应该发生，除非文件直接在 localization 根目录下
-                 if parts[0] == ".": # relpath returns . if same dir
+                 # If no language folder found (e.g. at root of loc), insert target language
+                 if parts[0] == ".": 
                      parts = [target_lang["key"][2:]]
                  else:
-                     # 插入到最前面? 或者保留原样?
-                     # 标准做法是 localization/[target_lang]/...
-                     # 如果原路径是 localization/replace/... (没有语言文件夹?)
-                     # 那我们应该把它放到 localization/[target_lang]/replace/...
                      parts.insert(0, target_lang["key"][2:])
             
             new_rel_path = os.path.join(*parts)
             
             # 3. 计算模块路径 (相对于 mod root)
-            # loc_root 是 absolute path. 
-            # 我们需要它相对于 mod root 的路径 (e.g. main_menu/localization)
             mod_root = os.path.join(SOURCE_DIR, file_task.mod_name)
             module_rel_path = os.path.relpath(file_task.loc_root, mod_root)
             
             # 4. 组合最终路径
-            # DEST_DIR / output_folder / module_rel_path / new_rel_path
             dest_dir = os.path.join(DEST_DIR, output_folder_name, module_rel_path, new_rel_path)
             
         else:
             # Fallback for legacy behavior (single localization folder)
             source_loc_folder = game_profile["source_localization_folder"]
             source_loc_path = os.path.join(SOURCE_DIR, file_task.mod_name, source_loc_folder)
-            rel = os.path.relpath(file_task.root, source_loc_path)
             
-            # 尝试替换语言文件夹 (简单 heuristic)
-            # 如果 rel 开始于 english, 替换它
+            # Handle case where file might be in a subfolder of source_loc_folder not discovered as loc_root
+            # This logic is a bit fragile, loc_root should cover most cases now.
+            if file_task.root.startswith(source_loc_path):
+                 rel = os.path.relpath(file_task.root, source_loc_path)
+            else:
+                 # Should not happen if discovered correctly, but fallback
+                 rel = os.path.basename(file_task.root)
+
+            # 尝试替换语言文件夹
             parts = rel.split(os.sep)
-            if parts and (parts[0] == "english" or parts[0] == file_task.source_lang.get("name_en", "").lower()):
+            if parts and parts[0].lower() in known_lang_folders:
                  parts[0] = target_lang["key"][2:]
                  rel = os.path.join(*parts)
             else:

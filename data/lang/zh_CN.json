@@ -370,6 +370,7 @@
   "validation_eu5_tag_key_chinese": "格式化标签键 `#{key}` 内发现非ASCII字符。",
   "validation_eu5_mismatched_tags": "格式化命令起始标签 `#key` 与结束符 `#!` 数量不匹配。",
   "validation_eu5_mismatched_tags_details": "发现 {start_count} 个起始标签，但有 {end_count} 个结束符。",
+  "validation_vic3_tag_key_chinese": "格式化标签 '#{key}' 中发现非ASCII字符，这可能导致语法错误。",
   "validation_generic_banned_chars_found": "在 '{match_text}' 中发现违规字符: '{banned_chars}'",
   "validation_generic_format_error": "格式错误: '{content}'",
   "validation_generic_color_tags_count": "发现 {start_count} 个起始标签，但有 {end_count} 个结束符。",
