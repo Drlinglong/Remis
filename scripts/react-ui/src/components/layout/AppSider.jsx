@@ -33,7 +33,7 @@ const navItems = [
     // Conditionally include Neologism Tribunal
     ...(FEATURES.ENABLE_NEOLOGISM_TRIBUNAL ? [{ icon: IconSparkles, label: 'neologism_review.title', path: '/neologism-review' }] : []),
     { icon: IconTools, label: 'page_title_tools', path: '/tools', id: 'nav-tools' },
-    // { icon: IconBook, label: 'page_title_docs', path: '/docs' },
+    ...(FEATURES.ENABLE_DOCS ? [{ icon: IconBook, label: 'page_title_docs', path: '/docs' }] : []),
     { icon: IconSettings, label: 'page_title_settings', path: '/settings', id: 'nav-settings' },
 ];
 

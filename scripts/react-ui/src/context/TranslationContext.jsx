@@ -54,7 +54,7 @@ export const TranslationProvider = ({ children }) => {
                         clearInterval(interval);
                     }
                 }
-            }, 1000);
+            }, 3000);
         }
         return () => clearInterval(interval);
     }, [taskId, isProcessing]);

@@ -1,6 +1,5 @@
 import logging
-from scripts.app_settings import GAME_PROFILES
-from scripts.core.config_manager import config_manager
+from scripts.app_settings import GAME_PROFILES, config_manager
 
 logger = logging.getLogger(__name__)
 

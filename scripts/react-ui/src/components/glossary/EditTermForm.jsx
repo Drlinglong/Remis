@@ -14,6 +14,7 @@ import { IconX, IconPlus, IconTrash } from '@tabler/icons-react';
  */
 const EditTermForm = ({
     selectedTerm,
+    isCreating,
     onClose,
     onSave,
     targetLanguages,
@@ -39,9 +40,20 @@ const EditTermForm = ({
         },
     });
 
-    // Load selected term data
+    // Load selected term data or reset for creation
     useEffect(() => {
-        if (selectedTerm) {
+        if (isCreating) {
+            form.reset();
+            form.setValues({
+                source: '',
+                translation: '',
+                notes: '',
+                variants: [],
+                abbreviations: [],
+                metadata: '',
+            });
+            setJsonError(null);
+        } else if (selectedTerm) {
             const variantsArray = selectedTerm.variants
                 ? Object.entries(selectedTerm.variants).map(([lang, values]) => ({
                     lang,
@@ -66,13 +78,15 @@ const EditTermForm = ({
             });
             setJsonError(null);
         }
-    }, [selectedTerm, selectedTargetLang]);
+    }, [selectedTerm, isCreating, selectedTargetLang]);
 
     const handleSubmit = async (values) => {
         if (jsonError) return;
 
         try {
-            JSON.parse(values.metadata);
+            if (values.metadata) {
+                JSON.parse(values.metadata);
+            }
         } catch (e) {
             setJsonError(t('glossary_editor.error_invalid_json'));
             return;
@@ -99,7 +113,7 @@ const EditTermForm = ({
             notes,
             variants: variantsObject,
             abbreviations: abbreviationsObject,
-            metadata: JSON.parse(metadata),
+            metadata: values.metadata ? JSON.parse(values.metadata) : {},
             translations: {
                 ...selectedTerm?.translations,
                 [selectedTargetLang]: translation
@@ -155,14 +169,14 @@ const EditTermForm = ({
         );
     };
 
-    if (!selectedTerm || !document.getElementById('glossary-detail-portal')) {
+    if ((!selectedTerm && !isCreating) || !document.getElementById('glossary-detail-portal')) {
         return null;
     }
 
     return createPortal(
         <Stack gap="md" style={{ height: '100%' }}>
             <Group justify="space-between">
-                <Title order={5}>{t('glossary_edit_entry')}</Title>
+                <Title order={5}>{isCreating ? t('glossary_create_entry') : t('glossary_edit_entry')}</Title>
                 <ActionIcon variant="subtle" onClick={onClose}>
                     <IconX size={16} />
                 </ActionIcon>

@@ -40,6 +40,7 @@ const GlossaryManagerPage = () => {
 
     // 本地 UI 状态
     const [selectedTerm, setSelectedTerm] = useState(null);
+    const [isCreating, setIsCreating] = useState(false);
     const [isFileCreateModalVisible, setIsFileCreateModalVisible] = useState(false);
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
     const [deletingItemId, setDeletingItemId] = useState(null);
@@ -47,7 +48,16 @@ const GlossaryManagerPage = () => {
 
     // 行点击处理
     const handleRowClick = (entry) => {
+        setIsCreating(false);
         setSelectedTerm(entry);
+        setSidebarWidth(450);
+        setSidebarCollapsed(false);
+    };
+
+    // 新建点击处理
+    const handleCreateClick = () => {
+        setSelectedTerm(null);
+        setIsCreating(true);
         setSidebarWidth(450);
         setSidebarCollapsed(false);
     };
@@ -55,6 +65,7 @@ const GlossaryManagerPage = () => {
     // 关闭面板
     const handleClosePanel = () => {
         setSelectedTerm(null);
+        setIsCreating(false);
         setSidebarWidth(300);
     };
 
@@ -202,7 +213,7 @@ const GlossaryManagerPage = () => {
                             <Group gap="xs">
                                 <Button
                                     leftSection={<IconPlus size={16} />}
-                                    onClick={() => handleRowClick({})}
+                                    onClick={handleCreateClick}
                                     disabled={!glossary.selectedFile.key}
                                 >
                                     {t('glossary_add_entry')}
@@ -337,6 +348,7 @@ const GlossaryManagerPage = () => {
             {/* Edit Term Form (Portal) */}
             <EditTermForm
                 selectedTerm={selectedTerm}
+                isCreating={isCreating}
                 onClose={handleClosePanel}
                 onSave={glossary.handleSave}
                 targetLanguages={glossary.targetLanguages}

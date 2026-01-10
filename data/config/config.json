@@ -1,0 +1,11 @@
+{
+    "provider_config": {
+        "lm_studio": {
+            "models": [
+                "gpt-oss-20b"
+            ],
+            "api_url": "http://localhost:1234/v1",
+            "selected_model": "gpt-oss-20b"
+        }
+    }
+}

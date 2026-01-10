@@ -18,11 +18,9 @@ class ProjectRepository:
         self.db_path = db_path
 
     def _get_connection(self):
-        # We perform row factory mapping manually or use dictionary cursor if needed,
-        # but Pydantic expects keyword arguments. sqlite3.Row is good for that.
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        return conn
+        # Use the Singleton Connection Manager to ensure WAL mode and consistent timeouts
+        from scripts.core.db_manager import DatabaseConnectionManager
+        return DatabaseConnectionManager(self.db_path).get_connection()
 
     def add_activity_log(self, project_id: str, activity_type: str, description: str):
         """Records a new activity log entry."""

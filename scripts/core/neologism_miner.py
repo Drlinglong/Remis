@@ -1,6 +1,12 @@
 import json
 import logging
 from typing import List, Any
+from pydantic import BaseModel, Field
+
+class NeologismTerm(BaseModel):
+    original: str
+    suggestion: str
+    reasoning: str
 
 class NeologismMiner:
     """
@@ -32,7 +38,7 @@ Please filter terms based on the following criteria:
     *   **Capitalized Terms**: Non-generic words appearing in the middle of sentences with capitalized first letters.
 
 2.  **❌ Exclusions**:
-    *   **Script Code**: NEVER extract variables or commands inside `[]`, `{}`, `$`, `@` (e.g., `[Root.GetName]`, `$COUNTRY$`, `scope:actor`).
+    *   **Script Code**: NEVER extract variables or commands inside `[]`, `{{}}`, `$`, `@` (e.g., `[Root.GetName]`, `$COUNTRY$`, `scope:actor`).
     *   **Color Codes**: Ignore formatting codes like `§R`, `§!`.
     *   **Generic Words**: Do not extract common English words (e.g., "Empire", "Soldier", "Technology") unless they form a specific proper noun phrase.
     *   **Numbers & Symbols**: Pure numbers or punctuation, unless they have a strong, unique meaning (e.g., "42").
@@ -64,10 +70,10 @@ Please filter terms based on the following criteria:
         self.client = client
         self.logger = logging.getLogger(__name__)
 
-    def extract_terms(self, text_chunk: str, target_lang: str = "Chinese", target_lang_code: str = "zh-CN", game_name: str = "Paradox Game") -> List[dict]:
+    def extract_terms(self, text_chunk: str, target_lang: str = "Chinese", target_lang_code: str = "zh-CN", game_name: str = "Paradox Game") -> List[NeologismTerm]:
         """
         Call LLM to extract neologisms from text.
-        Returns a list of dicts: [{'original': '...', 'suggestion': '...', 'reasoning': '...'}]
+        Returns a list of NeologismTerm objects.
         """
         try:
             # Inject target language and game context into system prompt
@@ -107,20 +113,22 @@ Please filter terms based on the following criteria:
             if not cleaned_response:
                 return []
 
-            terms = json.loads(cleaned_response)
-            if isinstance(terms, list):
-                # Validate items are dicts
-                valid_terms = []
-                for t in terms:
-                    if isinstance(t, dict) and "original" in t:
-                        valid_terms.append(t)
-                    elif isinstance(t, str):
-                        # Fallback for legacy string output
-                        valid_terms.append({"original": t, "suggestion": "", "reasoning": "Legacy extraction"})
-                return valid_terms
-            else:
-                self.logger.warning(f"Unexpected JSON format from Neologism Miner: {terms}")
+            # Load JSON and validate with Pydantic
+            terms_data = json.loads(cleaned_response)
+
+            if not isinstance(terms_data, list):
+                self.logger.warning(f"Unexpected JSON format from Neologism Miner: {terms_data}")
                 return []
+
+            valid_terms = []
+            for item in terms_data:
+                try:
+                    term = NeologismTerm(**item)
+                    valid_terms.append(term)
+                except Exception as e:
+                    self.logger.warning(f"Skipping invalid term: {item} - {e}")
+
+            return valid_terms
 
         except json.JSONDecodeError:
             self.logger.error(f"Failed to parse JSON from Neologism Miner response: {response_text}")

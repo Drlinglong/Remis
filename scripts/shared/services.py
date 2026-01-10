@@ -29,5 +29,6 @@ file_service = FileService(
 # ProjectManager needs file_service injected, AND project_repository
 project_manager = ProjectManager(
     file_service=file_service,
-    project_repository=project_repository
+    project_repository=project_repository,
+    kanban_service=kanban_service
 )

@@ -30,7 +30,7 @@ class BaseApiHandler(ABC):
         获取提供商的配置，合并默认配置和用户覆盖配置。
         """
         from scripts.app_settings import API_PROVIDERS
-        from scripts.core.config_manager import config_manager
+        from scripts.app_settings import config_manager
         
         base_config = API_PROVIDERS.get(self.provider_name, {}).copy()
         user_overrides = config_manager.get_value("provider_config", {}).get(self.provider_name, {})
@@ -43,10 +43,15 @@ class BaseApiHandler(ABC):
             
             # Use selected model only if it exists in the available list or is a custom model
             if selected_model:
-                if selected_model in available_models:
-                    base_config["default_model"] = selected_model
+                # If available_models is defined and not empty, enforce strict validation
+                if available_models:
+                    if selected_model in available_models:
+                        base_config["default_model"] = selected_model
+                    else:
+                        self.logger.warning(f"Selected model '{selected_model}' for provider '{self.provider_name}' is not in available list. Falling back to default: {base_config.get('default_model')}")
                 else:
-                    self.logger.warning(f"Selected model '{selected_model}' for provider '{self.provider_name}' is not in available list. Falling back to default: {base_config.get('default_model')}")
+                    # If available_models is empty (e.g. Local LLMs), accept any model name
+                    base_config["default_model"] = selected_model
 
             if "api_url" in user_overrides and user_overrides["api_url"]:
                 base_config["base_url"] = user_overrides["api_url"]
@@ -153,33 +158,7 @@ class BaseApiHandler(ABC):
                 "- Ensure the JSON format is strictly followed.\n"
             )
 
-        import os
-        import locale
-        import sys
-        
         prompt = base_prompt + context_prompt_part + glossary_prompt_part + format_prompt_part + punctuation_prompt_part + final_warning
-        
-        # [DEBUG] Save prompt to a temporary file in the AppData root (more reliable for frozen apps)
-        try:
-            debug_path = os.path.join(APP_DATA_DIR, "debug_prompt.txt")
-            with open(debug_path, "a", encoding="utf-8") as f:
-                import datetime
-                timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                sys_enc = sys.getdefaultencoding()
-                loc_enc = locale.getpreferredencoding()
-                
-                f.write(f"\n--- [{timestamp}] BATCH START (Game: {game_profile['id']}) ---\n")
-                f.write(f"DEBUG INFO: sys_enc={sys_enc}, loc_enc={loc_enc}, frozen={getattr(sys, 'frozen', False)}\n")
-                if glossary_prompt_part:
-                    f.write(f"GLOSSARY DETECTED (Len: {len(glossary_prompt_part)})\n")
-                else:
-                    f.write("NO GLOSSARY INJECTED\n")
-                
-                f.write(prompt)
-                f.write(f"\n\n--- BATCH END ---\n")
-        except Exception as de:
-            self.logger.error(f"Failed to write debug prompt: {de}")
-            
         return prompt
 
     def _parse_response(self, response: str, original_texts: list[str], target_lang_code: str) -> list[str] | None:

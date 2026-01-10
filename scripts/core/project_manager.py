@@ -41,25 +41,29 @@ class ProjectFile:
     file_type: str = 'source' # 'source' or 'translation'
 
 class ProjectManager:
-    def __init__(self, file_service=None, project_repository=None, db_path: str = PROJECTS_DB_PATH):
+    def __init__(self, file_service=None, project_repository=None, kanban_service=None, db_path: str = PROJECTS_DB_PATH):
         """
         Args:
             file_service: Injected FileService instance. 
             project_repository: Injected ProjectRepository instance.
+            kanban_service: Injected KanbanService instance.
         """
         self.db_path = db_path
         self.file_service = file_service
         self.repository = project_repository
+        self.kanban_service = kanban_service
 
-        # Fallback injection logic
-        if self.file_service:
-            self.kanban_service = self.file_service.kanban_service
-        else:
-            from scripts.core.services.kanban_service import KanbanService
-            self.kanban_service = KanbanService()
+        # Fallback for KanbanService (Legacy/Test support)
+        # Allows instantiation without arguments, but production code should ALWAYS inject.
+        if not self.kanban_service:
+            if self.file_service and hasattr(self.file_service, 'kanban_service'):
+                 self.kanban_service = self.file_service.kanban_service
+            else:
+                from scripts.core.services.kanban_service import KanbanService
+                self.kanban_service = KanbanService()
         
+        # Fallback for Repository (Legacy/Test support)
         if not self.repository:
-            # Fallback for tests/legacy
             from scripts.core.repositories.project_repository import ProjectRepository
             self.repository = ProjectRepository(db_path)
 
@@ -188,7 +192,7 @@ class ProjectManager:
 
     def get_non_active_projects(self) -> List[Dict[str, Any]]:
         """Fetches all projects that are not 'active' (e.g., archived, deleted)."""
-        conn = self._get_connection()
+        conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM projects WHERE status != 'active' ORDER BY created_at DESC")

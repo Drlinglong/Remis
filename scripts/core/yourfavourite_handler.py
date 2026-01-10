@@ -1,5 +1,6 @@
 # scripts/core/yourfavourite_handler.py
 import os
+import openai
 from openai import OpenAI
 import logging
 
@@ -52,6 +53,16 @@ class YourFavouriteHandler(BaseApiHandler):
                 max_tokens=4000
             )
             return response.choices[0].message.content.strip()
+        except openai.NotFoundError as e:
+            # 捕获 404 错误 (Model Not Found)
+            error_msg = str(e)
+            hint = f"Custom API Error (404 Not Found): {error_msg}. "
+            
+            # 这里通常都是自定义/本地服务，所以提示更直接
+            hint += f"请检查您的自定义后端配置。模型 '{model_name}' 可能不存在，或者 URL '{client.base_url}' 不正确。"
+            
+            self.logger.error(hint)
+            raise ValueError(hint) from e
         except Exception as e:
             self.logger.exception(f"Custom API call failed: {e}")
             raise

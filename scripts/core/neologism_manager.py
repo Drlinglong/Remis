@@ -188,11 +188,11 @@ class NeologismManager:
                     }
                     target_lang_name = lang_name_map.get(target_lang, target_lang)
                     
-                    # Miner now returns list of dicts: [{'original': '...', 'suggestion': '...', 'reasoning': '...'}]
+                    # Miner now returns list of NeologismTerm objects
                     extracted_items = miner.extract_terms(chunk, target_lang=target_lang_name, target_lang_code=target_lang, game_name=game_name)
                     
                     for item in extracted_items:
-                        term = item['original']
+                        term = item.original
                         if term not in all_terms:
                             all_terms.add(term)
                             term_sources[term] = file_path
@@ -219,16 +219,16 @@ class NeologismManager:
             # Still extract context snippets for evidence
             context_snippets = self._find_context_snippets(term, source_file)
             
-            # Get analysis from miner output
-            analysis = term_data.get(term, {})
+            # Get analysis from miner output (NeologismTerm object)
+            analysis = term_data.get(term)
             
             candidate = Candidate(
                 id=str(uuid.uuid4()),
                 project_id=project_id,
                 original=term,
                 context_snippets=context_snippets,
-                suggestion=analysis.get("suggestion", ""),
-                reasoning=analysis.get("reasoning", ""),
+                suggestion=analysis.suggestion if analysis else "",
+                reasoning=analysis.reasoning if analysis else "",
                 status="pending",
                 source_file=source_file
             )

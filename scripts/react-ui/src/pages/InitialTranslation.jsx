@@ -39,6 +39,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTutorial } from '../context/TutorialContext';
 import '../App.css';
 import layoutStyles from '../components/layout/Layout.module.css';
+import { FEATURES } from '../config/features';
 
 import TaskRunner from '../components/TaskRunner';
 import { usePersistentState } from '../hooks/usePersistentState';
@@ -596,14 +597,38 @@ const InitialTranslation = () => {
                         <Select
                           label={t('form_label_api_provider')}
                           leftSection={<IconRobot size={16} />}
-                          data={config.api_providers}
+                          data={config.api_providers.filter(p => p.value !== 'hunyuan' || FEATURES.ENABLE_HUNYUAN_PROVIDER)}
                           {...form.getInputProps('api_provider')}
                         />
+
+                        {/* Local LLM Warning */}
+                        {['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga'].includes(form.values.api_provider) && (
+                          <Alert variant="light" color="yellow" title={t('tutorial.local_llm_warning')} icon={<IconAlertCircle size={16} />} mt="xs">
+                          </Alert>
+                        )}
 
                         {availableModels.length > 0 && (
                           <Group align="flex-end" gap={5} style={{ width: '100%' }}>
                             <Select
-                              label={t('initial_translation_step_model')}
+                              label={
+                                <Group gap={5}>
+                                  {t('initial_translation_step_model')}
+                                  <Tooltip
+                                    label={t('tutorial.smart_model_warning_tooltip')}
+                                    multiline
+                                    w={300}
+                                    withArrow
+                                    position="top-start"
+                                  >
+                                    <Group gap={4} style={{ cursor: 'help' }}>
+                                      <IconAlertCircle size={14} color="orange" />
+                                      <Text size="xs" c="orange" td="underline" style={{ fontSize: '0.75rem' }}>
+                                        {t('tutorial.smart_model_warning_label')}
+                                      </Text>
+                                    </Group>
+                                  </Tooltip>
+                                </Group>
+                              }
                               data={availableModels}
                               {...form.getInputProps('model_name')}
                               style={{ flex: 1 }}

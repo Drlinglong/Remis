@@ -1,0 +1,243 @@
+{
+    "gemini": {
+        "api_key_env": "GEMINI_API_KEY",
+        "name": "Google Gemini",
+        "default_model": "gemini-3-flash-preview",
+        "available_models": [
+            "gemini-3-flash-preview",
+            "gemini-3-pro-preview"
+        ],
+        "base_url": "https://generativelanguage.googleapis.com",
+        "enable_thinking": false,
+        "thinking_budget": 0,
+        "description_key": "api_desc_gemini"
+    },
+    "gemini_cli": {
+        "cli_path": "gemini",
+        "default_model": "gemini-3-flash-preview",
+        "available_models": [
+            "gemini-3-flash-preview",
+            "gemini-3-pro-preview"
+        ],
+        "enable_thinking": true,
+        "thinking_budget": -1,
+        "chunk_size": 100,
+        "max_retries": 2,
+        "max_daily_calls": 1000,
+        "name": "Gemini CLI",
+        "description_key": "api_desc_gemini_cli"
+    },
+    "anthropic": {
+        "api_key_env": "ANTHROPIC_API_KEY",
+        "base_url": "https://api.anthropic.com/v1",
+        "name": "Anthropic Claude",
+        "default_model": "claude-4-5-sonnet",
+        "available_models": [
+            "claude-4-5-sonnet",
+            "claude-4-5-haiku",
+            "claude-3-5-sonnet-20241022",
+            "claude-3-5-haiku-20241022"
+        ],
+        "description_key": "api_desc_anthropic"
+    },
+    "openai": {
+        "api_key_env": "OPENAI_API_KEY",
+        "name": "OpenAI",
+        "base_url": "https://api.openai.com/v1",
+        "default_model": "gpt-5-mini",
+        "available_models": [
+            "gpt-5.2",
+            "gpt-5-mini",
+            "gpt-5-nano"
+        ],
+        "enable_thinking": false,
+        "reasoning_effort": "minimal",
+        "description_key": "api_desc_openai"
+    },
+    "qwen": {
+        "api_key_env": "DASHSCOPE_API_KEY",
+        "default_model": "qwen-plus",
+        "available_models": [
+            "qwen-plus",
+            "qwen-max",
+            "qwen-flash"
+        ],
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "region": "beijing",
+        "name": "Qwen (通义千问)",
+        "enable_thinking": false,
+        "description_key": "api_desc_qwen"
+    },
+    "grok": {
+        "api_key_env": "XAI_API_KEY",
+        "base_url": "https://api.x.ai/v1",
+        "name": "Grok (xAI)",
+        "default_model": "grok-4-1-fast-reasoning",
+        "available_models": [
+            "grok-4-1-fast-reasoning",
+            "grok-4-1-fast-non-reasoning"
+        ],
+        "description_key": "api_desc_grok"
+    },
+    "deepseek": {
+        "api_key_env": "DEEPSEEK_API_KEY",
+        "base_url": "https://api.deepseek.com",
+        "default_model": "deepseek-chat",
+        "available_models": [
+            "deepseek-chat",
+            "deepseek-reasoner",
+            "deepseek-v3.2",
+            "deepseek-v3.2-speciale",
+            "deepseek-r2",
+            "deepseek-r1"
+        ],
+        "name": "DeepSeek (深度求索)",
+        "enable_thinking": false,
+        "description_key": "api_desc_deepseek"
+    },
+    "ollama": {
+        "base_url_env": "OLLAMA_BASE_URL",
+        "base_url": "http://localhost:11434",
+        "default_model": "qwen3:4b",
+        "available_models": [
+            "llama3.2",
+            "llama3.1",
+            "qwen2.5",
+            "qwen3:4b",
+            "deepseek-v3",
+            "mistral",
+            "gemma2"
+        ],
+        "enable_thinking": false,
+        "chunk_size": 20,
+        "max_retries": 2,
+        "name": "Ollama (Local)",
+        "description_key": "api_desc_ollama"
+    },
+    "modelscope": {
+        "api_key_env": "MODELSCOPE_API_KEY",
+        "base_url": "https://api-inference.modelscope.cn/v1/",
+        "default_model": "deepseek-ai/DeepSeek-V3.2-Exp",
+        "name": "ModelScope (魔搭)",
+        "description_key": "api_desc_modelscope"
+    },
+    "siliconflow": {
+        "api_key_env": "SILICONFLOW_API_KEY",
+        "base_url": "https://api.siliconflow.cn/v1",
+        "default_model": "DeepSeek-R1",
+        "available_models": [
+            "DeepSeek-R1",
+            "DeepSeek-V3",
+            "Qwen2.5-72B-Instruct",
+            "Llama-3.3-70B-Instruct"
+        ],
+        "name": "SiliconFlow (硅基流动)",
+        "description_key": "api_desc_siliconflow"
+    },
+    "lm_studio": {
+        "base_url_env": "LM_STUDIO_BASE_URL",
+        "default_model": "local-model",
+        "base_url": "http://localhost:1234/v1",
+        "name": "LM Studio",
+        "description_key": "api_desc_lm_studio",
+        "chunk_size": 20,
+        "max_retries": 2
+    },
+    "vllm": {
+        "base_url_env": "VLLM_BASE_URL",
+        "default_model": "vllm-model",
+        "base_url": "http://localhost:8000/v1",
+        "name": "vLLM",
+        "description_key": "api_desc_vllm",
+        "chunk_size": 20,
+        "max_retries": 2
+    },
+    "koboldcpp": {
+        "base_url_env": "KOBOLD_BASE_URL",
+        "default_model": "kobold-model",
+        "base_url": "http://localhost:5001/v1",
+        "name": "KoboldCPP",
+        "description_key": "api_desc_koboldcpp",
+        "chunk_size": 20,
+        "max_retries": 2
+    },
+    "oobabooga": {
+        "base_url_env": "OOBA_BASE_URL",
+        "default_model": "ooba-model",
+        "base_url": "http://localhost:5000/v1",
+        "name": "Oobabooga (Text Gen WebUI)",
+        "description_key": "api_desc_oobabooga",
+        "chunk_size": 20,
+        "max_retries": 2
+    },
+    "kimi": {
+        "api_key_env": "KIMI_API_KEY",
+        "base_url": "https://api.moonshot.cn/v1",
+        "default_model": "moonshot-v1-8k",
+        "available_models": [
+            "moonshotai/kimi-p1-ultra",
+            "deepseek/deepseek-r1",
+            "deepseek/deepseek-v3",
+            "nvidia/llama-3.1-nemotron-70b-instruct",
+            "kimi-k2-turbo"
+        ],
+        "name": "Kimi (Moonshot AI)",
+        "description_key": "api_desc_kimi"
+    },
+    "minimax": {
+        "api_key_env": "MINIMAX_API_KEY",
+        "base_url": "https://api.minimaxi.com/v1",
+        "default_model": "MiniMax-M2.1",
+        "available_models": [
+            "MiniMax-M2.1",
+            "MiniMax-M2.1-lightning",
+            "MiniMax-M2",
+            "abab6.5-chat"
+        ],
+        "name": "Minimax (海螺)",
+        "description_key": "api_desc_minimax"
+    },
+    "zhipu": {
+        "api_key_env": "ZHIPU_API_KEY",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4/",
+        "default_model": "glm-4-plus",
+        "available_models": [
+            "glm-4.7",
+            "glm-4.6",
+            "glm-4.5",
+            "glm-4.5-air",
+            "glm-4.5-flash",
+            "glm-4-plus",
+            "glm-4-air",
+            "glm-4-flash"
+        ],
+        "name": "ChatGLM (Zhipu AI)",
+        "description_key": "api_desc_zhipu"
+    },
+    "nvidia": {
+        "api_key_env": "NVIDIA_API_KEY",
+        "name": "NVIDIA NIM",
+        "base_url": "https://integrate.api.nvidia.com/v1",
+        "default_model": "minimaxai/minimax-m2.1",
+        "available_models": [
+            "minimaxai/minimax-m2.1"
+        ],
+        "description_key": "api_desc_nvidia"
+    },
+    "hunyuan": {
+        "base_url_env": "HUNYUAN_BASE_URL",
+        "default_model": "hunyuan",
+        "base_url": "http://localhost:8000/v1",
+        "name": "Hunyuan-MT (Tencent)",
+        "description_key": "api_desc_hunyuan",
+        "chunk_size": 1,
+        "max_retries": 2
+    },
+    "your_favourite_api": {
+        "api_key_env": "YOUR_FAVOURITE_API_KEY",
+        "base_url": "YOUR_BASE_URL_HERE",
+        "default_model": "YOUR_MODEL_NAME_HERE",
+        "name": "Custom (OpenAI Compatible)",
+        "description_key": "api_desc_custom"
+    }
+}

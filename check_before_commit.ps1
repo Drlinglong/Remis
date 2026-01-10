@@ -18,8 +18,8 @@ if (-not $Silent) {
     Write-Host ""
 }
 
-# 记录开始时间
-$startTime = Get-Date
+# 记录开始时间 (Removed due to environment issues)
+# $startTime = Get-Date
 
 # 检查结果标志
 $allPassed = $true
@@ -147,8 +147,9 @@ Write-Host ""
 # ============================================
 # Final Result
 # ============================================
-$endTime = Get-Date
-$duration = ($endTime - $startTime).TotalSeconds
+# ============================================
+# ============================================
+$duration = 0
 
 if (-not $Silent) {
     Write-Host "===========================================" -ForegroundColor Cyan

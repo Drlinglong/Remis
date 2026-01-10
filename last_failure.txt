@@ -1,0 +1,658 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-8.4.2, pluggy-1.5.0 -- K:\MiniConda\python.exe
+cachedir: .pytest_cache
+rootdir: J:\V3_Mod_Localization_Factory
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.11.0, mock-3.15.1
+collecting ... collected 96 items
+run-last-failure: 22 known failures not in selected tests
+
+tests/core/test_project_manager.py::TestProjectManager::test_create_project_success PASSED [  1%]
+tests/core/test_project_manager.py::TestProjectManager::test_refresh_project_files_delegation PASSED [  2%]
+tests/core/test_project_manager.py::TestProjectManager::test_update_project_metadata PASSED [  3%]
+tests/core/test_schemas.py::test_robust_string_flattening PASSED         [  4%]
+tests/core/test_schemas.py::test_robust_string_invalid PASSED            [  5%]
+tests/integration/test_integration_glossary.py::test_integration PASSED  [  6%]
+tests/test_demo_repair_logic.py::TestDemoRepairLogic::test_eu5_glossary_repair PASSED [  7%]
+tests/test_demo_repair_logic.py::TestDemoRepairLogic::test_find_source_template_fallback PASSED [  8%]
+tests/test_demo_repair_logic.py::TestDemoRepairLogic::test_folder_rename_logic PASSED [  9%]
+tests/test_demo_repair_logic.py::TestDemoRepairLogic::test_hydrate_json_path_repair PASSED [ 10%]
+tests/test_demo_repair_logic.py::TestDemoRepairLogic::test_vic3_path_repair PASSED [ 11%]
+tests/test_disguise_debug.py::test_import_and_run_existence PASSED       [ 12%]
+tests/test_english_disguise.py::test_english_disguise_configuration PASSED [ 13%]
+tests/test_file_status_sync.py::test_update_file_status_with_kanban_sync PASSED [ 14%]
+tests/test_gemini_handler.py::TestGeminiHandler::test_initialization PASSED [ 15%]
+tests/test_gemini_handler.py::TestGeminiHandler::test_initialization_no_key PASSED [ 16%]
+tests/test_gemini_handler.py::TestGeminiHandler::test_call_api_correct_arguments PASSED [ 17%]
+tests/test_gemini_handler.py::TestGeminiHandler::test_generate_with_messages PASSED [ 18%]
+tests/test_glossary_crud.py::test_glossary_crud_lifecycle PASSED         [ 19%]
+tests/test_glossary_crud.py::test_create_glossary_file PASSED            [ 20%]
+tests/test_glossary_phonetics.py::TestGlossaryPhonetics::test_phonetic_match_chinese PASSED [ 21%]
+tests/test_glossary_phonetics.py::TestGlossaryPhonetics::test_phonetic_match_japanese PASSED [ 22%]
+tests/test_glossary_phonetics.py::TestGlossaryPhonetics::test_exact_match_priority PASSED [ 23%]
+tests/test_key_consistency.py::test_key_extraction_consistency PASSED    [ 25%]
+tests/test_key_consistency.py::test_loc_parser_regex PASSED              [ 26%]
+tests/test_mod_discovery.py::TestModDiscovery::test_customizable_localization PASSED [ 27%]
+tests/test_mod_discovery.py::TestModDiscovery::test_mixed_structure_priority PASSED [ 28%]
+tests/test_mod_discovery.py::TestModDiscovery::test_nested_replace_structure PASSED [ 29%]
+tests/test_mod_discovery.py::TestModDiscovery::test_no_files PASSED      [ 30%]
+tests/test_mod_discovery.py::TestModDiscovery::test_recursive_structure PASSED [ 31%]
+tests/test_mod_discovery.py::TestModDiscovery::test_standard_structure PASSED [ 32%]
+tests/test_parallel_gemini.py::test_parallel_calls PASSED                [ 33%]
+tests/test_patching_api.py::test_patch_file_success PASSED               [ 34%]
+tests/test_patching_api.py::test_patch_file_not_found PASSED             [ 35%]
+tests/test_patching_api.py::test_patch_file_invalid_line_number PASSED   [ 36%]
+tests/test_phonetics.py::test_phonetics_engine PASSED                    [ 37%]
+tests/test_routers_glossary.py::test_get_glossaries PASSED               [ 38%]
+tests/test_routers_glossary.py::test_search_glossary PASSED              [ 39%]
+tests/test_routers_projects.py::test_read_projects FAILED                [ 40%]
+tests/test_routers_projects.py::test_create_project_invalid_path PASSED  [ 41%]
+tests/test_token_masking.py::test_masking_newlines PASSED                [ 42%]
+tests/test_token_masking.py::test_masking_quotes PASSED                  [ 43%]
+tests/test_token_masking.py::test_restore_chinese PASSED                 [ 44%]
+tests/test_token_masking.py::test_restore_german PASSED                  [ 45%]
+tests/test_token_masking.py::test_restore_french PASSED                  [ 46%]
+tests/test_token_masking.py::test_restore_english_fallback PASSED        [ 47%]
+tests/test_token_masking.py::test_restore_newline_spacing PASSED         [ 48%]
+tests/test_token_masking.py::test_all_languages_defined PASSED           [ 50%]
+tests/test_validation_api.py::test_validation_api PASSED                 [ 51%]
+tests/test_web_server_startup.py::test_read_root PASSED                  [ 52%]
+tests/test_web_server_startup.py::test_docs_endpoint PASSED              [ 53%]
+tests/utils/test_glossary_validator.py::test_glossary_validator[alphabetic_exact_match_fail-en-pl-glossary0-original_texts0-translated_texts0-True] PASSED [ 54%]
+tests/utils/test_glossary_validator.py::test_glossary_validator[alphabetic_exact_match_pass-en-pl-glossary1-original_texts1-translated_texts1-False] PASSED [ 55%]
+tests/utils/test_glossary_validator.py::test_glossary_validator[alphabetic_substring_trap_pass-en-en-glossary2-original_texts2-translated_texts2-False] PASSED [ 56%]
+tests/utils/test_glossary_validator.py::test_glossary_validator[alphabetic_substring_trap_fail-en-pl-glossary3-original_texts3-translated_texts3-True] PASSED [ 57%]
+tests/utils/test_glossary_validator.py::test_glossary_validator[cjk_fuzzy_match_pass-zh-en-glossary4-original_texts4-translated_texts4-False] PASSED [ 58%]
+tests/utils/test_glossary_validator.py::test_glossary_validator[cjk_fuzzy_match_fail-zh-en-glossary5-original_texts5-translated_texts5-True] PASSED [ 59%]
+tests/utils/test_glossary_validator.py::test_glossary_validator[cjk_multiple_terms_pass-ja-en-glossary6-original_texts6-translated_texts6-False] PASSED [ 60%]
+tests/utils/test_post_process_validator.py::test_residual_punctuation_check_finds_chinese_issue PASSED [ 61%]
+tests/utils/test_post_process_validator.py::test_residual_punctuation_check_finds_japanese_issue PASSED [ 62%]
+tests/utils/test_post_process_validator.py::test_residual_punctuation_check_passes_clean_text PASSED [ 63%]
+tests/utils/test_post_process_validator.py::test_check_ignores_other_language_punctuation PASSED [ 64%]
+tests/utils/test_structured_parser.py::test_parse_valid_json PASSED      [ 65%]
+tests/utils/test_structured_parser.py::test_parse_with_missing_comma PASSED [ 66%]
+tests/utils/test_structured_parser.py::test_parse_with_trailing_comma_in_list PASSED [ 67%]
+tests/utils/test_structured_parser.py::test_parse_with_trailing_comma_in_object PASSED [ 68%]
+tests/utils/test_structured_parser.py::test_parse_with_single_quotes PASSED [ 69%]
+tests/utils/test_structured_parser.py::test_parse_unrecoverable_json PASSED [ 70%]
+tests/utils/test_structured_parser.py::test_parse_empty_string PASSED    [ 71%]
+tests/utils/test_structured_parser.py::test_pydantic_validation_error_wrong_key PASSED [ 72%]
+tests/utils/test_structured_parser.py::test_pydantic_validation_error_wrong_type PASSED [ 73%]
+tests/utils/test_structured_parser.py::test_with_different_pydantic_model PASSED [ 75%]
+tests/utils/test_structured_parser.py::test_validation_error_with_different_model PASSED [ 76%]
+tests/utils/test_structured_parser.py::test_json_with_nested_structures_and_newlines PASSED [ 77%]
+tests/utils/test_structured_parser.py::test_parse_nested_gemini_cli_format PASSED [ 78%]
+tests/utils/test_structured_parser.py::test_parse_composite_pollution_format PASSED [ 79%]
+tests/utils/test_text_clean.py::test_strip_outer_quotes[double_quotes-"abc"-abc] PASSED [ 80%]
+tests/utils/test_text_clean.py::test_strip_outer_quotes[single_quotes-'abc'-abc] PASSED [ 81%]
+tests/utils/test_text_clean.py::test_strip_outer_quotes[typographic_quotes-\u201eabc\u201d-abc] PASSED [ 82%]
+tests/utils/test_text_clean.py::test_strip_outer_quotes[guillemets-\xababc\xbb-abc] PASSED [ 83%]
+tests/utils/test_text_clean.py::test_strip_outer_quotes[internal_quotes_untouched-"'abc'"-'abc'] PASSED [ 84%]
+tests/utils/test_text_clean.py::test_strip_outer_quotes[no_quotes-abc-abc] PASSED [ 85%]
+tests/utils/test_text_clean.py::test_strip_outer_quotes[mismatched_quotes-"abc\u2019-"abc\u2019] PASSED [ 86%]
+tests/utils/test_text_clean.py::test_strip_outer_quotes[leading_whitespace-  "abc"  -abc] PASSED [ 87%]
+tests/utils/test_text_clean.py::test_strip_outer_quotes[empty_string--] PASSED [ 88%]
+tests/utils/test_text_clean.py::test_strip_outer_quotes[string_with_only_quotes-""-] PASSED [ 89%]
+tests/utils/test_text_clean.py::test_strip_outer_quotes[single_char-a-a] PASSED [ 90%]
+tests/utils/test_text_clean.py::test_strip_outer_quotes[unmatched_start-abc"-abc"] PASSED [ 91%]
+tests/utils/test_text_clean.py::test_strip_outer_quotes[unmatched_end-"abc-"abc] PASSED [ 92%]
+tests/utils/test_text_clean.py::test_strip_pl_diacritics[all_lowercase-za\u017c\xf3\u0142\u0107 g\u0119\u015bl\u0105 ja\u017a\u0144-zazolc gesla jazn] PASSED [ 93%]
+tests/utils/test_text_clean.py::test_strip_pl_diacritics[all_uppercase-ZA\u017b\xd3\u0141\u0106 G\u0118\u015aL\u0104 JA\u0179\u0143-ZAZOLC GESLA JAZN] PASSED [ 94%]
+tests/utils/test_text_clean.py::test_strip_pl_diacritics[mixed_case-Za\u017c\xf3\u0142\u0107 G\u0119\u015bl\u0105 Ja\u017a\u0144-Zazolc Gesla Jazn] PASSED [ 95%]
+tests/utils/test_text_clean.py::test_strip_pl_diacritics[no_diacritics-The quick brown fox-The quick brown fox] PASSED [ 96%]
+tests/utils/test_text_clean.py::test_strip_pl_diacritics[other_diacritics_untouched-cr\xe8me br\xfbl\xe9e, \xfcber-creme brulee, uber] PASSED [ 97%]
+tests/utils/test_text_clean.py::test_strip_pl_diacritics[empty_string--] PASSED [ 98%]
+tests/utils/test_text_clean.py::test_strip_pl_diacritics[mixed_with_numbers-\u0141\xf3d\u017a 1984-Lodz 1984] PASSED [100%]
+
+================================== FAILURES ===================================
+_____________________________ test_read_projects ______________________________
+  + Exception Group Traceback (most recent call last):
+  |   File "K:\MiniConda\Lib\site-packages\starlette\_utils.py", line 79, in collapse_excgroups
+  |     yield
+  |   File "K:\MiniConda\Lib\site-packages\starlette\middleware\base.py", line 183, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |                ~~~~~~~~~~~~~~~~~~~~~~~^^
+  |   File "K:\MiniConda\Lib\site-packages\anyio\_backends\_asyncio.py", line 781, in __aexit__
+  |     raise BaseExceptionGroup(
+  |         "unhandled errors in a TaskGroup", self._exceptions
+  |     ) from None
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "K:\MiniConda\Lib\site-packages\_pytest\runner.py", line 344, in from_call
+    |     result: TResult | None = func()
+    |                              ~~~~^^
+    |   File "K:\MiniConda\Lib\site-packages\_pytest\runner.py", line 246, in <lambda>
+    |     lambda: runtest_hook(item=item, **kwds), when=when, reraise=reraise
+    |             ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\pluggy\_hooks.py", line 513, in __call__
+    |     return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+    |            ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    |     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+    |            ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\pluggy\_callers.py", line 139, in _multicall
+    |     raise exception.with_traceback(exception.__traceback__)
+    |   File "K:\MiniConda\Lib\site-packages\pluggy\_callers.py", line 122, in _multicall
+    |     teardown.throw(exception)  # type: ignore[union-attr]
+    |     ~~~~~~~~~~~~~~^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\_pytest\logging.py", line 850, in pytest_runtest_call
+    |     yield
+    |   File "K:\MiniConda\Lib\site-packages\pluggy\_callers.py", line 122, in _multicall
+    |     teardown.throw(exception)  # type: ignore[union-attr]
+    |     ~~~~~~~~~~~~~~^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\_pytest\capture.py", line 900, in pytest_runtest_call
+    |     return (yield)
+    |             ^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\pluggy\_callers.py", line 122, in _multicall
+    |     teardown.throw(exception)  # type: ignore[union-attr]
+    |     ~~~~~~~~~~~~~~^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\_pytest\skipping.py", line 263, in pytest_runtest_call
+    |     return (yield)
+    |             ^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\pluggy\_callers.py", line 103, in _multicall
+    |     res = hook_impl.function(*args)
+    |   File "K:\MiniConda\Lib\site-packages\_pytest\runner.py", line 178, in pytest_runtest_call
+    |     item.runtest()
+    |     ~~~~~~~~~~~~^^
+    |   File "K:\MiniConda\Lib\site-packages\_pytest\python.py", line 1671, in runtest
+    |     self.ihook.pytest_pyfunc_call(pyfuncitem=self)
+    |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\pluggy\_hooks.py", line 513, in __call__
+    |     return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+    |            ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    |     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+    |            ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\pluggy\_callers.py", line 139, in _multicall
+    |     raise exception.with_traceback(exception.__traceback__)
+    |   File "K:\MiniConda\Lib\site-packages\pluggy\_callers.py", line 103, in _multicall
+    |     res = hook_impl.function(*args)
+    |   File "K:\MiniConda\Lib\site-packages\_pytest\python.py", line 157, in pytest_pyfunc_call
+    |     result = testfunction(**testargs)
+    |   File "J:\V3_Mod_Localization_Factory\tests\test_routers_projects.py", line 18, in test_read_projects
+    |     response = client.get("/api/projects")
+    |   File "K:\MiniConda\Lib\site-packages\starlette\testclient.py", line 479, in get
+    |     return super().get(
+    |            ~~~~~~~~~~~^
+    |         url,
+    |         ^^^^
+    |     ...<6 lines>...
+    |         extensions=extensions,
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+    |     )
+    |     ^
+    |   File "K:\MiniConda\Lib\site-packages\httpx\_client.py", line 1053, in get
+    |     return self.request(
+    |            ~~~~~~~~~~~~^
+    |         "GET",
+    |         ^^^^^^
+    |     ...<7 lines>...
+    |         extensions=extensions,
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+    |     )
+    |     ^
+    |   File "K:\MiniConda\Lib\site-packages\starlette\testclient.py", line 451, in request
+    |     return super().request(
+    |            ~~~~~~~~~~~~~~~^
+    |         method,
+    |         ^^^^^^^
+    |     ...<11 lines>...
+    |         extensions=extensions,
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+    |     )
+    |     ^
+    |   File "K:\MiniConda\Lib\site-packages\httpx\_client.py", line 825, in request
+    |     return self.send(request, auth=auth, follow_redirects=follow_redirects)
+    |            ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\httpx\_client.py", line 914, in send
+    |     response = self._send_handling_auth(
+    |         request,
+    |     ...<2 lines>...
+    |         history=[],
+    |     )
+    |   File "K:\MiniConda\Lib\site-packages\httpx\_client.py", line 942, in _send_handling_auth
+    |     response = self._send_handling_redirects(
+    |         request,
+    |         follow_redirects=follow_redirects,
+    |         history=history,
+    |     )
+    |   File "K:\MiniConda\Lib\site-packages\httpx\_client.py", line 979, in _send_handling_redirects
+    |     response = self._send_single_request(request)
+    |   File "K:\MiniConda\Lib\site-packages\httpx\_client.py", line 1014, in _send_single_request
+    |     response = transport.handle_request(request)
+    |   File "K:\MiniConda\Lib\site-packages\starlette\testclient.py", line 354, in handle_request
+    |     raise exc
+    |   File "K:\MiniConda\Lib\site-packages\starlette\testclient.py", line 351, in handle_request
+    |     portal.call(self.app, scope, receive, send)
+    |     ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\anyio\from_thread.py", line 321, in call
+    |     return cast(T_Retval, self.start_task_soon(func, *args).result())
+    |                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+    |   File "K:\MiniConda\Lib\concurrent\futures\_base.py", line 456, in result
+    |     return self.__get_result()
+    |            ~~~~~~~~~~~~~~~~~^^
+    |   File "K:\MiniConda\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    |     raise self._exception
+    |   File "K:\MiniConda\Lib\site-packages\anyio\from_thread.py", line 252, in _call_func
+    |     retval = await retval_or_awaitable
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\fastapi\applications.py", line 1134, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "K:\MiniConda\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "K:\MiniConda\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    |     raise exc
+    |   File "K:\MiniConda\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "K:\MiniConda\Lib\site-packages\starlette\middleware\cors.py", line 85, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "K:\MiniConda\Lib\site-packages\starlette\middleware\base.py", line 182, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ~~~~~~~~~~~~~~~~~~^^
+    |   File "K:\MiniConda\Lib\contextlib.py", line 162, in __exit__
+    |     self.gen.throw(value)
+    |     ~~~~~~~~~~~~~~^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\starlette\_utils.py", line 85, in collapse_excgroups
+    |     raise exc
+    |   File "K:\MiniConda\Lib\site-packages\starlette\middleware\base.py", line 184, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "J:\V3_Mod_Localization_Factory\scripts\web_server.py", line 152, in log_requests
+    |     raise e
+    |   File "J:\V3_Mod_Localization_Factory\scripts\web_server.py", line 135, in log_requests
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
+    |     raise app_exc
+    |   File "K:\MiniConda\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "K:\MiniConda\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "K:\MiniConda\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "K:\MiniConda\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "K:\MiniConda\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "K:\MiniConda\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "K:\MiniConda\Lib\site-packages\starlette\routing.py", line 736, in app
+    |     await route.handle(scope, receive, send)
+    |   File "K:\MiniConda\Lib\site-packages\starlette\routing.py", line 290, in handle
+    |     await self.app(scope, receive, send)
+    |   File "K:\MiniConda\Lib\site-packages\fastapi\routing.py", line 124, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "K:\MiniConda\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "K:\MiniConda\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "K:\MiniConda\Lib\site-packages\fastapi\routing.py", line 110, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\fastapi\routing.py", line 390, in app
+    |     raw_response = await run_endpoint_function(
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<3 lines>...
+    |     )
+    |     ^
+    |   File "K:\MiniConda\Lib\site-packages\fastapi\routing.py", line 291, in run_endpoint_function
+    |     return await run_in_threadpool(dependant.call, **values)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    |     return await anyio.to_thread.run_sync(func)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\anyio\to_thread.py", line 56, in run_sync
+    |     return await get_async_backend().run_sync_in_worker_thread(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |         func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     )
+    |     ^
+    |   File "K:\MiniConda\Lib\site-packages\anyio\_backends\_asyncio.py", line 2485, in run_sync_in_worker_thread
+    |     return await future
+    |            ^^^^^^^^^^^^
+    |   File "K:\MiniConda\Lib\site-packages\anyio\_backends\_asyncio.py", line 976, in run
+    |     result = context.run(func, *args)
+    |   File "J:\V3_Mod_Localization_Factory\scripts\routers\projects.py", line 16, in list_projects
+    |     return project_manager.get_projects(status)
+    |            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+    |   File "J:\V3_Mod_Localization_Factory\scripts\core\project_manager.py", line 189, in get_projects
+    |     projects = self.repository.list_projects(status)
+    |   File "J:\V3_Mod_Localization_Factory\scripts\core\repositories\project_repository.py", line 87, in list_projects
+    |     cursor.execute(query, tuple(params))
+    |     ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+    | sqlite3.OperationalError: no such table: projects
+    +------------------------------------
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "J:\V3_Mod_Localization_Factory\tests\test_routers_projects.py", line 18, in test_read_projects
+    response = client.get("/api/projects")
+  File "K:\MiniConda\Lib\site-packages\starlette\testclient.py", line 479, in get
+    return super().get(
+           ~~~~~~~~~~~^
+        url,
+        ^^^^
+    ...<6 lines>...
+        extensions=extensions,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "K:\MiniConda\Lib\site-packages\httpx\_client.py", line 1053, in get
+    return self.request(
+           ~~~~~~~~~~~~^
+        "GET",
+        ^^^^^^
+    ...<7 lines>...
+        extensions=extensions,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "K:\MiniConda\Lib\site-packages\starlette\testclient.py", line 451, in request
+    return super().request(
+           ~~~~~~~~~~~~~~~^
+        method,
+        ^^^^^^^
+    ...<11 lines>...
+        extensions=extensions,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "K:\MiniConda\Lib\site-packages\httpx\_client.py", line 825, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "K:\MiniConda\Lib\site-packages\httpx\_client.py", line 914, in send
+    response = self._send_handling_auth(
+        request,
+    ...<2 lines>...
+        history=[],
+    )
+  File "K:\MiniConda\Lib\site-packages\httpx\_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+        request,
+        follow_redirects=follow_redirects,
+        history=history,
+    )
+  File "K:\MiniConda\Lib\site-packages\httpx\_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+  File "K:\MiniConda\Lib\site-packages\httpx\_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+  File "K:\MiniConda\Lib\site-packages\starlette\testclient.py", line 354, in handle_request
+    raise exc
+  File "K:\MiniConda\Lib\site-packages\starlette\testclient.py", line 351, in handle_request
+    portal.call(self.app, scope, receive, send)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "K:\MiniConda\Lib\site-packages\anyio\from_thread.py", line 321, in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "K:\MiniConda\Lib\concurrent\futures\_base.py", line 456, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "K:\MiniConda\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "K:\MiniConda\Lib\site-packages\anyio\from_thread.py", line 252, in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "K:\MiniConda\Lib\site-packages\fastapi\applications.py", line 1134, in __call__
+    await super().__call__(scope, receive, send)
+  File "K:\MiniConda\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "K:\MiniConda\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "K:\MiniConda\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "K:\MiniConda\Lib\site-packages\starlette\middleware\cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "K:\MiniConda\Lib\site-packages\starlette\middleware\base.py", line 182, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ~~~~~~~~~~~~~~~~~~^^
+  File "K:\MiniConda\Lib\contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "K:\MiniConda\Lib\site-packages\starlette\_utils.py", line 85, in collapse_excgroups
+    raise exc
+  File "K:\MiniConda\Lib\site-packages\starlette\middleware\base.py", line 184, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "J:\V3_Mod_Localization_Factory\scripts\web_server.py", line 152, in log_requests
+    raise e
+  File "J:\V3_Mod_Localization_Factory\scripts\web_server.py", line 135, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "K:\MiniConda\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
+    raise app_exc
+  File "K:\MiniConda\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "K:\MiniConda\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "K:\MiniConda\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "K:\MiniConda\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "K:\MiniConda\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "K:\MiniConda\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "K:\MiniConda\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "K:\MiniConda\Lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "K:\MiniConda\Lib\site-packages\fastapi\routing.py", line 124, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "K:\MiniConda\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "K:\MiniConda\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "K:\MiniConda\Lib\site-packages\fastapi\routing.py", line 110, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "K:\MiniConda\Lib\site-packages\fastapi\routing.py", line 390, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "K:\MiniConda\Lib\site-packages\fastapi\routing.py", line 291, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "K:\MiniConda\Lib\site-packages\starlette\concurrency.py", line 38, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "K:\MiniConda\Lib\site-packages\anyio\to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "K:\MiniConda\Lib\site-packages\anyio\_backends\_asyncio.py", line 2485, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "K:\MiniConda\Lib\site-packages\anyio\_backends\_asyncio.py", line 976, in run
+    result = context.run(func, *args)
+  File "J:\V3_Mod_Localization_Factory\scripts\routers\projects.py", line 16, in list_projects
+    return project_manager.get_projects(status)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "J:\V3_Mod_Localization_Factory\scripts\core\project_manager.py", line 189, in get_projects
+    projects = self.repository.list_projects(status)
+  File "J:\V3_Mod_Localization_Factory\scripts\core\repositories\project_repository.py", line 87, in list_projects
+    cursor.execute(query, tuple(params))
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: projects
+
+During handling of the above exception, another exception occurred:
+tests\test_routers_projects.py:18: in test_read_projects
+    response = client.get("/api/projects")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+K:\MiniConda\Lib\site-packages\starlette\testclient.py:479: in get
+    return super().get(
+K:\MiniConda\Lib\site-packages\httpx\_client.py:1053: in get
+    return self.request(
+K:\MiniConda\Lib\site-packages\starlette\testclient.py:451: in request
+    return super().request(
+K:\MiniConda\Lib\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+K:\MiniConda\Lib\site-packages\httpx\_client.py:914: in send
+    response = self._send_handling_auth(
+K:\MiniConda\Lib\site-packages\httpx\_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+K:\MiniConda\Lib\site-packages\httpx\_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+K:\MiniConda\Lib\site-packages\httpx\_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+K:\MiniConda\Lib\site-packages\starlette\testclient.py:354: in handle_request
+    raise exc
+K:\MiniConda\Lib\site-packages\starlette\testclient.py:351: in handle_request
+    portal.call(self.app, scope, receive, send)
+K:\MiniConda\Lib\site-packages\anyio\from_thread.py:321: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+K:\MiniConda\Lib\concurrent\futures\_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+K:\MiniConda\Lib\concurrent\futures\_base.py:401: in __get_result
+    raise self._exception
+K:\MiniConda\Lib\site-packages\anyio\from_thread.py:252: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+K:\MiniConda\Lib\site-packages\fastapi\applications.py:1134: in __call__
+    await super().__call__(scope, receive, send)
+K:\MiniConda\Lib\site-packages\starlette\applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+K:\MiniConda\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+K:\MiniConda\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+K:\MiniConda\Lib\site-packages\starlette\middleware\cors.py:85: in __call__
+    await self.app(scope, receive, send)
+K:\MiniConda\Lib\site-packages\starlette\middleware\base.py:182: in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+K:\MiniConda\Lib\contextlib.py:162: in __exit__
+    self.gen.throw(value)
+K:\MiniConda\Lib\site-packages\starlette\_utils.py:85: in collapse_excgroups
+    raise exc
+K:\MiniConda\Lib\site-packages\starlette\middleware\base.py:184: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scripts\web_server.py:152: in log_requests
+    raise e
+scripts\web_server.py:135: in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+K:\MiniConda\Lib\site-packages\starlette\middleware\base.py:159: in call_next
+    raise app_exc
+K:\MiniConda\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+K:\MiniConda\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+K:\MiniConda\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+K:\MiniConda\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+K:\MiniConda\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+K:\MiniConda\Lib\site-packages\starlette\routing.py:716: in __call__
+    await self.middleware_stack(scope, receive, send)
+K:\MiniConda\Lib\site-packages\starlette\routing.py:736: in app
+    await route.handle(scope, receive, send)
+K:\MiniConda\Lib\site-packages\starlette\routing.py:290: in handle
+    await self.app(scope, receive, send)
+K:\MiniConda\Lib\site-packages\fastapi\routing.py:124: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+K:\MiniConda\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+K:\MiniConda\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+K:\MiniConda\Lib\site-packages\fastapi\routing.py:110: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+K:\MiniConda\Lib\site-packages\fastapi\routing.py:390: in app
+    raw_response = await run_endpoint_function(
+K:\MiniConda\Lib\site-packages\fastapi\routing.py:291: in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+K:\MiniConda\Lib\site-packages\starlette\concurrency.py:38: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+K:\MiniConda\Lib\site-packages\anyio\to_thread.py:56: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+K:\MiniConda\Lib\site-packages\anyio\_backends\_asyncio.py:2485: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+K:\MiniConda\Lib\site-packages\anyio\_backends\_asyncio.py:976: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+scripts\routers\projects.py:16: in list_projects
+    return project_manager.get_projects(status)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scripts\core\project_manager.py:189: in get_projects
+    projects = self.repository.list_projects(status)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scripts\core\repositories\project_repository.py:87: in list_projects
+    cursor.execute(query, tuple(params))
+E   sqlite3.OperationalError: no such table: projects
+---------------------------- Captured stderr setup ----------------------------
+INFO: Logging initialized. AppData: C:/Users/Drlin/AppData/Roaming/RemisModFactoryDev
+INFO: Resource Dir: J:/V3_Mod_Localization_Factory
+INFO: Starting Database Initialization...
+----------------------------- Captured log setup ------------------------------
+INFO     remis_init:db_initializer.py:19 Logging initialized. AppData: C:/Users/Drlin/AppData/Roaming/RemisModFactoryDev
+INFO     remis_init:db_initializer.py:20 Resource Dir: J:/V3_Mod_Localization_Factory
+INFO     remis_init:db_initializer.py:244 Starting Database Initialization...
+---------------------------- Captured stderr call -----------------------------
+ERROR: \u274c [ERR] GET /api/projects - Time: 0.99ms - Error: no such table: projects\nTraceback (most recent call last):\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\middleware\\base.py", line 151, in call_next\n    message = await recv_stream.receive()\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "K:\\MiniConda\\Lib\\site-packages\\anyio\\streams\\memory.py", line 126, in receive\n    raise EndOfStream from None\nanyio.EndOfStream\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File "J:\\V3_Mod_Localization_Factory\\scripts\\web_server.py", line 135, in log_requests\n    response = await call_next(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\middleware\\base.py", line 159, in call_next\n    raise app_exc\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\middleware\\base.py", line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\middleware\\exceptions.py", line 63, in __call__\n    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\_exception_handler.py", line 53, in wrapped_app\n    raise exc\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\_exception_handler.py", line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File "K:\\MiniConda\\Lib\\site-packages\\fastapi\\middleware\\asyncexitstack.py", line 18, in __call__\n    await self.app(scope, receive, send)\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\routing.py", line 716, in __call__\n    await self.middleware_stack(scope, receive, send)\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\routing.py", line 736, in app\n    await route.handle(scope, receive, send)\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\routing.py", line 290, in handle\n    await self.app(scope, receive, send)\n  File "K:\\MiniConda\\Lib\\site-packages\\fastapi\\routing.py", line 124, in app\n    await wrap_app_handling_exceptions(app, request)(scope, receive, send)\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\_exception_handler.py", line 53, in wrapped_app\n    raise exc\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\_exception_handler.py", line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File "K:\\MiniConda\\Lib\\site-packages\\fastapi\\routing.py", line 110, in app\n    response = await f(request)\n               ^^^^^^^^^^^^^^^^\n  File "K:\\MiniConda\\Lib\\site-packages\\fastapi\\routing.py", line 390, in app\n    raw_response = await run_endpoint_function(\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ...<3 lines>...\n    )\n    ^\n  File "K:\\MiniConda\\Lib\\site-packages\\fastapi\\routing.py", line 291, in run_endpoint_function\n    return await run_in_threadpool(dependant.call, **values)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\concurrency.py", line 38, in run_in_threadpool\n    return await anyio.to_thread.run_sync(func)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "K:\\MiniConda\\Lib\\site-packages\\anyio\\to_thread.py", line 56, in run_sync\n    return await get_async_backend().run_sync_in_worker_thread(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File "K:\\MiniConda\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py", line 2485, in run_sync_in_worker_thread\n    return await future\n           ^^^^^^^^^^^^\n  File "K:\\MiniConda\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py", line 976, in run\n    result = context.run(func, *args)\n  File "J:\\V3_Mod_Localization_Factory\\scripts\\routers\\projects.py", line 16, in list_projects\n    return project_manager.get_projects(status)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^\n  File "J:\\V3_Mod_Localization_Factory\\scripts\\core\\project_manager.py", line 189, in get_projects\n    projects = self.repository.list_projects(status)\n  File "J:\\V3_Mod_Localization_Factory\\scripts\\core\\repositories\\project_repository.py", line 87, in list_projects\n    cursor.execute(query, tuple(params))\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\nsqlite3.OperationalError: no such table: projects
+------------------------------ Captured log call ------------------------------
+ERROR    scripts.web_server:web_server.py:147 \u274c [ERR] GET /api/projects - Time: 0.99ms - Error: no such table: projects\nTraceback (most recent call last):\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\middleware\\base.py", line 151, in call_next\n    message = await recv_stream.receive()\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "K:\\MiniConda\\Lib\\site-packages\\anyio\\streams\\memory.py", line 126, in receive\n    raise EndOfStream from None\nanyio.EndOfStream\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File "J:\\V3_Mod_Localization_Factory\\scripts\\web_server.py", line 135, in log_requests\n    response = await call_next(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\middleware\\base.py", line 159, in call_next\n    raise app_exc\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\middleware\\base.py", line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\middleware\\exceptions.py", line 63, in __call__\n    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\_exception_handler.py", line 53, in wrapped_app\n    raise exc\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\_exception_handler.py", line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File "K:\\MiniConda\\Lib\\site-packages\\fastapi\\middleware\\asyncexitstack.py", line 18, in __call__\n    await self.app(scope, receive, send)\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\routing.py", line 716, in __call__\n    await self.middleware_stack(scope, receive, send)\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\routing.py", line 736, in app\n    await route.handle(scope, receive, send)\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\routing.py", line 290, in handle\n    await self.app(scope, receive, send)\n  File "K:\\MiniConda\\Lib\\site-packages\\fastapi\\routing.py", line 124, in app\n    await wrap_app_handling_exceptions(app, request)(scope, receive, send)\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\_exception_handler.py", line 53, in wrapped_app\n    raise exc\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\_exception_handler.py", line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File "K:\\MiniConda\\Lib\\site-packages\\fastapi\\routing.py", line 110, in app\n    response = await f(request)\n               ^^^^^^^^^^^^^^^^\n  File "K:\\MiniConda\\Lib\\site-packages\\fastapi\\routing.py", line 390, in app\n    raw_response = await run_endpoint_function(\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ...<3 lines>...\n    )\n    ^\n  File "K:\\MiniConda\\Lib\\site-packages\\fastapi\\routing.py", line 291, in run_endpoint_function\n    return await run_in_threadpool(dependant.call, **values)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "K:\\MiniConda\\Lib\\site-packages\\starlette\\concurrency.py", line 38, in run_in_threadpool\n    return await anyio.to_thread.run_sync(func)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "K:\\MiniConda\\Lib\\site-packages\\anyio\\to_thread.py", line 56, in run_sync\n    return await get_async_backend().run_sync_in_worker_thread(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File "K:\\MiniConda\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py", line 2485, in run_sync_in_worker_thread\n    return await future\n           ^^^^^^^^^^^^\n  File "K:\\MiniConda\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py", line 976, in run\n    result = context.run(func, *args)\n  File "J:\\V3_Mod_Localization_Factory\\scripts\\routers\\projects.py", line 16, in list_projects\n    return project_manager.get_projects(status)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^\n  File "J:\\V3_Mod_Localization_Factory\\scripts\\core\\project_manager.py", line 189, in get_projects\n    projects = self.repository.list_projects(status)\n  File "J:\\V3_Mod_Localization_Factory\\scripts\\core\\repositories\\project_repository.py", line 87, in list_projects\n    cursor.execute(query, tuple(params))\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\nsqlite3.OperationalError: no such table: projects
+============================== warnings summary ===============================
+tests/test_english_disguise.py::test_english_disguise_configuration
+  J:\V3_Mod_Localization_Factory\tests\test_english_disguise.py:135: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    custom_lang_config=custom_config.dict()
+
+tests/test_glossary_crud.py::test_glossary_crud_lifecycle
+  J:\V3_Mod_Localization_Factory\scripts\routers\glossary.py:105: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    new_entry_dict = payload.dict()
+
+tests/test_glossary_crud.py::test_glossary_crud_lifecycle
+  J:\V3_Mod_Localization_Factory\scripts\routers\glossary.py:117: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    entry_dict = payload.dict()
+
+tests/test_glossary_phonetics.py::TestGlossaryPhonetics::test_phonetic_match_japanese
+tests/test_phonetics.py::test_phonetics_engine
+  J:\V3_Mod_Localization_Factory\scripts\utils\phonetics_engine.py:47: DeprecationWarning: Call to deprecated method setMode. (Old API will be removed in v3.0.) -- Deprecated since version 2.1.
+    k.setMode("H", "a") # Hiragana to Romaji
+
+tests/test_glossary_phonetics.py::TestGlossaryPhonetics::test_phonetic_match_japanese
+tests/test_phonetics.py::test_phonetics_engine
+  J:\V3_Mod_Localization_Factory\scripts\utils\phonetics_engine.py:48: DeprecationWarning: Call to deprecated method setMode. (Old API will be removed in v3.0.) -- Deprecated since version 2.1.
+    k.setMode("K", "a") # Katakana to Romaji
+
+tests/test_glossary_phonetics.py::TestGlossaryPhonetics::test_phonetic_match_japanese
+tests/test_phonetics.py::test_phonetics_engine
+  J:\V3_Mod_Localization_Factory\scripts\utils\phonetics_engine.py:49: DeprecationWarning: Call to deprecated method setMode. (Old API will be removed in v3.0.) -- Deprecated since version 2.1.
+    k.setMode("J", "a") # Kanji to Romaji
+
+tests/test_glossary_phonetics.py::TestGlossaryPhonetics::test_phonetic_match_japanese
+tests/test_phonetics.py::test_phonetics_engine
+  J:\V3_Mod_Localization_Factory\scripts\utils\phonetics_engine.py:50: DeprecationWarning: Call to deprecated method getConverter. (Old API will be removed in v3.0.) -- Deprecated since version 2.1.
+    self._kakasi_converter = k.getConverter()
+
+tests/test_glossary_phonetics.py::TestGlossaryPhonetics::test_phonetic_match_japanese
+tests/test_glossary_phonetics.py::TestGlossaryPhonetics::test_phonetic_match_japanese
+tests/test_phonetics.py::test_phonetics_engine
+tests/test_phonetics.py::test_phonetics_engine
+tests/test_phonetics.py::test_phonetics_engine
+tests/test_phonetics.py::test_phonetics_engine
+  J:\V3_Mod_Localization_Factory\scripts\utils\phonetics_engine.py:83: DeprecationWarning: Call to deprecated method do. (Old API will be removed in v3.0.) -- Deprecated since version 2.1.
+    result = converter.do(text)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_routers_projects.py::test_read_projects - sqlite3.Operation...
+================== 1 failed, 95 passed, 17 warnings in 5.16s ==================

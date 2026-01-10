@@ -1,0 +1,157 @@
+{
+    "1": {
+        "id": "victoria3",
+        "name": "Victoria 3 (维多利亚3)",
+        "supported_language_keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+            "11"
+        ],
+        "source_localization_folder": "localization",
+        "protected_items": [
+            ".metadata",
+            "localization",
+            "thumbnail.png"
+        ],
+        "metadata_file": ".metadata/metadata.json",
+        "encoding": "utf-8-sig",
+        "strip_pl_diacritics": false,
+        "prompt_preset": "VICTORIA3",
+        "official_tags_codex": "scripts/config/validators/vic3_official_tags.json"
+    },
+    "2": {
+        "id": "stellaris",
+        "name": "Stellaris (群星)",
+        "supported_language_keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10"
+        ],
+        "source_localization_folder": "localisation",
+        "protected_items": [
+            ".descriptor.mod",
+            "localisation",
+            "thumbnail.png"
+        ],
+        "metadata_file": "descriptor.mod",
+        "encoding": "utf-8-sig",
+        "strip_pl_diacritics": false,
+        "prompt_preset": "STELLARIS",
+        "official_tags_codex": "scripts/config/validators/stellaris_official_tags.json"
+    },
+    "3": {
+        "id": "eu4",
+        "name": "Europa Universalis IV (欧陆风云4)",
+        "supported_language_keys": [
+            "1",
+            "3",
+            "4",
+            "5"
+        ],
+        "source_localization_folder": "localisation",
+        "protected_items": [
+            ".descriptor.mod",
+            "localisation",
+            "thumbnail.png"
+        ],
+        "metadata_file": "descriptor.mod",
+        "encoding": "cp1252",
+        "strip_pl_diacritics": true,
+        "prompt_preset": "EU4",
+        "official_tags_codex": "scripts/config/validators/eu4_official_tags.json"
+    },
+    "4": {
+        "id": "hoi4",
+        "name": "Hearts of Iron IV (钢铁雄心4)",
+        "supported_language_keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "8",
+            "9",
+            "10"
+        ],
+        "source_localization_folder": "localisation",
+        "protected_items": [
+            "descriptor.mod",
+            "localisation",
+            "thumbnail.png"
+        ],
+        "metadata_file": "descriptor.mod",
+        "encoding": "utf-8-sig",
+        "strip_pl_diacritics": false,
+        "prompt_preset": "HOI4",
+        "official_tags_codex": "scripts/config/validators/hoi4_official_tags.json"
+    },
+    "5": {
+        "id": "ck3",
+        "name": "Crusader Kings III (十字军之王3)",
+        "supported_language_keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "8",
+            "10"
+        ],
+        "source_localization_folder": "localization",
+        "protected_items": [
+            "descriptor.mod",
+            "localisation",
+            "thumbnail.png"
+        ],
+        "metadata_file": "descriptor.mod",
+        "encoding": "utf-8-sig",
+        "strip_pl_diacritics": false,
+        "prompt_preset": "CK3",
+        "official_tags_codex": "scripts/config/validators/ck3_official_tags.json"
+    },
+    "6": {
+        "id": "eu5",
+        "name": "Europa Universalis V (欧陆风云5)",
+        "supported_language_keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+            "11"
+        ],
+        "source_localization_folder": "localization",
+        "protected_items": [
+            ".metadata",
+            "localization",
+            "thumbnail.png"
+        ],
+        "metadata_file": ".metadata/metadata.json",
+        "encoding": "utf-8-sig",
+        "strip_pl_diacritics": false,
+        "prompt_preset": "EU5",
+        "official_tags_codex": "scripts/config/validators/eu5_official_tags.json"
+    }
+}

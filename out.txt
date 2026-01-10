@@ -1,0 +1,42 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-8.4.2, pluggy-1.5.0 -- K:\MiniConda\python.exe
+cachedir: .pytest_cache
+rootdir: J:\V3_Mod_Localization_Factory
+configfile: pytest.ini
+plugins: anyio-4.11.0, mock-3.15.1
+collecting ... collected 3 items
+
+tests/test_api_routing.py::test_routes_local_providers_to_local_handler PASSED [ 33%]
+tests/test_api_routing.py::test_routes_remote_to_openai_handler PASSED   [ 66%]
+tests/test_api_routing.py::test_routes_unknown_to_gemini FAILED          [100%]
+
+================================== FAILURES ===================================
+________________________ test_routes_unknown_to_gemini ________________________
+tests\test_api_routing.py:32: in test_routes_unknown_to_gemini
+    handler = api_handler.get_handler("unknown_thing")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scripts\core\api_handler.py:60: in get_handler
+    return GeminiHandler("gemini", model_id=model_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scripts\core\base_handler.py:26: in __init__
+    self.client = self.initialize_client()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+scripts\core\gemini_handler.py:18: in initialize_client
+    raise ValueError("GEMINI_API_KEY not set")
+E   ValueError: GEMINI_API_KEY not set
+------------------------------ Captured log call ------------------------------
+WARNING  root:api_handler.py:59 Unknown provider 'unknown_thing', falling back to 'gemini'.
+ERROR    GeminiHandler:gemini_handler.py:17 API Key 'GEMINI_API_KEY' not found in environment variables.
+ERROR    root:api_handler.py:62 Failed to instantiate handler for unknown_thing: GEMINI_API_KEY not set
+Traceback (most recent call last):
+  File "J:\V3_Mod_Localization_Factory\scripts\core\api_handler.py", line 60, in get_handler
+    return GeminiHandler("gemini", model_id=model_name)
+  File "J:\V3_Mod_Localization_Factory\scripts\core\base_handler.py", line 26, in __init__
+    self.client = self.initialize_client()
+                  ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "J:\V3_Mod_Localization_Factory\scripts\core\gemini_handler.py", line 18, in initialize_client
+    raise ValueError("GEMINI_API_KEY not set")
+ValueError: GEMINI_API_KEY not set
+=========================== short test summary info ===========================
+FAILED tests/test_api_routing.py::test_routes_unknown_to_gemini - ValueError:...
+========================= 1 failed, 2 passed in 6.03s =========================

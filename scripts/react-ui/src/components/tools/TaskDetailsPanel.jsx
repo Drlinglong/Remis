@@ -88,7 +88,19 @@ export const TaskDetailsPanel = ({ task, onUpdate, onDelete }) => {
                         {task.filePath}
                     </Text>
                     {task.meta && (
-                        <Text size="xs" c="dimmed">{t('project_management.details.lines')}: {task.meta.lines}</Text>
+                        <>
+                            <Text size="xs" c="dimmed">{t('project_management.details.lines')}: {task.meta.lines}</Text>
+                            {task.meta.linked_files && task.meta.linked_files.length > 0 && (
+                                <Stack gap={2} mt={4}>
+                                    <Text size="xs" fw={500} c="dimmed">Linked Files:</Text>
+                                    {task.meta.linked_files.map((lf, i) => (
+                                        <Badge key={i} size="xs" variant="outline" color="gray">
+                                            {lf}
+                                        </Badge>
+                                    ))}
+                                </Stack>
+                            )}
+                        </>
                     )}
                 </Stack>
             )}

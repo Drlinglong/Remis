@@ -548,6 +548,9 @@
     "next": "Next",
     "prev": "Back",
     "done": "Got it!",
+    "local_llm_warning": "Local LLM Checklist: 1. Is the service running? 2. Is the Port correct? 3. Is the Model Name correct? (e.g., llama3:latest, qwen2.5:7b)",
+    "smart_model_warning_label": "Is your model smart enough?",
+    "smart_model_warning_tooltip": "Local models often lack the capability of cloud APIs. Weak models may cause poor translation quality, broken game syntax (colors/variables), or even task failures due to invalid JSON format. We strongly recommend using Gemini / OpenAI.",
     "home": {
       "welcome": {
         "title": "Welcome to Remis!",

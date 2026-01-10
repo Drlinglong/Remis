@@ -80,7 +80,7 @@ DEFAULT_RPM_LIMIT = 40
 # --- 项目信息 ----------------------------------------------------
 PROJECT_NAME = "Paradox Mod 本地化工厂 - Paradox Mod Localization Factory"
 PROJECT_DISPLAY_NAME = "蕾姆丝计划 - Project Remis "
-VERSION = "1.2.2"
+VERSION = "2.0.1"
 LAST_UPDATE_DATE = "2025-11-13"
 COPYRIGHT = "© 2025 Project Remis Team"
 
@@ -161,6 +161,7 @@ RESOURCE_DIR = get_resource_dir().replace("\\", "/")
 # In prod: RESOURCE_DIR/data (if we ship data folder) or just RESOURCE_DIR if flattened
 # For now, let's assume we ship a 'data' folder in resources
 DATA_DIR = os.path.join(RESOURCE_DIR, 'data') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'data')
+CONFIG_DIR = os.path.join(APP_DATA_DIR, 'config') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'data', 'config')
 
 SOURCE_DIR = os.path.join(APP_DATA_DIR, 'source_mod') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'source_mod')
 DEST_DIR = os.path.join(APP_DATA_DIR, 'my_translation') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'my_translation')
@@ -179,240 +180,9 @@ DATABASE_PATH = REMIS_DB_PATH
 # --- API Provider Configuration ---
 DEFAULT_API_PROVIDER = "gemini"
 
-API_PROVIDERS = {
-    "gemini": {
-        "api_key_env": "GEMINI_API_KEY",
-        "name": "Google Gemini",
-        "default_model": "gemini-3-flash-preview",
-        "available_models": [
-            "gemini-3-flash-preview", 
-            "gemini-3-pro-preview"
-        ],
-        "base_url": "https://generativelanguage.googleapis.com",
-        "enable_thinking": False,
-        "thinking_budget": 0,
-        "description_key": "api_desc_gemini"
-    },
-    "gemini_cli": {
-        "cli_path": "gemini",
-        "default_model": "gemini-3-flash-preview",
-        "available_models": [
-            "gemini-3-flash-preview", 
-            "gemini-3-pro-preview"
-        ],
-        "enable_thinking": True,
-        "thinking_budget": -1,
-        "chunk_size": GEMINI_CLI_CHUNK_SIZE,
-        "max_retries": GEMINI_CLI_MAX_RETRIES,
-        "max_daily_calls": 1000,
-        "name": "Gemini CLI",
-        "description_key": "api_desc_gemini_cli"
-    },
-    "anthropic": {
-        "api_key_env": "ANTHROPIC_API_KEY",
-        "base_url": "https://api.anthropic.com/v1",
-        "name": "Anthropic Claude",
-        "default_model": "claude-4-5-sonnet",
-        "available_models": [
-            "claude-4-5-sonnet",
-            "claude-4-5-haiku",
-            "claude-3-5-sonnet-20241022",
-            "claude-3-5-haiku-20241022"
-        ],
-        "description_key": "api_desc_anthropic"
-    },
-    "openai": {
-        "api_key_env": "OPENAI_API_KEY",
-        "name": "OpenAI",
-        "base_url": "https://api.openai.com/v1",
-        "default_model": "gpt-5-mini",
-        "available_models": [
-            "gpt-5.2",
-            "gpt-5-mini",
-            "gpt-5-nano"
-        ],
-        "enable_thinking": False,
-        "reasoning_effort": "minimal",
-        "description_key": "api_desc_openai"
-    },
-    "qwen": {
-        "api_key_env": "DASHSCOPE_API_KEY",
-        "default_model": "qwen-plus",
-        "available_models": [
-            "qwen-plus",
-            "qwen-max",
-            "qwen-flash"
-        ],
-        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        "region": "beijing",
-        "name": "Qwen (通义千问)",
-        "enable_thinking": False,
-        "description_key": "api_desc_qwen"
-    },
-    "grok": {
-        "api_key_env": "XAI_API_KEY",
-        "base_url": "https://api.x.ai/v1",
-        "name": "Grok (xAI)",
-        "default_model": "grok-4-1-fast-reasoning",
-        "available_models": [
-            "grok-4-1-fast-reasoning",
-            "grok-4-1-fast-non-reasoning"
-        ],
-        "description_key": "api_desc_grok"
-    },
-    "deepseek": {
-        "api_key_env": "DEEPSEEK_API_KEY",
-        "base_url": "https://api.deepseek.com",
-        "default_model": "deepseek-chat",
-        "available_models": [
-            "deepseek-chat",
-            "deepseek-reasoner",
-            "deepseek-v3.2",
-            "deepseek-v3.2-speciale",
-            "deepseek-r2",
-            "deepseek-r1"
-        ],
-        "name": "DeepSeek (深度求索)",
-        "enable_thinking": False,
-        "description_key": "api_desc_deepseek"
-    },
-    "ollama": {
-        "base_url_env": "OLLAMA_BASE_URL",
-        "base_url": "http://localhost:11434/v1",
-        "default_model": "qwen3:4b",
-        "available_models": [
-            "llama3.2",
-            "llama3.1",
-            "qwen2.5",
-            "qwen3:4b",
-            "deepseek-v3",
-            "mistral",
-            "gemma2"
-        ],
-        "enable_thinking": False,
-        "chunk_size": OLLAMA_CHUNK_SIZE,
-        "max_retries": OLLAMA_MAX_RETRIES,
-        "name": "Ollama (Local)",
-        "description_key": "api_desc_ollama"
-    },
-    "modelscope": {
-        "api_key_env": "MODELSCOPE_API_KEY",
-        "base_url": "https://api-inference.modelscope.cn/v1/",
-        "default_model": "deepseek-ai/DeepSeek-V3.2-Exp",
-        "name": "ModelScope (魔搭)",
-        "description_key": "api_desc_modelscope"
-    },
-    "siliconflow": {
-        "api_key_env": "SILICONFLOW_API_KEY",
-        "base_url": "https://api.siliconflow.cn/v1",
-        "default_model": "DeepSeek-R1",
-        "available_models": [
-            "DeepSeek-R1",
-            "DeepSeek-V3",
-            "Qwen2.5-72B-Instruct",
-            "Llama-3.3-70B-Instruct"
-        ],
-        "name": "SiliconFlow (硅基流动)",
-        "description_key": "api_desc_siliconflow"
-    },
-    "lm_studio": {
-        "base_url_env": "LM_STUDIO_BASE_URL",
-        "default_model": "local-model",
-        "base_url": "http://localhost:1234/v1",
-        "name": "LM Studio",
-        "description_key": "api_desc_lm_studio",
-        "chunk_size": OLLAMA_CHUNK_SIZE,
-        "max_retries": OLLAMA_MAX_RETRIES
-    },
-    "vllm": {
-        "base_url_env": "VLLM_BASE_URL",
-        "default_model": "vllm-model", 
-        "base_url": "http://localhost:8000/v1",
-        "name": "vLLM",
-        "description_key": "api_desc_vllm",
-        "chunk_size": OLLAMA_CHUNK_SIZE,
-        "max_retries": OLLAMA_MAX_RETRIES
-    },
-    "koboldcpp": {
-        "base_url_env": "KOBOLD_BASE_URL",
-        "default_model": "kobold-model",
-        "base_url": "http://localhost:5001/v1", 
-        "name": "KoboldCPP", 
-        "description_key": "api_desc_koboldcpp",
-        "chunk_size": OLLAMA_CHUNK_SIZE,
-        "max_retries": OLLAMA_MAX_RETRIES
-    },
-    "oobabooga": {
-        "base_url_env": "OOBA_BASE_URL",
-        "default_model": "ooba-model",
-        "base_url": "http://localhost:5000/v1",
-        "name": "Oobabooga (Text Gen WebUI)",
-        "description_key": "api_desc_oobabooga",
-        "chunk_size": OLLAMA_CHUNK_SIZE,
-        "max_retries": OLLAMA_MAX_RETRIES
-    },
-    "kimi": {
-        "api_key_env": "KIMI_API_KEY",
-        "base_url": "https://api.moonshot.cn/v1",
-        "default_model": "moonshot-v1-8k",
-        "available_models": [
-            "moonshotai/kimi-p1-ultra",
-            "deepseek/deepseek-r1",
-            "deepseek/deepseek-v3",
-            "nvidia/llama-3.1-nemotron-70b-instruct",
-            "kimi-k2-turbo"
-        ],
-        "name": "Kimi (Moonshot AI)",
-        "description_key": "api_desc_kimi"
-    },
-    "minimax": {
-        "api_key_env": "MINIMAX_API_KEY",
-        "base_url": "https://api.minimaxi.com/v1",
-        "default_model": "MiniMax-M2.1",
-        "available_models": [
-            "MiniMax-M2.1",
-            "MiniMax-M2.1-lightning",
-            "MiniMax-M2",
-            "abab6.5-chat"
-        ],
-        "name": "Minimax (海螺)",
-        "description_key": "api_desc_minimax"
-    },
-    "zhipu": {
-        "api_key_env": "ZHIPU_API_KEY",
-        "base_url": "https://open.bigmodel.cn/api/paas/v4/",
-        "default_model": "glm-4-plus",
-        "available_models": [
-            "glm-4.7",
-            "glm-4.6",
-            "glm-4.5",
-            "glm-4.5-air",
-            "glm-4.5-flash",
-            "glm-4-plus",
-            "glm-4-air",
-            "glm-4-flash"
-        ],
-        "name": "ChatGLM (Zhipu AI)",
-        "description_key": "api_desc_zhipu"
-    },
-    "nvidia": {
-        "api_key_env": "NVIDIA_API_KEY",
-        "name": "NVIDIA NIM",
-        "base_url": "https://integrate.api.nvidia.com/v1",
-        "default_model": "minimaxai/minimax-m2.1",
-        "available_models": [
-            "minimaxai/minimax-m2.1"
-        ],
-        "description_key": "api_desc_nvidia"
-    },
-    "your_favourite_api": {
-        "api_key_env": "YOUR_FAVOURITE_API_KEY",
-        "base_url": "YOUR_BASE_URL_HERE",
-        "default_model": "YOUR_MODEL_NAME_HERE",
-        "name": "Custom (OpenAI Compatible)",
-        "description_key": "api_desc_custom"
-    },
-}
+# API_PROVIDERS definitions have been externalized to data/config/api_providers.json
+# They are loaded via ConfigManager below.
+
 
 # --- 语言数据库 --------------------------------------------------
 LANGUAGES = {
@@ -448,80 +218,19 @@ TARGET_LANGUAGE_PUNCTUATION = {
 }
 
 # --- 游戏档案数据库 ---------------------------------------------
-GAME_PROFILES = {
-    "1": {
-        "id": "victoria3", "name": "Victoria 3 (维多利亚3)",
-        "supported_language_keys": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"],
-        "source_localization_folder": "localization",
-        "protected_items": {".metadata", "localization", "thumbnail.png"},
-        "metadata_file": os.path.join(".metadata", "metadata.json"),
-        "encoding": "utf-8-sig", "strip_pl_diacritics": False,
-        "prompt_template": prompts.VICTORIA3_PROMPT_TEMPLATE,
-        "single_prompt_template": prompts.VICTORIA3_SINGLE_PROMPT_TEMPLATE,
-        "format_prompt": prompts.VICTORIA3_FORMAT_PROMPT,
-        "official_tags_codex": "scripts/config/validators/vic3_official_tags.json",
-    },
-    "2": {
-        "id": "stellaris", "name": "Stellaris (群星)",
-        "supported_language_keys": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
-        "source_localization_folder": "localisation",
-        "protected_items": {".descriptor.mod", "localisation", "thumbnail.png"},
-        "metadata_file": "descriptor.mod",
-        "encoding": "utf-8-sig", "strip_pl_diacritics": False,
-        "prompt_template": prompts.STELLARIS_PROMPT_TEMPLATE,
-        "single_prompt_template": prompts.STELLARIS_SINGLE_PROMPT_TEMPLATE,
-        "format_prompt": prompts.STELLARIS_FORMAT_PROMPT,
-        "official_tags_codex": "scripts/config/validators/stellaris_official_tags.json",
-    },
-    "3": {
-        "id": "eu4", "name": "Europa Universalis IV (欧陆风云4)",
-        "supported_language_keys": ["1", "3", "4", "5"],
-        "source_localization_folder": "localisation",
-        "protected_items": {".descriptor.mod", "localisation", "thumbnail.png"},
-        "metadata_file": "descriptor.mod",
-        "encoding": "cp1252", "strip_pl_diacritics": True,
-        "prompt_template": prompts.EU4_PROMPT_TEMPLATE,
-        "single_prompt_template": prompts.EU4_SINGLE_PROMPT_TEMPLATE,
-        "format_prompt": prompts.EU4_FORMAT_PROMPT,
-        "official_tags_codex": "scripts/config/validators/eu4_official_tags.json",
-    },
-    "4": {
-        "id": "hoi4", "name": "Hearts of Iron IV (钢铁雄心4)",
-        "supported_language_keys": ["1", "2", "3", "4", "5", "6" , "8", "9", "10"],
-        "source_localization_folder": "localisation",
-        "protected_items": {'descriptor.mod', 'localisation', 'thumbnail.png'},
-        "metadata_file": 'descriptor.mod',
-        "encoding": "utf-8-sig", "strip_pl_diacritics": False,
-        "prompt_template": prompts.HOI4_PROMPT_TEMPLATE,
-        "single_prompt_template": prompts.HOI4_SINGLE_PROMPT_TEMPLATE,
-        "format_prompt": prompts.HOI4_FORMAT_PROMPT,
-        "official_tags_codex": "scripts/config/validators/hoi4_official_tags.json",
-    },
-    "5": {
-        "id": "ck3", "name": "Crusader Kings III (十字军之王3)",
-        "supported_language_keys": ["1", "2", "3", "4", "5", "6" , "8",  "10"],
-        "source_localization_folder": "localization",
-        "protected_items": {'descriptor.mod', 'localisation', 'thumbnail.png'},
-        "metadata_file": 'descriptor.mod',
-        "encoding": "utf-8-sig", "strip_pl_diacritics": False,
-        "prompt_template": prompts.CK3_PROMPT_TEMPLATE,
-        "single_prompt_template": prompts.CK3_SINGLE_PROMPT_TEMPLATE,
-        "format_prompt": prompts.CK3_FORMAT_PROMPT,
-        "official_tags_codex": "scripts/config/validators/ck3_official_tags.json",
-    },
-    "6": {
-        "id": "eu5", "name": "Europa Universalis V (欧陆风云5)",
-        "supported_language_keys": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"],
-        "source_localization_folder": "localization", # Will be searched recursively
-        "protected_items": {".metadata", "localization", "thumbnail.png"},
-        "metadata_file": os.path.join(".metadata", "metadata.json"),
-        "encoding": "utf-8-sig", "strip_pl_diacritics": False,
-        "prompt_template": prompts.EU5_PROMPT_TEMPLATE,
-        "single_prompt_template": prompts.EU5_SINGLE_PROMPT_TEMPLATE,
-        "format_prompt": prompts.EU5_FORMAT_PROMPT,
-        "official_tags_codex": "scripts/config/validators/eu5_official_tags.json",
-    }
-}
+# --- Game ID Aliases (Normalization) -----------------------------
+# Moved before GAME_PROFILES if needed, or after.
+# But GAME_PROFILES is now loaded from ConfigManager.
+
+# Initialize ConfigManager
+# We use DATA_DIR which is defined above.
+# We need to import ConfigManager here.
+# Note: config_manager.py imports prompts, so we don't need to pass them.
+
+from scripts.core.config_manager import ConfigManager
+config_manager = ConfigManager(CONFIG_DIR)
+GAME_PROFILES = config_manager.game_profiles
+API_PROVIDERS = config_manager.api_providers
 
 # --- Game ID Aliases (Normalization) -----------------------------
 GAME_ID_ALIASES = {

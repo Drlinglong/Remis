@@ -1,89 +1,138 @@
 import os
 import json
-import shutil
 import logging
-from scripts.app_settings import get_appdata_config_path
+from typing import Dict, Any, Set
+from scripts.config import prompts
 
 logger = logging.getLogger(__name__)
 
 class ConfigManager:
     """
-    Manages reading and writing to the AppData config.json file.
-    Includes automatic backup functionality.
+    Manages loading and providing access to externalized configurations.
     """
+    
+    def __init__(self, config_dir: str):
+        self.config_dir = config_dir
+        self._game_profiles = None
+        self._api_providers = None
 
-    @staticmethod
-    def get_config_path():
-        return get_appdata_config_path()
+    @property
+    def game_profiles(self) -> Dict[str, Any]:
+        """Lazy load game profiles."""
+        if self._game_profiles is None:
+            self.load_game_profiles()
+        return self._game_profiles
 
-    @staticmethod
-    def load_config() -> dict:
-        """Loads the AppData config.json."""
-        config_path = ConfigManager.get_config_path()
-        if not os.path.exists(config_path):
-            return {}
-        
+    def load_game_profiles(self) -> None:
+        """Loads game profiles from JSON and hydrates them with Python objects."""
+        path = os.path.join(self.config_dir, "game_profiles.json")
         try:
-            with open(config_path, 'r', encoding='utf-8') as f:
+            if not os.path.exists(path):
+                logger.warning(f"Game profiles config not found at {path}")
+                self._game_profiles = {}
+                return
+
+            with open(path, 'r', encoding='utf-8') as f:
+                raw_profiles = json.load(f)
+
+            hydrated_profiles = {}
+            for key, profile in raw_profiles.items():
+                hydrated = profile.copy()
+                
+                # Hydrate Sets
+                if "protected_items" in hydrated:
+                    hydrated["protected_items"] = set(hydrated["protected_items"])
+                
+                # Hydrate Prompts
+                preset = hydrated.get("prompt_preset")
+                if preset:
+                    hydrated["prompt_template"] = getattr(prompts, f"{preset}_PROMPT_TEMPLATE", prompts.VICTORIA3_PROMPT_TEMPLATE)
+                    hydrated["single_prompt_template"] = getattr(prompts, f"{preset}_SINGLE_PROMPT_TEMPLATE", prompts.VICTORIA3_SINGLE_PROMPT_TEMPLATE)
+                    hydrated["format_prompt"] = getattr(prompts, f"{preset}_FORMAT_PROMPT", prompts.VICTORIA3_FORMAT_PROMPT)
+                
+                # Handle Metadata File Path (if nested)
+                # JSON stores "dir/file.json", we need os.path.join logic?
+                # Actually, os.path.join works fine with forward slashes on Windows usually, 
+                # but if we want to be strict, we can normalize.
+                # The existing code used os.path.join(".metadata", "metadata.json") which produces different separators on OS.
+                # The JSON has ".metadata/metadata.json".
+                if "metadata_file" in hydrated:
+                    hydrated["metadata_file"] = os.path.normpath(hydrated["metadata_file"])
+
+                hydrated_profiles[key] = hydrated
+
+            self._game_profiles = hydrated_profiles
+            logger.info(f"Loaded {len(hydrated_profiles)} game profiles from {path}")
+
+        except Exception as e:
+            logger.error(f"Failed to load game profiles: {e}")
+            raise
+
+    @property
+    def api_providers(self) -> Dict[str, Any]:
+        """Lazy load api providers."""
+        if self._api_providers is None:
+            self.load_api_providers()
+        return self._api_providers
+
+    def load_api_providers(self) -> None:
+        """Loads API providers from JSON."""
+        path = os.path.join(self.config_dir, "api_providers.json")
+        try:
+            if not os.path.exists(path):
+                logger.warning(f"API providers config not found at {path}")
+                self._api_providers = {}
+                return
+
+            with open(path, 'r', encoding='utf-8') as f:
+                self._api_providers = json.load(f)
+            logger.info(f"Loaded {len(self._api_providers)} API providers from {path}")
+
+        except Exception as e:
+            logger.error(f"Failed to load API providers: {e}")
+    @property
+    def user_config_path(self) -> str:
+        return os.path.join(self.config_dir, "config.json")
+
+    def _load_user_config(self) -> Dict[str, Any]:
+        """Loads the generic user configuration."""
+        try:
+            if not os.path.exists(self.user_config_path):
+                return {}
+            with open(self.user_config_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
-            logger.error(f"Failed to load config from {config_path}: {e}")
+            logger.error(f"Failed to load user config: {e}")
             return {}
 
-    @staticmethod
-    def save_config(new_config: dict) -> bool:
-        """
-        Saves the config to AppData config.json with automatic backup.
-        Returns True if successful, raises Exception otherwise.
-        """
-        config_path = ConfigManager.get_config_path()
-        
-        # 1. Backup existing config if it exists
-        if os.path.exists(config_path):
-            try:
-                backup_path = config_path + ".bak"
-                shutil.copy2(config_path, backup_path)
-                logger.info(f"Backed up config to {backup_path}")
-            except Exception as e:
-                logger.warning(f"Failed to backup config: {e}. Proceeding with save.")
-        
-        # 2. Save new config
+    def _save_user_config(self, config: Dict[str, Any]) -> None:
+        """Saves the generic user configuration."""
         try:
-            os.makedirs(os.path.dirname(config_path), exist_ok=True)
-            with open(config_path, 'w', encoding='utf-8') as f:
-                json.dump(new_config, f, indent=4, ensure_ascii=False)
-            logger.info(f"Config saved successfully to {config_path}")
-            return True
+            with open(self.user_config_path, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=4, ensure_ascii=False)
         except Exception as e:
-            logger.error(f"Failed to save config: {e}")
-            raise e
+            logger.error(f"Failed to save user config: {e}")
 
-    @staticmethod
-    def get_value(key: str, default=None):
-        """Retrieves a specific key from the config."""
-        config = ConfigManager.load_config()
+    def get_value(self, key: str, default: Any = None) -> Any:
+        """Retrieves a value from the user configuration."""
+        config = self._load_user_config()
         return config.get(key, default)
 
-    @staticmethod
-    def set_value(key: str, value):
-        """Sets a specific key in the config and saves it."""
-        config = ConfigManager.load_config()
+    def set_value(self, key: str, value: Any) -> None:
+        """Sets a value in the user configuration and persists it."""
+        config = self._load_user_config()
         config[key] = value
-        ConfigManager.save_config(config)
+        self._save_user_config(config)
 
-    @staticmethod
-    def update_nested_value(parent_key: str, child_key: str, value):
-        """Updates a value inside a nested dictionary (e.g., api_providers -> openai)."""
-        config = ConfigManager.load_config()
-        if parent_key not in config:
-            config[parent_key] = {}
-        
-        if not isinstance(config[parent_key], dict):
-             # If it exists but isn't a dict, we have a problem, but let's overwrite for now or log warning
-             logger.warning(f"Config key {parent_key} is not a dict, overwriting.")
-             config[parent_key] = {}
+# Singleton instance
+# Assuming DATA_DIR/config is the location
+# We need to import paths from app_settings, but app_settings imports US?
+# Circular dependency risk if we put the singleton instantiation here AND import it in app_settings.
+# Ideally, app_settings defines paths, and we import paths here.
+# But app_settings wants to use ConfigManager to EXPOSE game_profiles.
 
-        config[parent_key][child_key] = value
-        ConfigManager.save_config(config)
-
-config_manager = ConfigManager()
+# Solution:
+# 1. ConfigManager doesn't import app_settings. It takes paths in __init__.
+# 2. app_settings imports ConfigManager class.
+# 3. app_settings instantiates ConfigManager(DATA_DIR/config).
+# 4. app_settings.GAME_PROFILES = config_manager.game_profiles

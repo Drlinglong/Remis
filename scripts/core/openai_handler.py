@@ -1,5 +1,6 @@
 # scripts/core/openai_handler.py
 import os
+import openai
 from openai import OpenAI
 import logging
 
@@ -10,14 +11,25 @@ class OpenAIHandler(BaseApiHandler):
     """OpenAI API Handler子类"""
 
     def initialize_client(self):
-        """【必须由子类实现】初始化并返回OpenAI的API客户端。"""
+        """
+        初始化并返回OpenAI的API客户端。
+        """
+        # 1. 尝试从配置或环境变量获取 API Key (OpenAI 必须要有 Key)
         api_key = os.getenv("OPENAI_API_KEY")
+        provider_config = self.get_provider_config()
         if not api_key:
-            self.logger.error("API Key 'OPENAI_API_KEY' not found in environment variables.")
+             api_key = provider_config.get("api_key")
+        
+        if not api_key:
+            self.logger.error("API Key 'OPENAI_API_KEY' not found in environment variables or config.")
             raise ValueError("OPENAI_API_KEY not set")
+
+        # 2. Get Base URL (Optional)
+        base_url = provider_config.get("base_url")
+
         try:
-            client = OpenAI(api_key=api_key)
-            model_name = API_PROVIDERS["openai"]["default_model"]
+            client = OpenAI(api_key=api_key, base_url=base_url)
+            model_name = provider_config.get("default_model", "gpt-3.5-turbo")
             self.logger.info(f"OpenAI client initialized successfully, using model: {model_name}")
             return client
         except Exception as e:
@@ -47,6 +59,20 @@ class OpenAIHandler(BaseApiHandler):
                 **extra_params
             )
             return response.choices[0].message.content.strip()
+        except openai.NotFoundError as e:
+            # 捕获 404 错误 (Model Not Found) - 特别针对本地 LLM 用户
+            error_msg = str(e)
+            hint = f"OpenAI API Error (404 Not Found): {error_msg}. "
+            
+            # 尝试判断是否是本地环境
+            base_url = str(client.base_url)
+            if "localhost" in base_url or "127.0.0.1" in base_url:
+                 hint += f"由于您使用的是本地服务器 ({base_url})，请务必检查模型 '{model_name}' 是否已加载/安装。"
+            else:
+                 hint += f"请检查模型 '{model_name}' 是否存在且您有权访问。"
+            
+            self.logger.error(hint)
+            raise ValueError(hint) from e
         except Exception as e:
             self.logger.exception(f"OpenAI API call failed: {e}")
             # 重新引发异常，让基类的重试逻辑捕获

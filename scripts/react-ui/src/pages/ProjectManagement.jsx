@@ -175,16 +175,24 @@ export default function ProjectManagement() {
 
   const handleCreateProject = async () => {
     try {
-      await api.post(`/api/project/create`, {
+      const res = await api.post(`/api/project/create`, {
         name: newProjectName,
         folder_path: newProjectPath,
         game_id: newProjectGame,
         source_language: newProjectSourceLang
       });
       setIsCreateModalOpen(false);
-      fetchProjects();
+      await fetchProjects();
       setNewProjectName('');
       setNewProjectPath('');
+
+      // Auto-select the new project to redirect to dashboard
+      if (res.data && res.data.project && res.data.project.project_id) {
+        setSelectedProjectId(res.data.project.project_id);
+      } else if (res.data && res.data.project_id) {
+        // Fallback for flat structure
+        setSelectedProjectId(res.data.project_id);
+      }
     } catch (error) {
       alert(`Failed to create project: ${error.response?.data?.detail || error.message}`);
     }

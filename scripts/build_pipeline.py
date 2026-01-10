@@ -83,6 +83,13 @@ def main():
     else:
         print(f"[WARNING] Language files not found at {lang_dir}")
     
+    # [NEW] Add Config Files (API Providers, Game Profiles)
+    config_dir = os.path.join(project_root, "data", "config")
+    if os.path.exists(config_dir):
+         add_data_args += f' --add-data "{config_dir};data/config"'
+    else:
+         print(f"[WARNING] Config files not found at {config_dir}")
+    
     # [NEW] Add Skeleton DB
     skeleton_db = os.path.join(project_root, "assets", "skeleton.sqlite")
     if os.path.exists(skeleton_db):

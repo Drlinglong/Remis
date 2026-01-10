@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 from scripts.app_settings import API_PROVIDERS, get_api_key, get_appdata_config_path, GAME_PROFILES, LANGUAGES
 from scripts.schemas.config import UpdateApiKeyRequest, UpdateProviderConfigRequest
-from scripts.core.config_manager import config_manager
+from scripts.app_settings import config_manager
 
 router = APIRouter()
 

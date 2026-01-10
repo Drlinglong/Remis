@@ -92,7 +92,7 @@ except Exception as e:
 app = FastAPI(
     title="P社Mod本地化工厂 API",
     description="为P社Mod本地化工厂提供Web UI的后端API。",
-    version="1.0.0",
+    version="2.0.1",
 )
 
 @app.get("/")

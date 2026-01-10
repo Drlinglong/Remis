@@ -124,6 +124,19 @@ After translation, you need to enable the localization mod in-game:
 
 For more help, see [Frequently Asked Questions (FAQ)](docs/en/user-guides/faq.md).
 
+> [!IMPORTANT]
+> **🛑 About "Fake Localization" & Translation Failure**
+> 
+> If the translation doesn't work after loading the mod, the most common reason is "Fake Localization Files" in the original mod.
+> 
+> **What is Fake Localization?**
+> Many mod authors duplicate their English localization files into folders like `simp_chinese` or `french` to prevent missing key errors for players in other languages. As a result, the game prioritizes these "fake" files from the original mod over your translation mod.
+> 
+> **How to Fix?**
+> 1. Open the original mod directory: `SteamLibrary\steamapps\workshop\content\[GameID]\[ModID]\localization`
+> 2. **Delete all folders except the original language (e.g., english)**.
+> 3. *Alternatively: Use this tool's "One-Click Deploy" in overwrite mode to automatically replace these files.*
+
 ---
 
 ## 📖 Glossary System
@@ -179,7 +192,7 @@ remis-mod-factory/
 │
 └── data/                          # [Data] Glossaries, config, cache
     ├── glossary/                  # Game glossaries
-    └── database.sqlite            # Local database
+    └── remis.sqlite               # Local database
 ```
 
 > Want to dive deeper? Check out the [Developer Documentation](docs/documentation-center.md).

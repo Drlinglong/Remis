@@ -336,9 +336,34 @@ def initialize_database():
             except Exception: pass
         return False
 
+    def safe_extract_configs(src_dir, dst_dir):
+        """Extracts individual config files if they don't exist in destination."""
+        if not os.path.exists(src_dir):
+            return
+        if not os.path.exists(dst_dir):
+            try:
+                os.makedirs(dst_dir)
+            except OSError: pass
+            
+        for filename in os.listdir(src_dir):
+            src_file = os.path.join(src_dir, filename)
+            dst_file = os.path.join(dst_dir, filename)
+            
+            if os.path.isfile(src_file) and not os.path.exists(dst_file):
+                try:
+                    shutil.copy2(src_file, dst_file)
+                    init_logger.info(f"[CONFIG] Extracted default config: {filename}")
+                except Exception as e:
+                    init_logger.error(f"[CONFIG] Failed to extract {filename}: {e}")
+
     # Force update demos to ensure new assets (English files) are present
     demo_ex = extract(b_demos, p_demos, "Demos", force=True) 
     trans_ex = extract(b_trans, p_trans, "Translations", force=False)
+    
+    # Extract Configs (Safe Mode - Do not overwrite)
+    p_config = app_settings.CONFIG_DIR
+    b_config = os.path.join(resource_dir, "data", "config")
+    safe_extract_configs(b_config, p_config)
 
     if demo_ex or trans_ex or db_needs_init:
         try:
