@@ -121,6 +121,10 @@ const MonacoWrapper = ({
                         horizontal: 'hidden', // Hide horizontal scrollbar since we wrap
                         useShadows: false,
                         verticalScrollbarSize: 10
+                    },
+                    unicodeHighlight: {
+                        ambiguousCharacters: false,
+                        invisibleCharacters: false,
                     }
                 }}
             />

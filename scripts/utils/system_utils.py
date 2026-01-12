@@ -2,6 +2,9 @@ import os
 import subprocess
 import time
 import sys
+import re
+import hashlib
+from typing import Optional
 
 def panic_log(message: str):
     """Fallback logging to a local file in AppData."""
@@ -85,6 +88,61 @@ def force_free_port(port: int):
         error_msg = f"[PORT] Error freeing port {port}: {str(e)}"
         print(f"\033[91m{error_msg}\033[0m", file=sys.stderr, flush=True)
         panic_log(error_msg)
+
+def slugify_to_ascii(text: str) -> str:
+    """
+    Converts a string (potentially with CJK characters) into a safe ASCII-only slug for folder names.
+    
+    Logic:
+    1. Transliteration: Uses PhoneticsEngine to convert CJK to Pinyin/Romaji.
+    2. Sanitization: Replaces non-ASCII with underscores, keeps only alphanumeric and underscores.
+    3. Normalization: Multiple underscores -> single, lowercase, strip.
+    4. Fallback: If empty or too short, appends a hash of the original name.
+    """
+    if not text:
+        return "unnamed_mod_" + hashlib.md5(str(time.time()).encode()).hexdigest()[:8]
+
+    original_text = text
+    
+    # 1. Phonetic Transliteration (Try to make it readable)
+    try:
+        from scripts.utils.phonetics_engine import PhoneticsEngine
+        engine = PhoneticsEngine()
+        # We don't know the exact lang, but PhoneticsEngine.generate_fingerprint handles it.
+        # We try 'zh' as it's most common for the user, then 'ja', 'ko'.
+        # Actually, let's just use it iteratively or for detectable blocks.
+        # For simplicity, let's just attempt to convert known CJK or use general logic.
+        
+        # pypinyin, pykakasi etc. are handled internally by PhoneticsEngine
+        text = engine.generate_fingerprint(text, 'zh') # First pass for Chinese
+        text = engine.generate_fingerprint(text, 'ja') # Second pass for Japanese (if any remains/different)
+    except Exception:
+        # Fallback to basic ASCII filtering if engine fails
+        pass
+
+    # 2. ASCII Sanitization
+    # Replace non-ASCII with underscores
+    text = re.sub(r'[^\x00-\x7F]+', '_', text)
+    # Replace non-alphanumeric (except underscores and hyphens) with underscores
+    text = re.sub(r'[^a-zA-Z0-9_-]', '_', text)
+    
+    # 3. Normalization
+    text = text.lower()
+    text = re.sub(r'_+', '_', text) # Merge multiple underscores
+    text = text.strip('_')
+    
+    # 4. Fallback for "Empty" or "Too Short" names
+    # If the user input was e.g. "!!!", the result might be empty.
+    # Also if the name is too short, path collision is more likely.
+    if len(text) < 3:
+        # Generate a stable hash based on original text
+        h = hashlib.md5(original_text.encode('utf-8')).hexdigest()[:8]
+        if not text:
+            return f"mod_{h}"
+        else:
+            return f"{text}_{h}"
+            
+    return text
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

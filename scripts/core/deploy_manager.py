@@ -8,6 +8,7 @@ from typing import Optional
 
 from scripts.app_settings import DEST_DIR
 from scripts.utils import i18n
+from scripts.utils.system_utils import slugify_to_ascii
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +109,7 @@ class ModDeployer:
 
             # Update path field in the descriptor
             # We want: path="mod/output_folder_name"
+            # Paradox expects forward slashes and ASCII-friendly names
             new_path_line = f'path="mod/{output_folder_name}"'
             if 'path=' in content:
                 content = re.sub(r'path\s*=\s*".*"', new_path_line, content)

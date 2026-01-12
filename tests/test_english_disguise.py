@@ -28,12 +28,13 @@ def setup_teardown():
     yield
     
     # Teardown: Cleanup source and dest
+    # We clean up everything that starts with IT- or it- to be safe
+    for folder in os.listdir(DEST_DIR):
+        if folder.lower().startswith("it-"):
+            shutil.rmtree(os.path.join(DEST_DIR, folder), ignore_errors=True)
+            
     if os.path.exists(source_path):
         shutil.rmtree(source_path)
-    
-    output_path = os.path.join(DEST_DIR, "IT-" + MOCK_PROJECT_NAME)
-    if os.path.exists(output_path):
-        shutil.rmtree(output_path)
 
 def test_english_disguise_configuration(setup_teardown):
     """
@@ -117,14 +118,18 @@ def test_english_disguise_configuration(setup_teardown):
 
                     # Mock file builder to verify output path logic without writing to disk
                     with patch("scripts.core.file_builder.rebuild_and_write_file") as mock_build:
-                        # Mock return value to avoid errors in subsequent steps (like proofreading tracker)
-                        expected_output_folder = os.path.join(DEST_DIR, "IT-" + MOCK_PROJECT_NAME)
+                        # [FIX] In the actual implementation, prefix is applied TO the slugified name.
+                        # output_folder_name = f"{prefix}{slugify_to_ascii(mod_name)}"
+                        # So for IT- and TestProject, it becomes IT-testproject_englishdisguise
+                        from scripts.utils.system_utils import slugify_to_ascii
+                        sanitized_name = slugify_to_ascii(MOCK_PROJECT_NAME)
+                        expected_output_folder = os.path.join(DEST_DIR, "IT-" + sanitized_name)
+                        
                         expected_file_path = os.path.join(expected_output_folder, "localization", "english", "test_l_english.yml")
                         mock_build.return_value = expected_file_path
                 
                         run(
                             mod_name=MOCK_PROJECT_NAME,
-                            # game_profile_id=MOCK_GAME_ID, # Removed as it's not in signature
                             source_lang=source_lang_obj,
                             target_languages=target_langs_obj,
                             game_profile=game_profile_obj,
@@ -135,27 +140,25 @@ def test_english_disguise_configuration(setup_teardown):
                             custom_lang_config=custom_config.dict()
                         )
             
-            # Assertions
-            
-            # Verify rebuild_and_write_file was called
-            assert mock_build.called, "file_builder.rebuild_and_write_file was not called."
-            
-            # Verify arguments
-            call_args = mock_build.call_args
-            # Signature: rebuild_and_write_file(original_lines, texts_to_translate, translated_texts, key_map, dest_dir, filename, source_lang, target_lang, game_profile)
-            # We are interested in dest_dir (arg 4, 0-indexed) or filename (arg 5)
-            
-            # Check dest_dir
-            actual_dest_dir = call_args[0][4]
-            expected_dest_dir = os.path.join(expected_output_folder, "localization", "english")
-            
-            # Normalize paths for comparison
-            assert os.path.normpath(actual_dest_dir) == os.path.normpath(expected_dest_dir), \
-                f"Expected dest_dir {expected_dest_dir}, got {actual_dest_dir}"
-                
-            # Check target_lang has correct key
-            actual_target_lang = call_args[0][7]
-            assert actual_target_lang["key"] == "l_english", "Target language key passed to builder should be 'l_english'"
+                        # Assertions
+                        
+                        # Verify rebuild_and_write_file was called
+                        assert mock_build.called, "file_builder.rebuild_and_write_file was not called."
+                        
+                        # Verify arguments
+                        call_args = mock_build.call_args
+                        
+                        # Check dest_dir
+                        actual_dest_dir = call_args[0][4]
+                        expected_dest_dir = os.path.join(expected_output_folder, "localization", "english")
+                        
+                        # Normalize paths for comparison
+                        assert os.path.normpath(actual_dest_dir) == os.path.normpath(expected_dest_dir), \
+                            f"Expected dest_dir {expected_dest_dir}, got {actual_dest_dir}"
+                            
+                        # Check target_lang has correct key
+                        actual_target_lang = call_args[0][7]
+                        assert actual_target_lang["key"] == "l_english", "Target language key passed to builder should be 'l_english'"
 
 if __name__ == "__main__":
     pytest.main([__file__])

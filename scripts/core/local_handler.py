@@ -114,9 +114,18 @@ class LocalLLMHandler(BaseApiHandler):
             response = client.chat.completions.create(
                 model=model_name,
                 messages=messages,
-                temperature=0.3
+                temperature=0.3,
+                # top_p=1.0, 
+                # presence_penalty=0.0,
+                # frequency_penalty=0.0
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
+             # Check for context length error message in the exception string or checking type if imported
+             error_str = str(e).lower()
+             if "context length" in error_str and "4096" in error_str:
+                 self.logger.error("Context Length Exceeded! The prompt is too long for the current model configuration.")
+                 self.logger.error("SUGGESTION: Increase context length in LM Studio/vLLM (e.g., to 8192) or reduce 'chunk_size' in config.")
+             
              self.logger.exception(f"Local OpenAI-Compatible API call failed: {e}")
              raise

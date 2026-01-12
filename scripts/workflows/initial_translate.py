@@ -13,6 +13,7 @@ from scripts.core.checkpoint_manager import CheckpointManager
 from scripts.shared.services import project_manager
 from scripts.app_settings import SOURCE_DIR, DEST_DIR, LANGUAGES, RECOMMENDED_MAX_WORKERS, ARCHIVE_RESULTS_AFTER_TRANSLATION, CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE, OLLAMA_CHUNK_SIZE
 from scripts.utils import i18n
+from scripts.utils.system_utils import slugify_to_ascii
 
 
 def run(mod_name: str,
@@ -29,19 +30,21 @@ def run(mod_name: str,
         custom_lang_config: Optional[dict] = None,
         progress_callback: Optional[Any] = None,
         override_path: Optional[str] = None,
-        use_resume: bool = True):
+        use_resume: bool = True,
+        clean_source: bool = False):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info("Entered initial_translate.run")
-
+    logging.info(f"--- Starting 'Initial Translation' workflow for: {mod_name} ---")
     # ───────────── 1. 路径与模式 ─────────────
     is_batch_mode = len(target_languages) > 1
     if is_batch_mode:
-        output_folder_name = f"Multilanguage-{mod_name}"
+        output_folder_name = f"Multilanguage-{slugify_to_ascii(mod_name)}"
         primary_target_lang = LANGUAGES["1"]  # English
     else:
         target_lang = target_languages[0]
         prefix = target_lang.get("folder_prefix", f"{target_lang['code']}-")
-        output_folder_name = f"{prefix}{mod_name}"
+        # Sanitize folder name but keep prefix readable
+        output_folder_name = f"{prefix}{slugify_to_ascii(mod_name)}"
         primary_target_lang = target_lang
 
     logging.info(i18n.t("start_workflow",
@@ -74,13 +77,45 @@ def run(mod_name: str,
     
     output_dir_path = os.path.join(DEST_DIR, output_folder_name)
     
-    # Config for checkpoint validation - MOVED INSIDE LOOP
-    # current_config = {
-    #     "model_name": gemini_cli_model or selected_provider, 
-    #     "source_lang": source_lang.get("code"),
-    #     "target_lang_code": target_lang.get("code") if not is_batch_mode else "multi"
-    # }
-    # checkpoint_manager = CheckpointManager(output_dir_path, current_config=current_config)
+    # ───────────── 3.5. [NEW] 清理源文件 (如果启用) ─────────────
+    if clean_source:
+        logging.info("Cleaning source directory to save disk space (keeping only localization and metadata)...")
+        mod_root_path = override_path if override_path else os.path.join(SOURCE_DIR, mod_name)
+        
+        # Whitelist: Only these top-level items will be preserved.
+        WHITELIST_FOLDERS = {'localisation', 'localization', 'customizable_localization'}
+        WHITELIST_FILES = {'descriptor.mod', 'thumbnail.png', 'thumbnail.jpg', 'metadata.json', 'remote_file_id.txt'}
+        
+        files_removed = 0
+        folders_removed = 0
+        bytes_freed = 0
+        
+        for item_name in os.listdir(mod_root_path):
+            item_path = os.path.join(mod_root_path, item_name)
+            item_lower = item_name.lower()
+            
+            if os.path.isdir(item_path):
+                if item_lower not in WHITELIST_FOLDERS:
+                    try:
+                        folder_size = sum(os.path.getsize(os.path.join(dp, f)) for dp, _, fns in os.walk(item_path) for f in fns)
+                        shutil.rmtree(item_path)
+                        folders_removed += 1
+                        bytes_freed += folder_size
+                        logging.debug(f"Deleted directory: {item_name}")
+                    except OSError as e:
+                        logging.warning(f"Failed to delete directory {item_name}: {e}")
+            else:
+                if item_lower not in WHITELIST_FILES:
+                    try:
+                        file_size = os.path.getsize(item_path)
+                        os.remove(item_path)
+                        files_removed += 1
+                        bytes_freed += file_size
+                        logging.debug(f"Deleted file: {item_name}")
+                    except OSError as e:
+                        logging.warning(f"Failed to delete file {item_name}: {e}")
+        
+        logging.info(f"Clean Source: Removed {folders_removed} folders and {files_removed} files, freed {bytes_freed/1024/1024:.2f} MB.")
 
     # ───────────── 4. 发现所有源文件 (Discovery Phase) ─────────────
     all_file_paths = discover_files(mod_name, game_profile, source_lang, override_path=override_path)
@@ -576,7 +611,10 @@ def discover_files(mod_name: str, game_profile: dict, source_lang: dict, overrid
 
     # 仅收集文件路径，不读取内容
     all_file_paths = []
-    suffix = f"_l_{source_lang['key'][2:]}.yml"
+    # Use regex for flexible matching (allow space or underscore before l_lang)
+    import re
+    lang_key = source_lang['key'][2:] # e.g. "english"
+    suffix_pattern = re.compile(r'[\s_]l_' + re.escape(lang_key) + r'\.yml$', re.IGNORECASE)
 
     # 策略：如果标准路径存在，仅使用标准路径（保持兼容性）
     # 如果标准路径不存在，则递归搜索所有名为 source_loc_folder 的目录 (EU5 模式)
@@ -595,7 +633,7 @@ def discover_files(mod_name: str, game_profile: dict, source_lang: dict, overrid
         logging.info(f"Discovered localization directory: {loc_path}")
         for root, _, files in os.walk(loc_path):
             for fn in files:
-                if fn.endswith(suffix):
+                if suffix_pattern.search(fn):
                     # loc_path 是当前模块的 localization 根目录
                     all_file_paths.append({
                         "path": os.path.join(root, fn), 
@@ -627,7 +665,7 @@ def discover_files(mod_name: str, game_profile: dict, source_lang: dict, overrid
                         found_others.append(fn)
         
         if found_others:
-            logging.warning(f"No files found for source language '{source_lang['name']}' (suffix: {suffix}).")
+            logging.warning(f"No files found for source language '{source_lang['name']}' matching pattern l_{lang_key}.yml.")
             logging.warning(f"However, found {len(found_others)} other .yml files, e.g., {found_others[:3]}")
             logging.warning("Please check if you selected the correct Source Language.")
 

@@ -7,8 +7,9 @@ from pathlib import Path
 
 from scripts.utils import read_text_bom, write_text_bom
 
-# Robust Paradox Regex: Allows spaces around colon. KEY : VERSION "VALUE"
-ENTRY_RE = re.compile(r'^\s*([A-Za-z0-9_\.\-]+)\s*:\s*([0-9]*)\s*"(.*)"', re.MULTILINE)
+# Relaxed Regex: Captures key (anything before colon), version (digits after colon), and value (in quotes)
+# This allows for keys like "FNG_zhernani.100.a" or even ones with strange symbols, as long as they don't have spaces/colons in the key itself.
+ENTRY_RE = re.compile(r'^\s*([^:\s]+)\s*:\s*([0-9]*)\s*"(.*)"', re.MULTILINE)
 
 def parse_loc_file(path: Path) -> list[tuple[str, str]]:
     """

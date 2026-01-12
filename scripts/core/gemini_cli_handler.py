@@ -62,8 +62,8 @@ class GeminiCLIHandler(BaseApiHandler):
 
     def _verify_cli_availability(self):
         try:
-            cmd = ["powershell", "-Command", f"Set-ExecutionPolicy RemoteSigned -Scope Process -Force; {self.cli_path} --version"]
-            kwargs = { "capture_output": True, "text": True, "timeout": 10 }
+            cmd = ["powershell", "-ExecutionPolicy", "Bypass", "-Command", f"{self.cli_path} --version"]
+            kwargs = { "capture_output": True, "text": True, "timeout": 30 }
             if os.name == 'nt':
                 kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
             result = subprocess.run(cmd, **kwargs)

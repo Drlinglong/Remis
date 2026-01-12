@@ -174,18 +174,19 @@ class ParadoxFileLinkingStrategy(FileLinkingStrategy):
         return task
 
     def _find_link(self, t_name, t_path, source_path, rel_path_to_task_id):
-        # Extract Language
-        lang_match = re.search(r"_l_(\w+)\.yml$", t_name, re.IGNORECASE)
+        # Extract Language - Allow space or underscore separator
+        lang_match = re.search(r"[\s_]l_(\w+)\.yml$", t_name, re.IGNORECASE)
         lang = lang_match.group(1).lower() if lang_match else "unknown"
         
-        # Extract Stem
-        t_stem = re.sub(r"_l_(\w+)\.yml$", "", t_name, flags=re.IGNORECASE)
+        # Extract Stem - remove the separator + l_lang + .yml
+        t_stem = re.sub(r"[\s_]l_(\w+)\.yml$", "", t_name, flags=re.IGNORECASE)
         
         # Find Parent
         parent_task_id = None
         for s_rel, tid in rel_path_to_task_id.items():
             s_name = os.path.basename(s_rel)
-            s_base = re.sub(r"_l_(\w+)\.yml$", "", s_name, flags=re.IGNORECASE)
+            # Apply same relaxed stem extraction to source files
+            s_base = re.sub(r"[\s_]l_(\w+)\.yml$", "", s_name, flags=re.IGNORECASE)
             if s_base.lower() == t_stem.lower():
                 parent_task_id = tid
                 break

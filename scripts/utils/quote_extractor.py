@@ -104,6 +104,7 @@ class QuoteExtractor:
                 escape_next = True
             elif char == '"':
                 # 找到结束引号
+                # 允许提取空值，即 ""
                 return content
             else:
                 # 普通字符
@@ -138,8 +139,19 @@ class QuoteExtractor:
             with open(file_path, "r", encoding="utf-8-sig") as f:
                 original_lines = f.readlines()
         except UnicodeDecodeError:
-            with open(file_path, "r", encoding="cp1252", errors="ignore") as f:
-                original_lines = f.readlines()
+            # First fallback: cp1252 (Western European)
+            try:
+                with open(file_path, "r", encoding="cp1252") as f:
+                    original_lines = f.readlines()
+            except UnicodeDecodeError:
+                # Second fallback: gb18030 (Chinese Legacy) - Critical for older CN mods
+                try:
+                    with open(file_path, "r", encoding="gb18030") as f:
+                        original_lines = f.readlines()
+                except UnicodeDecodeError:
+                    # Final fallback: ignore errors to prevent crash
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                        original_lines = f.readlines()
 
         texts_to_translate: List[str] = []
         key_map: Dict[int, Dict[str, Any]] = {}

@@ -300,6 +300,7 @@
   "form_label_use_resume": "Use Resume Data",
   "form_desc_use_resume": "Allows using the resume database to continue from where the last work was interrupted.",
   "warning_clean_source": "WARNING: This will delete all files in the translation source folder EXCEPT metadata and localization files. Use with caution.",
+  "tooltip_clean_source": "WARNING: This will DELETE all files in the uploaded mod folder except for localization files (.yml), Customizable Localization (.txt) and metadata (.mod, .json, .png) to save disk space. Use with caution!",
   "tab_import_folder": "Import Folder",
   "tab_existing_mod": "Select Existing Mod",
   "button_browse_folder": "Browse Folder",

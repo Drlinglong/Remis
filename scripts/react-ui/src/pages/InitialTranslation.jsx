@@ -192,6 +192,12 @@ const InitialTranslation = () => {
         models.unshift({ value: providerConfig.default_model, label: providerConfig.default_model });
       }
 
+      // Priority 0: Ensure the User's "Selected Model" from settings is ALWAYS in the list
+      // This allows manual entry in settings (e.g. "gptoss20b") to appear here without being in the "available" list
+      if (providerConfig.selected_model && !models.some(m => m.value === providerConfig.selected_model)) {
+        models.unshift({ value: providerConfig.selected_model, label: providerConfig.selected_model });
+      }
+
       // Fallbacks for hardcoded providers if config is missing (legacy support)
       if (models.length === 0) {
         if (form.values.api_provider === 'gemini') {
@@ -670,12 +676,24 @@ const InitialTranslation = () => {
                               description={t('form_desc_use_main_glossary')}
                               {...form.getInputProps('use_main_glossary', { type: 'checkbox' })}
                             />
-                            <Switch
-                              label={t('form_label_clean_source')}
-                              description={t('warning_clean_source')}
+                            <Tooltip
+                              label={t('tooltip_clean_source', 'WARNING: This will DELETE all files in the uploaded mod folder except for localization files (.yml), Customizable Localization (.txt) and metadata (.mod, .json, .png) to save disk space. Use with caution!')}
+                              multiline
+                              w={300}
+                              withArrow
                               color="red"
-                              {...form.getInputProps('clean_source', { type: 'checkbox' })}
-                            />
+                            >
+                              <div>
+                                <Switch
+                                  label={t('form_label_clean_source')}
+                                  description={t('warning_clean_source')}
+                                  color="red"
+                                  checked={form.values.clean_source}
+                                  onChange={(event) => form.setFieldValue('clean_source', event.currentTarget.checked)}
+                                  style={{ cursor: 'help' }}
+                                />
+                              </div>
+                            </Tooltip>
                             <Switch
                               label={t('form_label_use_resume')}
                               description={t('form_desc_use_resume')}

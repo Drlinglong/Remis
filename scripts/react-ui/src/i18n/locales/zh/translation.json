@@ -345,6 +345,7 @@
   "form_label_use_resume": "使用断点续传",
   "form_desc_use_resume": "允许使用断点续传数据库，在上次工作中断的地方继续进行。",
   "warning_clean_source": "警告：这将删除翻译源文件夹中除元数据和本地化文件之外的所有文件和文件夹。请谨慎使用。",
+  "tooltip_clean_source": "警告：此操作将删除已上传模组文件夹中除本地化文件 (.yml)、自定义本地化脚本 (.txt) 和元数据 (.mod, .json, .png) 之外的所有文件，以节省磁盘空间。请谨慎使用！",
   "tab_import_folder": "导入文件夹",
   "tab_existing_mod": "选择现有 Mod",
   "button_browse_folder": "浏览文件夹",

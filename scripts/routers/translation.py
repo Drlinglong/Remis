@@ -14,6 +14,7 @@ from scripts.schemas.translation import InitialTranslationRequest, TranslationRe
 from scripts.app_settings import GAME_PROFILES, LANGUAGES, API_PROVIDERS, SOURCE_DIR, DEST_DIR
 from scripts.workflows import initial_translate
 from scripts.utils import i18n
+from scripts.utils.system_utils import slugify_to_ascii
 from scripts.core.checkpoint_manager import CheckpointManager
 
 import threading
@@ -64,9 +65,10 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
         tasks[task_id]["log"].append("翻译流程成功完成！")
 
         # Prepare the result for download
-        output_folder_name = f"{target_languages[0]['folder_prefix']}{mod_name}"
+        sanitized_mod_name = slugify_to_ascii(mod_name)
+        output_folder_name = f"{target_languages[0]['folder_prefix']}{sanitized_mod_name}"
         if len(target_languages) > 1:
-            output_folder_name = f"Multilanguage-{mod_name}"
+            output_folder_name = f"Multilanguage-{sanitized_mod_name}"
 
         result_dir = os.path.join(DEST_DIR, output_folder_name)
 
@@ -117,7 +119,8 @@ def run_translation_workflow_v2(
     selected_glossary_ids: List[int], model_name: Optional[str], use_main_glossary: bool,
     custom_lang_config: Optional[CustomLangConfig] = None,
     project_id: Optional[str] = None,
-    use_resume: bool = True
+    use_resume: bool = True,
+    clean_source: bool = False
 ):
     i18n.load_language('en_US')
     tasks[task_id]["status"] = "processing"
@@ -226,17 +229,19 @@ def run_translation_workflow_v2(
             mod_name=mod_name, game_profile=game_profile, source_lang=source_lang,
             target_languages=target_languages, selected_provider=api_provider,
             mod_context=mod_context, selected_glossary_ids=final_glossary_ids,
+
             model_name=model_name, use_glossary=True, progress_callback=progress_callback,
-            override_path=override_path, project_id=project_id, use_resume=use_resume
+            override_path=override_path, project_id=project_id, use_resume=use_resume,
+            clean_source=clean_source
         )
         logging.info("Returned from initial_translate.run")
         tasks[task_id]["status"] = "completed"
         tasks[task_id]["progress"]["percent"] = 100
         tasks[task_id]["progress"]["stage"] = "Completed"
         tasks[task_id]["log"].append("翻译流程成功完成！")
-        output_folder_name = f"{target_languages[0]['folder_prefix']}{mod_name}"
+        output_folder_name = f"{target_languages[0]['folder_prefix']}{slugify_to_ascii(mod_name)}"
         if len(target_languages) > 1:
-            output_folder_name = f"Multilanguage-{mod_name}"
+            output_folder_name = f"Multilanguage-{slugify_to_ascii(mod_name)}"
         result_dir = os.path.join(DEST_DIR, output_folder_name)
         zip_path = shutil.make_archive(result_dir, 'zip', result_dir)
         tasks[task_id]["result_path"] = zip_path
@@ -301,7 +306,8 @@ def start_translation_project(request: InitialTranslationRequest, background_tas
         request.use_main_glossary,
         request.custom_lang_config,
         project_id=request.project_id,
-        use_resume=request.use_resume
+        use_resume=request.use_resume,
+        clean_source=request.clean_source
     )
 
     # Auto-register translation path (Optimistic registration)
@@ -313,11 +319,12 @@ def start_translation_project(request: InitialTranslationRequest, background_tas
         else:
             target_code = target_lang_codes[0]
             target_lang = next((l for l in LANGUAGES.values() if l["code"] == target_code), None)
+            sanitized_mod_name = slugify_to_ascii(mod_name)
             if target_lang:
                 prefix = target_lang.get("folder_prefix", f"{target_lang['code']}-")
-                output_folder_name = f"{prefix}{mod_name}"
+                output_folder_name = f"{prefix}{sanitized_mod_name}"
             else:
-                output_folder_name = f"{target_code}-{mod_name}"
+                output_folder_name = f"{target_code}-{sanitized_mod_name}"
         
         result_dir = os.path.join(DEST_DIR, output_folder_name)
         project_manager.add_translation_path(request.project_id, result_dir)
@@ -424,7 +431,8 @@ async def start_translation_v2(
         payload.use_main_glossary,
         payload.custom_lang_config,
         project_id=None, # Path-based upload might not have project ID
-        use_resume=payload.use_resume
+        use_resume=payload.use_resume,
+        clean_source=payload.clean_source
     )
 
     return {"task_id": task_id, "message": "翻译任务已开始"}
@@ -456,7 +464,14 @@ def get_status(task_id: str):
     task = tasks.get(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="任务未找到")
-    return task
+    
+    # 限制返回的日志条数，避免响应体过大导致前端卡顿
+    # 完整日志仍保留在内存中（后续可改为持久化到文件）
+    MAX_LOG_LINES = 100
+    result = dict(task)  # 浅拷贝，避免修改原始数据
+    if "log" in result and len(result["log"]) > MAX_LOG_LINES:
+        result["log"] = result["log"][-MAX_LOG_LINES:]
+    return result
 
 @router.get("/api/result/{task_id}")
 def get_result(task_id: str):
@@ -472,8 +487,9 @@ def check_checkpoint_status(payload: CheckpointStatusRequest):
         # Determine output folder name logic (duplicated from initial_translate, ideally shared)
         # NOTE: This logic must match initial_translate.py exactly
         is_batch_mode = len(payload.target_lang_codes) > 1
+        sanitized_mod_name = slugify_to_ascii(payload.mod_name)
         if is_batch_mode:
-            output_folder_name = f"Multilanguage-{payload.mod_name}"
+            output_folder_name = f"Multilanguage-{sanitized_mod_name}"
         else:
             # We need the folder prefix. This is tricky without the full language object.
             # Assuming standard prefix or we need to look it up.
@@ -482,10 +498,10 @@ def check_checkpoint_status(payload: CheckpointStatusRequest):
             target_lang = next((l for l in LANGUAGES.values() if l["code"] == target_code), None)
             if target_lang:
                 prefix = target_lang.get("folder_prefix", f"{target_lang['code']}-")
-                output_folder_name = f"{prefix}{payload.mod_name}"
+                output_folder_name = f"{prefix}{sanitized_mod_name}"
             else:
                 # Fallback if lang not found (shouldn't happen if frontend sends valid codes)
-                output_folder_name = f"{target_code}-{payload.mod_name}"
+                output_folder_name = f"{target_code}-{sanitized_mod_name}"
 
         output_dir = os.path.join(DEST_DIR, output_folder_name)
         cm = CheckpointManager(output_dir)
@@ -516,16 +532,17 @@ def delete_checkpoint(payload: CheckpointStatusRequest):
     try:
         # Determine output folder name logic (duplicated)
         is_batch_mode = len(payload.target_lang_codes) > 1
+        sanitized_mod_name = slugify_to_ascii(payload.mod_name)
         if is_batch_mode:
-            output_folder_name = f"Multilanguage-{payload.mod_name}"
+            output_folder_name = f"Multilanguage-{sanitized_mod_name}"
         else:
             target_code = payload.target_lang_codes[0]
             target_lang = next((l for l in LANGUAGES.values() if l["code"] == target_code), None)
             if target_lang:
                 prefix = target_lang.get("folder_prefix", f"{target_lang['code']}-")
-                output_folder_name = f"{prefix}{payload.mod_name}"
+                output_folder_name = f"{prefix}{sanitized_mod_name}"
             else:
-                output_folder_name = f"{target_code}-{payload.mod_name}"
+                output_folder_name = f"{target_code}-{sanitized_mod_name}"
 
         output_dir = os.path.join(DEST_DIR, output_folder_name)
         cm = CheckpointManager(output_dir)

@@ -22,11 +22,21 @@ export const groupFiles = (files, selectedProject) => {
     const getFileName = (path) => path.replace(/\\/g, '/').split('/').pop();
 
     // Pass 1: Identify REAL Sources based on filename pattern
+    // Allows _l_english.yml OR  l_english.yml (space separator commonly used in CN mods)
+    const suffixRegex = new RegExp(`[\\s_]l_${paradoxLang}\\.yml$`, 'i');
+
     files.forEach(f => {
         const fileName = getFileName(f.file_path);
-        if (fileName.toLowerCase().endsWith(sourceSuffix.toLowerCase())) {
+        // Check regex match
+        if (suffixRegex.test(fileName)) {
             sources.push(f);
-            const baseName = fileName.slice(0, -sourceSuffix.length);
+
+            // Extract base name by removing the matched suffix
+            // We can't just slice fixed length because suffix length varies (space vs underscore)
+            const match = fileName.match(suffixRegex);
+            const suffixLength = match[0].length;
+            const baseName = fileName.slice(0, -suffixLength);
+
             sourceBaseMap[baseName.toLowerCase()] = f;
             targetsMap[f.file_id] = [];
         }
@@ -41,8 +51,10 @@ export const groupFiles = (files, selectedProject) => {
 
         // Try to match against known source bases
         for (const baseLower in sourceBaseMap) {
-            // Check if it looks like a translation: {base}_l_{otherLang}.yml
-            if (fileName.toLowerCase().startsWith(baseLower) && fileName.toLowerCase().includes('_l_')) {
+            // Updated: Use regex to detect translation files, supporting both space and underscore separators
+            // Matches: "{base}_l_{otherLang}.yml" OR "{base} l_{otherLang}.yml"
+            const targetRegex = new RegExp(`^${baseLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s_]l_\\w+\\.yml$`, 'i');
+            if (targetRegex.test(fileName.toLowerCase())) {
                 // Ensure it belongs to THIS source file's group
                 targetsMap[sourceBaseMap[baseLower].file_id].push(f);
                 break; // One file belongs to one source

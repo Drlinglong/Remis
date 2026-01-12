@@ -20,7 +20,7 @@ class FileService:
         self.archive_manager = archive_manager
         self.project_repository = project_repository
 
-    def scan_dir(self, root_path: str, file_type: str, search_lang: str, project_id: str) -> List[Dict]:
+    def scan_dir(self, root_path: str, file_type: str, search_lang: str, project_id: str, allowed_extensions: List[str] = None) -> List[Dict]:
         """
         Scans a directory for localization files.
         search_lang: The Paradox-style language key (e.g. 'simp_chinese') to filter/identify files.
@@ -29,17 +29,18 @@ class FileService:
             logger.warning(f"FileService: Directory not found: {root_path}")
             return []
         
+        # Default extensions if not provided
+        if allowed_extensions is None:
+            allowed_extensions = ['.yml', '.yaml', '.txt', '.csv', '.json']
+
         files_found = []
         for root, dirs, files in os.walk(root_path):
             # Exclude hidden directories
             dirs[:] = [d for d in dirs if not d.startswith('.')]
 
             for file in files:
-                # We can check if file matches the language pattern to be safer, 
-                # but currently we just pick up all typical Loc extensions.
-                # If we want to strictly follow the language, we could filter here.
-                # For now, keeping it broad to catch everything, but we log the context.
-                if file.endswith(('.yml', '.yaml', '.txt', '.csv', '.json')):
+                # Filter by allowed extensions
+                if any(file.lower().endswith(ext) for ext in allowed_extensions):
                     # Special case for Paradox metadata
                     current_file_type = file_type
                     if file == 'metadata.json' or file == 'descriptor.mod':
@@ -94,17 +95,26 @@ class FileService:
 
         iso_source = project.source_language
         disk_source_lang = iso_to_paradox(iso_source)
+        game_id = project.game_id.lower() if project.game_id else "victoria3"
         
-        logger.info(f"FileService: Syncing '{project_name}'. ISO='{iso_source}' -> Disk='{disk_source_lang}'")
+        # Determine allowed extensions based on game_id
+        # EU4 uses csv/txt mostly. Others use yml.
+        if game_id == 'eu4':
+            allowed_extensions = ['.yml', '.yaml', '.csv', '.txt']
+        else:
+            # For Vic3, HOI4, Stellaris, CK3 - strictly yml/yaml to avoid README clutter
+            allowed_extensions = ['.yml', '.yaml']
+        
+        logger.info(f"FileService: Syncing '{project_name}' (Game: {game_id}). Extensions: {allowed_extensions}")
         
         files_to_upsert = []
 
         # Scan source directory
-        files_to_upsert.extend(self.scan_dir(source_path, 'source', disk_source_lang, project_id))
+        files_to_upsert.extend(self.scan_dir(source_path, 'source', disk_source_lang, project_id, allowed_extensions))
         
         # Scan translation directories
         for trans_dir in translation_dirs:
-            files_to_upsert.extend(self.scan_dir(trans_dir, 'translation', disk_source_lang, project_id))
+            files_to_upsert.extend(self.scan_dir(trans_dir, 'translation', disk_source_lang, project_id, allowed_extensions))
 
         # 2. JSON Hydration (Status Reconciliation)
         # Establish .remis_project.json as the SSOT for file statuses.
