@@ -1,4 +1,4 @@
-import { createTheme, rem } from '@mantine/core';
+import { createTheme } from '@mantine/core';
 
 export const theme = createTheme({
   colors: {
@@ -34,14 +34,14 @@ export const theme = createTheme({
   primaryColor: 'brand',
   defaultRadius: 'md',
   fontFamily: 'Inter, system-ui, Avenir, Helvetica, Arial, sans-serif',
-  
+
   components: {
     Card: {
       defaultProps: {
         bg: 'dark.6',
         withBorder: true,
       },
-      styles: (theme) => ({
+      styles: (_theme) => ({
         root: {
           borderColor: 'rgba(255, 255, 255, 0.1)',
           boxShadow: 'none',

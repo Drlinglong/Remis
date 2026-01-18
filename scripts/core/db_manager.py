@@ -55,3 +55,45 @@ class DatabaseConnectionManager:
         )
         conn.row_factory = sqlite3.Row
         return conn
+
+    # --- Async Support (SQLModel) ---
+    def get_async_engine(self):
+        """
+        Returns a singleton AsyncEngine for SQLModel.
+        """
+        if not hasattr(self, '_async_engine'):
+            from sqlalchemy.ext.asyncio import create_async_engine
+            
+            # Use aiosqlite driver
+            # Format: sqlite+aiosqlite:////absolute/path/to/db
+            path = self.db_path.replace("\\", "/")
+            url = f"sqlite+aiosqlite:///{path}"
+            
+            self._async_engine = create_async_engine(
+                url, 
+                echo=False,
+                future=True
+            )
+        return self._async_engine
+
+    async def get_async_session(self):
+        """
+        Generator for AsyncSession.
+        Usage: 
+            async for session in db_manager.get_async_session():
+                ...
+        """
+        from sqlmodel.ext.asyncio.session import AsyncSession
+        from sqlalchemy.orm import sessionmaker
+
+        engine = self.get_async_engine()
+        async_session = sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
+        
+        async with async_session() as session:
+            yield session
+
+# Singleton Instance
+db_manager = DatabaseConnectionManager()
+

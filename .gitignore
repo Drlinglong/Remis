@@ -53,6 +53,8 @@ data/seed_data_*.sql
 logs/
 temp/
 *.tmp
+*.db
+test_*.db
 
 # Do NOT ignore these folders
 !/source_mod/.gitkeep

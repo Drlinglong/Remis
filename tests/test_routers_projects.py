@@ -1,12 +1,21 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 from fastapi.testclient import TestClient
 from scripts.web_server import app
 
 # We Mock the project_manager in the router module
 @pytest.fixture
 def mock_project_manager():
-    with patch("scripts.routers.projects.project_manager") as mock:
+    with patch("scripts.routers.projects.project_manager", new_callable=MagicMock) as mock:
+        # Configure methods to be async
+        mock.get_projects = AsyncMock()
+        mock.create_project = AsyncMock()
+        mock.refresh_project_files = AsyncMock()
+        mock.update_project_files_to_db = AsyncMock()
+        mock.update_file_status_with_kanban_sync = AsyncMock()
+        mock.update_project_metadata = AsyncMock()
+        mock.update_project_status = AsyncMock()
+        mock.update_project_notes = AsyncMock()
         yield mock
 
 def test_read_projects(mock_project_manager):
@@ -23,7 +32,7 @@ def test_read_projects(mock_project_manager):
     mock_project_manager.get_projects.assert_called_once()
 
 def test_create_project_invalid_path(mock_project_manager):
-    # The router checks os.path.exists before calling manager.create_project
+    # The router checks os.path.exists before calling manager.create_project (synchronously)
     # So this tests the Router's validation logic which relies on real filesystem (which says path doesn't exist)
     client = TestClient(app)
     response = client.post("/api/project/create", json={

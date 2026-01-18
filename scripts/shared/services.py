@@ -4,6 +4,7 @@ import sys
 from scripts import app_settings
 from scripts.core.services.kanban_service import KanbanService
 from scripts.core.services.file_service import FileService
+from scripts.core.services.proofreading_service import ProofreadingService
 from scripts.core.glossary_manager import glossary_manager
 from scripts.core.project_manager import ProjectManager
 from scripts.core.archive_manager import ArchiveManager
@@ -31,4 +32,9 @@ project_manager = ProjectManager(
     file_service=file_service,
     project_repository=project_repository,
     kanban_service=kanban_service
+)
+
+proofreading_service = ProofreadingService(
+    project_manager=project_manager,
+    archive_manager=archive_manager
 )

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Paper,
     Title,
@@ -71,11 +71,7 @@ const ApiSettingsTab = () => {
 
     const [submitting, setSubmitting] = useState(false);
 
-    useEffect(() => {
-        fetchProviders();
-    }, []);
-
-    const fetchProviders = async () => {
+    const fetchProviders = useCallback(async () => {
         try {
             const response = await api.get('/api/api-keys');
             setProviders(response.data);
@@ -89,7 +85,11 @@ const ApiSettingsTab = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [t]);
+
+    useEffect(() => {
+        fetchProviders();
+    }, [fetchProviders]);
 
     const handleEditClick = (provider) => {
         setEditingId(provider.id);
@@ -129,11 +129,11 @@ const ApiSettingsTab = () => {
             });
             setEditingId(null);
             fetchProviders(); // Refresh
-        } catch (error) {
-            console.error('Error updating API settings:', error);
+        } catch (_error) {
+            console.error('Error updating API settings:', _error);
             notifications.show({
                 title: t('error'),
-                message: error.response?.data?.detail || error.message,
+                message: _error.response?.data?.detail || _error.message,
                 color: 'red'
             });
         } finally {

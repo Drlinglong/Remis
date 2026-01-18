@@ -604,6 +604,8 @@
     "local_llm_warning": "本地 LLM 检查清单：1. 服务是否运行？ 2. 端口是否正确？ 3. 模型名称是否准确？(e.g., llama3:latest, qwen2.5:7b)",
     "smart_model_warning_label": "你的模型足够聪明吗？",
     "smart_model_warning_tooltip": "本地模型的能力往往远低于在线大模型。弱模型可能导致翻译质量低下、破坏游戏语法格式（如颜色代码/变量名），甚至因无法生成有效的 JSON 格式而导致任务完全失败。强烈建议优先使用 Gemini / OpenAI 等在线模型。",
+    "api_key_warning_label": "你填入API密钥了吗？",
+    "api_key_warning_tooltip": "大模型 API 需要密钥才能正常工作。在大批量的翻译过程中密钥是必不可少的，如果您还没有准备好密钥，请前往 设置 -> API 设置 进行填写。",
     "home": {
       "welcome": {
         "title": "欢迎来到 Remis!",

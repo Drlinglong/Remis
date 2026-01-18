@@ -65,11 +65,13 @@ def run(mod_name: str,
 
     # ───────────── 2.5. 加载词典 ─────────────
     game_id = game_profile.get("id", "")
+    game_id = game_profile.get("id", "")
     if game_id and use_glossary:
+        import asyncio
         if selected_glossary_ids:
-            glossary_manager.load_selected_glossaries(selected_glossary_ids)
+            asyncio.run(glossary_manager.load_selected_glossaries(selected_glossary_ids))
         else:
-            glossary_manager.load_game_glossary(game_id)
+            asyncio.run(glossary_manager.load_game_glossary(game_id))
 
     # ───────────── 3. 创建输出目录 & 初始化断点管理器 ─────────────
     directory_handler.create_output_structure(mod_name, output_folder_name, game_profile)

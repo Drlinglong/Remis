@@ -106,7 +106,9 @@
             "qwen3:4b",
             "deepseek-v3",
             "mistral",
-            "gemma2"
+            "gemma2",
+            "translategemma",
+            "translategemma:27b"
         ],
         "enable_thinking": false,
         "chunk_size": 20,

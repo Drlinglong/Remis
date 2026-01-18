@@ -3,6 +3,9 @@ import logging
 import os
 import sqlite3
 from scripts import app_settings
+from sqlmodel import create_engine, SQLModel
+# Import models to register them with SQLModel.metadata
+from scripts.core.db_models import Project, ProjectFile, Glossary, GlossaryEntry
 
 # Setup a dedicated logger for initialization that writes to a file in AppData
 init_logger = logging.getLogger("remis_init")
@@ -55,6 +58,7 @@ def fix_demo_paths(conn, persistent_demo_root, persistent_translation_root):
         cursor.execute("SELECT project_id, source_path, target_path FROM projects")
         projects = cursor.fetchall()
         for pid, s_path, t_path in projects:
+            if not s_path: continue
             new_s = s_path.replace("\\", "/")
             new_t = t_path.replace("\\", "/") if t_path else ""
             
@@ -74,6 +78,7 @@ def fix_demo_paths(conn, persistent_demo_root, persistent_translation_root):
             cursor.execute("SELECT file_id, file_path FROM project_files")
             files = cursor.fetchall()
             for fid, f_path in files:
+                if not f_path: continue
                 new_f = f_path.replace("\\", "/")
                 if dev_root_pattern.search(new_f):
                     new_f = dev_root_pattern.sub(demo_root + "/", new_f)
@@ -91,9 +96,7 @@ def fix_demo_paths(conn, persistent_demo_root, persistent_translation_root):
             old_dir_name = "Multilanguage-Test_Project_Remis_Vic3"
             new_dir_name = "zh-CN-Test_Project_Remis_Vic3"
             
-            # persistent_translation_root is passed as an arg to this function
-            # Ensure we are looking in the Translation Root
-            p_trans_root = persistent_translation_root # e.g. .../my_translation
+            p_trans_root = persistent_translation_root 
             
             old_full_path = os.path.join(p_trans_root, old_dir_name)
             new_full_path = os.path.join(p_trans_root, new_dir_name)
@@ -152,26 +155,16 @@ def fix_demo_paths(conn, persistent_demo_root, persistent_translation_root):
     except Exception as e:
         init_logger.error(f"[ERROR] Failed to fix demo paths: {e}")
 
-def run_projects_db_migrations(conn):
-    """Handles schema updates for the Projects database."""
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS projects (
-            project_id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            game_id TEXT NOT NULL,
-            source_path TEXT NOT NULL,
-            target_path TEXT,
-            source_language TEXT NOT NULL,
-            status TEXT DEFAULT 'active',
-            created_at TEXT,
-            last_modified TEXT,
-            last_activity_type TEXT,
-            last_activity_desc TEXT,
-            notes TEXT
-        )
-    ''')
-    conn.commit()
+def run_projects_db_migrations(db_path):
+    """Handles schema updates for the Projects database using SQLModel."""
+    try:
+        # Use sync engine for initialization
+        path = db_path.replace("\\", "/") # Ensure forward slashes for sqlite url
+        engine = create_engine(f"sqlite:///{path}")
+        SQLModel.metadata.create_all(engine)
+        init_logger.info("Database schema initialized/verified with SQLModel.")
+    except Exception as e:
+        init_logger.error(f"Failed to run DB migrations: {e}")
 
 def hydrate_json_configs(app_data_dir):
     """Recursively finds all .remis_project.json files and fixes hardcoded paths safely and quickly."""
@@ -375,7 +368,5 @@ def initialize_database():
 
     # Migrations
     try:
-        conn = sqlite3.connect(remis_db_path)
-        run_projects_db_migrations(conn)
-        conn.close()
+        run_projects_db_migrations(remis_db_path)
     except Exception: pass

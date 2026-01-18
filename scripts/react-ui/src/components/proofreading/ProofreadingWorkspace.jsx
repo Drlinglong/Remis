@@ -42,6 +42,7 @@ const ProofreadingWorkspace = ({
     validationResults,
     stats,
     loading,
+    validating,
     saving,
     keyChangeWarning,
     saveModalOpen,
@@ -76,7 +77,7 @@ const ProofreadingWorkspace = ({
                             id="proofreading-validate-btn"
                             leftSection={<IconCheck size={14} />}
                             onClick={onValidate}
-                            loading={loading}
+                            loading={validating}
                             variant="light"
                             size="xs"
                         >
@@ -164,7 +165,7 @@ const ProofreadingWorkspace = ({
                             </Stack>
                         </Alert>
 
-                        <LoadingOverlay visible={loading || saving} overlayProps={{ blur: 2 }} />
+                        <LoadingOverlay visible={loading || validating || saving} overlayProps={{ blur: 2 }} />
                         <MonacoWrapper
                             scrollRef={finalEditorRef}
                             value={finalContentStr}

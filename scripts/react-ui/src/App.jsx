@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+
 // import { MantineProvider } from '@mantine/core'; // Removed unused import
 import '@mantine/core/styles.css';
 

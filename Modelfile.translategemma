@@ -1,0 +1,12 @@
+FROM ./translategemma-27b-it.Q6_K.gguf
+
+# Set the temperature to a lower value for more deterministic translations
+PARAMETER temperature 0.1
+
+# Standard Gemma 3 / TranslateGemma prompt template
+TEMPLATE """<start_of_turn>user
+{{ .Prompt }}<end_of_turn>
+<start_of_turn>model
+"""
+
+SYSTEM """You are a professional translator. Translate the following text accurately and naturally."""

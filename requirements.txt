@@ -27,3 +27,8 @@ pypinyin
 pykakasi
 jamo
 python-Levenshtein
+
+# Database
+sqlmodel
+aiosqlite
+pytest-asyncio

@@ -5,7 +5,7 @@ import os
 import shutil
 import tempfile
 from scripts.core.db_initializer import fix_demo_paths
-from scripts.routers.proofreading import find_source_template
+# from scripts.routers.proofreading import find_source_template (Removed as logic moved to ProofreadingService)
 
 class TestDemoRepairLogic(unittest.TestCase):
     

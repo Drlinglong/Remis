@@ -23,10 +23,10 @@ async def get_system_stats():
     """
     try:
         # 1. Project Stats from Repository
-        dashboard_stats = project_manager.repository.get_dashboard_stats()
+        dashboard_stats = await project_manager.repository.get_dashboard_stats()
         
         # 2. Glossary Stats
-        glossary_stats = glossary_manager.get_glossary_stats()
+        glossary_stats = await glossary_manager.get_glossary_stats()
         
         # 3. Recent Activity (Latest 10 logs from activity_log table)
         recent_activities = []

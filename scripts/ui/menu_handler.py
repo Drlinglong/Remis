@@ -351,7 +351,8 @@ def select_glossaries_from_db(game_profile):
 
     if enable_choice == "2":
         # User wants main glossary only. Find it and return its ID.
-        all_glossaries = glossary_manager.get_available_glossaries(game_profile['id'])
+        import asyncio
+        all_glossaries = asyncio.run(glossary_manager.get_available_glossaries(game_profile['id']))
         main_glossary = next((g for g in all_glossaries if g['is_main']), None)
         if main_glossary:
             return [main_glossary['glossary_id']]
@@ -359,7 +360,8 @@ def select_glossaries_from_db(game_profile):
             return None # No main glossary exists anyway
 
     logging.info(i18n.t("cli_glossary_loading_all"))
-    available_glossaries = glossary_manager.get_available_glossaries(game_profile['id'])
+    import asyncio
+    available_glossaries = asyncio.run(glossary_manager.get_available_glossaries(game_profile['id']))
 
     if not available_glossaries:
         logging.warning(i18n.t("no_glossaries_available"))
@@ -457,7 +459,8 @@ def show_project_overview(mod_name, api_provider, game_profile, source_lang, tar
 
     # Glossary status
     if selected_glossary_ids:
-        all_glossaries = glossary_manager.get_available_glossaries(game_profile['id'])
+        import asyncio
+        all_glossaries = asyncio.run(glossary_manager.get_available_glossaries(game_profile['id']))
         selected_names = [g['name'] for g in all_glossaries if g['glossary_id'] in selected_glossary_ids]
         glossary_status = ", ".join(selected_names)
     else:

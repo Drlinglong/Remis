@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Paper,
@@ -6,14 +6,11 @@ import {
   Button,
   Group,
   Select,
-  Tabs,
   Text,
   Box
 } from '@mantine/core';
 import {
-  IconFolder,
-  IconFileText,
-  IconEdit
+  IconFolder
 } from '@tabler/icons-react';
 import layoutStyles from '../components/layout/Layout.module.css';
 import { useTutorial } from '../context/TutorialContext';
@@ -34,7 +31,7 @@ const ProofreadingPage = () => {
   const state = useProofreadingState();
 
   // 本地 UI 状态
-  const [activeTab, setActiveTab] = usePersistentState('proofread_active_tab', 'file');
+
   const [zoomLevel, setZoomLevel] = usePersistentState('proofread_zoom_level', '1');
 
   useEffect(() => {
@@ -123,6 +120,7 @@ const ProofreadingPage = () => {
             validationResults={state.validationResults}
             stats={state.stats}
             loading={state.loading}
+            validating={state.validating}
             saving={state.saving}
             keyChangeWarning={state.keyChangeWarning}
             saveModalOpen={state.saveModalOpen}

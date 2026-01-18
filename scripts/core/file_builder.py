@@ -190,3 +190,82 @@ def rebuild_and_write_file(
     except Exception as e:
         logging.error(f"Failed to write file to {output_path}: {e}")
         raise e
+
+def create_fallback_file(
+    source_path: str,
+    dest_dir: str,
+    filename: str,
+    source_lang: dict,
+    target_lang: dict,
+    game_profile: dict
+) -> str | None:
+    """
+    Creates a fallback file by copying the source file and updating the language header.
+    Used when the source file has no translatable content but still needs to exist in the target mod
+    (e.g., file with only comments or empty structure).
+    """
+    import os
+    import re
+
+    try:
+        # 1. Determine Target Filename (Logic consistent with rebuild_and_write_file)
+        source_lang_key_clean = source_lang.get("key", "").replace(":", "").strip()
+        target_lang_key_clean = target_lang.get("key", "").replace(":", "").strip()
+        
+        target_filename = filename
+        if source_lang_key_clean and source_lang_key_clean in filename:
+            target_filename = filename.replace(source_lang_key_clean, target_lang_key_clean)
+        else:
+            match = re.search(r"(_l_[a-zA-Z0-9_-]+)\.(yml|txt)$", filename)
+            if match:
+                suffix = f"_{target_lang_key_clean}"
+                target_filename = filename[:match.start(1)] + suffix + "." + match.group(2)
+            else:
+                name, ext = os.path.splitext(filename)
+                target_filename = f"{name}_{target_lang_key_clean}{ext}"
+
+        output_path = os.path.join(dest_dir, target_filename)
+        
+        # 2. Read Source Content
+        with open(source_path, 'r', encoding='utf-8-sig') as f:
+            lines = f.readlines()
+            
+        # 3. Update Language Header
+        target_lang_key = target_lang.get("key", f"l_{target_lang.get('code', 'english')}")
+        
+        # Reuse logic to find/replace header
+        header_pattern = re.compile(r"^\s*l_[\w-]+:\s*")
+        new_lines = list(lines)
+        
+        first_header_index = -1
+        indices_to_remove = []
+        
+        for i, line in enumerate(new_lines):
+            if header_pattern.match(line):
+                if first_header_index == -1:
+                    first_header_index = i
+                else:
+                    indices_to_remove.append(i)
+        
+        for i in reversed(indices_to_remove):
+            new_lines.pop(i)
+            
+        if first_header_index != -1:
+            new_lines[first_header_index] = f"{target_lang_key}:\n"
+        else:
+            if new_lines and not new_lines[0].strip():
+                 # Try to find first non-empty line or just insert at top
+                 new_lines.insert(0, f"{target_lang_key}:\n")
+            else:
+                 new_lines.insert(0, f"{target_lang_key}:\n")
+
+        # 4. Write to Destination
+        with open(output_path, 'w', encoding='utf-8-sig') as f:
+            f.writelines(new_lines)
+            
+        logging.info(f"Created fallback file: {output_path}")
+        return output_path
+
+    except Exception as e:
+        logging.error(f"Failed to create fallback file for {filename}: {e}")
+        return None

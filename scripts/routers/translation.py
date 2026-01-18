@@ -209,7 +209,8 @@ def run_translation_workflow_v2(
         
         final_glossary_ids = list(selected_glossary_ids) if selected_glossary_ids else []
         if use_main_glossary:
-            available = glossary_manager.get_available_glossaries(game_profile["id"])
+            import asyncio
+            available = asyncio.run(glossary_manager.get_available_glossaries(game_profile["id"]))
             main_glossary = next((g for g in available if g.get('is_main')), None)
             if main_glossary and main_glossary['glossary_id'] not in final_glossary_ids:
                 final_glossary_ids.append(main_glossary['glossary_id'])

@@ -1,15 +1,29 @@
 import unittest
-from unittest.mock import MagicMock, patch, ANY
+from unittest.mock import MagicMock, patch, AsyncMock
 import os
 import shutil
 from scripts.core.project_manager import ProjectManager
 
-class TestProjectManager(unittest.TestCase):
+class TestProjectManager(unittest.IsolatedAsyncioTestCase):
     
-    def setUp(self):
+    async def asyncSetUp(self):
         # 1. Mock Dependencies
         self.mock_file_service = MagicMock()
+        # Set async methods on file service mock
+        self.mock_file_service.scan_and_sync_files = AsyncMock()
+
         self.mock_repo = MagicMock()
+        # Set async methods on repo mock
+        self.mock_repo.create_project = AsyncMock()
+        self.mock_repo.get_project = AsyncMock()
+        self.mock_repo.list_projects = AsyncMock()
+        self.mock_repo.get_project_files = AsyncMock()
+        self.mock_repo.update_project_status = AsyncMock()
+        self.mock_repo.update_project_notes = AsyncMock()
+        self.mock_repo.add_activity_log = AsyncMock()
+        self.mock_repo.touch_project = AsyncMock()
+        self.mock_repo.update_project_metadata = AsyncMock()
+        
         self.mock_kanban = MagicMock()
         
         # 2. Instantiate ProjectManager with Injected Mocks
@@ -17,31 +31,36 @@ class TestProjectManager(unittest.TestCase):
             file_service=self.mock_file_service,
             project_repository=self.mock_repo,
             kanban_service=self.mock_kanban,
-            db_path=":memory:" # Valid but unused since we mock repo
+            db_path=":memory:" 
         )
 
     @patch("scripts.core.project_manager.ProjectJsonManager")
     @patch("scripts.core.project_manager.os.path.exists")
     @patch("scripts.core.project_manager.shutil.copytree")
-    def test_create_project_success(self, mock_copy, mock_exists, mock_json_mgr):
+    async def test_create_project_success(self, mock_copy, mock_exists, mock_json_mgr):
         """
         Test creating a project successfully invokes repository and file service.
         """
         # Setup
-        # Assume folder IS inside source_dir (mock_exists=True for simplified path check logic)
-        # Actually ProjectManager checks if startswith SOURCE_DIR. 
-        # We need to mock os.path.abspath too if we want precision, but let's trust the logic structure.
-        
-        # Configure os.path.exists to return False to avoid infinite loop in folder collision check
         mock_exists.return_value = False
         
-        # Mock Repository returning a valid Project object (as dict or obj)
+        # Mock Repository returning a valid Project object
         mock_pydantic_proj = MagicMock()
-        mock_pydantic_proj.model_dump.return_value = {"id": "123", "name": "TestProj"}
+        mock_pydantic_proj.model_dump.return_value = {
+            "id": "123", 
+            "name": "TestProj", 
+            "source_path": "J:/Mods/MyMod"
+        }
+        # Make access via ['key'] work for manager internal logic that accesses dict
+        mock_pydantic_proj.__getitem__ = lambda s, k: mock_pydantic_proj.model_dump.return_value[k]
+        
         self.mock_repo.create_project.return_value = mock_pydantic_proj
         
+        # Also need get_project to return something for refresh_project_files
+        self.mock_repo.get_project.return_value = mock_pydantic_proj
+        
         # Actions
-        result = self.pm.create_project(
+        result = await self.pm.create_project(
             name="Test Project", 
             folder_path="J:/Mods/MyMod", 
             game_id="vic3", 
@@ -56,12 +75,11 @@ class TestProjectManager(unittest.TestCase):
         mock_json_mgr.assert_called()
         
         # 3. File Refresh Triggered
-        # This indirectly calls file_service.scan_and_sync_files
         self.mock_file_service.scan_and_sync_files.assert_called_once()
         
         self.assertEqual(result["id"], "123")
 
-    def test_refresh_project_files_delegation(self):
+    async def test_refresh_project_files_delegation(self):
         """
         Test that refresh_project_files correctly delegates to FileService.
         """
@@ -69,10 +87,11 @@ class TestProjectManager(unittest.TestCase):
         project_id = "test-123"
         mock_proj_data = {"id": project_id, "name": "Test", "source_path": "/path/to/source"}
         
-        # Mock self.get_project (which calls repo.get_project)
-        # Since get_project returns model_dump(), we need repo.get_project to return an object with model_dump
         mock_obj = MagicMock()
         mock_obj.model_dump.return_value = mock_proj_data
+        # Make mock object subscriptable for project['source_path'] access in manager
+        mock_obj.__getitem__ = lambda s, k: mock_proj_data[k]
+        
         self.mock_repo.get_project.return_value = mock_obj
 
         # Patch ProjectJsonManager to avoid disk I/O for translation_dirs
@@ -80,7 +99,7 @@ class TestProjectManager(unittest.TestCase):
             MockJson.return_value.get_config.return_value = {"translation_dirs": ["/trans/path"]}
             
             # Action
-            self.pm.refresh_project_files(project_id)
+            await self.pm.refresh_project_files(project_id)
             
             # Assertion
             self.mock_file_service.scan_and_sync_files.assert_called_once_with(
@@ -90,17 +109,20 @@ class TestProjectManager(unittest.TestCase):
                 "Test"
             )
 
-    def test_update_project_metadata(self):
+    async def test_update_project_metadata(self):
         """
         Verify metadata update flows to repository calls correctly.
         """
         project_id = "test-meta"
+        mock_proj_data = {"id": project_id, "source_path": "/dummy"}
         mock_obj = MagicMock()
-        mock_obj.model_dump.return_value = {"id": project_id, "source_path": "/dummy"}
+        mock_obj.model_dump.return_value = mock_proj_data
+        mock_obj.__getitem__ = lambda s, k: mock_proj_data[k]
+        
         self.mock_repo.get_project.return_value = mock_obj
         
         with patch("scripts.core.project_manager.ProjectJsonManager"):
-            self.pm.update_project_metadata(project_id, "stellaris", "english")
+            await self.pm.update_project_metadata(project_id, "stellaris", "english")
         
         # Assert aliases handled ("stellaris" -> "stellaris")
         self.mock_repo.update_project_metadata.assert_called_once_with(

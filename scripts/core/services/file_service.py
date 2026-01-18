@@ -76,7 +76,7 @@ class FileService:
         logger.info(f"FileService: Scanned {file_type} dir {root_path}: {len(files_found)} files")
         return files_found
 
-    def scan_and_sync_files(self, project_id: str, source_path: str, translation_dirs: List[str], project_name: str) -> None:
+    async def scan_and_sync_files(self, project_id: str, source_path: str, translation_dirs: List[str], project_name: str) -> None:
         """
         Orchestrates:
         1. Get Project Config (for Source Lang)
@@ -88,7 +88,7 @@ class FileService:
         # We need the ISO code from DB to convert to Paradox key for disk operations.
         # Although scan_dir currently grabs everything, future strict scanning will need this.
         # And ArchiveManager/Kanban might need to know the 'disk language'.
-        project = self.project_repository.get_project(project_id)
+        project = await self.project_repository.get_project(project_id)
         if not project:
             logger.error(f"FileService: Project {project_id} not found during sync")
             return
@@ -139,10 +139,11 @@ class FileService:
         # 3. Update Database (Upsert & Clean) via Repository
         try:
             # Get existing file IDs for this project
-            existing_file_ids = set(self.project_repository.get_project_file_ids(project_id))
+            existing_file_ids_list = await self.project_repository.get_project_file_ids(project_id)
+            existing_file_ids = set(existing_file_ids_list)
             
             # Upsert new/updated files (Batch)
-            self.project_repository.batch_upsert_files(files_to_upsert)
+            await self.project_repository.batch_upsert_files(files_to_upsert)
             
             # Calculate obsolete files
             current_scan_ids = set(f['file_id'] for f in files_to_upsert)
@@ -150,7 +151,7 @@ class FileService:
             
             if files_to_delete:
                 logger.info(f"FileService: Removing {len(files_to_delete)} obsolete files/ghosts.")
-                self.project_repository.delete_files_by_ids(list(files_to_delete))
+                await self.project_repository.delete_files_by_ids(list(files_to_delete))
 
         except Exception as e:
             logger.error(f"FileService: DB Sync failed: {e}")

@@ -552,6 +552,8 @@
     "local_llm_warning": "Local LLM Checklist: 1. Is the service running? 2. Is the Port correct? 3. Is the Model Name correct? (e.g., llama3:latest, qwen2.5:7b)",
     "smart_model_warning_label": "Is your model smart enough?",
     "smart_model_warning_tooltip": "Local models often lack the capability of cloud APIs. Weak models may cause poor translation quality, broken game syntax (colors/variables), or even task failures due to invalid JSON format. We strongly recommend using Gemini / OpenAI.",
+    "api_key_warning_label": "Did you fill in your API key?",
+    "api_key_warning_tooltip": "LLM APIs require a key to function correctly. This key is specialized for large-scale translation tasks. If you haven't prepared an API key yet, please go to Settings -> API Settings to enter it.",
     "home": {
       "welcome": {
         "title": "Welcome to Remis!",

@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-// Detect if we are running in a Tauri environment
-const isTauri = window.__TAURI__ || window.__TAURI_IPC__;
+
 
 // In Development (Vite): Use relative '/api' so Vite proxy handles it.
 // In Production (Tauri): Use absolute 'http://127.0.0.1:8081' because there is no proxy.

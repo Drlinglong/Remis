@@ -601,7 +601,27 @@ const InitialTranslation = () => {
                         )}
 
                         <Select
-                          label={t('form_label_api_provider')}
+                          label={
+                            <Group gap={5}>
+                              {t('form_label_api_provider')}
+                              {!['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'gemini_cli', 'hunyuan'].includes(form.values.api_provider) && (
+                                <Tooltip
+                                  label={t('tutorial.api_key_warning_tooltip')}
+                                  multiline
+                                  w={300}
+                                  withArrow
+                                  position="top-start"
+                                >
+                                  <Group gap={4} style={{ cursor: 'help' }}>
+                                    <IconAlertCircle size={14} color="orange" />
+                                    <Text size="xs" c="orange" td="underline" style={{ fontSize: '0.75rem' }}>
+                                      {t('tutorial.api_key_warning_label')}
+                                    </Text>
+                                  </Group>
+                                </Tooltip>
+                              )}
+                            </Group>
+                          }
                           leftSection={<IconRobot size={16} />}
                           data={config.api_providers.filter(p => p.value !== 'hunyuan' || FEATURES.ENABLE_HUNYUAN_PROVIDER)}
                           {...form.getInputProps('api_provider')}

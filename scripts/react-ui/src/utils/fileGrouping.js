@@ -13,7 +13,7 @@ export const groupFiles = (files, selectedProject) => {
     // Strict Source Identification based on Project Settings
     const dbLang = selectedProject.source_language || 'english';
     const paradoxLang = toParadoxLang(dbLang);
-    const sourceSuffix = `_l_${paradoxLang}.yml`;
+
 
     const sources = [];
     const targetsMap = {};

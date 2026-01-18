@@ -1,7 +1,7 @@
 import uuid
 import logging
 from fastapi import APIRouter, HTTPException, Query
-from typing import Dict
+from typing import Dict, List
 
 from scripts.shared.services import glossary_manager
 from scripts.schemas.glossary import SearchGlossaryRequest, GlossaryEntryCreate, GlossaryEntryIn, CreateGlossaryFileRequest
@@ -52,21 +52,21 @@ def _transform_entry_to_storage_format(entry: Dict) -> Dict:
     return entry
 
 @router.get("/api/glossaries/{game_id}")
-def get_game_glossaries(game_id: str):
-    return glossary_manager.get_available_glossaries(game_id)
+async def get_game_glossaries(game_id: str):
+    return await glossary_manager.get_available_glossaries(game_id)
 
 @router.get("/api/glossary/tree")
-def get_glossary_tree():
-    return glossary_manager.get_glossary_tree_data()
+async def get_glossary_tree():
+    return await glossary_manager.get_glossary_tree_data()
 
 @router.get("/api/glossary/content")
-def get_glossary_content(glossary_id: int, page: int = Query(1, alias="page"), pageSize: int = Query(25, alias="pageSize")):
-    data = glossary_manager.get_glossary_entries_paginated(glossary_id, page, pageSize)
+async def get_glossary_content(glossary_id: int, page: int = Query(1, alias="page"), pageSize: int = Query(25, alias="pageSize")):
+    data = await glossary_manager.get_glossary_entries_paginated(glossary_id, page, pageSize)
     transformed_entries = [_transform_storage_to_frontend_format(entry) for entry in data.get("entries", [])]
     return {"entries": transformed_entries, "totalCount": data.get("totalCount", 0)}
 
 @router.post("/api/glossary/search")
-def search_glossary(payload: SearchGlossaryRequest):
+async def search_glossary(payload: SearchGlossaryRequest):
     glossary_ids_to_search = []
     if payload.scope == 'file':
         if not payload.file_name:
@@ -78,10 +78,10 @@ def search_glossary(payload: SearchGlossaryRequest):
     elif payload.scope == 'game':
         if not payload.game_id:
             raise HTTPException(status_code=400, detail="game_id is required.")
-        game_glossaries = glossary_manager.get_available_glossaries(payload.game_id)
+        game_glossaries = await glossary_manager.get_available_glossaries(payload.game_id)
         glossary_ids_to_search = [g['glossary_id'] for g in game_glossaries]
     elif payload.scope == 'all':
-        tree = glossary_manager.get_glossary_tree_data()
+        tree = await glossary_manager.get_glossary_tree_data()
         for game_node in tree:
             for file_node in game_node.get('children', []):
                 try:
@@ -93,7 +93,7 @@ def search_glossary(payload: SearchGlossaryRequest):
     
     logger.debug(f"Searching glossaries {glossary_ids_to_search} for query '{payload.query}'")
     
-    result_data = glossary_manager.search_glossary_entries_paginated(
+    result_data = await glossary_manager.search_glossary_entries_paginated(
         query=payload.query, glossary_ids=glossary_ids_to_search,
         page=payload.page, page_size=payload.pageSize
     )
@@ -101,11 +101,11 @@ def search_glossary(payload: SearchGlossaryRequest):
     return {"entries": transformed_entries, "totalCount": result_data.get("totalCount", 0)}
 
 @router.post("/api/glossary/entry", status_code=201)
-def create_glossary_entry(glossary_id: int, payload: GlossaryEntryCreate):
+async def create_glossary_entry(glossary_id: int, payload: GlossaryEntryCreate):
     new_entry_dict = payload.dict()
     new_entry_dict['id'] = str(uuid.uuid4())
     storage_entry = _transform_entry_to_storage_format(new_entry_dict)
-    if not glossary_manager.add_entry(glossary_id, storage_entry):
+    if not await glossary_manager.add_entry(glossary_id, storage_entry):
         logger.error(f"Failed to create glossary entry in glossary {glossary_id}")
         raise HTTPException(status_code=500, detail="Failed to create glossary entry.")
     
@@ -113,13 +113,13 @@ def create_glossary_entry(glossary_id: int, payload: GlossaryEntryCreate):
     return new_entry_dict
 
 @router.put("/api/glossary/entry/{entry_id}")
-def update_glossary_entry(entry_id: str, payload: GlossaryEntryIn):
+async def update_glossary_entry(entry_id: str, payload: GlossaryEntryIn):
     entry_dict = payload.dict()
     entry_dict['id'] = entry_id # Ensure ID matches URL
     
     storage_entry = _transform_entry_to_storage_format(entry_dict)
     
-    if not glossary_manager.update_entry(entry_id, storage_entry):
+    if not await glossary_manager.update_entry(entry_id, storage_entry):
         logger.error(f"Failed to update glossary entry {entry_id}")
         raise HTTPException(status_code=500, detail="Failed to update glossary entry.")
     
@@ -127,8 +127,8 @@ def update_glossary_entry(entry_id: str, payload: GlossaryEntryIn):
     return entry_dict
 
 @router.delete("/api/glossary/entry/{entry_id}")
-def delete_glossary_entry(entry_id: str):
-    if not glossary_manager.delete_entry(entry_id):
+async def delete_glossary_entry(entry_id: str):
+    if not await glossary_manager.delete_entry(entry_id):
         logger.error(f"Failed to delete glossary entry {entry_id}")
         raise HTTPException(status_code=500, detail="Failed to delete glossary entry.")
     
@@ -136,19 +136,18 @@ def delete_glossary_entry(entry_id: str):
     return {"message": "Entry deleted successfully"}
 
 @router.post("/api/glossary/file", status_code=201)
-def create_glossary_file(payload: CreateGlossaryFileRequest):
-    if not glossary_manager.create_glossary_file(payload.game_id, payload.file_name):
+async def create_glossary_file(payload: CreateGlossaryFileRequest):
+    if not await glossary_manager.create_glossary_file(payload.game_id, payload.file_name):
         logger.error(f"Failed to create glossary file {payload.file_name} for game {payload.game_id}")
         raise HTTPException(status_code=500, detail="Failed to create glossary file.")
     
     logger.info(f"Created new glossary file {payload.file_name} for game {payload.game_id}")
     return {"message": "File created successfully", "file_name": payload.file_name}
 
-
 @router.delete("/api/glossary/file/{glossary_id}")
-def delete_glossary_file(glossary_id: int):
+async def delete_glossary_file(glossary_id: int):
     """Deletes an entire glossary file and all its entries."""
-    if not glossary_manager.delete_glossary(glossary_id):
+    if not await glossary_manager.delete_glossary(glossary_id):
         logger.error(f"Failed to delete glossary {glossary_id}")
         raise HTTPException(status_code=500, detail="Failed to delete glossary.")
     
