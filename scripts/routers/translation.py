@@ -126,13 +126,15 @@ def run_translation_workflow_v2(
     tasks[task_id]["status"] = "processing"
     tasks[task_id]["log"].append("背景翻译任务开始 (V2)...")
     
+    import asyncio
+
     if project_id:
         try:
-            project_manager.repository.add_activity_log(
+            asyncio.run(project_manager.repository.add_activity_log(
                 project_id=project_id,
                 activity_type='translation_workflow',
                 description="Translation task (V2) started"
-            )
+            ))
         except Exception as e:
             logging.error(f"Failed to log activity (v2): {e}")
 
@@ -209,7 +211,6 @@ def run_translation_workflow_v2(
         
         final_glossary_ids = list(selected_glossary_ids) if selected_glossary_ids else []
         if use_main_glossary:
-            import asyncio
             available = asyncio.run(glossary_manager.get_available_glossaries(game_profile["id"]))
             main_glossary = next((g for g in available if g.get('is_main')), None)
             if main_glossary and main_glossary['glossary_id'] not in final_glossary_ids:
@@ -218,7 +219,7 @@ def run_translation_workflow_v2(
         override_path = None
         if project_id:
             try:
-                proj = project_manager.get_project(project_id)
+                proj = asyncio.run(project_manager.get_project(project_id))
                 if proj and 'source_path' in proj:
                     override_path = proj['source_path']
                     logging.info(f"Using override source path from project: {override_path}")
@@ -249,11 +250,11 @@ def run_translation_workflow_v2(
 
         if project_id:
             try:
-                project_manager.repository.add_activity_log(
+                asyncio.run(project_manager.repository.add_activity_log(
                     project_id=project_id,
                     activity_type='translation_workflow',
                     description="Translation completed successfully"
-                )
+                ))
             except Exception as e:
                 logging.error(f"Failed to log completion activity (v2): {e}")
     except Exception as e:
@@ -264,19 +265,19 @@ def run_translation_workflow_v2(
         tasks[task_id]["log"].append(error_message)
         if project_id:
             try:
-                project_manager.repository.add_activity_log(
+                asyncio.run(project_manager.repository.add_activity_log(
                     project_id=project_id,
                     activity_type='translation_workflow',
                     description="Translation workflow failed"
-                )
+                ))
             except Exception as e:
                 logging.error(f"Failed to log failure activity (v2): {e}")
 @router.post("/api/translate/start")
-def start_translation_project(request: InitialTranslationRequest, background_tasks: BackgroundTasks):
+async def start_translation_project(request: InitialTranslationRequest, background_tasks: BackgroundTasks):
     """
     Starts the initial translation workflow for a project.
     """
-    project = project_manager.get_project(request.project_id)
+    project = await project_manager.get_project(request.project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -328,7 +329,7 @@ def start_translation_project(request: InitialTranslationRequest, background_tas
                 output_folder_name = f"{target_code}-{sanitized_mod_name}"
         
         result_dir = os.path.join(DEST_DIR, output_folder_name)
-        project_manager.add_translation_path(request.project_id, result_dir)
+        await project_manager.add_translation_path(request.project_id, result_dir)
         logging.info(f"Auto-registered translation path: {result_dir}")
     except Exception as e:
         logging.error(f"Failed to auto-register translation path: {e}")

@@ -16,7 +16,7 @@ class ProofreadingService:
         self.project_manager = project_manager
         self.archive_manager = archive_manager
 
-    def find_source_template(self, target_path: str, source_lang: str, current_lang: str, project_id: str = None) -> str:
+    async def find_source_template(self, target_path: str, source_lang: str, current_lang: str, project_id: str = None) -> str:
         """
         Robustly finds the source template file path given the target file path.
         """
@@ -65,7 +65,8 @@ class ProofreadingService:
                 
                 if current_suffix.lower() in filename.lower():
                     expected_source_filename = re.sub(re.escape(current_suffix), source_suffix, filename, flags=re.IGNORECASE)
-                    files = self.project_manager.get_project_files(project_id)
+                    # [ASYNC CHANGE] Added await
+                    files = await self.project_manager.get_project_files(project_id)
                     for f in files:
                         if os.path.basename(f['file_path']).lower() == expected_source_filename.lower():
                             if os.path.exists(f['file_path']):
@@ -82,7 +83,8 @@ class ProofreadingService:
                 
                 if current_suffix.lower() in filename.lower():
                     expected_source_filename = re.sub(re.escape(current_suffix), source_suffix, filename, flags=re.IGNORECASE)
-                    project = self.project_manager.get_project(project_id)
+                    # [ASYNC CHANGE] Added await
+                    project = await self.project_manager.get_project(project_id)
                     if project and project.get('source_path') and os.path.exists(project['source_path']):
                         for root, dirs, files in os.walk(project['source_path']):
                             for f in files:
@@ -93,12 +95,12 @@ class ProofreadingService:
 
         return ""
 
-    def get_proofread_data(self, project_id: str, file_id: str) -> Dict[str, Any]:
-        project = self.project_manager.get_project(project_id)
+    async def get_proofread_data(self, project_id: str, file_id: str) -> Dict[str, Any]:
+        project = await self.project_manager.get_project(project_id)
         if not project:
             return None
             
-        files = self.project_manager.get_project_files(project_id)
+        files = await self.project_manager.get_project_files(project_id)
         target_file = next((f for f in files if f['file_id'] == file_id), None)
         if not target_file:
             return None
@@ -129,7 +131,7 @@ class ProofreadingService:
         if current_lang.lower() == source_lang.lower():
             template_file_path = target_file_path
         else:
-            template_file_path = self.find_source_template(target_file_path, source_lang, current_lang, project_id)
+            template_file_path = await self.find_source_template(target_file_path, source_lang, current_lang, project_id)
 
         if not template_file_path or not os.path.exists(template_file_path):
             template_file_path = target_file_path
@@ -168,7 +170,14 @@ class ProofreadingService:
                 if ai_trans is None: ai_trans = db_translation_map.get(str(i))
                 if ai_trans is None and ":" in key: ai_trans = db_translation_map.get(key.split(':')[0])
                 if ai_trans is None: ai_trans = db_translation_map.get(key + ":")
-                if ai_trans is None: ai_trans = text
+                
+                # [REVERTED] Disk Fallback removed as per user request (DB consistency check)
+                
+                # If still None, it means DB is missing this key.
+                # User requested explicit warning.
+                if ai_trans is None: 
+                    ai_trans = "⚠️ [DB_MISSING] " + text 
+
                 ai_translated_texts.append(ai_trans)
                 
                 # Disk Logic
@@ -200,13 +209,13 @@ class ProofreadingService:
             logger.error(f"ProofreadingService: Data preparation failed: {e}", exc_info=True)
             return None
 
-    def save_proofread_data(self, project_id: str, file_id: str, entries_list: List[Dict]) -> bool:
+    async def save_proofread_data(self, project_id: str, file_id: str, entries_list: List[Dict]) -> bool:
         """
         Saves user-corrected translations back to the target file.
         """
         try:
-            project = self.project_manager.get_project(project_id)
-            files = self.project_manager.get_project_files(project_id)
+            project = await self.project_manager.get_project(project_id)
+            files = await self.project_manager.get_project_files(project_id)
             target_file = next((f for f in files if f['file_id'] == file_id), None)
 
             if not project or not target_file:
@@ -239,7 +248,7 @@ class ProofreadingService:
             if current_lang == disk_source_lang:
                 template_file_path = target_file_path
             else:
-                template_file_path = self.find_source_template(target_file_path, disk_source_lang, current_lang, project_id)
+                template_file_path = await self.find_source_template(target_file_path, disk_source_lang, current_lang, project_id)
             
             if not template_file_path or not os.path.exists(template_file_path):
                 template_file_path = target_file_path
@@ -260,7 +269,7 @@ class ProofreadingService:
                 f.writelines(patched_lines)
 
             # 5. Update Project State
-            self.project_manager.update_file_status_by_id(file_id, "done")
+            await self.project_manager.repository.update_file_status_by_id(file_id, "done")
             return True
             
         except Exception as e:

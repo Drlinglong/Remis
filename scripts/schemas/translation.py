@@ -9,6 +9,8 @@ class CheckpointStatusRequest(BaseModel):
     @field_validator('target_lang_codes', mode='before')
     @classmethod
     def normalize_langs(cls, v):
+        if isinstance(v, str):
+            return [LanguageCode.from_str(v)]
         if isinstance(v, list):
             return [LanguageCode.from_str(code) if isinstance(code, str) else code for code in v]
         return v
@@ -42,6 +44,11 @@ class InitialTranslationRequest(BaseModel):
     @field_validator('target_lang_codes', mode='before')
     @classmethod
     def normalize_target_langs(cls, v):
+        if isinstance(v, str):
+            # Split by comma if it's a comma-separated string, just in case
+            if "," in v:
+                return [LanguageCode.from_str(code.strip()) for code in v.split(",") if code.strip()]
+            return [LanguageCode.from_str(v)]
         if isinstance(v, list):
             return [LanguageCode.from_str(code) if isinstance(code, str) else code for code in v]
         return v
@@ -71,6 +78,8 @@ class TranslationRequestV2(BaseModel):
     @field_validator('target_lang_codes', mode='before')
     @classmethod
     def normalize_target_langs(cls, v):
+        if isinstance(v, str):
+            return [LanguageCode.from_str(v)]
         if isinstance(v, list):
             return [LanguageCode.from_str(code) if isinstance(code, str) else code for code in v]
         return v

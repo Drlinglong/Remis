@@ -143,7 +143,14 @@
         "name": "LM Studio",
         "description_key": "api_desc_lm_studio",
         "chunk_size": 20,
-        "max_retries": 2
+        "max_retries": 2,
+        "available_models": [
+            "local-model",
+            "translategemma-27b-it",
+            "translategemma-9b-it",
+            "gemma-2-27b-it",
+            "gemma-2-9b-it"
+        ]
     },
     "vllm": {
         "base_url_env": "VLLM_BASE_URL",

@@ -136,7 +136,8 @@ class BaseGameValidator:
                     banned_chars = re.findall(r'[^\x00-\x7F]', content_to_check)
                     if banned_chars:
                         details_str = "".join(sorted(list(set(banned_chars))))
-                        message = self._get_i18n_message(rule["message_key"])
+                        # [FIX] Pass 'key' as content_to_check so i18n strings expecting {key} (like validation_vic3_tag_key_chinese) work.
+                        message = self._get_i18n_message(rule["message_key"], key=content_to_check)
                         details_key = params.get("details_key", "validation_generic_banned_chars_found")
                         details = self._get_i18n_message(details_key, match_text=match.group(0), banned_chars=details_str, key_content=content_to_check, found_text=match.group(0))
                         results.append(ValidationResult(

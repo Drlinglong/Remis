@@ -99,8 +99,8 @@ class QuoteExtractor:
                 content += char
                 escape_next = False
             elif char == '\\':
-                # 反斜杠，标记下一个字符为转义
-                content += char
+                # 反斜杠，标记下一个字符为转义，但不添加到内容中（也就是消耗掉这个反斜杠）
+                # content += char  <-- REMOVED
                 escape_next = True
             elif char == '"':
                 # 找到结束引号

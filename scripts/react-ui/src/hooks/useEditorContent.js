@@ -18,6 +18,12 @@ export const useEditorContent = () => {
     // Draft cache
     const [draftCache, setDraftCache] = usePersistentState('remis_draft_cache', null);
 
+    // Use ref to access latest draftCache in loadEditorData without adding it as dependency
+    const draftCacheRef = useRef(draftCache);
+    useEffect(() => {
+        draftCacheRef.current = draftCache;
+    }, [draftCache]);
+
     // Refs for editors and scroll sync
     const originalEditorRef = useRef(null);
     const aiEditorRef = useRef(null);
@@ -106,9 +112,10 @@ export const useEditorContent = () => {
                     contentToSet = finalStr;
                 }
 
-                // Restore draft if exists
-                if (draftCache && draftCache.projectId === pId && draftCache.fileId === targetId) {
-                    contentToSet = draftCache.content;
+                // Restore draft if exists (Using ref to avoid dependency loop)
+                const cache = draftCacheRef.current;
+                if (cache && cache.projectId === pId && cache.fileId === targetId) {
+                    contentToSet = cache.content;
                     notifications.show({ title: 'Draft Restored', message: 'Restored unsaved changes.', color: 'blue' });
                 }
 
@@ -125,7 +132,7 @@ export const useEditorContent = () => {
         } finally {
             setLoading(false);
         }
-    }, [alignEntries, draftCache]);
+    }, [alignEntries]); // draftCache removed from deps
 
     // Auto-save draft
     useEffect(() => {

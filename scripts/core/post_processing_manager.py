@@ -174,21 +174,54 @@ class PostProcessingManager:
         
         self.logger.info("\n" + "="*60)
     
+    def _sanitize_content(self, content: str) -> str:
+        """
+        [Sanitizer] 自动修复常见的 AI 格式幻觉。
+        """
+        import re
+        original_content = content
+        
+        # 1. 修复全角感叹号作为结束符 (#!#！ -> #!)
+        content = content.replace("#!#！", "#!")
+        content = content.replace("#！", "#!")
+        
+        # 2. 修复错误的换行符 (nn -> \n\n) - 仅在特定上下文中，避免误伤
+        # Vic3 通常使用 \n 换行，但也支持 \n\n。AI 有时会把 \n\n 转义成 nn。
+        # 我们可以保守地修复 quotes 内部的 nn? 暂时全局修复风险较大，仅修复显然的模式。
+        # 观察用户案例: "...#!#!nn#variable..." -> "\n\n"
+        content = content.replace("#!#!nn#", "#!#!\n\n#")
+        content = content.replace("!nn#", "!\n\n#")
+        
+        # 3. 修复全角标点后紧接TAG缺少空格的问题 (虽然Vic3不一定强制，但好看)
+        # content = re.sub(r'([。！？])#', r'\1 #', content) # 暂时不开启，避免破坏特定紧凑排版
+        
+        if content != original_content:
+            self.logger.info(i18n.t("post_processing_sanitized_content"))
+        
+        return content
+
     def _validate_single_file(self, file_path: str, target_lang: dict, source_lang: dict, dynamic_valid_tags: Optional[List[str]] = None):
         """
-        验证单个文件
-        
-        Args:
-            file_path: 文件路径
-            target_lang: 目标语言信息
-            source_lang: 源语言信息
-            dynamic_valid_tags: 动态生成的有效标签列表
+        验证单个文件，均值并自动修复常见格式错误
         """
         try:
             # 读取文件内容
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
             
+            # [Fix] 自动清理幻觉
+            sanitized_content = self._sanitize_content(content)
+            
+            # 如果内容有变化，回写文件
+            if sanitized_content != content:
+                try:
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(sanitized_content)
+                    content = sanitized_content # 使用修复后的内容进行验证
+                    self.logger.info(f"Auto-fixed formatting issues in {os.path.basename(file_path)}")
+                except Exception as e:
+                    self.logger.error(f"Failed to write back sanitized content: {e}")
+
             # 按行分割内容
             lines = content.split('\n')
             

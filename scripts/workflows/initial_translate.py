@@ -1,6 +1,7 @@
-# scripts/workflows/initial_translate.py
 import os
+import shutil
 import logging
+import asyncio
 from typing import Any, Optional, List, Iterator
 
 from scripts.core import file_parser, api_handler, file_builder, asset_handler, directory_handler
@@ -181,7 +182,8 @@ def run(mod_name: str,
     if project_id:
         try:
             from scripts.shared.services import project_manager
-            proj = project_manager.get_project(project_id)
+            import asyncio
+            proj = asyncio.run(project_manager.get_project(project_id))
             if proj:
                 archive_mod_name = proj['name']
         except Exception as e:
@@ -312,8 +314,8 @@ def run(mod_name: str,
 
         # 初始化并行处理器
         max_workers = RECOMMENDED_MAX_WORKERS
-        if selected_provider == "ollama":
-            max_workers = 1 # Ollama usually can't handle parallel requests well locally
+        if selected_provider in ["ollama", "lm_studio", "local", "vllm", "koboldcpp", "oobabooga", "hunyuan"]:
+            max_workers = 1 # Local LLMs usually can't handle parallel requests well (OOM risk)
         
         processor = ParallelProcessor(max_workers=max_workers)
 
@@ -402,7 +404,7 @@ def run(mod_name: str,
                         import uuid
                         # Re-generate the file_id using the same logic as FileService
                         fid = str(uuid.uuid5(uuid.NAMESPACE_URL, source_file_path.lower().replace('\\', '/')))
-                        project_manager.repository.update_file_status_by_id(fid, 'translated')
+                        asyncio.run(project_manager.repository.update_file_status_by_id(fid, 'translated'))
                     except Exception as e:
                         logging.error(f"Failed to update DB status for {file_task.filename}: {e}")
 
@@ -443,11 +445,12 @@ def run(mod_name: str,
     # ───────────── 9. 自动同步项目 ─────────────
     if project_id:
         try:
+            import asyncio
             logging.info(f"Automatically syncing project {project_id}...")
             # 1. 注册输出目录
-            project_manager.add_translation_path(project_id, output_dir_path)
+            asyncio.run(project_manager.add_translation_path(project_id, output_dir_path))
             # 2. 触发全量刷新以确保 UI 一致
-            project_manager.refresh_project_files(project_id)
+            asyncio.run(project_manager.refresh_project_files(project_id))
         except Exception as e:
             logging.error(f"Failed to auto-sync project: {e}")
 

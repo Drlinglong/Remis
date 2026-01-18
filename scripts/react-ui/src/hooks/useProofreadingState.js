@@ -28,13 +28,31 @@ const useProofreadingState = () => {
     // Wire up navigation change to editor loading
     useEffect(() => {
         if (navigation.selectedProject && navigation.currentSourceFile) {
+            const requestedFileId = navigation.currentTargetFile
+                ? navigation.currentTargetFile.file_id
+                : navigation.currentSourceFile.file_id;
+
+            // G U A R D: Check if we already have this file loaded
+            if (editor.fileInfo &&
+                editor.fileInfo.project_id === navigation.selectedProject.project_id &&
+                editor.fileInfo.file_id === requestedFileId) {
+                return; // Already loaded, skip to prevent loop
+            }
+
+            // Only load if different
             editor.loadEditorData(
                 navigation.selectedProject.project_id,
                 navigation.currentSourceFile.file_path,
-                navigation.currentTargetFile ? navigation.currentTargetFile.file_id : null
+                requestedFileId
             );
         }
-    }, [navigation.selectedProject, navigation.currentSourceFile, navigation.currentTargetFile, editor.loadEditorData]);
+    }, [
+        navigation.selectedProject,
+        navigation.currentSourceFile,
+        navigation.currentTargetFile,
+        editor.loadEditorData,
+        editor.fileInfo // Add fileInfo to dependencies
+    ]);
 
     const handleValidate = useCallback(async () => {
         if (!navigation.selectedProject) return;

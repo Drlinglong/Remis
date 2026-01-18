@@ -179,8 +179,9 @@ class ArchiveManager:
                         entry_key = entry_key[:-1].strip()
                 
                     # Find source entry
+                    # [FIX] Relax query to handle legacy entries where file_path might be empty
                     cursor.execute(
-                        "SELECT source_entry_id FROM source_entries WHERE version_id = ? AND entry_key = ? AND file_path = ?",
+                        "SELECT source_entry_id FROM source_entries WHERE version_id = ? AND entry_key = ? AND (file_path = ? OR file_path = '' OR file_path IS NULL)",
                         (version_id, entry_key, filename)
                     )
                     row = cursor.fetchone()
@@ -189,7 +190,7 @@ class ArchiveManager:
                     if not row and ":" in entry_key:
                         pure_key = entry_key.split(':')[0]
                         cursor.execute(
-                            "SELECT source_entry_id FROM source_entries WHERE version_id = ? AND entry_key = ? AND file_path = ?",
+                            "SELECT source_entry_id FROM source_entries WHERE version_id = ? AND entry_key = ? AND (file_path = ? OR file_path = '' OR file_path IS NULL)",
                             (version_id, pure_key, filename)
                         )
                         row = cursor.fetchone()
@@ -221,6 +222,7 @@ class ArchiveManager:
     def get_entries(self, mod_name: str, file_path: str, language: str = "zh-CN") -> List[Dict[str, Any]]:
         """
         Retrieves merged source and translation entries for a specific file in the latest version of a mod.
+        Includes a 'Deep Search' fallback to find translations from previous versions if the current version lacks them.
         """
         if not self.connection: return []
         cursor = self.connection.cursor()
@@ -237,34 +239,57 @@ class ArchiveManager:
         if not ver_row: return []
         version_id = ver_row['version_id']
 
-        # 3. Fetch Entries
-        # Note: file_path in DB might be just filename or relative path depending on how it was saved.
-        # In create_source_version, I saved it as `file_data.get('filename')`.
-        # The `file_path` arg passed here is likely the relative path.
-        # We need to match the filename.
+        # 3. Fetch Source Entries for CURRENT Version
         filename = os.path.basename(file_path)
+        
+        # We fetch source entries first. 
+        # Note: We select entry_key to map them later.
+        cursor.execute("SELECT source_entry_id, entry_key, source_text FROM source_entries WHERE version_id = ? AND file_path = ?", (version_id, filename))
+        source_rows = cursor.fetchall()
+        
+        if not source_rows:
+            return []
 
-        query = '''
-            SELECT
-                s.entry_key as key,
-                s.source_text as original,
-                t.translated_text as translation
-            FROM source_entries s
-            LEFT JOIN translated_entries t ON s.source_entry_id = t.source_entry_id AND t.language_code = ?
-            WHERE s.version_id = ? AND s.file_path = ?
+        # 4. Deep Search for Translations
+        # Instead of a simple JOIN which only checks the current source_entry_id,
+        # we want to match valid translations for these Keys and FilePath from ANY source_entry_id (previous versions included).
+        
+        # Optimize: Get all translations for this file_path and language from the DB derived from ANY version of this mod
+        # We can filter by file_path and language.
+        
+        # Get mapping: entry_key -> translated_text (latest by timestamp)
+        # We join back to source_entries to get the key.
+        # We filter source_entries by file_path and mod_id (implicit via keys unique to files? No, file_path is safer)
+        # Wait, source_entries link to version, version links to mod.
+        
+        deep_query = '''
+            SELECT s.entry_key, t.translated_text
+            FROM translated_entries t
+            JOIN source_entries s ON t.source_entry_id = s.source_entry_id
+            JOIN source_versions v ON s.version_id = v.version_id
+            WHERE v.mod_id = ? AND s.file_path = ? AND t.language_code = ?
+            ORDER BY t.last_translated_at ASC
         '''
+        # We convert to dict, keeping the LAST one (latest date due to ASC order, or we can use DESC and ignore subsequent)
+        # Actually ORDER BY ASC means the last one in the loop is the latest one.
+        
+        cursor.execute(deep_query, (mod_id, filename, language))
+        trans_rows = cursor.fetchall()
+        
+        translation_map = {row['entry_key']: row['translated_text'] for row in trans_rows}
 
-        cursor.execute(query, (language, version_id, filename))
-        rows = cursor.fetchall()
-
-        # [FALLBACK] Build a smart map. If we have keys like 'remis.1.t' in DB, 
-        # but the request expects 'remis.1.t:0', we need to return both or translate them.
-        # Actually, the consumer (proofreading.py) will do the mapping.
-        # But we can help by providing both if needed or ensuring the key format is flexible.
         results = []
-        for row in rows:
-            entry = dict(row)
-            results.append(entry)
+        for s_row in source_rows:
+            key = s_row['entry_key']
+            original = s_row['source_text']
+            # Try to get translation from the global map
+            translation = translation_map.get(key, None)
+            
+            results.append({
+                "key": key,
+                "original": original,
+                "translation": translation
+            })
             
         return results
 

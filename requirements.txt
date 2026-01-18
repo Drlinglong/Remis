@@ -11,6 +11,7 @@ google-genai
 # These are used for testing and development
 pytest
 pytest-mock
+flake8
 
 # Refactoring Dependencies
 pydantic

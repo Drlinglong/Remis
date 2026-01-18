@@ -15,6 +15,7 @@ class LanguageCode(str, Enum):
     PT_BR = "pt-BR"
     RU = "ru"
     TR = "tr"
+    CUSTOM = "custom"
 
     @classmethod
     def from_str(cls, value: str):

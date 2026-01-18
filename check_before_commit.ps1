@@ -28,7 +28,7 @@ $allPassed = $true
 # ============================================
 # 1. Python Backend Tests
 # ============================================
-Write-Host "[1/4] Running Python Tests (pytest)..." -ForegroundColor Yellow
+Write-Host "[1/5] Running Python Tests (pytest)..." -ForegroundColor Yellow
 
 try {
     $pytestResult = pytest --quiet --tb=line 2>&1
@@ -50,9 +50,36 @@ Write-Host ""
 
 # ============================================
 # ============================================
-# 2. Frontend Linting (ESLint)
+# 2. Python Linting (Flake8)
 # ============================================
-Write-Host "[2/4] Running Frontend Linting (ESLint)..." -ForegroundColor Yellow
+Write-Host "[2/5] Running Python Linting (Flake8)..." -ForegroundColor Yellow
+
+try {
+    # Check only critical errors (SyntaxError, NameError, etc.) first
+    # E9: SyntaxError, F63: NameError, F7: Statement Error, F82: Undefined name in __all__
+    # scripts and tests are the main python folders
+    $flake8Result = flake8 scripts tests --count --select=E9,F63,F7,F82 --show-source --statistics 2>&1
+    $flake8ExitCode = $LASTEXITCODE
+    
+    if ($flake8ExitCode -eq 0) {
+        Write-Host "  ✓ Python lint checks PASSED" -ForegroundColor Green
+    } else {
+        Write-Host "  ✗ Python lint checks FAILED" -ForegroundColor Red
+        Write-Host $flake8Result -ForegroundColor Red
+        $allPassed = $false
+    }
+} catch {
+    Write-Host "  ⚠ Flake8 not found or error occurred. Please install: pip install flake8" -ForegroundColor Yellow
+    $allPassed = $false
+}
+
+Write-Host ""
+
+# ============================================
+# ============================================
+# 3. Frontend Linting (ESLint)
+# ============================================
+Write-Host "[3/5] Running Frontend Linting (ESLint)..." -ForegroundColor Yellow
 
 $frontendDir = "scripts\react-ui"
 
@@ -90,7 +117,7 @@ Write-Host ""
 # ============================================
 # 3. Frontend Unit Tests (Vitest)
 # ============================================
-Write-Host "[3/4] Running Frontend Tests (Vitest)..." -ForegroundColor Yellow
+Write-Host "[4/5] Running Frontend Tests (Vitest)..." -ForegroundColor Yellow
 
 if (Test-Path "scripts\react-ui") {
     Push-Location "scripts\react-ui"
@@ -130,7 +157,7 @@ Write-Host ""
 # ============================================
 # 4. Git Status Check
 # ============================================
-Write-Host "[4/4] Checking Git Status..." -ForegroundColor Yellow
+Write-Host "[5/5] Checking Git Status..." -ForegroundColor Yellow
 
 $gitStatus = git status --porcelain
 
