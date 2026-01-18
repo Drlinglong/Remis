@@ -62,17 +62,27 @@ class GeminiCLIHandler(BaseApiHandler):
 
     def _verify_cli_availability(self):
         try:
+            # Check version with a short timeout. It should be instant.
             cmd = ["powershell", "-ExecutionPolicy", "Bypass", "-Command", f"{self.cli_path} --version"]
-            kwargs = { "capture_output": True, "text": True, "timeout": 30 }
+            kwargs = { "capture_output": True, "text": True, "timeout": 5 }
             if os.name == 'nt':
                 kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
             result = subprocess.run(cmd, **kwargs)
+            
             if result.returncode != 0:
                 raise RuntimeError(f"Gemini CLI version check failed: {result.stderr}")
+                
             self.logger.info(i18n.t("gemini_cli_available", version=result.stdout.strip()))
+            
+        except subprocess.TimeoutExpired:
+            error_msg = i18n.t("gemini_cli_timeout", default="Gemini CLI check timed out (5s). Please check installation or switch provider.")
+            self.logger.error(error_msg)
+            raise RuntimeError(error_msg)
+            
         except FileNotFoundError:
             self.logger.error(i18n.t("gemini_cli_not_found", cli_path=self.cli_path))
             raise
+            
         except Exception as e:
             self.logger.exception(f"An unexpected error occurred during Gemini CLI availability check: {e}")
             raise

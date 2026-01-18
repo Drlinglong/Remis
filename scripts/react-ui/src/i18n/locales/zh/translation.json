@@ -850,7 +850,7 @@
   "context_sidebar.tab_history": "历史",
   "homepage_pie_chart_status_title": "项目进度",
   "homepage_pie_chart_distribution_title": "游戏分布",
-  "homepage_pie_chart_todo": "待办",
+  "gemini_cli_timeout": "Gemini CLI 响应超时 (5s)。请检查网络或安装状态，建议切换到 API 模式。""homepage_pie_chart_todo": "待办",
   "homepage_pie_chart_in_progress": "翻译中",
   "homepage_pie_chart_paused": "挂起",
   "homepage_pie_chart_done": "已完工"
