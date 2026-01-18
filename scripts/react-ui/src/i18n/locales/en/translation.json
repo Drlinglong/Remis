@@ -356,6 +356,7 @@
   "api_key_success_message": "API Key updated successfully",
   "api_key_error_title": "Error",
   "api_key_error_fetch": "Failed to load API settings",
+  "post_processing_sanitized_content": "Auto-sanitized content: fixed common AI formatting hallucinations.",
   "proofreading.select_mod": "Select Mod",
   "proofreading.select_file": "Select File",
   "proofreading.original": "Original (Reference)",
@@ -798,7 +799,8 @@
   "context_sidebar.tab_history": "History",
   "homepage_pie_chart_status_title": "Project Progress",
   "homepage_pie_chart_distribution_title": "Game Distribution",
-  "gemini_cli_timeout": "Gemini CLI check timed out (5s). Please check your internet or installation, or switch to API mode.""homepage_pie_chart_todo": "To Do",
+  "gemini_cli_timeout": "Gemini CLI check timed out (5s). Please check your internet or installation, or switch to API mode.",
+  "homepage_pie_chart_todo": "To Do",
   "homepage_pie_chart_in_progress": "In Progress",
   "homepage_pie_chart_paused": "Paused",
   "homepage_pie_chart_done": "Done"

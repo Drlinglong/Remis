@@ -15,16 +15,24 @@ VICTORIA3_SINGLE_PROMPT_TEMPLATE = """You are a direct, one-to-one translation e
 The text you are translating is for a Victoria 3 game mod named '{mod_name}'. \
 Translate the following {task_description} from {source_lang_name} to {target_lang_name}.\n"""
 
-VICTORIA3_FORMAT_PROMPT = """CRITICAL FORMATTING: Your response MUST be a valid JSON array (a list of strings), with the EXACT same number of items as the input array ({chunk_size} items).\nEach string in the JSON array must be the translation of the corresponding item in the input array.\nDO NOT add any explanations or notes outside the JSON structure.\nExample for 2 items: [\"translation for item 1\", \"translation for item 2\"]\n\nCRITICAL DATA HYGIENE RULE: Your task is to translate meaningful text. If you encounter an input line that is clearly a placeholder, empty, or contains only non-linguistic characters (e.g., only spaces, \"...\", \"???\", \"tbd\", \"todo\", \"wip\"), you MUST NOT attempt to translate it or return it as is. Instead, you MUST return the exact string \"WARNING: Source localization entry is incomplete\" as the translation for that specific line number.you MUST return the string "WARNING: Source localization entry is incomplete" **enclosed in double quotes** as a valid JSON array element.\n\n🚨 CRITICAL QUOTE RULE: DO NOT add extra quotes around your translations!\nThe game engine will handle quote formatting automatically. Adding quotes will break the display!\nEXAMPLE: If input is 'software', output should be '软件', NOT '"软件"'!\n\n🚨 CRITICAL SPACING RULE: PRESERVE spaces after formatting commands!\n❌ WRONG: #BOLDtext#! (missing space after #BOLD)\n✅ CORRECT: #BOLD text#! (space after #BOLD)\n❌ WRONG: #Ltext#! (missing space after #L)\n✅ CORRECT: #L text#! (space after #L)\n❌ WRONG: #italictext#! (missing space after #italic)\n✅ CORRECT: #italic text#! (space after #italic)\nFormatting commands MUST be followed by a space to work properly!\n\n🚨 CRITICAL TOKEN PRESERVATION RULE:
-The text contains special placeholders [[_NL_]] and [[_QT_]].
-You MUST preserve these placeholders EXACTLY as they are.
-DO NOT translate them. DO NOT replace them with real punctuation.
-Treat [[_QT_]] as if it were a variable name like $VARIABLE$.
+VICTORIA3_FORMAT_PROMPT = """Output Logic:
+1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
+2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
+3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
 
-EXAMPLE:
-- Input: "Hello[[_NL_]]World [[_QT_]]quoted text[[_QT_]]"
-- Correct Output: "你好[[_NL_]]世界 [[_QT_]]引用文本[[_QT_]]"
-- Incorrect Output: "你好\\n世界 "引用文本"" (This will break the system!)\n\nPreserve the following Victoria 3 specific syntax rules precisely:\n\n1. **Data Functions, Scopes, and Concepts ([...])**\n\n   This is the most complex syntax. The entire structure, including brackets, periods, parentheses, and single quotes, MUST be preserved.\n\n   a. **Basic & Chained Functions**: Preserve simple functions like [GetName] and chained functions like [SCOPE.GetType.GetFunction] completely.\n\n   b. **Functions with Parameters (...)**: Many functions use parentheses to hold parameters.\n\n       Internal keys and scope names inside single quotes, like 'concept_construction' or 'usa_nation_scope', MUST NOT be translated.\n\n       A special, critical exception is the `[Concept('key1', 'key2')]` function. In this specific case, BOTH 'key1' AND 'key2' are internal keys and MUST NOT be translated. Preserve the entire structure exactly.\n\n       Example: For `[Concept('concept_construction', 'State Construction Efficiency')]`, the output MUST be `[Concept('concept_construction', 'State Construction Efficiency')]`. DO NOT translate 'State Construction Efficiency'.\n\n       For other functions that may contain user-facing text, that text SHOULD BE translated.\n\n   c. **Function Formatting (using |)**: A pipe | before the closing bracket ] adds formatting. Preserve the entire formatting code.\n\n       Examples: [GetValue|*] (formats to K/M/B), [GetValue|+] (adds sign and color), [GetValue|%] (adds percent sign), [GetValue|2] (formats to 2 decimal places).\n\n2. **Formatting Commands (#key ... #!)**\n\n   These commands start with a #key, followed by a required space, the text, and an end tag #!.\n\n   You MUST preserve the #key and #! tags. The text between them SHOULD be translated.\n\n   a. **Simple Formatting (Color & Style)**:\n\n       Color examples: #R text#! (red), #gold text#! (gold).\n\n       Style examples: #b text#! (bold), #italic text#! (italic), #L text#! (underline).\n\n   b. **Special Tooltip Formatting**: This is a complex but specific format.\n\n       Structure: #tooltippable;tooltip:<tooltip_key> text_to_display#! \n\n       You MUST preserve the #tooltippable;tooltip:<tooltip_key> ... #! part.\n\n       The text_to_display at the end SHOULD be translated. The <tooltip_key> MUST NOT be translated.\n\n3. **Text Icons (@key!)**\n\n   These are self-contained icon tags. The entire tag, including @ and !, MUST be preserved completely.\n\n   Examples: @capitalists!, @money!, @warning!.\n\n4. **Internal Keys and Code References**\n\n   Strings with underscores and no spaces, like my_loc or usa_nation_scope, are internal keys. They MUST NOT be translated.\n\n5. **Industrial Era Terminology**\n\n   Preserve all industrial, colonial, and Victorian era terminology accurately. Maintain the 19th and early 20th century tone appropriate for the Industrial Revolution and Age of Imperialism.\n\n--- INPUT LIST ---\n{numbered_list}\n--- END OF INPUT LIST ---"""
+Syntax Rules (Examples):
+
+- **Variables**: "Gain $MONEY|+$" -> "获得 $MONEY|+$" (Keep exactly as is)
+- **Formatting**: "#gold Good#! Job" -> "#gold 干得好#! 工作" (Keep tags, translate content)
+- **Complex Formatting**: "#v #b Data#! #!" -> "#v #b 数据#! #!" (Translate content even if nested)
+- **Functions**: "[GetDate]" -> "[GetDate]" (Do not translate functions)
+- **Concepts**: "[Concept('war', 'attack')]" -> "[Concept('war', 'attack')]" (NEVER translate keys inside Concept)
+- **Icons**: "@money!" -> "@money!" (Keep icons exactly as is)
+
+Translate the following list:
+--- INPUT LIST ---
+{numbered_list}
+--- END OF INPUT LIST ---"""
 
 # --- Stellaris Prompts ---
 STELLARIS_PROMPT_TEMPLATE = """You are a professional translator specializing in the grand strategy science-fiction game Stellaris. \
@@ -34,16 +42,23 @@ STELLARIS_SINGLE_PROMPT_TEMPLATE = """You are a direct, one-to-one translation e
 The text you are translating is for a Stellaris game mod named '{mod_name}'. \
 Translate the following {task_description} from {source_lang_name} to {target_lang_name}.\\n"""
 
-STELLARIS_FORMAT_PROMPT = """CRITICAL FORMATTING: Your response MUST be a valid JSON array (a list of strings), with the EXACT same number of items as the input array ({chunk_size} items).\nEach string in the JSON array must be the translation of the corresponding item in the input array.\nDO NOT add any explanations or notes outside the JSON structure.\nExample for 2 items: [\"translation for item 1\", \"translation for item 2\"]\n\nCRITICAL DATA HYGIENE RULE: Your task is to translate meaningful text. If you encounter an input line that is clearly a placeholder, empty, or contains only non-linguistic characters (e.g., only spaces, \"...\", \"???\", \"tbd\", \"todo\", \"wip\"), you MUST NOT attempt to translate it or return it as is. Instead, you MUST return the exact string \"WARNING: Source localization entry is incomplete\" as the translation for that specific line number.you MUST return the string "WARNING: Source localization entry is incomplete" **enclosed in double quotes** as a valid JSON array element.\n\n🚨 CRITICAL QUOTE RULE: DO NOT add extra quotes around your translations!\nThe game engine will handle quote formatting automatically. Adding quotes will break the display!\nEXAMPLE: If input is 'software', output should be '软件', NOT '"软件"'!\n\n🚨 CRITICAL SPACING RULE: PRESERVE spaces after formatting commands!\n❌ WRONG: #BOLDtext#! (missing space after #BOLD)\n✅ CORRECT: #BOLD text#! (space after #BOLD)\n❌ WRONG: #Ltext#! (missing space after #L)\n✅ CORRECT: #L text#! (space after #L)\n❌ WRONG: #italictext#! (missing space after #italic)\n✅ CORRECT: #italic text#! (space after #italic)\nFormatting commands MUST be followed by a space to work properly!\n\n🚨 CRITICAL TOKEN PRESERVATION RULE:
-The text contains special placeholders [[_NL_]] and [[_QT_]].
-You MUST preserve these placeholders EXACTLY as they are.
-DO NOT translate them. DO NOT replace them with real punctuation.
-Treat [[_QT_]] as if it were a variable name like $VARIABLE$.
+STELLARIS_FORMAT_PROMPT = """Output Logic:
+1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
+2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
+3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
 
-EXAMPLE:
-- Input: "Hello[[_NL_]]World [[_QT_]]quoted text[[_QT_]]"
-- Correct Output: "你好[[_NL_]]世界 [[_QT_]]引用文本[[_QT_]]"
-- Incorrect Output: "你好\\n世界 "引用文本"" (This will break the system!)\n\nPreserve the following special syntax rules precisely:\n\n1. **Scoped Commands and Dynamic Text ([...])**\n\n   These commands, like [Root.GetName], [Actor.GetAllianceName], or GetDate, fetch dynamic text and MUST be preserved completely, including scopes, periods, and functions. Do not translate anything inside them.\n\n   Escaping Rule: A double bracket [[ is an escape sequence for a single [. You MUST preserve it as [[.\n\n   Scripting Rule: A backslash-escaped command like \\\\\\[This.GetName] is for scripts and MUST be preserved with the leading \\\\. \n\n2. **Variables and Icons ($...$, £...£)**\n\n   Basic variables like $variable_name$ and icons like £energy£ MUST be preserved completely.\n\n   Modifiers (using |): Some variables and icons contain a pipe | to add formatting. The entire structure, including the pipe and the modifier, MUST be preserved.\n\n       Number Formatting: e.g., $VALUE|*1$ (formats to 1 decimal place).\n\n       Color Formatting: e.g., $AGE|Y$ (colors the variable's output).\n\n       Icon Frames: e.g., £leader_skill|3£ (selects the 3rd frame of the icon).\n\n3. **Formatting Tags (§...§!)**\n\n   Color tags start with § followed by a letter (e.g., §Y) and end with §!.\n\n   You MUST preserve the tags themselves (§Y, §!), but you SHOULD translate the plain text inside them.\n\n   Example: For §YImportant Text§!, translate \"Important Text\" but keep §Y and §!.\n\n4. **Internal Keys and Code References**\n\n   Strings with underscores and no spaces, like mm_strategic_region or com_topbar_interests, are internal keys. They MUST NOT be translated.\n\n5. **Tabs**\n\n   Preserve all tabs (\\t) exactly as they appear in the source.\n\n6. **Science Fiction Terminology**\n\n   Preserve all science fiction, space exploration, and futuristic terminology accurately. Maintain the grand strategy science-fiction tone appropriate for space exploration and interstellar empire management.\n\n--- INPUT LIST ---\n{numbered_list}\n--- END OF INPUT LIST ---"""
+Syntax Rules (Examples):
+
+- **Variables**: "Gain $ENERGY|Y$" -> "获得 $ENERGY|Y$" (Keep exactly as is)
+- **Icons**: "Cost: £minerals£" -> "花费: £minerals£" (Keep exactly as is)
+- **Formatting**: "§RHigh§! Voltage" -> "§R高§! 电压" (Keep tags, translate content)
+- **Scopes**: "[Root.GetName]" -> "[Root.GetName]" (Do not translate scopes)
+- **Escapes**: "\\\\[This.GetDate]" -> "\\\\[This.GetDate]" (Keep backslash escapes)
+
+Translate the following list:
+--- INPUT LIST ---
+{numbered_list}
+--- END OF INPUT LIST ---"""
 
 # --- Europa Universalis IV Prompts ---
 EU4_PROMPT_TEMPLATE = """You are a professional translator specializing in the grand strategy game Europa Universalis IV, \
@@ -54,16 +69,24 @@ EU4_SINGLE_PROMPT_TEMPLATE = """You are a direct, one-to-one translation engine.
 The text you are translating is for an Europa Universalis IV game mod named '{mod_name}'. \
 Translate the following {task_description} from {source_lang_name} to {target_lang_name}.\\n"""
 
-EU4_FORMAT_PROMPT = """CRITICAL FORMATTING: Your response MUST be a valid JSON array (a list of strings), with the EXACT same number of items as the input array ({chunk_size} items).\nEach string in the JSON array must be the translation of the corresponding item in the input array.\nDO NOT add any explanations or notes outside the JSON structure.\nExample for 2 items: [\"translation for item 1\", \"translation for item 2\"]\n\nCRITICAL DATA HYGIENE RULE: Your task is to translate meaningful text. If you encounter an input line that is clearly a placeholder, empty, or contains only non-linguistic characters (e.g., only spaces, \"...\", \"???\", \"tbd\", \"todo\", \"wip\"), you MUST NOT attempt to translate it or return it as is. Instead, you MUST return the exact string \"WARNING: Source localization entry is incomplete\" as the translation for that specific line number.you MUST return the string "WARNING: Source localization entry is incomplete" **enclosed in double quotes** as a valid JSON array element.\n\n🚨 CRITICAL QUOTE RULE: DO NOT add extra quotes around your translations!\nThe game engine will handle quote formatting automatically. Adding quotes will break the display!\nEXAMPLE: If input is 'software', output should be '软件', NOT '"软件"'!\n\n🚨 CRITICAL SPACING RULE: PRESERVE spaces after formatting commands!\n❌ WRONG: #BOLDtext#! (missing space after #BOLD)\n✅ CORRECT: #BOLD text#! (space after #BOLD)\n❌ WRONG: #Ltext#! (missing space after #L)\n✅ CORRECT: #L text#! (space after #L)\n❌ WRONG: #italictext#! (missing space after #italic)\n✅ CORRECT: #italic text#! (space after #italic)\nFormatting commands MUST be followed by a space to work properly!\n\n🚨 CRITICAL TOKEN PRESERVATION RULE:
-The text contains special placeholders [[_NL_]] and [[_QT_]].
-You MUST preserve these placeholders EXACTLY as they are.
-DO NOT translate them. DO NOT replace them with real punctuation.
-Treat [[_QT_]] as if it were a variable name like $VARIABLE$.
+EU4_FORMAT_PROMPT = """Output Logic:
+1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
+2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
+3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
 
-EXAMPLE:
-- Input: "Hello[[_NL_]]World [[_QT_]]quoted text[[_QT_]]"
-- Correct Output: "你好[[_NL_]]世界 [[_QT_]]引用文本[[_QT_]]"
-- Incorrect Output: "你好\\n世界 "引用文本"" (This will break the system!)\n\nPreserve the following Europa Universalis IV specific syntax rules precisely:\n\n1. **Bracket Commands ([...]) - Modern Dynamic Text**\n\n   This is the modern system for dynamic text, using scopes and functions.\n\n   Structures like [Root.GetAdjective] or [From.From.Owner.Monarch.GetHerHim] MUST be preserved completely. Do not translate anything inside the brackets.\n\n2. **Legacy Variables ($...$)**\n\n   These are a large set of predefined variables enclosed in dollar signs.\n\n   Examples: $CAPITAL$, $COUNTRY_ADJ$, $MONARCH$, $YEAR$.\n\n   These variables MUST be preserved completely.\n\n3. **Formatting, Icons, and Special Characters (§, £, @, ¤)**\n\n   a. **Basic Color Formatting (§...§!)**:\n\n       This format is used for simple text coloring.\n\n       Example: §RRed Text§!. You MUST preserve the tags (§R, §!), but you SHOULD translate the text inside.\n\n   b. **Complex Variable Formatting (also using §...§!)**:\n\n       This is a complex wrapper for formatting variables from section 2. There are two patterns. The entire structure MUST be preserved completely.\n\n       Pattern 1 (Codes before variable): §<CODES>$VARIABLE$§!. Example: §=Y3$VAL$§!.\n\n       Pattern 2 (Codes after pipe): $VARIABLE|<CODES>§!. Example: $VAL|%2+$!.\n\n   c. **Icons (£...£ and ¤)**:\n\n       Most icons are wrapped in pound symbols, e.g., £adm£. These MUST be preserved.\n\n       Special Exception: The ducats icon uses the ¤ symbol. This MUST also be preserved.\n\n   d. **Country Flags (@TAG)**:\n\n       A tag like @HAB represents a country flag and MUST be preserved completely. It can be combined with bracket commands, e.g., @[Root.GetTag].\n\n4. **Internal Keys and Code References**\n\n   Strings with underscores and no spaces, like button_text, are internal keys. They MUST NOT be translated.\n\n5. **Historical Terminology**\n\n   Preserve all historical, colonial, and trade terminology accurately. Maintain the Renaissance/Enlightenment era tone appropriate for early modern European history.\n\n--- INPUT LIST ---\n{numbered_list}\n--- END OF INPUT LIST ---"""
+Syntax Rules (Examples):
+
+- **Variables (Legacy)**: "$YEAR$" -> "$YEAR$" (Keep exactly as is)
+- **Formatting**: "§RRed§! Text" -> "§R红色§! 文本" (Keep tags, translate content)
+- **Dynamic Scopes**: "[Root.GetAdjective]" -> "[Root.GetAdjective]" (Do not translate scopes)
+- **Complex Vars**: "§=Y3$VAL$§!" -> "§=Y3$VAL$§!" (Keep wrapper and variable as is)
+- **Icons**: "£adm£" -> "£adm£" (Keep icons exactly as is)
+- **Flags**: "@HAB" -> "@HAB" (Keep country flags exactly as is)
+
+Translate the following list:
+--- INPUT LIST ---
+{numbered_list}
+--- END OF INPUT LIST ---"""
 
 # --- Hearts of Iron IV Prompts ---
 HOI4_PROMPT_TEMPLATE = """You are a professional translator specializing in the grand strategy game Hearts of Iron IV, set during World War II. \
@@ -74,16 +97,24 @@ HOI4_SINGLE_PROMPT_TEMPLATE = """You are a direct, one-to-one translation engine
 The text you are translating is for a Hearts of Iron IV game mod named '{mod_name}'. \
 Translate the following {task_description} from {source_lang_name} to {target_lang_name}.\\n"""
 
-HOI4_FORMAT_PROMPT = """CRITICAL FORMATTING: Your response MUST be a valid JSON array (a list of strings), with the EXACT same number of items as the input array ({chunk_size} items).\nEach string in the JSON array must be the translation of the corresponding item in the input array.\nDO NOT add any explanations or notes outside the JSON structure.\nExample for 2 items: [\"translation for item 1\", \"translation for item 2\"]\n\nCRITICAL DATA HYGIENE RULE: Your task is to translate meaningful text. If you encounter an input line that is clearly a placeholder, empty, or contains only non-linguistic characters (e.g., only spaces, \"...\", \"???\", \"tbd\", \"todo\", \"wip\"), you MUST NOT attempt to translate it or return it as is. Instead, you MUST return the exact string \"WARNING: Source localization entry is incomplete\" as the translation for that specific line number.you MUST return the string "WARNING: Source localization entry is incomplete" **enclosed in double quotes** as a valid JSON array element.\n\n🚨 CRITICAL QUOTE RULE: DO NOT add extra quotes around your translations!\nThe game engine will handle quote formatting automatically. Adding quotes will break the display!\nEXAMPLE: If input is 'software', output should be '软件', NOT '"软件"'!\n\n🚨 CRITICAL SPACING RULE: PRESERVE spaces after formatting commands!\n❌ WRONG: #BOLDtext#! (missing space after #BOLD)\n✅ CORRECT: #BOLD text#! (space after #BOLD)\n❌ WRONG: #Ltext#! (missing space after #L)\n✅ CORRECT: #L text#! (space after #L)\n❌ WRONG: #italictext#! (missing space after #italic)\n✅ CORRECT: #italic text#! (space after #italic)\nFormatting commands MUST be followed by a space to work properly!\n\n🚨 CRITICAL TOKEN PRESERVATION RULE:
-The text contains special placeholders [[_NL_]] and [[_QT_]].
-You MUST preserve these placeholders EXACTLY as they are.
-DO NOT translate them. DO NOT replace them with real punctuation.
-Treat [[_QT_]] as if it were a variable name like $VARIABLE$.
+HOI4_FORMAT_PROMPT = """Output Logic:
+1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
+2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
+3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
 
-EXAMPLE:
-- Input: "Hello[[_NL_]]World [[_QT_]]quoted text[[_QT_]]"
-- Correct Output: "你好[[_NL_]]世界 [[_QT_]]引用文本[[_QT_]]"
-- Incorrect Output: "你好\\n世界 "引用文本"" (This will break the system!)\n\nPreserve the following Hearts of Iron IV specific syntax rules precisely:\n\n1. **Square Brackets ([...]): Two Main Uses**\n\n   a. **Namespaces and Scopes**: Used to get dynamic information. Structures like [GetDateText] or [ROOT.GetNameDefCap] MUST be preserved completely. Do not translate anything inside them.\n\n   b. **Formatting Variables**: Used to format a variable's output, often starting with a ?. The entire structure [?variable|codes] MUST be preserved.\n\n       The codes after the pipe | define the format. Examples to preserve:\n\n           [?var|%G0] (percentage, green, 0 decimals)\n\n           [?var|*] (SI units like K/M)\n\n           [?var|+] (dynamic color: green for positive, red for negative)\n\n           [?var|.1] (1 decimal place)\n\n2. **String Nesting and Variables ($...$)**\n\n   This syntax is used to nest other localization keys or variables.\n\n   The entire structure, like $KEY_NAME$ or $FOCUS_NAME$, MUST be preserved completely.\n\n   Escaping Rule: A double dollar sign $$ is an escape for a single $. You MUST preserve it as $$.\n\n3. **Color, Icons, and Flags (§, £, @)**\n\n   a. **Color Tags (§...§!)**: Color tags start with § and a letter (e.g., §R) and end with §!.\n\n   You MUST preserve the tags themselves (§R, §!), but you SHOULD translate the plain text inside them.\n\n       Example: For §RRed Text§!, translate \"Red Text\" but keep §R and §!.\n\n   b. **Text Icons (£...)**: These are single tags representing an icon, like £GFX_army_experience. They MUST be preserved completely.\n\n       Frame Modifier: An optional frame can be specified with a pipe, e.g., £icon_name|1. This entire structure must be preserved.\n\n   c. **Country Flags (@TAG)**: A tag like @GER represents a country flag and MUST be preserved completely.\n\n4. **Localization Formatters (Standalone formatter|token)**\n\n   Some strings are special formatters that consist of two parts separated by a pipe |, with no surrounding brackets.\n\n   Example: building_state_modifier|dam.\n\n   These strings are code references and MUST NOT be translated. Preserve them completely.\n\n5. **Internal Keys and Code References**\n\n   Strings with underscores and no spaces, like example_key or party_popularity@democracy, are internal keys. They MUST NOT be translated.\n\n--- INPUT LIST ---\n{numbered_list}\n--- END OF INPUT LIST ---"""
+Syntax Rules (Examples):
+
+- **Variables**: "$KEY$" -> "$KEY$" (Keep exactly as is)
+- **Formatting**: "§RRed§! Text" -> "§R红色§! 文本" (Keep tags, translate content)
+- **Scoped Variables**: "[ROOT.GetName]" -> "[ROOT.GetName]" (Do not translate scopes)
+- **Dynamic Format**: "[?var|%G0]" -> "[?var|%G0]" (Keep dynamic variables exactly as is)
+- **Icons**: "£army_xp£" -> "£army_xp£" (Keep icons exactly as is)
+- **Flags**: "@GER" -> "@GER" (Keep country flags exactly as is)
+
+Translate the following list:
+--- INPUT LIST ---
+{numbered_list}
+--- END OF INPUT LIST ---"""
 
 # --- Crusader Kings III Prompts ---
 CK3_PROMPT_TEMPLATE = """You are a professional translator specializing in the grand strategy game Crusader Kings III, set in the Middle Ages. \
@@ -94,16 +125,25 @@ CK3_SINGLE_PROMPT_TEMPLATE = """You are a direct, one-to-one translation engine.
 The text you are translating is for a Crusader Kings III game mod named '{mod_name}'. \
 Translate the following {task_description} from {source_lang_name} to {target_lang_name}.\\n"""
 
-CK3_FORMAT_PROMPT = """CRITICAL FORMATTING: Your response MUST be a valid JSON array (a list of strings), with the EXACT same number of items as the input array ({chunk_size} items).\nEach string in the JSON array must be the translation of the corresponding item in the input array.\nDO NOT add any explanations or notes outside the JSON structure.\nExample for 2 items: [\"translation for item 1\", \"translation for item 2\"]\n\nCRITICAL DATA HYGIENE RULE: Your task is to translate meaningful text. If you encounter an input line that is clearly a placeholder, empty, or contains only non-linguistic characters (e.g., only spaces, \"...\", \"???\", \"tbd\", \"todo\", \"wip\"), you MUST NOT attempt to translate it or return it as is. Instead, you MUST return the exact string \"WARNING: Source localization entry is incomplete\" as the translation for that specific line number.you MUST return the string "WARNING: Source localization entry is incomplete" **enclosed in double quotes** as a valid JSON array element.\n\n🚨 CRITICAL QUOTE RULE: DO NOT add extra quotes around your translations!\nThe game engine will handle quote formatting automatically. Adding quotes will break the display!\nEXAMPLE: If input is 'software', output should be '软件', NOT '"软件"'!\n\n🚨 CRITICAL SPACING RULE: PRESERVE spaces after formatting commands!\n❌ WRONG: #BOLDtext#! (missing space after #BOLD)\n✅ CORRECT: #BOLD text#! (space after #BOLD)\n❌ WRONG: #Ltext#! (missing space after #L)\n✅ CORRECT: #L text#! (space after #L)\n❌ WRONG: #italictext#! (missing space after #italic)\n✅ CORRECT: #italic text#! (space after #italic)\nFormatting commands MUST be followed by a space to work properly!\n\n🚨 CRITICAL TOKEN PRESERVATION RULE:
-The text contains special placeholders [[_NL_]] and [[_QT_]].
-You MUST preserve these placeholders EXACTLY as they are.
-DO NOT translate them. DO NOT replace them with real punctuation.
-Treat [[_QT_]] as if it were a variable name like $VARIABLE$.
+CK3_FORMAT_PROMPT = """Output Logic:
+1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
+2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
+3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
 
-EXAMPLE:
-- Input: "Hello[[_NL_]]World [[_QT_]]quoted text[[_QT_]]"
-- Correct Output: "你好[[_NL_]]世界 [[_QT_]]引用文本[[_QT_]]"
-- Incorrect Output: "你好\\n世界 "引用文本"" (This will break the system!)\n\nPreserve the following Crusader Kings III specific syntax rules precisely:\n\n1. **Data Functions and Linking ([...])**\n\n   This syntax is used to get dynamic text from game data. The entire structure inside the brackets MUST be preserved.\n\n   a. **Scopes and Functions**: Preserve commands like [ROOT.Char.GetLadyLord] completely. Do not translate any part of them.\n\n   b. **Function Arguments (using |)**: A pipe | at the end of a function applies formatting. Preserve the function and the entire argument.\n\n       Examples: [ROOT.Char.GetLadyLord|U] (uppercase first letter), [some_value|2] (round to 2 decimals), [GetFullName|P] (formats as positive/green).\n\n   c. **Linking to Game Concepts**: A very common and specific use case.\n\n       Preserve simple links like [faith|E] or [faith|El] (for lowercase).\n\n       For alternate text forms like [Concept('faith','religion')|E], you MUST preserve the function structure [Concept('faith','...')|E], but the user-facing text, in this case 'religion', SHOULD BE translated.\n\n   d. **Linking to Traits/Titles**: Preserve complex function calls like [GetTrait('trait_name').GetName( CHARACTER.Self )] or [GetTitleByKey('title_name').GetName] completely.\n\n2. **String Nesting and Variables ($...$)**\n\n   This syntax has two main uses. The entire $key$ structure MUST be preserved.\n\n   a. **Nesting Other Keys**: Re-uses another localization key, e.g., $special_contract_march_short$.\n\n   b. **Game Engine Variables**: Displays a value from the game. These can have special formatting.\n\n       Example: $VALUE|=+0$. The unique |=... formatting MUST be preserved completely.\n\n3. **Text Formatting (#...#!)**\n\n   These commands start with a #key, followed by a required space, the text, and an end tag #!.\n\n   You MUST preserve the #key and #! tags. The text between them SHOULD be translated.\n\n   a. **Basic Formatting**: Examples include #P text#! (positive/green), #N text#! (negative/red), #bold text#!, #italic text#!.\n\n   b. **Combined Formatting**: Formatting can be combined with a semicolon ;. Preserve the entire combined key.\n\n       Example: #high;bold.\n\n4. **Icons (@icon_name!)**\n\n   These are self-contained icon tags. The entire tag, including @ and !, MUST be preserved completely.\n\n   Example: @gold_icon!.\n\n5. **Escaped Quotes**\n\n   Preserve all escaped double quotes (\\\") exactly as they appear in the source.\n\n6. **Medieval Terminology**\n\n   Preserve all medieval, feudal, and dynastic terminology accurately. Maintain the medieval, courtly tone appropriate for medieval role-playing and dynasty management.\n\n--- INPUT LIST ---\n{numbered_list}\n--- END OF INPUT LIST ---"""
+Syntax Rules (Examples):
+
+- **Variables**: "$VALUE|=+0$" -> "$VALUE|=+0$" (Keep exactly as is)
+- **Formatting**: "#P Good#! King" -> "#P 善良的#! 国王" (Keep tags, translate content)
+- **Scopes**: "[ROOT.Char.GetLadyLord]" -> "[ROOT.Char.GetLadyLord]" (Do not translate scopes)
+- **Functions**: "[GetTrait('brave').GetName(C.Self)]" -> "[GetTrait('brave').GetName(C.Self)]" (Keep function calls exactly as is)
+- **Links**: "[faith|E]" -> "[faith|E]" (Keep generic links as is)
+- **Custom Links**: "[Concept('faith', 'religion')|E]" -> "[Concept('faith', '宗教')|E]" (Translating 2nd arg is allowed here)
+- **Icons**: "@gold_icon!" -> "@gold_icon!" (Keep icons exactly as is)
+
+Translate the following list:
+--- INPUT LIST ---
+{numbered_list}
+--- END OF INPUT LIST ---"""
 
 # --- EU5 (Europa Universalis V) Prompts ---
 EU5_PROMPT_TEMPLATE = """You are a professional translator specializing in the grand strategy game Europa Universalis V, \
@@ -115,49 +155,38 @@ EU5_SINGLE_PROMPT_TEMPLATE = """You are a direct, one-to-one translation engine.
 The text you are translating is for a Europa Universalis V game mod named '{mod_name}'. \
 Translate the following {task_description} from {source_lang_name} to {target_lang_name}.\\n"""
 
-EU5_FORMAT_PROMPT = """CRITICAL FORMATTING: Your response MUST be a valid JSON array (a list of strings), with the EXACT same number of items as the input array ({chunk_size} items).\nEach string in the JSON array must be the translation of the corresponding item in the input array.\nDO NOT add any explanations or notes outside the JSON structure.\nExample for 2 items: [\"translation for item 1\", \"translation for item 2\"]\n\nCRITICAL DATA HYGIENE RULE: Your task is to translate meaningful text. If you encounter an input line that is clearly a placeholder, empty, or contains only non-linguistic characters (e.g., only spaces, \"...\", \"???\", \"tbd\", \"todo\", \"wip\"), you MUST NOT attempt to translate it or return it as is. Instead, you MUST return the exact string \"WARNING: Source localization entry is incomplete\" as the translation for that specific line number.you MUST return the string "WARNING: Source localization entry is incomplete" **enclosed in double quotes** as a valid JSON array element.\n\n🚨 CRITICAL QUOTE RULE: DO NOT add extra quotes around your translations!\nThe game engine will handle quote formatting automatically. Adding quotes will break the display!\nEXAMPLE: If input is 'software', output should be '软件', NOT '"软件"'!\n\n🚨 CRITICAL SPACING RULE: PRESERVE spaces after formatting commands!\n❌ WRONG: #BOLDtext#! (missing space after #BOLD)\n✅ CORRECT: #BOLD text#! (space after #BOLD)\n❌ WRONG: #Ltext#! (missing space after #L)\n✅ CORRECT: #L text#! (space after #L)\n❌ WRONG: #italictext#! (missing space after #italic)\n✅ CORRECT: #italic text#! (space after #italic)\nFormatting commands MUST be followed by a space to work properly!\n\n🚨 CRITICAL TOKEN PRESERVATION RULE:
-The text contains special placeholders [[_NL_]] and [[_QT_]].
-You MUST preserve these placeholders EXACTLY as they are.
-DO NOT translate them. DO NOT replace them with real punctuation.
-Treat [[_QT_]] as if it were a variable name like $VARIABLE$.
+EU5_FORMAT_PROMPT = """Output Logic:
+1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
+2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
+3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
 
-EXAMPLE:
-- Input: "Hello[[_NL_]]World [[_QT_]]quoted text[[_QT_]]"
-- Correct Output: "你好[[_NL_]]世界 [[_QT_]]引用文本[[_QT_]]"
-- Incorrect Output: "你好\\n世界 "引用文本"" (This will break the system!)\n\nPreserve the following Europa Universalis V specific syntax rules precisely:\n\n1. **Data Functions and Scopes ([...])**\n\n   This syntax is used to get dynamic text from game data. The entire structure inside the brackets MUST be preserved.\n\n   a. **Scopes and Functions**: Preserve commands like [Root.GetName] or [Location.GetTerrain] completely. Do not translate any part of them.\n\n   b. **Function Arguments**: Some functions take arguments. Preserve the structure.\n\n       Example: [GetModifier('modifier_key').GetName]. Do not translate the key inside quotes unless it is clearly user-facing text.\n\n2. **Variables ($...$)**\n\n   Variables are enclosed in dollar signs. The entire structure MUST be preserved.\n\n   Example: $VALUE$, $COST$.\n\n3. **Formatting Tags (#...#!)**\n\n   These commands start with a #key, followed by a required space, the text, and an end tag #!.\n\n   You MUST preserve the #key and #! tags. The text between them SHOULD be translated.\n\n   Example: #P text#! (positive), #N text#! (negative).\n\n4. **Icons (@icon_name!)**\n\n   These are self-contained icon tags. The entire tag, including @ and !, MUST be preserved completely.\n\n   Example: @gold_icon!.\n\n5. **Terminology**\n\n   Preserve all terminology related to Pops, Estates, Locations, and Ranks accurately. Maintain a tone appropriate for a historical simulation starting in 1337.\n\n--- INPUT LIST ---\n{numbered_list}\n--- END OF INPUT LIST ---"""
+Syntax Rules (Examples):
+
+- **Variables**: "$COST$" -> "$COST$" (Keep exactly as is)
+- **Formatting**: "#P Wealthy#!" -> "#P 富有的#!" (Keep tags, translate content)
+- **Scopes**: "[Location.GetTerrain]" -> "[Location.GetTerrain]" (Do not translate scopes)
+- **Functions**: "[GetModifier('mod_key').GetName]" -> "[GetModifier('mod_key').GetName]" (Keep keys as is unless clearly UI text)
+- **Icons**: "@gold_icon!" -> "@gold_icon!" (Keep icons exactly as is)
+
+Translate the following list:
+--- INPUT LIST ---
+{numbered_list}
+--- END OF INPUT LIST ---"""
 
 
 # --- Fallback Prompt ---
-FALLBACK_FORMAT_PROMPT = """    "CRITICAL FORMATTING: Your response MUST be a valid JSON array (a list of strings), with the EXACT same number of items as the input array ({chunk_size} items)."
-    "Each string in the JSON array must be the translation of the corresponding item in the input array.\n"
-    "DO NOT add any explanations or notes outside the JSON structure.\n"
-    "Example for 2 items: [\"translation for item 1\", \"translation for item 2\"]\n\n"
-    "CRITICAL DATA HYGIENE RULE: Your task is to translate meaningful text. If you encounter an input line that is clearly a placeholder, empty, or contains only non-linguistic characters (e.g., only spaces, \"...\", \"???\", \"tbd\", \"todo\", \"wip\"), you MUST NOT attempt to translate it or return it as is. Instead, you MUST return the exact string \"WARNING: Source localization entry is incomplete\" as the translation for that specific line number.you MUST return the string "WARNING: Source localization entry is incomplete" **enclosed in double quotes** as a valid JSON array element.\n\n"
-    "🚨 CRITICAL QUOTE RULE: DO NOT add extra quotes around your translations!\n"
-    "The game engine will handle quote formatting automatically. Adding quotes will break the display!\n"
-    "EXAMPLE: If input is 'software', output should be '软件', NOT '\"软件\"'!\n\n"
-    "🚨 CRITICAL SPACING RULE: PRESERVE spaces after formatting commands!\n"
-    "❌ WRONG: #BOLDtext#! (missing space after #BOLD)\n"
-    "✅ CORRECT: #BOLD text#! (space after #BOLD)\n"
-    "❌ WRONG: #Ltext#! (missing space after #L)\n"
-    "✅ CORRECT: #L text#! (space after #L)\n"
-    "❌ WRONG: #italictext#! (missing space after #italic)\n"
-    "✅ CORRECT: #italic text#! (space after #italic)\n"
-    "Formatting commands MUST be followed by a space to work properly!\n\n"
-    "🚨 CRITICAL TOKEN PRESERVATION RULE:\n"
-    "The text contains special placeholders [[_NL_]] and [[_QT_]].\n"
-    "You MUST preserve these placeholders EXACTLY as they are.\n"
-    "DO NOT translate them. DO NOT replace them with real punctuation.\n"
-    "Treat [[_QT_]] as if it were a variable name like $VARIABLE$.\n\n"
-    "EXAMPLE:\n"
-    "- Input: \"Hello[[_NL_]]World [[_QT_]]quoted text[[_QT_]]\"\n"
-    "- Correct Output: \"你好[[_NL_]]世界 [[_QT_]]引用文本[[_QT_]]\"\n"
-    "- Incorrect Output: \"你好\\n世界 \"引用文本\"\" (This will break the system!)\n\n"
-    "There are two types of special syntax:\n"
-    "1. **Variables** like `$variable$`, `[Concept('key', '$concept_name$')]`, `[SCOPE.some.Function]`. You MUST preserve these variables completely. DO NOT translate any text inside them.\n"
-    "2. **Formatting Tags** like `#R ... #!`, `§Y...§!`. You MUST preserve the tags themselves (e.g., `#R`, `#!`), but you SHOULD translate the plain text that is inside them.\n"
-    "3. **Icon Tags** like `@prestige!`, `£minerals£`. These are variables. You MUST preserve them completely. DO NOT translate any text inside them.\n"
-    "4. **Internal Keys** like `mm_strategic_region` or `com_topbar_interests`. These are strings that often contain underscores and no spaces. They are code references and MUST NOT be translated. Preserve them completely.\n"
+FALLBACK_FORMAT_PROMPT = """Output Logic:
+    "1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).\n"
+    "2. If an input line is empty/placeholder (e.g. \"TODO\", \"...\"), translate it as: \"WARNING: Source localization entry is incomplete\".\n"
+    "3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).\n\n"
+
+    "Syntax Rules (Examples):\n"
+    "- **Variables**: \"$KEY$\" -> \"$KEY$\" (Keep exactly as is)\n"
+    "- **Formatting**: \"#P Text#!\" -> \"#P 文本#!\" (Keep tags, translate content)\n"
+    "- **Functions**: \"[GetDate]\" -> \"[GetDate]\" (Do not translate functions)\n"
+    "- **Internal Keys**: \"strategic_region_key\" -> \"strategic_region_key\" (Do not translate)\n\n"
+
+    "Translate the following list:\n"
     "--- INPUT LIST ---\n{numbered_list}\n--- END OF INPUT LIST ---"
 """
 

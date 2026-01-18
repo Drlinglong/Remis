@@ -63,7 +63,8 @@ class GeminiCLIHandler(BaseApiHandler):
     def _verify_cli_availability(self):
         try:
             # Check version with a short timeout. It should be instant.
-            cmd = ["powershell", "-ExecutionPolicy", "Bypass", "-Command", f"{self.cli_path} --version"]
+            # Added -NoProfile to avoid loading user profile which might be slow
+            cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", f"{self.cli_path} --version"]
             kwargs = { "capture_output": True, "text": True, "timeout": 5 }
             if os.name == 'nt':
                 kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
@@ -75,7 +76,7 @@ class GeminiCLIHandler(BaseApiHandler):
             self.logger.info(i18n.t("gemini_cli_available", version=result.stdout.strip()))
             
         except subprocess.TimeoutExpired:
-            error_msg = i18n.t("gemini_cli_timeout", default="Gemini CLI check timed out (5s). Please check installation or switch provider.")
+            error_msg = i18n.t("gemini_cli_timeout", default="Gemini CLI check timed out (5s). Please check internet or switch to API mode.")
             self.logger.error(error_msg)
             raise RuntimeError(error_msg)
             
@@ -176,7 +177,7 @@ class GeminiCLIHandler(BaseApiHandler):
                         f"Set-ExecutionPolicy RemoteSigned -Scope Process -Force; "
                         f"Get-Content -Path '{temp_file}' -Raw | {gemini_command}"
                     )
-                    cmd = ["powershell", "-Command", full_command]
+                    cmd = ["powershell", "-NoProfile", "-Command", full_command]
 
                     clean_env = {
                         'PATH': os.environ.get('PATH', ''), 'SYSTEMROOT': os.environ.get('SYSTEMROOT', ''),
@@ -256,7 +257,7 @@ class GeminiCLIHandler(BaseApiHandler):
                     f"Set-ExecutionPolicy RemoteSigned -Scope Process -Force; "
                     f"Get-Content -Path '{temp_file}' -Raw | {gemini_command}"
                 )
-                cmd = ["powershell", "-Command", full_command]
+                cmd = ["powershell", "-NoProfile", "-Command", full_command]
 
                 clean_env = {
                     'PATH': os.environ.get('PATH', ''), 'SYSTEMROOT': os.environ.get('SYSTEMROOT', ''),
