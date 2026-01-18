@@ -112,12 +112,12 @@ export const useEditorContent = () => {
                     contentToSet = finalStr;
                 }
 
-                // Restore draft if exists (Using ref to avoid dependency loop)
-                const cache = draftCacheRef.current;
-                if (cache && cache.projectId === pId && cache.fileId === targetId) {
-                    contentToSet = cache.content;
-                    notifications.show({ title: 'Draft Restored', message: 'Restored unsaved changes.', color: 'blue' });
-                }
+                // [DISABLED] Auto-restore causes confusion if disk file updates. User requested to clear this cache behavior.
+                // const cache = draftCacheRef.current;
+                // if (cache && cache.projectId === pId && cache.fileId === targetId) {
+                //     contentToSet = cache.content;
+                //     notifications.show({ title: 'Draft Restored', message: 'Restored unsaved changes.', color: 'blue' });
+                // }
 
                 setFinalContentStr(contentToSet);
             } else {

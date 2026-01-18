@@ -8,5 +8,5 @@
             "selected_model": "gpt-oss-20b"
         }
     },
-    "rpm_limit": 5
+    "rpm_limit": 10
 }

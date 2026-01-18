@@ -7,7 +7,7 @@ import { notifications } from '@mantine/notifications';
 
 const VersionInfoTab = () => {
     const { t } = useTranslation();
-    const version = "v2.0.4 TECHNICAL PREVIEW"; // Project version
+    const REMIS_VERSION = "2.0.5 TECHNICAL PREVIEW"; // Project version
     const lastUpdated = "2026-01-12"; // Last updated date
     const githubRepoUrl = "https://github.com/Drlinglong/Remis";
 
@@ -40,7 +40,7 @@ const VersionInfoTab = () => {
                         <Title order={3}>{t('app_title')}</Title>
                         <Group gap="xs" mt="xs">
                             <Text size="sm" c="dimmed">{t('version_info.project_version')}:</Text>
-                            <Text size="sm" fw={700} c="cyan">{version}</Text>
+                            <Text size="sm" fw={700} c="cyan">{REMIS_VERSION}</Text>
                         </Group>
                         <Group gap="xs">
                             <Text size="sm" c="dimmed">{t('version_info.last_updated')}:</Text>

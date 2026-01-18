@@ -543,6 +543,7 @@
   "log_info_source_version_exists": "Source version already exists: {hash} (version_id: {version_id})",
   "validation_residual_punctuation_found": "Residual source language punctuation detected.",
   "validation_residual_punctuation_details": "Found the following punctuations that should have been converted: {punctuations}",
+  "post_processing_sanitized_content": "File {filename} automatically fixed {count} formatting issues (#！, nn).",
   "log.tag_analysis.starting_dynamic_validation": "Starting dynamic tag analysis for post-processing validation...",
   "log.tag_analysis.starting_mod_validation": "Starting mod tag analysis for dynamic validation...",
   "log.tag_analysis.loaded_official_tags": "Successfully loaded {count} official tags from '{path}'.",

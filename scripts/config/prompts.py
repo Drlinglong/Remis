@@ -19,11 +19,13 @@ VICTORIA3_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
 3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
+4. Translate ALL content inside formatting tags (e.g. #bold Text#! -> #bold 文本#!). Do NOT skip long descriptions.
+5. Keep the translation on a single line. Do not split the output into multiple lines.
 
 Syntax Rules (Examples):
 
-- **Variables**: "Gain $MONEY|+$" -> "获得 $MONEY|+$" (Keep exactly as is)
-- **Formatting**: "#gold Good#! Job" -> "#gold 干得好#! 工作" (Keep tags, translate content)
+- **Script Variables**: "Gain $MONEY|+$" -> "获得 $MONEY|+$" (Keep exactly as is - DO NOT TRANSLATE)
+- **Formatting Tags**: "#bold Good#! Job" -> "#bold 干得好#! 工作" (ALWAYS translate content inside tags)
 - **Complex Formatting**: "#v #b Data#! #!" -> "#v #b 数据#! #!" (Translate content even if nested)
 - **Functions**: "[GetDate]" -> "[GetDate]" (Do not translate functions)
 - **Concepts**: "[Concept('war', 'attack')]" -> "[Concept('war', 'attack')]" (NEVER translate keys inside Concept)
@@ -36,7 +38,7 @@ Translate the following list:
 
 # --- Stellaris Prompts ---
 STELLARIS_PROMPT_TEMPLATE = """You are a professional translator specializing in the grand strategy science-fiction game Stellaris. \
-Translate the following numbered list of texts from {source_lang_name} to {target_lang_name}.\n"""
+Translate the following numbered list of texts from {source_lang_name} to {target_lang_name}.\\n"""
 
 STELLARIS_SINGLE_PROMPT_TEMPLATE = """You are a direct, one-to-one translation engine. \
 The text you are translating is for a Stellaris game mod named '{mod_name}'. \
@@ -46,12 +48,14 @@ STELLARIS_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
 3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
+4. Translate ALL content inside formatting tags (e.g. §RText§! -> §R文本§!). Do NOT skip long descriptions.
+5. Keep the translation on a single line. Do not split the output into multiple lines.
 
 Syntax Rules (Examples):
 
-- **Variables**: "Gain $ENERGY|Y$" -> "获得 $ENERGY|Y$" (Keep exactly as is)
+- **Script Variables**: "Gain $ENERGY|Y$" -> "获得 $ENERGY|Y$" (Keep exactly as is - DO NOT TRANSLATE)
+- **Formatting Tags**: "§RHigh§! Voltage" -> "§R高§! 电压" (ALWAYS translate content inside tags)
 - **Icons**: "Cost: £minerals£" -> "花费: £minerals£" (Keep exactly as is)
-- **Formatting**: "§RHigh§! Voltage" -> "§R高§! 电压" (Keep tags, translate content)
 - **Scopes**: "[Root.GetName]" -> "[Root.GetName]" (Do not translate scopes)
 - **Escapes**: "\\\\[This.GetDate]" -> "\\\\[This.GetDate]" (Keep backslash escapes)
 
@@ -73,11 +77,13 @@ EU4_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
 3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
+4. Translate ALL content inside formatting tags (e.g. §RText§! -> §R文本§!). Do NOT skip long descriptions.
+5. Keep the translation on a single line. Do not split the output into multiple lines.
 
 Syntax Rules (Examples):
 
-- **Variables (Legacy)**: "$YEAR$" -> "$YEAR$" (Keep exactly as is)
-- **Formatting**: "§RRed§! Text" -> "§R红色§! 文本" (Keep tags, translate content)
+- **Script Variables**: "$YEAR$" -> "$YEAR$" (Keep exactly as is - DO NOT TRANSLATE)
+- **Formatting Tags**: "§RRed§! Text" -> "§R红色§! 文本" (ALWAYS translate content inside tags)
 - **Dynamic Scopes**: "[Root.GetAdjective]" -> "[Root.GetAdjective]" (Do not translate scopes)
 - **Complex Vars**: "§=Y3$VAL$§!" -> "§=Y3$VAL$§!" (Keep wrapper and variable as is)
 - **Icons**: "£adm£" -> "£adm£" (Keep icons exactly as is)
@@ -101,11 +107,13 @@ HOI4_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
 3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
+4. Translate ALL content inside formatting tags (e.g. §RText§! -> §R文本§!). Do NOT skip long descriptions.
+5. Keep the translation on a single line. Do not split the output into multiple lines.
 
 Syntax Rules (Examples):
 
-- **Variables**: "$KEY$" -> "$KEY$" (Keep exactly as is)
-- **Formatting**: "§RRed§! Text" -> "§R红色§! 文本" (Keep tags, translate content)
+- **Script Variables**: "$KEY$" -> "$KEY$" (Keep exactly as is - DO NOT TRANSLATE)
+- **Formatting Tags**: "§RRed§! Text" -> "§R红色§! 文本" (ALWAYS translate content inside tags)
 - **Scoped Variables**: "[ROOT.GetName]" -> "[ROOT.GetName]" (Do not translate scopes)
 - **Dynamic Format**: "[?var|%G0]" -> "[?var|%G0]" (Keep dynamic variables exactly as is)
 - **Icons**: "£army_xp£" -> "£army_xp£" (Keep icons exactly as is)
@@ -129,11 +137,13 @@ CK3_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
 3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
+4. Translate ALL content inside formatting tags (e.g. #P Text#! -> #P 文本#!). Do NOT skip long descriptions.
+5. Keep the translation on a single line. Do not split the output into multiple lines.
 
 Syntax Rules (Examples):
 
-- **Variables**: "$VALUE|=+0$" -> "$VALUE|=+0$" (Keep exactly as is)
-- **Formatting**: "#P Good#! King" -> "#P 善良的#! 国王" (Keep tags, translate content)
+- **Script Variables**: "$VALUE|=+0$" -> "$VALUE|=+0$" (Keep exactly as is - DO NOT TRANSLATE)
+- **Formatting Tags**: "#P Good#! King" -> "#P 善良的#! 国王" (ALWAYS translate content inside tags)
 - **Scopes**: "[ROOT.Char.GetLadyLord]" -> "[ROOT.Char.GetLadyLord]" (Do not translate scopes)
 - **Functions**: "[GetTrait('brave').GetName(C.Self)]" -> "[GetTrait('brave').GetName(C.Self)]" (Keep function calls exactly as is)
 - **Links**: "[faith|E]" -> "[faith|E]" (Keep generic links as is)
@@ -159,11 +169,13 @@ EU5_FORMAT_PROMPT = """Output Logic:
 1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
 3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
+4. Translate ALL content inside formatting tags (e.g. #P Text#! -> #P 文本#!). Do NOT skip long descriptions.
+5. Keep the translation on a single line. Do not split the output into multiple lines.
 
 Syntax Rules (Examples):
 
-- **Variables**: "$COST$" -> "$COST$" (Keep exactly as is)
-- **Formatting**: "#P Wealthy#!" -> "#P 富有的#!" (Keep tags, translate content)
+- **Script Variables**: "$COST$" -> "$COST$" (Keep exactly as is - DO NOT TRANSLATE)
+- **Formatting Tags**: "#P Wealthy#!" -> "#P 富有的#!" (ALWAYS translate content inside tags)
 - **Scopes**: "[Location.GetTerrain]" -> "[Location.GetTerrain]" (Do not translate scopes)
 - **Functions**: "[GetModifier('mod_key').GetName]" -> "[GetModifier('mod_key').GetName]" (Keep keys as is unless clearly UI text)
 - **Icons**: "@gold_icon!" -> "@gold_icon!" (Keep icons exactly as is)
@@ -178,11 +190,13 @@ Translate the following list:
 FALLBACK_FORMAT_PROMPT = """Output Logic:
     "1. Return a single JSON array of strings matching input length exactly ({chunk_size} items).\n"
     "2. If an input line is empty/placeholder (e.g. \"TODO\", \"...\"), translate it as: \"WARNING: Source localization entry is incomplete\".\n"
-    "3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).\n\n"
+    "3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).\n"
+    "4. Translate ALL content inside formatting tags (e.g. #P Text#! -> #P 文本#!). Do NOT skip long descriptions.\n"
+    "5. Keep the translation on a single line. Do not split the output into multiple lines.\n\n"
 
     "Syntax Rules (Examples):\n"
-    "- **Variables**: \"$KEY$\" -> \"$KEY$\" (Keep exactly as is)\n"
-    "- **Formatting**: \"#P Text#!\" -> \"#P 文本#!\" (Keep tags, translate content)\n"
+    "- **Script Variables**: \"$KEY$\" -> \"$KEY$\" (Keep exactly as is - DO NOT TRANSLATE)\n"
+    "- **Formatting Tags**: \"#P Text#!\" -> \"#P 文本#!\" (ALWAYS translate content inside tags)\n"
     "- **Functions**: \"[GetDate]\" -> \"[GetDate]\" (Do not translate functions)\n"
     "- **Internal Keys**: \"strategic_region_key\" -> \"strategic_region_key\" (Do not translate)\n\n"
 

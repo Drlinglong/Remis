@@ -118,7 +118,7 @@ class QuoteExtractor:
     @staticmethod
     def extract_from_file(file_path: str) -> Tuple[List[str], List[str], Dict[int, Dict[str, Any]]]:
         """
-        从文件中提取所有可翻译内容
+        从文件中提取所有可翻译内容，支持多行引号内容
         
         Args:
             file_path: 文件路径
@@ -129,27 +129,22 @@ class QuoteExtractor:
         try:
             rel_path = os.path.relpath(file_path)
         except ValueError:
-            # 当 file_path 和当前工作目录不在同一个驱动器时，os.path.relpath 会抛出 ValueError
-            # 在这种情况下，我们回退到使用绝对路径或文件名
             rel_path = os.path.basename(file_path)
         logging.info(i18n.t("parsing_file", filename=rel_path) if i18n else f"Parsing file: {rel_path}")
 
-        # 1) Read file lines with a fallback to cp1252 for unexpected encodings.
+        # 1) Read file contents
         try:
             with open(file_path, "r", encoding="utf-8-sig") as f:
                 original_lines = f.readlines()
         except UnicodeDecodeError:
-            # First fallback: cp1252 (Western European)
             try:
                 with open(file_path, "r", encoding="cp1252") as f:
                     original_lines = f.readlines()
             except UnicodeDecodeError:
-                # Second fallback: gb18030 (Chinese Legacy) - Critical for older CN mods
                 try:
                     with open(file_path, "r", encoding="gb18030") as f:
                         original_lines = f.readlines()
                 except UnicodeDecodeError:
-                    # Final fallback: ignore errors to prevent crash
                     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                         original_lines = f.readlines()
 
@@ -159,74 +154,158 @@ class QuoteExtractor:
         # Check if this is a .txt file in a customizable_localization directory.
         is_txt = file_path.lower().endswith(".txt") and "customizable_localization" in file_path.replace("\\", "/")
 
+        from scripts.core.loc_parser import ENTRY_RE
+
+        # State machine variables
+        current_key_part = None
+        current_value_part_start = None
+        current_value_lines = []
+        in_quote = False
+        escape_next = False
+        start_line_num = -1
+
         for line_num, line in enumerate(original_lines):
             stripped = line.strip()
 
-            # Common check: skip comments and empty lines.
-            if not stripped or stripped.startswith("#"):
-                continue
+            # If we are NOT in a quote, look for a new key start
+            if not in_quote:
+                # Skip comments and empty lines
+                if not stripped or stripped.startswith("#"):
+                    continue
 
-            if is_txt:
-                # Handle the format: add_custom_loc = "Text"
-                if "add_custom_loc" not in stripped:
+                if is_txt:
+                     # Handle add_custom_loc logic (simplified, assuming single line for now as per original)
+                    if "add_custom_loc" in stripped:
+                        match = re.search(r'add_custom_loc\s*=\s*"(.*?)"', stripped)
+                        if match:
+                            value = match.group(1)
+                            idx = len(texts_to_translate)
+                            texts_to_translate.append(value)
+                            key_map[idx] = {
+                                "key_part": "add_custom_loc",
+                                "original_value_part": stripped.split("=", 1)[1].strip(),
+                                "line_num": line_num,
+                            }
                     continue
-                match = re.search(r'add_custom_loc\s*=\s*"(.*?)"', stripped)
-                if not match:
-                    continue
-                value = match.group(1)
-                key_part = "add_custom_loc"
-                value_part = stripped.split("=", 1)[1]
+                else:
+                    # Skip headers
+                    if any(stripped.startswith(pref) for pref in (
+                        "l_english", "l_simp_chinese", "l_french", "l_german",
+                        "l_spanish", "l_russian", "l_polish", "l_japanese", "l_korean", "l_turkish", "l_braz_por"
+                    )):
+                        continue
+
+                    # Match new key
+                    match = ENTRY_RE.match(stripped)
+                    if not match:
+                        continue
+                    
+                    base_key, version, _ = match.groups()
+                    current_key_part = f"{base_key.strip()}:{version.strip()}" if version.strip() else base_key.strip()
+                    
+                    # Find start of value (colon)
+                    colon_pos = line.find(':')
+                    if colon_pos == -1: continue
+                    
+                    # Find start quote
+                    after_colon = line[colon_pos + 1:]
+                    quote_pos = after_colon.find('"')
+                    
+                    if quote_pos != -1:
+                        # Quote starts on this line
+                        real_quote_pos = colon_pos + 1 + quote_pos
+                        content_start = real_quote_pos + 1
+                        
+                        start_line_num = line_num
+                        in_quote = True
+                        current_value_lines = []
+                        
+                        # Process the rest of the line starting after the quote
+                        remaining_line = line[content_start:]
+                        
+                        # Scan strictly for end quote
+                        found_end = False
+                        current_segment = ""
+                        
+                        for char in remaining_line:
+                            if found_end:
+                                break # Ignore content after closing quote (comments etc)
+                                
+                            if escape_next:
+                                current_segment += char
+                                escape_next = False
+                            elif char == '\\':
+                                escape_next = True
+                            elif char == '"':
+                                found_end = True
+                            else:
+                                current_segment += char
+
+                        current_value_lines.append(current_segment)
+                        
+                        if found_end:
+                            # Single line match
+                            in_quote = False
+                            value = "".join(current_value_lines)
+                            
+                            # Apply filters
+                            if current_key_part.strip() == value: continue
+                            is_pure_var = False
+                            if value.startswith('$') and value.endswith('$') and value.count('$') == 2: is_pure_var = True
+                            if is_pure_var or not value: continue
+                            
+                            idx = len(texts_to_translate)
+                            texts_to_translate.append(value)
+                            key_map[idx] = {
+                                "key_part": current_key_part,
+                                "original_value_part": line[colon_pos+1:].strip(), # Approximate for display
+                                "line_num": line_num,
+                            }
+                        else:
+                            # Multi-line start
+                            # Keep newline if it was part of the file content? 
+                            # readlines keeps \n. We stripped 'line', but here we used 'line' source.
+                            # 'remaining_line' includes \n if it was there.
+                            pass
+
             else:
-                # --- Handle the classic Paradox-yml format: key:0 "Text" or key : 0 "Text" ---
-                # Skip headers like l_english, l_polish etc.
-                if any(stripped.startswith(pref) for pref in (
-                    "l_english", "l_simp_chinese", "l_french", "l_german",
-                    "l_spanish", "l_russian", "l_polish", "l_japanese", "l_korean", "l_turkish", "l_braz_por"
-                )):
-                    continue
-
-                # Use unified regex to extract key and version
-                from scripts.core.loc_parser import ENTRY_RE
-                match = ENTRY_RE.match(stripped)
-                if not match:
-                    continue
+                # We ARE in a quote, continue capturing
+                current_segment = ""
+                found_end = False
                 
-                base_key, version, value_tmp = match.groups()
-                # Universal Normalization: No spaces, handle version
-                key_part = f"{base_key.strip()}:{version.strip()}" if version.strip() else base_key.strip()
+                # Process strictly char by char to handle escapes
+                for char in line:
+                    if found_end:
+                        break
+                        
+                    if escape_next:
+                        current_segment += char
+                        escape_next = False
+                    elif char == '\\':
+                        escape_next = True
+                    elif char == '"':
+                        found_end = True
+                    else:
+                        current_segment += char
                 
-                # Split at first colon for value_part (for legacy reasons/file patching)
-                value_part = stripped.split(":", 1)[1]
-
-                # 使用统一的引号提取方法
-                value = QuoteExtractor.extract_from_line(line)
-                if value is None:
-                    continue
-
-            # --- Filtering Logic ---
-
-            # 【核心修正 1】Filter out self-referencing keys (e.g., a_key: "a_key").
-            # We strip the key_part to get a clean key for comparison.
-            if key_part.strip() == value:
-                continue
-
-            # 【核心修正 2】Filter out pure variables (e.g., "$VAR$").
-            is_pure_variable = False
-            if value.startswith('$') and value.endswith('$'):
-                if value.count('$') == 2:
-                    is_pure_variable = True
-
-            # 【核心修正 3】Filter out pure variables AND empty values (e.g., key: "").
-            if is_pure_variable or not value:
-                continue
-
-            # Save the extracted text and its metadata to the lists.
-            idx = len(texts_to_translate)
-            texts_to_translate.append(value)
-            key_map[idx] = {
-                "key_part": key_part,
-                "original_value_part": value_part.strip(),
-                "line_num": line_num,
-            }
+                current_value_lines.append(current_segment)
+                
+                if found_end:
+                    in_quote = False
+                    value = "".join(current_value_lines)
+                    
+                    # Apply filters
+                    if current_key_part.strip() == value: continue
+                    is_pure_var = False
+                    if value.startswith('$') and value.endswith('$') and value.count('$') == 2: is_pure_var = True
+                    if is_pure_var or not value: continue
+                    
+                    idx = len(texts_to_translate)
+                    texts_to_translate.append(value)
+                    key_map[idx] = {
+                        "key_part": current_key_part,
+                        "original_value_part": "MULTILINE", # Placeholder
+                        "line_num": start_line_num, # Map to start for replacement logic
+                    }
 
         return original_lines, texts_to_translate, key_map

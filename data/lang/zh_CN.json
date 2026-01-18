@@ -559,6 +559,7 @@
   "log_info_source_version_exists": "源版本已存在: {hash} (版本ID: {version_id})",
   "validation_residual_punctuation_found": "检测到残留的源语言标点符号。",
   "validation_residual_punctuation_details": "发现了以下本应被转换的标点符号: {punctuations}",
+  "post_processing_sanitized_content": "文件 {filename} 已自动修复 {count} 处格式问题 (#！, nn)。",
   "log.tag_analysis.starting_dynamic_validation": "开始动态标签分析以进行后处理验证...",
   "log.tag_analysis.starting_mod_validation": "开始Mod标签分析以进行动态验证...",
   "log.tag_analysis.loaded_official_tags": "成功从 '{path}' 加载了 {count} 个官方标签。",
