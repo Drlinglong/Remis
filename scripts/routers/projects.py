@@ -218,3 +218,37 @@ async def delete_project(project_id: str, delete_files: bool = False):
     except Exception as e:
         logging.error(f"Error deleting project: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/api/project/{project_id}/history")
+async def get_project_history(project_id: str):
+    """Retrieves the history/timeline for a project."""
+    try:
+        return await project_manager.get_project_history(project_id)
+    except Exception as e:
+        logging.error(f"Error fetching project history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/api/project/history/{history_id}")
+async def delete_history_event(history_id: str):
+    """Deletes a specific history event."""
+    try:
+        await project_manager.delete_history_event(history_id)
+        return {"status": "success"}
+    except Exception as e:
+        logging.error(f"Error deleting history event: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/api/project/{project_id}/incremental-update")
+async def run_incremental_update(project_id: str, dry_run: bool = False, provider: str = "gemini", model: Optional[str] = None):
+    """Triggers the incremental update workflow."""
+    try:
+        result = await project_manager.run_incremental_update_workflow(
+            project_id=project_id,
+            provider=provider,
+            model=model,
+            dry_run=dry_run
+        )
+        return result
+    except Exception as e:
+        logging.error(f"Error in incremental update: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

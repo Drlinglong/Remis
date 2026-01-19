@@ -15,8 +15,9 @@ import notificationService from '../services/notificationService';
 import { usePersistentState } from '../hooks/usePersistentState';
 
 // Restore original components
-import { KanbanBoard } from '../components/tools/KanbanBoard';
 import ProjectOverview from '../components/tools/ProjectOverview';
+import KanbanBoard from '../components/tools/KanbanBoard';
+import ProjectHistory from '../components/project/ProjectHistory';
 import styles from './ProjectManagement.module.css';
 
 // Assets
@@ -27,6 +28,7 @@ import cardOpenProject from '../assets/card_open_project.png'; // Reusing for Ar
 import { normalizeGameId, toIsoLang } from '../utils/paradoxMapping';
 
 // API_BASE is handled by axios instance 'api'
+import { FEATURES } from '../config/features';
 
 
 export default function ProjectManagement() {
@@ -106,6 +108,7 @@ export default function ProjectManagement() {
 
   useEffect(() => {
     if (selectedProject) {
+      setProjectDetails(null); // Clear stale details
       fetchProjectFiles(selectedProject.project_id);
     }
   }, [selectedProject]);
@@ -541,6 +544,7 @@ export default function ProjectManagement() {
         <Tabs.List style={{ paddingLeft: '1rem', paddingTop: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
           <Tabs.Tab value="overview">{t('project_management.tabs_overview')}</Tabs.Tab>
           <Tabs.Tab value="taskboard" id="kanban-tab-control">{t('project_management.tabs_kanban')}</Tabs.Tab>
+          {FEATURES.ENABLE_PROJECT_HISTORY && <Tabs.Tab value="history">{t('project_management.tabs_history', 'History')}</Tabs.Tab>}
         </Tabs.List>
 
         <Tabs.Panel value="overview" style={{ flex: 1, overflow: 'hidden', padding: '1rem', minHeight: 0 }}>
@@ -561,6 +565,15 @@ export default function ProjectManagement() {
         <Tabs.Panel value="taskboard" style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
           <KanbanBoard projectId={selectedProject.project_id} key={selectedProject.project_id + (projectDetails?.refreshKey || '')} />
         </Tabs.Panel>
+
+        {FEATURES.ENABLE_PROJECT_HISTORY && (
+          <Tabs.Panel value="history" style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
+            <ProjectHistory
+              projectId={selectedProject.project_id}
+              projectDetails={projectDetails}
+            />
+          </Tabs.Panel>
+        )}
       </Tabs>
     </div>
   );

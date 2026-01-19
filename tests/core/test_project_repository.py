@@ -9,41 +9,60 @@ from scripts.core.db_models import Project, ProjectFile
 from scripts.core.db_manager import DatabaseConnectionManager
 
 # Setup a temporary DB for testing
-TEST_DB_PATH = "test_projects_repo.db"
+import uuid
 
 @pytest_asyncio.fixture
 async def repo():
-    # Force Reset Singleton
-    if DatabaseConnectionManager._instance:
-        if hasattr(DatabaseConnectionManager._instance, '_async_engine'):
-             await DatabaseConnectionManager._instance._async_engine.dispose()
-        DatabaseConnectionManager._instance = None
+    test_db_id = str(uuid.uuid4())[:8]
+    test_db_path = f"test_projects_{test_db_id}.db"
+    
+    from scripts.core.db_manager import db_manager
+    original_path = db_manager.db_path
+    
+    # Reset singleton state
+    db_manager.db_path = test_db_path
+    if hasattr(db_manager, '_async_engine'):
+        await db_manager._async_engine.dispose()
+        del db_manager._async_engine
+    if hasattr(db_manager, '_sync_engine'):
+        db_manager._sync_engine.dispose()
+        del db_manager._sync_engine
         
-    # Setup
-    if os.path.exists(TEST_DB_PATH):
+    # Ensure clean state (usually unique path won't exist yet)
+    if os.path.exists(test_db_path):
         try:
-            os.remove(TEST_DB_PATH)
+            os.remove(test_db_path)
         except PermissionError:
             pass
-    
+        
     # Init Schema
     from sqlmodel import SQLModel
-    db_manager = DatabaseConnectionManager(TEST_DB_PATH)
     engine = db_manager.get_async_engine()
     
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
     
-    repository = ProjectRepository(TEST_DB_PATH)
+    repository = ProjectRepository(test_db_path)
     yield repository
     
     # Teardown
     await engine.dispose()
-    if os.path.exists(TEST_DB_PATH):
+    
+    # Also dispose singleton engine to release locks
+    if hasattr(db_manager, '_async_engine'):
+        await db_manager._async_engine.dispose()
+        del db_manager._async_engine
+    if hasattr(db_manager, '_sync_engine'):
+        db_manager._sync_engine.dispose()
+        del db_manager._sync_engine
+
+    if os.path.exists(test_db_path):
         try:
-            os.remove(TEST_DB_PATH)
+            os.remove(test_db_path)
         except PermissionError:
             pass
+    
+    db_manager.db_path = original_path
 
 @pytest.mark.asyncio
 async def test_create_and_get_project(repo):

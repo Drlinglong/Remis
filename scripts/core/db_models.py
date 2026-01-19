@@ -50,3 +50,15 @@ class ProjectFile(SQLModel, table=True):
     original_key_count: int = 0
     line_count: int = 0
     file_type: str = Field(default="source") # source, translation
+
+class ProjectHistory(SQLModel, table=True):
+    __tablename__ = "project_history"
+    __table_args__ = {"extend_existing": True}
+
+    history_id: str = Field(primary_key=True)
+    project_id: str = Field(foreign_key="projects.project_id", index=True)
+    timestamp: str
+    action_type: str  # import, translate, edit, restore
+    description: Optional[str] = None
+    snapshot_id: Optional[int] = None
+    extra_metadata: Optional[str] = Field(default=None, sa_column=Column(JSON))

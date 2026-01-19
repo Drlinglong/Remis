@@ -152,7 +152,7 @@ def main():
     pyinstaller_cmd = (
         f'pyinstaller --clean --onefile --name web_server '
         f'--hidden-import uvicorn --hidden-import fastapi --hidden-import pydantic '
-        f'--hidden-import psutil '
+        f'--hidden-import psutil --hidden-import aiosqlite '
         f'--hidden-import scripts.hooks '
         f'--hidden-import scripts.hooks.file_parser_hook '
         f'--hidden-import scripts.config.prompts '

@@ -6,8 +6,8 @@ def flatten_nested_list(v: Any) -> Any:
     Validator to handle LLM hallucinations where a string is wrapped in a list.
     Example: ["text"] -> "text"
     """
-    if isinstance(v, list) and len(v) > 0 and isinstance(v[0], str):
-        # Aggressively take the first element if it's a string, ignoring valid/invalid extras
+    if isinstance(v, list) and len(v) == 1 and isinstance(v[0], str):
+        # Only flatten if it's a single element list (hallucination)
         return v[0]
     return v
 

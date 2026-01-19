@@ -20,7 +20,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         self.mock_repo.get_project_files = AsyncMock()
         self.mock_repo.update_project_status = AsyncMock()
         self.mock_repo.update_project_notes = AsyncMock()
-        self.mock_repo.add_activity_log = AsyncMock()
+        self.mock_repo.add_history_entry = AsyncMock()
         self.mock_repo.touch_project = AsyncMock()
         self.mock_repo.update_project_metadata = AsyncMock()
         

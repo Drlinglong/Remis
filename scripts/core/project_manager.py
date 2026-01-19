@@ -19,7 +19,7 @@ from scripts.core.services.kanban_service import KanbanService
 from scripts.core.archive_manager import archive_manager
 from scripts.core.loc_parser import parse_loc_file
 from scripts.utils.i18n_utils import paradox_to_iso
-from scripts.core.db_models import Project as DBProject, ProjectFile as DBProjectFile
+from scripts.core.db_models import Project as DBProject, ProjectFile as DBProjectFile, ProjectHistory
 
 # Keep deprecated dataclasses for backward compatibility if imported elsewhere,
 # but internally we use DBProject/DBProjectFile Pydantic models.
@@ -127,8 +127,15 @@ class ProjectManager:
             "source_language": source_language
         })
 
-        # Scan files
+        # Scan files (Initial Scan)
         await self.refresh_project_files(project_id)
+
+        # Log initial creation history
+        await self.log_history_event(
+            project_id=project_id,
+            action_type="import",
+            description=f"Project '{name}' created and source files imported."
+        )
         
         return saved_project.model_dump()
 
@@ -175,12 +182,62 @@ class ProjectManager:
         return [p.model_dump() for p in projects]
 
     async def get_non_active_projects(self) -> List[Dict[str, Any]]:
-        """Fetches all projects that are not 'active'."""
-        # Using repository instead of direct connection
+        """Fetches all projects that are not 'active' (e.g., archived, deleted)."""
         # But repository list_projects filters optionally by status.
         # We need "!= 'active'". Repo might need update or we filter here.
         all_projects = await self.repository.list_projects()
         return [p.model_dump() for p in all_projects if p.status != 'active']
+
+    # --- Project History ---
+
+    async def log_history_event(self, project_id: str, action_type: str, description: str, snapshot_id: Optional[int] = None, metadata: Optional[Dict[str, Any]] = None):
+        """Logs a major project event to the history table and updates project summary."""
+        await self.repository.add_history_entry(
+            project_id=project_id,
+            action_type=action_type,
+            description=description,
+            snapshot_id=snapshot_id,
+            extra_metadata=metadata
+        )
+        logger.info(f"Logged history event '{action_type}' for project {project_id}")
+
+    async def get_project_history(self, project_id: str) -> List[Dict[str, Any]]:
+        """Retrieves history for a project as a list of dictionaries."""
+        history = await self.repository.get_project_history(project_id)
+        return [h.model_dump() for h in history]
+
+    async def delete_history_event(self, history_id: str):
+        """Deletes a history event."""
+        await self.repository.delete_history_event(history_id)
+        logger.info(f"Deleted history event {history_id}")
+
+    # --- Workflows ---
+
+    async def run_incremental_update_workflow(self, project_id: str, provider: str = "gemini", model: Optional[str] = None, dry_run: bool = False):
+        """Orchestrates the incremental update workflow."""
+        from scripts.workflows.update_translate import run_incremental_update
+        from scripts.app_settings import LANGUAGES, GAME_PROFILES
+        
+        project = await self.get_project(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+
+        # Get language and game info
+        # For now, we assume English (1) as source and Simplified Chinese (3) as target, 
+        # or we derive from project metadata.
+        source_lang_info = LANGUAGES.get("1") 
+        target_lang_info = LANGUAGES.get("2") # Simplified Chinese
+        game_profile = GAME_PROFILES.get(project.get("game_id", "vic3"), {})
+        
+        return await run_incremental_update(
+            project_id=project_id,
+            target_lang_info=target_lang_info,
+            source_lang_info=source_lang_info,
+            game_profile=game_profile,
+            selected_provider=provider,
+            model_name=model,
+            dry_run=dry_run
+        )
 
     async def get_project(self, project_id: str) -> Optional[Dict[str, Any]]:
         p = await self.repository.get_project(project_id)
@@ -192,19 +249,22 @@ class ProjectManager:
         return [f.model_dump() for f in files]
 
     async def update_project_status(self, project_id: str, status: str):
+        # We use the unified add_history_entry which also updates the project status/last_modified indirectly?
+        # No, update_project_status specifically sets 'status'. 
+        # add_history_entry only sets 'last_activity_*' and 'last_modified'.
         await self.repository.update_project_status(project_id, status)
-        await self.repository.add_activity_log(
+        await self.repository.add_history_entry(
             project_id=project_id,
-            activity_type='status_change',
+            action_type='status_change',
             description=f"Status updated to: {status}"
         )
 
     async def update_project_notes(self, project_id: str, notes: str):
         """Updates the notes for a project."""
         await self.repository.update_project_notes(project_id, notes)
-        await self.repository.add_activity_log(
+        await self.log_history_event(
             project_id=project_id,
-            activity_type='note_added',
+            action_type='note_added',
             description="Added a new note"
         )
         logger.info(f"Updated notes for project {project_id}")
@@ -246,14 +306,14 @@ class ProjectManager:
                 is_dupe = any(l['project_id'] == project_id and l['type'] == 'file_update' and l['description'] == desc for l in recent_logs)
                 
                 if not is_dupe:
-                    await self.repository.add_activity_log(project_id, 'file_update', desc)
+                    await self.log_history_event(project_id, 'file_update', desc)
                 else:
                     logger.info(f"Suppressed duplicate file_update log for {project_id}")
             else:
                 recent_logs = await self.repository.get_recent_logs(limit=5)
                 is_dupe = any(l['project_id'] == project_id and l['type'] == 'kanban_update' for l in recent_logs)
                 if not is_dupe:
-                    await self.repository.add_activity_log(project_id, 'kanban_update', "Updated Kanban board layout")
+                    await self.log_history_event(project_id, 'kanban_update', "Updated Kanban board layout")
                 
         except Exception as e:
             logger.error(f"Error during kanban diff/sync: {e}")
@@ -294,7 +354,7 @@ class ProjectManager:
                     self.kanban_service.save_board(project['source_path'], board)
                     
                     file_name = tasks[target_key].get('title', file_id)
-                    await self.repository.add_activity_log(
+                    await self.log_history_event(
                         project_id, 
                         'file_update', 
                         f"Changed status of '{file_name}' to {status}"
@@ -324,9 +384,9 @@ class ProjectManager:
         
         if target_file:
             await self.repository.update_file_status_by_id(target_file.file_id, status)
-            await self.repository.add_activity_log(
+            await self.log_history_event(
                 project_id=project_id,
-                activity_type='file_update',
+                action_type='file_update',
                 description=f"File {os.path.basename(file_path)} status updated to {status}"
             )
             await self.repository.touch_project(project_id)
@@ -386,9 +446,9 @@ class ProjectManager:
             json_manager.update_config({"translation_dirs": translation_dirs})
             logger.info(f"Added translation path {abs_path} to project {project_id}")
             
-            await self.repository.add_activity_log(
+            await self.log_history_event(
                 project_id=project_id,
-                activity_type='path_registered',
+                action_type='path_registered',
                 description="Auto-registered translation output path"
             )
 
@@ -535,7 +595,7 @@ class ProjectManager:
                 if results:
                     archive_manager.archive_translated_results(version_id, results, source_files_data, lang_iso)
             
-            await self.repository.add_activity_log(
+            await self.log_history_event(
                 project_id,
                 'archive_update',
                 f"Uploaded {match_count} translations to archive using exact key:version matching."

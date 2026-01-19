@@ -19,6 +19,7 @@ export const FEATURES = {
     ENABLE_WORKSHOP_GENERATOR: ENABLE_EXPERIMENTAL_FEATURES, // Steam Workshop Description Generator
     ENABLE_EVENT_RENDERER: ENABLE_EXPERIMENTAL_FEATURES,     // Paradox Event Renderer
     ENABLE_UI_DEBUGGER: ENABLE_EXPERIMENTAL_FEATURES,        // Internal UI Debugger
+    ENABLE_PROJECT_HISTORY: ENABLE_EXPERIMENTAL_FEATURES,    // Project History Timeline
 
     // Providers
     ENABLE_HUNYUAN_PROVIDER: ENABLE_EXPERIMENTAL_FEATURES    // Hunyuan (Tencent) Provider

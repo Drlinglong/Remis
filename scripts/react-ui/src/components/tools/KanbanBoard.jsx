@@ -8,7 +8,7 @@ import { TaskCard } from './TaskCard';
 import { TaskDetailsPanel } from './TaskDetailsPanel';
 import styles from '../../pages/ProjectManagement.module.css';
 
-export const KanbanBoard = ({ projectId }) => {
+const KanbanBoard = ({ projectId }) => {
     const {
         tasks,
         columns,
@@ -121,3 +121,4 @@ export const KanbanBoard = ({ projectId }) => {
         </div>
     );
 };
+export default KanbanBoard;

@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Any, Sequence
 from sqlmodel import select, col
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import selectinload
-from scripts.core.db_models import Project, ProjectFile
+from scripts.core.db_models import Project, ProjectFile, ProjectHistory
 from scripts.app_settings import PROJECTS_DB_PATH
 import uuid
 
@@ -40,55 +40,92 @@ class ProjectRepository:
         async for session in session_gen:
             yield session
 
-    # Helper for cleaner code
     def _session_scope(self):
-        from scripts.core.db_manager import DatabaseConnectionManager
-        return DatabaseConnectionManager(self.db_path).get_async_session()
+        from scripts.core.db_manager import db_manager
+        return db_manager.get_async_session()
 
-    async def add_activity_log(self, project_id: str, activity_type: str, description: str):
-        """Records a new activity log entry."""
-        # Activity Log table might not be in SQLModel yet? 
-        # It was raw SQL in previous version.
-        # We should stick to raw SQL via session for tables not in SQLModel OR add it.
-        # For now, let's execute raw SQL asynchronously for ActivityLog to avoid changing db_models too much if not planned.
-        # But `session.execute` can run text.
-        from sqlalchemy import text
+    async def add_history_entry(self, project_id: str, action_type: str, description: str, snapshot_id: Optional[int] = None, extra_metadata: Optional[Dict[str, Any]] = None):
+        """
+        New Unified DB Way:
+        1. Logs entry to ProjectHistory.
+        2. Updates Project's last_activity fields for denormalized summary.
+        """
         async for session in self._session_scope():
             try:
-                await session.execute(
-                    text("""
-                        INSERT INTO activity_log (log_id, project_id, type, description, timestamp)
-                        VALUES (:log_id, :project_id, :type, :description, :timestamp)
-                    """),
-                    {
-                        "log_id": str(uuid.uuid4()),
-                        "project_id": project_id,
-                        "type": activity_type,
-                        "description": description,
-                        "timestamp": datetime.datetime.now().isoformat()
-                    }
+                # 1. Create History Entry
+                history_entry = ProjectHistory(
+                    history_id=str(uuid.uuid4()),
+                    project_id=project_id,
+                    timestamp=datetime.datetime.now().isoformat(),
+                    action_type=action_type,
+                    description=description,
+                    snapshot_id=snapshot_id,
+                    extra_metadata=extra_metadata
                 )
+                session.add(history_entry)
+
+                # 2. Update Project Summary Fields
+                stmt = select(Project).where(Project.project_id == project_id)
+                res = await session.execute(stmt)
+                project = res.scalar_one_or_none()
+                if project:
+                    project.last_activity_type = action_type
+                    project.last_activity_desc = description[:200] # Truncate if too long
+                    project.last_modified = datetime.datetime.now().isoformat()
+                    session.add(project)
+
                 await session.commit()
             except Exception as e:
-                logger.error(f"Failed to add activity log: {e}")
+                await session.rollback()
+                logger.error(f"Failed to add history entry: {e}")
+                raise e
 
     async def get_recent_logs(self, limit: int = 10) -> List[Dict[str, Any]]:
-        """Retrieves the latest activity logs with project names."""
-        from sqlalchemy import text
+        """Retrieves the latest history events with project names."""
         async for session in self._session_scope():
-            result = await session.execute(
-                text("""
-                    SELECT l.*, p.name as title
-                    FROM activity_log l
-                    JOIN projects p ON l.project_id = p.project_id
-                    ORDER BY l.timestamp DESC
-                    LIMIT :limit
-                """),
-                {"limit": limit}
-            )
-            rows = result.mappings().all()
-            return [dict(row) for row in rows]
+            # Join ProjectHistory and Project to get project names
+            stmt = select(ProjectHistory, Project.name.label("project_name")) \
+                .join(Project, Project.project_id == ProjectHistory.project_id) \
+                .order_by(col(ProjectHistory.timestamp).desc()) \
+                .limit(limit)
+            
+            result = await session.execute(stmt)
+            rows = result.all()
+            
+            # Map to list of dicts for UI compatibility
+            recent_logs = []
+            for history, p_name in rows:
+                dump = history.model_dump()
+                dump['project_name'] = p_name
+                # Map 'action_type' to 'type' for UI compatibility if needed
+                dump['type'] = history.action_type
+                recent_logs.append(dump)
+            return recent_logs
         return []
+
+    # Removed add_project_history as it's folded into add_history_entry
+
+    async def get_project_history(self, project_id: str) -> List[ProjectHistory]:
+        """Retrieves history for a specific project, ordered by timestamp desc."""
+        async for session in self._session_scope():
+            stmt = select(ProjectHistory).where(ProjectHistory.project_id == project_id).order_by(col(ProjectHistory.timestamp).desc())
+            result = await session.execute(stmt)
+            return list(result.scalars().all())
+
+    async def delete_history_event(self, history_id: str):
+        """Deletes a specific history event."""
+        async for session in self._session_scope():
+            try:
+                stmt = select(ProjectHistory).where(ProjectHistory.history_id == history_id)
+                result = await session.execute(stmt)
+                history = result.scalar_one_or_none()
+                if history:
+                    await session.delete(history)
+                    await session.commit()
+            except Exception as e:
+                await session.rollback()
+                logger.error(f"Failed to delete history event: {e}")
+                raise e
 
     # --- Project CRUD ---
 
@@ -231,10 +268,14 @@ class ProjectRepository:
                         file_path = excluded.file_path
                 ''')
                 
+                logger.info(f"ProjectRepository: Upserting {len(project_files)} files for project {project_files[0].get('project_id')}")
+                # logger.debug(f"Payload sample: {project_files[0]}")
+
                 await session.execute(stmt, project_files)
                 await session.commit()
+                logger.info(f"ProjectRepository: Batch upsert committed successfully.")
             except Exception as e:
-                logger.error(f"Batch upsert failed: {e}")
+                logger.error(f"Batch upsert failed: {str(e)}", exc_info=True)
                 await session.rollback()
                 raise e
 

@@ -33,11 +33,12 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
 
     if project_id:
         try:
-            project_manager.repository.add_activity_log(
+            import asyncio
+            asyncio.run(project_manager.log_history_event(
                 project_id=project_id,
-                activity_type='translation_workflow',
+                action_type='translation_workflow',
                 description="Translation task started"
-            )
+            ))
         except Exception as e:
             logging.error(f"Failed to log activity: {e}")
 
@@ -86,11 +87,12 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
 
         if project_id:
             try:
-                project_manager.repository.add_activity_log(
+                import asyncio
+                asyncio.run(project_manager.log_history_event(
                     project_id=project_id,
-                    activity_type='translation_workflow',
+                    action_type='translation_workflow',
                     description="Translation completed successfully"
-                )
+                ))
             except Exception as e:
                 logging.error(f"Failed to log completion activity: {e}")
 
@@ -105,11 +107,12 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
             del tasks[task_id]["result_path"]
         if project_id:
             try:
-                project_manager.repository.add_activity_log(
+                import asyncio
+                asyncio.run(project_manager.log_history_event(
                     project_id=project_id,
-                    activity_type='translation_workflow',
+                    action_type='translation_workflow',
                     description="Translation workflow failed"
-                )
+                ))
             except Exception as e:
                 logging.error(f"Failed to log failure activity: {e}")
 
@@ -130,9 +133,9 @@ def run_translation_workflow_v2(
 
     if project_id:
         try:
-            asyncio.run(project_manager.repository.add_activity_log(
+            asyncio.run(project_manager.log_history_event(
                 project_id=project_id,
-                activity_type='translation_workflow',
+                action_type='translation_workflow',
                 description="Translation task (V2) started"
             ))
         except Exception as e:
@@ -250,9 +253,9 @@ def run_translation_workflow_v2(
 
         if project_id:
             try:
-                asyncio.run(project_manager.repository.add_activity_log(
+                asyncio.run(project_manager.log_history_event(
                     project_id=project_id,
-                    activity_type='translation_workflow',
+                    action_type='translation_workflow',
                     description="Translation completed successfully"
                 ))
             except Exception as e:
@@ -265,9 +268,9 @@ def run_translation_workflow_v2(
         tasks[task_id]["log"].append(error_message)
         if project_id:
             try:
-                asyncio.run(project_manager.repository.add_activity_log(
+                asyncio.run(project_manager.log_history_event(
                     project_id=project_id,
-                    activity_type='translation_workflow',
+                    action_type='translation_workflow',
                     description="Translation workflow failed"
                 ))
             except Exception as e:
