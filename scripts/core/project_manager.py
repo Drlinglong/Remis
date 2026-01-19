@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.core.services.kanban_service import KanbanService
-from scripts.core.archive_manager import archive_manager
-from scripts.core.loc_parser import parse_loc_file
+from scripts.core.services.translation_archive_service import TranslationArchiveService
 from scripts.utils.i18n_utils import paradox_to_iso
 from scripts.core.db_models import Project as DBProject, ProjectFile as DBProjectFile, ProjectHistory
 
@@ -45,7 +44,7 @@ class ProjectFile:
     file_type: str = 'source'
 
 class ProjectManager:
-    def __init__(self, file_service=None, project_repository=None, kanban_service=None, db_path: str = PROJECTS_DB_PATH):
+    def __init__(self, file_service=None, project_repository=None, kanban_service=None, archive_service=None, db_path: str = PROJECTS_DB_PATH):
         """
         Args:
             file_service: Injected FileService instance. 
@@ -63,12 +62,14 @@ class ProjectManager:
                  self.kanban_service = self.file_service.kanban_service
             else:
                 from scripts.core.services.kanban_service import KanbanService
-                self.kanban_service = KanbanService()
+                self.kanban_service = KanbanService(repository=self.repository)
         
         # Fallback for Repository
         if not self.repository:
             from scripts.core.repositories.project_repository import ProjectRepository
             self.repository = ProjectRepository(db_path)
+
+        self.archive_service = archive_service or TranslationArchiveService()
 
     async def create_project(self, name: str, folder_path: str, game_id: str, source_language: str) -> Dict[str, Any]:
         """
@@ -275,51 +276,7 @@ class ProjectManager:
         if not project:
             raise ValueError(f"Project {project_id} not found")
         
-        try:
-            old_board = self.kanban_service.get_board(project['source_path'])
-            old_tasks = old_board.get("tasks", {})
-        except Exception:
-            old_tasks = {}
-
-        self.kanban_service.save_board(project['source_path'], kanban_data)
-        
-        try:
-            new_tasks = kanban_data.get("tasks", {})
-            moved_tasks = []
-            for tid, new_task in new_tasks.items():
-                old_task = old_tasks.get(tid)
-                if old_task and old_task.get('status') != new_task.get('status'):
-                    moved_tasks.append(new_task)
-            
-            for task in moved_tasks:
-                if task.get('type') == 'file':
-                    await self.repository.update_file_status_by_id(task['id'], task['status'])
-            
-            if moved_tasks:
-                # Logging logic simplified for async
-                first = moved_tasks[0]
-                desc = f"Moved '{first.get('title')}' to {first.get('status')}"
-                if len(moved_tasks) > 1:
-                    desc += f" (and {len(moved_tasks)-1} others)"
-                
-                recent_logs = await self.repository.get_recent_logs(limit=3)
-                is_dupe = any(l['project_id'] == project_id and l['type'] == 'file_update' and l['description'] == desc for l in recent_logs)
-                
-                if not is_dupe:
-                    await self.log_history_event(project_id, 'file_update', desc)
-                else:
-                    logger.info(f"Suppressed duplicate file_update log for {project_id}")
-            else:
-                recent_logs = await self.repository.get_recent_logs(limit=5)
-                is_dupe = any(l['project_id'] == project_id and l['type'] == 'kanban_update' for l in recent_logs)
-                if not is_dupe:
-                    await self.log_history_event(project_id, 'kanban_update', "Updated Kanban board layout")
-                
-        except Exception as e:
-            logger.error(f"Error during kanban diff/sync: {e}")
-
-        await self.repository.touch_project(project_id)
-        logger.info(f"Saved kanban and synchronized status for project {project_id}")
+        await self.kanban_service.save_board_and_sync(project_id, project['source_path'], kanban_data)
 
     async def update_file_status_with_kanban_sync(self, project_id: str, file_id: str, status: str):
         """Updates file status in DB and also moves it in the Kanban JSON."""
@@ -327,45 +284,8 @@ class ProjectManager:
         if not project:
             raise ValueError(f"Project {project_id} not found")
 
-        await self.repository.update_file_status_by_id(file_id, status)
-
-        try:
-            board = self.kanban_service.get_board(project['source_path'])
-            tasks = board.get("tasks", {})
-            
-            target_key = None
-            if file_id in tasks:
-                target_key = file_id
-            else:
-                for tid, t_obj in tasks.items():
-                    if t_obj.get('id') == file_id:
-                        target_key = tid
-                        break
-            
-            if target_key:
-                if target_key != file_id:
-                    tasks[file_id] = tasks.pop(target_key)
-                    target_key = file_id
-                    logger.info(f"ProjectManager: Aligned task key during status update: {file_id}")
-
-                old_status = tasks[target_key].get('status')
-                if old_status != status:
-                    tasks[target_key]['status'] = status
-                    self.kanban_service.save_board(project['source_path'], board)
-                    
-                    file_name = tasks[target_key].get('title', file_id)
-                    await self.log_history_event(
-                        project_id, 
-                        'file_update', 
-                        f"Changed status of '{file_name}' to {status}"
-                    )
-            else:
-                logger.warning(f"Task for file {file_id} not found in Kanban. Triggering sync...")
-                await self.refresh_project_files(project_id)
-
-        except Exception as e:
-            logger.error(f"Failed to sync kanban after individual file update: {e}")
-
+        await self.kanban_service.update_file_status_sync(project_id, project['source_path'], file_id, status)
+        
         await self.repository.touch_project(project_id)
 
     async def update_file_status(self, project_id: str, file_path: str, status: str):
@@ -479,132 +399,24 @@ class ProjectManager:
     async def upload_project_translations(self, project_id: str) -> Dict[str, Any]:
         """
         Scans existing translation files in the project and uploads them to the archive.
+        Delegates to TranslationArchiveService.
         """
         project = await self.get_project(project_id)
         if not project:
             raise ValueError(f"Project {project_id} not found")
 
-        source_path = project['source_path']
-        project_name = project['name']
-
-        # 1. Get Project Config
-        json_manager = ProjectJsonManager(source_path)
-        config = json_manager.get_config()
-        translation_dirs = config.get('translation_dirs', [])
+        result = self.archive_service.upload_project_translations(
+            project_id=project_id,
+            project_name=project['name'],
+            source_path=project['source_path']
+        )
         
-        if not translation_dirs:
-            return {"status": "warning", "message": "No translation directories configured."}
-
-        # 2. Parse Source Files (CPU Bound, ideally run in executor but OK for now)
-        source_files_data = []
-        all_source_keys = {} # key -> filename
-        
-        for root, _, files in os.walk(source_path):
-            for file in files:
-                if file.endswith(('.yml', '.yaml')):
-                    full_path = Path(os.path.join(root, file))
-                    try:
-                        entries = parse_loc_file(full_path)
-                        if entries:
-                            filename = os.path.basename(full_path)
-                            source_files_data.append({
-                                'filename': filename,
-                                'key_map': [e[0] for e in entries],
-                                'texts_to_translate': [e[1] for e in entries]
-                            })
-                            for e in entries:
-                                all_source_keys[e[0]] = filename
-                    except Exception as e:
-                        logger.error(f"Failed to parse source file {full_path}: {e}")
-
-        if not source_files_data:
-            return {"status": "warning", "message": "No source files found to match against."}
-
-        # 3. Initialize Archive Version (Synchronous calls to archive_manager - acceptable?)
-        # ArchiveManager probably uses sqlite3 sync.
-        # Ideally ArchiveManager should also be Async, but let's stick to ProjectManager scope.
-        # Calling sync code in async function is blocking but safe if not heavy concurrent load.
-        mod_id = archive_manager.get_or_create_mod_entry(project_name, project_id)
-        if not mod_id:
-            return {"status": "error", "message": "Failed to initialize mod archive entry."}
-        
-        version_id = archive_manager.create_source_version(mod_id, source_files_data)
-        if not version_id:
-            return {"status": "error", "message": "Failed to create source version snapshot."}
-
-        # ... (Rest of parsing logic is CPU bound, keeping it as is)
-        file_results = {} 
-        match_count = 0
-        from scripts.schemas.common import LanguageCode
-
-        for trans_dir in translation_dirs:
-            if not os.path.exists(trans_dir): continue
-            for root, _, files in os.walk(trans_dir):
-                for file in files:
-                    if file.endswith(('.yml', '.yaml', '.txt')):
-                        full_path = Path(os.path.join(root, file))
-                        lang_code_iso = "zh-CN"
-                        lang_match = re.search(r"_l_(\w+)\.(yml|yaml)$", file, re.IGNORECASE)
-                        if lang_match:
-                            try:
-                                lang_code_iso = LanguageCode.from_str(lang_match.group(1)).value
-                            except: pass
-                        
-                        if lang_code_iso not in file_results:
-                            file_results[lang_code_iso] = {}
-
-                        try:
-                            entries = parse_loc_file(full_path)
-                            if not entries: continue
-                            
-                            for key, value in entries:
-                                source_filename = all_source_keys.get(key)
-                                if not source_filename and ":" in key:
-                                    source_filename = all_source_keys.get(key.split(':')[0])
-                                
-                                if source_filename:
-                                    source_file_data = next((fd for fd in source_files_data if fd['filename'] == source_filename), None)
-                                    if not source_file_data: continue
-
-                                    if source_filename not in file_results[lang_code_iso]:
-                                        file_results[lang_code_iso][source_filename] = list(source_file_data['texts_to_translate'])
-                                    
-                                    try:
-                                        try:
-                                            idx = source_file_data['key_map'].index(key)
-                                        except ValueError:
-                                            if ":" in key:
-                                                idx = source_file_data['key_map'].index(key.split(':')[0])
-                                            else:
-                                                idx = -1
-                                                for i, k in enumerate(source_file_data['key_map']):
-                                                    if k.split(':')[0] == key:
-                                                        idx = i
-                                                        break
-                                                if idx == -1: raise ValueError("Key not found")
-
-                                        file_results[lang_code_iso][source_filename][idx] = value
-                                        match_count += 1
-                                    except ValueError:
-                                        pass
-                        except Exception as e:
-                            logger.error(f"Failed to parse translation file {full_path}: {e}")
-
-        if match_count > 0:
-            for lang_iso, results in file_results.items():
-                if results:
-                    archive_manager.archive_translated_results(version_id, results, source_files_data, lang_iso)
-            
-            await self.log_history_event(
+        if result.get('status') == 'success':
+             match_count = result.get('match_count', 0)
+             await self.log_history_event(
                 project_id,
                 'archive_update',
                 f"Uploaded {match_count} translations to archive using exact key:version matching."
             )
-            
-            return {
-                "status": "success", 
-                "message": f"Successfully uploaded {match_count} translations across {len(file_results)} files.",
-                "match_count": match_count
-            }
-        else:
-            return {"status": "info", "message": "No matching keys found in translation files."}
+        
+        return result
