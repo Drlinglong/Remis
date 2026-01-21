@@ -855,5 +855,21 @@
   "homepage_pie_chart_todo": "待办",
   "homepage_pie_chart_in_progress": "翻译中",
   "homepage_pie_chart_paused": "挂起",
-  "homepage_pie_chart_done": "已完工"
+  "homepage_pie_chart_done": "已完工",
+  "button_rescan": "重新扫描",
+  "common.confirm_delete": "您确定要删除这条历史记录吗？",
+  "project_history": {
+    "current_state": "当前状态",
+    "monitor_desc": "监控本地文件与上次版本的变更",
+    "changes_detected": "检测到未同步的变更",
+    "new_lines": "新增行数",
+    "changed_lines": "变更行数",
+    "files_count": "影响文件",
+    "btn_incremental_update": "开始增量更新",
+    "up_to_date": "当前已是最新状态，未检测到本地变更。",
+    "scan_prompt": "点击“重新扫描”以检查本地修改。",
+    "title": "项目历史与版本",
+    "no_history": "暂无历史记录",
+    "no_history_desc": "重要的项目事件将显示在这里。"
+  }
 }
