@@ -266,15 +266,78 @@ def create_skeleton():
     
     print(f"[SUCCESS] Skeleton Generated at {OUTPUT_DB}")
     
-    # 8. Generate Mods Cache Skeleton
-    print("\n[INFO] Generating Mods Cache Skeleton...")
-    if os.path.exists(MODS_CACHE_DB) and os.path.getsize(MODS_CACHE_DB) > 1024:
-        print(f"[COPY] Copying {MODS_CACHE_DB} -> {OUTPUT_CACHE_DB}")
-        shutil.copy2(MODS_CACHE_DB, OUTPUT_CACHE_DB)
-        print(f"[SUCCESS] Mods Cache Skeleton Generated at {OUTPUT_CACHE_DB}")
-    else:
+    # 8. Generate Mods Cache Skeleton (Filtered)
+    print("\n[INFO] Generating Mods Cache Skeleton (Filtered)...")
+    
+    if not os.path.exists(MODS_CACHE_DB) or os.path.getsize(MODS_CACHE_DB) < 1024:
         print(f"[WARN] DEV mods_cache.sqlite not found or empty. Skipping cache skeleton.")
-        print(f"[HINT] Run 'Upload Translations' for demo projects in DEV mode to populate it.")
+    else:
+        # Get whitelisted project names from the already filtered Projects DB
+        conn_proj = sqlite3.connect(OUTPUT_DB)
+        cursor_proj = conn_proj.cursor()
+        cursor_proj.execute("SELECT name FROM projects")
+        active_project_names = [row[0] for row in cursor_proj.fetchall()]
+        conn_proj.close()
+        
+        print(f"[FILTER] White-listed Project Names for Cache: {active_project_names}")
+
+        # Remove old output if exists
+        if os.path.exists(OUTPUT_CACHE_DB):
+            os.remove(OUTPUT_CACHE_DB)
+
+        # Connect to Destination (New Cache Skeleton)
+        conn_dest = sqlite3.connect(OUTPUT_CACHE_DB)
+        cursor_dest = conn_dest.cursor()
+
+        # Create Schema (Copied from archive_manager.py)
+        # We must align with the current schema used in archive_manager.
+        print("[SCHEMA] Creating Cache Schema...")
+        cursor_dest.execute("CREATE TABLE IF NOT EXISTS mods (mod_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+        cursor_dest.execute("CREATE TABLE IF NOT EXISTS mod_identities (identity_id INTEGER PRIMARY KEY AUTOINCREMENT, mod_id INTEGER NOT NULL, remote_file_id TEXT NOT NULL UNIQUE, FOREIGN KEY (mod_id) REFERENCES mods (mod_id))")
+        cursor_dest.execute("CREATE TABLE IF NOT EXISTS source_versions (version_id INTEGER PRIMARY KEY AUTOINCREMENT, mod_id INTEGER NOT NULL, snapshot_hash TEXT NOT NULL UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (mod_id) REFERENCES mods (mod_id))")
+        
+        # Note: file_path column is essential now.
+        cursor_dest.execute("""
+            CREATE TABLE IF NOT EXISTS source_entries (
+                source_entry_id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                version_id INTEGER NOT NULL, 
+                entry_key TEXT NOT NULL, 
+                source_text TEXT NOT NULL, 
+                file_path TEXT DEFAULT '',
+                UNIQUE(version_id, file_path, entry_key), 
+                FOREIGN KEY (version_id) REFERENCES source_versions (version_id)
+            )
+        """)
+        cursor_dest.execute("CREATE TABLE IF NOT EXISTS translated_entries (translated_entry_id INTEGER PRIMARY KEY AUTOINCREMENT, source_entry_id INTEGER NOT NULL, language_code TEXT NOT NULL, translated_text TEXT NOT NULL, last_translated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(source_entry_id, language_code), FOREIGN KEY (source_entry_id) REFERENCES source_entries (source_entry_id))")
+
+        # Attach Source Cache
+        cursor_dest.execute("ATTACH DATABASE ? AS src_cache", (MODS_CACHE_DB,))
+        
+        # 1. Migrate Mods (Filtered by Name)
+        # Active project names usually match Mod names in our workflow.
+        placeholders = ', '.join(['?'] * len(active_project_names))
+        
+        print(f"[MIGRATE] Migrating active mods...")
+        cursor_dest.execute(f"INSERT INTO main.mods SELECT * FROM src_cache.mods WHERE name IN ({placeholders})", active_project_names)
+        
+        # 2. Migrate Mod Identities
+        cursor_dest.execute("INSERT INTO main.mod_identities SELECT * FROM src_cache.mod_identities WHERE mod_id IN (SELECT mod_id FROM main.mods)")
+        
+        # 3. Migrate Source Versions
+        cursor_dest.execute("INSERT INTO main.source_versions SELECT * FROM src_cache.source_versions WHERE mod_id IN (SELECT mod_id FROM main.mods)")
+        
+        # 4. Migrate Source Entries
+        cursor_dest.execute("INSERT INTO main.source_entries SELECT * FROM src_cache.source_entries WHERE version_id IN (SELECT version_id FROM main.source_versions)")
+        
+        # 5. Migrate Translated Entries
+        cursor_dest.execute("INSERT INTO main.translated_entries SELECT * FROM src_cache.translated_entries WHERE source_entry_id IN (SELECT source_entry_id FROM main.source_entries)")
+        
+        conn_dest.commit()
+        cursor_dest.execute("DETACH DATABASE src_cache")
+        cursor_dest.execute("VACUUM")
+        conn_dest.close()
+        
+        print(f"[SUCCESS] Mods Cache Skeleton Generated (Filtered) at {OUTPUT_CACHE_DB}")
 
 if __name__ == "__main__":
     create_skeleton()
