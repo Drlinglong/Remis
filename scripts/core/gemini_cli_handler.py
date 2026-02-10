@@ -65,7 +65,7 @@ class GeminiCLIHandler(BaseApiHandler):
             # Check version with a short timeout. It should be instant.
             # Added -NoProfile to avoid loading user profile which might be slow
             cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", f"{self.cli_path} --version"]
-            kwargs = { "capture_output": True, "text": True, "timeout": 5 }
+            kwargs = { "capture_output": True, "text": True, "timeout": 15 }
             if os.name == 'nt':
                 kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
             result = subprocess.run(cmd, **kwargs)
@@ -76,7 +76,7 @@ class GeminiCLIHandler(BaseApiHandler):
             self.logger.info(i18n.t("gemini_cli_available", version=result.stdout.strip()))
             
         except subprocess.TimeoutExpired:
-            error_msg = i18n.t("gemini_cli_timeout", default="Gemini CLI check timed out (5s). Please check internet or switch to API mode.")
+            error_msg = i18n.t("gemini_cli_timeout", default="Gemini CLI check timed out (15s). Please check internet or switch to API mode.")
             self.logger.error(error_msg)
             raise RuntimeError(error_msg)
             
