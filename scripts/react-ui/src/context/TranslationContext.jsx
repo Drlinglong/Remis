@@ -29,35 +29,51 @@ export const TranslationProvider = ({ children }) => {
         setTranslationDetails(null);
     }, []);
 
-    // Polling Logic - Global to the application
+    // WebSocket for real-time status updates
     useEffect(() => {
-        let interval;
+        let socket;
         if (taskId && isProcessing) {
-            interval = setInterval(async () => {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            // Note: In a production Tauri environment, we point directly to localhost:8081.
+            // In dev, we also point to the backend port.
+            const host = import.meta.env.DEV ? '127.0.0.1:8081' : '127.0.0.1:8081';
+            const wsUrl = `${protocol}//${host}/api/ws/status/${taskId}`;
+
+            console.log(`[WebSocket] Connecting to ${wsUrl}`);
+            socket = new WebSocket(wsUrl);
+
+            socket.onmessage = (event) => {
                 try {
-                    const response = await api.get(`/api/status/${taskId}`);
-                    if (response.status === 200) {
-                        setTaskStatus(response.data);
-                        if (response.data.status === 'completed' || response.data.status === 'failed') {
-                            setIsProcessing(false);
-                            clearInterval(interval);
-                            if (response.data.status === 'completed') {
-                                setActiveStep(3);
-                            }
+                    const data = JSON.parse(event.data);
+                    setTaskStatus(data);
+                    if (data.status === 'completed' || data.status === 'failed') {
+                        setIsProcessing(false);
+                        if (data.status === 'completed') {
+                            setActiveStep(3);
                         }
                     }
-                } catch (error) {
-                    console.error("Error polling status in context:", error);
-                    // Check if task doesn't exist anymore?
-                    if (error.response && error.response.status === 404) {
-                        setIsProcessing(false);
-                        clearInterval(interval);
-                    }
+                } catch (err) {
+                    console.error("[WebSocket] Failed to parse message:", err);
                 }
-            }, 3000);
+            };
+
+            socket.onerror = (error) => {
+                console.error("[WebSocket] Error:", error);
+            };
+
+            socket.onclose = (event) => {
+                console.log(`[WebSocket] Connection closed for task ${taskId}: ${event.reason}`);
+                // If it closed while still processing, it might be a temporary loss of connection
+                // but we'll let the user manually retry or just wait for now to keep it simple.
+            };
         }
-        return () => clearInterval(interval);
-    }, [taskId, isProcessing]);
+        return () => {
+            if (socket) {
+                console.log(`[WebSocket] Cleaning up connection for task ${taskId}`);
+                socket.close();
+            }
+        };
+    }, [taskId, isProcessing, setActiveStep]);
 
     const value = {
         activeStep,
