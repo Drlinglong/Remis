@@ -73,23 +73,21 @@ const IncrementalTranslationPage = () => {
 
     const fetchApiConfig = async () => {
         try {
-            const [providersRes, configRes] = await Promise.all([
-                axios.get('/api/config/api-providers'),
-                axios.get('/api/config')
-            ]);
+            const response = await axios.get('/api/config');
+            const data = response.data;
+            const providers = data.api_providers || [];
 
-            const providers = providersRes.data;
             setApiProviders(providers);
 
-            const defaultProvider = configRes.data.default_provider || 'gemini';
+            const defaultProvider = data.default_provider || 'gemini';
             setSelectedProvider(defaultProvider);
 
             // Find models for default provider
-            const providerData = providers.find(p => p.id === defaultProvider);
+            const providerData = providers.find(p => p.value === defaultProvider);
             if (providerData) {
                 const availableModels = providerData.available_models || providerData.custom_models || [];
                 setModels(availableModels);
-                setSelectedModel(configRes.data.default_model || availableModels[0] || '');
+                setSelectedModel(data.default_model || availableModels[0] || '');
             }
         } catch (err) {
             console.error('Failed to fetch API config', err);
@@ -98,7 +96,7 @@ const IncrementalTranslationPage = () => {
 
     const handleProviderChange = (val) => {
         setSelectedProvider(val);
-        const providerData = apiProviders.find(p => p.id === val);
+        const providerData = apiProviders.find(p => p.value === val);
         if (providerData) {
             const availableModels = providerData.available_models || providerData.custom_models || [];
             setModels(availableModels);
@@ -274,7 +272,7 @@ const IncrementalTranslationPage = () => {
                                     <SimpleGrid cols={2}>
                                         <Select
                                             label={t('translation_config.provider')}
-                                            data={apiProviders.map(p => ({ value: p.id, label: p.name }))}
+                                            data={apiProviders.map(p => ({ value: p.value, label: p.label }))}
                                             value={selectedProvider}
                                             onChange={handleProviderChange}
                                         />

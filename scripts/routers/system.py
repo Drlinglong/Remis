@@ -31,7 +31,7 @@ async def get_system_stats():
         # 3. Recent Activity (Latest 10 logs from activity_log table)
         recent_activities = []
         try:
-            logs = project_manager.repository.get_recent_logs(limit=10)
+            logs = await project_manager.repository.get_recent_logs(limit=10)
             for log in logs:
                 recent_activities.append({
                     "id": log['log_id'],  # Unique log ID for React keys

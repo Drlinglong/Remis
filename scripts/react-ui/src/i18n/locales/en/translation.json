@@ -843,23 +843,23 @@
       "step_4_title": "Translation Execution",
       "step_4_desc": "Execute AI translation and file writing",
       "select_project_first": "Please select a project from the list first",
-      "archive_found": "Archive found: Version {version}, Last updated {date}",
+      "archive_found": "Archive found: Version {{version}}, Last updated {{date}}",
       "archive_missing": "No translation archive found for this project. Incremental comparison failed.",
       "archive_missing_action": "Please complete an 'Initial Translation' or 'Upload Translations' first to build the archive.",
       "select_new_folder": "Select New Mod Folder",
       "select_new_folder_desc": "Mod directory containing the latest source files (usually the updated mod folder)",
-      "current_folder_info": "Current project path: {path}",
+      "current_folder_info": "Current project path: {{path}}",
       "pre_scan_summary": "Pre-scan Summary",
       "scan_directory": "Scan Directory",
       "source_language": "Source Language",
       "files_to_process": "Files to Process",
-      "reused_count": "Reusable (from archive/global): {count} items",
-      "new_count": "New items to translate: {count} items",
-      "changed_count": "Modified items to re-translate: {count} items",
+      "reused_count": "Reusable (from archive/global)",
+      "new_count": "New items to translate",
+      "changed_count": "Modified items to re-translate",
       "start_translation_confirm": "Start translation? This will trigger API calls and costs.",
       "execution_log": "Execution Log",
-      "processing_file": "Processing: {file}",
-      "batch_status": "Batch {current}/{total} completed...",
+      "processing_file": "Processing: {{file}}",
+      "batch_status": "Batch {{current}}/{{total}} completed...",
       "completion_title": "Incremental Translation Completed",
       "output_dir_hint": "Results saved to Remis_Incremental_Update folder in project directory."
     },
@@ -868,4 +868,12 @@
     "title": "Project History & Versions",
     "no_history": "No history yet",
     "no_history_desc": "Major project events will appear here."
-  }}
+  },
+  "translation_config": {
+    "provider": "API Provider",
+    "model": "AI Model"
+  },
+  "common": {
+    "browse": "Browse"
+  }
+}
