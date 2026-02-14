@@ -531,6 +531,7 @@ class GlossaryManager:
         except Exception as e:
             logger.error(f"Failed to get glossary stats: {e}")
             return {"game_distribution": []}
+        return {"game_distribution": []}
 
     def set_fuzzy_matching_mode(self, mode: str):
         if mode in ['strict', 'loose']:

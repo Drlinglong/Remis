@@ -34,10 +34,10 @@ async def get_system_stats():
             logs = await project_manager.repository.get_recent_logs(limit=10)
             for log in logs:
                 recent_activities.append({
-                    "id": log['log_id'],  # Unique log ID for React keys
+                    "id": log['history_id'],  # Unique log ID for React keys
                     "project_id": log['project_id'],
                     "type": log['type'],
-                    "title": log['title'],  # This is the project name joined in SQL
+                    "title": log.get('project_name') or "System",  # Fallback if project missing
                     "description": log['description'],
                     "timestamp": log['timestamp'],
                     "user": "System"
