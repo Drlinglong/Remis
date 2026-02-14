@@ -15,6 +15,8 @@ class TranslationArchiveService:
     Service to handle scanning and archiving of translation files.
     Extracts logic previously in ProjectManager to ensure SRP.
     """
+    def __init__(self, am=None):
+        self.archive_manager = am or archive_manager
 
     def upload_project_translations(self, project_id: str, project_name: str, source_path: str) -> Dict[str, Any]:
         """

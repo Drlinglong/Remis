@@ -219,10 +219,47 @@ class ArchiveManager:
 
     # --- New Methods for Project/Proofreading Flow ---
 
-    def get_entries(self, mod_name: str, file_path: str, language: str = "zh-CN") -> List[Dict[str, Any]]:
+    def get_latest_version(self, mod_name: str) -> Optional[Dict[str, Any]]:
+        """Retrieves the latest version information for a given mod name."""
+        if not self.connection: return None
+        cursor = self.connection.cursor()
+        
+        query = '''
+            SELECT v.version_id, v.mod_id, v.snapshot_hash, v.created_at
+            FROM source_versions v
+            JOIN mods m ON v.mod_id = m.mod_id
+            WHERE m.name = ?
+            ORDER BY v.created_at DESC LIMIT 1
+        '''
+        try:
+            cursor.execute(query, (mod_name,))
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "id": str(row['version_id']),
+                    "mod_id": row['mod_id'],
+                    "hash": row['snapshot_hash'],
+                    "created_at": row['created_at']
+                }
+            return None
+        except Exception as e:
+            logging.error(f"Failed to get latest version: {e}")
+            return None
+
+    def get_all_mod_names(self) -> List[str]:
+        """Returns a list of all mod names in the archive."""
+        if not self.connection: return []
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute("SELECT name FROM mods")
+            return [row['name'] for row in cursor.fetchall()]
+        except Exception:
+            return []
+
+    def get_entries(self, mod_name: str, file_path: str = None, language: str = "zh-CN", limit: int = None) -> List[Dict[str, Any]]:
         """
-        Retrieves merged source and translation entries for a specific file in the latest version of a mod.
-        Includes a 'Deep Search' fallback to find translations from previous versions if the current version lacks them.
+        Retrieves merged source and translation entries for a specific file (or all files if file_path is None) 
+        in the latest version of a mod.
         """
         if not self.connection: return []
         cursor = self.connection.cursor()
@@ -240,40 +277,39 @@ class ArchiveManager:
         version_id = ver_row['version_id']
 
         # 3. Fetch Source Entries for CURRENT Version
-        filename = os.path.basename(file_path)
-        
-        # We fetch source entries first. 
-        # Note: We select entry_key to map them later.
-        cursor.execute("SELECT source_entry_id, entry_key, source_text FROM source_entries WHERE version_id = ? AND file_path = ?", (version_id, filename))
+        if file_path:
+            filename = os.path.basename(file_path)
+            query = "SELECT source_entry_id, entry_key, source_text FROM source_entries WHERE version_id = ? AND file_path = ?"
+            params = (version_id, filename)
+        else:
+            query = "SELECT source_entry_id, entry_key, source_text FROM source_entries WHERE version_id = ?"
+            params = (version_id,)
+
+        if limit:
+            query += f" LIMIT {int(limit)}"
+
+        cursor.execute(query, params)
         source_rows = cursor.fetchall()
         
         if not source_rows:
             return []
 
         # 4. Deep Search for Translations
-        # Instead of a simple JOIN which only checks the current source_entry_id,
-        # we want to match valid translations for these Keys and FilePath from ANY source_entry_id (previous versions included).
-        
-        # Optimize: Get all translations for this file_path and language from the DB derived from ANY version of this mod
-        # We can filter by file_path and language.
-        
-        # Get mapping: entry_key -> translated_text (latest by timestamp)
-        # We join back to source_entries to get the key.
-        # We filter source_entries by file_path and mod_id (implicit via keys unique to files? No, file_path is safer)
-        # Wait, source_entries link to version, version links to mod.
-        
         deep_query = '''
             SELECT s.entry_key, t.translated_text
             FROM translated_entries t
             JOIN source_entries s ON t.source_entry_id = s.source_entry_id
             JOIN source_versions v ON s.version_id = v.version_id
-            WHERE v.mod_id = ? AND s.file_path = ? AND t.language_code = ?
-            ORDER BY t.last_translated_at ASC
+            WHERE v.mod_id = ? AND t.language_code = ?
         '''
-        # We convert to dict, keeping the LAST one (latest date due to ASC order, or we can use DESC and ignore subsequent)
-        # Actually ORDER BY ASC means the last one in the loop is the latest one.
+        deep_params = [mod_id, language]
+        if file_path:
+            deep_query += " AND s.file_path = ?"
+            deep_params.append(os.path.basename(file_path))
         
-        cursor.execute(deep_query, (mod_id, filename, language))
+        deep_query += " ORDER BY t.last_translated_at ASC"
+        
+        cursor.execute(deep_query, tuple(deep_params))
         trans_rows = cursor.fetchall()
         
         translation_map = {row['entry_key']: row['translated_text'] for row in trans_rows}

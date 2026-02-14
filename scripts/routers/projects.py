@@ -252,8 +252,10 @@ async def check_project_archive(project_id: str):
     return await project_manager.check_project_archive(project_id)
 
 @router.post("/api/project/{project_id}/incremental-update")
-async def run_incremental_update(project_id: str, request: IncrementalUpdateRequest):
+async def run_incremental_update(project_id: str, request: Optional[IncrementalUpdateRequest] = None):
     """Triggers the incremental update workflow."""
+    if request is None:
+        request = IncrementalUpdateRequest()
     try:
         result = await project_manager.run_incremental_update_workflow(
             project_id=project_id,
