@@ -20,22 +20,18 @@ import {
     Table,
     Divider,
 } from '@mantine/core';
-import {
-    IconRocket,
-    IconCheck,
-    IconAlertCircle,
-    IconSearch,
-    IconFolderOpen,
-    IconPlayerPlay,
-    IconChartBar,
-} from '@tabler/icons-react';
+import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, IconPlayerPlay, IconChartBar, IconSettings, IconCloudDownload } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { notificationManager } from '../context/NotificationContext';
+import { useNotification } from '../context/NotificationContext';
+import notificationService from '../services/notificationService';
 import styles from './Translation.module.css';
 
 const IncrementalTranslationPage = () => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
+    const { notificationStyle } = useNotification();
     const [active, setActive] = useState(0);
     const [loading, setLoading] = useState(false);
 
@@ -71,7 +67,7 @@ const IncrementalTranslationPage = () => {
             const response = await axios.get('/api/projects');
             setProjects(response.data.filter(p => p.status === 'active'));
         } catch (err) {
-            notificationManager.error(t('notification.error_generic'));
+            notificationService.error(t('notification.error_generic'), notificationStyle);
         }
     };
 
@@ -156,7 +152,7 @@ const IncrementalTranslationPage = () => {
             setScanResults(res.data.summary);
             setActive(2);
         } catch (err) {
-            notificationManager.error(t('notification.error_generic'));
+            notificationService.error(t('notification.error_generic'), notificationStyle);
         } finally {
             setLoading(false);
         }
