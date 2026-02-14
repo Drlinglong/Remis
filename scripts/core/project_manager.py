@@ -214,22 +214,41 @@ class ProjectManager:
 
     # --- Workflows ---
 
-    async def run_incremental_update_workflow(self, project_id: str, provider: str = "gemini", model: Optional[str] = None, dry_run: bool = False):
+    async def run_incremental_update_workflow(self, project_id: str, provider: str = "gemini", model: Optional[str] = None, dry_run: bool = False, custom_source_path: Optional[str] = None):
         """Orchestrates the incremental update workflow."""
         from scripts.workflows.update_translate import run_incremental_update
-        from scripts.app_settings import LANGUAGES, GAME_PROFILES
+        from scripts.app_settings import LANGUAGE_BY_CODE, GAME_PROFILES, GAME_PROFILES_BY_ID
         
         project = await self.get_project(project_id)
         if not project:
             raise ValueError(f"Project {project_id} not found")
 
         # Get language and game info
-        # For now, we assume English (1) as source and Simplified Chinese (3) as target, 
-        # or we derive from project metadata.
-        source_lang_info = LANGUAGES.get("1") 
-        target_lang_info = LANGUAGES.get("2") # Simplified Chinese
-        game_profile = GAME_PROFILES.get(project.get("game_id", "vic3"), {})
+        source_lang_code = project.get("source_language", "en")
+        # Handle cases where source_language might be 'english' instead of 'en' 
+        # (check paradox_to_iso in utils if needed, but let's assume code for now)
+        source_lang_info = LANGUAGE_BY_CODE.get(source_lang_code)
         
+        # Fallback for common name mappings if needed
+        if not source_lang_info:
+             if source_lang_code.lower() == 'english': source_lang_info = LANGUAGE_BY_CODE.get("en")
+             else: source_lang_info = LANGUAGE_BY_CODE.get("en") # Ultimate fallback
+
+        target_lang_info = LANGUAGE_BY_CODE.get("zh-CN") # Default target for now
+        game_id = project.get("game_id", "victoria3")
+        
+        # 1. Try string ID lookup first (e.g. "victoria3")
+        game_profile = GAME_PROFILES_BY_ID.get(game_id)
+        
+        # 2. Fallback to numeric lookup if game_id is actually a number
+        if not game_profile:
+            game_profile = GAME_PROFILES.get(game_id)
+
+        if not game_profile:
+             logger.error(f"Game profile not found for '{game_id}'. Available: {list(GAME_PROFILES_BY_ID.keys())}")
+             # Last effort fallback to victoria3
+             game_profile = GAME_PROFILES_BY_ID.get("victoria3", {})
+
         return await run_incremental_update(
             project_id=project_id,
             target_lang_info=target_lang_info,
@@ -237,8 +256,36 @@ class ProjectManager:
             game_profile=game_profile,
             selected_provider=provider,
             model_name=model,
-            dry_run=dry_run
+            dry_run=dry_run,
+            custom_source_path=custom_source_path
         )
+
+    async def check_project_archive(self, project_id: str) -> Dict[str, Any]:
+        """Checks if there's valid archival data for this project to perform incremental update."""
+        project = await self.get_project(project_id)
+        if not project:
+            return {"exists": False, "reason": "Project not found"}
+        
+        project_name = project['name']
+        # Target language code is currently hardcoded to zh-CN as default or derived from projects
+        # In the future, this should be a project setting.
+        target_lang = "zh-CN" 
+        
+        latest_version = self.archive_service.archive_manager.get_latest_version(project_name)
+        if not latest_version:
+            return {"exists": False, "reason": "No previous version found in archive."}
+        
+        # Check if we actually have translations for this version
+        entries = self.archive_service.archive_manager.get_entries(project_name, language=target_lang, limit=1)
+        if not entries:
+            return {"exists": False, "reason": f"No translations found in archive for {target_lang}."}
+            
+        return {
+            "exists": True, 
+            "version_id": latest_version['id'], 
+            "created_at": latest_version['created_at'],
+            "target_language": target_lang
+        }
 
     async def get_project(self, project_id: str) -> Optional[Dict[str, Any]]:
         p = await self.repository.get_project(project_id)

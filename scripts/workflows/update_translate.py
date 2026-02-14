@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Tuple, Optional
 from pathlib import Path
 
 from scripts.core.archive_manager import archive_manager
-from scripts.core.project_manager import project_manager
+from scripts.shared.services import project_manager
 from scripts.core.loc_parser import parse_loc_file_with_lines
 from scripts.core.file_builder import rebuild_and_write_file
 from scripts.core.parallel_processor import ParallelProcessor, FileTask
@@ -25,7 +25,8 @@ async def run_incremental_update(
     selected_provider: str = "gemini",
     model_name: Optional[str] = None,
     mod_context: str = "",
-    dry_run: bool = False
+    dry_run: bool = False,
+    custom_source_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Runs the incremental translation workflow.
@@ -34,17 +35,47 @@ async def run_incremental_update(
     if not project:
         return {"status": "error", "message": f"Project {project_id} not found"}
 
-    source_path = project['source_path']
+    source_path = custom_source_path or project['source_path']
     project_name = project['name']
     target_lang_code = target_lang_info['code']
     
+    # We want to ONLY scan files belonging to the source language to avoid processing 11 original languages
+    # Paradox mods usually have localization/english, localization/french, etc.
+    source_lang_name_en = source_lang_info.get('name_en', 'English').lower()
+    
     logger.info(f"Starting incremental update for: {project_name} -> {target_lang_code}")
+    logger.info(f"Scanning source path: {source_path} (Filtering for {source_lang_name_en})")
 
-    # 1. Discover and Parse current source files with logic to preserve structure
-    current_files_data = [] # List of Dict
-    for root, _, files in os.walk(source_path):
+    # 1. Discover and Parse current source files
+    current_files_data = []
+    for root, dirs, files in os.walk(source_path):
+        # OPTIMIZATION: Filter folders to only search in the source language directory
+        # e.g., only go into 'english' folder if source is English.
+        # This prevents the "388 batches" issue where it scans all 11 languages.
+        
+        # Simple heuristic: if 'localization' or 'localisation' is in path, 
+        # only proceed if the folder name contains the source language name.
+        path_parts = [p.lower() for p in Path(root).parts]
+        if 'localization' in path_parts or 'localisation' in path_parts:
+            # Check if any parent part matches a language folder name we DON'T want
+            # This is tricky because we might be at the root of localization/
+            # If we are in 'localization/french' and source is 'english', we skip.
+            current_folder = os.path.basename(root).lower()
+            
+            # If the current folder is a known language folder but NOT ours, prune it
+            known_languages = ['english', 'french', 'german', 'spanish', 'russian', 'polish', 'braz_por', 'japanese', 'chinese', 'simp_chinese', 'korean', 'turkish']
+            if current_folder in known_languages and current_folder != source_lang_name_en:
+                 logger.debug(f"Skipping non-source language folder: {root}")
+                 dirs[:] = [] # Don't go deeper
+                 continue
+
         for file in files:
             if file.endswith(('.yml', '.yaml')):
+                # Also check filename for language suffix if not in a specific folder
+                # e.g. events_l_french.yml
+                if f"l_{source_lang_name_en}" not in file.lower() and any(f"l_{lang}" in file.lower() for lang in known_languages):
+                    continue
+
                 full_path = Path(os.path.join(root, file))
                 try:
                     # We need line numbers and raw content to use the patcher
@@ -101,15 +132,25 @@ async def run_incremental_update(
             }
 
             if not hist or hist['original'] != source_text:
-                # NEW or CHANGED
-                if not hist: summary["new"] += 1
-                else: summary["changed"] += 1
+                # NEW or CHANGED -> Try Global Archive Fallback first
+                summary["total_to_check"] = summary.get("total_to_check", 0) + 1
+                global_trans = archive_manager.find_global_translation(key, source_text, target_lang_code)
                 
-                entry_info['is_dirty'] = True
-                texts_to_translate.append(source_text)
-                key_delta_indices.append(len(full_file_entries))
+                if global_trans:
+                    summary["unchanged"] += 1 # Reused from global
+                    summary["reused_global"] = summary.get("reused_global", 0) + 1
+                    entry_info['translation'] = global_trans
+                    entry_info['is_dirty'] = False
+                    logger.debug(f"Smart Reuse (Global) for {key}: {filename}")
+                else:
+                    if not hist: summary["new"] += 1
+                    else: summary["changed"] += 1
+                    
+                    entry_info['is_dirty'] = True
+                    texts_to_translate.append(source_text)
+                    key_delta_indices.append(len(full_file_entries))
             else:
-                # UNCHANGED
+                # UNCHANGED (Project Local)
                 summary["unchanged"] += 1
                 entry_info['translation'] = hist['translation']
             

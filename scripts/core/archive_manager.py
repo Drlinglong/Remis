@@ -293,6 +293,33 @@ class ArchiveManager:
             
         return results
 
+    def find_global_translation(self, entry_key: str, source_text: str, language: str) -> Optional[str]:
+        """
+        Searches for a translation in the entire database (cross-mod) matching exactly the key and source text.
+        Returns the most recent translation if found.
+        """
+        if not self.connection: return None
+        cursor = self.connection.cursor()
+        query = '''
+            SELECT t.translated_text
+            FROM translated_entries t
+            JOIN source_entries s ON t.source_entry_id = s.source_entry_id
+            WHERE s.entry_key = ? AND s.source_text = ? AND t.language_code = ?
+            ORDER BY t.last_translated_at DESC LIMIT 1
+        '''
+        try:
+            cursor.execute(query, (entry_key, source_text, language))
+            row = cursor.fetchone()
+            if row:
+                return row['translated_text']
+            
+            # Fallback: Search by source text only if key doesn't match but text is exactly the same?
+            # For now, let's be strict: Key + Text must match for "Smart Reuse".
+            return None
+        except Exception as e:
+            logging.error(f"Global archive lookup failed: {e}")
+            return None
+
     def update_translations(self, mod_name: str, file_path: str, entries: List[Dict[str, Any]], language: str = "zh-CN"):
         """
         Updates translations for specific keys.

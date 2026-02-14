@@ -10,7 +10,7 @@ import ProjectPathManager from '../project/ProjectPathManager';
 import ProjectFileList from '../project/ProjectFileList';
 import ProjectSidebar from '../project/ProjectSidebar';
 
-const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, onFileStatusChange, onPathsUpdated, onDeleteForever, onManageProject }) => {
+const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, onFileStatusChange, onPathsUpdated, onDeleteForever, onManageProject, onRefresh }) => {
     const { t } = useTranslation();
     const [notes, setNotes] = useState(''); // Current input for new note
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -91,6 +91,7 @@ const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, 
                     handleStatusChange={handleStatusChange}
                     onDeleteForever={onDeleteForever}
                     onManageProject={onManageProject}
+                    onRefresh={onRefresh}
                 />
 
                 <ProjectNoteList

@@ -1,0 +1,43 @@
+/* scripts/react-ui/src/pages/Translation.module.css */
+
+.pageTitle {
+    font-family: var(--font-header);
+    color: var(--text-main);
+}
+
+.glassCard {
+    background: var(--glass-bg, rgba(30, 30, 30, 0.6)) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1)) !important;
+    border-radius: var(--card-radius, 12px) !important;
+    box-shadow: var(--shadow-elevation, 0 8px 32px rgba(0, 0, 0, 0.2)) !important;
+    color: var(--text-main) !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+}
+
+.glassCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.selectedCard {
+    background: rgba(var(--primary-color-rgb, 12, 133, 237), 0.15) !important;
+    border: 2px solid var(--primary-color, #1c7ed6) !important;
+    box-shadow: 0 0 15px rgba(28, 126, 214, 0.3) !important;
+    transform: scale(1.02);
+}
+
+.logArea {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    padding: 12px;
+}
+
+.batchSummary {
+    border-left: 4px solid var(--primary-color);
+    padding-left: 12px;
+    margin-bottom: 8px;
+}

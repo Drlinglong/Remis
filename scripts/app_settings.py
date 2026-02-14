@@ -199,6 +199,10 @@ LANGUAGES = {
     "11": {"code": "tr",     "key": "l_turkish",      "name": "Türkçe",              "name_en": "Turkish",             "folder_prefix": "tr-"}
 }
 
+# --- Language Lookups ---
+LANGUAGE_BY_CODE = {info["code"]: info for info in LANGUAGES.values()}
+LANGUAGE_BY_PARA_KEY = {info["key"]: info for info in LANGUAGES.values()}
+
 # --- 语言标点符号配置 --------------------------------------------------
 LANGUAGE_PUNCTUATION_CONFIG = {
     "zh-CN": {"name": "简体中文", "punctuation": {"，": ", ", "。": ". ", "！": "! ", "？": "? ", "：": ": ", "；": "; ", "（": " (", "）": ") ", "【": "[", "】": "]", "《": "<", "》": ">", "“": "\"", "”": "\"", "‘": "'", "’": "'", "…": "...", "—": "-", "－": "-", "　": " ", "、": ", ", "·": ". ", "～": "~", "％": "%", "＃": "#", "＄": "$", "＆": "&", "＊": "*", "＋": "+", "＝": "=", "／": "/", "＼": "\\", "｜": "|", "＠": "@"}, "examples": ["你好，世界！", "这是一个测试：标点符号。", "（重要）信息"]},
@@ -230,6 +234,7 @@ TARGET_LANGUAGE_PUNCTUATION = {
 from scripts.core.config_manager import ConfigManager
 config_manager = ConfigManager(CONFIG_DIR)
 GAME_PROFILES = config_manager.game_profiles
+GAME_PROFILES_BY_ID = {p["id"]: p for p in GAME_PROFILES.values()}
 API_PROVIDERS = config_manager.api_providers
 
 # --- Game ID Aliases (Normalization) -----------------------------

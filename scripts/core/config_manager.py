@@ -51,15 +51,12 @@ class ConfigManager:
                     hydrated["format_prompt"] = getattr(prompts, f"{preset}_FORMAT_PROMPT", prompts.VICTORIA3_FORMAT_PROMPT)
                 
                 # Handle Metadata File Path (if nested)
-                # JSON stores "dir/file.json", we need os.path.join logic?
-                # Actually, os.path.join works fine with forward slashes on Windows usually, 
-                # but if we want to be strict, we can normalize.
-                # The existing code used os.path.join(".metadata", "metadata.json") which produces different separators on OS.
-                # The JSON has ".metadata/metadata.json".
                 if "metadata_file" in hydrated:
                     hydrated["metadata_file"] = os.path.normpath(hydrated["metadata_file"])
 
-                hydrated_profiles[key] = hydrated
+                # Use the 'id' field as the key for easier lookup in backend
+                profile_id = key
+                hydrated_profiles[profile_id] = hydrated
 
             self._game_profiles = hydrated_profiles
             logger.info(f"Loaded {len(hydrated_profiles)} game profiles from {path}")

@@ -53,3 +53,9 @@ class ProjectFile(BaseModel):
     original_key_count: int
     line_count: int
     file_type: str 
+
+class IncrementalUpdateRequest(BaseModel):
+    dry_run: bool = False
+    provider: str = "gemini"
+    model: Optional[str] = None
+    custom_source_path: Optional[str] = None

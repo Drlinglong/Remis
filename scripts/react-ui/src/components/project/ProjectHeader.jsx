@@ -1,11 +1,10 @@
-import React from 'react';
-import { Paper, Group, Title, Button, Tooltip, Grid, Card, Text } from '@mantine/core';
-import { IconArchive, IconRestore, IconTrash, IconSettings, IconPlayerPlay } from '@tabler/icons-react';
+import React, { useState } from 'react';
+import { Paper, Group, Title, Button, Tooltip, Grid, Card, Text, ActionIcon } from '@mantine/core';
+import { IconArchive, IconRestore, IconTrash, IconSettings, IconPlayerPlay, IconRocket } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import styles from '../../pages/ProjectManagement.module.css';
-
-const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, onManageProject }) => {
+const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, onManageProject, onRefresh }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
 
