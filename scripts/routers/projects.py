@@ -251,19 +251,17 @@ async def check_project_archive(project_id: str):
     """Checks if the project has sufficient archive data for incremental update."""
     return await project_manager.check_project_archive(project_id)
 
+from scripts.schemas.translation import IncrementalUpdateConfig
+
 @router.post("/api/project/{project_id}/incremental-update")
-async def run_incremental_update(project_id: str, request: Optional[IncrementalUpdateRequest] = None):
+async def run_incremental_update(project_id: str, request: IncrementalUpdateConfig):
     """Triggers the incremental update workflow."""
-    if request is None:
-        request = IncrementalUpdateRequest()
+    # Ensure project_id matches
+    if request.project_id != project_id:
+        request.project_id = project_id
+        
     try:
-        result = await project_manager.run_incremental_update_workflow(
-            project_id=project_id,
-            provider=request.provider,
-            model=request.model,
-            dry_run=request.dry_run,
-            custom_source_path=request.custom_source_path
-        )
+        result = await project_manager.run_incremental_update_workflow(request)
         return result
     except Exception as e:
         logging.error(f"Error in incremental update: {e}")

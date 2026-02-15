@@ -214,11 +214,12 @@ class ProjectManager:
 
     # --- Workflows ---
 
-    async def run_incremental_update_workflow(self, project_id: str, provider: str = "gemini", model: Optional[str] = None, dry_run: bool = False, custom_source_path: Optional[str] = None):
+    async def run_incremental_update_workflow(self, config: "IncrementalUpdateConfig"):
         """Orchestrates the incremental update workflow."""
         from scripts.workflows.update_translate import run_incremental_update
         from scripts.app_settings import LANGUAGE_BY_CODE, GAME_PROFILES, GAME_PROFILES_BY_ID
         
+        project_id = config.project_id
         project = await self.get_project(project_id)
         if not project:
             raise ValueError(f"Project {project_id} not found")
@@ -234,7 +235,9 @@ class ProjectManager:
              if source_lang_code.lower() == 'english': source_lang_info = LANGUAGE_BY_CODE.get("en")
              else: source_lang_info = LANGUAGE_BY_CODE.get("en") # Ultimate fallback
 
-        target_lang_info = LANGUAGE_BY_CODE.get("zh-CN") # Default target for now
+        # Target language handling (from config or default)
+        target_lang_info = LANGUAGE_BY_CODE.get(config.target_lang_code.code)
+        
         game_id = project.get("game_id", "victoria3")
         
         # 1. Try string ID lookup first (e.g. "victoria3")
@@ -254,10 +257,11 @@ class ProjectManager:
             target_lang_info=target_lang_info,
             source_lang_info=source_lang_info,
             game_profile=game_profile,
-            selected_provider=provider,
-            model_name=model,
-            dry_run=dry_run,
-            custom_source_path=custom_source_path
+            selected_provider=config.api_provider,
+            model_name=config.model,
+            dry_run=config.dry_run,
+            custom_source_path=config.custom_source_path,
+            use_resume=config.use_resume
         )
 
     async def check_project_archive(self, project_id: str) -> Dict[str, Any]:

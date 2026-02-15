@@ -26,7 +26,8 @@ async def run_incremental_update(
     model_name: Optional[str] = None,
     mod_context: str = "",
     dry_run: bool = False,
-    custom_source_path: Optional[str] = None
+    custom_source_path: Optional[str] = None,
+    use_resume: bool = True
 ) -> Dict[str, Any]:
     """
     Runs the incremental translation workflow.
@@ -206,8 +207,27 @@ async def run_incremental_update(
             )
             file_tasks_for_ai.append(task)
 
+    # Create output directory early for checkpoint manager
+    output_dir = Path(source_path).parent / "Remis_Incremental_Update"
+    os.makedirs(output_dir, exist_ok=True)
+
     if dry_run:
         return {"status": "success", "summary": summary}
+
+    # Clear checkpoint if not resuming
+    if not use_resume:
+        from scripts.core.checkpoint_manager import CheckpointManager
+        # Instantiate checkpoint manager
+        checkpoint_mgr = CheckpointManager(str(output_dir))
+        # Clear checkpoint for this specific target language
+        # Note: CheckpointManager usually manages one checkpoint file per output dir.
+        # But our key includes language code? 
+        # Actually CheckpointManager.clear_checkpoint clears the file.
+        # So it clears for ALL languages if they share the same output dir/checkpoint file.
+        # For incremental update, output_dir is "Remis_Incremental_Update", so sharing might be an issue if running parallel langs?
+        # But typically we run one lang at a time.
+        checkpoint_mgr.clear_checkpoint()
+        logger.info(f"Cleared checkpoint in {output_dir} as resume is disabled.")
 
     if not file_tasks_for_ai:
         # Check if we should still produce translation files (e.g. if we have only reused items)
