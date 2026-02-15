@@ -18,7 +18,7 @@ class TranslationArchiveService:
     def __init__(self, am=None):
         self.archive_manager = am or archive_manager
 
-    def upload_project_translations(self, project_id: str, project_name: str, source_path: str) -> Dict[str, Any]:
+    def upload_project_translations(self, project_id: str, project_name: str, source_path: str, source_lang_code: str = "en") -> Dict[str, Any]:
         """
         Scans existing translation files in the project and uploads them to the archive.
         
@@ -26,6 +26,7 @@ class TranslationArchiveService:
             project_id: The UUID of the project.
             project_name: The display name of the project.
             source_path: The absolute path to the project's source directory.
+            source_lang_code: The source language code (e.g. 'en', 'zh-CN').
             
         Returns:
             Dict containing status and message.
@@ -43,11 +44,40 @@ class TranslationArchiveService:
             return {"status": "warning", "message": "No translation directories configured."}
 
         # 2. Parse Source Files
+        # Resolve source folder name for strict filtering (Fix for Marshalreich / Chinese Source)
+        try:
+            paradox_lang_folder = LanguageCode.from_str(source_lang_code).to_paradox()
+        except ValueError:
+            paradox_lang_folder = "english" # Fallback
+
         source_files_data = []
         all_source_keys = {} # key -> filename
         
-        logger.info(f"Scanning source files in {source_path}...")
+        logger.info(f"Scanning source files in {source_path} (Filter: {paradox_lang_folder})...")
         for root, _, files in os.walk(source_path):
+            # STRICT FILTER: Only scan files in the correct language folder
+            # This prevents picking up 'english' files when source is 'simp_chinese' and vice versa.
+            # Using simple string check on path to be robust.
+            # Normalize path separators
+            norm_root = root.replace('\\', '/').lower()
+            if f"/{paradox_lang_folder}" not in norm_root and f"\\{paradox_lang_folder}" not in root.lower():
+                 # Handle root folder or non-standard structures? 
+                 # Usually Paradox/Rimworld mods have 'Localization/English' structure.
+                 # If we skip everything, we might get 0 files.
+                 # Let's check if 'localization' is in path.
+                 if 'localization' in norm_root or 'localisation' in norm_root:
+                     # If it's a localization folder but DOES NOT contain our language, skip it.
+                     pass 
+                 else:
+                     # Maybe it's a root file? proceed with caution.
+                     pass
+            
+            # Better Filter Logic:
+            # If the path contains ANY known language folder that is NOT our target, skip it.
+            # But simpler: Just require the target folder name to be present.
+            if paradox_lang_folder not in norm_root:
+                continue
+
             for file in files:
                 if file.endswith(('.yml', '.yaml')):
                     full_path = Path(os.path.join(root, file))

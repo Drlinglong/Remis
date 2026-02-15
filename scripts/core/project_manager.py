@@ -459,7 +459,8 @@ class ProjectManager:
         result = self.archive_service.upload_project_translations(
             project_id=project_id,
             project_name=project['name'],
-            source_path=project['source_path']
+            source_path=project['source_path'],
+            source_lang_code=project.get('source_language', 'en')
         )
         
         if result.get('status') == 'success':
