@@ -66,6 +66,8 @@
   "common.filter_game": "过滤游戏",
   "common.nothing_found": "未找到结果",
   "common.browse": "浏览",
+  "common.back": "返回",
+  "common.finish": "完成",
   "settings_language": "语言",
   "settings_theme": "主题",
   "settings_rpm_limit": "API RPM 限制 (全局)",
