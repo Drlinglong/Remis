@@ -515,15 +515,19 @@ class GlossaryManager:
         return list(unique_matches.values())
         
     async def get_glossary_stats(self) -> Dict[str, Any]:
-        """Async: Get glossary statistics for dashboard."""
+        """Async: Get glossary statistics for dashboard (term counts per game)."""
         try:
             async for session in self.db_manager.get_async_session():
-                # select game_id, count(*) from glossary group by game_id
-                stmt = select(Glossary.game_id, func.count(Glossary.glossary_id).label('count')).group_by(Glossary.game_id)
+                # Count GlossaryEntries per Game
+                # select glossary.game_id, count(entries.entry_id) as terms
+                # from glossaries join entries on ... group by game_id
+                stmt = select(Glossary.game_id, func.count(GlossaryEntry.entry_id).label('terms')) \
+                    .join(GlossaryEntry, Glossary.glossary_id == GlossaryEntry.glossary_id) \
+                    .group_by(Glossary.game_id)
                 results = await session.execute(stmt)
                 rows = results.all()
                 
-                game_distribution = [{"name": row[0], "value": row[1]} for row in rows]
+                game_distribution = [{"name": row[0], "terms": row[1]} for row in rows]
                 
                 return {
                     "game_distribution": game_distribution

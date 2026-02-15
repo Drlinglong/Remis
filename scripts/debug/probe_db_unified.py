@@ -54,9 +54,21 @@ def probe():
         cursor.execute("SELECT count(*) FROM project_history WHERE project_id NOT IN (SELECT project_id FROM projects)")
         print(f"History entries with missing projects: {cursor.fetchone()[0]}")
 
-        # 5. Check game distribution
+        # 5. Check game distribution of projects
         cursor.execute("SELECT game_id, count(*) FROM projects GROUP BY game_id")
         print("Project Game Distribution (Raw):")
+        dist = cursor.fetchall()
+        for row in dist:
+            print(f"  - {row}")
+
+        # 5b. Check game distribution of terms
+        cursor.execute("""
+            SELECT g.game_id, count(e.entry_id) 
+            FROM glossaries g 
+            JOIN entries e ON g.glossary_id = e.glossary_id 
+            GROUP BY g.game_id
+        """)
+        print("Glossary Terms Distribution (Raw):")
         dist = cursor.fetchall()
         for row in dist:
             print(f"  - {row}")
