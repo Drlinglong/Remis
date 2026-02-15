@@ -170,10 +170,13 @@ const IncrementalTranslationPage = () => {
         try {
             setLoading(true);
             const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
+                project_id: selectedProject.project_id,
+                target_lang_code: selectedProject.target_language_code || 'zh-CN',
                 dry_run: true,
-                provider: selectedProvider,
+                api_provider: selectedProvider,
                 model: selectedModel,
-                custom_source_path: customSourcePath
+                custom_source_path: customSourcePath,
+                use_resume: useResume
             });
 
             // Check if backend returned a warning status
@@ -203,8 +206,10 @@ const IncrementalTranslationPage = () => {
         try {
             // 1. Kick off the translation request
             const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
+                project_id: selectedProject.project_id,
+                target_lang_code: selectedProject.target_language_code || 'zh-CN',
                 dry_run: false,
-                provider: selectedProvider,
+                api_provider: selectedProvider,
                 model: selectedModel,
                 custom_source_path: customSourcePath,
                 use_resume: useResume
