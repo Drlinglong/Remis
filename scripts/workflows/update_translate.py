@@ -43,8 +43,19 @@ async def run_incremental_update(
     # Paradox mods usually have localization/english, localization/french, etc.
     source_lang_name_en = source_lang_info.get('name_en', 'English').lower()
     
+    # Paradox Special Case Mappings for folders/files
+    paradox_lang_map = {
+        'simplified chinese': 'simp_chinese',
+        'traditional chinese': 'trad_chinese',
+        'brazilian portuguese': 'braz_por'
+    }
+    
+    # The 'target' string to look for in file/folder names
+    # e.g. for Chinese source, we look for 'simp_chinese'
+    filter_lang_string = paradox_lang_map.get(source_lang_name_en, source_lang_name_en)
+    
     logger.info(f"Starting incremental update for: {project_name} -> {target_lang_code}")
-    logger.info(f"Scanning source path: {source_path} (Filtering for {source_lang_name_en})")
+    logger.info(f"Scanning source path: {source_path} (Filtering for '{filter_lang_string}')")
 
     # 1. Discover and Parse current source files
     current_files_data = []
@@ -64,7 +75,7 @@ async def run_incremental_update(
             
             # If the current folder is a known language folder but NOT ours, prune it
             known_languages = ['english', 'french', 'german', 'spanish', 'russian', 'polish', 'braz_por', 'japanese', 'chinese', 'simp_chinese', 'korean', 'turkish']
-            if current_folder in known_languages and current_folder != source_lang_name_en:
+            if current_folder in known_languages and current_folder != filter_lang_string:
                  logger.debug(f"Skipping non-source language folder: {root}")
                  dirs[:] = [] # Don't go deeper
                  continue
@@ -73,7 +84,7 @@ async def run_incremental_update(
             if file.endswith(('.yml', '.yaml')):
                 # Also check filename for language suffix if not in a specific folder
                 # e.g. events_l_french.yml
-                if f"l_{source_lang_name_en}" not in file.lower() and any(f"l_{lang}" in file.lower() for lang in known_languages):
+                if f"l_{filter_lang_string}" not in file.lower() and any(f"l_{lang}" in file.lower() for lang in known_languages):
                     continue
 
                 full_path = Path(os.path.join(root, file))
