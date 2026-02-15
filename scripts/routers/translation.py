@@ -548,7 +548,11 @@ def check_checkpoint_status(payload: CheckpointStatusRequest):
                 output_folder_name = f"{target_code}-{sanitized_mod_name}"
 
         output_dir = os.path.join(DEST_DIR, output_folder_name)
-        cm = CheckpointManager(output_dir)
+        # Use the same language-specific filename as initial_translate.py
+        target_code = payload.target_lang_codes[0] if payload.target_lang_codes else "unknown"
+        checkpoint_filename = f".remis_checkpoint_{target_code}.json"
+        
+        cm = CheckpointManager(output_dir, checkpoint_filename=checkpoint_filename)
         info = cm.get_checkpoint_info()
         
         total_files = 0
@@ -589,7 +593,11 @@ def delete_checkpoint(payload: CheckpointStatusRequest):
                 output_folder_name = f"{target_code}-{sanitized_mod_name}"
 
         output_dir = os.path.join(DEST_DIR, output_folder_name)
-        cm = CheckpointManager(output_dir)
+        # Use the same language-specific filename as initial_translate.py
+        target_code = payload.target_lang_codes[0] if payload.target_lang_codes else "unknown"
+        checkpoint_filename = f".remis_checkpoint_{target_code}.json"
+        
+        cm = CheckpointManager(output_dir, checkpoint_filename=checkpoint_filename)
         cm.clear_checkpoint()
         return {"status": "success", "message": "Checkpoint deleted."}
     except Exception as e:

@@ -55,6 +55,9 @@ const IncrementalTranslationPage = () => {
     const [logs, setLogs] = useState([]);
     const [finalSummary, setFinalSummary] = useState(null);
     const logScrollRef = useRef(null);
+    const [checkpointFound, setCheckpointFound] = useState(false);
+    const [useResume, setUseResume] = useState(true);
+    const wsRef = useRef(null);
 
     // Fetch basics
     useEffect(() => {
@@ -109,6 +112,7 @@ const IncrementalTranslationPage = () => {
         setCustomSourcePath(project.source_path);
         setError(null);
         setArchiveInfo(null);
+        setCheckpointFound(false);
         setActive(1);
 
         // Immediate archive check
@@ -117,6 +121,8 @@ const IncrementalTranslationPage = () => {
             const res = await axios.get(`/api/project/${project.project_id}/check-archive`);
             if (res.data.exists) {
                 setArchiveInfo(res.data);
+                // Also check for checkpoint (resume status)
+                checkCheckpoint(project, project.source_path);
             } else {
                 setError(res.data.reason || t('incremental_translation.archive_missing'));
             }
@@ -127,11 +133,33 @@ const IncrementalTranslationPage = () => {
         }
     };
 
+    const checkCheckpoint = async (project, sourcePath) => {
+        try {
+            // Determine mod_name for checkpoint lookup
+            const modName = sourcePath.split(/[\\/]/).pop();
+            const res = await axios.post('/api/translation/checkpoint-status', {
+                project_id: project.project_id,
+                mod_name: modName,
+                target_lang_codes: [project.target_language_code || 'zh-CN']
+            });
+            if (res.data.exists && res.data.completed_count > 0) {
+                setCheckpointFound(true);
+                notificationService.info(t('incremental_translation.checkpoint_detected', { count: res.data.completed_count }), notificationStyle);
+            }
+        } catch (err) {
+            console.error('Failed to check checkpoint status', err);
+        }
+    };
+
     const handleSelectFolder = async () => {
         if (window.api && window.api.selectFolder) {
             const path = await window.api.selectFolder();
             if (path) {
                 setCustomSourcePath(path);
+                // Re-check checkpoint for the new folder if project is selected
+                if (selectedProject) {
+                    checkCheckpoint(selectedProject, path);
+                }
             }
         }
     };
@@ -159,31 +187,90 @@ const IncrementalTranslationPage = () => {
     const startTranslation = async () => {
         setExecuting(true);
         setActive(3);
-        setLogs([`[${new Date().toLocaleTimeString()}] Starting incremental translation...`]);
+        setLogs([`[${new Date().toLocaleTimeString()}] Initializing WebSocket connection...`]);
         setFinalSummary(null);
-        setProgress(5);
+        setProgress(0);
 
         try {
+            // 1. Kick off the translation request
             const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
                 dry_run: false,
                 provider: selectedProvider,
                 model: selectedModel,
-                custom_source_path: customSourcePath
+                custom_source_path: customSourcePath,
+                use_resume: useResume
             });
 
-            if (res.data.status === 'success') {
-                setFinalSummary(res.data);
-                addLog(`Translation completed successfully!`);
-                setProgress(100);
-            } else {
-                addLog(`Error: ${res.data.message}`, 'error');
+            const taskId = res.data.task_id;
+            if (!taskId) {
+                throw new Error("No Task ID returned from server.");
             }
+
+            // 2. Connect to WebSocket for real-time updates
+            connectWebSocket(taskId);
+
         } catch (err) {
             addLog(`Critical Error: ${err.message}`, 'error');
-        } finally {
             setExecuting(false);
         }
     };
+
+    const connectWebSocket = (taskId) => {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const wsUrl = `${protocol}//${host}/api/ws/status/${taskId}`;
+
+        console.log(`Connecting to WS: ${wsUrl}`);
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            // Update progress
+            if (data.progress) {
+                setProgress(data.progress.percent || 0);
+            }
+
+            // Sync logs - backend sends the full tail (last 100 lines)
+            if (data.log) {
+                setLogs(data.log);
+            }
+
+            // Handle completion
+            if (data.status === 'completed') {
+                setFinalSummary(data);
+                addLog(`Translation completed successfully!`);
+                setProgress(100);
+                setExecuting(false);
+                ws.close();
+            } else if (data.status === 'failed') {
+                addLog(`Translation failed! Check logs for details.`, 'error');
+                setExecuting(false);
+                ws.close();
+            }
+        };
+
+        ws.onerror = (err) => {
+            console.error('WebSocket Error:', err);
+            addLog('WebSocket connection error. Falling back to status polling...', 'error');
+            // Fallback to polling could be implemented if necessary, 
+            // but for now, we assume WS is reliable in local env.
+        };
+
+        ws.onclose = () => {
+            console.log('WebSocket connection closed.');
+        };
+    };
+
+    // Clean up WS on unmount
+    useEffect(() => {
+        return () => {
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
+        };
+    }, []);
 
     const addLog = (msg, type = 'info') => {
         setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -259,15 +346,38 @@ const IncrementalTranslationPage = () => {
                                 <Stack>
                                     <Group justify="space-between">
                                         <Title order={4}>{t('incremental_translation.step_2_title')}</Title>
-                                        <Badge color="green" leftSection={<IconCheck size={12} />}>
-                                            {t('incremental_translation.archive_found', {
-                                                version: archiveInfo.version_id.substring(0, 8),
-                                                date: new Date(archiveInfo.created_at).toLocaleDateString()
-                                            })}
-                                        </Badge>
+                                        <Group gap="xs">
+                                            {checkpointFound && (
+                                                <Badge color="orange" variant="filled">
+                                                    {t('incremental_translation.checkpoint_found_label')}
+                                                </Badge>
+                                            )}
+                                            <Badge color="green" leftSection={<IconCheck size={12} />}>
+                                                {t('incremental_translation.archive_found', {
+                                                    version: archiveInfo.version_id.substring(0, 8),
+                                                    date: new Date(archiveInfo.created_at).toLocaleDateString()
+                                                })}
+                                            </Badge>
+                                        </Group>
                                     </Group>
 
                                     <Divider />
+
+                                    {checkpointFound && (
+                                        <Alert icon={<IconSettings size={16} />} title={t('incremental_translation.checkpoint_found_title')} color="orange" radius="md">
+                                            <Group justify="space-between">
+                                                <Text size="sm">{t('incremental_translation.checkpoint_found_desc')}</Text>
+                                                <Button
+                                                    size="xs"
+                                                    variant={useResume ? "filled" : "outline"}
+                                                    color="orange"
+                                                    onClick={() => setUseResume(!useResume)}
+                                                >
+                                                    {useResume ? t('incremental_translation.resume_enabled') : t('incremental_translation.resume_disabled')}
+                                                </Button>
+                                            </Group>
+                                        </Alert>
+                                    )}
 
                                     <SimpleGrid cols={2}>
                                         <Select
@@ -372,20 +482,32 @@ const IncrementalTranslationPage = () => {
 
                             <Progress
                                 value={progress}
-                                label={progress > 10 ? `${progress}%` : ''}
+                                label={progress > 0 ? `${progress}%` : ''}
                                 size="xl"
                                 radius="xl"
                                 animated={executing}
-                                mb="xl"
+                                mb="sm"
                             />
 
-                            <ScrollArea h={300} offsetScrollbars p="md" style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8 }}>
+                            <Group justify="space-between" mb="xl">
+                                <Text size="xs" c="dimmed">
+                                    {executing ? t('incremental_translation.status_processing') : t('incremental_translation.status_idle')}
+                                </Text>
+                                <Text size="xs" fw={700} c="blue">
+                                    {progress}%
+                                </Text>
+                            </Group>
+
+                            <ScrollArea h={400} offsetScrollbars p="md" style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, border: '1px solid var(--glass-border)' }}>
                                 <div ref={logScrollRef}>
-                                    {logs.map((log, i) => (
-                                        <Text key={i} size="xs" style={{ fontFamily: 'monospace' }} mb={2}>
-                                            {log}
-                                        </Text>
-                                    ))}
+                                    {logs.map((log, i) => {
+                                        const isError = log.includes('ERROR') || log.includes('failed');
+                                        return (
+                                            <Text key={i} size="xs" style={{ fontFamily: 'monospace', color: isError ? '#ff6b6b' : 'inherit' }} mb={2}>
+                                                {log}
+                                            </Text>
+                                        );
+                                    })}
                                 </div>
                             </ScrollArea>
 

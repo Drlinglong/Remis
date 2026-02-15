@@ -861,7 +861,15 @@
       "processing_file": "Processing: {{file}}",
       "batch_status": "Batch {{current}}/{{total}} completed...",
       "completion_title": "Incremental Translation Completed",
-      "output_dir_hint": "Results saved to Remis_Incremental_Update folder in project directory."
+      "output_dir_hint": "Results saved to Remis_Incremental_Update folder in project directory.",
+      "checkpoint_found_label": "Checkpoint Found",
+      "checkpoint_found_title": "Translation Checkpoint Found",
+      "checkpoint_found_desc": "Detection of previous incomplete progress. You can choose to resume to skip already completed files.",
+      "resume_enabled": "Resume: ON",
+      "resume_disabled": "Resume: OFF",
+      "status_processing": "Processing task...",
+      "status_idle": "Ready",
+      "checkpoint_detected": "Checkpoint detected ({{count}} files completed)"
     },
     "up_to_date": "Everything is up to date. No changes detected since last version.",
     "scan_prompt": "Click Rescan to check for local modifications.",

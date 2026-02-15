@@ -918,7 +918,15 @@
     "processing_file": "正在处理: {{file}}",
     "batch_status": "批次 {{current}}/{{total}} 完成...",
     "completion_title": "增量翻译完成",
-    "output_dir_hint": "结果已保存至项目目录下的 Remis_Incremental_Update 文件夹。"
+    "output_dir_hint": "结果已保存至项目目录下的 Remis_Incremental_Update 文件夹。",
+    "checkpoint_found_label": "检测到断点",
+    "checkpoint_found_title": "发现翻译断点",
+    "checkpoint_found_desc": "检测到上次未完成的任务进度。您可以选择从中断处继续翻译，以跳过已完成的文件。",
+    "resume_enabled": "断点续传：开启",
+    "resume_disabled": "断点续传：关闭",
+    "status_processing": "正在处理任务...",
+    "status_idle": "准备就绪",
+    "checkpoint_detected": "检测到翻译断点 (已完成 {{count}} 个文件)"
   },
   "translation_config": {
     "provider": "API 供应商",
