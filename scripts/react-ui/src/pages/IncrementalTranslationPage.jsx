@@ -175,6 +175,15 @@ const IncrementalTranslationPage = () => {
                 model: selectedModel,
                 custom_source_path: customSourcePath
             });
+
+            // Check if backend returned a warning status
+            if (res.data.status === 'warning') {
+                notificationService.info(
+                    res.data.message || t('incremental_translation.no_files_warning'),
+                    notificationStyle
+                );
+            }
+
             setScanResults(res.data.summary);
             setActive(2);
         } catch (err) {

@@ -26,6 +26,16 @@ const notificationService = {
   error(message, notificationStyle) {
     const options = this.styleOptions[notificationStyle] || {};
     toast.error(message, options);
+  },
+
+  /**
+   * Triggers an info notification.
+   * @param {string} message The message to display.
+   * @param {string} notificationStyle The current notification style from context.
+   */
+  info(message, notificationStyle) {
+    const options = this.styleOptions[notificationStyle] || {};
+    toast(message, options);
   }
 };
 

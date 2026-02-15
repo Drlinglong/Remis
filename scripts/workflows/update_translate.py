@@ -96,7 +96,17 @@ async def run_incremental_update(
                     logger.error(f"Failed to parse {full_path}: {e}")
 
     if not current_files_data:
-        return {"status": "warning", "message": "No source files found."}
+        logger.warning(f"No source files found in {source_path} (looking for '{source_lang_name_en}')")
+        return {
+            "status": "warning", 
+            "message": f"No source files found in {source_path}. Please verify the source language setting and folder structure.",
+            "summary": {
+                "total": 0,
+                "new": 0,
+                "changed": 0,
+                "unchanged": 0
+            }
+        }
 
     # 2. Compare with Archive & Prepare Tasks
     summary = {"total": 0, "new": 0, "changed": 0, "unchanged": 0}
