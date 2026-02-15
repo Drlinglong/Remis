@@ -38,13 +38,13 @@ def test_global_translation_reuse(temp_archive_db):
         {
             "filename": "file1.yml",
             "texts_to_translate": ["Hello world"],
-            "key_map": [{"key_part": "test.1"}]
+            "key_map": {0: {"key_part": "test.1", "line_num": 1}}
         }
     ])
     
     manager.archive_translated_results(version_a_id, 
         {"file1.yml": ["你好世界"]}, 
-        [{"filename": "file1.yml", "key_map": [{"key_part": "test.1"}]}],
+        [{"filename": "file1.yml", "key_map": {0: {"key_part": "test.1", "line_num": 1}}}],
         "zh-CN"
     )
     

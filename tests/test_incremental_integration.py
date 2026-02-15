@@ -34,10 +34,10 @@ async def mock_project_manager(tmp_path):
     mod_id = am.get_or_create_mod_entry("TestMod", "test-p1")
     version_id = am.create_source_version(mod_id, [{
         "filename": "test.yml",
-        "key_map": ["key.1"],
+        "key_map": {0: {"key_part": "key.1", "line_num": 1}},
         "texts_to_translate": ["Hello"]
     }])
-    am.archive_translated_results(version_id, {"test.yml": ["你好"]}, [{"filename": "test.yml", "key_map": ["key.1"]}], "zh-CN")
+    am.archive_translated_results(version_id, {"test.yml": ["你好"]}, [{"filename": "test.yml", "key_map": {0: {"key_part": "key.1", "line_num": 1}}, "texts_to_translate": ["Hello"]}], "zh-CN")
     
     service = TranslationArchiveService(am=am)
     

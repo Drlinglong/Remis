@@ -124,23 +124,24 @@ class ArchiveManager:
             # 4. 插入所有源条目
             source_entries = []
             for file_data in all_files_data:
-                # We need to store the file path somehow? The original schema didn't have file_path in source_entries.
-                # It seems the original schema was key-centric, assuming unique keys across the mod version.
-                # However, for the "Project" flow, we need file-based retrieval.
-                # I will ADD a 'file_path' column to source_entries if it doesn't exist?
-                # Or simpler: For now, I will assume keys are unique enough or I will rely on the structure.
-                # Wait, the key map is needed.
-                # The previous code: zip(file_data['key_map'], file_data['texts_to_translate'])
-                for key_info, text in zip(file_data['key_map'], file_data['texts_to_translate']):
-                    # Use full key-header block (e.g. 'key:0') as entry_key
-                    if isinstance(key_info, dict):
-                        # Combine key_part and potential colon part if we update QuoteExtractor
-                        # For now, QuoteExtractor will be updated to include :0 in key_part
-                        entry_key = key_info['key_part'].strip()
-                    else:
-                        entry_key = str(key_info)
+                # key_map is a dict from QuoteExtractor where keys are indices
+                # file_data['texts_to_translate'] is a list of same length
+                km = file_data.get('key_map', {})
+                texts = file_data.get('texts_to_translate', [])
+                
+                for idx, text in enumerate(texts):
+                    key_info = km.get(idx)
                     
-                    source_entries.append((version_id, entry_key, text, file_data.get('filename', 'unknown')))
+                    if isinstance(key_info, dict):
+                        entry_key = key_info.get('key_part', '').strip()
+                    else:
+                        entry_key = str(key_info) if key_info else str(idx)
+                    
+                    # Normalize: ensure no trailing colon (consistency)
+                    if entry_key.endswith(":"):
+                        entry_key = entry_key[:-1].strip()
+                    
+                    source_entries.append((version_id, entry_key, text.rstrip('\r\n'), file_data.get('filename', 'unknown')))
 
             # Ensure file_path column exists
             cursor.execute("PRAGMA table_info(source_entries)")
@@ -169,12 +170,14 @@ class ArchiveManager:
                 file_data = next((fd for fd in all_files_data if fd['filename'] == filename), None)
                 if not file_data or not translated_texts: continue
 
-                for key_info, translated_text in zip(file_data['key_map'], translated_texts):
-                    # Fix: key_map is a list of dicts like {'key_part': 'remis.1.t', 'line_num': 5}
-                    # We need to extract the actual key string
-                    entry_key = key_info['key_part'].strip() if isinstance(key_info, dict) else str(key_info)
+                km = file_data.get('key_map', {})
+                for idx, translated_text in enumerate(translated_texts):
+                    key_info = km.get(idx)
                     
-                    # Normalize: ensure no trailing colon (legacy consistency)
+                    # Extract the actual key string
+                    entry_key = key_info['key_part'].strip() if isinstance(key_info, dict) else str(key_info if key_info is not None else idx)
+                    
+                    # Normalize: ensure no trailing colon (consistency)
                     if entry_key.endswith(":"):
                         entry_key = entry_key[:-1].strip()
                 
@@ -312,18 +315,29 @@ class ArchiveManager:
         cursor.execute(deep_query, tuple(deep_params))
         trans_rows = cursor.fetchall()
         
-        translation_map = {row['entry_key']: row['translated_text'] for row in trans_rows}
+        translation_map = {}
+        for row in trans_rows:
+            ek = row['entry_key']
+            # Normalize for map lookup (strip colon)
+            if ek.endswith(":"):
+                ek = ek[:-1].strip()
+            translation_map[ek] = row['translated_text']
 
         results = []
         for s_row in source_rows:
             key = s_row['entry_key']
+            # Normalize the source key too
+            lookup_key = key
+            if lookup_key.endswith(":"):
+                lookup_key = lookup_key[:-1].strip()
+                
             original = s_row['source_text']
-            # Try to get translation from the global map
-            translation = translation_map.get(key, None)
+            # Try to get translation from the global map using normalized key
+            translation = translation_map.get(lookup_key, None)
             
             results.append({
-                "key": key,
-                "original": original,
+                "key": lookup_key, # Return normalized key
+                "original": original.rstrip('\r\n') if original else "",
                 "translation": translation
             })
             
