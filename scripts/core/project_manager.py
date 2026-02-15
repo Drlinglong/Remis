@@ -236,7 +236,7 @@ class ProjectManager:
              else: source_lang_info = LANGUAGE_BY_CODE.get("en") # Ultimate fallback
 
         # Target language handling (from config or default)
-        target_lang_info = LANGUAGE_BY_CODE.get(config.target_lang_code.code)
+        target_lang_info = LANGUAGE_BY_CODE.get(config.target_lang_code.value)
         
         game_id = project.get("game_id", "victoria3")
         
