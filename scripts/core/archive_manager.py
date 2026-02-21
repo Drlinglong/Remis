@@ -130,7 +130,12 @@ class ArchiveManager:
                 texts = file_data.get('texts_to_translate', [])
                 
                 for idx, text in enumerate(texts):
-                    key_info = km.get(idx)
+                    if isinstance(km, dict):
+                        key_info = km.get(idx)
+                    elif isinstance(km, list) and idx < len(km):
+                        key_info = km[idx]
+                    else:
+                        key_info = None
                     
                     if isinstance(key_info, dict):
                         entry_key = key_info.get('key_part', '').strip()
@@ -172,10 +177,15 @@ class ArchiveManager:
 
                 km = file_data.get('key_map', {})
                 for idx, translated_text in enumerate(translated_texts):
-                    key_info = km.get(idx)
+                    if isinstance(km, dict):
+                        key_info = km.get(idx)
+                    elif isinstance(km, list) and idx < len(km):
+                        key_info = km[idx]
+                    else:
+                        key_info = None
                     
                     # Extract the actual key string
-                    entry_key = key_info['key_part'].strip() if isinstance(key_info, dict) else str(key_info if key_info is not None else idx)
+                    entry_key = key_info.get('key_part', '').strip() if isinstance(key_info, dict) else str(key_info if key_info is not None else idx)
                     
                     # Normalize: ensure no trailing colon (consistency)
                     if entry_key.endswith(":"):

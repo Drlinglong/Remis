@@ -6,10 +6,13 @@ import re
 import datetime
 import logging
 import asyncio
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, TYPE_CHECKING
 from dataclasses import dataclass
 from pathlib import Path
 from scripts.app_settings import PROJECTS_DB_PATH, SOURCE_DIR, GAME_ID_ALIASES
+
+if TYPE_CHECKING:
+    from scripts.schemas.translation import IncrementalUpdateConfig
 
 # Configure logger
 logger = logging.getLogger(__name__)
