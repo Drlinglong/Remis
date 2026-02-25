@@ -269,6 +269,46 @@ class ArchiveManager:
         except Exception:
             return []
 
+    def detect_target_language(self, version_id: int) -> Optional[str]:
+        """Detects the most common target language for a given version in the archive."""
+        if not self.connection: return None
+        cursor = self.connection.cursor()
+        query = '''
+            SELECT t.language_code, COUNT(t.language_code) as count
+            FROM translated_entries t
+            JOIN source_entries s ON t.source_entry_id = s.source_entry_id
+            WHERE s.version_id = ?
+            GROUP BY t.language_code
+            ORDER BY count DESC LIMIT 1
+        '''
+        try:
+            cursor.execute(query, (version_id,))
+            row = cursor.fetchone()
+            if row:
+                return row['language_code']
+            return None
+        except Exception as e:
+            logging.error(f"Failed to detect target language: {e}")
+            return None
+
+    def get_archived_languages(self, version_id: int) -> List[str]:
+        """Returns a list of all target languages available for a given version in the archive."""
+        if not self.connection: return []
+        cursor = self.connection.cursor()
+        query = '''
+            SELECT DISTINCT t.language_code
+            FROM translated_entries t
+            JOIN source_entries s ON t.source_entry_id = s.source_entry_id
+            WHERE s.version_id = ?
+        '''
+        try:
+            cursor.execute(query, (version_id,))
+            rows = cursor.fetchall()
+            return [row['language_code'] for row in rows]
+        except Exception as e:
+            logging.error(f"Failed to get archived languages: {e}")
+            return []
+
     def get_entries(self, mod_name: str, file_path: str = None, language: str = "zh-CN", limit: int = None) -> List[Dict[str, Any]]:
         """
         Retrieves merged source and translation entries for a specific file (or all files if file_path is None) 

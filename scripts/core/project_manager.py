@@ -238,8 +238,12 @@ class ProjectManager:
              if source_lang_code.lower() == 'english': source_lang_info = LANGUAGE_BY_CODE.get("en")
              else: source_lang_info = LANGUAGE_BY_CODE.get("en") # Ultimate fallback
 
-        # Target language handling (from config or default)
-        target_lang_info = LANGUAGE_BY_CODE.get(config.target_lang_code.value)
+        # Target language handling (from config list)
+        target_lang_infos = []
+        for code in config.target_lang_codes:
+            info = LANGUAGE_BY_CODE.get(code.value)
+            if info:
+                target_lang_infos.append(info)
         
         game_id = project.get("game_id", "victoria3")
         
@@ -257,7 +261,7 @@ class ProjectManager:
 
         return await run_incremental_update(
             project_id=project_id,
-            target_lang_info=target_lang_info,
+            target_lang_infos=target_lang_infos,
             source_lang_info=source_lang_info,
             game_profile=game_profile,
             selected_provider=config.api_provider,
@@ -274,24 +278,25 @@ class ProjectManager:
             return {"exists": False, "reason": "Project not found"}
         
         project_name = project['name']
-        # Target language code is currently hardcoded to zh-CN as default or derived from projects
-        # In the future, this should be a project setting.
-        target_lang = "zh-CN" 
+        # Target language code is extracted dynamically from archive. 
         
         latest_version = self.archive_service.archive_manager.get_latest_version(project_name)
         if not latest_version:
             return {"exists": False, "reason": "No previous version found in archive."}
+            
+        target_languages = self.archive_service.archive_manager.get_archived_languages(latest_version['id'])
+        if not target_languages:
+            return {"exists": False, "reason": "No translations found in archive."}
         
-        # Check if we actually have translations for this version
-        entries = self.archive_service.archive_manager.get_entries(project_name, language=target_lang, limit=1)
-        if not entries:
-            return {"exists": False, "reason": f"No translations found in archive for {target_lang}."}
+        target_lang = self.archive_service.archive_manager.detect_target_language(latest_version['id']) or "zh-CN"
             
         return {
             "exists": True, 
             "version_id": latest_version['id'], 
             "created_at": latest_version['created_at'],
-            "target_language": target_lang
+            "target_language": target_lang, # Keep as default fallback for older frontend code
+            "target_languages": target_languages,
+            "project_name": project_name
         }
 
     async def get_project(self, project_id: str) -> Optional[Dict[str, Any]]:

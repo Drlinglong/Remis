@@ -14,11 +14,11 @@ import {
     Alert,
     Select,
     TextInput,
-    Box,
     Progress,
     ScrollArea,
     Table,
     Divider,
+    MultiSelect,
 } from '@mantine/core';
 import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, IconPlayerPlay, IconChartBar, IconSettings, IconCloudDownload } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -43,6 +43,7 @@ const IncrementalTranslationPage = () => {
     const [selectedModel, setSelectedModel] = useState('');
     const [models, setModels] = useState([]);
     const [customSourcePath, setCustomSourcePath] = useState('');
+    const [selectedLangs, setSelectedLangs] = useState([]);
 
     // Validation / Scan Results
     const [archiveInfo, setArchiveInfo] = useState(null);
@@ -121,8 +122,11 @@ const IncrementalTranslationPage = () => {
             const res = await axios.get(`/api/project/${project.project_id}/check-archive`);
             if (res.data.exists) {
                 setArchiveInfo(res.data);
+                // Pre-select all available languages from archive or fallback to project target
+                const availableLangs = res.data.target_languages || [res.data.target_language] || [project.target_language_code] || ['zh-CN'];
+                setSelectedLangs(availableLangs);
                 // Also check for checkpoint (resume status)
-                checkCheckpoint(project, project.source_path);
+                checkCheckpoint(project, project.source_path, availableLangs);
             } else {
                 setError(res.data.reason || t('incremental_translation.archive_missing'));
             }
@@ -133,14 +137,14 @@ const IncrementalTranslationPage = () => {
         }
     };
 
-    const checkCheckpoint = async (project, sourcePath) => {
+    const checkCheckpoint = async (project, sourcePath, targetLangs) => {
         try {
             // Determine mod_name for checkpoint lookup
             const modName = sourcePath.split(/[\\/]/).pop();
             const res = await axios.post('/api/translation/checkpoint-status', {
                 project_id: project.project_id,
                 mod_name: modName,
-                target_lang_codes: [project.target_language_code || 'zh-CN']
+                target_lang_codes: targetLangs || [project.target_language_code || 'zh-CN']
             });
             if (res.data.exists && res.data.completed_count > 0) {
                 setCheckpointFound(true);
@@ -158,7 +162,7 @@ const IncrementalTranslationPage = () => {
                 setCustomSourcePath(path);
                 // Re-check checkpoint for the new folder if project is selected
                 if (selectedProject) {
-                    checkCheckpoint(selectedProject, path);
+                    checkCheckpoint(selectedProject, path, selectedLangs);
                 }
             }
         }
@@ -171,7 +175,7 @@ const IncrementalTranslationPage = () => {
             setLoading(true);
             const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
                 project_id: selectedProject.project_id,
-                target_lang_code: selectedProject.target_language_code || 'zh-CN',
+                target_lang_codes: selectedLangs.length > 0 ? selectedLangs : [archiveInfo?.target_language || selectedProject.target_language_code || 'zh-CN'],
                 dry_run: true,
                 api_provider: selectedProvider,
                 model: selectedModel,
@@ -207,7 +211,7 @@ const IncrementalTranslationPage = () => {
             // 1. Kick off the translation request
             const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
                 project_id: selectedProject.project_id,
-                target_lang_code: selectedProject.target_language_code || 'zh-CN',
+                target_lang_codes: selectedLangs.length > 0 ? selectedLangs : [archiveInfo?.target_language || selectedProject.target_language_code || 'zh-CN'],
                 dry_run: false,
                 api_provider: selectedProvider,
                 model: selectedModel,
@@ -359,7 +363,9 @@ const IncrementalTranslationPage = () => {
                             <Paper withBorder p="lg" radius="md" className={styles.glassCard}>
                                 <Stack>
                                     <Group justify="space-between">
-                                        <Title order={4}>{t('incremental_translation.step_2_title')}</Title>
+                                        <Title order={4}>
+                                            {t('incremental_translation.step_2_title')} - {archiveInfo.project_name || selectedProject?.name}
+                                        </Title>
                                         <Group gap="xs">
                                             {checkpointFound && (
                                                 <Badge color="orange" variant="filled">
@@ -392,6 +398,16 @@ const IncrementalTranslationPage = () => {
                                             </Group>
                                         </Alert>
                                     )}
+
+                                    <MultiSelect
+                                        label={t('translation_config.target_languages') || "Target Languages"}
+                                        description="Languages to process based on archive data"
+                                        data={(archiveInfo.target_languages || [archiveInfo.target_language || selectedProject?.target_language_code || 'zh-CN']).map(lang => ({ value: lang, label: lang }))}
+                                        value={selectedLangs}
+                                        onChange={setSelectedLangs}
+                                        required
+                                        clearable
+                                    />
 
                                     <SimpleGrid cols={2}>
                                         <Select

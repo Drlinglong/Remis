@@ -121,6 +121,14 @@ class ConfigManager:
         config[key] = value
         self._save_user_config(config)
 
+    def update_nested_value(self, parent_key: str, child_key: str, value: Any) -> None:
+        """Updates or adds a value within a nested dictionary in the user configuration."""
+        config = self._load_user_config()
+        if parent_key not in config or not isinstance(config[parent_key], dict):
+            config[parent_key] = {}
+        config[parent_key][child_key] = value
+        self._save_user_config(config)
+
 # Singleton instance
 # Assuming DATA_DIR/config is the location
 # We need to import paths from app_settings, but app_settings imports US?
