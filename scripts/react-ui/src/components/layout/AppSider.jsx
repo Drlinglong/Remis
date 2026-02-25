@@ -29,7 +29,7 @@ const navItems = [
     { icon: IconHome, label: 'page_title_home', path: '/' },
     { icon: IconBriefcase, label: 'page_title_project_management', path: '/project-management' },
     { icon: IconLanguage, label: 'page_title_translation', path: '/translation' },
-    { icon: IconRocket, label: 'incremental_translation.title', path: '/incremental-translation' },
+    ...(FEATURES.ENABLE_INCREMENTAL_TRANSLATION ? [{ icon: IconRocket, label: 'incremental_translation.title', path: '/incremental-translation' }] : []),
     { icon: IconVocabulary, label: 'page_title_glossary_manager', path: '/glossary-manager' },
     { icon: IconChecklist, label: 'page_title_proofreading', path: '/proofreading' },
     // Conditionally include Neologism Tribunal
