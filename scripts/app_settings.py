@@ -232,7 +232,7 @@ TARGET_LANGUAGE_PUNCTUATION = {
 # Note: config_manager.py imports prompts, so we don't need to pass them.
 
 from scripts.core.config_manager import ConfigManager
-config_manager = ConfigManager(CONFIG_DIR)
+config_manager = ConfigManager(CONFIG_DIR, APP_DATA_DIR)
 GAME_PROFILES = config_manager.game_profiles
 GAME_PROFILES_BY_ID = {p["id"]: p for p in GAME_PROFILES.values()}
 API_PROVIDERS = config_manager.api_providers

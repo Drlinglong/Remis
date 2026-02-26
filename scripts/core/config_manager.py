@@ -11,8 +11,13 @@ class ConfigManager:
     Manages loading and providing access to externalized configurations.
     """
     
-    def __init__(self, config_dir: str):
+    def __init__(self, config_dir: str, user_data_dir: str = None):
+        """
+        :param config_dir: Path to read-only app configurations (game_profiles.json, etc.)
+        :param user_data_dir: Path to writable user data. Defaults to config_dir if not specified.
+        """
         self.config_dir = config_dir
+        self.user_data_dir = user_data_dir or config_dir
         self._game_profiles = None
         self._api_providers = None
 
@@ -89,7 +94,7 @@ class ConfigManager:
             logger.error(f"Failed to load API providers: {e}")
     @property
     def user_config_path(self) -> str:
-        return os.path.join(self.config_dir, "config.json")
+        return os.path.join(self.user_data_dir, "config.json")
 
     def _load_user_config(self) -> Dict[str, Any]:
         """Loads the generic user configuration."""
@@ -105,6 +110,8 @@ class ConfigManager:
     def _save_user_config(self, config: Dict[str, Any]) -> None:
         """Saves the generic user configuration."""
         try:
+            # Ensure the directory exists before saving
+            os.makedirs(self.user_data_dir, exist_ok=True)
             with open(self.user_config_path, 'w', encoding='utf-8') as f:
                 json.dump(config, f, indent=4, ensure_ascii=False)
         except Exception as e:

@@ -6,7 +6,21 @@
             ],
             "api_url": "http://localhost:1234/v1",
             "selected_model": "gpt-oss-20b"
+        },
+        "gemini": {
+            "models": [],
+            "api_url": "https://generativelanguage.googleapis.com",
+            "selected_model": "gemini-3-flash-preview"
+        },
+        "your_favourite_api": {
+            "models": [],
+            "api_url": "YOUR_BASE_URL_HERE",
+            "selected_model": "YOUR_MODEL_NAME_HERE"
         }
     },
-    "rpm_limit": 10
+    "rpm_limit": 10,
+    "api_keys": {
+        "gemini": "1115",
+        "your_favourite_api": "153"
+    }
 }

@@ -22,8 +22,5 @@ export const FEATURES = {
     ENABLE_PROJECT_HISTORY: ENABLE_EXPERIMENTAL_FEATURES,    // Project History Timeline
 
     // Providers
-    ENABLE_HUNYUAN_PROVIDER: ENABLE_EXPERIMENTAL_FEATURES,    // Hunyuan (Tencent) Provider
-
-    // Incremental Features
-    ENABLE_INCREMENTAL_TRANSLATION: ENABLE_EXPERIMENTAL_FEATURES // Hotfix 2.0.8: Hide WIP feature behind dev switch
+    ENABLE_HUNYUAN_PROVIDER: ENABLE_EXPERIMENTAL_FEATURES    // Hunyuan (Tencent) Provider
 };
