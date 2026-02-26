@@ -177,6 +177,10 @@ def main():
         f'--hidden-import scripts.hooks '
         f'--hidden-import scripts.hooks.file_parser_hook '
         f'--hidden-import scripts.config.prompts '
+        # Phonetics libraries used inside functions (PyInstaller can't detect these statically)
+        f'--hidden-import pypinyin --hidden-import pypinyin.seg --hidden-import pypinyin.style '
+        f'--hidden-import pykakasi --hidden-import jaconv '
+        f'--hidden-import jamo '
         f'{add_data_args} '
         f'"{web_server_script}"'
     )

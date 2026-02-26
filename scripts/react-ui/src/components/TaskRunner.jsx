@@ -82,30 +82,32 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     };
 
     const handleOpenFolder = async () => {
-        if (!task?.result_path) return;
-        // result_path is a zip file path, we want the directory containing it or the extracted folder
-        // The backend sets result_path to the zip file.
-        // However, the folder also exists at the same location without .zip extension (usually)
-        // Or we can just open the parent directory of the zip.
-
-        // Actually, let's try to open the folder that was zipped.
-        // result_path: .../DEST_DIR/folder.zip
-        // folder: .../DEST_DIR/folder
+        if (!task?.result_path) {
+            notificationService.error('Output folder path is not available yet.', { title: 'Cannot Open Folder' });
+            return;
+        }
 
         const zipPath = task.result_path;
-        const folderPath = zipPath.replace('.zip', '');
+
+        // Try to open the extracted folder (zip without extension), otherwise
+        // fall back to the parent directory (DEST_DIR) which always exists.
+        const folderPath = zipPath.replace(/\.zip$/i, '');
+        const parentDir = zipPath.includes('\\')
+            ? zipPath.substring(0, zipPath.lastIndexOf('\\'))
+            : zipPath.substring(0, zipPath.lastIndexOf('/'));
 
         try {
             await api.post('/api/system/open_folder', { path: folderPath });
         } catch (error) {
-            console.error("Failed to open folder:", error);
-            // Fallback: Try opening the parent directory
+            console.warn("Extracted folder not found, opening parent dir:", parentDir);
             try {
-                // If folder doesn't exist (maybe deleted?), open parent
-                const parentDir = zipPath.substring(0, zipPath.lastIndexOf('\\'));
                 await api.post('/api/system/open_folder', { path: parentDir });
             } catch (e) {
                 console.error("Failed to open parent folder:", e);
+                notificationService.error(
+                    `Cannot open folder: ${e?.response?.data?.detail || e.message}`,
+                    { title: 'Error' }
+                );
             }
         }
     };
