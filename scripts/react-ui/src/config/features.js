@@ -3,7 +3,7 @@
  * Used to toggle features on/off for different builds/releases.
  */
 // MASTER SWITCH
-const ENABLE_EXPERIMENTAL_FEATURES = true; // Toggle this to show/hide all WIP features
+const ENABLE_EXPERIMENTAL_FEATURES = false; // Toggle this to show/hide all WIP features
 
 export const FEATURES = {
     // Export master switch status if needed for UI indications

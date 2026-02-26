@@ -178,21 +178,13 @@ def run_translation_workflow_v2(
             
             # Push update via WebSocket
             try:
-                # Since progress_callback is called from a background thread (Workflow),
-                # and send_task_update is async, we need to bridge them.
-                # In FastAPI/Starlette, the event loop is usually running in the main thread.
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # Limit the log to MAX_LOG_LINES like in the HTTP status endpoint
-                    MAX_LOG_LINES = 100
-                    task_data = dict(tasks[task_id])
-                    if "log" in task_data and len(task_data["log"]) > MAX_LOG_LINES:
-                        task_data["log"] = task_data["log"][-MAX_LOG_LINES:]
-                    
-                    asyncio.run_coroutine_threadsafe(
-                        ws_manager.send_task_update(task_id, task_data),
-                        loop
-                    )
+                # Limit the log to MAX_LOG_LINES like in the HTTP status endpoint
+                MAX_LOG_LINES = 100
+                task_data = dict(tasks[task_id])
+                if "log" in task_data and len(task_data["log"]) > MAX_LOG_LINES:
+                    task_data["log"] = task_data["log"][-MAX_LOG_LINES:]
+                
+                ws_manager.sync_send_task_update(task_id, task_data)
             except Exception as e:
                 logging.error(f"WebSocket push failed: {e}")
 
