@@ -95,19 +95,22 @@ class QuoteExtractor:
             char = after_colon[i]
             
             if escape_next:
-                # 转义字符，直接添加到内容中
+                # Previous char was backslash, now we add the escaped char.
+                # But we ALSO want to keep the backslash to match raw file content (like loc_parser).
+                # Wait, if we added backslash in the previous step, we just add this char.
                 content += char
                 escape_next = False
             elif char == '\\':
-                # 反斜杠，标记下一个字符为转义，但不添加到内容中（也就是消耗掉这个反斜杠）
-                # content += char  <-- REMOVED
+                # Backslash found.
+                # We interpret it as start of escape for parsing (to skip quotes), 
+                # but we WANT to keep it in the string content.
+                content += char
                 escape_next = True
             elif char == '"':
-                # 找到结束引号
-                # 允许提取空值，即 ""
+                # End quote
                 return content
             else:
-                # 普通字符
+                # Normal char
                 content += char
             
             i += 1
@@ -233,8 +236,9 @@ class QuoteExtractor:
                                 
                             if escape_next:
                                 current_segment += char
-                                escape_next = False
+                                escape_next = False # Backslash was already added
                             elif char == '\\':
+                                current_segment += char # Conserve backslash
                                 escape_next = True
                             elif char == '"':
                                 found_end = True
@@ -282,6 +286,7 @@ class QuoteExtractor:
                         current_segment += char
                         escape_next = False
                     elif char == '\\':
+                        current_segment += char # Conserve backslash
                         escape_next = True
                     elif char == '"':
                         found_end = True

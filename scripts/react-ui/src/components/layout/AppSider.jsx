@@ -15,6 +15,7 @@ import {
     IconCode,
     IconSparkles,
     IconQuestionMark,
+    IconRocket,
 } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +29,7 @@ const navItems = [
     { icon: IconHome, label: 'page_title_home', path: '/' },
     { icon: IconBriefcase, label: 'page_title_project_management', path: '/project-management' },
     { icon: IconLanguage, label: 'page_title_translation', path: '/translation' },
+    ...(FEATURES.ENABLE_EXPERIMENTAL_FEATURES ? [{ icon: IconRocket, label: 'incremental_translation.title', path: '/incremental-translation' }] : []),
     { icon: IconVocabulary, label: 'page_title_glossary_manager', path: '/glossary-manager' },
     { icon: IconChecklist, label: 'page_title_proofreading', path: '/proofreading' },
     // Conditionally include Neologism Tribunal

@@ -5,7 +5,14 @@ from typing import Optional, Dict, Any
 
 from scripts.shared.services import project_manager
 from scripts.core.project_json_manager import ProjectJsonManager
-from scripts.schemas.project import CreateProjectRequest, UpdateProjectStatusRequest, UpdateProjectNotesRequest, UpdateProjectMetadataRequest, UpdateFileStatusRequest
+from scripts.schemas.project import (
+    CreateProjectRequest, 
+    UpdateProjectStatusRequest, 
+    UpdateProjectNotesRequest, 
+    UpdateProjectMetadataRequest, 
+    UpdateFileStatusRequest,
+    IncrementalUpdateRequest
+)
 from scripts.schemas.config import UpdateConfigRequest
 
 router = APIRouter()
@@ -238,16 +245,23 @@ async def delete_history_event(history_id: str):
         logging.error(f"Error deleting history event: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.get("/api/project/{project_id}/check-archive")
+async def check_project_archive(project_id: str):
+    """Checks if the project has sufficient archive data for incremental update."""
+    return await project_manager.check_project_archive(project_id)
+
+from scripts.schemas.translation import IncrementalUpdateConfig
+
 @router.post("/api/project/{project_id}/incremental-update")
-async def run_incremental_update(project_id: str, dry_run: bool = False, provider: str = "gemini", model: Optional[str] = None):
+async def run_incremental_update(project_id: str, request: IncrementalUpdateConfig):
     """Triggers the incremental update workflow."""
+    # Ensure project_id matches
+    if request.project_id != project_id:
+        request.project_id = project_id
+        
     try:
-        result = await project_manager.run_incremental_update_workflow(
-            project_id=project_id,
-            provider=provider,
-            model=model,
-            dry_run=dry_run
-        )
+        result = await project_manager.run_incremental_update_workflow(request)
         return result
     except Exception as e:
         logging.error(f"Error in incremental update: {e}")

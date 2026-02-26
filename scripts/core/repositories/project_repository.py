@@ -84,8 +84,9 @@ class ProjectRepository:
         """Retrieves the latest history events with project names."""
         async for session in self._session_scope():
             # Join ProjectHistory and Project to get project names
+            # Use outerjoin to include history even if project was deleted
             stmt = select(ProjectHistory, Project.name.label("project_name")) \
-                .join(Project, Project.project_id == ProjectHistory.project_id) \
+                .outerjoin(Project, Project.project_id == ProjectHistory.project_id) \
                 .order_by(col(ProjectHistory.timestamp).desc()) \
                 .limit(limit)
             
@@ -371,3 +372,20 @@ class ProjectRepository:
                 "translated_files": status_counts.get('done', 0),
                 "completion_rate": round(completion_rate, 1)
             }
+        return {
+            "total_projects": 0,
+            "active_projects": 0,
+            "total_files": 0,
+            "status_distribution": [
+                {"name": "todo", "value": 0},
+                {"name": "in_progress", "value": 0},
+                {"name": "proofreading", "value": 0},
+                {"name": "paused", "value": 0},
+                {"name": "done", "value": 0}
+            ],
+            "game_distribution": [],
+            "total_keys": 0,
+            "translated_keys": 0,
+            "translated_files": 0,
+            "completion_rate": 0
+        }

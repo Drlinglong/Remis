@@ -80,8 +80,8 @@ DEFAULT_RPM_LIMIT = 40
 # --- 项目信息 ----------------------------------------------------
 PROJECT_NAME = "Paradox Mod 本地化工厂 - Paradox Mod Localization Factory"
 PROJECT_DISPLAY_NAME = "蕾姆丝计划 - Project Remis "
-VERSION = "2.0.7"
-LAST_UPDATE_DATE = "2026-01-20"
+VERSION = "2.0.8"
+LAST_UPDATE_DATE = "2026-02-26"
 COPYRIGHT = "© 2026 Project Remis Team"
 
 # --- 项目信息显示配置 --------------------------------------------
@@ -199,6 +199,10 @@ LANGUAGES = {
     "11": {"code": "tr",     "key": "l_turkish",      "name": "Türkçe",              "name_en": "Turkish",             "folder_prefix": "tr-"}
 }
 
+# --- Language Lookups ---
+LANGUAGE_BY_CODE = {info["code"]: info for info in LANGUAGES.values()}
+LANGUAGE_BY_PARA_KEY = {info["key"]: info for info in LANGUAGES.values()}
+
 # --- 语言标点符号配置 --------------------------------------------------
 LANGUAGE_PUNCTUATION_CONFIG = {
     "zh-CN": {"name": "简体中文", "punctuation": {"，": ", ", "。": ". ", "！": "! ", "？": "? ", "：": ": ", "；": "; ", "（": " (", "）": ") ", "【": "[", "】": "]", "《": "<", "》": ">", "“": "\"", "”": "\"", "‘": "'", "’": "'", "…": "...", "—": "-", "－": "-", "　": " ", "、": ", ", "·": ". ", "～": "~", "％": "%", "＃": "#", "＄": "$", "＆": "&", "＊": "*", "＋": "+", "＝": "=", "／": "/", "＼": "\\", "｜": "|", "＠": "@"}, "examples": ["你好，世界！", "这是一个测试：标点符号。", "（重要）信息"]},
@@ -228,8 +232,9 @@ TARGET_LANGUAGE_PUNCTUATION = {
 # Note: config_manager.py imports prompts, so we don't need to pass them.
 
 from scripts.core.config_manager import ConfigManager
-config_manager = ConfigManager(CONFIG_DIR)
+config_manager = ConfigManager(CONFIG_DIR, APP_DATA_DIR)
 GAME_PROFILES = config_manager.game_profiles
+GAME_PROFILES_BY_ID = {p["id"]: p for p in GAME_PROFILES.values()}
 API_PROVIDERS = config_manager.api_providers
 
 # --- Game ID Aliases (Normalization) -----------------------------

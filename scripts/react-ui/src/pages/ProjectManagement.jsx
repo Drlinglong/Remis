@@ -558,6 +558,7 @@ export default function ProjectManagement() {
               onPathsUpdated={() => fetchProjectFiles(selectedProject.project_id)}
               onDeleteForever={() => setDeleteModalOpen(true)}
               onManageProject={handleOpenManage}
+              onRefresh={handleRefreshFiles}
             />
           ) : <Text>Loading details...</Text>}
         </Tabs.Panel>

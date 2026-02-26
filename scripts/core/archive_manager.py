@@ -124,23 +124,29 @@ class ArchiveManager:
             # 4. 插入所有源条目
             source_entries = []
             for file_data in all_files_data:
-                # We need to store the file path somehow? The original schema didn't have file_path in source_entries.
-                # It seems the original schema was key-centric, assuming unique keys across the mod version.
-                # However, for the "Project" flow, we need file-based retrieval.
-                # I will ADD a 'file_path' column to source_entries if it doesn't exist?
-                # Or simpler: For now, I will assume keys are unique enough or I will rely on the structure.
-                # Wait, the key map is needed.
-                # The previous code: zip(file_data['key_map'], file_data['texts_to_translate'])
-                for key_info, text in zip(file_data['key_map'], file_data['texts_to_translate']):
-                    # Use full key-header block (e.g. 'key:0') as entry_key
-                    if isinstance(key_info, dict):
-                        # Combine key_part and potential colon part if we update QuoteExtractor
-                        # For now, QuoteExtractor will be updated to include :0 in key_part
-                        entry_key = key_info['key_part'].strip()
+                # key_map is a dict from QuoteExtractor where keys are indices
+                # file_data['texts_to_translate'] is a list of same length
+                km = file_data.get('key_map', {})
+                texts = file_data.get('texts_to_translate', [])
+                
+                for idx, text in enumerate(texts):
+                    if isinstance(km, dict):
+                        key_info = km.get(idx)
+                    elif isinstance(km, list) and idx < len(km):
+                        key_info = km[idx]
                     else:
-                        entry_key = str(key_info)
+                        key_info = None
                     
-                    source_entries.append((version_id, entry_key, text, file_data.get('filename', 'unknown')))
+                    if isinstance(key_info, dict):
+                        entry_key = key_info.get('key_part', '').strip()
+                    else:
+                        entry_key = str(key_info) if key_info else str(idx)
+                    
+                    # Normalize: ensure no trailing colon (consistency)
+                    if entry_key.endswith(":"):
+                        entry_key = entry_key[:-1].strip()
+                    
+                    source_entries.append((version_id, entry_key, text.rstrip('\r\n'), file_data.get('filename', 'unknown')))
 
             # Ensure file_path column exists
             cursor.execute("PRAGMA table_info(source_entries)")
@@ -169,12 +175,19 @@ class ArchiveManager:
                 file_data = next((fd for fd in all_files_data if fd['filename'] == filename), None)
                 if not file_data or not translated_texts: continue
 
-                for key_info, translated_text in zip(file_data['key_map'], translated_texts):
-                    # Fix: key_map is a list of dicts like {'key_part': 'remis.1.t', 'line_num': 5}
-                    # We need to extract the actual key string
-                    entry_key = key_info['key_part'].strip() if isinstance(key_info, dict) else str(key_info)
+                km = file_data.get('key_map', {})
+                for idx, translated_text in enumerate(translated_texts):
+                    if isinstance(km, dict):
+                        key_info = km.get(idx)
+                    elif isinstance(km, list) and idx < len(km):
+                        key_info = km[idx]
+                    else:
+                        key_info = None
                     
-                    # Normalize: ensure no trailing colon (legacy consistency)
+                    # Extract the actual key string
+                    entry_key = key_info.get('key_part', '').strip() if isinstance(key_info, dict) else str(key_info if key_info is not None else idx)
+                    
+                    # Normalize: ensure no trailing colon (consistency)
                     if entry_key.endswith(":"):
                         entry_key = entry_key[:-1].strip()
                 
@@ -219,10 +232,87 @@ class ArchiveManager:
 
     # --- New Methods for Project/Proofreading Flow ---
 
-    def get_entries(self, mod_name: str, file_path: str, language: str = "zh-CN") -> List[Dict[str, Any]]:
+    def get_latest_version(self, mod_name: str) -> Optional[Dict[str, Any]]:
+        """Retrieves the latest version information for a given mod name."""
+        if not self.connection: return None
+        cursor = self.connection.cursor()
+        
+        query = '''
+            SELECT v.version_id, v.mod_id, v.snapshot_hash, v.created_at
+            FROM source_versions v
+            JOIN mods m ON v.mod_id = m.mod_id
+            WHERE m.name = ?
+            ORDER BY v.created_at DESC LIMIT 1
+        '''
+        try:
+            cursor.execute(query, (mod_name,))
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "id": str(row['version_id']),
+                    "mod_id": row['mod_id'],
+                    "hash": row['snapshot_hash'],
+                    "created_at": row['created_at']
+                }
+            return None
+        except Exception as e:
+            logging.error(f"Failed to get latest version: {e}")
+            return None
+
+    def get_all_mod_names(self) -> List[str]:
+        """Returns a list of all mod names in the archive."""
+        if not self.connection: return []
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute("SELECT name FROM mods")
+            return [row['name'] for row in cursor.fetchall()]
+        except Exception:
+            return []
+
+    def detect_target_language(self, version_id: int) -> Optional[str]:
+        """Detects the most common target language for a given version in the archive."""
+        if not self.connection: return None
+        cursor = self.connection.cursor()
+        query = '''
+            SELECT t.language_code, COUNT(t.language_code) as count
+            FROM translated_entries t
+            JOIN source_entries s ON t.source_entry_id = s.source_entry_id
+            WHERE s.version_id = ?
+            GROUP BY t.language_code
+            ORDER BY count DESC LIMIT 1
+        '''
+        try:
+            cursor.execute(query, (version_id,))
+            row = cursor.fetchone()
+            if row:
+                return row['language_code']
+            return None
+        except Exception as e:
+            logging.error(f"Failed to detect target language: {e}")
+            return None
+
+    def get_archived_languages(self, version_id: int) -> List[str]:
+        """Returns a list of all target languages available for a given version in the archive."""
+        if not self.connection: return []
+        cursor = self.connection.cursor()
+        query = '''
+            SELECT DISTINCT t.language_code
+            FROM translated_entries t
+            JOIN source_entries s ON t.source_entry_id = s.source_entry_id
+            WHERE s.version_id = ?
+        '''
+        try:
+            cursor.execute(query, (version_id,))
+            rows = cursor.fetchall()
+            return [row['language_code'] for row in rows]
+        except Exception as e:
+            logging.error(f"Failed to get archived languages: {e}")
+            return []
+
+    def get_entries(self, mod_name: str, file_path: str = None, language: str = "zh-CN", limit: int = None) -> List[Dict[str, Any]]:
         """
-        Retrieves merged source and translation entries for a specific file in the latest version of a mod.
-        Includes a 'Deep Search' fallback to find translations from previous versions if the current version lacks them.
+        Retrieves merged source and translation entries for a specific file (or all files if file_path is None) 
+        in the latest version of a mod.
         """
         if not self.connection: return []
         cursor = self.connection.cursor()
@@ -240,58 +330,95 @@ class ArchiveManager:
         version_id = ver_row['version_id']
 
         # 3. Fetch Source Entries for CURRENT Version
-        filename = os.path.basename(file_path)
-        
-        # We fetch source entries first. 
-        # Note: We select entry_key to map them later.
-        cursor.execute("SELECT source_entry_id, entry_key, source_text FROM source_entries WHERE version_id = ? AND file_path = ?", (version_id, filename))
+        if file_path:
+            filename = os.path.basename(file_path)
+            query = "SELECT source_entry_id, entry_key, source_text FROM source_entries WHERE version_id = ? AND file_path = ?"
+            params = (version_id, filename)
+        else:
+            query = "SELECT source_entry_id, entry_key, source_text FROM source_entries WHERE version_id = ?"
+            params = (version_id,)
+
+        if limit:
+            query += f" LIMIT {int(limit)}"
+
+        cursor.execute(query, params)
         source_rows = cursor.fetchall()
         
         if not source_rows:
             return []
 
         # 4. Deep Search for Translations
-        # Instead of a simple JOIN which only checks the current source_entry_id,
-        # we want to match valid translations for these Keys and FilePath from ANY source_entry_id (previous versions included).
-        
-        # Optimize: Get all translations for this file_path and language from the DB derived from ANY version of this mod
-        # We can filter by file_path and language.
-        
-        # Get mapping: entry_key -> translated_text (latest by timestamp)
-        # We join back to source_entries to get the key.
-        # We filter source_entries by file_path and mod_id (implicit via keys unique to files? No, file_path is safer)
-        # Wait, source_entries link to version, version links to mod.
-        
         deep_query = '''
             SELECT s.entry_key, t.translated_text
             FROM translated_entries t
             JOIN source_entries s ON t.source_entry_id = s.source_entry_id
             JOIN source_versions v ON s.version_id = v.version_id
-            WHERE v.mod_id = ? AND s.file_path = ? AND t.language_code = ?
-            ORDER BY t.last_translated_at ASC
+            WHERE v.mod_id = ? AND t.language_code = ?
         '''
-        # We convert to dict, keeping the LAST one (latest date due to ASC order, or we can use DESC and ignore subsequent)
-        # Actually ORDER BY ASC means the last one in the loop is the latest one.
+        deep_params = [mod_id, language]
+        if file_path:
+            deep_query += " AND s.file_path = ?"
+            deep_params.append(os.path.basename(file_path))
         
-        cursor.execute(deep_query, (mod_id, filename, language))
+        deep_query += " ORDER BY t.last_translated_at ASC"
+        
+        cursor.execute(deep_query, tuple(deep_params))
         trans_rows = cursor.fetchall()
         
-        translation_map = {row['entry_key']: row['translated_text'] for row in trans_rows}
+        translation_map = {}
+        for row in trans_rows:
+            ek = row['entry_key']
+            # Normalize for map lookup (strip colon)
+            if ek.endswith(":"):
+                ek = ek[:-1].strip()
+            translation_map[ek] = row['translated_text']
 
         results = []
         for s_row in source_rows:
             key = s_row['entry_key']
+            # Normalize the source key too
+            lookup_key = key
+            if lookup_key.endswith(":"):
+                lookup_key = lookup_key[:-1].strip()
+                
             original = s_row['source_text']
-            # Try to get translation from the global map
-            translation = translation_map.get(key, None)
+            # Try to get translation from the global map using normalized key
+            translation = translation_map.get(lookup_key, None)
             
             results.append({
-                "key": key,
-                "original": original,
+                "key": lookup_key, # Return normalized key
+                "original": original.rstrip('\r\n') if original else "",
                 "translation": translation
             })
             
         return results
+
+    def find_global_translation(self, entry_key: str, source_text: str, language: str) -> Optional[str]:
+        """
+        Searches for a translation in the entire database (cross-mod) matching exactly the key and source text.
+        Returns the most recent translation if found.
+        """
+        if not self.connection: return None
+        cursor = self.connection.cursor()
+        query = '''
+            SELECT t.translated_text
+            FROM translated_entries t
+            JOIN source_entries s ON t.source_entry_id = s.source_entry_id
+            WHERE s.entry_key = ? AND s.source_text = ? AND t.language_code = ?
+            ORDER BY t.last_translated_at DESC LIMIT 1
+        '''
+        try:
+            cursor.execute(query, (entry_key, source_text, language))
+            row = cursor.fetchone()
+            if row:
+                return row['translated_text']
+            
+            # Fallback: Search by source text only if key doesn't match but text is exactly the same?
+            # For now, let's be strict: Key + Text must match for "Smart Reuse".
+            return None
+        except Exception as e:
+            logging.error(f"Global archive lookup failed: {e}")
+            return None
 
     def update_translations(self, mod_name: str, file_path: str, entries: List[Dict[str, Any]], language: str = "zh-CN"):
         """

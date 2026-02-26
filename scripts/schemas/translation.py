@@ -83,3 +83,24 @@ class TranslationRequestV2(BaseModel):
         if isinstance(v, list):
             return [LanguageCode.from_str(code) if isinstance(code, str) else code for code in v]
         return v
+
+class IncrementalUpdateConfig(BaseModel):
+    project_id: str
+    target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
+    api_provider: str = "gemini"
+    model: str = "gemini-pro"
+    mod_context: Optional[str] = ""
+    dry_run: bool = False
+    custom_source_path: Optional[str] = None
+    use_resume: bool = True
+
+    @field_validator('target_lang_codes', mode='before')
+    @classmethod
+    def normalize_target_langs(cls, v):
+        if isinstance(v, str):
+            if "," in v:
+                return [LanguageCode.from_str(code.strip()) for code in v.split(",") if code.strip()]
+            return [LanguageCode.from_str(v)]
+        if isinstance(v, list):
+            return [LanguageCode.from_str(code) if isinstance(code, str) else code for code in v]
+        return v

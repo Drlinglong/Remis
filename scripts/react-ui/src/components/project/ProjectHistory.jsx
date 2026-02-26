@@ -35,8 +35,10 @@ const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
         try {
             setCheckingDiff(true);
             setDiffResult(null);
-            // Call with dry_run=true
-            const res = await api.post(`/api/project/${projectId}/incremental-update?dry_run=true`);
+            // Call with dry_run=true in body
+            const res = await api.post(`/api/project/${projectId}/incremental-update`, {
+                dry_run: true
+            });
             setDiffResult(res.data.summary);
         } catch (error) {
             console.error("Failed to check diff", error);
@@ -48,7 +50,9 @@ const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
     const runUpdate = async () => {
         try {
             setUpdating(true);
-            const res = await api.post(`/api/project/${projectId}/incremental-update`);
+            const res = await api.post(`/api/project/${projectId}/incremental-update`, {
+                dry_run: false
+            });
             // After success, refresh history
             await fetchHistory();
             setDiffResult(null);

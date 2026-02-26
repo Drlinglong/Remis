@@ -65,6 +65,9 @@
   "common.all_games": "所有游戏",
   "common.filter_game": "过滤游戏",
   "common.nothing_found": "未找到结果",
+  "common.browse": "浏览",
+  "common.back": "返回",
+  "common.finish": "完成",
   "settings_language": "语言",
   "settings_theme": "主题",
   "settings_rpm_limit": "API RPM 限制 (全局)",
@@ -684,95 +687,95 @@
       "api": {
         "title": "API 配置看板",
         "desc": "在这里您可以管理所有 AI 服务提供商。点击卡片右下角的‘配置’按钮即可开始。”"
-      },
-      "api_guide": {
-        "title": "新手入坑：什么是 API Key？",
-        "desc": "API Key 是访问 AI 服务的通行证。没有它软件无法工作。<br/><br/><b>视频教程:</b><br/>请点击下方的按钮观看 Bilibili 或 YouTube 上的保姆级这一教程。<br/><br/><i>注：视频非本软件作者制作，内容可能过时，仅供参考。</i>"
-      },
-      "api_regions": {
-        "title": "服务商与安全警告",
-        "desc": "提示：使用 API 通常是按量计费的。<b>务必保管好 Key</b>，切勿泄露以防产生巨额账单。您可以根据地区选择：国际 (Google/OpenAI)、中国大陆 (DeepSeek/Qwen) 或本地模型 (Ollama)。"
-      },
-      "api_provider": {
-        "title": "配置服务商",
-        "desc": "点击‘配置’按钮即可填入您的 API 密钥并选择默认的翻译模型（如 gemini-3-flash-preview）。输入完 API Key 记得点击保存。"
-      },
-      "api_cost": {
-        "title": "性价比与配额",
-        "desc": "对于大部分翻译任务，无需使用旗舰模型，可以使用性价比较高的模型。同时我们限制了模型的思考额度，以降低 API 花费。"
-      },
-      "version": {
-        "title": "版本与反馈",
-        "desc": "在这里您可以查看当前版本，快速打开日志文件夹或前往 GitHub Issue 区。我们非常欢迎您提出新功能需求或反馈 Bug（请务必附上日志）。"
       }
     },
-    "tools": {
-      "tabs": {
-        "title": "工具箱标签",
-        "desc": "在封面图生成器、工坊描述生成器等不同工具之间切换。"
-      },
-      "thumbnail": {
-        "canvas": {
-          "title": "设计画布",
-          "desc": "您的主工作区。您可以拖放一张背景图到这里开始设计。"
-        },
-        "toolbox": {
-          "title": "生成器工具箱",
-          "desc": "只需要点几下鼠标，就能轻松地在原始封面的基础上增加国旗或语言，将其转化为适当的翻译mod封面。"
-        },
-        "drag": {
-          "title": "拖拽上传",
-          "desc": "拖拽上传背景图片，你还可以在背景图片上上传并叠放自定义标识。"
-        }
-      }
+    "api_guide": {
+      "title": "新手入坑：什么是 API Key？",
+      "desc": "API Key 是访问 AI 服务的通行证。没有它软件无法工作。<br/><br/><b>视频教程:</b><br/>请点击下方的按钮观看 Bilibili 或 YouTube 上的保姆级这一教程。<br/><br/><i>注：视频非本软件作者制作，内容可能过时，仅供参考。</i>"
     },
-    "project_management": {
-      "list": {
-        "title": "项目列表",
-        "desc": "在这里查看和管理您的所有本地化项目。"
-      },
-      "create": {
-        "title": "从零开始",
-        "desc": "你可以从这里从零开始创建你的第一个翻译项目。开始翻译之前，请确定你已经在设置-API页面里已经准备好你的API key。"
-      },
-      "new_task": {
-        "title": "新建任务",
-        "desc": "不仅是文件任务，还可以创建自定义笔记任务。"
-      },
-      "stats": {
-        "title": "项目概览",
-        "desc": "在这里快速查看当前项目的总文件数、行数以及翻译与校对的进度百分比。"
-      },
-      "start": {
-        "title": "核心行动：开始翻译",
-        "desc": "一切就绪后，点击这个醒目的按钮进入翻译配置页面，开启 AI 自动化翻译流程。"
-      },
-      "paths": {
-        "title": "路径管理",
-        "desc": "配置每个 Mod 的源路径和导出路径。"
-      },
-      "tabs": {
-        "title": "任务看板",
-        "desc": "切换到看板视图来推拽管理任务进度。"
-      }
+    "api_regions": {
+      "title": "服务商与安全警告",
+      "desc": "提示：使用 API 通常是按量计费的。<b>务必保管好 Key</b>，切勿泄露以防产生巨额账单。您可以根据地区选择：国际 (Google/OpenAI)、中国大陆 (DeepSeek/Qwen) 或本地模型 (Ollama)。"
     },
-    "translation": {
-      "select": {
-        "title": "选择项目",
-        "desc": "请选择一个项目以开始翻译流程。"
+    "api_provider": {
+      "title": "配置服务商",
+      "desc": "点击‘配置’按钮即可填入您的 API 密钥并选择默认的翻译模型（如 gemini-3-flash-preview）。输入完 API Key 记得点击保存。"
+    },
+    "api_cost": {
+      "title": "性价比与配额",
+      "desc": "对于大部分翻译任务，无需使用旗舰模型，可以使用性价比较高的模型。同时我们限制了模型的思考额度，以降低 API 花费。"
+    },
+    "version": {
+      "title": "版本与反馈",
+      "desc": "在这里您可以查看当前版本，快速打开日志文件夹或前往 GitHub Issue 区。我们非常欢迎您提出新功能需求或反馈 Bug（请务必附上日志）。"
+    }
+  },
+  "tools": {
+    "tabs": {
+      "title": "工具箱标签",
+      "desc": "在封面图生成器、工坊描述生成器等不同工具之间切换。"
+    },
+    "thumbnail": {
+      "canvas": {
+        "title": "设计画布",
+        "desc": "您的主工作区。您可以拖放一张背景图到这里开始设计。"
       },
-      "config": {
-        "title": "配置翻译",
-        "desc": "设置源语言、目标语言并选择 AI 模型。"
+      "toolbox": {
+        "title": "生成器工具箱",
+        "desc": "只需要点几下鼠标，就能轻松地在原始封面的基础上增加国旗或语言，将其转化为适当的翻译mod封面。"
       },
-      "start": {
-        "title": "开始批处理",
-        "desc": "点击此按钮开始自动翻译任务。"
-      },
-      "processing": {
-        "title": "处理中",
-        "desc": "AI 正在翻译您的文件。您可以在此处查看实时日志。"
+      "drag": {
+        "title": "拖拽上传",
+        "desc": "拖拽上传背景图片，你还可以在背景图片上上传并叠放自定义标识。"
       }
+    }
+  },
+  "project_management": {
+    "list": {
+      "title": "项目列表",
+      "desc": "在这里查看和管理您的所有本地化项目。"
+    },
+    "create": {
+      "title": "从零开始",
+      "desc": "你可以从这里从零开始创建你的第一个翻译项目。开始翻译之前，请确定你已经在设置-API页面里已经准备好你的API key。"
+    },
+    "new_task": {
+      "title": "新建任务",
+      "desc": "不仅是文件任务，还可以创建自定义笔记任务。"
+    },
+    "stats": {
+      "title": "项目概览",
+      "desc": "在这里快速查看当前项目的总文件数、行数以及翻译与校对的进度百分比。"
+    },
+    "start": {
+      "title": "核心行动：开始翻译",
+      "desc": "一切就绪后，点击这个醒目的按钮进入翻译配置页面，开启 AI 自动化翻译流程。"
+    },
+    "paths": {
+      "title": "路径管理",
+      "desc": "配置每个 Mod 的源路径和导出路径。"
+    },
+    "tabs": {
+      "title": "任务看板",
+      "desc": "切换到看板视图来推拽管理任务进度。"
+    }
+  },
+  "translation": {
+    "select": {
+      "title": "选择项目",
+      "desc": "请选择一个项目以开始翻译流程。"
+    },
+    "config": {
+      "title": "配置翻译",
+      "desc": "设置源语言、目标语言并选择 AI 模型。"
+    },
+    "start": {
+      "title": "开始批处理",
+      "desc": "点击此按钮开始自动翻译任务。"
+    },
+    "processing": {
+      "title": "处理中",
+      "desc": "AI 正在翻译您的文件。您可以在此处查看实时日志。"
     }
   },
   "translation_page": {
@@ -855,5 +858,80 @@
   "homepage_pie_chart_todo": "待办",
   "homepage_pie_chart_in_progress": "翻译中",
   "homepage_pie_chart_paused": "挂起",
-  "homepage_pie_chart_done": "已完工"
+  "homepage_pie_chart_done": "已完工",
+  "button_rescan": "重新扫描",
+  "common.confirm_delete": "您确定要删除这条历史记录吗？",
+  "project_history": {
+    "current_state": "当前状态",
+    "monitor_desc": "监控本地文件与上次版本的变更",
+    "changes_detected": "检测到未同步的变更",
+    "new_lines": "新增行数",
+    "changed_lines": "变更行数",
+    "files_count": "影响文件",
+    "btn_incremental_update": "开始增量更新",
+    "up_to_date": "当前已是最新状态，未检测到本地变更。",
+    "scan_prompt": "点击“重新扫描”以检查本地修改。",
+    "title": "项目历史与版本",
+    "no_history": "暂无历史记录",
+    "no_history_desc": "重要的项目事件将显示在这里。"
+  },
+  "project_management.incremental_update_title": "增量更新 (Incremental Update)",
+  "project_management.incremental_update_desc": "分析源码变更并仅翻译新增或修改条目，自动复用已有历史记录（包含跨项目智能复用）。",
+  "project_management.dry_run_label": "试运行 (Dry Run)",
+  "project_management.dry_run_desc": "仅扫描并统计变更，不执行正式 AI 翻译和文件写入。",
+  "project_management.update_summary": "更新概览",
+  "project_management.dry_run_complete": "试运行完成。确认结果无误后，取消“试运行”勾选并正式启动增量更新。",
+  "project_management.update_complete": "增量更新已成功执行，文件已更新。",
+  "button_scan_now": "立即扫描",
+  "button_start_update": "开始增量更新",
+  "button_back_to_config": "返回配置",
+  "summary_total": "总计",
+  "summary_reused": "复用",
+  "summary_global": "跨项目复用",
+  "summary_new": "新增",
+  "summary_changed": "修改",
+  "incremental_translation": {
+    "title": "增量翻译",
+    "description": "引导式流程：分析源码变更并仅翻译新增/修改内容。",
+    "step_1_title": "选择项目",
+    "step_1_desc": "选择要更新的现有项目",
+    "step_2_title": "数据校验",
+    "step_2_desc": "检查存档并配置路径",
+    "step_3_title": "预扫描预览",
+    "step_3_desc": "查看变更统计报表",
+    "step_4_title": "正式执行",
+    "step_4_desc": "执行翻译并写入文件",
+    "select_project_first": "请先从列表中选择一个项目",
+    "archive_found": "检测到存档点：版本 {{version}}, 最后更新于 {{date}}",
+    "archive_missing": "未检测到该项目的翻译存档。增量对比失败。",
+    "archive_missing_action": "请先完成一次“初次翻译”或手动“上载已有翻译”以建立存档。",
+    "select_new_folder": "选择新的 Mod 文件夹",
+    "select_new_folder_desc": "包含最新源码的 Mod 目录（通常是更新后的 Mod 文件夹）",
+    "current_folder_info": "当前项目路径：{{path}}",
+    "pre_scan_summary": "预扫描摘要",
+    "scan_directory": "扫描目录",
+    "source_language": "源码语种",
+    "files_to_process": "待处理文件",
+    "reused_count": "可复用（从存档/全库）",
+    "new_count": "新增待翻译",
+    "changed_count": "修改待重翻",
+    "start_translation_confirm": "确认开始翻译？这将会调用 API 产生费用。",
+    "execution_log": "执行日志",
+    "processing_file": "正在处理: {{file}}",
+    "batch_status": "批次 {{current}}/{{total}} 完成...",
+    "completion_title": "增量翻译完成",
+    "output_dir_hint": "结果已保存至项目目录下的 Remis_Incremental_Update 文件夹。",
+    "checkpoint_found_label": "检测到断点",
+    "checkpoint_found_title": "发现翻译断点",
+    "checkpoint_found_desc": "检测到上次未完成的任务进度。您可以选择从中断处继续翻译，以跳过已完成的文件。",
+    "resume_enabled": "断点续传：开启",
+    "resume_disabled": "断点续传：关闭",
+    "status_processing": "正在处理任务...",
+    "status_idle": "准备就绪",
+    "checkpoint_detected": "检测到翻译断点 (已完成 {{count}} 个文件)"
+  },
+  "translation_config": {
+    "provider": "API 供应商",
+    "model": "AI 模型"
+  }
 }

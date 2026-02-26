@@ -5,7 +5,7 @@ import zipfile
 import logging
 import traceback
 from typing import List, Optional
-from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form, WebSocket
 from fastapi.responses import FileResponse
 
 from scripts.shared.state import tasks
@@ -16,8 +16,9 @@ from scripts.workflows import initial_translate
 from scripts.utils import i18n
 from scripts.utils.system_utils import slugify_to_ascii
 from scripts.core.checkpoint_manager import CheckpointManager
-
 import threading
+import asyncio
+from scripts.shared.ws_manager import ws_manager
 router = APIRouter()
 task_lock = threading.Lock()
 
@@ -172,11 +173,20 @@ def run_translation_workflow_v2(
             tasks[task_id]["progress"]["glossary_issues"] = glossary_issues
             tasks[task_id]["progress"]["format_issues"] = format_issues
             
-            if log_message:
-                tasks[task_id]["log"].append(log_message)
-            
             if total > 0:
                 tasks[task_id]["progress"]["percent"] = int((current / total) * 100)
+            
+            # Push update via WebSocket
+            try:
+                # Limit the log to MAX_LOG_LINES like in the HTTP status endpoint
+                MAX_LOG_LINES = 100
+                task_data = dict(tasks[task_id])
+                if "log" in task_data and len(task_data["log"]) > MAX_LOG_LINES:
+                    task_data["log"] = task_data["log"][-MAX_LOG_LINES:]
+                
+                ws_manager.sync_send_task_update(task_id, task_data)
+            except Exception as e:
+                logging.error(f"WebSocket push failed: {e}")
 
     try:
         # Debug Logging
@@ -478,6 +488,27 @@ def get_status(task_id: str):
         result["log"] = result["log"][-MAX_LOG_LINES:]
     return result
 
+@router.websocket("/api/ws/status/{task_id}")
+async def websocket_status(websocket: WebSocket, task_id: str):
+    await ws_manager.connect(websocket, task_id)
+    try:
+        # Send initial state
+        if task_id in tasks:
+            MAX_LOG_LINES = 100
+            task_data = dict(tasks[task_id])
+            if "log" in task_data and len(task_data["log"]) > MAX_LOG_LINES:
+                task_data["log"] = task_data["log"][-MAX_LOG_LINES:]
+            await websocket.send_json(task_data)
+        
+        while True:
+            # Keep connection alive and wait for client to close
+            await websocket.receive_text()
+    except Exception:
+        # Disconnect handled in ws_manager
+        pass
+    finally:
+        ws_manager.disconnect(websocket, task_id)
+
 @router.get("/api/result/{task_id}")
 def get_result(task_id: str):
     task = tasks.get(task_id)
@@ -509,7 +540,11 @@ def check_checkpoint_status(payload: CheckpointStatusRequest):
                 output_folder_name = f"{target_code}-{sanitized_mod_name}"
 
         output_dir = os.path.join(DEST_DIR, output_folder_name)
-        cm = CheckpointManager(output_dir)
+        # Use the same language-specific filename as initial_translate.py
+        target_code = payload.target_lang_codes[0] if payload.target_lang_codes else "unknown"
+        checkpoint_filename = f".remis_checkpoint_{target_code}.json"
+        
+        cm = CheckpointManager(output_dir, checkpoint_filename=checkpoint_filename)
         info = cm.get_checkpoint_info()
         
         total_files = 0
@@ -550,7 +585,11 @@ def delete_checkpoint(payload: CheckpointStatusRequest):
                 output_folder_name = f"{target_code}-{sanitized_mod_name}"
 
         output_dir = os.path.join(DEST_DIR, output_folder_name)
-        cm = CheckpointManager(output_dir)
+        # Use the same language-specific filename as initial_translate.py
+        target_code = payload.target_lang_codes[0] if payload.target_lang_codes else "unknown"
+        checkpoint_filename = f".remis_checkpoint_{target_code}.json"
+        
+        cm = CheckpointManager(output_dir, checkpoint_filename=checkpoint_filename)
         cm.clear_checkpoint()
         return {"status": "success", "message": "Checkpoint deleted."}
     except Exception as e:

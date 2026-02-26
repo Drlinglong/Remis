@@ -11,8 +11,13 @@ class ConfigManager:
     Manages loading and providing access to externalized configurations.
     """
     
-    def __init__(self, config_dir: str):
+    def __init__(self, config_dir: str, user_data_dir: str = None):
+        """
+        :param config_dir: Path to read-only app configurations (game_profiles.json, etc.)
+        :param user_data_dir: Path to writable user data. Defaults to config_dir if not specified.
+        """
         self.config_dir = config_dir
+        self.user_data_dir = user_data_dir or config_dir
         self._game_profiles = None
         self._api_providers = None
 
@@ -51,15 +56,12 @@ class ConfigManager:
                     hydrated["format_prompt"] = getattr(prompts, f"{preset}_FORMAT_PROMPT", prompts.VICTORIA3_FORMAT_PROMPT)
                 
                 # Handle Metadata File Path (if nested)
-                # JSON stores "dir/file.json", we need os.path.join logic?
-                # Actually, os.path.join works fine with forward slashes on Windows usually, 
-                # but if we want to be strict, we can normalize.
-                # The existing code used os.path.join(".metadata", "metadata.json") which produces different separators on OS.
-                # The JSON has ".metadata/metadata.json".
                 if "metadata_file" in hydrated:
                     hydrated["metadata_file"] = os.path.normpath(hydrated["metadata_file"])
 
-                hydrated_profiles[key] = hydrated
+                # Use the 'id' field as the key for easier lookup in backend
+                profile_id = key
+                hydrated_profiles[profile_id] = hydrated
 
             self._game_profiles = hydrated_profiles
             logger.info(f"Loaded {len(hydrated_profiles)} game profiles from {path}")
@@ -92,7 +94,7 @@ class ConfigManager:
             logger.error(f"Failed to load API providers: {e}")
     @property
     def user_config_path(self) -> str:
-        return os.path.join(self.config_dir, "config.json")
+        return os.path.join(self.user_data_dir, "config.json")
 
     def _load_user_config(self) -> Dict[str, Any]:
         """Loads the generic user configuration."""
@@ -108,6 +110,8 @@ class ConfigManager:
     def _save_user_config(self, config: Dict[str, Any]) -> None:
         """Saves the generic user configuration."""
         try:
+            # Ensure the directory exists before saving
+            os.makedirs(self.user_data_dir, exist_ok=True)
             with open(self.user_config_path, 'w', encoding='utf-8') as f:
                 json.dump(config, f, indent=4, ensure_ascii=False)
         except Exception as e:
@@ -122,6 +126,14 @@ class ConfigManager:
         """Sets a value in the user configuration and persists it."""
         config = self._load_user_config()
         config[key] = value
+        self._save_user_config(config)
+
+    def update_nested_value(self, parent_key: str, child_key: str, value: Any) -> None:
+        """Updates or adds a value within a nested dictionary in the user configuration."""
+        config = self._load_user_config()
+        if parent_key not in config or not isinstance(config[parent_key], dict):
+            config[parent_key] = {}
+        config[parent_key][child_key] = value
         self._save_user_config(config)
 
 # Singleton instance

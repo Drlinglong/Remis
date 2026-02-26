@@ -26,6 +26,7 @@ import ProofreadingPage from './pages/ProofreadingPage';
 import ToolsPage from './pages/ToolsPage';
 import CICDPage from './pages/CICDPage';
 import SettingsPage from './pages/SettingsPage';
+import IncrementalTranslationPage from './pages/IncrementalTranslationPage';
 import UnderDevelopmentPage from './pages/UnderDevelopmentPage';
 import UnderConstructionPage from './pages/UnderConstructionPage';
 import InConceptionPage from './pages/InConceptionPage';
@@ -41,6 +42,7 @@ const appRouteConfig = [
     { path: '/proofreading', element: <ProofreadingPage /> },
     { path: '/project-management', element: <OriginalProjectManagement /> },
     { path: '/project-management/:projectId', element: <OriginalProjectManagement /> },
+    { path: '/incremental-translation', element: <IncrementalTranslationPage /> },
     { path: '/neologism-review', element: <NeologismReviewPage /> },
     { path: '/archives', element: <ArchivesPage /> },
     { path: '/cicd', element: <CICDPage /> },
