@@ -17,12 +17,31 @@ def run_command(command, cwd=None, shell=True):
         print(f"[ERROR] Command failed: {command}")
         sys.exit(1)
 
+# The conda environment to use for building. Must match the project's dedicated env.
+CONDA_ENV_NAME = "local_factory"
+CONDA_ENVS_ROOT = r"K:\MiniConda\envs"
+
 def main():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     scripts_dir = os.path.join(project_root, "scripts")
     react_ui_dir = os.path.join(scripts_dir, "react-ui")
     src_tauri_dir = os.path.join(react_ui_dir, "src-tauri")
     binaries_dir = os.path.join(src_tauri_dir, "binaries")
+
+    # Resolved paths to the dedicated conda env's executables
+    conda_env_path = os.path.join(CONDA_ENVS_ROOT, CONDA_ENV_NAME)
+    env_python = os.path.join(conda_env_path, "python.exe")
+    env_pyinstaller = os.path.join(conda_env_path, "Scripts", "pyinstaller.exe")
+
+    if not os.path.exists(env_python):
+        print(f"[ERROR] Conda env '{CONDA_ENV_NAME}' not found at {conda_env_path}")
+        print(f"[ERROR] Please create it: conda create -n {CONDA_ENV_NAME} python=3.11")
+        sys.exit(1)
+    if not os.path.exists(env_pyinstaller):
+        print(f"[ERROR] PyInstaller not found in '{CONDA_ENV_NAME}' env. Run: conda activate {CONDA_ENV_NAME} && pip install pyinstaller")
+        sys.exit(1)
+
+    print(f"[INFO] Using conda env: {conda_env_path}")
     
     # Step 1: Clean & Init
     print_step("Step 1: Clean & Init")
@@ -142,15 +161,17 @@ def main():
     if os.path.exists(demos_dir):
         add_data_args += f' --add-data "{demos_dir};demos"'
     
-    # Find jamo path dynamically to include its data files
-    import jamo
-    jamo_path = os.path.dirname(jamo.__file__)
-    jamo_data = os.path.join(jamo_path, "data")
+    # Find jamo path dynamically from the target conda env
+    jamo_data = os.path.join(conda_env_path, "Lib", "site-packages", "jamo", "data")
     if os.path.exists(jamo_data):
         add_data_args += f' --add-data "{jamo_data};jamo/data"'
+    else:
+        print(f"[WARNING] jamo data not found in {CONDA_ENV_NAME} env at {jamo_data}")
 
+    # Use the env's PyInstaller directly so only packages in local_factory are bundled.
+    # This avoids pulling in torch/scipy/sklearn etc. from base or other envs.
     pyinstaller_cmd = (
-        f'pyinstaller --clean --onefile --name web_server '
+        f'"{env_pyinstaller}" --clean --onefile --name web_server '
         f'--hidden-import uvicorn --hidden-import fastapi --hidden-import pydantic '
         f'--hidden-import psutil --hidden-import aiosqlite '
         f'--hidden-import scripts.hooks '
