@@ -39,6 +39,8 @@ def get_handler(provider_name: str, model_name: str = None) -> 'BaseApiHandler':
             return DeepSeekHandler(provider_name, model_id=model_name)
         elif provider_name == "grok":
             return GrokHandler(provider_name, model_id=model_name)
+        elif provider_name == "minimax":
+            return OpenAIHandler(provider_name, model_id=model_name)
         
         # Unified Local Handler Route
         elif provider_name in ["ollama", "lm_studio", "vllm", "koboldcpp", "oobabooga", "text-generation-webui"]:
