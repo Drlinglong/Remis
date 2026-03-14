@@ -75,6 +75,7 @@ class BaseGameValidator:
             "formatting_tags": self._check_formatting_tags,
             "mismatched_tags": self._check_mismatched_tags,
             "informational_pattern": self._check_informational_pattern,
+            "variable_parity": self._check_variable_parity,
         }
 
     def _load_rules(self, rules_path: str) -> Dict:
@@ -231,6 +232,88 @@ class BaseGameValidator:
             results.append(ValidationResult(is_valid=True, level=ValidationLevel(rule["level"]), message=message, details=details, line_number=line_number, text_sample=text[:100]))
         return results
 
+    def _check_variable_parity(self, text: str, rule: Dict, line_number: Optional[int], source_text: Optional[str] = None, **kwargs) -> List[ValidationResult]:
+        """
+        工人方法：检查变量在原文和译文中的数量是否一致（绝对一致性校验/Parity Check）。
+        需要 rule['params']['patterns'] 提供一个正则表达式列表。
+        """
+        results = []
+        if not source_text:
+            return results
+            
+        params = rule.get("params", {})
+        patterns = params.get("patterns", [])
+        
+        if not patterns:
+            return results
+            
+        from collections import Counter
+            
+        for pattern in patterns:
+            try:
+                # 寻找原文和译文中的所有匹配项
+                source_vars = re.findall(pattern, source_text)
+                target_vars = re.findall(pattern, text)
+                
+                if not source_vars and not target_vars:
+                    continue
+                    
+                source_counts = Counter(source_vars)
+                target_counts = Counter(target_vars)
+                
+                # 检查所有在原文中出现的变量
+                for var, count in source_counts.items():
+                    target_count = target_counts.get(var, 0)
+                    if target_count != count:
+                        # 发现不匹配！
+                        message_key = rule.get("message_key", "validation_variable_parity_mismatch")
+                        message = self._get_i18n_message(message_key, var=var)
+                        
+                        if message == message_key:
+                            message = f"变量数量不一致 (Variable parity mismatch): {var}"
+                            
+                        details_key = params.get("details_key", "validation_generic_parity_mismatch")
+                        details = self._get_i18n_message(details_key, var=var, source_count=count, target_count=target_count)
+                        if details == details_key:
+                            details = f"原文含有 {count} 个，译文含有 {target_count} 个 (Expected {count}, found {target_count})"
+                            
+                        results.append(ValidationResult(
+                            is_valid=False,
+                            level=ValidationLevel(rule["level"]),
+                            message=message,
+                            details=details,
+                            line_number=line_number,
+                            text_sample=text[:100]
+                        ))
+                
+                # 检查是否在译文中凭空多出了原文没有的变量（LLM幻觉）
+                for var, count in target_counts.items():
+                    if var not in source_counts:
+                        message_key = rule.get("message_key", "validation_variable_parity_mismatch")
+                        message = self._get_i18n_message(message_key, var=var)
+                        
+                        if message == message_key:
+                            message = f"多出未知变量 (Unexpected extra variable): {var}"
+                            
+                        details_key = params.get("details_key", "validation_generic_parity_mismatch")
+                        details = self._get_i18n_message(details_key, var=var, source_count=0, target_count=count)
+                        if details == details_key:
+                            details = f"原文含有 0 个，译文含有 {count} 个 (Expected 0, found {count})"
+                            
+                        results.append(ValidationResult(
+                            is_valid=False,
+                            level=ValidationLevel(rule["level"]),
+                            message=message,
+                            details=details,
+                            line_number=line_number,
+                            text_sample=text[:100]
+                        ))
+            except re.error as e:
+                self.logger.warning(self._get_i18n_message("validator_error_regex_error", rule_name=rule.get('name', 'N/A'), e=e, pattern=pattern))
+                
+        return results
+
+
     def _check_residual_punctuation(self, text: str, line_number: Optional[int], source_lang: Optional[Dict] = None) -> List[ValidationResult]:
         """
         工人方法：检查翻译后的文本中是否还残留着源语言的标点符号。
@@ -293,13 +376,13 @@ class BaseGameValidator:
             ))
         return results
 
-    def validate_text(self, text: str, line_number: Optional[int] = None, source_lang: Optional[Dict] = None, **kwargs) -> List[ValidationResult]:
+    def validate_text(self, text: str, line_number: Optional[int] = None, source_lang: Optional[Dict] = None, source_text: Optional[str] = None, **kwargs) -> List[ValidationResult]:
         """
         纯粹的规则执行引擎。
         它遍历加载自Python模块的规则，并根据 rule['check_function'] 的值，
         从 self.check_map 中动态调用相应的“工人”检查方法。
         增加了内置的标点符号检查。
-        现在可以接受并传递 **kwargs 给工人方法。
+        现在可以接受并传递 **kwargs 和 source_text 给工人方法。
         """
         all_results = []
         if not self.rules and not self.config: # 如果规则加载失败，则直接返回
@@ -310,8 +393,8 @@ class BaseGameValidator:
             checker = self.check_map.get(check_function_name)
             if checker:
                 try:
-                    # 将 kwargs 传递给工人方法
-                    results = checker(text, rule, line_number, **kwargs)
+                    # 将 kwargs 和 source_text 传递给工人方法
+                    results = checker(text, rule, line_number, source_text=source_text, **kwargs)
                     all_results.extend(results)
                 except Exception as e:
                     self.logger.error(self._get_i18n_message("validator_error_executing_rule", rule_name=rule.get('name', 'N/A'), e=e))
@@ -325,7 +408,7 @@ class BaseGameValidator:
 
         return all_results
     
-    def validate_entry(self, key: str, value: str, line_number: Optional[int] = None, source_lang: Optional[Dict] = None, **kwargs) -> List[ValidationResult]:
+    def validate_entry(self, key: str, value: str, line_number: Optional[int] = None, source_lang: Optional[Dict] = None, source_value: Optional[str] = None, **kwargs) -> List[ValidationResult]:
         """
         验证单个键值对。
         先验证键，再验证值。
@@ -336,8 +419,8 @@ class BaseGameValidator:
         key_results = self._check_key_format(key, line_number)
         results.extend(key_results)
         
-        # 2. 验证值
-        value_results = self.validate_text(value, line_number, source_lang, **kwargs)
+        # 2. 验证值，将 source_value 作为 source_text 传递
+        value_results = self.validate_text(value, line_number, source_lang, source_text=source_value, **kwargs)
         # 为值验证结果添加 key 信息
         for res in value_results:
             res.key = key
@@ -413,30 +496,30 @@ class PostProcessValidator:
         """根据数字游戏ID（如 "1"）直接从字典中查找验证器实例。"""
         return self.validators.get(game_id)
 
-    def validate_game_text(self, game_id: str, text: str, line_number: Optional[int] = None, source_lang: Optional[Dict] = None, dynamic_valid_tags: Optional[List[str]] = None) -> List[ValidationResult]:
+    def validate_game_text(self, game_id: str, text: str, line_number: Optional[int] = None, source_lang: Optional[Dict] = None, source_text: Optional[str] = None, dynamic_valid_tags: Optional[List[str]] = None) -> List[ValidationResult]:
         """验证指定游戏的文本格式"""
         validator = self.get_validator_by_game_id(game_id)
         if not validator:
             self.logger.error(self._get_i18n_message("validation_unknown_game", game_id=game_id))
             return []
-        # 将 dynamic_valid_tags 通过 kwargs 传递下去
-        results = validator.validate_text(text, line_number, source_lang, dynamic_valid_tags=dynamic_valid_tags)
+        # 将 dynamic_valid_tags 和 source_text 通过 kwargs 传递下去
+        results = validator.validate_text(text, line_number, source_lang, source_text=source_text, dynamic_valid_tags=dynamic_valid_tags)
         for result in results:
             validator._log_validation_result(result)
         return results
     
-    def validate_entry(self, game_id: str, key: str, value: str, line_number: Optional[int] = None, source_lang: Optional[Dict] = None, dynamic_valid_tags: Optional[List[str]] = None) -> List[ValidationResult]:
+    def validate_entry(self, game_id: str, key: str, value: str, line_number: Optional[int] = None, source_lang: Optional[Dict] = None, source_value: Optional[str] = None, dynamic_valid_tags: Optional[List[str]] = None) -> List[ValidationResult]:
         """验证单个键值对"""
         validator = self.get_validator_by_game_id(game_id)
         if not validator:
             self.logger.error(self._get_i18n_message("validation_unknown_game", game_id=game_id))
             return []
-        results = validator.validate_entry(key, value, line_number, source_lang, dynamic_valid_tags=dynamic_valid_tags)
+        results = validator.validate_entry(key, value, line_number, source_lang, source_value=source_value, dynamic_valid_tags=dynamic_valid_tags)
         for result in results:
             validator._log_validation_result(result)
         return results
 
-    def validate_batch(self, game_id: str, texts: List[str], start_line: int = 1, source_lang: Optional[Dict] = None, dynamic_valid_tags: Optional[List[str]] = None) -> Dict[int, List[ValidationResult]]:
+    def validate_batch(self, game_id: str, texts: List[str], start_line: int = 1, source_lang: Optional[Dict] = None, source_texts: Optional[List[str]] = None, dynamic_valid_tags: Optional[List[str]] = None) -> Dict[int, List[ValidationResult]]:
         """批量验证文本"""
         batch_results = {}
         validator = self.get_validator_by_game_id(game_id)
@@ -445,8 +528,9 @@ class PostProcessValidator:
             return {}
         for i, text in enumerate(texts):
             line_number = start_line + i
-            # 将 dynamic_valid_tags 通过 kwargs 传递下去
-            results = validator.validate_text(text, line_number, source_lang, dynamic_valid_tags=dynamic_valid_tags)
+            src_text = source_texts[i] if source_texts and i < len(source_texts) else None
+            # 将 dynamic_valid_tags 和 source_text 通过 kwargs 传递下去
+            results = validator.validate_text(text, line_number, source_lang, source_text=src_text, dynamic_valid_tags=dynamic_valid_tags)
             if results:
                 batch_results[line_number] = results
         self.log_validation_summary(batch_results, validator.game_name)
@@ -483,13 +567,13 @@ class PostProcessValidator:
             pass
         return message_key
 
-def validate_text(game_id: str, text: str, line_number: Optional[int] = None, source_lang: Optional[Dict] = None, dynamic_valid_tags: Optional[List[str]] = None) -> List[ValidationResult]:
+def validate_text(game_id: str, text: str, line_number: Optional[int] = None, source_lang: Optional[Dict] = None, source_text: Optional[str] = None, dynamic_valid_tags: Optional[List[str]] = None) -> List[ValidationResult]:
     validator = PostProcessValidator()
-    return validator.validate_game_text(game_id, text, line_number, source_lang=source_lang, dynamic_valid_tags=dynamic_valid_tags)
+    return validator.validate_game_text(game_id, text, line_number, source_lang=source_lang, source_text=source_text, dynamic_valid_tags=dynamic_valid_tags)
 
-def validate_batch(game_id: str, texts: List[str], start_line: int = 1, source_lang: Optional[Dict] = None, dynamic_valid_tags: Optional[List[str]] = None) -> Dict[int, List[ValidationResult]]:
+def validate_batch(game_id: str, texts: List[str], start_line: int = 1, source_lang: Optional[Dict] = None, source_texts: Optional[List[str]] = None, dynamic_valid_tags: Optional[List[str]] = None) -> Dict[int, List[ValidationResult]]:
     validator = PostProcessValidator()
-    return validator.validate_batch(game_id, texts, start_line, source_lang=source_lang, dynamic_valid_tags=dynamic_valid_tags)
+    return validator.validate_batch(game_id, texts, start_line, source_lang=source_lang, source_texts=source_texts, dynamic_valid_tags=dynamic_valid_tags)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -502,6 +586,12 @@ if __name__ == "__main__":
         # Test with dynamic tags
         main_validator.validate_game_text("1", "This has #custom_tag now.", 4, dynamic_valid_tags=["custom_tag"])
         main_validator.validate_game_text("1", "This has a [中文概念].", 5)
+        # Test Parity Match Check
+        res = main_validator.validate_game_text("1", "Translation without variable.", source_text="This has a $pop$ variable.", line_number=6)
+        print(f"Parity Check (expected fail): {res[0].message if res else 'Passed (error!)'} - {res[0].details if res else ''}")
+        res2 = main_validator.validate_game_text("1", "Translation with $pop$ extra $pop$.", source_text="This has a $pop$ variable.", line_number=7)
+        print(f"Parity Check (extra var): {res2[0].message if res2 else 'Passed (error!)'} - {res2[0].details if res2 else ''}")
+
         print("\n--- Testing CK3 Validator (New Rule) ---")
         main_validator.validate_game_text("5", "This contains a #totally_fake_command that should be caught.", 6)
         # Test dynamic tag override for CK3
