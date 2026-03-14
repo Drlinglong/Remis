@@ -67,8 +67,25 @@ async def run_incremental_update(
 
         for file in files:
             if file.endswith(('.yml', '.yaml')):
-                if f"l_{filter_lang_string}" not in file.lower() and any(f"l_{lang}" in file.lower() for lang in known_languages):
-                    continue
+                # Relaxed matching to catch files like "00 Bookmarks russian.yml"
+                file_lower = file.lower()
+                
+                # If we have a filter language string (e.g. 'russian'), we check if the file matches the expected pattern
+                # It should either have 'l_russian' or ' russian' at the end before extension
+                expected_suffix1 = f"l_{filter_lang_string}.yml"
+                expected_suffix2 = f"l_{filter_lang_string}.yaml"
+                expected_suffix3 = f" {filter_lang_string}.yml"
+                expected_suffix4 = f" {filter_lang_string}.yaml"
+                
+                if not (file_lower.endswith(expected_suffix1) or file_lower.endswith(expected_suffix2) or file_lower.endswith(expected_suffix3) or file_lower.endswith(expected_suffix4)):
+                    # Allow fallback to checking if it contains another language's pattern
+                    has_other_lang = False
+                    for lang in known_languages:
+                        if lang != filter_lang_string and (f"l_{lang}" in file_lower or f" {lang}." in file_lower):
+                            has_other_lang = True
+                            break
+                    if has_other_lang:
+                        continue
 
                 full_path = Path(os.path.join(root, file))
                 try:

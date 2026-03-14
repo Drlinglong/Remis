@@ -616,10 +616,11 @@ def discover_files(mod_name: str, game_profile: dict, source_lang: dict, overrid
 
     # 仅收集文件路径，不读取内容
     all_file_paths = []
-    # Use regex for flexible matching (allow space or underscore before l_lang)
+    # Use regex for flexible matching (allow space or underscore before l_lang, OR just the lang key)
     import re
     lang_key = source_lang['key'][2:] # e.g. "english"
-    suffix_pattern = re.compile(r'[\s_]l_' + re.escape(lang_key) + r'\.yml$', re.IGNORECASE)
+    # Relaxed pattern: It can end with `l_english.yml` OR ` english.yml` (common in some older mods or lazy porting)
+    suffix_pattern = re.compile(r'[\s_](l_)?' + re.escape(lang_key) + r'\.yml$', re.IGNORECASE)
 
     # 策略：如果标准路径存在，仅使用标准路径（保持兼容性）
     # 如果标准路径不存在，则递归搜索所有名为 source_loc_folder 的目录 (EU5 模式)
