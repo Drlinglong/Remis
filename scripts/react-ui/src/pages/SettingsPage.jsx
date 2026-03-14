@@ -105,6 +105,7 @@ const SettingsPage = () => {
                                         data={[
                                             { value: 'en', label: 'English (en-US)' },
                                             { value: 'zh', label: '简体中文 (zh-CN)' },
+                                            { value: 'ru', label: 'Русский (ru-RU)' },
                                         ]}
                                         style={{ width: 200 }}
                                     />

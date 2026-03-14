@@ -161,8 +161,9 @@ const SplashScreen = ({ onReady }) => {
                         leftSection={<IconWorld size={16} />}
                         placeholder="Language"
                         data={[
-                            { value: 'en', label: 'English (en-US)' },
-                            { value: 'zh', label: '简体中文 (zh-CN)' }
+                            { value: 'en', label: 'English' },
+                            { value: 'zh', label: '简体中文' },
+                            { value: 'ru', label: 'Русский' }
                         ]}
                         value={i18n.language ? i18n.language.split('-')[0] : 'en'}
                         onChange={(val) => {
