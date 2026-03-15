@@ -10,7 +10,8 @@ from scripts.core.archive_manager import archive_manager
 from scripts.shared.services import project_manager
 from scripts.core.loc_parser import parse_loc_file_with_lines
 from scripts.core.file_builder import rebuild_and_write_file
-from scripts.core.parallel_processor import ParallelProcessor, FileTask
+from scripts.core.parallel_types import FileTask
+from scripts.core.parallel_processor import ParallelProcessor
 from scripts.core.api_handler import get_handler
 from scripts.app_settings import SOURCE_DIR, DEST_DIR
 from scripts.utils import i18n, read_text_bom

@@ -7,7 +7,8 @@ from typing import Any, List, Dict
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 from scripts.core.glossary_manager import glossary_manager
-from scripts.core.parallel_processor import ParallelProcessor, FileTask, BatchTask
+from scripts.core.parallel_types import FileTask, BatchTask
+from scripts.core.parallel_processor import ParallelProcessor
 from scripts.core.base_handler import BaseApiHandler
 
 # Mock Handler to intercept prompt building

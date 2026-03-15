@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 from scripts.utils.glossary_validator import GlossaryValidator
-from scripts.core.parallel_processor import BatchTask, FileTask
+from scripts.core.parallel_types import BatchTask, FileTask
 
 # --- Mocks and Fixtures ---
 

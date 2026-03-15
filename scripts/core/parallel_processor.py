@@ -9,45 +9,12 @@ import os
 import logging
 import concurrent.futures
 from typing import List, Dict, Any, Callable, Optional, Tuple
-from dataclasses import dataclass, field
-
+from scripts.core.parallel_types import FileTask, BatchTask
 from scripts.core.glossary_manager import glossary_manager
 from scripts.utils import i18n
 from scripts.app_settings import CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE
-
-
-@dataclass
-class FileTask:
-    """文件任务数据结构"""
-    filename: str
-    root: str
-    original_lines: List[str]
-    texts_to_translate: List[str]
-    key_map: Dict[str, Any]
-    is_custom_loc: bool
-    target_lang: Dict[str, Any]
-    source_lang: Dict[str, Any]
-    game_profile: Dict[str, Any]
-    mod_context: str
-    provider_name: str
-    output_folder_name: str
-    source_dir: str
-    dest_dir: str
-    client: Any  # API客户端
-    mod_name: str  # 添加mod_name字段
-    loc_root: str = "" # Localization root path (e.g. mod/main_menu/localization)
-
-
-@dataclass
-class BatchTask:
-    """批次任务数据结构"""
-    file_task: FileTask
-    batch_index: int
-    start_index: int
-    end_index: int
-    texts: List[str]
-    translated_texts: Optional[List[str]] = field(default=None, init=False)
-    failed: bool = field(default=False, init=False)
+from scripts.core.agents.translation_fixer_agent import TranslationFixerAgent
+from scripts.utils.post_process_validator import PostProcessValidator
 
 
 class ParallelProcessor:
@@ -138,13 +105,16 @@ class ParallelProcessor:
         translation_function: Callable
     ) -> Tuple[BatchTask, List[Dict[str, Any]]]:
         warnings = []
+        MAX_FIX_ATTEMPTS = 2
+        
+        # Initial Translation Pass
         processed_task = translation_function(batch_task)
 
         if processed_task.translated_texts is None:
             processed_task.failed = True
             return processed_task, warnings
 
-        # Post-translation validation
+        # Glossary Validation (Warnings only)
         glossary = glossary_manager.get_glossary_for_translation()
         if glossary:
             simple_glossary = {}
@@ -163,6 +133,66 @@ class ParallelProcessor:
                 validation_warnings = validator.validate_batch(processed_task, simple_glossary)
                 if validation_warnings:
                     warnings.extend(validation_warnings)
+
+        # --- Post-Processing Validation & Agent Fix Loop ---
+        game_id = processed_task.file_task.game_profile.get("id")
+        if not game_id:
+            return processed_task, warnings
+            
+        format_validator = PostProcessValidator()
+        current_translations = processed_task.translated_texts
+        
+        for attempt in range(MAX_FIX_ATTEMPTS + 1):
+            format_warnings = []
+            has_critical_error = False
+            
+            # 1. Run Validation
+            batch_num = processed_task.batch_index + 1
+            start_line = processed_task.start_index + 1
+            
+            format_results = format_validator.validate_batch(
+                game_id=game_id, 
+                texts=current_translations, 
+                start_line=start_line, 
+                source_lang=processed_task.file_task.source_lang,
+                source_texts=processed_task.texts # <-- Pass the original texts for Parity Check
+            )
+            
+            for line_res in format_results.values():
+                for res in line_res:
+                    format_warnings.append(res)
+                    if res.level.value == 'error':
+                        has_critical_error = True
+                        
+            # 2. Check if we need to loop
+            if not has_critical_error:
+                # Success! Break the loop
+                warnings.extend(format_warnings)
+                processed_task.translated_texts = current_translations
+                break
+                
+            if attempt < MAX_FIX_ATTEMPTS:
+                # Trigger Agent Fixer
+                self.logger.warning(f"Batch {batch_num} has format errors. Calling Agent Fixer (Attempt {attempt + 1}/{MAX_FIX_ATTEMPTS})...")
+                fixer = TranslationFixerAgent(processed_task.file_task.client)
+                
+                success, new_translations = fixer.attempt_fix(
+                    task=processed_task, 
+                    broken_translations=current_translations, 
+                    validation_warnings=format_warnings,
+                    max_retries=1 # We handle the retry loop at this level
+                )
+                
+                if success:
+                    current_translations = new_translations
+                else:
+                    self.logger.error(f"Agent Fixer failed to return a valid structure on attempt {attempt + 1}.")
+                    # Keep the current broken translations and try again or fail
+            else:
+                # Give up
+                self.logger.error(f"Failed to fix formatting errors in Batch {batch_num} after {MAX_FIX_ATTEMPTS} attempts.")
+                warnings.extend(format_warnings)
+                processed_task.translated_texts = current_translations
 
         return processed_task, warnings
 

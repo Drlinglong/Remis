@@ -50,7 +50,8 @@ try:
         if 'Hello, world! This is a test: punctuation.' not in content:
             print("FAILED: Punctuation not converted correctly")
             print(f"Expected: Hello, world! This is a test: punctuation.")
-            print(f"Actual:   {content.strip().split('\"')[1]}")
+            actual_content = content.strip().split('"')[1]
+            print(f"Actual:   {actual_content}")
             raise Exception("Punctuation conversion failed")
             
     print("\nTest PASSED")

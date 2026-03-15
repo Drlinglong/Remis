@@ -1,5 +1,5 @@
 import logging
-from scripts.core.parallel_processor import BatchTask
+from scripts.core.parallel_types import BatchTask
 from scripts.core.openai_handler import OpenAIHandler
 from scripts.utils import i18n
 # from scripts.utils.text_clean import mask_special_tokens, restore_special_tokens # REMOVED

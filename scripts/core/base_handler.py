@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 
 from scripts.utils import i18n
 from scripts.app_settings import MAX_RETRIES, FALLBACK_FORMAT_PROMPT, APP_DATA_DIR
-from scripts.core.parallel_processor import BatchTask
+from scripts.core.parallel_types import BatchTask
 from scripts.utils.punctuation_handler import generate_punctuation_prompt
 from scripts.core.glossary_manager import glossary_manager
 from scripts.utils.structured_parser import parse_response

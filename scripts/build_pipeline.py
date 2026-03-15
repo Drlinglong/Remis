@@ -168,6 +168,21 @@ def main():
     else:
         print(f"[WARNING] jamo data not found in {CONDA_ENV_NAME} env at {jamo_data}")
 
+    # [NEW] Add pykakasi data
+    pykakasi_data = os.path.join(conda_env_path, "Lib", "site-packages", "pykakasi", "data")
+    if os.path.exists(pykakasi_data):
+        add_data_args += f' --add-data "{pykakasi_data};pykakasi/data"'
+    else:
+        print(f"[WARNING] pykakasi data not found in {CONDA_ENV_NAME} env at {pykakasi_data}")
+
+    # [NEW] Add pypinyin package (including dictionaries)
+    pypinyin_root = os.path.join(conda_env_path, "Lib", "site-packages", "pypinyin")
+    if os.path.exists(pypinyin_root):
+         # Include the whole package to ensure all json/db files are present
+         add_data_args += f' --add-data "{pypinyin_root};pypinyin"'
+    else:
+         print(f"[WARNING] pypinyin root not found in {CONDA_ENV_NAME} env at {pypinyin_root}")
+
     # Use the env's PyInstaller directly so only packages in local_factory are bundled.
     # This avoids pulling in torch/scipy/sklearn etc. from base or other envs.
     pyinstaller_cmd = (
@@ -177,10 +192,12 @@ def main():
         f'--hidden-import scripts.hooks '
         f'--hidden-import scripts.hooks.file_parser_hook '
         f'--hidden-import scripts.config.prompts '
+        # AI SDKs
+        f'--hidden-import google.genai --hidden-import openai '
         # Phonetics libraries used inside functions (PyInstaller can't detect these statically)
         f'--hidden-import pypinyin --hidden-import pypinyin.seg --hidden-import pypinyin.style '
         f'--hidden-import pykakasi --hidden-import jaconv '
-        f'--hidden-import jamo '
+        f'--hidden-import jamo --hidden-import pkg_resources.py2_warn ' # py2_warn is sometimes needed for pkg_resources
         f'{add_data_args} '
         f'"{web_server_script}"'
     )

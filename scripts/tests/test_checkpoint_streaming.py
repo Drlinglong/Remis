@@ -11,7 +11,8 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 from scripts.core.checkpoint_manager import CheckpointManager
-from scripts.core.parallel_processor import ParallelProcessor, FileTask, BatchTask
+from scripts.core.parallel_types import FileTask, BatchTask
+from scripts.core.parallel_processor import ParallelProcessor
 
 class TestCheckpointManager(unittest.TestCase):
     def setUp(self):

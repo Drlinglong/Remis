@@ -6,7 +6,7 @@ from typing import List, Dict, Any
 from scripts.utils import i18n
 # Assuming BatchTask is available from scripts.core.parallel_processor
 # We will handle the exact import path later if needed.
-from scripts.core.parallel_processor import BatchTask
+from scripts.core.parallel_types import BatchTask
 
 class GlossaryValidator:
     """

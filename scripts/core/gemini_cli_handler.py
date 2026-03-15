@@ -9,7 +9,7 @@ from typing import Any
 from scripts.core.base_handler import BaseApiHandler
 from scripts.app_settings import API_PROVIDERS, GEMINI_CLI_MAX_RETRIES
 from scripts.utils import i18n
-from scripts.core.parallel_processor import BatchTask
+from scripts.core.parallel_types import BatchTask
 from scripts.utils.structured_parser import parse_response
 from scripts.core.glossary_manager import glossary_manager
 from scripts.app_settings import FALLBACK_FORMAT_PROMPT

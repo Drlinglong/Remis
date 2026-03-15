@@ -12,7 +12,7 @@ from scripts.core.glossary_manager import glossary_manager
 from scripts.utils import i18n
 from scripts.core.api_handler import get_handler
 from scripts.core.base_handler import BaseApiHandler
-from scripts.core.parallel_processor import BatchTask
+from scripts.core.parallel_types import BatchTask
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

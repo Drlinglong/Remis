@@ -57,15 +57,20 @@ class BaseGameValidator:
     它从一个Python模块文件中加载所有验证规则，并根据这些规则动态地执行检查。
     """
     
-    def __init__(self, rules_path: str):
+    def __init__(self, rules_module_or_dict):
         """
         构造函数。
 
         Args:
-            rules_path (str): 指向该游戏验证规则的 .py 文件的路径。
+            rules_module_or_dict: 包含RULES字典的Python模块对象，直接传入 RULES 字典。
         """
         self.logger = logging.getLogger(__name__)
-        self.config = self._load_rules(rules_path)
+        
+        if isinstance(rules_module_or_dict, dict):
+            self.config = rules_module_or_dict
+        else:
+            self.config = getattr(rules_module_or_dict, 'RULES', {})
+            
         self.rules = self.config.get("rules", [])
         self.game_name = self.config.get("game_name", "Unknown Game")
 
@@ -77,29 +82,6 @@ class BaseGameValidator:
             "informational_pattern": self._check_informational_pattern,
             "variable_parity": self._check_variable_parity,
         }
-
-    def _load_rules(self, rules_path: str) -> Dict:
-        """从Python模块文件加载和解析规则。"""
-        try:
-            # 使用spec_from_file_location，因为它更健壮，不依赖于包的上下文
-            module_name = Path(rules_path).stem
-            spec = importlib.util.spec_from_file_location(module_name, rules_path)
-            if spec is None or spec.loader is None:
-                self.logger.error(self._get_i18n_message("validator_error_cannot_create_spec", rules_path=rules_path))
-                return {}
-
-            rule_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(rule_module)
-
-            # 从模块中获取RULES字典
-            return getattr(rule_module, 'RULES', {})
-
-        except FileNotFoundError:
-            self.logger.error(self._get_i18n_message("validator_error_rules_not_found", rules_path=rules_path))
-            return {}
-        except (AttributeError, ImportError) as e:
-            self.logger.error(self._get_i18n_message("validator_error_cannot_load_rules", rules_path=rules_path, e=e))
-            return {}
 
     def _get_i18n_message(self, message_key: str, **kwargs) -> str:
         """
@@ -438,37 +420,46 @@ class BaseGameValidator:
             message += f" - {self._get_i18n_message('validation_details')}: {result.details}"
         log_level(message)
 
+# --- 静态导入规则模块 ---
+try:
+    from scripts.config.validators import vic3_rules, stellaris_rules, eu4_rules, hoi4_rules, ck3_rules, eu5_rules
+except ImportError:
+    # 兼容直接运行此文件作为脚本时的导入路径
+    try:
+        from ..config.validators import vic3_rules, stellaris_rules, eu4_rules, hoi4_rules, ck3_rules, eu5_rules
+    except ImportError:
+        vic3_rules = stellaris_rules = eu4_rules = hoi4_rules = ck3_rules = eu5_rules = None
+
 # --- 子类定义 ---
 class Victoria3Validator(BaseGameValidator):
     def __init__(self):
-        super().__init__("scripts/config/validators/vic3_rules.py")
+        super().__init__(vic3_rules)
 
 class StellarisValidator(BaseGameValidator):
     def __init__(self):
-        super().__init__("scripts/config/validators/stellaris_rules.py")
+        super().__init__(stellaris_rules)
 
 class EU4Validator(BaseGameValidator):
     def __init__(self):
-        super().__init__("scripts/config/validators/eu4_rules.py")
+        super().__init__(eu4_rules)
 
 class HOI4Validator(BaseGameValidator):
     def __init__(self):
-        super().__init__("scripts/config/validators/hoi4_rules.py")
+        super().__init__(hoi4_rules)
 
 class CK3Validator(BaseGameValidator):
     def __init__(self):
-        super().__init__("scripts/config/validators/ck3_rules.py")
+        super().__init__(ck3_rules)
 
 class EU5Validator(BaseGameValidator):
     def __init__(self):
-        super ().__init__("scripts/config/validators/eu5_rules.py")
+        super().__init__(eu5_rules)
 
 
 class PostProcessValidator:
     """后处理验证器主类"""
     def __init__(self):
-        # 创建一个临时的、按游戏ID（如'victoria3'）索引的验证器字典
-        validators_by_id = {
+        self.validators_by_id_str = {
             "victoria3": Victoria3Validator(),
             "stellaris": StellarisValidator(),
             "eu4": EU4Validator(),
@@ -482,8 +473,8 @@ class PostProcessValidator:
         if GAME_PROFILES:
             for numeric_key, profile in GAME_PROFILES.items():
                 game_id_str = profile.get("id")
-                if game_id_str and game_id_str in validators_by_id:
-                    self.validators[numeric_key] = validators_by_id[game_id_str]
+                if game_id_str and game_id_str in self.validators_by_id_str:
+                    self.validators[numeric_key] = self.validators_by_id_str[game_id_str]
 
         self.logger = logging.getLogger(__name__)
         if i18n and not getattr(i18n, '_language_loaded', False):
@@ -493,8 +484,11 @@ class PostProcessValidator:
                 self.logger.warning(self._get_i18n_message("validator_warning_cannot_load_i18n", e=e))
     
     def get_validator_by_game_id(self, game_id: str) -> Optional[BaseGameValidator]:
-        """根据数字游戏ID（如 "1"）直接从字典中查找验证器实例。"""
-        return self.validators.get(game_id)
+        """根据数字游戏ID（如 "1"）或内部字母ID（如 "victoria3"）查找验证器实例。"""
+        validator = self.validators.get(game_id)
+        if validator:
+            return validator
+        return self.validators_by_id_str.get(game_id)
 
     def validate_game_text(self, game_id: str, text: str, line_number: Optional[int] = None, source_lang: Optional[Dict] = None, source_text: Optional[str] = None, dynamic_valid_tags: Optional[List[str]] = None) -> List[ValidationResult]:
         """验证指定游戏的文本格式"""
