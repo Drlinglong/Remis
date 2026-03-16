@@ -392,8 +392,9 @@ def run(mod_name: str,
                     })
                     logging.info(i18n.t("file_build_completed", filename=os.path.basename(dest_file_path)))
 
-                # 标记断点
-                checkpoint_manager.mark_file_completed(file_task.filename)
+                # 标记断点（仅在成功时标记，失败的文件下次续传时需要重新翻译）
+                if not is_failed:
+                    checkpoint_manager.mark_file_completed(file_task.filename)
 
                 # --- [SYNC] Update Database Status ---
                 if project_id:
