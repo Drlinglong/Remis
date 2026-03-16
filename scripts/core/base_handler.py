@@ -210,10 +210,19 @@ class BaseApiHandler(ABC):
             except Exception as e:
                 self.logger.exception(f"API call failed for batch {batch_num} on attempt {attempt + 1}: {e}")
 
-            if attempt < MAX_RETRIES - 1:
-                delay = (attempt + 1) * 2
-                self.logger.warning(i18n.t("retrying_batch", batch_num=batch_num, attempt=attempt + 1, max_retries=MAX_RETRIES, delay=delay))
-                time.sleep(delay)
+                if attempt < MAX_RETRIES - 1:
+                    # 429 速率限制：使用指数退避（等待时间远长于普通错误）
+                    error_str = str(e).lower()
+                    if "429" in error_str or "rate limit" in error_str or "too many requests" in error_str:
+                        delay = 30 * (2 ** attempt)  # 30s, 60s, 120s ...
+                        self.logger.warning(
+                            f"Rate limit (429) hit for batch {batch_num}. "
+                            f"Waiting {delay}s before retry {attempt + 1}/{MAX_RETRIES}..."
+                        )
+                    else:
+                        delay = (attempt + 1) * 2  # 普通错误：2s, 4s, ...
+                        self.logger.warning(i18n.t("retrying_batch", batch_num=batch_num, attempt=attempt + 1, max_retries=MAX_RETRIES, delay=delay))
+                    time.sleep(delay)
 
         self.logger.error(f"Batch {batch_num} failed after {MAX_RETRIES} attempts. Falling back to original texts.")
         task.failed = True
