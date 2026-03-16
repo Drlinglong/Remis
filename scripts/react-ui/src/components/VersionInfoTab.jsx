@@ -7,8 +7,8 @@ import { notifications } from '@mantine/notifications';
 
 const VersionInfoTab = () => {
     const { t } = useTranslation();
-    const REMIS_VERSION = "2.0.10"; // Project version
-    const lastUpdated = "2026-03-14"; // Last updated date
+    const REMIS_VERSION = "2.0.11"; // Project version
+    const lastUpdated = "2026-03-17"; // Last updated date
     const githubRepoUrl = "https://github.com/Drlinglong/Remis";
 
     const handleOpenLogs = async () => {
