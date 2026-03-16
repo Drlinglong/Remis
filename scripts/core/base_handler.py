@@ -43,8 +43,12 @@ class BaseApiHandler(ABC):
             
             # Use selected model only if it exists in the available list or is a custom model
             if selected_model:
-                # If available_models is defined and not empty, enforce strict validation
-                if available_models:
+                # If the model was explicitly passed as a request parameter (self.model_id),
+                # always use it directly — the user knows what they're doing.
+                if self.model_id:
+                    base_config["default_model"] = self.model_id
+                elif available_models:
+                    # Only enforce list validation for models from user config overrides
                     if selected_model in available_models:
                         base_config["default_model"] = selected_model
                     else:

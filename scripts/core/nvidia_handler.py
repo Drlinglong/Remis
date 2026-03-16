@@ -46,8 +46,7 @@ class NvidiaHandler(BaseApiHandler):
                 messages=[
                     {"role": "system", "content": "You are a professional translator for game mods."},
                     {"role": "user", "content": prompt}
-                ],
-                max_tokens=4000
+                ]
             )
             
             # Robust extraction of content
