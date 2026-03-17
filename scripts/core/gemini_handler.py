@@ -64,7 +64,8 @@ class GeminiHandler(BaseApiHandler):
             response = client.models.generate_content(
                 model=model_name,
                 contents=prompt,
-                config=types.GenerateContentConfig(**generation_config) if generation_config else None
+                config=types.GenerateContentConfig(**generation_config) if generation_config else None,
+                http_options={'timeout': 300}
             )
             
             # SAFE EXTRACTION: Avoid the 'thought_signature' warning by extracting only text parts
@@ -116,7 +117,8 @@ class GeminiHandler(BaseApiHandler):
                 contents=full_prompt,
                 config={
                     'temperature': temperature
-                }
+                },
+                http_options={'timeout': 300}
             )
             return response.text.strip()
         except Exception as e:

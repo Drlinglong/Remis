@@ -28,7 +28,7 @@ class OpenAIHandler(BaseApiHandler):
         base_url = provider_config.get("base_url")
 
         try:
-            client = OpenAI(api_key=api_key, base_url=base_url)
+            client = OpenAI(api_key=api_key, base_url=base_url, timeout=300.0)
             model_name = provider_config.get("default_model", "gpt-3.5-turbo")
             self.logger.info(f"OpenAI client initialized successfully, using model: {model_name}")
             return client

@@ -24,7 +24,7 @@ class NvidiaHandler(BaseApiHandler):
                 api_key=api_key,
                 base_url=base_url,
                 max_retries=0, 
-                timeout=60.0
+                timeout=300.0
             )
             
             model_name = provider_config.get("default_model")
