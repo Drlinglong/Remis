@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 /**
  * A hook to persist state to localStorage/sessionStorage
@@ -20,16 +20,18 @@ export const usePersistentState = (key, initialValue, storageType = 'session') =
         }
     });
 
-    const setValue = (value) => {
+    const setValue = useCallback((value) => {
         try {
             // Allow value to be a function so we have same API as useState
-            const valueToStore = value instanceof Function ? value(storedValue) : value;
-            setStoredValue(valueToStore);
-            storage.setItem(key, JSON.stringify(valueToStore));
+            setStoredValue(prev => {
+                const valueToStore = value instanceof Function ? value(prev) : value;
+                storage.setItem(key, JSON.stringify(valueToStore));
+                return valueToStore;
+            });
         } catch (error) {
             console.error(`Error writing storage key "${key}":`, error);
         }
-    };
+    }, [key, storage]);
 
     return [storedValue, setValue];
 };

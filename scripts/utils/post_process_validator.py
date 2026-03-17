@@ -116,7 +116,8 @@ class BaseGameValidator:
             for match in matches:
                 if len(match.groups()) >= capture_group:
                     content_to_check = match.group(capture_group)
-                    banned_chars = re.findall(r'[^\x00-\x7F]', content_to_check)
+                    # [FIX] Allow '£' (hex \xa3) character as it is used for icons in PDS games (HOI4, etc.)
+                    banned_chars = re.findall(r'[^\x00-\x7F\xa3]', content_to_check)
                     if banned_chars:
                         details_str = "".join(sorted(list(set(banned_chars))))
                         # [FIX] Pass 'key' as content_to_check so i18n strings expecting {key} (like validation_vic3_tag_key_chinese) work.
