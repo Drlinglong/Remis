@@ -105,11 +105,11 @@ class ParallelProcessor:
         translation_function: Callable
     ) -> Tuple[BatchTask, List[Dict[str, Any]]]:
         warnings = []
-        MAX_FIX_ATTEMPTS = 2
+        MAX_FIX_ATTEMPTS = 0 # Agent Fixer is disabled until it is more robust
         
         # Initial Translation Pass
         processed_task = translation_function(batch_task)
-
+        
         if processed_task.translated_texts is None:
             processed_task.failed = True
             return processed_task, warnings
@@ -134,7 +134,7 @@ class ParallelProcessor:
                 if validation_warnings:
                     warnings.extend(validation_warnings)
 
-        # --- Post-Processing Validation & Agent Fix Loop ---
+        # --- Post-Processing Validation ---
         game_id = processed_task.file_task.game_profile.get("id")
         if not game_id:
             return processed_task, warnings
@@ -164,35 +164,13 @@ class ParallelProcessor:
                     if res.level.value == 'error':
                         has_critical_error = True
                         
-            # 2. Check if we need to loop
-            if not has_critical_error:
-                # Success! Break the loop
+            # 2. Check if we need to loop (Fixer is disabled, so we just collect warnings)
+            if not has_critical_error or attempt >= MAX_FIX_ATTEMPTS:
                 warnings.extend(format_warnings)
                 processed_task.translated_texts = current_translations
                 break
                 
-            if attempt < MAX_FIX_ATTEMPTS:
-                # Trigger Agent Fixer
-                self.logger.warning(f"Batch {batch_num} has format errors. Calling Agent Fixer (Attempt {attempt + 1}/{MAX_FIX_ATTEMPTS})...")
-                fixer = TranslationFixerAgent(processed_task.file_task.client)
-                
-                success, new_translations = fixer.attempt_fix(
-                    task=processed_task, 
-                    broken_translations=current_translations, 
-                    validation_warnings=format_warnings,
-                    max_retries=1 # We handle the retry loop at this level
-                )
-                
-                if success:
-                    current_translations = new_translations
-                else:
-                    self.logger.error(f"Agent Fixer failed to return a valid structure on attempt {attempt + 1}.")
-                    # Keep the current broken translations and try again or fail
-            else:
-                # Give up
-                self.logger.error(f"Failed to fix formatting errors in Batch {batch_num} after {MAX_FIX_ATTEMPTS} attempts.")
-                warnings.extend(format_warnings)
-                processed_task.translated_texts = current_translations
+            # Agent Fixer logic removed/bypassed
 
         return processed_task, warnings
 

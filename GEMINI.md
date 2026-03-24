@@ -51,6 +51,12 @@ These principles guide *how* the AI should approach tasks to ensure quality and 
 *   **Async/Await**: Use consistently for all API calls and file I/O.
 *   **Type Safety**: Use Prop Types or TypeScript interfaces (where applicable) and Pydantic models for Backend schemas.
 
+### **Defensive Programming Principles**
+*   **Whitelist Success**: In critical workflows (e.g., translation status), only mark as `Success` if explicitly confirmed. Default to `Failed` or `Pending` for any ambiguity.
+*   **Standardize & Centralize**: Avoid hardcoding shared constants (timeouts, retry counts, buffer sizes). Centralize them in `app_settings.py`.
+*   **Regression Proofing**: For every bug fix, ensure a corresponding test case is added to `tests/` or a verification script is provided.
+*   **Environment Parity**: Always consider packaging constraints (PyInstaller) when adding dependencies or file I/O. Use `get_app_root()` for relative pathing.
+
 ---
 
 ## **3. UI/UX Design System**

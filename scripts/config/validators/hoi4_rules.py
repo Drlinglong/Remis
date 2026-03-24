@@ -7,7 +7,7 @@ RULES = {
     {
       "name": "non_ascii_in_namespaces",
       "check_function": "banned_chars",
-      "pattern": r"\[(?!\?)([^\]]+)\]",
+      "pattern": r"\[(?!\?)([^\]\s|]+)\]",
       "level": "error",
       "message_key": "validation_hoi4_namespaces_chinese",
       "params": {
@@ -17,7 +17,7 @@ RULES = {
     {
       "name": "non_ascii_in_formatting_vars",
       "check_function": "banned_chars",
-      "pattern": r"\[\?([^|\]]+)\|[^\]]*\]",
+      "pattern": r"\[\?([^|\]\s]+)\|[^\]]*\]",
       "level": "error",
       "message_key": "validation_hoi4_formatting_vars_chinese",
       "params": {
@@ -27,7 +27,7 @@ RULES = {
     {
       "name": "non_ascii_in_nested_strings",
       "check_function": "banned_chars",
-      "pattern": r"\$([^$\s]+)\$",
+      "pattern": r"\$([^$\s|]+)\$",
       "level": "error",
       "message_key": "validation_hoi4_nested_strings_chinese",
       "params": {
@@ -57,7 +57,7 @@ RULES = {
     {
       "name": "non_ascii_in_localization_formatters",
       "check_function": "banned_chars",
-      "pattern": r"([^|\s]+\|[^|\s]+)",
+      "pattern": r"(\[[^|\]\s]+\|[^|\]\s]+\]|\$[^|$\s]+\|[^|$\s]+\$)",
       "level": "error",
       "message_key": "validation_hoi4_localization_formatters_chinese",
       "params": {
