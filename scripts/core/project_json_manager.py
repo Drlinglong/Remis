@@ -94,16 +94,35 @@ class ProjectJsonManager:
             self.update_config({"translation_dirs": dirs})
 
     def get_notes(self) -> List[Dict[str, Any]]:
-        """Returns the list of notes."""
+        """Returns the list of notes, handles legacy string notes."""
         data = self._load_json()
-        return data.get("notes", [])
+        notes = data.get("notes", [])
+        if isinstance(notes, str):
+            # Legacy conversion
+            if not notes: return []
+            return [{
+                "id": "legacy",
+                "content": notes,
+                "created_at": None
+            }]
+        return notes if isinstance(notes, list) else []
 
     def add_note(self, content: str):
-        """Appends a new note with timestamp."""
+        """Appends a new note with timestamp, ensures notes is a list."""
         import datetime
         data = self._load_json()
-        if "notes" not in data:
-            data["notes"] = []
+        
+        notes = data.get("notes", [])
+        if not isinstance(notes, list):
+            # Convert legacy string or corrupted data to list
+            if isinstance(notes, str) and notes:
+                data["notes"] = [{
+                    "id": "legacy",
+                    "content": notes,
+                    "created_at": None
+                }]
+            else:
+                data["notes"] = []
         
         new_note = {
             "id": str(datetime.datetime.now().timestamp()),

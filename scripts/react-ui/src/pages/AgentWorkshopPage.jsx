@@ -20,6 +20,7 @@ const AgentWorkshopPage = () => {
     const [selectedProject, setSelectedProject] = useState(null);
     const [issues, setIssues] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [isCached, setIsCached] = useState(false);
     
     // Fix Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,6 +31,15 @@ const AgentWorkshopPage = () => {
     useEffect(() => {
         fetchProjects();
     }, []);
+
+    useEffect(() => {
+        if (selectedProject) {
+            loadCached();
+        } else {
+            setIssues([]);
+            setIsCached(false);
+        }
+    }, [selectedProject]);
 
     const fetchProjects = async () => {
         try {
@@ -44,12 +54,26 @@ const AgentWorkshopPage = () => {
         }
     };
 
+    const loadCached = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get(`/api/agent-workshop/load-cached?project_id=${selectedProject}`);
+            setIssues(res.data);
+            setIsCached(res.data.length > 0);
+        } catch (err) {
+            console.error("Failed to load cached errors", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleScan = async () => {
         if (!selectedProject) return;
         setLoading(true);
         try {
             const res = await axios.get(`/api/agent-workshop/scan?project_id=${selectedProject}`);
             setIssues(res.data);
+            setIsCached(false);
         } catch (err) {
             console.error("Scan failed", err);
         } finally {
@@ -81,7 +105,7 @@ const AgentWorkshopPage = () => {
 
     const applyFix = async () => {
         // TODO: Backend endpoint to write the fix to the file
-        // For now, just simulate success
+        // For now, just simulate success and remove from list
         setIsModalOpen(false);
         setIssues(prev => prev.filter(i => i.key !== currentIssue.key || i.file_name !== currentIssue.file_name));
     };
@@ -103,6 +127,7 @@ const AgentWorkshopPage = () => {
                     <Paper p="md" radius="md" withBorder className={styles.glassPaper}>
                         <Group align="flex-end">
                             <Select
+                                hideCalledBy="select_project"
                                 label={t('agent_workshop.select_project')}
                                 placeholder="Pick a project"
                                 data={projects}
@@ -111,14 +136,21 @@ const AgentWorkshopPage = () => {
                                 style={{ flex: 1 }}
                             />
                             <Button 
-                                leftSection={<IconSearch size={18} />}
+                                leftSection={isCached ? <IconRefresh size={18} /> : <IconSearch size={18} />}
                                 onClick={handleScan}
                                 loading={loading}
                                 disabled={!selectedProject}
+                                variant={isCached ? "light" : "filled"}
                             >
-                                {t('agent_workshop.scan_btn')}
+                                {isCached ? t('agent_workshop.rescan_btn') || "Rescan" : t('agent_workshop.scan_btn')}
                             </Button>
                         </Group>
+                        {isCached && (
+                            <Text size="xs" mt="xs" c="dimmed" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <IconInfoCircle size={12} />
+                                Loaded from local sidecar (Last scan results)
+                            </Text>
+                        )}
                     </Paper>
 
                     {issues.length > 0 ? (

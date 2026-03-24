@@ -36,13 +36,13 @@ const ProjectSidebar = ({ projectId, onDeleteNote }) => {
                     <IconX size={16} />
                 </ActionIcon>
             </Group>
-            {history.length === 0 ? (
-                <Text c="dimmed" fs="italic">No notes recorded yet.</Text>
+            {(!Array.isArray(history) || history.length === 0) ? (
+                <Text c="dimmed" fs="italic">{!Array.isArray(history) ? "Error loading notes." : "No notes recorded yet."}</Text>
             ) : (
                 history.map((note) => (
                     <Paper key={note.id} withBorder p="sm" radius="md" style={{ background: 'rgba(255,255,255,0.05)' }}>
                         <Group justify="space-between" mb="xs">
-                            <Text size="xs" c="dimmed">{new Date(note.created_at).toLocaleString()}</Text>
+                            <Text size="xs" c="dimmed">{note.created_at ? new Date(note.created_at).toLocaleString() : 'Unknown date'}</Text>
                             <ActionIcon color="red" variant="subtle" size="xs" onClick={() => onDeleteNote(note.id)}>
                                 <IconTrash size={14} />
                             </ActionIcon>

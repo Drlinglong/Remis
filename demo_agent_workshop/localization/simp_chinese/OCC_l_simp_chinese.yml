@@ -1,0 +1,11 @@
+l_simp_chinese:
+
+ occ_offer_convoys: "提高车队对整体目标的贡献度（即车队在实现共同目标过程中的作用或贡献）"
+ occ_offer_convoys_desc: "提高了 [concept_subject 对其 [concept_market_owner] 和 [concept_overlord] 的贡献度（即 [concept_subject] 在该运输车队/供应链中所起的作用）。"
+ occ_offer_convoys_action_notification_name: "[INITIATOR_countrySetName] 的实施有助于提高车队（或运输队）的整体贡献度（即车队在完成任务或实现目标方面所发挥的作用）。"
+ occ_offer_convoys_action_notification_desc: "[INITIATOR_country.NAME] 表示愿意增加其对车队建设的支持（即增加其为车队提供的资金或资源）。"
+ occ_offer_convoys_action_propose_name: "$occ_оффер_convoys$"
+ occ_offer_convoys_action_break_name: "取消对护航队（convoy）增加的资助要求"
+ occ_offer_convoys_pact_desc: "`[SCOPE.GetRootScope.GetDiplomaticPact.GetFirstCountry.GetName]` 建议增加对 `[SCOPE.GetRootScope.GetDiplomaticPact.GetFirstCountry.GetName]` 的援助（即增加对该国家的支持或贡献）。"
+ occ_offer_convoys_action_notification_break_name: "§Q [INITIATOR_COUNTRY.NAME] 已取消增加车队贡献的计划。"
+ occ_offer_convoys_action_notification_break_desc: "[INITIATOR_country.NAME] 已将车队对相关项目的贡献恢复到正常水平。"

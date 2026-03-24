@@ -1,0 +1,11 @@
+{
+  "project_id": "demo_agent_workshop",
+  "name": "智能工坊演示项目 (Demo)",
+  "game_id": "vic3",
+  "source_lang": "en",
+  "target_lang": "zh-CN",
+  "mod_path": "demo_agent_workshop",
+  "notes": "这是一个包含故意设置的错误的演示项目，用于测试智能工坊的 AI 修复功能。",
+  "created_at": "2026-03-25T06:38:00Z",
+  "last_updated": "2026-03-25T06:38:00Z"
+}
