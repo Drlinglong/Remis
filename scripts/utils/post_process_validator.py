@@ -485,22 +485,35 @@ class PostProcessValidator:
                 self.logger.warning(self._get_i18n_message("validator_warning_cannot_load_i18n", e=e))
     
     def get_validator_by_game_id(self, game_id: str) -> Optional[BaseGameValidator]:
-        """根据数字游戏ID（如 "1"）或内部字母ID（如 "victoria3"）查找验证器实例。"""
+        """根据数字游戏ID（如 "1"）或内部字母ID（如 "victoria3"）查找验证器实例。如果找不到，抛出 ValueError。"""
+        from scripts.app_settings import GAME_ID_ALIASES, SupportedGame
+        
         # Resolve aliases (e.g., 'vic3' -> 'victoria3')
+        original_game_id = game_id
         if GAME_ID_ALIASES and game_id in GAME_ID_ALIASES:
             game_id = GAME_ID_ALIASES[game_id]
             
         validator = self.validators.get(game_id)
-        if validator:
-            return validator
-        return self.validators_by_id_str.get(game_id)
+        if not validator:
+            validator = self.validators_by_id_str.get(game_id)
+            
+        if not validator:
+            # DEFENSIVE PROGRAMMING: Fail Loudly
+            supported = [g.value for g in SupportedGame]
+            error_msg = f"Unsupported game_id: '{original_game_id}'. Resolved to '{game_id}'. Supported games are: {supported}"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
+            
+        return validator
 
     def validate_game_text(self, game_id: str, text: str, line_number: Optional[int] = None, source_lang: Optional[Dict] = None, source_text: Optional[str] = None, dynamic_valid_tags: Optional[List[str]] = None) -> List[ValidationResult]:
         """验证指定游戏的文本格式"""
-        validator = self.get_validator_by_game_id(game_id)
-        if not validator:
+        try:
+            validator = self.get_validator_by_game_id(game_id)
+        except ValueError as e:
             self.logger.error(self._get_i18n_message("validation_unknown_game", game_id=game_id))
-            return []
+            raise e
+            
         # 将 dynamic_valid_tags 和 source_text 通过 kwargs 传递下去
         results = validator.validate_text(text, line_number, source_lang, source_text=source_text, dynamic_valid_tags=dynamic_valid_tags)
         for result in results:
@@ -509,10 +522,12 @@ class PostProcessValidator:
     
     def validate_entry(self, game_id: str, key: str, value: str, line_number: Optional[int] = None, source_lang: Optional[Dict] = None, source_value: Optional[str] = None, dynamic_valid_tags: Optional[List[str]] = None) -> List[ValidationResult]:
         """验证单个键值对"""
-        validator = self.get_validator_by_game_id(game_id)
-        if not validator:
+        try:
+            validator = self.get_validator_by_game_id(game_id)
+        except ValueError as e:
             self.logger.error(self._get_i18n_message("validation_unknown_game", game_id=game_id))
-            return []
+            raise e
+            
         results = validator.validate_entry(key, value, line_number, source_lang, source_value=source_value, dynamic_valid_tags=dynamic_valid_tags)
         for result in results:
             validator._log_validation_result(result)
@@ -521,10 +536,12 @@ class PostProcessValidator:
     def validate_batch(self, game_id: str, texts: List[str], start_line: int = 1, source_lang: Optional[Dict] = None, source_texts: Optional[List[str]] = None, dynamic_valid_tags: Optional[List[str]] = None) -> Dict[int, List[ValidationResult]]:
         """批量验证文本"""
         batch_results = {}
-        validator = self.get_validator_by_game_id(game_id)
-        if not validator:
+        try:
+            validator = self.get_validator_by_game_id(game_id)
+        except ValueError as e:
             self.logger.error(self._get_i18n_message("validation_unknown_game", game_id=game_id))
-            return {}
+            raise e
+            
         for i, text in enumerate(texts):
             line_number = start_line + i
             src_text = source_texts[i] if source_texts and i < len(source_texts) else None

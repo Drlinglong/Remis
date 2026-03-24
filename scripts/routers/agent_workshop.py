@@ -114,12 +114,17 @@ async def scan_project(project_id: str):
         entries = dict(parse_loc_file(file_path))
         
         for key, value in entries.items():
-            results = validator.validate_entry(
-                game_id, 
-                key, 
-                value, 
-                source_value=source_entries.get(key, "")
-            )
+            try:
+                results = validator.validate_entry(
+                    game_id, 
+                    key, 
+                    value, 
+                    source_value=source_entries.get(key, "")
+                )
+            except ValueError as e:
+                # Catch strict game ID validation error
+                raise HTTPException(status_code=400, detail=str(e))
+                
             for res in results:
                 if res.level.value in ["error", "warning"]:
                     issues.append(ValidationIssue(

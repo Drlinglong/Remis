@@ -3,6 +3,7 @@
 import os
 import sys
 import multiprocessing
+from enum import Enum
 from scripts.config import prompts
 import json
 
@@ -238,14 +239,44 @@ GAME_PROFILES_BY_ID = {p["id"]: p for p in GAME_PROFILES.values()}
 API_PROVIDERS = config_manager.api_providers
 
 # --- Game ID Aliases (Normalization) -----------------------------
+class SupportedGame(str, Enum):
+    VICTORIA_3 = "victoria3"
+    HOI_4 = "hoi4"
+    STELLARIS = "stellaris"
+    CK_3 = "ck3"
+    EU_4 = "eu4"
+    EU_5 = "eu5"
+
 GAME_ID_ALIASES = {
-    "vic3": "victoria3",
-    "victoria 3": "victoria3",
-    "stellaris": "stellaris",
-    "hoi4": "hoi4",
-    "ck3": "ck3",
-    "eu4": "eu4",
-    "eu5": "eu5"
+    # Victoria 3
+    "vic3": SupportedGame.VICTORIA_3.value,
+    "victoria 3": SupportedGame.VICTORIA_3.value,
+    "1": SupportedGame.VICTORIA_3.value,
+    
+    # Stellaris
+    "stellaris": SupportedGame.STELLARIS.value,
+    "2": SupportedGame.STELLARIS.value,
+    
+    # Hearts of Iron IV
+    "hoi4": SupportedGame.HOI_4.value,
+    "hearts of iron iv": SupportedGame.HOI_4.value,
+    "3": SupportedGame.HOI_4.value,
+    
+    # Crusader Kings III
+    "ck3": SupportedGame.CK_3.value,
+    "crusader kings iii": SupportedGame.CK_3.value,
+    "crusader kings 3": SupportedGame.CK_3.value,
+    "4": SupportedGame.CK_3.value,
+    
+    # Europa Universalis IV
+    "eu4": SupportedGame.EU_4.value,
+    "europa universalis iv": SupportedGame.EU_4.value,
+    "5": SupportedGame.EU_4.value,
+
+    # Europa Universalis V
+    "eu5": SupportedGame.EU_5.value,
+    "europa universalis v": SupportedGame.EU_5.value,
+    "6": SupportedGame.EU_5.value
 }
 
 # --- 保底格式提示模板 ---------------------------------------------

@@ -7,7 +7,7 @@ def test_hoi4_russian_no_false_positive():
     Verifies that HOI4 rules NO LONGER flag Russian characters in text near tags.
     """
     validator = PostProcessValidator()
-    game_id = "4" # HOI4
+    game_id = "hoi4" # HOI4
     
     # Text from the user's issue: "у\n$VALUE|H$"
     # The 'у' is outside the tag, so it should be ignored by the technical rules.
@@ -23,7 +23,7 @@ def test_hoi4_russian_inside_tag_fails():
     According to Wiki, these must be ASCII identifiers.
     """
     validator = PostProcessValidator()
-    game_id = "4" # HOI4
+    game_id = "hoi4" # HOI4
     
     # Russian 'Д' inside a namespace tag
     test_text = "[Д.GetName]" 
@@ -43,7 +43,7 @@ def test_hoi4_spaces_in_tag_prevents_match():
     In HOI4, identifiers [Root.GetName] don't have spaces.
     """
     validator = PostProcessValidator()
-    game_id = "4" # HOI4
+    game_id = "hoi4" # HOI4
     
     # This shouldn't match the namespace rule because of the spaces.
     test_text = "[Это просто текст в скобках]" 
