@@ -32,6 +32,7 @@ import UnderConstructionPage from './pages/UnderConstructionPage';
 import InConceptionPage from './pages/InConceptionPage';
 import ArchivesPage from './pages/ArchivesPage';
 import NeologismReviewPage from './pages/NeologismReviewPage';
+import AgentWorkshopPage from './pages/AgentWorkshopPage';
 
 // --- Single Source of Truth for Routing ---
 const appRouteConfig = [
@@ -45,6 +46,7 @@ const appRouteConfig = [
     { path: '/incremental-translation', element: <IncrementalTranslationPage /> },
     { path: '/neologism-review', element: <NeologismReviewPage /> },
     { path: '/archives', element: <ArchivesPage /> },
+    { path: '/agent-workshop', element: <AgentWorkshopPage /> },
     { path: '/cicd', element: <CICDPage /> },
     { path: '/tools', element: <ToolsPage /> },
     { path: '/settings', element: <SettingsPage /> },

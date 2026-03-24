@@ -1,0 +1,49 @@
+.container {
+    height: 100%;
+    overflow-y: auto;
+    background: transparent;
+}
+
+.title {
+    font-family: var(--font-fancy);
+    letter-spacing: 0.5px;
+}
+
+.emptyState {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+}
+
+.resultsPanel, .glassPaper {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    border-radius: 8px;
+}
+
+.glassModal :global(.mantine-Modal-content) {
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+}
+
+.resultRow:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+:global([data-theme='victoria']) .title {
+    color: #ffd700;
+}
+
+:global([data-theme='sci-fi']) .resultsPanel {
+    border-color: #00f2ff;
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
+}

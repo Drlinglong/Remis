@@ -886,5 +886,29 @@
   },
   "common": {
     "browse": "Browse"
+  },
+  "page_title_agent_workshop": "Agent Workshop",
+  "agent_workshop": {
+    "title": "Agent Workshop",
+    "description": "AI-powered error correction using Reflexion agents. Analyze and fix localization violations with diff previews.",
+    "select_project": "Select Project",
+    "scan_btn": "Scan Project Errors",
+    "table_file": "File",
+    "table_key": "Key",
+    "table_error": "Error Type",
+    "table_content": "Content",
+    "table_action": "Action",
+    "fix_btn": "Analyze & Fix",
+    "no_errors_title": "No Errors Found",
+    "no_errors_desc": "This project looks perfect under the current rules!",
+    "modal_title": "AI Fix Suggestion",
+    "modal_analysis": "AI Analysis",
+    "modal_suggestion": "Suggested Fix (Diff)",
+    "modal_parity": "Technical Tag Check",
+    "apply_fix": "Apply Fix",
+    "discard": "Discard",
+    "modal_source_context": "Source Context",
+    "modal_error_detected": "Error Detected",
+    "regenerate": "Regenerate"
   }
 }

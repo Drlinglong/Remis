@@ -108,13 +108,14 @@ def setup_app_routers():
     panic_log("Including routers...")
     from scripts.routers import (
         projects, translation, glossary, proofreading, docs, tools, 
-        neologism, validation, config, system, prompts
+        neologism, validation, config, system, prompts, agent_workshop
     )
     
     app.include_router(projects.router)
     app.include_router(translation.router)
     app.include_router(glossary.router)
     app.include_router(proofreading.router)
+    app.include_router(agent_workshop.router)
     app.include_router(docs.router)
     app.include_router(tools.router)
     app.include_router(neologism.router)

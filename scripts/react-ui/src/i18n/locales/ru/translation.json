@@ -844,5 +844,29 @@
   "context_sidebar.project_history": "История активности проекта.",
   "context_sidebar.glossary_term": "Термин глоссария",
   "context_sidebar.glossary_info": "Выберите термин для просмотра определений.",
-  "context_sidebar.glossary_history": "История правок термина."
+  "context_sidebar.glossary_history": "История правок термина.",
+  "page_title_agent_workshop": "Мастерская агентов",
+  "agent_workshop": {
+    "title": "Мастерская агентов",
+    "description": "Автоматическое исправление ошибок с помощью Reflexion-агента. Анализ и исправление нарушений локализации с предпросмотром изменений.",
+    "select_project": "Выберите проект",
+    "scan_btn": "Сканировать на ошибки",
+    "table_file": "Файл",
+    "table_key": "Ключ",
+    "table_error": "Тип ошибки",
+    "table_content": "Содержимое",
+    "table_action": "Действие",
+    "fix_btn": "Анализировать и исправить",
+    "no_errors_title": "Ошибок не найдено",
+    "no_errors_desc": "Этот проект выглядит идеально согласно текущим правилам!",
+    "modal_title": "Предложение AI по исправлению",
+    "modal_analysis": "Анализ AI",
+    "modal_suggestion": "Предлагаемое исправление (Diff)",
+    "modal_parity": "Проверка технических тегов",
+    "apply_fix": "Применить исправление",
+    "discard": "Отклонить",
+    "modal_source_context": "Контекст источника",
+    "modal_error_detected": "Обнаружена ошибка",
+    "regenerate": "Сгенерировать заново"
+  }
 }
