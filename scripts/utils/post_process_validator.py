@@ -25,7 +25,7 @@ from enum import Enum
 try:
     from . import i18n
     from ..utils import punctuation_handler
-    from ..app_settings import LANGUAGES, GAME_PROFILES
+    from ..app_settings import LANGUAGES, GAME_PROFILES, GAME_ID_ALIASES
 except ImportError:
     i18n = None
     punctuation_handler = None
@@ -486,6 +486,10 @@ class PostProcessValidator:
     
     def get_validator_by_game_id(self, game_id: str) -> Optional[BaseGameValidator]:
         """根据数字游戏ID（如 "1"）或内部字母ID（如 "victoria3"）查找验证器实例。"""
+        # Resolve aliases (e.g., 'vic3' -> 'victoria3')
+        if GAME_ID_ALIASES and game_id in GAME_ID_ALIASES:
+            game_id = GAME_ID_ALIASES[game_id]
+            
         validator = self.validators.get(game_id)
         if validator:
             return validator

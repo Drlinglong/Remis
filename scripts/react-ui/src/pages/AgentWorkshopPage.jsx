@@ -127,7 +127,6 @@ const AgentWorkshopPage = () => {
                     <Paper p="md" radius="md" withBorder className={styles.glassPaper}>
                         <Group align="flex-end">
                             <Select
-                                hideCalledBy="select_project"
                                 label={t('agent_workshop.select_project')}
                                 placeholder="Pick a project"
                                 data={projects}

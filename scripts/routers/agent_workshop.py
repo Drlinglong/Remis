@@ -121,9 +121,9 @@ async def scan_project(project_id: str):
                 source_value=source_entries.get(key, "")
             )
             for res in results:
-                if res.level.value == "error":
+                if res.level.value in ["error", "warning"]:
                     issues.append(ValidationIssue(
-                        file_name=file_info['relative_path'],
+                        file_name=file_info['relative_path'] if 'relative_path' in file_info else get_rel_path(file_info['file_path']),
                         key=key,
                         source_str=source_entries.get(key, ""),
                         target_str=value,
