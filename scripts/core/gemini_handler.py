@@ -10,6 +10,17 @@ from scripts.core.base_handler import BaseApiHandler
 class GeminiHandler(BaseApiHandler):
     """Gemini API Handler子类"""
 
+    def _generate_content(self, client: Any, **kwargs):
+        try:
+            return client.models.generate_content(**kwargs, http_options={'timeout': 300})
+        except TypeError as exc:
+            if "http_options" not in str(exc):
+                raise
+            self.logger.warning(
+                "Installed google-genai SDK does not support http_options on generate_content; retrying without it."
+            )
+            return client.models.generate_content(**kwargs)
+
     def initialize_client(self) -> Any:
         """【必须由子类实现】初始化并配置Gemini的API客户端。"""
         api_key = os.getenv("GEMINI_API_KEY")
@@ -61,11 +72,11 @@ class GeminiHandler(BaseApiHandler):
 
         try:
             # Pass the generation_config to the API call
-            response = client.models.generate_content(
+            response = self._generate_content(
+                client,
                 model=model_name,
                 contents=prompt,
                 config=types.GenerateContentConfig(**generation_config) if generation_config else None,
-                http_options={'timeout': 300}
             )
             
             # SAFE EXTRACTION: Avoid the 'thought_signature' warning by extracting only text parts
@@ -112,13 +123,13 @@ class GeminiHandler(BaseApiHandler):
             if system_instruction:
                 full_prompt = f"{system_instruction}\n\n{user_content}"
             
-            response = self.client.models.generate_content(
+            response = self._generate_content(
+                self.client,
                 model=model_name,
                 contents=full_prompt,
                 config={
                     'temperature': temperature
                 },
-                http_options={'timeout': 300}
             )
             return response.text.strip()
         except Exception as e:

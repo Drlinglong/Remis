@@ -5,6 +5,10 @@
     color: var(--text-main);
 }
 
+.incrementalPage {
+    padding-bottom: 96px;
+}
+
 .glassCard {
     background: var(--glass-bg, rgba(30, 30, 30, 0.6)) !important;
     backdrop-filter: blur(12px);
@@ -58,6 +62,12 @@
 
 .logScrollBox::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.08);
+}
+
+.executionStep {
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
 .batchSummary {

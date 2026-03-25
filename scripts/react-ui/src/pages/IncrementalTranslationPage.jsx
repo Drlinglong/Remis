@@ -367,7 +367,7 @@ const IncrementalTranslationPage = () => {
     const prevStep = () => setActive((current) => (current > 0 ? current - 1 : current));
 
     return (
-        <Container size="xl" py="xl">
+        <Container size="xl" py="xl" className={styles.incrementalPage}>
             <Title order={2} mb="xl" className={styles.pageTitle}>
                 <IconRocket size={32} style={{ marginRight: 12, verticalAlign: 'middle' }} />
                 {t('incremental_translation.title')}
@@ -380,7 +380,7 @@ const IncrementalTranslationPage = () => {
                     description={t('incremental_translation.step_1_desc')}
                     icon={<IconSearch size={18} />}
                 >
-                    <Stack mt="xl">
+                    <Stack mt="xl" className={styles.executionStep}>
                         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
                             {projects.map((p) => (
                                 <Card
