@@ -94,6 +94,165 @@ class ReflexionFixAgent:
             "parity_message": f"Failed after {max_retries} attempts. Remaining errors: {current_error_type}."
         }
 
+    async def fix_batch_loop(self, issues: List[Dict[str, Any]], game_id: str, max_retries: int = 3) -> Dict[str, Any]:
+        """
+        Runs the Reflexion workflow for a FULL BATCH of issues to save time and tokens.
+        """
+        import json
+        from scripts.utils.post_process_validator import PostProcessValidator
+        from scripts.utils.structured_parser import parse_response
+        from scripts.core.schemas import TranslationResponse
+        
+        validator = PostProcessValidator()
+        
+        # current_state: tracking each issue's progress.
+        # Active indices track which issues still need fixing.
+        current_state = []
+        for issue in issues:
+            current_state.append({
+                "source": issue["source_str"],
+                "target": issue["target_str"],
+                "error_messages": [issue["error_type"]],
+                "error_details": [issue.get("details", "")],
+                "is_fixed": False,
+                "suggested_fix": "",
+                "key": issue["key"],
+                "file_name": issue["file_name"]
+            })
+            
+        for attempt in range(max_retries):
+            # 1. Filter out already fixed issues for the prompt
+            active_indices = [i for i in range(len(current_state)) if not current_state[i]["is_fixed"]]
+            if not active_indices:
+                self.logger.info("All issues in batch fixed successfully!")
+                break
+                
+            self.logger.info(f"Batch Fix Attempt {attempt + 1}/{max_retries} for {len(active_indices)} issues.")
+            prompt = self._build_batch_prompt([current_state[i] for i in active_indices])
+            
+            try:
+                # 2. Call LLM for the batch
+                raw_response = self.handler._call_api(self.handler.client, prompt)
+                
+                # Use StructuredParser to ensure we get a clean list
+                parsed = parse_response(raw_response, TranslationResponse, "json")
+                fixed_texts = parsed.translations if parsed else []
+                
+                # Fallback purely JSON loading if parse_response failed to match exact length
+                if not fixed_texts or len(fixed_texts) != len(active_indices):
+                    try:
+                        import re
+                        json_match = re.search(r'\[.*\]', raw_response, re.DOTALL)
+                        if json_match:
+                            fixed_texts = json.loads(json_match.group(0))
+                    except:
+                        pass
+                
+                if len(fixed_texts) != len(active_indices):
+                    self.logger.error(f"Length mismatch: Expected {len(active_indices)}, got {len(fixed_texts)}")
+                    continue
+                    
+                # 3. Apply fixes and validate
+                for idx_in_batch, fixed_text in enumerate(fixed_texts):
+                    orig_idx = active_indices[idx_in_batch]
+                    state = current_state[orig_idx]
+                    
+                    state["suggested_fix"] = fixed_text
+                    
+                    results = validator.validate_entry(
+                        game_id=game_id,
+                        key=state["key"],
+                        value=fixed_text,
+                        source_value=state["source"]
+                    )
+                    
+                    errors = [r for r in results if r.level.value == "error"]
+                    if not errors:
+                        state["is_fixed"] = True
+                        state["error_messages"] = []
+                        state["error_details"] = []
+                    else:
+                        state["error_messages"] = [e.message for e in errors]
+                        state["error_details"] = [e.details for e in errors if e.details]
+                        state["target"] = fixed_text # Update target to the current failed attempt for the next prompt
+            except Exception as e:
+                self.logger.error(f"Batch Fix API Call failed: {e}")
+                
+        # Return summary
+        results_list = []
+        for state in current_state:
+            results_list.append({
+                "file_name": state["file_name"],
+                "key": state["key"],
+                "suggested_fix": state["suggested_fix"] if state["suggested_fix"] else state["target"],
+                "status": "SUCCESS" if state["is_fixed"] else "FAILED",
+                "parity_message": "Validation passed." if state["is_fixed"] else " | ".join(state["error_messages"])
+            })
+            
+        return {"results": results_list}
+
+    def _build_batch_prompt(self, active_issues: List[Dict[str, Any]]) -> str:
+        """
+        Builds the PROMPT for the batch fix, injecting dynamic Few-Shot examples based on the specific errors present in the batch.
+        """
+        import json
+        
+        # 1. Identify error categories present in this batch
+        error_types_present = set()
+        for issue in active_issues:
+            combined_error_text = " ".join(issue["error_messages"] + issue["error_details"]).lower()
+            if "parity" in combined_error_text or "数量不一致" in combined_error_text or "$pop$" in combined_error_text:
+                error_types_present.add("VARIABLE_PARITY")
+            if "tag" in combined_error_text or "标签" in combined_error_text or "§" in combined_error_text or "不成对" in combined_error_text:
+                error_types_present.add("FORMATTING_TAG")
+            if "banned" in combined_error_text or "未知" in combined_error_text or "invalid" in combined_error_text:
+                error_types_present.add("BANNED_CHARS")
+                
+        # 2. Build dynamic few-shot examples
+        examples = []
+        if "VARIABLE_PARITY" in error_types_present:
+            examples.append(
+                "Error Type: Variable Parity (Variables like $pop$ or [Concept] were lost or hallucinated)\n"
+                "  [Bad] Source: The $pop$ grew. | Translation: 人口增长了。\n"
+                "  [Fixed] 人口 $pop$ 增长了。"
+            )
+        if "FORMATTING_TAG" in error_types_present:
+            examples.append(
+                "Error Type: Formatting Tags (Tags like §Y or #color must be matched or spaced correctly without translating the tag name itself)\n"
+                "  [Bad] Source: Click §Yhere§!. | Translation: 点击 §Y这里。\n"
+                "  [Fixed] 点击 §Y这里§!。"
+            )
+            
+        examples_text = ""
+        if examples:
+            examples_text = "--- 常见错误修正范例 (Few-Shot Examples) ---\n" + "\n".join(examples) + "\n----------------------------------------"
+
+        # 3. Assemble the payload
+        payload_items = []
+        for i, issue in enumerate(active_issues):
+            errors = " | ".join(issue["error_messages"] + issue["error_details"])
+            payload_items.append(
+                f"Item {i+1}:\n"
+                f"  Source: {issue['source']}\n"
+                f"  Bad Translation: {issue['target']}\n"
+                f"  Reported Error: {errors}"
+            )
+            
+        prompt = (
+            "You are an elite Localization QA Specialist fixing broken game strings. Your output MUST be a valid JSON array of strings.\n\n"
+            f"{examples_text}\n\n"
+            "INSTRUCTIONS:\n"
+            "For each 'Item' below, fix the formatting errors reported in 'Bad Translation' based on strictly matching the technical variables from the 'Source'. "
+            "Do NOT remove or translate internal code tags (e.g. $var$, §Y, #name). "
+            f"You MUST return exactly {len(active_issues)} strings inside a JSON array. Return NOTHING ELSE but the JSON array.\n\n"
+            "--- START OF ITEMS ---\n" +
+            "\n\n".join(payload_items) + "\n"
+            "--- END OF ITEMS ---\n\n"
+            "Response Format:\n"
+            "[\n  \"Fixed Translation 1\",\n  \"Fixed Translation 2\"\n]"
+        )
+        return prompt
+
     async def _reflect(self, source: str, target: str, error_type: str, details: str) -> str:
         prompt = (
             "You are a Localization QA Specialist. Analyze the following translation error.\n\n"

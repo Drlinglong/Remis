@@ -28,6 +28,10 @@ const AgentWorkshopPage = () => {
     const [fixResult, setFixResult] = useState(null);
     const [fixing, setFixing] = useState(false);
     
+    // Batch and Diff State
+    const [batchSize, setBatchSize] = useState('5');
+    const [fixedIssues, setFixedIssues] = useState([]);
+    
     // LLM Selection State
     const [apiProviders, setApiProviders] = useState([]);
     const [selectedProvider, setSelectedProvider] = useState('');
@@ -121,6 +125,13 @@ const AgentWorkshopPage = () => {
                 api_model: selectedModel,
                 ...currentIssue
             });
+            
+            if (res.data && res.data.status === 'SUCCESS') {
+                setFixedIssues(prev => [{...currentIssue, suggested_fix: res.data.suggested_fix}, ...prev]);
+                // Automatically remove it from the list if it's fixed
+                setIssues(prev => prev.filter(i => i.key !== currentIssue.key || i.file_name !== currentIssue.file_name));
+            }
+            
             setFixResult(res.data);
         } catch (err) {
             console.error("Fix failed", err);
@@ -138,23 +149,37 @@ const AgentWorkshopPage = () => {
         if (!selectedProject || issues.length === 0 || !selectedProvider) return;
         setFixing(true);
         
+        const size = parseInt(batchSize, 10);
         let remainingIssues = [...issues];
-        for (const issue of issues) {
+        let newFixed = [];
+        
+        for (let i = 0; i < issues.length; i += size) {
+            const batch = issues.slice(i, i + size);
             try {
-                const res = await axios.post('/api/agent-workshop/fix', {
+                const res = await axios.post('/api/agent-workshop/fix-batch', {
                     project_id: selectedProject,
                     api_provider: selectedProvider,
                     api_model: selectedModel,
-                    ...issue
+                    issues: batch
                 });
                 
-                if (res.data && res.data.status === 'SUCCESS') {
-                    // Update UI immediately for successful fix
-                    remainingIssues = remainingIssues.filter(i => i.key !== issue.key || i.file_name !== issue.file_name);
-                    setIssues(remainingIssues);
+                if (res.data && res.data.results) {
+                    for (const r of res.data.results) {
+                        if (r.status === 'SUCCESS') {
+                            const originalIssue = batch.find(b => b.key === r.key && b.file_name === r.file_name);
+                            if (originalIssue) {
+                                newFixed.unshift({...originalIssue, suggested_fix: r.suggested_fix});
+                            }
+                            remainingIssues = remainingIssues.filter(iss => iss.key !== r.key || iss.file_name !== r.file_name);
+                        }
+                    }
+                    // Update UI gracefully after each batch
+                    setIssues([...remainingIssues]);
+                    setFixedIssues(prev => [...newFixed, ...prev]);
+                    newFixed = []; // reset for next batch
                 }
             } catch (err) {
-                console.error(`Fix failed for ${issue.key}`, err);
+                console.error(`Batch fix failed`, err);
             }
         }
         
@@ -220,15 +245,24 @@ const AgentWorkshopPage = () => {
                                     {isCached ? t('agent_workshop.rescan_btn') : t('agent_workshop.scan_btn')}
                                 </Button>
                                 {issues.length > 0 && (
-                                    <Button
-                                        color="indigo"
-                                        leftSection={<IconWand size={18} />}
-                                        onClick={handleFixAll}
-                                        loading={fixing}
-                                        disabled={!selectedProvider}
-                                    >
-                                        一键修复全部 (Fix All)
-                                    </Button>
+                                    <Group spacing="xs">
+                                        <Select
+                                            value={batchSize}
+                                            onChange={setBatchSize}
+                                            data={['5', '10', '20', '50']}
+                                            disabled={fixing}
+                                            style={{ width: 80 }}
+                                        />
+                                        <Button
+                                            color="indigo"
+                                            leftSection={<IconWand size={18} />}
+                                            onClick={handleFixAll}
+                                            loading={fixing}
+                                            disabled={!selectedProvider}
+                                        >
+                                            一键修复全部 (Fix All)
+                                        </Button>
+                                    </Group>
                                 )}
                             </Group>
                         </Group>
@@ -379,6 +413,28 @@ const AgentWorkshopPage = () => {
                         </Stack>
                     </Box>
                 </Modal>
+                
+                {fixedIssues.length > 0 && (
+                    <Paper mt="xl" p="md" radius="md" withBorder className={styles.glassPaper}>
+                        <Title order={4} mb="md">近期已修复 (Recently Fixed) - {fixedIssues.length}</Title>
+                        <ScrollArea h={400}>
+                            {fixedIssues.map((item, idx) => (
+                                <Paper key={idx} p="sm" mb="sm" withBorder shadow="sm">
+                                    <Group position="apart" mb="xs">
+                                        <Text size="sm" fw={600} color="dimmed">{item.file_name}</Text>
+                                        <Text size="xs" color="dimmed">Key: {item.key}</Text>
+                                    </Group>
+                                    <Code block color="red" mb="xs" style={{ textDecoration: 'line-through' }}>
+                                        - {item.target_str}
+                                    </Code>
+                                    <Code block color="teal">
+                                        + {item.suggested_fix}
+                                    </Code>
+                                </Paper>
+                            ))}
+                        </ScrollArea>
+                    </Paper>
+                )}
             </Container>
         </Box>
     );

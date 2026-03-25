@@ -44,6 +44,22 @@ class FixResult(BaseModel):
     status: str
     parity_message: str
 
+class FixBatchRequest(BaseModel):
+    project_id: str
+    api_provider: Optional[str] = None
+    api_model: Optional[str] = None
+    issues: List[Dict[str, Any]] # Collection of the original issue fields
+
+class BatchResultItem(BaseModel):
+    file_name: str
+    key: str
+    suggested_fix: str
+    status: str
+    parity_message: str
+
+class FixBatchResponse(BaseModel):
+    results: List[BatchResultItem]
+
 @router.get("/load-cached", response_model=List[ValidationIssue])
 async def load_cached_errors(project_id: str):
     """
@@ -224,3 +240,46 @@ async def fix_issue(request: FixRequest):
         )
     
     return FixResult(**result)
+
+
+@router.post("/fix-batch", response_model=FixBatchResponse)
+async def fix_batch(request: FixBatchRequest):
+    """
+    Initiates the Reflexion Fix Workflow for a batch of issues.
+    """
+    from scripts.core.api_handler import get_handler
+    from scripts.app_settings import get_default_translation_config
+    
+    config = get_default_translation_config()
+    provider_name = request.api_provider if request.api_provider else config['provider']
+    model_name = request.api_model if request.api_model else config['model']
+    
+    handler = get_handler(provider_name, model_name=model_name)
+    
+    project = await project_manager.get_project(request.project_id)
+    game_id = project.get('game_id', 'vic3') if project else 'vic3'
+    
+    agent = ReflexionFixAgent(handler)
+    batch_result = await agent.fix_batch_loop(
+        issues=request.issues,
+        game_id=game_id
+    )
+    
+    final_results = []
+    
+    if project:
+        for res in batch_result.get("results", []):
+            if res.get('status') == 'SUCCESS':
+                target_path = Path(project['source_path']) / res["file_name"]
+                if target_path.exists():
+                    apply_translation_fix_to_file(target_path, res["key"], res["suggested_fix"])
+                    
+                ValidationLogger.update_error_status(
+                    project['source_path'], 
+                    res["file_name"], 
+                    res["key"], 
+                    "fixed"
+                )
+            final_results.append(BatchResultItem(**res))
+            
+    return FixBatchResponse(results=final_results)
