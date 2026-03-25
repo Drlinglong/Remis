@@ -68,7 +68,7 @@ const AgentWorkshopPage = () => {
         try {
             const res = await axios.get('/api/config');
             const data = res.data;
-            if (data.api_providers) {
+            if (data && data.api_providers && Array.isArray(data.api_providers)) {
                 setApiProviders(data.api_providers);
                 if (data.api_providers.length > 0) {
                     setSelectedProvider(data.api_providers[0].value);
@@ -214,7 +214,11 @@ const AgentWorkshopPage = () => {
                                 value={selectedProvider}
                                 onChange={(val) => {
                                     setSelectedProvider(val);
-                                    const provider = apiProviders.find(p => p.value === val);
+                                    if (!val) {
+                                        setSelectedModel('');
+                                        return;
+                                    }
+                                    const provider = (apiProviders || []).find(p => p.value === val);
                                     const allModels = [
                                         ...(provider?.available_models || []),
                                         ...(provider?.custom_models || [])
@@ -230,8 +234,8 @@ const AgentWorkshopPage = () => {
                             <Select
                                 label={t('form_label_api_model') || "AI Model"}
                                 data={[
-                                    ...(apiProviders.find(p => p.value === selectedProvider)?.available_models || []),
-                                    ...(apiProviders.find(p => p.value === selectedProvider)?.custom_models || [])
+                                    ...( ( (apiProviders || []).find(p => p.value === selectedProvider) )?.available_models || []),
+                                    ...( ( (apiProviders || []).find(p => p.value === selectedProvider) )?.custom_models || [])
                                 ]}
                                 value={selectedModel}
                                 onChange={setSelectedModel}

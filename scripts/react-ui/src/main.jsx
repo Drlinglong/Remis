@@ -1,15 +1,24 @@
 if (import.meta.env.DEV) {
   const showErrorOverlay = (err) => {
+    if (!err) return;
     const ErrorOverlay = customElements.get('vite-error-overlay');
     if (!ErrorOverlay) {
       return;
     }
-    const overlay = new ErrorOverlay(err);
-    document.body.appendChild(overlay);
+    try {
+      const overlay = new ErrorOverlay(err);
+      document.body.appendChild(overlay);
+    } catch (e) {
+      console.error("Failed to render Vite error overlay", e);
+    }
   };
 
-  window.addEventListener('error', (e) => showErrorOverlay(e.error));
-  window.addEventListener('unhandledrejection', (e) => showErrorOverlay(e.reason));
+  window.addEventListener('error', (e) => {
+    if (e.error) showErrorOverlay(e.error);
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    if (e.reason) showErrorOverlay(e.reason);
+  });
 }
 
 // [TAURI] Handle external links - open in system browser
