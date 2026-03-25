@@ -128,7 +128,7 @@ class ReflexionFixAgent:
                 break
                 
             self.logger.info(f"Batch Fix Attempt {attempt + 1}/{max_retries} for {len(active_indices)} issues.")
-            prompt = self._build_batch_prompt([current_state[i] for i in active_indices])
+            prompt = self._build_batch_prompt([current_state[i] for i in active_indices], game_id)
             
             try:
                 # 2. Call LLM for the batch
@@ -191,37 +191,26 @@ class ReflexionFixAgent:
             
         return {"results": results_list}
 
-    def _build_batch_prompt(self, active_issues: List[Dict[str, Any]]) -> str:
+    def _build_batch_prompt(self, active_issues: List[Dict[str, Any]], game_id: str) -> str:
         """
         Builds the PROMPT for the batch fix, injecting dynamic Few-Shot examples based on the specific errors present in the batch.
         """
         import json
+        from scripts.config.validators.fixer_examples import get_examples_for_game
         
         # 1. Identify error categories present in this batch
         error_types_present = set()
         for issue in active_issues:
             combined_error_text = " ".join(issue["error_messages"] + issue["error_details"]).lower()
-            if "parity" in combined_error_text or "数量不一致" in combined_error_text or "$pop$" in combined_error_text:
+            if "parity" in combined_error_text or "数量不一致" in combined_error_text or "missing" in combined_error_text or "丢" in combined_error_text or "$" in combined_error_text:
                 error_types_present.add("VARIABLE_PARITY")
-            if "tag" in combined_error_text or "标签" in combined_error_text or "§" in combined_error_text or "不成对" in combined_error_text:
+            if "tag" in combined_error_text or "标签" in combined_error_text or "§" in combined_error_text or "不成对" in combined_error_text or "#" in combined_error_text:
                 error_types_present.add("FORMATTING_TAG")
             if "banned" in combined_error_text or "未知" in combined_error_text or "invalid" in combined_error_text:
                 error_types_present.add("BANNED_CHARS")
                 
-        # 2. Build dynamic few-shot examples
-        examples = []
-        if "VARIABLE_PARITY" in error_types_present:
-            examples.append(
-                "Error Type: Variable Parity (Variables like $pop$ or [Concept] were lost or hallucinated)\n"
-                "  [Bad] Source: The $pop$ grew. | Translation: 人口增长了。\n"
-                "  [Fixed] 人口 $pop$ 增长了。"
-            )
-        if "FORMATTING_TAG" in error_types_present:
-            examples.append(
-                "Error Type: Formatting Tags (Tags like §Y or #color must be matched or spaced correctly without translating the tag name itself)\n"
-                "  [Bad] Source: Click §Yhere§!. | Translation: 点击 §Y这里。\n"
-                "  [Fixed] 点击 §Y这里§!。"
-            )
+        # 2. Build dynamic few-shot examples via the new configuration mapping
+        examples = get_examples_for_game(game_id, error_types_present)
             
         examples_text = ""
         if examples:
