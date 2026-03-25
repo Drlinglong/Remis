@@ -130,10 +130,35 @@ const AgentWorkshopPage = () => {
     };
 
     const applyFix = async () => {
-        // TODO: Backend endpoint to write the fix to the file
-        // For now, just simulate success and remove from list
         setIsModalOpen(false);
         setIssues(prev => prev.filter(i => i.key !== currentIssue.key || i.file_name !== currentIssue.file_name));
+    };
+
+    const handleFixAll = async () => {
+        if (!selectedProject || issues.length === 0 || !selectedProvider) return;
+        setFixing(true);
+        
+        let remainingIssues = [...issues];
+        for (const issue of issues) {
+            try {
+                const res = await axios.post('/api/agent-workshop/fix', {
+                    project_id: selectedProject,
+                    api_provider: selectedProvider,
+                    api_model: selectedModel,
+                    ...issue
+                });
+                
+                if (res.data && res.data.status === 'SUCCESS') {
+                    // Update UI immediately for successful fix
+                    remainingIssues = remainingIssues.filter(i => i.key !== issue.key || i.file_name !== issue.file_name);
+                    setIssues(remainingIssues);
+                }
+            } catch (err) {
+                console.error(`Fix failed for ${issue.key}`, err);
+            }
+        }
+        
+        setFixing(false);
     };
 
     return (
@@ -151,24 +176,61 @@ const AgentWorkshopPage = () => {
                     </Group>
 
                     <Paper p="md" radius="md" withBorder className={styles.glassPaper}>
-                        <Group align="flex-end">
+                        <Group align="flex-end" grow>
                             <Select
                                 label={t('agent_workshop.select_project')}
                                 placeholder="Pick a project"
                                 data={projects}
                                 value={selectedProject}
                                 onChange={setSelectedProject}
-                                style={{ flex: 1 }}
                             />
-                            <Button 
-                                leftSection={isCached ? <IconRefresh size={18} /> : <IconSearch size={18} />}
-                                onClick={handleScan}
-                                loading={loading}
-                                disabled={!selectedProject}
-                                variant={isCached ? "light" : "filled"}
-                            >
-                                {isCached ? t('agent_workshop.rescan_btn') : t('agent_workshop.scan_btn')}
-                            </Button>
+                            <Select
+                                label={t('form_label_api_provider') || "LLM Provider"}
+                                data={apiProviders}
+                                value={selectedProvider}
+                                onChange={(val) => {
+                                    setSelectedProvider(val);
+                                    const provider = apiProviders.find(p => p.value === val);
+                                    if (provider && provider.models && provider.models.length > 0) {
+                                        setSelectedModel(provider.models[0]);
+                                    } else {
+                                        setSelectedModel('');
+                                    }
+                                }}
+                                disabled={fixing}
+                            />
+                            <Select
+                                label={t('form_label_api_model') || "AI Model"}
+                                data={apiProviders.find(p => p.value === selectedProvider)?.models || []}
+                                value={selectedModel}
+                                onChange={setSelectedModel}
+                                disabled={fixing || !selectedProvider}
+                                searchable
+                                creatable
+                                getCreateLabel={(query) => `+ Create ${query}`}
+                            />
+                            <Group>
+                                <Button 
+                                    leftSection={isCached ? <IconRefresh size={18} /> : <IconSearch size={18} />}
+                                    onClick={handleScan}
+                                    loading={loading}
+                                    disabled={!selectedProject || fixing}
+                                    variant={isCached ? "light" : "filled"}
+                                >
+                                    {isCached ? t('agent_workshop.rescan_btn') : t('agent_workshop.scan_btn')}
+                                </Button>
+                                {issues.length > 0 && (
+                                    <Button
+                                        color="indigo"
+                                        leftSection={<IconWand size={18} />}
+                                        onClick={handleFixAll}
+                                        loading={fixing}
+                                        disabled={!selectedProvider}
+                                    >
+                                        一键修复全部 (Fix All)
+                                    </Button>
+                                )}
+                            </Group>
                         </Group>
                         {isCached && (
                             <Text size="xs" mt="xs" c="dimmed" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -279,36 +341,6 @@ const AgentWorkshopPage = () => {
                                 <Code block color="red">{currentIssue?.target_str}</Code>
                                 <Text size="xs" mt={4}>{currentIssue?.details}</Text>
                             </Paper>
-                            
-                            {!fixResult && (
-                                <Group grow>
-                                    <Select
-                                        label={t('form_label_api_provider') || "LLM Provider"}
-                                        data={apiProviders}
-                                        value={selectedProvider}
-                                        onChange={(val) => {
-                                            setSelectedProvider(val);
-                                            const provider = apiProviders.find(p => p.value === val);
-                                            if (provider && provider.models && provider.models.length > 0) {
-                                                setSelectedModel(provider.models[0]);
-                                            } else {
-                                                setSelectedModel('');
-                                            }
-                                        }}
-                                        disabled={fixing}
-                                    />
-                                    <Select
-                                        label={t('form_label_api_model') || "AI Model"}
-                                        data={apiProviders.find(p => p.value === selectedProvider)?.models || []}
-                                        value={selectedModel}
-                                        onChange={setSelectedModel}
-                                        disabled={fixing || !selectedProvider}
-                                        searchable
-                                        creatable
-                                        getCreateLabel={(query) => `+ Create ${query}`}
-                                    />
-                                </Group>
-                            )}
 
                             {!fixResult && (
                                 <Button 
@@ -316,9 +348,9 @@ const AgentWorkshopPage = () => {
                                     variant="gradient" 
                                     gradient={{ from: 'indigo', to: 'cyan' }}
                                     onClick={handleFixRequest}
-                                    disabled={fixing}
+                                    disabled={fixing || !selectedProvider}
                                 >
-                                    {t('agent_workshop.fix_btn')}
+                                    {selectedProvider ? t('agent_workshop.fix_btn') : '请先在上方选择模型'}
                                 </Button>
                             )}
 
