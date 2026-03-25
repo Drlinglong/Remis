@@ -287,6 +287,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
             tasks[task_id]["progress"]["stage"] = "Completed"
             tasks[task_id]["log"].append("Incremental update completed successfully.")
             tasks[task_id]["summary"] = result.get("summary")
+            logging.info(f"Incremental task {task_id} completed successfully.")
             
     except Exception as e:
         import traceback

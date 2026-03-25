@@ -32,6 +32,10 @@ class ConnectionManager:
 
     async def send_task_update(self, task_id: str, data: dict):
         if task_id in self.active_connections:
+            logging.info(
+                f"WebSocket push for task {task_id}: status={data.get('status')} "
+                f"connections={len(self.active_connections[task_id])}"
+            )
             # We iterate over a copy to avoid issues if a connection disconnects during iteration
             for connection in self.active_connections[task_id][:]:
                 try:
@@ -39,6 +43,11 @@ class ConnectionManager:
                 except Exception as e:
                     logging.error(f"Error sending WebSocket update for task {task_id}: {e}")
                     self.disconnect(connection, task_id)
+        else:
+            logging.info(
+                f"WebSocket push skipped for task {task_id}: no active connections, "
+                f"status={data.get('status')}"
+            )
 
     def sync_send_task_update(self, task_id: str, data: dict):
         if self.main_loop and self.main_loop.is_running():

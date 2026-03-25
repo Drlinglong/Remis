@@ -63,6 +63,7 @@ const IncrementalTranslationPage = () => {
     const wsRef = useRef(null);
     const pollTimerRef = useRef(null);
     const logViewportRef = useRef(null);
+    const completionSourceRef = useRef(null);
 
     // Fetch basics
     useEffect(() => {
@@ -258,7 +259,7 @@ const IncrementalTranslationPage = () => {
         }
     };
 
-    const handleTaskUpdate = (data, isPreScan = false) => {
+    const handleTaskUpdate = (data, isPreScan = false, source = 'unknown') => {
         if (!data) return;
 
         if (data.progress) {
@@ -270,6 +271,8 @@ const IncrementalTranslationPage = () => {
         }
 
         if (data.status === 'completed') {
+            completionSourceRef.current = source;
+            console.info(`Incremental task completed via ${source}.`);
             clearTaskPolling();
             if (isPreScan) {
                 setScanResults(data.summary);
@@ -285,6 +288,8 @@ const IncrementalTranslationPage = () => {
                 wsRef.current.close();
             }
         } else if (data.status === 'failed') {
+            completionSourceRef.current = source;
+            console.warn(`Incremental task failed via ${source}.`);
             clearTaskPolling();
             addLog(`Task failed! Check logs for details.`, 'error');
             if (isPreScan) setLoading(false);
@@ -297,10 +302,11 @@ const IncrementalTranslationPage = () => {
 
     const startTaskPolling = (taskId, isPreScan = false) => {
         clearTaskPolling();
+        console.info(`Starting polling fallback for incremental task ${taskId}.`);
         pollTimerRef.current = setInterval(async () => {
             try {
                 const res = await axios.get(`/api/status/${taskId}`);
-                handleTaskUpdate(res.data, isPreScan);
+                handleTaskUpdate(res.data, isPreScan, 'polling');
             } catch (err) {
                 console.error('Polling task status failed:', err);
             }
@@ -319,9 +325,13 @@ const IncrementalTranslationPage = () => {
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
+        ws.onopen = () => {
+            console.info(`Incremental task WebSocket connected: ${taskId}`);
+        };
+
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            handleTaskUpdate(data, isPreScan);
+            handleTaskUpdate(data, isPreScan, 'websocket');
         };
 
         ws.onerror = (err) => {
