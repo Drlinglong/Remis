@@ -101,12 +101,12 @@ class ProofreadingTracker:
             
             # 写入CSV行：状态、源文件、本地化文件、翻译行数、校对进度、备注
             writer.writerow([
-                "",  # 状态（待填写）
-                source_rel_path_clean,  # 源文件
-                dest_rel_path_clean,    # 本地化文件
-                str(translated_lines),  # 翻译行数
-                "",  # 校对进度（待填写：如"已完成"、"进行中"、"待开始"等）
-                ""   # 备注（待填写：如校对问题、特殊说明等）
+                file_info.get('status', ""),  # 状态
+                source_rel_path_clean,        # 源文件
+                dest_rel_path_clean,          # 本地化文件
+                str(translated_lines),        # 翻译行数
+                file_info.get('proofreading_progress', ""),  # 校对进度 (contains validation summary)
+                file_info.get('proofreading_notes', "")      # 备注 (contains validation details)
             ])
         
         csv_content = output.getvalue()

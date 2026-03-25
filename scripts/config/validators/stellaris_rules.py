@@ -14,16 +14,16 @@ RULES = {
         "capture_group": 1
       }
     },
-    {
-      "name": "non_ascii_in_dollar_vars",
-      "check_function": "banned_chars",
-      "pattern": r"\$([^$\s]+)\$",
-      "level": "error",
-      "message_key": "validation_stellaris_dollar_vars_chinese",
-      "params": {
-        "capture_group": 1
-      }
-    },
+    # {
+    #   "name": "non_ascii_in_dollar_vars",
+    #   "check_function": "banned_chars",
+    #   "pattern": r"\$([^$\s]+)\$",
+    #   "level": "error",
+    #   "message_key": "validation_stellaris_dollar_vars_chinese",
+    #   "params": {
+    #     "capture_group": 1
+    #   }
+    # },
     {
       "name": "non_ascii_in_pound_icons",
       "check_function": "banned_chars",

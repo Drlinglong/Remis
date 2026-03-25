@@ -156,6 +156,8 @@ def run_translation_workflow_v2(
         "format_issues": 0
     }
 
+    last_update_time = [0] # Use a list to make it mutable in the closure
+    
     def progress_callback(current, total, current_file, stage="Translating", 
                           current_batch=0, total_batches=0, 
                           error_count=0, glossary_issues=0, format_issues=0,
@@ -173,12 +175,32 @@ def run_translation_workflow_v2(
             tasks[task_id]["progress"]["glossary_issues"] = glossary_issues
             tasks[task_id]["progress"]["format_issues"] = format_issues
             
+            if log_message:
+                tasks[task_id]["log"].append(log_message)
+                # Keep log size under control in memory too
+                if len(tasks[task_id]["log"]) > 1000:
+                    tasks[task_id]["log"] = tasks[task_id]["log"][-500:]
+
             if total > 0:
                 tasks[task_id]["progress"]["percent"] = int((current / total) * 100)
             
+            # ───────────── WebSocket Throttling (Issue #133) ─────────────
+            import time
+            current_time = time.time()
+            
+            # Only send update if:
+            # 1. 200ms has passed since last update
+            # 2. OR it's a critical stage (Completed, Failed)
+            # 3. OR it's the 100% mark
+            is_final = stage in ("Completed", "Failed") or (total > 0 and current >= total)
+            if not is_final and (current_time - last_update_time[0] < 0.2):
+                return
+            
+            last_update_time[0] = current_time
+            
             # Push update via WebSocket
             try:
-                # Limit the log to MAX_LOG_LINES like in the HTTP status endpoint
+                # Limit the log to MAX_LOG_LINES for the WS payload
                 MAX_LOG_LINES = 100
                 task_data = dict(tasks[task_id])
                 if "log" in task_data and len(task_data["log"]) > MAX_LOG_LINES:

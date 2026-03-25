@@ -24,16 +24,16 @@ RULES = {
         "capture_group": 1
       }
     },
-    {
-      "name": "non_ascii_in_nested_strings",
-      "check_function": "banned_chars",
-      "pattern": r"\$([^$\s|]+)\$",
-      "level": "error",
-      "message_key": "validation_hoi4_nested_strings_chinese",
-      "params": {
-        "capture_group": 1
-      }
-    },
+    # {
+    #   "name": "non_ascii_in_nested_strings",
+    #   "check_function": "banned_chars",
+    #   "pattern": r"\$([^$\s|]+)\$",
+    #   "level": "error",
+    #   "message_key": "validation_hoi4_nested_strings_chinese",
+    #   "params": {
+    #     "capture_group": 1
+    #   }
+    # },
     {
       "name": "non_ascii_in_icon_tags",
       "check_function": "banned_chars",

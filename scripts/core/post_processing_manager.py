@@ -87,6 +87,9 @@ class PostProcessingManager:
             # 输出验证摘要
             self._log_validation_summary()
             
+            # 生成详细 CSV 报告
+            self._generate_validation_report(target_lang)
+            
             self.logger.info(i18n.t("post_processing_validation_complete"))
             return True
             
@@ -389,13 +392,25 @@ class PostProcessingManager:
                     line_results[line_num].append(result)
                 
                 # 输出每个文件的问题
-                for line_num in sorted(line_results.keys()):
+                MAX_DETAILED_LOGS = 50
+                output_count = 0
+                
+                # Sort line numbers for consistent output
+                sorted_lines = sorted(line_results.keys())
+                
+                for line_num in sorted_lines:
+                    if output_count >= MAX_DETAILED_LOGS:
+                        break
+                        
                     self.logger.info(i18n.t("post_processing_file_issue", 
                                            file_index=file_index, 
                                            filename=filename, 
                                            line_number=line_num))
                     
                     for result in line_results[line_num]:
+                        if output_count >= MAX_DETAILED_LOGS:
+                            break
+                            
                         if result.details:
                             self.logger.info(i18n.t("post_processing_issue_details_with_details",
                                                    level=result.level.value.upper(),
@@ -405,6 +420,12 @@ class PostProcessingManager:
                             self.logger.info(i18n.t("post_processing_issue_details",
                                                    level=result.level.value.upper(),
                                                    message=result.message))
+                        output_count += 1
+                
+                if output_count >= MAX_DETAILED_LOGS:
+                    remaining = len(results) - output_count
+                    if remaining > 0:
+                        self.logger.warning(f"... and {remaining} more issues in {filename} omitted from log. Please check the CSV report for full details.")
                 
                 file_index += 1
     

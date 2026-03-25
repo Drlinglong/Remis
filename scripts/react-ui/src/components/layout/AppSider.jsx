@@ -33,7 +33,7 @@ const navItems = [
     ...(FEATURES.ENABLE_EXPERIMENTAL_FEATURES ? [{ icon: IconRocket, label: 'incremental_translation.title', path: '/incremental-translation' }] : []),
     { icon: IconVocabulary, label: 'page_title_glossary_manager', path: '/glossary-manager' },
     { icon: IconChecklist, label: 'page_title_proofreading', path: '/proofreading' },
-    { icon: IconRobot, label: 'page_title_agent_workshop', path: '/agent-workshop' },
+    ...(FEATURES.ENABLE_EXPERIMENTAL_FEATURES ? [{ icon: IconRobot, label: 'page_title_agent_workshop', path: '/agent-workshop' }] : []),
     // Conditionally include Neologism Tribunal
     ...(FEATURES.ENABLE_NEOLOGISM_TRIBUNAL ? [{ icon: IconSparkles, label: 'neologism_review.title', path: '/neologism-review' }] : []),
     { icon: IconTools, label: 'page_title_tools', path: '/tools', id: 'nav-tools' },
@@ -151,21 +151,23 @@ export function AppSider() {
                 {links}
             </Stack>
 
-            <Stack gap="xs" mt="md" pt="md" style={{ borderTop: '1px solid var(--glass-border)' }}>
-                {devLinks}
-                <Box id="tutorial-sidebar-link" style={{ width: '100%' }}>
-                    <NavbarLink
-                        icon={IconQuestionMark}
-                        label="tutorial.sidebar_tutorial_btn"
-                        active={false}
-                        onClick={() => {
-                            startTour();
-                        }}
-                        expanded={expanded}
-                        className={styles.tutorialButton} // Add pulse animation class
-                    />
-                </Box>
-            </Stack>
+            {FEATURES.ENABLE_EXPERIMENTAL_FEATURES && (
+                <Stack gap="xs" mt="md" pt="md" style={{ borderTop: '1px solid var(--glass-border)' }}>
+                    {devLinks}
+                    <Box id="tutorial-sidebar-link" style={{ width: '100%' }}>
+                        <NavbarLink
+                            icon={IconQuestionMark}
+                            label="tutorial.sidebar_tutorial_btn"
+                            active={false}
+                            onClick={() => {
+                                startTour();
+                            }}
+                            expanded={expanded}
+                            className={styles.tutorialButton} // Add pulse animation class
+                        />
+                    </Box>
+                </Stack>
+            )}
         </Box>
     );
 }

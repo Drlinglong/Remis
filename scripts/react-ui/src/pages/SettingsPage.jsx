@@ -143,6 +143,7 @@ const SettingsPage = () => {
                                             { value: '5', label: '5 RPM' },
                                             { value: '10', label: '10 RPM' },
                                             { value: '20', label: '20 RPM' },
+                                            { value: '30', label: '30 RPM' },
                                             { value: '40', label: '40 RPM' },
                                             { value: '100', label: '100 RPM' },
                                             { value: '200', label: '200 RPM' },

@@ -6,7 +6,7 @@
  * Used for development, debugging, and advanced functionality.
  * =============================================================================
  */
-const ENABLE_EXPERIMENTAL_FEATURES = true;
+const ENABLE_EXPERIMENTAL_FEATURES = false;
 
 export const FEATURES = {
     // Export master switch status if needed for UI indications
