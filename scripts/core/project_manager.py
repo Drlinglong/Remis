@@ -6,7 +6,7 @@ import re
 import datetime
 import logging
 import asyncio
-from typing import List, Optional, Dict, Any, TYPE_CHECKING
+from typing import List, Optional, Dict, Any, Callable, TYPE_CHECKING
 from dataclasses import dataclass
 from pathlib import Path
 from scripts.app_settings import PROJECTS_DB_PATH, SOURCE_DIR, GAME_ID_ALIASES
@@ -217,7 +217,7 @@ class ProjectManager:
 
     # --- Workflows ---
 
-    async def run_incremental_update_workflow(self, config: "IncrementalUpdateConfig"):
+    async def run_incremental_update_workflow(self, config: Any, progress_callback: Optional[Callable] = None):
         """Orchestrates the incremental update workflow."""
         from scripts.workflows.update_translate import run_incremental_update
         from scripts.app_settings import LANGUAGE_BY_CODE, GAME_PROFILES, GAME_PROFILES_BY_ID
@@ -268,7 +268,8 @@ class ProjectManager:
             model_name=config.model,
             dry_run=config.dry_run,
             custom_source_path=config.custom_source_path,
-            use_resume=config.use_resume
+            use_resume=config.use_resume,
+            progress_callback=progress_callback
         )
 
     async def check_project_archive(self, project_id: str) -> Dict[str, Any]:

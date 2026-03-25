@@ -3,7 +3,7 @@ import logging
 import asyncio
 import datetime
 import uuid
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple, Optional, Callable
 from pathlib import Path
 
 from scripts.core.archive_manager import archive_manager
@@ -28,7 +28,8 @@ async def run_incremental_update(
     mod_context: str = "",
     dry_run: bool = False,
     custom_source_path: Optional[str] = None,
-    use_resume: bool = True
+    use_resume: bool = True,
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None
 ) -> Dict[str, Any]:
     """
     Runs the incremental translation workflow for multiple target languages.
@@ -104,6 +105,13 @@ async def run_incremental_update(
                         })
                 except Exception as e:
                     logger.error(f"Failed to parse {full_path}: {e}")
+        
+        if progress_callback:
+            progress_callback({
+                "stage": "Scanning",
+                "percent": 10,
+                "message": f"Scanned {len(current_files_data)} files."
+            })
 
     if not current_files_data:
         logger.warning(f"No source files found in {source_path}")
@@ -126,6 +134,13 @@ async def run_incremental_update(
     for target_lang_info in target_lang_infos:
         target_lang_code = target_lang_info['code']
         logger.info(f"--- Processing Target Language: {target_lang_code} ---")
+        
+        if progress_callback:
+            progress_callback({
+                "stage": "Preparing",
+                "percent": 20,
+                "message": f"Comparing {target_lang_code} with archive..."
+            })
         
         summary = {"total": 0, "new": 0, "changed": 0, "unchanged": 0}
         file_tasks_for_ai = []
@@ -235,12 +250,30 @@ async def run_incremental_update(
             def translate_batch(batch):
                 return handler.translate_batch(batch)
 
+            def internal_progress(current, total):
+                if progress_callback:
+                    # Map batch progress (20% to 90%)
+                    pct = 20 + int((current / total) * 70)
+                    progress_callback({
+                        "stage": "Translating",
+                        "percent": pct,
+                        "batch_idx": current,
+                        "total_batches": total,
+                        "message": f"Translating {target_lang_code}: {current}/{total} batches"
+                    })
+
             logger.info(f"Translating {len(file_tasks_for_ai)} files incrementally for {target_lang_code}...")
-            translated_results, warnings = processor.process_files_parallel(file_tasks_for_ai, translate_batch)
+            translated_results, warnings = processor.process_files_parallel(file_tasks_for_ai, translate_batch, internal_progress)
             overall_warnings.extend(warnings)
         else:
             translated_results = {}
             logger.info(f"Everything is up to date for {target_lang_code}.")
+            if progress_callback:
+                progress_callback({
+                    "stage": "Finishing",
+                    "percent": 90,
+                    "message": f"No new content for {target_lang_code}."
+                })
 
         # 4. Merge results and Write files for THIS language
         written_files = []

@@ -27,7 +27,8 @@ class ParallelProcessor:
     def process_files_parallel(
         self,
         file_tasks: List[FileTask],
-        translation_function: Callable
+        translation_function: Callable,
+        progress_callback: Optional[Callable[[int, int], None]] = None
     ) -> Tuple[Dict[str, List[str]], List[Dict[str, Any]]]:
         if not file_tasks:
             return {}, []
@@ -35,7 +36,7 @@ class ParallelProcessor:
         batch_tasks = self._create_batch_tasks(file_tasks)
         self.logger.info(i18n.t("parallel_processing_start", count=len(batch_tasks)))
         
-        batch_results, all_warnings = self._process_batches_parallel(batch_tasks, translation_function)
+        batch_results, all_warnings = self._process_batches_parallel(batch_tasks, translation_function, progress_callback)
         
         file_results = self._collect_file_results(file_tasks, batch_results)
         
@@ -70,7 +71,8 @@ class ParallelProcessor:
     def _process_batches_parallel(
         self,
         batch_tasks: List[BatchTask],
-        translation_function: Callable
+        translation_function: Callable,
+        progress_callback: Optional[Callable[[int, int], None]] = None
     ) -> Tuple[Dict[Tuple[str, int], BatchTask], List[Dict[str, Any]]]:
         if not batch_tasks:
             return {}, []
@@ -84,6 +86,9 @@ class ParallelProcessor:
                 for batch in batch_tasks
             }
 
+            total_batches = len(batch_tasks)
+            completed_batches = 0
+            
             for future in concurrent.futures.as_completed(future_to_batch):
                 batch_task = future_to_batch[future]
                 processed_task, warnings = future.result()
@@ -91,6 +96,13 @@ class ParallelProcessor:
                 batch_results[batch_key] = processed_task
                 if warnings:
                     all_warnings.extend(warnings)
+                
+                completed_batches += 1
+                if progress_callback:
+                    try:
+                        progress_callback(completed_batches, total_batches)
+                    except Exception as e:
+                        self.logger.error(f"Error in progress callback: {e}")
 
         if any(task.failed for task in batch_results.values()):
             failed_count = sum(1 for task in batch_results.values() if task.failed)

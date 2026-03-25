@@ -1,7 +1,7 @@
 import os
 import logging
-from fastapi import APIRouter, HTTPException
-from typing import Optional, Dict, Any
+from fastapi import APIRouter, HTTPException, BackgroundTasks
+from typing import Optional, Dict, Any, Callable
 
 from scripts.shared.services import project_manager
 from scripts.core.project_json_manager import ProjectJsonManager
@@ -10,9 +10,10 @@ from scripts.schemas.project import (
     UpdateProjectStatusRequest, 
     UpdateProjectNotesRequest, 
     UpdateProjectMetadataRequest, 
-    UpdateFileStatusRequest,
-    IncrementalUpdateRequest
+    UpdateProjectMetadataRequest, 
+    UpdateFileStatusRequest
 )
+from scripts.schemas.translation import IncrementalUpdateConfig
 from scripts.schemas.config import UpdateConfigRequest
 from scripts.utils.system_utils import sanitize_for_json
 
@@ -253,18 +254,63 @@ async def check_project_archive(project_id: str):
     """Checks if the project has sufficient archive data for incremental update."""
     return await project_manager.check_project_archive(project_id)
 
-from scripts.schemas.translation import IncrementalUpdateConfig
+def run_incremental_update_background(task_id: str, project_id: str, request: IncrementalUpdateConfig):
+    from scripts.shared.state import tasks
+    from scripts.shared.ws_manager import ws_manager
+    import threading
+    import asyncio
+    
+    # Initialize task state in sync way if needed, but it's already done in the route
+    task_lock = threading.Lock()
+    tasks[task_id]["status"] = "processing"
+    tasks[task_id]["progress"] = {"percent": 0, "stage": "Initializing", "message": "Starting..."}
+    
+    def progress_callback(data: Dict[str, Any]):
+        with task_lock:
+            if task_id not in tasks: return
+            tasks[task_id]["progress"].update(data)
+            if "message" in data:
+                tasks[task_id]["log"].append(data["message"])
+            
+            # WebSocket Push
+            ws_manager.sync_send_task_update(task_id, dict(tasks[task_id]))
+
+    try:
+        # Run the async workflow in this thread's event loop
+        result = asyncio.run(project_manager.run_incremental_update_workflow(request, progress_callback))
+        
+        if result.get("status") == "error":
+            tasks[task_id]["status"] = "failed"
+            tasks[task_id]["log"].append(f"Error: {result.get('message')}")
+        else:
+            tasks[task_id]["status"] = "completed"
+            tasks[task_id]["progress"]["percent"] = 100
+            tasks[task_id]["progress"]["stage"] = "Completed"
+            tasks[task_id]["log"].append("Incremental update completed successfully.")
+            tasks[task_id]["summary"] = result.get("summary")
+            
+    except Exception as e:
+        import traceback
+        logging.error(f"Incremental update background task failed: {e}")
+        tasks[task_id]["status"] = "failed"
+        tasks[task_id]["log"].append(f"Critical Failure: {str(e)}\n{traceback.format_exc()}")
+    finally:
+        # Final WS push
+        if task_id in tasks:
+            ws_manager.sync_send_task_update(task_id, dict(tasks[task_id]))
 
 @router.post("/api/project/{project_id}/incremental-update")
-async def run_incremental_update(project_id: str, request: IncrementalUpdateConfig):
-    """Triggers the incremental update workflow."""
-    # Ensure project_id matches
+async def run_incremental_update(project_id: str, request: IncrementalUpdateConfig, background_tasks: BackgroundTasks):
+    """Triggers the incremental update workflow in background."""
+    from scripts.shared.state import tasks
+    import uuid
+    
+    task_id = str(uuid.uuid4())
+    tasks[task_id] = {"status": "pending", "log": ["Queuing incremental update..."]}
+    
     if request.project_id != project_id:
         request.project_id = project_id
         
-    try:
-        result = await project_manager.run_incremental_update_workflow(request)
-        return result
-    except Exception as e:
-        logging.error(f"Error in incremental update: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    background_tasks.add_task(run_incremental_update_background, task_id, project_id, request)
+    
+    return {"task_id": task_id, "status": "started"}
