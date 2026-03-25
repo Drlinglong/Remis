@@ -1,235 +1,322 @@
-import shutil
+import json
 import logging
 import os
+import shutil
 import sqlite3
-from scripts import app_settings
-from sqlmodel import create_engine, SQLModel
-# Import models to register them with SQLModel.metadata
-from scripts.core.db_models import Project, ProjectFile, Glossary, GlossaryEntry
 
-# Setup a dedicated logger for initialization that writes to a file in AppData
+from scripts import app_settings
+from scripts.core.db_migrations import migrate_main_database
+
+
 init_logger = logging.getLogger("remis_init")
 init_logger.setLevel(logging.DEBUG)
+
 
 def setup_init_logging():
     try:
         log_dir = app_settings.APP_DATA_DIR
         log_file = os.path.join(log_dir, "init_debug.log")
-        file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        abs_log_file = os.path.abspath(log_file)
+        for handler in init_logger.handlers:
+            if isinstance(handler, logging.FileHandler) and getattr(handler, "baseFilename", "") == abs_log_file:
+                return
+
+        file_handler = logging.FileHandler(log_file, mode="w", encoding="utf-8")
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         file_handler.setFormatter(formatter)
         init_logger.addHandler(file_handler)
-        init_logger.info(f"Logging initialized. AppData: {log_dir}")
-        init_logger.info(f"Resource Dir: {app_settings.RESOURCE_DIR}")
+        init_logger.info("Logging initialized. AppData: %s", log_dir)
+        init_logger.info("Resource Dir: %s", app_settings.RESOURCE_DIR)
     except Exception:
         pass
 
-def fix_demo_paths(conn, persistent_demo_root, persistent_translation_root):
-    """Hydrates placeholders in the database with actual persistent AppData paths using robust regex."""
+
+def is_main_db_fresh(db_path):
+    if not os.path.exists(db_path) or os.path.getsize(db_path) < 1024:
+        return True
+
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+        table_count = cursor.fetchone()[0]
+        conn.close()
+        return table_count == 0
+    except Exception:
+        return True
+
+
+def import_seed_inserts(conn, seed_path, allowed_tables):
+    if not os.path.exists(seed_path):
+        init_logger.warning("[SEED] Missing seed file: %s", seed_path)
+        return 0
+
     import re
+
+    inserted = 0
+    statement_lines = []
+
+    def flush_statement():
+        nonlocal inserted
+        if not statement_lines:
+            return
+
+        statement = "\n".join(statement_lines).strip()
+        statement_lines.clear()
+
+        if not statement.upper().startswith("INSERT INTO"):
+            return
+
+        match = re.match(r"INSERT INTO\s+([A-Za-z_][A-Za-z0-9_]*)", statement, re.IGNORECASE)
+        if not match:
+            return
+
+        table_name = match.group(1)
+        if table_name not in allowed_tables:
+            return
+
+        safe_statement = re.sub(r"^INSERT INTO", "INSERT OR IGNORE INTO", statement, flags=re.IGNORECASE)
+        conn.execute(safe_statement)
+        inserted += 1
+
+    with open(seed_path, "r", encoding="utf-8") as handle:
+        for raw_line in handle:
+            stripped = raw_line.strip()
+            if not stripped or stripped.startswith("--"):
+                continue
+
+            statement_lines.append(raw_line.rstrip("\n"))
+            if stripped.endswith(";"):
+                flush_statement()
+
+    flush_statement()
+    return inserted
+
+
+def seed_main_database(db_path, resource_dir):
+    data_dir = os.path.join(resource_dir, "data")
+    seed_main = os.path.join(data_dir, "seed_data_main.sql")
+    seed_projects = os.path.join(data_dir, "seed_data_projects.sql")
+
+    conn = sqlite3.connect(db_path)
+    try:
+        main_count = import_seed_inserts(conn, seed_main, {"glossaries", "entries"})
+        project_count = import_seed_inserts(
+            conn,
+            seed_projects,
+            {"projects", "project_files", "project_history", "activity_log"},
+        )
+        conn.commit()
+        init_logger.info(
+            "[SEED] Imported %s main statements and %s project statements.",
+            main_count,
+            project_count,
+        )
+    finally:
+        conn.close()
+
+
+def fix_demo_paths(conn, persistent_demo_root, persistent_translation_root):
+    """Hydrates demo placeholders and legacy dev paths with current runtime paths."""
+    import re
+
     try:
         demo_root = persistent_demo_root.replace("\\", "/")
         trans_root = persistent_translation_root.replace("\\", "/")
         cursor = conn.cursor()
-        
-        # Check tables exist
+
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'")
         if not cursor.fetchone():
             return
 
-        init_logger.info(f"[INIT] Hydrating demo paths. Source: {demo_root}, Translation: {trans_root}")
-        
-        # 1. Update Placeholders
-        cursor.execute("UPDATE projects SET source_path = REPLACE(source_path, '{{BUNDLED_DEMO_ROOT}}', ?)", (demo_root,))
-        cursor.execute("UPDATE projects SET target_path = REPLACE(target_path, '{{BUNDLED_TRANSLATION_ROOT}}', ?)", (trans_root,))
-        
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_files'")
-        if cursor.fetchone():
-             cursor.execute("UPDATE project_files SET file_path = REPLACE(file_path, '{{BUNDLED_DEMO_ROOT}}', ?)", (demo_root,))
+        init_logger.info("[INIT] Hydrating demo paths. Source: %s, Translation: %s", demo_root, trans_root)
 
-        # 2. Robust Regex Fix for leaked Dev Paths (Case insensitive, slash agnostic)
-        # We find anything that looks like J:\...V3_Mod_Localization_Factory\source_mod\... and map to demo_root
-        # And any J:\...V3_Mod_Localization_Factory\my_translation\... map to trans_root
-        
+        demo_folders = [
+            "Test_Project_Remis_stellaris",
+            "Test_Project_Remis_Vic3",
+            "Test_Project_Remis_EU5",
+        ]
+        translation_folders = {
+            "zh-CN-Test_Project_Remis_stellaris": "zh-CN-Test_Project_Remis_stellaris",
+            "Multilanguage-Test_Project_Remis_stellaris": "zh-CN-Test_Project_Remis_stellaris",
+            "zh-CN-Test_Project_Remis_Vic3": "zh-CN-Test_Project_Remis_Vic3",
+            "Multilanguage-Test_Project_Remis_Vic3": "zh-CN-Test_Project_Remis_Vic3",
+            "zh-CN-Test_Project_Remis_EU5": "zh-CN-Test_Project_Remis_EU5",
+        }
+
+        def remap_known_path(path_value):
+            if not path_value:
+                return path_value
+
+            normalized = path_value.replace("\\", "/")
+            normalized = normalized.replace("{{BUNDLED_DEMO_ROOT}}", demo_root)
+            normalized = normalized.replace("{{BUNDLED_TRANSLATION_ROOT}}", trans_root)
+            normalized = normalized.replace("{{DEMO_ROOT}}/demos", demo_root)
+            normalized = normalized.replace("{{DEMO_ROOT}}", demo_root)
+
+            for folder in demo_folders:
+                marker = f"/{folder}"
+                if marker in normalized:
+                    suffix = normalized.split(marker, 1)[1]
+                    return f"{demo_root}/{folder}{suffix}"
+
+            for folder_name, bundled_name in translation_folders.items():
+                marker = f"/{folder_name}"
+                if marker in normalized:
+                    suffix = normalized.split(marker, 1)[1]
+                    return f"{trans_root}/{bundled_name}{suffix}"
+
+            return normalized
+
         dev_root_pattern = re.compile(r".*V3_Mod_Localization_Factory/source_mod/", re.IGNORECASE)
         trans_root_pattern = re.compile(r".*V3_Mod_Localization_Factory/my_translation/", re.IGNORECASE)
 
-        # Process projects
         cursor.execute("SELECT project_id, source_path, target_path FROM projects")
-        projects = cursor.fetchall()
-        for pid, s_path, t_path in projects:
-            if not s_path: continue
-            new_s = s_path.replace("\\", "/")
-            new_t = t_path.replace("\\", "/") if t_path else ""
-            
-            # Apply regex
+        for pid, s_path, t_path in cursor.fetchall():
+            if not s_path:
+                continue
+
+            new_s = remap_known_path(s_path)
+            new_t = remap_known_path(t_path) if t_path else ""
+
             if dev_root_pattern.search(new_s):
                 new_s = dev_root_pattern.sub(demo_root + "/", new_s)
-            
             if t_path and trans_root_pattern.search(new_t):
                 new_t = trans_root_pattern.sub(trans_root + "/", new_t)
-            
-            if new_s != s_path or new_t != t_path:
-                cursor.execute("UPDATE projects SET source_path = ?, target_path = ? WHERE project_id = ?", (new_s, new_t, pid))
 
-        # Process project_files
+            if new_s != s_path or new_t != t_path:
+                cursor.execute(
+                    "UPDATE projects SET source_path = ?, target_path = ? WHERE project_id = ?",
+                    (new_s, new_t, pid),
+                )
+
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_files'")
         if cursor.fetchone():
             cursor.execute("SELECT file_id, file_path FROM project_files")
-            files = cursor.fetchall()
-            for fid, f_path in files:
-                if not f_path: continue
-                new_f = f_path.replace("\\", "/")
+            for fid, f_path in cursor.fetchall():
+                if not f_path:
+                    continue
+
+                new_f = remap_known_path(f_path)
                 if dev_root_pattern.search(new_f):
                     new_f = dev_root_pattern.sub(demo_root + "/", new_f)
-                
+
                 if new_f != f_path:
                     cursor.execute("UPDATE project_files SET file_path = ? WHERE file_id = ?", (new_f, fid))
-        
-        # [REPAIR] Self-Healing for Known Hydration Errors
+
         init_logger.info("[INIT] Running self-healing repairs...")
-        
-        # 1. Fix Vic3 Demo Path (Multilanguage -> zh-CN)
-        # Fixes: C:/.../Multilanguage-Test_Project_Remis_Vic3 -> C:/.../zh-CN-Test_Project_Remis_Vic3
-        # [CRITICAL] Also rename the directory on disk if it exists!
+
         try:
             old_dir_name = "Multilanguage-Test_Project_Remis_Vic3"
             new_dir_name = "zh-CN-Test_Project_Remis_Vic3"
-            
-            p_trans_root = persistent_translation_root 
-            
-            old_full_path = os.path.join(p_trans_root, old_dir_name)
-            new_full_path = os.path.join(p_trans_root, new_dir_name)
-            
+            old_full_path = os.path.join(persistent_translation_root, old_dir_name)
+            new_full_path = os.path.join(persistent_translation_root, new_dir_name)
             if os.path.exists(old_full_path) and not os.path.exists(new_full_path):
-                import shutil
                 shutil.move(old_full_path, new_full_path)
-                init_logger.info(f"[REPAIR] Renamed valid disk folder: {old_dir_name} -> {new_dir_name}")
-            elif os.path.exists(old_full_path) and os.path.exists(new_full_path):
-                # Ambiguous state, merge or trust new? Trust new, maybe removing old to avoid confusion
-                # For safety, let's just log
-                init_logger.warning(f"[REPAIR] Both {old_dir_name} and {new_dir_name} exist. Using {new_dir_name}.")
+                init_logger.info("[REPAIR] Renamed valid disk folder: %s -> %s", old_dir_name, new_dir_name)
         except Exception as e:
-            init_logger.error(f"[REPAIR] Failed to rename disk folder: {e}")
+            init_logger.error("[REPAIR] Failed to rename disk folder: %s", e)
 
-        cursor.execute("""
-            UPDATE projects 
+        cursor.execute(
+            """
+            UPDATE projects
             SET target_path = REPLACE(target_path, 'Multilanguage-Test_Project_Remis_Vic3', 'zh-CN-Test_Project_Remis_Vic3')
-            WHERE project_id = 'a525f596-6c71-43fe-ade2-52c9205a2720' 
+            WHERE project_id = 'a525f596-6c71-43fe-ade2-52c9205a2720'
               AND target_path LIKE '%Multilanguage-Test_Project_Remis_Vic3%'
-        """)
-        if cursor.rowcount > 0:
-            init_logger.info(f"[REPAIR] Fixed {cursor.rowcount} Vic3 path issues.")
+            """
+        )
 
-        # 2. Fix Stellaris Demo Path (if needed)
         try:
             old_dir_name = "Multilanguage-Test_Project_Remis_stellaris"
             new_dir_name = "zh-CN-Test_Project_Remis_stellaris"
-            
-            p_trans_root = persistent_translation_root
-            
-            old_full_path = os.path.join(p_trans_root, old_dir_name)
-            new_full_path = os.path.join(p_trans_root, new_dir_name)
-            
+            old_full_path = os.path.join(persistent_translation_root, old_dir_name)
+            new_full_path = os.path.join(persistent_translation_root, new_dir_name)
             if os.path.exists(old_full_path) and not os.path.exists(new_full_path):
-                import shutil
                 shutil.move(old_full_path, new_full_path)
-                init_logger.info(f"[REPAIR] Renamed valid disk folder: {old_dir_name} -> {new_dir_name}")
+                init_logger.info("[REPAIR] Renamed valid disk folder: %s -> %s", old_dir_name, new_dir_name)
         except Exception as e:
-            init_logger.error(f"[REPAIR] Failed to rename disk folder (Stellaris): {e}")
+            init_logger.error("[REPAIR] Failed to rename disk folder (Stellaris): %s", e)
 
-        cursor.execute("""
-            UPDATE projects 
+        cursor.execute(
+            """
+            UPDATE projects
             SET target_path = REPLACE(target_path, 'Multilanguage-Test_Project_Remis_stellaris', 'zh-CN-Test_Project_Remis_stellaris')
             WHERE project_id = '6049331a-433d-4d09-9205-165c3aad6010'
               AND target_path LIKE '%Multilanguage-Test_Project_Remis_stellaris%'
-        """)
+            """
+        )
 
-        # 3. Ensure EU5 Demo Glossary is Main
-        # Fixes: Glossary not being selected automatically
-        cursor.execute("UPDATE glossaries SET is_main = 1 WHERE game_id = 'eu5' AND name = 'remis_demo_eu5' AND is_main = 0")
-        if cursor.rowcount > 0:
-            init_logger.info(f"[REPAIR] Fixed EU5 demo glossary is_main flag.")
-
+        cursor.execute(
+            "UPDATE glossaries SET is_main = 1 WHERE game_id = 'eu5' AND name = 'remis_demo_eu5' AND is_main = 0"
+        )
         conn.commit()
     except Exception as e:
-        init_logger.error(f"[ERROR] Failed to fix demo paths: {e}")
+        init_logger.error("[ERROR] Failed to fix demo paths: %s", e)
+
 
 def run_projects_db_migrations(db_path):
-    """Handles schema updates for the Projects database using SQLModel."""
+    """Handles schema updates for the managed main database."""
     try:
-        # Use sync engine for initialization
-        path = db_path.replace("\\", "/") # Ensure forward slashes for sqlite url
-        engine = create_engine(f"sqlite:///{path}")
-        SQLModel.metadata.create_all(engine)
-        init_logger.info("Database schema initialized/verified with SQLModel.")
+        version = migrate_main_database(db_path)
+        init_logger.info("Database schema initialized/verified with migrations. Current version: %s", version)
     except Exception as e:
-        init_logger.error(f"Failed to run DB migrations: {e}")
+        init_logger.error("Failed to run DB migrations: %s", e)
+
 
 def hydrate_json_configs(app_data_dir):
-    """Recursively finds all .remis_project.json files and fixes hardcoded paths safely and quickly."""
+    """Recursively finds all .remis_project.json files and fixes hardcoded paths."""
     init_logger.info("[JSON] Hydrating .remis_project.json files (Targeted Scan)...")
-    import json
-    import re
-    
-    # Normalize app_data_dir to forward slashes for replacement
+
     app_data_root = app_data_dir.replace("\\", "/")
-    
-    # Dev paths in both forward and escaped backslash formats
     dev_roots = [
-        'J:/V3_Mod_Localization_Factory',
-        'j:/V3_Mod_Localization_Factory',
-        'J:\\\\V3_Mod_Localization_Factory',  # Escaped backslashes in JSON
-        'j:\\\\V3_Mod_Localization_Factory',
+        "J:/V3_Mod_Localization_Factory",
+        "j:/V3_Mod_Localization_Factory",
+        "J:\\\\V3_Mod_Localization_Factory",
+        "j:\\\\V3_Mod_Localization_Factory",
     ]
-    
-    # Add source_mod -> demos mapping for path structure change
-    source_replacements = [
-        ('source_mod', 'demos'),  # source_mod in dev becomes demos in prod
-    ]
-    
+
     target_dirs = [
         os.path.join(app_data_dir, "my_translation"),
-        os.path.join(app_data_dir, "demos")
+        os.path.join(app_data_dir, "demos"),
     ]
-    
+
     fix_count = 0
     for target_dir in target_dirs:
         if not os.path.exists(target_dir):
             continue
-            
-        for root, dirs, files in os.walk(target_dir):
-            if ".remis_project.json" in files:
-                json_path = os.path.join(root, ".remis_project.json")
-                try:
-                    with open(json_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                    
-                    original_content = content
-                    
-                    # Replace all dev root variants
-                    for dr in dev_roots:
-                        content = content.replace(dr, app_data_root)
-                    
-                    # Also handle 'source_mod' -> 'demos' path structure
-                    content = content.replace('/source_mod/', '/demos/')
-                    content = content.replace('\\\\source_mod\\\\', '/demos/')
-                    
-                    # [FIX] Repair Multilanguage path legacy error in JSON
-                    content = content.replace('Multilanguage-Test_Project_Remis_Vic3', 'zh-CN-Test_Project_Remis_Vic3')
-                    content = content.replace('Multilanguage-Test_Project_Remis_stellaris', 'zh-CN-Test_Project_Remis_stellaris')
 
-                    # Normalize all double backslashes to forward slashes (JSON escaped)
-                    content = content.replace('\\\\', '/')
-                    
-                    if content != original_content:
-                        with open(json_path, 'w', encoding='utf-8') as f:
-                            f.write(content)
-                        fix_count += 1
-                        init_logger.info(f"[JSON] Fixed paths in: {json_path}")
-                except Exception as e:
-                    init_logger.error(f"Failed to hydrate JSON at {json_path}: {e}")
-    init_logger.info(f"[JSON] Hydration complete. Fixed {fix_count} config files.")
+        for root, _, files in os.walk(target_dir):
+            if ".remis_project.json" not in files:
+                continue
+
+            json_path = os.path.join(root, ".remis_project.json")
+            try:
+                with open(json_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+
+                original_content = content
+                for dev_root in dev_roots:
+                    content = content.replace(dev_root, app_data_root)
+
+                content = content.replace("/source_mod/", "/demos/")
+                content = content.replace("\\\\source_mod\\\\", "/demos/")
+                content = content.replace("Multilanguage-Test_Project_Remis_Vic3", "zh-CN-Test_Project_Remis_Vic3")
+                content = content.replace(
+                    "Multilanguage-Test_Project_Remis_stellaris",
+                    "zh-CN-Test_Project_Remis_stellaris",
+                )
+                content = content.replace("\\\\", "/")
+
+                if content != original_content:
+                    with open(json_path, "w", encoding="utf-8") as f:
+                        f.write(content)
+                    fix_count += 1
+                    init_logger.info("[JSON] Fixed paths in: %s", json_path)
+            except Exception as e:
+                init_logger.error("Failed to hydrate JSON at %s: %s", json_path, e)
+
+    init_logger.info("[JSON] Hydration complete. Fixed %s config files.", fix_count)
+
 
 def initialize_database():
     """Main entry point for DB setup."""
@@ -240,133 +327,97 @@ def initialize_database():
     app_data_dir = app_settings.APP_DATA_DIR
     resource_dir = app_settings.RESOURCE_DIR
     config_path = app_settings.get_appdata_config_path()
-    
+
     os.makedirs(app_data_dir, exist_ok=True)
     os.makedirs(os.path.dirname(remis_db_path), exist_ok=True)
-    
-    # [NEW] Config Self-Healing
+
     if not os.path.exists(config_path):
         init_logger.info("[INIT] Config missing. Creating default config.json.")
-        import json
         default_config = {
             "api_keys": {},
             "theme": "dark",
-            "language": "zh-CN"
+            "language": "zh-CN",
         }
         try:
-            with open(config_path, 'w', encoding='utf-8') as f:
+            with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(default_config, f, indent=4)
         except Exception as e:
-            init_logger.error(f"Failed to create config: {e}")
+            init_logger.error("Failed to create config: %s", e)
 
-    db_needs_init = False
-    
-    # [STALE PATH CHECK]
-    import sys
-    # [STALE PATH CHECK] - Only for Frozen (End User) builds
-    # In Dev mode, we expect V3_Mod_Localization_Factory paths.
-    if getattr(sys, "frozen", False) and os.path.exists(remis_db_path) and os.path.getsize(remis_db_path) > 1024:
-        try:
-            conn = sqlite3.connect(remis_db_path)
-            cursor = conn.cursor()
-            # Double check: Any remaining "V3_Mod_Localization_Factory" leaked paths?
-            cursor.execute("SELECT count(*) FROM projects WHERE source_path LIKE '%V3_Mod_Localization_Factory%' OR target_path LIKE '%V3_Mod_Localization_Factory%'")
-            if cursor.fetchone()[0] > 0:
-                db_needs_init = True
-                init_logger.info("Detected leaked paths in DB. Forcing re-init.")
-            
-            if not db_needs_init:
-                cursor.execute("SELECT count(*) FROM projects")
-                if cursor.fetchone()[0] == 0:
-                    db_needs_init = True
-                    init_logger.info("Projects table is empty. Forcing re-init.")
-            conn.close()
-        except Exception:
-            db_needs_init = True
+    main_db_is_fresh = is_main_db_fresh(remis_db_path)
+    if main_db_is_fresh:
+        init_logger.info("[INIT] Fresh main DB detected. Building schema and importing seeds.")
 
-    if not os.path.exists(remis_db_path) or os.path.getsize(remis_db_path) < 1024:
-        db_needs_init = True
-
-    if db_needs_init:
-        init_logger.info("[INIT] Extracting fresh DB from Skeleton...")
-        skeleton_source = os.path.join(resource_dir, "assets", "skeleton.sqlite")
-        try:
-            if os.path.exists(remis_db_path): os.remove(remis_db_path)
-            if os.path.exists(skeleton_source):
-                shutil.copy2(skeleton_source, remis_db_path)
-                init_logger.info("Skeleton DB copied.")
-            else:
-                init_logger.error("Skeleton DB missing!")
-        except Exception as e:
-            init_logger.error(f"DB Copy failed: {e}")
-        
-        # [NEW] Also extract mods_cache_skeleton.sqlite for pre-populated AI Drafts
-        mods_cache_path = os.path.join(app_data_dir, "mods_cache.sqlite")
-        mods_cache_skeleton = os.path.join(resource_dir, "assets", "mods_cache_skeleton.sqlite")
+    mods_cache_path = os.path.join(app_data_dir, "mods_cache.sqlite")
+    mods_cache_skeleton = os.path.join(resource_dir, "assets", "mods_cache_skeleton.sqlite")
+    if main_db_is_fresh:
         try:
             if os.path.exists(mods_cache_skeleton):
-                if os.path.exists(mods_cache_path): os.remove(mods_cache_path)
+                if os.path.exists(mods_cache_path):
+                    os.remove(mods_cache_path)
                 shutil.copy2(mods_cache_skeleton, mods_cache_path)
                 init_logger.info("Mods Cache Skeleton copied (AI Drafts pre-populated).")
             else:
                 init_logger.info("Mods Cache Skeleton not bundled. AI Drafts will be empty until Upload.")
         except Exception as e:
-            init_logger.error(f"Mods Cache Copy failed: {e}")
+            init_logger.error("Mods Cache Copy failed: %s", e)
 
-    # Extraction of Demo Mods
     p_demos = os.path.join(app_data_dir, "demos")
     b_demos = os.path.join(resource_dir, "demos")
     p_trans = os.path.join(app_data_dir, "my_translation")
     b_trans = os.path.join(resource_dir, "my_translation")
 
-    def extract(b, p, l, force=False):
-        if os.path.exists(b) and (not os.path.exists(p) or db_needs_init or force):
+    def extract(src_dir, dst_dir, label, force=False):
+        if os.path.exists(src_dir) and (not os.path.exists(dst_dir) or force):
             try:
-                if os.path.exists(p): shutil.rmtree(p)
-                shutil.copytree(b, p)
-                init_logger.info(f"{l} extracted (Force={force}).")
+                if os.path.exists(dst_dir):
+                    shutil.rmtree(dst_dir)
+                shutil.copytree(src_dir, dst_dir)
+                init_logger.info("%s extracted (Force=%s).", label, force)
                 return True
-            except Exception: pass
+            except Exception as e:
+                init_logger.error("Failed to extract %s: %s", label, e)
         return False
 
     def safe_extract_configs(src_dir, dst_dir):
-        """Extracts individual config files if they don't exist in destination."""
         if not os.path.exists(src_dir):
             return
         if not os.path.exists(dst_dir):
             try:
                 os.makedirs(dst_dir)
-            except OSError: pass
-            
+            except OSError:
+                return
+
         for filename in os.listdir(src_dir):
             src_file = os.path.join(src_dir, filename)
             dst_file = os.path.join(dst_dir, filename)
-            
             if os.path.isfile(src_file) and not os.path.exists(dst_file):
                 try:
                     shutil.copy2(src_file, dst_file)
-                    init_logger.info(f"[CONFIG] Extracted default config: {filename}")
+                    init_logger.info("[CONFIG] Extracted default config: %s", filename)
                 except Exception as e:
-                    init_logger.error(f"[CONFIG] Failed to extract {filename}: {e}")
+                    init_logger.error("[CONFIG] Failed to extract %s: %s", filename, e)
 
-    # Force update demos to ensure new assets (English files) are present
-    demo_ex = extract(b_demos, p_demos, "Demos", force=True) 
-    trans_ex = extract(b_trans, p_trans, "Translations", force=False)
-    
-    # Extract Configs (Safe Mode - Do not overwrite)
-    p_config = app_settings.CONFIG_DIR
-    b_config = os.path.join(resource_dir, "data", "config")
-    safe_extract_configs(b_config, p_config)
+    demo_extracted = extract(b_demos, p_demos, "Demos", force=main_db_is_fresh)
+    trans_extracted = extract(b_trans, p_trans, "Translations", force=False)
 
-    if demo_ex or trans_ex or db_needs_init:
+    config_dir = app_settings.CONFIG_DIR
+    bundled_config_dir = os.path.join(resource_dir, "data", "config")
+    safe_extract_configs(bundled_config_dir, config_dir)
+
+    run_projects_db_migrations(remis_db_path)
+
+    if main_db_is_fresh:
+        try:
+            seed_main_database(remis_db_path, resource_dir)
+        except Exception as e:
+            init_logger.error("[SEED] Failed to import main DB seed data: %s", e)
+
+    if demo_extracted or trans_extracted or main_db_is_fresh:
         try:
             conn = sqlite3.connect(remis_db_path)
             fix_demo_paths(conn, p_demos, p_trans)
             conn.close()
             hydrate_json_configs(app_data_dir)
-        except Exception: pass
-
-    # Migrations
-    try:
-        run_projects_db_migrations(remis_db_path)
-    except Exception: pass
+        except Exception as e:
+            init_logger.error("[INIT] Failed during path hydration: %s", e)

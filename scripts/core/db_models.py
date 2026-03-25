@@ -10,7 +10,10 @@ class Glossary(SQLModel, table=True):
     game_id: str = Field(index=True)
     name: str
     description: Optional[str] = None
+    version: Optional[str] = None
     is_main: bool = Field(default=False)
+    sources: List[str] = Field(default_factory=list, sa_column=Column(JSON))
+    raw_metadata: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
 
 class GlossaryEntry(SQLModel, table=True):
     __tablename__ = "entries"
@@ -19,10 +22,10 @@ class GlossaryEntry(SQLModel, table=True):
     glossary_id: int = Field(foreign_key="glossaries.glossary_id", index=True)
     
     # Use SQLAlchemy JSON column type to handle serialization automatically
-    translations: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
-    abbreviations: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
-    variants: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
-    raw_metadata: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
+    translations: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    abbreviations: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    variants: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    raw_metadata: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
 
 class Project(SQLModel, table=True):
     __tablename__ = "projects"
@@ -61,4 +64,13 @@ class ProjectHistory(SQLModel, table=True):
     action_type: str  # import, translate, edit, restore
     description: Optional[str] = None
     snapshot_id: Optional[int] = None
-    extra_metadata: Optional[str] = Field(default=None, sa_column=Column(JSON))
+    extra_metadata: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+
+class ActivityLog(SQLModel, table=True):
+    __tablename__ = "activity_log"
+
+    log_id: str = Field(primary_key=True)
+    project_id: str = Field(foreign_key="projects.project_id", index=True)
+    type: str
+    description: str
+    timestamp: str
