@@ -34,6 +34,8 @@ async def run_incremental_update(
     """
     Runs the incremental translation workflow for multiple target languages.
     """
+    # [OPTIMIZATION] Simple cache for global translation lookups within this session
+    global_reuse_cache = {} 
     project = await project_manager.get_project(project_id)
     if not project:
         return {"status": "error", "message": f"Project {project_id} not found"}
@@ -170,7 +172,8 @@ async def run_incremental_update(
         for i, fd in enumerate(current_files_data):
             filename = fd['filename']
             
-            if progress_callback and i % 5 == 0:
+            # Progress update for every file to keep UI alive
+            if progress_callback:
                 pct = 20 + int((i / num_files) * 30) # 20% to 50% for scanning
                 progress_callback({
                     "stage": "Comparing",
@@ -202,7 +205,14 @@ async def run_incremental_update(
                 }
 
                 if not hist or hist['original'] != source_text:
-                    global_trans = archive_manager.find_global_translation(key, source_text, target_lang_code)
+                    # [OPTIMIZATION] Use cache to avoid redundant SQL calls for common keys/texts
+                    cache_key = (lookup_key, source_text)
+                    if cache_key in global_reuse_cache:
+                        global_trans = global_reuse_cache[cache_key]
+                    else:
+                        global_trans = archive_manager.find_global_translation(lookup_key, source_text, target_lang_code)
+                        global_reuse_cache[cache_key] = global_trans
+                        
                     if global_trans:
                         summary["unchanged"] += 1
                         summary["reused_global"] = summary.get("reused_global", 0) + 1
