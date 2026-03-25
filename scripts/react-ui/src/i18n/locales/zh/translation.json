@@ -449,6 +449,7 @@
   "project_management.overview_title": "项目概览",
   "project_management.manage_project": "项目设置",
   "project_management.tabs_kanban": "任务看板",
+  "project_management.tabs_history": "历史",
   "project_management.tabs_overview": "状态概览",
   "project_management.delete_project": "删除项目",
   "project_management.tooltip_refresh": "如果您在源文件或翻译输出目录中增加或删除了文件，可以在此刷新文件详情列表",

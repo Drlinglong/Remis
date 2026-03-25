@@ -143,10 +143,18 @@ class ProofreadingService:
             
             # AI Draft
             lang_code = LanguageCode.from_str(current_lang).value
-            db_entries = self.archive_manager.get_entries(project['name'], template_file_path, lang_code)
+            db_entries = self.archive_manager.get_entries(
+                mod_name=project['name'],
+                file_path=template_file_path,
+                language=lang_code
+            )
             if not db_entries:
                 folder_mod_name = os.path.basename(project['source_path'])
-                db_entries = self.archive_manager.get_entries(folder_mod_name, template_file_path, lang_code)
+                db_entries = self.archive_manager.get_entries(
+                    mod_name=folder_mod_name,
+                    file_path=template_file_path,
+                    language=lang_code
+                )
 
             db_translation_map = {e['key']: e['translation'] for e in db_entries if e['translation']}
             
@@ -275,4 +283,3 @@ class ProofreadingService:
         except Exception as e:
             logger.error(f"ProofreadingService: Save failed: {e}", exc_info=True)
             return False
-

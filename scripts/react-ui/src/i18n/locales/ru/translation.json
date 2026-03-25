@@ -486,6 +486,7 @@
   "project_management.overview.to_be_proofread": "Нужна корректура",
   "project_management.details.lines_count": "Строк: {{count}}",
   "project_management.tabs_kanban": "Канбан-доска",
+  "project_management.tabs_history": "История",
   "project_management.tabs_overview": "Обзор статуса",
   "project_management.tooltip_refresh": "Обновить список файлов, если вы добавили или удалили их вручную",
   "project_management.tooltip_archive": "Переместить проект в архив.",

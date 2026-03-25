@@ -12,7 +12,7 @@ import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
 
 const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [checkingDiff, setCheckingDiff] = useState(false);
@@ -77,6 +77,62 @@ const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
         fetchHistory();
         // checkDiff(); // Removed auto-check to prevent unnecessary 422 errors or lag on mount
     }, [projectId]);
+
+    const translateHistoryAction = (actionType) => {
+        const actionKey = `agent_workshop.history.action_${actionType}`;
+        if (i18n.exists(actionKey)) {
+            return t(actionKey);
+        }
+        return t(`history.action_${actionType}`, actionType.toUpperCase());
+    };
+
+    const translateHistoryDescription = (event) => {
+        const metadata = event.extra_metadata || {};
+
+        if (typeof event.description === 'string' && i18n.exists(event.description)) {
+            return t(event.description, metadata);
+        }
+
+        if (typeof event.description === 'string' && event.description.startsWith('history.')) {
+            const legacyKey = event.description.replace(/^history\./, 'agent_workshop.history.');
+            if (i18n.exists(legacyKey)) {
+                return t(legacyKey, metadata);
+            }
+        }
+
+        if (event.action_type === 'archive_update') {
+            if (typeof metadata.match_count === 'number') {
+                return t('agent_workshop.history.archive_update_desc', metadata);
+            }
+            if (typeof event.description === 'string' && event.description.startsWith('Uploaded ')) {
+                return t('agent_workshop.history.archive_update_desc', metadata);
+            }
+        }
+
+        if (event.action_type === 'import') {
+            if (typeof event.description === 'string' && event.description.startsWith("Project '")) {
+                return t('agent_workshop.history.project_import_desc', { name: metadata.name || '' });
+            }
+        }
+
+        return event.description;
+    };
+
+    const shouldShowHistoryMetadata = (event) => {
+        if (!event.extra_metadata || Object.keys(event.extra_metadata).length === 0) {
+            return false;
+        }
+
+        if (typeof event.description === 'string' && i18n.exists(event.description)) {
+            return false;
+        }
+
+        if (typeof event.description === 'string' && event.description.startsWith('history.')) {
+            return false;
+        }
+
+        return !['archive_update', 'import'].includes(event.action_type);
+    };
 
     if (loading && history.length === 0) {
         return (
@@ -164,21 +220,21 @@ const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
                             <Timeline.Item
                                 key={event.history_id}
                                 bullet={
-                                    event.action_type === 'translate' ? <IconGitBranch size={18} /> :
+                                        event.action_type === 'translate' ? <IconGitBranch size={18} /> :
                                         event.action_type === 'import' ? <IconCheck size={18} /> :
                                             <IconInfoCircle size={18} />
                                 }
                                 title={
                                     <Group justify="space-between">
-                                        <Text fw={700}>{t(`history.action_${event.action_type}`, event.action_type.toUpperCase())}</Text>
+                                        <Text fw={700}>{translateHistoryAction(event.action_type)}</Text>
                                         <Text size="xs" c="dimmed">{new Date(event.timestamp).toLocaleString()}</Text>
                                     </Group>
                                 }
                             >
                                 <Paper withBorder p="sm" mt="xs" radius="md">
                                     <Stack gap="xs">
-                                        <Text size="sm">{t(event.description, event.extra_metadata)}</Text>
-                                        {event.extra_metadata && (
+                                        <Text size="sm">{translateHistoryDescription(event)}</Text>
+                                        {shouldShowHistoryMetadata(event) && (
                                             <Code block style={{ background: 'rgba(0,0,0,0.1)' }}>
                                                 {JSON.stringify(event.extra_metadata, null, 2)}
                                             </Code>

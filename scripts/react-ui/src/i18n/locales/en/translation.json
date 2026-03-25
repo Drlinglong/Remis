@@ -440,6 +440,7 @@
   "project_management.overview.to_be_proofread": "To Be Proofread",
   "project_management.details.lines_count": "Lines: {{count}}",
   "project_management.tabs_kanban": "Task Kanban",
+  "project_management.tabs_history": "History",
   "project_management.tabs_overview": "Status Overview",
   "project_management.tooltip_refresh": "If you have added or removed files in the source or translation output directories, you can refresh the file list here",
   "project_management.tooltip_archive": "Archive the project. Archived projects can be viewed in the Project Archives or restored to active status.",

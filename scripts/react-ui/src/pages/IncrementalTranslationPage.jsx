@@ -61,6 +61,7 @@ const IncrementalTranslationPage = () => {
     const [checkpointFound, setCheckpointFound] = useState(false);
     const [useResume, setUseResume] = useState(true);
     const wsRef = useRef(null);
+    const pollTimerRef = useRef(null);
 
     // Fetch basics
     useEffect(() => {
@@ -124,8 +125,12 @@ const IncrementalTranslationPage = () => {
             const res = await axios.get(`/api/project/${project.project_id}/check-archive`);
             if (res.data.exists) {
                 setArchiveInfo(res.data);
-                // Pre-select all available languages from archive or fallback to project target
-                const availableLangs = res.data.target_languages || [res.data.target_language] || [project.target_language_code] || ['zh-CN'];
+                // Incremental update should default to archived target languages only.
+                const availableLangs = (
+                    (Array.isArray(res.data.archived_languages) && res.data.archived_languages.length > 0)
+                        ? res.data.archived_languages
+                        : [res.data.target_language || project.target_language_code || 'zh-CN']
+                ).filter(Boolean);
                 setSelectedLangs(availableLangs);
                 // Also check for checkpoint (resume status)
                 checkCheckpoint(project, project.source_path, availableLangs);
@@ -245,6 +250,62 @@ const IncrementalTranslationPage = () => {
         }
     };
 
+    const clearTaskPolling = () => {
+        if (pollTimerRef.current) {
+            clearInterval(pollTimerRef.current);
+            pollTimerRef.current = null;
+        }
+    };
+
+    const handleTaskUpdate = (data, isPreScan = false) => {
+        if (!data) return;
+
+        if (data.progress) {
+            setProgress(data.progress.percent || 0);
+        }
+
+        if (data.log) {
+            setLogs(data.log);
+        }
+
+        if (data.status === 'completed') {
+            clearTaskPolling();
+            if (isPreScan) {
+                setScanResults(data.summary);
+                setActive(2);
+                setLoading(false);
+            } else {
+                setFinalSummary(data);
+                addLog(`Translation completed successfully!`);
+                setProgress(100);
+                setExecuting(false);
+            }
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
+        } else if (data.status === 'failed') {
+            clearTaskPolling();
+            addLog(`Task failed! Check logs for details.`, 'error');
+            if (isPreScan) setLoading(false);
+            else setExecuting(false);
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
+        }
+    };
+
+    const startTaskPolling = (taskId, isPreScan = false) => {
+        clearTaskPolling();
+        pollTimerRef.current = setInterval(async () => {
+            try {
+                const res = await axios.get(`/api/status/${taskId}`);
+                handleTaskUpdate(res.data, isPreScan);
+            } catch (err) {
+                console.error('Polling task status failed:', err);
+            }
+        }, 1000);
+    };
+
     const connectWebSocket = (taskId, isPreScan = false) => {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host;
@@ -252,49 +313,19 @@ const IncrementalTranslationPage = () => {
 
         console.log(`Connecting to WS (${isPreScan ? 'Pre-scan' : 'Execution'}): ${wsUrl}`);
         if (wsRef.current) wsRef.current.close();
+        startTaskPolling(taskId, isPreScan);
         
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
-
-            // Update progress
-            if (data.progress) {
-                setProgress(data.progress.percent || 0);
-            }
-
-            // Sync logs - backend sends the full tail (last 100 lines)
-            if (data.log) {
-                setLogs(data.log);
-            }
-
-            // Handle completion
-            if (data.status === 'completed') {
-                if (isPreScan) {
-                    setScanResults(data.summary);
-                    setActive(2);
-                    setLoading(false);
-                } else {
-                    setFinalSummary(data);
-                    addLog(`Translation completed successfully!`);
-                    setProgress(100);
-                    setExecuting(false);
-                }
-                ws.close();
-            } else if (data.status === 'failed') {
-                addLog(`Task failed! Check logs for details.`, 'error');
-                if (isPreScan) setLoading(false);
-                else setExecuting(false);
-                ws.close();
-            }
+            handleTaskUpdate(data, isPreScan);
         };
 
         ws.onerror = (err) => {
             console.error('WebSocket Error:', err);
-            addLog('WebSocket connection error.', 'error');
-            if (isPreScan) setLoading(false);
-            else setExecuting(false);
+            addLog('WebSocket connection error. Falling back to polling.', 'error');
         };
 
         ws.onclose = () => {
@@ -305,6 +336,7 @@ const IncrementalTranslationPage = () => {
     // Clean up WS on unmount
     useEffect(() => {
         return () => {
+            clearTaskPolling();
             if (wsRef.current) {
                 wsRef.current.close();
             }
@@ -405,7 +437,7 @@ const IncrementalTranslationPage = () => {
                                             )}
                                             <Badge color="green" leftSection={<IconCheck size={12} />}>
                                                 {t('incremental_translation.archive_found', {
-                                                    version: archiveInfo.version_id.substring(0, 8),
+                                                    version: String(archiveInfo.version_id ?? '').slice(0, 8),
                                                     date: new Date(archiveInfo.created_at).toLocaleDateString()
                                                 })}
                                             </Badge>
@@ -432,8 +464,11 @@ const IncrementalTranslationPage = () => {
 
                                     <MultiSelect
                                         label={t('translation_config.target_languages') || "Target Languages"}
-                                        description="Languages to process based on archive data"
-                                        data={(archiveInfo.target_languages || [archiveInfo.target_language || selectedProject?.target_language_code || 'zh-CN']).map(lang => ({ value: lang, label: lang }))}
+                                        description={t('incremental_translation.target_lang_desc', 'Only archived target languages are available for incremental update.')}
+                                        data={(archiveInfo.archived_languages && archiveInfo.archived_languages.length > 0
+                                            ? archiveInfo.archived_languages
+                                            : [archiveInfo.target_language || selectedProject?.target_language_code || 'zh-CN']
+                                        ).filter(Boolean).map(lang => ({ value: lang, label: lang }))}
                                         value={selectedLangs}
                                         onChange={setSelectedLangs}
                                         required

@@ -290,30 +290,20 @@ class ProjectManager:
             logging.error(f"[CheckArchive] No archive found for {project_name} (ID: {project_id})")
             return {"exists": False, "reason": "incremental_translation.archive_missing"}
             
-        target_languages = self.archive_service.archive_manager.get_archived_languages(latest_version['id'])
+        archived_languages = self.archive_service.archive_manager.get_archived_languages(latest_version['id'])
         target_lang = self.archive_service.archive_manager.detect_target_language(latest_version['id']) or "zh-CN"
         
+        target_languages = archived_languages or [target_lang]
+
         logging.info(f"[CheckArchive] Found archive v{latest_version['id']} for {project_name}. Languages: {target_languages}")
-        
-        from scripts.app_settings import GAME_PROFILES_BY_ID, LANGUAGES
-        game_profile = GAME_PROFILES_BY_ID.get(project.get('game_id', 'victoria3'))
-        all_supported_langs = []
-        if game_profile and "supported_language_keys" in game_profile:
-            for lk in game_profile["supported_language_keys"]:
-                lang_info = LANGUAGES.get(str(lk))
-                if lang_info:
-                    all_supported_langs.append(lang_info["code"])
-        
-        if not all_supported_langs:
-            all_supported_langs = ['zh-CN']
 
         return {
             "exists": True, 
             "version_id": latest_version['id'], 
             "created_at": latest_version['created_at'],
             "target_language": target_lang, 
-            "target_languages": all_supported_langs,
-            "archived_languages": target_languages,
+            "target_languages": target_languages,
+            "archived_languages": archived_languages,
             "project_name": project_name
         }
 

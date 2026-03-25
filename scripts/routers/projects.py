@@ -270,6 +270,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
             tasks[task_id]["progress"].update(data)
             if "message" in data:
                 tasks[task_id]["log"].append(data["message"])
+                logging.info(f"[IncrementalTask:{task_id}] {data['message']}")
             
             # WebSocket Push
             ws_manager.sync_send_task_update(task_id, dict(tasks[task_id]))
