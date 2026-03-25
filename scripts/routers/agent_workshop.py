@@ -35,6 +35,8 @@ class FixRequest(BaseModel):
     target_str: str
     error_type: str
     details: str
+    api_provider: Optional[str] = None
+    api_model: Optional[str] = None
 
 class FixResult(BaseModel):
     suggested_fix: str
@@ -93,12 +95,16 @@ async def scan_project(project_id: str):
         if not file_path.exists():
             continue
             
-        # Try to find the corresponding source file
-        match = re.search(r"(.+)_l_[a-z]+\.yml$", rel_path)
+        # Try to find the corresponding source file and determine target language
+        match = re.search(r"(.+)_l_(?P<lang_suffix>[a-z_]+)\.yml$", rel_path)
         source_entries = {}
+        target_lang = None
         
         if match:
-            from scripts.utils.i18n_utils import iso_to_paradox
+            from scripts.utils.i18n_utils import iso_to_paradox, paradox_to_iso
+            lang_suffix = match.group('lang_suffix')
+            target_lang = paradox_to_iso(lang_suffix)
+            
             source_paradox = iso_to_paradox(source_lang_iso)
             source_rel_path = f"{match.group(1)}_l_{source_paradox}.yml"
             
@@ -119,7 +125,8 @@ async def scan_project(project_id: str):
                     game_id, 
                     key, 
                     value, 
-                    source_value=source_entries.get(key, "")
+                    source_value=source_entries.get(key, ""),
+                    target_lang=target_lang
                 )
             except ValueError as e:
                 # Catch strict game ID validation error
@@ -142,6 +149,41 @@ async def scan_project(project_id: str):
                     
     return issues
 
+def apply_translation_fix_to_file(file_path: Path, key_to_fix: str, new_value: str) -> bool:
+    from scripts.core.loc_parser import parse_loc_file_with_lines
+    try:
+        entries = parse_loc_file_with_lines(file_path)
+        target_line = -1
+        for key, value, line_number in entries:
+            # Full key matching ensures we get `key:0` or just `key`
+            if key == key_to_fix or key.split(':')[0] == key_to_fix.split(':')[0]:
+                target_line = line_number
+                break
+                
+        if target_line != -1:
+            idx = target_line - 1
+            with open(file_path, 'r', encoding='utf-8-sig') as f:
+                lines = f.readlines()
+                
+            old_line = lines[idx]
+            first_quote = old_line.find('"')
+            # Look for the last quote from right, but not an escaped quote.
+            # Using rfind on `"` is ok because our Loc parser logic relies on simple quote framing.
+            last_quote = old_line.rfind('"', first_quote + 1)
+            
+            if first_quote != -1 and last_quote != -1:
+                safe_val = new_value.replace('"', r'\"')
+                lines[idx] = old_line[:first_quote+1] + safe_val + old_line[last_quote:]
+                with open(file_path, 'w', encoding='utf-8-sig') as f:
+                    f.writelines(lines)
+                return True
+        return False
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Failed to apply fix to {file_path}: {e}")
+        return False
+
+
 @router.post("/fix", response_model=FixResult)
 async def fix_issue(request: FixRequest):
     """
@@ -151,13 +193,16 @@ async def fix_issue(request: FixRequest):
     from scripts.app_settings import get_default_translation_config
     
     config = get_default_translation_config()
-    handler = get_handler(config['provider'], model_name=config['model'])
+    provider_name = request.api_provider if request.api_provider else config['provider']
+    model_name = request.api_model if request.api_model else config['model']
+    
+    handler = get_handler(provider_name, model_name=model_name)
     
     project = await project_manager.get_project(request.project_id)
     game_id = project.get('game_id', 'vic3') if project else 'vic3'
     
     agent = ReflexionFixAgent(handler)
-    result = await agent.fix_issue(
+    result = await agent.fix_issue_loop(
         request.source_str, 
         request.target_str, 
         request.error_type, 
@@ -165,8 +210,12 @@ async def fix_issue(request: FixRequest):
         game_id=game_id
     )
     
-    # If successful, mark as fixed in local log
+    # If successful, apply fix to file and mark as fixed in local log
     if result.get('status') == 'SUCCESS' and project:
+        target_path = Path(project['source_path']) / request.file_name
+        if target_path.exists():
+            apply_translation_fix_to_file(target_path, request.key, result['suggested_fix'])
+            
         ValidationLogger.update_error_status(
             project['source_path'], 
             request.file_name, 

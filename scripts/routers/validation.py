@@ -11,7 +11,8 @@ def validate_localization(payload: ValidationRequest):
         results = validate_text_util(
             game_id=payload.game_id,
             text=payload.content,
-            source_lang={"code": payload.source_lang_code}
+            source_lang={"code": payload.source_lang_code},
+            target_lang=getattr(payload, 'target_lang', None)
         )
         # Convert ValidationResult objects to dicts
         return [
@@ -48,7 +49,8 @@ def validate_file(payload: ValidateFileRequest):
             results = validate_text_util(
                 game_id=payload.game_id,
                 text=value,
-                line_number=line_number
+                line_number=line_number,
+                target_lang=getattr(payload, 'target_lang', None)
             )
             all_results.extend(results)
             

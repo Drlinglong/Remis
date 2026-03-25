@@ -940,6 +940,7 @@
     "description": "基于 Reflexion 智能体的自动化错误修复。系统将分析本地化错误并提供差异预览。",
     "select_project": "选择项目",
     "scan_btn": "扫描项目错误",
+    "rescan_btn": "重新扫描",
     "table_file": "文件",
     "table_key": "键名",
     "table_error": "错误类型",

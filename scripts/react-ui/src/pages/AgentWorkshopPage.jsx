@@ -27,9 +27,15 @@ const AgentWorkshopPage = () => {
     const [currentIssue, setCurrentIssue] = useState(null);
     const [fixResult, setFixResult] = useState(null);
     const [fixing, setFixing] = useState(false);
+    
+    // LLM Selection State
+    const [apiProviders, setApiProviders] = useState([]);
+    const [selectedProvider, setSelectedProvider] = useState('');
+    const [selectedModel, setSelectedModel] = useState('');
 
     useEffect(() => {
         fetchProjects();
+        fetchApiConfig();
     }, []);
 
     useEffect(() => {
@@ -51,6 +57,24 @@ const AgentWorkshopPage = () => {
             setProjects(projectOptions);
         } catch (err) {
             console.error("Failed to fetch projects", err);
+        }
+    };
+
+    const fetchApiConfig = async () => {
+        try {
+            const res = await axios.get('/api/locales/config');
+            const data = res.data;
+            if (data.api_providers) {
+                setApiProviders(data.api_providers);
+                if (data.api_providers.length > 0) {
+                    setSelectedProvider(data.api_providers[0].value);
+                    if (data.api_providers[0].models && data.api_providers[0].models.length > 0) {
+                        setSelectedModel(data.api_providers[0].models[0]);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Failed to fetch API config", err);
         }
     };
 
@@ -93,6 +117,8 @@ const AgentWorkshopPage = () => {
         try {
             const res = await axios.post('/api/agent-workshop/fix', {
                 project_id: selectedProject,
+                api_provider: selectedProvider,
+                api_model: selectedModel,
                 ...currentIssue
             });
             setFixResult(res.data);
@@ -141,7 +167,7 @@ const AgentWorkshopPage = () => {
                                 disabled={!selectedProject}
                                 variant={isCached ? "light" : "filled"}
                             >
-                                {isCached ? t('agent_workshop.rescan_btn') || "Rescan" : t('agent_workshop.scan_btn')}
+                                {isCached ? t('agent_workshop.rescan_btn') : t('agent_workshop.scan_btn')}
                             </Button>
                         </Group>
                         {isCached && (
@@ -159,7 +185,12 @@ const AgentWorkshopPage = () => {
                                     <Table.Thead>
                                         <Table.Tr>
                                             <Table.Th>{t('agent_workshop.table_file')}</Table.Th>
-                                            <Table.Th>{t('agent_workshop.table_error')}</Table.Th>
+                                            <Table.Th style={{ width: 200 }}>
+                                                <Group gap={4}>
+                                                    {t('agent_workshop.table_error')}
+                                                    <IconInfoCircle size={14} style={{ opacity: 0.6 }} />
+                                                </Group>
+                                            </Table.Th>
                                             <Table.Th>{t('agent_workshop.table_content')}</Table.Th>
                                             <Table.Th>{t('agent_workshop.table_action')}</Table.Th>
                                         </Table.Tr>
@@ -172,7 +203,20 @@ const AgentWorkshopPage = () => {
                                                     <Text size="xs" c="dimmed">{issue.key}</Text>
                                                 </Table.Td>
                                                 <Table.Td>
-                                                    <Badge color="red" variant="filled" size="sm">
+                                                    <Badge 
+                                                        color="red" 
+                                                        variant="light" 
+                                                        size="sm"
+                                                        style={{ 
+                                                            height: 'auto', 
+                                                            whiteSpace: 'normal', 
+                                                            padding: '4px 8px',
+                                                            textAlign: 'left',
+                                                            lineHeight: 1.2,
+                                                            display: 'block',
+                                                            maxWidth: 180
+                                                        }}
+                                                    >
                                                         {issue.error_type}
                                                     </Badge>
                                                 </Table.Td>
@@ -235,6 +279,36 @@ const AgentWorkshopPage = () => {
                                 <Code block color="red">{currentIssue?.target_str}</Code>
                                 <Text size="xs" mt={4}>{currentIssue?.details}</Text>
                             </Paper>
+                            
+                            {!fixResult && (
+                                <Group grow>
+                                    <Select
+                                        label={t('form_label_api_provider') || "LLM Provider"}
+                                        data={apiProviders}
+                                        value={selectedProvider}
+                                        onChange={(val) => {
+                                            setSelectedProvider(val);
+                                            const provider = apiProviders.find(p => p.value === val);
+                                            if (provider && provider.models && provider.models.length > 0) {
+                                                setSelectedModel(provider.models[0]);
+                                            } else {
+                                                setSelectedModel('');
+                                            }
+                                        }}
+                                        disabled={fixing}
+                                    />
+                                    <Select
+                                        label={t('form_label_api_model') || "AI Model"}
+                                        data={apiProviders.find(p => p.value === selectedProvider)?.models || []}
+                                        value={selectedModel}
+                                        onChange={setSelectedModel}
+                                        disabled={fixing || !selectedProvider}
+                                        searchable
+                                        creatable
+                                        getCreateLabel={(query) => `+ Create ${query}`}
+                                    />
+                                </Group>
+                            )}
 
                             {!fixResult && (
                                 <Button 

@@ -893,6 +893,7 @@
     "description": "AI-powered error correction using Reflexion agents. Analyze and fix localization violations with diff previews.",
     "select_project": "Select Project",
     "scan_btn": "Scan Project Errors",
+    "rescan_btn": "Rescan",
     "table_file": "File",
     "table_key": "Key",
     "table_error": "Error Type",

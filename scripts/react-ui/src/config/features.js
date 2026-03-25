@@ -1,9 +1,12 @@
 /**
- * Feature Flags configuration
- * Used to toggle features on/off for different builds/releases.
+ * =============================================================================
+ * 🏮 DEVELOPER OPTIONS / 开发者选项 🏮
+ * =============================================================================
+ * Toggle this to show/hide all work-in-progress (WIP) and experimental features.
+ * Used for development, debugging, and advanced functionality.
+ * =============================================================================
  */
-// MASTER SWITCH
-const ENABLE_EXPERIMENTAL_FEATURES = false; // Toggle this to show/hide all WIP features
+const ENABLE_EXPERIMENTAL_FEATURES = true;
 
 export const FEATURES = {
     // Export master switch status if needed for UI indications

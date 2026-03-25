@@ -41,6 +41,59 @@ class ReflexionFixAgent:
             "parity_message": parity_msg
         }
 
+    async def fix_issue_loop(self, source: str, target: str, error_type: str, details: str, game_id: str, max_retries: int = 3) -> Dict[str, Any]:
+        """
+        Runs the Reflexion workflow with up to max_retries, verifying against the PostProcessValidator.
+        """
+        from scripts.utils.post_process_validator import PostProcessValidator
+        validator = PostProcessValidator()
+        
+        current_target = target
+        current_error_type = error_type
+        current_details = details
+        
+        reflection = ""
+        suggested_fix = ""
+        
+        for attempt in range(max_retries):
+            self.logger.info(f"Fix Attempt {attempt + 1}/{max_retries} for error: {current_error_type}")
+            
+            # 1. Reflect & Fix
+            reflection = await self._reflect(source, current_target, current_error_type, current_details)
+            suggested_fix = await self._suggest_fix(source, current_target, reflection, game_id)
+            
+            # 2. Validate using the robust validator mechanism
+            results = validator.validate_entry(
+                game_id=game_id,
+                key="mock_key",
+                value=suggested_fix,
+                source_value=source
+            )
+            
+            # Filter for Errors (we ignore warnings and info in this context, or maybe warnings too?)
+            errors = [r for r in results if r.level.value == "error"]
+            if not errors:
+                self.logger.info("Validator passed. Fix successful.")
+                return {
+                    "suggested_fix": suggested_fix,
+                    "reflection": reflection,
+                    "status": "SUCCESS",
+                    "parity_message": "Validation passed according to game rules."
+                }
+            
+            # Prepare next iteration
+            self.logger.warning(f"Validator failed on attempt {attempt + 1}. Updating prompts.")
+            current_error_type = " | ".join([e.message for e in errors])
+            current_details = " | ".join([e.details for e in errors if e.details])
+            current_target = suggested_fix
+            
+        return {
+            "suggested_fix": suggested_fix,
+            "reflection": reflection,
+            "status": "FAILED",
+            "parity_message": f"Failed after {max_retries} attempts. Remaining errors: {current_error_type}."
+        }
+
     async def _reflect(self, source: str, target: str, error_type: str, details: str) -> str:
         prompt = (
             "You are a Localization QA Specialist. Analyze the following translation error.\n\n"
