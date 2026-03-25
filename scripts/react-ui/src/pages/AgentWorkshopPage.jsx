@@ -66,15 +66,14 @@ const AgentWorkshopPage = () => {
 
     const fetchApiConfig = async () => {
         try {
-            const res = await axios.get('/api/locales/config');
+            const res = await axios.get('/api/config');
             const data = res.data;
             if (data.api_providers) {
                 setApiProviders(data.api_providers);
                 if (data.api_providers.length > 0) {
                     setSelectedProvider(data.api_providers[0].value);
-                    if (data.api_providers[0].models && data.api_providers[0].models.length > 0) {
-                        setSelectedModel(data.api_providers[0].models[0]);
-                    }
+                    const firstProvider = data.api_providers[0];
+                    setSelectedModel(firstProvider.selected_model || firstProvider.available_models?.[0] || firstProvider.custom_models?.[0] || '');
                 }
             }
         } catch (err) {
@@ -216,8 +215,12 @@ const AgentWorkshopPage = () => {
                                 onChange={(val) => {
                                     setSelectedProvider(val);
                                     const provider = apiProviders.find(p => p.value === val);
-                                    if (provider && provider.models && provider.models.length > 0) {
-                                        setSelectedModel(provider.models[0]);
+                                    const allModels = [
+                                        ...(provider?.available_models || []),
+                                        ...(provider?.custom_models || [])
+                                    ];
+                                    if (allModels.length > 0) {
+                                        setSelectedModel(allModels[0]);
                                     } else {
                                         setSelectedModel('');
                                     }
@@ -226,13 +229,14 @@ const AgentWorkshopPage = () => {
                             />
                             <Select
                                 label={t('form_label_api_model') || "AI Model"}
-                                data={apiProviders.find(p => p.value === selectedProvider)?.models || []}
+                                data={[
+                                    ...(apiProviders.find(p => p.value === selectedProvider)?.available_models || []),
+                                    ...(apiProviders.find(p => p.value === selectedProvider)?.custom_models || [])
+                                ]}
                                 value={selectedModel}
                                 onChange={setSelectedModel}
                                 disabled={fixing || !selectedProvider}
                                 searchable
-                                creatable
-                                getCreateLabel={(query) => `+ Create ${query}`}
                             />
                             <Group>
                                 <Button 
