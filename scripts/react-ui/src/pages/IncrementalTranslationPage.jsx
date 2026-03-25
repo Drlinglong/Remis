@@ -19,6 +19,7 @@ import {
     Divider,
     MultiSelect,
     Box,
+    LoadingOverlay,
 } from '@mantine/core';
 import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, IconPlayerPlay, IconChartBar, IconSettings, IconCloudDownload } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -364,8 +365,18 @@ const IncrementalTranslationPage = () => {
                     description={t('incremental_translation.step_2_desc')}
                     icon={<IconSettings size={18} />}
                 >
-                    <Stack mt="xl" gap="md">
-                        {loading && <Text>Loading...</Text>}
+                    <Stack mt="xl" gap="md" style={{ position: 'relative' }}>
+                        <LoadingOverlay visible={loading} overlayProps={{ radius: "sm", blur: 2 }} />
+                        
+                        {loading && (
+                            <Paper withBorder p="md" radius="md">
+                                <Stack gap="xs">
+                                    <Text size="sm" fw={500}>{t('incremental_translation.status_processing')}</Text>
+                                    <Progress value={progress} animated />
+                                    <Text size="xs" c="dimmed">{logs[logs.length - 1]}</Text>
+                                </Stack>
+                            </Paper>
+                        )}
 
                         {error && (
                             <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" radius="md">

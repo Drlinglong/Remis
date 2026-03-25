@@ -135,30 +135,61 @@ async def run_incremental_update(
         target_lang_code = target_lang_info['code']
         logger.info(f"--- Processing Target Language: {target_lang_code} ---")
         
-        if progress_callback:
-            progress_callback({
-                "stage": "Preparing",
-                "percent": 20,
-                "message": f"Comparing {target_lang_code} with archive..."
-            })
-        
         summary = {"total": 0, "new": 0, "changed": 0, "unchanged": 0}
         file_tasks_for_ai = []
         processing_records = []
         
+        # [OPTIMIZATION] Pre-fetch all history entries for this mod/language to avoid N+1 queries
+        logger.info(f"Pre-fetching archive for {project_name} ({target_lang_code})...")
+        if progress_callback:
+            progress_callback({
+                "stage": "Preparing",
+                "percent": 15,
+                "message": f"Pre-fetching archive for {target_lang_code}..."
+            })
+        
+        # We need to know which file each entry belongs to. 
+        # get_entries for a mod returns a list. We need to tweak it or the archive_manager to support bulk fetch with filename.
+        # However, for now, let's just fetch all and group them if the archive supports it.
+        # Refactoring get_entries to be more efficient or using a new method.
+        # Let's assume we can get a map of {filename: {key: entry}}
+        
+        history_map_by_file = {}
+        # Fetch all entries for the project in this language
+        all_entries = archive_manager.get_entries(project_name, language=target_lang_code)
+        # Note: ArchiveManager.get_entries currently doesn't return filename in the list objects 
+        # unless we modify it. Let's look at ArchiveManager.get_entries implementation.
+        # Wait, if we can't easily group by file, we can at least group by key if keys are unique mod-wide.
+        # Paradox keys are usually unique mod-wide.
+        history_map_global = {e['key']: e for e in all_entries}
+        
         # 2. Compare with Archive & Prepare Tasks for THIS language
-        for fd in current_files_data:
+        num_files = len(current_files_data)
+        for i, fd in enumerate(current_files_data):
             filename = fd['filename']
-            history_entries = archive_manager.get_entries(project_name, filename, language=target_lang_code)
-            history_map = {e['key']: e for e in history_entries}
-
+            
+            if progress_callback and i % 5 == 0:
+                pct = 20 + int((i / num_files) * 30) # 20% to 50% for scanning
+                progress_callback({
+                    "stage": "Comparing",
+                    "percent": pct,
+                    "message": f"Comparing {filename} ({i+1}/{num_files})"
+                })
+            
             texts_to_translate = []
             key_delta_indices = []
             full_file_entries = []
 
             for key, source_text, line_num in fd['parsed_entries']:
                 summary["total"] += 1
-                hist = history_map.get(key)
+                
+                # Normalize key for lookup
+                lookup_key = key
+                if lookup_key.endswith(":"):
+                    lookup_key = lookup_key[:-1].strip()
+                
+                # Check history map
+                hist = history_map_global.get(lookup_key)
                 
                 entry_info = {
                     'key': key, 
@@ -355,6 +386,14 @@ async def run_incremental_update(
         )
 
     if dry_run:
+        if progress_callback:
+            progress_callback({
+                "stage": "Completed",
+                "percent": 100,
+                "message": "Pre-scan completed.",
+                "status": "completed", # Redundant but helps
+                "summary": overall_summary
+            })
         return {"status": "success", "summary": overall_summary}
 
     return {
