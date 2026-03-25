@@ -16,9 +16,9 @@ import {
     TextInput,
     Progress,
     ScrollArea,
-    Table,
     Divider,
     MultiSelect,
+    Box,
 } from '@mantine/core';
 import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, IconPlayerPlay, IconChartBar, IconSettings, IconCloudDownload } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
