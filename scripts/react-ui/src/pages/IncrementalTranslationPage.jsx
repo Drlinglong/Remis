@@ -62,6 +62,7 @@ const IncrementalTranslationPage = () => {
     const [useResume, setUseResume] = useState(true);
     const wsRef = useRef(null);
     const pollTimerRef = useRef(null);
+    const logViewportRef = useRef(null);
 
     // Fetch basics
     useEffect(() => {
@@ -348,8 +349,8 @@ const IncrementalTranslationPage = () => {
     };
 
     useEffect(() => {
-        if (logScrollRef.current) {
-            logScrollRef.current.scrollTo({ top: logScrollRef.current.scrollHeight, behavior: 'smooth' });
+        if (logViewportRef.current) {
+            logViewportRef.current.scrollTo({ top: logViewportRef.current.scrollHeight, behavior: 'smooth' });
         }
     }, [logs]);
 
@@ -594,7 +595,15 @@ const IncrementalTranslationPage = () => {
                                 </Text>
                             </Group>
 
-                            <ScrollArea h={400} offsetScrollbars p="md" style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, border: '1px solid var(--glass-border)' }}>
+                            <ScrollArea
+                                h={400}
+                                offsetScrollbars
+                                type="always"
+                                scrollHideDelay={0}
+                                p="md"
+                                viewportRef={logViewportRef}
+                                style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, border: '1px solid var(--glass-border)' }}
+                            >
                                 <div ref={logScrollRef}>
                                     {logs.map((log, i) => {
                                         const isError = log.includes('ERROR') || log.includes('failed');
