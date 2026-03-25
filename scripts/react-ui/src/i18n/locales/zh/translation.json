@@ -905,6 +905,7 @@
     "select_project_first": "请先从列表中选择一个项目",
     "archive_found": "检测到存档点：版本 {{version}}, 最后更新于 {{date}}",
     "archive_missing": "未检测到该项目的翻译存档。增量对比失败。",
+    "no_translations_found": "存档中未发现任何翻译条目。请确认是否已上载有效的翻译文件。",
     "archive_missing_action": "请先完成一次“初次翻译”或手动“上载已有翻译”以建立存档。",
     "select_new_folder": "选择新的 Mod 文件夹",
     "select_new_folder_desc": "包含最新源码的 Mod 目录（通常是更新后的 Mod 文件夹）",
@@ -961,6 +962,16 @@
     "modal_error_detected": "检测到错误",
     "regenerate": "重新生成",
     "fix_all": "一键修复全部",
-    "select_model_hint": "请先在上方选择 AI 模型"
+    "select_model_hint": "请先在上方选择 AI 模型",
+    "history": {
+        "action_import": "项目导入",
+        "action_archive_update": "存档更新",
+        "action_path_registered": "路径注册",
+        "action_translate": "翻译执行",
+        "action_note_added": "添加备注",
+        "action_status_change": "状态变更",
+        "project_import_desc": "项目 '{{name}}' 已创建并导入源码文件。",
+        "archive_update_desc": "已成功将 {{match_count}} 条翻译上载至项目存档。"
+    }
   }
 }

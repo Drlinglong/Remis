@@ -43,7 +43,7 @@ class ArchiveManager:
         cursor = conn.cursor()
         cursor.execute("CREATE TABLE IF NOT EXISTS mods (mod_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
         cursor.execute("CREATE TABLE IF NOT EXISTS mod_identities (identity_id INTEGER PRIMARY KEY AUTOINCREMENT, mod_id INTEGER NOT NULL, remote_file_id TEXT NOT NULL UNIQUE, FOREIGN KEY (mod_id) REFERENCES mods (mod_id))")
-        cursor.execute("CREATE TABLE IF NOT EXISTS source_versions (version_id INTEGER PRIMARY KEY AUTOINCREMENT, mod_id INTEGER NOT NULL, snapshot_hash TEXT NOT NULL UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (mod_id) REFERENCES mods (mod_id))")
+        cursor.execute("CREATE TABLE IF NOT EXISTS source_versions (version_id INTEGER PRIMARY KEY AUTOINCREMENT, mod_id INTEGER NOT NULL, snapshot_hash TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (mod_id) REFERENCES mods (mod_id), UNIQUE(mod_id, snapshot_hash))")
         
         # [MODIFIED] Unique constraint includes file_path to support duplicate keys in different files
         cursor.execute("""
@@ -97,6 +97,58 @@ class ArchiveManager:
             logging.error(i18n.t("log_error_db_get_create_mod_id", error=e))
             self.connection.rollback()
             return None
+    def get_mod_id_by_remote_id(self, remote_file_id: str) -> Optional[int]:
+        """Looks up a mod_id using the remote_file_id (project_id)."""
+        if not self.connection: return None
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT mod_id FROM mod_identities WHERE remote_file_id = ?", (remote_file_id,))
+        result = cursor.fetchone()
+        return result['mod_id'] if result else None
+
+    def get_latest_version(self, mod_name: str = None, mod_id: int = None, project_id: str = None) -> Optional[Dict[str, Any]]:
+        """
+        Retrieves the latest version of a mod. 
+        Priority: project_id (remote_file_id) > mod_id > mod_name.
+        """
+        if not self.connection: return None
+        cursor = self.connection.cursor()
+
+        # 1. Try by Project ID (remote_file_id)
+        if project_id:
+            mod_id = self.get_mod_id_by_remote_id(project_id)
+            if mod_id:
+                logging.info(f"[Archive] Found mod_id {mod_id} by project_id {project_id}")
+        
+        # 2. Try by Exact Name
+        if not mod_id and mod_name:
+            cursor.execute("SELECT mod_id FROM mods WHERE name = ?", (mod_name.strip(),))
+            row = cursor.fetchone()
+            if row:
+                mod_id = row['mod_id']
+                logging.info(f"[Archive] Found mod_id {mod_id} by exact name: '{mod_name}'")
+                
+        # 3. Fuzzy match fallback by name (trimmed, case-insensitive)
+        if not mod_id and mod_name:
+            cursor.execute("SELECT mod_id, name FROM mods WHERE name LIKE ?", (f"%{mod_name.strip()}%",))
+            rows = cursor.fetchall()
+            if rows:
+                mod_id = rows[0]['mod_id']
+                logging.warning(f"[Archive] Fuzzy match for '{mod_name}' found mod_id {mod_id} (Actual name in DB: '{rows[0]['name']}')")
+
+        if not mod_id:
+            logging.error(f"[Archive] Could not find any archive for project_id={project_id}, mod_name='{mod_name}'")
+            return None
+
+        cursor.execute("SELECT version_id, created_at FROM source_versions WHERE mod_id = ? ORDER BY created_at DESC LIMIT 1", (mod_id,))
+        ver_row = cursor.fetchone()
+        if not ver_row:
+            logging.error(f"[Archive] Found mod_id {mod_id} but it has NO source_versions!")
+            return None
+        
+        return {
+            "id": ver_row['version_id'],
+            "created_at": ver_row['created_at']
+        }
 
     def create_source_version(self, mod_id: int, all_files_data: List[Dict]) -> Optional[int]:
         """阶段二: 计算哈希，如果不存在则创建源版本快照"""
@@ -114,8 +166,8 @@ class ArchiveManager:
 
         cursor = self.connection.cursor()
         try:
-            # 2. 检查哈希是否存在
-            cursor.execute("SELECT version_id FROM source_versions WHERE snapshot_hash = ?", (snapshot_hash,))
+            # 2. 检查哈希是否存在 (FOR THIS MOD)
+            cursor.execute("SELECT version_id FROM source_versions WHERE mod_id = ? AND snapshot_hash = ?", (mod_id, snapshot_hash))
             result = cursor.fetchone()
             if result:
                 logging.info(i18n.t("log_info_source_version_exists", hash=snapshot_hash[:7], version_id=result['version_id']))
@@ -237,33 +289,6 @@ class ArchiveManager:
 
     # --- New Methods for Project/Proofreading Flow ---
 
-    def get_latest_version(self, mod_name: str) -> Optional[Dict[str, Any]]:
-        """Retrieves the latest version information for a given mod name."""
-        if not self.connection: return None
-        cursor = self.connection.cursor()
-        
-        query = '''
-            SELECT v.version_id, v.mod_id, v.snapshot_hash, v.created_at
-            FROM source_versions v
-            JOIN mods m ON v.mod_id = m.mod_id
-            WHERE m.name = ?
-            ORDER BY v.created_at DESC LIMIT 1
-        '''
-        try:
-            cursor.execute(query, (mod_name,))
-            row = cursor.fetchone()
-            if row:
-                return {
-                    "id": str(row['version_id']),
-                    "mod_id": row['mod_id'],
-                    "hash": row['snapshot_hash'],
-                    "created_at": row['created_at']
-                }
-            return None
-        except Exception as e:
-            logging.error(f"Failed to get latest version: {e}")
-            return None
-
     def get_all_mod_names(self) -> List[str]:
         """Returns a list of all mod names in the archive."""
         if not self.connection: return []
@@ -314,19 +339,26 @@ class ArchiveManager:
             logging.error(f"Failed to get archived languages: {e}")
             return []
 
-    def get_entries(self, mod_name: str, file_path: str = None, language: str = "zh-CN", limit: int = None) -> List[Dict[str, Any]]:
+    def get_entries(self, mod_name: str = None, project_id: str = None, file_path: str = None, language: str = "zh-CN", limit: int = None) -> List[Dict[str, Any]]:
         """
-        Retrieves merged source and translation entries for a specific file (or all files if file_path is None) 
-        in the latest version of a mod.
+        Retrieves merged source and translation entries. 
+        Priority: project_id > mod_name.
         """
         if not self.connection: return []
         cursor = self.connection.cursor()
 
         # 1. Get Mod ID
-        cursor.execute("SELECT mod_id FROM mods WHERE name = ?", (mod_name,))
-        mod_row = cursor.fetchone()
-        if not mod_row: return []
-        mod_id = mod_row['mod_id']
+        mod_id = None
+        if project_id:
+            mod_id = self.get_mod_id_by_remote_id(project_id)
+        
+        if not mod_id and mod_name:
+            cursor.execute("SELECT mod_id FROM mods WHERE name = ?", (mod_name.strip(),))
+            mod_row = cursor.fetchone()
+            if mod_row:
+                mod_id = mod_row['mod_id']
+        
+        if not mod_id: return []
 
         # 2. Get Latest Version ID
         cursor.execute("SELECT version_id FROM source_versions WHERE mod_id = ? ORDER BY created_at DESC LIMIT 1", (mod_id,))

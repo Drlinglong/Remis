@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, field_validator
 from scripts.schemas.common import LanguageCode
 
@@ -55,7 +55,24 @@ class ProjectFile(BaseModel):
     file_type: str 
 
 class IncrementalUpdateRequest(BaseModel):
+    project_id: Optional[str] = None
+    target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
+    api_provider: str = "gemini"
+    provider: Optional[str] = None # Alias for api_provider (for legacy/frontend compatibility)
+    model: str = "gemini-pro"
+    mod_context: Optional[str] = ""
     dry_run: bool = False
-    provider: str = "gemini"
-    model: Optional[str] = None
     custom_source_path: Optional[str] = None
+    use_resume: bool = True
+
+    @field_validator('target_lang_codes', mode='before')
+    @classmethod
+    def normalize_target_langs(cls, v):
+        from scripts.schemas.common import LanguageCode
+        if isinstance(v, str):
+            if "," in v:
+                return [LanguageCode.from_str(code.strip()) for code in v.split(",") if code.strip()]
+            return [LanguageCode.from_str(v)]
+        if isinstance(v, list):
+            return [LanguageCode.from_str(code) if isinstance(code, str) else code for code in v]
+        return v

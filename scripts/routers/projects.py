@@ -10,10 +10,9 @@ from scripts.schemas.project import (
     UpdateProjectStatusRequest, 
     UpdateProjectNotesRequest, 
     UpdateProjectMetadataRequest, 
-    UpdateProjectMetadataRequest, 
-    UpdateFileStatusRequest
+    UpdateFileStatusRequest,
+    IncrementalUpdateRequest
 )
-from scripts.schemas.translation import IncrementalUpdateConfig
 from scripts.schemas.config import UpdateConfigRequest
 from scripts.utils.system_utils import sanitize_for_json
 
@@ -254,7 +253,7 @@ async def check_project_archive(project_id: str):
     """Checks if the project has sufficient archive data for incremental update."""
     return await project_manager.check_project_archive(project_id)
 
-def run_incremental_update_background(task_id: str, project_id: str, request: IncrementalUpdateConfig):
+def run_incremental_update_background(task_id: str, project_id: str, request: IncrementalUpdateRequest):
     from scripts.shared.state import tasks
     from scripts.shared.ws_manager import ws_manager
     import threading
@@ -300,7 +299,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
             ws_manager.sync_send_task_update(task_id, dict(tasks[task_id]))
 
 @router.post("/api/project/{project_id}/incremental-update")
-async def run_incremental_update(project_id: str, request: IncrementalUpdateConfig, background_tasks: BackgroundTasks):
+async def run_incremental_update(project_id: str, request: IncrementalUpdateRequest, background_tasks: BackgroundTasks):
     """Triggers the incremental update workflow in background."""
     from scripts.shared.state import tasks
     import uuid

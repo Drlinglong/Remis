@@ -12,7 +12,7 @@ from pathlib import Path
 from scripts.app_settings import PROJECTS_DB_PATH, SOURCE_DIR, GAME_ID_ALIASES
 
 if TYPE_CHECKING:
-    from scripts.schemas.translation import IncrementalUpdateConfig
+    from scripts.schemas.project import IncrementalUpdateRequest
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -138,7 +138,8 @@ class ProjectManager:
         await self.log_history_event(
             project_id=project_id,
             action_type="import",
-            description=f"Project '{name}' created and source files imported."
+            description="history.project_import_desc",
+            metadata={"name": name}
         )
         
         return saved_project.model_dump()
@@ -222,6 +223,10 @@ class ProjectManager:
         from scripts.workflows.update_translate import run_incremental_update
         from scripts.app_settings import LANGUAGE_BY_CODE, GAME_PROFILES, GAME_PROFILES_BY_ID
         
+        # Handle case where frontend sends api_provider instead of provider
+        provider = config.api_provider or config.provider or "gemini"
+        model = config.model
+        
         project_id = config.project_id
         project = await self.get_project(project_id)
         if not project:
@@ -279,24 +284,36 @@ class ProjectManager:
             return {"exists": False, "reason": "Project not found"}
         
         project_name = project['name']
-        # Target language code is extracted dynamically from archive. 
         
-        latest_version = self.archive_service.archive_manager.get_latest_version(project_name)
+        latest_version = self.archive_service.archive_manager.get_latest_version(mod_name=project_name, project_id=project_id)
         if not latest_version:
-            return {"exists": False, "reason": "No previous version found in archive."}
+            logging.error(f"[CheckArchive] No archive found for {project_name} (ID: {project_id})")
+            return {"exists": False, "reason": "incremental_translation.archive_missing"}
             
         target_languages = self.archive_service.archive_manager.get_archived_languages(latest_version['id'])
-        if not target_languages:
-            return {"exists": False, "reason": "No translations found in archive."}
-        
         target_lang = self.archive_service.archive_manager.detect_target_language(latest_version['id']) or "zh-CN"
-            
+        
+        logging.info(f"[CheckArchive] Found archive v{latest_version['id']} for {project_name}. Languages: {target_languages}")
+        
+        from scripts.app_settings import GAME_PROFILES_BY_ID, LANGUAGES
+        game_profile = GAME_PROFILES_BY_ID.get(project.get('game_id', 'victoria3'))
+        all_supported_langs = []
+        if game_profile and "supported_language_keys" in game_profile:
+            for lk in game_profile["supported_language_keys"]:
+                lang_info = LANGUAGES.get(str(lk))
+                if lang_info:
+                    all_supported_langs.append(lang_info["code"])
+        
+        if not all_supported_langs:
+            all_supported_langs = ['zh-CN']
+
         return {
             "exists": True, 
             "version_id": latest_version['id'], 
             "created_at": latest_version['created_at'],
-            "target_language": target_lang, # Keep as default fallback for older frontend code
-            "target_languages": target_languages,
+            "target_language": target_lang, 
+            "target_languages": all_supported_langs,
+            "archived_languages": target_languages,
             "project_name": project_name
         }
 
@@ -465,19 +482,30 @@ class ProjectManager:
         if not project:
             raise ValueError(f"Project {project_id} not found")
 
-        result = self.archive_service.upload_project_translations(
-            project_id=project_id,
-            project_name=project['name'],
-            source_path=project['source_path'],
-            source_lang_code=project.get('source_language', 'en')
-        )
+        logger.info(f"Starting upload_project_translations for project {project_id}")
+        try:
+            result = self.archive_service.upload_project_translations(
+                project_id=project_id,
+                project_name=project['name'],
+                source_path=project['source_path'],
+                source_lang_code=project.get('source_language', 'en')
+            )
+        except Exception as e:
+            logger.error(f"archive_service.upload_project_translations failed for project {project_id}: {e}")
+            return {"status": "error", "message": f"Archive service failure: {str(e)}"}
         
         if result.get('status') == 'success':
              match_count = result.get('match_count', 0)
-             await self.log_history_event(
-                project_id,
-                'archive_update',
-                f"Uploaded {match_count} translations to archive using exact key:version matching."
-            )
+             try:
+                 await self.log_history_event(
+                    project_id,
+                    'archive_update',
+                    "history.archive_update_desc",
+                    metadata={"match_count": match_count}
+                )
+             except Exception as e:
+                 logger.error(f"Failed to log history event for upload: {e}")
+                 # Don't fail the whole request if history logging fails
         
+        logger.info(f"Finished upload_project_translations for project {project_id}: {result.get('status')}")
         return result

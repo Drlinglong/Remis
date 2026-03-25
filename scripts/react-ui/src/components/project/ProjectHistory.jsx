@@ -75,7 +75,7 @@ const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
 
     useEffect(() => {
         fetchHistory();
-        checkDiff(); // Auto check diff on mount
+        // checkDiff(); // Removed auto-check to prevent unnecessary 422 errors or lag on mount
     }, [projectId]);
 
     if (loading && history.length === 0) {
@@ -170,14 +170,14 @@ const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
                                 }
                                 title={
                                     <Group justify="space-between">
-                                        <Text fw={700}>{event.action_type.toUpperCase()}</Text>
+                                        <Text fw={700}>{t(`history.action_${event.action_type}`, event.action_type.toUpperCase())}</Text>
                                         <Text size="xs" c="dimmed">{new Date(event.timestamp).toLocaleString()}</Text>
                                     </Group>
                                 }
                             >
                                 <Paper withBorder p="sm" mt="xs" radius="md">
                                     <Stack gap="xs">
-                                        <Text size="sm">{event.description}</Text>
+                                        <Text size="sm">{t(event.description, event.extra_metadata)}</Text>
                                         {event.extra_metadata && (
                                             <Code block style={{ background: 'rgba(0,0,0,0.1)' }}>
                                                 {JSON.stringify(event.extra_metadata, null, 2)}
