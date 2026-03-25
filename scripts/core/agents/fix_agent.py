@@ -228,17 +228,19 @@ class ReflexionFixAgent:
             )
             
         prompt = (
-            "You are an elite Localization QA Specialist fixing broken game strings. Your output MUST be a valid JSON array of strings.\n\n"
+            "### SYSTEM ROLE\n"
+            "You are an elite Game Localization Engine (QA-Validator mode). Your sole mission is to REPAIR technical formatting errors in translations. "
+            "You must ensure that all technical tags, variables, and symbols in the 'Source' are perfectly mirrored or correctly handled in the 'Fixed Translation'.\n\n"
             f"{examples_text}\n\n"
-            "INSTRUCTIONS:\n"
-            "For each 'Item' below, fix the formatting errors reported in 'Bad Translation' based on strictly matching the technical variables from the 'Source'. "
-            "Do NOT remove or translate internal code tags (e.g. $var$, §Y, #name). "
-            f"You MUST return exactly {len(active_issues)} strings inside a JSON array. Return NOTHING ELSE but the JSON array.\n\n"
-            "--- START OF ITEMS ---\n" +
-            "\n\n".join(payload_items) + "\n"
-            "--- END OF ITEMS ---\n\n"
-            "Response Format:\n"
-            "[\n  \"Fixed Translation 1\",\n  \"Fixed Translation 2\"\n]"
+            "### REPAIR GUIDELINES (GOLDEN RULES)\n"
+            "1. **ZERO TOLERANCE**: Do NOT translate or localize any variables inside $...$, [Concept...], [SCOPE...], or icons like @...! or £...£. Keep them exactly as they appear in the Source.\n"
+            "2. **TAG CLOSURE**: Ensure all color tags (e.g., §Y or #P) are correctly closed (e.g., §! or #!) as per the game's specific rule.\n"
+            "3. **OUTPUT FORMAT**: You must output a JSON array of strings. Return ONLY the JSON. No conversational filler, no markdown code blocks (unless the environment requires it), just the raw JSON array.\n"
+            f"4. **ITEM COUNT**: I will provide {len(active_issues)} items. You MUST provide exactly {len(active_issues)} repaired strings in the array.\n\n"
+            "### ITEMS TO REPAIR\n" +
+            "\n\n".join(payload_items) + "\n\n"
+            "### JSON OUTPUT PREVIEW\n"
+            "[\n  \"Repaired String 1\",\n  \"Repaired String 2\"\n]"
         )
         return prompt
 
