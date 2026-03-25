@@ -1,9 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import Editor, { loader } from '@monaco-editor/react';
+import * as monaco from 'monaco-editor';
 import { useMantineTheme } from '@mantine/core';
 
-// Ensure Monaco loads from CDN or local if configured
-// loader.config({ paths: { vs: '...' } }); 
+// Ensure Monaco loads from bundled local version instead of CDN
+loader.config({ monaco });
 
 const MonacoWrapper = ({
     value,

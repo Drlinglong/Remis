@@ -59,7 +59,9 @@
     "eslint-plugin-react-refresh": "^0.4.22",
     "globals": "^16.4.0",
     "jsdom": "^27.4.0",
+    "monaco-editor": "^0.55.1",
     "vite": "^7.1.7",
+    "vite-plugin-monaco-editor": "^1.1.0",
     "vitest": "^4.0.16"
   }
 }

@@ -6,7 +6,9 @@ const backendPort = process.env.BACKEND_PORT || 8081;
 console.log(`[Vite Config] Proxying /api to http://127.0.0.1:${backendPort}`);
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react()
+  ],
   base: './',
   server: {
     port: 5174,
