@@ -59,8 +59,13 @@ class ArchiveManager:
         """)
         cursor.execute("CREATE TABLE IF NOT EXISTS translated_entries (translated_entry_id INTEGER PRIMARY KEY AUTOINCREMENT, source_entry_id INTEGER NOT NULL, language_code TEXT NOT NULL, translated_text TEXT NOT NULL, last_translated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(source_entry_id, language_code), FOREIGN KEY (source_entry_id) REFERENCES source_entries (source_entry_id))")
         
-        # [MIGRATION] If old unique constraint exists without file_path, we might need to recreate it
-        # But for this local cache, we'll just check if the column exists (handled in create_source_version)
+        # [MIGRATION] Add indexes for performance
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_versions_mod_id ON source_versions(mod_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_entries_version_id ON source_entries(version_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_entries_key ON source_entries(entry_key)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_trans_source_entry ON translated_entries(source_entry_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_trans_lang ON translated_entries(language_code)")
+        
         conn.commit()
 
     def get_or_create_mod_entry(self, mod_name: str, remote_file_id: str) -> Optional[int]:
@@ -347,15 +352,15 @@ class ArchiveManager:
         if not source_rows:
             return []
 
-        # 4. Deep Search for Translations
+        # 4. Deep Search for Translations (Optimized: Using version_id directly instead of join mod_id)
+        # This is much faster as it uses the index on source_entries(version_id)
         deep_query = '''
             SELECT s.entry_key, t.translated_text
             FROM translated_entries t
             JOIN source_entries s ON t.source_entry_id = s.source_entry_id
-            JOIN source_versions v ON s.version_id = v.version_id
-            WHERE v.mod_id = ? AND t.language_code = ?
+            WHERE s.version_id = ? AND t.language_code = ?
         '''
-        deep_params = [mod_id, language]
+        deep_params = [version_id, language]
         if file_path:
             deep_query += " AND s.file_path = ?"
             deep_params.append(os.path.basename(file_path))

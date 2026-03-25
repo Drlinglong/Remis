@@ -157,6 +157,8 @@ async def run_incremental_update(
         history_map_by_file = {}
         # Fetch all entries for the project in this language
         all_entries = archive_manager.get_entries(project_name, language=target_lang_code)
+        logger.info(f"Pre-fetched {len(all_entries)} archive entries for {project_name}.")
+        
         # Note: ArchiveManager.get_entries currently doesn't return filename in the list objects 
         # unless we modify it. Let's look at ArchiveManager.get_entries implementation.
         # Wait, if we can't easily group by file, we can at least group by key if keys are unique mod-wide.
