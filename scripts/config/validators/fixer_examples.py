@@ -11,15 +11,35 @@ FIXER_EXAMPLES = {
             "  [Bad] Source: The $pop$ grew. | Target: 人口增长了。\n"
             "  [Fixed] 人口 $pop$ 增长了。"
         ),
-        "ck3": (
-            "Error Type: Variable Parity (CK3 uses [Concept] and $var$)\n"
-            "  [Bad] Source: Open [Character.GetFirstName]. | Target: 打开角色面板。\n"
-            "  [Fixed] 打开 [Character.GetFirstName]。"
+        "vic3": (
+            "Error Type: Variable Parity (Victoria 3 uses [Concept('key', 'text')], [SCOPE...], $var$, and @icon!)\n"
+            "  [Bad] Source: Has [Concept('concept_radicals', 'Radicals')]. | Target: 有激进派。\n"
+            "  [Fixed] 有 [Concept('concept_radicals', '激进派')]。"
         ),
-        "st": (
-            "Error Type: Variable Parity (Stellaris uses $var$)\n"
-            "  [Bad] Source: The $PLANET$ orbits. | Target: 星球在轨道上。\n"
-            "  [Fixed] $PLANET$ 在轨道上。"
+        "stellaris": (
+            "Error Type: Variable Parity (Stellaris uses [brackets], $vars$, and £icons£)\n"
+            "  [Bad] Source: Gain £energy£ $VAL$. | Target: 获得能量。\n"
+            "  [Fixed] 获得 £energy£ $VAL$。"
+        ),
+        "eu4": (
+            "Error Type: Variable Parity (EU4 uses [brackets], $vars$, £icons£, and @flags)\n"
+            "  [Bad] Source: To @FRA $VAL$ ducats. | Target: 给法兰西金币。\n"
+            "  [Fixed] 给 @FRA $VAL$ 杜卡特。"
+        ),
+        "hoi4": (
+            "Error Type: Variable Parity (HOI4 uses [?vars|format], [brackets], $vars$, £icons, and @flags)\n"
+            "  [Bad] Source: Cost: £political_power [?cost|R]. | Target: 消耗：政治点数。\n"
+            "  [Fixed] 消耗：£political_power [?cost|R]。"
+        ),
+        "ck3": (
+            "Error Type: Variable Parity (CK3 uses [Concept], [GetTrait...], $vars$, and @icon!)\n"
+            "  [Bad] Source: Gain [GetTrait('brave').GetName(GetPlayer)]. | Target: 获得勇敢特质。\n"
+            "  [Fixed] 获得 [GetTrait('brave').GetName(GetPlayer)]。"
+        ),
+        "eu5": (
+            "Error Type: Variable Parity (EU5 uses [brackets], $vars$, and @icon!)\n"
+            "  [Bad] Source: Needs @money! $VAL$. | Target: 需要钱。\n"
+            "  [Fixed] 需要 @money! $VAL$。"
         )
     },
     "FORMATTING_TAG": {
@@ -28,22 +48,42 @@ FIXER_EXAMPLES = {
             "  [Bad] Source: Click §Yhere§!. | Target: 点击 §Y这里。\n"
             "  [Fixed] 点击 §Y这里§!。"
         ),
+        "vic3": (
+            "Error Type: Formatting Tags (Victoria 3 uses #color and closes with #!, or uses #tooltippable;tooltip:<...>)\n"
+            "  [Bad] Source: A #variable number#! of #tooltippable;tooltip:<GUI_TOOLTIP>items#!. | Target: 一个变量数量的物品。\n"
+            "  [Fixed] 一个 #variable 数量#!的 #tooltippable;tooltip:<GUI_TOOLTIP>物品#!。"
+        ),
+        "stellaris": (
+            "Error Type: Formatting Tags (Stellaris uses §Y, §R, §G, etc. and closes with §!)\n"
+            "  [Bad] Source: Effect: §G+10%§! yield. | Target: 效果：§G+10% 产出。\n"
+            "  [Fixed] 效果：§G+10%§! 产出。"
+        ),
+        "eu4": (
+            "Error Type: Formatting Tags (EU4 uses §Y, §R, §G, etc. and closes with §!)\n"
+            "  [Bad] Source: Gain §G10§! power. | Target: 获得 10 力量。\n"
+            "  [Fixed] 获得 §G10§! 力量。"
+        ),
+        "hoi4": (
+            "Error Type: Formatting Tags (HOI4 uses §Y, §R, §G, etc. and closes with §!)\n"
+            "  [Bad] Source: Attack: §R+5%§!. | Target: 攻击：§R+5%。\n"
+            "  [Fixed] 攻击：§R+5%§!。"
+        ),
         "ck3": (
-            "Error Type: Concept Tags (CK3 uses #color ... #! and @icon tags)\n"
+            "Error Type: Formatting Tags (CK3 uses #color ... #!)\n"
             "  [Bad] Source: Earn #P Prestige#!. | Target: 获得 #P 威望。\n"
             "  [Fixed] 获得 #P 威望#!。"
         ),
-        "eu4": (
-            "Error Type: Formatting Tags (EU4 uses §Y, §G, §R colors)\n"
-            "  [Bad] Source: Is §Ggood§!. | Target: 是§G很好。\n"
-            "  [Fixed] 是§G很好§!。"
+        "eu5": (
+            "Error Type: Formatting Tags (EU5 uses #tag ... #!)\n"
+            "  [Bad] Source: The #bold text#! matters. | Target: 这个#bold文本 很重要。\n"
+            "  [Fixed] 这个 #bold 文本#!很重要。"
         )
     },
     "BANNED_CHARS": {
-         "default": (
-             "Error Type: Invalid/Banned Characters (Some fonts or engines don't support certain characters)\n"
-             "  [Bad] Source: Test | Target: 测试・测试\n"
-             "  [Fixed] 测试·测试"
+        "default": (
+             "Error Type: Banned Characters in Code Blocks (Never translate strings inside formatting tags, [brackets], or $vars$ to Chinese)\n"
+             "  [Bad] Source: [GetName] | Target: [获取名字]\n"
+             "  [Fixed] [GetName]"
          )
     }
 }
