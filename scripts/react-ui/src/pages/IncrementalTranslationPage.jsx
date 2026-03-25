@@ -24,6 +24,7 @@ import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, Ico
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { open } from '@tauri-apps/plugin-dialog';
 import { useNotification } from '../context/NotificationContext';
 import notificationService from '../services/notificationService';
 import styles from './Translation.module.css';
@@ -156,15 +157,22 @@ const IncrementalTranslationPage = () => {
     };
 
     const handleSelectFolder = async () => {
-        if (window.api && window.api.selectFolder) {
-            const path = await window.api.selectFolder();
-            if (path) {
-                setCustomSourcePath(path);
+        try {
+            const selected = await open({
+                directory: true,
+                multiple: false,
+                title: t('incremental_translation.select_new_folder')
+            });
+            if (selected && typeof selected === 'string') {
+                setCustomSourcePath(selected);
                 // Re-check checkpoint for the new folder if project is selected
                 if (selectedProject) {
-                    checkCheckpoint(selectedProject, path, selectedLangs);
+                    checkCheckpoint(selectedProject, selected, selectedLangs);
                 }
             }
+        } catch (err) {
+            console.error('Failed to open folder dialog:', err);
+            notificationService.error(t('notification.error_generic'), notificationStyle);
         }
     };
 

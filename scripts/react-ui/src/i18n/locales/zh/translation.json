@@ -933,7 +933,8 @@
   },
   "translation_config": {
     "provider": "API 供应商",
-    "model": "AI 模型"
+    "model": "AI 模型",
+    "target_languages": "目标语言"
   },
   "page_title_agent_workshop": "智能工坊",
   "agent_workshop": {

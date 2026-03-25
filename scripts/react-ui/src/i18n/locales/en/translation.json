@@ -883,7 +883,8 @@
   },
   "translation_config": {
     "provider": "API Provider",
-    "model": "AI Model"
+    "model": "AI Model",
+    "target_languages": "Target Languages"
   },
   "common": {
     "browse": "Browse"

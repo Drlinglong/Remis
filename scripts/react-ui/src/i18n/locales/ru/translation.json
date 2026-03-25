@@ -868,5 +868,10 @@
     "modal_source_context": "Контекст источника",
     "modal_error_detected": "Обнаружена ошибка",
     "regenerate": "Сгенерировать заново"
+  },
+  "translation_config": {
+    "provider": "Провайдер API",
+    "model": "Модель ИИ",
+    "target_languages": "Целевые языки"
   }
 }
