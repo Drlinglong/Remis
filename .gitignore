@@ -55,6 +55,8 @@ temp/
 *.tmp
 *.db
 test_*.db
+sandbox_*/
+tmp_*_check.py
 
 # Do NOT ignore these folders
 !/source_mod/.gitkeep
