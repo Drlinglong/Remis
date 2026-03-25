@@ -923,7 +923,7 @@
     "processing_file": "正在处理: {{file}}",
     "batch_status": "批次 {{current}}/{{total}} 完成...",
     "completion_title": "增量翻译完成",
-    "output_dir_hint": "?????? my_translation ????????????",
+    "output_dir_hint": "结果已保存至 my_translation 目录下生成的模组文件夹。",
     "checkpoint_found_label": "检测到断点",
     "checkpoint_found_title": "发现翻译断点",
     "checkpoint_found_desc": "检测到上次未完成的任务进度。您可以选择从中断处继续翻译，以跳过已完成的文件。",
@@ -973,8 +973,8 @@
       "action_status_change": "状态变更",
       "project_import_desc": "项目 '{{name}}' 已创建并导入源码文件。",
       "archive_update_desc": "已成功将 {{match_count}} 条翻译上载至项目存档。",
-      "path_registered_desc": "????????????",
-      "incremental_translate_desc": "????????{{target_lang}}??{{new_count}} ????{{changed_count}} ????{{unchanged_count}} ????"
+      "path_registered_desc": "已自动注册翻译输出路径。",
+      "incremental_translate_desc": "已构建增量更新（{{target_lang}}）。{{new_count}} 条新增，{{changed_count}} 条修改，{{unchanged_count}} 条复用。"
     }
   }
 }
