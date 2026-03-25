@@ -155,7 +155,8 @@ def test_package_service_builds_playable_output_root(tmp_path, monkeypatch):
 
     import scripts.core.services.incremental_package_service as package_module
 
-    monkeypatch.setattr(package_module, "OUTPUT_DIR", str(tmp_path / "output"))
+    monkeypatch.setattr(package_module, "DEST_DIR", str(tmp_path / "my_translation"))
+    monkeypatch.setattr(IncrementalPackageService, "_build_date_stamp", lambda self: "20260326")
 
     service = IncrementalPackageService()
     result = service.prepare_output_package(
@@ -171,8 +172,8 @@ def test_package_service_builds_playable_output_root(tmp_path, monkeypatch):
     )
 
     package_root = Path(result["package_root"])
-    assert package_root.parent == tmp_path / "output"
-    assert package_root.name == "zh-CN-testmod-incremental-update"
+    assert package_root.parent == tmp_path / "my_translation"
+    assert package_root.name == "zh-CN-testmod-incremental-update-20260326"
     assert (package_root / "localization").exists()
     assert (package_root / "thumbnail.png").exists()
 

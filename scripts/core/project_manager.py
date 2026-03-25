@@ -436,7 +436,7 @@ class ProjectManager:
             await self.log_history_event(
                 project_id=project_id,
                 action_type='path_registered',
-                description="Auto-registered translation output path"
+                description="history.path_registered_desc"
             )
 
             await self.refresh_project_files(project_id)

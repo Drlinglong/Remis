@@ -15,7 +15,6 @@ import {
     Select,
     TextInput,
     Progress,
-    ScrollArea,
     Divider,
     MultiSelect,
     Box,
@@ -605,14 +604,9 @@ const IncrementalTranslationPage = () => {
                                 </Text>
                             </Group>
 
-                            <ScrollArea
-                                h={400}
-                                offsetScrollbars
-                                type="always"
-                                scrollHideDelay={0}
-                                p="md"
-                                viewportRef={logViewportRef}
-                                style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, border: '1px solid var(--glass-border)' }}
+                            <Box
+                                ref={logViewportRef}
+                                className={styles.logScrollBox}
                             >
                                 <div ref={logScrollRef}>
                                     {logs.map((log, i) => {
@@ -624,7 +618,7 @@ const IncrementalTranslationPage = () => {
                                         );
                                     })}
                                 </div>
-                            </ScrollArea>
+                            </Box>
 
                             {finalSummary && (
                                 <Stack mt="xl">

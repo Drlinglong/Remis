@@ -923,7 +923,7 @@
     "processing_file": "正在处理: {{file}}",
     "batch_status": "批次 {{current}}/{{total}} 完成...",
     "completion_title": "增量翻译完成",
-    "output_dir_hint": "结果已保存至项目目录下的 Remis_Incremental_Update 文件夹。",
+    "output_dir_hint": "?????? my_translation ????????????",
     "checkpoint_found_label": "检测到断点",
     "checkpoint_found_title": "发现翻译断点",
     "checkpoint_found_desc": "检测到上次未完成的任务进度。您可以选择从中断处继续翻译，以跳过已完成的文件。",
@@ -965,14 +965,16 @@
     "fix_all": "一键修复全部",
     "select_model_hint": "请先在上方选择 AI 模型",
     "history": {
-        "action_import": "项目导入",
-        "action_archive_update": "存档更新",
-        "action_path_registered": "路径注册",
-        "action_translate": "翻译执行",
-        "action_note_added": "添加备注",
-        "action_status_change": "状态变更",
-        "project_import_desc": "项目 '{{name}}' 已创建并导入源码文件。",
-        "archive_update_desc": "已成功将 {{match_count}} 条翻译上载至项目存档。"
+      "action_import": "项目导入",
+      "action_archive_update": "存档更新",
+      "action_path_registered": "路径注册",
+      "action_translate": "翻译执行",
+      "action_note_added": "添加备注",
+      "action_status_change": "状态变更",
+      "project_import_desc": "项目 '{{name}}' 已创建并导入源码文件。",
+      "archive_update_desc": "已成功将 {{match_count}} 条翻译上载至项目存档。",
+      "path_registered_desc": "????????????",
+      "incremental_translate_desc": "????????{{target_lang}}??{{new_count}} ????{{changed_count}} ????{{unchanged_count}} ????"
     }
   }
 }

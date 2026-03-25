@@ -115,6 +115,24 @@ const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
             }
         }
 
+        if (event.action_type === 'path_registered') {
+            if (
+                event.description === 'history.path_registered_desc' ||
+                event.description === 'Auto-registered translation output path'
+            ) {
+                return t('agent_workshop.history.path_registered_desc');
+            }
+        }
+
+        if (event.action_type === 'translate') {
+            if (
+                event.description === 'history.incremental_translate_desc' ||
+                (typeof event.description === 'string' && event.description.startsWith('Build incremental update ('))
+            ) {
+                return t('agent_workshop.history.incremental_translate_desc', metadata);
+            }
+        }
+
         return event.description;
     };
 
@@ -131,7 +149,7 @@ const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
             return false;
         }
 
-        return !['archive_update', 'import'].includes(event.action_type);
+        return !['archive_update', 'import', 'path_registered', 'translate'].includes(event.action_type);
     };
 
     if (loading && history.length === 0) {

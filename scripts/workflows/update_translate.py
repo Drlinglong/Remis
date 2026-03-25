@@ -3,7 +3,7 @@ import os
 from typing import List, Dict, Any, Optional, Callable
 from pathlib import Path
 
-from scripts.app_settings import OUTPUT_DIR
+from scripts.app_settings import DEST_DIR
 from scripts.core import api_handler
 from scripts.shared.services import project_manager
 from scripts.core.services.incremental_snapshot_service import IncrementalSnapshotService
@@ -72,7 +72,7 @@ async def run_incremental_update(
         target_lang_code = target_lang_info['code']
         logger.info(f"--- Processing Target Language: {target_lang_code} ---")
         output_folder_name = package_service.build_output_folder_name(project_name, target_lang_info)
-        lang_output_dir = Path(OUTPUT_DIR) / output_folder_name
+        lang_output_dir = Path(DEST_DIR) / output_folder_name
 
         if not dry_run:
             package_info = package_service.prepare_output_package(
@@ -186,17 +186,19 @@ async def run_incremental_update(
         )
 
         # 6. Log History for THIS language
-        history_desc = f"Build incremental update ({target_lang_code}). {summary['new']} new, {summary['changed']} changed, {summary['unchanged']} reused lines."
         await project_manager.log_history_event(
             project_id=project_id,
             action_type="translate",
-            description=history_desc,
+            description="history.incremental_translate_desc",
             snapshot_id=new_version_id,
             metadata={
                 "summary": summary,
                 "output_dir": str(lang_output_dir),
                 "files_count": len(written_files),
-                "target_lang": target_lang_code
+                "target_lang": target_lang_code,
+                "new_count": summary["new"],
+                "changed_count": summary["changed"],
+                "unchanged_count": summary["unchanged"],
             }
         )
         await project_manager.add_translation_path(project_id, str(lang_output_dir))
@@ -217,7 +219,7 @@ async def run_incremental_update(
         "status": "success", 
         "summary": overall_summary, 
         "warnings": overall_warnings, 
-        "output_dir": output_dirs[0] if len(output_dirs) == 1 else OUTPUT_DIR,
+        "output_dir": output_dirs[0] if len(output_dirs) == 1 else DEST_DIR,
         "output_dirs": output_dirs,
         "history_desc": f"Built incremental updates for {len(target_lang_infos)} languages."
     }

@@ -915,6 +915,13 @@
     "modal_error_detected": "Error Detected",
     "regenerate": "Regenerate",
     "fix_all": "Fix All Issues",
-    "select_model_hint": "Please select an AI model first"
+    "select_model_hint": "Please select an AI model first",
+    "history": {
+      "path_registered_desc": "Auto-registered translation output path.",
+      "incremental_translate_desc": "Built incremental update ({{target_lang}}). {{new_count}} new, {{changed_count}} changed, {{unchanged_count}} reused lines."
+    }
+  },
+  "incremental_translation": {
+    "output_dir_hint": "Results have been saved to the generated mod folder under my_translation."
   }
 }
