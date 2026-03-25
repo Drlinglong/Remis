@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from scripts.shared.services import project_manager, glossary_manager
 from scripts.app_settings import TRANSLATION_PROGRESS_DB_PATH, PROJECT_ROOT
+from scripts.utils.system_utils import sanitize_for_json
 import sqlite3
 
 import webbrowser
@@ -46,7 +47,7 @@ async def get_system_stats():
             logger.error(f"Failed to build activity list from logs: {e}")
             pass
 
-        return {
+        return sanitize_for_json({
             "stats": {
                 "total_projects": dashboard_stats["total_projects"],
                 "words_translated": dashboard_stats["translated_files"], 
@@ -59,7 +60,7 @@ async def get_system_stats():
                 "project_distribution": dashboard_stats.get("game_distribution", [])
             },
             "recent_activity": recent_activities
-        }
+        })
     except Exception as e:
         logger.error(f"Failed to fetch system stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from scripts.app_settings import API_PROVIDERS, get_api_key, get_appdata_config_path, GAME_PROFILES, LANGUAGES
 from scripts.schemas.config import UpdateApiKeyRequest, UpdateProviderConfigRequest
 from scripts.app_settings import config_manager
+from scripts.utils.system_utils import sanitize_for_json
 
 router = APIRouter()
 
@@ -45,12 +46,12 @@ def get_config():
 
         api_providers_list.append(provider_data)
 
-    return {
+    return sanitize_for_json({
         "game_profiles": GAME_PROFILES,
         "languages": LANGUAGES,
         "api_providers": api_providers_list,
         "rpm_limit": config_manager.get_value("rpm_limit", 40)
-    }
+    })
 
 @router.get("/api/api-keys")
 def get_api_keys():
@@ -90,7 +91,7 @@ def get_api_keys():
             "custom_models": override.get("models", []),
             "api_url": override.get("api_url", config.get("base_url", ""))
         })
-    return providers
+    return sanitize_for_json(providers)
 
 @router.post("/api/api-keys")
 def update_api_key(payload: UpdateApiKeyRequest):

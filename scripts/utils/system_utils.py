@@ -4,7 +4,7 @@ import time
 import sys
 import re
 import hashlib
-from typing import Optional
+from typing import Optional, Any
 
 def panic_log(message: str):
     """Fallback logging to a local file in AppData."""
@@ -143,6 +143,21 @@ def slugify_to_ascii(text: str) -> str:
             return f"{text}_{h}"
             
     return text
+
+def sanitize_for_json(obj: Any) -> Any:
+    """
+    Recursively converts non-serializable objects (sets, datetimes) 
+    into JSON-safe formats (lists, ISO strings).
+    """
+    import datetime
+    
+    if isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple, set)):
+        return [sanitize_for_json(i) for i in obj]
+    elif isinstance(obj, (datetime.datetime, datetime.date)):
+        return obj.isoformat()
+    return obj
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

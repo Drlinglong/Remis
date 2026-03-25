@@ -14,13 +14,15 @@ from scripts.schemas.project import (
     IncrementalUpdateRequest
 )
 from scripts.schemas.config import UpdateConfigRequest
+from scripts.utils.system_utils import sanitize_for_json
 
 router = APIRouter()
 
 @router.get("/api/projects")
 async def list_projects(status: Optional[str] = None):
     """Returns a list of all projects, optionally filtered by status."""
-    return await project_manager.get_projects(status)
+    projects = await project_manager.get_projects(status)
+    return sanitize_for_json(projects)
 
 @router.post("/api/project/create")
 async def create_project(request: CreateProjectRequest):
