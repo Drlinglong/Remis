@@ -260,7 +260,7 @@ const AgentWorkshopPage = () => {
                                             loading={fixing}
                                             disabled={!selectedProvider}
                                         >
-                                            一键修复全部 (Fix All)
+                                            {t('agent_workshop.fix_all') || "Fix All"}
                                         </Button>
                                     </Group>
                                 )}
@@ -384,7 +384,7 @@ const AgentWorkshopPage = () => {
                                     onClick={handleFixRequest}
                                     disabled={fixing || !selectedProvider}
                                 >
-                                    {selectedProvider ? t('agent_workshop.fix_btn') : '请先在上方选择模型'}
+                                    {selectedProvider ? t('agent_workshop.fix_btn') : t('agent_workshop.select_model_hint')}
                                 </Button>
                             )}
 

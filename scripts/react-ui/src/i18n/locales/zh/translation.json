@@ -224,6 +224,7 @@
   "form_label_source_language": "源语言",
   "form_label_target_languages": "目标语言",
   "form_label_api_provider": "API供应商",
+  "form_label_api_model": "AI 模型",
   "form_placeholder_game": "选择一个游戏",
   "form_placeholder_source_language": "选择源语言",
   "form_desc_source_language": "原始文件的语言（例如：english）。",
@@ -957,6 +958,8 @@
     "discard": "放弃",
     "modal_source_context": "原文上下文",
     "modal_error_detected": "检测到错误",
-    "regenerate": "重新生成"
+    "regenerate": "重新生成",
+    "fix_all": "一键修复全部",
+    "select_model_hint": "请先在上方选择 AI 模型"
   }
 }
