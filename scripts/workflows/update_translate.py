@@ -3,11 +3,14 @@ import os
 from typing import List, Dict, Any, Optional, Callable
 from pathlib import Path
 
+from scripts.app_settings import OUTPUT_DIR
+from scripts.core import api_handler
 from scripts.shared.services import project_manager
 from scripts.core.services.incremental_snapshot_service import IncrementalSnapshotService
 from scripts.core.services.incremental_diff_service import IncrementalDiffService
 from scripts.core.services.incremental_build_service import IncrementalBuildService
 from scripts.core.services.incremental_archive_service import IncrementalArchiveService
+from scripts.core.services.incremental_package_service import IncrementalPackageService
 from scripts.core.services.incremental_preparation_service import IncrementalPreparationService
 from scripts.core.services.incremental_translation_service import IncrementalTranslationService
 
@@ -44,6 +47,7 @@ async def run_incremental_update(
     diff_service = IncrementalDiffService()
     build_service = IncrementalBuildService()
     incremental_archive_service = IncrementalArchiveService()
+    package_service = IncrementalPackageService()
     preparation_service = IncrementalPreparationService()
     translation_service = IncrementalTranslationService()
     current_files_data = snapshot_service.build_snapshot(source_path, source_lang_info, progress_callback)
@@ -57,19 +61,30 @@ async def run_incremental_update(
             "summary": {"total": 0, "new": 0, "changed": 0, "unchanged": 0}
         }
 
-    # Output directory base
-    base_output_dir = Path(source_path).parent / "Remis_Incremental_Update"
-    os.makedirs(base_output_dir, exist_ok=True)
-
     # Initialize overall summary
     overall_summary = {"total": 0, "new": 0, "changed": 0, "unchanged": 0}
     overall_warnings = []
     all_written_files = []
+    output_dirs = []
 
     # Process EACH target language independently
     for target_lang_info in target_lang_infos:
         target_lang_code = target_lang_info['code']
         logger.info(f"--- Processing Target Language: {target_lang_code} ---")
+        output_folder_name = package_service.build_output_folder_name(project_name, target_lang_info)
+        lang_output_dir = Path(OUTPUT_DIR) / output_folder_name
+
+        if not dry_run:
+            package_info = package_service.prepare_output_package(
+                project_name=project_name,
+                source_path=source_path,
+                target_lang_info=target_lang_info,
+                game_profile=game_profile,
+            )
+            lang_output_dir = package_info["package_root"]
+            output_folder_name = package_info["output_folder_name"]
+            output_dirs.append(str(lang_output_dir))
+            logger.info(f"Prepared incremental package root for {project_name} ({target_lang_code}): {lang_output_dir}")
         
         logger.info(f"Pre-fetching archive for {project_name} ({target_lang_code})...")
         if progress_callback:
@@ -95,8 +110,8 @@ async def run_incremental_update(
             mod_context=mod_context,
             selected_provider=selected_provider,
             source_path=source_path,
-            base_output_dir=base_output_dir,
-            total_targets=len(target_lang_infos),
+            base_output_dir=lang_output_dir,
+            total_targets=1,
             progress_callback=progress_callback,
         )
         summary = preparation_result["summary"]
@@ -149,6 +164,19 @@ async def run_incremental_update(
         written_files = build_result["written_files"]
         all_written_files.extend(written_files)
 
+        metadata_handler = api_handler.get_handler(selected_provider, model_name=model_name)
+        if metadata_handler and metadata_handler.client:
+            package_service.process_metadata(
+                project_name=project_name,
+                source_path=source_path,
+                handler=metadata_handler,
+                source_lang_info=source_lang_info,
+                target_lang_info=target_lang_info,
+                output_folder_name=output_folder_name,
+                mod_context=mod_context,
+                game_profile=game_profile,
+            )
+
         new_version_id = incremental_archive_service.archive_language_result(
             project_id=project_id,
             project_name=project_name,
@@ -171,6 +199,7 @@ async def run_incremental_update(
                 "target_lang": target_lang_code
             }
         )
+        await project_manager.add_translation_path(project_id, str(lang_output_dir))
 
     if dry_run:
         logger.info(f"Dry-run completed for {project_name}: overall_summary={overall_summary}")
@@ -188,6 +217,7 @@ async def run_incremental_update(
         "status": "success", 
         "summary": overall_summary, 
         "warnings": overall_warnings, 
-        "output_dir": str(base_output_dir),
+        "output_dir": output_dirs[0] if len(output_dirs) == 1 else OUTPUT_DIR,
+        "output_dirs": output_dirs,
         "history_desc": f"Built incremental updates for {len(target_lang_infos)} languages."
     }

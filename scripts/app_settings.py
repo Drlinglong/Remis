@@ -166,6 +166,7 @@ CONFIG_DIR = os.path.join(APP_DATA_DIR, 'config') if getattr(sys, 'frozen', Fals
 
 SOURCE_DIR = os.path.join(APP_DATA_DIR, 'source_mod') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'source_mod')
 DEST_DIR = os.path.join(APP_DATA_DIR, 'my_translation') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'my_translation')
+OUTPUT_DIR = os.path.join(APP_DATA_DIR, 'output') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'output')
 
 # --- Database Paths ---
 # All user databases live in AppData

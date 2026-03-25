@@ -9,6 +9,40 @@ logger = logging.getLogger(__name__)
 
 
 class IncrementalBuildService:
+    KNOWN_LANGUAGE_FOLDERS = {
+        "english",
+        "french",
+        "german",
+        "spanish",
+        "russian",
+        "polish",
+        "braz_por",
+        "japanese",
+        "chinese",
+        "simp_chinese",
+        "trad_chinese",
+        "korean",
+        "turkish",
+    }
+
+    def _build_dest_root(self, file_root: str, source_path: str, lang_output_dir: Path, target_lang_info: Dict[str, Any]) -> Path:
+        rel_parts = list(Path(os.path.relpath(file_root, source_path)).parts)
+        target_lang_folder = target_lang_info["key"][2:]
+
+        for index, part in enumerate(rel_parts):
+            if part.lower() in self.KNOWN_LANGUAGE_FOLDERS:
+                rel_parts[index] = target_lang_folder
+                return lang_output_dir / Path(*rel_parts)
+
+        if "localization" in [part.lower() for part in rel_parts]:
+            loc_index = next(
+                index for index, part in enumerate(rel_parts)
+                if part.lower() in {"localization", "localisation"}
+            )
+            rel_parts.insert(loc_index + 1, target_lang_folder)
+
+        return lang_output_dir / Path(*rel_parts)
+
     def build_language_output(
         self,
         processing_records: List[Dict[str, Any]],
@@ -45,8 +79,12 @@ class IncrementalBuildService:
             }
 
             try:
-                rel_path = os.path.relpath(fd["root"], source_path)
-                dest_root = lang_output_dir / rel_path
+                dest_root = self._build_dest_root(
+                    file_root=fd["root"],
+                    source_path=source_path,
+                    lang_output_dir=lang_output_dir,
+                    target_lang_info=target_lang_info,
+                )
                 os.makedirs(dest_root, exist_ok=True)
 
                 out_path = rebuild_and_write_file(

@@ -1,14 +1,15 @@
-from pathlib import Path
+﻿from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from scripts.core.archive_manager import ArchiveManager
 from scripts.core.project_manager import ProjectManager
 from scripts.core.services.incremental_build_service import IncrementalBuildService
 from scripts.core.services.incremental_diff_service import IncrementalDiffService
+from scripts.core.services.incremental_package_service import IncrementalPackageService
 from scripts.core.services.incremental_preparation_service import IncrementalPreparationService
 from scripts.core.services.incremental_snapshot_service import IncrementalSnapshotService
-from scripts.core.archive_manager import ArchiveManager
 
 
 def _write_text(path: Path, content: str):
@@ -54,13 +55,13 @@ def test_preparation_summary_counts_changed_entries(tmp_path):
                 "file_path": "localization/english/sample_l_english.yml",
                 "key": "key.one:0",
                 "original": "Alpha old",
-                "translation": "旧阿尔法",
+                "translation": "Old Alpha",
             },
             {
                 "file_path": "localization/english/sample_l_english.yml",
                 "key": "key.two:0",
                 "original": "Beta",
-                "translation": "旧贝塔",
+                "translation": "Old Beta",
             },
         ]
     )
@@ -116,7 +117,7 @@ def test_build_output_reuses_old_translation_and_applies_ai_result(tmp_path):
                     "key": "key.two:0",
                     "source": "Beta",
                     "line_num": 2,
-                    "translation": "旧贝塔",
+                    "translation": "Old Beta",
                     "is_dirty": False,
                 },
             ],
@@ -127,9 +128,9 @@ def test_build_output_reuses_old_translation_and_applies_ai_result(tmp_path):
     build_service = IncrementalBuildService()
     result = build_service.build_language_output(
         processing_records=processing_records,
-        translated_results={"sample_l_english.yml": ["新阿尔法"]},
+        translated_results={"sample_l_english.yml": ["New Alpha"]},
         source_path=str(source_root),
-        lang_output_dir=tmp_path / "Remis_Incremental_Update",
+        lang_output_dir=tmp_path / "output_mod",
         source_lang_info={"code": "en", "key": "l_english"},
         target_lang_info={"code": "zh-CN", "key": "l_simp_chinese"},
         game_profile={"id": "victoria3"},
@@ -138,11 +139,42 @@ def test_build_output_reuses_old_translation_and_applies_ai_result(tmp_path):
     assert len(result["written_files"]) == 1
     output_path = Path(result["written_files"][0])
     assert output_path.exists()
+    assert "simp_chinese" in output_path.as_posix()
+    assert "english" not in output_path.as_posix()
     content = output_path.read_text(encoding="utf-8-sig")
     assert "l_simp_chinese:" in content
-    assert 'key.one:0 "新阿尔法"' in content
-    assert 'key.two:0 "旧贝塔"' in content
-    assert result["archive_results"]["localization/english/sample_l_english.yml"] == ["新阿尔法", "旧贝塔"]
+    assert 'key.one:0 "New Alpha"' in content
+    assert 'key.two:0 "Old Beta"' in content
+    assert result["archive_results"]["localization/english/sample_l_english.yml"] == ["New Alpha", "Old Beta"]
+
+
+def test_package_service_builds_playable_output_root(tmp_path, monkeypatch):
+    source_root = tmp_path / "source_mod" / "TestMod"
+    (source_root / "thumbnail.png").parent.mkdir(parents=True, exist_ok=True)
+    (source_root / "thumbnail.png").write_bytes(b"fake")
+
+    import scripts.core.services.incremental_package_service as package_module
+
+    monkeypatch.setattr(package_module, "OUTPUT_DIR", str(tmp_path / "output"))
+
+    service = IncrementalPackageService()
+    result = service.prepare_output_package(
+        project_name="TestMod",
+        source_path=str(source_root),
+        target_lang_info={"code": "zh-CN", "folder_prefix": "zh-CN-", "key": "l_simp_chinese"},
+        game_profile={
+            "id": "victoria3",
+            "source_localization_folder": "localization",
+            "protected_items": {"thumbnail.png"},
+            "metadata_file": ".metadata/metadata.json",
+        },
+    )
+
+    package_root = Path(result["package_root"])
+    assert package_root.parent == tmp_path / "output"
+    assert package_root.name == "zh-CN-testmod-incremental-update"
+    assert (package_root / "localization").exists()
+    assert (package_root / "thumbnail.png").exists()
 
 
 @pytest.mark.asyncio
@@ -179,7 +211,7 @@ async def test_check_archive_returns_only_archived_languages(tmp_path):
         )
         archive_manager.archive_translated_results(
             version_id,
-            {"localization/english/sample_l_english.yml": ["阿尔法"]},
+            {"localization/english/sample_l_english.yml": ["Alpha CN"]},
             [
                 {
                     "filename": "sample_l_english.yml",
