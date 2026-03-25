@@ -1,103 +1,47 @@
-# **Remis Project: Full-Stack AI Development Guidelines**
+# Remis Agent Context
 
-These guidelines define the operational principles, architectural standards, and design philosophy for the **Remis** project. They combine general AI development best practices with the specific technical constraints of this local desktop application.
+这份文件是当前仓库给 AI/Agent 的唯一精简上下文。目标是保留高价值项目事实，避免重复加载过时规则。
 
----
+## 协作约定
 
-## **1. Core Architecture & Environment**
+- 默认使用中文交流。
+- 优先直接检查代码和运行结果，不把旧文档当事实来源。
+- 修改代码时，优先保持现有结构与命名，不为“理想架构”做无关重构。
+- 只有在仓库当前实现无法说明问题时，才参考历史文档。
 
-The AI operates within a **Windows-based local development environment**, building a desktop-class application.
+## 项目定位
 
-### **The "Decoupled" Stack**
-*   **Goal**: A local desktop application (eventually via Tauri/Electron).
-*   **Frontend**: **React** (Vite) + **Mantine** (UI Library).
-    *   Runs on a dev server (e.g., port 5173).
-    *   Proxies API requests to the backend.
-*   **Backend**: **Python 3.x** (FastAPI).
-    *   Runs as a local server (e.g., port 8081).
-    *   **Strict Separation**: Core logic (`scripts/core/`) must be callable by both the Web UI and CLI/Tests without modification.
-*   **Communication**: REST API via `axios`.
+- 这是一个面向 Paradox 系游戏 Mod 的本地化工具仓库。
+- 当前仓库是 Windows 本地开发环境。
+- 代码主体仍以 Python 为核心，前端和桌面壳都服务于本地化工作流。
 
-### **Data Persistence Strategy**
-1.  **Project State (JSON Sidecar)**:
-    *   Project-specific data (Kanban progress, user notes, config) is stored in a **`.remis_project.json`** file in the user's project root.
-    *   *Why?* To support portability and "folder-as-project" workflows.
-2.  **Global Data (SQLite)**:
-    *   **`database.sqlite`**: Central Glossary/Dictionary storage.
-    *   **`mods_cache.sqlite`**: Version control and translation archives.
-    *   **`translation_progress.sqlite`**: Resume capability for long tasks.
+## 当前高价值事实
 
----
+- 后端入口在 `scripts/web_server.py`。
+- 核心逻辑集中在 `scripts/core/`，这里应尽量保持可复用，不依赖具体 UI。
+- 项目已经包含多种 AI handler，例如 Gemini、OpenAI、DeepSeek、Grok、Qwen、NVIDIA、本地模型类实现。
+- 词典、解析、构建、归档、项目状态、增量翻译等能力已经拆分在 `scripts/core/` 和其 `services/` 子目录。
+- Paradox 本地化文件格式和编码兼容性是真实复杂点，相关改动应优先复用现有解析/构建链路，而不是临时手写。
+- 校验规则位于 `scripts/config/validators/`，这类规则优先视为项目事实，不要随意绕过。
 
-## **2. Development Philosophy**
+## 修改时的判断原则
 
-These principles guide *how* the AI should approach tasks to ensure quality and stability.
+- 涉及翻译主流程时，先找现有服务和工作流，再决定是否新增入口。
+- 涉及文件解析、重建、编码处理时，先检查 `file_parser.py`、`file_builder.py`、`loc_parser.py` 和相关 service。
+- 涉及项目状态、看板、增量处理时，优先检查 `project_*`、`kanban_service.py`、`incremental_*`。
+- 涉及 AI 接口时，优先沿用现有 handler 抽象，不新建平行体系。
+- 涉及前端表现时，以当前仓库真实实现为准，不再默认沿用旧文档里的视觉和组件约束。
 
-### **Iterative Workflow**
-1.  **Plan**: Before coding, analyze requirements and generate a plan.
-2.  **Blueprint**: Maintain a mental or actual blueprint of the system state.
-3.  **Implement**: Write code in small, verifiable chunks.
-4.  **Verify**: Immediately check terminal outputs, logs, and UI behavior.
+## 已明确降级的信息
 
-### **Automated Error Detection & Remediation**
-*   **"Fix as you go"**: After *every* modification, monitor:
-    *   **Vite Terminal**: For compilation errors.
-    *   **Python Console**: For traceback errors (500 Internal Server Error).
-    *   **Browser Console**: For React runtime errors.
-*   **Self-Correction**: Attempt to fix syntax errors, import issues, or type mismatches automatically before asking the user.
+以下内容不再作为高优先级上下文：
 
-### **Code Quality Standards**
-*   **DRY (Don't Repeat Yourself)**: Extract common logic into hooks (Frontend) or utility modules (Backend).
-*   **Async/Await**: Use consistently for all API calls and file I/O.
-*   **Type Safety**: Use Prop Types or TypeScript interfaces (where applicable) and Pydantic models for Backend schemas.
+- 泛化的软件工程口号，例如 DRY、分层、先测试后提交。
+- 旧文档里对 UI 风格的强约束，例如固定主题、美术方向、组件偏好。
+- 旧文档里可能过时的技术快照，例如特定页面名、组件名、路由名、端口、启动方式。
+- 为旧代理设计的自动提交流程、长篇工作流脚本、冗长 commit 教条。
 
-### **Defensive Programming Principles**
-*   **Whitelist Success**: In critical workflows (e.g., translation status), only mark as `Success` if explicitly confirmed. Default to `Failed` or `Pending` for any ambiguity.
-*   **Standardize & Centralize**: Avoid hardcoding shared constants (timeouts, retry counts, buffer sizes). Centralize them in `app_settings.py`.
-*   **Regression Proofing**: For every bug fix, ensure a corresponding test case is added to `tests/` or a verification script is provided.
-*   **Environment Parity**: Always consider packaging constraints (PyInstaller) when adding dependencies or file I/O. Use `get_app_root()` for relative pathing.
+## 旧文件处理原则
 
----
-
-## **3. UI/UX Design System**
-
-**Aesthetics**: The UI must feel like a **Premium Desktop App**, not a website.
-*   **Keywords**: *Dark Mode*, *Glassmorphism*, *Skeuomorphic Details*, *Cinematic*.
-*   **Visuals**: Use deep shadows, blurred backgrounds (`backdrop-filter`), and rich textures.
-
-### **Technical Implementation**
-*   **Theme System**:
-    *   5 distinct themes (Victorian, Byzantine, Sci-Fi, etc.).
-    *   Controlled via CSS Variables and `data-theme` attribute on `<html>`.
-*   **Layout Engine**:
-    *   **Flexbox** over Grid for main layouts.
-    *   **Scrolling**: Scrollbars must be on *internal* content areas, never the `body`. Use `flex: 1` + `overflow: hidden` on containers.
-*   **Components**:
-    *   Use **Mantine** components as the base.
-    *   Wrap or style them to fit the "Remis" aesthetic (e.g., custom glass panels).
-
----
-
-## **4. Backend Engineering Standards**
-
-### **Logic & Workflows**
-*   **Generators for Concurrency**: Long-running tasks (translation, scanning) must use Python **generators (`yield`)** to stream progress to the UI.
-*   **Validation**:
-    *   **Input**: Validate all API payloads using Pydantic.
-    *   **Output**: Use `post_process_validator.py` to ensure translation integrity (tags, variables).
-
-### **Robustness & Compatibility**
-*   **Encoding Defense**: When reading files, use the "Three-Layer Defense":
-    1.  `utf-8-sig` (Best for Windows/Excel).
-    2.  System default.
-    3.  `utf-8` with `errors='replace'` (Fallback).
-*   **Path Handling**: Always use `pathlib.Path`. Resolve paths relative to the project root or user configuration.
-*   **Windows Specifics**: When calling external tools (like git or mod tools), use PowerShell-compatible commands and handle BOM-UTF8 correctly.
-
----
-
-## **5. Documentation & Maintenance**
-
-*   **`task.md`**: Keep the task list updated.
-*   **Comments**: Write meaningful comments for complex logic, especially in regex patterns or data migration scripts.
-*   **Commit Messages**: Use semantic, descriptive messages (e.g., `feat:`, `fix:`, `docs:`).
+- `.agent/` 下文件仅保留为兼容入口，不再承载主要规则。
+- 如果旧文件内容与当前代码冲突，以当前代码和本文件为准。
