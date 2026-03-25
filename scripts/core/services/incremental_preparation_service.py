@@ -1,10 +1,7 @@
-import logging
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from scripts.core.parallel_types import FileTask
-
-logger = logging.getLogger(__name__)
 
 
 class IncrementalPreparationService:
@@ -30,17 +27,10 @@ class IncrementalPreparationService:
         target_lang_code = target_lang_info["code"]
         lang_dest_dir = base_output_dir if total_targets == 1 else base_output_dir / target_lang_code
         num_files = len(current_files_data)
-        logger.info(
-            f"[IncrementalPreparation] target={target_lang_code} files={num_files} history_entries={len(history_index)}"
-        )
 
         for index, file_data in enumerate(current_files_data):
             filename = file_data["filename"]
             file_path = file_data["file_path"]
-            parsed_entry_count = len(file_data["parsed_entries"])
-            logger.info(
-                f"[IncrementalPreparation] file {index + 1}/{num_files}: {file_path} parsed_entries={parsed_entry_count}"
-            )
 
             if progress_callback:
                 pct = 20 + int((index / num_files) * 30)
@@ -82,10 +72,6 @@ class IncrementalPreparationService:
                 "full_file_entries": full_file_entries,
                 "key_delta_indices": key_delta_indices,
             })
-            logger.info(
-                f"[IncrementalPreparation] file done: {file_path} "
-                f"dirty={len(texts_to_translate)} total={len(full_file_entries)}"
-            )
 
             if texts_to_translate:
                 file_tasks_for_ai.append(FileTask(
@@ -107,10 +93,6 @@ class IncrementalPreparationService:
                     mod_name="",
                 ))
 
-        logger.info(
-            f"[IncrementalPreparation] target={target_lang_code} done summary={summary} "
-            f"processing_records={len(processing_records)} ai_tasks={len(file_tasks_for_ai)}"
-        )
         return {
             "summary": summary,
             "processing_records": processing_records,

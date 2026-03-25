@@ -85,8 +85,6 @@ async def run_incremental_update(
         )
         logger.info(f"Pre-fetched {len(all_entries)} archive entries for {project_name}.")
         history_index = diff_service.build_history_index(all_entries)
-        logger.info(f"Built history index for {project_name} ({target_lang_code}): {len(history_index)} indexed entries.")
-        logger.info(f"Starting preparation phase for {project_name} ({target_lang_code}) across {len(current_files_data)} files.")
         preparation_result = preparation_service.prepare_language_update(
             current_files_data=current_files_data,
             history_index=history_index,
@@ -101,7 +99,6 @@ async def run_incremental_update(
             total_targets=len(target_lang_infos),
             progress_callback=progress_callback,
         )
-        logger.info(f"Preparation phase completed for {project_name} ({target_lang_code}).")
         summary = preparation_result["summary"]
         processing_records = preparation_result["processing_records"]
         file_tasks_for_ai = preparation_result["file_tasks_for_ai"]
