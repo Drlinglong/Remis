@@ -191,19 +191,22 @@ const IncrementalTranslationPage = () => {
                 use_resume: useResume
             });
 
-            // Check if backend returned a warning status
-            if (res.data.status === 'warning') {
-                notificationService.info(
-                    res.data.message || t('incremental_translation.no_files_warning'),
-                    notificationStyle
-                );
+            const taskId = res.data.task_id;
+            if (taskId) {
+                // Connect to WebSocket and wait for the summary
+                connectWebSocket(taskId, true); // true indicates pre-scan mode
+            } else {
+                // Fallback for immediate response (though backend is currently async)
+                if (res.data.status === 'warning') {
+                    notificationService.info(res.data.message || t('incremental_translation.no_files_warning'), notificationStyle);
+                }
+                setScanResults(res.data.summary);
+                setActive(2);
+                setLoading(false);
             }
-
-            setScanResults(res.data.summary);
-            setActive(2);
         } catch (err) {
+            console.error('Pre-scan error:', err);
             notificationService.error(t('notification.error_generic'), notificationStyle);
-        } finally {
             setLoading(false);
         }
     };
@@ -241,12 +244,14 @@ const IncrementalTranslationPage = () => {
         }
     };
 
-    const connectWebSocket = (taskId) => {
+    const connectWebSocket = (taskId, isPreScan = false) => {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host;
         const wsUrl = `${protocol}//${host}/api/ws/status/${taskId}`;
 
-        console.log(`Connecting to WS: ${wsUrl}`);
+        console.log(`Connecting to WS (${isPreScan ? 'Pre-scan' : 'Execution'}): ${wsUrl}`);
+        if (wsRef.current) wsRef.current.close();
+        
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
@@ -265,23 +270,30 @@ const IncrementalTranslationPage = () => {
 
             // Handle completion
             if (data.status === 'completed') {
-                setFinalSummary(data);
-                addLog(`Translation completed successfully!`);
-                setProgress(100);
-                setExecuting(false);
+                if (isPreScan) {
+                    setScanResults(data.summary);
+                    setActive(2);
+                    setLoading(false);
+                } else {
+                    setFinalSummary(data);
+                    addLog(`Translation completed successfully!`);
+                    setProgress(100);
+                    setExecuting(false);
+                }
                 ws.close();
             } else if (data.status === 'failed') {
-                addLog(`Translation failed! Check logs for details.`, 'error');
-                setExecuting(false);
+                addLog(`Task failed! Check logs for details.`, 'error');
+                if (isPreScan) setLoading(false);
+                else setExecuting(false);
                 ws.close();
             }
         };
 
         ws.onerror = (err) => {
             console.error('WebSocket Error:', err);
-            addLog('WebSocket connection error. Falling back to status polling...', 'error');
-            // Fallback to polling could be implemented if necessary, 
-            // but for now, we assume WS is reliable in local env.
+            addLog('WebSocket connection error.', 'error');
+            if (isPreScan) setLoading(false);
+            else setExecuting(false);
         };
 
         ws.onclose = () => {
