@@ -151,23 +151,21 @@ export function AppSider() {
                 {links}
             </Stack>
 
-            {FEATURES.ENABLE_EXPERIMENTAL_FEATURES && (
-                <Stack gap="xs" mt="md" pt="md" style={{ borderTop: '1px solid var(--glass-border)' }}>
-                    {devLinks}
-                    <Box id="tutorial-sidebar-link" style={{ width: '100%' }}>
-                        <NavbarLink
-                            icon={IconQuestionMark}
-                            label="tutorial.sidebar_tutorial_btn"
-                            active={false}
-                            onClick={() => {
-                                startTour();
-                            }}
-                            expanded={expanded}
-                            className={styles.tutorialButton} // Add pulse animation class
-                        />
-                    </Box>
-                </Stack>
-            )}
+            <Stack gap="xs" mt="md" pt="md" style={{ borderTop: '1px solid var(--glass-border)' }}>
+                {FEATURES.ENABLE_EXPERIMENTAL_FEATURES && devLinks}
+                <Box id="tutorial-sidebar-link" style={{ width: '100%' }}>
+                    <NavbarLink
+                        icon={IconQuestionMark}
+                        label="tutorial.sidebar_tutorial_btn"
+                        active={false}
+                        onClick={() => {
+                            startTour();
+                        }}
+                        expanded={expanded}
+                        className={styles.tutorialButton} // Add pulse animation class
+                    />
+                </Box>
+            </Stack>
         </Box>
     );
 }
