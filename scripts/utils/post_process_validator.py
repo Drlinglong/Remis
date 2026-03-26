@@ -362,10 +362,10 @@ class BaseGameValidator:
             
         # 简单的键名检查：只允许字母、数字、下划线、点、冒号(某些游戏允许?)
         # 通常P社键名是 alphanumeric + underscore + dot
-        if not re.match(r'^[a-zA-Z0-9_\.]+$', key):
+        if not re.match(r'^[a-zA-Z0-9_\.\-]+$', key):
              # 暂时只作为 Warning，因为有些Mod可能有奇怪的键名
             message = "Invalid key format"
-            details = f"Key '{key}' contains invalid characters. Expected alphanumeric, underscore, or dot."
+            details = f"Key '{key}' contains invalid characters. Expected alphanumeric, underscore, dot, or hyphen."
             results.append(ValidationResult(
                 is_valid=False,
                 level=ValidationLevel.WARNING,

@@ -293,9 +293,11 @@ class ProjectManager:
             return {"exists": False, "reason": "incremental_translation.archive_missing"}
             
         archived_languages = self.archive_service.archive_manager.get_archived_languages(latest_version['id'])
-        target_lang = self.archive_service.archive_manager.detect_target_language(latest_version['id']) or "zh-CN"
-        
-        target_languages = archived_languages or [target_lang]
+        target_languages = archived_languages or []
+        primary_target_language = target_languages[0] if target_languages else None
+        source_entry_count = self.archive_service.archive_manager.get_source_entry_count(latest_version['id'])
+        source_file_count = self.archive_service.archive_manager.get_source_file_count(latest_version['id'])
+        total_translation_entries = self.archive_service.archive_manager.get_total_translated_entry_count(latest_version['id'])
         baseline_versions = []
         for language_code in target_languages:
             baseline = self.archive_service.archive_manager.get_latest_version(
@@ -318,11 +320,16 @@ class ProjectManager:
             "exists": True, 
             "version_id": latest_version['id'], 
             "created_at": latest_version['created_at'],
-            "target_language": target_lang, 
+            "target_language": primary_target_language,
             "target_languages": target_languages,
             "archived_languages": archived_languages,
             "project_name": project_name,
             "baseline_versions": baseline_versions,
+            "source_entry_count": source_entry_count,
+            "source_file_count": source_file_count,
+            "total_translation_entries": total_translation_entries,
+            "target_language_count": len(target_languages),
+            "last_upload_at": latest_version.get("last_translation_at"),
         }
 
     async def get_project(self, project_id: str) -> Optional[Dict[str, Any]]:

@@ -21,6 +21,7 @@ class WorkshopIssueExportService:
     """
 
     OUTPUT_FILENAME = "workshop_issues.json"
+    AGGREGATED_SIDE_CAR = ".remis_errors.json"
 
     def __init__(self):
         self.validator = PostProcessValidator()
@@ -112,7 +113,35 @@ class WorkshopIssueExportService:
 
         export_result = self._write_exports(output_root, issues, generated_at)
         export_result["issue_count"] = len(issues)
+        export_result["issues"] = issues
         return export_result
+
+    def merge_exports(
+        self,
+        output_root: str | Path,
+        export_items: List[Dict[str, Any]],
+        generated_at: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        output_root = Path(output_root)
+        output_root.mkdir(parents=True, exist_ok=True)
+
+        merged_issues: List[Dict[str, Any]] = []
+        for item in export_items:
+            issues = item.get("issues")
+            if isinstance(issues, list):
+                merged_issues.extend(issues)
+
+        merged_issues.sort(
+            key=lambda issue: (
+                str(issue.get("target_lang", "")),
+                str(issue.get("file_name", "")),
+                int(issue.get("line_number") or 0),
+                str(issue.get("key", "")),
+                str(issue.get("error_code", "")),
+            )
+        )
+
+        return self._write_exports(output_root, merged_issues, generated_at or datetime.now().isoformat(timespec="seconds"))
 
     def _write_exports(self, output_root: Path, issues: List[Dict[str, Any]], generated_at: str) -> Dict[str, Any]:
         ValidationLogger.save_errors(str(output_root), issues)
@@ -156,8 +185,8 @@ class WorkshopIssueExportService:
                 rel_parts[index] = source_paradox
 
         rel_parts[-1] = re.sub(
-            rf"_l_{re.escape(target_paradox)}(?=\.yml$)",
-            f"_l_{source_paradox}",
+            rf"(?P<prefix>[_\s])l_{re.escape(target_paradox)}(?=\.yml$)",
+            rf"\g<prefix>l_{source_paradox}",
             rel_parts[-1],
             flags=re.IGNORECASE,
         )

@@ -1,7 +1,6 @@
 import os
 import uuid
 import shutil
-import zipfile
 import logging
 import traceback
 from typing import List, Optional
@@ -21,6 +20,37 @@ import asyncio
 from scripts.shared.ws_manager import ws_manager
 router = APIRouter()
 task_lock = threading.Lock()
+
+
+def _resolve_target_languages(target_lang_codes: List[str]):
+    resolved = []
+    for target_code in target_lang_codes:
+        lang = next((item for item in LANGUAGES.values() if item["code"] == target_code), None)
+        if lang:
+            resolved.append(lang)
+    return resolved
+
+
+def _resolve_requested_target_languages(target_lang_codes: List[str], custom_lang_config: Optional[CustomLangConfig] = None) -> List[dict]:
+    if custom_lang_config:
+        return [custom_lang_config.dict()]
+    return _resolve_target_languages(target_lang_codes)
+
+
+def _get_output_folder_name(mod_name: str, target_lang: dict) -> str:
+    prefix = target_lang.get("folder_prefix", f"{target_lang.get('code', 'unknown')}-")
+    return f"{prefix}{slugify_to_ascii(mod_name)}"
+
+
+def _get_output_directories(mod_name: str, target_languages: List[dict]) -> List[str]:
+    if len(target_languages) > 1:
+        return [os.path.join(DEST_DIR, f"Multilanguage-{slugify_to_ascii(mod_name)}")]
+    return [os.path.join(DEST_DIR, _get_output_folder_name(mod_name, target_lang)) for target_lang in target_languages]
+
+
+def _get_checkpoint_output_dir(mod_name: str, target_languages: List[dict]) -> str:
+    return _get_output_directories(mod_name, target_languages)[0]
+
 
 def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str, target_lang_codes: List[str], api_provider: str, mod_context: str, project_id: Optional[str] = None):
     """
@@ -47,7 +77,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
         # 1. Retrieve full config objects from IDs/codes
         game_profile = GAME_PROFILES.get(game_profile_id)
         source_lang = next((lang for lang in LANGUAGES.values() if lang["code"] == source_lang_code), None)
-        target_languages = [lang for lang in LANGUAGES.values() if lang["code"] in target_lang_codes]
+        target_languages = _resolve_target_languages(target_lang_codes)
 
         if not all([game_profile, source_lang, target_languages]):
             raise ValueError("无效的游戏配置、源语言或目标语言。")
@@ -67,24 +97,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
         tasks[task_id]["log"].append("翻译流程成功完成！")
 
         # Prepare the result for download
-        sanitized_mod_name = slugify_to_ascii(mod_name)
-        output_folder_name = f"{target_languages[0]['folder_prefix']}{sanitized_mod_name}"
-        if len(target_languages) > 1:
-            output_folder_name = f"Multilanguage-{sanitized_mod_name}"
-
-        result_dir = os.path.join(DEST_DIR, output_folder_name)
-
-        # Hyper-detailed logging for debugging
-        logging.info(f"--- ZIPPING LOGS for Task {task_id} ---")
-        logging.info(f"Final check before zipping. Target directory: {result_dir}")
-        logging.info(f"Does it exist? {os.path.exists(result_dir)}")
-        logging.info(f"Is it a directory? {os.path.isdir(result_dir)}")
-        if os.path.exists(result_dir) and os.path.isdir(result_dir):
-            logging.info(f"Contents: {os.listdir(result_dir)}")
-        logging.info(f"------------------------------------")
-
-        zip_path = shutil.make_archive(result_dir, 'zip', result_dir)
-        tasks[task_id]["result_path"] = zip_path
+        tasks[task_id]["output_dirs"] = _get_output_directories(mod_name, target_languages)
 
         if project_id:
             try:
@@ -103,9 +116,6 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
         logging.error(f"任务 {task_id} 失败: {error_message}")
         tasks[task_id]["status"] = "failed"
         tasks[task_id]["log"].append(error_message)
-        # 确保失败的任务没有可下载的结果路径
-        if "result_path" in tasks[task_id]:
-            del tasks[task_id]["result_path"]
         if project_id:
             try:
                 import asyncio
@@ -227,7 +237,7 @@ def run_translation_workflow_v2(
              game_profile = next((p for p in GAME_PROFILES.values() if p['id'] == normalized_game_id), None)
 
         source_lang = next((lang for lang in LANGUAGES.values() if lang["code"] == source_lang_code), None)
-        target_languages = [lang for lang in LANGUAGES.values() if lang["code"] in target_lang_codes]
+        target_languages = _resolve_target_languages(target_lang_codes)
         
         logging.info(f"Resolved: GameProfile={game_profile is not None}, SourceLang={source_lang is not None}, TargetLangs={len(target_languages)}")
 
@@ -276,12 +286,7 @@ def run_translation_workflow_v2(
         tasks[task_id]["progress"]["percent"] = 100
         tasks[task_id]["progress"]["stage"] = "Completed"
         tasks[task_id]["log"].append("翻译流程成功完成！")
-        output_folder_name = f"{target_languages[0]['folder_prefix']}{slugify_to_ascii(mod_name)}"
-        if len(target_languages) > 1:
-            output_folder_name = f"Multilanguage-{slugify_to_ascii(mod_name)}"
-        result_dir = os.path.join(DEST_DIR, output_folder_name)
-        zip_path = shutil.make_archive(result_dir, 'zip', result_dir)
-        tasks[task_id]["result_path"] = zip_path
+        tasks[task_id]["output_dirs"] = _get_output_directories(mod_name, target_languages)
 
         if project_id:
             try:
@@ -350,22 +355,13 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     # Auto-register translation path (Optimistic registration)
     # We predict the output path based on the request
     try:
-        target_lang_codes = request.target_lang_codes
-        if len(target_lang_codes) > 1:
-            output_folder_name = f"Multilanguage-{mod_name}"
-        else:
-            target_code = target_lang_codes[0]
-            target_lang = next((l for l in LANGUAGES.values() if l["code"] == target_code), None)
-            sanitized_mod_name = slugify_to_ascii(mod_name)
-            if target_lang:
-                prefix = target_lang.get("folder_prefix", f"{target_lang['code']}-")
-                output_folder_name = f"{prefix}{sanitized_mod_name}"
-            else:
-                output_folder_name = f"{target_code}-{sanitized_mod_name}"
-        
-        result_dir = os.path.join(DEST_DIR, output_folder_name)
-        await project_manager.add_translation_path(request.project_id, result_dir)
-        logging.info(f"Auto-registered translation path: {result_dir}")
+        target_languages = _resolve_requested_target_languages(
+            [code.value for code in request.target_lang_codes],
+            request.custom_lang_config,
+        )
+        for result_dir in _get_output_directories(mod_name, target_languages):
+            await project_manager.add_translation_path(request.project_id, result_dir)
+            logging.info(f"Auto-registered translation path: {result_dir}")
     except Exception as e:
         logging.error(f"Failed to auto-register translation path: {e}")
 
@@ -388,10 +384,11 @@ async def start_translation(
         source_path = os.path.join(SOURCE_DIR, mod_name)
         if os.path.exists(source_path):
             shutil.rmtree(source_path)
-        temp_zip_path = os.path.join(SOURCE_DIR, file.filename)
-        with open(temp_zip_path, "wb") as buffer:
+        temp_archive_path = os.path.join(SOURCE_DIR, file.filename)
+        with open(temp_archive_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        with zipfile.ZipFile(temp_zip_path, 'r') as zip_ref:
+        import zipfile
+        with zipfile.ZipFile(temp_archive_path, 'r') as zip_ref:
             zip_ref.extractall(source_path)
         extracted_items = os.listdir(source_path)
         if len(extracted_items) == 1:
@@ -400,7 +397,7 @@ async def start_translation(
                 for item_name in os.listdir(potential_inner_folder):
                     shutil.move(os.path.join(potential_inner_folder, item_name), os.path.join(source_path, item_name))
                 os.rmdir(potential_inner_folder)
-        os.remove(temp_zip_path) # Clean up the zip file
+        os.remove(temp_archive_path)
         tasks[task_id]["status"] = "starting"
         tasks[task_id]["log"].append(f"Mod '{mod_name}' 已上传并解压。")
     except Exception as e:
@@ -533,10 +530,7 @@ async def websocket_status(websocket: WebSocket, task_id: str):
 
 @router.get("/api/result/{task_id}")
 def get_result(task_id: str):
-    task = tasks.get(task_id)
-    if not task or task["status"] != "completed":
-        raise HTTPException(status_code=404, detail="任务未完成或结果文件未找到")
-    return FileResponse(task["result_path"], media_type='application/zip', filename=os.path.basename(task["result_path"]))
+    raise HTTPException(status_code=410, detail="ZIP result downloads have been removed. Open the output folder instead.")
 
 @router.post("/api/translation/checkpoint-status")
 def check_checkpoint_status(payload: CheckpointStatusRequest):
@@ -544,33 +538,20 @@ def check_checkpoint_status(payload: CheckpointStatusRequest):
     try:
         # Determine output folder name logic (duplicated from initial_translate, ideally shared)
         # NOTE: This logic must match initial_translate.py exactly
-        is_batch_mode = len(payload.target_lang_codes) > 1
-        sanitized_mod_name = slugify_to_ascii(payload.mod_name)
-        if is_batch_mode:
-            output_folder_name = f"Multilanguage-{sanitized_mod_name}"
-        else:
-            # We need the folder prefix. This is tricky without the full language object.
-            # Assuming standard prefix or we need to look it up.
-            # Let's look up the language object from LANGUAGES
-            target_code = payload.target_lang_codes[0]
-            target_lang = next((l for l in LANGUAGES.values() if l["code"] == target_code), None)
-            if target_lang:
-                prefix = target_lang.get("folder_prefix", f"{target_lang['code']}-")
-                output_folder_name = f"{prefix}{sanitized_mod_name}"
-            else:
-                # Fallback if lang not found (shouldn't happen if frontend sends valid codes)
-                output_folder_name = f"{target_code}-{sanitized_mod_name}"
-
-        output_dir = os.path.join(DEST_DIR, output_folder_name)
-        # Use the same language-specific filename as initial_translate.py
-        target_code = payload.target_lang_codes[0] if payload.target_lang_codes else "unknown"
-        checkpoint_filename = f".remis_checkpoint_{target_code}.json"
-        
-        cm = CheckpointManager(output_dir, checkpoint_filename=checkpoint_filename)
-        info = cm.get_checkpoint_info()
+        target_codes = [code.value if hasattr(code, "value") else str(code) for code in payload.target_lang_codes]
+        target_languages = _resolve_requested_target_languages(target_codes)
+        checkpoint_infos = []
+        output_dir = _get_checkpoint_output_dir(payload.mod_name, target_languages)
+        for target_lang in target_languages:
+            checkpoint_filename = f".remis_checkpoint_{target_lang['code']}.json"
+            cm = CheckpointManager(output_dir, checkpoint_filename=checkpoint_filename)
+            checkpoint_infos.append({
+                "target_lang_code": target_lang["code"],
+                **cm.get_checkpoint_info(),
+            })
         
         total_files = 0
-        if info["exists"]:
+        if any(item["exists"] for item in checkpoint_infos):
             source_path = os.path.join(SOURCE_DIR, payload.mod_name)
             # Quick count
             for root, _, files in os.walk(source_path):
@@ -579,10 +560,11 @@ def check_checkpoint_status(payload: CheckpointStatusRequest):
                         total_files += 1
         
         return {
-            "exists": info["exists"],
-            "completed_count": info["completed_count"],
+            "exists": any(item["exists"] for item in checkpoint_infos),
+            "completed_count": sum(item["completed_count"] for item in checkpoint_infos),
             "total_files_estimate": total_files,
-            "metadata": info["metadata"]
+            "metadata": checkpoint_infos[0]["metadata"] if len(checkpoint_infos) == 1 else {"targets": checkpoint_infos},
+            "targets": checkpoint_infos,
         }
     except Exception as e:
         logging.error(f"Error checking checkpoint: {e}")
@@ -593,26 +575,13 @@ def delete_checkpoint(payload: CheckpointStatusRequest):
     """Deletes the checkpoint file for the given configuration."""
     try:
         # Determine output folder name logic (duplicated)
-        is_batch_mode = len(payload.target_lang_codes) > 1
-        sanitized_mod_name = slugify_to_ascii(payload.mod_name)
-        if is_batch_mode:
-            output_folder_name = f"Multilanguage-{sanitized_mod_name}"
-        else:
-            target_code = payload.target_lang_codes[0]
-            target_lang = next((l for l in LANGUAGES.values() if l["code"] == target_code), None)
-            if target_lang:
-                prefix = target_lang.get("folder_prefix", f"{target_lang['code']}-")
-                output_folder_name = f"{prefix}{sanitized_mod_name}"
-            else:
-                output_folder_name = f"{target_code}-{sanitized_mod_name}"
-
-        output_dir = os.path.join(DEST_DIR, output_folder_name)
-        # Use the same language-specific filename as initial_translate.py
-        target_code = payload.target_lang_codes[0] if payload.target_lang_codes else "unknown"
-        checkpoint_filename = f".remis_checkpoint_{target_code}.json"
-        
-        cm = CheckpointManager(output_dir, checkpoint_filename=checkpoint_filename)
-        cm.clear_checkpoint()
+        target_codes = [code.value if hasattr(code, "value") else str(code) for code in payload.target_lang_codes]
+        target_languages = _resolve_requested_target_languages(target_codes)
+        output_dir = _get_checkpoint_output_dir(payload.mod_name, target_languages)
+        for target_lang in target_languages:
+            checkpoint_filename = f".remis_checkpoint_{target_lang['code']}.json"
+            cm = CheckpointManager(output_dir, checkpoint_filename=checkpoint_filename)
+            cm.clear_checkpoint()
         return {"status": "success", "message": "Checkpoint deleted."}
     except Exception as e:
         logging.error(f"Error deleting checkpoint: {e}")

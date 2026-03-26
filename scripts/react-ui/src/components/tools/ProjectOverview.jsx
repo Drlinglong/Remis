@@ -83,7 +83,7 @@ const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, 
     if (!projectDetails) return null;
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', width: '100%', overflow: 'visible', gap: '1rem' }}>
             {/* Header section with stats */}
             <div style={{ flexShrink: 0 }}>
                 <ProjectHeader

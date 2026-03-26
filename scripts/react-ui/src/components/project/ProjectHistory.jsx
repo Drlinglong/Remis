@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Timeline, Text, Paper, Title, Group, Badge, Button,
-    Stack, ActionIcon, Tooltip, Alert, Loader, Center,
-    Divider, Modal, Code
+    Timeline, Text, Paper, Title, Group, Button,
+    Stack, ActionIcon, Alert, Loader, Center,
+    Divider, Code, SimpleGrid, Card
 } from '@mantine/core';
 import {
-    IconHistory, IconGitBranch, IconRefresh, IconTrash,
-    IconCheck, IconAlertTriangle, IconPlayerPlay, IconInfoCircle
+    IconHistory, IconGitBranch, IconTrash,
+    IconCheck, IconPlayerPlay, IconInfoCircle, IconUpload
 } from '@tabler/icons-react';
 import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
-const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
+const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, onProjectDataChanged }) => {
     const { t, i18n } = useTranslation();
+    const navigate = useNavigate();
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [checkingDiff, setCheckingDiff] = useState(false);
-    const [diffResult, setDiffResult] = useState(null);
-    const [updating, setUpdating] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
     const fetchHistory = async () => {
         try {
@@ -31,35 +31,32 @@ const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
         }
     };
 
-    const checkDiff = async () => {
-        try {
-            setCheckingDiff(true);
-            setDiffResult(null);
-            // Call with dry_run=true in body
-            const res = await api.post(`/api/project/${projectId}/incremental-update`, {
-                dry_run: true
-            });
-            setDiffResult(res.data.summary);
-        } catch (error) {
-            console.error("Failed to check diff", error);
-        } finally {
-            setCheckingDiff(false);
+    const refreshProjectData = async () => {
+        if (onProjectDataChanged) {
+            await onProjectDataChanged();
         }
     };
 
-    const runUpdate = async () => {
+    const openIncrementalUpdate = () => {
+        navigate('/incremental-translation', {
+            state: {
+                projectId,
+            }
+        });
+    };
+
+    const uploadTranslations = async () => {
         try {
-            setUpdating(true);
-            const res = await api.post(`/api/project/${projectId}/incremental-update`, {
-                dry_run: false
-            });
-            // After success, refresh history
-            await fetchHistory();
-            setDiffResult(null);
+            setUploading(true);
+            await api.post(`/api/project/${projectId}/upload-translations`);
+            await Promise.all([
+                fetchHistory(),
+                refreshProjectData(),
+            ]);
         } catch (error) {
-            console.error("Failed to run incremental update", error);
+            console.error("Failed to upload translations", error);
         } finally {
-            setUpdating(false);
+            setUploading(false);
         }
     };
 
@@ -75,8 +72,12 @@ const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
 
     useEffect(() => {
         fetchHistory();
-        // checkDiff(); // Removed auto-check to prevent unnecessary 422 errors or lag on mount
     }, [projectId]);
+
+    useEffect(() => {
+        if (!refreshToken) return;
+        fetchHistory();
+    }, [refreshToken]);
 
     const translateHistoryAction = (actionType) => {
         const actionKey = `agent_workshop.history.action_${actionType}`;
@@ -152,6 +153,10 @@ const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
         return !['archive_update', 'import', 'path_registered', 'translate'].includes(event.action_type);
     };
 
+    const archiveSummary = projectDetails?.archive_summary || null;
+    const archivedLanguages = Array.isArray(projectDetails?.archived_languages) ? projectDetails.archived_languages : [];
+    const latestArchiveTime = archiveSummary?.last_upload_at || archiveSummary?.created_at || null;
+
     if (loading && history.length === 0) {
         return (
             <Center h={300}>
@@ -162,64 +167,67 @@ const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
 
     return (
         <Stack p="md" gap="xl">
-            {/* Current State / Version Control Monitor */}
             <Paper withBorder p="md" radius="md" style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)' }}>
                 <Group justify="space-between" mb="md">
                     <Group>
                         <IconGitBranch size={24} color="var(--mantine-color-blue-filled)" />
                         <Stack gap={0}>
                             <Title order={4}>{t('project_history.current_state', 'Current State')}</Title>
-                            <Text size="xs" c="dimmed">{t('project_history.monitor_desc', 'Monitoring local changes against last version')}</Text>
+                            <Text size="xs" c="dimmed">{t('project_history.monitor_desc', 'Ready for incremental translation')}</Text>
                         </Stack>
                     </Group>
                     <Button
                         variant="light"
-                        leftSection={<IconRefresh size={16} />}
-                        loading={checkingDiff}
-                        onClick={checkDiff}
+                        color="cyan"
+                        leftSection={<IconUpload size={16} />}
+                        loading={uploading}
+                        onClick={uploadTranslations}
                     >
-                        {t('button_rescan', 'Rescan')}
+                        {t('project_management.upload_translations')}
                     </Button>
                 </Group>
 
                 <Divider mb="md" />
 
-                {diffResult ? (
-                    <Stack>
-                        {diffResult.new_lines > 0 || diffResult.changed_lines > 0 ? (
-                            <Alert color="yellow" icon={<IconAlertTriangle size={16} />}>
-                                <Text fw={600} size="sm">
-                                    {t('project_history.changes_detected', 'Unsynchronized Changes Detected')}
-                                </Text>
-                                <Group gap="xl" mt="xs">
-                                    <Text size="xs">🆕 {t('project_history.new_lines', 'New Lines')}: <b>{diffResult.new_lines}</b></Text>
-                                    <Text size="xs">🔄 {t('project_history.changed_lines', 'Changed Lines')}: <b>{diffResult.changed_lines}</b></Text>
-                                    <Text size="xs">📂 {t('project_history.files_count', 'Files')}: <b>{diffResult.files_checked}</b></Text>
-                                </Group>
-                                <Button
-                                    mt="md"
-                                    color="yellow"
-                                    leftSection={<IconPlayerPlay size={16} />}
-                                    loading={updating}
-                                    onClick={runUpdate}
-                                >
-                                    {t('project_history.btn_incremental_update', 'Start Incremental Update')}
-                                </Button>
-                            </Alert>
-                        ) : (
-                            <Alert color="green" icon={<IconCheck size={16} />}>
-                                <Text size="sm">{t('project_history.up_to_date', 'Everything is up to date. No changes detected since last version.')}</Text>
-                            </Alert>
-                        )}
-                    </Stack>
-                ) : !checkingDiff && (
-                    <Center h={60}>
-                        <Text size="sm" c="dimmed">{t('project_history.scan_prompt', 'Click Rescan to check for local modifications.')}</Text>
-                    </Center>
-                )}
+                <SimpleGrid cols={{ base: 1, sm: 2, lg: 5 }} mb="md">
+                    <Card withBorder p="sm" radius="md">
+                        <Text size="xs" c="dimmed">{t('project_history.last_archive_time', 'Last Upload / Build')}</Text>
+                        <Text size="sm" fw={600}>{latestArchiveTime ? new Date(latestArchiveTime).toLocaleString() : t('project_history.no_archive_data', 'No archive data')}</Text>
+                    </Card>
+                    <Card withBorder p="sm" radius="md">
+                        <Text size="xs" c="dimmed">{t('project_history.source_entries', 'Source Entries')}</Text>
+                        <Text size="sm" fw={600}>{archiveSummary?.source_entry_count ?? 0}</Text>
+                    </Card>
+                    <Card withBorder p="sm" radius="md">
+                        <Text size="xs" c="dimmed">{t('project_history.translation_entries', 'Translation Entries')}</Text>
+                        <Text size="sm" fw={600}>{archiveSummary?.total_translation_entries ?? 0}</Text>
+                    </Card>
+                    <Card withBorder p="sm" radius="md">
+                        <Text size="xs" c="dimmed">{t('project_history.files_count', 'Files')}</Text>
+                        <Text size="sm" fw={600}>{archiveSummary?.source_file_count ?? projectDetails?.overview?.totalFiles ?? 0}</Text>
+                    </Card>
+                    <Card withBorder p="sm" radius="md">
+                        <Text size="xs" c="dimmed">{t('project_history.target_language_count', 'Target Languages')}</Text>
+                        <Text size="sm" fw={600}>{archiveSummary?.target_language_count ?? archivedLanguages.length}</Text>
+                    </Card>
+                </SimpleGrid>
+
+                <Text size="xs" c="dimmed">{t('project_history.archived_languages', 'Archived Target Languages')}</Text>
+                <Text size="sm" mb="md">{archivedLanguages.length > 0 ? archivedLanguages.join(', ') : t('project_history.no_archived_languages', 'No archived target languages yet.')}</Text>
+
+                <Alert color="blue" icon={<IconInfoCircle size={16} />}>
+                    <Text size="sm">{t('project_history.incremental_prompt', 'Need to update translations after getting a new mod version?')}</Text>
+                    <Button
+                        mt="md"
+                        color="blue"
+                        leftSection={<IconPlayerPlay size={16} />}
+                        onClick={openIncrementalUpdate}
+                    >
+                        {t('project_history.btn_incremental_update', 'Open Incremental Update')}
+                    </Button>
+                </Alert>
             </Paper>
 
-            {/* History Timeline */}
             <Stack gap="md">
                 <Title order={4} mb="sm">
                     <Group gap="xs">
@@ -234,13 +242,13 @@ const ProjectHistoryComponent = ({ projectId, projectDetails }) => {
                             <Text size="sm" c="dimmed">{t('project_history.no_history_desc', 'Major project events will appear here.')}</Text>
                         </Timeline.Item>
                     ) : (
-                        history.map((event, idx) => (
+                        history.map((event) => (
                             <Timeline.Item
                                 key={event.history_id}
                                 bullet={
-                                        event.action_type === 'translate' ? <IconGitBranch size={18} /> :
-                                        event.action_type === 'import' ? <IconCheck size={18} /> :
-                                            <IconInfoCircle size={18} />
+                                    event.action_type === 'translate' ? <IconGitBranch size={18} /> :
+                                    event.action_type === 'import' ? <IconCheck size={18} /> :
+                                    <IconInfoCircle size={18} />
                                 }
                                 title={
                                     <Group justify="space-between">

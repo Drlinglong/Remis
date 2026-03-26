@@ -331,7 +331,16 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
             tasks[task_id]["workshop_issue_exports"] = result.get("workshop_issue_exports", [])
             if tasks[task_id]["warning_count"] > 0:
                 tasks[task_id]["log"].append(
-                    f"Completed with {tasks[task_id]['warning_count']} warning(s). Review execution details."
+                    f"Runtime translation warnings: {tasks[task_id]['warning_count']}."
+                )
+            total_validation_issues = sum(
+                int(export_info.get("issue_count", 0) or 0)
+                for export_info in tasks[task_id]["workshop_issue_exports"]
+            )
+            if total_validation_issues > 0:
+                tasks[task_id]["log"].append(
+                    f"Post-build validation issues: {total_validation_issues}. "
+                    "See workshop_issues.json for structured diagnostics."
                 )
             for export_info in tasks[task_id]["workshop_issue_exports"]:
                 issues_path = export_info.get("issues_path")

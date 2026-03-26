@@ -63,7 +63,7 @@ class TranslationArchiveService:
         if not source_files_data:
             return {"status": "warning", "message": "No source files found to archive."}
 
-        mod_id = self.archive_manager.get_or_create_mod_entry(project_name, project_id)
+        mod_id = self.archive_manager.resolve_mod_entry(project_name, project_id)
         if not mod_id:
             return {"status": "error", "message": "Failed to initialize mod archive entry."}
 
@@ -316,7 +316,7 @@ class TranslationArchiveService:
                 except ValueError:
                     return None
 
-        return "zh-CN"
+        return None
 
     def _map_translation_path_to_source(self, relative_translation_path: str, paradox_source_lang: str) -> str:
         path_obj = Path(relative_translation_path)

@@ -22,7 +22,7 @@ import {
 } from '@mantine/core';
 import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, IconPlayerPlay, IconChartBar, IconSettings } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useNotification } from '../context/NotificationContext';
@@ -35,6 +35,7 @@ const LOCAL_PROVIDERS = ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga'
 const IncrementalTranslationPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const location = useLocation();
     const { notificationStyle } = useNotification();
     const [active, setActive] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -71,9 +72,12 @@ const IncrementalTranslationPage = () => {
     const pollTimerRef = useRef(null);
     const logViewportRef = useRef(null);
     const completionSourceRef = useRef(null);
+    const preScanInFlightRef = useRef(false);
+    const executionInFlightRef = useRef(false);
     const persistedStateRef = useRef(null);
     const restorationAppliedRef = useRef(false);
     const statusResyncRef = useRef(false);
+    const routePrefillAppliedRef = useRef(false);
     const [projectsLoaded, setProjectsLoaded] = useState(false);
     const [configLoaded, setConfigLoaded] = useState(false);
     const concurrencyOptions = ['1', '2', '5', '10', '20', '50'].map((value) => ({ value, label: value }));
@@ -252,6 +256,8 @@ const IncrementalTranslationPage = () => {
         sessionStorage.removeItem(INCREMENTAL_STATE_STORAGE_KEY);
         setCurrentTaskId(null);
         setCurrentTaskMode(null);
+        preScanInFlightRef.current = false;
+        executionInFlightRef.current = false;
         completionSourceRef.current = null;
         statusResyncRef.current = false;
     }, []);
@@ -335,6 +341,22 @@ const IncrementalTranslationPage = () => {
         );
     }, [formatDateTime, formatDuration, t]);
 
+    const getValidationIssueCount = useCallback((summary) => {
+        if (!summary || !Array.isArray(summary.workshop_issue_exports)) return 0;
+        return summary.workshop_issue_exports.reduce((total, item) => total + Number(item?.issue_count || 0), 0);
+    }, []);
+
+    const getArchivedTargetLanguages = useCallback((info) => {
+        if (!info) return [];
+        if (Array.isArray(info.archived_languages)) {
+            return info.archived_languages.filter(Boolean);
+        }
+        if (Array.isArray(info.target_languages)) {
+            return info.target_languages.filter(Boolean);
+        }
+        return info.target_language ? [info.target_language] : [];
+    }, []);
+
     const renderFileDetails = useCallback((fileSummaries) => {
         const dirtyFiles = (fileSummaries || []).filter((item) => (item.new + item.changed) > 0);
         if (dirtyFiles.length === 0) return null;
@@ -355,7 +377,7 @@ const IncrementalTranslationPage = () => {
                                     <Group justify="space-between" mb="xs" wrap="nowrap">
                                         <Box style={{ minWidth: 0 }}>
                                             <Text size="sm" fw={600} truncate>{file.file_path}</Text>
-                                            <Text size="xs" c="dimmed">{file.target_lang || selectedLangs[0] || archiveInfo?.target_language}</Text>
+                                            <Text size="xs" c="dimmed">{file.target_lang || selectedLangs[0] || archiveInfo?.target_language || '--'}</Text>
                                         </Box>
                                         <Group gap={6}>
                                             <Badge color="green" variant="light">{t('incremental_translation.reused_short')}: {file.unchanged}</Badge>
@@ -370,7 +392,11 @@ const IncrementalTranslationPage = () => {
                                                     <Text size="xs" fw={600}>{entry.key}</Text>
                                                     <Text size="xs" c="dimmed" lineClamp={2}>{entry.source_text}</Text>
                                                 </Box>
-                                                <Badge color={entry.status === 'new' ? 'orange' : 'red'} variant="filled">
+                                                <Badge
+                                                    color={entry.status === 'new' ? 'orange' : 'red'}
+                                                    variant="filled"
+                                                    style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                                                >
                                                     {t(`incremental_translation.entry_status_${entry.status}`)}
                                                 </Badge>
                                             </Group>
@@ -426,6 +452,26 @@ const IncrementalTranslationPage = () => {
 
         restorationAppliedRef.current = true;
     }, [applyProviderSelection, configLoaded, projects, projectsLoaded]);
+
+    useEffect(() => {
+        if (!projectsLoaded || !configLoaded || routePrefillAppliedRef.current) return;
+        if (persistedStateRef.current?.selectedProject?.project_id) {
+            routePrefillAppliedRef.current = true;
+            return;
+        }
+
+        const routedProjectId = location.state?.projectId;
+        if (!routedProjectId) {
+            routePrefillAppliedRef.current = true;
+            return;
+        }
+
+        const matchedProject = projects.find((project) => project.project_id === routedProjectId);
+        routePrefillAppliedRef.current = true;
+        if (matchedProject) {
+            handleSelectProject(matchedProject);
+        }
+    }, [configLoaded, location.state, projects, projectsLoaded]);
 
     useEffect(() => {
         if (!restorationAppliedRef.current) return;
@@ -562,15 +608,13 @@ const IncrementalTranslationPage = () => {
             const res = await axios.get(`/api/project/${project.project_id}/check-archive`);
             if (res.data.exists) {
                 setArchiveInfo(res.data);
-                // Incremental update should default to archived target languages only.
-                const availableLangs = (
-                    (Array.isArray(res.data.archived_languages) && res.data.archived_languages.length > 0)
-                        ? res.data.archived_languages
-                        : [res.data.target_language || project.target_language_code || 'zh-CN']
-                ).filter(Boolean);
+                const availableLangs = getArchivedTargetLanguages(res.data);
                 setSelectedLangs(availableLangs);
                 // Also check for checkpoint (resume status)
                 checkCheckpoint(project, project.source_path, availableLangs);
+                if (availableLangs.length === 0) {
+                    setError(t('incremental_translation.no_archived_target_languages'));
+                }
             } else {
                 setError(res.data.reason || t('incremental_translation.archive_missing'));
             }
@@ -583,16 +627,23 @@ const IncrementalTranslationPage = () => {
 
     const checkCheckpoint = async (project, sourcePath, targetLangs) => {
         try {
+            const normalizedTargetLangs = Array.isArray(targetLangs) ? targetLangs.filter(Boolean) : [];
+            if (normalizedTargetLangs.length === 0) {
+                setCheckpointFound(false);
+                return;
+            }
             // Determine mod_name for checkpoint lookup
             const modName = sourcePath.split(/[\\/]/).pop();
             const res = await axios.post('/api/translation/checkpoint-status', {
                 project_id: project.project_id,
                 mod_name: modName,
-                target_lang_codes: targetLangs || [project.target_language_code || 'zh-CN']
+                target_lang_codes: normalizedTargetLangs,
             });
             if (res.data.exists && res.data.completed_count > 0) {
                 setCheckpointFound(true);
                 notificationService.info(t('incremental_translation.checkpoint_detected', { count: res.data.completed_count }), notificationStyle);
+            } else {
+                setCheckpointFound(false);
             }
         } catch (err) {
             console.error('Failed to check checkpoint status', err);
@@ -620,8 +671,14 @@ const IncrementalTranslationPage = () => {
     };
 
     const runPreScan = async () => {
-        if (!selectedProject || !customSourcePath) return;
+        if (!selectedProject || !customSourcePath || loading || executing || preScanInFlightRef.current || executionInFlightRef.current) return;
+        const targetLangCodes = selectedLangs.length > 0 ? selectedLangs : getArchivedTargetLanguages(archiveInfo);
+        if (targetLangCodes.length === 0) {
+            notificationService.error(t('incremental_translation.no_archived_target_languages'), notificationStyle);
+            return;
+        }
 
+        preScanInFlightRef.current = true;
         try {
             setLoading(true);
             setProgress(0);
@@ -629,7 +686,7 @@ const IncrementalTranslationPage = () => {
             setLogs([t('incremental_translation.pre_scan_bootstrap_log')]);
             const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
                 project_id: selectedProject.project_id,
-                target_lang_codes: selectedLangs.length > 0 ? selectedLangs : [archiveInfo?.target_language || selectedProject.target_language_code || 'zh-CN'],
+                target_lang_codes: targetLangCodes,
                 dry_run: true,
                 api_provider: selectedProvider,
                 model: selectedModel,
@@ -662,10 +719,18 @@ const IncrementalTranslationPage = () => {
             console.error('Pre-scan error:', err);
             notificationService.error(t('notification.error_generic'), notificationStyle);
             setLoading(false);
+            preScanInFlightRef.current = false;
         }
     };
 
     const startTranslation = async () => {
+        if (loading || executing || preScanInFlightRef.current || executionInFlightRef.current) return;
+        const targetLangCodes = selectedLangs.length > 0 ? selectedLangs : getArchivedTargetLanguages(archiveInfo);
+        if (!selectedProject || targetLangCodes.length === 0) {
+            notificationService.error(t('incremental_translation.no_archived_target_languages'), notificationStyle);
+            return;
+        }
+        executionInFlightRef.current = true;
         setExecuting(true);
         setActive(3);
         setLogs([`[${new Date().toLocaleTimeString()}] Initializing WebSocket connection...`]);
@@ -678,7 +743,7 @@ const IncrementalTranslationPage = () => {
             // 1. Kick off the translation request
             const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
                 project_id: selectedProject.project_id,
-                target_lang_codes: selectedLangs.length > 0 ? selectedLangs : [archiveInfo?.target_language || selectedProject.target_language_code || 'zh-CN'],
+                target_lang_codes: targetLangCodes,
                 dry_run: false,
                 api_provider: selectedProvider,
                 model: selectedModel,
@@ -701,6 +766,7 @@ const IncrementalTranslationPage = () => {
         } catch (err) {
             addLog(`Critical Error: ${err.message}`, 'error');
             setExecuting(false);
+            executionInFlightRef.current = false;
         }
     };
 
@@ -740,6 +806,9 @@ const IncrementalTranslationPage = () => {
             console.info(`Incremental task completed via ${source}.`);
             clearTaskPolling();
             if (isPreScan) {
+                preScanInFlightRef.current = false;
+                setCurrentTaskId(null);
+                setCurrentTaskMode(null);
                 setScanResults({
                     ...(data.summary || {}),
                     file_summaries: data.file_summaries || [],
@@ -748,6 +817,7 @@ const IncrementalTranslationPage = () => {
                 setActive(2);
                 setLoading(false);
             } else {
+                executionInFlightRef.current = false;
                 setFinalSummary(data);
                 addLog(`Translation completed successfully!`);
                 setProgress(100);
@@ -762,8 +832,15 @@ const IncrementalTranslationPage = () => {
             console.warn(`Incremental task failed via ${source}.`);
             clearTaskPolling();
             addLog(`Task failed! Check logs for details.`, 'error');
-            if (isPreScan) setLoading(false);
-            else setExecuting(false);
+            if (isPreScan) {
+                preScanInFlightRef.current = false;
+                setCurrentTaskId(null);
+                setCurrentTaskMode(null);
+                setLoading(false);
+            } else {
+                executionInFlightRef.current = false;
+                setExecuting(false);
+            }
             if (wsRef.current) {
                 wsRef.current.close();
             }
@@ -965,6 +1042,22 @@ const IncrementalTranslationPage = () => {
                                                 <Text size="xs" c="dimmed">{t('incremental_translation.project_folder')}</Text>
                                                 <Text size="sm">{selectedProject?.source_path?.split(/[\\/]/).pop()}</Text>
                                             </Box>
+                                            <Box>
+                                                <Text size="xs" c="dimmed">{t('incremental_translation.archived_target_languages')}</Text>
+                                                <Text size="sm">
+                                                    {getArchivedTargetLanguages(archiveInfo).length > 0
+                                                        ? getArchivedTargetLanguages(archiveInfo).join(', ')
+                                                        : t('incremental_translation.none_archived')}
+                                                </Text>
+                                            </Box>
+                                            <Box>
+                                                <Text size="xs" c="dimmed">{t('incremental_translation.selected_target_languages')}</Text>
+                                                <Text size="sm">
+                                                    {selectedLangs.length > 0
+                                                        ? selectedLangs.join(', ')
+                                                        : t('incremental_translation.none_selected')}
+                                                </Text>
+                                            </Box>
                                         </SimpleGrid>
                                     </Card>
 
@@ -1038,15 +1131,17 @@ const IncrementalTranslationPage = () => {
                                     <MultiSelect
                                         label={t('translation_config.target_languages') || "Target Languages"}
                                         description={t('incremental_translation.target_lang_desc')}
-                                        data={(archiveInfo.archived_languages && archiveInfo.archived_languages.length > 0
-                                            ? archiveInfo.archived_languages
-                                            : [archiveInfo.target_language || selectedProject?.target_language_code || 'zh-CN']
-                                        ).filter(Boolean).map(lang => ({ value: lang, label: lang }))}
+                                        data={getArchivedTargetLanguages(archiveInfo).map(lang => ({ value: lang, label: lang }))}
                                         value={selectedLangs}
                                         onChange={setSelectedLangs}
                                         required
                                         clearable
                                     />
+                                    {getArchivedTargetLanguages(archiveInfo).length === 0 && (
+                                        <Alert icon={<IconAlertCircle size={16} />} color="orange" radius="md">
+                                            {t('incremental_translation.no_archived_target_languages')}
+                                        </Alert>
+                                    )}
 
                                     <Box>
                                         <Text size="sm" fw={500} mb={4}>{t('incremental_translation.select_new_folder')}</Text>
@@ -1152,14 +1247,21 @@ const IncrementalTranslationPage = () => {
                                     {t('incremental_translation.start_translation_confirm')}
                                 </Alert>
 
-                                {renderTelemetry(scanResults.telemetry)}
-
-                                <Group justify="flex-end" mt="xl">
-                                    <Button variant="light" onClick={prevStep}>{t('common.back')}</Button>
-                                    <Button size="lg" leftSection={<IconPlayerPlay size={20} />} onClick={startTranslation}>
+                                <Group justify="flex-end" mt="md">
+                                    <Button variant="light" onClick={prevStep} disabled={loading || executing}>
+                                        {t('common.back')}
+                                    </Button>
+                                    <Button
+                                        size="lg"
+                                        leftSection={<IconPlayerPlay size={20} />}
+                                        onClick={startTranslation}
+                                        disabled={loading || executing}
+                                    >
                                         {t('incremental_translation.step_4_title')}
                                     </Button>
                                 </Group>
+
+                                {renderTelemetry(scanResults.telemetry)}
 
                                 {renderFileDetails(scanResults.file_summaries)}
                             </Paper>
@@ -1212,14 +1314,32 @@ const IncrementalTranslationPage = () => {
                                 <Stack mt="xl">
                                     <Title order={4} c="green">{t('incremental_translation.completion_title')}</Title>
                                     {finalSummary.warning_count > 0 && (
-                                        <Alert color="orange" title={t('incremental_translation.warning_summary_title')}>
+                                        <Alert color="orange" title={t('incremental_translation.runtime_warning_summary_title')}>
                                             <Text size="sm">
-                                                {t('incremental_translation.warning_summary_desc', { count: finalSummary.warning_count })}
+                                                {t('incremental_translation.runtime_warning_summary_desc', { count: finalSummary.warning_count })}
                                             </Text>
                                             {(finalSummary.warnings || []).slice(0, 3).map((warning, index) => (
                                                 <Text key={`${warning.type || 'warning'}-${index}`} size="xs" c="dimmed" mt={4}>
                                                     - {warning.line_number ? `L${warning.line_number} | ` : ''}{formatWarningMessage(warning)}
                                                 </Text>
+                                            ))}
+                                        </Alert>
+                                    )}
+                                    {getValidationIssueCount(finalSummary) > 0 && (
+                                        <Alert color="yellow" title={t('incremental_translation.validation_issue_summary_title')}>
+                                            <Text size="sm">
+                                                {t('incremental_translation.validation_issue_summary_desc', { count: getValidationIssueCount(finalSummary) })}
+                                            </Text>
+                                            {(finalSummary.workshop_issue_exports || []).map((exportInfo) => (
+                                                exportInfo?.issues_path ? (
+                                                    <Text key={exportInfo.issues_path} size="xs" c="dimmed" mt={4}>
+                                                        - {t('incremental_translation.validation_issue_export_item', {
+                                                            lang: exportInfo.target_lang || 'default',
+                                                            count: exportInfo.issue_count || 0,
+                                                            path: exportInfo.issues_path,
+                                                        })}
+                                                    </Text>
+                                                ) : null
                                             ))}
                                         </Alert>
                                     )}

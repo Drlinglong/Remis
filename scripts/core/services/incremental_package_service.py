@@ -3,7 +3,7 @@ import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from scripts.app_settings import DEST_DIR
 from scripts.core import asset_handler, directory_handler
@@ -20,20 +20,25 @@ class IncrementalPackageService:
         prefix = target_lang_info.get("folder_prefix", f"{target_lang_info['code']}-")
         return f"{prefix}{slugify_to_ascii(project_name)}-incremental-update-{self._build_date_stamp()}"
 
+    def build_multilang_output_folder_name(self, project_name: str) -> str:
+        return f"Multilanguage-{slugify_to_ascii(project_name)}-incremental-update-{self._build_date_stamp()}"
+
     def prepare_output_package(
         self,
         project_name: str,
         source_path: str,
         target_lang_info: Dict[str, Any],
         game_profile: Dict[str, Any],
+        output_folder_name: Optional[str] = None,
+        clean_existing: bool = True,
     ) -> Dict[str, Any]:
-        output_folder_name = self.build_output_folder_name(project_name, target_lang_info)
+        output_folder_name = output_folder_name or self.build_output_folder_name(project_name, target_lang_info)
         package_root = Path(DEST_DIR) / output_folder_name
         launcher_mod_path = Path(DEST_DIR) / f"{output_folder_name}.mod"
 
-        if package_root.exists():
+        if clean_existing and package_root.exists():
             shutil.rmtree(package_root)
-        if launcher_mod_path.exists():
+        if clean_existing and launcher_mod_path.exists():
             launcher_mod_path.unlink()
 
         os.makedirs(DEST_DIR, exist_ok=True)

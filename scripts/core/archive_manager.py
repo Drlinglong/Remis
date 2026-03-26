@@ -208,6 +208,48 @@ class ArchiveManager:
         result = cursor.fetchone()
         return result['mod_id'] if result else None
 
+    def resolve_mod_entry(self, mod_name: str, remote_file_id: Optional[str] = None) -> Optional[int]:
+        """Resolve the correct mod bucket and ensure the project identity is attached to it."""
+        if not self.connection:
+            return None
+
+        cursor = self.connection.cursor()
+        try:
+            mod_id = None
+
+            if remote_file_id:
+                cursor.execute("SELECT mod_id FROM mod_identities WHERE remote_file_id = ?", (remote_file_id,))
+                row = cursor.fetchone()
+                if row:
+                    mod_id = row['mod_id']
+
+            if mod_id is None:
+                cursor.execute("SELECT mod_id FROM mods WHERE name = ?", (mod_name.strip(),))
+                row = cursor.fetchone()
+                if row:
+                    mod_id = row['mod_id']
+
+            if mod_id is None:
+                cursor.execute("INSERT OR IGNORE INTO mods (name) VALUES (?)", (mod_name,))
+                cursor.execute("SELECT mod_id FROM mods WHERE name = ?", (mod_name,))
+                row = cursor.fetchone()
+                if not row:
+                    raise Exception("Failed to retrieve mod_id after insertion.")
+                mod_id = row['mod_id']
+
+            if remote_file_id:
+                cursor.execute(
+                    "INSERT OR IGNORE INTO mod_identities (mod_id, remote_file_id) VALUES (?, ?)",
+                    (mod_id, remote_file_id),
+                )
+
+            self.connection.commit()
+            return mod_id
+        except Exception as e:
+            logging.error(i18n.t("log_error_db_get_create_mod_id", error=e))
+            self.connection.rollback()
+            return None
+
     def get_latest_version(
         self,
         mod_name: str = None,
@@ -234,6 +276,12 @@ class ArchiveManager:
             row = cursor.fetchone()
             if row:
                 mod_id = row['mod_id']
+                if project_id:
+                    cursor.execute(
+                        "INSERT OR IGNORE INTO mod_identities (mod_id, remote_file_id) VALUES (?, ?)",
+                        (mod_id, project_id),
+                    )
+                    self.connection.commit()
                 logging.info(f"[Archive] Found mod_id {mod_id} by exact name: '{mod_name}'")
                 
         # 3. Fuzzy match fallback by name (trimmed, case-insensitive)
@@ -494,6 +542,57 @@ class ArchiveManager:
         except Exception as e:
             logging.error(f"Failed to get archived languages: {e}")
             return []
+
+    def get_source_entry_count(self, version_id: int) -> int:
+        if not self.connection:
+            return 0
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute("SELECT COUNT(*) AS count FROM source_entries WHERE version_id = ?", (version_id,))
+            row = cursor.fetchone()
+            return int(row["count"]) if row and row["count"] is not None else 0
+        except Exception as e:
+            logging.error(f"Failed to get source entry count for version {version_id}: {e}")
+            return 0
+
+    def get_source_file_count(self, version_id: int) -> int:
+        if not self.connection:
+            return 0
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(
+                """
+                SELECT COUNT(DISTINCT COALESCE(NULLIF(file_path, ''), entry_key)) AS count
+                FROM source_entries
+                WHERE version_id = ?
+                """,
+                (version_id,),
+            )
+            row = cursor.fetchone()
+            return int(row["count"]) if row and row["count"] is not None else 0
+        except Exception as e:
+            logging.error(f"Failed to get source file count for version {version_id}: {e}")
+            return 0
+
+    def get_total_translated_entry_count(self, version_id: int) -> int:
+        if not self.connection:
+            return 0
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(
+                """
+                SELECT COUNT(t.translated_entry_id) AS count
+                FROM translated_entries t
+                JOIN source_entries s ON t.source_entry_id = s.source_entry_id
+                WHERE s.version_id = ?
+                """,
+                (version_id,),
+            )
+            row = cursor.fetchone()
+            return int(row["count"]) if row and row["count"] is not None else 0
+        except Exception as e:
+            logging.error(f"Failed to get translated entry count for version {version_id}: {e}")
+            return 0
 
     def get_entries(self, mod_name: str = None, project_id: str = None, file_path: str = None, language: str = "zh-CN", limit: int = None) -> List[Dict[str, Any]]:
         """

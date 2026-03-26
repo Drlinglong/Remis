@@ -82,45 +82,34 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     };
 
     const handleOpenFolder = async () => {
-        if (!task?.result_path) {
+        const folderPath = Array.isArray(task?.output_dirs) && task.output_dirs.length > 0
+            ? task.output_dirs[0]
+            : null;
+        if (!folderPath) {
             notificationService.error('Output folder path is not available yet.', { title: 'Cannot Open Folder' });
             return;
         }
 
-        const zipPath = task.result_path;
-
-        // Try to open the extracted folder (zip without extension), otherwise
-        // fall back to the parent directory (DEST_DIR) which always exists.
-        const folderPath = zipPath.replace(/\.zip$/i, '');
-        const parentDir = zipPath.includes('\\')
-            ? zipPath.substring(0, zipPath.lastIndexOf('\\'))
-            : zipPath.substring(0, zipPath.lastIndexOf('/'));
-
         try {
             await api.post('/api/system/open_folder', { path: folderPath });
         } catch (error) {
-            console.warn("Extracted folder not found, opening parent dir:", parentDir);
-            try {
-                await api.post('/api/system/open_folder', { path: parentDir });
-            } catch (e) {
-                console.error("Failed to open parent folder:", e);
-                notificationService.error(
-                    `Cannot open folder: ${e?.response?.data?.detail || e.message}`,
-                    { title: 'Error' }
-                );
-            }
+            console.error("Failed to open folder:", error);
+            notificationService.error(
+                `Cannot open folder: ${error?.response?.data?.detail || error.message}`,
+                { title: 'Error' }
+            );
         }
     };
 
     const handleDeploy = async () => {
-        if (!task?.result_path || !translationDetails?.gameId) return;
+        const outputDir = Array.isArray(task?.output_dirs) && task.output_dirs.length > 0
+            ? task.output_dirs[0]
+            : null;
+        if (!outputDir || !translationDetails?.gameId) return;
 
         setDeployStatus('loading');
 
-        // result_path: .../DEST_DIR/folder.zip
-        // We need the folder name: folder
-        const zipName = task.result_path.split(/[\\/]/).pop();
-        const folderName = zipName.replace('.zip', '');
+        const folderName = outputDir.split(/[\\/]/).pop();
 
         try {
             const response = await api.post('/api/tools/deploy_mod', {

@@ -34,6 +34,7 @@ class IncrementalSnapshotService:
     ) -> List[Dict[str, Any]]:
         filter_lang_string = self._resolve_source_lang_folder(source_lang_info)
         files_data: List[Dict[str, Any]] = []
+        last_reported_count = -1
 
         for root, dirs, files in os.walk(source_path):
             path_parts = [part.lower() for part in Path(root).parts]
@@ -76,7 +77,7 @@ class IncrementalSnapshotService:
                 except Exception as e:
                     logger.error(f"Failed to parse {full_path}: {e}")
 
-            if progress_callback:
+            if progress_callback and len(files_data) != last_reported_count:
                 progress_callback({
                     "stage": "Scanning",
                     "stage_code": "scanning_source",
@@ -84,6 +85,7 @@ class IncrementalSnapshotService:
                     "message": f"Scanned {len(files_data)} files.",
                     "files_detected": len(files_data),
                 })
+                last_reported_count = len(files_data)
 
         return files_data
 

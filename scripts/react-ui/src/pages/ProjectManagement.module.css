@@ -8,8 +8,7 @@
     height: 100%;
     /* Take full height of parent */
     overflow-x: auto;
-    overflow-y: hidden;
-    /* Vertical scroll should be on taskList */
+    overflow-y: auto;
     width: 100%;
     min-width: 0;
     align-items: flex-start;

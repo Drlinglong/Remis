@@ -18,6 +18,25 @@ from scripts.core.services.workshop_issue_export_service import WorkshopIssueExp
 
 logger = logging.getLogger(__name__)
 
+
+def _build_aggregated_progress(
+    data: Dict[str, Any],
+    lang_index: int,
+    total_langs: int,
+    target_lang_code: str,
+) -> Dict[str, Any]:
+    normalized_total = max(total_langs, 1)
+    local_percent = max(0, min(int(data.get("percent", 0) or 0), 100))
+    aggregate_percent = int(((lang_index + (local_percent / 100.0)) / normalized_total) * 100)
+
+    progress_data = dict(data)
+    progress_data["percent"] = max(0, min(aggregate_percent, 100))
+    progress_data["target_lang"] = target_lang_code
+    progress_data["current_target_lang"] = target_lang_code
+    progress_data["current_target_index"] = lang_index + 1
+    progress_data["total_target_langs"] = total_langs
+    return progress_data
+
 async def run_incremental_update(
     project_id: str, 
     target_lang_infos: List[Dict[str, Any]], 
@@ -69,48 +88,81 @@ async def run_incremental_update(
             "summary": {"total": 0, "new": 0, "changed": 0, "unchanged": 0}
         }
 
+    is_multilang = len(target_lang_infos) > 1
+    shared_output_dir = None
+    shared_output_folder_name = None
+    shared_path_registered = False
+
+    if not dry_run and is_multilang:
+        package_started_at = perf_counter()
+        shared_output_folder_name = package_service.build_multilang_output_folder_name(project_name)
+        shared_package_info = package_service.prepare_output_package(
+            project_name=project_name,
+            source_path=source_path,
+            target_lang_info=target_lang_infos[0],
+            game_profile=game_profile,
+            output_folder_name=shared_output_folder_name,
+            clean_existing=True,
+        )
+        shared_output_dir = shared_package_info["package_root"]
+        output_dirs = [str(shared_output_dir)]
+        shared_package_prepare_ms = round((perf_counter() - package_started_at) * 1000, 1)
+        logger.info(f"Prepared shared incremental package root for {project_name}: {shared_output_dir}")
+    else:
+        shared_package_prepare_ms = None
+
     # Initialize overall summary
     overall_summary = {"total": 0, "new": 0, "changed": 0, "unchanged": 0}
     overall_warnings = []
     all_written_files = []
-    output_dirs = []
+    output_dirs = output_dirs if not dry_run and is_multilang else []
     overall_file_summaries = []
     workshop_issue_exports = []
+    per_language_exports = []
     telemetry = {
         "snapshot_ms": snapshot_elapsed_ms,
         "languages": [],
     }
 
     # Process EACH target language independently
-    for target_lang_info in target_lang_infos:
+    total_target_langs = len(target_lang_infos)
+    for lang_index, target_lang_info in enumerate(target_lang_infos):
         target_lang_code = target_lang_info['code']
         logger.info(f"--- Processing Target Language: {target_lang_code} ---")
-        output_folder_name = package_service.build_output_folder_name(project_name, target_lang_info)
-        lang_output_dir = Path(DEST_DIR) / output_folder_name
+        if is_multilang and shared_output_dir is not None and shared_output_folder_name is not None:
+            output_folder_name = shared_output_folder_name
+            lang_output_dir = shared_output_dir
+        else:
+            output_folder_name = package_service.build_output_folder_name(project_name, target_lang_info)
+            lang_output_dir = Path(DEST_DIR) / output_folder_name
         lang_telemetry = {"target_lang": target_lang_code}
 
         if not dry_run:
-            package_started_at = perf_counter()
-            package_info = package_service.prepare_output_package(
-                project_name=project_name,
-                source_path=source_path,
-                target_lang_info=target_lang_info,
-                game_profile=game_profile,
-            )
-            lang_output_dir = package_info["package_root"]
-            output_folder_name = package_info["output_folder_name"]
-            output_dirs.append(str(lang_output_dir))
-            lang_telemetry["package_prepare_ms"] = round((perf_counter() - package_started_at) * 1000, 1)
-            logger.info(f"Prepared incremental package root for {project_name} ({target_lang_code}): {lang_output_dir}")
+            if is_multilang and shared_output_dir is not None and shared_output_folder_name is not None:
+                lang_telemetry["package_prepare_ms"] = shared_package_prepare_ms
+            else:
+                package_started_at = perf_counter()
+                package_info = package_service.prepare_output_package(
+                    project_name=project_name,
+                    source_path=source_path,
+                    target_lang_info=target_lang_info,
+                    game_profile=game_profile,
+                )
+                lang_output_dir = package_info["package_root"]
+                output_folder_name = package_info["output_folder_name"]
+                if str(lang_output_dir) not in output_dirs:
+                    output_dirs.append(str(lang_output_dir))
+                lang_telemetry["package_prepare_ms"] = round((perf_counter() - package_started_at) * 1000, 1)
+                logger.info(f"Prepared incremental package root for {project_name} ({target_lang_code}): {lang_output_dir}")
         
         logger.info(f"Pre-fetching archive for {project_name} ({target_lang_code})...")
         if progress_callback:
-            progress_callback({
+            progress_callback(_build_aggregated_progress({
                 "stage": "Preparing",
                 "stage_code": "loading_archive",
                 "percent": 15,
                 "message": f"Pre-fetching archive for {target_lang_code}..."
-            })
+            }, lang_index, total_target_langs, target_lang_code))
 
         archive_started_at = perf_counter()
         all_entries = incremental_archive_service.get_language_entries(
@@ -145,7 +197,11 @@ async def run_incremental_update(
             source_path=source_path,
             base_output_dir=lang_output_dir,
             total_targets=1,
-            progress_callback=progress_callback,
+            progress_callback=(
+                (lambda data, idx=lang_index, total=total_target_langs, code=target_lang_code:
+                    progress_callback(_build_aggregated_progress(data, idx, total, code)))
+                if progress_callback else None
+            ),
         )
         summary = preparation_result["summary"]
         processing_records = preparation_result["processing_records"]
@@ -195,7 +251,11 @@ async def run_incremental_update(
                 target_lang_code=target_lang_code,
                 concurrency_limit=concurrency_limit,
                 rpm_limit=rpm_limit,
-                progress_callback=progress_callback,
+                progress_callback=(
+                    (lambda data, idx=lang_index, total=total_target_langs, code=target_lang_code:
+                        progress_callback(_build_aggregated_progress(data, idx, total, code)))
+                    if progress_callback else None
+                ),
             )
             lang_telemetry["translation_ms"] = round((perf_counter() - translation_started_at) * 1000, 1)
             overall_warnings.extend(warnings)
@@ -227,7 +287,7 @@ async def run_incremental_update(
         )
         lang_telemetry["workshop_issue_count"] = export_result.get("issue_count", 0)
         lang_telemetry["workshop_issues_path"] = export_result.get("issues_path")
-        workshop_issue_exports.append({
+        per_language_exports.append({
             "target_lang": target_lang_code,
             **export_result,
         })
@@ -237,7 +297,7 @@ async def run_incremental_update(
         )
 
         metadata_handler = api_handler.get_handler(selected_provider, model_name=model_name)
-        if metadata_handler and metadata_handler.client:
+        if metadata_handler and metadata_handler.client and (not is_multilang or target_lang_info == target_lang_infos[0]):
             metadata_started_at = perf_counter()
             package_service.process_metadata(
                 project_name=project_name,
@@ -283,9 +343,28 @@ async def run_incremental_update(
                 "new_count": summary["new"],
                 "changed_count": summary["changed"],
                 "unchanged_count": summary["unchanged"],
+                "is_multilang_incremental": is_multilang,
             }
         )
-        await project_manager.add_translation_path(project_id, str(lang_output_dir))
+        if not shared_path_registered:
+            await project_manager.add_translation_path(project_id, str(lang_output_dir))
+            shared_path_registered = True
+
+    if not dry_run and is_multilang and shared_output_dir is not None:
+        merged_export = workshop_issue_exporter.merge_exports(
+            output_root=shared_output_dir,
+            export_items=per_language_exports,
+        )
+        workshop_issue_exports = [{
+            "target_lang": "all",
+            **merged_export,
+        }]
+        logger.info(
+            f"Merged {sum(item.get('issue_count', 0) for item in per_language_exports)} workshop issues for "
+            f"{project_name} into {merged_export.get('issues_path')}"
+        )
+    else:
+        workshop_issue_exports = per_language_exports
 
     if dry_run:
         telemetry["total_ms"] = round((perf_counter() - workflow_started_at) * 1000, 1)

@@ -42,13 +42,12 @@ def run(mod_name: str,
     is_batch_mode = len(target_languages) > 1
     if is_batch_mode:
         output_folder_name = f"Multilanguage-{slugify_to_ascii(mod_name)}"
-        primary_target_lang = LANGUAGES["1"]  # English
+        primary_target_lang = next((lang for lang in target_languages if lang.get("code") == "en"), target_languages[0])
     else:
         target_lang = target_languages[0]
-        prefix = target_lang.get("folder_prefix", f"{target_lang['code']}-")
-        # Sanitize folder name but keep prefix readable
-        output_folder_name = f"{prefix}{slugify_to_ascii(mod_name)}"
+        output_folder_name = _get_output_folder_name(mod_name, target_lang)
         primary_target_lang = target_lang
+    output_dir_path = os.path.join(DEST_DIR, output_folder_name)
 
     logging.info(i18n.t("start_workflow",
                  workflow_name=i18n.t("workflow_initial_translate_name"),
@@ -76,12 +75,6 @@ def run(mod_name: str,
         else:
             asyncio.run(glossary_manager.load_game_glossary(game_id))
 
-    # ───────────── 3. 创建输出目录 & 初始化断点管理器 ─────────────
-    directory_handler.create_output_structure(mod_name, output_folder_name, game_profile)
-    asset_handler.copy_assets(mod_name, output_folder_name, game_profile)
-    
-    output_dir_path = os.path.join(DEST_DIR, output_folder_name)
-    
     # ───────────── 3.5. [NEW] 清理源文件 (如果启用) ─────────────
     if clean_source:
         logging.info("Cleaning source directory to save disk space (keeping only localization and metadata)...")
@@ -194,7 +187,7 @@ def run(mod_name: str,
             logging.error(f"Failed to fetch project name for archive: {e}")
 
     # 创建源版本快照
-    mod_id = archive_manager.get_or_create_mod_entry(archive_mod_name, f"local_{mod_name}")
+    mod_id = archive_manager.resolve_mod_entry(archive_mod_name, f"local_{mod_name}")
     if not mod_id:
         logging.error("Failed to get/create mod entry in database. Aborting.")
         return
@@ -217,10 +210,12 @@ def run(mod_name: str,
     should_archive = ARCHIVE_RESULTS_AFTER_TRANSLATION or (project_id is not None)
     version_id_for_archive = None
     if should_archive and not mod_id_for_archive:
-         mod_id_for_archive = archive_manager.get_or_create_mod_entry(mod_name, f"local_{mod_name}")
+        mod_id_for_archive = archive_manager.resolve_mod_entry(mod_name, f"local_{mod_name}")
 
     import threading
     workshop_issue_exporter = WorkshopIssueExportService()
+    directory_handler.create_output_structure(mod_name, output_folder_name, game_profile)
+    asset_handler.copy_assets(mod_name, output_folder_name, game_profile)
 
     for target_lang in target_languages:
         logging.info(i18n.t("translating_to_language", lang_name=target_lang["name"]))
@@ -448,16 +443,13 @@ def run(mod_name: str,
             f"Exported {export_result.get('issue_count', 0)} workshop issues for "
             f"{target_lang.get('code')} to {export_result.get('issues_path')}"
         )
+        checkpoint_manager.clear_checkpoint()
 
-    # ───────────── 7. 元数据处理 ─────────────
     if is_batch_mode:
         process_metadata_for_language(mod_name, handler, source_lang, primary_target_lang, output_folder_name, mod_context, game_profile)
     else:
         process_metadata_for_language(mod_name, handler, source_lang, target_lang, output_folder_name, mod_context, game_profile)
 
-    # ───────────── 8. 清理断点 ─────────────
-    checkpoint_manager.clear_checkpoint()
-    
     logging.info(i18n.t("translation_workflow_completed"))
     logging.info(i18n.t("output_folder_created", folder=output_folder_name))
 
@@ -466,12 +458,12 @@ def run(mod_name: str,
         try:
             import asyncio
             logging.info(f"Automatically syncing project {project_id}...")
-            # 1. 注册输出目录
             asyncio.run(project_manager.add_translation_path(project_id, output_dir_path))
-            # 2. 触发全量刷新以确保 UI 一致
             asyncio.run(project_manager.refresh_project_files(project_id))
         except Exception as e:
             logging.error(f"Failed to auto-sync project: {e}")
+
+    return [output_dir_path]
 
 
 def _handle_empty_file(file_info, orig, texts, km, source_lang, target_lang, game_profile, output_folder_name, mod_name, proofreading_tracker):
@@ -618,6 +610,11 @@ def process_metadata_for_language(mod_name, handler, source_lang, target_lang, o
         asset_handler.process_metadata(mod_name, handler, source_lang, target_lang, output_folder_name, mod_context, game_profile)
     except Exception as e:
         logging.exception(i18n.t("metadata_processing_failed", error=e))
+
+
+def _get_output_folder_name(mod_name: str, target_lang: dict) -> str:
+    prefix = target_lang.get("folder_prefix", f"{target_lang.get('code', 'unknown')}-")
+    return f"{prefix}{slugify_to_ascii(mod_name)}"
 
 
 def discover_files(mod_name: str, game_profile: dict, source_lang: dict, override_path: Optional[str] = None) -> List[dict]:
