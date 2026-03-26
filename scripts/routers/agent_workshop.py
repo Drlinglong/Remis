@@ -20,11 +20,22 @@ router = APIRouter(prefix="/api/agent-workshop", tags=["agent-workshop"])
 
 class ValidationIssue(BaseModel):
     file_name: str
+    file_path: Optional[str] = None
+    source_file: Optional[str] = None
     key: str
+    line_number: Optional[int] = None
     source_str: str
     target_str: str
     error_type: str
+    error_code: Optional[str] = None
     details: str
+    severity: Optional[str] = None
+    text_sample: Optional[str] = None
+    workflow: Optional[str] = None
+    game_id: Optional[str] = None
+    project_name: Optional[str] = None
+    target_lang: Optional[str] = None
+    generated_at: Optional[str] = None
     status: Optional[str] = "detected" # New: status tracking
 
 class FixRequest(BaseModel):

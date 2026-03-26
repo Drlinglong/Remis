@@ -328,10 +328,18 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
             tasks[task_id]["output_dirs"] = result.get("output_dirs", [])
             tasks[task_id]["warnings"] = result.get("warnings", [])
             tasks[task_id]["warning_count"] = result.get("warning_count", 0)
+            tasks[task_id]["workshop_issue_exports"] = result.get("workshop_issue_exports", [])
             if tasks[task_id]["warning_count"] > 0:
                 tasks[task_id]["log"].append(
                     f"Completed with {tasks[task_id]['warning_count']} warning(s). Review execution details."
                 )
+            for export_info in tasks[task_id]["workshop_issue_exports"]:
+                issues_path = export_info.get("issues_path")
+                if issues_path:
+                    tasks[task_id]["log"].append(
+                        f"Workshop issue sidecar generated: {issues_path} "
+                        f"({export_info.get('issue_count', 0)} issue(s))."
+                    )
             _write_incremental_logs(tasks[task_id]["output_dirs"], tasks[task_id]["log"], tasks[task_id]["telemetry"])
             logging.info(f"Incremental task {task_id} completed successfully.")
             

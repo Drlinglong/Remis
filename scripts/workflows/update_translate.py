@@ -14,6 +14,7 @@ from scripts.core.services.incremental_archive_service import IncrementalArchive
 from scripts.core.services.incremental_package_service import IncrementalPackageService
 from scripts.core.services.incremental_preparation_service import IncrementalPreparationService
 from scripts.core.services.incremental_translation_service import IncrementalTranslationService
+from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,7 @@ async def run_incremental_update(
     package_service = IncrementalPackageService()
     preparation_service = IncrementalPreparationService()
     translation_service = IncrementalTranslationService()
+    workshop_issue_exporter = WorkshopIssueExportService()
     snapshot_started_at = perf_counter()
     current_files_data = snapshot_service.build_snapshot(source_path, source_lang_info, progress_callback)
     snapshot_elapsed_ms = round((perf_counter() - snapshot_started_at) * 1000, 1)
@@ -73,6 +75,7 @@ async def run_incremental_update(
     all_written_files = []
     output_dirs = []
     overall_file_summaries = []
+    workshop_issue_exports = []
     telemetry = {
         "snapshot_ms": snapshot_elapsed_ms,
         "languages": [],
@@ -213,6 +216,26 @@ async def run_incremental_update(
         written_files = build_result["written_files"]
         all_written_files.extend(written_files)
 
+        export_result = workshop_issue_exporter.export_for_output(
+            output_root=lang_output_dir,
+            source_root=source_path,
+            source_lang_info=source_lang_info,
+            target_lang_info=target_lang_info,
+            game_profile=game_profile,
+            workflow="incremental",
+            project_name=project_name,
+        )
+        lang_telemetry["workshop_issue_count"] = export_result.get("issue_count", 0)
+        lang_telemetry["workshop_issues_path"] = export_result.get("issues_path")
+        workshop_issue_exports.append({
+            "target_lang": target_lang_code,
+            **export_result,
+        })
+        logger.info(
+            f"Exported {export_result.get('issue_count', 0)} workshop issues for "
+            f"{project_name} ({target_lang_code}) to {export_result.get('issues_path')}"
+        )
+
         metadata_handler = api_handler.get_handler(selected_provider, model_name=model_name)
         if metadata_handler and metadata_handler.client:
             metadata_started_at = perf_counter()
@@ -283,6 +306,7 @@ async def run_incremental_update(
             "summary": overall_summary,
             "file_summaries": overall_file_summaries,
             "telemetry": telemetry,
+            "workshop_issue_exports": workshop_issue_exports,
         }
 
     telemetry["total_ms"] = round((perf_counter() - workflow_started_at) * 1000, 1)
@@ -294,6 +318,7 @@ async def run_incremental_update(
         "output_dirs": output_dirs,
         "file_summaries": overall_file_summaries,
         "telemetry": telemetry,
+        "workshop_issue_exports": workshop_issue_exports,
         "warning_count": len(overall_warnings),
         "history_desc": f"Built incremental updates for {len(target_lang_infos)} languages."
     }

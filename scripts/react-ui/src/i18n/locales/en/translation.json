@@ -978,6 +978,7 @@
     "warning_rate_limited": "Batch {{batch_num}} hit a rate limit on attempt {{attempt}} (provider: {{provider}}).",
     "warning_invalid_key_format": "The translated entry contains an invalid localization key format.",
     "warning_validation_prefix": "[{{level}}] ",
+    "warning_validation_generic": "Validation warning",
     "warning_details_suffix": "Details: {{details}}",
     "warning_generic_with_error": "Warning details: {{error}}"
   },

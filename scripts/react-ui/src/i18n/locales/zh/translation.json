@@ -988,6 +988,7 @@
     "warning_rate_limited": "批次 {{batch_num}} 在第 {{attempt}} 次尝试时触发了速率限制（提供商：{{provider}}）。",
     "warning_invalid_key_format": "译文条目的本地化键格式无效。",
     "warning_validation_prefix": "[{{level}}] ",
+    "warning_validation_generic": "校验警告",
     "warning_details_suffix": "详情：{{details}}",
     "warning_generic_with_error": "警告详情：{{error}}"
   },

@@ -12,6 +12,7 @@ from scripts.core.parallel_processor import ParallelProcessor
 from scripts.core.loc_parser import parse_loc_file
 from scripts.core.archive_manager import archive_manager
 from scripts.core.checkpoint_manager import CheckpointManager
+from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService
 from scripts.shared.services import project_manager
 from scripts.app_settings import SOURCE_DIR, DEST_DIR, LANGUAGES, RECOMMENDED_MAX_WORKERS, ARCHIVE_RESULTS_AFTER_TRANSLATION, CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE, OLLAMA_CHUNK_SIZE, LOCAL_LLM_CHUNK_SIZE
 from scripts.utils import i18n
@@ -219,6 +220,7 @@ def run(mod_name: str,
          mod_id_for_archive = archive_manager.get_or_create_mod_entry(mod_name, f"local_{mod_name}")
 
     import threading
+    workshop_issue_exporter = WorkshopIssueExportService()
 
     for target_lang in target_languages:
         logging.info(i18n.t("translating_to_language", lang_name=target_lang["name"]))
@@ -433,6 +435,19 @@ def run(mod_name: str,
 
         # 保存校对看板
         proofreading_tracker.save_proofreading_progress()
+        export_result = workshop_issue_exporter.export_for_output(
+            output_root=output_dir_path,
+            source_root=override_path if override_path else os.path.join(SOURCE_DIR, mod_name),
+            source_lang_info=source_lang,
+            target_lang_info=target_lang,
+            game_profile=game_profile,
+            workflow="initial",
+            project_name=archive_mod_name,
+        )
+        logging.info(
+            f"Exported {export_result.get('issue_count', 0)} workshop issues for "
+            f"{target_lang.get('code')} to {export_result.get('issues_path')}"
+        )
 
     # ───────────── 7. 元数据处理 ─────────────
     if is_batch_mode:

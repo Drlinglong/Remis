@@ -133,9 +133,12 @@ const IncrementalTranslationPage = () => {
         const batchNum = warning.batch_num ?? '?';
         const attempt = warning.attempt ?? '?';
         const provider = warning.provider || 'unknown';
-        const rawMessage = warning.message || '';
+        const rawMessage = String(warning.message || '');
         const errorText = rawMessage.trim();
-        const warningDetails = warning.details ? ` ${t('incremental_translation.warning_details_suffix', { details: warning.details })}` : '';
+        const normalizedDetails = warning.details ? String(warning.details).replace(/\s+/g, ' ').trim() : '';
+        const warningDetails = normalizedDetails
+            ? ` ${t('incremental_translation.warning_details_suffix', { details: normalizedDetails })}`
+            : '';
 
         if (warning.type === 'fallback_to_source') {
             return t('incremental_translation.warning_fallback_to_source', {
@@ -205,9 +208,12 @@ const IncrementalTranslationPage = () => {
         }
 
         if (warning.level && rawMessage) {
+            const validationMessage = rawMessage.startsWith('validation_')
+                ? t('incremental_translation.warning_validation_generic')
+                : rawMessage;
             return `${t('incremental_translation.warning_validation_prefix', {
                 level: String(warning.level).toUpperCase(),
-            })}${rawMessage}${warningDetails}`;
+            })}${validationMessage}${warningDetails}`;
         }
 
         if (rawMessage) {
@@ -1212,7 +1218,7 @@ const IncrementalTranslationPage = () => {
                                             </Text>
                                             {(finalSummary.warnings || []).slice(0, 3).map((warning, index) => (
                                                 <Text key={`${warning.type || 'warning'}-${index}`} size="xs" c="dimmed" mt={4}>
-                                                    - {formatWarningMessage(warning)}
+                                                    - {warning.line_number ? `L${warning.line_number} | ` : ''}{formatWarningMessage(warning)}
                                                 </Text>
                                             ))}
                                         </Alert>
