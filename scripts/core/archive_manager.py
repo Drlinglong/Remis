@@ -251,22 +251,23 @@ class ArchiveManager:
     ):
         if require_translations:
             query = """
-                SELECT sv.version_id, sv.created_at
+                SELECT
+                    sv.version_id,
+                    sv.created_at,
+                    MAX(t.last_translated_at) AS last_translation_at,
+                    COUNT(t.translated_entry_id) AS translated_count
                 FROM source_versions sv
+                JOIN source_entries s ON s.version_id = sv.version_id
+                JOIN translated_entries t ON t.source_entry_id = s.source_entry_id
                 WHERE sv.mod_id = ?
-                  AND EXISTS (
-                    SELECT 1
-                    FROM source_entries s
-                    JOIN translated_entries t ON t.source_entry_id = s.source_entry_id
-                    WHERE s.version_id = sv.version_id
             """
             params: List[Any] = [mod_id]
             if language:
                 query += " AND t.language_code = ?"
                 params.append(language)
             query += """
-                  )
-                ORDER BY sv.created_at DESC
+                GROUP BY sv.version_id, sv.created_at
+                ORDER BY last_translation_at DESC, sv.created_at DESC, translated_count DESC, sv.version_id DESC
                 LIMIT 1
             """
             cursor.execute(query, tuple(params))
