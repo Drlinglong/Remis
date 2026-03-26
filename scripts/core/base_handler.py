@@ -14,6 +14,8 @@ from scripts.core.prompt_manager import prompt_manager
 
 
 class BaseApiHandler(ABC):
+    NEMOTRON_CASCADE_MODELS = {"nemotron-cascade-2-30b-a3b"}
+
     """【基类】API Handler 抽象基类，封装通用逻辑。"""
 
     def __init__(self, provider_name: str, model_id: str = None):
@@ -163,7 +165,7 @@ class BaseApiHandler(ABC):
             )
 
         prompt = base_prompt + context_prompt_part + glossary_prompt_part + format_prompt_part + punctuation_prompt_part + final_warning
-        return prompt
+        return self._apply_model_prompt_adapter(prompt)
 
     def _parse_response(self, response: str, original_texts: list[str], target_lang_code: str) -> list[str] | None:
         """
@@ -284,6 +286,17 @@ class BaseApiHandler(ABC):
             + (f"PUNCTUATION CONVERSION:\n{punctuation_prompt}\n\n" if punctuation_prompt else "")
             + f'Translate this: "{masked_text}"'
         )
+        return self._apply_model_prompt_adapter(prompt)
+
+    def _apply_model_prompt_adapter(self, prompt: str) -> str:
+        model_name = (self.model_id or self.get_provider_config().get("default_model") or "").strip().lower()
+
+        if model_name in self.NEMOTRON_CASCADE_MODELS:
+            adapted = prompt.lstrip()
+            if adapted.startswith("<think></think>"):
+                return prompt
+            return f"<think></think>\n{prompt}"
+
         return prompt
 
     def translate_single_text(self, text: str, task_description: str, mod_name: str, source_lang: dict, target_lang: dict, mod_context: str, game_profile: dict) -> str:
