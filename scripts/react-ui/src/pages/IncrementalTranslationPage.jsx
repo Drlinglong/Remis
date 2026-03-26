@@ -151,7 +151,7 @@ const IncrementalTranslationPage = () => {
     }, [resolveProviderModels]);
 
     const resetPersistedState = useCallback(() => {
-        localStorage.removeItem(INCREMENTAL_STATE_STORAGE_KEY);
+        sessionStorage.removeItem(INCREMENTAL_STATE_STORAGE_KEY);
         setCurrentTaskId(null);
         setCurrentTaskMode(null);
         completionSourceRef.current = null;
@@ -358,7 +358,7 @@ const IncrementalTranslationPage = () => {
         };
 
         try {
-            localStorage.setItem(INCREMENTAL_STATE_STORAGE_KEY, JSON.stringify(stateToPersist));
+            sessionStorage.setItem(INCREMENTAL_STATE_STORAGE_KEY, JSON.stringify(stateToPersist));
         } catch (err) {
             console.warn('Failed to persist incremental translation state:', err);
         }
@@ -389,7 +389,7 @@ const IncrementalTranslationPage = () => {
     // Fetch basics
     useEffect(() => {
         try {
-            const rawState = localStorage.getItem(INCREMENTAL_STATE_STORAGE_KEY);
+            const rawState = sessionStorage.getItem(INCREMENTAL_STATE_STORAGE_KEY);
             persistedStateRef.current = rawState ? JSON.parse(rawState) : null;
         } catch (err) {
             console.warn('Failed to read incremental translation persisted state:', err);
