@@ -2,6 +2,7 @@ import os
 import logging
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from typing import Optional, Dict, Any, Callable
+from datetime import datetime
 
 from scripts.shared.services import project_manager
 from scripts.core.project_json_manager import ProjectJsonManager
@@ -17,6 +18,39 @@ from scripts.schemas.config import UpdateConfigRequest
 from scripts.utils.system_utils import sanitize_for_json
 
 router = APIRouter()
+
+
+def _write_incremental_logs(output_dirs: list[str], log_lines: list[str], telemetry: Optional[Dict[str, Any]] = None):
+    if not output_dirs:
+        return
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    telemetry_lines = []
+    if telemetry:
+        telemetry_lines.append("")
+        telemetry_lines.append("[Telemetry]")
+        for key, value in telemetry.items():
+            if key == "languages" and isinstance(value, list):
+                for lang_item in value:
+                    target_lang = lang_item.get("target_lang", "unknown")
+                    telemetry_lines.append(f"- {target_lang}: {lang_item}")
+            else:
+                telemetry_lines.append(f"- {key}: {value}")
+
+    content = "\n".join(
+        [f"# Incremental Update Log", f"# Generated at: {timestamp}", ""] +
+        [str(line) for line in log_lines] +
+        telemetry_lines
+    )
+
+    for output_dir in output_dirs:
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+            log_path = os.path.join(output_dir, "incremental_update.log")
+            with open(log_path, "w", encoding="utf-8") as handle:
+                handle.write(content)
+        except Exception as exc:
+            logging.error(f"Failed to write incremental log file to {output_dir}: {exc}")
 
 @router.get("/api/projects")
 async def list_projects(status: Optional[str] = None):
@@ -262,7 +296,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
     # Initialize task state in sync way if needed, but it's already done in the route
     task_lock = threading.Lock()
     tasks[task_id]["status"] = "processing"
-    tasks[task_id]["progress"] = {"percent": 0, "stage": "Initializing", "message": "Starting..."}
+    tasks[task_id]["progress"] = {"percent": 0, "stage": "Initializing", "stage_code": "initializing", "message": "Starting..."}
     
     def progress_callback(data: Dict[str, Any]):
         with task_lock:
@@ -285,8 +319,14 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
             tasks[task_id]["status"] = "completed"
             tasks[task_id]["progress"]["percent"] = 100
             tasks[task_id]["progress"]["stage"] = "Completed"
+            tasks[task_id]["progress"]["stage_code"] = "completed"
             tasks[task_id]["log"].append("Incremental update completed successfully.")
             tasks[task_id]["summary"] = result.get("summary")
+            tasks[task_id]["file_summaries"] = result.get("file_summaries", [])
+            tasks[task_id]["telemetry"] = result.get("telemetry", {})
+            tasks[task_id]["output_dir"] = result.get("output_dir")
+            tasks[task_id]["output_dirs"] = result.get("output_dirs", [])
+            _write_incremental_logs(tasks[task_id]["output_dirs"], tasks[task_id]["log"], tasks[task_id]["telemetry"])
             logging.info(f"Incremental task {task_id} completed successfully.")
             
     except Exception as e:

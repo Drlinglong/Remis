@@ -2,6 +2,7 @@ import logging
 import os
 from typing import List, Dict, Any, Optional, Callable
 from pathlib import Path
+from time import perf_counter
 
 from scripts.app_settings import DEST_DIR
 from scripts.core import api_handler
@@ -42,6 +43,7 @@ async def run_incremental_update(
     target_codes_str = ", ".join([lang['code'] for lang in target_lang_infos])
     logger.info(f"Starting incremental update for: {project_name} -> [{target_codes_str}]")
     logger.info(f"Scanning source path: {source_path}")
+    workflow_started_at = perf_counter()
 
     snapshot_service = IncrementalSnapshotService()
     diff_service = IncrementalDiffService()
@@ -50,7 +52,9 @@ async def run_incremental_update(
     package_service = IncrementalPackageService()
     preparation_service = IncrementalPreparationService()
     translation_service = IncrementalTranslationService()
+    snapshot_started_at = perf_counter()
     current_files_data = snapshot_service.build_snapshot(source_path, source_lang_info, progress_callback)
+    snapshot_elapsed_ms = round((perf_counter() - snapshot_started_at) * 1000, 1)
     logger.info(f"Snapshot build completed for {project_name}: {len(current_files_data)} source files detected.")
 
     if not current_files_data:
@@ -66,6 +70,11 @@ async def run_incremental_update(
     overall_warnings = []
     all_written_files = []
     output_dirs = []
+    overall_file_summaries = []
+    telemetry = {
+        "snapshot_ms": snapshot_elapsed_ms,
+        "languages": [],
+    }
 
     # Process EACH target language independently
     for target_lang_info in target_lang_infos:
@@ -73,8 +82,10 @@ async def run_incremental_update(
         logger.info(f"--- Processing Target Language: {target_lang_code} ---")
         output_folder_name = package_service.build_output_folder_name(project_name, target_lang_info)
         lang_output_dir = Path(DEST_DIR) / output_folder_name
+        lang_telemetry = {"target_lang": target_lang_code}
 
         if not dry_run:
+            package_started_at = perf_counter()
             package_info = package_service.prepare_output_package(
                 project_name=project_name,
                 source_path=source_path,
@@ -84,22 +95,27 @@ async def run_incremental_update(
             lang_output_dir = package_info["package_root"]
             output_folder_name = package_info["output_folder_name"]
             output_dirs.append(str(lang_output_dir))
+            lang_telemetry["package_prepare_ms"] = round((perf_counter() - package_started_at) * 1000, 1)
             logger.info(f"Prepared incremental package root for {project_name} ({target_lang_code}): {lang_output_dir}")
         
         logger.info(f"Pre-fetching archive for {project_name} ({target_lang_code})...")
         if progress_callback:
             progress_callback({
                 "stage": "Preparing",
+                "stage_code": "loading_archive",
                 "percent": 15,
                 "message": f"Pre-fetching archive for {target_lang_code}..."
             })
 
+        archive_started_at = perf_counter()
         all_entries = incremental_archive_service.get_language_entries(
             project_id=project_id,
             language_code=target_lang_code,
         )
+        lang_telemetry["archive_fetch_ms"] = round((perf_counter() - archive_started_at) * 1000, 1)
         logger.info(f"Pre-fetched {len(all_entries)} archive entries for {project_name}.")
         history_index = diff_service.build_history_index(all_entries)
+        preparation_started_at = perf_counter()
         preparation_result = preparation_service.prepare_language_update(
             current_files_data=current_files_data,
             history_index=history_index,
@@ -117,7 +133,12 @@ async def run_incremental_update(
         summary = preparation_result["summary"]
         processing_records = preparation_result["processing_records"]
         file_tasks_for_ai = preparation_result["file_tasks_for_ai"]
+        file_summaries = preparation_result["file_summaries"]
         lang_output_dir = preparation_result["lang_output_dir"]
+        lang_telemetry["prepare_ms"] = round((perf_counter() - preparation_started_at) * 1000, 1)
+        lang_telemetry["source_files"] = len(current_files_data)
+        lang_telemetry["dirty_files"] = len(file_tasks_for_ai)
+        lang_telemetry["dirty_entries"] = summary["new"] + summary["changed"]
         logger.info(
             f"Prepared language update for {project_name} ({target_lang_code}): "
             f"summary={summary}, processing_records={len(processing_records)}, file_tasks_for_ai={len(file_tasks_for_ai)}"
@@ -131,6 +152,14 @@ async def run_incremental_update(
         overall_summary["new"] += summary["new"]
         overall_summary["changed"] += summary["changed"]
         overall_summary["unchanged"] += summary["unchanged"]
+        overall_file_summaries.extend([
+            {
+                **file_summary,
+                "target_lang": target_lang_code,
+            }
+            for file_summary in file_summaries
+        ])
+        telemetry["languages"].append(lang_telemetry)
 
         if dry_run:
             continue # Skip translation for this language
@@ -141,6 +170,7 @@ async def run_incremental_update(
             checkpoint_mgr.clear_checkpoint()
 
         try:
+            translation_started_at = perf_counter()
             translated_results, warnings = translation_service.translate_dirty_files(
                 file_tasks_for_ai=file_tasks_for_ai,
                 selected_provider=selected_provider,
@@ -148,10 +178,12 @@ async def run_incremental_update(
                 target_lang_code=target_lang_code,
                 progress_callback=progress_callback,
             )
+            lang_telemetry["translation_ms"] = round((perf_counter() - translation_started_at) * 1000, 1)
             overall_warnings.extend(warnings)
         except RuntimeError as e:
             return {"status": "error", "message": str(e)}
 
+        build_started_at = perf_counter()
         build_result = build_service.build_language_output(
             processing_records=processing_records,
             translated_results=translated_results,
@@ -161,11 +193,13 @@ async def run_incremental_update(
             target_lang_info=target_lang_info,
             game_profile=game_profile,
         )
+        lang_telemetry["build_ms"] = round((perf_counter() - build_started_at) * 1000, 1)
         written_files = build_result["written_files"]
         all_written_files.extend(written_files)
 
         metadata_handler = api_handler.get_handler(selected_provider, model_name=model_name)
         if metadata_handler and metadata_handler.client:
+            metadata_started_at = perf_counter()
             package_service.process_metadata(
                 project_name=project_name,
                 source_path=source_path,
@@ -176,13 +210,24 @@ async def run_incremental_update(
                 mod_context=mod_context,
                 game_profile=game_profile,
             )
+            lang_telemetry["metadata_ms"] = round((perf_counter() - metadata_started_at) * 1000, 1)
 
+        archive_write_started_at = perf_counter()
         new_version_id = incremental_archive_service.archive_language_result(
             project_id=project_id,
             project_name=project_name,
             target_lang_code=target_lang_code,
             archive_files_data=build_result["archive_files_data"],
             archive_results=build_result["archive_results"],
+        )
+        lang_telemetry["archive_write_ms"] = round((perf_counter() - archive_write_started_at) * 1000, 1)
+        lang_telemetry["total_ms"] = round(
+            sum(
+                value
+                for key, value in lang_telemetry.items()
+                if key.endswith("_ms") and isinstance(value, (int, float))
+            ),
+            1,
         )
 
         # 6. Log History for THIS language
@@ -204,22 +249,34 @@ async def run_incremental_update(
         await project_manager.add_translation_path(project_id, str(lang_output_dir))
 
     if dry_run:
+        telemetry["total_ms"] = round((perf_counter() - workflow_started_at) * 1000, 1)
         logger.info(f"Dry-run completed for {project_name}: overall_summary={overall_summary}")
         if progress_callback:
             progress_callback({
                 "stage": "Completed",
+                "stage_code": "completed",
                 "percent": 100,
                 "message": "Pre-scan completed.",
                 "status": "completed", # Redundant but helps
-                "summary": overall_summary
+                "summary": overall_summary,
+                "file_summaries": overall_file_summaries,
+                "telemetry": telemetry,
             })
-        return {"status": "success", "summary": overall_summary}
+        return {
+            "status": "success",
+            "summary": overall_summary,
+            "file_summaries": overall_file_summaries,
+            "telemetry": telemetry,
+        }
 
+    telemetry["total_ms"] = round((perf_counter() - workflow_started_at) * 1000, 1)
     return {
         "status": "success", 
         "summary": overall_summary, 
         "warnings": overall_warnings, 
         "output_dir": output_dirs[0] if len(output_dirs) == 1 else DEST_DIR,
         "output_dirs": output_dirs,
+        "file_summaries": overall_file_summaries,
+        "telemetry": telemetry,
         "history_desc": f"Built incremental updates for {len(target_lang_infos)} languages."
     }

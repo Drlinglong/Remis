@@ -17,10 +17,10 @@ import {
     Progress,
     Divider,
     MultiSelect,
+    Accordion,
     Box,
-    LoadingOverlay,
 } from '@mantine/core';
-import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, IconPlayerPlay, IconChartBar, IconSettings, IconCloudDownload } from '@tabler/icons-react';
+import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, IconPlayerPlay, IconChartBar, IconSettings } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -54,6 +54,7 @@ const IncrementalTranslationPage = () => {
     // Execution State
     const [executing, setExecuting] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [progressInfo, setProgressInfo] = useState({});
     const [logs, setLogs] = useState([]);
     const [finalSummary, setFinalSummary] = useState(null);
     const logScrollRef = useRef(null);
@@ -63,6 +64,153 @@ const IncrementalTranslationPage = () => {
     const pollTimerRef = useRef(null);
     const logViewportRef = useRef(null);
     const completionSourceRef = useRef(null);
+
+    const formatDuration = useCallback((ms) => {
+        if (typeof ms !== 'number' || Number.isNaN(ms)) return '--';
+        if (ms < 1000) return `${Math.round(ms)} ms`;
+        return `${(ms / 1000).toFixed(ms >= 10000 ? 0 : 1)} s`;
+    }, []);
+
+    const getStageTitle = useCallback((progressState, isPreScan = false) => {
+        const stageCode = progressState?.stage_code || '';
+        const translationKey = stageCode
+            ? `incremental_translation.progress_stage_${stageCode}`
+            : (isPreScan ? 'incremental_translation.pre_scan_in_progress' : 'incremental_translation.execution_in_progress');
+        return t(translationKey, {
+            defaultValue: isPreScan
+                ? t('incremental_translation.pre_scan_in_progress')
+                : t('incremental_translation.execution_in_progress')
+        });
+    }, [t]);
+
+    const getStageDescription = useCallback((progressState) => {
+        if (!progressState) return '';
+        if (progressState.current_file && progressState.total_files) {
+            return t('incremental_translation.progress_file_counter', {
+                current: progressState.current_file_index || 1,
+                total: progressState.total_files,
+                file: progressState.current_file,
+            });
+        }
+        if (progressState.batch_idx && progressState.total_batches) {
+            return t('incremental_translation.progress_batch_counter', {
+                current: progressState.batch_idx,
+                total: progressState.total_batches,
+            });
+        }
+        if (typeof progressState.files_detected === 'number') {
+            return t('incremental_translation.progress_files_detected', {
+                count: progressState.files_detected,
+            });
+        }
+        return progressState.message || '';
+    }, [t]);
+
+    const renderTelemetry = useCallback((telemetry) => {
+        if (!telemetry) return null;
+
+        const languageTelemetry = Array.isArray(telemetry.languages) ? telemetry.languages : [];
+        const topLevelItems = [
+            { label: t('incremental_translation.telemetry_snapshot'), value: formatDuration(telemetry.snapshot_ms) },
+            { label: t('incremental_translation.telemetry_total'), value: formatDuration(telemetry.total_ms) },
+        ];
+
+        return (
+            <Stack gap="xs" mt="md">
+                <Text size="sm" fw={600}>{t('incremental_translation.telemetry_title')}</Text>
+                <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                    {topLevelItems.map((item) => (
+                        <Card key={item.label} withBorder p="sm" radius="md">
+                            <Text size="xs" c="dimmed">{item.label}</Text>
+                            <Text size="sm" fw={600}>{item.value}</Text>
+                        </Card>
+                    ))}
+                </SimpleGrid>
+                {languageTelemetry.length > 0 && (
+                    <Accordion variant="separated" radius="md" chevronPosition="right">
+                        {languageTelemetry.map((item) => (
+                            <Accordion.Item key={item.target_lang} value={item.target_lang}>
+                                <Accordion.Control>
+                                    <Group justify="space-between" wrap="nowrap">
+                                        <Text size="sm" fw={600}>{item.target_lang}</Text>
+                                        <Badge color="blue" variant="light">{formatDuration(item.total_ms)}</Badge>
+                                    </Group>
+                                </Accordion.Control>
+                                <Accordion.Panel>
+                                    <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                                        {[
+                                            ['incremental_translation.telemetry_archive_fetch', item.archive_fetch_ms],
+                                            ['incremental_translation.telemetry_prepare', item.prepare_ms],
+                                            ['incremental_translation.telemetry_translation', item.translation_ms],
+                                            ['incremental_translation.telemetry_build', item.build_ms],
+                                            ['incremental_translation.telemetry_archive_write', item.archive_write_ms],
+                                        ]
+                                            .filter(([, value]) => typeof value === 'number')
+                                            .map(([labelKey, value]) => (
+                                                <Card key={labelKey} withBorder p="sm" radius="md">
+                                                    <Text size="xs" c="dimmed">{t(labelKey)}</Text>
+                                                    <Text size="sm" fw={600}>{formatDuration(value)}</Text>
+                                                </Card>
+                                            ))}
+                                    </SimpleGrid>
+                                </Accordion.Panel>
+                            </Accordion.Item>
+                        ))}
+                    </Accordion>
+                )}
+            </Stack>
+        );
+    }, [formatDuration, t]);
+
+    const renderFileDetails = useCallback((fileSummaries) => {
+        const dirtyFiles = (fileSummaries || []).filter((item) => (item.new + item.changed) > 0);
+        if (dirtyFiles.length === 0) return null;
+
+        return (
+            <Accordion variant="separated" radius="md" mt="md">
+                <Accordion.Item value="file-details">
+                    <Accordion.Control>
+                        <Group justify="space-between" wrap="nowrap">
+                            <Text fw={600}>{t('incremental_translation.file_details_title')}</Text>
+                            <Badge color="orange" variant="light">{dirtyFiles.length}</Badge>
+                        </Group>
+                    </Accordion.Control>
+                    <Accordion.Panel>
+                        <Stack gap="sm">
+                            {dirtyFiles.map((file) => (
+                                <Card key={`${file.target_lang || 'default'}:${file.file_path}`} withBorder p="sm" radius="md">
+                                    <Group justify="space-between" mb="xs" wrap="nowrap">
+                                        <Box style={{ minWidth: 0 }}>
+                                            <Text size="sm" fw={600} truncate>{file.file_path}</Text>
+                                            <Text size="xs" c="dimmed">{file.target_lang || selectedLangs[0] || archiveInfo?.target_language}</Text>
+                                        </Box>
+                                        <Group gap={6}>
+                                            <Badge color="green" variant="light">{t('incremental_translation.reused_short')}: {file.unchanged}</Badge>
+                                            <Badge color="orange" variant="light">{t('incremental_translation.new_short')}: {file.new}</Badge>
+                                            <Badge color="red" variant="light">{t('incremental_translation.changed_short')}: {file.changed}</Badge>
+                                        </Group>
+                                    </Group>
+                                    <Stack gap={6}>
+                                        {(file.dirty_entries || []).map((entry, index) => (
+                                            <Group key={`${file.file_path}:${entry.key}:${index}`} justify="space-between" align="flex-start" wrap="nowrap">
+                                                <Box style={{ minWidth: 0 }}>
+                                                    <Text size="xs" fw={600}>{entry.key}</Text>
+                                                    <Text size="xs" c="dimmed" lineClamp={2}>{entry.source_text}</Text>
+                                                </Box>
+                                                <Badge color={entry.status === 'new' ? 'orange' : 'red'} variant="filled">
+                                                    {t(`incremental_translation.entry_status_${entry.status}`)}
+                                                </Badge>
+                                            </Group>
+                                        ))}
+                                    </Stack>
+                                </Card>
+                            ))}
+                        </Stack>
+                    </Accordion.Panel>
+                </Accordion.Item>
+            </Accordion>
+        );
+    }, [archiveInfo?.target_language, selectedLangs, t]);
 
     // Fetch basics
     useEffect(() => {
@@ -188,6 +336,9 @@ const IncrementalTranslationPage = () => {
 
         try {
             setLoading(true);
+            setProgress(0);
+            setProgressInfo({ percent: 0, stage_code: 'initializing', stage: 'Initializing' });
+            setLogs([t('incremental_translation.pre_scan_bootstrap_log')]);
             const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
                 project_id: selectedProject.project_id,
                 target_lang_codes: selectedLangs.length > 0 ? selectedLangs : [archiveInfo?.target_language || selectedProject.target_language_code || 'zh-CN'],
@@ -207,7 +358,11 @@ const IncrementalTranslationPage = () => {
                 if (res.data.status === 'warning') {
                     notificationService.info(res.data.message || t('incremental_translation.no_files_warning'), notificationStyle);
                 }
-                setScanResults(res.data.summary);
+                setScanResults({
+                    ...(res.data.summary || {}),
+                    file_summaries: res.data.file_summaries || [],
+                    telemetry: res.data.telemetry || null,
+                });
                 setActive(2);
                 setLoading(false);
             }
@@ -224,6 +379,7 @@ const IncrementalTranslationPage = () => {
         setLogs([`[${new Date().toLocaleTimeString()}] Initializing WebSocket connection...`]);
         setFinalSummary(null);
         setProgress(0);
+        setProgressInfo({ percent: 0, stage_code: 'initializing', stage: 'Initializing' });
 
         try {
             // 1. Kick off the translation request
@@ -251,6 +407,18 @@ const IncrementalTranslationPage = () => {
         }
     };
 
+    const openOutputFolder = async () => {
+        const folderPath = finalSummary?.output_dir;
+        if (!folderPath) return;
+
+        try {
+            await axios.post('/api/system/open_folder', { path: folderPath });
+        } catch (err) {
+            console.error('Failed to open incremental output folder:', err);
+            notificationService.error(t('notification.error_generic'), notificationStyle);
+        }
+    };
+
     const clearTaskPolling = () => {
         if (pollTimerRef.current) {
             clearInterval(pollTimerRef.current);
@@ -263,6 +431,7 @@ const IncrementalTranslationPage = () => {
 
         if (data.progress) {
             setProgress(data.progress.percent || 0);
+            setProgressInfo(data.progress);
         }
 
         if (data.log) {
@@ -274,13 +443,18 @@ const IncrementalTranslationPage = () => {
             console.info(`Incremental task completed via ${source}.`);
             clearTaskPolling();
             if (isPreScan) {
-                setScanResults(data.summary);
+                setScanResults({
+                    ...(data.summary || {}),
+                    file_summaries: data.file_summaries || [],
+                    telemetry: data.telemetry || null,
+                });
                 setActive(2);
                 setLoading(false);
             } else {
                 setFinalSummary(data);
                 addLog(`Translation completed successfully!`);
                 setProgress(100);
+                setProgressInfo(data.progress || {});
                 setExecuting(false);
             }
             if (wsRef.current) {
@@ -353,7 +527,7 @@ const IncrementalTranslationPage = () => {
         };
     }, []);
 
-    const addLog = (msg, type = 'info') => {
+    const addLog = (msg) => {
         setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
     };
 
@@ -363,7 +537,6 @@ const IncrementalTranslationPage = () => {
         }
     }, [logs]);
 
-    const nextStep = () => setActive((current) => (current < 3 ? current + 1 : current));
     const prevStep = () => setActive((current) => (current > 0 ? current - 1 : current));
 
     return (
@@ -392,9 +565,17 @@ const IncrementalTranslationPage = () => {
                                     style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
                                     className={selectedProject?.project_id === p.project_id ? styles.selectedCard : styles.glassCard}
                                 >
-                                    <Title order={5}>{p.name}</Title>
-                                    <Text size="xs" c="dimmed" mb="sm">{p.game_id}</Text>
-                                    <Badge color="blue" variant="light">{p.source_language}</Badge>
+                                    <Stack gap="xs">
+                                        <Box>
+                                            <Title order={5}>{p.name}</Title>
+                                            <Text size="xs" c="dimmed">{t('incremental_translation.project_folder')}: {p.source_path?.split(/[\\/]/).pop()}</Text>
+                                        </Box>
+                                        <Group gap="xs">
+                                            <Badge color="blue" variant="light">{t('incremental_translation.project_game')}: {p.game_id}</Badge>
+                                            <Badge color="teal" variant="light">{t('incremental_translation.project_source_language')}: {p.source_language}</Badge>
+                                        </Group>
+                                        <Text size="xs" c="dimmed" lineClamp={2}>{p.source_path}</Text>
+                                    </Stack>
                                 </Card>
                             ))}
                         </SimpleGrid>
@@ -408,13 +589,15 @@ const IncrementalTranslationPage = () => {
                     icon={<IconSettings size={18} />}
                 >
                     <Stack mt="xl" gap="md" style={{ position: 'relative' }}>
-                        <LoadingOverlay visible={loading} overlayProps={{ radius: "sm", blur: 2 }} />
-                        
                         {loading && (
                             <Paper withBorder p="md" radius="md">
                                 <Stack gap="xs">
-                                    <Text size="sm" fw={500}>{t('incremental_translation.status_processing')}</Text>
+                                    <Group justify="space-between">
+                                        <Text size="sm" fw={600}>{getStageTitle(progressInfo, true)}</Text>
+                                        <Badge color="blue" variant="light">{progress}%</Badge>
+                                    </Group>
                                     <Progress value={progress} animated />
+                                    <Text size="sm">{getStageDescription(progressInfo)}</Text>
                                     <Text size="xs" c="dimmed">{logs[logs.length - 1]}</Text>
                                 </Stack>
                             </Paper>
@@ -435,6 +618,43 @@ const IncrementalTranslationPage = () => {
                         {archiveInfo && (
                             <Paper withBorder p="lg" radius="md" className={styles.glassCard}>
                                 <Stack>
+                                    <SimpleGrid cols={2}>
+                                        <Select
+                                            label={t('translation_config.provider')}
+                                            data={apiProviders.map(p => ({ value: p.value, label: p.label }))}
+                                            value={selectedProvider}
+                                            onChange={handleProviderChange}
+                                        />
+                                        <Select
+                                            label={t('translation_config.model')}
+                                            data={models.map(m => ({ value: m, label: m }))}
+                                            value={selectedModel}
+                                            onChange={setSelectedModel}
+                                        />
+                                    </SimpleGrid>
+
+                                    <Card withBorder p="md" radius="md">
+                                        <Text size="sm" fw={600} mb="sm">{t('incremental_translation.project_details_title')}</Text>
+                                        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+                                            <Box>
+                                                <Text size="xs" c="dimmed">{t('incremental_translation.project_name')}</Text>
+                                                <Text size="sm">{archiveInfo.project_name || selectedProject?.name}</Text>
+                                            </Box>
+                                            <Box>
+                                                <Text size="xs" c="dimmed">{t('incremental_translation.project_game')}</Text>
+                                                <Text size="sm">{selectedProject?.game_id}</Text>
+                                            </Box>
+                                            <Box>
+                                                <Text size="xs" c="dimmed">{t('incremental_translation.project_source_language')}</Text>
+                                                <Text size="sm">{selectedProject?.source_language}</Text>
+                                            </Box>
+                                            <Box>
+                                                <Text size="xs" c="dimmed">{t('incremental_translation.project_folder')}</Text>
+                                                <Text size="sm">{selectedProject?.source_path?.split(/[\\/]/).pop()}</Text>
+                                            </Box>
+                                        </SimpleGrid>
+                                    </Card>
+
                                     <Group justify="space-between">
                                         <Title order={4}>
                                             {t('incremental_translation.step_2_title')} - {archiveInfo.project_name || selectedProject?.name}
@@ -474,7 +694,7 @@ const IncrementalTranslationPage = () => {
 
                                     <MultiSelect
                                         label={t('translation_config.target_languages') || "Target Languages"}
-                                        description={t('incremental_translation.target_lang_desc', 'Only archived target languages are available for incremental update.')}
+                                        description={t('incremental_translation.target_lang_desc')}
                                         data={(archiveInfo.archived_languages && archiveInfo.archived_languages.length > 0
                                             ? archiveInfo.archived_languages
                                             : [archiveInfo.target_language || selectedProject?.target_language_code || 'zh-CN']
@@ -484,21 +704,6 @@ const IncrementalTranslationPage = () => {
                                         required
                                         clearable
                                     />
-
-                                    <SimpleGrid cols={2}>
-                                        <Select
-                                            label={t('translation_config.provider')}
-                                            data={apiProviders.map(p => ({ value: p.value, label: p.label }))}
-                                            value={selectedProvider}
-                                            onChange={handleProviderChange}
-                                        />
-                                        <Select
-                                            label={t('translation_config.model')}
-                                            data={models.map(m => ({ value: m, label: m }))}
-                                            value={selectedModel}
-                                            onChange={setSelectedModel}
-                                        />
-                                    </SimpleGrid>
 
                                     <Box>
                                         <Text size="sm" fw={500} mb={4}>{t('incremental_translation.select_new_folder')}</Text>
@@ -569,12 +774,16 @@ const IncrementalTranslationPage = () => {
                                     {t('incremental_translation.start_translation_confirm')}
                                 </Alert>
 
+                                {renderTelemetry(scanResults.telemetry)}
+
                                 <Group justify="flex-end" mt="xl">
                                     <Button variant="light" onClick={prevStep}>{t('common.back')}</Button>
                                     <Button size="lg" leftSection={<IconPlayerPlay size={20} />} onClick={startTranslation}>
                                         {t('incremental_translation.step_4_title')}
                                     </Button>
                                 </Group>
+
+                                {renderFileDetails(scanResults.file_summaries)}
                             </Paper>
                         )}
                     </Stack>
@@ -596,9 +805,10 @@ const IncrementalTranslationPage = () => {
                             />
 
                             <Group justify="space-between" mb="xl">
-                                <Text size="xs" c="dimmed">
-                                    {executing ? t('incremental_translation.status_processing') : t('incremental_translation.status_idle')}
-                                </Text>
+                                <Box>
+                                    <Text size="sm" fw={600}>{getStageTitle(progressInfo, false)}</Text>
+                                    <Text size="xs" c="dimmed">{getStageDescription(progressInfo) || (executing ? t('incremental_translation.status_processing') : t('incremental_translation.status_idle'))}</Text>
+                                </Box>
                                 <Text size="xs" fw={700} c="blue">
                                     {progress}%
                                 </Text>
@@ -624,11 +834,32 @@ const IncrementalTranslationPage = () => {
                                 <Stack mt="xl">
                                     <Title order={4} c="green">{t('incremental_translation.completion_title')}</Title>
                                     <Alert color="green">
-                                        {t('incremental_translation.output_dir_hint')}
+                                        <Stack gap={4}>
+                                            <Text size="sm">{t('incremental_translation.output_dir_hint')}</Text>
+                                            {finalSummary.output_dir && (
+                                                <Text size="xs" c="dimmed">{finalSummary.output_dir}</Text>
+                                            )}
+                                            {finalSummary.output_dir && (
+                                                <Text size="xs" c="dimmed">
+                                                    {t('incremental_translation.log_file_hint', { path: `${finalSummary.output_dir}\\incremental_update.log` })}
+                                                </Text>
+                                            )}
+                                            <Text size="xs" c="dimmed">
+                                                {t('incremental_translation.transport_status', {
+                                                    source: completionSourceRef.current || 'polling',
+                                                })}
+                                            </Text>
+                                        </Stack>
                                     </Alert>
-                                    <Button size="lg" onClick={() => navigate('/project-management')}>
-                                        {t('common.finish')}
-                                    </Button>
+                                    {renderTelemetry(finalSummary.telemetry)}
+                                    <Group>
+                                        <Button size="lg" variant="light" onClick={openOutputFolder}>
+                                            {t('button_open_folder')}
+                                        </Button>
+                                        <Button size="lg" onClick={() => navigate('/project-management')}>
+                                            {t('common.finish')}
+                                        </Button>
+                                    </Group>
                                 </Stack>
                             )}
                         </Paper>

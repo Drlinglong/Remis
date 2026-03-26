@@ -922,6 +922,41 @@
     }
   },
   "incremental_translation": {
-    "output_dir_hint": "Results have been saved to the generated mod folder under my_translation."
-  }
+    "output_dir_hint": "Results have been saved to the generated mod folder under my_translation.",
+    "target_lang_desc": "Incremental update currently supports only target languages that already have archived translations.",
+    "pre_scan_bootstrap_log": "[System] Creating pre-scan task...",
+    "pre_scan_in_progress": "Checking the updated mod content",
+    "execution_in_progress": "Running incremental translation",
+    "progress_stage_initializing": "Preparing task",
+    "progress_stage_scanning_source": "Scanning source files",
+    "progress_stage_loading_archive": "Loading archived baseline",
+    "progress_stage_comparing_entries": "Comparing localization entries",
+    "progress_stage_translating_content": "Translating changed content",
+    "progress_stage_finishing": "Finalizing output files",
+    "progress_stage_completed": "Task completed",
+    "progress_file_counter": "Processing file {{current}} / {{total}}: {{file}}",
+    "progress_batch_counter": "Processing translation batch {{current}} / {{total}}",
+    "progress_files_detected": "{{count}} source files detected so far",
+    "project_game": "Game",
+    "project_source_language": "Source",
+    "project_folder": "Folder",
+    "file_details_title": "File-level change details",
+    "reused_short": "Reused",
+    "new_short": "New",
+    "changed_short": "Changed",
+    "entry_status_new": "New",
+    "entry_status_changed": "Changed",
+    "telemetry_title": "Timing",
+    "telemetry_snapshot": "Source scan",
+    "telemetry_total": "Total",
+    "telemetry_archive_fetch": "Archive fetch",
+    "telemetry_prepare": "Semantic diff",
+    "telemetry_translation": "AI translation",
+    "telemetry_build": "Output rebuild",
+    "telemetry_archive_write": "Archive write",
+    "log_file_hint": "Execution log saved to: {{path}}",
+    "transport_status": "Task status source: {{source}}",
+    "project_name": "Project"
+  },
+  "recent_activity_type_translate": "Incremental Update"
 }

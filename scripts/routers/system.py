@@ -40,6 +40,7 @@ async def get_system_stats():
                     "type": log['type'],
                     "title": log.get('project_name') or "System",  # Fallback if project missing
                     "description": log['description'],
+                    "metadata": log.get('metadata') or log.get('extra_metadata') or {},
                     "timestamp": log['timestamp'],
                     "user": "System"
                 })

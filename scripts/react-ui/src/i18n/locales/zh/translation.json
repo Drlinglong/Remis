@@ -931,7 +931,42 @@
     "resume_disabled": "断点续传：关闭",
     "status_processing": "正在处理任务...",
     "status_idle": "准备就绪",
-    "checkpoint_detected": "检测到翻译断点 (已完成 {{count}} 个文件)"
+    "checkpoint_detected": "检测到翻译断点 (已完成 {{count}} 个文件)",
+    "target_lang_desc": "增量更新目前只支持已归档过的目标语言。",
+    "pre_scan_bootstrap_log": "[系统] 正在创建预扫描任务...",
+    "pre_scan_in_progress": "正在检查新版模组内容",
+    "execution_in_progress": "正在执行增量翻译",
+    "progress_stage_initializing": "正在准备任务",
+    "progress_stage_scanning_source": "正在扫描源文件",
+    "progress_stage_loading_archive": "正在读取历史存档",
+    "progress_stage_comparing_entries": "正在逐条比对文本",
+    "progress_stage_translating_content": "正在翻译发生变化的内容",
+    "progress_stage_finishing": "正在整理结果文件",
+    "progress_stage_completed": "任务已完成",
+    "progress_file_counter": "正在处理第 {{current}} / {{total}} 个文件：{{file}}",
+    "progress_batch_counter": "正在处理第 {{current}} / {{total}} 个翻译批次",
+    "progress_files_detected": "当前已发现 {{count}} 个源文件",
+    "project_game": "游戏",
+    "project_source_language": "源语言",
+    "project_folder": "目录名",
+    "file_details_title": "文件级变更明细",
+    "reused_short": "复用",
+    "new_short": "新增",
+    "changed_short": "修改",
+    "entry_status_new": "新增",
+    "entry_status_changed": "修改",
+    "telemetry_title": "耗时统计",
+    "telemetry_snapshot": "源文件扫描",
+    "telemetry_total": "总耗时",
+    "telemetry_archive_fetch": "读取归档",
+    "telemetry_prepare": "语义对比",
+    "telemetry_translation": "AI 翻译",
+    "telemetry_build": "结果重建",
+    "telemetry_archive_write": "写回归档",
+    "log_file_hint": "执行日志已默认保存到：{{path}}",
+    "transport_status": "任务状态同步来源：{{source}}",
+    "project_details_title": "项目详情",
+    "project_name": "项目名称"
   },
   "translation_config": {
     "provider": "API 供应商",
@@ -976,5 +1011,6 @@
       "path_registered_desc": "已自动注册翻译输出路径。",
       "incremental_translate_desc": "已构建增量更新（{{target_lang}}）。{{new_count}} 条新增，{{changed_count}} 条修改，{{unchanged_count}} 条复用。"
     }
-  }
+  },
+  "recent_activity_type_translate": "增量更新"
 }

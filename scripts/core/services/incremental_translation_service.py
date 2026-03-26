@@ -21,6 +21,7 @@ class IncrementalTranslationService:
             if progress_callback:
                 progress_callback({
                     "stage": "Finishing",
+                    "stage_code": "finishing",
                     "percent": 90,
                     "message": f"No new content for {target_lang_code}.",
                 })
@@ -43,6 +44,7 @@ class IncrementalTranslationService:
                 pct = 20 + int((current / total) * 70)
                 progress_callback({
                     "stage": "Translating",
+                    "stage_code": "translating_content",
                     "percent": pct,
                     "batch_idx": current,
                     "total_batches": total,

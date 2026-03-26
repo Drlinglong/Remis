@@ -79,8 +79,10 @@ class IncrementalSnapshotService:
             if progress_callback:
                 progress_callback({
                     "stage": "Scanning",
+                    "stage_code": "scanning_source",
                     "percent": 10,
                     "message": f"Scanned {len(files_data)} files.",
+                    "files_detected": len(files_data),
                 })
 
         return files_data
