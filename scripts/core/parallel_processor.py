@@ -111,6 +111,12 @@ class ParallelProcessor:
             self.logger.error(f"{failed_count}/{len(batch_tasks)} translation batches failed.")
             raise RuntimeError("One or more translation batches failed. Halting workflow.")
 
+        fallback_count = sum(1 for task in batch_results.values() if task.fell_back_to_source)
+        if fallback_count:
+            self.logger.warning(
+                f"{fallback_count}/{len(batch_tasks)} translation batches fell back to source text."
+            )
+
         return batch_results, all_warnings
 
     def _resolve_chunk_size(self, provider_name: str) -> int:
@@ -315,7 +321,7 @@ class ParallelProcessor:
                             processed_task, warnings = future.result()
                         except Exception as e:
                             self.logger.error(f"Critical error in batch processing thread for {filename} batch {batch_index}: {e}")
-                            # Create a failed task result so the file logic can progress
+                            # Create a fatal task result so the file logic can progress
                             batch_task.failed = True
                             batch_task.translated_texts = batch_task.texts
                             processed_task = batch_task

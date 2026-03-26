@@ -238,7 +238,7 @@ class BaseApiHandler(ABC):
                     time.sleep(delay)
 
         self.logger.error(f"Batch {batch_num} failed after {MAX_RETRIES} attempts. Falling back to original texts.")
-        task.failed = True
+        task.fell_back_to_source = True
         task.translated_texts = task.texts
         task.warnings.append({
             "type": "fallback_to_source",
