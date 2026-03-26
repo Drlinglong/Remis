@@ -49,6 +49,7 @@ source_mod/
 my_translation/
 data/*.sqlite
 data/*.db
+mods.sqlite
 data/seed_data_*.sql
 logs/
 temp/
