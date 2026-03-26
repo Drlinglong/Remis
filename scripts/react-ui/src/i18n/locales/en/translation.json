@@ -956,7 +956,13 @@
     "telemetry_archive_write": "Archive write",
     "log_file_hint": "Execution log saved to: {{path}}",
     "transport_status": "Task status source: {{source}}",
-    "project_name": "Project"
+    "project_name": "Project",
+    "concurrency_limit": "Concurrency",
+    "concurrency_limit_desc": "Use a lower value for local models to avoid VRAM pressure or channel errors.",
+    "rpm_limit": "RPM Limit",
+    "rpm_limit_desc": "Maximum requests per minute. Helps prevent provider or local service overload.",
+    "warning_summary_title": "Warnings detected during execution",
+    "warning_summary_desc": "This run recorded {{count}} warning(s). Review context overflow, model refusal, or source-text fallback batches first."
   },
   "recent_activity_type_translate": "Incremental Update"
 }

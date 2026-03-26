@@ -24,6 +24,8 @@ async def run_incremental_update(
     game_profile: Dict[str, Any],
     selected_provider: str = "gemini",
     model_name: Optional[str] = None,
+    concurrency_limit: Optional[int] = None,
+    rpm_limit: Optional[int] = None,
     mod_context: str = "",
     dry_run: bool = False,
     custom_source_path: Optional[str] = None,
@@ -176,6 +178,8 @@ async def run_incremental_update(
                 selected_provider=selected_provider,
                 model_name=model_name,
                 target_lang_code=target_lang_code,
+                concurrency_limit=concurrency_limit,
+                rpm_limit=rpm_limit,
                 progress_callback=progress_callback,
             )
             lang_telemetry["translation_ms"] = round((perf_counter() - translation_started_at) * 1000, 1)
@@ -278,5 +282,6 @@ async def run_incremental_update(
         "output_dirs": output_dirs,
         "file_summaries": overall_file_summaries,
         "telemetry": telemetry,
+        "warning_count": len(overall_warnings),
         "history_desc": f"Built incremental updates for {len(target_lang_infos)} languages."
     }

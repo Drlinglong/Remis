@@ -33,3 +33,4 @@ class BatchTask:
     texts: List[str]
     translated_texts: Optional[List[str]] = field(default=None, init=False)
     failed: bool = field(default=False, init=False)
+    warnings: List[Dict[str, Any]] = field(default_factory=list, init=False)

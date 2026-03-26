@@ -209,6 +209,17 @@ class BaseApiHandler(ABC):
 
             except Exception as e:
                 self.logger.exception(f"API call failed for batch {batch_num} on attempt {attempt + 1}: {e}")
+                error_text = str(e)
+                warning_code = "api_error"
+                if "context size has been exceeded" in error_text.lower() or "context length" in error_text.lower():
+                    warning_code = "context_exceeded"
+                task.warnings.append({
+                    "type": warning_code,
+                    "batch_num": batch_num,
+                    "attempt": attempt + 1,
+                    "provider": self.provider_name,
+                    "message": error_text,
+                })
 
                 if attempt < MAX_RETRIES - 1:
                     # 429 速率限制：使用指数退避（等待时间远长于普通错误）
@@ -227,6 +238,12 @@ class BaseApiHandler(ABC):
         self.logger.error(f"Batch {batch_num} failed after {MAX_RETRIES} attempts. Falling back to original texts.")
         task.failed = True
         task.translated_texts = task.texts
+        task.warnings.append({
+            "type": "fallback_to_source",
+            "batch_num": batch_num,
+            "provider": self.provider_name,
+            "message": "Batch failed after retries and fell back to source text.",
+        })
         # We still return the task object so the aggregator can see it failed but has text
         return task
 
@@ -317,4 +334,3 @@ class BaseApiHandler(ABC):
         except Exception as e:
             self.logger.exception(f"Generate with messages failed: {e}")
             return ""
-

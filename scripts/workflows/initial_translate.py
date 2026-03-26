@@ -13,7 +13,7 @@ from scripts.core.loc_parser import parse_loc_file
 from scripts.core.archive_manager import archive_manager
 from scripts.core.checkpoint_manager import CheckpointManager
 from scripts.shared.services import project_manager
-from scripts.app_settings import SOURCE_DIR, DEST_DIR, LANGUAGES, RECOMMENDED_MAX_WORKERS, ARCHIVE_RESULTS_AFTER_TRANSLATION, CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE, OLLAMA_CHUNK_SIZE
+from scripts.app_settings import SOURCE_DIR, DEST_DIR, LANGUAGES, RECOMMENDED_MAX_WORKERS, ARCHIVE_RESULTS_AFTER_TRANSLATION, CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE, OLLAMA_CHUNK_SIZE, LOCAL_LLM_CHUNK_SIZE
 from scripts.utils import i18n
 from scripts.utils.system_utils import slugify_to_ascii
 
@@ -171,6 +171,8 @@ def run(mod_name: str,
         chunk_size = GEMINI_CLI_CHUNK_SIZE
     elif selected_provider == "ollama":
         chunk_size = OLLAMA_CHUNK_SIZE
+    elif selected_provider in ["lm_studio", "vllm", "koboldcpp", "oobabooga", "text-generation-webui", "hunyuan"]:
+        chunk_size = LOCAL_LLM_CHUNK_SIZE
     else:
         chunk_size = CHUNK_SIZE
 
@@ -695,4 +697,3 @@ def discover_files(mod_name: str, game_profile: dict, source_lang: dict, overrid
     # 实际上，我们可以让 ArchiveManager 逐个文件添加？
     # 现有的 archive_manager.create_source_version 需要 all_files_data。
     # 我们先略过这步的优化，专注于翻译过程的流式化。
-

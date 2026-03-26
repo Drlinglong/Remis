@@ -966,7 +966,13 @@
     "log_file_hint": "执行日志已默认保存到：{{path}}",
     "transport_status": "任务状态同步来源：{{source}}",
     "project_details_title": "项目详情",
-    "project_name": "项目名称"
+    "project_name": "项目名称",
+    "concurrency_limit": "并发数量",
+    "concurrency_limit_desc": "本地模型建议使用较低并发，避免显存压力或通道错误。",
+    "rpm_limit": "RPM 限制",
+    "rpm_limit_desc": "每分钟最大请求数。用于限制调用节奏，避免接口或本地服务过载。",
+    "warning_summary_title": "?????????",
+    "warning_summary_desc": "??????? {{count}} ??????????????????????????????"
   },
   "translation_config": {
     "provider": "API 供应商",

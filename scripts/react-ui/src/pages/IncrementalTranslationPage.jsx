@@ -45,6 +45,8 @@ const IncrementalTranslationPage = () => {
     const [models, setModels] = useState([]);
     const [customSourcePath, setCustomSourcePath] = useState('');
     const [selectedLangs, setSelectedLangs] = useState([]);
+    const [concurrencyLimit, setConcurrencyLimit] = useState('10');
+    const [rpmLimit, setRpmLimit] = useState('40');
 
     // Validation / Scan Results
     const [archiveInfo, setArchiveInfo] = useState(null);
@@ -64,6 +66,9 @@ const IncrementalTranslationPage = () => {
     const pollTimerRef = useRef(null);
     const logViewportRef = useRef(null);
     const completionSourceRef = useRef(null);
+    const LOCAL_PROVIDERS = ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui'];
+    const concurrencyOptions = ['1', '2', '5', '10', '20', '50'].map((value) => ({ value, label: value }));
+    const rpmOptions = ['5', '10', '20', '30', '50', '100'].map((value) => ({ value, label: value }));
 
     const formatDuration = useCallback((ms) => {
         if (typeof ms !== 'number' || Number.isNaN(ms)) return '--';
@@ -245,6 +250,7 @@ const IncrementalTranslationPage = () => {
                 setModels(availableModels);
                 setSelectedModel(data.default_model || availableModels[0] || '');
             }
+            setRpmLimit(String(data.rpm_limit || 40));
         } catch (err) {
             console.error('Failed to fetch API config', err);
         }
@@ -258,6 +264,7 @@ const IncrementalTranslationPage = () => {
             setModels(availableModels);
             setSelectedModel(availableModels[0] || '');
         }
+        setConcurrencyLimit(LOCAL_PROVIDERS.includes(val) ? '1' : '10');
     };
 
     const handleSelectProject = async (project) => {
@@ -345,6 +352,8 @@ const IncrementalTranslationPage = () => {
                 dry_run: true,
                 api_provider: selectedProvider,
                 model: selectedModel,
+                concurrency_limit: Number(concurrencyLimit),
+                rpm_limit: Number(rpmLimit),
                 custom_source_path: customSourcePath,
                 use_resume: useResume
             });
@@ -389,6 +398,8 @@ const IncrementalTranslationPage = () => {
                 dry_run: false,
                 api_provider: selectedProvider,
                 model: selectedModel,
+                concurrency_limit: Number(concurrencyLimit),
+                rpm_limit: Number(rpmLimit),
                 custom_source_path: customSourcePath,
                 use_resume: useResume
             });
@@ -618,21 +629,6 @@ const IncrementalTranslationPage = () => {
                         {archiveInfo && (
                             <Paper withBorder p="lg" radius="md" className={styles.glassCard}>
                                 <Stack>
-                                    <SimpleGrid cols={2}>
-                                        <Select
-                                            label={t('translation_config.provider')}
-                                            data={apiProviders.map(p => ({ value: p.value, label: p.label }))}
-                                            value={selectedProvider}
-                                            onChange={handleProviderChange}
-                                        />
-                                        <Select
-                                            label={t('translation_config.model')}
-                                            data={models.map(m => ({ value: m, label: m }))}
-                                            value={selectedModel}
-                                            onChange={setSelectedModel}
-                                        />
-                                    </SimpleGrid>
-
                                     <Card withBorder p="md" radius="md">
                                         <Text size="sm" fw={600} mb="sm">{t('incremental_translation.project_details_title')}</Text>
                                         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
@@ -741,6 +737,36 @@ const IncrementalTranslationPage = () => {
                     <Stack mt="xl">
                         {scanResults && (
                             <Paper withBorder p="xl" radius="md" className={styles.glassCard}>
+                                <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} mb="lg">
+                                    <Select
+                                        label={t('translation_config.provider')}
+                                        data={apiProviders.map(p => ({ value: p.value, label: p.label }))}
+                                        value={selectedProvider}
+                                        onChange={handleProviderChange}
+                                    />
+                                    <Select
+                                        label={t('translation_config.model')}
+                                        data={models.map(m => ({ value: m, label: m }))}
+                                        value={selectedModel}
+                                        onChange={setSelectedModel}
+                                        searchable
+                                    />
+                                    <Select
+                                        label={t('incremental_translation.concurrency_limit')}
+                                        description={t('incremental_translation.concurrency_limit_desc')}
+                                        data={concurrencyOptions}
+                                        value={concurrencyLimit}
+                                        onChange={setConcurrencyLimit}
+                                    />
+                                    <Select
+                                        label={t('incremental_translation.rpm_limit')}
+                                        description={t('incremental_translation.rpm_limit_desc')}
+                                        data={rpmOptions}
+                                        value={rpmLimit}
+                                        onChange={setRpmLimit}
+                                    />
+                                </SimpleGrid>
+
                                 <Title order={4} mb="md">{t('incremental_translation.pre_scan_summary')}</Title>
                                 <SimpleGrid cols={2} mb="lg">
                                     <Box>
@@ -833,6 +859,18 @@ const IncrementalTranslationPage = () => {
                             {finalSummary && (
                                 <Stack mt="xl">
                                     <Title order={4} c="green">{t('incremental_translation.completion_title')}</Title>
+                                    {finalSummary.warning_count > 0 && (
+                                        <Alert color="orange" title={t('incremental_translation.warning_summary_title')}>
+                                            <Text size="sm">
+                                                {t('incremental_translation.warning_summary_desc', { count: finalSummary.warning_count })}
+                                            </Text>
+                                            {(finalSummary.warnings || []).slice(0, 3).map((warning, index) => (
+                                                <Text key={`${warning.type || 'warning'}-${index}`} size="xs" c="dimmed" mt={4}>
+                                                    - {warning.message}
+                                                </Text>
+                                            ))}
+                                        </Alert>
+                                    )}
                                     <Alert color="green">
                                         <Stack gap={4}>
                                             <Text size="sm">{t('incremental_translation.output_dir_hint')}</Text>

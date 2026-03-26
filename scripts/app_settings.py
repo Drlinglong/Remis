@@ -106,6 +106,9 @@ GEMINI_CLI_MAX_RETRIES = 3
 OLLAMA_CHUNK_SIZE = 20
 OLLAMA_MAX_RETRIES = 2
 
+# --- Local OpenAI-compatible providers -----------------------------------
+LOCAL_LLM_CHUNK_SIZE = 10
+
 # --- 智能线程池配置 ----------------------------------------------------
 def get_smart_max_workers():
     cpu_count = multiprocessing.cpu_count() or 1

@@ -60,6 +60,8 @@ class IncrementalUpdateRequest(BaseModel):
     api_provider: str = "gemini"
     provider: Optional[str] = None # Alias for api_provider (for legacy/frontend compatibility)
     model: str = "gemini-pro"
+    concurrency_limit: Optional[int] = None
+    rpm_limit: Optional[int] = None
     mod_context: Optional[str] = ""
     dry_run: bool = False
     custom_source_path: Optional[str] = None

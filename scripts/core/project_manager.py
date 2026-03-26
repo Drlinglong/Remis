@@ -271,6 +271,8 @@ class ProjectManager:
             game_profile=game_profile,
             selected_provider=config.api_provider,
             model_name=config.model,
+            concurrency_limit=config.concurrency_limit,
+            rpm_limit=config.rpm_limit,
             dry_run=config.dry_run,
             custom_source_path=config.custom_source_path,
             use_resume=config.use_resume,
