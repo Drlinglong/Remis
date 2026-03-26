@@ -16,7 +16,7 @@ from scripts.core.services.translation_archive_service import TranslationArchive
 async def rebuild_archive(project_ids=None, include_archived=False, reset_db=False):
     if reset_db and os.path.exists(MODS_CACHE_DB_PATH):
         os.remove(MODS_CACHE_DB_PATH)
-        print(f"[INFO] Removed existing archive DB: {MODS_CACHE_DB_PATH}")
+        print(f"[INFO] Removed existing archive DB: {MODS_CACHE_DB_PATH}", flush=True)
 
     manager = ProjectManager()
     archive_service = TranslationArchiveService()
@@ -31,14 +31,20 @@ async def rebuild_archive(project_ids=None, include_archived=False, reset_db=Fal
             continue
         selected.append(data)
 
-    print(f"[INFO] Rebuilding archive for {len(selected)} project(s)")
-    for project in selected:
+    print(f"[INFO] Rebuilding archive for {len(selected)} project(s)", flush=True)
+    for index, project in enumerate(selected, start=1):
         source_path = project.get("source_path")
         if not source_path or not Path(source_path).exists():
-            print(f"[WARN] Skipping {project['name']} ({project['project_id']}): source path missing")
+            print(
+                f"[WARN] [{index}/{len(selected)}] Skipping {project['name']} ({project['project_id']}): source path missing",
+                flush=True,
+            )
             continue
 
-        print(f"[INFO] Rebuilding {project['name']} ({project['project_id']})")
+        print(
+            f"[INFO] [{index}/{len(selected)}] Rebuilding {project['name']} ({project['project_id']})",
+            flush=True,
+        )
         result = archive_service.upload_project_translations(
             project_id=project["project_id"],
             project_name=project["name"],
@@ -46,9 +52,10 @@ async def rebuild_archive(project_ids=None, include_archived=False, reset_db=Fal
             source_lang_code=project.get("source_language", "en"),
         )
         print(
-            f"[INFO]   status={result.get('status')} "
+            f"[INFO] [{index}/{len(selected)}] status={result.get('status')} "
             f"match_count={result.get('match_count', 0)} "
-            f"message={result.get('message', '')}"
+            f"message={result.get('message', '')}",
+            flush=True,
         )
 
 
