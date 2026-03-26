@@ -76,6 +76,13 @@ const IncrementalTranslationPage = () => {
         return `${(ms / 1000).toFixed(ms >= 10000 ? 0 : 1)} s`;
     }, []);
 
+    const formatDateTime = useCallback((value) => {
+        if (!value) return '--';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleString();
+    }, []);
+
     const getStageTitle = useCallback((progressState, isPreScan = false) => {
         const stageCode = progressState?.stage_code || '';
         const translationKey = stageCode
@@ -142,6 +149,29 @@ const IncrementalTranslationPage = () => {
                                     </Group>
                                 </Accordion.Control>
                                 <Accordion.Panel>
+                                    {item.archive_baseline && (
+                                        <Card withBorder p="sm" radius="md" mb="md">
+                                            <Text size="xs" c="dimmed">{t('incremental_translation.archive_baseline_title')}</Text>
+                                            <SimpleGrid cols={{ base: 1, sm: 2 }} mt="xs">
+                                                <Box>
+                                                    <Text size="xs" c="dimmed">{t('incremental_translation.archive_version_label')}</Text>
+                                                    <Text size="sm" fw={600}>v{item.archive_baseline.version_id ?? '--'}</Text>
+                                                </Box>
+                                                <Box>
+                                                    <Text size="xs" c="dimmed">{t('incremental_translation.archive_entries_label')}</Text>
+                                                    <Text size="sm" fw={600}>{item.archive_baseline.translated_count ?? '--'}</Text>
+                                                </Box>
+                                                <Box>
+                                                    <Text size="xs" c="dimmed">{t('incremental_translation.archive_uploaded_label')}</Text>
+                                                    <Text size="sm">{formatDateTime(item.archive_baseline.last_translation_at)}</Text>
+                                                </Box>
+                                                <Box>
+                                                    <Text size="xs" c="dimmed">{t('incremental_translation.archive_snapshot_label')}</Text>
+                                                    <Text size="sm">{formatDateTime(item.archive_baseline.created_at)}</Text>
+                                                </Box>
+                                            </SimpleGrid>
+                                        </Card>
+                                    )}
                                     <SimpleGrid cols={{ base: 1, sm: 2 }}>
                                         {[
                                             ['incremental_translation.telemetry_archive_fetch', item.archive_fetch_ms],
@@ -165,7 +195,7 @@ const IncrementalTranslationPage = () => {
                 )}
             </Stack>
         );
-    }, [formatDuration, t]);
+    }, [formatDateTime, formatDuration, t]);
 
     const renderFileDetails = useCallback((fileSummaries) => {
         const dirtyFiles = (fileSummaries || []).filter((item) => (item.new + item.changed) > 0);
@@ -629,6 +659,10 @@ const IncrementalTranslationPage = () => {
                         {archiveInfo && (
                             <Paper withBorder p="lg" radius="md" className={styles.glassCard}>
                                 <Stack>
+                                    <Alert icon={<IconCheck size={16} />} color="blue" radius="md">
+                                        <Text size="sm" fw={600}>{t('incremental_translation.workflow_supported_title')}</Text>
+                                        <Text size="sm">{t('incremental_translation.workflow_supported_desc')}</Text>
+                                    </Alert>
                                     <Card withBorder p="md" radius="md">
                                         <Text size="sm" fw={600} mb="sm">{t('incremental_translation.project_details_title')}</Text>
                                         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
@@ -650,6 +684,36 @@ const IncrementalTranslationPage = () => {
                                             </Box>
                                         </SimpleGrid>
                                     </Card>
+
+                                    {Array.isArray(archiveInfo.baseline_versions) && archiveInfo.baseline_versions.length > 0 && (
+                                        <Card withBorder p="md" radius="md">
+                                            <Text size="sm" fw={600} mb="sm">{t('incremental_translation.archive_baseline_title')}</Text>
+                                            <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
+                                                {archiveInfo.baseline_versions.map((baseline) => (
+                                                    <Card key={baseline.language} withBorder p="sm" radius="md">
+                                                        <Group justify="space-between" mb="xs">
+                                                            <Text size="sm" fw={600}>{baseline.language}</Text>
+                                                            <Badge color="indigo" variant="light">v{baseline.version_id ?? '--'}</Badge>
+                                                        </Group>
+                                                        <Stack gap={6}>
+                                                            <Box>
+                                                                <Text size="xs" c="dimmed">{t('incremental_translation.archive_uploaded_label')}</Text>
+                                                                <Text size="sm">{formatDateTime(baseline.last_translation_at)}</Text>
+                                                            </Box>
+                                                            <Box>
+                                                                <Text size="xs" c="dimmed">{t('incremental_translation.archive_snapshot_label')}</Text>
+                                                                <Text size="sm">{formatDateTime(baseline.created_at)}</Text>
+                                                            </Box>
+                                                            <Box>
+                                                                <Text size="xs" c="dimmed">{t('incremental_translation.archive_entries_label')}</Text>
+                                                                <Text size="sm">{baseline.translated_count ?? '--'}</Text>
+                                                            </Box>
+                                                        </Stack>
+                                                    </Card>
+                                                ))}
+                                            </SimpleGrid>
+                                        </Card>
+                                    )}
 
                                     <Group justify="space-between">
                                         <Title order={4}>
@@ -778,6 +842,11 @@ const IncrementalTranslationPage = () => {
                                         <Text size="sm">{selectedProject?.source_language}</Text>
                                     </Box>
                                 </SimpleGrid>
+
+                                <Alert icon={<IconSettings size={16} />} color="gray" radius="md" mb="lg">
+                                    <Text size="sm" fw={600}>{t('incremental_translation.workflow_supported_title')}</Text>
+                                    <Text size="sm">{t('incremental_translation.workflow_supported_desc')}</Text>
+                                </Alert>
 
                                 <Divider mb="lg" />
 

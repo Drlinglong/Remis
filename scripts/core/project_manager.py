@@ -296,6 +296,21 @@ class ProjectManager:
         target_lang = self.archive_service.archive_manager.detect_target_language(latest_version['id']) or "zh-CN"
         
         target_languages = archived_languages or [target_lang]
+        baseline_versions = []
+        for language_code in target_languages:
+            baseline = self.archive_service.archive_manager.get_latest_version(
+                mod_name=project_name,
+                project_id=project_id,
+                language=language_code,
+            )
+            if baseline:
+                baseline_versions.append({
+                    "language": language_code,
+                    "version_id": baseline["id"],
+                    "created_at": baseline.get("created_at"),
+                    "last_translation_at": baseline.get("last_translation_at"),
+                    "translated_count": baseline.get("translated_count"),
+                })
 
         logging.info(f"[CheckArchive] Found archive v{latest_version['id']} for {project_name}. Languages: {target_languages}")
 
@@ -306,7 +321,8 @@ class ProjectManager:
             "target_language": target_lang, 
             "target_languages": target_languages,
             "archived_languages": archived_languages,
-            "project_name": project_name
+            "project_name": project_name,
+            "baseline_versions": baseline_versions,
         }
 
     async def get_project(self, project_id: str) -> Optional[Dict[str, Any]]:

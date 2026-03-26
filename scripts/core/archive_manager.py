@@ -67,6 +67,7 @@ class ArchiveManager:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_trans_lang ON translated_entries(language_code)")
         
         self._migrate_legacy_schema(conn)
+        self._normalize_legacy_file_paths(conn)
         conn.commit()
 
     def _migrate_legacy_schema(self, conn: sqlite3.Connection):
@@ -159,6 +160,17 @@ class ArchiveManager:
         finally:
             cursor.execute("PRAGMA foreign_keys = ON")
 
+    def _normalize_legacy_file_paths(self, conn: sqlite3.Connection):
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE source_entries
+            SET file_path = TRIM(REPLACE(COALESCE(file_path, ''), '\\', '/'))
+            WHERE file_path IS NOT NULL
+              AND file_path != TRIM(REPLACE(COALESCE(file_path, ''), '\\', '/'))
+            """
+        )
+
     def get_or_create_mod_entry(self, mod_name: str, remote_file_id: str) -> Optional[int]:
         """阶段一: 根据 remote_file_id 查询或创建 mod 记录，返回内部 mod_id"""
         if not self.connection: return None
@@ -196,7 +208,13 @@ class ArchiveManager:
         result = cursor.fetchone()
         return result['mod_id'] if result else None
 
-    def get_latest_version(self, mod_name: str = None, mod_id: int = None, project_id: str = None) -> Optional[Dict[str, Any]]:
+    def get_latest_version(
+        self,
+        mod_name: str = None,
+        mod_id: int = None,
+        project_id: str = None,
+        language: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
         """
         Retrieves the latest version of a mod. 
         Priority: project_id (remote_file_id) > mod_id > mod_name.
@@ -230,7 +248,7 @@ class ArchiveManager:
             logging.error(f"[Archive] Could not find any archive for project_id={project_id}, mod_name='{mod_name}'")
             return None
 
-        ver_row = self._get_latest_version_row(cursor, mod_id, require_translations=True)
+        ver_row = self._get_latest_version_row(cursor, mod_id, language=language, require_translations=True)
         if not ver_row:
             ver_row = self._get_latest_version_row(cursor, mod_id, require_translations=False)
         if not ver_row:
@@ -239,7 +257,10 @@ class ArchiveManager:
         
         return {
             "id": ver_row['version_id'],
-            "created_at": ver_row['created_at']
+            "created_at": ver_row['created_at'],
+            "last_translation_at": ver_row['last_translation_at'] if 'last_translation_at' in ver_row.keys() else None,
+            "translated_count": ver_row['translated_count'] if 'translated_count' in ver_row.keys() else None,
+            "language": language,
         }
 
     def _get_latest_version_row(
@@ -332,7 +353,9 @@ class ArchiveManager:
                     if entry_key.endswith(":"):
                         entry_key = entry_key[:-1].strip()
                     
-                    entry_file_path = file_data.get('file_path') or file_data.get('filename', 'unknown')
+                    entry_file_path = self._normalize_archive_file_path(
+                        file_data.get('file_path') or file_data.get('filename', 'unknown')
+                    )
                     source_entries.append((version_id, entry_key, text.rstrip('\r\n'), entry_file_path))
 
             # Ensure file_path column exists
@@ -359,18 +382,21 @@ class ArchiveManager:
             upsert_data = []
 
             for filename, translated_texts in file_results.items():
+                normalized_filename = self._normalize_archive_file_path(filename)
                 file_data = next(
                     (
                         fd for fd in all_files_data
-                        if (fd.get('file_path') or fd.get('filename')) == filename
-                        or fd.get('filename') == filename
+                        if self._normalize_archive_file_path(fd.get('file_path') or fd.get('filename')) == normalized_filename
+                        or self._normalize_archive_file_path(fd.get('filename')) == normalized_filename
                     ),
                     None
                 )
                 if not file_data or not translated_texts: continue
 
                 km = file_data.get('key_map', {})
-                archive_file_path = file_data.get('file_path') or file_data.get('filename', '')
+                archive_file_path = self._normalize_archive_file_path(
+                    file_data.get('file_path') or file_data.get('filename', '')
+                )
                 for idx, translated_text in enumerate(translated_texts):
                     if isinstance(km, dict):
                         key_info = km.get(idx)
@@ -387,21 +413,13 @@ class ArchiveManager:
                         entry_key = entry_key[:-1].strip()
                 
                     # Find source entry
-                    # [FIX] Relax query to handle legacy entries where file_path might be empty
-                    cursor.execute(
-                        "SELECT source_entry_id FROM source_entries WHERE version_id = ? AND entry_key = ? AND (file_path = ? OR file_path = ? OR file_path = '' OR file_path IS NULL)",
-                        (version_id, entry_key, archive_file_path, os.path.basename(archive_file_path))
-                    )
-                    row = cursor.fetchone()
+                    file_path_candidates = self._build_file_path_candidates(archive_file_path)
+                    row = self._find_source_entry_id(cursor, version_id, entry_key, file_path_candidates)
                     
                     # [FALLBACK] If not found and key has :version, try without version (for legacy compatibility)
                     if not row and ":" in entry_key:
                         pure_key = entry_key.split(':')[0]
-                        cursor.execute(
-                            "SELECT source_entry_id FROM source_entries WHERE version_id = ? AND entry_key = ? AND (file_path = ? OR file_path = ? OR file_path = '' OR file_path IS NULL)",
-                            (version_id, pure_key, archive_file_path, os.path.basename(archive_file_path))
-                        )
-                        row = cursor.fetchone()
+                        row = self._find_source_entry_id(cursor, version_id, pure_key, file_path_candidates).fetchone()
 
                     if row:
                         source_entry_id = row['source_entry_id']
@@ -507,9 +525,13 @@ class ArchiveManager:
 
         # 3. Fetch Source Entries for CURRENT Version
         if file_path:
-            filename = os.path.basename(file_path)
-            query = "SELECT source_entry_id, entry_key, source_text, file_path FROM source_entries WHERE version_id = ? AND (file_path = ? OR file_path = ?)"
-            params = (version_id, file_path, filename)
+            normalized_file_path = self._normalize_archive_file_path(file_path)
+            path_candidates = self._build_file_path_candidates(normalized_file_path)
+            query = (
+                "SELECT source_entry_id, entry_key, source_text, file_path FROM source_entries "
+                f"WHERE version_id = ? AND {self._build_file_path_where_clause(path_candidates)}"
+            )
+            params = (version_id, *path_candidates)
         else:
             query = "SELECT source_entry_id, entry_key, source_text, file_path FROM source_entries WHERE version_id = ?"
             params = (version_id,)
@@ -533,8 +555,10 @@ class ArchiveManager:
         '''
         deep_params = [version_id, language]
         if file_path:
-            deep_query += " AND (s.file_path = ? OR s.file_path = ?)"
-            deep_params.extend([file_path, os.path.basename(file_path)])
+            normalized_file_path = self._normalize_archive_file_path(file_path)
+            path_candidates = self._build_file_path_candidates(normalized_file_path)
+            deep_query += f" AND {self._build_file_path_where_clause(path_candidates, table_alias='s')}"
+            deep_params.extend(path_candidates)
         
         deep_query += " ORDER BY t.last_translated_at ASC"
         
@@ -615,16 +639,15 @@ class ArchiveManager:
         if not ver_row: return
         version_id = ver_row['version_id']
 
-        filename = os.path.basename(file_path)
+        normalized_file_path = self._normalize_archive_file_path(file_path)
+        file_path_candidates = self._build_file_path_candidates(normalized_file_path)
 
         for entry in entries:
             key = entry['key']
             translation = entry.get('translation', '')
 
             # Find source entry ID
-            cursor.execute("SELECT source_entry_id FROM source_entries WHERE version_id=? AND file_path=? AND entry_key=?",
-                           (version_id, filename, key))
-            row = cursor.fetchone()
+            row = self._find_source_entry_id(cursor, version_id, key, file_path_candidates).fetchone()
 
             if row:
                 source_entry_id = row['source_entry_id']
@@ -638,6 +661,38 @@ class ArchiveManager:
                 ''', (source_entry_id, language, translation))
 
         self.connection.commit()
+
+    def _normalize_archive_file_path(self, file_path: str) -> str:
+        normalized = (file_path or "").strip().replace("\\", "/")
+        while normalized.startswith("./"):
+            normalized = normalized[2:]
+        normalized = normalized.lstrip("/")
+        return normalized
+
+    def _build_file_path_candidates(self, file_path: str) -> List[str]:
+        normalized = self._normalize_archive_file_path(file_path)
+        return [normalized]
+
+    def _build_file_path_where_clause(self, candidates: List[str], table_alias: str = "") -> str:
+        column = f"{table_alias}.file_path" if table_alias else "file_path"
+        comparisons = [f"{column} = ?" for _ in candidates]
+        comparisons.append(f"{column} IS NULL")
+        return "(" + " OR ".join(comparisons) + ")"
+
+    def _find_source_entry_id(
+        self,
+        cursor: sqlite3.Cursor,
+        version_id: int,
+        entry_key: str,
+        file_path_candidates: List[str],
+    ):
+        query = (
+            "SELECT source_entry_id FROM source_entries "
+            f"WHERE version_id = ? AND entry_key = ? AND {self._build_file_path_where_clause(file_path_candidates)}"
+        )
+        params = (version_id, entry_key, *file_path_candidates)
+        cursor.execute(query, params)
+        return cursor.fetchone()
 
     def close(self):
         if self._conn:

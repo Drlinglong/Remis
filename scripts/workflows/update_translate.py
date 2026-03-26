@@ -114,8 +114,20 @@ async def run_incremental_update(
             project_id=project_id,
             language_code=target_lang_code,
         )
+        baseline_info = incremental_archive_service.get_language_baseline(
+            project_id=project_id,
+            language_code=target_lang_code,
+        )
         lang_telemetry["archive_fetch_ms"] = round((perf_counter() - archive_started_at) * 1000, 1)
         logger.info(f"Pre-fetched {len(all_entries)} archive entries for {project_name}.")
+        if baseline_info:
+            lang_telemetry["archive_baseline"] = {
+                "language": target_lang_code,
+                "version_id": baseline_info.get("id"),
+                "created_at": baseline_info.get("created_at"),
+                "last_translation_at": baseline_info.get("last_translation_at"),
+                "translated_count": baseline_info.get("translated_count"),
+            }
         history_index = diff_service.build_history_index(all_entries)
         preparation_started_at = perf_counter()
         preparation_result = preparation_service.prepare_language_update(

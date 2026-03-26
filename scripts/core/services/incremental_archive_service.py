@@ -10,6 +10,9 @@ class IncrementalArchiveService:
     def get_language_entries(self, project_id: str, language_code: str) -> List[Dict[str, Any]]:
         return self.archive_manager.get_entries(project_id=project_id, language=language_code)
 
+    def get_language_baseline(self, project_id: str, language_code: str) -> Optional[Dict[str, Any]]:
+        return self.archive_manager.get_latest_version(project_id=project_id, language=language_code)
+
     def archive_language_result(
         self,
         project_id: str,

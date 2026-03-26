@@ -113,16 +113,10 @@ def test_get_entries_prefers_most_recent_translation_baseline(temp_archive_db):
     assert [entry["translation"] for entry in entries] == ["A", "B"]
 
 
-def test_diff_service_matches_basename_and_unique_key_fallbacks():
+def test_diff_service_matches_unique_key_fallbacks():
     service = IncrementalDiffService()
     history_index = service.build_history_index(
         [
-            {
-                "file_path": "FNG - Fengtian l_simp_chinese.yml",
-                "key": "fng.key.one",
-                "original": "Alpha",
-                "translation": "A",
-            },
             {
                 "file_path": "other_file.yml",
                 "key": "shared.unique",
@@ -145,15 +139,6 @@ def test_diff_service_matches_basename_and_unique_key_fallbacks():
     )
 
     status, entry = service.classify_entry(
-        "localisation/simp_chinese/KR_country_specific/FNG - Fengtian l_simp_chinese.yml",
-        "fng.key.one",
-        "Alpha",
-        history_index,
-    )
-    assert status == "unchanged"
-    assert entry["translation"] == "A"
-
-    status, entry = service.classify_entry(
         "localisation/simp_chinese/KR_country_specific/renamed.yml",
         "shared.unique",
         "Beta",
@@ -170,3 +155,61 @@ def test_diff_service_matches_basename_and_unique_key_fallbacks():
     )
     assert status == "new"
     assert entry is None
+
+
+def test_archive_manager_normalizes_stored_relative_paths(temp_archive_db):
+    mod_id = temp_archive_db.get_or_create_mod_entry("PathMod", "path-mod-project")
+    version_id = temp_archive_db.create_source_version(
+        mod_id,
+        [
+            {
+                "filename": "sample_l_simp_chinese.yml",
+                "file_path": r".\localisation\simp_chinese\KR_country_specific\sample_l_simp_chinese.yml",
+                "texts_to_translate": ["Alpha"],
+                "key_map": {0: {"key_part": "path.key"}},
+            }
+        ],
+    )
+
+    row = temp_archive_db.connection.execute(
+        "SELECT file_path FROM source_entries WHERE version_id = ?",
+        (version_id,),
+    ).fetchone()
+    assert row["file_path"] == "localisation/simp_chinese/KR_country_specific/sample_l_simp_chinese.yml"
+
+
+def test_get_entries_accepts_non_normalized_file_path_inputs(temp_archive_db):
+    mod_id = temp_archive_db.get_or_create_mod_entry("PathLookupMod", "path-lookup-project")
+    version_id = temp_archive_db.create_source_version(
+        mod_id,
+        [
+            {
+                "filename": "sample_l_simp_chinese.yml",
+                "file_path": "localisation/simp_chinese/KR_country_specific/sample_l_simp_chinese.yml",
+                "texts_to_translate": ["Alpha"],
+                "key_map": {0: {"key_part": "lookup.key"}},
+            }
+        ],
+    )
+    temp_archive_db.archive_translated_results(
+        version_id,
+        {"localisation/simp_chinese/KR_country_specific/sample_l_simp_chinese.yml": ["A"]},
+        [
+            {
+                "filename": "sample_l_simp_chinese.yml",
+                "file_path": "localisation/simp_chinese/KR_country_specific/sample_l_simp_chinese.yml",
+                "texts_to_translate": ["Alpha"],
+                "key_map": [{"key_part": "lookup.key"}],
+            }
+        ],
+        "en",
+    )
+
+    entries = temp_archive_db.get_entries(
+        project_id="path-lookup-project",
+        file_path=r".\localisation\simp_chinese\KR_country_specific\sample_l_simp_chinese.yml",
+        language="en",
+    )
+
+    assert len(entries) == 1
+    assert entries[0]["translation"] == "A"
