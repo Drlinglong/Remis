@@ -29,6 +29,9 @@ import { useNotification } from '../context/NotificationContext';
 import notificationService from '../services/notificationService';
 import styles from './Translation.module.css';
 
+const INCREMENTAL_STATE_STORAGE_KEY = 'incremental_translation_state_v1';
+const LOCAL_PROVIDERS = ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui'];
+
 const IncrementalTranslationPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -59,6 +62,8 @@ const IncrementalTranslationPage = () => {
     const [progressInfo, setProgressInfo] = useState({});
     const [logs, setLogs] = useState([]);
     const [finalSummary, setFinalSummary] = useState(null);
+    const [currentTaskId, setCurrentTaskId] = useState(null);
+    const [currentTaskMode, setCurrentTaskMode] = useState(null);
     const logScrollRef = useRef(null);
     const [checkpointFound, setCheckpointFound] = useState(false);
     const [useResume, setUseResume] = useState(true);
@@ -66,7 +71,11 @@ const IncrementalTranslationPage = () => {
     const pollTimerRef = useRef(null);
     const logViewportRef = useRef(null);
     const completionSourceRef = useRef(null);
-    const LOCAL_PROVIDERS = ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui'];
+    const persistedStateRef = useRef(null);
+    const restorationAppliedRef = useRef(false);
+    const statusResyncRef = useRef(false);
+    const [projectsLoaded, setProjectsLoaded] = useState(false);
+    const [configLoaded, setConfigLoaded] = useState(false);
     const concurrencyOptions = ['1', '2', '5', '10', '20', '50'].map((value) => ({ value, label: value }));
     const rpmOptions = ['5', '10', '20', '30', '50', '100'].map((value) => ({ value, label: value }));
 
@@ -117,6 +126,37 @@ const IncrementalTranslationPage = () => {
         }
         return progressState.message || '';
     }, [t]);
+
+    const resolveProviderModels = useCallback((providerValue) => {
+        const providerData = apiProviders.find((provider) => provider.value === providerValue);
+        return providerData ? (providerData.available_models || providerData.custom_models || []) : [];
+    }, [apiProviders]);
+
+    const applyProviderSelection = useCallback((providerValue, preferredModel = '', preferredConcurrency = null) => {
+        const nextProvider = providerValue || 'gemini';
+        const availableModels = resolveProviderModels(nextProvider);
+        const nextModel = preferredModel && availableModels.includes(preferredModel)
+            ? preferredModel
+            : (availableModels[0] || '');
+
+        setSelectedProvider(nextProvider);
+        setModels(availableModels);
+        setSelectedModel(nextModel);
+
+        if (preferredConcurrency !== null && preferredConcurrency !== undefined) {
+            setConcurrencyLimit(String(preferredConcurrency));
+        } else {
+            setConcurrencyLimit(LOCAL_PROVIDERS.includes(nextProvider) ? '1' : '10');
+        }
+    }, [resolveProviderModels]);
+
+    const resetPersistedState = useCallback(() => {
+        localStorage.removeItem(INCREMENTAL_STATE_STORAGE_KEY);
+        setCurrentTaskId(null);
+        setCurrentTaskMode(null);
+        completionSourceRef.current = null;
+        statusResyncRef.current = false;
+    }, []);
 
     const renderTelemetry = useCallback((telemetry) => {
         if (!telemetry) return null;
@@ -247,8 +287,114 @@ const IncrementalTranslationPage = () => {
         );
     }, [archiveInfo?.target_language, selectedLangs, t]);
 
+    useEffect(() => {
+        if (restorationAppliedRef.current || !projectsLoaded || !configLoaded) return;
+
+        const persistedState = persistedStateRef.current;
+        if (!persistedState) {
+            restorationAppliedRef.current = true;
+            return;
+        }
+
+        const matchedProject = persistedState.selectedProject?.project_id
+            ? projects.find((project) => project.project_id === persistedState.selectedProject.project_id) || persistedState.selectedProject
+            : null;
+
+        if (matchedProject) setSelectedProject(matchedProject);
+        if (typeof persistedState.active === 'number') setActive(persistedState.active);
+        if (typeof persistedState.loading === 'boolean') setLoading(persistedState.loading);
+        if (persistedState.customSourcePath) setCustomSourcePath(persistedState.customSourcePath);
+        if (Array.isArray(persistedState.selectedLangs)) setSelectedLangs(persistedState.selectedLangs);
+        if (persistedState.archiveInfo) setArchiveInfo(persistedState.archiveInfo);
+        if (persistedState.scanResults) setScanResults(persistedState.scanResults);
+        if (persistedState.error) setError(persistedState.error);
+        if (typeof persistedState.executing === 'boolean') setExecuting(persistedState.executing);
+        if (typeof persistedState.progress === 'number') setProgress(persistedState.progress);
+        if (persistedState.progressInfo) setProgressInfo(persistedState.progressInfo);
+        if (Array.isArray(persistedState.logs)) setLogs(persistedState.logs);
+        if (persistedState.finalSummary) setFinalSummary(persistedState.finalSummary);
+        if (typeof persistedState.checkpointFound === 'boolean') setCheckpointFound(persistedState.checkpointFound);
+        if (typeof persistedState.useResume === 'boolean') setUseResume(persistedState.useResume);
+        if (persistedState.currentTaskId) setCurrentTaskId(persistedState.currentTaskId);
+        if (persistedState.currentTaskMode) setCurrentTaskMode(persistedState.currentTaskMode);
+        if (persistedState.completionSource) completionSourceRef.current = persistedState.completionSource;
+
+        applyProviderSelection(
+            persistedState.selectedProvider || 'gemini',
+            persistedState.selectedModel || '',
+            persistedState.concurrencyLimit ?? null,
+        );
+        if (persistedState.rpmLimit) setRpmLimit(String(persistedState.rpmLimit));
+
+        restorationAppliedRef.current = true;
+    }, [applyProviderSelection, configLoaded, projects, projectsLoaded]);
+
+    useEffect(() => {
+        if (!restorationAppliedRef.current) return;
+
+        const stateToPersist = {
+            active,
+            loading,
+            selectedProject,
+            selectedProvider,
+            selectedModel,
+            customSourcePath,
+            selectedLangs,
+            concurrencyLimit,
+            rpmLimit,
+            archiveInfo,
+            scanResults,
+            error,
+            executing,
+            progress,
+            progressInfo,
+            logs,
+            finalSummary,
+            checkpointFound,
+            useResume,
+            currentTaskId,
+            currentTaskMode,
+            completionSource: completionSourceRef.current,
+        };
+
+        try {
+            localStorage.setItem(INCREMENTAL_STATE_STORAGE_KEY, JSON.stringify(stateToPersist));
+        } catch (err) {
+            console.warn('Failed to persist incremental translation state:', err);
+        }
+    }, [
+        active,
+        archiveInfo,
+        checkpointFound,
+        concurrencyLimit,
+        currentTaskId,
+        currentTaskMode,
+        customSourcePath,
+        error,
+        executing,
+        finalSummary,
+        loading,
+        logs,
+        progress,
+        progressInfo,
+        rpmLimit,
+        scanResults,
+        selectedLangs,
+        selectedModel,
+        selectedProject,
+        selectedProvider,
+        useResume,
+    ]);
+
     // Fetch basics
     useEffect(() => {
+        try {
+            const rawState = localStorage.getItem(INCREMENTAL_STATE_STORAGE_KEY);
+            persistedStateRef.current = rawState ? JSON.parse(rawState) : null;
+        } catch (err) {
+            console.warn('Failed to read incremental translation persisted state:', err);
+            persistedStateRef.current = null;
+        }
         fetchProjects();
         fetchApiConfig();
     }, []);
@@ -257,8 +403,10 @@ const IncrementalTranslationPage = () => {
         try {
             const response = await axios.get('/api/projects');
             setProjects(response.data.filter(p => p.status === 'active'));
-        } catch (err) {
+        } catch {
             notificationService.error(t('notification.error_generic'), notificationStyle);
+        } finally {
+            setProjectsLoaded(true);
         }
     };
 
@@ -283,18 +431,13 @@ const IncrementalTranslationPage = () => {
             setRpmLimit(String(data.rpm_limit || 40));
         } catch (err) {
             console.error('Failed to fetch API config', err);
+        } finally {
+            setConfigLoaded(true);
         }
     };
 
     const handleProviderChange = (val) => {
-        setSelectedProvider(val);
-        const providerData = apiProviders.find(p => p.value === val);
-        if (providerData) {
-            const availableModels = providerData.available_models || providerData.custom_models || [];
-            setModels(availableModels);
-            setSelectedModel(availableModels[0] || '');
-        }
-        setConcurrencyLimit(LOCAL_PROVIDERS.includes(val) ? '1' : '10');
+        applyProviderSelection(val);
     };
 
     const handleSelectProject = async (project) => {
@@ -302,7 +445,17 @@ const IncrementalTranslationPage = () => {
         setCustomSourcePath(project.source_path);
         setError(null);
         setArchiveInfo(null);
+        setScanResults(null);
+        setFinalSummary(null);
+        setLogs([]);
+        setProgress(0);
+        setProgressInfo({});
+        setExecuting(false);
         setCheckpointFound(false);
+        setCurrentTaskId(null);
+        setCurrentTaskMode(null);
+        completionSourceRef.current = null;
+        statusResyncRef.current = false;
         setActive(1);
 
         // Immediate archive check
@@ -323,7 +476,7 @@ const IncrementalTranslationPage = () => {
             } else {
                 setError(res.data.reason || t('incremental_translation.archive_missing'));
             }
-        } catch (err) {
+        } catch {
             setError(t('incremental_translation.archive_missing'));
         } finally {
             setLoading(false);
@@ -390,6 +543,8 @@ const IncrementalTranslationPage = () => {
 
             const taskId = res.data.task_id;
             if (taskId) {
+                setCurrentTaskId(taskId);
+                setCurrentTaskMode('pre_scan');
                 // Connect to WebSocket and wait for the summary
                 connectWebSocket(taskId, true); // true indicates pre-scan mode
             } else {
@@ -419,6 +574,7 @@ const IncrementalTranslationPage = () => {
         setFinalSummary(null);
         setProgress(0);
         setProgressInfo({ percent: 0, stage_code: 'initializing', stage: 'Initializing' });
+        completionSourceRef.current = null;
 
         try {
             // 1. Kick off the translation request
@@ -439,6 +595,8 @@ const IncrementalTranslationPage = () => {
                 throw new Error("No Task ID returned from server.");
             }
 
+            setCurrentTaskId(taskId);
+            setCurrentTaskMode('execution');
             // 2. Connect to WebSocket for real-time updates
             connectWebSocket(taskId);
 
@@ -568,8 +726,35 @@ const IncrementalTranslationPage = () => {
         };
     }, []);
 
+    useEffect(() => {
+        if (!restorationAppliedRef.current || statusResyncRef.current || !currentTaskId || !currentTaskMode) return;
+        if (!loading && !executing) return;
+
+        statusResyncRef.current = true;
+
+        const isPreScan = currentTaskMode === 'pre_scan';
+        axios.get(`/api/status/${currentTaskId}`)
+            .then((res) => {
+                const taskStatus = res.data?.status;
+                if (taskStatus === 'completed' || taskStatus === 'failed') {
+                    handleTaskUpdate(res.data, isPreScan, 'polling');
+                    return;
+                }
+                connectWebSocket(currentTaskId, isPreScan);
+            })
+            .catch((resumeErr) => {
+                console.error('Failed to resume incremental task state:', resumeErr);
+                connectWebSocket(currentTaskId, isPreScan);
+            });
+    }, [currentTaskId, currentTaskMode, executing, loading]);
+
     const addLog = (msg) => {
         setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
+    };
+
+    const handleFinish = () => {
+        resetPersistedState();
+        navigate('/project-management');
     };
 
     useEffect(() => {
@@ -963,7 +1148,7 @@ const IncrementalTranslationPage = () => {
                                         <Button size="lg" variant="light" onClick={openOutputFolder}>
                                             {t('button_open_folder')}
                                         </Button>
-                                        <Button size="lg" onClick={() => navigate('/project-management')}>
+                                        <Button size="lg" onClick={handleFinish}>
                                             {t('common.finish')}
                                         </Button>
                                     </Group>
