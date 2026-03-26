@@ -127,6 +127,98 @@ const IncrementalTranslationPage = () => {
         return progressState.message || '';
     }, [t]);
 
+    const formatWarningMessage = useCallback((warning) => {
+        if (!warning) return '';
+
+        const batchNum = warning.batch_num ?? '?';
+        const attempt = warning.attempt ?? '?';
+        const provider = warning.provider || 'unknown';
+        const rawMessage = warning.message || '';
+        const errorText = rawMessage.trim();
+        const warningDetails = warning.details ? ` ${t('incremental_translation.warning_details_suffix', { details: warning.details })}` : '';
+
+        if (warning.type === 'fallback_to_source') {
+            return t('incremental_translation.warning_fallback_to_source', {
+                batch_num: batchNum,
+                provider,
+            });
+        }
+
+        if (warning.type === 'context_exceeded') {
+            return t('incremental_translation.warning_context_exceeded', {
+                batch_num: batchNum,
+                attempt,
+                provider,
+            });
+        }
+
+        if (warning.type === 'api_error') {
+            if (errorText.includes('API_KEY_INVALID') || errorText.includes('API Key not found')) {
+                return t('incremental_translation.warning_api_key_invalid', {
+                    batch_num: batchNum,
+                    attempt,
+                    provider,
+                });
+            }
+
+            return t('incremental_translation.warning_api_error', {
+                batch_num: batchNum,
+                attempt,
+                provider,
+                error: rawMessage,
+            });
+        }
+
+        if (errorText.includes('API_KEY_INVALID') || errorText.includes('API Key not found')) {
+            return t('incremental_translation.warning_api_key_invalid', {
+                batch_num: batchNum,
+                attempt,
+                provider,
+            });
+        }
+
+        if (errorText.includes('Response parsing failed')) {
+            return t('incremental_translation.warning_response_parsing_failed', {
+                batch_num: batchNum,
+                attempt,
+                provider,
+            });
+        }
+
+        if (errorText.includes('429') || errorText.toLowerCase().includes('rate limit') || errorText.toLowerCase().includes('too many requests')) {
+            return t('incremental_translation.warning_rate_limited', {
+                batch_num: batchNum,
+                attempt,
+                provider,
+            });
+        }
+
+        if (errorText.includes('Batch failed after retries and fell back to source text')) {
+            return t('incremental_translation.warning_fallback_to_source', {
+                batch_num: batchNum,
+                provider,
+            });
+        }
+
+        if (errorText === 'Invalid key format') {
+            return `${t('incremental_translation.warning_invalid_key_format')}${warningDetails}`;
+        }
+
+        if (warning.level && rawMessage) {
+            return `${t('incremental_translation.warning_validation_prefix', {
+                level: String(warning.level).toUpperCase(),
+            })}${rawMessage}${warningDetails}`;
+        }
+
+        if (rawMessage) {
+            return t('incremental_translation.warning_generic_with_error', {
+                error: rawMessage,
+            });
+        }
+
+        return rawMessage;
+    }, [t]);
+
     const resolveProviderModels = useCallback((providerValue) => {
         const providerData = apiProviders.find((provider) => provider.value === providerValue);
         return providerData ? (providerData.available_models || providerData.custom_models || []) : [];
@@ -1120,7 +1212,7 @@ const IncrementalTranslationPage = () => {
                                             </Text>
                                             {(finalSummary.warnings || []).slice(0, 3).map((warning, index) => (
                                                 <Text key={`${warning.type || 'warning'}-${index}`} size="xs" c="dimmed" mt={4}>
-                                                    - {warning.message}
+                                                    - {formatWarningMessage(warning)}
                                                 </Text>
                                             ))}
                                         </Alert>

@@ -969,7 +969,17 @@
     "rpm_limit": "RPM Limit",
     "rpm_limit_desc": "Maximum requests per minute. Helps prevent provider or local service overload.",
     "warning_summary_title": "Warnings detected during execution",
-    "warning_summary_desc": "This run recorded {{count}} warning(s). Review context overflow, model refusal, or source-text fallback batches first."
+    "warning_summary_desc": "This run recorded {{count}} warning(s). Review context overflow, model refusal, or source-text fallback batches first.",
+    "warning_fallback_to_source": "Batch {{batch_num}} could not be translated after retries and was written using the source text (provider: {{provider}}).",
+    "warning_context_exceeded": "Batch {{batch_num}} exceeded the model context window on attempt {{attempt}} (provider: {{provider}}).",
+    "warning_api_key_invalid": "Batch {{batch_num}} failed on attempt {{attempt}} because the configured API key is invalid or missing (provider: {{provider}}).",
+    "warning_api_error": "Batch {{batch_num}} failed on attempt {{attempt}} with provider {{provider}}: {{error}}",
+    "warning_response_parsing_failed": "Batch {{batch_num}} returned an invalid response structure on attempt {{attempt}} (provider: {{provider}}).",
+    "warning_rate_limited": "Batch {{batch_num}} hit a rate limit on attempt {{attempt}} (provider: {{provider}}).",
+    "warning_invalid_key_format": "The translated entry contains an invalid localization key format.",
+    "warning_validation_prefix": "[{{level}}] ",
+    "warning_details_suffix": "Details: {{details}}",
+    "warning_generic_with_error": "Warning details: {{error}}"
   },
   "recent_activity_type_translate": "Incremental Update"
 }
