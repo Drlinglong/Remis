@@ -88,28 +88,28 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
         }
 
         const zipPath = task.result_path;
-
-        // Try to open the extracted folder (zip without extension), otherwise
-        // fall back to the parent directory (DEST_DIR) which always exists.
         const folderPath = zipPath.replace(/\.zip$/i, '');
         const parentDir = zipPath.includes('\\')
             ? zipPath.substring(0, zipPath.lastIndexOf('\\'))
             : zipPath.substring(0, zipPath.lastIndexOf('/'));
 
-        try {
-            await api.post('/api/system/open_folder', { path: folderPath });
-        } catch (error) {
-            console.warn("Extracted folder not found, opening parent dir:", parentDir);
+        const candidates = [folderPath, parentDir].filter(Boolean);
+        let lastError = null;
+
+        for (const candidate of candidates) {
             try {
-                await api.post('/api/system/open_folder', { path: parentDir });
-            } catch (e) {
-                console.error("Failed to open parent folder:", e);
-                notificationService.error(
-                    `Cannot open folder: ${e?.response?.data?.detail || e.message}`,
-                    { title: 'Error' }
-                );
+                await api.post('/api/system/open_folder', { path: candidate });
+                return;
+            } catch (error) {
+                lastError = error;
+                console.warn("Failed to open path candidate:", candidate, error);
             }
         }
+
+        notificationService.error(
+            `Cannot open output location: ${lastError?.response?.data?.detail || lastError?.message || 'Unknown error'}`,
+            { title: 'Error' }
+        );
     };
 
     const handleDeploy = async () => {

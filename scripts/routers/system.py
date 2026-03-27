@@ -72,6 +72,7 @@ class OpenFolderRequest(BaseModel):
 async def open_folder(request: OpenFolderRequest):
     """
     Opens a local folder in the system's file explorer.
+    If a file path is provided, opens the parent directory and selects the file when possible.
     """
     path = request.path
     
@@ -89,23 +90,28 @@ async def open_folder(request: OpenFolderRequest):
 
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail=f"Path not found: {path} (Resolved: {request.path})")
-    
-    if not os.path.isdir(path):
-        raise HTTPException(status_code=400, detail=f"Path is not a directory: {path}")
 
     try:
         if platform.system() == "Windows":
-            os.startfile(path)
+            normalized_path = os.path.normpath(path)
+            if os.path.isdir(normalized_path):
+                os.startfile(normalized_path)
+            else:
+                subprocess.Popen(["explorer", "/select,", normalized_path])
         elif platform.system() == "Darwin":  # macOS
-            subprocess.Popen(["open", path])
+            if os.path.isdir(path):
+                subprocess.Popen(["open", path])
+            else:
+                subprocess.Popen(["open", "-R", path])
         else:  # Linux
-            subprocess.Popen(["xdg-open", path])
+            target = path if os.path.isdir(path) else os.path.dirname(path) or path
+            subprocess.Popen(["xdg-open", target])
         
-        logger.info(f"Opened folder: {path}")
+        logger.info(f"Opened path: {path}")
         return {"status": "success", "message": f"Opened {path}"}
     except Exception as e:
-        logger.error(f"Failed to open folder {path}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to open folder: {str(e)}")
+        logger.error(f"Failed to open path {path}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to open path: {str(e)}")
 
 @router.post("/open-logs")
 async def open_logs_folder():
