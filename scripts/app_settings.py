@@ -81,7 +81,7 @@ DEFAULT_RPM_LIMIT = 40
 # --- 项目信息 ----------------------------------------------------
 PROJECT_NAME = "Paradox Mod 本地化工厂 - Paradox Mod Localization Factory"
 PROJECT_DISPLAY_NAME = "蕾姆丝计划 - Project Remis "
-VERSION = "2.0.14"
+VERSION = "2.0.15"
 LAST_UPDATE_DATE = "2026-03-26"
 COPYRIGHT = "© 2026 Project Remis Team"
 

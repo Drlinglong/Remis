@@ -29,10 +29,52 @@ export const TranslationProvider = ({ children }) => {
         setTranslationDetails(null);
     }, []);
 
+    const applyTaskUpdate = useCallback((data) => {
+        setTaskStatus(data);
+        if (data?.status === 'completed' || data?.status === 'failed') {
+            setIsProcessing(false);
+            if (data.status === 'completed') {
+                setActiveStep(3);
+            }
+        }
+    }, [setActiveStep]);
+
     // WebSocket for real-time status updates
     useEffect(() => {
         let socket;
-        if (taskId && isProcessing) {
+        let pollingTimer;
+        let retryTimer;
+        let cancelled = false;
+
+        const fetchTaskStatus = async () => {
+            if (!taskId) return;
+            try {
+                const response = await api.get(`/api/status/${taskId}`);
+                if (!cancelled) {
+                    applyTaskUpdate(response.data);
+                }
+            } catch (error) {
+                console.error("[Status Poll] Failed to fetch task status:", error);
+            }
+        };
+
+        const startPolling = () => {
+            if (pollingTimer || !taskId) return;
+            pollingTimer = window.setInterval(() => {
+                fetchTaskStatus();
+            }, 1500);
+        };
+
+        const stopPolling = () => {
+            if (pollingTimer) {
+                window.clearInterval(pollingTimer);
+                pollingTimer = null;
+            }
+        };
+
+        const connectSocket = () => {
+            if (!taskId || cancelled) return;
+
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             // Note: In a production Tauri environment, we point directly to localhost:8081.
             // In dev, we also point to the backend port.
@@ -42,16 +84,15 @@ export const TranslationProvider = ({ children }) => {
             console.log(`[WebSocket] Connecting to ${wsUrl}`);
             socket = new WebSocket(wsUrl);
 
+            socket.onopen = () => {
+                stopPolling();
+                fetchTaskStatus();
+            };
+
             socket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    setTaskStatus(data);
-                    if (data.status === 'completed' || data.status === 'failed') {
-                        setIsProcessing(false);
-                        if (data.status === 'completed') {
-                            setActiveStep(3);
-                        }
-                    }
+                    applyTaskUpdate(data);
                 } catch (err) {
                     console.error("[WebSocket] Failed to parse message:", err);
                 }
@@ -59,21 +100,38 @@ export const TranslationProvider = ({ children }) => {
 
             socket.onerror = (error) => {
                 console.error("[WebSocket] Error:", error);
+                startPolling();
             };
 
             socket.onclose = (event) => {
                 console.log(`[WebSocket] Connection closed for task ${taskId}: ${event.reason}`);
-                // If it closed while still processing, it might be a temporary loss of connection
-                // but we'll let the user manually retry or just wait for now to keep it simple.
+                if (!cancelled) {
+                    startPolling();
+                    retryTimer = window.setTimeout(() => {
+                        retryTimer = null;
+                        connectSocket();
+                    }, 1000);
+                }
             };
+        };
+
+        if (taskId && isProcessing) {
+            fetchTaskStatus();
+            startPolling();
+            connectSocket();
         }
         return () => {
+            cancelled = true;
+            stopPolling();
+            if (retryTimer) {
+                window.clearTimeout(retryTimer);
+            }
             if (socket) {
                 console.log(`[WebSocket] Cleaning up connection for task ${taskId}`);
                 socket.close();
             }
         };
-    }, [taskId, isProcessing, setActiveStep]);
+    }, [taskId, isProcessing, applyTaskUpdate]);
 
     const value = {
         activeStep,

@@ -52,19 +52,50 @@ def _get_checkpoint_output_dir(mod_name: str, target_languages: List[dict]) -> s
     return _get_output_directories(mod_name, target_languages)[0]
 
 
+def push_task_update(task_id: str):
+    """Best-effort push of the latest task snapshot to connected WebSocket clients."""
+    if task_id not in tasks:
+        return
+
+    try:
+        max_log_lines = 100
+        task_data = dict(tasks[task_id])
+        if "log" in task_data and len(task_data["log"]) > max_log_lines:
+            task_data["log"] = task_data["log"][-max_log_lines:]
+        ws_manager.sync_send_task_update(task_id, task_data)
+    except Exception as e:
+        logging.error(f"WebSocket push failed: {e}")
+
+
+def finalize_task(task_id: str, status: str, log_message: Optional[str] = None, stage: Optional[str] = None):
+    """Persist terminal task state and force a final status push to the frontend."""
+    with task_lock:
+        if task_id not in tasks:
+            return
+
+        tasks[task_id]["status"] = status
+        if "progress" in tasks[task_id]:
+            if status == "completed":
+                tasks[task_id]["progress"]["percent"] = 100
+            if stage:
+                tasks[task_id]["progress"]["stage"] = stage
+        if log_message:
+            tasks[task_id]["log"].append(log_message)
+
+    push_task_update(task_id)
+
+
 def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str, target_lang_codes: List[str], api_provider: str, mod_context: str, project_id: Optional[str] = None):
     """
     A wrapper for the core translation logic to be run in the background.
     """
-    # Initialize i18n for the background task
     i18n.load_language('en_US')
 
     tasks[task_id]["status"] = "processing"
-    tasks[task_id]["log"].append("背景翻译任务开始...")
+    tasks[task_id]["log"].append("????????...")
 
     if project_id:
         try:
-            import asyncio
             asyncio.run(project_manager.log_history_event(
                 project_id=project_id,
                 action_type='translation_workflow',
@@ -74,15 +105,13 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
             logging.error(f"Failed to log activity: {e}")
 
     try:
-        # 1. Retrieve full config objects from IDs/codes
         game_profile = GAME_PROFILES.get(game_profile_id)
         source_lang = next((lang for lang in LANGUAGES.values() if lang["code"] == source_lang_code), None)
         target_languages = _resolve_target_languages(target_lang_codes)
 
         if not all([game_profile, source_lang, target_languages]):
-            raise ValueError("无效的游戏配置、源语言或目标语言。")
+            raise ValueError("?????????????????")
 
-        # 2. Call the core translation function
         initial_translate.run(
             mod_name=mod_name,
             game_profile=game_profile,
@@ -92,16 +121,11 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
             mod_context=mod_context,
         )
 
-        # 3. Once done, update status and prepare result
-        tasks[task_id]["status"] = "completed"
-        tasks[task_id]["log"].append("翻译流程成功完成！")
-
-        # Prepare the result for download
+        finalize_task(task_id, "completed", "Translation workflow completed successfully.")
         tasks[task_id]["output_dirs"] = _get_output_directories(mod_name, target_languages)
 
         if project_id:
             try:
-                import asyncio
                 asyncio.run(project_manager.log_history_event(
                     project_id=project_id,
                     action_type='translation_workflow',
@@ -112,13 +136,11 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
 
     except Exception as e:
         tb_str = traceback.format_exc()
-        error_message = f"工作流执行失败 (Workflow execution failed): {e}\n{tb_str}"
-        logging.error(f"任务 {task_id} 失败: {error_message}")
-        tasks[task_id]["status"] = "failed"
-        tasks[task_id]["log"].append(error_message)
+        error_message = f"??????? (Workflow execution failed): {e}\n{tb_str}"
+        logging.error(f"?? {task_id} ??: {error_message}")
+        finalize_task(task_id, "failed", error_message, "Failed")
         if project_id:
             try:
-                import asyncio
                 asyncio.run(project_manager.log_history_event(
                     project_id=project_id,
                     action_type='translation_workflow',
@@ -126,6 +148,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
                 ))
             except Exception as e:
                 logging.error(f"Failed to log failure activity: {e}")
+
 
 def run_translation_workflow_v2(
     task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str,
@@ -138,9 +161,7 @@ def run_translation_workflow_v2(
 ):
     i18n.load_language('en_US')
     tasks[task_id]["status"] = "processing"
-    tasks[task_id]["log"].append("背景翻译任务开始 (V2)...")
-    
-    import asyncio
+    tasks[task_id]["log"].append("???????? (V2)...")
 
     if project_id:
         try:
@@ -152,7 +173,6 @@ def run_translation_workflow_v2(
         except Exception as e:
             logging.error(f"Failed to log activity (v2): {e}")
 
-    # Initialize progress structure
     tasks[task_id]["progress"] = {
         "total": 0,
         "current": 0,
@@ -166,15 +186,16 @@ def run_translation_workflow_v2(
         "format_issues": 0
     }
 
-    last_update_time = [0] # Use a list to make it mutable in the closure
-    
-    def progress_callback(current, total, current_file, stage="Translating", 
-                          current_batch=0, total_batches=0, 
+    last_update_time = [0]
+
+    def progress_callback(current, total, current_file, stage="Translating",
+                          current_batch=0, total_batches=0,
                           error_count=0, glossary_issues=0, format_issues=0,
                           log_message: str = None):
         with task_lock:
-            if task_id not in tasks: return
-            
+            if task_id not in tasks:
+                return
+
             tasks[task_id]["progress"]["current"] = current
             tasks[task_id]["progress"]["total"] = total
             tasks[task_id]["progress"]["current_file"] = current_file
@@ -184,83 +205,60 @@ def run_translation_workflow_v2(
             tasks[task_id]["progress"]["error_count"] = error_count
             tasks[task_id]["progress"]["glossary_issues"] = glossary_issues
             tasks[task_id]["progress"]["format_issues"] = format_issues
-            
+
             if log_message:
                 tasks[task_id]["log"].append(log_message)
-                # Keep log size under control in memory too
                 if len(tasks[task_id]["log"]) > 1000:
                     tasks[task_id]["log"] = tasks[task_id]["log"][-500:]
 
             if total > 0:
                 tasks[task_id]["progress"]["percent"] = int((current / total) * 100)
-            
-            # ───────────── WebSocket Throttling (Issue #133) ─────────────
+
             import time
             current_time = time.time()
-            
-            # Only send update if:
-            # 1. 200ms has passed since last update
-            # 2. OR it's a critical stage (Completed, Failed)
-            # 3. OR it's the 100% mark
             is_final = stage in ("Completed", "Failed") or (total > 0 and current >= total)
             if not is_final and (current_time - last_update_time[0] < 0.2):
                 return
-            
+
             last_update_time[0] = current_time
-            
-            # Push update via WebSocket
-            try:
-                # Limit the log to MAX_LOG_LINES for the WS payload
-                MAX_LOG_LINES = 100
-                task_data = dict(tasks[task_id])
-                if "log" in task_data and len(task_data["log"]) > MAX_LOG_LINES:
-                    task_data["log"] = task_data["log"][-MAX_LOG_LINES:]
-                
-                ws_manager.sync_send_task_update(task_id, task_data)
-            except Exception as e:
-                logging.error(f"WebSocket push failed: {e}")
+            push_task_update(task_id)
 
     try:
-        # Debug Logging
         logging.info(f"Starting V2 Workflow for Task {task_id}")
         logging.info(f"Params: game_profile_id={game_profile_id}, source={source_lang_code}, targets={target_lang_codes}")
-        
-        # Handle legacy/alias 'vic3' -> 'victoria3'
+
         normalized_game_id = game_profile_id
         if game_profile_id == 'vic3':
             normalized_game_id = 'victoria3'
             logging.info(f"Normalized game_id 'vic3' to '{normalized_game_id}'")
 
         game_profile = GAME_PROFILES.get(normalized_game_id)
-        # Fallback: Try finding by 'id' field in values if key lookup fails
         if not game_profile:
-             game_profile = next((p for p in GAME_PROFILES.values() if p['id'] == normalized_game_id), None)
+            game_profile = next((p for p in GAME_PROFILES.values() if p['id'] == normalized_game_id), None)
 
         source_lang = next((lang for lang in LANGUAGES.values() if lang["code"] == source_lang_code), None)
         target_languages = _resolve_target_languages(target_lang_codes)
-        
+
         logging.info(f"Resolved: GameProfile={game_profile is not None}, SourceLang={source_lang is not None}, TargetLangs={len(target_languages)}")
 
-        # If custom language is provided, use it instead (or in addition? For now, let's assume it replaces if target_lang_codes contains 'custom')
         if custom_lang_config:
-            # Convert Pydantic model to dict
             custom_lang = custom_lang_config.dict()
-            # Ensure it has necessary fields
-            if not custom_lang.get('name_en'): custom_lang['name_en'] = custom_lang['name']
+            if not custom_lang.get('name_en'):
+                custom_lang['name_en'] = custom_lang['name']
             target_languages = [custom_lang]
             logging.info(f"Using Custom Language Config: {custom_lang}")
 
         if not all([game_profile, source_lang]) or (not target_languages and not custom_lang_config):
             logging.error(f"Validation Failed: GameProfile={game_profile}, SourceLang={source_lang}, TargetLangs={target_languages}")
-            raise ValueError("无效的游戏配置、源语言或目标语言。")
-        
+            raise ValueError("?????????????????")
+
         final_glossary_ids = list(selected_glossary_ids) if selected_glossary_ids else []
         if use_main_glossary:
             available = asyncio.run(glossary_manager.get_available_glossaries(game_profile["id"]))
             main_glossary = next((g for g in available if g.get('is_main')), None)
             if main_glossary and main_glossary['glossary_id'] not in final_glossary_ids:
                 final_glossary_ids.append(main_glossary['glossary_id'])
-        
+
         override_path = None
         if project_id:
             try:
@@ -276,17 +274,14 @@ def run_translation_workflow_v2(
             mod_name=mod_name, game_profile=game_profile, source_lang=source_lang,
             target_languages=target_languages, selected_provider=api_provider,
             mod_context=mod_context, selected_glossary_ids=final_glossary_ids,
-
             model_name=model_name, use_glossary=True, progress_callback=progress_callback,
             override_path=override_path, project_id=project_id, use_resume=use_resume,
             clean_source=clean_source
         )
         logging.info("Returned from initial_translate.run")
-        tasks[task_id]["status"] = "completed"
-        tasks[task_id]["progress"]["percent"] = 100
-        tasks[task_id]["progress"]["stage"] = "Completed"
-        tasks[task_id]["log"].append("翻译流程成功完成！")
+        finalize_task(task_id, "completed", "Translation workflow completed successfully.", "Completed")
         tasks[task_id]["output_dirs"] = _get_output_directories(mod_name, target_languages)
+        push_task_update(task_id)
 
         if project_id:
             try:
@@ -299,10 +294,9 @@ def run_translation_workflow_v2(
                 logging.error(f"Failed to log completion activity (v2): {e}")
     except Exception as e:
         tb_str = traceback.format_exc()
-        error_message = f"工作流执行失败: {e}\n{tb_str}"
-        logging.error(error_message) # Log to console!
-        tasks[task_id]["status"] = "failed"
-        tasks[task_id]["log"].append(error_message)
+        error_message = f"???????: {e}\n{tb_str}"
+        logging.error(error_message)
+        finalize_task(task_id, "failed", error_message, "Failed")
         if project_id:
             try:
                 asyncio.run(project_manager.log_history_event(
@@ -312,6 +306,7 @@ def run_translation_workflow_v2(
                 ))
             except Exception as e:
                 logging.error(f"Failed to log failure activity (v2): {e}")
+
 @router.post("/api/translate/start")
 async def start_translation_project(request: InitialTranslationRequest, background_tasks: BackgroundTasks):
     """

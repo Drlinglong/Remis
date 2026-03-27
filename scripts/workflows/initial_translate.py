@@ -124,8 +124,6 @@ def run(mod_name: str,
 
     # Update progress total
     total_files = len(all_file_paths)
-    if progress_callback:
-        progress_callback(0, total_files, "", "Analyzing Files")
 
     # ───────────── 4.5. 强制全量备份 (Brute Force Backup) ─────────────
     # 策略变更：数据安全第一。在开始任何翻译前，强制将所有源文件读入内存并创建快照。
@@ -137,7 +135,7 @@ def run(mod_name: str,
     for idx, file_info in enumerate(all_file_paths):
         fp = file_info["path"]
         if progress_callback:
-             progress_callback(idx, total_files, file_info["filename"], "Reading Source")
+             progress_callback(idx, overall_progress_total, file_info["filename"], "Reading Source")
         try:
             orig, texts, km = file_parser.extract_translatable_content(fp)
             # 仅存储包含可翻译文本的文件
@@ -174,6 +172,13 @@ def run(mod_name: str,
         if not file_data["texts_to_translate"]: continue
         total_batches += (len(file_data["texts_to_translate"]) + chunk_size - 1) // chunk_size
 
+    language_count = max(len(target_languages), 1)
+    translation_progress_total = max(total_batches * language_count, 1)
+    overall_progress_total = max(total_files + 1 + translation_progress_total, 1)
+
+    if progress_callback:
+        progress_callback(0, overall_progress_total, "", "Analyzing Files")
+
     # Determine display name for archive (consistent with ProjectManager and Proofreading)
     archive_mod_name = mod_name # Fallback to folder name
     if project_id:
@@ -194,7 +199,7 @@ def run(mod_name: str,
 
     logging.info("Creating source version snapshot...")
     if progress_callback:
-        progress_callback(0, total_files, "", "Creating Backup", total_batches=total_batches)
+        progress_callback(total_files, overall_progress_total, "", "Creating Backup", total_batches=translation_progress_total)
         
     version_id = archive_manager.create_source_version(mod_id, all_files_content)
     
@@ -217,7 +222,7 @@ def run(mod_name: str,
     directory_handler.create_output_structure(mod_name, output_folder_name, game_profile)
     asset_handler.copy_assets(mod_name, output_folder_name, game_profile)
 
-    for target_lang in target_languages:
+    for language_index, target_lang in enumerate(target_languages):
         logging.info(i18n.t("translating_to_language", lang_name=target_lang["name"]))
         
         proofreading_tracker = create_proofreading_tracker(
@@ -249,21 +254,22 @@ def run(mod_name: str,
         format_issues = 0
         progress_lock = threading.Lock()
 
+        language_progress_base = total_files + 1 + (language_index * total_batches)
+
         def update_progress(current_file_name="", stage="Translating", log_message=None, format_issues_override=None):
             nonlocal format_issues
             if format_issues_override is not None:
                 format_issues = format_issues_override
 
             if progress_callback:
-                # PROGRESS FIX: Use batch counts for 'current' and 'total' so the progress bar is smooth.
-                # 'processed_files_count' and 'total_files' are still tracked but not used for the percentage calculation.
+                overall_current = min(language_progress_base + completed_batches, overall_progress_total)
                 progress_callback(
-                    current=completed_batches,
-                    total=total_batches,
+                    current=overall_current,
+                    total=overall_progress_total,
                     current_file=current_file_name,
                     stage=stage,
-                    current_batch=completed_batches,
-                    total_batches=total_batches,
+                    current_batch=overall_current,
+                    total_batches=translation_progress_total,
                     error_count=error_count,
                     glossary_issues=glossary_issues,
                     format_issues=format_issues,
