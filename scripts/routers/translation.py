@@ -22,6 +22,39 @@ from scripts.shared.ws_manager import ws_manager
 router = APIRouter()
 task_lock = threading.Lock()
 
+
+def push_task_update(task_id: str):
+    """Best-effort push of the latest task snapshot to connected WebSocket clients."""
+    if task_id not in tasks:
+        return
+
+    try:
+        max_log_lines = 100
+        task_data = dict(tasks[task_id])
+        if "log" in task_data and len(task_data["log"]) > max_log_lines:
+            task_data["log"] = task_data["log"][-max_log_lines:]
+        ws_manager.sync_send_task_update(task_id, task_data)
+    except Exception as e:
+        logging.error(f"WebSocket push failed: {e}")
+
+
+def finalize_task(task_id: str, status: str, log_message: Optional[str] = None, stage: Optional[str] = None):
+    """Persist terminal task state and force a final status push to the frontend."""
+    with task_lock:
+        if task_id not in tasks:
+            return
+
+        tasks[task_id]["status"] = status
+        if "progress" in tasks[task_id]:
+            if status == "completed":
+                tasks[task_id]["progress"]["percent"] = 100
+            if stage:
+                tasks[task_id]["progress"]["stage"] = stage
+        if log_message:
+            tasks[task_id]["log"].append(log_message)
+
+    push_task_update(task_id)
+
 def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str, target_lang_codes: List[str], api_provider: str, mod_context: str, project_id: Optional[str] = None):
     """
     A wrapper for the core translation logic to be run in the background.
@@ -63,8 +96,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
         )
 
         # 3. Once done, update status and prepare result
-        tasks[task_id]["status"] = "completed"
-        tasks[task_id]["log"].append("翻译流程成功完成！")
+        finalize_task(task_id, "completed", "Translation workflow completed successfully.")
 
         # Prepare the result for download
         sanitized_mod_name = slugify_to_ascii(mod_name)
@@ -85,6 +117,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
 
         zip_path = shutil.make_archive(result_dir, 'zip', result_dir)
         tasks[task_id]["result_path"] = zip_path
+        push_task_update(task_id)
 
         if project_id:
             try:
@@ -101,11 +134,11 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
         tb_str = traceback.format_exc()
         error_message = f"工作流执行失败 (Workflow execution failed): {e}\n{tb_str}"
         logging.error(f"任务 {task_id} 失败: {error_message}")
-        tasks[task_id]["status"] = "failed"
-        tasks[task_id]["log"].append(error_message)
+        finalize_task(task_id, "failed", error_message, "Failed")
         # 确保失败的任务没有可下载的结果路径
         if "result_path" in tasks[task_id]:
             del tasks[task_id]["result_path"]
+            push_task_update(task_id)
         if project_id:
             try:
                 import asyncio
@@ -199,16 +232,7 @@ def run_translation_workflow_v2(
             last_update_time[0] = current_time
             
             # Push update via WebSocket
-            try:
-                # Limit the log to MAX_LOG_LINES for the WS payload
-                MAX_LOG_LINES = 100
-                task_data = dict(tasks[task_id])
-                if "log" in task_data and len(task_data["log"]) > MAX_LOG_LINES:
-                    task_data["log"] = task_data["log"][-MAX_LOG_LINES:]
-                
-                ws_manager.sync_send_task_update(task_id, task_data)
-            except Exception as e:
-                logging.error(f"WebSocket push failed: {e}")
+            push_task_update(task_id)
 
     try:
         # Debug Logging
@@ -272,10 +296,7 @@ def run_translation_workflow_v2(
             clean_source=clean_source
         )
         logging.info("Returned from initial_translate.run")
-        tasks[task_id]["status"] = "completed"
-        tasks[task_id]["progress"]["percent"] = 100
-        tasks[task_id]["progress"]["stage"] = "Completed"
-        tasks[task_id]["log"].append("翻译流程成功完成！")
+        finalize_task(task_id, "completed", "Translation workflow completed successfully.", "Completed")
         output_folder_name = f"{target_languages[0]['folder_prefix']}{slugify_to_ascii(mod_name)}"
         if len(target_languages) > 1:
             output_folder_name = f"Multilanguage-{slugify_to_ascii(mod_name)}"
@@ -283,6 +304,7 @@ def run_translation_workflow_v2(
         zip_path = shutil.make_archive(result_dir, 'zip', result_dir)
         tasks[task_id]["result_path"] = zip_path
 
+        push_task_update(task_id)
         if project_id:
             try:
                 asyncio.run(project_manager.log_history_event(
@@ -296,8 +318,10 @@ def run_translation_workflow_v2(
         tb_str = traceback.format_exc()
         error_message = f"工作流执行失败: {e}\n{tb_str}"
         logging.error(error_message) # Log to console!
-        tasks[task_id]["status"] = "failed"
-        tasks[task_id]["log"].append(error_message)
+        finalize_task(task_id, "failed", error_message, "Failed")
+        if "result_path" in tasks[task_id]:
+            del tasks[task_id]["result_path"]
+            push_task_update(task_id)
         if project_id:
             try:
                 asyncio.run(project_manager.log_history_event(
