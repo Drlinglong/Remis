@@ -121,8 +121,8 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
             mod_context=mod_context,
         )
 
-        finalize_task(task_id, "completed", "Translation workflow completed successfully.")
         tasks[task_id]["output_dirs"] = _get_output_directories(mod_name, target_languages)
+        finalize_task(task_id, "completed", "Translation workflow completed successfully.")
 
         if project_id:
             try:
@@ -279,8 +279,8 @@ def run_translation_workflow_v2(
             clean_source=clean_source
         )
         logging.info("Returned from initial_translate.run")
-        finalize_task(task_id, "completed", "Translation workflow completed successfully.", "Completed")
         tasks[task_id]["output_dirs"] = _get_output_directories(mod_name, target_languages)
+        finalize_task(task_id, "completed", "Translation workflow completed successfully.", "Completed")
         push_task_update(task_id)
 
         if project_id:

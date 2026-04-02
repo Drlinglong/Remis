@@ -124,6 +124,31 @@ def run(mod_name: str,
 
     # Update progress total
     total_files = len(all_file_paths)
+    language_count = max(len(target_languages), 1)
+
+    if selected_provider == "gemini_cli":
+        chunk_size = GEMINI_CLI_CHUNK_SIZE
+    elif selected_provider == "ollama":
+        chunk_size = OLLAMA_CHUNK_SIZE
+    elif selected_provider in ["lm_studio", "vllm", "koboldcpp", "oobabooga", "text-generation-webui", "hunyuan"]:
+        chunk_size = LOCAL_LLM_CHUNK_SIZE
+    else:
+        chunk_size = CHUNK_SIZE
+
+    estimated_total_batches = 0
+    for file_info in all_file_paths:
+        try:
+            file_size = os.path.getsize(file_info["path"])
+        except OSError:
+            file_size = 0
+        estimated_entries = max(1, file_size // 300) if file_size else 1
+        estimated_total_batches += max(1, (estimated_entries + chunk_size - 1) // chunk_size)
+
+    translation_progress_total = max(estimated_total_batches * language_count, 1)
+    overall_progress_total = max(total_files + 1 + translation_progress_total, 1)
+
+    if progress_callback:
+        progress_callback(0, overall_progress_total, "", "Analyzing Files")
 
     # ───────────── 4.5. 强制全量备份 (Brute Force Backup) ─────────────
     # 策略变更：数据安全第一。在开始任何翻译前，强制将所有源文件读入内存并创建快照。
@@ -158,26 +183,13 @@ def run(mod_name: str,
 
     # Calculate Total Batches (Pre-calculation)
     total_batches = 0
-    # Determine chunk size based on provider
-    if selected_provider == "gemini_cli":
-        chunk_size = GEMINI_CLI_CHUNK_SIZE
-    elif selected_provider == "ollama":
-        chunk_size = OLLAMA_CHUNK_SIZE
-    elif selected_provider in ["lm_studio", "vllm", "koboldcpp", "oobabooga", "text-generation-webui", "hunyuan"]:
-        chunk_size = LOCAL_LLM_CHUNK_SIZE
-    else:
-        chunk_size = CHUNK_SIZE
 
     for file_data in all_files_content:
         if not file_data["texts_to_translate"]: continue
         total_batches += (len(file_data["texts_to_translate"]) + chunk_size - 1) // chunk_size
 
-    language_count = max(len(target_languages), 1)
     translation_progress_total = max(total_batches * language_count, 1)
     overall_progress_total = max(total_files + 1 + translation_progress_total, 1)
-
-    if progress_callback:
-        progress_callback(0, overall_progress_total, "", "Analyzing Files")
 
     # Determine display name for archive (consistent with ProjectManager and Proofreading)
     archive_mod_name = mod_name # Fallback to folder name
