@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
     Container,
     Stepper,
@@ -42,6 +42,8 @@ const IncrementalTranslationPage = () => {
 
     // Data State
     const [projects, setProjects] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [gameFilter, setGameFilter] = useState('all');
     const [selectedProject, setSelectedProject] = useState(null);
     const [apiProviders, setApiProviders] = useState([]);
     const [selectedProvider, setSelectedProvider] = useState('gemini');
@@ -82,6 +84,30 @@ const IncrementalTranslationPage = () => {
     const [configLoaded, setConfigLoaded] = useState(false);
     const concurrencyOptions = ['1', '2', '5', '10', '20', '50'].map((value) => ({ value, label: value }));
     const rpmOptions = ['5', '10', '20', '30', '50', '100'].map((value) => ({ value, label: value }));
+    const filteredProjects = useMemo(() => {
+        const normalizedQuery = searchQuery.trim().toLowerCase();
+        return projects.filter((project) => {
+            const matchesGame = gameFilter === 'all' || project.game_id === gameFilter;
+            const haystack = [
+                project.name,
+                project.game_id,
+                project.source_language,
+                project.source_path,
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+            const matchesQuery = !normalizedQuery || haystack.includes(normalizedQuery);
+            return matchesGame && matchesQuery;
+        });
+    }, [gameFilter, projects, searchQuery]);
+    const gameFilterOptions = useMemo(() => {
+        const games = Array.from(new Set(projects.map((project) => project.game_id).filter(Boolean)));
+        return [
+            { value: 'all', label: t('common.all_games', { defaultValue: 'All Games' }) },
+            ...games.map((game) => ({ value: game, label: game.toUpperCase() })),
+        ];
+    }, [projects, t]);
 
     const formatDuration = useCallback((ms) => {
         if (typeof ms !== 'number' || Number.isNaN(ms)) return '--';
@@ -955,8 +981,25 @@ const IncrementalTranslationPage = () => {
                     icon={<IconSearch size={18} />}
                 >
                     <Stack mt="xl" className={styles.executionStep}>
+                        <Paper withBorder p="md" radius="md" className={styles.glassCard}>
+                            <Group grow align="flex-end">
+                                <TextInput
+                                    label={t('common.search', { defaultValue: 'Search' })}
+                                    placeholder={t('incremental_translation.project_search_placeholder', { defaultValue: 'Search by project, game, path...' })}
+                                    value={searchQuery}
+                                    onChange={(event) => setSearchQuery(event.currentTarget.value)}
+                                    leftSection={<IconSearch size={16} />}
+                                />
+                                <Select
+                                    label={t('common.filter_game', { defaultValue: 'Filter by game' })}
+                                    data={gameFilterOptions}
+                                    value={gameFilter}
+                                    onChange={(value) => setGameFilter(value || 'all')}
+                                />
+                            </Group>
+                        </Paper>
                         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
-                            {projects.map((p) => (
+                            {filteredProjects.map((p) => (
                                 <Card
                                     key={p.project_id}
                                     padding="lg"
@@ -980,6 +1023,13 @@ const IncrementalTranslationPage = () => {
                                 </Card>
                             ))}
                         </SimpleGrid>
+                        {filteredProjects.length === 0 && (
+                            <Paper withBorder p="xl" radius="md" className={styles.glassCard}>
+                                <Text ta="center" c="dimmed">
+                                    {t('common.nothing_found', { defaultValue: 'Nothing found' })}
+                                </Text>
+                            </Paper>
+                        )}
                     </Stack>
                 </Stepper.Step>
 

@@ -906,7 +906,7 @@
   "page_title_agent_workshop": "Agent Workshop",
   "agent_workshop": {
     "title": "Agent Workshop",
-    "description": "AI-powered error correction using Reflexion agents. Analyze and fix localization violations with diff previews.",
+    "description": "Use AI to scan localization problems and generate ready-to-apply fixes.",
     "select_project": "Select Project",
     "scan_btn": "Scan Project Errors",
     "rescan_btn": "Rescan",
@@ -929,6 +929,15 @@
     "regenerate": "Regenerate",
     "fix_all": "Fix All Issues",
     "select_model_hint": "Please select an AI model first",
+    "batch_size": "Issues per batch",
+    "cached_label": "Last scan results",
+    "scanned_label": "Current scan",
+    "scan_help": "The workshop will use saved scan results first, then fall back to scanning the project files directly.",
+    "issue_validation_generic": "Validation issue",
+    "issue_vic3_variable_parity": "Victoria 3 variable count mismatch",
+    "issue_vic3_color_tags": "Victoria 3 color tag mismatch",
+    "issue_invalid_key_format": "Localization key format issue",
+    "unknown_issue": "Unknown issue",
     "history": {
       "path_registered_desc": "Auto-registered translation output path.",
       "incremental_translate_desc": "Built incremental update ({{target_lang}}). {{new_count}} new, {{changed_count}} changed, {{unchanged_count}} reused lines."

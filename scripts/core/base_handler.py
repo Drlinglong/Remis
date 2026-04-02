@@ -1,4 +1,5 @@
 # scripts/core/base_handler.py
+import asyncio
 import time
 import logging
 from abc import ABC, abstractmethod
@@ -76,6 +77,10 @@ class BaseApiHandler(ABC):
     def _call_api(self, client: any, prompt: str) -> str:
         """【必须由子类实现】执行对特定API的调用并返回原始文本响应。"""
         pass
+
+    async def generate_response(self, prompt: str) -> str:
+        """Provide a unified async single-response API for workshop/fixer flows."""
+        return await asyncio.to_thread(self._call_api, self.client, prompt)
 
     def _build_prompt(self, task: BatchTask) -> str:
         """
