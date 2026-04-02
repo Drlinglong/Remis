@@ -16,6 +16,7 @@ from scripts.schemas.project import (
 )
 from scripts.schemas.config import UpdateConfigRequest
 from scripts.utils.system_utils import sanitize_for_json
+from scripts.utils.validation_logger import ValidationLogger
 
 router = APIRouter()
 
@@ -286,6 +287,44 @@ async def delete_history_event(history_id: str):
 async def check_project_archive(project_id: str):
     """Checks if the project has sufficient archive data for incremental update."""
     return await project_manager.check_project_archive(project_id)
+
+
+@router.get("/api/project/{project_id}/validation-status")
+async def get_project_validation_status(project_id: str):
+    project = await project_manager.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    project_root = project["source_path"]
+    log_path = ValidationLogger._get_log_path(project_root)
+    issues = ValidationLogger.load_errors(project_root)
+    active_issues = [
+        issue for issue in issues
+        if str(issue.get("status", "detected")).lower() not in {"fixed", "ignored"}
+    ]
+
+    counts: Dict[str, int] = {}
+    for issue in active_issues:
+        label = issue.get("error_code") or issue.get("error_type") or "unknown"
+        counts[label] = counts.get(label, 0) + 1
+
+    report_dir = os.path.join(project_root, ".agent_workshop_reports")
+    report_count = 0
+    if os.path.isdir(report_dir):
+        try:
+            report_count = len([name for name in os.listdir(report_dir) if name.lower().endswith(".md")])
+        except Exception:
+            report_count = 0
+
+    return {
+        "project_id": project_id,
+        "issues_count": len(active_issues),
+        "issue_type_counts": counts,
+        "last_updated_at": datetime.fromtimestamp(os.path.getmtime(log_path)).isoformat() if log_path.exists() else None,
+        "sidecar_path": str(log_path),
+        "report_count": report_count,
+        "report_dir": report_dir if os.path.isdir(report_dir) else None,
+    }
 
 def run_incremental_update_background(task_id: str, project_id: str, request: IncrementalUpdateRequest):
     from scripts.shared.state import tasks

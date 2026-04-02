@@ -18,6 +18,7 @@ import { usePersistentState } from '../hooks/usePersistentState';
 import ProjectOverview from '../components/tools/ProjectOverview';
 import KanbanBoard from '../components/tools/KanbanBoard';
 import ProjectHistory from '../components/project/ProjectHistory';
+import ProjectValidation from '../components/project/ProjectValidation';
 import styles from './ProjectManagement.module.css';
 
 // Assets
@@ -543,9 +544,10 @@ export default function ProjectManagement() {
         list: styles.tabsList,
         panel: styles.tabsPanel
       }}>
-        <Tabs.List style={{ paddingLeft: '1rem', paddingTop: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
+          <Tabs.List style={{ paddingLeft: '1rem', paddingTop: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
           <Tabs.Tab value="overview">{t('project_management.tabs_overview')}</Tabs.Tab>
           <Tabs.Tab value="taskboard" id="kanban-tab-control">{t('project_management.tabs_kanban')}</Tabs.Tab>
+          <Tabs.Tab value="validation">{t('project_management.tabs_validation')}</Tabs.Tab>
           {FEATURES.ENABLE_PROJECT_HISTORY && <Tabs.Tab value="history">{t('project_management.tabs_history', 'History')}</Tabs.Tab>}
         </Tabs.List>
 
@@ -567,6 +569,10 @@ export default function ProjectManagement() {
 
         <Tabs.Panel value="taskboard" style={{ flex: 1, overflow: 'auto', position: 'relative', minHeight: 0 }}>
           <KanbanBoard projectId={selectedProject.project_id} key={selectedProject.project_id + (projectDetails?.refreshKey || '')} />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="validation" style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
+          <ProjectValidation projectId={selectedProject.project_id} />
         </Tabs.Panel>
 
         {FEATURES.ENABLE_PROJECT_HISTORY && (

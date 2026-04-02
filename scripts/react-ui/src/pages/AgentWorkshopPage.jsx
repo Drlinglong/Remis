@@ -9,6 +9,7 @@ import {
 } from '@tabler/icons-react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import styles from './AgentWorkshop.module.css';
 import translationStyles from './Translation.module.css';
 
@@ -17,6 +18,7 @@ const LOCAL_PROVIDERS = ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga'
 
 const AgentWorkshopPage = () => {
   const { t } = useTranslation();
+  const location = useLocation();
   const [active, setActive] = useState(0);
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
@@ -70,7 +72,7 @@ const AgentWorkshopPage = () => {
 
   const gameFilterOptions = useMemo(() => {
     const games = Array.from(new Set(projects.map((p) => p.game_id).filter(Boolean)));
-    return [{ value: 'all', label: t('common.all_games', { defaultValue: 'All Games' }) }, ...games.map((game) => ({ value: game, label: game.toUpperCase() }))];
+    return [{ value: 'all', label: t('common.all_games') }, ...games.map((game) => ({ value: game, label: game.toUpperCase() }))];
   }, [projects, t]);
 
   const issueTypeSummary = useMemo(() => {
@@ -83,17 +85,17 @@ const AgentWorkshopPage = () => {
   }, [issues]);
 
   const localizeIssueLabel = useCallback((code) => {
-    if (!code) return t('agent_workshop.unknown_issue', { defaultValue: '未知问题' });
+    if (!code) return t('agent_workshop.unknown_issue');
     const key = String(code).trim();
     const known = {
-      validation_vic3_variable_parity_mismatch: t('agent_workshop.issue_vic3_variable_parity', { defaultValue: 'Victoria 3 变量数量不匹配' }),
-      validation_vic3_color_tags_mismatch: t('agent_workshop.issue_vic3_color_tags', { defaultValue: 'Victoria 3 颜色标签数量不匹配' }),
-      validation_invalid_key_format: t('agent_workshop.issue_invalid_key_format', { defaultValue: '本地化键格式异常' }),
-      'Invalid key format': t('agent_workshop.issue_invalid_key_format', { defaultValue: '本地化键格式异常' }),
+      validation_vic3_variable_parity_mismatch: t('agent_workshop.issue_vic3_variable_parity'),
+      validation_vic3_color_tags_mismatch: t('agent_workshop.issue_vic3_color_tags'),
+      validation_invalid_key_format: t('agent_workshop.issue_invalid_key_format'),
+      'Invalid key format': t('agent_workshop.issue_invalid_key_format'),
     };
     if (known[key]) return known[key];
     if (key.startsWith('validation_')) {
-      return t('agent_workshop.issue_validation_generic', { defaultValue: '格式校验问题' });
+      return t('agent_workshop.issue_validation_generic');
     }
     return key;
   }, [t]);
@@ -140,9 +142,10 @@ const AgentWorkshopPage = () => {
         setProjects(projectList);
         setApiProviders(providers);
         const persisted = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
+        const routeProjectId = location.state?.projectId || null;
         if (!restoredRef.current) {
-          setActive(persisted.active ?? 0);
-          setSelectedProjectId(persisted.selectedProjectId || null);
+          setActive(routeProjectId ? 1 : (persisted.active ?? 0));
+          setSelectedProjectId(routeProjectId || persisted.selectedProjectId || null);
           setArchiveInfo(persisted.archiveInfo || null);
           setProjectHistory(Array.isArray(persisted.projectHistory) ? persisted.projectHistory : []);
           setIssues(Array.isArray(persisted.issues) ? persisted.issues : []);
@@ -164,12 +167,15 @@ const AgentWorkshopPage = () => {
         const models = [...(provider?.available_models || []), ...(provider?.custom_models || [])];
         setSelectedProvider(providerName);
         setSelectedModel(persisted.selectedModel || provider?.selected_model || models[0] || '');
+        if (routeProjectId) {
+          await loadProjectContext(routeProjectId);
+        }
       } catch (err) {
         console.error('Failed to bootstrap agent workshop', err);
       }
     };
     bootstrap();
-  }, []);
+  }, [location.state]);
 
   useEffect(() => {
     if (restoredRef.current) persistState();
@@ -245,7 +251,7 @@ const AgentWorkshopPage = () => {
         ...currentIssue,
       });
       if (res.data?.status === 'SUCCESS') {
-        setFixedIssues((prev) => [{ ...currentIssue, suggested_fix: res.data.suggested_fix }, ...prev]);
+        setFixedIssues((prev) => [{ ...currentIssue, suggested_fix: res.data.suggested_fix, report_path: res.data.report_path }, ...prev]);
         setIssues((prev) => prev.filter((item) => item.key !== currentIssue.key || item.file_name !== currentIssue.file_name));
       }
       setFixResult(res.data);
@@ -315,7 +321,7 @@ const AgentWorkshopPage = () => {
             const result = fixedByKey.get(`${issue.file_name}::${issue.key}`);
             if (result?.status === 'SUCCESS') {
               successCount += 1;
-              setFixedIssues((prev) => [{ ...issue, suggested_fix: result.suggested_fix }, ...prev]);
+              setFixedIssues((prev) => [{ ...issue, suggested_fix: result.suggested_fix, report_path: result.report_path }, ...prev]);
               setIssues((prev) => prev.filter((item) => item.key !== issue.key || item.file_name !== issue.file_name));
             } else {
               failedCount += 1;
@@ -377,12 +383,12 @@ const AgentWorkshopPage = () => {
           </Stack>
 
           <Stepper active={active} onStepClick={setActive} allowNextStepsSelect={false} breakpoint="sm">
-            <Stepper.Step label={t('agent_workshop.step_select_project', { defaultValue: '选择项目' })} description={t('agent_workshop.step_select_project_desc', { defaultValue: '搜索并选择要修复的项目' })} icon={<IconFolderCode size={18} />}>
+            <Stepper.Step label={t('agent_workshop.step_select_project')} description={t('agent_workshop.step_select_project_desc')} icon={<IconFolderCode size={18} />}>
               <Stack mt="xl" className={translationStyles.executionStep}>
                 <Paper withBorder p="md" radius="md" className={translationStyles.glassCard}>
                   <Group grow align="flex-end">
-                    <TextInput label={t('common.search', { defaultValue: 'Search' })} placeholder={t('agent_workshop.project_search_placeholder', { defaultValue: 'Search by project, game, path...' })} value={searchQuery} onChange={(e) => setSearchQuery(e.currentTarget.value)} leftSection={<IconSearch size={16} />} />
-                    <Select label={t('common.filter_game', { defaultValue: 'Filter by game' })} data={gameFilterOptions} value={gameFilter} onChange={(value) => setGameFilter(value || 'all')} />
+                    <TextInput label={t('common.search')} placeholder={t('agent_workshop.project_search_placeholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.currentTarget.value)} leftSection={<IconSearch size={16} />} />
+                    <Select label={t('common.filter_game')} data={gameFilterOptions} value={gameFilter} onChange={(value) => setGameFilter(value || 'all')} />
                   </Group>
                 </Paper>
                 <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
@@ -399,56 +405,87 @@ const AgentWorkshopPage = () => {
               </Stack>
             </Stepper.Step>
 
-            <Stepper.Step label={t('agent_workshop.step_project_summary', { defaultValue: '项目信息' })} description={t('agent_workshop.step_project_summary_desc', { defaultValue: '查看项目上下文并发起扫描' })} icon={<IconSettings size={18} />}>
+            <Stepper.Step label={t('agent_workshop.step_project_summary')} description={t('agent_workshop.step_project_summary_desc')} icon={<IconSettings size={18} />}>
               <Stack mt="xl" gap="md">
-                {projectContextLoading && <Paper withBorder p="lg" radius="md" className={translationStyles.glassCard}><Text size="sm">{t('common.loading', { defaultValue: 'Loading...' })}</Text></Paper>}
+                {projectContextLoading && <Paper withBorder p="lg" radius="md" className={translationStyles.glassCard}><Text size="sm">{t('common.loading')}</Text></Paper>}
                 {selectedProject && <Paper withBorder p="lg" radius="md" className={translationStyles.glassCard}><Stack>
                   <Group justify="space-between"><Title order={4}>{selectedProject.name}</Title><Badge color="blue" variant="light">{selectedProject.game_id}</Badge></Group>
                   <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
                     <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('incremental_translation.project_source_language')}</Text><Text size="sm" fw={600}>{selectedProject.source_language || '--'}</Text></Card>
                     <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('incremental_translation.archived_target_languages')}</Text><Text size="sm" fw={600}>{(archiveInfo?.archived_languages || []).join(', ') || '--'}</Text></Card>
                     <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('incremental_translation.project_game')}</Text><Text size="sm" fw={600}>{selectedProject.game_id || '--'}</Text></Card>
-                    <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.last_translation_time', { defaultValue: '最近翻译时间' })}</Text><Text size="sm" fw={600}>{latestTranslationTime ? new Date(latestTranslationTime).toLocaleString() : '--'}</Text></Card>
-                    <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.source_entries', { defaultValue: '源条目数' })}</Text><Text size="sm" fw={600}>{archiveInfo?.source_entry_count ?? '--'}</Text></Card>
-                    <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.translation_entries', { defaultValue: '翻译条目数' })}</Text><Text size="sm" fw={600}>{archiveInfo?.total_translation_entries ?? '--'}</Text></Card>
+                    <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.last_translation_time')}</Text><Text size="sm" fw={600}>{latestTranslationTime ? new Date(latestTranslationTime).toLocaleString() : '--'}</Text></Card>
+                    <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.source_entries')}</Text><Text size="sm" fw={600}>{archiveInfo?.source_entry_count ?? '--'}</Text></Card>
+                    <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.translation_entries')}</Text><Text size="sm" fw={600}>{archiveInfo?.total_translation_entries ?? '--'}</Text></Card>
                   </SimpleGrid>
-                  <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.project_path', { defaultValue: '项目路径' })}</Text><Text size="sm" fw={500}>{selectedProject.source_path}</Text></Card>
-                  <Alert icon={<IconInfoCircle size={16} />} color="blue" radius="md"><Text size="sm">{t('agent_workshop.scan_help', { defaultValue: '智能工坊会优先读取上次保存的扫描结果，找不到时再直接扫描项目文件。' })}</Text></Alert>
+                  <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.project_path')}</Text><Text size="sm" fw={500}>{selectedProject.source_path}</Text></Card>
+                  <Alert icon={<IconInfoCircle size={16} />} color="blue" radius="md"><Text size="sm">{t('agent_workshop.scan_help')}</Text></Alert>
                   <Group justify="space-between"><Button variant="light" onClick={() => setActive(0)}>{t('common.back')}</Button><Button leftSection={<IconSearch size={16} />} onClick={handleScan} loading={scanLoading}>{t('agent_workshop.scan_btn')}</Button></Group>
                 </Stack></Paper>}
               </Stack>
             </Stepper.Step>
 
-            <Stepper.Step label={t('agent_workshop.step_scan_summary', { defaultValue: '扫描摘要' })} description={t('agent_workshop.step_scan_summary_desc', { defaultValue: '确认错误统计并设置修复参数' })} icon={<IconChartBar size={18} />}>
+            <Stepper.Step label={t('agent_workshop.step_scan_summary')} description={t('agent_workshop.step_scan_summary_desc')} icon={<IconChartBar size={18} />}>
               <Stack mt="xl" gap="md">
                 <Paper withBorder p="lg" radius="md" className={translationStyles.glassCard}>
                   <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} mb="lg">
-                    <Select label={t('form_label_api_provider', { defaultValue: 'LLM Provider' })} data={apiProviders} value={selectedProvider} onChange={handleProviderChange} />
-                    <Select label={t('form_label_api_model', { defaultValue: 'AI Model' })} data={modelOptions} value={selectedModel} onChange={setSelectedModel} searchable />
-                    <Select label={t('agent_workshop.batch_size', { defaultValue: '每批修复条数' })} data={['1', '3', '10', '20'].map((value) => ({ value, label: value }))} value={batchSizeLimit} onChange={setBatchSizeLimit} />
+                    <Select label={t('agent_workshop.provider_label')} data={apiProviders} value={selectedProvider} onChange={handleProviderChange} />
+                    <Select label={t('agent_workshop.model_label')} data={modelOptions} value={selectedModel} onChange={setSelectedModel} searchable />
+                    <Select label={t('agent_workshop.batch_size')} data={['1', '3', '10', '20'].map((value) => ({ value, label: value }))} value={batchSizeLimit} onChange={setBatchSizeLimit} />
                     <Select label={t('incremental_translation.concurrency_limit')} data={['1', '2', '3', '5', '10'].map((value) => ({ value, label: value }))} value={concurrencyLimit} onChange={setConcurrencyLimit} />
                     <Select label={t('incremental_translation.rpm_limit')} data={['5', '10', '20', '30', '40', '60'].map((value) => ({ value, label: value }))} value={rpmLimit} onChange={setRpmLimit} />
                   </SimpleGrid>
                   <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md" mb="lg">
-                    <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.total_entries', { defaultValue: '总条目数' })}</Text><Title order={3}>{archiveInfo?.source_entry_count ?? '--'}</Title></Card>
-                    <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.issue_entries', { defaultValue: '问题条目数' })}</Text><Title order={3} c={issues.length ? 'orange' : 'green'}>{issues.length}</Title></Card>
-                    <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.cached_state', { defaultValue: '数据来源' })}</Text><Title order={5}>{isCached ? t('agent_workshop.cached_label', { defaultValue: '上次扫描结果' }) : t('agent_workshop.scanned_label', { defaultValue: '本次扫描结果' })}</Title></Card>
+                    <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.total_entries')}</Text><Title order={3}>{archiveInfo?.source_entry_count ?? '--'}</Title></Card>
+                    <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.issue_entries')}</Text><Title order={3} c={issues.length ? 'orange' : 'green'}>{issues.length}</Title></Card>
+                    <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.cached_state')}</Text><Title order={5}>{isCached ? t('agent_workshop.cached_label') : t('agent_workshop.scanned_label')}</Title></Card>
                   </SimpleGrid>
-                  <Alert icon={<IconAlertTriangle size={16} />} color={issues.length ? 'orange' : 'green'} radius="md">{issues.length ? t('agent_workshop.start_fix_confirm', { defaultValue: '确认开始修复？这将调用 API 产生费用。' }) : t('agent_workshop.no_errors_desc')}</Alert>
-                  <Group justify="flex-end" mt="md"><Button variant="light" onClick={() => setActive(1)}>{t('common.back')}</Button><Button leftSection={<IconPlayerPlay size={18} />} onClick={executeFixRun} disabled={!issues.length || !selectedProvider || !selectedModel || executing}>{t('agent_workshop.start_fix', { defaultValue: '开始修复' })}</Button></Group>
-                  {issueTypeSummary.length > 0 && <Stack gap="xs" mt="xl"><Text size="sm" fw={600}>{t('agent_workshop.issue_type_summary', { defaultValue: '错误类型分布' })}</Text><SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>{issueTypeSummary.map((item) => <Card key={item.label} withBorder p="sm" radius="md"><Text size="xs" c="dimmed" lineClamp={2}>{localizeIssueLabel(item.label)}</Text><Text size="sm" fw={700}>{item.count}</Text></Card>)}</SimpleGrid></Stack>}
-                  {groupedIssues.length > 0 && <Accordion variant="separated" radius="md" mt="xl"><Accordion.Item value="file-details"><Accordion.Control><Group justify="space-between" wrap="nowrap"><Text fw={600}>{t('agent_workshop.file_issue_details', { defaultValue: '文件级错误明细' })}</Text><Badge color="orange" variant="light">{groupedIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{groupedIssues.map(([fileKey, fileIssues]) => <Accordion key={fileKey} variant="contained" radius="md"><Accordion.Item value={fileKey}><Accordion.Control><Group justify="space-between" wrap="nowrap"><Box style={{ minWidth: 0 }}><Text size="sm" fw={600} truncate>{fileKey}</Text><Text size="xs" c="dimmed">{fileIssues[0]?.target_lang || '--'}</Text></Box><Badge color="orange" variant="light">{fileIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{fileIssues.map((issue, index) => <Paper key={`${issue.file_name}:${issue.key}:${index}`} p="sm" withBorder><Group justify="space-between" align="flex-start" wrap="nowrap"><Box style={{ minWidth: 0, flex: 1 }}><Text size="sm" fw={600}>{issue.key}</Text><Badge color="red" variant="light" mt={6}>{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge><Text size="xs" c="dimmed" mt={8}>{issue.details}</Text><Code block mt="sm">{issue.target_str}</Code></Box><Button size="xs" variant="light" leftSection={<IconWand size={14} />} onClick={() => openFixModal(issue)} style={{ whiteSpace: 'nowrap' }}>{t('agent_workshop.fix_btn')}</Button></Group></Paper>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>}
+                  <Alert icon={<IconAlertTriangle size={16} />} color={issues.length ? 'orange' : 'green'} radius="md">{issues.length ? t('agent_workshop.start_fix_confirm') : t('agent_workshop.no_errors_desc')}</Alert>
+                  <Group justify="flex-end" mt="md"><Button variant="light" onClick={() => setActive(1)}>{t('common.back')}</Button><Button leftSection={<IconPlayerPlay size={18} />} onClick={executeFixRun} disabled={!issues.length || !selectedProvider || !selectedModel || executing}>{t('agent_workshop.start_fix')}</Button></Group>
+                  {issueTypeSummary.length > 0 && <Stack gap="xs" mt="xl"><Text size="sm" fw={600}>{t('agent_workshop.issue_type_summary')}</Text><SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>{issueTypeSummary.map((item) => <Card key={item.label} withBorder p="sm" radius="md"><Text size="xs" c="dimmed" lineClamp={2}>{localizeIssueLabel(item.label)}</Text><Text size="sm" fw={700}>{item.count}</Text></Card>)}</SimpleGrid></Stack>}
+                  {groupedIssues.length > 0 && <Accordion variant="separated" radius="md" mt="xl"><Accordion.Item value="file-details"><Accordion.Control><Group justify="space-between" wrap="nowrap"><Text fw={600}>{t('agent_workshop.file_issue_details')}</Text><Badge color="orange" variant="light">{groupedIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{groupedIssues.map(([fileKey, fileIssues]) => <Accordion key={fileKey} variant="contained" radius="md"><Accordion.Item value={fileKey}><Accordion.Control><Group justify="space-between" wrap="nowrap"><Box style={{ minWidth: 0 }}><Text size="sm" fw={600} truncate>{fileKey}</Text><Text size="xs" c="dimmed">{fileIssues[0]?.target_lang || '--'}</Text></Box><Badge color="orange" variant="light">{fileIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{fileIssues.map((issue, index) => <Paper key={`${issue.file_name}:${issue.key}:${index}`} p="sm" withBorder><Group justify="space-between" align="flex-start" wrap="nowrap"><Box style={{ minWidth: 0, flex: 1 }}><Text size="sm" fw={600}>{issue.key}</Text><Badge color="red" variant="light" mt={6}>{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge><Text size="xs" c="dimmed" mt={8}>{issue.details}</Text><Code block mt="sm">{issue.target_str}</Code></Box><Button size="xs" variant="light" leftSection={<IconWand size={14} />} onClick={() => openFixModal(issue)} style={{ whiteSpace: 'nowrap' }}>{t('agent_workshop.fix_btn')}</Button></Group></Paper>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>}
                 </Paper>
               </Stack>
             </Stepper.Step>
 
-            <Stepper.Step label={t('agent_workshop.step_execution', { defaultValue: '执行修复' })} description={t('agent_workshop.step_execution_desc', { defaultValue: '查看修复进度与结果' })} icon={<IconRobot size={18} />}>
+            <Stepper.Step label={t('agent_workshop.step_execution')} description={t('agent_workshop.step_execution_desc')} icon={<IconRobot size={18} />}>
               <Stack mt="xl"><Paper withBorder p="xl" radius="md" className={translationStyles.glassCard}>
-                <Title order={4} mb="md">{t('agent_workshop.execution_title', { defaultValue: '智能修复执行中' })}</Title>
+                <Title order={4} mb="md">{t('agent_workshop.execution_title')}</Title>
                 <Progress value={progress} label={progress > 0 ? `${progress}%` : ''} size="xl" radius="xl" animated={executing} mb="sm" />
-                <Group justify="space-between" mb="xl"><Box><Text size="sm" fw={600}>{executing ? t('agent_workshop.execution_in_progress', { defaultValue: '正在修复问题…' }) : t('agent_workshop.execution_completed', { defaultValue: '修复流程已完成' })}</Text><Text size="xs" c="dimmed">{executionStats ? `${executionStats.completed} / ${executionStats.total}` : t('agent_workshop.execution_pending', { defaultValue: 'Waiting to start...' })}</Text></Box><Text size="xs" fw={700} c="blue">{progress}%</Text></Group>
+                <Group justify="space-between" mb="xl"><Box><Text size="sm" fw={600}>{executing ? t('agent_workshop.execution_in_progress') : t('agent_workshop.execution_completed')}</Text><Text size="xs" c="dimmed">{executionStats ? `${executionStats.completed} / ${executionStats.total}` : t('agent_workshop.execution_pending')}</Text></Box><Text size="xs" fw={700} c="blue">{progress}%</Text></Group>
                 <Box ref={logViewportRef} className={translationStyles.logScrollBox}>{executionLogs.map((log, index) => <Text key={`${log}-${index}`} size="xs" style={{ fontFamily: 'monospace' }} mb={2}>{log}</Text>)}</Box>
-                {executionStats && !executing && <Stack mt="xl"><SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md"><Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.fixed_count', { defaultValue: '已修复' })}</Text><Title order={3} c="green">{executionStats.successCount}</Title></Card><Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.failed_count', { defaultValue: '仍失败' })}</Text><Title order={3} c="orange">{executionStats.failedCount}</Title></Card><Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.duration', { defaultValue: '耗时' })}</Text><Title order={5}>{`${(executionStats.durationMs / 1000).toFixed(1)} s`}</Title></Card></SimpleGrid><Group><Button onClick={resetWorkflow}>{t('common.finish')}</Button></Group></Stack>}
+              {executionStats && !executing && <Stack mt="xl"><SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md"><Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.fixed_count')}</Text><Title order={3} c="green">{executionStats.successCount}</Title></Card><Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.failed_count')}</Text><Title order={3} c="orange">{executionStats.failedCount}</Title></Card><Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.duration')}</Text><Title order={5}>{`${(executionStats.durationMs / 1000).toFixed(1)} s`}</Title></Card></SimpleGrid>
+                {fixedIssues.length > 0 && (
+                  <Accordion variant="separated" radius="md">
+                    <Accordion.Item value="diff-preview">
+                      <Accordion.Control>{t('agent_workshop.diff_preview')}</Accordion.Control>
+                      <Accordion.Panel>
+                        <Stack gap="md">
+                          {fixedIssues.map((issue, index) => (
+                            <Paper key={`${issue.file_name}:${issue.key}:${index}`} withBorder p="md" radius="md">
+                              <Stack gap="xs">
+                                <Group justify="space-between" wrap="nowrap">
+                                  <Box style={{ minWidth: 0 }}>
+                                    <Text size="sm" fw={700}>{issue.key}</Text>
+                                    <Text size="xs" c="dimmed" truncate>{issue.file_name}</Text>
+                                  </Box>
+                                  <Badge color="green" variant="light">{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge>
+                                </Group>
+                                <Text size="xs" c="dimmed">{issue.details}</Text>
+                                <Text size="xs" fw={700}>{t('agent_workshop.before_fix')}</Text>
+                                <Code block>{issue.target_str}</Code>
+                                <Text size="xs" fw={700}>{t('agent_workshop.after_fix')}</Text>
+                                <Code block>{issue.suggested_fix}</Code>
+                                {issue.report_path && <Text size="xs" c="dimmed">{t('agent_workshop.report_path')}: {issue.report_path}</Text>}
+                              </Stack>
+                            </Paper>
+                          ))}
+                        </Stack>
+                      </Accordion.Panel>
+                    </Accordion.Item>
+                  </Accordion>
+                )}
+                <Group><Button onClick={resetWorkflow}>{t('common.finish')}</Button></Group></Stack>}
               </Paper></Stack>
             </Stepper.Step>
           </Stepper>
@@ -458,10 +495,10 @@ const AgentWorkshopPage = () => {
           <Box style={{ position: 'relative' }}>
             <LoadingOverlay visible={fixing} overlayBlur={2} />
             <Stack gap="md">
-              <Paper p="xs" withBorder><Text size="xs" fw={700} c="dimmed" tt="uppercase">{t('agent_workshop.modal_source_context')}</Text><Code block>{currentIssue?.source_str || '(No source context found)'}</Code></Paper>
+              <Paper p="xs" withBorder><Text size="xs" fw={700} c="dimmed" tt="uppercase">{t('agent_workshop.modal_source_context')}</Text><Code block>{currentIssue?.source_str || t('agent_workshop.no_source_context')}</Code></Paper>
               <Paper p="xs" withBorder><Text size="xs" fw={700} c="red" tt="uppercase">{t('agent_workshop.modal_error_detected')}</Text><Code block color="red">{currentIssue?.target_str}</Code><Text size="xs" mt={4}>{currentIssue?.details}</Text></Paper>
               {!fixResult && <Button fullWidth variant="gradient" gradient={{ from: 'indigo', to: 'cyan' }} onClick={handleFixRequest} disabled={fixing || !selectedProvider}>{selectedProvider ? t('agent_workshop.fix_btn') : t('agent_workshop.select_model_hint')}</Button>}
-              {fixResult && <Stack gap="md"><Alert icon={<IconInfoCircle size={16} />} title={t('agent_workshop.modal_analysis')} color="indigo" variant="light"><Text size="sm" fs="italic">{fixResult.reflection}</Text></Alert><Paper p="xs" withBorder style={{ backgroundColor: 'rgba(40, 167, 69, 0.05)' }}><Text size="xs" fw={700} c="green" tt="uppercase">{t('agent_workshop.modal_suggestion')}</Text><Code block color="green">{fixResult.suggested_fix}</Code>{fixResult.parity_message && <Text size="xs" mt={4} c={fixResult.status === 'SUCCESS' ? 'green' : 'orange'}><IconCheck size={12} /> {fixResult.parity_message}</Text>}</Paper><Group grow mt="lg"><Button variant="subtle" onClick={() => setFixResult(null)}>{t('agent_workshop.regenerate')}</Button><Button color="green" onClick={() => { setIsModalOpen(false); setIssues((prev) => prev.filter((item) => item.key !== currentIssue.key || item.file_name !== currentIssue.file_name)); }}>{t('agent_workshop.apply_fix')}</Button></Group></Stack>}
+              {fixResult && <Stack gap="md"><Alert icon={<IconInfoCircle size={16} />} title={t('agent_workshop.modal_analysis')} color="indigo" variant="light"><Text size="sm" fs="italic">{fixResult.reflection}</Text>{fixResult.report_path && <Text size="xs" mt={8} c="dimmed">{t('agent_workshop.report_path')}: {fixResult.report_path}</Text>}</Alert><Paper p="xs" withBorder style={{ backgroundColor: 'rgba(40, 167, 69, 0.05)' }}><Text size="xs" fw={700} c="green" tt="uppercase">{t('agent_workshop.modal_suggestion')}</Text><Code block color="green">{fixResult.suggested_fix}</Code>{fixResult.parity_message && <Text size="xs" mt={4} c={fixResult.status === 'SUCCESS' ? 'green' : 'orange'}><IconCheck size={12} /> {fixResult.parity_message}</Text>}</Paper><Group grow mt="lg"><Button variant="subtle" onClick={() => setFixResult(null)}>{t('agent_workshop.regenerate')}</Button><Button color="green" onClick={() => { setIsModalOpen(false); setIssues((prev) => prev.filter((item) => item.key !== currentIssue.key || item.file_name !== currentIssue.file_name)); }}>{t('agent_workshop.apply_fix')}</Button></Group></Stack>}
             </Stack>
           </Box>
         </Modal>

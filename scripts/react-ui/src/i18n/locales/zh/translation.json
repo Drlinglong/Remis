@@ -760,7 +760,8 @@
     "tabs": {
       "title": "任务看板",
       "desc": "切换到看板视图来推拽管理任务进度。"
-    }
+    },
+    "tabs_validation": "格式校对"
   },
   "translation": {
     "select": {
@@ -848,6 +849,7 @@
   "api_desc_custom": "（需要技术知识）连接到您自选的任何兼容OpenAI的API服务",
   "project_management.no_notes": "暂无备注",
   "project_management.last_updated": "最后更新",
+  "project_management.tabs_validation": "格式校对",
   "context_sidebar.translation_context": "翻译任务上下文",
   "context_sidebar.translation_info": "选择一个Mod以在此处查看详细信息。",
   "context_sidebar.translation_history": "翻译日志将显示在这里。",
@@ -1053,6 +1055,10 @@
     "issue_vic3_color_tags": "Victoria 3 颜色标签数量不匹配",
     "issue_invalid_key_format": "本地化键格式异常",
     "unknown_issue": "未知问题",
+    "diff_preview": "修复差异预览",
+    "before_fix": "修复前",
+    "after_fix": "修复后",
+    "report_path": "报告路径",
     "history": {
       "action_import": "项目导入",
       "action_archive_update": "存档更新",
@@ -1064,7 +1070,55 @@
       "archive_update_desc": "已成功将 {{match_count}} 条翻译上载至项目存档。",
       "path_registered_desc": "已自动注册翻译输出路径。",
       "incremental_translate_desc": "已构建增量更新（{{target_lang}}）。{{new_count}} 条新增，{{changed_count}} 条修改，{{unchanged_count}} 条复用。"
-    }
+    },
+    "step_select_project": "选择项目",
+    "step_select_project_desc": "搜索并选择要修复的项目",
+    "step_project_summary": "项目信息",
+    "step_project_summary_desc": "查看项目上下文并发起扫描",
+    "step_scan_summary": "扫描摘要",
+    "step_scan_summary_desc": "确认错误统计并设置修复参数",
+    "step_execution": "执行修复",
+    "step_execution_desc": "查看修复进度与结果",
+    "project_search_placeholder": "按项目、游戏或路径搜索...",
+    "last_translation_time": "最近翻译时间",
+    "source_entries": "源条目数",
+    "translation_entries": "翻译条目数",
+    "project_path": "项目路径",
+    "provider_label": "LLM 提供商",
+    "model_label": "AI 模型",
+    "total_entries": "总条目数",
+    "issue_entries": "问题条目数",
+    "cached_state": "数据来源",
+    "start_fix_confirm": "确认开始修复？这将调用 API 产生费用。",
+    "start_fix": "开始修复",
+    "issue_type_summary": "错误类型分布",
+    "file_issue_details": "文件级错误明细",
+    "execution_title": "智能修复执行中",
+    "execution_in_progress": "正在修复问题…",
+    "execution_completed": "修复流程已完成",
+    "execution_pending": "等待开始...",
+    "fixed_count": "已修复",
+    "failed_count": "仍失败",
+    "duration": "耗时",
+    "no_source_context": "（未找到原文上下文）"
   },
-  "recent_activity_type_translate": "增量更新"
+  "project_validation": {
+    "title": "格式校对",
+    "subtitle": "查看格式问题记录、手动更新结果，并跳转到智能工坊继续修复。",
+    "refresh": "重新检查格式问题",
+    "open_workshop": "打开智能工坊",
+    "issues_count": "待处理问题",
+    "last_updated": "上次检查时间",
+    "report_count": "修复报告数",
+    "sidecar_path": "记录文件路径",
+    "help": "智能工坊会优先读取这个项目自己的格式问题记录，修复状态也会继续回写到这里。",
+    "scope_hint": "这里只检查 P 社脚本语言里的变量、标签、换行、键名等格式问题，不检查错字、病句或文风是否自然。",
+    "issue_breakdown": "问题类型分布",
+    "no_issues": "当前没有待处理的格式问题。"
+  },
+  "recent_activity_type_translate": "增量更新",
+  "common": {
+    "search": "搜索",
+    "loading": "加载中..."
+  }
 }

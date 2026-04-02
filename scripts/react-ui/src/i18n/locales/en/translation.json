@@ -796,6 +796,7 @@
   "api_desc_custom": "(Advanced) Connect to any OpenAI-compatible API service",
   "project_management.no_notes": "No notes",
   "project_management.last_updated": "Last updated",
+  "project_management.tabs_validation": "Validation",
   "context_sidebar.translation_context": "Translation Context",
   "context_sidebar.translation_info": "Select a mod to see details here.",
   "context_sidebar.translation_history": "Translation logs will appear here.",
@@ -901,7 +902,9 @@
     "target_languages": "Target Languages"
   },
   "common": {
-    "browse": "Browse"
+    "browse": "Browse",
+    "search": "Search",
+    "loading": "Loading..."
   },
   "page_title_agent_workshop": "Agent Workshop",
   "agent_workshop": {
@@ -938,10 +941,58 @@
     "issue_vic3_color_tags": "Victoria 3 color tag mismatch",
     "issue_invalid_key_format": "Localization key format issue",
     "unknown_issue": "Unknown issue",
+    "diff_preview": "Fix diff preview",
+    "before_fix": "Before fix",
+    "after_fix": "After fix",
+    "report_path": "Report path",
     "history": {
       "path_registered_desc": "Auto-registered translation output path.",
       "incremental_translate_desc": "Built incremental update ({{target_lang}}). {{new_count}} new, {{changed_count}} changed, {{unchanged_count}} reused lines."
-    }
+    },
+    "step_select_project": "Select Project",
+    "step_select_project_desc": "Search and choose the project to fix",
+    "step_project_summary": "Project Summary",
+    "step_project_summary_desc": "Review project context and start scanning",
+    "step_scan_summary": "Scan Summary",
+    "step_scan_summary_desc": "Confirm issue stats and choose repair settings",
+    "step_execution": "Repair Run",
+    "step_execution_desc": "Watch progress and final results",
+    "project_search_placeholder": "Search by project, game, or path...",
+    "last_translation_time": "Last Translation Time",
+    "source_entries": "Source Entries",
+    "translation_entries": "Translation Entries",
+    "project_path": "Project Path",
+    "provider_label": "LLM Provider",
+    "model_label": "AI Model",
+    "total_entries": "Total Entries",
+    "issue_entries": "Issue Entries",
+    "cached_state": "Data Source",
+    "start_fix_confirm": "Start fixing now? This will trigger API calls and costs.",
+    "start_fix": "Start Fix Run",
+    "issue_type_summary": "Issue Type Breakdown",
+    "file_issue_details": "File-level issue details",
+    "execution_title": "AI Repair In Progress",
+    "execution_in_progress": "Fixing issues...",
+    "execution_completed": "Repair run completed",
+    "execution_pending": "Waiting to start...",
+    "fixed_count": "Fixed",
+    "failed_count": "Still Failed",
+    "duration": "Duration",
+    "no_source_context": "(No source context found)"
+  },
+  "project_validation": {
+    "title": "Format Check",
+    "subtitle": "Review saved format issues, refresh the results, or jump into Agent Workshop.",
+    "refresh": "Recheck Format Issues",
+    "open_workshop": "Open Agent Workshop",
+    "issues_count": "Open Issues",
+    "last_updated": "Last Checked",
+    "report_count": "Fix Reports",
+    "sidecar_path": "Record File Path",
+    "help": "Agent Workshop reads this project's saved format issue record first and writes updated fix status back into it.",
+    "scope_hint": "This page checks only Paradox script-format issues such as variables, tags, line breaks, and key names. It does not check typos, wording, or writing style.",
+    "issue_breakdown": "Issue Breakdown",
+    "no_issues": "There are no open validation issues right now."
   },
   "incremental_translation": {
     "output_dir_hint": "Results have been saved to the generated mod folder under my_translation.",
@@ -1012,5 +1063,8 @@
     "warning_details_suffix": "Details: {{details}}",
     "warning_generic_with_error": "Warning details: {{error}}"
   },
-  "recent_activity_type_translate": "Incremental Update"
+  "recent_activity_type_translate": "Incremental Update",
+  "project_management": {
+    "tabs_validation": "Format Check"
+  }
 }

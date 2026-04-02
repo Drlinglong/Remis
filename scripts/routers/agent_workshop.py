@@ -77,6 +77,7 @@ class FixResult(BaseModel):
     reflection: str
     status: str
     parity_message: str
+    report_path: Optional[str] = None
 
 class FixBatchRequest(BaseModel):
     project_id: str
@@ -90,6 +91,7 @@ class BatchResultItem(BaseModel):
     suggested_fix: str
     status: str
     parity_message: str
+    report_path: Optional[str] = None
 
 class FixBatchResponse(BaseModel):
     results: List[BatchResultItem]
@@ -154,6 +156,87 @@ def _active_issue_dicts(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         for item in items
         if str(item.get("status", "detected")).lower() not in {"fixed", "ignored"}
     ]
+
+
+def _slugify_filename(value: str) -> str:
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", value or "")
+    return safe.strip("._") or "issue"
+
+
+def _build_concise_reflection(error_type: str, details: str, source_str: str, target_str: str, suggested_fix: str) -> str:
+    source_preview = (source_str or "").strip().replace("\n", " ")
+    target_preview = (target_str or "").strip().replace("\n", " ")
+    fix_preview = (suggested_fix or "").strip().replace("\n", " ")
+    if len(source_preview) > 120:
+        source_preview = source_preview[:117] + "..."
+    if len(target_preview) > 120:
+        target_preview = target_preview[:117] + "..."
+    if len(fix_preview) > 120:
+        fix_preview = fix_preview[:117] + "..."
+
+    sentence_1 = f"问题类型：{error_type or '格式校验问题'}。"
+    sentence_2 = f"原文与译文的关键差异是：{details or '译文没有正确保留原文中的技术标记或结构。'}"
+    sentence_3 = f"建议修复为：{fix_preview or target_preview or source_preview}"
+    return " ".join([sentence_1, sentence_2, sentence_3]).strip()
+
+
+def _write_fix_report(
+    project_root: str,
+    file_name: str,
+    key: str,
+    source_str: str,
+    target_str: str,
+    error_type: str,
+    details: str,
+    suggested_fix: str,
+    reflection: str,
+) -> Optional[str]:
+    try:
+        reports_dir = Path(project_root) / ".agent_workshop_reports"
+        reports_dir.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        return None
+
+    from datetime import datetime
+
+    file_stub = _slugify_filename(Path(file_name or "file").name)
+    key_stub = _slugify_filename(key)
+    report_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file_stub}_{key_stub}.md"
+    report_path = reports_dir / report_name
+
+    content = "\n".join([
+        "# Agent Workshop Fix Report",
+        "",
+        f"- File: `{file_name}`",
+        f"- Key: `{key}`",
+        f"- Error Type: {error_type or 'Validation issue'}",
+        f"- Details: {details or '--'}",
+        "",
+        "## Summary",
+        "",
+        reflection or "--",
+        "",
+        "## Source",
+        "",
+        "```text",
+        source_str or "",
+        "```",
+        "",
+        "## Broken Translation",
+        "",
+        "```text",
+        target_str or "",
+        "```",
+        "",
+        "## Suggested Fix",
+        "",
+        "```text",
+        suggested_fix or "",
+        "```",
+    ])
+
+    report_path.write_text(content, encoding="utf-8")
+    return str(report_path)
 
 
 def _load_project_sidecar_issues(project: Dict[str, Any]) -> List[ValidationIssue]:
@@ -287,9 +370,9 @@ async def load_cached_errors(project_id: str):
     return []
 
 @router.get("/scan", response_model=List[ValidationIssue])
-async def scan_project(project_id: str):
+async def scan_project(project_id: str, force: bool = Query(False)):
     """
-    Performs a fresh scan of all translation files in a project and refreshes the cache.
+    Loads cached validation issues by default, or performs a fresh scan when forced.
     """
     project = await project_manager.get_project(project_id)
     if not project:
@@ -298,6 +381,27 @@ async def scan_project(project_id: str):
     source_root = Path(project['source_path'])
     game_id = project['game_id']
     source_lang_iso = project.get('source_language', 'en')
+
+    if not force:
+        current_errors = ValidationLogger.load_errors(project['source_path'])
+        if current_errors:
+            logger.info(
+                "[AgentWorkshop] Returning %s cached project-side issues for %s",
+                len(current_errors),
+                project_id,
+            )
+            return [ValidationIssue(**e) for e in _active_issue_dicts(current_errors)]
+
+        sidecar_issues = _load_project_sidecar_issues(project)
+        if sidecar_issues:
+            logger.info(
+                "[AgentWorkshop] Returning %s translation-sidecar issues for %s",
+                len(sidecar_issues),
+                project_id,
+            )
+            ValidationLogger.save_errors(project['source_path'], [issue.model_dump() for issue in sidecar_issues])
+            return sidecar_issues
+
     logger.info(
         "[AgentWorkshop] Fresh scan started for project %s (%s) at %s",
         project.get("name", project_id),
@@ -453,6 +557,16 @@ async def fix_issue(request: FixRequest):
     )
     
     # If successful, apply fix to file and mark as fixed in local log
+    concise_reflection = _build_concise_reflection(
+        request.error_type,
+        request.details,
+        request.source_str,
+        request.target_str,
+        result.get("suggested_fix", ""),
+    )
+    result["reflection"] = concise_reflection
+    result["report_path"] = None
+
     if result.get('status') == 'SUCCESS' and project:
         target_path = _resolve_issue_target_path(project, request.file_path, request.file_name)
         if target_path and target_path.exists():
@@ -463,6 +577,17 @@ async def fix_issue(request: FixRequest):
             request.file_name, 
             request.key, 
             "fixed"
+        )
+        result["report_path"] = _write_fix_report(
+            project['source_path'],
+            request.file_name,
+            request.key,
+            request.source_str,
+            request.target_str,
+            request.error_type,
+            request.details,
+            result.get("suggested_fix", ""),
+            concise_reflection,
         )
     
     return FixResult(**result)
@@ -517,6 +642,26 @@ async def fix_batch(request: FixBatchRequest):
                     res["key"], 
                     "fixed"
                 )
+                concise_reflection = _build_concise_reflection(
+                    original_issue.get("error_type") if original_issue else "",
+                    original_issue.get("details") if original_issue else "",
+                    original_issue.get("source_str") if original_issue else "",
+                    original_issue.get("target_str") if original_issue else "",
+                    res.get("suggested_fix", ""),
+                )
+                res["report_path"] = _write_fix_report(
+                    project['source_path'],
+                    res["file_name"],
+                    res["key"],
+                    original_issue.get("source_str") if original_issue else "",
+                    original_issue.get("target_str") if original_issue else "",
+                    original_issue.get("error_type") if original_issue else "",
+                    original_issue.get("details") if original_issue else "",
+                    res.get("suggested_fix", ""),
+                    concise_reflection,
+                )
+            else:
+                res["report_path"] = None
             final_results.append(BatchResultItem(**res))
             
     return FixBatchResponse(results=final_results)
