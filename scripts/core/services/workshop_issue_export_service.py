@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from scripts.core.archive_manager import archive_manager
 from scripts.core.loc_parser import parse_loc_file, parse_loc_file_with_lines
 from scripts.utils.i18n_utils import iso_to_paradox
 from scripts.utils.post_process_validator import PostProcessValidator
@@ -35,6 +36,7 @@ class WorkshopIssueExportService:
         game_profile: Dict[str, Any],
         workflow: str,
         project_name: str = "",
+        project_id: str = "",
     ) -> Dict[str, Any]:
         output_root = Path(output_root)
         source_root = Path(source_root)
@@ -71,7 +73,16 @@ class WorkshopIssueExportService:
                 continue
 
             for key, value, line_number in target_entries:
-                source_value = self._lookup_source_value(source_entries, key)
+                source_lookup = self._resolve_source_context(
+                    source_entries=source_entries,
+                    key=key,
+                    source_file=source_file,
+                    source_root=source_root,
+                    translated_file=translated_file,
+                    project_name=project_name,
+                    project_id=project_id,
+                )
+                source_value = source_lookup["source_str"]
                 try:
                     results = self.validator.validate_entry(
                         game_id=game_id,
@@ -97,6 +108,9 @@ class WorkshopIssueExportService:
                         "key": key,
                         "line_number": result.line_number,
                         "source_str": source_value,
+                        "source_context_status": source_lookup["status"],
+                        "source_context_origin": source_lookup["origin"],
+                        "source_context_warning": source_lookup.get("warning", ""),
                         "target_str": value,
                         "error_type": result.message,
                         "error_code": result.code or result.message,
@@ -218,6 +232,58 @@ class WorkshopIssueExportService:
             return source_entries[base_key]
         with_colon = f"{base_key}:0"
         return source_entries.get(with_colon, "")
+
+    def _resolve_source_context(
+        self,
+        source_entries: Dict[str, str],
+        key: str,
+        source_file: Optional[Path],
+        source_root: Path,
+        translated_file: Path,
+        project_name: str,
+        project_id: str,
+    ) -> Dict[str, str]:
+        source_value = self._lookup_source_value(source_entries, key)
+        if source_value:
+            return {
+                "source_str": source_value,
+                "status": "found",
+                "origin": "source_file",
+                "warning": "",
+            }
+
+        rel_source_path = ""
+        if source_file and source_file.exists():
+            try:
+                rel_source_path = self._normalize_relpath(source_file.relative_to(source_root))
+            except Exception:
+                rel_source_path = self._normalize_relpath(source_file)
+        else:
+            try:
+                rel_source_path = self._normalize_relpath(translated_file.relative_to(source_root))
+            except Exception:
+                rel_source_path = self._normalize_relpath(translated_file.name)
+
+        archived_source = archive_manager.get_source_entry(
+            mod_name=project_name or source_root.name,
+            project_id=project_id or None,
+            file_path=rel_source_path,
+            entry_key=key,
+        )
+        if archived_source and archived_source.get("original"):
+            return {
+                "source_str": archived_source["original"],
+                "status": "fallback_found",
+                "origin": "archive_database",
+                "warning": "Original source text was recovered from the archive database because it was not found in the current source tree.",
+            }
+
+        return {
+            "source_str": "",
+            "status": "missing",
+            "origin": "none",
+            "warning": "Original source text was not found in the current source tree or archive database. The fix is generated without source context.",
+        }
 
     def _normalize_relpath(self, rel_path: os.PathLike[str] | str) -> str:
         return str(rel_path).replace("\\", "/")

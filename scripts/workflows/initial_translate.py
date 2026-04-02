@@ -472,6 +472,7 @@ def run(mod_name: str,
             game_profile=game_profile,
             workflow="initial",
             project_name=archive_mod_name,
+            project_id=project_id or "",
         )
         logging.info(
             f"Exported {export_result.get('issue_count', 0)} workshop issues for "

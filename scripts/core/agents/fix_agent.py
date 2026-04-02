@@ -220,23 +220,29 @@ class ReflexionFixAgent:
         payload_items = []
         for i, issue in enumerate(active_issues):
             errors = " | ".join(issue["error_messages"] + issue["error_details"])
+            source_text = issue["source"] if issue["source"] else "[SOURCE CONTEXT UNAVAILABLE]"
             payload_items.append(
                 f"Item {i+1}:\n"
-                f"  Source: {issue['source']}\n"
+                f"  Source: {source_text}\n"
                 f"  Bad Translation: {issue['target']}\n"
                 f"  Reported Error: {errors}"
             )
             
         prompt = (
             "### SYSTEM ROLE\n"
-            "You are an elite Game Localization Engine (QA-Validator mode). Your sole mission is to REPAIR technical formatting errors in translations. "
-            "You must ensure that all technical tags, variables, and symbols in the 'Source' are perfectly mirrored or correctly handled in the 'Fixed Translation'.\n\n"
+            "You are an elite Game Localization Recovery Agent. Your mission is to repair localization output that may contain formatting damage, failed-chunk corruption, or low-quality translation mistakes. "
+            "You must preserve technical correctness first, then recover missing or damaged content, and only perform limited source-aware translation revision when the source context is available.\n\n"
             f"{examples_text}\n\n"
             "### REPAIR GUIDELINES (GOLDEN RULES)\n"
             "1. **ZERO TOLERANCE**: Do NOT translate or localize any variables inside $...$, [Concept...], [SCOPE...], or icons like @...! or £...£. Keep them exactly as they appear in the Source.\n"
             "2. **TAG CLOSURE**: Ensure all color tags (e.g., §Y or #P) are correctly closed (e.g., §! or #!) as per the game's specific rule.\n"
-            "3. **OUTPUT FORMAT**: You must output a JSON array of strings. Return ONLY the JSON. No conversational filler, no markdown code blocks (unless the environment requires it), just the raw JSON array.\n"
-            f"4. **ITEM COUNT**: I will provide {len(active_issues)} items. You MUST provide exactly {len(active_issues)} repaired strings in the array.\n\n"
+            "3. **THREE REPAIR MODES**: Your repair task may include: (a) format repair, (b) failed-chunk recovery, and (c) limited source-aware revision of obviously bad translations. Always prioritize them in that order.\n"
+            "4. **FAILED-CHUNK RECOVERY**: If the translation looks truncated, mechanically damaged, fallback-like, or structurally broken, you may reconstruct the missing content conservatively from the Source.\n"
+            "5. **LIMITED REVISION ONLY**: If the Source is available, you may correct clear mistranslations, polarity mistakes, intensity mistakes, omissions, or obviously awkward machine wording. Do NOT freely rewrite for style.\n"
+            "6. **MISSING SOURCE CONTEXT**: If the Source is marked as unavailable, do best-effort format repair and conservative recovery from the broken translation only. Do not invent semantic details or perform aggressive rewriting.\n"
+            "7. **MINIMAL NECESSARY CHANGE**: Keep valid parts of the translation intact. Do not rewrite more than needed to make it technically valid and semantically reasonable.\n"
+            "8. **OUTPUT FORMAT**: You must output a JSON array of strings. Return ONLY the JSON. No conversational filler, no markdown code blocks, just the raw JSON array.\n"
+            f"9. **ITEM COUNT**: I will provide {len(active_issues)} items. You MUST provide exactly {len(active_issues)} repaired strings in the array.\n\n"
             "### ITEMS TO REPAIR\n" +
             "\n\n".join(payload_items) + "\n\n"
             "### JSON OUTPUT PREVIEW\n"
@@ -245,29 +251,35 @@ class ReflexionFixAgent:
         return prompt
 
     async def _reflect(self, source: str, target: str, error_type: str, details: str) -> str:
+        source_for_prompt = source or "[SOURCE CONTEXT UNAVAILABLE]"
         prompt = (
-            "You are a Localization QA Specialist. Analyze the following translation error.\n\n"
-            f"Source Text: {source}\n"
+            "You are a Localization Recovery Analyst. Analyze the following translation issue.\n\n"
+            f"Source Text: {source_for_prompt}\n"
             f"Translated Text (Broken): {target}\n"
             f"Error Type: {error_type}\n"
             f"Details: {details}\n\n"
-            "Explain exactly why this is a violation of game localization rules. "
-            "Focus on technical tags ($ $, [ ], #, §) and character encoding. "
+            "Explain whether the problem is mainly a formatting issue, a failed-chunk/corruption issue, or a low-quality translation issue. "
+            "Focus on technical tags ($ $, [ ], #, §), content loss, polarity/intensity mistakes, and obvious mistranslation. "
+            "If source context is unavailable, say that semantic judgment is limited and the repair must rely on the broken translation only. "
             "Be concise."
         )
         response = await self.handler.generate_response(prompt)
         return response.strip()
 
     async def _suggest_fix(self, source: str, target: str, reflection: str, game_id: str) -> str:
+        source_for_prompt = source or "[SOURCE CONTEXT UNAVAILABLE]"
         prompt = (
-            "Based on your analysis, provide a FIXED version of the translation.\n\n"
-            f"Source Text: {source}\n"
+            "Based on your analysis, provide a RECOVERED version of the translation.\n\n"
+            f"Source Text: {source_for_prompt}\n"
             f"Broken Text: {target}\n"
             f"Analysis: {reflection}\n\n"
             "Rules:\n"
-            "1. Preserve the meaning of the translation.\n"
+            "1. Preserve the intended meaning faithfully.\n"
             "2. Ensure all technical tags are valid for the game engine.\n"
-            "3. Return ONLY the corrected string, no extra text."
+            "3. Repair failed-chunk damage or obvious corruption when present.\n"
+            "4. If the source text is available, you may correct clear mistranslations and obviously poor machine wording, but keep edits limited and faithful.\n"
+            "5. If the source text is unavailable, perform conservative best-effort repair from the broken translation only.\n"
+            "6. Return ONLY the corrected string, no extra text."
         )
         response = await self.handler.generate_response(prompt)
         # Basic cleanup: remove quotes if the LLM added them

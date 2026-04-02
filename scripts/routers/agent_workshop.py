@@ -48,6 +48,9 @@ class ValidationIssue(BaseModel):
     key: str
     line_number: Optional[int] = None
     source_str: str
+    source_context_status: Optional[str] = "found"
+    source_context_origin: Optional[str] = "source_file"
+    source_context_warning: Optional[str] = None
     target_str: str
     error_type: str
     error_code: Optional[str] = None
@@ -66,6 +69,9 @@ class FixRequest(BaseModel):
     file_name: str
     key: str
     source_str: str
+    source_context_status: Optional[str] = "found"
+    source_context_origin: Optional[str] = "source_file"
+    source_context_warning: Optional[str] = None
     target_str: str
     error_type: str
     details: str
@@ -105,6 +111,9 @@ def _normalize_issue_dict(issue: Dict[str, Any]) -> Dict[str, Any]:
     normalized.setdefault("key", "")
     normalized.setdefault("line_number", None)
     normalized.setdefault("source_str", "")
+    normalized.setdefault("source_context_status", "found" if normalized.get("source_str") else "missing")
+    normalized.setdefault("source_context_origin", "source_file" if normalized.get("source_str") else "none")
+    normalized.setdefault("source_context_warning", None)
     normalized.setdefault("target_str", "")
     normalized.setdefault("error_type", normalized.get("message", ""))
     normalized.setdefault("error_code", normalized.get("error_type"))
@@ -163,7 +172,16 @@ def _slugify_filename(value: str) -> str:
     return safe.strip("._") or "issue"
 
 
-def _build_concise_reflection(error_type: str, details: str, source_str: str, target_str: str, suggested_fix: str) -> str:
+def _build_concise_reflection(
+    error_type: str,
+    details: str,
+    source_str: str,
+    target_str: str,
+    suggested_fix: str,
+    source_context_status: str = "found",
+    source_context_origin: str = "source_file",
+    source_context_warning: Optional[str] = None,
+) -> str:
     source_preview = (source_str or "").strip().replace("\n", " ")
     target_preview = (target_str or "").strip().replace("\n", " ")
     fix_preview = (suggested_fix or "").strip().replace("\n", " ")
@@ -174,10 +192,22 @@ def _build_concise_reflection(error_type: str, details: str, source_str: str, ta
     if len(fix_preview) > 120:
         fix_preview = fix_preview[:117] + "..."
 
-    sentence_1 = f"问题类型：{error_type or '格式校验问题'}。"
-    sentence_2 = f"原文与译文的关键差异是：{details or '译文没有正确保留原文中的技术标记或结构。'}"
-    sentence_3 = f"建议修复为：{fix_preview or target_preview or source_preview}"
-    return " ".join([sentence_1, sentence_2, sentence_3]).strip()
+    sentences = [
+        f"问题类型：{error_type or '格式校验问题'}。",
+        f"原文与译文的关键差异是：{details or '译文没有正确保留原文中的技术标记或结构。'}",
+    ]
+    if source_context_status == "missing":
+        sentences.append(
+            source_context_warning
+            or "未找到原文上下文，我只能基于损坏译文即兴修补，结果主要保证格式可用，不保证语义最优。"
+        )
+    elif source_context_status == "fallback_found":
+        sentences.append(
+            source_context_warning
+            or f"原文未能从当前源文件获取，已从后备来源（{source_context_origin}）补回原文上下文。"
+        )
+    sentences.append(f"建议修复为：{fix_preview or target_preview or source_preview}")
+    return " ".join(sentences).strip()
 
 
 def _write_fix_report(
@@ -190,6 +220,9 @@ def _write_fix_report(
     details: str,
     suggested_fix: str,
     reflection: str,
+    source_context_status: str = "found",
+    source_context_origin: str = "source_file",
+    source_context_warning: Optional[str] = None,
 ) -> Optional[str]:
     try:
         reports_dir = Path(project_root) / ".agent_workshop_reports"
@@ -211,6 +244,9 @@ def _write_fix_report(
         f"- Key: `{key}`",
         f"- Error Type: {error_type or 'Validation issue'}",
         f"- Details: {details or '--'}",
+        f"- Source Context Status: `{source_context_status or 'unknown'}`",
+        f"- Source Context Origin: `{source_context_origin or 'unknown'}`",
+        f"- Source Context Warning: {source_context_warning or '--'}",
         "",
         "## Summary",
         "",
@@ -483,6 +519,9 @@ async def scan_project(project_id: str, force: bool = Query(False)):
                         file_name=file_info['relative_path'] if 'relative_path' in file_info else get_rel_path(file_info['file_path']),
                         key=key,
                         source_str=source_entries.get(key, ""),
+                        source_context_status="found" if source_entries.get(key, "") else "missing",
+                        source_context_origin="source_file" if source_entries.get(key, "") else "none",
+                        source_context_warning=None if source_entries.get(key, "") else "Original source text was not found during direct project scan. The repair will rely on best-effort inference unless another fallback source is available.",
                         target_str=value,
                         error_type=res.message,
                         details=res.details or "",
@@ -563,6 +602,9 @@ async def fix_issue(request: FixRequest):
         request.source_str,
         request.target_str,
         result.get("suggested_fix", ""),
+        request.source_context_status or "found",
+        request.source_context_origin or "source_file",
+        request.source_context_warning,
     )
     result["reflection"] = concise_reflection
     result["report_path"] = None
@@ -588,6 +630,9 @@ async def fix_issue(request: FixRequest):
             request.details,
             result.get("suggested_fix", ""),
             concise_reflection,
+            request.source_context_status or "found",
+            request.source_context_origin or "source_file",
+            request.source_context_warning,
         )
     
     return FixResult(**result)
@@ -648,6 +693,9 @@ async def fix_batch(request: FixBatchRequest):
                     original_issue.get("source_str") if original_issue else "",
                     original_issue.get("target_str") if original_issue else "",
                     res.get("suggested_fix", ""),
+                    original_issue.get("source_context_status", "found") if original_issue else "found",
+                    original_issue.get("source_context_origin", "source_file") if original_issue else "source_file",
+                    original_issue.get("source_context_warning") if original_issue else None,
                 )
                 res["report_path"] = _write_fix_report(
                     project['source_path'],
@@ -659,6 +707,9 @@ async def fix_batch(request: FixBatchRequest):
                     original_issue.get("details") if original_issue else "",
                     res.get("suggested_fix", ""),
                     concise_reflection,
+                    original_issue.get("source_context_status", "found") if original_issue else "found",
+                    original_issue.get("source_context_origin", "source_file") if original_issue else "source_file",
+                    original_issue.get("source_context_warning") if original_issue else None,
                 )
             else:
                 res["report_path"] = None

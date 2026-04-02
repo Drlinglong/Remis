@@ -693,6 +693,85 @@ class ArchiveManager:
             
         return results
 
+    def get_source_entry(
+        self,
+        mod_name: str = None,
+        project_id: str = None,
+        file_path: str = None,
+        entry_key: str = None,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Returns the latest archived source entry for the given file/key pair.
+        This is used as a fallback when workshop validation cannot recover the
+        source string directly from the on-disk source tree.
+        """
+        if not self.connection or not entry_key:
+            return None
+
+        cursor = self.connection.cursor()
+
+        mod_id = None
+        if project_id:
+            mod_id = self.get_mod_id_by_remote_id(project_id)
+
+        if not mod_id and mod_name:
+            cursor.execute("SELECT mod_id FROM mods WHERE name = ?", (mod_name.strip(),))
+            mod_row = cursor.fetchone()
+            if mod_row:
+                mod_id = mod_row["mod_id"]
+
+        if not mod_id:
+            return None
+
+        ver_row = self._get_latest_version_row(cursor, mod_id, require_translations=False)
+        if not ver_row:
+            return None
+        version_id = ver_row["version_id"]
+
+        normalized_key = entry_key.strip()
+        if normalized_key.endswith(":"):
+            normalized_key = normalized_key[:-1].strip()
+
+        base_query = """
+            SELECT source_entry_id, entry_key, source_text, file_path
+            FROM source_entries
+            WHERE version_id = ?
+              AND (entry_key = ? OR entry_key = ? OR entry_key = ?)
+        """
+        base_params: List[Any] = [
+            version_id,
+            normalized_key,
+            f"{normalized_key}:0",
+            normalized_key.split(":")[0],
+        ]
+
+        normalized_file_path = self._normalize_archive_file_path(file_path or "")
+        query = base_query
+        params = list(base_params)
+        if normalized_file_path:
+            path_candidates = self._build_file_path_candidates(normalized_file_path)
+            query += f" AND {self._build_file_path_where_clause(path_candidates)}"
+            params.extend(path_candidates)
+
+        query += " ORDER BY source_entry_id DESC LIMIT 1"
+
+        try:
+            cursor.execute(query, tuple(params))
+            row = cursor.fetchone()
+            if not row and normalized_file_path:
+                cursor.execute(base_query + " ORDER BY source_entry_id DESC LIMIT 1", tuple(base_params))
+                row = cursor.fetchone()
+            if not row:
+                return None
+            return {
+                "key": row["entry_key"],
+                "original": row["source_text"].rstrip('\r\n') if row["source_text"] else "",
+                "file_path": row["file_path"] or "",
+            }
+        except Exception as e:
+            logging.error(f"Archive source lookup failed for key={entry_key}, file_path={file_path}: {e}")
+            return None
+
     def find_global_translation(self, entry_key: str, source_text: str, language: str) -> Optional[str]:
         """
         Searches for a translation in the entire database (cross-mod) matching exactly the key and source text.

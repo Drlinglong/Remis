@@ -286,6 +286,7 @@ async def run_incremental_update(
             game_profile=game_profile,
             workflow="incremental",
             project_name=project_name,
+            project_id=project_id or "",
         )
         if embedded_workshop and embedded_workshop.get("enabled", True):
             try:
