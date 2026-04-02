@@ -54,6 +54,15 @@ class ProjectFile(BaseModel):
     line_count: int
     file_type: str 
 
+class EmbeddedWorkshopConfig(BaseModel):
+    enabled: bool = True
+    follow_primary_settings: bool = True
+    api_provider: Optional[str] = None
+    api_model: Optional[str] = None
+    batch_size_limit: Optional[int] = 10
+    concurrency_limit: Optional[int] = 1
+    rpm_limit: Optional[int] = 40
+
 class IncrementalUpdateRequest(BaseModel):
     project_id: Optional[str] = None
     target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
@@ -66,6 +75,7 @@ class IncrementalUpdateRequest(BaseModel):
     dry_run: bool = False
     custom_source_path: Optional[str] = None
     use_resume: bool = True
+    embedded_workshop: Optional[EmbeddedWorkshopConfig] = None
 
     @field_validator('target_lang_codes', mode='before')
     @classmethod

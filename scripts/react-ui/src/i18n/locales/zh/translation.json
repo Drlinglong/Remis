@@ -733,69 +733,69 @@
     },
     "project_management": {
       "list": {
-        "title": "????",
-        "desc": "????????????????"
+        "title": "项目列表",
+        "desc": "在这里查看并管理你所有的本地化项目。"
       },
       "create": {
-        "title": "????",
-        "desc": "??????????????????? ?? -> API ?????????"
+        "title": "从零开始",
+        "desc": "从这里创建你的第一个翻译项目。开始之前，请确认你已经在 设置 -> API 页面准备好了 API Key。"
       },
       "new_task": {
-        "title": "????",
-        "desc": "???? Mod ??????????????????????"
+        "title": "新建任务",
+        "desc": "为你的 Mod 创建基于文件的任务，或者仅创建自定义备注。"
       },
       "stats": {
-        "title": "????",
-        "desc": "?????????????????????????"
+        "title": "项目概览",
+        "desc": "快速查看文件总数、总行数以及当前翻译进度。"
       },
       "start": {
-        "title": "?????????",
-        "desc": "?????????????????????? AI ?????"
+        "title": "关键操作：开始翻译",
+        "desc": "一切准备就绪后，点击这里进入翻译配置并启动 AI 翻译流程。"
       },
       "paths": {
-        "title": "????",
-        "desc": "????? Mod ???????????"
+        "title": "路径管理",
+        "desc": "为每个具体 Mod 配置源文件目录和导出目录。"
       },
       "tabs": {
-        "title": "????",
-        "desc": "??????????????????????????"
+        "title": "任务看板",
+        "desc": "在总文件列表和看板视图之间切换，更直观地管理任务。"
       }
     },
     "translation": {
       "select": {
-        "title": "????",
-        "desc": "???????????????"
+        "title": "选择项目",
+        "desc": "请选择一个项目以开始翻译流程。"
       },
       "config": {
-        "title": "????",
-        "desc": "?????????????? AI ???"
+        "title": "翻译配置",
+        "desc": "设置源语言、目标语言以及 AI 模型。"
       },
       "start": {
-        "title": "?????",
-        "desc": "??????????????"
+        "title": "启动翻译",
+        "desc": "点击这里启动自动化翻译任务。"
       },
       "processing": {
-        "title": "???",
-        "desc": "AI ??????????????????????"
+        "title": "处理中",
+        "desc": "AI 正在翻译你的文件，你可以在这里实时查看处理进度。"
       }
     },
     "tools": {
       "tabs": {
-        "title": "?????",
-        "desc": "?????????????????????????"
+        "title": "工具标签页",
+        "desc": "在不同工具模块之间切换，例如封面生成器、工坊描述生成器等。"
       },
       "thumbnail": {
         "canvas": {
-          "title": "????",
-          "desc": "?????????????????????????????"
+          "title": "设计画布",
+          "desc": "这里是你的主要工作区域，把背景图拖进来就可以开始设计。"
         },
         "toolbox": {
-          "title": "??????",
-          "desc": "????????????????????????????????? Mod ???"
+          "title": "工具箱",
+          "desc": "通过几个简单操作，把旗帜、文字或其他元素快速叠加到你的 Mod 封面上。"
         },
         "drag": {
-          "title": "????",
-          "desc": "??????????????? Logo ???????"
+          "title": "拖拽上传",
+          "desc": "把背景图拖到这里，再叠加你的 Logo 或其他素材。"
         }
       }
     }
@@ -902,7 +902,24 @@
       "title": "检测到本地断点续传文件",
       "desc": "发现这组翻译存在可继续使用的本地进度，上次已完成 {{count}} 个文件。如需接着上次进度继续，请开启断点续传。",
       "enable": "开启断点续传"
-    }
+    },
+    "resume_detail_title": "断点续传详情",
+    "resume_detail_subtitle": "默认收起，展开后可查看上次中断的时间与进度。",
+    "resume_detail_completed": "已完成文件：{{count}}",
+    "resume_detail_batch": "上次批次：{{current}} / {{total}}",
+    "resume_detail_time": "上次保存：{{time}}",
+    "resume_detail_file": "最后完成文件：{{file}}",
+    "embedded_workshop_enabled": "在翻译工作流中嵌入智能工坊格式校对",
+    "embedded_workshop_enabled_desc": "默认开启。翻译完成后会自动执行一轮格式问题修复，再生成最新的校验结果。",
+    "embedded_workshop_settings": "智能工坊设置",
+    "embedded_workshop_settings_desc": "默认收起。展开后可微调校对设置，并可改成和翻译模型不同的组合。",
+    "embedded_workshop_follow": "默认跟随当前翻译 API 与模型",
+    "embedded_workshop_follow_desc": "关闭后可单独指定校对模型，例如大模型翻译、小模型校对。",
+    "embedded_workshop_provider": "校对 API",
+    "embedded_workshop_model": "校对模型",
+    "embedded_workshop_batch_size": "每批修复条数",
+    "embedded_workshop_concurrency": "校对并发",
+    "embedded_workshop_rpm": "校对 RPM"
   },
   "version_info": {
     "tab_title": "版本信息",
@@ -1019,8 +1036,8 @@
       "status_idle": "准备就绪",
       "checkpoint_detected": "检测到翻译断点 (已完成 {{count}} 个文件)"
     },
-    "scanning_files": "??????...",
-    "everything_up_to_date": "????????????"
+    "scanning_files": "正在扫描文件...",
+    "everything_up_to_date": "所有内容都已是最新状态"
   },
   "project_management.incremental_update_title": "增量更新 (Incremental Update)",
   "project_management.incremental_update_desc": "分析源码变更并仅翻译新增或修改条目，自动复用已有历史记录（包含跨项目智能复用）。",
@@ -1080,6 +1097,7 @@
     "status_processing": "正在处理任务...",
     "status_idle": "准备就绪",
     "checkpoint_detected": "检测到翻译断点 (已完成 {{count}} 个文件)",
+    "resume_detail_subtitle": "展开后可查看上次断点续传完成到什么时间、什么批次。",
     "target_lang_desc": "增量更新目前只支持已归档过的目标语言。",
     "pre_scan_bootstrap_log": "[系统] 正在创建预扫描任务...",
     "pre_scan_in_progress": "正在检查新版模组内容",
@@ -1260,11 +1278,13 @@
   "recent_activity_type_translate": "增量更新",
   "common": {
     "search": "搜索",
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "expand": "展开",
+    "collapse": "收起"
   },
-  "nav_home": "??",
-  "api_model_select_label": "??????",
-  "api_model_select_placeholder": "????????",
-  "api_model_select_description": "??????????????????",
-  "api_models_description": "?????????????????"
+  "nav_home": "首页",
+  "api_model_select_label": "模型选择",
+  "api_model_select_placeholder": "请选择模型",
+  "api_model_select_description": "从当前提供商可用的模型中选择一个。",
+  "api_models_description": "你也可以在这里自定义并管理可用模型列表。"
 }

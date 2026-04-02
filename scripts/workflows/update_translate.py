@@ -15,6 +15,7 @@ from scripts.core.services.incremental_package_service import IncrementalPackage
 from scripts.core.services.incremental_preparation_service import IncrementalPreparationService
 from scripts.core.services.incremental_translation_service import IncrementalTranslationService
 from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService
+from scripts.core.services.embedded_workshop_service import run_embedded_workshop
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,7 @@ async def run_incremental_update(
     dry_run: bool = False,
     custom_source_path: Optional[str] = None,
     use_resume: bool = True,
+    embedded_workshop: Optional[Dict[str, Any]] = None,
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None
 ) -> Dict[str, Any]:
     """
@@ -285,6 +287,39 @@ async def run_incremental_update(
             workflow="incremental",
             project_name=project_name,
         )
+        if embedded_workshop and embedded_workshop.get("enabled", True):
+            try:
+                workshop_summary = await run_embedded_workshop(
+                    output_root=lang_output_dir,
+                    source_root=source_path,
+                    project_id=project_id,
+                    project_name=project_name,
+                    source_lang_info=source_lang_info,
+                    target_lang_info=target_lang_info,
+                    game_profile=game_profile,
+                    workflow="incremental",
+                    config=embedded_workshop,
+                    fallback_provider=selected_provider,
+                    fallback_model=model_name,
+                )
+                export_result = {
+                    **export_result,
+                    "issue_count": workshop_summary.get("remaining_count", export_result.get("issue_count", 0)),
+                    "issues_path": workshop_summary.get("issues_path", export_result.get("issues_path")),
+                    "sidecar_path": workshop_summary.get("sidecar_path", export_result.get("sidecar_path")),
+                    "embedded_workshop": workshop_summary,
+                }
+                logger.info(
+                    "Embedded workshop finished for %s: fixed=%s failed=%s remaining=%s provider=%s model=%s",
+                    target_lang_code,
+                    workshop_summary.get("fixed_count", 0),
+                    workshop_summary.get("failed_count", 0),
+                    workshop_summary.get("remaining_count", 0),
+                    workshop_summary.get("provider"),
+                    workshop_summary.get("model"),
+                )
+            except Exception as exc:
+                logger.error("Embedded workshop failed for %s: %s", target_lang_code, exc)
         lang_telemetry["workshop_issue_count"] = export_result.get("issue_count", 0)
         lang_telemetry["workshop_issues_path"] = export_result.get("issues_path")
         per_language_exports.append({

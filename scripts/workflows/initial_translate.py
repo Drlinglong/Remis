@@ -13,6 +13,7 @@ from scripts.core.loc_parser import parse_loc_file
 from scripts.core.archive_manager import archive_manager
 from scripts.core.checkpoint_manager import CheckpointManager
 from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService
+from scripts.core.services.embedded_workshop_service import run_embedded_workshop
 from scripts.shared.services import project_manager
 from scripts.app_settings import SOURCE_DIR, DEST_DIR, LANGUAGES, RECOMMENDED_MAX_WORKERS, ARCHIVE_RESULTS_AFTER_TRANSLATION, CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE, OLLAMA_CHUNK_SIZE, LOCAL_LLM_CHUNK_SIZE
 from scripts.utils import i18n
@@ -34,7 +35,8 @@ def run(mod_name: str,
         progress_callback: Optional[Any] = None,
         override_path: Optional[str] = None,
         use_resume: bool = True,
-        clean_source: bool = False):
+        clean_source: bool = False,
+        embedded_workshop: Optional[dict] = None):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info("Entered initial_translate.run")
     logging.info(f"--- Starting 'Initial Translation' workflow for: {mod_name} ---")
@@ -303,7 +305,14 @@ def run(mod_name: str,
                 # 如果是空文件，直接处理并跳过生成器
                 if not texts:
                     _handle_empty_file(file_data, orig, texts, km, source_lang, target_lang, game_profile, output_folder_name, mod_name, proofreading_tracker)
-                    checkpoint_manager.mark_file_completed(file_data["filename"])
+                    checkpoint_manager.mark_file_completed(
+                        file_data["filename"],
+                        {
+                            "current_batch": completed_batches,
+                            "total_batches": translation_progress_total,
+                            "current_target_lang": target_lang.get("code"),
+                        }
+                    )
                     # Update progress for empty files
                     nonlocal processed_files_count
                     processed_files_count += 1
@@ -411,7 +420,14 @@ def run(mod_name: str,
 
                 # 标记断点（仅在成功时标记，失败的文件下次续传时需要重新翻译）
                 if not is_failed:
-                    checkpoint_manager.mark_file_completed(file_task.filename)
+                    checkpoint_manager.mark_file_completed(
+                        file_task.filename,
+                        {
+                            "current_batch": completed_batches,
+                            "total_batches": translation_progress_total,
+                            "current_target_lang": target_lang.get("code"),
+                        }
+                    )
 
                 # --- [SYNC] Update Database Status ---
                 if project_id:
@@ -461,6 +477,34 @@ def run(mod_name: str,
             f"Exported {export_result.get('issue_count', 0)} workshop issues for "
             f"{target_lang.get('code')} to {export_result.get('issues_path')}"
         )
+
+        if embedded_workshop and embedded_workshop.get("enabled", True):
+            try:
+                workshop_summary = asyncio.run(run_embedded_workshop(
+                    output_root=output_dir_path,
+                    source_root=override_path if override_path else os.path.join(SOURCE_DIR, mod_name),
+                    project_id=project_id,
+                    project_name=archive_mod_name,
+                    source_lang_info=source_lang,
+                    target_lang_info=target_lang,
+                    game_profile=game_profile,
+                    workflow="initial",
+                    config=embedded_workshop,
+                    fallback_provider=selected_provider,
+                    fallback_model=model_name,
+                ))
+                logging.info(
+                    "Embedded workshop finished for %s: fixed=%s failed=%s remaining=%s provider=%s model=%s",
+                    target_lang.get("code"),
+                    workshop_summary.get("fixed_count", 0),
+                    workshop_summary.get("failed_count", 0),
+                    workshop_summary.get("remaining_count", 0),
+                    workshop_summary.get("provider"),
+                    workshop_summary.get("model"),
+                )
+            except Exception as exc:
+                logging.error("Embedded workshop failed for %s: %s", target_lang.get("code"), exc)
+
         checkpoint_manager.clear_checkpoint()
 
     if is_batch_mode:

@@ -315,6 +315,7 @@ class ProjectManager:
             dry_run=config.dry_run,
             custom_source_path=config.custom_source_path,
             use_resume=config.use_resume,
+            embedded_workshop=config.embedded_workshop.model_dump() if config.embedded_workshop else None,
             progress_callback=progress_callback
         )
 

@@ -83,6 +83,8 @@ const InitialTranslation = () => {
   const [resultUrl, setResultUrl] = useState(null);
   const [availableGlossaries, setAvailableGlossaries] = useState([]);
   const [availableModels, setAvailableModels] = useState([]);
+  const [showWorkshopSettings, setShowWorkshopSettings] = useState(false);
+  const [showResumeDetails, setShowResumeDetails] = useState(false);
 
   // Resume Modal State
   const [resumeModalOpen, setResumeModalOpen] = useState(false);
@@ -102,6 +104,13 @@ const InitialTranslation = () => {
       use_main_glossary: true,
       clean_source: false,
       use_resume: false,
+      embedded_workshop_enabled: true,
+      embedded_workshop_follow_primary_settings: true,
+      embedded_workshop_api_provider: '',
+      embedded_workshop_api_model: '',
+      embedded_workshop_batch_size_limit: '10',
+      embedded_workshop_concurrency_limit: '1',
+      embedded_workshop_rpm_limit: '40',
       // Custom Language Fields
       custom_name: '',
       custom_key: 'l_english',
@@ -266,6 +275,51 @@ const InitialTranslation = () => {
 
   // Polling Logic removed from here (now in TranslationContext)
 
+  const getProviderModels = React.useCallback((providerValue) => {
+    const providerConfig = config.api_providers.find((provider) => provider.value === providerValue);
+    if (!providerConfig) return [];
+
+    const availableModelsList = providerConfig.available_models || [];
+    const customModelsList = providerConfig.custom_models || [];
+    const combinedModels = [...new Set([...availableModelsList, ...customModelsList])];
+
+    if (providerConfig.selected_model && !combinedModels.includes(providerConfig.selected_model)) {
+      combinedModels.unshift(providerConfig.selected_model);
+    }
+    if (providerConfig.default_model && !combinedModels.includes(providerConfig.default_model)) {
+      combinedModels.unshift(providerConfig.default_model);
+    }
+
+    return combinedModels.map((model) => ({ value: model, label: model }));
+  }, [config.api_providers]);
+
+  const embeddedWorkshopModels = getProviderModels(
+    form.values.embedded_workshop_follow_primary_settings
+      ? form.values.api_provider
+      : form.values.embedded_workshop_api_provider
+  );
+
+  useEffect(() => {
+    if (form.values.embedded_workshop_follow_primary_settings) {
+      return;
+    }
+
+    const providerValue = form.values.embedded_workshop_api_provider;
+    if (!providerValue) return;
+
+    const models = getProviderModels(providerValue);
+    const hasCurrentModel = models.some((item) => item.value === form.values.embedded_workshop_api_model);
+    if (!hasCurrentModel && models.length > 0) {
+      form.setFieldValue('embedded_workshop_api_model', models[0].value);
+    }
+  }, [
+    config.api_providers,
+    form.values.embedded_workshop_api_model,
+    form.values.embedded_workshop_api_provider,
+    form.values.embedded_workshop_follow_primary_settings,
+    getProviderModels,
+  ]);
+
   const handleProjectSelect = (projectId) => {
     const project = projects.find(p => p.value === projectId);
     if (project) {
@@ -375,6 +429,15 @@ const InitialTranslation = () => {
       use_main_glossary: values.use_main_glossary,
       clean_source: values.clean_source,
       use_resume: values.use_resume,
+      embedded_workshop: {
+        enabled: values.embedded_workshop_enabled,
+        follow_primary_settings: values.embedded_workshop_follow_primary_settings,
+        api_provider: values.embedded_workshop_follow_primary_settings ? null : values.embedded_workshop_api_provider,
+        api_model: values.embedded_workshop_follow_primary_settings ? null : values.embedded_workshop_api_model,
+        batch_size_limit: Number(values.embedded_workshop_batch_size_limit),
+        concurrency_limit: Number(values.embedded_workshop_concurrency_limit),
+        rpm_limit: Number(values.embedded_workshop_rpm_limit),
+      },
     };
 
     if (values.english_disguise) {
@@ -768,6 +831,149 @@ const InitialTranslation = () => {
                                 </Stack>
                               </Alert>
                             )}
+                            {checkpointHintInfo && (
+                              <Card withBorder p="sm" radius="md">
+                                <Stack gap="xs">
+                                  <Group justify="space-between" wrap="nowrap">
+                                    <div>
+                                      <Text fw={600}>
+                                        {t('translation_page.resume_detail_title', { defaultValue: '断点续传详情' })}
+                                      </Text>
+                                      <Text size="xs" c="dimmed">
+                                        {t('translation_page.resume_detail_subtitle', { defaultValue: '默认收起，展开后可查看上次中断的时间与进度。' })}
+                                      </Text>
+                                    </div>
+                                    <Button
+                                      variant="subtle"
+                                      size="xs"
+                                      rightSection={showResumeDetails ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+                                      onClick={() => setShowResumeDetails((value) => !value)}
+                                    >
+                                      {showResumeDetails
+                                        ? t('common.collapse', { defaultValue: '收起' })
+                                        : t('common.expand', { defaultValue: '展开' })}
+                                    </Button>
+                                  </Group>
+                                  <Collapse in={showResumeDetails}>
+                                    <Stack gap="xs" pt="xs">
+                                      {(checkpointHintInfo.targets || []).map((target) => (
+                                        <Card key={target.target_lang_code} withBorder p="sm" radius="md">
+                                          <Stack gap={4}>
+                                            <Text size="sm" fw={600}>{target.target_lang_code}</Text>
+                                            <Text size="sm">
+                                              {t('translation_page.resume_detail_completed', {
+                                                defaultValue: '已完成文件：{{count}}',
+                                                count: target.completed_count ?? 0,
+                                              })}
+                                            </Text>
+                                            <Text size="sm">
+                                              {t('translation_page.resume_detail_batch', {
+                                                defaultValue: '上次批次：{{current}} / {{total}}',
+                                                current: target.metadata?.current_batch ?? 0,
+                                                total: target.metadata?.total_batches ?? 0,
+                                              })}
+                                            </Text>
+                                            <Text size="sm">
+                                              {t('translation_page.resume_detail_time', {
+                                                defaultValue: '上次保存：{{time}}',
+                                                time: target.last_saved_at || target.metadata?.last_saved_at || '--',
+                                              })}
+                                            </Text>
+                                            <Text size="sm">
+                                              {t('translation_page.resume_detail_file', {
+                                                defaultValue: '最后完成文件：{{file}}',
+                                                file: target.last_completed_file || target.metadata?.last_completed_file || '--',
+                                              })}
+                                            </Text>
+                                          </Stack>
+                                        </Card>
+                                      ))}
+                                    </Stack>
+                                  </Collapse>
+                                </Stack>
+                              </Card>
+                            )}
+                            <Card withBorder p="sm" radius="md">
+                              <Stack gap="xs">
+                                <Switch
+                                  label={t('translation_page.embedded_workshop_enabled', { defaultValue: '在翻译工作流中嵌入智能工坊格式校对' })}
+                                  description={t('translation_page.embedded_workshop_enabled_desc', { defaultValue: '默认开启。翻译完成后会自动执行一轮格式问题修复，再生成最新的校验结果。' })}
+                                  checked={form.values.embedded_workshop_enabled}
+                                  onChange={(event) => form.setFieldValue('embedded_workshop_enabled', event.currentTarget.checked)}
+                                />
+                                <Group justify="space-between" wrap="nowrap">
+                                  <div>
+                                    <Text size="sm" fw={500}>
+                                      {t('translation_page.embedded_workshop_settings', { defaultValue: '智能工坊设置' })}
+                                    </Text>
+                                    <Text size="xs" c="dimmed">
+                                      {t('translation_page.embedded_workshop_settings_desc', { defaultValue: '默认收起。展开后可把校对模型改成和翻译模型不同的组合。' })}
+                                    </Text>
+                                  </div>
+                                  <Button
+                                    variant="subtle"
+                                    size="xs"
+                                    rightSection={showWorkshopSettings ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+                                    onClick={() => setShowWorkshopSettings((value) => !value)}
+                                  >
+                                    {showWorkshopSettings
+                                      ? t('common.collapse', { defaultValue: '收起' })
+                                      : t('common.expand', { defaultValue: '展开' })}
+                                  </Button>
+                                </Group>
+                                <Collapse in={showWorkshopSettings}>
+                                  <Stack gap="sm" pt="xs">
+                                    <Switch
+                                      label={t('translation_page.embedded_workshop_follow', { defaultValue: '默认跟随当前翻译 API 与模型' })}
+                                      description={t('translation_page.embedded_workshop_follow_desc', { defaultValue: '关闭后可单独指定校对模型，例如大模型翻译、小模型校对。' })}
+                                      checked={form.values.embedded_workshop_follow_primary_settings}
+                                      onChange={(event) => form.setFieldValue('embedded_workshop_follow_primary_settings', event.currentTarget.checked)}
+                                    />
+                                    {!form.values.embedded_workshop_follow_primary_settings && (
+                                      <Group grow align="flex-end">
+                                        <Select
+                                          label={t('translation_page.embedded_workshop_provider', { defaultValue: '校对 API' })}
+                                          data={config.api_providers.filter((provider) => provider.value !== 'hunyuan' || FEATURES.ENABLE_HUNYUAN_PROVIDER)}
+                                          value={form.values.embedded_workshop_api_provider}
+                                          onChange={(value) => {
+                                            form.setFieldValue('embedded_workshop_api_provider', value || '');
+                                            const models = getProviderModels(value || '');
+                                            form.setFieldValue('embedded_workshop_api_model', models[0]?.value || '');
+                                          }}
+                                        />
+                                        <Select
+                                          label={t('translation_page.embedded_workshop_model', { defaultValue: '校对模型' })}
+                                          data={embeddedWorkshopModels}
+                                          value={form.values.embedded_workshop_api_model}
+                                          onChange={(value) => form.setFieldValue('embedded_workshop_api_model', value || '')}
+                                          searchable
+                                        />
+                                      </Group>
+                                    )}
+                                    <Group grow align="flex-end">
+                                      <Select
+                                        label={t('translation_page.embedded_workshop_batch_size', { defaultValue: '每批修复条数' })}
+                                        data={['3', '5', '10', '15', '20'].map((value) => ({ value, label: value }))}
+                                        value={form.values.embedded_workshop_batch_size_limit}
+                                        onChange={(value) => form.setFieldValue('embedded_workshop_batch_size_limit', value || '10')}
+                                      />
+                                      <Select
+                                        label={t('translation_page.embedded_workshop_concurrency', { defaultValue: '校对并发' })}
+                                        data={['1', '2', '3', '5'].map((value) => ({ value, label: value }))}
+                                        value={form.values.embedded_workshop_concurrency_limit}
+                                        onChange={(value) => form.setFieldValue('embedded_workshop_concurrency_limit', value || '1')}
+                                      />
+                                      <Select
+                                        label={t('translation_page.embedded_workshop_rpm', { defaultValue: '校对 RPM' })}
+                                        data={['5', '10', '20', '40', '60', '100'].map((value) => ({ value, label: value }))}
+                                        value={form.values.embedded_workshop_rpm_limit}
+                                        onChange={(value) => form.setFieldValue('embedded_workshop_rpm_limit', value || '40')}
+                                      />
+                                    </Group>
+                                  </Stack>
+                                </Collapse>
+                              </Stack>
+                            </Card>
                           </Stack>
 
                           <MultiSelect

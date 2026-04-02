@@ -20,6 +20,7 @@ import {
     Accordion,
     Box,
     Switch,
+    Collapse,
 } from '@mantine/core';
 import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, IconPlayerPlay, IconChartBar, IconSettings } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -1290,40 +1291,36 @@ const IncrementalTranslationPage = () => {
                                                             : t('common.expand', { defaultValue: '展开' })}
                                                     </Button>
                                                 </Group>
-                                                <Accordion value={showResumeDetails ? 'resume-details' : null}>
-                                                    <Accordion.Item value="resume-details">
-                                                        <Accordion.Panel px={0}>
-                                                            <Stack gap="xs">
-                                                                {(checkpointInfo?.targets || []).map((target) => (
-                                                                    <Card key={target.target_lang_code} withBorder p="sm" radius="md">
-                                                                        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-                                                                            <Box>
-                                                                                <Text size="xs" c="dimmed">{t('translation_config.target_languages')}</Text>
-                                                                                <Text size="sm" fw={600}>{target.target_lang_code}</Text>
-                                                                            </Box>
-                                                                            <Box>
-                                                                                <Text size="xs" c="dimmed">{t('translation_page.resume_detail_completed', { defaultValue: '已完成文件' })}</Text>
-                                                                                <Text size="sm">{target.completed_count ?? 0}</Text>
-                                                                            </Box>
-                                                                            <Box>
-                                                                                <Text size="xs" c="dimmed">{t('translation_page.resume_detail_batch', { defaultValue: '上次批次' })}</Text>
-                                                                                <Text size="sm">{`${target.metadata?.current_batch ?? 0} / ${target.metadata?.total_batches ?? 0}`}</Text>
-                                                                            </Box>
-                                                                            <Box>
-                                                                                <Text size="xs" c="dimmed">{t('translation_page.resume_detail_time', { defaultValue: '上次保存' })}</Text>
-                                                                                <Text size="sm">{target.last_saved_at || target.metadata?.last_saved_at || '--'}</Text>
-                                                                            </Box>
-                                                                            <Box style={{ gridColumn: '1 / -1' }}>
-                                                                                <Text size="xs" c="dimmed">{t('translation_page.resume_detail_file', { defaultValue: '最后完成文件' })}</Text>
-                                                                                <Text size="sm">{target.last_completed_file || target.metadata?.last_completed_file || '--'}</Text>
-                                                                            </Box>
-                                                                        </SimpleGrid>
-                                                                    </Card>
-                                                                ))}
-                                                            </Stack>
-                                                        </Accordion.Panel>
-                                                    </Accordion.Item>
-                                                </Accordion>
+                                                <Collapse in={showResumeDetails}>
+                                                    <Stack gap="xs">
+                                                        {(checkpointInfo?.targets || []).map((target) => (
+                                                            <Card key={target.target_lang_code} withBorder p="sm" radius="md">
+                                                                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+                                                                    <Box>
+                                                                        <Text size="xs" c="dimmed">{t('translation_config.target_languages')}</Text>
+                                                                        <Text size="sm" fw={600}>{target.target_lang_code}</Text>
+                                                                    </Box>
+                                                                    <Box>
+                                                                        <Text size="xs" c="dimmed">{t('translation_page.resume_detail_completed', { defaultValue: '已完成文件' })}</Text>
+                                                                        <Text size="sm">{target.completed_count ?? 0}</Text>
+                                                                    </Box>
+                                                                    <Box>
+                                                                        <Text size="xs" c="dimmed">{t('translation_page.resume_detail_batch', { defaultValue: '上次批次' })}</Text>
+                                                                        <Text size="sm">{`${target.metadata?.current_batch ?? 0} / ${target.metadata?.total_batches ?? 0}`}</Text>
+                                                                    </Box>
+                                                                    <Box>
+                                                                        <Text size="xs" c="dimmed">{t('translation_page.resume_detail_time', { defaultValue: '上次保存' })}</Text>
+                                                                        <Text size="sm">{target.last_saved_at || target.metadata?.last_saved_at || '--'}</Text>
+                                                                    </Box>
+                                                                    <Box style={{ gridColumn: '1 / -1' }}>
+                                                                        <Text size="xs" c="dimmed">{t('translation_page.resume_detail_file', { defaultValue: '最后完成文件' })}</Text>
+                                                                        <Text size="sm">{target.last_completed_file || target.metadata?.last_completed_file || '--'}</Text>
+                                                                    </Box>
+                                                                </SimpleGrid>
+                                                            </Card>
+                                                        ))}
+                                                    </Stack>
+                                                </Collapse>
                                             </Stack>
                                         </Alert>
                                     )}
@@ -1355,60 +1352,56 @@ const IncrementalTranslationPage = () => {
                                                         : t('common.expand', { defaultValue: '展开' })}
                                                 </Button>
                                             </Group>
-                                            <Accordion value={showWorkshopSettings ? 'workshop-settings' : null}>
-                                                <Accordion.Item value="workshop-settings">
-                                                    <Accordion.Panel px={0}>
-                                                        <Stack gap="sm">
-                                                            <Switch
-                                                                label={t('translation_page.embedded_workshop_follow', { defaultValue: '默认跟随当前翻译 API 与模型' })}
-                                                                description={t('translation_page.embedded_workshop_follow_desc', { defaultValue: '关闭后可以改成独立校对模型，例如大模型翻译、小模型校对。' })}
-                                                                checked={embeddedWorkshopFollowPrimary}
-                                                                onChange={(event) => setEmbeddedWorkshopFollowPrimary(event.currentTarget.checked)}
+                                            <Collapse in={showWorkshopSettings}>
+                                                <Stack gap="sm">
+                                                    <Switch
+                                                        label={t('translation_page.embedded_workshop_follow', { defaultValue: '默认跟随当前翻译 API 与模型' })}
+                                                        description={t('translation_page.embedded_workshop_follow_desc', { defaultValue: '关闭后可以改成独立校对模型，例如大模型翻译、小模型校对。' })}
+                                                        checked={embeddedWorkshopFollowPrimary}
+                                                        onChange={(event) => setEmbeddedWorkshopFollowPrimary(event.currentTarget.checked)}
+                                                    />
+                                                    {!embeddedWorkshopFollowPrimary && (
+                                                        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+                                                            <Select
+                                                                label={t('translation_page.embedded_workshop_provider', { defaultValue: '校对 API' })}
+                                                                data={apiProviders.map((provider) => ({ value: provider.value, label: provider.label }))}
+                                                                value={embeddedWorkshopProvider}
+                                                                onChange={(value) => {
+                                                                    setEmbeddedWorkshopProvider(value || '');
+                                                                    setEmbeddedWorkshopModel(resolveProviderModels(value || '')[0] || '');
+                                                                }}
                                                             />
-                                                            {!embeddedWorkshopFollowPrimary && (
-                                                                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-                                                                    <Select
-                                                                        label={t('translation_page.embedded_workshop_provider', { defaultValue: '校对 API' })}
-                                                                        data={apiProviders.map((provider) => ({ value: provider.value, label: provider.label }))}
-                                                                        value={embeddedWorkshopProvider}
-                                                                        onChange={(value) => {
-                                                                            setEmbeddedWorkshopProvider(value || '');
-                                                                            setEmbeddedWorkshopModel(resolveProviderModels(value || '')[0] || '');
-                                                                        }}
-                                                                    />
-                                                                    <Select
-                                                                        label={t('translation_page.embedded_workshop_model', { defaultValue: '校对模型' })}
-                                                                        data={resolveProviderModels(embeddedWorkshopProvider).map((model) => ({ value: model, label: model }))}
-                                                                        value={embeddedWorkshopModel}
-                                                                        onChange={setEmbeddedWorkshopModel}
-                                                                        searchable
-                                                                    />
-                                                                </SimpleGrid>
-                                                            )}
-                                                            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
-                                                                <Select
-                                                                    label={t('translation_page.embedded_workshop_batch_size', { defaultValue: '每批修复条数' })}
-                                                                    data={workshopBatchOptions}
-                                                                    value={embeddedWorkshopBatchSize}
-                                                                    onChange={setEmbeddedWorkshopBatchSize}
-                                                                />
-                                                                <Select
-                                                                    label={t('translation_page.embedded_workshop_concurrency', { defaultValue: '校对并发' })}
-                                                                    data={workshopConcurrencyOptions}
-                                                                    value={embeddedWorkshopConcurrency}
-                                                                    onChange={setEmbeddedWorkshopConcurrency}
-                                                                />
-                                                                <Select
-                                                                    label={t('translation_page.embedded_workshop_rpm', { defaultValue: '校对 RPM' })}
-                                                                    data={workshopRpmOptions}
-                                                                    value={embeddedWorkshopRpm}
-                                                                    onChange={setEmbeddedWorkshopRpm}
-                                                                />
-                                                            </SimpleGrid>
-                                                        </Stack>
-                                                    </Accordion.Panel>
-                                                </Accordion.Item>
-                                            </Accordion>
+                                                            <Select
+                                                                label={t('translation_page.embedded_workshop_model', { defaultValue: '校对模型' })}
+                                                                data={resolveProviderModels(embeddedWorkshopProvider).map((model) => ({ value: model, label: model }))}
+                                                                value={embeddedWorkshopModel}
+                                                                onChange={setEmbeddedWorkshopModel}
+                                                                searchable
+                                                            />
+                                                        </SimpleGrid>
+                                                    )}
+                                                    <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+                                                        <Select
+                                                            label={t('translation_page.embedded_workshop_batch_size', { defaultValue: '每批修复条数' })}
+                                                            data={workshopBatchOptions}
+                                                            value={embeddedWorkshopBatchSize}
+                                                            onChange={setEmbeddedWorkshopBatchSize}
+                                                        />
+                                                        <Select
+                                                            label={t('translation_page.embedded_workshop_concurrency', { defaultValue: '校对并发' })}
+                                                            data={workshopConcurrencyOptions}
+                                                            value={embeddedWorkshopConcurrency}
+                                                            onChange={setEmbeddedWorkshopConcurrency}
+                                                        />
+                                                        <Select
+                                                            label={t('translation_page.embedded_workshop_rpm', { defaultValue: '校对 RPM' })}
+                                                            data={workshopRpmOptions}
+                                                            value={embeddedWorkshopRpm}
+                                                            onChange={setEmbeddedWorkshopRpm}
+                                                        />
+                                                    </SimpleGrid>
+                                                </Stack>
+                                            </Collapse>
                                         </Stack>
                                     </Card>
 

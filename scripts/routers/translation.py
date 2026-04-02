@@ -157,7 +157,8 @@ def run_translation_workflow_v2(
     custom_lang_config: Optional[CustomLangConfig] = None,
     project_id: Optional[str] = None,
     use_resume: bool = True,
-    clean_source: bool = False
+    clean_source: bool = False,
+    embedded_workshop: Optional[dict] = None,
 ):
     i18n.load_language('en_US')
     tasks[task_id]["status"] = "processing"
@@ -276,7 +277,7 @@ def run_translation_workflow_v2(
             mod_context=mod_context, selected_glossary_ids=final_glossary_ids,
             model_name=model_name, use_glossary=True, progress_callback=progress_callback,
             override_path=override_path, project_id=project_id, use_resume=use_resume,
-            clean_source=clean_source
+            clean_source=clean_source, embedded_workshop=embedded_workshop
         )
         logging.info("Returned from initial_translate.run")
         tasks[task_id]["output_dirs"] = _get_output_directories(mod_name, target_languages)
@@ -344,7 +345,8 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         request.custom_lang_config,
         project_id=request.project_id,
         use_resume=request.use_resume,
-        clean_source=request.clean_source
+        clean_source=request.clean_source,
+        embedded_workshop=request.embedded_workshop.model_dump() if request.embedded_workshop else None,
     )
 
     # Auto-register translation path (Optimistic registration)
@@ -461,7 +463,8 @@ async def start_translation_v2(
         payload.custom_lang_config,
         project_id=None, # Path-based upload might not have project ID
         use_resume=payload.use_resume,
-        clean_source=payload.clean_source
+        clean_source=payload.clean_source,
+        embedded_workshop=payload.embedded_workshop.model_dump() if payload.embedded_workshop else None,
     )
 
     return {"task_id": task_id, "message": "翻译任务已开始"}
