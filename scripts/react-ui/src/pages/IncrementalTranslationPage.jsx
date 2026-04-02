@@ -19,6 +19,7 @@ import {
     MultiSelect,
     Accordion,
     Box,
+    Switch,
 } from '@mantine/core';
 import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, IconPlayerPlay, IconChartBar, IconSettings } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -69,7 +70,17 @@ const IncrementalTranslationPage = () => {
     const [currentTaskMode, setCurrentTaskMode] = useState(null);
     const logScrollRef = useRef(null);
     const [checkpointFound, setCheckpointFound] = useState(false);
+    const [checkpointInfo, setCheckpointInfo] = useState(null);
     const [useResume, setUseResume] = useState(true);
+    const [showResumeDetails, setShowResumeDetails] = useState(false);
+    const [embeddedWorkshopEnabled, setEmbeddedWorkshopEnabled] = useState(true);
+    const [embeddedWorkshopFollowPrimary, setEmbeddedWorkshopFollowPrimary] = useState(true);
+    const [embeddedWorkshopProvider, setEmbeddedWorkshopProvider] = useState('');
+    const [embeddedWorkshopModel, setEmbeddedWorkshopModel] = useState('');
+    const [embeddedWorkshopBatchSize, setEmbeddedWorkshopBatchSize] = useState('10');
+    const [embeddedWorkshopConcurrency, setEmbeddedWorkshopConcurrency] = useState('1');
+    const [embeddedWorkshopRpm, setEmbeddedWorkshopRpm] = useState('40');
+    const [showWorkshopSettings, setShowWorkshopSettings] = useState(false);
     const wsRef = useRef(null);
     const pollTimerRef = useRef(null);
     const logViewportRef = useRef(null);
@@ -84,6 +95,9 @@ const IncrementalTranslationPage = () => {
     const [configLoaded, setConfigLoaded] = useState(false);
     const concurrencyOptions = ['1', '2', '5', '10', '20', '50'].map((value) => ({ value, label: value }));
     const rpmOptions = ['5', '10', '20', '30', '50', '100'].map((value) => ({ value, label: value }));
+    const workshopBatchOptions = ['3', '5', '10', '15', '20'].map((value) => ({ value, label: value }));
+    const workshopConcurrencyOptions = ['1', '2', '3', '5'].map((value) => ({ value, label: value }));
+    const workshopRpmOptions = ['5', '10', '20', '40', '60', '100'].map((value) => ({ value, label: value }));
     const filteredProjects = useMemo(() => {
         const normalizedQuery = searchQuery.trim().toLowerCase();
         return projects.filter((project) => {
@@ -257,7 +271,17 @@ const IncrementalTranslationPage = () => {
 
     const resolveProviderModels = useCallback((providerValue) => {
         const providerData = apiProviders.find((provider) => provider.value === providerValue);
-        return providerData ? (providerData.available_models || providerData.custom_models || []) : [];
+        if (!providerData) return [];
+        const availableModels = providerData.available_models || [];
+        const customModels = providerData.custom_models || [];
+        const merged = [...new Set([...availableModels, ...customModels])];
+        if (providerData.selected_model && !merged.includes(providerData.selected_model)) {
+            merged.unshift(providerData.selected_model);
+        }
+        if (providerData.default_model && !merged.includes(providerData.default_model)) {
+            merged.unshift(providerData.default_model);
+        }
+        return merged;
     }, [apiProviders]);
 
     const applyProviderSelection = useCallback((providerValue, preferredModel = '', preferredConcurrency = null) => {
@@ -277,6 +301,30 @@ const IncrementalTranslationPage = () => {
             setConcurrencyLimit(LOCAL_PROVIDERS.includes(nextProvider) ? '1' : '10');
         }
     }, [resolveProviderModels]);
+
+    useEffect(() => {
+        if (embeddedWorkshopFollowPrimary) {
+            return;
+        }
+
+        const modelsForProvider = resolveProviderModels(embeddedWorkshopProvider);
+        if (!embeddedWorkshopProvider && apiProviders.length > 0) {
+            const providerValue = apiProviders[0]?.value || '';
+            setEmbeddedWorkshopProvider(providerValue);
+            setEmbeddedWorkshopModel(resolveProviderModels(providerValue)[0] || '');
+            return;
+        }
+
+        if (modelsForProvider.length > 0 && !modelsForProvider.includes(embeddedWorkshopModel)) {
+            setEmbeddedWorkshopModel(modelsForProvider[0]);
+        }
+    }, [
+        apiProviders,
+        embeddedWorkshopFollowPrimary,
+        embeddedWorkshopModel,
+        embeddedWorkshopProvider,
+        resolveProviderModels,
+    ]);
 
     const resetPersistedState = useCallback(() => {
         sessionStorage.removeItem(INCREMENTAL_STATE_STORAGE_KEY);
@@ -464,7 +512,17 @@ const IncrementalTranslationPage = () => {
         if (Array.isArray(persistedState.logs)) setLogs(persistedState.logs);
         if (persistedState.finalSummary) setFinalSummary(persistedState.finalSummary);
         if (typeof persistedState.checkpointFound === 'boolean') setCheckpointFound(persistedState.checkpointFound);
+        if (persistedState.checkpointInfo) setCheckpointInfo(persistedState.checkpointInfo);
         if (typeof persistedState.useResume === 'boolean') setUseResume(persistedState.useResume);
+        if (typeof persistedState.showResumeDetails === 'boolean') setShowResumeDetails(persistedState.showResumeDetails);
+        if (typeof persistedState.embeddedWorkshopEnabled === 'boolean') setEmbeddedWorkshopEnabled(persistedState.embeddedWorkshopEnabled);
+        if (typeof persistedState.embeddedWorkshopFollowPrimary === 'boolean') setEmbeddedWorkshopFollowPrimary(persistedState.embeddedWorkshopFollowPrimary);
+        if (persistedState.embeddedWorkshopProvider) setEmbeddedWorkshopProvider(persistedState.embeddedWorkshopProvider);
+        if (persistedState.embeddedWorkshopModel) setEmbeddedWorkshopModel(persistedState.embeddedWorkshopModel);
+        if (persistedState.embeddedWorkshopBatchSize) setEmbeddedWorkshopBatchSize(String(persistedState.embeddedWorkshopBatchSize));
+        if (persistedState.embeddedWorkshopConcurrency) setEmbeddedWorkshopConcurrency(String(persistedState.embeddedWorkshopConcurrency));
+        if (persistedState.embeddedWorkshopRpm) setEmbeddedWorkshopRpm(String(persistedState.embeddedWorkshopRpm));
+        if (typeof persistedState.showWorkshopSettings === 'boolean') setShowWorkshopSettings(persistedState.showWorkshopSettings);
         if (persistedState.currentTaskId) setCurrentTaskId(persistedState.currentTaskId);
         if (persistedState.currentTaskMode) setCurrentTaskMode(persistedState.currentTaskMode);
         if (persistedState.completionSource) completionSourceRef.current = persistedState.completionSource;
@@ -521,7 +579,17 @@ const IncrementalTranslationPage = () => {
             logs,
             finalSummary,
             checkpointFound,
+            checkpointInfo,
             useResume,
+            showResumeDetails,
+            embeddedWorkshopEnabled,
+            embeddedWorkshopFollowPrimary,
+            embeddedWorkshopProvider,
+            embeddedWorkshopModel,
+            embeddedWorkshopBatchSize,
+            embeddedWorkshopConcurrency,
+            embeddedWorkshopRpm,
+            showWorkshopSettings,
             currentTaskId,
             currentTaskMode,
             completionSource: completionSourceRef.current,
@@ -536,10 +604,18 @@ const IncrementalTranslationPage = () => {
         active,
         archiveInfo,
         checkpointFound,
+        checkpointInfo,
         concurrencyLimit,
         currentTaskId,
         currentTaskMode,
         customSourcePath,
+        embeddedWorkshopBatchSize,
+        embeddedWorkshopConcurrency,
+        embeddedWorkshopEnabled,
+        embeddedWorkshopFollowPrimary,
+        embeddedWorkshopModel,
+        embeddedWorkshopProvider,
+        embeddedWorkshopRpm,
         error,
         executing,
         finalSummary,
@@ -553,6 +629,8 @@ const IncrementalTranslationPage = () => {
         selectedModel,
         selectedProject,
         selectedProvider,
+        showResumeDetails,
+        showWorkshopSettings,
         useResume,
     ]);
 
@@ -656,6 +734,7 @@ const IncrementalTranslationPage = () => {
             const normalizedTargetLangs = Array.isArray(targetLangs) ? targetLangs.filter(Boolean) : [];
             if (normalizedTargetLangs.length === 0) {
                 setCheckpointFound(false);
+                setCheckpointInfo(null);
                 return;
             }
             // Determine mod_name for checkpoint lookup
@@ -667,12 +746,15 @@ const IncrementalTranslationPage = () => {
             });
             if (res.data.exists && res.data.completed_count > 0) {
                 setCheckpointFound(true);
+                setCheckpointInfo(res.data);
                 notificationService.info(t('incremental_translation.checkpoint_detected', { count: res.data.completed_count }), notificationStyle);
             } else {
                 setCheckpointFound(false);
+                setCheckpointInfo(null);
             }
         } catch (err) {
             console.error('Failed to check checkpoint status', err);
+            setCheckpointInfo(null);
         }
     };
 
@@ -708,7 +790,7 @@ const IncrementalTranslationPage = () => {
         try {
             setLoading(true);
             setProgress(0);
-            setProgressInfo({ percent: 0, stage_code: 'initializing', stage: 'Initializing' });
+            setProgressInfo({ percent: 0, stage_code: 'initializing', stage: t('incremental_translation.progress_stage_initializing') });
             setLogs([t('incremental_translation.pre_scan_bootstrap_log')]);
             const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
                 project_id: selectedProject.project_id,
@@ -719,7 +801,16 @@ const IncrementalTranslationPage = () => {
                 concurrency_limit: Number(concurrencyLimit),
                 rpm_limit: Number(rpmLimit),
                 custom_source_path: customSourcePath,
-                use_resume: useResume
+                use_resume: useResume,
+                embedded_workshop: {
+                    enabled: embeddedWorkshopEnabled,
+                    follow_primary_settings: embeddedWorkshopFollowPrimary,
+                    api_provider: embeddedWorkshopFollowPrimary ? null : embeddedWorkshopProvider,
+                    api_model: embeddedWorkshopFollowPrimary ? null : embeddedWorkshopModel,
+                    batch_size_limit: Number(embeddedWorkshopBatchSize),
+                    concurrency_limit: Number(embeddedWorkshopConcurrency),
+                    rpm_limit: Number(embeddedWorkshopRpm),
+                }
             });
 
             const taskId = res.data.task_id;
@@ -759,10 +850,10 @@ const IncrementalTranslationPage = () => {
         executionInFlightRef.current = true;
         setExecuting(true);
         setActive(3);
-        setLogs([`[${new Date().toLocaleTimeString()}] Initializing WebSocket connection...`]);
+        setLogs([`[${new Date().toLocaleTimeString()}] ${t('incremental_translation.status_ws_initializing')}`]);
         setFinalSummary(null);
         setProgress(0);
-        setProgressInfo({ percent: 0, stage_code: 'initializing', stage: 'Initializing' });
+        setProgressInfo({ percent: 0, stage_code: 'initializing', stage: t('incremental_translation.progress_stage_initializing') });
         completionSourceRef.current = null;
 
         try {
@@ -776,12 +867,21 @@ const IncrementalTranslationPage = () => {
                 concurrency_limit: Number(concurrencyLimit),
                 rpm_limit: Number(rpmLimit),
                 custom_source_path: customSourcePath,
-                use_resume: useResume
+                use_resume: useResume,
+                embedded_workshop: {
+                    enabled: embeddedWorkshopEnabled,
+                    follow_primary_settings: embeddedWorkshopFollowPrimary,
+                    api_provider: embeddedWorkshopFollowPrimary ? null : embeddedWorkshopProvider,
+                    api_model: embeddedWorkshopFollowPrimary ? null : embeddedWorkshopModel,
+                    batch_size_limit: Number(embeddedWorkshopBatchSize),
+                    concurrency_limit: Number(embeddedWorkshopConcurrency),
+                    rpm_limit: Number(embeddedWorkshopRpm),
+                }
             });
 
             const taskId = res.data.task_id;
             if (!taskId) {
-                throw new Error("No Task ID returned from server.");
+                throw new Error(t('incremental_translation.task_id_missing'));
             }
 
             setCurrentTaskId(taskId);
@@ -790,7 +890,7 @@ const IncrementalTranslationPage = () => {
             connectWebSocket(taskId);
 
         } catch (err) {
-            addLog(`Critical Error: ${err.message}`, 'error');
+            addLog(t('incremental_translation.critical_error', { message: err.message }));
             setExecuting(false);
             executionInFlightRef.current = false;
         }
@@ -845,7 +945,7 @@ const IncrementalTranslationPage = () => {
             } else {
                 executionInFlightRef.current = false;
                 setFinalSummary(data);
-                addLog(`Translation completed successfully!`);
+                addLog(t('incremental_translation.translation_completed_success'));
                 setProgress(100);
                 setProgressInfo(data.progress || {});
                 setExecuting(false);
@@ -857,7 +957,7 @@ const IncrementalTranslationPage = () => {
             completionSourceRef.current = source;
             console.warn(`Incremental task failed via ${source}.`);
             clearTaskPolling();
-            addLog(`Task failed! Check logs for details.`, 'error');
+            addLog(t('incremental_translation.task_failed_check_logs'));
             if (isPreScan) {
                 preScanInFlightRef.current = false;
                 setCurrentTaskId(null);
@@ -909,7 +1009,7 @@ const IncrementalTranslationPage = () => {
 
         ws.onerror = (err) => {
             console.error('WebSocket Error:', err);
-            addLog('WebSocket connection error. Falling back to polling.', 'error');
+            addLog(t('incremental_translation.status_ws_error'));
         };
 
         ws.onclose = () => {
@@ -985,13 +1085,13 @@ const IncrementalTranslationPage = () => {
                             <Group grow align="flex-end">
                                 <TextInput
                                     label={t('common.search', { defaultValue: 'Search' })}
-                                    placeholder={t('incremental_translation.project_search_placeholder', { defaultValue: 'Search by project, game, path...' })}
+                                    placeholder={t('incremental_translation.project_search_placeholder')}
                                     value={searchQuery}
                                     onChange={(event) => setSearchQuery(event.currentTarget.value)}
                                     leftSection={<IconSearch size={16} />}
                                 />
                                 <Select
-                                    label={t('common.filter_game', { defaultValue: 'Filter by game' })}
+                                    label={t('common.filter_game')}
                                     data={gameFilterOptions}
                                     value={gameFilter}
                                     onChange={(value) => setGameFilter(value || 'all')}
@@ -1026,7 +1126,7 @@ const IncrementalTranslationPage = () => {
                         {filteredProjects.length === 0 && (
                             <Paper withBorder p="xl" radius="md" className={styles.glassCard}>
                                 <Text ta="center" c="dimmed">
-                                    {t('common.nothing_found', { defaultValue: 'Nothing found' })}
+                                    {t('common.nothing_found')}
                                 </Text>
                             </Paper>
                         )}
@@ -1055,7 +1155,7 @@ const IncrementalTranslationPage = () => {
                         )}
 
                         {error && (
-                            <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" radius="md">
+                            <Alert icon={<IconAlertCircle size={16} />} title={t('incremental_translation.error_title')} color="red" radius="md">
                                 {error}
                                 <Box mt="sm">
                                     <Text size="sm">{t('incremental_translation.archive_missing_action')}</Text>
@@ -1164,22 +1264,156 @@ const IncrementalTranslationPage = () => {
 
                                     {checkpointFound && (
                                         <Alert icon={<IconSettings size={16} />} title={t('incremental_translation.checkpoint_found_title')} color="orange" radius="md">
-                                            <Group justify="space-between">
-                                                <Text size="sm">{t('incremental_translation.checkpoint_found_desc')}</Text>
-                                                <Button
-                                                    size="xs"
-                                                    variant={useResume ? "filled" : "outline"}
-                                                    color="orange"
-                                                    onClick={() => setUseResume(!useResume)}
-                                                >
-                                                    {useResume ? t('incremental_translation.resume_enabled') : t('incremental_translation.resume_disabled')}
-                                                </Button>
-                                            </Group>
+                                            <Stack gap="sm">
+                                                <Group justify="space-between">
+                                                    <Text size="sm">{t('incremental_translation.checkpoint_found_desc')}</Text>
+                                                    <Button
+                                                        size="xs"
+                                                        variant={useResume ? "filled" : "outline"}
+                                                        color="orange"
+                                                        onClick={() => setUseResume(!useResume)}
+                                                    >
+                                                        {useResume ? t('incremental_translation.resume_enabled') : t('incremental_translation.resume_disabled')}
+                                                    </Button>
+                                                </Group>
+                                                <Group justify="space-between">
+                                                    <Text size="xs" c="dimmed">
+                                                        {t('incremental_translation.resume_detail_subtitle', { defaultValue: '展开后可查看上次断点续传完成到什么时间、什么批次。' })}
+                                                    </Text>
+                                                    <Button
+                                                        variant="subtle"
+                                                        size="xs"
+                                                        onClick={() => setShowResumeDetails((value) => !value)}
+                                                    >
+                                                        {showResumeDetails
+                                                            ? t('common.collapse', { defaultValue: '收起' })
+                                                            : t('common.expand', { defaultValue: '展开' })}
+                                                    </Button>
+                                                </Group>
+                                                <Accordion value={showResumeDetails ? 'resume-details' : null}>
+                                                    <Accordion.Item value="resume-details">
+                                                        <Accordion.Panel px={0}>
+                                                            <Stack gap="xs">
+                                                                {(checkpointInfo?.targets || []).map((target) => (
+                                                                    <Card key={target.target_lang_code} withBorder p="sm" radius="md">
+                                                                        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+                                                                            <Box>
+                                                                                <Text size="xs" c="dimmed">{t('translation_config.target_languages')}</Text>
+                                                                                <Text size="sm" fw={600}>{target.target_lang_code}</Text>
+                                                                            </Box>
+                                                                            <Box>
+                                                                                <Text size="xs" c="dimmed">{t('translation_page.resume_detail_completed', { defaultValue: '已完成文件' })}</Text>
+                                                                                <Text size="sm">{target.completed_count ?? 0}</Text>
+                                                                            </Box>
+                                                                            <Box>
+                                                                                <Text size="xs" c="dimmed">{t('translation_page.resume_detail_batch', { defaultValue: '上次批次' })}</Text>
+                                                                                <Text size="sm">{`${target.metadata?.current_batch ?? 0} / ${target.metadata?.total_batches ?? 0}`}</Text>
+                                                                            </Box>
+                                                                            <Box>
+                                                                                <Text size="xs" c="dimmed">{t('translation_page.resume_detail_time', { defaultValue: '上次保存' })}</Text>
+                                                                                <Text size="sm">{target.last_saved_at || target.metadata?.last_saved_at || '--'}</Text>
+                                                                            </Box>
+                                                                            <Box style={{ gridColumn: '1 / -1' }}>
+                                                                                <Text size="xs" c="dimmed">{t('translation_page.resume_detail_file', { defaultValue: '最后完成文件' })}</Text>
+                                                                                <Text size="sm">{target.last_completed_file || target.metadata?.last_completed_file || '--'}</Text>
+                                                                            </Box>
+                                                                        </SimpleGrid>
+                                                                    </Card>
+                                                                ))}
+                                                            </Stack>
+                                                        </Accordion.Panel>
+                                                    </Accordion.Item>
+                                                </Accordion>
+                                            </Stack>
                                         </Alert>
                                     )}
 
+                                    <Card withBorder p="md" radius="md">
+                                        <Stack gap="sm">
+                                            <Switch
+                                                label={t('translation_page.embedded_workshop_enabled', { defaultValue: '在增量翻译里嵌入智能工坊格式校对' })}
+                                                description={t('translation_page.embedded_workshop_enabled_desc', { defaultValue: '默认开启。翻译完成后自动进行格式校对与修复，再刷新问题清单。' })}
+                                                checked={embeddedWorkshopEnabled}
+                                                onChange={(event) => setEmbeddedWorkshopEnabled(event.currentTarget.checked)}
+                                            />
+                                            <Group justify="space-between">
+                                                <div>
+                                                    <Text size="sm" fw={600}>
+                                                        {t('translation_page.embedded_workshop_settings', { defaultValue: '智能工坊设置' })}
+                                                    </Text>
+                                                    <Text size="xs" c="dimmed">
+                                                        {t('translation_page.embedded_workshop_settings_desc', { defaultValue: '默认收起。展开后可给校对单独指定模型与速率。' })}
+                                                    </Text>
+                                                </div>
+                                                <Button
+                                                    variant="subtle"
+                                                    size="xs"
+                                                    onClick={() => setShowWorkshopSettings((value) => !value)}
+                                                >
+                                                    {showWorkshopSettings
+                                                        ? t('common.collapse', { defaultValue: '收起' })
+                                                        : t('common.expand', { defaultValue: '展开' })}
+                                                </Button>
+                                            </Group>
+                                            <Accordion value={showWorkshopSettings ? 'workshop-settings' : null}>
+                                                <Accordion.Item value="workshop-settings">
+                                                    <Accordion.Panel px={0}>
+                                                        <Stack gap="sm">
+                                                            <Switch
+                                                                label={t('translation_page.embedded_workshop_follow', { defaultValue: '默认跟随当前翻译 API 与模型' })}
+                                                                description={t('translation_page.embedded_workshop_follow_desc', { defaultValue: '关闭后可以改成独立校对模型，例如大模型翻译、小模型校对。' })}
+                                                                checked={embeddedWorkshopFollowPrimary}
+                                                                onChange={(event) => setEmbeddedWorkshopFollowPrimary(event.currentTarget.checked)}
+                                                            />
+                                                            {!embeddedWorkshopFollowPrimary && (
+                                                                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+                                                                    <Select
+                                                                        label={t('translation_page.embedded_workshop_provider', { defaultValue: '校对 API' })}
+                                                                        data={apiProviders.map((provider) => ({ value: provider.value, label: provider.label }))}
+                                                                        value={embeddedWorkshopProvider}
+                                                                        onChange={(value) => {
+                                                                            setEmbeddedWorkshopProvider(value || '');
+                                                                            setEmbeddedWorkshopModel(resolveProviderModels(value || '')[0] || '');
+                                                                        }}
+                                                                    />
+                                                                    <Select
+                                                                        label={t('translation_page.embedded_workshop_model', { defaultValue: '校对模型' })}
+                                                                        data={resolveProviderModels(embeddedWorkshopProvider).map((model) => ({ value: model, label: model }))}
+                                                                        value={embeddedWorkshopModel}
+                                                                        onChange={setEmbeddedWorkshopModel}
+                                                                        searchable
+                                                                    />
+                                                                </SimpleGrid>
+                                                            )}
+                                                            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+                                                                <Select
+                                                                    label={t('translation_page.embedded_workshop_batch_size', { defaultValue: '每批修复条数' })}
+                                                                    data={workshopBatchOptions}
+                                                                    value={embeddedWorkshopBatchSize}
+                                                                    onChange={setEmbeddedWorkshopBatchSize}
+                                                                />
+                                                                <Select
+                                                                    label={t('translation_page.embedded_workshop_concurrency', { defaultValue: '校对并发' })}
+                                                                    data={workshopConcurrencyOptions}
+                                                                    value={embeddedWorkshopConcurrency}
+                                                                    onChange={setEmbeddedWorkshopConcurrency}
+                                                                />
+                                                                <Select
+                                                                    label={t('translation_page.embedded_workshop_rpm', { defaultValue: '校对 RPM' })}
+                                                                    data={workshopRpmOptions}
+                                                                    value={embeddedWorkshopRpm}
+                                                                    onChange={setEmbeddedWorkshopRpm}
+                                                                />
+                                                            </SimpleGrid>
+                                                        </Stack>
+                                                    </Accordion.Panel>
+                                                </Accordion.Item>
+                                            </Accordion>
+                                        </Stack>
+                                    </Card>
+
                                     <MultiSelect
-                                        label={t('translation_config.target_languages') || "Target Languages"}
+                                        label={t('translation_config.target_languages')}
                                         description={t('incremental_translation.target_lang_desc')}
                                         data={getArchivedTargetLanguages(archiveInfo).map(lang => ({ value: lang, label: lang }))}
                                         value={selectedLangs}

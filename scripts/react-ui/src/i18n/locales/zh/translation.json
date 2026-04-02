@@ -689,6 +689,26 @@
       "api": {
         "title": "API 配置看板",
         "desc": "在这里您可以管理所有 AI 服务提供商。点击卡片右下角的‘配置’按钮即可开始。”"
+      },
+      "api_guide": {
+        "title": "新手入坑：什么是 API Key？",
+        "desc": "API Key 是访问 AI 服务的通行证。没有它软件无法工作。<br/><br/><b>视频教程:</b><br/>请点击下方的按钮观看 Bilibili 或 YouTube 上的保姆级这一教程。<br/><br/><i>注：视频非本软件作者制作，内容可能过时，仅供参考。</i>"
+      },
+      "api_regions": {
+        "title": "服务商与安全警告",
+        "desc": "提示：使用 API 通常是按量计费的。<b>务必保管好 Key</b>，切勿泄露以防产生巨额账单。您可以根据地区选择：国际 (Google/OpenAI)、中国大陆 (DeepSeek/Qwen) 或本地模型 (Ollama)。"
+      },
+      "api_provider": {
+        "title": "配置服务商",
+        "desc": "点击‘配置’按钮即可填入您的 API 密钥并选择默认的翻译模型（如 gemini-3-flash-preview）。输入完 API Key 记得点击保存。"
+      },
+      "api_cost": {
+        "title": "性价比与配额",
+        "desc": "对于大部分翻译任务，无需使用旗舰模型，可以使用性价比较高的模型。同时我们限制了模型的思考额度，以降低 API 花费。"
+      },
+      "version": {
+        "title": "版本与反馈",
+        "desc": "在这里您可以查看当前版本，快速打开日志文件夹或前往 GitHub Issue 区。我们非常欢迎您提出新功能需求或反馈 Bug（请务必附上日志）。"
       }
     },
     "api_guide": {
@@ -710,6 +730,74 @@
     "version": {
       "title": "版本与反馈",
       "desc": "在这里您可以查看当前版本，快速打开日志文件夹或前往 GitHub Issue 区。我们非常欢迎您提出新功能需求或反馈 Bug（请务必附上日志）。"
+    },
+    "project_management": {
+      "list": {
+        "title": "????",
+        "desc": "????????????????"
+      },
+      "create": {
+        "title": "????",
+        "desc": "??????????????????? ?? -> API ?????????"
+      },
+      "new_task": {
+        "title": "????",
+        "desc": "???? Mod ??????????????????????"
+      },
+      "stats": {
+        "title": "????",
+        "desc": "?????????????????????????"
+      },
+      "start": {
+        "title": "?????????",
+        "desc": "?????????????????????? AI ?????"
+      },
+      "paths": {
+        "title": "????",
+        "desc": "????? Mod ???????????"
+      },
+      "tabs": {
+        "title": "????",
+        "desc": "??????????????????????????"
+      }
+    },
+    "translation": {
+      "select": {
+        "title": "????",
+        "desc": "???????????????"
+      },
+      "config": {
+        "title": "????",
+        "desc": "?????????????? AI ???"
+      },
+      "start": {
+        "title": "?????",
+        "desc": "??????????????"
+      },
+      "processing": {
+        "title": "???",
+        "desc": "AI ??????????????????????"
+      }
+    },
+    "tools": {
+      "tabs": {
+        "title": "?????",
+        "desc": "?????????????????????????"
+      },
+      "thumbnail": {
+        "canvas": {
+          "title": "????",
+          "desc": "?????????????????????????????"
+        },
+        "toolbox": {
+          "title": "??????",
+          "desc": "????????????????????????????????? Mod ???"
+        },
+        "drag": {
+          "title": "????",
+          "desc": "??????????????? Logo ???????"
+        }
+      }
     }
   },
   "tools": {
@@ -890,7 +978,49 @@
     "scan_prompt": "点击“重新扫描”以检查本地修改。",
     "title": "项目历史与版本",
     "no_history": "暂无历史记录",
-    "no_history_desc": "重要的项目事件将显示在这里。"
+    "no_history_desc": "重要的项目事件将显示在这里。",
+    "incremental_translation": {
+      "title": "增量翻译",
+      "description": "引导式流程：分析源码变更并仅翻译新增/修改内容。",
+      "step_1_title": "选择项目",
+      "step_1_desc": "选择要更新的现有项目",
+      "step_2_title": "数据校验",
+      "step_2_desc": "检查存档并配置路径",
+      "step_3_title": "预扫描预览",
+      "step_3_desc": "查看变更统计报表",
+      "step_4_title": "正式执行",
+      "step_4_desc": "执行翻译并写入文件",
+      "select_project_first": "请先从列表中选择一个项目",
+      "archive_found": "检测到存档点：版本 {{version}}, 最后更新于 {{date}}",
+      "archive_missing": "未检测到该项目的翻译存档。增量对比失败。",
+      "archive_missing_action": "请先完成一次“初次翻译”或手动“上载已有翻译”以建立存档。",
+      "select_new_folder": "选择新的 Mod 文件夹",
+      "select_new_folder_desc": "包含最新源码的 Mod 目录（通常是更新后的 Mod 文件夹）",
+      "current_folder_info": "当前项目路径：{{path}}",
+      "pre_scan_summary": "预扫描摘要",
+      "scan_directory": "扫描目录",
+      "source_language": "源码语种",
+      "files_to_process": "待处理文件",
+      "reused_count": "可复用（从存档/全库）",
+      "new_count": "新增待翻译",
+      "changed_count": "修改待重翻",
+      "start_translation_confirm": "确认开始翻译？这将会调用 API 产生费用。",
+      "execution_log": "执行日志",
+      "processing_file": "正在处理: {{file}}",
+      "batch_status": "批次 {{current}}/{{total}} 完成...",
+      "completion_title": "增量翻译完成",
+      "output_dir_hint": "结果已保存至 my_translation 目录下生成的模组文件夹。",
+      "checkpoint_found_label": "检测到断点",
+      "checkpoint_found_title": "发现翻译断点",
+      "checkpoint_found_desc": "检测到上次未完成的任务进度。您可以选择从中断处继续翻译，以跳过已完成的文件。",
+      "resume_enabled": "断点续传：开启",
+      "resume_disabled": "断点续传：关闭",
+      "status_processing": "正在处理任务...",
+      "status_idle": "准备就绪",
+      "checkpoint_detected": "检测到翻译断点 (已完成 {{count}} 个文件)"
+    },
+    "scanning_files": "??????...",
+    "everything_up_to_date": "????????????"
   },
   "project_management.incremental_update_title": "增量更新 (Incremental Update)",
   "project_management.incremental_update_desc": "分析源码变更并仅翻译新增或修改条目，自动复用已有历史记录（包含跨项目智能复用）。",
@@ -928,6 +1058,7 @@
     "select_new_folder": "选择新的 Mod 文件夹",
     "select_new_folder_desc": "包含最新源码的 Mod 目录（通常是更新后的 Mod 文件夹）",
     "current_folder_info": "当前项目路径：{{path}}",
+    "project_search_placeholder": "按项目、游戏或路径搜索...",
     "pre_scan_summary": "预扫描摘要",
     "scan_directory": "扫描目录",
     "source_language": "源码语种",
@@ -1000,6 +1131,8 @@
     "rpm_limit_desc": "每分钟最大请求数。用于限制调用节奏，避免接口或本地服务过载。",
     "runtime_warning_summary_title": "执行期间发现运行期警告",
     "runtime_warning_summary_desc": "本次运行记录了 {{count}} 条运行期警告。请优先检查上下文超限、模型拒答或回退到原文的批次。",
+    "warning_summary_title": "执行期间发现运行期警告",
+    "warning_summary_desc": "本次运行记录了 {{count}} 条运行期警告。请优先检查上下文超限、模型拒答或回退到原文的批次。",
     "validation_issue_summary_title": "已导出可供智能工坊处理的校验问题",
     "validation_issue_summary_desc": "后处理校验共发现 {{count}} 条问题，已写入 workshop_issues.json 供智能工坊读取。",
     "validation_issue_export_item": "{{lang}}：{{count}} 条问题 | {{path}}",
@@ -1013,7 +1146,15 @@
     "warning_validation_prefix": "[{{level}}] ",
     "warning_validation_generic": "校验警告",
     "warning_details_suffix": "详情：{{details}}",
-    "warning_generic_with_error": "警告详情：{{error}}"
+    "warning_generic_with_error": "警告详情：{{error}}",
+    "no_files_warning": "没有检测到可用于增量处理的文件。",
+    "status_ws_initializing": "正在初始化 WebSocket 连接...",
+    "status_ws_error": "WebSocket 连接出错，正在回退到轮询。",
+    "task_id_missing": "服务端未返回任务 ID。",
+    "critical_error": "严重错误：{{message}}",
+    "translation_completed_success": "翻译已成功完成！",
+    "task_failed_check_logs": "任务失败，请检查日志详情。",
+    "error_title": "错误"
   },
   "translation_config": {
     "provider": "API 供应商",
@@ -1120,5 +1261,10 @@
   "common": {
     "search": "搜索",
     "loading": "加载中..."
-  }
+  },
+  "nav_home": "??",
+  "api_model_select_label": "??????",
+  "api_model_select_placeholder": "????????",
+  "api_model_select_description": "??????????????????",
+  "api_models_description": "?????????????????"
 }

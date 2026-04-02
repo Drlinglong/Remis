@@ -726,6 +726,26 @@
           "desc": "Drag and drop to upload a background image, and you can also upload and overlay custom logos on top of it."
         }
       }
+    },
+    "api_guide": {
+      "title": "Getting Started: What is an API Key?",
+      "desc": "An API Key is your passport to AI services. Without it, the software cannot function.<br/><br/><b>Video Tutorials:</b><br/>Please click the buttons below to watch the tutorial videos on YouTube.<br/><br/><i>Note: These videos are not created by the author and may be outdated.</i>"
+    },
+    "api_regions": {
+      "title": "Regions & Security Warnings",
+      "desc": "<b>Protect your Key!</b> Never share it publicly. Usage typically incurs costs. Choose based on your region: International (OpenAI/Gemini), China (DeepSeek), or Local (Ollama)."
+    },
+    "api_provider": {
+      "title": "Configure Provider",
+      "desc": "Click the 'Configure' button to enter your API key and select your default translation model (e.g., gemini-3-flash-preview). Remember to click Save after entering your API key."
+    },
+    "api_cost": {
+      "title": "Cost Efficiency & Quota",
+      "desc": "For most translation tasks, there's no need to use flagship models; cost-effective models are sufficient. We also limit the 'thinking' quota to reduce API costs."
+    },
+    "version": {
+      "title": "Version & Feedback",
+      "desc": "Here you can check the version, open the logs folder, or visit the GitHub Issue tracker. We welcome feature requests and bug reports (please attach logs)."
     }
   },
   "translation_page": {
@@ -947,7 +967,15 @@
     "report_path": "Report path",
     "history": {
       "path_registered_desc": "Auto-registered translation output path.",
-      "incremental_translate_desc": "Built incremental update ({{target_lang}}). {{new_count}} new, {{changed_count}} changed, {{unchanged_count}} reused lines."
+      "incremental_translate_desc": "Built incremental update ({{target_lang}}). {{new_count}} new, {{changed_count}} changed, {{unchanged_count}} reused lines.",
+      "action_import": "Project Import",
+      "action_archive_update": "Archive Update",
+      "action_path_registered": "Path Registered",
+      "action_translate": "Translation Run",
+      "action_note_added": "Note Added",
+      "action_status_change": "Status Change",
+      "project_import_desc": "Project '{{name}}' was created and source files were imported.",
+      "archive_update_desc": "Successfully uploaded {{match_count}} translation entries into the project archive."
     },
     "step_select_project": "Select Project",
     "step_select_project_desc": "Search and choose the project to fix",
@@ -995,10 +1023,49 @@
     "no_issues": "There are no open validation issues right now."
   },
   "incremental_translation": {
+    "title": "Incremental Translation",
+    "description": "Guided workflow: analyze source changes and translate new or modified content only.",
+    "step_1_title": "Select Project",
+    "step_1_desc": "Pick an existing project to update",
+    "step_2_title": "Validation & Setup",
+    "step_2_desc": "Check archive and configure paths",
+    "step_3_title": "Pre-scan Summary",
+    "step_3_desc": "Review the change statistics report",
+    "step_4_title": "Translation Execution",
+    "step_4_desc": "Run AI translation and write output files",
+    "select_project_first": "Please select a project from the list first.",
+    "archive_found": "Archive found: version {{version}}, last updated {{date}}",
+    "archive_missing": "No translation archive found for this project. Incremental comparison cannot continue.",
+    "no_translations_found": "No translated entries were found in the archive. Please confirm that valid translation files were uploaded.",
+    "archive_missing_action": "Please complete an initial translation or upload existing translations first to create the archive baseline.",
+    "select_new_folder_desc": "Mod directory containing the latest source files, usually the updated mod folder.",
+    "pre_scan_summary": "Pre-scan Summary",
+    "scan_directory": "Scan Directory",
+    "source_language": "Source Language",
+    "files_to_process": "Files to Process",
+    "reused_count": "Reusable entries (archive/global)",
+    "new_count": "New entries to translate",
+    "changed_count": "Modified entries to re-translate",
+    "start_translation_confirm": "Start translation? This will trigger API calls and may incur cost.",
+    "execution_log": "Execution Log",
+    "processing_file": "Processing: {{file}}",
+    "batch_status": "Batch {{current}}/{{total}} completed...",
+    "completion_title": "Incremental Translation Completed",
+    "checkpoint_found_label": "Checkpoint Found",
+    "checkpoint_found_title": "Translation Checkpoint Found",
+    "checkpoint_found_desc": "A previous unfinished task was detected. You can resume and skip files that were already completed.",
+    "resume_enabled": "Resume: ON",
+    "resume_disabled": "Resume: OFF",
+    "status_processing": "Processing task...",
+    "status_idle": "Ready",
+    "checkpoint_detected": "Checkpoint detected ({{count}} files completed).",
     "output_dir_hint": "Results have been saved to the generated mod folder under my_translation.",
     "target_lang_desc": "Incremental update currently supports only target languages that already have archived translations.",
     "workflow_supported_title": "Supported Incremental Workflow",
     "workflow_supported_desc": "Select the old project as the archive baseline, then point the source folder to the newly copied workshop directory. The system chooses the comparison baseline by the most recent manual upload time for each target language and matches entries using normalized relative paths.",
+    "select_new_folder": "Select New Mod Folder",
+    "current_folder_info": "Current project path: {{path}}",
+    "project_search_placeholder": "Search by project, game, or path...",
     "pre_scan_bootstrap_log": "[System] Creating pre-scan task...",
     "pre_scan_in_progress": "Checking the updated mod content",
     "execution_in_progress": "Running incremental translation",
@@ -1036,6 +1103,7 @@
     "telemetry_archive_write": "Archive write",
     "log_file_hint": "Execution log saved to: {{path}}",
     "transport_status": "Task status source: {{source}}",
+    "project_details_title": "Project Details",
     "project_name": "Project",
     "archive_baseline_title": "Archive Baseline",
     "archive_version_label": "Archive Version",
@@ -1048,6 +1116,8 @@
     "rpm_limit_desc": "Maximum requests per minute. Helps prevent provider or local service overload.",
     "runtime_warning_summary_title": "Runtime warnings detected",
     "runtime_warning_summary_desc": "This run recorded {{count}} runtime warning(s). Review context overflow, model refusal, or source-text fallback batches first.",
+    "warning_summary_title": "Runtime warnings detected",
+    "warning_summary_desc": "This run recorded {{count}} runtime warning(s). Review context overflow, model refusal, or source-text fallback batches first.",
     "validation_issue_summary_title": "Validation issues exported for Workshop",
     "validation_issue_summary_desc": "Post-build validation found {{count}} issue(s). These are written to workshop_issues.json for Smart Workshop intake.",
     "validation_issue_export_item": "{{lang}}: {{count}} issue(s) | {{path}}",
@@ -1061,10 +1131,136 @@
     "warning_validation_prefix": "[{{level}}] ",
     "warning_validation_generic": "Validation warning",
     "warning_details_suffix": "Details: {{details}}",
-    "warning_generic_with_error": "Warning details: {{error}}"
+    "warning_generic_with_error": "Warning details: {{error}}",
+    "no_files_warning": "No files were detected for incremental processing.",
+    "status_ws_initializing": "Initializing WebSocket connection...",
+    "status_ws_error": "WebSocket connection error. Falling back to polling.",
+    "task_id_missing": "No task ID returned from server.",
+    "critical_error": "Critical Error: {{message}}",
+    "translation_completed_success": "Translation completed successfully!",
+    "task_failed_check_logs": "Task failed! Check logs for details.",
+    "error_title": "Error"
   },
   "recent_activity_type_translate": "Incremental Update",
   "project_management": {
-    "tabs_validation": "Format Check"
+    "tabs_validation": "Format Check",
+    "list": {
+      "title": "Project List",
+      "desc": "View and manage all your localization projects here."
+    },
+    "create": {
+      "title": "Start from Scratch",
+      "desc": "Create your first translation project. Ensure your API Key is ready in Settings -> API before starting."
+    },
+    "new_task": {
+      "title": "New Task",
+      "desc": "Create file-based tasks or even just custom notes for your mod."
+    },
+    "stats": {
+      "title": "Project Overview",
+      "desc": "Quickly check total files, lines, and the percentage of translation and proofreading progress."
+    },
+    "start": {
+      "title": "Key Action: Start Translation",
+      "desc": "When everything is ready, click this button to enter the translation configuration and start the AI-powered process."
+    },
+    "paths": {
+      "title": "Path Management",
+      "desc": "Configure source and export paths for each specific Mod."
+    },
+    "tabs": {
+      "title": "Task Board",
+      "desc": "Navigate between file overview and the Kanban board for visual task management."
+    },
+    "delete_note_confirm_content": "Are you sure you want to delete this note? This action cannot be undone."
+  },
+  "translation": {
+    "select": {
+      "title": "Select Project",
+      "desc": "Please select a project to begin the translation process."
+    },
+    "config": {
+      "title": "Configure Translation",
+      "desc": "Set up your source/target languages and choosing an AI model."
+    },
+    "start": {
+      "title": "Start Batch",
+      "desc": "Click this to begin the automated translation batch."
+    },
+    "processing": {
+      "title": "Processing",
+      "desc": "The AI is now translating your files. You can watch the real-time logs here."
+    }
+  },
+  "tools": {
+    "tabs": {
+      "title": "Toolbox Tabs",
+      "desc": "Switch between different tools like Thumbnail Generator, Workshop Description Generator, etc."
+    },
+    "thumbnail": {
+      "canvas": {
+        "title": "Design Canvas",
+        "desc": "Your main workspace. You can drag and drop a background image here to start."
+      },
+      "toolbox": {
+        "title": "Generator Toolbox",
+        "desc": "Just a few clicks to easily add flags or languages to an original cover, transforming it into a proper translation mod cover."
+      },
+      "drag": {
+        "title": "Drag to Upload",
+        "desc": "Drag and drop to upload a background image, and you can also upload and overlay custom logos on top of it."
+      }
+    }
+  },
+  "progress_translating_model": "Translating {{total_batches}} batches across {{total_files}} files using model {{model}}...",
+  "progress_status": "Completed {{processed_files}} files and {{completed_batches}} batches, with {{remaining_files}} files and {{remaining_batches}} batches remaining",
+  "translation_completed": "Translation completed!",
+  "report_success_summary": "Successfully completed the translation flow for {{mod_name}} from {{source_lang}} to {{target_langs}}.",
+  "report_error_count": "{{count}} file(s) encountered errors",
+  "report_no_errors": "No errors were encountered during translation",
+  "report_glossary_issues": "Detected {{count}} potential glossary issue(s)",
+  "report_no_glossary_issues": "No glossary issues detected!",
+  "report_format_issues": "Detected {{count}} potential formatting issue(s)",
+  "report_no_format_issues": "No formatting issues detected!",
+  "report_title_errors": "Errors",
+  "report_title_glossary": "Glossary Check",
+  "report_title_formatting": "Formatting Check",
+  "button_translate_another": "Translate Another Project",
+  "button_go_dashboard": "Go to Project Management",
+  "show_detailed_logs": "Show Detailed Logs",
+  "hide_detailed_logs": "Hide Detailed Logs",
+  "stage_creating_backup": "Creating backup",
+  "stage_translating": "Translating",
+  "stage_reading_source": "Reading source files",
+  "stage_initializing": "Initializing",
+  "stage_failed": "Translation failed",
+  "tools_tab_workshop_generator": "Workshop Generator",
+  "game_name_eu5": "Europa Universalis 5",
+  "thumbnail_generator": {
+    "description": "Add flags, text, or custom emblems. Click \"Add All Flags\" to quickly generate a Victoria 3 style cover.",
+    "drag_hint": "Drag and drop your project logo here to preview the result in real time."
+  },
+  "proofreading": {
+    "target_language": "Target Language",
+    "modal": {
+      "title": "Invalid Operation Warning",
+      "content_1": "You changed the **Key** in the editor.",
+      "content_2": "The editor is currently in **Patching Mode**. In this mode, the system locates entries by the original file key and only replaces the value. **Your key edits will be discarded on save**; only value changes will be preserved.",
+      "button_cancel": "Go Back and Edit"
+    }
+  },
+  "homepage_greetings": {
+    "morning": [
+      "Good morning.",
+      "Morning."
+    ],
+    "afternoon": [
+      "Good afternoon.",
+      "Welcome back this afternoon."
+    ],
+    "evening": [
+      "Good evening.",
+      "Time to wrap up for the day."
+    ]
   }
 }
