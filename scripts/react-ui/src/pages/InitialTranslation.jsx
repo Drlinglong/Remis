@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
@@ -88,6 +88,8 @@ const InitialTranslation = () => {
   const [resumeModalOpen, setResumeModalOpen] = useState(false);
   const [checkpointInfo, setCheckpointInfo] = useState(null);
   const [pendingFormValues, setPendingFormValues] = useState(null);
+  const [checkpointHintInfo, setCheckpointHintInfo] = useState(null);
+  const checkpointHintRequestRef = useRef(0);
 
   const form = useForm({
     initialValues: {
@@ -99,7 +101,7 @@ const InitialTranslation = () => {
       selected_glossary_ids: [],
       use_main_glossary: true,
       clean_source: false,
-      use_resume: true,
+      use_resume: false,
       // Custom Language Fields
       custom_name: '',
       custom_key: 'l_english',
@@ -164,6 +166,33 @@ const InitialTranslation = () => {
   useEffect(() => {
     setPageContext(`translation-step-${active}`);
   }, [active, setPageContext]);
+
+  useEffect(() => {
+    const project = projects.find(p => p.value === selectedProjectId);
+    const targetLangCodes = form.values.english_disguise ? ['custom'] : form.values.target_lang_codes;
+
+    if (!project?.label || targetLangCodes.length === 0) {
+      setCheckpointHintInfo(null);
+      return;
+    }
+
+    const requestId = checkpointHintRequestRef.current + 1;
+    checkpointHintRequestRef.current = requestId;
+
+    api.post('/api/translation/checkpoint-status', {
+      mod_name: project.label,
+      target_lang_codes: targetLangCodes
+    })
+      .then(response => {
+        if (checkpointHintRequestRef.current !== requestId) return;
+        setCheckpointHintInfo(response.data?.exists ? response.data : null);
+      })
+      .catch(error => {
+        if (checkpointHintRequestRef.current !== requestId) return;
+        console.error('Failed to check checkpoint hint:', error);
+        setCheckpointHintInfo(null);
+      });
+  }, [selectedProjectId, projects, form.values.english_disguise, form.values.target_lang_codes]);
 
   // Update available models based on provider
   useEffect(() => {
@@ -719,6 +748,26 @@ const InitialTranslation = () => {
                               description={t('form_desc_use_resume')}
                               {...form.getInputProps('use_resume', { type: 'checkbox' })}
                             />
+                            {checkpointHintInfo && !form.values.use_resume && (
+                              <Alert color="yellow" variant="light" radius="md" title={t('translation_page.resume_hint.title')}>
+                                <Stack gap={6}>
+                                  <Text size="sm">
+                                    {t('translation_page.resume_hint.desc', {
+                                      count: checkpointHintInfo.completed_count ?? 0
+                                    })}
+                                  </Text>
+                                  <Group>
+                                    <Button
+                                      size="xs"
+                                      variant="light"
+                                      onClick={() => form.setFieldValue('use_resume', true)}
+                                    >
+                                      {t('translation_page.resume_hint.enable')}
+                                    </Button>
+                                  </Group>
+                                </Stack>
+                              </Alert>
+                            )}
                           </Stack>
 
                           <MultiSelect

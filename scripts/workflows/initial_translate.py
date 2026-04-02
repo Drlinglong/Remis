@@ -623,39 +623,46 @@ def discover_files(mod_name: str, game_profile: dict, source_lang: dict, overrid
     Supports recursive search for EU5-style multi-module structures.
     """
     source_loc_folder = game_profile["source_localization_folder"]
-    if override_path:
-        mod_root_path = override_path
-    else:
-        mod_root_path = os.path.join(SOURCE_DIR, mod_name)
-    source_loc_path = os.path.join(mod_root_path, source_loc_folder)
-    cust_loc_root = os.path.join(mod_root_path, "customizable_localization")
+    source_lang_key = source_lang["key"][2:]
+    base_path = os.path.abspath(override_path if override_path else os.path.join(SOURCE_DIR, mod_name))
 
-    # 仅收集文件路径，不读取内容
+    def _resolve_localization_roots(scan_base: str) -> List[str]:
+        standard_loc_path = os.path.join(scan_base, source_loc_folder)
+        if os.path.isdir(standard_loc_path):
+            return [standard_loc_path]
+
+        base_name = os.path.basename(scan_base).lower()
+        parent_path = os.path.dirname(scan_base)
+        parent_name = os.path.basename(parent_path).lower()
+
+        if base_name == source_loc_folder.lower():
+            return [scan_base]
+
+        if parent_name == source_loc_folder.lower():
+            return [parent_path]
+
+        logging.info(
+            f"Standard localization folder not found at {standard_loc_path}. "
+            f"Searching recursively for '{source_loc_folder}'..."
+        )
+        discovered = []
+        for root, _, _ in os.walk(scan_base):
+            if os.path.basename(root).lower() == source_loc_folder.lower():
+                discovered.append(root)
+        return discovered
+
+    localization_roots = _resolve_localization_roots(base_path)
+    customizable_root = os.path.join(base_path, "customizable_localization")
+
     all_file_paths = []
-    # Use regex for flexible matching (allow space or underscore before l_lang, OR just the lang key)
     import re
-    lang_key = source_lang['key'][2:] # e.g. "english"
-    # Relaxed pattern: It can end with `l_english.yml` OR ` english.yml` (common in some older mods or lazy porting)
-    suffix_pattern = re.compile(r'[\s_](l_)?' + re.escape(lang_key) + r'\.yml$', re.IGNORECASE)
-
-    # 策略：如果标准路径存在，仅使用标准路径（保持兼容性）
-    # 如果标准路径不存在，则递归搜索所有名为 source_loc_folder 的目录 (EU5 模式)
-    search_paths = []
+    suffix_pattern = re.compile(rf".*_l_{re.escape(source_lang_key)}\.yml$", re.IGNORECASE)
     
-    if os.path.isdir(source_loc_path):
-        search_paths.append(source_loc_path)
-    else:
-        # 递归搜索所有匹配的文件夹
-        logging.info(f"Standard localization folder not found at {source_loc_path}. Searching recursively for '{source_loc_folder}'...")
-        for root, dirs, files in os.walk(mod_root_path):
-            if os.path.basename(root) == source_loc_folder:
-                search_paths.append(root)
-    
-    for loc_path in search_paths:
+    for loc_path in localization_roots:
         logging.info(f"Discovered localization directory: {loc_path}")
         for root, _, files in os.walk(loc_path):
             for fn in files:
-                if suffix_pattern.search(fn):
+                if suffix_pattern.match(fn):
                     # loc_path 是当前模块的 localization 根目录
                     all_file_paths.append({
                         "path": os.path.join(root, fn), 
@@ -665,8 +672,8 @@ def discover_files(mod_name: str, game_profile: dict, source_lang: dict, overrid
                         "loc_root": loc_path # 记录 loc_root
                     })
 
-    if os.path.isdir(cust_loc_root):
-        for root, _, files in os.walk(cust_loc_root):
+    if os.path.isdir(customizable_root):
+        for root, _, files in os.walk(customizable_root):
             for fn in files:
                 if fn.endswith(".txt"):
                     all_file_paths.append({
@@ -680,14 +687,14 @@ def discover_files(mod_name: str, game_profile: dict, source_lang: dict, overrid
     if not all_file_paths:
         # Diagnostic scan: Check if files exist for other languages
         found_others = []
-        for loc_path in search_paths:
+        for loc_path in localization_roots:
             for root, _, files in os.walk(loc_path):
                 for fn in files:
                     if fn.endswith(".yml"):
                         found_others.append(fn)
         
         if found_others:
-            logging.warning(f"No files found for source language '{source_lang['name']}' matching pattern l_{lang_key}.yml.")
+            logging.warning(f"No files found for source language '{source_lang['name']}' matching pattern *_l_{source_lang_key}.yml.")
             logging.warning(f"However, found {len(found_others)} other .yml files, e.g., {found_others[:3]}")
             logging.warning("Please check if you selected the correct Source Language.")
 

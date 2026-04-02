@@ -9,7 +9,7 @@ import asyncio
 from typing import List, Optional, Dict, Any, Callable, TYPE_CHECKING
 from dataclasses import dataclass
 from pathlib import Path
-from scripts.app_settings import PROJECTS_DB_PATH, SOURCE_DIR, GAME_ID_ALIASES
+from scripts.app_settings import PROJECTS_DB_PATH, SOURCE_DIR, GAME_ID_ALIASES, GAME_PROFILES_BY_ID
 
 if TYPE_CHECKING:
     from scripts.schemas.project import IncrementalUpdateRequest
@@ -74,6 +74,24 @@ class ProjectManager:
 
         self.archive_service = archive_service or TranslationArchiveService()
 
+    def _normalize_source_root_path(self, folder_path: str, game_id: str) -> str:
+        normalized_game_id = GAME_ID_ALIASES.get(game_id.lower(), game_id)
+        game_profile = GAME_PROFILES_BY_ID.get(normalized_game_id)
+        if not game_profile:
+            return os.path.abspath(folder_path)
+
+        source_loc_folder = str(game_profile.get("source_localization_folder", "")).lower()
+        abs_path = os.path.abspath(folder_path)
+        path_obj = Path(abs_path)
+
+        if path_obj.name.lower() == source_loc_folder:
+            return str(path_obj.parent)
+
+        if path_obj.parent.name.lower() == source_loc_folder:
+            return str(path_obj.parent.parent)
+
+        return abs_path
+
     async def create_project(self, name: str, folder_path: str, game_id: str, source_language: str) -> Dict[str, Any]:
         """
         Creates a new project.
@@ -85,7 +103,7 @@ class ProjectManager:
 
         # 1. Handle Folder Movement/Validation
         source_root = os.path.abspath(SOURCE_DIR)
-        abs_folder_path = os.path.abspath(folder_path)
+        abs_folder_path = self._normalize_source_root_path(folder_path, game_id)
         final_source_path = abs_folder_path
 
         if not abs_folder_path.startswith(source_root):
@@ -156,8 +174,24 @@ class ProjectManager:
                     project_data['source_language'] = config.get('source_language', 'english')
              except Exception:
                  pass
-             return project_data
+             return await self._normalize_project_record(project_data)
         return None
+
+    async def _normalize_project_record(self, project_data: Dict[str, Any]) -> Dict[str, Any]:
+        if not project_data or not project_data.get("source_path") or not project_data.get("game_id"):
+            return project_data
+
+        normalized_source_path = self._normalize_source_root_path(project_data["source_path"], project_data["game_id"])
+        if normalized_source_path != project_data["source_path"]:
+            project_data["source_path"] = normalized_source_path
+            project_id = project_data.get("project_id")
+            if project_id:
+                try:
+                    await self.repository.update_project_source_path(project_id, normalized_source_path)
+                    logger.info(f"Normalized legacy project source_path to mod root: {normalized_source_path}")
+                except Exception as exc:
+                    logger.error(f"Failed to persist normalized source_path for project {project_id}: {exc}")
+        return project_data
 
     async def refresh_project_files(self, project_id: str):
         """Rescans source and translation directories and updates the DB and JSON sidecar."""
@@ -184,7 +218,12 @@ class ProjectManager:
     async def get_projects(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
         """Returns a list of projects, ordered by last_modified."""
         projects = await self.repository.list_projects(status)
-        return [p.model_dump() for p in projects]
+        normalized_projects = []
+        for project in projects:
+            payload = project.model_dump()
+            normalized = await self._normalize_project_record(payload)
+            normalized_projects.append(normalized)
+        return normalized_projects
 
     async def get_non_active_projects(self) -> List[Dict[str, Any]]:
         """Fetches all projects that are not 'active' (e.g., archived, deleted)."""
@@ -334,7 +373,9 @@ class ProjectManager:
 
     async def get_project(self, project_id: str) -> Optional[Dict[str, Any]]:
         p = await self.repository.get_project(project_id)
-        return p.model_dump() if p else None
+        if not p:
+            return None
+        return await self._normalize_project_record(p.model_dump())
 
     async def get_project_files(self, project_id: str) -> List[Dict[str, Any]]:
         """Returns all files for a project."""

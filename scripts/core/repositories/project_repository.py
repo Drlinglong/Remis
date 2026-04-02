@@ -209,6 +209,18 @@ class ProjectRepository:
                 session.add(project)
                 await session.commit()
 
+    async def update_project_source_path(self, project_id: str, source_path: str):
+        async for session in self._session_scope():
+            current_time = datetime.datetime.now().isoformat()
+            statement = select(Project).where(Project.project_id == project_id)
+            results = await session.execute(statement)
+            project = results.scalar_one_or_none()
+            if project:
+                project.source_path = source_path
+                project.last_modified = current_time
+                session.add(project)
+                await session.commit()
+
     async def delete_project(self, project_id: str):
         async for session in self._session_scope():
             try:

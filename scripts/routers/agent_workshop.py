@@ -18,6 +18,25 @@ from scripts.utils.validation_logger import ValidationLogger
 
 router = APIRouter(prefix="/api/agent-workshop", tags=["agent-workshop"])
 
+
+def _resolve_workshop_model_config(
+    requested_provider: Optional[str] = None,
+    requested_model: Optional[str] = None,
+) -> tuple[str, Optional[str]]:
+    from scripts.app_settings import API_PROVIDERS, DEFAULT_API_PROVIDER, config_manager
+
+    provider_name = requested_provider or DEFAULT_API_PROVIDER
+    provider_config = API_PROVIDERS.get(provider_name, {})
+    provider_overrides = config_manager.get_value("provider_config", {}).get(provider_name, {})
+
+    model_name = requested_model
+    if not model_name:
+        model_name = provider_overrides.get("selected_model")
+    if not model_name:
+        model_name = provider_config.get("default_model")
+
+    return provider_name, model_name
+
 class ValidationIssue(BaseModel):
     file_name: str
     file_path: Optional[str] = None
@@ -217,11 +236,11 @@ async def fix_issue(request: FixRequest):
     Initiates the Reflexion Fix Workflow for a specific issue.
     """
     from scripts.core.api_handler import get_handler
-    from scripts.app_settings import get_default_translation_config
     
-    config = get_default_translation_config()
-    provider_name = request.api_provider if request.api_provider else config['provider']
-    model_name = request.api_model if request.api_model else config['model']
+    provider_name, model_name = _resolve_workshop_model_config(
+        requested_provider=request.api_provider,
+        requested_model=request.api_model,
+    )
     
     handler = get_handler(provider_name, model_name=model_name)
     
@@ -259,11 +278,11 @@ async def fix_batch(request: FixBatchRequest):
     Initiates the Reflexion Fix Workflow for a batch of issues.
     """
     from scripts.core.api_handler import get_handler
-    from scripts.app_settings import get_default_translation_config
     
-    config = get_default_translation_config()
-    provider_name = request.api_provider if request.api_provider else config['provider']
-    model_name = request.api_model if request.api_model else config['model']
+    provider_name, model_name = _resolve_workshop_model_config(
+        requested_provider=request.api_provider,
+        requested_model=request.api_model,
+    )
     
     handler = get_handler(provider_name, model_name=model_name)
     

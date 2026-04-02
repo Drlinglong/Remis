@@ -756,6 +756,11 @@
       "resume": "Resume",
       "cleared_message": "Checkpoint cleared. Starting fresh.",
       "clear_error": "Failed to clear checkpoint."
+    },
+    "resume_hint": {
+      "title": "Local checkpoint detected",
+      "desc": "Found resumable local progress for this translation set. {{count}} file(s) were already completed last time. Enable resume if you want to continue from that checkpoint.",
+      "enable": "Enable Resume"
     }
   },
   "version_info": {
