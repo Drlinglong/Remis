@@ -17,6 +17,16 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/system", tags=["System"])
 
+
+def _open_directory_in_explorer(path: str):
+    if platform.system() == "Windows":
+        normalized = os.path.normpath(path)
+        subprocess.Popen(["explorer.exe", normalized])
+    elif platform.system() == "Darwin":
+        subprocess.Popen(["open", path])
+    else:
+        subprocess.Popen(["xdg-open", path])
+
 @router.get("/stats")
 async def get_system_stats():
     """
@@ -95,18 +105,18 @@ async def open_folder(request: OpenFolderRequest):
         if platform.system() == "Windows":
             normalized_path = os.path.normpath(path)
             if os.path.isdir(normalized_path):
-                os.startfile(normalized_path)
+                subprocess.Popen(["explorer.exe", normalized_path])
             else:
-                subprocess.Popen(["explorer", "/select,", normalized_path])
-        elif platform.system() == "Darwin":  # macOS
+                subprocess.Popen(["explorer.exe", "/select,", normalized_path])
+        elif platform.system() == "Darwin":
             if os.path.isdir(path):
                 subprocess.Popen(["open", path])
             else:
                 subprocess.Popen(["open", "-R", path])
-        else:  # Linux
+        else:
             target = path if os.path.isdir(path) else os.path.dirname(path) or path
             subprocess.Popen(["xdg-open", target])
-        
+
         logger.info(f"Opened path: {path}")
         return {"status": "success", "message": f"Opened {path}"}
     except Exception as e:
@@ -122,12 +132,7 @@ async def open_logs_folder():
         os.makedirs(LOGS_DIR, exist_ok=True)
     
     try:
-        if platform.system() == "Windows":
-            os.startfile(LOGS_DIR)
-        elif platform.system() == "Darwin":
-            subprocess.Popen(["open", LOGS_DIR])
-        else:
-            subprocess.Popen(["xdg-open", LOGS_DIR])
+        _open_directory_in_explorer(LOGS_DIR)
         return {"status": "success"}
     except Exception as e:
         logger.error(f"Failed to open logs dir: {e}")
