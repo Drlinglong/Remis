@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch, AsyncMock
 import os
 import shutil
 from scripts.core.project_manager import ProjectManager
+import scripts.app_settings as app_settings
 
 class TestProjectManager(unittest.IsolatedAsyncioTestCase):
     
@@ -127,6 +128,96 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         # Assert aliases handled ("stellaris" -> "stellaris")
         self.mock_repo.update_project_metadata.assert_called_once_with(
             project_id, "stellaris", "english"
+        )
+
+    async def test_run_incremental_update_workflow_falls_back_to_defaults(self):
+        """
+        Unknown source language and game ID should fall back to English and victoria3.
+        """
+        project_id = "workflow-proj"
+        mock_proj_data = {
+            "project_id": project_id,
+            "source_language": "unknown-language",
+            "game_id": "missing-game",
+        }
+        mock_obj = MagicMock()
+        mock_obj.model_dump.return_value = mock_proj_data
+        self.mock_repo.get_project.return_value = mock_obj
+
+        config = MagicMock()
+        config.project_id = project_id
+        config.target_lang_codes = [MagicMock(value="zh-CN"), MagicMock(value="missing-lang")]
+        config.api_provider = "test-provider"
+        config.model = "test-model"
+        config.dry_run = False
+        config.custom_source_path = None
+        config.use_resume = True
+
+        with patch.dict(
+            app_settings.LANGUAGE_BY_CODE,
+            {"en": {"code": "en"}, "zh-CN": {"code": "zh-CN"}},
+            clear=True,
+        ), patch.dict(
+            app_settings.GAME_PROFILES_BY_ID,
+            {"victoria3": {"id": "victoria3"}},
+            clear=True,
+        ), patch.dict(
+            app_settings.GAME_PROFILES,
+            {},
+            clear=True,
+        ), patch(
+            "scripts.workflows.update_translate.run_incremental_update",
+            new_callable=AsyncMock,
+        ) as mock_run:
+            mock_run.return_value = {"status": "completed"}
+
+            result = await self.pm.run_incremental_update_workflow(config)
+
+        self.assertEqual(result, {"status": "completed"})
+        mock_run.assert_awaited_once_with(
+            project_id=project_id,
+            target_lang_infos=[{"code": "zh-CN"}],
+            source_lang_info={"code": "en"},
+            game_profile={"id": "victoria3"},
+            selected_provider="test-provider",
+            model_name="test-model",
+            dry_run=False,
+            custom_source_path=None,
+            use_resume=True,
+            progress_callback=None,
+        )
+
+    async def test_check_project_archive_uses_detected_language_fallback(self):
+        """
+        Archive inspection should default target_language to zh-CN when detection fails.
+        """
+        project_id = "archive-proj"
+        mock_proj_data = {"project_id": project_id, "name": "Archive Demo"}
+        mock_obj = MagicMock()
+        mock_obj.model_dump.return_value = mock_proj_data
+        self.mock_repo.get_project.return_value = mock_obj
+
+        archive_manager = MagicMock()
+        archive_manager.get_latest_version.return_value = {
+            "id": "ver-1",
+            "created_at": "2026-04-04T00:00:00",
+        }
+        archive_manager.get_archived_languages.return_value = ["zh-CN", "ru"]
+        archive_manager.detect_target_language.return_value = None
+        self.pm.archive_service.archive_manager = archive_manager
+
+        result = await self.pm.check_project_archive(project_id)
+
+        self.assertEqual(
+            result,
+            {
+                "exists": True,
+                "version_id": "ver-1",
+                "created_at": "2026-04-04T00:00:00",
+                "target_language": "zh-CN",
+                "target_languages": ["zh-CN", "ru"],
+                "project_name": "Archive Demo",
+            },
         )
 
 if __name__ == '__main__':
