@@ -5,33 +5,33 @@ RULES = {
   "game_name": "Europa Universalis V",
   "rules": [
     {
-      "name": "non_ascii_in_data_function",
+      "name": "non_ascii_in_data_function_identifier",
       "check_function": "banned_chars",
       "pattern": r"\[([^\]]+)\]",
       "level": "error",
-      "message_key": "validation_eu5_data_function_chinese",
+      "message_key": "validation_eu5_data_function_identifier_non_ascii",
       "params": {
         "capture_group": 1,
         "details_key": "validation_eu5_data_function_details"
       }
     },
     {
-      "name": "non_ascii_in_variable",
+      "name": "non_ascii_in_variable_key",
       "check_function": "banned_chars",
       "pattern": r"\$([^\$]+)\$",
       "level": "error",
-      "message_key": "validation_eu5_variable_chinese",
+      "message_key": "validation_eu5_variable_key_non_ascii",
       "params": {
         "capture_group": 1,
         "details_key": "validation_eu5_variable_details"
       }
     },
     {
-      "name": "non_ascii_in_icon_tag",
+      "name": "non_ascii_in_icon_tag_key",
       "check_function": "banned_chars",
       "pattern": r"@([^!]+)!",
       "level": "error",
-      "message_key": "validation_eu5_icon_chinese",
+      "message_key": "validation_eu5_icon_tag_key_non_ascii",
       "params": {
         "capture_group": 1,
         "details_key": "validation_eu5_icon_details"
@@ -55,7 +55,7 @@ RULES = {
       "check_function": "banned_chars",
       "pattern": r'#([^\s!#;]+)',
       "level": "warning",
-      "message_key": "validation_eu5_tag_key_chinese",
+      "message_key": "validation_eu5_formatting_tag_key_non_ascii",
       "params": {
         "capture_group": 1,
         "details_key": "validation_eu5_unsupported_formatting"

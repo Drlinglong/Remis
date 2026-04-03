@@ -189,7 +189,8 @@ class ParallelProcessor:
                 texts=current_translations, 
                 start_line=start_line, 
                 source_lang=processed_task.file_task.source_lang,
-                source_texts=processed_task.texts # <-- Pass the original texts for Parity Check
+                source_texts=processed_task.texts, # <-- Pass the original texts for Parity Check
+                target_lang=processed_task.file_task.target_lang.get("code")
             )
             
             for line_res in format_results.values():

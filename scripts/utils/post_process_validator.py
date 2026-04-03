@@ -84,6 +84,7 @@ class BaseGameValidator:
             "variable_parity": self._check_variable_parity,
         }
 
+
     def _get_i18n_message(self, message_key: str, **kwargs) -> str:
         """
         获取国际化消息。如果失败，则直接返回消息键本身。
@@ -121,7 +122,7 @@ class BaseGameValidator:
                     banned_chars = re.findall(r'[^\x00-\x7F\xa3]', content_to_check)
                     if banned_chars:
                         details_str = "".join(sorted(list(set(banned_chars))))
-                        # [FIX] Pass 'key' as content_to_check so i18n strings expecting {key} (like validation_vic3_tag_key_chinese) work.
+                        # [FIX] Pass 'key' as content_to_check so i18n strings expecting {key} (like validation_vic3_formatting_tag_key_non_ascii) work.
                         message = self._get_i18n_message(rule["message_key"], key=content_to_check)
                         details_key = params.get("details_key", "validation_generic_banned_chars_found")
                         details = self._get_i18n_message(details_key, match_text=match.group(0), banned_chars=details_str, key_content=content_to_check, found_text=match.group(0))
@@ -507,9 +508,11 @@ class PostProcessValidator:
         """根据数字游戏ID（如 "1"）或内部字母ID（如 "victoria3"）查找验证器实例。如果找不到，抛出 ValueError。"""
         from scripts.app_settings import GAME_ID_ALIASES, SupportedGame
         
-        # Resolve aliases (e.g., 'vic3' -> 'victoria3')
+        # Resolve aliases (e.g., 'vic3' -> 'victoria3').
+        # Numeric keys from GAME_PROFILES (e.g. "4" for hoi4) should remain numeric
+        # so they can be resolved through self.validators.
         original_game_id = game_id
-        if GAME_ID_ALIASES and game_id in GAME_ID_ALIASES:
+        if GAME_ID_ALIASES and game_id in GAME_ID_ALIASES and game_id not in self.validators:
             game_id = GAME_ID_ALIASES[game_id]
             
         validator = self.validators.get(game_id)

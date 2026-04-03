@@ -246,6 +246,7 @@ class PostProcessingManager:
                         translatable_content,
                         line_num,
                         source_lang,
+                        target_lang=target_lang.get("code"),
                         dynamic_valid_tags=dynamic_valid_tags
                     )
                     if results:
