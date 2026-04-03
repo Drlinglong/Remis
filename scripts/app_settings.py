@@ -260,18 +260,18 @@ GAME_ID_ALIASES = {
     # Hearts of Iron IV
     "hoi4": SupportedGame.HOI_4.value,
     "hearts of iron iv": SupportedGame.HOI_4.value,
-    "3": SupportedGame.HOI_4.value,
+    "3": SupportedGame.EU_4.value,
     
     # Crusader Kings III
     "ck3": SupportedGame.CK_3.value,
     "crusader kings iii": SupportedGame.CK_3.value,
     "crusader kings 3": SupportedGame.CK_3.value,
-    "4": SupportedGame.CK_3.value,
+    "4": SupportedGame.HOI_4.value,
     
     # Europa Universalis IV
     "eu4": SupportedGame.EU_4.value,
     "europa universalis iv": SupportedGame.EU_4.value,
-    "5": SupportedGame.EU_4.value,
+    "5": SupportedGame.CK_3.value,
 
     # Europa Universalis V
     "eu5": SupportedGame.EU_5.value,

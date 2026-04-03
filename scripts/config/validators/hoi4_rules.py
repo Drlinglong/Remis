@@ -5,61 +5,61 @@ RULES = {
   "game_name": "Hearts of Iron IV",
   "rules": [
     {
-      "name": "non_ascii_in_namespaces",
+      "name": "non_ascii_in_namespace_identifier",
       "check_function": "banned_chars",
       "pattern": r"\[(?!\?)([^\]\s|]+)\]",
       "level": "error",
-      "message_key": "validation_hoi4_namespaces_chinese",
+      "message_key": "validation_hoi4_namespace_identifier_non_ascii",
       "params": {
         "capture_group": 1
       }
     },
     {
-      "name": "non_ascii_in_formatting_vars",
+      "name": "non_ascii_in_formatting_var_identifier",
       "check_function": "banned_chars",
       "pattern": r"\[\?([^|\]\s]+)\|[^\]]*\]",
       "level": "error",
-      "message_key": "validation_hoi4_formatting_vars_chinese",
+      "message_key": "validation_hoi4_formatting_var_identifier_non_ascii",
       "params": {
         "capture_group": 1
       }
     },
     # {
-    #   "name": "non_ascii_in_nested_strings",
+    #   "name": "non_ascii_in_nested_string_key",
     #   "check_function": "banned_chars",
     #   "pattern": r"\$([^$\s|]+)\$",
     #   "level": "error",
-    #   "message_key": "validation_hoi4_nested_strings_chinese",
+    #   "message_key": "validation_hoi4_nested_string_key_non_ascii",
     #   "params": {
     #     "capture_group": 1
     #   }
     # },
     {
-      "name": "non_ascii_in_icon_tags",
+      "name": "non_ascii_in_icon_tag_key",
       "check_function": "banned_chars",
       "pattern": r"£([^£\s|]+)",
       "level": "error",
-      "message_key": "validation_hoi4_icon_tags_chinese",
+      "message_key": "validation_hoi4_icon_tag_key_non_ascii",
       "params": {
         "capture_group": 1
       }
     },
     {
-      "name": "non_ascii_in_country_flags",
+      "name": "non_ascii_in_country_flag_tag",
       "check_function": "banned_chars",
       "pattern": r"@([A-Z0-9]{3})",
       "level": "error",
-      "message_key": "validation_hoi4_country_flags_chinese",
+      "message_key": "validation_hoi4_country_flag_tag_non_ascii",
       "params": {
         "capture_group": 1
       }
     },
     {
-      "name": "non_ascii_in_localization_formatters",
+      "name": "non_ascii_in_localization_formatter",
       "check_function": "banned_chars",
       "pattern": r"(\[[^|\]\s]+\|[^|\]\s]+\]|\$[^|$\s]+\|[^|$\s]+\$)",
       "level": "error",
-      "message_key": "validation_hoi4_localization_formatters_chinese",
+      "message_key": "validation_hoi4_localization_formatter_non_ascii",
       "params": {
         "capture_group": 1
       }

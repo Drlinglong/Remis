@@ -5,21 +5,21 @@ RULES = {
   "game_name": "Crusader Kings III",
   "rules": [
     {
-      "name": "non_ascii_in_scopes_and_functions",
+      "name": "non_ascii_in_bracket_commands",
       "check_function": "banned_chars",
       "pattern": r"\[(?!Concept)([^\]]+)\]",
       "level": "error",
-      "message_key": "validation_ck3_scopes_functions_chinese",
+      "message_key": "validation_ck3_bracket_command_non_ascii",
       "params": {
         "capture_group": 1
       }
     },
     {
-      "name": "non_ascii_in_concept_key",
+      "name": "non_ascii_in_concept_function_key",
       "check_function": "banned_chars",
       "pattern": r"\[Concept\('([^']*)',",
       "level": "error",
-      "message_key": "validation_ck3_concept_key_chinese",
+      "message_key": "validation_ck3_concept_function_key_non_ascii",
       "params": {
         "capture_group": 1
       }
@@ -29,27 +29,27 @@ RULES = {
       "check_function": "banned_chars",
       "pattern": r"\[(?:GetTrait|GetTitleByKey)'([^']*)'\]",
       "level": "error",
-      "message_key": "validation_ck3_trait_title_key_chinese",
+      "message_key": "validation_ck3_trait_or_title_key_non_ascii",
       "params": {
         "capture_group": 1
       }
     },
     {
-      "name": "non_ascii_in_dollar_vars",
+      "name": "non_ascii_in_dollar_var_key",
       "check_function": "banned_chars",
       "pattern": r"\$([^$\s]+)\$",
       "level": "error",
-      "message_key": "validation_ck3_dollar_vars_chinese",
+      "message_key": "validation_ck3_dollar_var_key_non_ascii",
       "params": {
         "capture_group": 1
       }
     },
     {
-      "name": "non_ascii_in_icon_key",
+      "name": "non_ascii_in_icon_tag_key",
       "check_function": "banned_chars",
       "pattern": r"@([^!]+)!",
       "level": "error",
-      "message_key": "validation_ck3_icon_key_chinese",
+      "message_key": "validation_ck3_icon_tag_key_non_ascii",
       "params": {
         "capture_group": 1
       }

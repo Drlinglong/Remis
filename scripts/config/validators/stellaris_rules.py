@@ -5,31 +5,31 @@ RULES = {
   "game_name": "Stellaris",
   "rules": [
     {
-      "name": "non_ascii_in_brackets",
+      "name": "non_ascii_in_bracket_commands",
       "check_function": "banned_chars",
       "pattern": r"\[([^\]]+)\]",
       "level": "error",
-      "message_key": "validation_stellaris_brackets_chinese",
+      "message_key": "validation_stellaris_bracket_command_non_ascii",
       "params": {
         "capture_group": 1
       }
     },
     # {
-    #   "name": "non_ascii_in_dollar_vars",
+    #   "name": "non_ascii_in_dollar_var_key",
     #   "check_function": "banned_chars",
     #   "pattern": r"\$([^$\s]+)\$",
     #   "level": "error",
-    #   "message_key": "validation_stellaris_dollar_vars_chinese",
+    #   "message_key": "validation_stellaris_dollar_var_key_non_ascii",
     #   "params": {
     #     "capture_group": 1
     #   }
     # },
     {
-      "name": "non_ascii_in_pound_icons",
+      "name": "non_ascii_in_icon_tag_key",
       "check_function": "banned_chars",
       "pattern": r"£([^£\s]+)£",
       "level": "error",
-      "message_key": "validation_stellaris_pound_icons_chinese",
+      "message_key": "validation_stellaris_icon_tag_key_non_ascii",
       "params": {
         "capture_group": 1
       }

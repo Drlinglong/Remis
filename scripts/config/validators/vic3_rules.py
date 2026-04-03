@@ -5,41 +5,41 @@ RULES = {
   "game_name": "Victoria 3",
   "rules": [
     {
-      "name": "non_ascii_in_simple_concept",
+      "name": "non_ascii_in_simple_concept_link_key",
       "check_function": "banned_chars",
       "pattern": r"\[([^\]]+)\]",
       "level": "error",
-      "message_key": "validation_vic3_simple_concept_chinese",
+      "message_key": "validation_vic3_simple_concept_link_key_non_ascii",
       "params": {
         "capture_group": 1
       }
     },
     {
-      "name": "non_ascii_in_concept_key",
+      "name": "non_ascii_in_concept_function_key",
       "check_function": "banned_chars",
       "pattern": r"\[Concept\('([^']*)',.*\)\]",
       "level": "error",
-      "message_key": "validation_vic3_concept_key_chinese",
+      "message_key": "validation_vic3_concept_function_key_non_ascii",
       "params": {
         "capture_group": 1
       }
     },
     {
-      "name": "non_ascii_in_scope_key",
+      "name": "non_ascii_in_scope_function_key",
       "check_function": "banned_chars",
       "pattern": r"\[SCOPE\.[a-zA-Z]+\('([^']*)'\)\]",
       "level": "error",
-      "message_key": "validation_vic3_scope_key_chinese",
+      "message_key": "validation_vic3_scope_function_key_non_ascii",
       "params": {
         "capture_group": 1
       }
     },
     {
-      "name": "non_ascii_in_icon_key",
+      "name": "non_ascii_in_icon_tag_key",
       "check_function": "banned_chars",
       "pattern": r"@([^!]+)!",
       "level": "error",
-      "message_key": "validation_vic3_icon_key_chinese",
+      "message_key": "validation_vic3_icon_tag_key_non_ascii",
       "params": {
         "capture_group": 1
       }
@@ -62,29 +62,29 @@ RULES = {
       "check_function": "banned_chars",
       "pattern": r'#([^\s!#;]+)',
       "level": "warning",
-      "message_key": "validation_vic3_tag_key_chinese",
+      "message_key": "validation_vic3_formatting_tag_key_non_ascii",
       "params": {
         "capture_group": 1,
         "details_key": "validation_vic3_unsupported_formatting"
       }
     },
     {
-      "name": "non_ascii_in_tooltippable_key",
+      "name": "non_ascii_in_tooltippable_identifier",
       "check_function": "banned_chars",
       "pattern": r"#tooltippable;tooltip:<([^>]+)>",
       "level": "error",
-      "message_key": "validation_vic3_tooltippable_chinese",
+      "message_key": "validation_vic3_tooltippable_key_non_ascii",
       "params": {
         "capture_group": 1,
         "details_key": "validation_vic3_tooltippable_found_in"
       }
     },
     {
-      "name": "non_ascii_in_nested_strings",
+      "name": "non_ascii_in_nested_string_key",
       "check_function": "banned_chars",
       "pattern": r"\$([^$\s|]+)\$",
       "level": "error",
-      "message_key": "validation_vic3_nested_strings_chinese",
+      "message_key": "validation_vic3_nested_string_key_non_ascii",
       "params": {
         "capture_group": 1
       }

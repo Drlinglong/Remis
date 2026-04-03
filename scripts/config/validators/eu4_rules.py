@@ -5,41 +5,41 @@ RULES = {
   "game_name": "Europa Universalis IV",
   "rules": [
     {
-      "name": "non_ascii_in_brackets",
+      "name": "non_ascii_in_bracket_commands",
       "check_function": "banned_chars",
       "pattern": r"\[([^\]]+)\]",
       "level": "error",
-      "message_key": "validation_eu4_brackets_chinese",
+      "message_key": "validation_eu4_bracket_command_non_ascii",
       "params": {
         "capture_group": 1
       }
     },
     {
-      "name": "non_ascii_in_legacy_vars",
+      "name": "non_ascii_in_legacy_var_key",
       "check_function": "banned_chars",
       "pattern": r"\$([^$\s]+)\$",
       "level": "error",
-      "message_key": "validation_eu4_legacy_vars_chinese",
+      "message_key": "validation_eu4_legacy_var_key_non_ascii",
       "params": {
         "capture_group": 1
       }
     },
     {
-      "name": "non_ascii_in_pound_icons",
+      "name": "non_ascii_in_icon_tag_key",
       "check_function": "banned_chars",
       "pattern": r"£([^£\s]+)£",
       "level": "error",
-      "message_key": "validation_eu4_pound_icons_chinese",
+      "message_key": "validation_eu4_icon_tag_key_non_ascii",
       "params": {
         "capture_group": 1
       }
     },
     {
-      "name": "non_ascii_in_country_flags",
+      "name": "non_ascii_in_country_flag_tag",
       "check_function": "banned_chars",
       "pattern": r"@([A-Z0-9]{3})",
       "level": "error",
-      "message_key": "validation_eu4_country_flags_chinese",
+      "message_key": "validation_eu4_country_flag_tag_non_ascii",
       "params": {
         "capture_group": 1
       }
