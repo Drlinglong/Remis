@@ -8,19 +8,25 @@ from typing import List, Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form, WebSocket
 from fastapi.responses import FileResponse
 
-from scripts.shared.state import tasks
 from scripts.shared.services import project_manager, glossary_manager, archive_manager
+from scripts.shared.task_state import (
+    create_task,
+    get_task,
+    get_task_payload,
+    init_progress,
+    push_task_update,
+    update_progress,
+    update_task,
+)
 from scripts.schemas.translation import InitialTranslationRequest, TranslationRequestV2, CustomLangConfig, CheckpointStatusRequest
 from scripts.app_settings import GAME_PROFILES, LANGUAGES, API_PROVIDERS, SOURCE_DIR, DEST_DIR
 from scripts.workflows import initial_translate
 from scripts.utils import i18n
 from scripts.utils.system_utils import slugify_to_ascii
 from scripts.core.checkpoint_manager import CheckpointManager
-import threading
 import asyncio
 from scripts.shared.ws_manager import ws_manager
 router = APIRouter()
-task_lock = threading.Lock()
 
 
 def _build_output_folder_name(mod_name: str, target_languages: List[dict]) -> str:
@@ -28,21 +34,6 @@ def _build_output_folder_name(mod_name: str, target_languages: List[dict]) -> st
     if len(target_languages) > 1:
         return f"Multilanguage-{sanitized_mod_name}"
     return f"{target_languages[0]['folder_prefix']}{sanitized_mod_name}"
-
-
-def push_task_update(task_id: str):
-    if task_id not in tasks:
-        return
-
-    try:
-        max_log_lines = 100
-        task_data = dict(tasks[task_id])
-        if "log" in task_data and len(task_data["log"]) > max_log_lines:
-            task_data["log"] = task_data["log"][-max_log_lines:]
-        ws_manager.sync_send_task_update(task_id, task_data)
-    except Exception as e:
-        logging.error(f"WebSocket push failed: {e}")
-
 def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str, target_lang_codes: List[str], api_provider: str, mod_context: str, project_id: Optional[str] = None):
     """
     A wrapper for the core translation logic to be run in the background.
@@ -50,8 +41,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
     # Initialize i18n for the background task
     i18n.load_language('en_US')
 
-    tasks[task_id]["status"] = "processing"
-    tasks[task_id]["log"].append("背景翻译任务开始...")
+    update_task(task_id, status="processing", append_log="Background translation task started.", push=False)
 
     if project_id:
         try:
@@ -87,8 +77,14 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
         failed_files = (workflow_result or {}).get("failed_files", [])
 
         # 3. Once done, update status and prepare result
-        tasks[task_id]["status"] = workflow_status
-        tasks[task_id]["log"].append(workflow_message)
+        update_task(
+            task_id,
+            status=workflow_status,
+            message=workflow_message,
+            append_log=workflow_message,
+            summary={"failed_files": failed_files},
+            push=False,
+        )
 
         # Prepare the result for download
         output_folder_name = _build_output_folder_name(mod_name, target_languages)
@@ -105,9 +101,9 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
             logging.info(f"------------------------------------")
 
             zip_path = shutil.make_archive(result_dir, "zip", result_dir)
-            tasks[task_id]["result_path"] = zip_path
+            update_task(task_id, result_path=zip_path, push=False)
             if failed_files:
-                tasks[task_id]["log"].append(f"Partial fallback applied to: {', '.join(failed_files)}")
+                update_task(task_id, append_log=f"Partial fallback applied to: {', '.join(failed_files)}", push=False)
 
         if project_id:
             try:
@@ -121,20 +117,22 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
                 ))
             except Exception as e:
                 logging.error(f"Failed to log completion activity: {e}")
+        push_task_update(task_id)
 
 
     except Exception as e:
         tb_str = traceback.format_exc()
         error_message = f"工作流执行失败 (Workflow execution failed): {e}\n{tb_str}"
         logging.error(f"任务 {task_id} 失败: {error_message}")
-        tasks[task_id]["status"] = "failed"
-        if "progress" in tasks[task_id]:
-            tasks[task_id]["progress"]["stage"] = "Failed"
-        tasks[task_id]["log"].append(error_message)
-        # 确保失败的任务没有可下载的结果路径
-        if "result_path" in tasks[task_id]:
-            del tasks[task_id]["result_path"]
-            push_task_update(task_id)
+        update_task(
+            task_id,
+            status="failed",
+            message=error_message,
+            append_log=error_message,
+            progress={"stage": "Failed"},
+            clear_result_path=True,
+            push=False,
+        )
         if project_id:
             try:
                 import asyncio
@@ -145,6 +143,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
                 ))
             except Exception as e:
                 logging.error(f"Failed to log failure activity: {e}")
+        push_task_update(task_id)
 
 def run_translation_workflow_v2(
     task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str,
@@ -156,8 +155,7 @@ def run_translation_workflow_v2(
     clean_source: bool = False
 ):
     i18n.load_language('en_US')
-    tasks[task_id]["status"] = "processing"
-    tasks[task_id]["log"].append("背景翻译任务开始 (V2)...")
+    update_task(task_id, status="processing", append_log="Background translation task started (V2).", push=False)
     
     import asyncio
 
@@ -172,63 +170,49 @@ def run_translation_workflow_v2(
             logging.error(f"Failed to log activity (v2): {e}")
 
     # Initialize progress structure
-    tasks[task_id]["progress"] = {
-        "total": 0,
-        "current": 0,
-        "percent": 0,
-        "current_file": "",
-        "stage": "Initializing",
-        "total_batches": 0,
-        "current_batch": 0,
-        "error_count": 0,
-        "glossary_issues": 0,
-        "format_issues": 0
-    }
+    init_progress(task_id)
 
     last_update_time = [0] # Use a list to make it mutable in the closure
     
     def progress_callback(current, total, current_file, stage="Translating", 
-                          current_batch=0, total_batches=0, 
+                          current_batch=0, total_batches=0,
+                          successful_batches=0, failed_batches=0,
                           error_count=0, glossary_issues=0, format_issues=0,
                           log_message: str = None):
-        with task_lock:
-            if task_id not in tasks: return
-            
-            tasks[task_id]["progress"]["current"] = current
-            tasks[task_id]["progress"]["total"] = total
-            tasks[task_id]["progress"]["current_file"] = current_file
-            tasks[task_id]["progress"]["stage"] = stage
-            tasks[task_id]["progress"]["current_batch"] = current_batch
-            tasks[task_id]["progress"]["total_batches"] = total_batches
-            tasks[task_id]["progress"]["error_count"] = error_count
-            tasks[task_id]["progress"]["glossary_issues"] = glossary_issues
-            tasks[task_id]["progress"]["format_issues"] = format_issues
-            
-            if log_message:
-                tasks[task_id]["log"].append(log_message)
-                # Keep log size under control in memory too
-                if len(tasks[task_id]["log"]) > 1000:
-                    tasks[task_id]["log"] = tasks[task_id]["log"][-500:]
+        if not get_task(task_id):
+            return
 
-            if total > 0:
-                tasks[task_id]["progress"]["percent"] = int((current / total) * 100)
-            
-            # ───────────── WebSocket Throttling (Issue #133) ─────────────
-            import time
-            current_time = time.time()
-            
-            # Only send update if:
-            # 1. 200ms has passed since last update
-            # 2. OR it's a critical stage (Completed, Failed)
-            # 3. OR it's the 100% mark
-            is_final = stage in ("Completed", "Failed") or (total > 0 and current >= total)
-            if not is_final and (current_time - last_update_time[0] < 0.2):
-                return
-            
-            last_update_time[0] = current_time
-            
-            # Push update via WebSocket
-            push_task_update(task_id)
+        update_progress(
+            task_id,
+            current=current,
+            total=total,
+            current_file=current_file,
+            stage=stage,
+            current_batch=current_batch,
+            total_batches=total_batches,
+            successful_batches=successful_batches,
+            failed_batches=failed_batches,
+            error_count=error_count,
+            glossary_issues=glossary_issues,
+            format_issues=format_issues,
+            log_message=log_message,
+            push=False,
+        )
+
+        # ───────────── WebSocket Throttling (Issue #133) ─────────────
+        import time
+        current_time = time.time()
+
+        # Only send update if:
+        # 1. 200ms has passed since last update
+        # 2. OR it's a critical stage (Completed, Failed)
+        # 3. OR it's the 100% mark
+        is_final = stage in ("Completed", "Failed") or (total > 0 and current >= total)
+        if not is_final and (current_time - last_update_time[0] < 0.2):
+            return
+
+        last_update_time[0] = current_time
+        push_task_update(task_id)
 
     try:
         # Debug Logging
@@ -294,19 +278,26 @@ def run_translation_workflow_v2(
         workflow_status = (workflow_result or {}).get("status", "failed")
         workflow_message = (workflow_result or {}).get("message", "Translation workflow did not return a valid result.")
         failed_files = (workflow_result or {}).get("failed_files", [])
-        tasks[task_id]["status"] = workflow_status
-        tasks[task_id]["progress"]["percent"] = 100
-        tasks[task_id]["progress"]["stage"] = "Completed" if workflow_status in ("completed", "partial_failed") else "Failed"
-        tasks[task_id]["log"].append(workflow_message)
+        update_task(
+            task_id,
+            status=workflow_status,
+            message=workflow_message,
+            append_log=workflow_message,
+            summary={"failed_files": failed_files},
+            progress={
+                "percent": 100,
+                "stage": "Completed" if workflow_status in ("completed", "partial_failed") else "Failed",
+            },
+            push=False,
+        )
         output_folder_name = _build_output_folder_name(mod_name, target_languages)
         result_dir = os.path.join(DEST_DIR, output_folder_name)
         if workflow_status in ("completed", "partial_failed"):
             zip_path = shutil.make_archive(result_dir, 'zip', result_dir)
-            tasks[task_id]["result_path"] = zip_path
+            update_task(task_id, result_path=zip_path, push=False)
             if failed_files:
-                tasks[task_id]["log"].append(f"Partial fallback applied to: {', '.join(failed_files)}")
+                update_task(task_id, append_log=f"Partial fallback applied to: {', '.join(failed_files)}", push=False)
 
-        push_task_update(task_id)
         if project_id:
             try:
                 asyncio.run(project_manager.log_history_event(
@@ -318,14 +309,20 @@ def run_translation_workflow_v2(
                 ))
             except Exception as e:
                 logging.error(f"Failed to log completion activity (v2): {e}")
+        push_task_update(task_id)
     except Exception as e:
         tb_str = traceback.format_exc()
         error_message = f"工作流执行失败: {e}\n{tb_str}"
         logging.error(error_message) # Log to console!
-        tasks[task_id]["status"] = "failed"
-        if "progress" in tasks[task_id]:
-            tasks[task_id]["progress"]["stage"] = "Failed"
-        tasks[task_id]["log"].append(error_message)
+        update_task(
+            task_id,
+            status="failed",
+            message=error_message,
+            append_log=error_message,
+            progress={"stage": "Failed"},
+            clear_result_path=True,
+            push=False,
+        )
         if project_id:
             try:
                 asyncio.run(project_manager.log_history_event(
@@ -335,6 +332,7 @@ def run_translation_workflow_v2(
                 ))
             except Exception as e:
                 logging.error(f"Failed to log failure activity (v2): {e}")
+        push_task_update(task_id)
 @router.post("/api/translate/start")
 async def start_translation_project(request: InitialTranslationRequest, background_tasks: BackgroundTasks):
     """
@@ -345,7 +343,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         raise HTTPException(status_code=404, detail="Project not found")
 
     task_id = str(uuid.uuid4())
-    tasks[task_id] = {"status": "pending", "log": []}
+    create_task(task_id)
 
     # Prepare arguments for the workflow
     # Use the actual folder name from source_path to ensure it matches the directory on disk
@@ -354,8 +352,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     if not os.path.exists(project['source_path']):
          raise HTTPException(status_code=400, detail=f"Project source path not found: {project['source_path']}")
 
-    tasks[task_id]["status"] = "starting"
-    tasks[task_id]["log"].append(f"Starting translation for project: '{mod_name}'")
+    update_task(task_id, status="starting", append_log=f"Starting translation for project: '{mod_name}'", push=False)
 
     background_tasks.add_task(
         run_translation_workflow_v2,
@@ -410,7 +407,7 @@ async def start_translation(
     mod_context: str = Form("")
 ):
     task_id = str(uuid.uuid4())
-    tasks[task_id] = {"status": "pending", "log": []}
+    create_task(task_id)
     try:
         mod_name = file.filename.replace(".zip", "")
         source_path = os.path.join(SOURCE_DIR, mod_name)
@@ -429,8 +426,7 @@ async def start_translation(
                     shutil.move(os.path.join(potential_inner_folder, item_name), os.path.join(source_path, item_name))
                 os.rmdir(potential_inner_folder)
         os.remove(temp_zip_path) # Clean up the zip file
-        tasks[task_id]["status"] = "starting"
-        tasks[task_id]["log"].append(f"Mod '{mod_name}' 已上传并解压。")
+        update_task(task_id, status="starting", append_log=f"Mod '{mod_name}' 已上传并解压。", push=False)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"文件处理失败: {e}")
 
@@ -462,7 +458,7 @@ async def start_translation_v2(
     payload: TranslationRequestV2
 ):
     task_id = str(uuid.uuid4())
-    tasks[task_id] = {"status": "pending", "log": []}
+    create_task(task_id)
 
     if not os.path.exists(payload.project_path) or not os.path.isdir(payload.project_path):
         raise HTTPException(status_code=400, detail="Invalid project path.")
@@ -476,8 +472,7 @@ async def start_translation_v2(
                 shutil.rmtree(source_path)
             shutil.copytree(payload.project_path, source_path)
         
-        tasks[task_id]["status"] = "starting"
-        tasks[task_id]["log"].append(f"Using source: '{mod_name}'")
+        update_task(task_id, status="starting", append_log=f"Using source: '{mod_name}'", push=False)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"文件处理失败: {e}")
@@ -526,7 +521,9 @@ def get_source_mods():
 
 @router.get("/api/status/{task_id}")
 def get_status(task_id: str):
-    task = tasks.get(task_id)
+    task = get_task_payload(task_id)
+    if task:
+        return task
     if not task:
         raise HTTPException(status_code=404, detail="任务未找到")
     
@@ -543,11 +540,8 @@ async def websocket_status(websocket: WebSocket, task_id: str):
     await ws_manager.connect(websocket, task_id)
     try:
         # Send initial state
-        if task_id in tasks:
-            MAX_LOG_LINES = 100
-            task_data = dict(tasks[task_id])
-            if "log" in task_data and len(task_data["log"]) > MAX_LOG_LINES:
-                task_data["log"] = task_data["log"][-MAX_LOG_LINES:]
+        task_data = get_task_payload(task_id)
+        if task_data:
             await websocket.send_json(task_data)
         
         while True:
@@ -561,7 +555,7 @@ async def websocket_status(websocket: WebSocket, task_id: str):
 
 @router.get("/api/result/{task_id}")
 def get_result(task_id: str):
-    task = tasks.get(task_id)
+    task = get_task(task_id)
     if not task or task["status"] not in ("completed", "partial_failed"):
         raise HTTPException(status_code=404, detail="任务未完成或结果文件未找到")
     return FileResponse(task["result_path"], media_type='application/zip', filename=os.path.basename(task["result_path"]))

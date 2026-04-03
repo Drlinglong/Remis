@@ -23,7 +23,7 @@
   "msg_reset_success": "数据库已成功重置。应用程序将重新加载。",
   "msg_reset_fail": "重置数据库失败：",
   "progress_translating_model": "正在使用 {{model}} 模型翻译 {{total_files}} 个文件中的 {{total_batches}} 个批次...",
-  "progress_status": "已经完成了 {{processed_files}} 个文件，{{completed_batches}} 个批次，还剩下 {{remaining_files}} 个文件，{{remaining_batches}} 个批次",
+  "progress_status": "已处理 {{processed_files}} 个文件，{{completed_batches}} 个批次；已成功 {{successful_batches}} 个批次，已失败 {{failed_batches}} 个批次；还剩下 {{remaining_files}} 个文件，{{remaining_batches}} 个批次",
   "translation_completed": "翻译完成！",
   "report_success_summary": "已经成功完成 {{mod_name}} 的从 {{source_lang}} 翻译为 {{target_langs}} 的翻译流程。",
   "report_error_count": "有 {{count}} 个文件出现错误",

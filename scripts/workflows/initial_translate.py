@@ -246,6 +246,8 @@ def run(mod_name: str,
 
         # Progress Tracking State
         completed_batches = 0
+        successful_batches = 0
+        failed_batches = 0
         processed_files_count = 0
         error_count = 0
         glossary_issues = 0
@@ -267,6 +269,8 @@ def run(mod_name: str,
                     stage=stage,
                     current_batch=completed_batches,
                     total_batches=total_batches,
+                    successful_batches=successful_batches,
+                    failed_batches=failed_batches,
                     error_count=error_count,
                     glossary_issues=glossary_issues,
                     format_issues=format_issues,
@@ -326,8 +330,12 @@ def run(mod_name: str,
         def translation_wrapper(batch_task):
             result = handler.translate_batch(batch_task)
             with progress_lock:
-                nonlocal completed_batches
+                nonlocal completed_batches, successful_batches, failed_batches
                 completed_batches += 1
+                if result.failed:
+                    failed_batches += 1
+                else:
+                    successful_batches += 1
                 update_progress(batch_task.file_task.filename)
             return result
 

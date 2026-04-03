@@ -58,6 +58,8 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
         total: 0,
         current_batch: 0,
         total_batches: 0,
+        successful_batches: 0,
+        failed_batches: 0,
         error_count: 0,
         glossary_issues: 0,
         format_issues: 0
@@ -316,6 +318,8 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                         {t('progress_status', {
                             processed_files: progress.current,
                             completed_batches: progress.current_batch,
+                            successful_batches: progress.successful_batches || 0,
+                            failed_batches: progress.failed_batches || 0,
                             remaining_files: remainingFiles,
                             remaining_batches: remainingBatches
                         })}
