@@ -21,6 +21,7 @@ import {
     Box,
     Switch,
     Collapse,
+    Modal,
 } from '@mantine/core';
 import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, IconPlayerPlay, IconChartBar, IconSettings } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +29,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useNotification } from '../context/NotificationContext';
+import { getTutorialKey, useTutorial } from '../context/TutorialContext';
 import notificationService from '../services/notificationService';
 import styles from './Translation.module.css';
 
@@ -39,8 +41,10 @@ const IncrementalTranslationPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { notificationStyle } = useNotification();
+    const { setPageContext, startTour } = useTutorial();
     const [active, setActive] = useState(0);
     const [loading, setLoading] = useState(false);
+    const [showTutorialPrompt, setShowTutorialPrompt] = useState(false);
 
     // Data State
     const [projects, setProjects] = useState([]);
@@ -1067,6 +1071,20 @@ const IncrementalTranslationPage = () => {
 
     const prevStep = () => setActive((current) => (current > 0 ? current - 1 : current));
 
+    useEffect(() => {
+        setPageContext((prev) => {
+            const nextContext = `incremental-translation-step-${active}`;
+            return prev === nextContext ? prev : nextContext;
+        });
+    }, [active, setPageContext]);
+
+    useEffect(() => {
+        const tutorialKey = getTutorialKey('incremental-translation_prompt_seen');
+        if (!localStorage.getItem(tutorialKey)) {
+            setShowTutorialPrompt(true);
+        }
+    }, []);
+
     return (
         <Container size="xl" py="xl" className={styles.incrementalPage}>
             <Title order={2} mb="xl" className={styles.pageTitle}>
@@ -1082,7 +1100,7 @@ const IncrementalTranslationPage = () => {
                     icon={<IconSearch size={18} />}
                 >
                     <Stack mt="xl" className={styles.executionStep}>
-                        <Paper withBorder p="md" radius="md" className={styles.glassCard}>
+                        <Paper id="incremental-project-selector" withBorder p="md" radius="md" className={styles.glassCard}>
                             <Group grow align="flex-end">
                                 <TextInput
                                     label={t('common.search', { defaultValue: 'Search' })}
@@ -1099,7 +1117,7 @@ const IncrementalTranslationPage = () => {
                                 />
                             </Group>
                         </Paper>
-                        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
+                        <SimpleGrid id="incremental-project-grid" cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
                             {filteredProjects.map((p) => (
                                 <Card
                                     key={p.project_id}
@@ -1168,13 +1186,13 @@ const IncrementalTranslationPage = () => {
                         )}
 
                         {archiveInfo && (
-                            <Paper withBorder p="lg" radius="md" className={styles.glassCard}>
+                            <Paper id="incremental-setup-card" withBorder p="lg" radius="md" className={styles.glassCard}>
                                 <Stack>
                                     <Alert icon={<IconCheck size={16} />} color="blue" radius="md">
                                         <Text size="sm" fw={600}>{t('incremental_translation.workflow_supported_title')}</Text>
                                         <Text size="sm">{t('incremental_translation.workflow_supported_desc')}</Text>
                                     </Alert>
-                                    <Card withBorder p="md" radius="md">
+                                    <Card id="incremental-embedded-workshop" withBorder p="md" radius="md">
                                         <Text size="sm" fw={600} mb="sm">{t('incremental_translation.project_details_title')}</Text>
                                         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
                                             <Box>
@@ -1405,22 +1423,24 @@ const IncrementalTranslationPage = () => {
                                         </Stack>
                                     </Card>
 
-                                    <MultiSelect
-                                        label={t('translation_config.target_languages')}
-                                        description={t('incremental_translation.target_lang_desc')}
-                                        data={getArchivedTargetLanguages(archiveInfo).map(lang => ({ value: lang, label: lang }))}
-                                        value={selectedLangs}
-                                        onChange={setSelectedLangs}
-                                        required
-                                        clearable
-                                    />
+                                    <Box id="incremental-target-languages">
+                                        <MultiSelect
+                                            label={t('translation_config.target_languages')}
+                                            description={t('incremental_translation.target_lang_desc')}
+                                            data={getArchivedTargetLanguages(archiveInfo).map(lang => ({ value: lang, label: lang }))}
+                                            value={selectedLangs}
+                                            onChange={setSelectedLangs}
+                                            required
+                                            clearable
+                                        />
+                                    </Box>
                                     {getArchivedTargetLanguages(archiveInfo).length === 0 && (
                                         <Alert icon={<IconAlertCircle size={16} />} color="orange" radius="md">
                                             {t('incremental_translation.no_archived_target_languages')}
                                         </Alert>
                                     )}
 
-                                    <Box>
+                                    <Box id="incremental-folder-picker">
                                         <Text size="sm" fw={500} mb={4}>{t('incremental_translation.select_new_folder')}</Text>
                                         <Group gap="xs">
                                             <TextInput
@@ -1439,7 +1459,7 @@ const IncrementalTranslationPage = () => {
 
                                     <Group justify="flex-end" mt="md">
                                         <Button variant="light" onClick={prevStep}>{t('common.back')}</Button>
-                                        <Button onClick={runPreScan}>{t('incremental_translation.step_3_title')}</Button>
+                                        <Button id="incremental-run-prescan-btn" onClick={runPreScan}>{t('incremental_translation.step_3_title')}</Button>
                                     </Group>
                                 </Stack>
                             </Paper>
@@ -1455,7 +1475,7 @@ const IncrementalTranslationPage = () => {
                 >
                     <Stack mt="xl">
                         {scanResults && (
-                            <Paper withBorder p="xl" radius="md" className={styles.glassCard}>
+                            <Paper id="incremental-prescan-summary" withBorder p="xl" radius="md" className={styles.glassCard}>
                                 <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} mb="lg">
                                     <Select
                                         label={t('translation_config.provider')}
@@ -1529,6 +1549,7 @@ const IncrementalTranslationPage = () => {
                                         {t('common.back')}
                                     </Button>
                                     <Button
+                                        id="incremental-start-run-btn"
                                         size="lg"
                                         leftSection={<IconPlayerPlay size={20} />}
                                         onClick={startTranslation}
@@ -1549,7 +1570,7 @@ const IncrementalTranslationPage = () => {
                 {/* --- Step 4: Execution --- */}
                 <Stepper.Completed>
                     <Stack mt="xl">
-                        <Paper withBorder p="xl" radius="md" className={styles.glassCard}>
+                        <Paper id="incremental-execution-panel" withBorder p="xl" radius="md" className={styles.glassCard}>
                             <Title order={4} mb="md">{t('incremental_translation.execution_log')}</Title>
 
                             <Progress
@@ -1588,7 +1609,7 @@ const IncrementalTranslationPage = () => {
                             </Box>
 
                             {finalSummary && (
-                                <Stack mt="xl">
+                                <Stack id="incremental-final-summary" mt="xl">
                                     <Title order={4} c="green">{t('incremental_translation.completion_title')}</Title>
                                     {finalSummary.warning_count > 0 && (
                                         <Alert color="orange" title={t('incremental_translation.runtime_warning_summary_title')}>
@@ -1653,6 +1674,43 @@ const IncrementalTranslationPage = () => {
                     </Stack>
                 </Stepper.Completed>
             </Stepper>
+
+            <Modal
+                opened={showTutorialPrompt}
+                onClose={() => {
+                    setShowTutorialPrompt(false);
+                    localStorage.setItem(getTutorialKey('incremental-translation_prompt_seen'), 'true');
+                }}
+                title={t('tutorial.auto_start_prompt.title')}
+                centered
+                radius="md"
+            >
+                <Stack>
+                    <Text size="sm">{t('tutorial.auto_start_prompt.message')}</Text>
+                    <Group justify="flex-end" mt="md">
+                        <Button
+                            variant="subtle"
+                            color="gray"
+                            onClick={() => {
+                                setShowTutorialPrompt(false);
+                                localStorage.setItem(getTutorialKey('incremental-translation_prompt_seen'), 'true');
+                            }}
+                        >
+                            {t('tutorial.auto_start_prompt.cancel')}
+                        </Button>
+                        <Button
+                            color="blue"
+                            onClick={() => {
+                                setShowTutorialPrompt(false);
+                                localStorage.setItem(getTutorialKey('incremental-translation_prompt_seen'), 'true');
+                                startTour();
+                            }}
+                        >
+                            {t('tutorial.auto_start_prompt.confirm')}
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
         </Container>
     );
 };

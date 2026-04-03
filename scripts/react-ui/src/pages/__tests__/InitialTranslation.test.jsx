@@ -6,6 +6,9 @@ import { MemoryRouter } from 'react-router-dom';
 
 import InitialTranslation from '../InitialTranslation';
 
+const setPageContextMock = vi.fn();
+const startTourMock = vi.fn();
+
 vi.mock('../../utils/api', () => ({
   default: {
     get: vi.fn((url) => {
@@ -74,8 +77,10 @@ vi.mock('../../context/NotificationContext', () => ({
 
 vi.mock('../../context/TutorialContext', () => ({
   useTutorial: () => ({
-    setPageContext: vi.fn(),
+    setPageContext: setPageContextMock,
+    startTour: startTourMock,
   }),
+  getTutorialKey: (page = 'general') => `remis_tutorial_${page}_v1`,
 }));
 
 vi.mock('../../context/TranslationContext', () => ({
@@ -126,5 +131,7 @@ describe('InitialTranslation', () => {
       expect(screen.getAllByText('translation_page.subtitle').length).toBeGreaterThan(0);
       expect(screen.getByText('Test Project')).toBeInTheDocument();
     });
+
+    expect(setPageContextMock).toHaveBeenCalledWith(expect.any(Function));
   });
 });

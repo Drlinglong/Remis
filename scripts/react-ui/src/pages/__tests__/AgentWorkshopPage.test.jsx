@@ -6,6 +6,9 @@ import { MemoryRouter } from 'react-router-dom';
 import AgentWorkshopPage from '../AgentWorkshopPage';
 import axios from 'axios';
 
+const setPageContextMock = vi.fn();
+const startTourMock = vi.fn();
+
 // Mock axios
 vi.mock('axios');
 
@@ -22,6 +25,14 @@ vi.mock('react-i18next', () => ({
     useTranslation: () => ({
         t: (key) => key,
     }),
+}));
+
+vi.mock('../../context/TutorialContext', () => ({
+    useTutorial: () => ({
+        setPageContext: setPageContextMock,
+        startTour: startTourMock,
+    }),
+    getTutorialKey: (page = 'general') => `remis_tutorial_${page}_v1`,
 }));
 
 const renderWithProvider = (ui) => {
@@ -75,6 +86,8 @@ describe('AgentWorkshopPage', () => {
         await waitFor(() => {
             expect(axios.get).toHaveBeenCalledWith('/api/config');
         });
+
+        expect(setPageContextMock).toHaveBeenCalledWith(expect.any(Function));
     });
 
     it('handles missing available_models gracefully', async () => {

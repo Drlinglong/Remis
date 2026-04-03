@@ -668,6 +668,90 @@
         "desc": "Run automated checks for missing tags, broken variables, or inconsistent terminology."
       }
     },
+    "incremental_translation": {
+      "select": {
+        "title": "Pick the Existing Project",
+        "desc": "Incremental translation starts from an existing archived project. Search for the project you want to update here."
+      },
+      "project_cards": {
+        "title": "Project Cards",
+        "desc": "Choose the project whose archive and history should be reused as the comparison baseline."
+      },
+      "setup": {
+        "title": "Archive and Path Setup",
+        "desc": "This step checks archive availability, lets you choose target languages, and points the workflow at the new source folder."
+      },
+      "languages": {
+        "title": "Target Languages",
+        "desc": "Only archived target languages can be updated incrementally. Pick one or more languages to rebuild."
+      },
+      "folder": {
+        "title": "Updated Source Folder",
+        "desc": "Point this to the new mod folder or workshop copy that contains the latest source files."
+      },
+      "workshop": {
+        "title": "Embedded Smart Workshop",
+        "desc": "Keep this enabled if you want one automatic validation-and-fix pass after translation completes."
+      },
+      "prescan": {
+        "title": "Run the Pre-scan",
+        "desc": "Pre-scan compares old and new sources first, so you can inspect the scope before spending API calls."
+      },
+      "summary": {
+        "title": "Pre-scan Summary",
+        "desc": "Review reused, changed, and new entries here. This is the last checkpoint before the real run."
+      },
+      "start": {
+        "title": "Start Incremental Translation",
+        "desc": "Launch the actual incremental run once the counts and provider settings look correct."
+      },
+      "execution": {
+        "title": "Execution and Logs",
+        "desc": "Watch runtime progress, warnings, and log output while the incremental workflow is rebuilding files."
+      },
+      "results": {
+        "title": "Final Output",
+        "desc": "After completion, check warnings, exported workshop issues, and the output folder path here."
+      }
+    },
+    "agent_workshop": {
+      "select": {
+        "title": "Select a Project to Repair",
+        "desc": "Smart Workshop works against an existing project. Use search and filters to find the target project first."
+      },
+      "project_cards": {
+        "title": "Project Candidates",
+        "desc": "Pick the project whose validation issues you want to scan and repair."
+      },
+      "summary": {
+        "title": "Project Context",
+        "desc": "Review archive state, source language, and recent translation context before starting the scan."
+      },
+      "scan": {
+        "title": "Scan for Issues",
+        "desc": "This starts the Smart Workshop scan and loads cached issue sidecars when they already exist."
+      },
+      "fix_settings": {
+        "title": "Fix Strategy",
+        "desc": "Choose the provider, model, batch size, concurrency, and RPM before launching automated fixes."
+      },
+      "issue_details": {
+        "title": "Issue Review",
+        "desc": "Inspect grouped file issues here, or open single-item fixes if you want to review them one by one."
+      },
+      "start": {
+        "title": "Start Batch Repair",
+        "desc": "Launch the automated repair pass after you are satisfied with the scan results and model settings."
+      },
+      "execution": {
+        "title": "Repair Progress",
+        "desc": "Track the repair run, progress percentage, and worker logs while fixes are being generated."
+      },
+      "results": {
+        "title": "Diff Preview",
+        "desc": "Review before/after suggestions here once the run completes, then decide what to keep."
+      }
+    },
     "sidebar_tutorial_btn": "Tutorial",
     "auto_start_prompt": {
       "title": "Quick Start",

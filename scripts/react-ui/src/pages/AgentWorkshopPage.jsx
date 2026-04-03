@@ -10,6 +10,7 @@ import {
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
+import { getTutorialKey, useTutorial } from '../context/TutorialContext';
 import styles from './AgentWorkshop.module.css';
 import translationStyles from './Translation.module.css';
 
@@ -19,7 +20,9 @@ const LOCAL_PROVIDERS = ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga'
 const AgentWorkshopPage = () => {
   const { t } = useTranslation();
   const location = useLocation();
+  const { setPageContext, startTour } = useTutorial();
   const [active, setActive] = useState(0);
+  const [showTutorialPrompt, setShowTutorialPrompt] = useState(false);
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [archiveInfo, setArchiveInfo] = useState(null);
@@ -176,6 +179,20 @@ const AgentWorkshopPage = () => {
     };
     bootstrap();
   }, [location.state]);
+
+  useEffect(() => {
+    setPageContext((prev) => {
+      const nextContext = `agent-workshop-step-${active}`;
+      return prev === nextContext ? prev : nextContext;
+    });
+  }, [active, setPageContext]);
+
+  useEffect(() => {
+    const tutorialKey = getTutorialKey('agent-workshop_prompt_seen');
+    if (!localStorage.getItem(tutorialKey)) {
+      setShowTutorialPrompt(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (restoredRef.current) persistState();
@@ -385,13 +402,13 @@ const AgentWorkshopPage = () => {
           <Stepper active={active} onStepClick={setActive} allowNextStepsSelect={false} breakpoint="sm">
             <Stepper.Step label={t('agent_workshop.step_select_project')} description={t('agent_workshop.step_select_project_desc')} icon={<IconFolderCode size={18} />}>
               <Stack mt="xl" className={translationStyles.executionStep}>
-                <Paper withBorder p="md" radius="md" className={translationStyles.glassCard}>
+                <Paper id="agent-workshop-project-selector" withBorder p="md" radius="md" className={translationStyles.glassCard}>
                   <Group grow align="flex-end">
                     <TextInput label={t('common.search')} placeholder={t('agent_workshop.project_search_placeholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.currentTarget.value)} leftSection={<IconSearch size={16} />} />
                     <Select label={t('common.filter_game')} data={gameFilterOptions} value={gameFilter} onChange={(value) => setGameFilter(value || 'all')} />
                   </Group>
                 </Paper>
-                <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
+                <SimpleGrid id="agent-workshop-project-grid" cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
                   {filteredProjects.map((project) => (
                     <Card key={project.project_id} padding="lg" radius="md" withBorder onClick={() => handleProjectSelect(project.project_id)} style={{ cursor: 'pointer' }} className={selectedProjectId === project.project_id ? translationStyles.selectedCard : translationStyles.glassCard}>
                       <Stack gap="xs">
@@ -408,7 +425,7 @@ const AgentWorkshopPage = () => {
             <Stepper.Step label={t('agent_workshop.step_project_summary')} description={t('agent_workshop.step_project_summary_desc')} icon={<IconSettings size={18} />}>
               <Stack mt="xl" gap="md">
                 {projectContextLoading && <Paper withBorder p="lg" radius="md" className={translationStyles.glassCard}><Text size="sm">{t('common.loading')}</Text></Paper>}
-                {selectedProject && <Paper withBorder p="lg" radius="md" className={translationStyles.glassCard}><Stack>
+                {selectedProject && <Paper id="agent-workshop-project-summary" withBorder p="lg" radius="md" className={translationStyles.glassCard}><Stack>
                   <Group justify="space-between"><Title order={4}>{selectedProject.name}</Title><Badge color="blue" variant="light">{selectedProject.game_id}</Badge></Group>
                   <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
                     <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('incremental_translation.project_source_language')}</Text><Text size="sm" fw={600}>{selectedProject.source_language || '--'}</Text></Card>
@@ -420,7 +437,7 @@ const AgentWorkshopPage = () => {
                   </SimpleGrid>
                   <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.project_path')}</Text><Text size="sm" fw={500}>{selectedProject.source_path}</Text></Card>
                   <Alert icon={<IconInfoCircle size={16} />} color="blue" radius="md"><Text size="sm">{t('agent_workshop.scan_help')}</Text></Alert>
-                  <Group justify="space-between"><Button variant="light" onClick={() => setActive(0)}>{t('common.back')}</Button><Button leftSection={<IconSearch size={16} />} onClick={handleScan} loading={scanLoading}>{t('agent_workshop.scan_btn')}</Button></Group>
+                  <Group justify="space-between"><Button variant="light" onClick={() => setActive(0)}>{t('common.back')}</Button><Button id="agent-workshop-scan-btn" leftSection={<IconSearch size={16} />} onClick={handleScan} loading={scanLoading}>{t('agent_workshop.scan_btn')}</Button></Group>
                 </Stack></Paper>}
               </Stack>
             </Stepper.Step>
@@ -428,7 +445,7 @@ const AgentWorkshopPage = () => {
             <Stepper.Step label={t('agent_workshop.step_scan_summary')} description={t('agent_workshop.step_scan_summary_desc')} icon={<IconChartBar size={18} />}>
               <Stack mt="xl" gap="md">
                 <Paper withBorder p="lg" radius="md" className={translationStyles.glassCard}>
-                  <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} mb="lg">
+                  <SimpleGrid id="agent-workshop-fix-settings" cols={{ base: 1, sm: 2, lg: 4 }} mb="lg">
                     <Select label={t('agent_workshop.provider_label')} data={apiProviders} value={selectedProvider} onChange={handleProviderChange} />
                     <Select label={t('agent_workshop.model_label')} data={modelOptions} value={selectedModel} onChange={setSelectedModel} searchable />
                     <Select label={t('agent_workshop.batch_size')} data={['1', '3', '10', '20'].map((value) => ({ value, label: value }))} value={batchSizeLimit} onChange={setBatchSizeLimit} />
@@ -441,22 +458,22 @@ const AgentWorkshopPage = () => {
                     <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.cached_state')}</Text><Title order={5}>{isCached ? t('agent_workshop.cached_label') : t('agent_workshop.scanned_label')}</Title></Card>
                   </SimpleGrid>
                   <Alert icon={<IconAlertTriangle size={16} />} color={issues.length ? 'orange' : 'green'} radius="md">{issues.length ? t('agent_workshop.start_fix_confirm') : t('agent_workshop.no_errors_desc')}</Alert>
-                  <Group justify="flex-end" mt="md"><Button variant="light" onClick={() => setActive(1)}>{t('common.back')}</Button><Button leftSection={<IconPlayerPlay size={18} />} onClick={executeFixRun} disabled={!issues.length || !selectedProvider || !selectedModel || executing}>{t('agent_workshop.start_fix')}</Button></Group>
+                  <Group justify="flex-end" mt="md"><Button variant="light" onClick={() => setActive(1)}>{t('common.back')}</Button><Button id="agent-workshop-start-fix-btn" leftSection={<IconPlayerPlay size={18} />} onClick={executeFixRun} disabled={!issues.length || !selectedProvider || !selectedModel || executing}>{t('agent_workshop.start_fix')}</Button></Group>
                   {issueTypeSummary.length > 0 && <Stack gap="xs" mt="xl"><Text size="sm" fw={600}>{t('agent_workshop.issue_type_summary')}</Text><SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>{issueTypeSummary.map((item) => <Card key={item.label} withBorder p="sm" radius="md"><Text size="xs" c="dimmed" lineClamp={2}>{localizeIssueLabel(item.label)}</Text><Text size="sm" fw={700}>{item.count}</Text></Card>)}</SimpleGrid></Stack>}
-                  {groupedIssues.length > 0 && <Accordion variant="separated" radius="md" mt="xl"><Accordion.Item value="file-details"><Accordion.Control><Group justify="space-between" wrap="nowrap"><Text fw={600}>{t('agent_workshop.file_issue_details')}</Text><Badge color="orange" variant="light">{groupedIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{groupedIssues.map(([fileKey, fileIssues]) => <Accordion key={fileKey} variant="contained" radius="md"><Accordion.Item value={fileKey}><Accordion.Control><Group justify="space-between" wrap="nowrap"><Box style={{ minWidth: 0 }}><Text size="sm" fw={600} truncate>{fileKey}</Text><Text size="xs" c="dimmed">{fileIssues[0]?.target_lang || '--'}</Text></Box><Badge color="orange" variant="light">{fileIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{fileIssues.map((issue, index) => <Paper key={`${issue.file_name}:${issue.key}:${index}`} p="sm" withBorder><Group justify="space-between" align="flex-start" wrap="nowrap"><Box style={{ minWidth: 0, flex: 1 }}><Text size="sm" fw={600}>{issue.key}</Text><Badge color="red" variant="light" mt={6}>{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge><Text size="xs" c="dimmed" mt={8}>{issue.details}</Text><Code block mt="sm">{issue.target_str}</Code></Box><Button size="xs" variant="light" leftSection={<IconWand size={14} />} onClick={() => openFixModal(issue)} style={{ whiteSpace: 'nowrap' }}>{t('agent_workshop.fix_btn')}</Button></Group></Paper>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>}
+                  {groupedIssues.length > 0 && <Accordion id="agent-workshop-issue-details" variant="separated" radius="md" mt="xl"><Accordion.Item value="file-details"><Accordion.Control><Group justify="space-between" wrap="nowrap"><Text fw={600}>{t('agent_workshop.file_issue_details')}</Text><Badge color="orange" variant="light">{groupedIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{groupedIssues.map(([fileKey, fileIssues]) => <Accordion key={fileKey} variant="contained" radius="md"><Accordion.Item value={fileKey}><Accordion.Control><Group justify="space-between" wrap="nowrap"><Box style={{ minWidth: 0 }}><Text size="sm" fw={600} truncate>{fileKey}</Text><Text size="xs" c="dimmed">{fileIssues[0]?.target_lang || '--'}</Text></Box><Badge color="orange" variant="light">{fileIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{fileIssues.map((issue, index) => <Paper key={`${issue.file_name}:${issue.key}:${index}`} p="sm" withBorder><Group justify="space-between" align="flex-start" wrap="nowrap"><Box style={{ minWidth: 0, flex: 1 }}><Text size="sm" fw={600}>{issue.key}</Text><Badge color="red" variant="light" mt={6}>{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge><Text size="xs" c="dimmed" mt={8}>{issue.details}</Text><Code block mt="sm">{issue.target_str}</Code></Box><Button size="xs" variant="light" leftSection={<IconWand size={14} />} onClick={() => openFixModal(issue)} style={{ whiteSpace: 'nowrap' }}>{t('agent_workshop.fix_btn')}</Button></Group></Paper>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>}
                 </Paper>
               </Stack>
             </Stepper.Step>
 
             <Stepper.Step label={t('agent_workshop.step_execution')} description={t('agent_workshop.step_execution_desc')} icon={<IconRobot size={18} />}>
-              <Stack mt="xl"><Paper withBorder p="xl" radius="md" className={translationStyles.glassCard}>
+              <Stack mt="xl"><Paper id="agent-workshop-execution-panel" withBorder p="xl" radius="md" className={translationStyles.glassCard}>
                 <Title order={4} mb="md">{t('agent_workshop.execution_title')}</Title>
                 <Progress value={progress} label={progress > 0 ? `${progress}%` : ''} size="xl" radius="xl" animated={executing} mb="sm" />
                 <Group justify="space-between" mb="xl"><Box><Text size="sm" fw={600}>{executing ? t('agent_workshop.execution_in_progress') : t('agent_workshop.execution_completed')}</Text><Text size="xs" c="dimmed">{executionStats ? `${executionStats.completed} / ${executionStats.total}` : t('agent_workshop.execution_pending')}</Text></Box><Text size="xs" fw={700} c="blue">{progress}%</Text></Group>
                 <Box ref={logViewportRef} className={translationStyles.logScrollBox}>{executionLogs.map((log, index) => <Text key={`${log}-${index}`} size="xs" style={{ fontFamily: 'monospace' }} mb={2}>{log}</Text>)}</Box>
               {executionStats && !executing && <Stack mt="xl"><SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md"><Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.fixed_count')}</Text><Title order={3} c="green">{executionStats.successCount}</Title></Card><Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.failed_count')}</Text><Title order={3} c="orange">{executionStats.failedCount}</Title></Card><Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.duration')}</Text><Title order={5}>{`${(executionStats.durationMs / 1000).toFixed(1)} s`}</Title></Card></SimpleGrid>
                 {fixedIssues.length > 0 && (
-                  <Accordion variant="separated" radius="md">
+                  <Accordion id="agent-workshop-diff-preview" variant="separated" radius="md">
                     <Accordion.Item value="diff-preview">
                       <Accordion.Control>{t('agent_workshop.diff_preview')}</Accordion.Control>
                       <Accordion.Panel>
@@ -501,6 +518,43 @@ const AgentWorkshopPage = () => {
               {fixResult && <Stack gap="md"><Alert icon={<IconInfoCircle size={16} />} title={t('agent_workshop.modal_analysis')} color="indigo" variant="light"><Text size="sm" fs="italic">{fixResult.reflection}</Text>{fixResult.report_path && <Text size="xs" mt={8} c="dimmed">{t('agent_workshop.report_path')}: {fixResult.report_path}</Text>}</Alert><Paper p="xs" withBorder style={{ backgroundColor: 'rgba(40, 167, 69, 0.05)' }}><Text size="xs" fw={700} c="green" tt="uppercase">{t('agent_workshop.modal_suggestion')}</Text><Code block color="green">{fixResult.suggested_fix}</Code>{fixResult.parity_message && <Text size="xs" mt={4} c={fixResult.status === 'SUCCESS' ? 'green' : 'orange'}><IconCheck size={12} /> {fixResult.parity_message}</Text>}</Paper><Group grow mt="lg"><Button variant="subtle" onClick={() => setFixResult(null)}>{t('agent_workshop.regenerate')}</Button><Button color="green" onClick={() => { setIsModalOpen(false); setIssues((prev) => prev.filter((item) => item.key !== currentIssue.key || item.file_name !== currentIssue.file_name)); }}>{t('agent_workshop.apply_fix')}</Button></Group></Stack>}
             </Stack>
           </Box>
+        </Modal>
+
+        <Modal
+          opened={showTutorialPrompt}
+          onClose={() => {
+            setShowTutorialPrompt(false);
+            localStorage.setItem(getTutorialKey('agent-workshop_prompt_seen'), 'true');
+          }}
+          title={t('tutorial.auto_start_prompt.title')}
+          centered
+          radius="md"
+        >
+          <Stack>
+            <Text size="sm">{t('tutorial.auto_start_prompt.message')}</Text>
+            <Group justify="flex-end" mt="md">
+              <Button
+                variant="subtle"
+                color="gray"
+                onClick={() => {
+                  setShowTutorialPrompt(false);
+                  localStorage.setItem(getTutorialKey('agent-workshop_prompt_seen'), 'true');
+                }}
+              >
+                {t('tutorial.auto_start_prompt.cancel')}
+              </Button>
+              <Button
+                color="blue"
+                onClick={() => {
+                  setShowTutorialPrompt(false);
+                  localStorage.setItem(getTutorialKey('agent-workshop_prompt_seen'), 'true');
+                  startTour();
+                }}
+              >
+                {t('tutorial.auto_start_prompt.confirm')}
+              </Button>
+            </Group>
+          </Stack>
         </Modal>
       </Container>
     </Box>
