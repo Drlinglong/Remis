@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+from datetime import datetime
 
 class ValidationLogger:
     """
@@ -56,6 +57,51 @@ class ValidationLogger:
         
         if updated:
             ValidationLogger.save_errors(project_root, errors)
+
+    @staticmethod
+    def update_error_metadata(project_root: str, file_name: str, key: str, updates: Dict[str, Any]):
+        """
+        Updates arbitrary metadata for a specific error entry.
+        """
+        errors = ValidationLogger.load_errors(project_root)
+        updated = False
+        for err in errors:
+            if err.get('file_name') == file_name and err.get('key') == key:
+                err.update(updates)
+                updated = True
+
+        if updated:
+            ValidationLogger.save_errors(project_root, errors)
+
+    @staticmethod
+    def mark_attempt_result(
+        project_root: str,
+        file_name: str,
+        key: str,
+        *,
+        status: str,
+        failure_reason: Optional[str] = None,
+        failure_details: Optional[str] = None,
+        last_suggested_fix: Optional[str] = None,
+    ):
+        """
+        Records the latest attempt outcome for a specific issue.
+        """
+        payload: Dict[str, Any] = {
+            "status": status,
+            "last_attempt_at": datetime.now().isoformat(timespec="seconds"),
+        }
+        if last_suggested_fix is not None:
+            payload["last_suggested_fix"] = last_suggested_fix
+
+        if status == "failed":
+            payload["failure_reason"] = failure_reason or "unknown_failure"
+            payload["failure_details"] = failure_details or ""
+        else:
+            payload["failure_reason"] = None
+            payload["failure_details"] = None
+
+        ValidationLogger.update_error_metadata(project_root, file_name, key, payload)
 
     @staticmethod
     def clear_fixes(project_root: str):

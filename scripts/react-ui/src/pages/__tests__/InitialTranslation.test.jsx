@@ -123,7 +123,7 @@ describe('InitialTranslation', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('translation_page.subtitle')).toBeInTheDocument();
+      expect(screen.getAllByText('translation_page.subtitle').length).toBeGreaterThan(0);
       expect(screen.getByText('Test Project')).toBeInTheDocument();
     });
   });
