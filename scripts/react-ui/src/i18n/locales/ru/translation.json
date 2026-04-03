@@ -801,7 +801,33 @@
       "resume": "Продолжить",
       "cleared_message": "Контрольная точка очищена. Запуск заново.",
       "clear_error": "Не удалось очистить контрольную точку."
-    }
+    },
+    "resume_hint": {
+      "title": "Доступна точка возобновления",
+      "desc": "Для этого проекта найден незавершенный прогресс перевода. Если хотите продолжить с прошлого места, включите возобновление.",
+      "enable": "Включить возобновление"
+    },
+    "resume_detail_title": "Детали возобновления",
+    "resume_detail_subtitle": "По умолчанию блок свернут. Разверните его, чтобы увидеть время последнего сохранения и прогресс по пакетам.",
+    "resume_detail_completed": "Завершено файлов: {{count}}",
+    "resume_detail_batch": "Последний пакет: {{current}} / {{total}}",
+    "resume_detail_time": "Последнее сохранение: {{time}}",
+    "resume_detail_file": "Последний завершенный файл: {{file}}",
+    "resume_detail_empty": "Подробные данные о точке возобновления пока недоступны.",
+    "resume_detail_none": "Незавершенной работы нет.",
+    "embedded_workshop_enabled": "Встраивать форматную проверку Agent Workshop в рабочий процесс перевода",
+    "embedded_workshop_enabled_desc": "Включено по умолчанию. После завершения перевода система автоматически выполнит один проход исправления форматирования и обновит результаты проверки.",
+    "embedded_workshop_settings": "Настройки Agent Workshop",
+    "embedded_workshop_settings_desc": "По умолчанию блок свернут. Разверните его, чтобы тонко настроить корректуру или выбрать модель, отличную от основной модели перевода.",
+    "embedded_workshop_follow": "По умолчанию использовать API и модель основного перевода",
+    "embedded_workshop_follow_desc": "Отключите это, если хотите использовать отдельную модель для корректуры, например большую модель для перевода и маленькую для очистки.",
+    "embedded_workshop_provider": "API для корректуры",
+    "embedded_workshop_model": "AI-модель для корректуры",
+    "embedded_workshop_batch_size": "Проблем за пакет",
+    "embedded_workshop_concurrency": "Параллельность корректуры",
+    "embedded_workshop_rpm": "Лимит RPM для корректуры",
+    "embedded_workshop_following_summary": "Сейчас используются настройки основного перевода: {{provider}} / {{model}}",
+    "embedded_workshop_custom_summary": "Сейчас используется отдельная конфигурация корректуры: {{provider}} / {{model}}"
   },
   "version_info": {
     "tab_title": "О программе",
@@ -868,5 +894,10 @@
     "modal_source_context": "Контекст источника",
     "modal_error_detected": "Обнаружена ошибка",
     "regenerate": "Сгенерировать заново"
+  },
+  "common": {
+    "browse": "Обзор",
+    "expand": "Развернуть",
+    "collapse": "Свернуть"
   }
 }

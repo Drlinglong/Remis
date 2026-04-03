@@ -21,6 +21,16 @@ class CustomLangConfig(BaseModel):
     key: str
     folder_prefix: str
 
+
+class EmbeddedWorkshopConfig(BaseModel):
+    enabled: bool = True
+    follow_primary_settings: bool = True
+    api_provider: Optional[str] = None
+    api_model: Optional[str] = None
+    batch_size_limit: Optional[int] = 10
+    concurrency_limit: Optional[int] = 1
+    rpm_limit: Optional[int] = 40
+
 class InitialTranslationRequest(BaseModel):
     project_id: str
     source_lang_code: LanguageCode
@@ -33,6 +43,7 @@ class InitialTranslationRequest(BaseModel):
     clean_source: bool = False
     use_resume: bool = True
     custom_lang_config: Optional[CustomLangConfig] = None
+    embedded_workshop: Optional[EmbeddedWorkshopConfig] = None
 
     @field_validator('source_lang_code', mode='before')
     @classmethod
@@ -67,6 +78,7 @@ class TranslationRequestV2(BaseModel):
     is_existing_source: bool = False
     use_resume: bool = True
     custom_lang_config: Optional[CustomLangConfig] = None
+    embedded_workshop: Optional[EmbeddedWorkshopConfig] = None
 
     @field_validator('source_lang_code', mode='before')
     @classmethod

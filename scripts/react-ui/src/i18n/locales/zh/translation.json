@@ -807,7 +807,33 @@
       "resume": "继续任务",
       "cleared_message": "检查点已清除，重新开始。",
       "clear_error": "清除检查点失败。"
-    }
+    },
+    "resume_hint": {
+      "title": "检测到可用断点",
+      "desc": "当前项目存在未完成的翻译进度。如果您希望从上次的进度继续，请开启断点续传。",
+      "enable": "开启断点续传"
+    },
+    "resume_detail_title": "断点详情",
+    "resume_detail_subtitle": "默认收起。展开后可查看上次保存时间与批次进度。",
+    "resume_detail_completed": "已完成文件：{{count}}",
+    "resume_detail_batch": "最近批次：{{current}} / {{total}}",
+    "resume_detail_time": "最后保存：{{time}}",
+    "resume_detail_file": "最后完成文件：{{file}}",
+    "resume_detail_empty": "暂无更详细的断点记录。",
+    "resume_detail_none": "没有未完成的工作。",
+    "embedded_workshop_enabled": "在翻译工作流中嵌入智能工坊格式校对",
+    "embedded_workshop_enabled_desc": "默认开启。翻译完成后会自动执行一轮格式修复，并刷新校验结果。",
+    "embedded_workshop_settings": "智能工坊设置",
+    "embedded_workshop_settings_desc": "默认收起。展开后可微调校对设置，或使用与主翻译不同的模型。",
+    "embedded_workshop_follow": "默认跟随主翻译的 API 与模型",
+    "embedded_workshop_follow_desc": "关闭后可使用独立的校对模型，例如大模型翻译、小模型清理。",
+    "embedded_workshop_provider": "校对 API",
+    "embedded_workshop_model": "校对 AI 模型",
+    "embedded_workshop_batch_size": "每批问题数",
+    "embedded_workshop_concurrency": "校对并发数",
+    "embedded_workshop_rpm": "校对 RPM 限制",
+    "embedded_workshop_following_summary": "当前跟随主翻译设置：{{provider}} / {{model}}",
+    "embedded_workshop_custom_summary": "当前使用独立校对设置：{{provider}} / {{model}}"
   },
   "version_info": {
     "tab_title": "版本信息",
@@ -961,5 +987,10 @@
     "regenerate": "重新生成",
     "fix_all": "一键修复全部",
     "select_model_hint": "请先在上方选择 AI 模型"
+  },
+  "common": {
+    "browse": "浏览",
+    "expand": "展开",
+    "collapse": "收起"
   }
 }

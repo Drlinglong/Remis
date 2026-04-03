@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paper, Text, Group, Avatar, Stack, Badge, ActionIcon, ScrollArea } from '@mantine/core';
+import { Paper, Text, Group, Avatar, Stack, Badge, ActionIcon } from '@mantine/core';
 import { IconDotsVertical, IconFileText } from '@tabler/icons-react';
 
 import dayjs from 'dayjs';
@@ -28,7 +28,7 @@ const RecentActivityList = ({ id, className, activities, loading }) => {
                 </ActionIcon>
             </Group>
 
-            <ScrollArea h={300} offsetScrollbars>
+            <div style={{ maxHeight: 300, overflowY: 'auto', overflowX: 'hidden' }}>
                 <Stack gap="md">
                     {loading ? (
                         Array(5).fill(0).map((_, i) => (
@@ -71,7 +71,7 @@ const RecentActivityList = ({ id, className, activities, loading }) => {
                         <Text size="xs" c="dimmed" ta="center" py="xl">{t('recent_activity_no_data')}</Text>
                     )}
                 </Stack>
-            </ScrollArea>
+            </div>
         </Paper>
     );
 };

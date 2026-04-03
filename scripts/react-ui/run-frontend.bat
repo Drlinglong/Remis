@@ -1,10 +1,23 @@
 @echo off
-title Remis Frontend (Tauri)
+title Remis Frontend (Tauri Desktop Dev)
+setlocal
 
-echo Launching Tauri application...
-cd /d J:\V3_Mod_Localization_Factory\scripts\react-ui
+set "FRONTEND_DIR=%~dp0"
 
-echo Starting Tauri dev server...
-npm run tauri dev
+echo Launching Tauri desktop development shell...
+cd /d "%FRONTEND_DIR%"
+
+if not exist "node_modules" (
+    echo [INFO] Frontend dependencies not found. Installing with npm ci...
+    call npm ci
+    if errorlevel 1 (
+        echo [ERROR] npm ci failed. Frontend dependencies were not installed.
+        pause
+        exit /b 1
+    )
+)
+
+echo Starting Tauri desktop dev...
+call npm run tauri:desktop-dev
 
 pause

@@ -755,7 +755,33 @@
       "resume": "Resume",
       "cleared_message": "Checkpoint cleared. Starting fresh.",
       "clear_error": "Failed to clear checkpoint."
-    }
+    },
+    "resume_hint": {
+      "title": "Checkpoint Available",
+      "desc": "An unfinished translation session was detected. You can enable resume mode and continue from where it stopped.",
+      "enable": "Enable Resume"
+    },
+    "resume_detail_title": "Resume Details",
+    "resume_detail_subtitle": "Collapsed by default. Expand to review the last saved time and batch progress.",
+    "resume_detail_completed": "Completed Files: {{count}}",
+    "resume_detail_batch": "Last Batch: {{current}} / {{total}}",
+    "resume_detail_time": "Last Saved: {{time}}",
+    "resume_detail_file": "Last Completed File: {{file}}",
+    "resume_detail_empty": "No detailed checkpoint entries are available yet.",
+    "resume_detail_none": "There is no unfinished work.",
+    "embedded_workshop_enabled": "Embed Agent Workshop formatting repair into the translation workflow",
+    "embedded_workshop_enabled_desc": "Enabled by default. After translation finishes, the workflow runs one automatic formatting-fix pass and refreshes validation results.",
+    "embedded_workshop_settings": "Agent Workshop Settings",
+    "embedded_workshop_settings_desc": "Collapsed by default. Expand to fine-tune proofreading settings or use a different model from the main translation run.",
+    "embedded_workshop_follow": "Follow the main translation API and model by default",
+    "embedded_workshop_follow_desc": "Turn this off to use a separate proofreading model, for example a large model for translation and a smaller one for cleanup.",
+    "embedded_workshop_provider": "Proofreading API",
+    "embedded_workshop_model": "Proofreading Model",
+    "embedded_workshop_batch_size": "Issues Per Batch",
+    "embedded_workshop_concurrency": "Proofreading Concurrency",
+    "embedded_workshop_rpm": "Proofreading RPM",
+    "embedded_workshop_following_summary": "Currently following the primary translation setup: {{provider}} / {{model}}",
+    "embedded_workshop_custom_summary": "Currently using a dedicated proofreading setup: {{provider}} / {{model}}"
   },
   "version_info": {
     "tab_title": "Version Info",
@@ -886,7 +912,9 @@
     "model": "AI Model"
   },
   "common": {
-    "browse": "Browse"
+    "browse": "Browse",
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "page_title_agent_workshop": "Agent Workshop",
   "agent_workshop": {
