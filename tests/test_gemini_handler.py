@@ -50,6 +50,26 @@ class TestGeminiHandler:
         assert 'config' in kwargs, "generate_content should be called with 'config' argument"
         assert 'generation_config' not in kwargs, "generate_content should NOT be called with 'generation_config' argument"
 
+    def test_call_api_retries_without_http_options_on_older_sdk(self, handler):
+        mock_response = MagicMock()
+        mock_response.text = "Translated Text"
+
+        handler.client.models.generate_content.side_effect = [
+            TypeError("Models.generate_content() got an unexpected keyword argument 'http_options'"),
+            mock_response,
+        ]
+
+        result = handler._call_api(handler.client, "Test Prompt")
+
+        assert result == "Translated Text"
+        assert handler.client.models.generate_content.call_count == 2
+
+        first_call = handler.client.models.generate_content.call_args_list[0]
+        second_call = handler.client.models.generate_content.call_args_list[1]
+
+        assert first_call.kwargs["http_options"] == {"timeout": 300}
+        assert "http_options" not in second_call.kwargs
+
     def test_generate_with_messages(self, handler):
         # Setup mock response
         mock_response = MagicMock()
