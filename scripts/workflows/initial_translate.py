@@ -63,7 +63,7 @@ def run(mod_name: str,
     handler = api_handler.get_handler(selected_provider, model_name=gemini_cli_model)
     if not handler or not handler.client:
         logging.warning(i18n.t("api_key_not_configured", provider=selected_provider))
-        return
+        return {"success": False, "message": f"Provider '{selected_provider}' is not configured or client initialization failed."}
 
     # ───────────── 2.5. 加载词典 ─────────────
     game_id = game_profile.get("id", "")
@@ -126,7 +126,7 @@ def run(mod_name: str,
 
     if not all_file_paths:
         logging.warning(i18n.t("no_localisable_files_found", lang_name=source_lang['name']))
-        return
+        return {"success": False, "message": f"No localizable files found for source language '{source_lang['name']}'."}
 
     # Update progress total
     total_files = len(all_file_paths)
@@ -162,7 +162,7 @@ def run(mod_name: str,
         except Exception as e:
             logging.error(f"Failed to parse file {fp} for backup: {e}")
             logging.error("Aborting workflow due to file read error.")
-            return
+            return {"success": False, "message": f"Failed to parse source file for backup: {fp}"}
 
     # Calculate Total Batches (Pre-calculation)
     total_batches = 0
@@ -177,6 +177,7 @@ def run(mod_name: str,
     for file_data in all_files_content:
         if not file_data["texts_to_translate"]: continue
         total_batches += (len(file_data["texts_to_translate"]) + chunk_size - 1) // chunk_size
+    total_translatable_files = sum(1 for file_data in all_files_content if file_data["texts_to_translate"])
 
     # Determine display name for archive (consistent with ProjectManager and Proofreading)
     archive_mod_name = mod_name # Fallback to folder name
@@ -194,7 +195,7 @@ def run(mod_name: str,
     mod_id = archive_manager.get_or_create_mod_entry(archive_mod_name, f"local_{mod_name}")
     if not mod_id:
         logging.error("Failed to get/create mod entry in database. Aborting.")
-        return
+        return {"success": False, "message": "Failed to create source archive entry."}
 
     logging.info("Creating source version snapshot...")
     if progress_callback:
@@ -204,7 +205,7 @@ def run(mod_name: str,
     
     if not version_id:
         logging.error("Failed to create source version snapshot. Aborting workflow to prevent data loss.")
-        return
+        return {"success": False, "message": "Failed to create source snapshot."}
         
     logging.info(f"Source snapshot created successfully (Version ID: {version_id}). Proceeding to translation.")
 
@@ -217,6 +218,7 @@ def run(mod_name: str,
          mod_id_for_archive = archive_manager.get_or_create_mod_entry(mod_name, f"local_{mod_name}")
 
     import threading
+    workflow_failed_files = []
 
     for target_lang in target_languages:
         logging.info(i18n.t("translating_to_language", lang_name=target_lang["name"]))
@@ -352,16 +354,17 @@ def run(mod_name: str,
                 
                 # Aggregate warnings and send logs
                 if is_failed:
+                    workflow_failed_files.append(file_task.filename)
                     error_count += 1
                     logging.error(f"File {file_task.filename} failed to translate (partially or fully). Using fallback.")
                     update_progress(file_task.filename, "Failed", log_message=f"ERROR: File {file_task.filename} failed to translate. Rolled back to original text.")
-                
+                else:
+                    # 这里的 update_progress 主要是为了更新文件计数，日志已经在 logging.info 中捕获
+                    update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
+
                 if warnings:
                     # (Already handled by log handler but good for internal state)
                     pass
-
-                # 这里的 update_progress 主要是为了更新文件计数，日志已经在 logging.info 中捕获
-                update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
 
                 # 构建目标目录
                 dest_dir = _build_dest_dir(file_task, target_lang, output_folder_name, game_profile)
@@ -455,6 +458,25 @@ def run(mod_name: str,
             asyncio.run(project_manager.refresh_project_files(project_id))
         except Exception as e:
             logging.error(f"Failed to auto-sync project: {e}")
+
+    if workflow_failed_files:
+        unique_failed_files = sorted(set(workflow_failed_files))
+        status = "failed" if total_translatable_files > 0 and len(unique_failed_files) >= total_translatable_files else "partial_failed"
+        return {
+            "success": status == "completed",
+            "status": status,
+            "message": f"Translation finished with failed files: {', '.join(unique_failed_files)}",
+            "failed_files": unique_failed_files,
+            "output_dir": output_dir_path
+        }
+
+    return {
+        "success": True,
+        "status": "completed",
+        "message": "Translation workflow completed successfully.",
+        "failed_files": [],
+        "output_dir": output_dir_path
+    }
 
 
 def _handle_empty_file(file_info, orig, texts, km, source_lang, target_lang, game_profile, output_folder_name, mod_name, proofreading_tracker):
@@ -695,4 +717,3 @@ def discover_files(mod_name: str, game_profile: dict, source_lang: dict, overrid
     # 实际上，我们可以让 ArchiveManager 逐个文件添加？
     # 现有的 archive_manager.create_source_version 需要 all_files_data。
     # 我们先略过这步的优化，专注于翻译过程的流式化。
-

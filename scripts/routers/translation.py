@@ -23,8 +23,14 @@ router = APIRouter()
 task_lock = threading.Lock()
 
 
+def _build_output_folder_name(mod_name: str, target_languages: List[dict]) -> str:
+    sanitized_mod_name = slugify_to_ascii(mod_name)
+    if len(target_languages) > 1:
+        return f"Multilanguage-{sanitized_mod_name}"
+    return f"{target_languages[0]['folder_prefix']}{sanitized_mod_name}"
+
+
 def push_task_update(task_id: str):
-    """Best-effort push of the latest task snapshot to connected WebSocket clients."""
     if task_id not in tasks:
         return
 
@@ -36,24 +42,6 @@ def push_task_update(task_id: str):
         ws_manager.sync_send_task_update(task_id, task_data)
     except Exception as e:
         logging.error(f"WebSocket push failed: {e}")
-
-
-def finalize_task(task_id: str, status: str, log_message: Optional[str] = None, stage: Optional[str] = None):
-    """Persist terminal task state and force a final status push to the frontend."""
-    with task_lock:
-        if task_id not in tasks:
-            return
-
-        tasks[task_id]["status"] = status
-        if "progress" in tasks[task_id]:
-            if status == "completed":
-                tasks[task_id]["progress"]["percent"] = 100
-            if stage:
-                tasks[task_id]["progress"]["stage"] = stage
-        if log_message:
-            tasks[task_id]["log"].append(log_message)
-
-    push_task_update(task_id)
 
 def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str, target_lang_codes: List[str], api_provider: str, mod_context: str, project_id: Optional[str] = None):
     """
@@ -86,7 +74,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
             raise ValueError("无效的游戏配置、源语言或目标语言。")
 
         # 2. Call the core translation function
-        initial_translate.run(
+        workflow_result = initial_translate.run(
             mod_name=mod_name,
             game_profile=game_profile,
             source_lang=source_lang,
@@ -94,47 +82,55 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
             selected_provider=api_provider,
             mod_context=mod_context,
         )
+        workflow_status = (workflow_result or {}).get("status", "failed")
+        workflow_message = (workflow_result or {}).get("message", "Translation workflow did not return a valid result.")
+        failed_files = (workflow_result or {}).get("failed_files", [])
 
         # 3. Once done, update status and prepare result
-        finalize_task(task_id, "completed", "Translation workflow completed successfully.")
+        tasks[task_id]["status"] = workflow_status
+        tasks[task_id]["log"].append(workflow_message)
 
         # Prepare the result for download
-        sanitized_mod_name = slugify_to_ascii(mod_name)
-        output_folder_name = f"{target_languages[0]['folder_prefix']}{sanitized_mod_name}"
-        if len(target_languages) > 1:
-            output_folder_name = f"Multilanguage-{sanitized_mod_name}"
-
+        output_folder_name = _build_output_folder_name(mod_name, target_languages)
         result_dir = os.path.join(DEST_DIR, output_folder_name)
 
-        # Hyper-detailed logging for debugging
-        logging.info(f"--- ZIPPING LOGS for Task {task_id} ---")
-        logging.info(f"Final check before zipping. Target directory: {result_dir}")
-        logging.info(f"Does it exist? {os.path.exists(result_dir)}")
-        logging.info(f"Is it a directory? {os.path.isdir(result_dir)}")
-        if os.path.exists(result_dir) and os.path.isdir(result_dir):
-            logging.info(f"Contents: {os.listdir(result_dir)}")
-        logging.info(f"------------------------------------")
+        if workflow_status in ("completed", "partial_failed"):
+            # Hyper-detailed logging for debugging
+            logging.info(f"--- ZIPPING LOGS for Task {task_id} ---")
+            logging.info(f"Final check before zipping. Target directory: {result_dir}")
+            logging.info(f"Does it exist? {os.path.exists(result_dir)}")
+            logging.info(f"Is it a directory? {os.path.isdir(result_dir)}")
+            if os.path.exists(result_dir) and os.path.isdir(result_dir):
+                logging.info(f"Contents: {os.listdir(result_dir)}")
+            logging.info(f"------------------------------------")
 
-        zip_path = shutil.make_archive(result_dir, 'zip', result_dir)
-        tasks[task_id]["result_path"] = zip_path
-        push_task_update(task_id)
+            zip_path = shutil.make_archive(result_dir, "zip", result_dir)
+            tasks[task_id]["result_path"] = zip_path
+            if failed_files:
+                tasks[task_id]["log"].append(f"Partial fallback applied to: {', '.join(failed_files)}")
 
         if project_id:
             try:
                 import asyncio
                 asyncio.run(project_manager.log_history_event(
                     project_id=project_id,
-                    action_type='translation_workflow',
-                    description="Translation completed successfully"
+                    action_type="translation_workflow",
+                    description="Translation completed successfully" if workflow_status == "completed" else (
+                        "Translation completed with partial failures" if workflow_status == "partial_failed" else "Translation workflow failed"
+                    )
                 ))
             except Exception as e:
                 logging.error(f"Failed to log completion activity: {e}")
+
 
     except Exception as e:
         tb_str = traceback.format_exc()
         error_message = f"工作流执行失败 (Workflow execution failed): {e}\n{tb_str}"
         logging.error(f"任务 {task_id} 失败: {error_message}")
-        finalize_task(task_id, "failed", error_message, "Failed")
+        tasks[task_id]["status"] = "failed"
+        if "progress" in tasks[task_id]:
+            tasks[task_id]["progress"]["stage"] = "Failed"
+        tasks[task_id]["log"].append(error_message)
         # 确保失败的任务没有可下载的结果路径
         if "result_path" in tasks[task_id]:
             del tasks[task_id]["result_path"]
@@ -286,23 +282,29 @@ def run_translation_workflow_v2(
                 logging.error(f"Failed to fetch override path: {e}")
 
         logging.info("Calling initial_translate.run...")
-        initial_translate.run(
+        workflow_result = initial_translate.run(
             mod_name=mod_name, game_profile=game_profile, source_lang=source_lang,
             target_languages=target_languages, selected_provider=api_provider,
             mod_context=mod_context, selected_glossary_ids=final_glossary_ids,
-
             model_name=model_name, use_glossary=True, progress_callback=progress_callback,
             override_path=override_path, project_id=project_id, use_resume=use_resume,
             clean_source=clean_source
         )
         logging.info("Returned from initial_translate.run")
-        finalize_task(task_id, "completed", "Translation workflow completed successfully.", "Completed")
-        output_folder_name = f"{target_languages[0]['folder_prefix']}{slugify_to_ascii(mod_name)}"
-        if len(target_languages) > 1:
-            output_folder_name = f"Multilanguage-{slugify_to_ascii(mod_name)}"
+        workflow_status = (workflow_result or {}).get("status", "failed")
+        workflow_message = (workflow_result or {}).get("message", "Translation workflow did not return a valid result.")
+        failed_files = (workflow_result or {}).get("failed_files", [])
+        tasks[task_id]["status"] = workflow_status
+        tasks[task_id]["progress"]["percent"] = 100
+        tasks[task_id]["progress"]["stage"] = "Completed" if workflow_status in ("completed", "partial_failed") else "Failed"
+        tasks[task_id]["log"].append(workflow_message)
+        output_folder_name = _build_output_folder_name(mod_name, target_languages)
         result_dir = os.path.join(DEST_DIR, output_folder_name)
-        zip_path = shutil.make_archive(result_dir, 'zip', result_dir)
-        tasks[task_id]["result_path"] = zip_path
+        if workflow_status in ("completed", "partial_failed"):
+            zip_path = shutil.make_archive(result_dir, 'zip', result_dir)
+            tasks[task_id]["result_path"] = zip_path
+            if failed_files:
+                tasks[task_id]["log"].append(f"Partial fallback applied to: {', '.join(failed_files)}")
 
         push_task_update(task_id)
         if project_id:
@@ -310,7 +312,9 @@ def run_translation_workflow_v2(
                 asyncio.run(project_manager.log_history_event(
                     project_id=project_id,
                     action_type='translation_workflow',
-                    description="Translation completed successfully"
+                    description="Translation completed successfully" if workflow_status == "completed" else (
+                        "Translation completed with partial failures" if workflow_status == "partial_failed" else "Translation workflow failed"
+                    )
                 ))
             except Exception as e:
                 logging.error(f"Failed to log completion activity (v2): {e}")
@@ -318,10 +322,10 @@ def run_translation_workflow_v2(
         tb_str = traceback.format_exc()
         error_message = f"工作流执行失败: {e}\n{tb_str}"
         logging.error(error_message) # Log to console!
-        finalize_task(task_id, "failed", error_message, "Failed")
-        if "result_path" in tasks[task_id]:
-            del tasks[task_id]["result_path"]
-            push_task_update(task_id)
+        tasks[task_id]["status"] = "failed"
+        if "progress" in tasks[task_id]:
+            tasks[task_id]["progress"]["stage"] = "Failed"
+        tasks[task_id]["log"].append(error_message)
         if project_id:
             try:
                 asyncio.run(project_manager.log_history_event(
@@ -558,7 +562,7 @@ async def websocket_status(websocket: WebSocket, task_id: str):
 @router.get("/api/result/{task_id}")
 def get_result(task_id: str):
     task = tasks.get(task_id)
-    if not task or task["status"] != "completed":
+    if not task or task["status"] not in ("completed", "partial_failed"):
         raise HTTPException(status_code=404, detail="任务未完成或结果文件未找到")
     return FileResponse(task["result_path"], media_type='application/zip', filename=os.path.basename(task["result_path"]))
 

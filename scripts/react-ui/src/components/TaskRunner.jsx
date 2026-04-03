@@ -64,6 +64,8 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     };
 
     const isCompleted = task?.status === 'completed';
+    const isPartiallyFailed = task?.status === 'partial_failed';
+    const isDoneWithOutput = isCompleted || isPartiallyFailed;
     const isFailed = task?.status === 'failed';
 
     // Calculate remaining
@@ -144,22 +146,39 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     };
 
     // Render Report Card
-    if (isCompleted) {
+    if (isDoneWithOutput) {
+        const statusColor = isPartiallyFailed ? 'yellow' : 'green';
+        const statusTitle = isPartiallyFailed ? 'Translation Completed With Warnings' : t('translation_completed');
+        const statusSummary = isPartiallyFailed
+            ? 'Some files or batches fell back to the original text. Review the error report before using the output.'
+            : t('report_success_summary', {
+                mod_name: translationDetails?.modName || 'Mod',
+                source_lang: translationDetails?.sourceLang || 'Source',
+                target_langs: translationDetails?.targetLangs?.join(', ') || 'Targets'
+            });
         return (
             <Stack gap="xl" mt="xl">
                 <Paper p="xl" radius="lg" withBorder bg={theme.colors.dark[7]}>
                     <Stack align="center" gap="lg">
-                        <ThemeIcon size={80} radius="xl" color="green" variant="light">
-                            <IconCircleCheck size={50} />
+                        <ThemeIcon size={80} radius="xl" color={statusColor} variant="light">
+                            {isPartiallyFailed ? <IconAlertCircle size={50} /> : <IconCircleCheck size={50} />}
                         </ThemeIcon>
-                        <Title order={2}>{t('translation_completed')}</Title>
+                        <Title order={2}>{statusTitle}</Title>
                         <Text ta="center" size="lg">
-                            {t('report_success_summary', {
-                                mod_name: translationDetails?.modName || 'Mod',
-                                source_lang: translationDetails?.sourceLang || 'Source',
-                                target_langs: translationDetails?.targetLangs?.join(', ') || 'Targets'
-                            })}
+                            {statusSummary}
                         </Text>
+
+                        {isPartiallyFailed && (
+                            <Alert
+                                icon={<IconAlertCircle size={20} />}
+                                title="Partial Failure"
+                                color="yellow"
+                                variant="light"
+                                w="100%"
+                            >
+                                Open the detailed logs and review the failed files before deploying.
+                            </Alert>
+                        )}
 
                         <SimpleGrid cols={3} gap="lg" w="100%" mt="md">
                             {/* Error Report */}

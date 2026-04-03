@@ -256,9 +256,11 @@ const IncrementalTranslationPage = () => {
             }
 
             // Handle completion
-            if (data.status === 'completed') {
+            if (data.status === 'completed' || data.status === 'partial_failed') {
                 setFinalSummary(data);
-                addLog(`Translation completed successfully!`);
+                addLog(data.status === 'partial_failed'
+                    ? 'Translation completed with partial failures.'
+                    : 'Translation completed successfully!');
                 setProgress(100);
                 setExecuting(false);
                 ws.close();

@@ -31,9 +31,9 @@ export const TranslationProvider = ({ children }) => {
 
     const applyTaskUpdate = useCallback((data) => {
         setTaskStatus(data);
-        if (data?.status === 'completed' || data?.status === 'failed') {
+        if (data?.status === 'completed' || data?.status === 'partial_failed' || data?.status === 'failed') {
             setIsProcessing(false);
-            if (data.status === 'completed') {
+            if (data.status === 'completed' || data.status === 'partial_failed') {
                 setActiveStep(3);
             }
         }
@@ -92,7 +92,10 @@ export const TranslationProvider = ({ children }) => {
             socket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    applyTaskUpdate(data);
+                    applyTaskUpdate({
+                        ...data,
+                        status: data?.status,
+                    });
                 } catch (err) {
                     console.error("[WebSocket] Failed to parse message:", err);
                 }
