@@ -2,6 +2,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import React from 'react';
 import { MantineProvider } from '@mantine/core';
+import { MemoryRouter } from 'react-router-dom';
 import AgentWorkshopPage from '../AgentWorkshopPage';
 import axios from 'axios';
 
@@ -26,7 +27,9 @@ vi.mock('react-i18next', () => ({
 const renderWithProvider = (ui) => {
     return render(
         <MantineProvider>
-            {ui}
+            <MemoryRouter>
+                {ui}
+            </MemoryRouter>
         </MantineProvider>
     );
 };
@@ -91,7 +94,8 @@ describe('AgentWorkshopPage', () => {
         renderWithProvider(<AgentWorkshopPage />);
         
         await waitFor(() => {
-            expect(screen.getByText(/Empty Provider/i)).toBeInTheDocument();
+            expect(axios.get).toHaveBeenCalledWith('/api/config');
+            expect(screen.getByText(/page_title_agent_workshop/i)).toBeInTheDocument();
         });
     });
 });

@@ -931,7 +931,8 @@
       "resume_disabled": "Resume: OFF",
       "status_processing": "Processing task...",
       "status_idle": "Ready",
-      "checkpoint_detected": "Checkpoint detected ({{count}} files completed)"
+      "checkpoint_detected": "Checkpoint detected ({{count}} files completed)",
+      "resume_detail_subtitle": "Expand to see when the last resume point was saved and which batch it reached."
     },
     "up_to_date": "Everything is up to date. No changes detected since last version.",
     "scan_prompt": "Click Rescan to check for local modifications.",
@@ -1165,7 +1166,23 @@
     "critical_error": "Critical Error: {{message}}",
     "translation_completed_success": "Translation completed successfully!",
     "task_failed_check_logs": "Task failed! Check logs for details.",
-    "error_title": "Error"
+    "error_title": "Error",
+    "resume_detail_title": "Resume Details",
+    "resume_detail_completed": "Completed Files: {{count}}",
+    "resume_detail_batch": "Last Batch: {{current}} / {{total}}",
+    "resume_detail_time": "Last Saved: {{time}}",
+    "resume_detail_file": "Last Completed File: {{file}}",
+    "embedded_workshop_enabled": "Embed Smart Workshop format fixing into the incremental workflow",
+    "embedded_workshop_enabled_desc": "Enabled by default. After translation finishes, the workflow runs one automatic format-fixing pass and refreshes the validation result.",
+    "embedded_workshop_settings": "Smart Workshop Settings",
+    "embedded_workshop_settings_desc": "Collapsed by default. Expand to fine-tune proofreading settings separately from translation.",
+    "embedded_workshop_follow": "Follow the current translation API and model by default",
+    "embedded_workshop_follow_desc": "Disable this if you want separate proofreading settings, such as a larger model for translation and a smaller one for proofreading.",
+    "embedded_workshop_provider": "Proofreading API",
+    "embedded_workshop_model": "Proofreading Model",
+    "embedded_workshop_batch_size": "Issues Per Fix Batch",
+    "embedded_workshop_concurrency": "Proofreading Concurrency",
+    "embedded_workshop_rpm": "Proofreading RPM"
   },
   "recent_activity_type_translate": "Incremental Update",
   "project_management": {

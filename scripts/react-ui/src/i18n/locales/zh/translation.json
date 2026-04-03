@@ -849,7 +849,8 @@
       "title": "任务看板",
       "desc": "切换到看板视图来推拽管理任务进度。"
     },
-    "tabs_validation": "格式校对"
+    "tabs_validation": "格式校对",
+    "delete_note_confirm_content": "Are you sure you want to delete this note? This action cannot be undone."
   },
   "translation": {
     "select": {
@@ -919,7 +920,11 @@
     "embedded_workshop_model": "校对模型",
     "embedded_workshop_batch_size": "每批修复条数",
     "embedded_workshop_concurrency": "校对并发",
-    "embedded_workshop_rpm": "校对 RPM"
+    "embedded_workshop_rpm": "校对 RPM",
+    "resume_detail_empty": "No detailed checkpoint entries are available yet.",
+    "resume_detail_none": "There is no unfinished work.",
+    "embedded_workshop_following_summary": "Currently following the primary translation setup: {{provider}} / {{model}}",
+    "embedded_workshop_custom_summary": "Currently using a dedicated proofreading setup: {{provider}} / {{model}}"
   },
   "version_info": {
     "tab_title": "版本信息",
@@ -1034,7 +1039,8 @@
       "resume_disabled": "断点续传：关闭",
       "status_processing": "正在处理任务...",
       "status_idle": "准备就绪",
-      "checkpoint_detected": "检测到翻译断点 (已完成 {{count}} 个文件)"
+      "checkpoint_detected": "检测到翻译断点 (已完成 {{count}} 个文件)",
+      "resume_detail_subtitle": "Expand to see when the last resume point was saved and which batch it reached."
     },
     "scanning_files": "正在扫描文件...",
     "everything_up_to_date": "所有内容都已是最新状态"
@@ -1172,7 +1178,23 @@
     "critical_error": "严重错误：{{message}}",
     "translation_completed_success": "翻译已成功完成！",
     "task_failed_check_logs": "任务失败，请检查日志详情。",
-    "error_title": "错误"
+    "error_title": "错误",
+    "resume_detail_title": "Resume Details",
+    "resume_detail_completed": "Completed Files: {{count}}",
+    "resume_detail_batch": "Last Batch: {{current}} / {{total}}",
+    "resume_detail_time": "Last Saved: {{time}}",
+    "resume_detail_file": "Last Completed File: {{file}}",
+    "embedded_workshop_enabled": "Embed Smart Workshop format fixing into the incremental workflow",
+    "embedded_workshop_enabled_desc": "Enabled by default. After translation finishes, the workflow runs one automatic format-fixing pass and refreshes the validation result.",
+    "embedded_workshop_settings": "Smart Workshop Settings",
+    "embedded_workshop_settings_desc": "Collapsed by default. Expand to fine-tune proofreading settings separately from translation.",
+    "embedded_workshop_follow": "Follow the current translation API and model by default",
+    "embedded_workshop_follow_desc": "Disable this if you want separate proofreading settings, such as a larger model for translation and a smaller one for proofreading.",
+    "embedded_workshop_provider": "Proofreading API",
+    "embedded_workshop_model": "Proofreading Model",
+    "embedded_workshop_batch_size": "Issues Per Fix Batch",
+    "embedded_workshop_concurrency": "Proofreading Concurrency",
+    "embedded_workshop_rpm": "Proofreading RPM"
   },
   "translation_config": {
     "provider": "API 供应商",
@@ -1280,11 +1302,25 @@
     "search": "搜索",
     "loading": "加载中...",
     "expand": "展开",
-    "collapse": "收起"
+    "collapse": "收起",
+    "browse": "Browse"
   },
   "nav_home": "首页",
   "api_model_select_label": "模型选择",
   "api_model_select_placeholder": "请选择模型",
   "api_model_select_description": "从当前提供商可用的模型中选择一个。",
-  "api_models_description": "你也可以在这里自定义并管理可用模型列表。"
+  "api_models_description": "你也可以在这里自定义并管理可用模型列表。",
+  "thumbnail_generator": {
+    "description": "Add flags, text, or custom emblems. Click \"Add All Flags\" to quickly generate a Victoria 3 style cover.",
+    "drag_hint": "Drag and drop your project logo here to preview the result in real time."
+  },
+  "proofreading": {
+    "target_language": "Target Language",
+    "modal": {
+      "title": "Invalid Operation Warning",
+      "content_1": "You changed the **Key** in the editor.",
+      "content_2": "The editor is currently in **Patching Mode**. In this mode, the system locates entries by the original file key and only replaces the value. **Your key edits will be discarded on save**; only value changes will be preserved.",
+      "button_cancel": "Go Back and Edit"
+    }
+  }
 }

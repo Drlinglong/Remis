@@ -844,7 +844,11 @@
     "embedded_workshop_model": "Модель для вычитки",
     "embedded_workshop_batch_size": "Размер батча вычитки",
     "embedded_workshop_concurrency": "Параллелизм вычитки",
-    "embedded_workshop_rpm": "Лимит RPM для вычитки"
+    "embedded_workshop_rpm": "Лимит RPM для вычитки",
+    "resume_detail_empty": "No detailed checkpoint entries are available yet.",
+    "resume_detail_none": "There is no unfinished work.",
+    "embedded_workshop_following_summary": "Currently following the primary translation setup: {{provider}} / {{model}}",
+    "embedded_workshop_custom_summary": "Currently using a dedicated proofreading setup: {{provider}} / {{model}}"
   },
   "version_info": {
     "tab_title": "О программе",
@@ -1132,7 +1136,8 @@
     "loading": "Загрузка...",
     "expand": "Развернуть",
     "collapse": "Свернуть",
-    "confirm_delete": "Вы уверены, что хотите удалить эту запись истории?"
+    "confirm_delete": "Вы уверены, что хотите удалить эту запись истории?",
+    "browse": "Browse"
   },
   "project_management": {
     "tabs_validation": "Проверка формата",
@@ -1311,5 +1316,15 @@
       "content_2": "Сейчас редактор работает в **режиме патча (Patching Mode)**. В этом режиме система находит запись по ключу исходного файла и заменяет только значение. **Ваши изменения ключа будут отброшены при сохранении**, сохранятся только изменения значения.",
       "button_cancel": "Вернуться к редактированию"
     }
-  }
+  },
+  "context_sidebar.tab_info": "Info",
+  "context_sidebar.tab_history": "History",
+  "project_management.incremental_update_title": "Incremental Update",
+  "project_management.incremental_update_desc": "Analyze source changes and translate only new/modified entries. Automatically reuse historical records (including cross-project smart reuse).",
+  "project_management.dry_run_label": "Dry Run",
+  "project_management.dry_run_desc": "Scan and count changes only. No AI translation or file writing will be performed.",
+  "project_management.update_summary": "Update Summary",
+  "project_management.dry_run_complete": "Dry Run complete. If results are correct, uncheck 'Dry Run' and start the actual update.",
+  "project_management.update_complete": "Incremental update completed successfully. Files updated.",
+  "common.confirm_delete": "Are you sure you want to delete this history record?"
 }
