@@ -31,9 +31,9 @@ export const TranslationProvider = ({ children }) => {
 
     const applyTaskUpdate = useCallback((data) => {
         setTaskStatus(data);
-        if (data?.status === 'completed' || data?.status === 'failed') {
+        if (data?.status === 'completed' || data?.status === 'partial_failed' || data?.status === 'failed') {
             setIsProcessing(false);
-            if (data.status === 'completed') {
+            if (data.status === 'completed' || data.status === 'partial_failed') {
                 setActiveStep(3);
             }
         }

@@ -135,4 +135,3 @@ class GeminiHandler(BaseApiHandler):
         except Exception as e:
             self.logger.exception(f"Gemini chat generation failed: {e}")
             return ""
-

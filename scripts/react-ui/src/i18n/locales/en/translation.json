@@ -22,6 +22,8 @@
   "splash_language_menu": "Language Menu",
   "msg_reset_success": "Database reset successfully. The application will now reload.",
   "msg_reset_fail": "Failed to reset database: ",
+  "progress_translating_model": "Translating {{total_batches}} batches in {{total_files}} files using the {{model}} model...",
+  "progress_status": "Processed {{processed_files}} files and {{completed_batches}} batches; {{successful_batches}} batches succeeded, {{failed_batches}} batches failed; {{remaining_files}} files and {{remaining_batches}} batches remaining",
   "nav_home": "Homepage",
   "nav_docs": "Documentation",
   "page_title_home": "Homepage",

@@ -4,6 +4,8 @@ import subprocess
 import platform
 import sys
 
+MIN_GOOGLE_GENAI_VERSION = (1, 68, 0)
+
 def print_step(step_name):
     print(f"\n{'='*60}")
     print(f"[INFO] {step_name}")
@@ -16,6 +18,47 @@ def run_command(command, cwd=None, shell=True):
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] Command failed: {command}")
         sys.exit(1)
+
+
+def parse_version(version_str):
+    parts = []
+    for part in version_str.split("."):
+        digits = "".join(ch for ch in part if ch.isdigit())
+        if not digits:
+            break
+        parts.append(int(digits))
+    return tuple(parts)
+
+
+def ensure_min_google_genai(env_python):
+    cmd = (
+        f'"{env_python}" -c "import importlib.metadata as m; '
+        "print(m.version('google-genai'))\""
+    )
+    try:
+        version = subprocess.check_output(cmd, shell=True, text=True).strip()
+    except subprocess.CalledProcessError:
+        print("[ERROR] google-genai is not installed in the build environment.")
+        print(
+            "[ERROR] Run: "
+            f"conda activate {CONDA_ENV_NAME} && pip install \"google-genai>={'.'.join(map(str, MIN_GOOGLE_GENAI_VERSION))},<2\""
+        )
+        sys.exit(1)
+
+    parsed = parse_version(version)
+    if parsed < MIN_GOOGLE_GENAI_VERSION:
+        print(
+            "[ERROR] google-genai version "
+            f"{version} is too old in the build environment. "
+            f"Minimum required is {'.'.join(map(str, MIN_GOOGLE_GENAI_VERSION))}."
+        )
+        print(
+            "[ERROR] Run: "
+            f"conda activate {CONDA_ENV_NAME} && pip install --upgrade \"google-genai>={'.'.join(map(str, MIN_GOOGLE_GENAI_VERSION))},<2\""
+        )
+        sys.exit(1)
+
+    print(f"[INFO] google-genai version OK: {version}")
 
 # The conda environment to use for building. Must match the project's dedicated env.
 CONDA_ENV_NAME = "local_factory"
@@ -42,6 +85,7 @@ def main():
         sys.exit(1)
 
     print(f"[INFO] Using conda env: {conda_env_path}")
+    ensure_min_google_genai(env_python)
     
     # Step 1: Clean & Init
     print_step("Step 1: Clean & Init")

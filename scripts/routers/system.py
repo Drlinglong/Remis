@@ -17,6 +17,16 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/system", tags=["System"])
 
+
+def _open_directory_in_explorer(path: str):
+    if platform.system() == "Windows":
+        normalized = os.path.normpath(path)
+        subprocess.Popen(["explorer.exe", normalized])
+    elif platform.system() == "Darwin":
+        subprocess.Popen(["open", path])
+    else:
+        subprocess.Popen(["xdg-open", path])
+
 @router.get("/stats")
 async def get_system_stats():
     """
@@ -73,6 +83,7 @@ class OpenFolderRequest(BaseModel):
 async def open_folder(request: OpenFolderRequest):
     """
     Opens a local folder in the system's file explorer.
+    If a file path is provided, opens the parent directory and selects the file when possible.
     """
     path = request.path
     
@@ -90,23 +101,28 @@ async def open_folder(request: OpenFolderRequest):
 
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail=f"Path not found: {path} (Resolved: {request.path})")
-    
-    if not os.path.isdir(path):
-        raise HTTPException(status_code=400, detail=f"Path is not a directory: {path}")
 
     try:
         if platform.system() == "Windows":
-            os.startfile(path)
-        elif platform.system() == "Darwin":  # macOS
-            subprocess.Popen(["open", path])
-        else:  # Linux
-            subprocess.Popen(["xdg-open", path])
-        
-        logger.info(f"Opened folder: {path}")
+            normalized_path = os.path.normpath(path)
+            if os.path.isdir(normalized_path):
+                subprocess.Popen(["explorer.exe", normalized_path])
+            else:
+                subprocess.Popen(["explorer.exe", "/select,", normalized_path])
+        elif platform.system() == "Darwin":
+            if os.path.isdir(path):
+                subprocess.Popen(["open", path])
+            else:
+                subprocess.Popen(["open", "-R", path])
+        else:
+            target = path if os.path.isdir(path) else os.path.dirname(path) or path
+            subprocess.Popen(["xdg-open", target])
+
+        logger.info(f"Opened path: {path}")
         return {"status": "success", "message": f"Opened {path}"}
     except Exception as e:
-        logger.error(f"Failed to open folder {path}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to open folder: {str(e)}")
+        logger.error(f"Failed to open path {path}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to open path: {str(e)}")
 
 @router.post("/open-logs")
 async def open_logs_folder():
@@ -117,12 +133,7 @@ async def open_logs_folder():
         os.makedirs(LOGS_DIR, exist_ok=True)
     
     try:
-        if platform.system() == "Windows":
-            os.startfile(LOGS_DIR)
-        elif platform.system() == "Darwin":
-            subprocess.Popen(["open", LOGS_DIR])
-        else:
-            subprocess.Popen(["xdg-open", LOGS_DIR])
+        _open_directory_in_explorer(LOGS_DIR)
         return {"status": "success"}
     except Exception as e:
         logger.error(f"Failed to open logs dir: {e}")

@@ -23,7 +23,7 @@
   "msg_reset_success": "База данных успешно сброшена. Приложение будет перезагружено.",
   "msg_reset_fail": "Ошибка при сбросе базы данных: ",
   "progress_translating_model": "Перевод {{total_batches}} пакетов в {{total_files}} файлах с использованием модели {{model}}...",
-  "progress_status": "Завершено {{processed_files}} файлов, {{completed_batches}} пакетов, осталось {{remaining_files}} файлов, {{remaining_batches}} пакетов",
+  "progress_status": "Обработано {{processed_files}} файлов и {{completed_batches}} пакетов; успешно {{successful_batches}}, с ошибкой {{failed_batches}}; осталось {{remaining_files}} файлов и {{remaining_batches}} пакетов",
   "translation_completed": "Перевод завершен!",
   "report_success_summary": "Процесс перевода {{mod_name}} с {{source_lang}} на {{target_langs}} успешно завершен.",
   "report_error_count": "Обнаружено {{count}} ошибок в файлах",
