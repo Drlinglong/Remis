@@ -788,6 +788,8 @@
     "resume_detail_batch": "Last Batch: {{current}} / {{total}}",
     "resume_detail_time": "Last Saved: {{time}}",
     "resume_detail_file": "Last Completed File: {{file}}",
+    "resume_detail_empty": "No detailed checkpoint entries are available yet.",
+    "resume_detail_none": "There is no unfinished work.",
     "embedded_workshop_enabled": "Embed Smart Workshop format fixing into the translation workflow",
     "embedded_workshop_enabled_desc": "Enabled by default. After translation finishes, the workflow runs one automatic format-fixing pass and refreshes the validation result.",
     "embedded_workshop_settings": "Smart Workshop Settings",
@@ -798,7 +800,9 @@
     "embedded_workshop_model": "Proofreading Model",
     "embedded_workshop_batch_size": "Issues Per Fix Batch",
     "embedded_workshop_concurrency": "Proofreading Concurrency",
-    "embedded_workshop_rpm": "Proofreading RPM"
+    "embedded_workshop_rpm": "Proofreading RPM",
+    "embedded_workshop_following_summary": "Currently following the primary translation setup: {{provider}} / {{model}}",
+    "embedded_workshop_custom_summary": "Currently using a dedicated proofreading setup: {{provider}} / {{model}}"
   },
   "version_info": {
     "tab_title": "Version Info",

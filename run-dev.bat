@@ -5,7 +5,7 @@ ECHO ==                   (Windows Native Mode)                     ==
 ECHO =================================================================
 ECHO.
 
-ECHO Launching backend (FastAPI) and frontend (Tauri) in separate windows...
+ECHO Launching backend (FastAPI) and frontend (Tauri Desktop) in separate windows...
 
 start "Remis Backend" scripts\react-ui\run-backend.bat
 start "Remis Frontend" scripts\react-ui\run-frontend.bat

@@ -5,8 +5,8 @@ import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from scripts.core.api_handler import get_handler
 from scripts.core.agents.fix_agent import ReflexionFixAgent
+from scripts.core.api_handler import get_handler
 from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService
 
 logger = logging.getLogger(__name__)
@@ -45,13 +45,7 @@ def _load_issues(sidecar_path: Path) -> List[Dict[str, Any]]:
         logger.error("Failed to read embedded workshop sidecar %s: %s", sidecar_path, exc)
         return []
 
-    if isinstance(payload, dict):
-        issues = payload.get("issues", [])
-    elif isinstance(payload, list):
-        issues = payload
-    else:
-        issues = []
-
+    issues = payload.get("issues", []) if isinstance(payload, dict) else payload if isinstance(payload, list) else []
     return [
         issue for issue in issues
         if isinstance(issue, dict) and str(issue.get("status", "detected")).lower() not in {"fixed", "ignored"}
@@ -59,8 +53,7 @@ def _load_issues(sidecar_path: Path) -> List[Dict[str, Any]]:
 
 
 def _chunked(items: List[Dict[str, Any]], size: int) -> List[List[Dict[str, Any]]]:
-    if size <= 0:
-        size = 1
+    size = max(1, size)
     return [items[index:index + size] for index in range(0, len(items), size)]
 
 

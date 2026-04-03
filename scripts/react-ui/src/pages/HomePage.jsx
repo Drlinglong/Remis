@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Grid, Card, Title, Text, ThemeIcon, Group, Stack, Box, Button, BackgroundImage, Overlay, ActionIcon, ScrollArea, Modal } from '@mantine/core';
+import { Grid, Card, Title, Text, ThemeIcon, Group, Stack, Box, Button, BackgroundImage, Overlay, ActionIcon } from '@mantine/core';
 import { IconRocket, IconRefresh, IconChartBar, IconVocabulary, IconChecklist, IconActivity, IconTools } from '@tabler/icons-react';
 import ActionCard from '../components/ActionCard';
 import ProjectStatusPieChart from '../components/ProjectStatusPieChart';
@@ -12,16 +12,15 @@ import RecentActivityList from '../components/RecentActivityList';
 
 import api from '../utils/api';
 import styles from './HomePage.module.css';
-import { useTutorial, getTutorialKey } from '../context/TutorialContext';
+import { useTutorial } from '../context/TutorialContext';
 
 const HomePage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { startTour, setPageContext } = useTutorial();
-  const [showTutorialPrompt, setShowTutorialPrompt] = useState(false);
+  const { setPageContext } = useTutorial();
 
   useEffect(() => {
-    setPageContext('home');
+    setPageContext((prev) => (prev === 'home' ? prev : 'home'));
   }, [setPageContext]);
   const [slogan, setSlogan] = useState('');
   const [greeting, setGreeting] = useState('');
@@ -63,14 +62,7 @@ const HomePage = () => {
     }
 
     fetchDashboardData();
-
-    // Check for first-time user
-    const tutorialKey = getTutorialKey('prompt_seen');
-    const hasSeenTutorialPrompt = localStorage.getItem(tutorialKey);
-    if (!hasSeenTutorialPrompt) {
-      setShowTutorialPrompt(true);
-    }
-  }, [t]);
+  }, [i18n.language]);
 
   const fetchDashboardData = async () => {
     try {
@@ -89,37 +81,7 @@ const HomePage = () => {
 
   return (
     <Box h="100vh" style={{ overflow: 'hidden' }}>
-      <Modal
-        opened={showTutorialPrompt}
-        onClose={() => {
-          setShowTutorialPrompt(false);
-          localStorage.setItem(getTutorialKey('prompt_seen'), 'true');
-        }}
-        title={t('tutorial.auto_start_prompt.title')}
-        centered
-        className={styles.glassModal}
-      >
-        <Stack>
-          <Text>{t('tutorial.auto_start_prompt.message')}</Text>
-          <Group justify="flex-end" mt="md">
-            <Button variant="subtle" color="gray" onClick={() => {
-              setShowTutorialPrompt(false);
-              localStorage.setItem(getTutorialKey('prompt_seen'), 'true');
-            }}>
-              {t('tutorial.auto_start_prompt.cancel')}
-            </Button>
-            <Button color="blue" onClick={() => {
-              setShowTutorialPrompt(false);
-              localStorage.setItem(getTutorialKey('prompt_seen'), 'true');
-              startTour('home');
-            }}>
-              {t('tutorial.auto_start_prompt.confirm')}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-
-      <ScrollArea h="100%" type="scroll">
+      <Box style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
         <Box p="md">
           {/* Welcome Banner */}
           <Box
@@ -297,7 +259,7 @@ const HomePage = () => {
             </Grid.Col>
           </Grid>
         </Box>
-      </ScrollArea>
+      </Box>
     </Box>
   );
 };
