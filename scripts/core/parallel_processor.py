@@ -22,8 +22,9 @@ class ParallelProcessor:
 
     """批次级全局并行处理器 - 实现真正的批次级并行调度"""
 
-    def __init__(self, max_workers: int = 24):
+    def __init__(self, max_workers: int = 24, chunk_size_override: Optional[int] = None):
         self.max_workers = max_workers
+        self.chunk_size_override = max(1, int(chunk_size_override)) if chunk_size_override else None
         self.logger = logging.getLogger(__name__)
 
     def process_files_parallel(
@@ -120,6 +121,8 @@ class ParallelProcessor:
         return batch_results, all_warnings
 
     def _resolve_chunk_size(self, provider_name: str) -> int:
+        if self.chunk_size_override:
+            return self.chunk_size_override
         if provider_name == "gemini_cli":
             return GEMINI_CLI_CHUNK_SIZE
         if provider_name == "ollama":

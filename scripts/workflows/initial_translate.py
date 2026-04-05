@@ -105,7 +105,9 @@ def _read_files_for_backup(all_file_paths: List[dict], total_files: int, progres
     return all_files_content
 
 
-def _get_chunk_size_for_provider(selected_provider: str) -> int:
+def _get_chunk_size_for_provider(selected_provider: str, batch_size_limit: Optional[int] = None) -> int:
+    if batch_size_limit:
+        return max(1, int(batch_size_limit))
     if selected_provider == "gemini_cli":
         return GEMINI_CLI_CHUNK_SIZE
     if selected_provider == "ollama":
@@ -582,6 +584,9 @@ def run(mod_name: str,
         override_path: Optional[str] = None,
         use_resume: bool = True,
         clean_source: bool = False,
+        batch_size_limit: Optional[int] = None,
+        concurrency_limit: Optional[int] = None,
+        rpm_limit: Optional[int] = 40,
         embedded_workshop: Optional[dict] = None):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info("Entered initial_translate.run")
@@ -647,7 +652,8 @@ def run(mod_name: str,
         return
 
     # Calculate Total Batches (Pre-calculation)
-    total_batches = _calculate_total_batches(all_files_content, _get_chunk_size_for_provider(selected_provider))
+    effective_chunk_size = _get_chunk_size_for_provider(selected_provider, batch_size_limit)
+    total_batches = _calculate_total_batches(all_files_content, effective_chunk_size)
     mod_id, version_id = _create_source_snapshot(
         mod_name,
         all_files_content,
@@ -707,11 +713,15 @@ def run(mod_name: str,
         )
 
         # 初始化并行处理器
-        max_workers = RECOMMENDED_MAX_WORKERS
-        if selected_provider in ["ollama", "lm_studio", "local", "vllm", "koboldcpp", "oobabooga", "hunyuan"]:
+        max_workers = max(1, int(concurrency_limit)) if concurrency_limit else RECOMMENDED_MAX_WORKERS
+        if not concurrency_limit and selected_provider in ["ollama", "lm_studio", "local", "vllm", "koboldcpp", "oobabooga", "hunyuan"]:
             max_workers = 1 # Local LLMs usually can't handle parallel requests well (OOM risk)
-        
-        processor = ParallelProcessor(max_workers=max_workers)
+
+        processor = ParallelProcessor(max_workers=max_workers, chunk_size_override=effective_chunk_size)
+        from scripts.utils.rate_limiter import rate_limiter
+        previous_rpm = rate_limiter.rpm
+        if rpm_limit:
+            rate_limiter.update_rpm(int(rpm_limit))
 
         # 定义翻译函数 (Consumer)
         def translation_wrapper(batch_task):
@@ -721,35 +731,35 @@ def run(mod_name: str,
                 update_progress(batch_task.file_task.filename)
             return result
 
-        with _progress_log_bridge(update_progress):
-            # 开始流式处理
-            for file_task, translated_texts, warnings, is_failed in processor.process_files_stream(file_task_generator, translation_wrapper):
-                # Aggregate warnings and send logs
-                if is_failed:
-                    run_state.error_count += 1
-                    logging.error(f"File {file_task.filename} failed to translate (partially or fully). Using fallback.")
-                    update_progress(file_task.filename, "Failed", log_message=f"ERROR: File {file_task.filename} failed to translate. Rolled back to original text.")
-                
-                if warnings:
-                    # (Already handled by log handler but good for internal state)
-                    pass
+        try:
+            with _progress_log_bridge(update_progress):
+                for file_task, translated_texts, warnings, is_failed in processor.process_files_stream(file_task_generator, translation_wrapper):
+                    if is_failed:
+                        run_state.error_count += 1
+                        logging.error(f"File {file_task.filename} failed to translate (partially or fully). Using fallback.")
+                        update_progress(file_task.filename, "Failed", log_message=f"ERROR: File {file_task.filename} failed to translate. Rolled back to original text.")
 
-                # 这里的 update_progress 主要是为了更新文件计数，日志已经在 logging.info 中捕获
-                update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
+                    if warnings:
+                        pass
 
-                _finalize_translated_file(
-                    file_task,
-                    translated_texts,
-                    is_failed,
-                    target_lang,
-                    output_folder_name,
-                    game_profile,
-                    proofreading_tracker,
-                    checkpoint_manager,
-                    project_id,
-                    version_id,
-                    all_files_content,
-                )
+                    update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
+
+                    _finalize_translated_file(
+                        file_task,
+                        translated_texts,
+                        is_failed,
+                        target_lang,
+                        output_folder_name,
+                        game_profile,
+                        proofreading_tracker,
+                        checkpoint_manager,
+                        project_id,
+                        version_id,
+                        all_files_content,
+                    )
+        finally:
+            if rpm_limit and previous_rpm != rate_limiter.rpm:
+                rate_limiter.update_rpm(previous_rpm)
 
         _finalize_language_run(
             mod_name,

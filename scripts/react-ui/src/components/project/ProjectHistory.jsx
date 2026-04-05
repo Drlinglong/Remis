@@ -166,8 +166,8 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
     }
 
     return (
-        <Stack p="md" gap="xl">
-            <Paper withBorder p="md" radius="md" style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)' }}>
+        <Stack id="project-history-panel" p="md" gap="xl">
+            <Paper id="project-history-current-state" withBorder p="md" radius="md" style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)' }}>
                 <Group justify="space-between" mb="md">
                     <Group>
                         <IconGitBranch size={24} color="var(--mantine-color-blue-filled)" />
@@ -177,6 +177,7 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
                         </Stack>
                     </Group>
                     <Button
+                        id="project-history-upload-btn"
                         variant="light"
                         color="cyan"
                         leftSection={<IconUpload size={16} />}
@@ -218,6 +219,7 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
                 <Alert color="blue" icon={<IconInfoCircle size={16} />}>
                     <Text size="sm">{t('project_history.incremental_prompt', 'Need to update translations after getting a new mod version?')}</Text>
                     <Button
+                        id="project-history-incremental-btn"
                         mt="md"
                         color="blue"
                         leftSection={<IconPlayerPlay size={16} />}

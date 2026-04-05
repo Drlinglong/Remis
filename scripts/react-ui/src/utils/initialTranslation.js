@@ -7,6 +7,15 @@ export function normalizeProjects(projects = []) {
   }));
 }
 
+export function normalizeAvailableGlossaries(glossaries = []) {
+  return glossaries
+    .filter((glossary) => !glossary.is_main)
+    .map((glossary) => ({
+      value: String(glossary.glossary_id),
+      label: glossary.name,
+    }));
+}
+
 export function findProjectById(projects = [], projectId) {
   return projects.find((project) => project.value === projectId) || null;
 }
@@ -128,6 +137,9 @@ export function buildTranslationPayload(values, selectedProjectId) {
     use_main_glossary: values.use_main_glossary,
     clean_source: values.clean_source,
     use_resume: values.use_resume,
+    batch_size_limit: values.translation_batch_size_limit ? Number(values.translation_batch_size_limit) : null,
+    concurrency_limit: values.translation_concurrency_limit ? Number(values.translation_concurrency_limit) : null,
+    rpm_limit: values.translation_rpm_limit ? Number(values.translation_rpm_limit) : null,
     embedded_workshop: {
       enabled: values.embedded_workshop_enabled,
       follow_primary_settings: values.embedded_workshop_follow_primary_settings,

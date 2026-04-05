@@ -45,6 +45,7 @@ async def run_incremental_update(
     game_profile: Dict[str, Any],
     selected_provider: str = "gemini",
     model_name: Optional[str] = None,
+    batch_size_limit: Optional[int] = None,
     concurrency_limit: Optional[int] = None,
     rpm_limit: Optional[int] = None,
     mod_context: str = "",
@@ -251,6 +252,7 @@ async def run_incremental_update(
                 selected_provider=selected_provider,
                 model_name=model_name,
                 target_lang_code=target_lang_code,
+                batch_size_limit=batch_size_limit,
                 concurrency_limit=concurrency_limit,
                 rpm_limit=rpm_limit,
                 progress_callback=(

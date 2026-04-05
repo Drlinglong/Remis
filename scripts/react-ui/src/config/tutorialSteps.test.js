@@ -15,6 +15,15 @@ describe('tutorialSteps', () => {
     });
   });
 
+  it('provides project management tutorial steps for dashboard detail tabs', () => {
+    [
+      'project-management-validation',
+      'project-management-history',
+    ].forEach((pageName) => {
+      expect(getTutorialSteps(t, pageName).length).toBeGreaterThan(0);
+    });
+  });
+
   it('provides agent workshop tutorial steps for each workflow stage', () => {
     [
       'agent-workshop-step-0',

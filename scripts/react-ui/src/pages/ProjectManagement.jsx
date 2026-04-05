@@ -101,12 +101,23 @@ export default function ProjectManagement() {
   };
 
   useEffect(() => {
-    if (selectedProject) {
-      setPageContext('project-management-dashboard');
-    } else {
+    if (!selectedProject) {
       setPageContext('project-management-list');
+      return;
     }
-  }, [selectedProject, setPageContext]);
+
+    if (activeTab === 'validation') {
+      setPageContext('project-management-validation');
+      return;
+    }
+
+    if (activeTab === 'history') {
+      setPageContext('project-management-history');
+      return;
+    }
+
+    setPageContext('project-management-dashboard');
+  }, [activeTab, selectedProject, setPageContext]);
 
   useEffect(() => {
     if (selectedProject) {

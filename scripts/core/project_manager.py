@@ -310,6 +310,7 @@ class ProjectManager:
             game_profile=game_profile,
             selected_provider=config.api_provider,
             model_name=config.model,
+            batch_size_limit=config.batch_size_limit,
             concurrency_limit=config.concurrency_limit,
             rpm_limit=config.rpm_limit,
             dry_run=config.dry_run,

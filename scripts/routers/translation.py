@@ -92,7 +92,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
     i18n.load_language('en_US')
 
     tasks[task_id]["status"] = "processing"
-    tasks[task_id]["log"].append("????????...")
+    tasks[task_id]["log"].append("Initializing translation workflow...")
 
     if project_id:
         try:
@@ -110,7 +110,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
         target_languages = _resolve_target_languages(target_lang_codes)
 
         if not all([game_profile, source_lang, target_languages]):
-            raise ValueError("?????????????????")
+            raise ValueError("Failed to resolve game profile, source language, or target languages.")
 
         initial_translate.run(
             mod_name=mod_name,
@@ -136,8 +136,8 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
 
     except Exception as e:
         tb_str = traceback.format_exc()
-        error_message = f"??????? (Workflow execution failed): {e}\n{tb_str}"
-        logging.error(f"?? {task_id} ??: {error_message}")
+        error_message = f"Translation workflow execution failed: {e}\n{tb_str}"
+        logging.error(f"Task {task_id} failed: {error_message}")
         finalize_task(task_id, "failed", error_message, "Failed")
         if project_id:
             try:
@@ -158,11 +158,14 @@ def run_translation_workflow_v2(
     project_id: Optional[str] = None,
     use_resume: bool = True,
     clean_source: bool = False,
+    batch_size_limit: Optional[int] = None,
+    concurrency_limit: Optional[int] = None,
+    rpm_limit: Optional[int] = 40,
     embedded_workshop: Optional[dict] = None,
 ):
     i18n.load_language('en_US')
     tasks[task_id]["status"] = "processing"
-    tasks[task_id]["log"].append("???????? (V2)...")
+    tasks[task_id]["log"].append("Initializing translation workflow (V2)...")
 
     if project_id:
         try:
@@ -251,7 +254,7 @@ def run_translation_workflow_v2(
 
         if not all([game_profile, source_lang]) or (not target_languages and not custom_lang_config):
             logging.error(f"Validation Failed: GameProfile={game_profile}, SourceLang={source_lang}, TargetLangs={target_languages}")
-            raise ValueError("?????????????????")
+            raise ValueError("Failed to resolve game profile, source language, or target languages.")
 
         final_glossary_ids = list(selected_glossary_ids) if selected_glossary_ids else []
         if use_main_glossary:
@@ -277,7 +280,9 @@ def run_translation_workflow_v2(
             mod_context=mod_context, selected_glossary_ids=final_glossary_ids,
             model_name=model_name, use_glossary=True, progress_callback=progress_callback,
             override_path=override_path, project_id=project_id, use_resume=use_resume,
-            clean_source=clean_source, embedded_workshop=embedded_workshop
+            clean_source=clean_source, batch_size_limit=batch_size_limit,
+            concurrency_limit=concurrency_limit, rpm_limit=rpm_limit,
+            embedded_workshop=embedded_workshop
         )
         logging.info("Returned from initial_translate.run")
         tasks[task_id]["output_dirs"] = _get_output_directories(mod_name, target_languages)
@@ -295,7 +300,7 @@ def run_translation_workflow_v2(
                 logging.error(f"Failed to log completion activity (v2): {e}")
     except Exception as e:
         tb_str = traceback.format_exc()
-        error_message = f"???????: {e}\n{tb_str}"
+        error_message = f"Translation workflow failed: {e}\n{tb_str}"
         logging.error(error_message)
         finalize_task(task_id, "failed", error_message, "Failed")
         if project_id:
@@ -346,6 +351,9 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         project_id=request.project_id,
         use_resume=request.use_resume,
         clean_source=request.clean_source,
+        batch_size_limit=request.batch_size_limit,
+        concurrency_limit=request.concurrency_limit,
+        rpm_limit=request.rpm_limit,
         embedded_workshop=request.embedded_workshop.model_dump() if request.embedded_workshop else None,
     )
 
@@ -385,7 +393,7 @@ async def start_translation(
         with open(temp_archive_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         import zipfile
-        with zipfile.ZipFile(temp_archive_path, 'r') as zip_ref:
+        with zipfile.ZipFile(temp_archive_path, "r") as zip_ref:
             zip_ref.extractall(source_path)
         extracted_items = os.listdir(source_path)
         if len(extracted_items) == 1:
@@ -396,9 +404,9 @@ async def start_translation(
                 os.rmdir(potential_inner_folder)
         os.remove(temp_archive_path)
         tasks[task_id]["status"] = "starting"
-        tasks[task_id]["log"].append(f"Mod '{mod_name}' 已上传并解压。")
+        tasks[task_id]["log"].append(f"Mod '{mod_name}' uploaded and extracted.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"文件处理失败: {e}")
+        raise HTTPException(status_code=500, detail=f"File processing failed: {e}")
 
     try:
         # Normalize languages using strict schema
@@ -420,7 +428,7 @@ async def start_translation(
         project_id=None # Zip upload has no project ID
     )
 
-    return {"task_id": task_id, "message": "翻译任务已开始"}
+    return {"task_id": task_id, "message": "Translation task started."}
 
 @router.post("/api/translate_v2")
 async def start_translation_v2(
@@ -441,12 +449,12 @@ async def start_translation_v2(
             if os.path.exists(source_path):
                 shutil.rmtree(source_path)
             shutil.copytree(payload.project_path, source_path)
-        
+
         tasks[task_id]["status"] = "starting"
         tasks[task_id]["log"].append(f"Using source: '{mod_name}'")
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"文件处理失败: {e}")
+        raise HTTPException(status_code=500, detail=f"File processing failed: {e}")
 
     background_tasks.add_task(
         run_translation_workflow_v2,
@@ -467,7 +475,7 @@ async def start_translation_v2(
         embedded_workshop=payload.embedded_workshop.model_dump() if payload.embedded_workshop else None,
     )
 
-    return {"task_id": task_id, "message": "翻译任务已开始"}
+    return {"task_id": task_id, "message": "Translation task started."}
 
 @router.get("/api/source-mods")
 def get_source_mods():
@@ -495,12 +503,11 @@ def get_source_mods():
 def get_status(task_id: str):
     task = tasks.get(task_id)
     if not task:
-        raise HTTPException(status_code=404, detail="任务未找到")
-    
-    # 限制返回的日志条数，避免响应体过大导致前端卡顿
-    # 完整日志仍保留在内存中（后续可改为持久化到文件）
+        raise HTTPException(status_code=404, detail="Task not found.")
+
+    # Limit returned log lines to avoid oversized responses or UI stalls.
     MAX_LOG_LINES = 100
-    result = dict(task)  # 浅拷贝，避免修改原始数据
+    result = dict(task)  # Shallow copy to avoid mutating the original task state.
     if "log" in result and len(result["log"]) > MAX_LOG_LINES:
         result["log"] = result["log"][-MAX_LOG_LINES:]
     return result

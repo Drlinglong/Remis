@@ -57,7 +57,6 @@ const InitialTranslation = () => {
   const location = useLocation();
 
   const [status, setStatus] = useState(null);
-  const [availableGlossaries, setAvailableGlossaries] = useState([]);
   const [checkpointHintInfo, setCheckpointHintInfo] = useState(null);
   const checkpointHintRequestRef = useRef(0);
 
@@ -71,7 +70,10 @@ const InitialTranslation = () => {
       selected_glossary_ids: [],
       use_main_glossary: true,
       clean_source: false,
-      use_resume: true,
+      use_resume: false,
+      translation_batch_size_limit: '',
+      translation_concurrency_limit: '',
+      translation_rpm_limit: '40',
       embedded_workshop_enabled: true,
       embedded_workshop_follow_primary_settings: true,
       embedded_workshop_api_provider: '',
@@ -95,9 +97,10 @@ const InitialTranslation = () => {
     },
   });
 
-  const { availableModels, config, projects } = useInitialTranslationPageData({
+  const { availableGlossaries, availableModels, config, projects } = useInitialTranslationPageData({
     form,
     notificationStyle,
+    selectedProjectId,
     t,
   });
 

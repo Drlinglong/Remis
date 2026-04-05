@@ -101,7 +101,7 @@ const ProjectFileList = ({ projectDetails, handleProofread, onFileStatusChange }
 
     return (
         <div style={{ width: '100%' }}>
-            <div style={{ overflowY: 'auto', overflowX: 'hidden', maxHeight: '65vh' }}>
+            <div style={{ overflow: 'visible', maxHeight: 'none' }}>
                 <Paper withBorder p="md" radius="md" className={styles.glassCard}>
                     <Group justify="space-between" mb="md">
                         <Title order={4}>{t('project_management.file_list_title', { count: projectDetails.files.length })}</Title>

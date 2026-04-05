@@ -22,6 +22,8 @@ import {
     Switch,
     Collapse,
     Modal,
+    Tooltip,
+    ThemeIcon,
 } from '@mantine/core';
 import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, IconPlayerPlay, IconChartBar, IconSettings } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -57,6 +59,7 @@ const IncrementalTranslationPage = () => {
     const [models, setModels] = useState([]);
     const [customSourcePath, setCustomSourcePath] = useState('');
     const [selectedLangs, setSelectedLangs] = useState([]);
+    const [batchSizeLimit, setBatchSizeLimit] = useState('');
     const [concurrencyLimit, setConcurrencyLimit] = useState('10');
     const [rpmLimit, setRpmLimit] = useState('40');
 
@@ -64,6 +67,7 @@ const IncrementalTranslationPage = () => {
     const [archiveInfo, setArchiveInfo] = useState(null);
     const [scanResults, setScanResults] = useState(null);
     const [error, setError] = useState(null);
+    const [errorKey, setErrorKey] = useState(null);
 
     // Execution State
     const [executing, setExecuting] = useState(false);
@@ -76,7 +80,7 @@ const IncrementalTranslationPage = () => {
     const logScrollRef = useRef(null);
     const [checkpointFound, setCheckpointFound] = useState(false);
     const [checkpointInfo, setCheckpointInfo] = useState(null);
-    const [useResume, setUseResume] = useState(true);
+    const [useResume, setUseResume] = useState(false);
     const [showResumeDetails, setShowResumeDetails] = useState(false);
     const [embeddedWorkshopEnabled, setEmbeddedWorkshopEnabled] = useState(true);
     const [embeddedWorkshopFollowPrimary, setEmbeddedWorkshopFollowPrimary] = useState(true);
@@ -98,6 +102,10 @@ const IncrementalTranslationPage = () => {
     const routePrefillAppliedRef = useRef(false);
     const [projectsLoaded, setProjectsLoaded] = useState(false);
     const [configLoaded, setConfigLoaded] = useState(false);
+    const batchSizeOptions = [
+        { value: '', label: t('translation_page.translation_limit_auto', { defaultValue: 'Auto (Recommended)' }) },
+        ...['5', '10', '20', '40', '60'].map((value) => ({ value, label: value })),
+    ];
     const concurrencyOptions = ['1', '2', '5', '10', '20', '50'].map((value) => ({ value, label: value }));
     const rpmOptions = ['5', '10', '20', '30', '50', '100'].map((value) => ({ value, label: value }));
     const workshopBatchOptions = ['3', '5', '10', '15', '20'].map((value) => ({ value, label: value }));
@@ -140,6 +148,19 @@ const IncrementalTranslationPage = () => {
         if (Number.isNaN(date.getTime())) return value;
         return date.toLocaleString();
     }, []);
+
+    const renderInfoLabel = useCallback((label, tooltip) => (
+        <Group gap={4} wrap="nowrap">
+            <Text size="sm" fw={500}>{label}</Text>
+            {tooltip && (
+                <Tooltip label={tooltip} multiline w={320} withArrow>
+                    <ThemeIcon variant="subtle" color="gray" size="sm" style={{ cursor: 'help' }}>
+                        <IconAlertCircle size={14} />
+                    </ThemeIcon>
+                </Tooltip>
+            )}
+        </Group>
+    ), []);
 
     const getStageTitle = useCallback((progressState, isPreScan = false) => {
         const stageCode = progressState?.stage_code || '';
@@ -510,7 +531,7 @@ const IncrementalTranslationPage = () => {
         if (Array.isArray(persistedState.selectedLangs)) setSelectedLangs(persistedState.selectedLangs);
         if (persistedState.archiveInfo) setArchiveInfo(persistedState.archiveInfo);
         if (persistedState.scanResults) setScanResults(persistedState.scanResults);
-        if (persistedState.error) setError(persistedState.error);
+        if (persistedState.errorKey) setErrorKey(persistedState.errorKey);
         if (typeof persistedState.executing === 'boolean') setExecuting(persistedState.executing);
         if (typeof persistedState.progress === 'number') setProgress(persistedState.progress);
         if (persistedState.progressInfo) setProgressInfo(persistedState.progressInfo);
@@ -537,6 +558,9 @@ const IncrementalTranslationPage = () => {
             persistedState.selectedModel || '',
             persistedState.concurrencyLimit ?? null,
         );
+        if (persistedState.batchSizeLimit !== undefined && persistedState.batchSizeLimit !== null) {
+            setBatchSizeLimit(String(persistedState.batchSizeLimit));
+        }
         if (persistedState.rpmLimit) setRpmLimit(String(persistedState.rpmLimit));
 
         restorationAppliedRef.current = true;
@@ -563,6 +587,21 @@ const IncrementalTranslationPage = () => {
     }, [configLoaded, location.state, projects, projectsLoaded]);
 
     useEffect(() => {
+        if (!archiveInfo || !selectedProject || active !== 1) return;
+
+        const archivedLangs = getArchivedTargetLanguages(archiveInfo);
+        if (archivedLangs.length === 0) {
+            setErrorKey('incremental_translation.no_archived_target_languages');
+            setError(null);
+            return;
+        }
+
+        if (errorKey === 'incremental_translation.no_archived_target_languages') {
+            setErrorKey(null);
+        }
+    }, [active, archiveInfo, errorKey, getArchivedTargetLanguages, selectedProject]);
+
+    useEffect(() => {
         if (!restorationAppliedRef.current) return;
 
         const stateToPersist = {
@@ -573,11 +612,12 @@ const IncrementalTranslationPage = () => {
             selectedModel,
             customSourcePath,
             selectedLangs,
+            batchSizeLimit,
             concurrencyLimit,
             rpmLimit,
             archiveInfo,
             scanResults,
-            error,
+            errorKey,
             executing,
             progress,
             progressInfo,
@@ -610,6 +650,7 @@ const IncrementalTranslationPage = () => {
         archiveInfo,
         checkpointFound,
         checkpointInfo,
+        batchSizeLimit,
         concurrencyLimit,
         currentTaskId,
         currentTaskMode,
@@ -681,6 +722,7 @@ const IncrementalTranslationPage = () => {
                 setModels(availableModels);
                 setSelectedModel(data.default_model || availableModels[0] || '');
             }
+            setBatchSizeLimit('');
             setRpmLimit(String(data.rpm_limit || 40));
         } catch (err) {
             console.error('Failed to fetch API config', err);
@@ -701,6 +743,8 @@ const IncrementalTranslationPage = () => {
         setScanResults(null);
         setFinalSummary(null);
         setLogs([]);
+        setError(null);
+        setErrorKey(null);
         setProgress(0);
         setProgressInfo({});
         setExecuting(false);
@@ -722,13 +766,16 @@ const IncrementalTranslationPage = () => {
                 // Also check for checkpoint (resume status)
                 checkCheckpoint(project, project.source_path, availableLangs);
                 if (availableLangs.length === 0) {
-                    setError(t('incremental_translation.no_archived_target_languages'));
+                    setErrorKey('incremental_translation.no_archived_target_languages');
+                    setError(null);
                 }
             } else {
-                setError(res.data.reason || t('incremental_translation.archive_missing'));
+                setErrorKey('incremental_translation.archive_missing');
+                setError(null);
             }
         } catch {
-            setError(t('incremental_translation.archive_missing'));
+            setErrorKey('incremental_translation.archive_missing');
+            setError(null);
         } finally {
             setLoading(false);
         }
@@ -803,6 +850,7 @@ const IncrementalTranslationPage = () => {
                 dry_run: true,
                 api_provider: selectedProvider,
                 model: selectedModel,
+                batch_size_limit: batchSizeLimit ? Number(batchSizeLimit) : null,
                 concurrency_limit: Number(concurrencyLimit),
                 rpm_limit: Number(rpmLimit),
                 custom_source_path: customSourcePath,
@@ -869,6 +917,7 @@ const IncrementalTranslationPage = () => {
                 dry_run: false,
                 api_provider: selectedProvider,
                 model: selectedModel,
+                batch_size_limit: batchSizeLimit ? Number(batchSizeLimit) : null,
                 concurrency_limit: Number(concurrencyLimit),
                 rpm_limit: Number(rpmLimit),
                 custom_source_path: customSourcePath,
@@ -1173,9 +1222,9 @@ const IncrementalTranslationPage = () => {
                             </Paper>
                         )}
 
-                        {error && (
+                        {(errorKey || error) && (
                             <Alert icon={<IconAlertCircle size={16} />} title={t('incremental_translation.error_title')} color="red" radius="md">
-                                {error}
+                                {errorKey ? t(errorKey) : error}
                                 <Box mt="sm">
                                     <Text size="sm">{t('incremental_translation.archive_missing_action')}</Text>
                                 </Box>
@@ -1192,7 +1241,7 @@ const IncrementalTranslationPage = () => {
                                         <Text size="sm" fw={600}>{t('incremental_translation.workflow_supported_title')}</Text>
                                         <Text size="sm">{t('incremental_translation.workflow_supported_desc')}</Text>
                                     </Alert>
-                                    <Card id="incremental-embedded-workshop" withBorder p="md" radius="md">
+                                    <Card id="incremental-project-details-card" withBorder p="md" radius="md">
                                         <Text size="sm" fw={600} mb="sm">{t('incremental_translation.project_details_title')}</Text>
                                         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
                                             <Box>
@@ -1343,7 +1392,7 @@ const IncrementalTranslationPage = () => {
                                         </Alert>
                                     )}
 
-                                    <Card withBorder p="md" radius="md">
+                                    <Card id="incremental-embedded-workshop" withBorder p="md" radius="md">
                                         <Stack gap="sm">
                                             <Switch
                                                 label={t('translation_page.embedded_workshop_enabled', { defaultValue: '在增量翻译里嵌入智能工坊格式校对' })}
@@ -1400,19 +1449,19 @@ const IncrementalTranslationPage = () => {
                                                     )}
                                                     <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
                                                         <Select
-                                                            label={t('translation_page.embedded_workshop_batch_size', { defaultValue: '每批修复条数' })}
+                                                            label={renderInfoLabel(t('translation_page.embedded_workshop_batch_size'), t('translation_page.embedded_workshop_batch_size_tooltip'))}
                                                             data={workshopBatchOptions}
                                                             value={embeddedWorkshopBatchSize}
                                                             onChange={setEmbeddedWorkshopBatchSize}
                                                         />
                                                         <Select
-                                                            label={t('translation_page.embedded_workshop_concurrency', { defaultValue: '校对并发' })}
+                                                            label={renderInfoLabel(t('translation_page.embedded_workshop_concurrency'), t('translation_page.embedded_workshop_concurrency_tooltip'))}
                                                             data={workshopConcurrencyOptions}
                                                             value={embeddedWorkshopConcurrency}
                                                             onChange={setEmbeddedWorkshopConcurrency}
                                                         />
                                                         <Select
-                                                            label={t('translation_page.embedded_workshop_rpm', { defaultValue: '校对 RPM' })}
+                                                            label={renderInfoLabel(t('translation_page.embedded_workshop_rpm'), t('translation_page.embedded_workshop_rpm_tooltip'))}
                                                             data={workshopRpmOptions}
                                                             value={embeddedWorkshopRpm}
                                                             onChange={setEmbeddedWorkshopRpm}
@@ -1491,15 +1540,28 @@ const IncrementalTranslationPage = () => {
                                         searchable
                                     />
                                     <Select
-                                        label={t('incremental_translation.concurrency_limit')}
-                                        description={t('incremental_translation.concurrency_limit_desc')}
+                                        label={renderInfoLabel(
+                                            t('translation_page.translation_batch_size'),
+                                            t('translation_page.translation_batch_size_tooltip'),
+                                        )}
+                                        data={batchSizeOptions}
+                                        value={batchSizeLimit}
+                                        onChange={setBatchSizeLimit}
+                                    />
+                                    <Select
+                                        label={renderInfoLabel(
+                                            t('incremental_translation.concurrency_limit'),
+                                            t('translation_page.translation_concurrency_tooltip'),
+                                        )}
                                         data={concurrencyOptions}
                                         value={concurrencyLimit}
                                         onChange={setConcurrencyLimit}
                                     />
                                     <Select
-                                        label={t('incremental_translation.rpm_limit')}
-                                        description={t('incremental_translation.rpm_limit_desc')}
+                                        label={renderInfoLabel(
+                                            t('incremental_translation.rpm_limit'),
+                                            t('translation_page.translation_rpm_tooltip'),
+                                        )}
                                         data={rpmOptions}
                                         value={rpmLimit}
                                         onChange={setRpmLimit}

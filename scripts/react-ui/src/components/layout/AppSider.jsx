@@ -30,10 +30,10 @@ const navItems = [
     { icon: IconHome, label: 'page_title_home', path: '/' },
     { icon: IconBriefcase, label: 'page_title_project_management', path: '/project-management' },
     { icon: IconLanguage, label: 'page_title_translation', path: '/translation' },
-    ...(FEATURES.ENABLE_EXPERIMENTAL_FEATURES ? [{ icon: IconRocket, label: 'incremental_translation.title', path: '/incremental-translation' }] : []),
+    ...(FEATURES.ENABLE_INCREMENTAL_TRANSLATION ? [{ icon: IconRocket, label: 'incremental_translation.title', path: '/incremental-translation' }] : []),
     { icon: IconVocabulary, label: 'page_title_glossary_manager', path: '/glossary-manager' },
     { icon: IconChecklist, label: 'page_title_proofreading', path: '/proofreading' },
-    ...(FEATURES.ENABLE_EXPERIMENTAL_FEATURES ? [{ icon: IconRobot, label: 'page_title_agent_workshop', path: '/agent-workshop' }] : []),
+    ...(FEATURES.ENABLE_AGENT_WORKSHOP ? [{ icon: IconRobot, label: 'page_title_agent_workshop', path: '/agent-workshop' }] : []),
     // Conditionally include Neologism Tribunal
     ...(FEATURES.ENABLE_NEOLOGISM_TRIBUNAL ? [{ icon: IconSparkles, label: 'neologism_review.title', path: '/neologism-review' }] : []),
     { icon: IconTools, label: 'page_title_tools', path: '/tools', id: 'nav-tools' },

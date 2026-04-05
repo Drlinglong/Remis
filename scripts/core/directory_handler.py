@@ -175,15 +175,15 @@ def write_localisation_file(dest_path: str, content: str, game_profile: dict):
 
 def create_output_structure(mod_name: str, output_folder_name: str, game_profile: dict, base_dest_dir: str = None):
     """
-    ????????
-    
+    Create the output directory structure for a translated mod.
+
     Args:
-        mod_name: mod??
-        output_folder_name: ???????
-        game_profile: ????
-        
+        mod_name: Source mod name.
+        output_folder_name: Name of the generated output folder.
+        game_profile: Active game profile configuration.
+
     Returns:
-        bool: ??????
+        bool: True if the structure was created successfully.
     """
     try:
         from scripts.app_settings import DEST_DIR

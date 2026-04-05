@@ -46,6 +46,24 @@ export default function ConfigStep({
 }) {
   const [showResumeDetails, setShowResumeDetails] = React.useState(false);
   const [showWorkshopSettings, setShowWorkshopSettings] = React.useState(false);
+  const translationBatchOptions = [
+    { value: '', label: t('translation_page.translation_limit_auto', { defaultValue: 'Auto (Recommended)' }) },
+    { value: '5', label: '5' },
+    { value: '10', label: '10' },
+    { value: '20', label: '20' },
+    { value: '40', label: '40' },
+    { value: '60', label: '60' },
+  ];
+  const translationConcurrencyOptions = [
+    { value: '', label: t('translation_page.translation_limit_auto', { defaultValue: 'Auto (Recommended)' }) },
+    { value: '1', label: '1' },
+    { value: '2', label: '2' },
+    { value: '4', label: '4' },
+    { value: '8', label: '8' },
+    { value: '12', label: '12' },
+    { value: '16', label: '16' },
+  ];
+  const translationRpmOptions = ['10', '20', '40', '60', '80', '120'].map((value) => ({ value, label: value }));
 
   const nativeSelectStyle = {
     width: '100%',
@@ -67,11 +85,30 @@ export default function ConfigStep({
     border: '1px solid rgba(151, 177, 210, 0.16)',
   };
 
-  const renderNativeSelect = ({ label, value, onChange, options, multiple = false, minHeight }) => (
-    <Box>
-      <Text size="sm" mb={6} c="var(--text-main)">
-        {label}
+  const renderInfoLabel = (title, tooltip) => (
+    <Group gap={4} wrap="nowrap">
+      <Text size="sm" c="var(--text-main)">
+        {title}
       </Text>
+      {tooltip && (
+        <Tooltip label={tooltip} multiline w={320} withArrow>
+          <ThemeIcon variant="subtle" color="gray" size="sm" style={{ cursor: 'help' }}>
+            <IconAlertCircle size={14} />
+          </ThemeIcon>
+        </Tooltip>
+      )}
+    </Group>
+  );
+
+  const renderNativeSelect = ({ label, value, onChange, options, multiple = false, minHeight, description }) => (
+    <Box>
+      {typeof label === 'string' ? (
+        <Text size="sm" mb={6} c="var(--text-main)">
+          {label}
+        </Text>
+      ) : (
+        <Box mb={6}>{label}</Box>
+      )}
       <select
         multiple={multiple}
         value={value}
@@ -88,6 +125,11 @@ export default function ConfigStep({
           </option>
         ))}
       </select>
+      {description && (
+        <Text size="xs" c="dimmed" mt={6}>
+          {description}
+        </Text>
+      )}
     </Box>
   );
 
@@ -309,12 +351,14 @@ export default function ConfigStep({
               })}
 
               {!['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'gemini_cli', 'hunyuan'].includes(form.values.api_provider) && (
-                <Group gap={4} mt={-6}>
-                  <IconAlertCircle size={14} color="orange" />
-                  <Text size="xs" c="orange">
-                    {t('tutorial.api_key_warning_label')}
-                  </Text>
-                </Group>
+                <Tooltip label={t('tutorial.api_key_warning_tooltip')} multiline w={340} withArrow>
+                  <Group gap={4} mt={-6} style={{ width: 'fit-content', cursor: 'help' }}>
+                    <IconAlertCircle size={14} color="orange" />
+                    <Text size="xs" c="orange">
+                      {t('tutorial.api_key_warning_label')}
+                    </Text>
+                  </Group>
+                </Tooltip>
               )}
 
               {['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga'].includes(form.values.api_provider) && (
@@ -359,6 +403,42 @@ export default function ConfigStep({
                 minRows={4}
                 {...form.getInputProps('mod_context')}
               />
+
+              <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+                <Box style={{ flex: 1 }}>
+                  {renderNativeSelect({
+                    label: renderInfoLabel(
+                      t('translation_page.translation_batch_size', { defaultValue: '每批翻译条数' }),
+                      t('translation_page.translation_batch_size_tooltip', { defaultValue: '控制每次送给 AI 的文本条目数量。只对本次翻译生效。较小更稳，较大通常更快。' }),
+                    ),
+                    value: form.values.translation_batch_size_limit,
+                    options: translationBatchOptions,
+                    onChange: (event) => form.setFieldValue('translation_batch_size_limit', event.currentTarget.value),
+                  })}
+                </Box>
+                <Box style={{ flex: 1 }}>
+                  {renderNativeSelect({
+                    label: renderInfoLabel(
+                      t('incremental_translation.concurrency_limit'),
+                      t('translation_page.translation_concurrency_tooltip', { defaultValue: '控制同时向 AI 发起多少个翻译批次。只对本次翻译生效。本地模型建议设低一点。' }),
+                    ),
+                    value: form.values.translation_concurrency_limit,
+                    options: translationConcurrencyOptions,
+                    onChange: (event) => form.setFieldValue('translation_concurrency_limit', event.currentTarget.value),
+                  })}
+                </Box>
+                <Box style={{ flex: 1 }}>
+                  {renderNativeSelect({
+                    label: renderInfoLabel(
+                      t('incremental_translation.rpm_limit'),
+                      t('translation_page.translation_rpm_tooltip', { defaultValue: '限制每分钟请求数。只对本次翻译生效，可用于避免接口限流或本地服务过载。' }),
+                    ),
+                    value: form.values.translation_rpm_limit,
+                    options: translationRpmOptions,
+                    onChange: (event) => form.setFieldValue('translation_rpm_limit', event.currentTarget.value),
+                  })}
+                </Box>
+              </SimpleGrid>
 
               <Group grow align="flex-start">
                 <Stack gap="xs">
@@ -559,7 +639,10 @@ export default function ConfigStep({
                     <Group grow align="flex-start">
                       <Box style={{ flex: 1 }}>
                         {renderNativeSelect({
-                          label: t('translation_page.embedded_workshop_batch_size', { defaultValue: '每批修复条数' }),
+                          label: renderInfoLabel(
+                            t('translation_page.embedded_workshop_batch_size', { defaultValue: '每批修复条数' }),
+                            t('translation_page.embedded_workshop_batch_size_tooltip', { defaultValue: '控制每次交给智能工坊修复的条目数量。只对本次翻译生效。' }),
+                          ),
                           value: form.values.embedded_workshop_batch_size_limit,
                           options: ['3', '5', '10', '15', '20'].map((value) => ({ value, label: value })),
                           onChange: (event) => form.setFieldValue('embedded_workshop_batch_size_limit', event.currentTarget.value),
@@ -567,7 +650,10 @@ export default function ConfigStep({
                       </Box>
                       <Box style={{ flex: 1 }}>
                         {renderNativeSelect({
-                          label: t('translation_page.embedded_workshop_concurrency', { defaultValue: '校对并发' }),
+                          label: renderInfoLabel(
+                            t('translation_page.embedded_workshop_concurrency', { defaultValue: '校对并发' }),
+                            t('translation_page.embedded_workshop_concurrency_tooltip', { defaultValue: '控制智能工坊同时修复多少个批次。只对本次翻译生效。' }),
+                          ),
                           value: form.values.embedded_workshop_concurrency_limit,
                           options: ['1', '2', '3', '5'].map((value) => ({ value, label: value })),
                           onChange: (event) => form.setFieldValue('embedded_workshop_concurrency_limit', event.currentTarget.value),
@@ -575,7 +661,10 @@ export default function ConfigStep({
                       </Box>
                       <Box style={{ flex: 1 }}>
                         {renderNativeSelect({
-                          label: t('translation_page.embedded_workshop_rpm', { defaultValue: '校对 RPM' }),
+                          label: renderInfoLabel(
+                            t('translation_page.embedded_workshop_rpm', { defaultValue: '校对 RPM' }),
+                            t('translation_page.embedded_workshop_rpm_tooltip', { defaultValue: '限制智能工坊每分钟请求数。只对本次翻译生效。' }),
+                          ),
                           value: form.values.embedded_workshop_rpm_limit,
                           options: ['5', '10', '20', '40', '60', '100'].map((value) => ({ value, label: value })),
                           onChange: (event) => form.setFieldValue('embedded_workshop_rpm_limit', event.currentTarget.value),

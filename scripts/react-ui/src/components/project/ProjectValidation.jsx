@@ -77,7 +77,7 @@ const ProjectValidation = ({ projectId }) => {
   }
 
   return (
-    <Stack p="md" gap="lg">
+    <Stack id="project-validation-panel" p="md" gap="lg">
       <Paper withBorder p="md" radius="md">
         <Group justify="space-between" mb="md">
           <Stack gap={0}>
@@ -90,13 +90,13 @@ const ProjectValidation = ({ projectId }) => {
             <Button variant="light" leftSection={<IconRefresh size={16} />} onClick={refreshSidecar} loading={refreshing}>
               {t('project_validation.refresh')}
             </Button>
-            <Button leftSection={<IconRobot size={16} />} onClick={openWorkshop}>
+            <Button id="project-validation-open-workshop-btn" leftSection={<IconRobot size={16} />} onClick={openWorkshop}>
               {t('project_validation.open_workshop')}
             </Button>
           </Group>
         </Group>
 
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} mb="md">
+        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} mb="md">
           <Card withBorder p="sm" radius="md">
             <Text size="xs" c="dimmed">{t('project_validation.issues_count')}</Text>
             <Text size="lg" fw={700}>{status?.issues_count ?? 0}</Text>
@@ -109,11 +109,22 @@ const ProjectValidation = ({ projectId }) => {
             <Text size="xs" c="dimmed">{t('project_validation.report_count')}</Text>
             <Text size="lg" fw={700}>{status?.report_count ?? 0}</Text>
           </Card>
-          <Card withBorder p="sm" radius="md">
-            <Text size="xs" c="dimmed">{t('project_validation.sidecar_path')}</Text>
-            <Text size="xs" fw={600}>{status?.sidecar_path || '--'}</Text>
-          </Card>
         </SimpleGrid>
+
+        <Card withBorder p="sm" radius="md" mb="md">
+          <Text size="xs" c="dimmed">{t('project_validation.sidecar_path')}</Text>
+          <Text
+            size="sm"
+            fw={600}
+            style={{
+              wordBreak: 'break-all',
+              overflowWrap: 'anywhere',
+              whiteSpace: 'normal',
+            }}
+          >
+            {status?.sidecar_path || '--'}
+          </Text>
+        </Card>
 
         <Alert icon={<IconInfoCircle size={16} />} color="blue" radius="md" mb="sm">
           <Text size="sm">
@@ -121,7 +132,7 @@ const ProjectValidation = ({ projectId }) => {
           </Text>
         </Alert>
 
-        <Alert icon={<IconInfoCircle size={16} />} color="gray" radius="md">
+        <Alert id="project-validation-scope-alert" icon={<IconInfoCircle size={16} />} color="gray" radius="md">
           <Text size="sm">
             {t('project_validation.scope_hint')}
           </Text>

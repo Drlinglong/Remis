@@ -242,6 +242,55 @@ export const getTutorialSteps = (t, pageName) => {
                 }
             }
         ],
+        'project-management-validation': [
+            {
+                element: '#project-validation-scope-alert',
+                popover: {
+                    title: t('tutorial.project_management.validation_scope.title'),
+                    description: t('tutorial.project_management.validation_scope.desc'),
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#project-validation-open-workshop-btn',
+                popover: {
+                    title: t('tutorial.project_management.validation_workshop.title'),
+                    description: t('tutorial.project_management.validation_workshop.desc'),
+                    side: "left",
+                    align: 'center'
+                }
+            }
+        ],
+        'project-management-history': [
+            {
+                element: '#project-history-current-state',
+                popover: {
+                    title: t('tutorial.project_management.history_overview.title'),
+                    description: t('tutorial.project_management.history_overview.desc'),
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#project-history-upload-btn',
+                popover: {
+                    title: t('tutorial.project_management.history_upload.title'),
+                    description: t('tutorial.project_management.history_upload.desc'),
+                    side: "left",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#project-history-incremental-btn',
+                popover: {
+                    title: t('tutorial.project_management.history_incremental.title'),
+                    description: t('tutorial.project_management.history_incremental.desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            }
+        ],
         'translation-step-0': [
             {
                 element: '#translation-project-list',

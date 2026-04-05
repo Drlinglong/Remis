@@ -25,6 +25,7 @@ class IncrementalTranslationService:
         selected_provider: str,
         model_name: Optional[str],
         target_lang_code: str,
+        batch_size_limit: Optional[int] = None,
         concurrency_limit: Optional[int] = None,
         rpm_limit: Optional[int] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
@@ -46,7 +47,10 @@ class IncrementalTranslationService:
         for task in file_tasks_for_ai:
             task.client = handler.client
 
-        processor = ParallelProcessor(max_workers=self._resolve_max_workers(selected_provider, concurrency_limit))
+        processor = ParallelProcessor(
+            max_workers=self._resolve_max_workers(selected_provider, concurrency_limit),
+            chunk_size_override=batch_size_limit,
+        )
 
         def translate_batch(batch):
             return handler.translate_batch(batch)
@@ -65,7 +69,7 @@ class IncrementalTranslationService:
 
         logger.info(
             f"Translating {len(file_tasks_for_ai)} files incrementally for {target_lang_code} "
-            f"(workers={processor.max_workers}, rpm_limit={rpm_limit})..."
+            f"(workers={processor.max_workers}, batch_size_limit={batch_size_limit}, rpm_limit={rpm_limit})..."
         )
 
         from scripts.utils.rate_limiter import rate_limiter

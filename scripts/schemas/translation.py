@@ -40,6 +40,9 @@ class InitialTranslationRequest(BaseModel):
     target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
     api_provider: str = "gemini"
     model: str = "gemini-pro"
+    batch_size_limit: Optional[int] = None
+    concurrency_limit: Optional[int] = None
+    rpm_limit: Optional[int] = 40
     mod_context: Optional[str] = ""
     selected_glossary_ids: Optional[List[int]] = []
     use_main_glossary: bool = True

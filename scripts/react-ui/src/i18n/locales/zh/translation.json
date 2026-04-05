@@ -53,7 +53,7 @@
   "nav_docs": "文档",
   "page_title_home": "主页",
   "page_title_docs": "文档",
-  "page_title_translation": "翻译",
+  "page_title_translation": "初次翻译",
   "page_title_glossary_manager": "词汇表管理",
   "page_title_proofreading": "校对",
   "page_title_tools": "工具",
@@ -718,7 +718,7 @@
       },
       "scan": {
         "title": "扫描问题",
-        "desc": "这里会启动智能工坊扫描；如果之前已经导出过问题 sidecar，也会优先直接读取。"
+        "desc": "这里会启动智能工坊扫描；如果这个项目之前已经保存过问题记录，程序会直接读出来，你就不用每次都从头重新扫描。"
       },
       "fix_settings": {
         "title": "修复策略设置",
@@ -843,6 +843,26 @@
       "tabs": {
         "title": "任务看板",
         "desc": "在总文件列表和看板视图之间切换，更直观地管理任务。"
+      },
+      "validation_scope": {
+        "title": "这里只检查格式问题",
+        "desc": "这里仅检查 P 社脚本语言中的格式问题，例如变量、标签、换行和本地化键名等，不负责判断措辞润色或翻译风格。"
+      },
+      "validation_workshop": {
+        "title": "打开智能工坊",
+        "desc": "程序会自动探测例如 [concept】、$key￥、[概念2] 之类的错误，并使用 AI 将其修复还原为 [concept]、$key$、[concept2] 等正常的 key。"
+      },
+      "history_overview": {
+        "title": "历史与归档基线",
+        "desc": "这里记录项目的归档基线、上载或构建时间，以及关键版本事件。做增量更新前，通常先在这里确认当前归档状态。"
+      },
+      "history_upload": {
+        "title": "翻译上载",
+        "desc": "这个按钮会把磁盘上已有的翻译成果写入项目数据库并建立归档。如果你拿到的是别人做了一半的半成品 mod，做增量更新前通常第一步就是先来这里执行“翻译上载”。"
+      },
+      "history_incremental": {
+        "title": "前往增量更新",
+        "desc": "增量更新会把新版本源码和这里的归档基线做对比，复用未变化的翻译，只把新增或变更过的内容重新送回翻译流程。"
       }
     },
     "translation": {
@@ -1006,9 +1026,23 @@
     "embedded_workshop_concurrency": "校对并发",
     "embedded_workshop_rpm": "校对 RPM",
     "resume_detail_empty": "No detailed checkpoint entries are available yet.",
-    "resume_detail_none": "There is no unfinished work.",
-    "embedded_workshop_following_summary": "Currently following the primary translation setup: {{provider}} / {{model}}",
-    "embedded_workshop_custom_summary": "Currently using a dedicated proofreading setup: {{provider}} / {{model}}"
+    "resume_detail_none": "当前没有未完成的工作。",
+    "embedded_workshop_following_summary": "当前跟随主翻译配置：{{provider}} / {{model}}",
+    "embedded_workshop_custom_summary": "当前使用独立校对配置：{{provider}} / {{model}}",
+    "translation_limit_auto": "自动（推荐）",
+    "translation_batch_size": "每批翻译条数",
+    "translation_batch_size_desc": "仅对本次翻译生效。自动会沿用当前 provider 的默认策略。",
+    "translation_batch_size_tooltip": "控制每次发送给 AI 的文本条目数量。较小的批次更稳，较大的批次通常更快。仅对本次翻译生效。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则使用 Auto 即可。",
+    "translation_concurrency_desc": "仅对本次翻译生效。自动会沿用当前内置策略。",
+    "translation_concurrency_tooltip": "控制同时向 AI 发送多少个翻译批次。本地模型建议设低一些，避免显存或通道压力。仅对本次翻译生效。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则使用 Auto 即可。使用 Auto 时，本地模型仍会自动降低并发。",
+    "translation_rpm_desc": "仅对本次翻译生效。默认值会保持当前系统节奏。",
+    "translation_rpm_tooltip": "限制本次翻译每分钟的请求数，用来减少接口限流或本地服务过载。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
+    "embedded_workshop_batch_size_tooltip": "控制智能工坊每批尝试修复多少条问题。仅对本次翻译生效。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
+    "embedded_workshop_batch_size_desc": "仅对本次翻译生效。问题较复杂时，较小的批次通常更稳。",
+    "embedded_workshop_concurrency_tooltip": "控制智能工坊同时跑多少个修复批次。仅对本次翻译生效。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
+    "embedded_workshop_concurrency_desc": "仅对本次翻译生效。本地模型建议使用较低并发。",
+    "embedded_workshop_rpm_tooltip": "限制智能工坊本次翻译中的每分钟请求数，用来减少接口限流或本地服务过载。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
+    "embedded_workshop_rpm_desc": "仅对本次翻译生效。默认值会保持当前系统节奏。"
   },
   "version_info": {
     "tab_title": "版本信息",
@@ -1099,7 +1133,7 @@
       "select_project_first": "请先从列表中选择一个项目",
       "archive_found": "检测到存档点：版本 {{version}}, 最后更新于 {{date}}",
       "archive_missing": "未检测到该项目的翻译存档。增量对比失败。",
-      "archive_missing_action": "请先完成一次“初次翻译”或手动“上载已有翻译”以建立存档。",
+      "archive_missing_action": "如果你是从零开始翻译，请先使用“初次翻译”。如果你拿到的是别人做了一半的半成品 mod，请先前往“项目管理 -> 历史”，执行“翻译上载”，再回到这里。",
       "select_new_folder": "选择新的 Mod 文件夹",
       "select_new_folder_desc": "包含最新源码的 Mod 目录（通常是更新后的 Mod 文件夹）",
       "current_folder_info": "当前项目路径：{{path}}",
@@ -1159,7 +1193,7 @@
     "archive_found": "检测到存档点：版本 {{version}}, 最后更新于 {{date}}",
     "archive_missing": "未检测到该项目的翻译存档。增量对比失败。",
     "no_translations_found": "存档中未发现任何翻译条目。请确认是否已上载有效的翻译文件。",
-    "archive_missing_action": "请先完成一次“初次翻译”或手动“上载已有翻译”以建立存档。",
+    "archive_missing_action": "如果你是从零开始翻译，请先使用“初次翻译”。如果你拿到的是别人做了一半的半成品 mod，请先前往“项目管理 -> 历史”，执行“翻译上载”，再回到这里。",
     "workflow_supported_title": "支持的增量工作流",
     "workflow_supported_desc": "先选择旧项目作为归档基线，再把“新的源码目录”指向复制后的创意工坊文件夹。系统会按所选目标语言最近一次手动上载的归档时间来选择比较基线，并使用规范化相对路径进行匹配。",
     "select_new_folder": "选择新的 Mod 文件夹",
@@ -1209,7 +1243,7 @@
     "selected_target_languages": "当前选中目标语言",
     "none_archived": "暂无",
     "none_selected": "未选择",
-    "no_archived_target_languages": "该项目尚未检测到任何已归档的目标语言。请先上载已有翻译成果，再重新进入增量更新。",
+    "no_archived_target_languages": "该项目尚未检测到任何已归档的目标语言。如果你是从零开始翻译，请先使用“初次翻译”建立归档；如果你拿到的是别人做了一半的半成品 mod，请先前往“项目管理 -> 历史”执行“翻译上载”，再重新进入增量更新。",
     "file_details_title": "文件级变更明细",
     "reused_short": "复用",
     "new_short": "新增",
@@ -1234,9 +1268,9 @@
     "archive_uploaded_label": "最近上载时间",
     "archive_snapshot_label": "源快照时间",
     "concurrency_limit": "并发数量",
-    "concurrency_limit_desc": "本地模型建议使用较低并发，避免显存压力或通道错误。",
+    "concurrency_limit_desc": "仅对本次翻译生效。本地模型建议使用较低并发，避免显存压力或通道错误。",
     "rpm_limit": "RPM 限制",
-    "rpm_limit_desc": "每分钟最大请求数。用于限制调用节奏，避免接口或本地服务过载。",
+    "rpm_limit_desc": "仅对本次翻译生效。限制每分钟请求数，避免接口或本地服务过载。",
     "runtime_warning_summary_title": "执行期间发现运行期警告",
     "runtime_warning_summary_desc": "本次运行记录了 {{count}} 条运行期警告。请优先检查上下文超限、模型拒答或回退到原文的批次。",
     "warning_summary_title": "执行期间发现运行期警告",
@@ -1278,7 +1312,8 @@
     "embedded_workshop_model": "Proofreading Model",
     "embedded_workshop_batch_size": "Issues Per Fix Batch",
     "embedded_workshop_concurrency": "Proofreading Concurrency",
-    "embedded_workshop_rpm": "Proofreading RPM"
+    "embedded_workshop_rpm": "Proofreading RPM",
+    "batch_size_limit_desc": "仅对本次翻译生效。自动会沿用当前 provider 的默认策略。"
   },
   "translation_config": {
     "provider": "API 供应商",
@@ -1387,7 +1422,7 @@
     "loading": "加载中...",
     "expand": "展开",
     "collapse": "收起",
-    "browse": "Browse"
+    "browse": "浏览"
   },
   "nav_home": "首页",
   "api_model_select_label": "模型选择",

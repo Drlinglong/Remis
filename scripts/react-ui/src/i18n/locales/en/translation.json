@@ -22,13 +22,13 @@
   "splash_language_menu": "Language Menu",
   "msg_reset_success": "Database reset successfully. The application will now reload.",
   "msg_reset_fail": "Failed to reset database: ",
-  "progress_translating_model": "Translating {{total_batches}} batches in {{total_files}} files using the {{model}} model...",
-  "progress_status": "Processed {{processed_files}} files and {{completed_batches}} batches; {{successful_batches}} batches succeeded, {{failed_batches}} batches failed; {{remaining_files}} files and {{remaining_batches}} batches remaining",
+  "progress_translating_model": "Translating {{total_batches}} batches across {{total_files}} files using model {{model}}...",
+  "progress_status": "Completed {{processed_files}} files and {{completed_batches}} batches, with {{remaining_files}} files and {{remaining_batches}} batches remaining",
   "nav_home": "Homepage",
   "nav_docs": "Documentation",
   "page_title_home": "Homepage",
   "page_title_docs": "Documentation",
-  "page_title_translation": "Translation",
+  "page_title_translation": "Initial Translation",
   "page_title_glossary_manager": "Glossary Manager",
   "page_title_proofreading": "Proofreading",
   "page_title_tools": "Tools",
@@ -634,6 +634,26 @@
       "tabs": {
         "title": "Task Board",
         "desc": "Navigate between file overview and the Kanban board for visual task management."
+      },
+      "validation_scope": {
+        "title": "Format Checks Only",
+        "desc": "This page only checks Paradox script formatting issues such as variables, tags, line breaks, and localization key names. It does not judge wording quality or style."
+      },
+      "validation_workshop": {
+        "title": "Open Agent Workshop",
+        "desc": "The workshop can automatically detect malformed keys such as [concept】, $key￥, or [概念2], then use AI to repair them back into valid forms like [concept], $key$, and [concept2]."
+      },
+      "history_overview": {
+        "title": "Archive And Version Timeline",
+        "desc": "History records the project archive baseline, upload/build timestamps, and major version events. This is the staging area you use before incremental updates."
+      },
+      "history_upload": {
+        "title": "Upload Existing Translations",
+        "desc": "Use this to archive translations that already exist on disk into the project database. If you received a half-finished mod from someone else, this should usually be your first step before incremental update."
+      },
+      "history_incremental": {
+        "title": "Go To Incremental Update",
+        "desc": "Incremental update compares the newly updated source files against this archived baseline, reuses unchanged translations, and only sends the changed or new entries back through the translation workflow."
       }
     },
     "translation": {
@@ -729,7 +749,7 @@
       },
       "scan": {
         "title": "Scan for Issues",
-        "desc": "This starts the Smart Workshop scan and loads cached issue sidecars when they already exist."
+        "desc": "This starts the Smart Workshop scan. If this project already has a saved issue record, the program loads it directly so you do not have to rescan everything."
       },
       "fix_settings": {
         "title": "Fix Strategy",
@@ -888,7 +908,21 @@
     "embedded_workshop_concurrency": "Proofreading Concurrency",
     "embedded_workshop_rpm": "Proofreading RPM",
     "embedded_workshop_following_summary": "Currently following the primary translation setup: {{provider}} / {{model}}",
-    "embedded_workshop_custom_summary": "Currently using a dedicated proofreading setup: {{provider}} / {{model}}"
+    "embedded_workshop_custom_summary": "Currently using a dedicated proofreading setup: {{provider}} / {{model}}",
+    "translation_limit_auto": "Auto (Recommended)",
+    "translation_batch_size": "Entries Per Batch",
+    "translation_batch_size_desc": "Only applies to this translation run. Auto uses the current provider default.",
+    "translation_batch_size_tooltip": "Controls how many text entries are sent to the AI in each batch. Smaller batches are steadier; larger batches are usually faster. Only applies to this translation run. Unless you have a clear translation bottleneck or really know what you are doing, Auto is the right choice.",
+    "translation_concurrency_desc": "Only applies to this translation run. Auto follows the current built-in strategy.",
+    "translation_concurrency_tooltip": "Controls how many translation batches are sent to the AI at the same time. Lower values are safer for local models. Only applies to this translation run. Unless you have a clear translation bottleneck or really know what you are doing, Auto is the right choice. When Auto is used, local models still fall back to lower concurrency automatically.",
+    "translation_rpm_desc": "Only applies to this translation run. The default keeps the current system pacing.",
+    "translation_rpm_tooltip": "Limits requests per minute for this run to reduce rate limits or local service overload. Unless you have a clear translation bottleneck or really know what you are doing, keep the default value.",
+    "embedded_workshop_batch_size_tooltip": "Controls how many issues Smart Workshop tries to fix in each batch. Only applies to this run. Unless you have a clear translation bottleneck or really know what you are doing, keep the default value.",
+    "embedded_workshop_batch_size_desc": "Only applies to this translation run. Smaller batches are steadier when the issues are complex.",
+    "embedded_workshop_concurrency_tooltip": "Controls how many Smart Workshop fix batches run at the same time. Only applies to this run. Unless you have a clear translation bottleneck or really know what you are doing, keep the default value.",
+    "embedded_workshop_concurrency_desc": "Only applies to this translation run. Lower values are safer for local models.",
+    "embedded_workshop_rpm_tooltip": "Limits Smart Workshop requests per minute for this run to avoid rate limits or local service overload. Unless you have a clear translation bottleneck or really know what you are doing, keep the default value.",
+    "embedded_workshop_rpm_desc": "Only applies to this translation run. The default keeps the current system pacing."
   },
   "version_info": {
     "tab_title": "Version Info",
@@ -991,7 +1025,7 @@
       "select_project_first": "Please select a project from the list first",
       "archive_found": "Archive found: Version {{version}}, Last updated {{date}}",
       "archive_missing": "No translation archive found for this project. Incremental comparison failed.",
-      "archive_missing_action": "Please complete an 'Initial Translation' or 'Upload Translations' first to build the archive.",
+      "archive_missing_action": "If you are starting from scratch, run Initial Translation first. If you received a half-finished mod from someone else, go to Project Management -> History and use Upload Existing Translations before returning here.",
       "select_new_folder": "Select New Mod Folder",
       "select_new_folder_desc": "Mod directory containing the latest source files (usually the updated mod folder)",
       "current_folder_info": "Current project path: {{path}}",
@@ -1147,7 +1181,7 @@
     "archive_found": "Archive found: version {{version}}, last updated {{date}}",
     "archive_missing": "No translation archive found for this project. Incremental comparison cannot continue.",
     "no_translations_found": "No translated entries were found in the archive. Please confirm that valid translation files were uploaded.",
-    "archive_missing_action": "Please complete an initial translation or upload existing translations first to create the archive baseline.",
+    "archive_missing_action": "If you are starting from scratch, run Initial Translation first. If you received a half-finished mod from someone else, go to Project Management -> History and use Upload Existing Translations before returning here.",
     "select_new_folder_desc": "Mod directory containing the latest source files, usually the updated mod folder.",
     "pre_scan_summary": "Pre-scan Summary",
     "scan_directory": "Scan Directory",
@@ -1197,7 +1231,7 @@
     "selected_target_languages": "Selected Target Languages",
     "none_archived": "None",
     "none_selected": "None selected",
-    "no_archived_target_languages": "No archived target languages were found for this project. Upload existing translations first, then reopen incremental update.",
+    "no_archived_target_languages": "No archived target languages were found for this project. If you are starting from scratch, run Initial Translation first. If you received a half-finished mod from someone else, go to Project Management -> History and use Upload Existing Translations, then reopen Incremental Update.",
     "file_details_title": "File-level change details",
     "reused_short": "Reused",
     "new_short": "New",
@@ -1222,9 +1256,9 @@
     "archive_uploaded_label": "Last Upload Time",
     "archive_snapshot_label": "Source Snapshot Time",
     "concurrency_limit": "Concurrency",
-    "concurrency_limit_desc": "Use a lower value for local models to avoid VRAM pressure or channel errors.",
+    "concurrency_limit_desc": "Only applies to this translation run. Use a lower value for local models to avoid VRAM pressure or channel errors.",
     "rpm_limit": "RPM Limit",
-    "rpm_limit_desc": "Maximum requests per minute. Helps prevent provider or local service overload.",
+    "rpm_limit_desc": "Only applies to this translation run. Limits requests per minute to avoid provider or local service overload.",
     "runtime_warning_summary_title": "Runtime warnings detected",
     "runtime_warning_summary_desc": "This run recorded {{count}} runtime warning(s). Review context overflow, model refusal, or source-text fallback batches first.",
     "warning_summary_title": "Runtime warnings detected",
@@ -1266,7 +1300,8 @@
     "embedded_workshop_model": "Proofreading Model",
     "embedded_workshop_batch_size": "Issues Per Fix Batch",
     "embedded_workshop_concurrency": "Proofreading Concurrency",
-    "embedded_workshop_rpm": "Proofreading RPM"
+    "embedded_workshop_rpm": "Proofreading RPM",
+    "batch_size_limit_desc": "Only applies to this translation run. Auto uses the current provider default."
   },
   "recent_activity_type_translate": "Incremental Update",
   "project_management": {
@@ -1339,8 +1374,6 @@
       }
     }
   },
-  "progress_translating_model": "Translating {{total_batches}} batches across {{total_files}} files using model {{model}}...",
-  "progress_status": "Completed {{processed_files}} files and {{completed_batches}} batches, with {{remaining_files}} files and {{remaining_batches}} batches remaining",
   "translation_completed": "Translation completed!",
   "report_success_summary": "Successfully completed the translation flow for {{mod_name}} from {{source_lang}} to {{target_langs}}.",
   "report_error_count": "{{count}} file(s) encountered errors",
