@@ -17,6 +17,17 @@ import translationStyles from './Translation.module.css';
 const STORAGE_KEY = 'agent_workshop_state_v2';
 const LOCAL_PROVIDERS = ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui'];
 
+const normalizeArrayPayload = (payload, keys = []) => {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return [];
+
+  for (const key of keys) {
+    if (Array.isArray(payload[key])) return payload[key];
+  }
+
+  return [];
+};
+
 const AgentWorkshopPage = () => {
   const { t } = useTranslation();
   const location = useLocation();
@@ -139,9 +150,9 @@ const AgentWorkshopPage = () => {
   useEffect(() => {
     const bootstrap = async () => {
       try {
-        const [projectsRes, configRes] = await Promise.all([axios.get('/api/projects'), axios.get('/api/config')]);
-        const projectList = projectsRes.data || [];
-        const providers = configRes.data?.api_providers || [];
+        const [projectsRes, configRes] = await Promise.all([axios.get('/api/projects?status=active'), axios.get('/api/config')]);
+        const projectList = normalizeArrayPayload(projectsRes.data, ['projects', 'items', 'data', 'results']);
+        const providers = normalizeArrayPayload(configRes.data?.api_providers, ['items', 'data', 'results']);
         setProjects(projectList);
         setApiProviders(providers);
         const persisted = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
@@ -241,8 +252,9 @@ const AgentWorkshopPage = () => {
     setScanLoading(true);
     try {
       const res = await axios.get(`/api/agent-workshop/scan?project_id=${selectedProjectId}`);
-      setIssues(Array.isArray(res.data) ? res.data : []);
-      setIsCached((res.data || []).length > 0);
+      const nextIssues = normalizeArrayPayload(res.data, ['issues', 'items', 'data', 'results']);
+      setIssues(nextIssues);
+      setIsCached(nextIssues.length > 0);
       setActive(2);
     } catch (err) {
       console.error('Scan failed', err);

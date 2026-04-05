@@ -15,22 +15,22 @@ pub fn run() {
       app.handle().plugin(tauri_plugin_dialog::init())?;
       app.handle().plugin(tauri_plugin_shell::init())?;
 
-      // Auto-start backend sidecar ONLY in Release mode
-      #[cfg(not(debug_assertions))]
+      // Auto-start backend sidecar in both dev and release.
+      // Dev previously booted only the frontend, which left API calls failing with "Network Error".
       {
-          let sidecar_command = app.handle().shell().sidecar("web_server").map_err(|e| {
-            eprintln!("Failed to create sidecar command: {}", e);
-            e
-          })?;
-          
-          match sidecar_command.spawn() {
-            Ok((mut _rx, _child)) => {
-                println!("Sidecar spawned successfully");
-            }
-            Err(e) => {
-                eprintln!("CRITICAL: Failed to spawn sidecar: {}", e);
-            }
+        let sidecar_command = app.handle().shell().sidecar("web_server").map_err(|e| {
+          eprintln!("Failed to create sidecar command: {}", e);
+          e
+        })?;
+
+        match sidecar_command.spawn() {
+          Ok((_rx, _child)) => {
+            println!("Sidecar spawned successfully");
           }
+          Err(e) => {
+            eprintln!("CRITICAL: Failed to spawn sidecar: {}", e);
+          }
+        }
       }
 
       Ok(())

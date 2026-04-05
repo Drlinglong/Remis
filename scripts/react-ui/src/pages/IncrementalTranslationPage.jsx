@@ -38,6 +38,17 @@ import styles from './Translation.module.css';
 const INCREMENTAL_STATE_STORAGE_KEY = 'incremental_translation_state_v1';
 const LOCAL_PROVIDERS = ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui'];
 
+const normalizeArrayPayload = (payload, keys = []) => {
+    if (Array.isArray(payload)) return payload;
+    if (!payload || typeof payload !== 'object') return [];
+
+    for (const key of keys) {
+        if (Array.isArray(payload[key])) return payload[key];
+    }
+
+    return [];
+};
+
 const IncrementalTranslationPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -695,8 +706,9 @@ const IncrementalTranslationPage = () => {
 
     const fetchProjects = async () => {
         try {
-            const response = await axios.get('/api/projects');
-            setProjects(response.data.filter(p => p.status === 'active'));
+            const response = await axios.get('/api/projects?status=active');
+            const projectList = normalizeArrayPayload(response.data, ['projects', 'items', 'data', 'results']);
+            setProjects(projectList);
         } catch {
             notificationService.error(t('notification.error_generic'), notificationStyle);
         } finally {
@@ -708,7 +720,7 @@ const IncrementalTranslationPage = () => {
         try {
             const response = await axios.get('/api/config');
             const data = response.data;
-            const providers = data.api_providers || [];
+            const providers = normalizeArrayPayload(data?.api_providers, ['items', 'data', 'results']);
 
             setApiProviders(providers);
 

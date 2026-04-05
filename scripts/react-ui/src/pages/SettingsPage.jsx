@@ -194,34 +194,35 @@ const SettingsPage = () => {
                         {t('modal_reset_db_confirm_text')}
                     </Text>
                     <Text size="sm" fw={700}>
-                        This action will:
+                        {t('modal_reset_db_impact_title')}
                     </Text>
                     <ul style={{ fontSize: '0.9em', marginTop: 0 }}>
-                        <li>Remove all projects from the "Open Recent" list.</li>
-                        <li>Clear all file status (Todo/Done/Proofreading) in the dashboard.</li>
+                        <li>{t('modal_reset_db_impact_1')}</li>
+                        <li>{t('modal_reset_db_impact_2')}</li>
                     </ul>
                     <Text size="sm" fw={700} c="green">
-                        This action will NOT:
+                        {t('modal_reset_db_safe_title')}
                     </Text>
                     <ul style={{ fontSize: '0.9em', marginTop: 0 }}>
-                        <li>Delete your translations.</li>
-                        <li>Delete your source files.</li>
-                        <li>Modify any file on your disk.</li>
+                        <li>{t('modal_reset_db_safe_1')}</li>
+                        <li>{t('modal_reset_db_safe_2')}</li>
+                        <li>{t('modal_reset_db_safe_3')}</li>
                     </ul>
 
                     <Group justify="flex-end" mt="md">
-                        <Button variant="default" onClick={() => setResetModalOpen(false)}>Cancel</Button>
+                        <Button variant="default" onClick={() => setResetModalOpen(false)}>{t('cancel')}</Button>
                         <Button color="red" onClick={async () => {
                             try {
                                 await api.post('/api/system/reset-db');
                                 setResetModalOpen(false);
-                                alert("Database reset successfully. The application will now reload.");
+                                alert(t('msg_reset_success'));
                                 window.location.reload();
                             } catch (e) {
-                                alert("Failed to reset database: " + e.message);
+                                const detail = e?.response?.data?.detail || e?.message || '';
+                                alert(`${t('msg_reset_fail')}${detail}`);
                             }
                         }}>
-                            Confirm Reset
+                            {t('btn_confirm_reset')}
                         </Button>
                     </Group>
                 </Stack>
