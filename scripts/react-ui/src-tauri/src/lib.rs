@@ -15,14 +15,6 @@ pub fn run() {
       app.handle().plugin(tauri_plugin_dialog::init())?;
       app.handle().plugin(tauri_plugin_shell::init())?;
 
-      // Enable devtools in release for debugging (remove after issue resolved)
-      #[cfg(not(debug_assertions))]
-      {
-          if let Some(window) = app.get_webview_window("main") {
-              window.open_devtools();
-          }
-      }
-
       // Auto-start backend sidecar ONLY in Release mode
       #[cfg(not(debug_assertions))]
       {
