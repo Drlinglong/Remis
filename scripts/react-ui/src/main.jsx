@@ -1,3 +1,10 @@
+// [Project Remis] Build Fingerprint
+console.log(
+  "%c[Remis] Build Fingerprint%c\nVersion: 3.0.0\nBuild Time: 2026-04-06 09:30:00",
+  "background: #4a5568; color: #fff; padding: 2px 4px; border-radius: 4px; font-weight: bold;",
+  "color: #718096; font-style: italic;"
+);
+
 if (import.meta.env.DEV) {
   const showErrorOverlay = (err) => {
     if (!err) return;

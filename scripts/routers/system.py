@@ -339,8 +339,11 @@ async def debug_config():
     """
     from scripts import app_settings
     import sys
+    import time
     
     return {
+        "version": app_settings.VERSION,
+        "build_timestamp": "2026-04-06 09:30:00", # Manually updated during build
         "is_frozen": getattr(sys, "frozen", False),
         "resource_dir": app_settings.RESOURCE_DIR,
         "app_data_dir": app_settings.APP_DATA_DIR,
