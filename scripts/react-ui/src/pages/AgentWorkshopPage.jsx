@@ -10,7 +10,7 @@ import {
     IconCheck, IconRefresh, IconArrowRight,
     IconInfoCircle, IconBug, IconSearch, IconWand
 } from '@tabler/icons-react';
-import api from '../utils/api';
+import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import styles from './AgentWorkshop.module.css';
 
@@ -22,17 +22,14 @@ const AgentWorkshopPage = () => {
     const [loading, setLoading] = useState(false);
     const [isCached, setIsCached] = useState(false);
     
-    // Fix Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentIssue, setCurrentIssue] = useState(null);
     const [fixResult, setFixResult] = useState(null);
     const [fixing, setFixing] = useState(false);
     
-    // Batch and Diff State
     const [batchSize, setBatchSize] = useState('5');
     const [fixedIssues, setFixedIssues] = useState([]);
     
-    // LLM Selection State
     const [apiProviders, setApiProviders] = useState([]);
     const [selectedProvider, setSelectedProvider] = useState('');
     const [selectedModel, setSelectedModel] = useState('');
@@ -53,7 +50,7 @@ const AgentWorkshopPage = () => {
 
     const fetchProjects = async () => {
         try {
-            const res = await api.get('/api/projects');
+            const res = await axios.get('/api/projects');
             const projectOptions = res.data.map(p => ({
                 value: p.project_id || p.id,
                 label: p.name
@@ -66,7 +63,7 @@ const AgentWorkshopPage = () => {
 
     const fetchApiConfig = async () => {
         try {
-            const res = await api.get('/api/config');
+            const res = await axios.get('/api/config');
             const data = res.data;
             if (data && data.api_providers && Array.isArray(data.api_providers)) {
                 setApiProviders(data.api_providers);
@@ -84,7 +81,7 @@ const AgentWorkshopPage = () => {
     const loadCached = async () => {
         setLoading(true);
         try {
-            const res = await api.get(`/api/agent-workshop/load-cached?project_id=${selectedProject}`);
+            const res = await axios.get(`/api/agent-workshop/load-cached?project_id=${selectedProject}`);
             setIssues(res.data);
             setIsCached(res.data.length > 0);
         } catch (err) {
@@ -98,7 +95,7 @@ const AgentWorkshopPage = () => {
         if (!selectedProject) return;
         setLoading(true);
         try {
-            const res = await api.get(`/api/agent-workshop/scan?project_id=${selectedProject}`);
+            const res = await axios.get(`/api/agent-workshop/scan?project_id=${selectedProject}`);
             setIssues(res.data);
             setIsCached(false);
         } catch (err) {
@@ -118,19 +115,16 @@ const AgentWorkshopPage = () => {
         if (!selectedProject || !currentIssue) return;
         setFixing(true);
         try {
-            const res = await api.post('/api/agent-workshop/fix', {
+            const res = await axios.post('/api/agent-workshop/fix', {
                 project_id: selectedProject,
                 api_provider: selectedProvider,
                 api_model: selectedModel,
                 ...currentIssue
             });
-            
             if (res.data && res.data.status === 'SUCCESS') {
                 setFixedIssues(prev => [{...currentIssue, suggested_fix: res.data.suggested_fix}, ...prev]);
-                // Automatically remove it from the list if it's fixed
                 setIssues(prev => prev.filter(i => i.key !== currentIssue.key || i.file_name !== currentIssue.file_name));
             }
-            
             setFixResult(res.data);
         } catch (err) {
             console.error("Fix failed", err);
@@ -147,41 +141,34 @@ const AgentWorkshopPage = () => {
     const handleFixAll = async () => {
         if (!selectedProject || issues.length === 0 || !selectedProvider) return;
         setFixing(true);
-        
         const size = parseInt(batchSize, 10);
         let remainingIssues = [...issues];
         let newFixed = [];
-        
         for (let i = 0; i < issues.length; i += size) {
             const batch = issues.slice(i, i + size);
             try {
-                const res = await api.post('/api/agent-workshop/fix-batch', {
+                const res = await axios.post('/api/agent-workshop/fix-batch', {
                     project_id: selectedProject,
                     api_provider: selectedProvider,
                     api_model: selectedModel,
                     issues: batch
                 });
-                
                 if (res.data && res.data.results) {
                     for (const r of res.data.results) {
                         if (r.status === 'SUCCESS') {
                             const originalIssue = batch.find(b => b.key === r.key && b.file_name === r.file_name);
-                            if (originalIssue) {
-                                newFixed.unshift({...originalIssue, suggested_fix: r.suggested_fix});
-                            }
+                            if (originalIssue) newFixed.unshift({...originalIssue, suggested_fix: r.suggested_fix});
                             remainingIssues = remainingIssues.filter(iss => iss.key !== r.key || iss.file_name !== r.file_name);
                         }
                     }
-                    // Update UI gracefully after each batch
                     setIssues([...remainingIssues]);
                     setFixedIssues(prev => [...newFixed, ...prev]);
-                    newFixed = []; // reset for next batch
+                    newFixed = [];
                 }
             } catch (err) {
                 console.error(`Batch fix failed`, err);
             }
         }
-        
         setFixing(false);
     };
 
@@ -214,28 +201,18 @@ const AgentWorkshopPage = () => {
                                 value={selectedProvider}
                                 onChange={(val) => {
                                     setSelectedProvider(val);
-                                    if (!val) {
-                                        setSelectedModel('');
-                                        return;
-                                    }
+                                    if (!val) { setSelectedModel(''); return; }
                                     const provider = (apiProviders || []).find(p => p.value === val);
-                                    const allModels = [
-                                        ...(provider?.available_models || []),
-                                        ...(provider?.custom_models || [])
-                                    ];
-                                    if (allModels.length > 0) {
-                                        setSelectedModel(allModels[0]);
-                                    } else {
-                                        setSelectedModel('');
-                                    }
+                                    const allModels = [...(provider?.available_models || []), ...(provider?.custom_models || [])];
+                                    setSelectedModel(allModels.length > 0 ? allModels[0] : '');
                                 }}
                                 disabled={fixing}
                             />
                             <Select
                                 label={t('form_label_api_model') || "AI Model"}
                                 data={[
-                                    ...( ( (apiProviders || []).find(p => p.value === selectedProvider) )?.available_models || []),
-                                    ...( ( (apiProviders || []).find(p => p.value === selectedProvider) )?.custom_models || [])
+                                    ...((apiProviders || []).find(p => p.value === selectedProvider)?.available_models || []),
+                                    ...((apiProviders || []).find(p => p.value === selectedProvider)?.custom_models || [])
                                 ]}
                                 value={selectedModel}
                                 onChange={setSelectedModel}
@@ -243,7 +220,7 @@ const AgentWorkshopPage = () => {
                                 searchable
                             />
                             <Group>
-                                <Button 
+                                <Button
                                     leftSection={isCached ? <IconRefresh size={18} /> : <IconSearch size={18} />}
                                     onClick={handleScan}
                                     loading={loading}
@@ -254,20 +231,8 @@ const AgentWorkshopPage = () => {
                                 </Button>
                                 {issues.length > 0 && (
                                     <Group spacing="xs">
-                                        <Select
-                                            value={batchSize}
-                                            onChange={setBatchSize}
-                                            data={['5', '10', '20', '50']}
-                                            disabled={fixing}
-                                            style={{ width: 80 }}
-                                        />
-                                        <Button
-                                            color="indigo"
-                                            leftSection={<IconWand size={18} />}
-                                            onClick={handleFixAll}
-                                            loading={fixing}
-                                            disabled={!selectedProvider}
-                                        >
+                                        <Select value={batchSize} onChange={setBatchSize} data={['5', '10', '20', '50']} disabled={fixing} style={{ width: 80 }} />
+                                        <Button color="indigo" leftSection={<IconWand size={18} />} onClick={handleFixAll} loading={fixing} disabled={!selectedProvider}>
                                             {t('agent_workshop.fix_all') || "Fix All"}
                                         </Button>
                                     </Group>
@@ -276,8 +241,7 @@ const AgentWorkshopPage = () => {
                         </Group>
                         {isCached && (
                             <Text size="xs" mt="xs" c="dimmed" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <IconInfoCircle size={12} />
-                                Loaded from local sidecar (Last scan results)
+                                <IconInfoCircle size={12} /> Loaded from local sidecar (Last scan results)
                             </Text>
                         )}
                     </Paper>
@@ -289,12 +253,7 @@ const AgentWorkshopPage = () => {
                                     <Table.Thead>
                                         <Table.Tr>
                                             <Table.Th>{t('agent_workshop.table_file')}</Table.Th>
-                                            <Table.Th style={{ width: 200 }}>
-                                                <Group gap={4}>
-                                                    {t('agent_workshop.table_error')}
-                                                    <IconInfoCircle size={14} style={{ opacity: 0.6 }} />
-                                                </Group>
-                                            </Table.Th>
+                                            <Table.Th style={{ width: 200 }}><Group gap={4}>{t('agent_workshop.table_error')}<IconInfoCircle size={14} style={{ opacity: 0.6 }} /></Group></Table.Th>
                                             <Table.Th>{t('agent_workshop.table_content')}</Table.Th>
                                             <Table.Th>{t('agent_workshop.table_action')}</Table.Th>
                                         </Table.Tr>
@@ -307,42 +266,20 @@ const AgentWorkshopPage = () => {
                                                     <Text size="xs" c="dimmed">{issue.key}</Text>
                                                 </Table.Td>
                                                 <Table.Td>
-                                                    <Badge 
-                                                        color="red" 
-                                                        variant="light" 
-                                                        size="sm"
-                                                        style={{ 
-                                                            height: 'auto', 
-                                                            whiteSpace: 'normal', 
-                                                            padding: '4px 8px',
-                                                            textAlign: 'left',
-                                                            lineHeight: 1.2,
-                                                            display: 'block',
-                                                            maxWidth: 180
-                                                        }}
-                                                    >
+                                                    <Badge color="red" variant="light" size="sm" style={{ height: 'auto', whiteSpace: 'normal', padding: '4px 8px', textAlign: 'left', lineHeight: 1.2, display: 'block', maxWidth: 180 }}>
                                                         {issue.error_type}
                                                     </Badge>
                                                 </Table.Td>
                                                 <Table.Td>
                                                     <Stack gap={4}>
                                                         <Paper p="xs" withBorder bg="var(--mantine-color-dark-8)" style={{ maxWidth: 500 }}>
-                                                            <code style={{ fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                                                                {issue.target_str}
-                                                            </code>
+                                                            <code style={{ fontSize: '0.85rem', wordBreak: 'break-all' }}>{issue.target_str}</code>
                                                         </Paper>
-                                                        <Text size="xs" c="dimmed">
-                                                            {issue.details}
-                                                        </Text>
+                                                        <Text size="xs" c="dimmed">{issue.details}</Text>
                                                     </Stack>
                                                 </Table.Td>
                                                 <Table.Td>
-                                                    <Button 
-                                                        size="compact-xs" 
-                                                        variant="light" 
-                                                        leftSection={<IconWand size={14} />}
-                                                        onClick={() => openFixModal(issue)}
-                                                    >
+                                                    <Button size="compact-xs" variant="light" leftSection={<IconWand size={14} />} onClick={() => openFixModal(issue)}>
                                                         {t('agent_workshop.fix_btn')}
                                                     </Button>
                                                 </Table.Td>
@@ -363,13 +300,7 @@ const AgentWorkshopPage = () => {
                     )}
                 </Stack>
 
-                {/* Fix Modal */}
-                <Modal
-                    opened={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    title={<Group gap="xs"><IconRobot size={20} /><Text fw={600}>{t('agent_workshop.modal_title')}</Text></Group>}
-                    size="lg"
-                >
+                <Modal opened={isModalOpen} onClose={() => setIsModalOpen(false)} title={<Group gap="xs"><IconRobot size={20} /><Text fw={600}>{t('agent_workshop.modal_title')}</Text></Group>} size="lg">
                     <Box style={{ position: 'relative' }}>
                         <LoadingOverlay visible={fixing} overlayBlur={2} />
                         <Stack gap="md">
@@ -377,31 +308,21 @@ const AgentWorkshopPage = () => {
                                 <Text size="xs" fw={700} c="dimmed" tt="uppercase">{t('agent_workshop.modal_source_context')}</Text>
                                 <Code block>{currentIssue?.source_str || "(No source context found)"}</Code>
                             </Paper>
-
                             <Paper p="xs" withBorder>
                                 <Text size="xs" fw={700} c="red" tt="uppercase">{t('agent_workshop.modal_error_detected')}</Text>
                                 <Code block color="red">{currentIssue?.target_str}</Code>
                                 <Text size="xs" mt={4}>{currentIssue?.details}</Text>
                             </Paper>
-
                             {!fixResult && (
-                                <Button 
-                                    fullWidth 
-                                    variant="gradient" 
-                                    gradient={{ from: 'indigo', to: 'cyan' }}
-                                    onClick={handleFixRequest}
-                                    disabled={fixing || !selectedProvider}
-                                >
+                                <Button fullWidth variant="gradient" gradient={{ from: 'indigo', to: 'cyan' }} onClick={handleFixRequest} disabled={fixing || !selectedProvider}>
                                     {selectedProvider ? t('agent_workshop.fix_btn') : t('agent_workshop.select_model_hint')}
                                 </Button>
                             )}
-
                             {fixResult && (
                                 <Stack gap="md">
                                     <Alert icon={<IconInfoCircle size={16} />} title={t('agent_workshop.modal_analysis')} color="indigo" variant="light">
                                         <Text size="sm" fs="italic">{fixResult.reflection}</Text>
                                     </Alert>
-
                                     <Paper p="xs" withBorder style={{ backgroundColor: 'rgba(40, 167, 69, 0.05)' }}>
                                         <Text size="xs" fw={700} c="green" tt="uppercase">{t('agent_workshop.modal_suggestion')}</Text>
                                         <Code block color="green">{fixResult.suggested_fix}</Code>
@@ -411,7 +332,6 @@ const AgentWorkshopPage = () => {
                                             </Text>
                                         )}
                                     </Paper>
-
                                     <Group grow mt="lg">
                                         <Button variant="subtle" onClick={() => setFixResult(null)}>{t('agent_workshop.regenerate')}</Button>
                                         <Button color="green" onClick={applyFix}>{t('agent_workshop.apply_fix')}</Button>
@@ -421,7 +341,7 @@ const AgentWorkshopPage = () => {
                         </Stack>
                     </Box>
                 </Modal>
-                
+
                 {fixedIssues.length > 0 && (
                     <Paper mt="xl" p="md" radius="md" withBorder className={styles.glassPaper}>
                         <Title order={4} mb="md">近期已修复 (Recently Fixed) - {fixedIssues.length}</Title>
@@ -432,12 +352,8 @@ const AgentWorkshopPage = () => {
                                         <Text size="sm" fw={600} color="dimmed">{item.file_name}</Text>
                                         <Text size="xs" color="dimmed">Key: {item.key}</Text>
                                     </Group>
-                                    <Code block color="red" mb="xs" style={{ textDecoration: 'line-through' }}>
-                                        - {item.target_str}
-                                    </Code>
-                                    <Code block color="teal">
-                                        + {item.suggested_fix}
-                                    </Code>
+                                    <Code block color="red" mb="xs" style={{ textDecoration: 'line-through' }}>- {item.target_str}</Code>
+                                    <Code block color="teal">+ {item.suggested_fix}</Code>
                                 </Paper>
                             ))}
                         </ScrollArea>

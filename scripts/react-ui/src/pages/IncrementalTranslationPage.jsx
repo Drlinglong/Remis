@@ -23,7 +23,7 @@ import {
 import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, IconPlayerPlay, IconChartBar, IconSettings, IconCloudDownload } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import axios from 'axios';
 import { useNotification } from '../context/NotificationContext';
 import notificationService from '../services/notificationService';
 import styles from './Translation.module.css';
@@ -68,7 +68,7 @@ const IncrementalTranslationPage = () => {
 
     const fetchProjects = async () => {
         try {
-            const response = await api.get('/api/projects');
+            const response = await axios.get('/api/projects');
             setProjects(response.data.filter(p => p.status === 'active'));
         } catch (err) {
             notificationService.error(t('notification.error_generic'), notificationStyle);
@@ -77,7 +77,7 @@ const IncrementalTranslationPage = () => {
 
     const fetchApiConfig = async () => {
         try {
-            const response = await api.get('/api/config');
+            const response = await axios.get('/api/config');
             const data = response.data;
             const providers = data.api_providers || [];
 
@@ -119,7 +119,7 @@ const IncrementalTranslationPage = () => {
         // Immediate archive check
         try {
             setLoading(true);
-            const res = await api.get(`/api/project/${project.project_id}/check-archive`);
+            const res = await axios.get(`/api/project/${project.project_id}/check-archive`);
             if (res.data.exists) {
                 setArchiveInfo(res.data);
                 // Pre-select all available languages from archive or fallback to project target
@@ -141,7 +141,7 @@ const IncrementalTranslationPage = () => {
         try {
             // Determine mod_name for checkpoint lookup
             const modName = sourcePath.split(/[\\/]/).pop();
-            const res = await api.post('/api/translation/checkpoint-status', {
+            const res = await axios.post('/api/translation/checkpoint-status', {
                 project_id: project.project_id,
                 mod_name: modName,
                 target_lang_codes: targetLangs || [project.target_language_code || 'zh-CN']
@@ -173,7 +173,7 @@ const IncrementalTranslationPage = () => {
 
         try {
             setLoading(true);
-            const res = await api.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
+            const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
                 project_id: selectedProject.project_id,
                 target_lang_codes: selectedLangs.length > 0 ? selectedLangs : [archiveInfo?.target_language || selectedProject.target_language_code || 'zh-CN'],
                 dry_run: true,
@@ -209,7 +209,7 @@ const IncrementalTranslationPage = () => {
 
         try {
             // 1. Kick off the translation request
-            const res = await api.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
+            const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
                 project_id: selectedProject.project_id,
                 target_lang_codes: selectedLangs.length > 0 ? selectedLangs : [archiveInfo?.target_language || selectedProject.target_language_code || 'zh-CN'],
                 dry_run: false,
@@ -274,8 +274,6 @@ const IncrementalTranslationPage = () => {
         ws.onerror = (err) => {
             console.error('WebSocket Error:', err);
             addLog('WebSocket connection error. Falling back to status polling...', 'error');
-            // Fallback to polling could be implemented if necessary, 
-            // but for now, we assume WS is reliable in local env.
         };
 
         ws.onclose = () => {
@@ -313,7 +311,6 @@ const IncrementalTranslationPage = () => {
             </Title>
 
             <Stepper active={active} onStepClick={setActive} allowNextStepsSelect={false} breakpoint="sm">
-                {/* --- Step 1: Select Project --- */}
                 <Stepper.Step
                     label={t('incremental_translation.step_1_title')}
                     description={t('incremental_translation.step_1_desc')}
@@ -340,7 +337,6 @@ const IncrementalTranslationPage = () => {
                     </Stack>
                 </Stepper.Step>
 
-                {/* --- Step 2: Validation & Setup --- */}
                 <Stepper.Step
                     label={t('incremental_translation.step_2_title')}
                     description={t('incremental_translation.step_2_desc')}
@@ -453,7 +449,6 @@ const IncrementalTranslationPage = () => {
                     </Stack>
                 </Stepper.Step>
 
-                {/* --- Step 3: Pre-scan Results --- */}
                 <Stepper.Step
                     label={t('incremental_translation.step_3_title')}
                     description={t('incremental_translation.step_3_desc')}
@@ -506,7 +501,6 @@ const IncrementalTranslationPage = () => {
                     </Stack>
                 </Stepper.Step>
 
-                {/* --- Step 4: Execution --- */}
                 <Stepper.Completed>
                     <Stack mt="xl">
                         <Paper withBorder p="xl" radius="md" className={styles.glassCard}>
