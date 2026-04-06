@@ -28,7 +28,7 @@ import {
 import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, IconPlayerPlay, IconChartBar, IconSettings } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useNotification } from '../context/NotificationContext';
 import { getTutorialKey, useTutorial } from '../context/TutorialContext';
@@ -706,7 +706,7 @@ const IncrementalTranslationPage = () => {
 
     const fetchProjects = async () => {
         try {
-            const response = await axios.get('/api/projects?status=active');
+            const response = await api.get('/api/projects?status=active');
             const projectList = normalizeArrayPayload(response.data, ['projects', 'items', 'data', 'results']);
             setProjects(projectList);
         } catch {
@@ -718,7 +718,7 @@ const IncrementalTranslationPage = () => {
 
     const fetchApiConfig = async () => {
         try {
-            const response = await axios.get('/api/config');
+            const response = await api.get('/api/config');
             const data = response.data;
             const providers = normalizeArrayPayload(data?.api_providers, ['items', 'data', 'results']);
 
@@ -770,7 +770,7 @@ const IncrementalTranslationPage = () => {
         // Immediate archive check
         try {
             setLoading(true);
-            const res = await axios.get(`/api/project/${project.project_id}/check-archive`);
+            const res = await api.get(`/api/project/${project.project_id}/check-archive`);
             if (res.data.exists) {
                 setArchiveInfo(res.data);
                 const availableLangs = getArchivedTargetLanguages(res.data);
@@ -803,7 +803,7 @@ const IncrementalTranslationPage = () => {
             }
             // Determine mod_name for checkpoint lookup
             const modName = sourcePath.split(/[\\/]/).pop();
-            const res = await axios.post('/api/translation/checkpoint-status', {
+            const res = await api.post('/api/translation/checkpoint-status', {
                 project_id: project.project_id,
                 mod_name: modName,
                 target_lang_codes: normalizedTargetLangs,
@@ -856,7 +856,7 @@ const IncrementalTranslationPage = () => {
             setProgress(0);
             setProgressInfo({ percent: 0, stage_code: 'initializing', stage: t('incremental_translation.progress_stage_initializing') });
             setLogs([t('incremental_translation.pre_scan_bootstrap_log')]);
-            const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
+            const res = await api.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
                 project_id: selectedProject.project_id,
                 target_lang_codes: targetLangCodes,
                 dry_run: true,
@@ -923,7 +923,7 @@ const IncrementalTranslationPage = () => {
 
         try {
             // 1. Kick off the translation request
-            const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
+            const res = await api.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
                 project_id: selectedProject.project_id,
                 target_lang_codes: targetLangCodes,
                 dry_run: false,
@@ -967,7 +967,7 @@ const IncrementalTranslationPage = () => {
         if (!folderPath) return;
 
         try {
-            await axios.post('/api/system/open_folder', { path: folderPath });
+            await api.post('/api/system/open_folder', { path: folderPath });
         } catch (err) {
             console.error('Failed to open incremental output folder:', err);
             notificationService.error(t('notification.error_generic'), notificationStyle);
@@ -1044,7 +1044,7 @@ const IncrementalTranslationPage = () => {
         console.info(`Starting polling fallback for incremental task ${taskId}.`);
         pollTimerRef.current = setInterval(async () => {
             try {
-                const res = await axios.get(`/api/status/${taskId}`);
+            const res = await api.get(`/api/status/${taskId}`);
                 handleTaskUpdate(res.data, isPreScan, 'polling');
             } catch (err) {
                 console.error('Polling task status failed:', err);
@@ -1100,7 +1100,7 @@ const IncrementalTranslationPage = () => {
         statusResyncRef.current = true;
 
         const isPreScan = currentTaskMode === 'pre_scan';
-        axios.get(`/api/status/${currentTaskId}`)
+            api.get(`/api/status/${currentTaskId}`)
             .then((res) => {
                 const taskStatus = res.data?.status;
                 if (taskStatus === 'completed' || taskStatus === 'failed') {

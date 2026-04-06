@@ -7,7 +7,7 @@ import {
   IconRobot, IconCheck, IconRefresh, IconInfoCircle, IconSearch, IconWand,
   IconPlayerPlay, IconChartBar, IconSettings, IconFolderCode, IconAlertTriangle,
 } from '@tabler/icons-react';
-import axios from 'axios';
+import api from '../utils/api';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import { getTutorialKey, useTutorial } from '../context/TutorialContext';
@@ -150,7 +150,7 @@ const AgentWorkshopPage = () => {
   useEffect(() => {
     const bootstrap = async () => {
       try {
-        const [projectsRes, configRes] = await Promise.all([axios.get('/api/projects?status=active'), axios.get('/api/config')]);
+        const [projectsRes, configRes] = await Promise.all([api.get('/api/projects?status=active'), api.get('/api/config')]);
         const projectList = normalizeArrayPayload(projectsRes.data, ['projects', 'items', 'data', 'results']);
         const providers = normalizeArrayPayload(configRes.data?.api_providers, ['items', 'data', 'results']);
         setProjects(projectList);
@@ -221,8 +221,8 @@ const AgentWorkshopPage = () => {
     setProjectContextLoading(true);
     try {
       const [archiveRes, historyRes] = await Promise.all([
-        axios.get(`/api/project/${projectId}/check-archive`),
-        axios.get(`/api/project/${projectId}/history`),
+        api.get(`/api/project/${projectId}/check-archive`),
+        api.get(`/api/project/${projectId}/history`),
       ]);
       setArchiveInfo(archiveRes.data || null);
       setProjectHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
@@ -251,7 +251,7 @@ const AgentWorkshopPage = () => {
     if (!selectedProjectId) return;
     setScanLoading(true);
     try {
-      const res = await axios.get(`/api/agent-workshop/scan?project_id=${selectedProjectId}`);
+      const res = await api.get(`/api/agent-workshop/scan?project_id=${selectedProjectId}`);
       const nextIssues = normalizeArrayPayload(res.data, ['issues', 'items', 'data', 'results']);
       setIssues(nextIssues);
       setIsCached(nextIssues.length > 0);
@@ -273,7 +273,7 @@ const AgentWorkshopPage = () => {
     if (!selectedProjectId || !currentIssue) return;
     setFixing(true);
     try {
-      const res = await axios.post('/api/agent-workshop/fix', {
+      const res = await api.post('/api/agent-workshop/fix', {
         project_id: selectedProjectId,
         api_provider: selectedProvider,
         api_model: selectedModel,
@@ -338,7 +338,7 @@ const AgentWorkshopPage = () => {
         const { batchNumber, batch } = claimed;
         addExecutionLog(`Worker ${workerId}: fixing batch ${batchNumber}/${batches.length} (${batch.length} issue(s))`);
         try {
-          const res = await axios.post('/api/agent-workshop/fix-batch', {
+          const res = await api.post('/api/agent-workshop/fix-batch', {
             project_id: selectedProjectId,
             api_provider: selectedProvider,
             api_model: selectedModel,
