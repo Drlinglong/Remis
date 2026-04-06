@@ -1,6 +1,7 @@
 # scripts/core/loc_parser.py
 # ---------------------------------------------------------------
 # Parser i generator plików lokalizacyjnych Paradoxu (EU4, Vic3, Stellaris)
+# Fix #139: Correct quote escaping for HOI4 loc files
 
 import re
 from pathlib import Path
@@ -10,6 +11,17 @@ from scripts.utils import read_text_bom, write_text_bom
 # Relaxed Regex: Captures key (anything before colon), version (digits after colon), and value (in quotes)
 # This allows for keys like "FNG_zhernani.100.a" or even ones with strange symbols, as long as they don't have spaces/colons in the key itself.
 ENTRY_RE = re.compile(r'^\s*([^:\s]+)\s*:\s*([0-9]*)\s*"(.*)"', re.MULTILINE)
+
+
+def unescape_value(value: str) -> str:
+    """
+    Fix #139: Unescape Paradox YAML values before processing.
+    Converts escaped quotes \\" back to " so that:
+    1. Values starting with \\" are not treated as empty and skipped.
+    2. emit_loc_file does not double-escape already-escaped quotes.
+    """
+    return value.replace('\\"', '"')
+
 
 def parse_loc_file(path: Path) -> list[tuple[str, str]]:
     """
@@ -23,25 +35,17 @@ def parse_loc_file(path: Path) -> list[tuple[str, str]]:
         try:
             content = read_text_bom(path)
             data = json.loads(content)
-            # Flatten JSON if needed, or assume simple key-value
-            # If it's a list of objects? Or a dict?
-            # Paradox metadata.json is usually a dict.
             if isinstance(data, dict):
                 for k, v in data.items():
-                    # Fix: key_map is a list of dicts like {'key_part': 'remis.1.t', 'line_num': 5}
-                    # We need to extract the actual key string
                     entry_key = k.strip()
-                    # Normalize: ensure no trailing colon (legacy consistency)
                     if entry_key.endswith(":"):
                         entry_key = entry_key[:-1].strip()
                     
                     if isinstance(v, str):
                         entries.append((entry_key, v))
                     else:
-                        # Handle nested or non-string values as string representation
                         entries.append((entry_key, str(v)))
             elif isinstance(data, list):
-                 # Handle list if necessary (unlikely for loc, but possible for metadata)
                  pass
         except Exception as e:
             print(f"JSON parse error: {e}")
@@ -51,7 +55,9 @@ def parse_loc_file(path: Path) -> list[tuple[str, str]]:
         for line in read_text_bom(path).splitlines():
             match = ENTRY_RE.match(line)
             if match:
-                base_key, version, value = match.groups()
+                base_key, version, raw_value = match.groups()
+                # Fix #139: unescape before filtering so \"text\" is not treated as empty
+                value = unescape_value(raw_value)
                 # Universal Normalization: Strip spaces and recombine to 'key:version' or just 'key'
                 full_key = f"{base_key.strip()}:{version.strip()}" if version.strip() else base_key.strip()
                 
@@ -80,8 +86,6 @@ def parse_loc_file_with_lines(path: Path) -> list[tuple[str, str, int]]:
     entries: list[tuple[str, str, int]] = []
     
     if path.suffix.lower() == '.json':
-        # JSON usually doesn't have line numbers in a meaningful way for this context
-        # We'll just use 0 or index + 1
         import json
         try:
             content = read_text_bom(path)
@@ -98,7 +102,9 @@ def parse_loc_file_with_lines(path: Path) -> list[tuple[str, str, int]]:
         for i, line in enumerate(lines):
             match = ENTRY_RE.match(line)
             if match:
-                base_key, version, value = match.groups()
+                base_key, version, raw_value = match.groups()
+                # Fix #139: unescape before filtering
+                value = unescape_value(raw_value)
                 # Universal Normalization: Strip spaces and recombine
                 full_key = f"{base_key.strip()}:{version.strip()}" if version.strip() else base_key.strip()
 
@@ -117,10 +123,13 @@ def parse_loc_file_with_lines(path: Path) -> list[tuple[str, str, int]]:
 def emit_loc_file(header: str, entries: list[tuple[str, str]]) -> str:
     """
     Zamień listę krotek z powrotem na tekst pliku lokalizacyjnego.
+    Fix #139: Unescape before re-escaping to prevent double-escaping roundtrip.
     """
     rows = [header]                       # np. „l_polish:” lub „l_english:”
     for key, value in entries:
-        safe = value.replace('"', r'\"')  # escape podwójnych cudzysłowów
+        # Fix #139: unescape first so already-escaped quotes are not double-escaped
+        unescaped = unescape_value(value)
+        safe = unescaped.replace('"', '\\"')  # escape podwójnych cudzysłowów
         rows.append(f' {key}:0 "{safe}"')
     return "\n".join(rows)
 
