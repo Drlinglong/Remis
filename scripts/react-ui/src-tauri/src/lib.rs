@@ -1,5 +1,6 @@
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[allow(unused_imports)]
+use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
 
 pub fn run() {
