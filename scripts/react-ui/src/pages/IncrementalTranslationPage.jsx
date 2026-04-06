@@ -23,7 +23,7 @@ import {
 import { IconRocket, IconCheck, IconAlertCircle, IconSearch, IconFolderOpen, IconPlayerPlay, IconChartBar, IconSettings, IconCloudDownload } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import { useNotification } from '../context/NotificationContext';
 import notificationService from '../services/notificationService';
 import styles from './Translation.module.css';
@@ -68,7 +68,7 @@ const IncrementalTranslationPage = () => {
 
     const fetchProjects = async () => {
         try {
-            const response = await axios.get('/api/projects');
+            const response = await api.get('/api/projects');
             setProjects(response.data.filter(p => p.status === 'active'));
         } catch (err) {
             notificationService.error(t('notification.error_generic'), notificationStyle);
@@ -77,7 +77,7 @@ const IncrementalTranslationPage = () => {
 
     const fetchApiConfig = async () => {
         try {
-            const response = await axios.get('/api/config');
+            const response = await api.get('/api/config');
             const data = response.data;
             const providers = data.api_providers || [];
 
@@ -119,7 +119,7 @@ const IncrementalTranslationPage = () => {
         // Immediate archive check
         try {
             setLoading(true);
-            const res = await axios.get(`/api/project/${project.project_id}/check-archive`);
+            const res = await api.get(`/api/project/${project.project_id}/check-archive`);
             if (res.data.exists) {
                 setArchiveInfo(res.data);
                 // Pre-select all available languages from archive or fallback to project target
@@ -141,7 +141,7 @@ const IncrementalTranslationPage = () => {
         try {
             // Determine mod_name for checkpoint lookup
             const modName = sourcePath.split(/[\\/]/).pop();
-            const res = await axios.post('/api/translation/checkpoint-status', {
+            const res = await api.post('/api/translation/checkpoint-status', {
                 project_id: project.project_id,
                 mod_name: modName,
                 target_lang_codes: targetLangs || [project.target_language_code || 'zh-CN']
@@ -173,7 +173,7 @@ const IncrementalTranslationPage = () => {
 
         try {
             setLoading(true);
-            const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
+            const res = await api.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
                 project_id: selectedProject.project_id,
                 target_lang_codes: selectedLangs.length > 0 ? selectedLangs : [archiveInfo?.target_language || selectedProject.target_language_code || 'zh-CN'],
                 dry_run: true,
@@ -209,7 +209,7 @@ const IncrementalTranslationPage = () => {
 
         try {
             // 1. Kick off the translation request
-            const res = await axios.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
+            const res = await api.post(`/api/project/${selectedProject.project_id}/incremental-update`, {
                 project_id: selectedProject.project_id,
                 target_lang_codes: selectedLangs.length > 0 ? selectedLangs : [archiveInfo?.target_language || selectedProject.target_language_code || 'zh-CN'],
                 dry_run: false,
