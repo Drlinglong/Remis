@@ -15,6 +15,11 @@ pub fn run() {
       app.handle().plugin(tauri_plugin_dialog::init())?;
       app.handle().plugin(tauri_plugin_shell::init())?;
 
+      // DEBUG ONLY: auto-open devtools on launch — remove before release
+      if let Some(window) = app.get_webview_window("main") {
+          window.open_devtools();
+      }
+
       // Auto-start backend sidecar in both dev and release.
       // Dev previously booted only the frontend, which left API calls failing with "Network Error".
       {
