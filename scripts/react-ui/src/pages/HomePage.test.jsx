@@ -59,6 +59,9 @@ vi.mock('react-i18next', () => ({
       }
       return key;
     },
+    i18n: {
+      language: 'en',
+    },
   }),
 }));
 
@@ -116,7 +119,7 @@ describe('HomePage', () => {
     });
   });
 
-  it('shows tutorial prompt for first-time users and starts the tour on confirm', async () => {
+  it('loads dashboard data, sets page context, and navigates from the hero CTA', async () => {
     renderWithProvider(<HomePage />);
 
     await waitFor(() => {
@@ -124,15 +127,14 @@ describe('HomePage', () => {
     });
     await screen.findByText('homepage_quick_links');
 
-    expect(setPageContextMock).toHaveBeenCalledWith('home');
-    expect(screen.getByText('tutorial.auto_start_prompt.title')).toBeInTheDocument();
+    expect(setPageContextMock).toHaveBeenCalledWith(expect.any(Function));
+    expect(setPageContextMock.mock.calls[0][0]('other')).toBe('home');
+    expect(screen.queryByText('tutorial.auto_start_prompt.title')).not.toBeInTheDocument();
+    expect(screen.getByText('homepage_action_card_new_project')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'tutorial.auto_start_prompt.confirm' }));
-
-    await waitFor(() => {
-      expect(localStorage.getItem('remis_tutorial_prompt_seen_v1')).toBe('true');
-      expect(startTourMock).toHaveBeenCalledWith('home');
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'homepage_action_card_new_project' }));
+    expect(navigateMock).toHaveBeenCalledWith('/project-management');
+    expect(startTourMock).not.toHaveBeenCalled();
   });
 
   it('hides tutorial prompt after being acknowledged and navigates from quick links', async () => {

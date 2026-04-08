@@ -4,13 +4,17 @@ import React from 'react';
 import { MantineProvider } from '@mantine/core';
 import { MemoryRouter } from 'react-router-dom';
 import AgentWorkshopPage from '../AgentWorkshopPage';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const setPageContextMock = vi.fn();
 const startTourMock = vi.fn();
 
-// Mock axios
-vi.mock('axios');
+vi.mock('../../utils/api', () => ({
+    default: {
+        get: vi.fn(),
+        post: vi.fn(),
+    },
+}));
 
 // Polyfill ResizeObserver for Mantine
 class ResizeObserver {
@@ -50,8 +54,8 @@ describe('AgentWorkshopPage', () => {
         vi.clearAllMocks();
         
         // Mock Projects API
-        axios.get.mockImplementation((url) => {
-            if (url === '/api/projects') {
+        api.get.mockImplementation((url) => {
+            if (url === '/api/projects?status=active' || url === '/api/projects') {
                 return Promise.resolve({
                     data: [
                         { project_id: 'test-p', name: 'Test Project', game_id: 'vic3', status: 'active' }
@@ -73,7 +77,7 @@ describe('AgentWorkshopPage', () => {
                     }
                 });
             }
-            return Promise.reject(new Error('not found'));
+            return Promise.resolve({ data: [] });
         });
     });
 
@@ -84,14 +88,14 @@ describe('AgentWorkshopPage', () => {
         expect(screen.getByText(/page_title_agent_workshop/i)).toBeInTheDocument();
         
         await waitFor(() => {
-            expect(axios.get).toHaveBeenCalledWith('/api/config');
+            expect(api.get).toHaveBeenCalledWith('/api/config');
         });
 
         expect(setPageContextMock).toHaveBeenCalledWith(expect.any(Function));
     });
 
     it('handles missing available_models gracefully', async () => {
-        axios.get.mockImplementation((url) => {
+        api.get.mockImplementation((url) => {
             if (url === '/api/config') {
                 return Promise.resolve({
                     data: {
@@ -107,7 +111,7 @@ describe('AgentWorkshopPage', () => {
         renderWithProvider(<AgentWorkshopPage />);
         
         await waitFor(() => {
-            expect(axios.get).toHaveBeenCalledWith('/api/config');
+            expect(api.get).toHaveBeenCalledWith('/api/config');
             expect(screen.getByText(/page_title_agent_workshop/i)).toBeInTheDocument();
         });
     });
