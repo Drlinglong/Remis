@@ -149,9 +149,13 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         config.target_lang_codes = [MagicMock(value="zh-CN"), MagicMock(value="missing-lang")]
         config.api_provider = "test-provider"
         config.model = "test-model"
+        config.batch_size_limit = None
+        config.concurrency_limit = None
+        config.rpm_limit = None
         config.dry_run = False
         config.custom_source_path = None
         config.use_resume = True
+        config.embedded_workshop = None
 
         with patch.dict(
             app_settings.LANGUAGE_BY_CODE,
@@ -181,9 +185,13 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
             game_profile={"id": "victoria3"},
             selected_provider="test-provider",
             model_name="test-model",
+            batch_size_limit=None,
+            concurrency_limit=None,
+            rpm_limit=None,
             dry_run=False,
             custom_source_path=None,
             use_resume=True,
+            embedded_workshop=None,
             progress_callback=None,
         )
 
@@ -204,21 +212,44 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         }
         archive_manager.get_archived_languages.return_value = ["zh-CN", "ru"]
         archive_manager.detect_target_language.return_value = None
+        archive_manager.get_source_entry_count.return_value = None
+        archive_manager.get_source_file_count.return_value = None
+        archive_manager.get_total_translated_entry_count.return_value = None
         self.pm.archive_service.archive_manager = archive_manager
 
         result = await self.pm.check_project_archive(project_id)
 
+        self.assertTrue(result["exists"])
+        self.assertEqual(result["version_id"], "ver-1")
+        self.assertEqual(result["created_at"], "2026-04-04T00:00:00")
+        self.assertEqual(result["target_language"], "zh-CN")
+        self.assertEqual(result["target_languages"], ["zh-CN", "ru"])
+        self.assertEqual(result["archived_languages"], ["zh-CN", "ru"])
+        self.assertEqual(result["project_name"], "Archive Demo")
         self.assertEqual(
-            result,
-            {
-                "exists": True,
-                "version_id": "ver-1",
-                "created_at": "2026-04-04T00:00:00",
-                "target_language": "zh-CN",
-                "target_languages": ["zh-CN", "ru"],
-                "project_name": "Archive Demo",
-            },
+            result["baseline_versions"],
+            [
+                {
+                    "language": "zh-CN",
+                    "version_id": "ver-1",
+                    "created_at": "2026-04-04T00:00:00",
+                    "last_translation_at": None,
+                    "translated_count": None,
+                },
+                {
+                    "language": "ru",
+                    "version_id": "ver-1",
+                    "created_at": "2026-04-04T00:00:00",
+                    "last_translation_at": None,
+                    "translated_count": None,
+                },
+            ],
         )
+        self.assertIsNone(result["source_entry_count"])
+        self.assertIsNone(result["source_file_count"])
+        self.assertIsNone(result["total_translation_entries"])
+        self.assertEqual(result["target_language_count"], 2)
+        self.assertIsNone(result["last_upload_at"])
 
 if __name__ == '__main__':
     unittest.main()
