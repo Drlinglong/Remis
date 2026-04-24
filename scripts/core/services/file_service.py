@@ -164,9 +164,9 @@ class FileService:
             logger.error(f"FileService: Kanban Sync failed: {e}")
 
         # 4. Notify Archive Manager
-        self._notify_archive_manager(project_id, project_name, files_to_upsert)
+        self._notify_archive_manager(project_id, project_name, source_path, files_to_upsert)
 
-    def _notify_archive_manager(self, project_id: str, project_name: str, files: List[Dict]):
+    def _notify_archive_manager(self, project_id: str, project_name: str, source_path: str, files: List[Dict]):
         """
         Orchestrates archiving logic.
         """
@@ -179,6 +179,7 @@ class FileService:
                         if entries:
                             source_files_data.append({
                                 'filename': os.path.basename(f['file_path']),
+                                'file_path': os.path.relpath(f['file_path'], source_path).replace('\\', '/'),
                                 'key_map': [e[0] for e in entries],
                                 'texts_to_translate': [e[1] for e in entries]
                             })

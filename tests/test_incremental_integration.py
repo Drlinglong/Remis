@@ -45,7 +45,9 @@ async def mock_project_manager(tmp_path):
     
     yield pm, am
     
-    am.close()
+    # Close connection if it exists
+    if am._conn:
+        am._conn.close()
     am_module.MODS_CACHE_DB_PATH = original_db_path
 
 @pytest.mark.asyncio

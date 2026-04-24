@@ -12,16 +12,19 @@ from typing import List, Dict, Any, Callable, Optional, Tuple
 from scripts.core.parallel_types import FileTask, BatchTask
 from scripts.core.glossary_manager import glossary_manager
 from scripts.utils import i18n
-from scripts.app_settings import CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE
+from scripts.app_settings import CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE, LOCAL_LLM_CHUNK_SIZE, OLLAMA_CHUNK_SIZE
 from scripts.core.agents.translation_fixer_agent import TranslationFixerAgent
 from scripts.utils.post_process_validator import PostProcessValidator
 
 
 class ParallelProcessor:
+    LOCAL_PROVIDERS = {"ollama", "lm_studio", "vllm", "koboldcpp", "oobabooga", "text-generation-webui", "hunyuan"}
+
     """批次级全局并行处理器 - 实现真正的批次级并行调度"""
 
-    def __init__(self, max_workers: int = 24):
+    def __init__(self, max_workers: int = 24, chunk_size_override: Optional[int] = None):
         self.max_workers = max_workers
+        self.chunk_size_override = max(1, int(chunk_size_override)) if chunk_size_override else None
         self.logger = logging.getLogger(__name__)
 
     def process_files_parallel(
@@ -51,7 +54,7 @@ class ParallelProcessor:
             if not file_task.texts_to_translate:
                 continue
 
-            chunk_size = GEMINI_CLI_CHUNK_SIZE if file_task.provider_name == "gemini_cli" else CHUNK_SIZE
+            chunk_size = self._resolve_chunk_size(file_task.provider_name)
             
             texts = file_task.texts_to_translate
             for i in range(0, len(texts), chunk_size):
@@ -109,7 +112,24 @@ class ParallelProcessor:
             self.logger.error(f"{failed_count}/{len(batch_tasks)} translation batches failed.")
             raise RuntimeError("One or more translation batches failed. Halting workflow.")
 
+        fallback_count = sum(1 for task in batch_results.values() if task.fell_back_to_source)
+        if fallback_count:
+            self.logger.warning(
+                f"{fallback_count}/{len(batch_tasks)} translation batches fell back to source text."
+            )
+
         return batch_results, all_warnings
+
+    def _resolve_chunk_size(self, provider_name: str) -> int:
+        if self.chunk_size_override:
+            return self.chunk_size_override
+        if provider_name == "gemini_cli":
+            return GEMINI_CLI_CHUNK_SIZE
+        if provider_name == "ollama":
+            return OLLAMA_CHUNK_SIZE
+        if provider_name in self.LOCAL_PROVIDERS:
+            return LOCAL_LLM_CHUNK_SIZE
+        return CHUNK_SIZE
 
     def _process_single_batch(
         self,
@@ -121,6 +141,8 @@ class ParallelProcessor:
         
         # Initial Translation Pass
         processed_task = translation_function(batch_task)
+        if processed_task.warnings:
+            warnings.extend(processed_task.warnings)
         
         if processed_task.translated_texts is None:
             processed_task.failed = True
@@ -227,7 +249,7 @@ class ParallelProcessor:
                     # Handle empty file immediately
                     return True, (file_task.filename, [], [])
                 
-                chunk_size = GEMINI_CLI_CHUNK_SIZE if file_task.provider_name == "gemini_cli" else CHUNK_SIZE
+                chunk_size = self._resolve_chunk_size(file_task.provider_name)
                 texts = file_task.texts_to_translate
                 total_batches = (len(texts) + chunk_size - 1) // chunk_size
                 file_batch_counts[file_task.filename] = total_batches
@@ -303,7 +325,7 @@ class ParallelProcessor:
                             processed_task, warnings = future.result()
                         except Exception as e:
                             self.logger.error(f"Critical error in batch processing thread for {filename} batch {batch_index}: {e}")
-                            # Create a failed task result so the file logic can progress
+                            # Create a fatal task result so the file logic can progress
                             batch_task.failed = True
                             batch_task.translated_texts = batch_task.texts
                             processed_task = batch_task

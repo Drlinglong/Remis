@@ -6,9 +6,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from scripts.shared.services import project_manager, glossary_manager
-from scripts.app_settings import TRANSLATION_PROGRESS_DB_PATH, PROJECT_ROOT
+from scripts.app_settings import PROJECT_ROOT, REMIS_DB_PATH
 from scripts.utils.system_utils import sanitize_for_json
-import sqlite3
 
 import webbrowser
 from scripts.utils.logger import LOGS_DIR
@@ -26,6 +25,13 @@ def _open_directory_in_explorer(path: str):
         subprocess.Popen(["open", path])
     else:
         subprocess.Popen(["xdg-open", path])
+
+
+def _remove_sqlite_family(db_path: str):
+    for suffix in ("", "-wal", "-shm"):
+        candidate = f"{db_path}{suffix}"
+        if os.path.exists(candidate):
+            os.remove(candidate)
 
 @router.get("/stats")
 async def get_system_stats():
@@ -50,6 +56,7 @@ async def get_system_stats():
                     "type": log['type'],
                     "title": log.get('project_name') or "System",  # Fallback if project missing
                     "description": log['description'],
+                    "metadata": log.get('metadata') or log.get('extra_metadata') or {},
                     "timestamp": log['timestamp'],
                     "user": "System"
                 })
@@ -74,6 +81,37 @@ async def get_system_stats():
     except Exception as e:
         logger.error(f"Failed to fetch system stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/reset-db")
+async def reset_database():
+    """
+    Resets the internal project database without touching source/translation files on disk.
+    This clears recent projects and dashboard file statuses by rebuilding the main app DB.
+    """
+    try:
+        from scripts.core.db_initializer import initialize_database
+        from scripts.core.db_manager import db_manager
+        from scripts.shared.services import archive_manager
+
+        if getattr(archive_manager, "_conn", None) is not None:
+            archive_manager.close()
+            archive_manager._conn = None
+
+        if hasattr(db_manager, "_async_engine"):
+            await db_manager._async_engine.dispose()
+            delattr(db_manager, "_async_engine")
+
+        _remove_sqlite_family(REMIS_DB_PATH)
+        initialize_database()
+
+        return {
+            "status": "success",
+            "message": "Main project database has been reset.",
+        }
+    except Exception as e:
+        logger.error(f"Failed to reset main database: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to reset database: {str(e)}")
 
 class OpenFolderRequest(BaseModel):
     path: str
@@ -301,8 +339,11 @@ async def debug_config():
     """
     from scripts import app_settings
     import sys
+    import time
     
     return {
+        "version": app_settings.VERSION,
+        "build_timestamp": "2026-04-06 09:30:00", # Manually updated during build
         "is_frozen": getattr(sys, "frozen", False),
         "resource_dir": app_settings.RESOURCE_DIR,
         "app_data_dir": app_settings.APP_DATA_DIR,

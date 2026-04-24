@@ -1,4 +1,5 @@
 # scripts/core/base_handler.py
+import asyncio
 import time
 import logging
 from abc import ABC, abstractmethod
@@ -14,6 +15,8 @@ from scripts.core.prompt_manager import prompt_manager
 
 
 class BaseApiHandler(ABC):
+    NEMOTRON_CASCADE_MODELS = {"nemotron-cascade-2-30b-a3b"}
+
     """【基类】API Handler 抽象基类，封装通用逻辑。"""
 
     def __init__(self, provider_name: str, model_id: str = None):
@@ -74,6 +77,10 @@ class BaseApiHandler(ABC):
     def _call_api(self, client: any, prompt: str) -> str:
         """【必须由子类实现】执行对特定API的调用并返回原始文本响应。"""
         pass
+
+    async def generate_response(self, prompt: str) -> str:
+        """Provide a unified async single-response API for workshop/fixer flows."""
+        return await asyncio.to_thread(self._call_api, self.client, prompt)
 
     def _build_prompt(self, task: BatchTask) -> str:
         """
@@ -163,7 +170,7 @@ class BaseApiHandler(ABC):
             )
 
         prompt = base_prompt + context_prompt_part + glossary_prompt_part + format_prompt_part + punctuation_prompt_part + final_warning
-        return prompt
+        return self._apply_model_prompt_adapter(prompt)
 
     def _parse_response(self, response: str, original_texts: list[str], target_lang_code: str) -> list[str] | None:
         """
@@ -209,6 +216,17 @@ class BaseApiHandler(ABC):
 
             except Exception as e:
                 self.logger.exception(f"API call failed for batch {batch_num} on attempt {attempt + 1}: {e}")
+                error_text = str(e)
+                warning_code = "api_error"
+                if "context size has been exceeded" in error_text.lower() or "context length" in error_text.lower():
+                    warning_code = "context_exceeded"
+                task.warnings.append({
+                    "type": warning_code,
+                    "batch_num": batch_num,
+                    "attempt": attempt + 1,
+                    "provider": self.provider_name,
+                    "message": error_text,
+                })
 
                 if attempt < MAX_RETRIES - 1:
                     # 429 速率限制：使用指数退避（等待时间远长于普通错误）
@@ -225,8 +243,14 @@ class BaseApiHandler(ABC):
                     time.sleep(delay)
 
         self.logger.error(f"Batch {batch_num} failed after {MAX_RETRIES} attempts. Falling back to original texts.")
-        task.failed = True
+        task.fell_back_to_source = True
         task.translated_texts = task.texts
+        task.warnings.append({
+            "type": "fallback_to_source",
+            "batch_num": batch_num,
+            "provider": self.provider_name,
+            "message": "Batch failed after retries and fell back to source text.",
+        })
         # We still return the task object so the aggregator can see it failed but has text
         return task
 
@@ -267,6 +291,17 @@ class BaseApiHandler(ABC):
             + (f"PUNCTUATION CONVERSION:\n{punctuation_prompt}\n\n" if punctuation_prompt else "")
             + f'Translate this: "{masked_text}"'
         )
+        return self._apply_model_prompt_adapter(prompt)
+
+    def _apply_model_prompt_adapter(self, prompt: str) -> str:
+        model_name = (self.model_id or self.get_provider_config().get("default_model") or "").strip().lower()
+
+        if model_name in self.NEMOTRON_CASCADE_MODELS:
+            adapted = prompt.lstrip()
+            if adapted.startswith("<think></think>"):
+                return prompt
+            return f"<think></think>\n{prompt}"
+
         return prompt
 
     def translate_single_text(self, text: str, task_description: str, mod_name: str, source_lang: dict, target_lang: dict, mod_context: str, game_profile: dict) -> str:
@@ -317,4 +352,3 @@ class BaseApiHandler(ABC):
         except Exception as e:
             self.logger.exception(f"Generate with messages failed: {e}")
             return ""
-

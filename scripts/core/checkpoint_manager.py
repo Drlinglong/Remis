@@ -4,6 +4,7 @@ import logging
 import tempfile
 import shutil
 import threading
+from datetime import datetime
 from typing import List, Set, Dict, Any, Optional
 
 class CheckpointManager:
@@ -76,8 +77,10 @@ class CheckpointManager:
     def save_checkpoint(self):
         """Saves current progress to checkpoint file atomically."""
         with self._lock:
+            metadata = dict(self.metadata if self.metadata else self.current_config)
+            metadata["completed_count"] = len(self.completed_files)
             data = {
-                "metadata": self.metadata if self.metadata else self.current_config,
+                "metadata": metadata,
                 "completed_files": list(self.completed_files)
             }
             
@@ -96,10 +99,20 @@ class CheckpointManager:
         with self._lock:
             return filename in self.completed_files
 
-    def mark_file_completed(self, filename: str):
+    def mark_file_completed(self, filename: str, progress_metadata: Optional[Dict[str, Any]] = None):
         """Marks a file as completed and saves checkpoint."""
         with self._lock:
             self.completed_files.add(filename)
+            self.metadata = dict(self.metadata if self.metadata else self.current_config)
+            self.metadata["last_completed_file"] = filename
+            self.metadata["last_saved_at"] = datetime.now().isoformat(timespec="seconds")
+            self.metadata["completed_count"] = len(self.completed_files)
+            if progress_metadata:
+                self.metadata.update(progress_metadata)
+
+            recent_files = list(self.metadata.get("recent_completed_files", []))
+            recent_files.append(filename)
+            self.metadata["recent_completed_files"] = recent_files[-10:]
         # Save outside the lock to minimize blocking time? 
         # No, save_checkpoint uses lock too. 
         # Actually, we should save inside lock or make save_checkpoint re-entrant safe?
@@ -147,5 +160,7 @@ class CheckpointManager:
             return {
                 "exists": os.path.exists(self.checkpoint_path),
                 "completed_count": len(self.completed_files),
-                "metadata": self.metadata
+                "metadata": self.metadata,
+                "last_saved_at": self.metadata.get("last_saved_at"),
+                "last_completed_file": self.metadata.get("last_completed_file"),
             }

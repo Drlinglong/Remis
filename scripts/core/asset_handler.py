@@ -19,10 +19,12 @@ from scripts.app_settings import SOURCE_DIR, DEST_DIR
 # VICTORIA 3
 # ──────────────────────────────────────────────────────────────────
 def _process_victoria3_metadata(mod_name: str, handler: Any, source_lang: dict, target_lang: dict,
-                                output_folder_name: str, mod_context: str, game_profile: dict):
+                                output_folder_name: str, mod_context: str, game_profile: dict,
+                                source_mod_path: str = None, dest_base_dir: str = DEST_DIR):
     """【V3专用】处理 Victoria 3 的 .metadata/metadata.json 文件。"""
-    source_meta_file = os.path.join(SOURCE_DIR, mod_name, game_profile['metadata_file'])
-    dest_meta_dir = os.path.join(DEST_DIR, output_folder_name, '.metadata')
+    source_root = source_mod_path or os.path.join(SOURCE_DIR, mod_name)
+    source_meta_file = os.path.join(source_root, game_profile['metadata_file'])
+    dest_meta_dir = os.path.join(dest_base_dir, output_folder_name, '.metadata')
 
     if not os.path.exists(source_meta_file):
         logging.warning(i18n.t("metadata_not_found"))
@@ -64,9 +66,11 @@ def _process_victoria3_metadata(mod_name: str, handler: Any, source_lang: dict, 
 # STELLARIS
 # ──────────────────────────────────────────────────────────────────
 def _process_stellaris_metadata(mod_name: str, handler: Any, source_lang: dict, target_lang: dict,
-                                output_folder_name: str, mod_context: str, game_profile: dict):
+                                output_folder_name: str, mod_context: str, game_profile: dict,
+                                source_mod_path: str = None, dest_base_dir: str = DEST_DIR):
     """【群星专用】生成两份 .mod 文件。"""
-    source_mod_file = os.path.join(SOURCE_DIR, mod_name, game_profile['metadata_file'])
+    source_root = source_mod_path or os.path.join(SOURCE_DIR, mod_name)
+    source_mod_file = os.path.join(source_root, game_profile['metadata_file'])
     if not os.path.exists(source_mod_file):
         logging.warning(i18n.t("metadata_not_found"))
         return
@@ -127,14 +131,14 @@ def _process_stellaris_metadata(mod_name: str, handler: Any, source_lang: dict, 
         )
         new_content_lines.insert(insertion_point, 'tags={\n\t"Translation"\n}\n')
 
-    dest_mod_dir = os.path.join(DEST_DIR, output_folder_name)
+    dest_mod_dir = os.path.join(dest_base_dir, output_folder_name)
     os.makedirs(dest_mod_dir, exist_ok=True)
 
     with open(os.path.join(dest_mod_dir, 'descriptor.mod'), 'w', encoding='utf-8') as f:
         f.writelines(new_content_lines)
 
     launcher_mod_content = new_content_lines + [f'\npath="mod/{output_folder_name}"']
-    with open(os.path.join(DEST_DIR, f"{output_folder_name}.mod"), 'w', encoding='utf-8') as f:
+    with open(os.path.join(dest_base_dir, f"{output_folder_name}.mod"), 'w', encoding='utf-8') as f:
         f.writelines(launcher_mod_content)
 
     logging.info(i18n.t("metadata_success"))
@@ -144,9 +148,11 @@ def _process_stellaris_metadata(mod_name: str, handler: Any, source_lang: dict, 
 # EU4
 # ──────────────────────────────────────────────────────────────────
 def _process_eu4_metadata(mod_name: str, handler: Any, source_lang: dict, target_lang: dict,
-                           output_folder_name: str, mod_context: str, game_profile: dict):
+                           output_folder_name: str, mod_context: str, game_profile: dict,
+                           source_mod_path: str = None, dest_base_dir: str = DEST_DIR):
     """【EU4专用】处理 descriptor.mod。"""
-    source_mod_file = os.path.join(SOURCE_DIR, mod_name, game_profile['metadata_file'])
+    source_root = source_mod_path or os.path.join(SOURCE_DIR, mod_name)
+    source_mod_file = os.path.join(source_root, game_profile['metadata_file'])
     if not os.path.exists(source_mod_file):
         logging.warning("Warning: descriptor.mod not found, skipping metadata.")
         return
@@ -200,7 +206,7 @@ def _process_eu4_metadata(mod_name: str, handler: Any, source_lang: dict, target
         )
         new_lines.insert(idx, 'tags={\n\t"Translation"\n}')
 
-    dest_mod_dir = os.path.join(DEST_DIR, output_folder_name)
+    dest_mod_dir = os.path.join(dest_base_dir, output_folder_name)
     os.makedirs(dest_mod_dir, exist_ok=True)
 
     dest_file_path = os.path.join(dest_mod_dir, 'descriptor.mod')
@@ -208,7 +214,7 @@ def _process_eu4_metadata(mod_name: str, handler: Any, source_lang: dict, target
         f.write("\n".join(new_lines))
 
     launcher_lines = new_lines + [f'\npath="mod/{output_folder_name}"']
-    launcher_file_path = os.path.join(DEST_DIR, f"{output_folder_name}.mod")
+    launcher_file_path = os.path.join(dest_base_dir, f"{output_folder_name}.mod")
     with open(launcher_file_path, 'w', encoding='utf-8-sig') as f:
         f.write("\n".join(launcher_lines))
 
@@ -216,7 +222,8 @@ def _process_eu4_metadata(mod_name: str, handler: Any, source_lang: dict, target
 
 
 def process_metadata(mod_name: str, handler: Any, source_lang: dict, target_lang: dict,
-                     output_folder_name: str, mod_context: str, game_profile: dict):
+                     output_folder_name: str, mod_context: str, game_profile: dict,
+                     source_mod_path: str = None, dest_base_dir: str = DEST_DIR):
     """【总调度】元数据处理器，根据游戏档案调用对应的处理函数。"""
     logging.info(i18n.t("processing_metadata"))
 
@@ -224,22 +231,22 @@ def process_metadata(mod_name: str, handler: Any, source_lang: dict, target_lang
     
     if game_id in ['stellaris', 'hoi4', 'ck3']:
         _process_stellaris_metadata(mod_name, handler, source_lang, target_lang,
-                                    output_folder_name, mod_context, game_profile)
+                                    output_folder_name, mod_context, game_profile, source_mod_path, dest_base_dir)
     elif game_id == 'victoria3':
         _process_victoria3_metadata(mod_name, handler, source_lang, target_lang,
-                                      output_folder_name, mod_context, game_profile)
+                                      output_folder_name, mod_context, game_profile, source_mod_path, dest_base_dir)
     elif game_id == 'eu4':
         _process_eu4_metadata(mod_name, handler, source_lang, target_lang,
-                              output_folder_name, mod_context, game_profile)
+                              output_folder_name, mod_context, game_profile, source_mod_path, dest_base_dir)
     else:
         logging.warning(i18n.t("unsupported_metadata", game_name=game_profile['name']))
 
 
-def copy_assets(mod_name: str, output_folder_name: str, game_profile: dict):
+def copy_assets(mod_name: str, output_folder_name: str, game_profile: dict, source_mod_path: str = None, dest_base_dir: str = DEST_DIR):
     """根据游戏档案中的保护名单，复制所有必要的资产文件。"""
     logging.info(i18n.t("processing_assets"))
-    source_dir = os.path.join(SOURCE_DIR, mod_name)
-    dest_dir = os.path.join(DEST_DIR, output_folder_name)
+    source_dir = source_mod_path or os.path.join(SOURCE_DIR, mod_name)
+    dest_dir = os.path.join(dest_base_dir, output_folder_name)
 
     assets_to_copy = game_profile.get('protected_items', set())
     metadata_filename = os.path.basename(game_profile.get('metadata_file', ''))

@@ -2,6 +2,9 @@ import os
 import shutil
 import logging
 import asyncio
+import threading
+from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import Any, Optional, List, Iterator
 
 from scripts.core import file_parser, api_handler, file_builder, asset_handler, directory_handler
@@ -9,13 +12,560 @@ from scripts.core.glossary_manager import glossary_manager
 from scripts.core.proofreading_tracker import create_proofreading_tracker
 from scripts.core.parallel_types import FileTask
 from scripts.core.parallel_processor import ParallelProcessor
-from scripts.core.loc_parser import parse_loc_file
 from scripts.core.archive_manager import archive_manager
 from scripts.core.checkpoint_manager import CheckpointManager
+from scripts.core.services.embedded_workshop_service import run_embedded_workshop
+from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService
 from scripts.shared.services import project_manager
-from scripts.app_settings import SOURCE_DIR, DEST_DIR, LANGUAGES, RECOMMENDED_MAX_WORKERS, ARCHIVE_RESULTS_AFTER_TRANSLATION, CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE, OLLAMA_CHUNK_SIZE
+from scripts.app_settings import SOURCE_DIR, DEST_DIR, LANGUAGES, RECOMMENDED_MAX_WORKERS, CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE, OLLAMA_CHUNK_SIZE
 from scripts.utils import i18n
 from scripts.utils.system_utils import slugify_to_ascii
+
+
+def _load_glossaries_for_run(game_id: str, use_glossary: bool, selected_glossary_ids: Optional[List[int]] = None):
+    """Load glossary state before translation begins."""
+    if not game_id or not use_glossary:
+        return
+
+    if selected_glossary_ids:
+        asyncio.run(glossary_manager.load_selected_glossaries(selected_glossary_ids))
+    else:
+        asyncio.run(glossary_manager.load_game_glossary(game_id))
+
+
+def _prepare_output_workspace(mod_name: str, output_folder_name: str, game_profile: dict) -> str:
+    """Create output directories and copy static assets for a run."""
+    directory_handler.create_output_structure(mod_name, output_folder_name, game_profile)
+    asset_handler.copy_assets(mod_name, output_folder_name, game_profile)
+    return os.path.join(DEST_DIR, output_folder_name)
+
+
+def _clean_source_directory(mod_name: str, override_path: Optional[str] = None):
+    """Delete non-localization source files after setup when clean_source is enabled."""
+    logging.info("Cleaning source directory to save disk space (keeping only localization and metadata)...")
+    mod_root_path = override_path if override_path else os.path.join(SOURCE_DIR, mod_name)
+    whitelist_folders = {'localisation', 'localization', 'customizable_localization'}
+    whitelist_files = {'descriptor.mod', 'thumbnail.png', 'thumbnail.jpg', 'metadata.json', 'remote_file_id.txt'}
+
+    files_removed = 0
+    folders_removed = 0
+    bytes_freed = 0
+
+    for item_name in os.listdir(mod_root_path):
+        item_path = os.path.join(mod_root_path, item_name)
+        item_lower = item_name.lower()
+
+        if os.path.isdir(item_path):
+            if item_lower in whitelist_folders:
+                continue
+            try:
+                folder_size = sum(os.path.getsize(os.path.join(dp, f)) for dp, _, fns in os.walk(item_path) for f in fns)
+                shutil.rmtree(item_path)
+                folders_removed += 1
+                bytes_freed += folder_size
+                logging.debug(f"Deleted directory: {item_name}")
+            except OSError as e:
+                logging.warning(f"Failed to delete directory {item_name}: {e}")
+        else:
+            if item_lower in whitelist_files:
+                continue
+            try:
+                file_size = os.path.getsize(item_path)
+                os.remove(item_path)
+                files_removed += 1
+                bytes_freed += file_size
+                logging.debug(f"Deleted file: {item_name}")
+            except OSError as e:
+                logging.warning(f"Failed to delete file {item_name}: {e}")
+
+    logging.info(f"Clean Source: Removed {folders_removed} folders and {files_removed} files, freed {bytes_freed / 1024 / 1024:.2f} MB.")
+
+
+def _read_files_for_backup(all_file_paths: List[dict], total_files: int, progress_callback: Optional[Any] = None) -> List[dict]:
+    """Read source files once and attach parsed content for backup and translation."""
+    logging.info("Reading all source files for backup...")
+    all_files_content = []
+
+    for idx, file_info in enumerate(all_file_paths):
+        file_path = file_info["path"]
+        if progress_callback:
+            progress_callback(idx, total_files, file_info["filename"], "Reading Source")
+        try:
+            original_lines, texts_to_translate, key_map = file_parser.extract_translatable_content(file_path)
+        except Exception as e:
+            logging.error(f"Failed to parse file {file_path} for backup: {e}")
+            logging.error("Aborting workflow due to file read error.")
+            raise
+
+        file_info["original_lines"] = original_lines
+        file_info["texts_to_translate"] = texts_to_translate
+        file_info["key_map"] = key_map
+        all_files_content.append(file_info)
+
+    return all_files_content
+
+
+def _get_chunk_size_for_provider(selected_provider: str, batch_size_limit: Optional[int] = None) -> int:
+    if batch_size_limit:
+        return max(1, int(batch_size_limit))
+    if selected_provider == "gemini_cli":
+        return GEMINI_CLI_CHUNK_SIZE
+    if selected_provider == "ollama":
+        return OLLAMA_CHUNK_SIZE
+    return CHUNK_SIZE
+
+
+def _calculate_total_batches(all_files_content: List[dict], chunk_size: int) -> int:
+    total_batches = 0
+    for file_data in all_files_content:
+        texts_to_translate = file_data.get("texts_to_translate", [])
+        if not texts_to_translate:
+            continue
+        total_batches += (len(texts_to_translate) + chunk_size - 1) // chunk_size
+    return total_batches
+
+
+def _resolve_archive_mod_name(mod_name: str, project_id: Optional[str] = None) -> str:
+    archive_mod_name = mod_name
+    if not project_id:
+        return archive_mod_name
+
+    try:
+        project = asyncio.run(project_manager.get_project(project_id))
+        if project:
+            archive_mod_name = project["name"]
+    except Exception as e:
+        logging.error(f"Failed to fetch project name for archive: {e}")
+
+    return archive_mod_name
+
+
+def _create_source_snapshot(
+    mod_name: str,
+    all_files_content: List[dict],
+    total_files: int,
+    total_batches: int,
+    progress_callback: Optional[Any] = None,
+    project_id: Optional[str] = None,
+):
+    archive_mod_name = _resolve_archive_mod_name(mod_name, project_id)
+    mod_id = archive_manager.get_or_create_mod_entry(archive_mod_name, f"local_{mod_name}")
+    if not mod_id:
+        logging.error("Failed to get/create mod entry in database. Aborting.")
+        return None, None
+
+    logging.info("Creating source version snapshot...")
+    if progress_callback:
+        progress_callback(0, total_files, "", "Creating Backup", total_batches=total_batches)
+
+    version_id = archive_manager.create_source_version(mod_id, all_files_content)
+    if not version_id:
+        logging.error("Failed to create source version snapshot. Aborting workflow to prevent data loss.")
+        return mod_id, None
+
+    logging.info(f"Source snapshot created successfully (Version ID: {version_id}). Proceeding to translation.")
+    return mod_id, version_id
+
+
+def _sync_project_file_status(source_file_path: str):
+    """Update translated status for a file in the project database."""
+    try:
+        import uuid
+
+        file_id = str(uuid.uuid5(uuid.NAMESPACE_URL, source_file_path.lower().replace('\\', '/')))
+        asyncio.run(project_manager.repository.update_file_status_by_id(file_id, 'translated'))
+    except Exception as e:
+        logging.error(f"Failed to update DB status for {os.path.basename(source_file_path)}: {e}")
+
+
+def _sync_project_outputs(project_id: str, output_dir_path: str):
+    """Register generated output folder and refresh project files."""
+    try:
+        logging.info(f"Automatically syncing project {project_id}...")
+        asyncio.run(project_manager.add_translation_path(project_id, output_dir_path))
+        asyncio.run(project_manager.refresh_project_files(project_id))
+    except Exception as e:
+        logging.error(f"Failed to auto-sync project: {e}")
+
+
+@dataclass
+class LanguageRunState:
+    completed_batches: int = 0
+    error_count: int = 0
+    glossary_issues: int = 0
+    format_issues: int = 0
+
+
+def _build_checkpoint_manager(
+    output_dir_path: str,
+    selected_provider: str,
+    model_name: Optional[str],
+    source_lang: dict,
+    target_lang: dict,
+    use_resume: bool,
+) -> CheckpointManager:
+    current_config = {
+        "model_name": model_name or selected_provider,
+        "source_lang": source_lang.get("code"),
+        "target_lang_code": target_lang.get("code"),
+    }
+    checkpoint_filename = f".remis_checkpoint_{target_lang.get('code', 'unknown')}.json"
+    checkpoint_manager = CheckpointManager(
+        output_dir_path,
+        current_config=current_config,
+        checkpoint_filename=checkpoint_filename,
+    )
+    if not use_resume:
+        checkpoint_manager.clear_checkpoint()
+        logging.info(f"use_resume is False - cleared checkpoint for {target_lang.get('code')}")
+    return checkpoint_manager
+
+
+def _emit_progress(
+    progress_callback: Optional[Any],
+    run_state: LanguageRunState,
+    total_batches: int,
+    current_file_name: str = "",
+    stage: str = "Translating",
+    log_message: Optional[str] = None,
+    format_issues_override: Optional[int] = None,
+):
+    if format_issues_override is not None:
+        run_state.format_issues = format_issues_override
+
+    if progress_callback:
+        progress_callback(
+            current=run_state.completed_batches,
+            total=total_batches,
+            current_file=current_file_name,
+            stage=stage,
+            current_batch=run_state.completed_batches,
+            total_batches=total_batches,
+            error_count=run_state.error_count,
+            glossary_issues=run_state.glossary_issues,
+            format_issues=run_state.format_issues,
+            log_message=log_message,
+        )
+
+
+def _build_file_task_iterator(
+    all_files_content: List[dict],
+    checkpoint_manager: CheckpointManager,
+    source_lang: dict,
+    target_lang: dict,
+    game_profile: dict,
+    mod_context: str,
+    handler: Any,
+    output_folder_name: str,
+    mod_name: str,
+    proofreading_tracker: Any,
+    progress_callback: Optional[Any],
+    run_state: LanguageRunState,
+    total_batches: int,
+) -> Iterator[FileTask]:
+    for file_data in all_files_content:
+        if checkpoint_manager.is_file_completed(file_data["filename"]):
+            logging.info(f"Skipping completed file: {file_data['filename']}")
+            continue
+
+        texts = file_data["texts_to_translate"]
+        original_lines = file_data["original_lines"]
+        key_map = file_data["key_map"]
+
+        if not texts:
+            _handle_empty_file(
+                file_data,
+                original_lines,
+                texts,
+                key_map,
+                source_lang,
+                target_lang,
+                game_profile,
+                output_folder_name,
+                mod_name,
+                proofreading_tracker,
+            )
+            checkpoint_manager.mark_file_completed(file_data["filename"])
+            _emit_progress(
+                progress_callback,
+                run_state,
+                total_batches,
+                file_data["filename"],
+                log_message=f"Skipped empty file: {file_data['filename']}",
+            )
+            continue
+
+        yield FileTask(
+            filename=file_data["filename"],
+            root=file_data["root"],
+            original_lines=original_lines,
+            texts_to_translate=texts,
+            key_map=key_map,
+            is_custom_loc=file_data["is_custom_loc"],
+            target_lang=target_lang,
+            source_lang=source_lang,
+            game_profile=game_profile,
+            mod_context=mod_context,
+            provider_name=handler.provider_name,
+            output_folder_name=output_folder_name,
+            source_dir=SOURCE_DIR,
+            dest_dir=DEST_DIR,
+            client=handler.client,
+            mod_name=mod_name,
+            loc_root=file_data.get("loc_root", ""),
+        )
+
+
+@contextmanager
+def _progress_log_bridge(progress_logger):
+    class CallbackHandler(logging.Handler):
+        def emit(self, record):
+            try:
+                msg = self.format(record)
+                if "GET /api/status" in msg:
+                    return
+                progress_logger(log_message=msg)
+            except Exception:
+                self.handleError(record)
+
+    log_handler = CallbackHandler()
+    log_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    log_handler.setFormatter(formatter)
+    logging.getLogger().addHandler(log_handler)
+    try:
+        yield
+    finally:
+        logging.getLogger().removeHandler(log_handler)
+
+
+def _finalize_translated_file(
+    file_task: FileTask,
+    translated_texts: List[str],
+    is_failed: bool,
+    target_lang: dict,
+    output_folder_name: str,
+    game_profile: dict,
+    proofreading_tracker: Any,
+    checkpoint_manager: CheckpointManager,
+    project_id: Optional[str],
+    version_id: Optional[int],
+    all_files_content: List[dict],
+):
+    """Write translated content, update trackers, and archive the result."""
+    dest_dir = _build_dest_dir(file_task, target_lang, output_folder_name, game_profile)
+    os.makedirs(dest_dir, exist_ok=True)
+
+    dest_file_path = file_builder.rebuild_and_write_file(
+        file_task.original_lines,
+        file_task.texts_to_translate,
+        translated_texts,
+        file_task.key_map,
+        dest_dir,
+        file_task.filename,
+        file_task.source_lang,
+        file_task.target_lang,
+        file_task.game_profile,
+    )
+
+    source_file_path = os.path.join(file_task.root, file_task.filename)
+    if dest_file_path:
+        proofreading_tracker.add_file_info({
+            'source_path': source_file_path,
+            'dest_path': dest_file_path,
+            'translated_lines': len(file_task.texts_to_translate),
+            'filename': file_task.filename,
+            'is_custom_loc': file_task.is_custom_loc
+        })
+        logging.info(i18n.t("file_build_completed", filename=os.path.basename(dest_file_path)))
+
+    if not is_failed:
+        checkpoint_manager.mark_file_completed(file_task.filename)
+
+    if project_id:
+        _sync_project_file_status(source_file_path)
+
+    if version_id:
+        try:
+            archive_manager.archive_translated_results(
+                version_id,
+                {file_task.filename: translated_texts},
+                all_files_content,
+                target_lang.get("code")
+            )
+        except Exception as e:
+            logging.error(f"Failed to archive results for {file_task.filename}: {e}")
+
+
+def _finalize_language_run(
+    mod_name: str,
+    game_profile: dict,
+    target_lang: dict,
+    source_lang: dict,
+    output_folder_name: str,
+    proofreading_tracker: Any,
+    update_progress_callback,
+):
+    """Run post-processing and persist proofreading progress for one target language."""
+    _run_post_processing(
+        mod_name,
+        game_profile,
+        target_lang,
+        source_lang,
+        output_folder_name,
+        proofreading_tracker,
+        update_progress_callback,
+    )
+    proofreading_tracker.save_proofreading_progress()
+
+
+def _run_embedded_workshop_for_language(
+    embedded_workshop: Optional[dict],
+    output_dir_path: str,
+    override_path: Optional[str],
+    mod_name: str,
+    project_id: Optional[str],
+    source_lang: dict,
+    target_lang: dict,
+    game_profile: dict,
+    selected_provider: str,
+    model_name: Optional[str],
+):
+    if not embedded_workshop or not embedded_workshop.get("enabled", True):
+        return
+
+    archive_mod_name = _resolve_archive_mod_name(mod_name, project_id)
+    try:
+        workshop_summary = asyncio.run(run_embedded_workshop(
+            output_root=output_dir_path,
+            source_root=override_path if override_path else os.path.join(SOURCE_DIR, mod_name),
+            project_id=project_id,
+            project_name=archive_mod_name,
+            source_lang_info=source_lang,
+            target_lang_info=target_lang,
+            game_profile=game_profile,
+            workflow="initial",
+            config=embedded_workshop,
+            fallback_provider=selected_provider,
+            fallback_model=model_name,
+        ))
+        logging.info(
+            "Embedded workshop finished for %s: fixed=%s failed=%s remaining=%s provider=%s model=%s",
+            target_lang.get("code"),
+            workshop_summary.get("fixed_count", 0),
+            workshop_summary.get("failed_count", 0),
+            workshop_summary.get("remaining_count", 0),
+            workshop_summary.get("provider"),
+            workshop_summary.get("model"),
+        )
+    except Exception as exc:
+        logging.error("Embedded workshop failed for %s: %s", target_lang.get("code"), exc)
+
+
+def _export_workshop_issues_for_language(
+    output_dir_path: str,
+    override_path: Optional[str],
+    mod_name: str,
+    project_id: Optional[str],
+    source_lang: dict,
+    target_lang: dict,
+    game_profile: dict,
+):
+    archive_mod_name = _resolve_archive_mod_name(mod_name, project_id)
+    exporter = WorkshopIssueExportService()
+    export_result = exporter.export_for_output(
+        output_root=output_dir_path,
+        source_root=override_path if override_path else os.path.join(SOURCE_DIR, mod_name),
+        source_lang_info=source_lang,
+        target_lang_info=target_lang,
+        game_profile=game_profile,
+        workflow="initial",
+        project_name=archive_mod_name,
+    )
+    logging.info(
+        "Exported %s workshop issues for %s to %s",
+        export_result.get("issue_count", 0),
+        target_lang.get("code"),
+        export_result.get("issues_path"),
+    )
+
+
+def _process_metadata_for_run(
+    is_batch_mode: bool,
+    mod_name: str,
+    handler: Any,
+    source_lang: dict,
+    primary_target_lang: dict,
+    last_target_lang: dict,
+    output_folder_name: str,
+    mod_context: str,
+    game_profile: dict,
+):
+    metadata_target_lang = primary_target_lang if is_batch_mode else last_target_lang
+    process_metadata_for_language(
+        mod_name,
+        handler,
+        source_lang,
+        metadata_target_lang,
+        output_folder_name,
+        mod_context,
+        game_profile,
+    )
+
+
+def _clear_translation_checkpoints(
+    output_dir_path: str,
+    selected_provider: str,
+    model_name: Optional[str],
+    source_lang: dict,
+    target_languages: List[dict],
+):
+    """Clear per-language checkpoints after a successful workflow run."""
+    for target_lang in target_languages:
+        checkpoint_manager = _build_checkpoint_manager(
+            output_dir_path,
+            selected_provider,
+            model_name,
+            source_lang,
+            target_lang,
+            use_resume=True,
+        )
+        checkpoint_manager.clear_checkpoint()
+
+
+def _finalize_workflow_run(
+    is_batch_mode: bool,
+    mod_name: str,
+    handler: Any,
+    source_lang: dict,
+    primary_target_lang: dict,
+    last_target_lang: dict,
+    output_folder_name: str,
+    mod_context: str,
+    game_profile: dict,
+    output_dir_path: str,
+    selected_provider: str,
+    model_name: Optional[str],
+    target_languages: List[dict],
+    project_id: Optional[str],
+):
+    """Run metadata, cleanup checkpoints, and sync project outputs for the workflow."""
+    _process_metadata_for_run(
+        is_batch_mode,
+        mod_name,
+        handler,
+        source_lang,
+        primary_target_lang,
+        last_target_lang,
+        output_folder_name,
+        mod_context,
+        game_profile,
+    )
+    _clear_translation_checkpoints(output_dir_path, selected_provider, model_name, source_lang, target_languages)
+    logging.info(i18n.t("translation_workflow_completed"))
+    logging.info(i18n.t("output_folder_created", folder=output_folder_name))
+    if project_id:
+        _sync_project_outputs(project_id, output_dir_path)
 
 
 def run(mod_name: str,
@@ -33,7 +583,11 @@ def run(mod_name: str,
         progress_callback: Optional[Any] = None,
         override_path: Optional[str] = None,
         use_resume: bool = True,
-        clean_source: bool = False):
+        clean_source: bool = False,
+        batch_size_limit: Optional[int] = None,
+        concurrency_limit: Optional[int] = None,
+        rpm_limit: Optional[int] = 40,
+        embedded_workshop: Optional[dict] = None):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info("Entered initial_translate.run")
     logging.info(f"--- Starting 'Initial Translation' workflow for: {mod_name} ---")
@@ -63,70 +617,25 @@ def run(mod_name: str,
     handler = api_handler.get_handler(selected_provider, model_name=gemini_cli_model)
     if not handler or not handler.client:
         logging.warning(i18n.t("api_key_not_configured", provider=selected_provider))
-        return {"success": False, "message": f"Provider '{selected_provider}' is not configured or client initialization failed."}
+        return
 
     # ───────────── 2.5. 加载词典 ─────────────
     game_id = game_profile.get("id", "")
-    game_id = game_profile.get("id", "")
-    if game_id and use_glossary:
-        import asyncio
-        if selected_glossary_ids:
-            asyncio.run(glossary_manager.load_selected_glossaries(selected_glossary_ids))
-        else:
-            asyncio.run(glossary_manager.load_game_glossary(game_id))
+    _load_glossaries_for_run(game_id, use_glossary, selected_glossary_ids)
 
     # ───────────── 3. 创建输出目录 & 初始化断点管理器 ─────────────
-    directory_handler.create_output_structure(mod_name, output_folder_name, game_profile)
-    asset_handler.copy_assets(mod_name, output_folder_name, game_profile)
-    
-    output_dir_path = os.path.join(DEST_DIR, output_folder_name)
+    output_dir_path = _prepare_output_workspace(mod_name, output_folder_name, game_profile)
     
     # ───────────── 3.5. [NEW] 清理源文件 (如果启用) ─────────────
     if clean_source:
-        logging.info("Cleaning source directory to save disk space (keeping only localization and metadata)...")
-        mod_root_path = override_path if override_path else os.path.join(SOURCE_DIR, mod_name)
-        
-        # Whitelist: Only these top-level items will be preserved.
-        WHITELIST_FOLDERS = {'localisation', 'localization', 'customizable_localization'}
-        WHITELIST_FILES = {'descriptor.mod', 'thumbnail.png', 'thumbnail.jpg', 'metadata.json', 'remote_file_id.txt'}
-        
-        files_removed = 0
-        folders_removed = 0
-        bytes_freed = 0
-        
-        for item_name in os.listdir(mod_root_path):
-            item_path = os.path.join(mod_root_path, item_name)
-            item_lower = item_name.lower()
-            
-            if os.path.isdir(item_path):
-                if item_lower not in WHITELIST_FOLDERS:
-                    try:
-                        folder_size = sum(os.path.getsize(os.path.join(dp, f)) for dp, _, fns in os.walk(item_path) for f in fns)
-                        shutil.rmtree(item_path)
-                        folders_removed += 1
-                        bytes_freed += folder_size
-                        logging.debug(f"Deleted directory: {item_name}")
-                    except OSError as e:
-                        logging.warning(f"Failed to delete directory {item_name}: {e}")
-            else:
-                if item_lower not in WHITELIST_FILES:
-                    try:
-                        file_size = os.path.getsize(item_path)
-                        os.remove(item_path)
-                        files_removed += 1
-                        bytes_freed += file_size
-                        logging.debug(f"Deleted file: {item_name}")
-                    except OSError as e:
-                        logging.warning(f"Failed to delete file {item_name}: {e}")
-        
-        logging.info(f"Clean Source: Removed {folders_removed} folders and {files_removed} files, freed {bytes_freed/1024/1024:.2f} MB.")
+        _clean_source_directory(mod_name, override_path=override_path)
 
     # ───────────── 4. 发现所有源文件 (Discovery Phase) ─────────────
     all_file_paths = discover_files(mod_name, game_profile, source_lang, override_path=override_path)
 
     if not all_file_paths:
         logging.warning(i18n.t("no_localisable_files_found", lang_name=source_lang['name']))
-        return {"success": False, "message": f"No localizable files found for source language '{source_lang['name']}'."}
+        return
 
     # Update progress total
     total_files = len(all_file_paths)
@@ -137,89 +646,27 @@ def run(mod_name: str,
     # 策略变更：数据安全第一。在开始任何翻译前，强制将所有源文件读入内存并创建快照。
     # 即使是大 Mod，文本数据通常也不超过 50MB，内存不是瓶颈。
     
-    logging.info("Reading all source files for backup...")
-    all_files_content = []
-    
-    for idx, file_info in enumerate(all_file_paths):
-        fp = file_info["path"]
-        if progress_callback:
-             progress_callback(idx, total_files, file_info["filename"], "Reading Source")
-        try:
-            orig, texts, km = file_parser.extract_translatable_content(fp)
-            # 仅存储包含可翻译文本的文件
-            if texts: 
-                file_info["original_lines"] = orig
-                file_info["texts_to_translate"] = texts
-                file_info["key_map"] = km
-                all_files_content.append(file_info)
-            else:
-                # 空文件也保留
-                file_info["original_lines"] = orig
-                file_info["texts_to_translate"] = []
-                file_info["key_map"] = []
-                all_files_content.append(file_info)
-                
-        except Exception as e:
-            logging.error(f"Failed to parse file {fp} for backup: {e}")
-            logging.error("Aborting workflow due to file read error.")
-            return {"success": False, "message": f"Failed to parse source file for backup: {fp}"}
+    try:
+        all_files_content = _read_files_for_backup(all_file_paths, total_files, progress_callback)
+    except Exception:
+        return
 
     # Calculate Total Batches (Pre-calculation)
-    total_batches = 0
-    # Determine chunk size based on provider
-    if selected_provider == "gemini_cli":
-        chunk_size = GEMINI_CLI_CHUNK_SIZE
-    elif selected_provider == "ollama":
-        chunk_size = OLLAMA_CHUNK_SIZE
-    else:
-        chunk_size = CHUNK_SIZE
-
-    for file_data in all_files_content:
-        if not file_data["texts_to_translate"]: continue
-        total_batches += (len(file_data["texts_to_translate"]) + chunk_size - 1) // chunk_size
-    total_translatable_files = sum(1 for file_data in all_files_content if file_data["texts_to_translate"])
-
-    # Determine display name for archive (consistent with ProjectManager and Proofreading)
-    archive_mod_name = mod_name # Fallback to folder name
-    if project_id:
-        try:
-            from scripts.shared.services import project_manager
-            import asyncio
-            proj = asyncio.run(project_manager.get_project(project_id))
-            if proj:
-                archive_mod_name = proj['name']
-        except Exception as e:
-            logging.error(f"Failed to fetch project name for archive: {e}")
-
-    # 创建源版本快照
-    mod_id = archive_manager.get_or_create_mod_entry(archive_mod_name, f"local_{mod_name}")
-    if not mod_id:
-        logging.error("Failed to get/create mod entry in database. Aborting.")
-        return {"success": False, "message": "Failed to create source archive entry."}
-
-    logging.info("Creating source version snapshot...")
-    if progress_callback:
-        progress_callback(0, total_files, "", "Creating Backup", total_batches=total_batches)
-        
-    version_id = archive_manager.create_source_version(mod_id, all_files_content)
-    
-    if not version_id:
-        logging.error("Failed to create source version snapshot. Aborting workflow to prevent data loss.")
-        return {"success": False, "message": "Failed to create source snapshot."}
-        
-    logging.info(f"Source snapshot created successfully (Version ID: {version_id}). Proceeding to translation.")
+    effective_chunk_size = _get_chunk_size_for_provider(selected_provider, batch_size_limit)
+    total_batches = _calculate_total_batches(all_files_content, effective_chunk_size)
+    mod_id, version_id = _create_source_snapshot(
+        mod_name,
+        all_files_content,
+        total_files,
+        total_batches,
+        progress_callback,
+        project_id,
+    )
+    if not mod_id or not version_id:
+        return
 
     # ───────────── 5. 多语言并行翻译 (Streaming from Memory) ─────────────
     
-    # 准备归档 (如果需要)
-    should_archive = ARCHIVE_RESULTS_AFTER_TRANSLATION or (project_id is not None)
-    version_id_for_archive = None
-    if should_archive and not mod_id_for_archive:
-         mod_id_for_archive = archive_manager.get_or_create_mod_entry(mod_name, f"local_{mod_name}")
-
-    import threading
-    workflow_failed_files = []
-
     for target_lang in target_languages:
         logging.info(i18n.t("translating_to_language", lang_name=target_lang["name"]))
         
@@ -227,264 +674,140 @@ def run(mod_name: str,
             mod_name, output_folder_name, target_lang.get("code", "zh-CN")
         )
 
-        # Initialize Checkpoint Manager for this language
-        current_config = {
-            "model_name": gemini_cli_model or selected_provider,
-            "source_lang": source_lang.get("code"),
-            "target_lang_code": target_lang.get("code")
-        }
-        # Use a unique checkpoint file for each language to prevent conflicts in batch mode
-        checkpoint_filename = f".remis_checkpoint_{target_lang.get('code', 'unknown')}.json"
-        checkpoint_manager = CheckpointManager(output_dir_path, current_config=current_config, checkpoint_filename=checkpoint_filename)
-
-        # If use_resume is False, clear any existing checkpoint for a fresh start
-        if not use_resume:
-            checkpoint_manager.clear_checkpoint()
-            logging.info(f"use_resume is False - cleared checkpoint for {target_lang.get('code')}")
-
-
-
-        # Progress Tracking State
-        completed_batches = 0
-        successful_batches = 0
-        failed_batches = 0
-        processed_files_count = 0
-        error_count = 0
-        glossary_issues = 0
-        format_issues = 0
+        checkpoint_manager = _build_checkpoint_manager(
+            output_dir_path,
+            selected_provider,
+            gemini_cli_model,
+            source_lang,
+            target_lang,
+            use_resume,
+        )
+        run_state = LanguageRunState()
         progress_lock = threading.Lock()
 
         def update_progress(current_file_name="", stage="Translating", log_message=None, format_issues_override=None):
-            nonlocal format_issues
-            if format_issues_override is not None:
-                format_issues = format_issues_override
+            _emit_progress(
+                progress_callback,
+                run_state,
+                total_batches,
+                current_file_name,
+                stage,
+                log_message,
+                format_issues_override,
+            )
 
-            if progress_callback:
-                # PROGRESS FIX: Use batch counts for 'current' and 'total' so the progress bar is smooth.
-                # 'processed_files_count' and 'total_files' are still tracked but not used for the percentage calculation.
-                progress_callback(
-                    current=completed_batches,
-                    total=total_batches,
-                    current_file=current_file_name,
-                    stage=stage,
-                    current_batch=completed_batches,
-                    total_batches=total_batches,
-                    successful_batches=successful_batches,
-                    failed_batches=failed_batches,
-                    error_count=error_count,
-                    glossary_issues=glossary_issues,
-                    format_issues=format_issues,
-                    log_message=log_message
-                )
-
-        # 定义文件任务生成器 (Producer) - 现在从内存读取
-        def file_task_generator() -> Iterator[FileTask]:
-            for file_data in all_files_content:
-                # 检查断点
-                if checkpoint_manager.is_file_completed(file_data["filename"]):
-                    logging.info(f"Skipping completed file: {file_data['filename']}")
-                    continue
-
-                texts = file_data["texts_to_translate"]
-                orig = file_data["original_lines"]
-                km = file_data["key_map"]
-
-                # 如果是空文件，直接处理并跳过生成器
-                if not texts:
-                    _handle_empty_file(file_data, orig, texts, km, source_lang, target_lang, game_profile, output_folder_name, mod_name, proofreading_tracker)
-                    checkpoint_manager.mark_file_completed(file_data["filename"])
-                    # Update progress for empty files
-                    nonlocal processed_files_count
-                    processed_files_count += 1
-                    update_progress(file_data["filename"], log_message=f"Skipped empty file: {file_data['filename']}")
-                    continue
-
-                yield FileTask(
-                    filename=file_data["filename"],
-                    root=file_data["root"],
-                    original_lines=orig,
-                    texts_to_translate=texts,
-                    key_map=km,
-                    is_custom_loc=file_data["is_custom_loc"],
-                    target_lang=target_lang,
-                    source_lang=source_lang,
-                    game_profile=game_profile,
-                    mod_context=mod_context,
-                    provider_name=handler.provider_name,
-                    output_folder_name=output_folder_name,
-                    source_dir=SOURCE_DIR,
-                    dest_dir=DEST_DIR,
-                    client=handler.client,
-                    mod_name=mod_name,
-                    loc_root=file_data.get("loc_root", "")
-                )
+        file_task_generator = _build_file_task_iterator(
+            all_files_content,
+            checkpoint_manager,
+            source_lang,
+            target_lang,
+            game_profile,
+            mod_context,
+            handler,
+            output_folder_name,
+            mod_name,
+            proofreading_tracker,
+            progress_callback,
+            run_state,
+            total_batches,
+        )
 
         # 初始化并行处理器
-        max_workers = RECOMMENDED_MAX_WORKERS
-        if selected_provider in ["ollama", "lm_studio", "local", "vllm", "koboldcpp", "oobabooga", "hunyuan"]:
+        max_workers = max(1, int(concurrency_limit)) if concurrency_limit else RECOMMENDED_MAX_WORKERS
+        if not concurrency_limit and selected_provider in ["ollama", "lm_studio", "local", "vllm", "koboldcpp", "oobabooga", "hunyuan"]:
             max_workers = 1 # Local LLMs usually can't handle parallel requests well (OOM risk)
-        
-        processor = ParallelProcessor(max_workers=max_workers)
+
+        processor = ParallelProcessor(max_workers=max_workers, chunk_size_override=effective_chunk_size)
+        from scripts.utils.rate_limiter import rate_limiter
+        previous_rpm = rate_limiter.rpm
+        if rpm_limit:
+            rate_limiter.update_rpm(int(rpm_limit))
 
         # 定义翻译函数 (Consumer)
         def translation_wrapper(batch_task):
             result = handler.translate_batch(batch_task)
             with progress_lock:
-                nonlocal completed_batches, successful_batches, failed_batches
-                completed_batches += 1
-                if result.failed:
-                    failed_batches += 1
-                else:
-                    successful_batches += 1
+                run_state.completed_batches += 1
                 update_progress(batch_task.file_task.filename)
             return result
 
-        # ───────────── Log Capture Handler ─────────────
-        class CallbackHandler(logging.Handler):
-            def emit(self, record):
-                try:
-                    msg = self.format(record)
-                    if "GET /api/status" in msg: return 
-                    update_progress(log_message=msg)
-                except Exception:
-                    self.handleError(record)
-
-        log_handler = CallbackHandler()
-        log_handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        log_handler.setFormatter(formatter)
-        logging.getLogger().addHandler(log_handler)
-
         try:
-            # 开始流式处理
-            for file_task, translated_texts, warnings, is_failed in processor.process_files_stream(file_task_generator(), translation_wrapper):
-                processed_files_count += 1
-                
-                # Aggregate warnings and send logs
-                if is_failed:
-                    workflow_failed_files.append(file_task.filename)
-                    error_count += 1
-                    logging.error(f"File {file_task.filename} failed to translate (partially or fully). Using fallback.")
-                    update_progress(file_task.filename, "Failed", log_message=f"ERROR: File {file_task.filename} failed to translate. Rolled back to original text.")
-                else:
-                    # 这里的 update_progress 主要是为了更新文件计数，日志已经在 logging.info 中捕获
+            with _progress_log_bridge(update_progress):
+                for file_task, translated_texts, warnings, is_failed in processor.process_files_stream(file_task_generator, translation_wrapper):
+                    if is_failed:
+                        run_state.error_count += 1
+                        logging.error(f"File {file_task.filename} failed to translate (partially or fully). Using fallback.")
+                        update_progress(file_task.filename, "Failed", log_message=f"ERROR: File {file_task.filename} failed to translate. Rolled back to original text.")
+
+                    if warnings:
+                        pass
+
                     update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
 
-                if warnings:
-                    # (Already handled by log handler but good for internal state)
-                    pass
-
-                # 构建目标目录
-                dest_dir = _build_dest_dir(file_task, target_lang, output_folder_name, game_profile)
-                os.makedirs(dest_dir, exist_ok=True)
-
-                # 重建并写入文件
-                dest_file_path = file_builder.rebuild_and_write_file(
-                    file_task.original_lines,
-                    file_task.texts_to_translate,
-                    translated_texts,
-                    file_task.key_map,
-                    dest_dir,
-                    file_task.filename,
-                    file_task.source_lang,
-                    file_task.target_lang,
-                    file_task.game_profile,
-                )
-
-                # 更新校对进度
-                if dest_file_path:
-                    source_file_path = os.path.join(file_task.root, file_task.filename)
-                    proofreading_tracker.add_file_info({
-                        'source_path': source_file_path,
-                        'dest_path': dest_file_path,
-                        'translated_lines': len(file_task.texts_to_translate),
-                        'filename': file_task.filename,
-                        'is_custom_loc': file_task.is_custom_loc
-                    })
-                    logging.info(i18n.t("file_build_completed", filename=os.path.basename(dest_file_path)))
-
-                # 标记断点（仅在成功时标记，失败的文件下次续传时需要重新翻译）
-                if not is_failed:
-                    checkpoint_manager.mark_file_completed(file_task.filename)
-
-                # --- [SYNC] Update Database Status ---
-                if project_id:
-                    try:
-                        # Find the file in DB to update its status
-                        source_file_path = os.path.join(file_task.root, file_task.filename)
-                        # We use the repository directly or via project_manager if it has a helper
-                        # For now, let's use repository via project_manager for consistency
-                        import uuid
-                        # Re-generate the file_id using the same logic as FileService
-                        fid = str(uuid.uuid5(uuid.NAMESPACE_URL, source_file_path.lower().replace('\\', '/')))
-                        asyncio.run(project_manager.repository.update_file_status_by_id(fid, 'translated'))
-                    except Exception as e:
-                        logging.error(f"Failed to update DB status for {file_task.filename}: {e}")
-
-                # 实时归档翻译结果 (Incremental Archiving)
-                if version_id:
-                    try:
-                        archive_manager.archive_translated_results(
-                            version_id,
-                            {file_task.filename: translated_texts},
-                            all_files_content,
-                            target_lang.get("code")
-                        )
-                    except Exception as e:
-                        logging.error(f"Failed to archive results for {file_task.filename}: {e}")
-
+                    _finalize_translated_file(
+                        file_task,
+                        translated_texts,
+                        is_failed,
+                        target_lang,
+                        output_folder_name,
+                        game_profile,
+                        proofreading_tracker,
+                        checkpoint_manager,
+                        project_id,
+                        version_id,
+                        all_files_content,
+                    )
         finally:
-            logging.getLogger().removeHandler(log_handler)
+            if rpm_limit and previous_rpm != rate_limiter.rpm:
+                rate_limiter.update_rpm(previous_rpm)
 
-        # ───────────── 6. 后处理 & 归档 ─────────────
-        # (Post-processing logic remains similar, but runs after all files are done)
-        _run_post_processing(mod_name, game_profile, target_lang, source_lang, output_folder_name, proofreading_tracker, update_progress)
+        _finalize_language_run(
+            mod_name,
+            game_profile,
+            target_lang,
+            source_lang,
+            output_folder_name,
+            proofreading_tracker,
+            update_progress,
+        )
+        _export_workshop_issues_for_language(
+            output_dir_path,
+            override_path,
+            mod_name,
+            project_id,
+            source_lang,
+            target_lang,
+            game_profile,
+        )
+        _run_embedded_workshop_for_language(
+            embedded_workshop,
+            output_dir_path,
+            override_path,
+            mod_name,
+            project_id,
+            source_lang,
+            target_lang,
+            game_profile,
+            selected_provider,
+            gemini_cli_model,
+        )
 
-        # 保存校对看板
-        proofreading_tracker.save_proofreading_progress()
-
-    # ───────────── 7. 元数据处理 ─────────────
-    if is_batch_mode:
-        process_metadata_for_language(mod_name, handler, source_lang, primary_target_lang, output_folder_name, mod_context, game_profile)
-    else:
-        process_metadata_for_language(mod_name, handler, source_lang, target_lang, output_folder_name, mod_context, game_profile)
-
-    # ───────────── 8. 清理断点 ─────────────
-    checkpoint_manager.clear_checkpoint()
-    
-    logging.info(i18n.t("translation_workflow_completed"))
-    logging.info(i18n.t("output_folder_created", folder=output_folder_name))
-
-    # ───────────── 9. 自动同步项目 ─────────────
-    if project_id:
-        try:
-            import asyncio
-            logging.info(f"Automatically syncing project {project_id}...")
-            # 1. 注册输出目录
-            asyncio.run(project_manager.add_translation_path(project_id, output_dir_path))
-            # 2. 触发全量刷新以确保 UI 一致
-            asyncio.run(project_manager.refresh_project_files(project_id))
-        except Exception as e:
-            logging.error(f"Failed to auto-sync project: {e}")
-
-    if workflow_failed_files:
-        unique_failed_files = sorted(set(workflow_failed_files))
-        status = "failed" if total_translatable_files > 0 and len(unique_failed_files) >= total_translatable_files else "partial_failed"
-        return {
-            "success": status == "completed",
-            "status": status,
-            "message": f"Translation finished with failed files: {', '.join(unique_failed_files)}",
-            "failed_files": unique_failed_files,
-            "output_dir": output_dir_path
-        }
-
-    return {
-        "success": True,
-        "status": "completed",
-        "message": "Translation workflow completed successfully.",
-        "failed_files": [],
-        "output_dir": output_dir_path
-    }
+    _finalize_workflow_run(
+        is_batch_mode,
+        mod_name,
+        handler,
+        source_lang,
+        primary_target_lang,
+        target_lang,
+        output_folder_name,
+        mod_context,
+        game_profile,
+        output_dir_path,
+        selected_provider,
+        gemini_cli_model,
+        target_languages,
+        project_id,
+    )
 
 
 def _handle_empty_file(file_info, orig, texts, km, source_lang, target_lang, game_profile, output_folder_name, mod_name, proofreading_tracker):

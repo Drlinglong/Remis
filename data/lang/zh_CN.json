@@ -589,5 +589,13 @@
   "project_management.manage_paths.cancel": "取消",
   "project_management.manage_paths.save": "保存更改",
   "project_management.refresh_files": "刷新文件",
-  "project_management.delete_project": "删除项目"
+  "project_management.delete_project": "删除项目",
+  "history.action_import": "项目导入",
+  "history.action_archive_update": "存档更新",
+  "history.action_path_registered": "路径注册",
+  "history.action_translate": "翻译执行",
+  "history.action_note_added": "添加备注",
+  "history.action_status_change": "状态变更",
+  "history.project_import_desc": "项目 '{name}' 已创建并导入源码文件。",
+  "history.archive_update_desc": "已成功将 {match_count} 条翻译上载至项目存档。"
 }

@@ -2,6 +2,7 @@ import os
 import logging
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from typing import Optional, Dict, Any, Callable
+from datetime import datetime
 
 from scripts.shared.services import project_manager
 from scripts.core.project_json_manager import ProjectJsonManager
@@ -10,14 +11,47 @@ from scripts.schemas.project import (
     UpdateProjectStatusRequest, 
     UpdateProjectNotesRequest, 
     UpdateProjectMetadataRequest, 
-    UpdateProjectMetadataRequest, 
-    UpdateFileStatusRequest
+    UpdateFileStatusRequest,
+    IncrementalUpdateRequest
 )
-from scripts.schemas.translation import IncrementalUpdateConfig
 from scripts.schemas.config import UpdateConfigRequest
 from scripts.utils.system_utils import sanitize_for_json
+from scripts.utils.validation_logger import ValidationLogger
 
 router = APIRouter()
+
+
+def _write_incremental_logs(output_dirs: list[str], log_lines: list[str], telemetry: Optional[Dict[str, Any]] = None):
+    if not output_dirs:
+        return
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    telemetry_lines = []
+    if telemetry:
+        telemetry_lines.append("")
+        telemetry_lines.append("[Telemetry]")
+        for key, value in telemetry.items():
+            if key == "languages" and isinstance(value, list):
+                for lang_item in value:
+                    target_lang = lang_item.get("target_lang", "unknown")
+                    telemetry_lines.append(f"- {target_lang}: {lang_item}")
+            else:
+                telemetry_lines.append(f"- {key}: {value}")
+
+    content = "\n".join(
+        [f"# Incremental Update Log", f"# Generated at: {timestamp}", ""] +
+        [str(line) for line in log_lines] +
+        telemetry_lines
+    )
+
+    for output_dir in output_dirs:
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+            log_path = os.path.join(output_dir, "incremental_update.log")
+            with open(log_path, "w", encoding="utf-8") as handle:
+                handle.write(content)
+        except Exception as exc:
+            logging.error(f"Failed to write incremental log file to {output_dir}: {exc}")
 
 @router.get("/api/projects")
 async def list_projects(status: Optional[str] = None):
@@ -254,7 +288,45 @@ async def check_project_archive(project_id: str):
     """Checks if the project has sufficient archive data for incremental update."""
     return await project_manager.check_project_archive(project_id)
 
-def run_incremental_update_background(task_id: str, project_id: str, request: IncrementalUpdateConfig):
+
+@router.get("/api/project/{project_id}/validation-status")
+async def get_project_validation_status(project_id: str):
+    project = await project_manager.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    project_root = project["source_path"]
+    log_path = ValidationLogger._get_log_path(project_root)
+    issues = ValidationLogger.load_errors(project_root)
+    active_issues = [
+        issue for issue in issues
+        if str(issue.get("status", "detected")).lower() not in {"fixed", "ignored"}
+    ]
+
+    counts: Dict[str, int] = {}
+    for issue in active_issues:
+        label = issue.get("error_code") or issue.get("error_type") or "unknown"
+        counts[label] = counts.get(label, 0) + 1
+
+    report_dir = os.path.join(project_root, ".agent_workshop_reports")
+    report_count = 0
+    if os.path.isdir(report_dir):
+        try:
+            report_count = len([name for name in os.listdir(report_dir) if name.lower().endswith(".md")])
+        except Exception:
+            report_count = 0
+
+    return {
+        "project_id": project_id,
+        "issues_count": len(active_issues),
+        "issue_type_counts": counts,
+        "last_updated_at": datetime.fromtimestamp(os.path.getmtime(log_path)).isoformat() if log_path.exists() else None,
+        "sidecar_path": str(log_path),
+        "report_count": report_count,
+        "report_dir": report_dir if os.path.isdir(report_dir) else None,
+    }
+
+def run_incremental_update_background(task_id: str, project_id: str, request: IncrementalUpdateRequest):
     from scripts.shared.state import tasks
     from scripts.shared.ws_manager import ws_manager
     import threading
@@ -263,7 +335,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
     # Initialize task state in sync way if needed, but it's already done in the route
     task_lock = threading.Lock()
     tasks[task_id]["status"] = "processing"
-    tasks[task_id]["progress"] = {"percent": 0, "stage": "Initializing", "message": "Starting..."}
+    tasks[task_id]["progress"] = {"percent": 0, "stage": "Initializing", "stage_code": "initializing", "message": "Starting..."}
     
     def progress_callback(data: Dict[str, Any]):
         with task_lock:
@@ -286,8 +358,38 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
             tasks[task_id]["status"] = "completed"
             tasks[task_id]["progress"]["percent"] = 100
             tasks[task_id]["progress"]["stage"] = "Completed"
+            tasks[task_id]["progress"]["stage_code"] = "completed"
             tasks[task_id]["log"].append("Incremental update completed successfully.")
             tasks[task_id]["summary"] = result.get("summary")
+            tasks[task_id]["file_summaries"] = result.get("file_summaries", [])
+            tasks[task_id]["telemetry"] = result.get("telemetry", {})
+            tasks[task_id]["output_dir"] = result.get("output_dir")
+            tasks[task_id]["output_dirs"] = result.get("output_dirs", [])
+            tasks[task_id]["warnings"] = result.get("warnings", [])
+            tasks[task_id]["warning_count"] = result.get("warning_count", 0)
+            tasks[task_id]["workshop_issue_exports"] = result.get("workshop_issue_exports", [])
+            if tasks[task_id]["warning_count"] > 0:
+                tasks[task_id]["log"].append(
+                    f"Runtime translation warnings: {tasks[task_id]['warning_count']}."
+                )
+            total_validation_issues = sum(
+                int(export_info.get("issue_count", 0) or 0)
+                for export_info in tasks[task_id]["workshop_issue_exports"]
+            )
+            if total_validation_issues > 0:
+                tasks[task_id]["log"].append(
+                    f"Post-build validation issues: {total_validation_issues}. "
+                    "See workshop_issues.json for structured diagnostics."
+                )
+            for export_info in tasks[task_id]["workshop_issue_exports"]:
+                issues_path = export_info.get("issues_path")
+                if issues_path:
+                    tasks[task_id]["log"].append(
+                        f"Workshop issue sidecar generated: {issues_path} "
+                        f"({export_info.get('issue_count', 0)} issue(s))."
+                    )
+            _write_incremental_logs(tasks[task_id]["output_dirs"], tasks[task_id]["log"], tasks[task_id]["telemetry"])
+            logging.info(f"Incremental task {task_id} completed successfully.")
             
     except Exception as e:
         import traceback
@@ -300,7 +402,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
             ws_manager.sync_send_task_update(task_id, dict(tasks[task_id]))
 
 @router.post("/api/project/{project_id}/incremental-update")
-async def run_incremental_update(project_id: str, request: IncrementalUpdateConfig, background_tasks: BackgroundTasks):
+async def run_incremental_update(project_id: str, request: IncrementalUpdateRequest, background_tasks: BackgroundTasks):
     """Triggers the incremental update workflow in background."""
     from scripts.shared.state import tasks
     import uuid

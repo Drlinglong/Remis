@@ -45,6 +45,7 @@ class ValidationResult:
     is_valid: bool
     level: ValidationLevel
     message: str
+    code: Optional[str] = None
     details: Optional[str] = None
     line_number: Optional[int] = None
     text_sample: Optional[str] = None
@@ -129,6 +130,7 @@ class BaseGameValidator:
                             is_valid=False,
                             level=ValidationLevel(rule["level"]),
                             message=message,
+                            code=rule.get("message_key"),
                             details=details,
                             line_number=line_number,
                             text_sample=text[:100]
@@ -167,13 +169,13 @@ class BaseGameValidator:
                 if normalized_tag not in valid_tags:
                     message = self._get_i18n_message(params["unknown_tag_error_key"], key=tag_found)
                     details = self._get_i18n_message(params["unsupported_formatting_details_key"], found_text=match.group(0))
-                    results.append(ValidationResult(is_valid=False, level=ValidationLevel(rule["level"]), message=message, details=details, line_number=line_number, text_sample=text[:100]))
+                    results.append(ValidationResult(is_valid=False, level=ValidationLevel(rule["level"]), message=message, code=params.get("unknown_tag_error_key"), details=details, line_number=line_number, text_sample=text[:100]))
                 elif normalized_tag not in no_space_required_tags:
                     next_char_pos = match.end()
                     if next_char_pos < len(text) and text[next_char_pos] not in (' ', '#', '!', ';'):
                         message = self._get_i18n_message(rule["message_key"], key=tag_found)
                         details = self._get_i18n_message(params["missing_space_details_key"], found_text=match.group(0))
-                        results.append(ValidationResult(is_valid=False, level=ValidationLevel(rule["level"]), message=message, details=details, line_number=line_number, text_sample=text[:100]))
+                        results.append(ValidationResult(is_valid=False, level=ValidationLevel(rule["level"]), message=message, code=rule.get("message_key"), details=details, line_number=line_number, text_sample=text[:100]))
         except re.error as e:
             self.logger.warning(self._get_i18n_message("validator_error_regex_error", rule_name=rule['name'], e=e, pattern=pattern))
         return results
@@ -198,7 +200,7 @@ class BaseGameValidator:
                 message = self._get_i18n_message(rule["message_key"])
                 details_key = params.get("details_key", "validation_generic_tags_count")
                 details = self._get_i18n_message(details_key, start_count=start_tags_count, end_count=end_tags_count)
-                results.append(ValidationResult(is_valid=False, level=ValidationLevel(rule["level"]), message=message, details=details, line_number=line_number, text_sample=text[:100]))
+                results.append(ValidationResult(is_valid=False, level=ValidationLevel(rule["level"]), message=message, code=rule.get("message_key"), details=details, line_number=line_number, text_sample=text[:100]))
         except re.error as e:
             self.logger.warning(self._get_i18n_message("validator_error_regex_error", rule_name=rule['name'], e=e, pattern=start_tag_pattern))
         return results
@@ -213,7 +215,7 @@ class BaseGameValidator:
         if re.search(pattern, text):
             message = self._get_i18n_message(rule["message_key"])
             details = self._get_i18n_message(rule.get("params", {}).get("details_key", ""))
-            results.append(ValidationResult(is_valid=True, level=ValidationLevel(rule["level"]), message=message, details=details, line_number=line_number, text_sample=text[:100]))
+            results.append(ValidationResult(is_valid=True, level=ValidationLevel(rule["level"]), message=message, code=rule.get("message_key"), details=details, line_number=line_number, text_sample=text[:100]))
         return results
 
     def _check_variable_parity(self, text: str, rule: Dict, line_number: Optional[int], source_text: Optional[str] = None, **kwargs) -> List[ValidationResult]:
@@ -265,6 +267,7 @@ class BaseGameValidator:
                             is_valid=False,
                             level=ValidationLevel(rule["level"]),
                             message=message,
+                            code=message_key,
                             details=details,
                             line_number=line_number,
                             text_sample=text[:100]
@@ -288,6 +291,7 @@ class BaseGameValidator:
                             is_valid=False,
                             level=ValidationLevel(rule["level"]),
                             message=message,
+                            code=message_key,
                             details=details,
                             line_number=line_number,
                             text_sample=text[:100]
@@ -341,6 +345,7 @@ class BaseGameValidator:
                 is_valid=False,
                 level=ValidationLevel.WARNING,
                 message=message,
+                code="validation_residual_punctuation_found",
                 details=details,
                 line_number=line_number,
                 text_sample=text[:100]
@@ -358,14 +363,15 @@ class BaseGameValidator:
             
         # 简单的键名检查：只允许字母、数字、下划线、点、冒号(某些游戏允许?)
         # 通常P社键名是 alphanumeric + underscore + dot
-        if not re.match(r'^[a-zA-Z0-9_\.]+$', key):
+        if not re.match(r'^[a-zA-Z0-9_\.\-]+$', key):
              # 暂时只作为 Warning，因为有些Mod可能有奇怪的键名
             message = "Invalid key format"
-            details = f"Key '{key}' contains invalid characters. Expected alphanumeric, underscore, or dot."
+            details = f"Key '{key}' contains invalid characters. Expected alphanumeric, underscore, dot, or hyphen."
             results.append(ValidationResult(
                 is_valid=False,
                 level=ValidationLevel.WARNING,
                 message=message,
+                code="validation_invalid_key_format",
                 details=details,
                 line_number=line_number,
                 text_sample=key,

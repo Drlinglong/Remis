@@ -92,10 +92,7 @@ export const TranslationProvider = ({ children }) => {
             socket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    applyTaskUpdate({
-                        ...data,
-                        status: data?.status,
-                    });
+                    applyTaskUpdate(data);
                 } catch (err) {
                     console.error("[WebSocket] Failed to parse message:", err);
                 }

@@ -242,6 +242,55 @@ export const getTutorialSteps = (t, pageName) => {
                 }
             }
         ],
+        'project-management-validation': [
+            {
+                element: '#project-validation-scope-alert',
+                popover: {
+                    title: t('tutorial.project_management.validation_scope.title'),
+                    description: t('tutorial.project_management.validation_scope.desc'),
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#project-validation-open-workshop-btn',
+                popover: {
+                    title: t('tutorial.project_management.validation_workshop.title'),
+                    description: t('tutorial.project_management.validation_workshop.desc'),
+                    side: "left",
+                    align: 'center'
+                }
+            }
+        ],
+        'project-management-history': [
+            {
+                element: '#project-history-current-state',
+                popover: {
+                    title: t('tutorial.project_management.history_overview.title'),
+                    description: t('tutorial.project_management.history_overview.desc'),
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#project-history-upload-btn',
+                popover: {
+                    title: t('tutorial.project_management.history_upload.title'),
+                    description: t('tutorial.project_management.history_upload.desc'),
+                    side: "left",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#project-history-incremental-btn',
+                popover: {
+                    title: t('tutorial.project_management.history_incremental.title'),
+                    description: t('tutorial.project_management.history_incremental.desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            }
+        ],
         'translation-step-0': [
             {
                 element: '#translation-project-list',
@@ -284,6 +333,113 @@ export const getTutorialSteps = (t, pageName) => {
                 }
             }
         ],
+        'incremental-translation-step-0': [
+            {
+                element: '#incremental-project-selector',
+                popover: {
+                    title: t('tutorial.incremental_translation.select.title'),
+                    description: t('tutorial.incremental_translation.select.desc'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#incremental-project-grid',
+                popover: {
+                    title: t('tutorial.incremental_translation.project_cards.title'),
+                    description: t('tutorial.incremental_translation.project_cards.desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            }
+        ],
+        'incremental-translation-step-1': [
+            {
+                element: '#incremental-setup-card',
+                popover: {
+                    title: t('tutorial.incremental_translation.setup.title'),
+                    description: t('tutorial.incremental_translation.setup.desc'),
+                    side: "right",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#incremental-target-languages',
+                popover: {
+                    title: t('tutorial.incremental_translation.languages.title'),
+                    description: t('tutorial.incremental_translation.languages.desc'),
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#incremental-folder-picker',
+                popover: {
+                    title: t('tutorial.incremental_translation.folder.title'),
+                    description: t('tutorial.incremental_translation.folder.desc'),
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#incremental-embedded-workshop',
+                popover: {
+                    title: t('tutorial.incremental_translation.workshop.title'),
+                    description: t('tutorial.incremental_translation.workshop.desc'),
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#incremental-run-prescan-btn',
+                popover: {
+                    title: t('tutorial.incremental_translation.prescan.title'),
+                    description: t('tutorial.incremental_translation.prescan.desc'),
+                    side: "top",
+                    align: 'end'
+                }
+            }
+        ],
+        'incremental-translation-step-2': [
+            {
+                element: '#incremental-prescan-summary',
+                popover: {
+                    title: t('tutorial.incremental_translation.summary.title'),
+                    description: t('tutorial.incremental_translation.summary.desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#incremental-start-run-btn',
+                popover: {
+                    title: t('tutorial.incremental_translation.start.title'),
+                    description: t('tutorial.incremental_translation.start.desc'),
+                    side: "top",
+                    align: 'end'
+                }
+            }
+        ],
+        'incremental-translation-step-3': [
+            {
+                element: '#incremental-execution-panel',
+                popover: {
+                    title: t('tutorial.incremental_translation.execution.title'),
+                    description: t('tutorial.incremental_translation.execution.desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#incremental-final-summary',
+                popover: {
+                    title: t('tutorial.incremental_translation.results.title'),
+                    description: t('tutorial.incremental_translation.results.desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            }
+        ],
         'glossary-manager': [
             {
                 element: '#glossary-search',
@@ -308,6 +464,95 @@ export const getTutorialSteps = (t, pageName) => {
                 popover: {
                     title: t('tutorial.glossary.table.title'),
                     description: t('tutorial.glossary.table.desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            }
+        ],
+        'agent-workshop-step-0': [
+            {
+                element: '#agent-workshop-project-selector',
+                popover: {
+                    title: t('tutorial.agent_workshop.select.title'),
+                    description: t('tutorial.agent_workshop.select.desc'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#agent-workshop-project-grid',
+                popover: {
+                    title: t('tutorial.agent_workshop.project_cards.title'),
+                    description: t('tutorial.agent_workshop.project_cards.desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            }
+        ],
+        'agent-workshop-step-1': [
+            {
+                element: '#agent-workshop-project-summary',
+                popover: {
+                    title: t('tutorial.agent_workshop.summary.title'),
+                    description: t('tutorial.agent_workshop.summary.desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#agent-workshop-scan-btn',
+                popover: {
+                    title: t('tutorial.agent_workshop.scan.title'),
+                    description: t('tutorial.agent_workshop.scan.desc'),
+                    side: "left",
+                    align: 'center'
+                }
+            }
+        ],
+        'agent-workshop-step-2': [
+            {
+                element: '#agent-workshop-fix-settings',
+                popover: {
+                    title: t('tutorial.agent_workshop.fix_settings.title'),
+                    description: t('tutorial.agent_workshop.fix_settings.desc'),
+                    side: "bottom",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#agent-workshop-issue-details',
+                popover: {
+                    title: t('tutorial.agent_workshop.issue_details.title'),
+                    description: t('tutorial.agent_workshop.issue_details.desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#agent-workshop-start-fix-btn',
+                popover: {
+                    title: t('tutorial.agent_workshop.start.title'),
+                    description: t('tutorial.agent_workshop.start.desc'),
+                    side: "top",
+                    align: 'end'
+                }
+            }
+        ],
+        'agent-workshop-step-3': [
+            {
+                element: '#agent-workshop-execution-panel',
+                popover: {
+                    title: t('tutorial.agent_workshop.execution.title'),
+                    description: t('tutorial.agent_workshop.execution.desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#agent-workshop-diff-preview',
+                popover: {
+                    title: t('tutorial.agent_workshop.results.title'),
+                    description: t('tutorial.agent_workshop.results.desc'),
                     side: "top",
                     align: 'center'
                 }

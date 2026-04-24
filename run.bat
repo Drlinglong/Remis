@@ -1,41 +1,30 @@
 @echo off
-rem Conda Strict Mode V5.0: Uses 'start /b' to isolate environment activation and prevent flash-backs.
 chcp 65001 >nul
+setlocal
 
-rem 1. Configuration
-set CONDA_ROOT=K:\MiniConda
-set ENV_NAME=local_factory
-set PYTHON_SCRIPT=scripts\main.py
+set "ENV_NAME=%REMIS_CONDA_ENV%"
+if "%ENV_NAME%"=="" set "ENV_NAME=local_factory"
+set "PYTHON_SCRIPT=scripts\main.py"
 
 echo ========================================
-echo Starting Universal Launcher (V5.0 - Isolated Start)...
+echo Starting Project Remis...
 echo ----------------------------------------
 
-rem 2. Check Conda Root Path
-if not exist "%CONDA_ROOT%\condabin\conda.bat" (
-    echo CRITICAL ERROR: Conda installation not found at "%CONDA_ROOT%".
-    echo Please check CONDA_ROOT path or install Miniconda.
-    goto :final_error
+if defined CONDA_EXE (
+    echo [INFO] Launching in Conda environment "%ENV_NAME%".
+    start "Project Remis" cmd /K call "%CONDA_EXE%" activate "%ENV_NAME%" ^&^& python "%PYTHON_SCRIPT%"
+    goto :end
 )
 
-rem === 3. Isolated Activation and Execution ===
-echo Status: Conda found. Launching isolated session for environment (%ENV_NAME%)...
+where python >nul 2>nul
+if errorlevel 1 (
+    echo [ERROR] Python was not found in PATH, and CONDA_EXE is not available.
+    echo [ERROR] Activate your preferred environment first, or set REMIS_CONDA_ENV/CONDA_EXE.
+    goto :end
+)
 
-rem CRITICAL FIX: We use 'start' to launch a new, isolated CMD session that initializes Conda and runs the command.
-rem This prevents PATH conflicts and the 'not was unexpected' errors from the main script.
-start "Running Project" /B cmd /K ( call "%CONDA_ROOT%\condabin\conda.bat" activate %ENV_NAME% ^&^& python %PYTHON_SCRIPT% )
-
-rem We assume the isolated session has successfully launched the python script.
-echo SUCCESS: Isolated Conda session launched.
-echo Note: The Python script is running in a background process.
-goto :end
-
-rem === 4. Error Handling & Exit ===
-:final_error
-echo.
-echo ========================================
-echo PROGRAM FAILED TO START.
-echo ========================================
+echo [INFO] CONDA_EXE not detected. Using the current Python interpreter.
+start "Project Remis" cmd /K python "%PYTHON_SCRIPT%"
 
 :end
 echo.

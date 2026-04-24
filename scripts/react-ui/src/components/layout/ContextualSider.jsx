@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Text, ScrollArea, SegmentedControl, Stack, Group, ActionIcon, Tooltip } from '@mantine/core';
-import { IconInfoCircle, IconHistory, IconX, IconLayoutSidebarRightCollapse, IconLayoutSidebarRightExpand } from '@tabler/icons-react';
+import React, { useState } from 'react';
+import { Box, Text, SegmentedControl, Group, ActionIcon } from '@mantine/core';
+import { IconInfoCircle, IconHistory, IconLayoutSidebarRightCollapse, IconLayoutSidebarRightExpand } from '@tabler/icons-react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSidebar } from '../../context/SidebarContext';
@@ -11,34 +11,28 @@ export function ContextualSider() {
     const { t } = useTranslation();
     const { sidebarContent, sidebarWidth, sidebarCollapsed, setSidebarCollapsed } = useSidebar();
     const [activeTab, setActiveTab] = useState('info');
-    const [content, setContent] = useState(null);
+    const path = location.pathname;
+    let content = null;
 
-    // Determine content based on route
-    useEffect(() => {
-        const path = location.pathname;
-
-        if (path.startsWith('/translation')) {
-            setContent({
-                title: t('context_sidebar.translation_context', 'Translation Context'),
-                info: t('context_sidebar.translation_info', 'Select a mod to see details here.'),
-                history: t('context_sidebar.translation_history', 'Translation logs will appear here.')
-            });
-        } else if (path.startsWith('/project-management') || path === '/') {
-            setContent({
-                title: t('context_sidebar.project_details', 'Project Details'),
-                info: t('context_sidebar.project_info', 'Select a project task to view properties.'),
-                history: t('context_sidebar.project_history', 'Recent project activity.')
-            });
-        } else if (path.startsWith('/glossary-manager')) {
-            setContent({
-                title: t('context_sidebar.glossary_term', 'Glossary Term'),
-                info: t('context_sidebar.glossary_info', 'Select a term to view definitions and variants.'),
-                history: t('context_sidebar.glossary_history', 'Term edit history.')
-            });
-        } else {
-            setContent(null); // Hide for pages without context
-        }
-    }, [location.pathname, t]);
+    if (path.startsWith('/translation')) {
+        content = {
+            title: t('context_sidebar.translation_context', 'Translation Context'),
+            info: t('context_sidebar.translation_info', 'Select a mod to see details here.'),
+            history: t('context_sidebar.translation_history', 'Translation logs will appear here.')
+        };
+    } else if (path.startsWith('/project-management') || path === '/') {
+        content = {
+            title: t('context_sidebar.project_details', 'Project Details'),
+            info: t('context_sidebar.project_info', 'Select a project task to view properties.'),
+            history: t('context_sidebar.project_history', 'Recent project activity.')
+        };
+    } else if (path.startsWith('/glossary-manager')) {
+        content = {
+            title: t('context_sidebar.glossary_term', 'Glossary Term'),
+            info: t('context_sidebar.glossary_info', 'Select a term to view definitions and variants.'),
+            history: t('context_sidebar.glossary_history', 'Term edit history.')
+        };
+    }
 
     if (!content) return null;
 
@@ -56,11 +50,14 @@ export function ContextualSider() {
                     transition: 'width 0.3s ease',
                 }}
             >
-                <Tooltip label="Expand Context" position="left">
-                    <ActionIcon variant="subtle" onClick={() => setSidebarCollapsed(false)} className={styles.icon}>
-                        <IconLayoutSidebarRightExpand size={20} />
-                    </ActionIcon>
-                </Tooltip>
+                <ActionIcon
+                    variant="subtle"
+                    onClick={() => setSidebarCollapsed(false)}
+                    className={styles.icon}
+                    title="Expand Context"
+                >
+                    <IconLayoutSidebarRightExpand size={20} />
+                </ActionIcon>
                 {/* Always render portal target if content exists, even if collapsed, to avoid portal failures */}
                 <div id="glossary-detail-portal" style={{ display: 'none' }} />
             </Box>
@@ -81,11 +78,15 @@ export function ContextualSider() {
             {/* Header */}
             <Group justify="space-between" p="md" style={{ borderBottom: '1px solid var(--glass-border)' }}>
                 <Text fw={600} size="sm" className={styles.sidebarHeader}>{content.title}</Text>
-                <Tooltip label="Collapse" position="left">
-                    <ActionIcon variant="subtle" size="sm" onClick={() => setSidebarCollapsed(true)} className={styles.icon}>
-                        <IconLayoutSidebarRightCollapse size={16} />
-                    </ActionIcon>
-                </Tooltip>
+                <ActionIcon
+                    variant="subtle"
+                    size="sm"
+                    onClick={() => setSidebarCollapsed(true)}
+                    className={styles.icon}
+                    title="Collapse"
+                >
+                    <IconLayoutSidebarRightCollapse size={16} />
+                </ActionIcon>
             </Group>
 
             {/* Tabs */}
@@ -109,7 +110,7 @@ export function ContextualSider() {
             </Box>
 
             {/* Content Area */}
-            <ScrollArea style={{ flex: 1 }} p="md">
+            <Box style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '16px' }}>
                 {activeTab === 'info' ? (
                     sidebarContent || (
                         <>
@@ -126,7 +127,7 @@ export function ContextualSider() {
                         {content.history}
                     </Text>
                 )}
-            </ScrollArea>
+            </Box>
         </Box>
     );
 }

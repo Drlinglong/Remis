@@ -5,6 +5,10 @@
     color: var(--text-main);
 }
 
+.incrementalPage {
+    padding-bottom: 96px;
+}
+
 .glassCard {
     background: var(--glass-bg, rgba(30, 30, 30, 0.6)) !important;
     backdrop-filter: blur(12px);
@@ -34,6 +38,36 @@
     border-radius: 8px;
     border: 1px solid var(--glass-border);
     padding: 12px;
+}
+
+.logScrollBox {
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    padding: 12px;
+    scrollbar-width: auto;
+}
+
+.logScrollBox::-webkit-scrollbar {
+    width: 10px;
+}
+
+.logScrollBox::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+}
+
+.logScrollBox::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.executionStep {
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
 .batchSummary {

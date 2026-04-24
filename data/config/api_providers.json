@@ -149,7 +149,8 @@
             "translategemma-27b-it",
             "translategemma-9b-it",
             "gemma-2-27b-it",
-            "gemma-2-9b-it"
+            "gemma-2-9b-it",
+            "nemotron-cascade-2-30b-a3b"
         ]
     },
     "vllm": {

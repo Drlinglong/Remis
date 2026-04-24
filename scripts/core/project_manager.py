@@ -9,10 +9,10 @@ import asyncio
 from typing import List, Optional, Dict, Any, Callable, TYPE_CHECKING
 from dataclasses import dataclass
 from pathlib import Path
-from scripts.app_settings import PROJECTS_DB_PATH, SOURCE_DIR, GAME_ID_ALIASES
+from scripts.app_settings import PROJECTS_DB_PATH, SOURCE_DIR, GAME_ID_ALIASES, GAME_PROFILES_BY_ID
 
 if TYPE_CHECKING:
-    from scripts.schemas.translation import IncrementalUpdateConfig
+    from scripts.schemas.project import IncrementalUpdateRequest
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -74,6 +74,24 @@ class ProjectManager:
 
         self.archive_service = archive_service or TranslationArchiveService()
 
+    def _normalize_source_root_path(self, folder_path: str, game_id: str) -> str:
+        normalized_game_id = GAME_ID_ALIASES.get(game_id.lower(), game_id)
+        game_profile = GAME_PROFILES_BY_ID.get(normalized_game_id)
+        if not game_profile:
+            return os.path.abspath(folder_path)
+
+        source_loc_folder = str(game_profile.get("source_localization_folder", "")).lower()
+        abs_path = os.path.abspath(folder_path)
+        path_obj = Path(abs_path)
+
+        if path_obj.name.lower() == source_loc_folder:
+            return str(path_obj.parent)
+
+        if path_obj.parent.name.lower() == source_loc_folder:
+            return str(path_obj.parent.parent)
+
+        return abs_path
+
     async def create_project(self, name: str, folder_path: str, game_id: str, source_language: str) -> Dict[str, Any]:
         """
         Creates a new project.
@@ -85,7 +103,7 @@ class ProjectManager:
 
         # 1. Handle Folder Movement/Validation
         source_root = os.path.abspath(SOURCE_DIR)
-        abs_folder_path = os.path.abspath(folder_path)
+        abs_folder_path = self._normalize_source_root_path(folder_path, game_id)
         final_source_path = abs_folder_path
 
         if not abs_folder_path.startswith(source_root):
@@ -138,7 +156,8 @@ class ProjectManager:
         await self.log_history_event(
             project_id=project_id,
             action_type="import",
-            description=f"Project '{name}' created and source files imported."
+            description="history.project_import_desc",
+            metadata={"name": name}
         )
         
         return saved_project.model_dump()
@@ -155,8 +174,24 @@ class ProjectManager:
                     project_data['source_language'] = config.get('source_language', 'english')
              except Exception:
                  pass
-             return project_data
+             return await self._normalize_project_record(project_data)
         return None
+
+    async def _normalize_project_record(self, project_data: Dict[str, Any]) -> Dict[str, Any]:
+        if not project_data or not project_data.get("source_path") or not project_data.get("game_id"):
+            return project_data
+
+        normalized_source_path = self._normalize_source_root_path(project_data["source_path"], project_data["game_id"])
+        if normalized_source_path != project_data["source_path"]:
+            project_data["source_path"] = normalized_source_path
+            project_id = project_data.get("project_id")
+            if project_id:
+                try:
+                    await self.repository.update_project_source_path(project_id, normalized_source_path)
+                    logger.info(f"Normalized legacy project source_path to mod root: {normalized_source_path}")
+                except Exception as exc:
+                    logger.error(f"Failed to persist normalized source_path for project {project_id}: {exc}")
+        return project_data
 
     async def refresh_project_files(self, project_id: str):
         """Rescans source and translation directories and updates the DB and JSON sidecar."""
@@ -183,7 +218,12 @@ class ProjectManager:
     async def get_projects(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
         """Returns a list of projects, ordered by last_modified."""
         projects = await self.repository.list_projects(status)
-        return [p.model_dump() for p in projects]
+        normalized_projects = []
+        for project in projects:
+            payload = project.model_dump()
+            normalized = await self._normalize_project_record(payload)
+            normalized_projects.append(normalized)
+        return normalized_projects
 
     async def get_non_active_projects(self) -> List[Dict[str, Any]]:
         """Fetches all projects that are not 'active' (e.g., archived, deleted)."""
@@ -221,6 +261,10 @@ class ProjectManager:
         """Orchestrates the incremental update workflow."""
         from scripts.workflows.update_translate import run_incremental_update
         from scripts.app_settings import LANGUAGE_BY_CODE, GAME_PROFILES, GAME_PROFILES_BY_ID
+        
+        # Handle case where frontend sends api_provider instead of provider
+        provider = config.api_provider or config.provider or "gemini"
+        model = config.model
         
         project_id = config.project_id
         project = await self.get_project(project_id)
@@ -266,9 +310,13 @@ class ProjectManager:
             game_profile=game_profile,
             selected_provider=config.api_provider,
             model_name=config.model,
+            batch_size_limit=config.batch_size_limit,
+            concurrency_limit=config.concurrency_limit,
+            rpm_limit=config.rpm_limit,
             dry_run=config.dry_run,
             custom_source_path=config.custom_source_path,
             use_resume=config.use_resume,
+            embedded_workshop=config.embedded_workshop.model_dump() if config.embedded_workshop else None,
             progress_callback=progress_callback
         )
 
@@ -279,30 +327,57 @@ class ProjectManager:
             return {"exists": False, "reason": "Project not found"}
         
         project_name = project['name']
-        # Target language code is extracted dynamically from archive. 
         
-        latest_version = self.archive_service.archive_manager.get_latest_version(project_name)
+        latest_version = self.archive_service.archive_manager.get_latest_version(mod_name=project_name, project_id=project_id)
         if not latest_version:
-            return {"exists": False, "reason": "No previous version found in archive."}
+            logging.error(f"[CheckArchive] No archive found for {project_name} (ID: {project_id})")
+            return {"exists": False, "reason": "incremental_translation.archive_missing"}
             
-        target_languages = self.archive_service.archive_manager.get_archived_languages(latest_version['id'])
-        if not target_languages:
-            return {"exists": False, "reason": "No translations found in archive."}
-        
-        target_lang = self.archive_service.archive_manager.detect_target_language(latest_version['id']) or "zh-CN"
-            
+        archived_languages = self.archive_service.archive_manager.get_archived_languages(latest_version['id'])
+        target_languages = archived_languages or []
+        primary_target_language = target_languages[0] if target_languages else None
+        source_entry_count = self.archive_service.archive_manager.get_source_entry_count(latest_version['id'])
+        source_file_count = self.archive_service.archive_manager.get_source_file_count(latest_version['id'])
+        total_translation_entries = self.archive_service.archive_manager.get_total_translated_entry_count(latest_version['id'])
+        baseline_versions = []
+        for language_code in target_languages:
+            baseline = self.archive_service.archive_manager.get_latest_version(
+                mod_name=project_name,
+                project_id=project_id,
+                language=language_code,
+            )
+            if baseline:
+                baseline_versions.append({
+                    "language": language_code,
+                    "version_id": baseline["id"],
+                    "created_at": baseline.get("created_at"),
+                    "last_translation_at": baseline.get("last_translation_at"),
+                    "translated_count": baseline.get("translated_count"),
+                })
+
+        logging.info(f"[CheckArchive] Found archive v{latest_version['id']} for {project_name}. Languages: {target_languages}")
+
         return {
             "exists": True, 
             "version_id": latest_version['id'], 
             "created_at": latest_version['created_at'],
-            "target_language": target_lang, # Keep as default fallback for older frontend code
+            "target_language": primary_target_language,
             "target_languages": target_languages,
-            "project_name": project_name
+            "archived_languages": archived_languages,
+            "project_name": project_name,
+            "baseline_versions": baseline_versions,
+            "source_entry_count": source_entry_count,
+            "source_file_count": source_file_count,
+            "total_translation_entries": total_translation_entries,
+            "target_language_count": len(target_languages),
+            "last_upload_at": latest_version.get("last_translation_at"),
         }
 
     async def get_project(self, project_id: str) -> Optional[Dict[str, Any]]:
         p = await self.repository.get_project(project_id)
-        return p.model_dump() if p else None
+        if not p:
+            return None
+        return await self._normalize_project_record(p.model_dump())
 
     async def get_project_files(self, project_id: str) -> List[Dict[str, Any]]:
         """Returns all files for a project."""
@@ -429,7 +504,7 @@ class ProjectManager:
             await self.log_history_event(
                 project_id=project_id,
                 action_type='path_registered',
-                description="Auto-registered translation output path"
+                description="history.path_registered_desc"
             )
 
             await self.refresh_project_files(project_id)
@@ -465,19 +540,30 @@ class ProjectManager:
         if not project:
             raise ValueError(f"Project {project_id} not found")
 
-        result = self.archive_service.upload_project_translations(
-            project_id=project_id,
-            project_name=project['name'],
-            source_path=project['source_path'],
-            source_lang_code=project.get('source_language', 'en')
-        )
+        logger.info(f"Starting upload_project_translations for project {project_id}")
+        try:
+            result = self.archive_service.upload_project_translations(
+                project_id=project_id,
+                project_name=project['name'],
+                source_path=project['source_path'],
+                source_lang_code=project.get('source_language', 'en')
+            )
+        except Exception as e:
+            logger.error(f"archive_service.upload_project_translations failed for project {project_id}: {e}")
+            return {"status": "error", "message": f"Archive service failure: {str(e)}"}
         
         if result.get('status') == 'success':
              match_count = result.get('match_count', 0)
-             await self.log_history_event(
-                project_id,
-                'archive_update',
-                f"Uploaded {match_count} translations to archive using exact key:version matching."
-            )
+             try:
+                 await self.log_history_event(
+                    project_id,
+                    'archive_update',
+                    "history.archive_update_desc",
+                    metadata={"match_count": match_count}
+                )
+             except Exception as e:
+                 logger.error(f"Failed to log history event for upload: {e}")
+                 # Don't fail the whole request if history logging fails
         
+        logger.info(f"Finished upload_project_translations for project {project_id}: {result.get('status')}")
         return result

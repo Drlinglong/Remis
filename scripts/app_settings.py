@@ -81,8 +81,8 @@ DEFAULT_RPM_LIMIT = 40
 # --- 项目信息 ----------------------------------------------------
 PROJECT_NAME = "Paradox Mod 本地化工厂 - Paradox Mod Localization Factory"
 PROJECT_DISPLAY_NAME = "蕾姆丝计划 - Project Remis "
-VERSION = "2.0.17"
-LAST_UPDATE_DATE = "2026-04-04"
+VERSION = "3.0.0"
+LAST_UPDATE_DATE = "2026-04-06"
 COPYRIGHT = "© 2026 Project Remis Team"
 
 # --- 项目信息显示配置 --------------------------------------------
@@ -105,6 +105,9 @@ GEMINI_CLI_MAX_RETRIES = 3
 # --- Ollama 特定配置 ---------------------------------------------
 OLLAMA_CHUNK_SIZE = 20
 OLLAMA_MAX_RETRIES = 2
+
+# --- Local OpenAI-compatible providers -----------------------------------
+LOCAL_LLM_CHUNK_SIZE = 10
 
 # --- 智能线程池配置 ----------------------------------------------------
 def get_smart_max_workers():
@@ -166,6 +169,7 @@ CONFIG_DIR = os.path.join(APP_DATA_DIR, 'config') if getattr(sys, 'frozen', Fals
 
 SOURCE_DIR = os.path.join(APP_DATA_DIR, 'source_mod') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'source_mod')
 DEST_DIR = os.path.join(APP_DATA_DIR, 'my_translation') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'my_translation')
+OUTPUT_DIR = os.path.join(APP_DATA_DIR, 'output') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'output')
 
 # --- Database Paths ---
 # All user databases live in AppData

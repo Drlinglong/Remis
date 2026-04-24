@@ -15,8 +15,10 @@ export function MainLayout({ children }) {
                     <AppSider />
 
                     {/* Center Content */}
-                    <Box style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
-                        {children}
+                    <Box style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
+                        <Box style={{ flex: 1, minHeight: 0, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' }}>
+                            {children}
+                        </Box>
                     </Box>
 
                     {/* Right Sidebar (Context) */}

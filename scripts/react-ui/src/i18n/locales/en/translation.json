@@ -28,7 +28,7 @@
   "nav_docs": "Documentation",
   "page_title_home": "Homepage",
   "page_title_docs": "Documentation",
-  "page_title_translation": "Translation",
+  "page_title_translation": "Initial Translation",
   "page_title_glossary_manager": "Glossary Manager",
   "page_title_proofreading": "Proofreading",
   "page_title_tools": "Tools",
@@ -442,6 +442,7 @@
   "project_management.overview.to_be_proofread": "To Be Proofread",
   "project_management.details.lines_count": "Lines: {{count}}",
   "project_management.tabs_kanban": "Task Kanban",
+  "project_management.tabs_history": "History",
   "project_management.tabs_overview": "Status Overview",
   "project_management.tooltip_refresh": "If you have added or removed files in the source or translation output directories, you can refresh the file list here",
   "project_management.tooltip_archive": "Archive the project. Archived projects can be viewed in the Project Archives or restored to active status.",
@@ -633,6 +634,26 @@
       "tabs": {
         "title": "Task Board",
         "desc": "Navigate between file overview and the Kanban board for visual task management."
+      },
+      "validation_scope": {
+        "title": "Format Checks Only",
+        "desc": "This page only checks Paradox script formatting issues such as variables, tags, line breaks, and localization key names. It does not judge wording quality or style."
+      },
+      "validation_workshop": {
+        "title": "Open Agent Workshop",
+        "desc": "The workshop can automatically detect malformed keys such as [concept】, $key￥, or [概念2], then use AI to repair them back into valid forms like [concept], $key$, and [concept2]."
+      },
+      "history_overview": {
+        "title": "Archive And Version Timeline",
+        "desc": "History records the project archive baseline, upload/build timestamps, and major version events. This is the staging area you use before incremental updates."
+      },
+      "history_upload": {
+        "title": "Upload Existing Translations",
+        "desc": "Use this to archive translations that already exist on disk into the project database. If you received a half-finished mod from someone else, this should usually be your first step before incremental update."
+      },
+      "history_incremental": {
+        "title": "Go To Incremental Update",
+        "desc": "Incremental update compares the newly updated source files against this archived baseline, reuses unchanged translations, and only sends the changed or new entries back through the translation workflow."
       }
     },
     "translation": {
@@ -665,6 +686,90 @@
       "validate": {
         "title": "Integrity Check",
         "desc": "Run automated checks for missing tags, broken variables, or inconsistent terminology."
+      }
+    },
+    "incremental_translation": {
+      "select": {
+        "title": "Pick the Existing Project",
+        "desc": "Incremental translation starts from an existing archived project. Search for the project you want to update here."
+      },
+      "project_cards": {
+        "title": "Project Cards",
+        "desc": "Choose the project whose archive and history should be reused as the comparison baseline."
+      },
+      "setup": {
+        "title": "Archive and Path Setup",
+        "desc": "This step checks archive availability, lets you choose target languages, and points the workflow at the new source folder."
+      },
+      "languages": {
+        "title": "Target Languages",
+        "desc": "Only archived target languages can be updated incrementally. Pick one or more languages to rebuild."
+      },
+      "folder": {
+        "title": "Updated Source Folder",
+        "desc": "Point this to the new mod folder or workshop copy that contains the latest source files."
+      },
+      "workshop": {
+        "title": "Embedded Smart Workshop",
+        "desc": "Keep this enabled if you want one automatic validation-and-fix pass after translation completes."
+      },
+      "prescan": {
+        "title": "Run the Pre-scan",
+        "desc": "Pre-scan compares old and new sources first, so you can inspect the scope before spending API calls."
+      },
+      "summary": {
+        "title": "Pre-scan Summary",
+        "desc": "Review reused, changed, and new entries here. This is the last checkpoint before the real run."
+      },
+      "start": {
+        "title": "Start Incremental Translation",
+        "desc": "Launch the actual incremental run once the counts and provider settings look correct."
+      },
+      "execution": {
+        "title": "Execution and Logs",
+        "desc": "Watch runtime progress, warnings, and log output while the incremental workflow is rebuilding files."
+      },
+      "results": {
+        "title": "Final Output",
+        "desc": "After completion, check warnings, exported workshop issues, and the output folder path here."
+      }
+    },
+    "agent_workshop": {
+      "select": {
+        "title": "Select a Project to Repair",
+        "desc": "Smart Workshop works against an existing project. Use search and filters to find the target project first."
+      },
+      "project_cards": {
+        "title": "Project Candidates",
+        "desc": "Pick the project whose validation issues you want to scan and repair."
+      },
+      "summary": {
+        "title": "Project Context",
+        "desc": "Review archive state, source language, and recent translation context before starting the scan."
+      },
+      "scan": {
+        "title": "Scan for Issues",
+        "desc": "This starts the Smart Workshop scan. If this project already has a saved issue record, the program loads it directly so you do not have to rescan everything."
+      },
+      "fix_settings": {
+        "title": "Fix Strategy",
+        "desc": "Choose the provider, model, batch size, concurrency, and RPM before launching automated fixes."
+      },
+      "issue_details": {
+        "title": "Issue Review",
+        "desc": "Inspect grouped file issues here, or open single-item fixes if you want to review them one by one."
+      },
+      "start": {
+        "title": "Start Batch Repair",
+        "desc": "Launch the automated repair pass after you are satisfied with the scan results and model settings."
+      },
+      "execution": {
+        "title": "Repair Progress",
+        "desc": "Track the repair run, progress percentage, and worker logs while fixes are being generated."
+      },
+      "results": {
+        "title": "Diff Preview",
+        "desc": "Review before/after suggestions here once the run completes, then decide what to keep."
       }
     },
     "sidebar_tutorial_btn": "Tutorial",
@@ -727,6 +832,26 @@
           "desc": "Drag and drop to upload a background image, and you can also upload and overlay custom logos on top of it."
         }
       }
+    },
+    "api_guide": {
+      "title": "Getting Started: What is an API Key?",
+      "desc": "An API Key is your passport to AI services. Without it, the software cannot function.<br/><br/><b>Video Tutorials:</b><br/>Please click the buttons below to watch the tutorial videos on YouTube.<br/><br/><i>Note: These videos are not created by the author and may be outdated.</i>"
+    },
+    "api_regions": {
+      "title": "Regions & Security Warnings",
+      "desc": "<b>Protect your Key!</b> Never share it publicly. Usage typically incurs costs. Choose based on your region: International (OpenAI/Gemini), China (DeepSeek), or Local (Ollama)."
+    },
+    "api_provider": {
+      "title": "Configure Provider",
+      "desc": "Click the 'Configure' button to enter your API key and select your default translation model (e.g., gemini-3-flash-preview). Remember to click Save after entering your API key."
+    },
+    "api_cost": {
+      "title": "Cost Efficiency & Quota",
+      "desc": "For most translation tasks, there's no need to use flagship models; cost-effective models are sufficient. We also limit the 'thinking' quota to reduce API costs."
+    },
+    "version": {
+      "title": "Version & Feedback",
+      "desc": "Here you can check the version, open the logs folder, or visit the GitHub Issue tracker. We welcome feature requests and bug reports (please attach logs)."
     }
   },
   "translation_page": {
@@ -757,7 +882,47 @@
       "resume": "Resume",
       "cleared_message": "Checkpoint cleared. Starting fresh.",
       "clear_error": "Failed to clear checkpoint."
-    }
+    },
+    "resume_hint": {
+      "title": "Local checkpoint detected",
+      "desc": "Found resumable local progress for this translation set. {{count}} file(s) were already completed last time. Enable resume if you want to continue from that checkpoint.",
+      "enable": "Enable Resume"
+    },
+    "resume_detail_title": "Resume Details",
+    "resume_detail_subtitle": "Collapsed by default. Expand to review the last saved time and progress.",
+    "resume_detail_completed": "Completed Files: {{count}}",
+    "resume_detail_batch": "Last Batch: {{current}} / {{total}}",
+    "resume_detail_time": "Last Saved: {{time}}",
+    "resume_detail_file": "Last Completed File: {{file}}",
+    "resume_detail_empty": "No detailed checkpoint entries are available yet.",
+    "resume_detail_none": "There is no unfinished work.",
+    "embedded_workshop_enabled": "Embed Smart Workshop format fixing into the translation workflow",
+    "embedded_workshop_enabled_desc": "Enabled by default. After translation finishes, the workflow runs one automatic format-fixing pass and refreshes the validation result.",
+    "embedded_workshop_settings": "Smart Workshop Settings",
+    "embedded_workshop_settings_desc": "Collapsed by default. Expand to fine-tune proofreading settings separately from translation.",
+    "embedded_workshop_follow": "Follow the current translation API and model by default",
+    "embedded_workshop_follow_desc": "Disable this if you want separate proofreading settings, such as a larger model for translation and a smaller one for proofreading.",
+    "embedded_workshop_provider": "Proofreading API",
+    "embedded_workshop_model": "Proofreading Model",
+    "embedded_workshop_batch_size": "Issues Per Fix Batch",
+    "embedded_workshop_concurrency": "Proofreading Concurrency",
+    "embedded_workshop_rpm": "Proofreading RPM",
+    "embedded_workshop_following_summary": "Currently following the primary translation setup: {{provider}} / {{model}}",
+    "embedded_workshop_custom_summary": "Currently using a dedicated proofreading setup: {{provider}} / {{model}}",
+    "translation_limit_auto": "Auto (Recommended)",
+    "translation_batch_size": "Entries Per Batch",
+    "translation_batch_size_desc": "Only applies to this translation run. Auto uses the current provider default.",
+    "translation_batch_size_tooltip": "Controls how many text entries are sent to the AI in each batch. Smaller batches are steadier; larger batches are usually faster. Only applies to this translation run. Unless you have a clear translation bottleneck or really know what you are doing, Auto is the right choice.",
+    "translation_concurrency_desc": "Only applies to this translation run. Auto follows the current built-in strategy.",
+    "translation_concurrency_tooltip": "Controls how many translation batches are sent to the AI at the same time. Lower values are safer for local models. Only applies to this translation run. Unless you have a clear translation bottleneck or really know what you are doing, Auto is the right choice. When Auto is used, local models still fall back to lower concurrency automatically.",
+    "translation_rpm_desc": "Only applies to this translation run. The default keeps the current system pacing.",
+    "translation_rpm_tooltip": "Limits requests per minute for this run to reduce rate limits or local service overload. Unless you have a clear translation bottleneck or really know what you are doing, keep the default value.",
+    "embedded_workshop_batch_size_tooltip": "Controls how many issues Smart Workshop tries to fix in each batch. Only applies to this run. Unless you have a clear translation bottleneck or really know what you are doing, keep the default value.",
+    "embedded_workshop_batch_size_desc": "Only applies to this translation run. Smaller batches are steadier when the issues are complex.",
+    "embedded_workshop_concurrency_tooltip": "Controls how many Smart Workshop fix batches run at the same time. Only applies to this run. Unless you have a clear translation bottleneck or really know what you are doing, keep the default value.",
+    "embedded_workshop_concurrency_desc": "Only applies to this translation run. Lower values are safer for local models.",
+    "embedded_workshop_rpm_tooltip": "Limits Smart Workshop requests per minute for this run to avoid rate limits or local service overload. Unless you have a clear translation bottleneck or really know what you are doing, keep the default value.",
+    "embedded_workshop_rpm_desc": "Only applies to this translation run. The default keeps the current system pacing."
   },
   "version_info": {
     "tab_title": "Version Info",
@@ -792,6 +957,7 @@
   "api_desc_custom": "(Advanced) Connect to any OpenAI-compatible API service",
   "project_management.no_notes": "No notes",
   "project_management.last_updated": "Last updated",
+  "project_management.tabs_validation": "Validation",
   "context_sidebar.translation_context": "Translation Context",
   "context_sidebar.translation_info": "Select a mod to see details here.",
   "context_sidebar.translation_history": "Translation logs will appear here.",
@@ -829,12 +995,20 @@
   "common.confirm_delete": "Are you sure you want to delete this history record?",
   "project_history": {
     "current_state": "Current State",
-    "monitor_desc": "Monitoring local changes against last version",
+    "monitor_desc": "Need to update translations after getting a new mod version?",
     "changes_detected": "Unsynchronized Changes Detected",
     "new_lines": "New Lines",
     "changed_lines": "Changed Lines",
     "files_count": "Files",
-    "btn_incremental_update": "Start Incremental Update",
+    "last_archive_time": "Last Upload / Build",
+    "source_entries": "Source Entries",
+    "translation_entries": "Translation Entries",
+    "target_language_count": "Target Languages",
+    "archived_languages": "Archived Target Languages",
+    "no_archived_languages": "No archived target languages yet.",
+    "no_archive_data": "No archive data",
+    "btn_incremental_update": "Open Incremental Update",
+    "incremental_prompt": "Need to update translations after getting a new mod version?",
     "scanning_files": "Scanning files...",
     "everything_up_to_date": "Everything is up to date.",
     "incremental_translation": {
@@ -851,7 +1025,7 @@
       "select_project_first": "Please select a project from the list first",
       "archive_found": "Archive found: Version {{version}}, Last updated {{date}}",
       "archive_missing": "No translation archive found for this project. Incremental comparison failed.",
-      "archive_missing_action": "Please complete an 'Initial Translation' or 'Upload Translations' first to build the archive.",
+      "archive_missing_action": "If you are starting from scratch, run Initial Translation first. If you received a half-finished mod from someone else, go to Project Management -> History and use Upload Existing Translations before returning here.",
       "select_new_folder": "Select New Mod Folder",
       "select_new_folder_desc": "Mod directory containing the latest source files (usually the updated mod folder)",
       "current_folder_info": "Current project path: {{path}}",
@@ -875,7 +1049,8 @@
       "resume_disabled": "Resume: OFF",
       "status_processing": "Processing task...",
       "status_idle": "Ready",
-      "checkpoint_detected": "Checkpoint detected ({{count}} files completed)"
+      "checkpoint_detected": "Checkpoint detected ({{count}} files completed)",
+      "resume_detail_subtitle": "Expand to see when the last resume point was saved and which batch it reached."
     },
     "up_to_date": "Everything is up to date. No changes detected since last version.",
     "scan_prompt": "Click Rescan to check for local modifications.",
@@ -885,15 +1060,20 @@
   },
   "translation_config": {
     "provider": "API Provider",
-    "model": "AI Model"
+    "model": "AI Model",
+    "target_languages": "Target Languages"
   },
   "common": {
-    "browse": "Browse"
+    "browse": "Browse",
+    "search": "Search",
+    "loading": "Loading...",
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "page_title_agent_workshop": "Agent Workshop",
   "agent_workshop": {
     "title": "Agent Workshop",
-    "description": "AI-powered error correction using Reflexion agents. Analyze and fix localization violations with diff previews.",
+    "description": "Use AI to scan localization problems and generate ready-to-apply fixes.",
     "select_project": "Select Project",
     "scan_btn": "Scan Project Errors",
     "rescan_btn": "Rescan",
@@ -915,6 +1095,332 @@
     "modal_error_detected": "Error Detected",
     "regenerate": "Regenerate",
     "fix_all": "Fix All Issues",
-    "select_model_hint": "Please select an AI model first"
+    "select_model_hint": "Please select an AI model first",
+    "batch_size": "Issues per batch",
+    "cached_label": "Last scan results",
+    "scanned_label": "Current scan",
+    "scan_help": "The workshop will use saved scan results first, then fall back to scanning the project files directly.",
+    "issue_validation_generic": "Validation issue",
+    "issue_vic3_variable_parity": "Victoria 3 variable count mismatch",
+    "issue_vic3_color_tags": "Victoria 3 color tag mismatch",
+    "issue_invalid_key_format": "Localization key format issue",
+    "unknown_issue": "Unknown issue",
+    "diff_preview": "Fix diff preview",
+    "before_fix": "Before fix",
+    "after_fix": "After fix",
+    "report_path": "Report path",
+    "history": {
+      "path_registered_desc": "Auto-registered translation output path.",
+      "incremental_translate_desc": "Built incremental update ({{target_lang}}). {{new_count}} new, {{changed_count}} changed, {{unchanged_count}} reused lines.",
+      "action_import": "Project Import",
+      "action_archive_update": "Archive Update",
+      "action_path_registered": "Path Registered",
+      "action_translate": "Translation Run",
+      "action_note_added": "Note Added",
+      "action_status_change": "Status Change",
+      "project_import_desc": "Project '{{name}}' was created and source files were imported.",
+      "archive_update_desc": "Successfully uploaded {{match_count}} translation entries into the project archive."
+    },
+    "step_select_project": "Select Project",
+    "step_select_project_desc": "Search and choose the project to fix",
+    "step_project_summary": "Project Summary",
+    "step_project_summary_desc": "Review project context and start scanning",
+    "step_scan_summary": "Scan Summary",
+    "step_scan_summary_desc": "Confirm issue stats and choose repair settings",
+    "step_execution": "Repair Run",
+    "step_execution_desc": "Watch progress and final results",
+    "project_search_placeholder": "Search by project, game, or path...",
+    "last_translation_time": "Last Translation Time",
+    "source_entries": "Source Entries",
+    "translation_entries": "Translation Entries",
+    "project_path": "Project Path",
+    "provider_label": "LLM Provider",
+    "model_label": "AI Model",
+    "total_entries": "Total Entries",
+    "issue_entries": "Issue Entries",
+    "cached_state": "Data Source",
+    "start_fix_confirm": "Start fixing now? This will trigger API calls and costs.",
+    "start_fix": "Start Fix Run",
+    "issue_type_summary": "Issue Type Breakdown",
+    "file_issue_details": "File-level issue details",
+    "execution_title": "AI Repair In Progress",
+    "execution_in_progress": "Fixing issues...",
+    "execution_completed": "Repair run completed",
+    "execution_pending": "Waiting to start...",
+    "fixed_count": "Fixed",
+    "failed_count": "Still Failed",
+    "duration": "Duration",
+    "no_source_context": "(No source context found)"
+  },
+  "project_validation": {
+    "title": "Format Check",
+    "subtitle": "Review saved format issues, refresh the results, or jump into Agent Workshop.",
+    "refresh": "Recheck Format Issues",
+    "open_workshop": "Open Agent Workshop",
+    "issues_count": "Open Issues",
+    "last_updated": "Last Checked",
+    "report_count": "Fix Reports",
+    "sidecar_path": "Record File Path",
+    "help": "Agent Workshop reads this project's saved format issue record first and writes updated fix status back into it.",
+    "scope_hint": "This page checks only Paradox script-format issues such as variables, tags, line breaks, and key names. It does not check typos, wording, or writing style.",
+    "issue_breakdown": "Issue Breakdown",
+    "no_issues": "There are no open validation issues right now."
+  },
+  "incremental_translation": {
+    "title": "Incremental Translation",
+    "description": "Guided workflow: analyze source changes and translate new or modified content only.",
+    "step_1_title": "Select Project",
+    "step_1_desc": "Pick an existing project to update",
+    "step_2_title": "Validation & Setup",
+    "step_2_desc": "Check archive and configure paths",
+    "step_3_title": "Pre-scan Summary",
+    "step_3_desc": "Review the change statistics report",
+    "step_4_title": "Translation Execution",
+    "step_4_desc": "Run AI translation and write output files",
+    "select_project_first": "Please select a project from the list first.",
+    "archive_found": "Archive found: version {{version}}, last updated {{date}}",
+    "archive_missing": "No translation archive found for this project. Incremental comparison cannot continue.",
+    "no_translations_found": "No translated entries were found in the archive. Please confirm that valid translation files were uploaded.",
+    "archive_missing_action": "If you are starting from scratch, run Initial Translation first. If you received a half-finished mod from someone else, go to Project Management -> History and use Upload Existing Translations before returning here.",
+    "select_new_folder_desc": "Mod directory containing the latest source files, usually the updated mod folder.",
+    "pre_scan_summary": "Pre-scan Summary",
+    "scan_directory": "Scan Directory",
+    "source_language": "Source Language",
+    "files_to_process": "Files to Process",
+    "reused_count": "Reusable entries (archive/global)",
+    "new_count": "New entries to translate",
+    "changed_count": "Modified entries to re-translate",
+    "start_translation_confirm": "Start translation? This will trigger API calls and may incur cost.",
+    "execution_log": "Execution Log",
+    "processing_file": "Processing: {{file}}",
+    "batch_status": "Batch {{current}}/{{total}} completed...",
+    "completion_title": "Incremental Translation Completed",
+    "checkpoint_found_label": "Checkpoint Found",
+    "checkpoint_found_title": "Translation Checkpoint Found",
+    "checkpoint_found_desc": "A previous unfinished task was detected. You can resume and skip files that were already completed.",
+    "resume_enabled": "Resume: ON",
+    "resume_disabled": "Resume: OFF",
+    "status_processing": "Processing task...",
+    "status_idle": "Ready",
+    "checkpoint_detected": "Checkpoint detected ({{count}} files completed).",
+    "resume_detail_subtitle": "Expand to see when the last resume point was saved and which batch it reached.",
+    "output_dir_hint": "Results have been saved to the generated mod folder under my_translation.",
+    "target_lang_desc": "Incremental update currently supports only target languages that already have archived translations.",
+    "workflow_supported_title": "Supported Incremental Workflow",
+    "workflow_supported_desc": "Select the old project as the archive baseline, then point the source folder to the newly copied workshop directory. The system chooses the comparison baseline by the most recent manual upload time for each target language and matches entries using normalized relative paths.",
+    "select_new_folder": "Select New Mod Folder",
+    "current_folder_info": "Current project path: {{path}}",
+    "project_search_placeholder": "Search by project, game, or path...",
+    "pre_scan_bootstrap_log": "[System] Creating pre-scan task...",
+    "pre_scan_in_progress": "Checking the updated mod content",
+    "execution_in_progress": "Running incremental translation",
+    "progress_stage_initializing": "Preparing task",
+    "progress_stage_scanning_source": "Scanning source files",
+    "progress_stage_loading_archive": "Loading archived baseline",
+    "progress_stage_comparing_entries": "Comparing localization entries",
+    "progress_stage_translating_content": "Translating changed content",
+    "progress_stage_finishing": "Finalizing output files",
+    "progress_stage_completed": "Task completed",
+    "progress_file_counter": "Processing file {{current}} / {{total}}: {{file}}",
+    "progress_batch_counter": "Processing translation batch {{current}} / {{total}}",
+    "progress_files_detected": "{{count}} source files detected so far",
+    "project_game": "Game",
+    "project_source_language": "Source",
+    "project_folder": "Folder",
+    "archived_target_languages": "Archived Target Languages",
+    "selected_target_languages": "Selected Target Languages",
+    "none_archived": "None",
+    "none_selected": "None selected",
+    "no_archived_target_languages": "No archived target languages were found for this project. If you are starting from scratch, run Initial Translation first. If you received a half-finished mod from someone else, go to Project Management -> History and use Upload Existing Translations, then reopen Incremental Update.",
+    "file_details_title": "File-level change details",
+    "reused_short": "Reused",
+    "new_short": "New",
+    "changed_short": "Changed",
+    "entry_status_new": "New",
+    "entry_status_changed": "Changed",
+    "telemetry_title": "Timing",
+    "telemetry_snapshot": "Source scan",
+    "telemetry_total": "Total",
+    "telemetry_archive_fetch": "Archive fetch",
+    "telemetry_prepare": "Semantic diff",
+    "telemetry_translation": "AI translation",
+    "telemetry_build": "Output rebuild",
+    "telemetry_archive_write": "Archive write",
+    "log_file_hint": "Execution log saved to: {{path}}",
+    "transport_status": "Task status source: {{source}}",
+    "project_details_title": "Project Details",
+    "project_name": "Project",
+    "archive_baseline_title": "Archive Baseline",
+    "archive_version_label": "Archive Version",
+    "archive_entries_label": "Archived Entries",
+    "archive_uploaded_label": "Last Upload Time",
+    "archive_snapshot_label": "Source Snapshot Time",
+    "concurrency_limit": "Concurrency",
+    "concurrency_limit_desc": "Only applies to this translation run. Use a lower value for local models to avoid VRAM pressure or channel errors.",
+    "rpm_limit": "RPM Limit",
+    "rpm_limit_desc": "Only applies to this translation run. Limits requests per minute to avoid provider or local service overload.",
+    "runtime_warning_summary_title": "Runtime warnings detected",
+    "runtime_warning_summary_desc": "This run recorded {{count}} runtime warning(s). Review context overflow, model refusal, or source-text fallback batches first.",
+    "warning_summary_title": "Runtime warnings detected",
+    "warning_summary_desc": "This run recorded {{count}} runtime warning(s). Review context overflow, model refusal, or source-text fallback batches first.",
+    "validation_issue_summary_title": "Validation issues exported for Workshop",
+    "validation_issue_summary_desc": "Post-build validation found {{count}} issue(s). These are written to workshop_issues.json for Smart Workshop intake.",
+    "validation_issue_export_item": "{{lang}}: {{count}} issue(s) | {{path}}",
+    "warning_fallback_to_source": "Batch {{batch_num}} could not be translated after retries and was written using the source text (provider: {{provider}}).",
+    "warning_context_exceeded": "Batch {{batch_num}} exceeded the model context window on attempt {{attempt}} (provider: {{provider}}).",
+    "warning_api_key_invalid": "Batch {{batch_num}} failed on attempt {{attempt}} because the configured API key is invalid or missing (provider: {{provider}}).",
+    "warning_api_error": "Batch {{batch_num}} failed on attempt {{attempt}} with provider {{provider}}: {{error}}",
+    "warning_response_parsing_failed": "Batch {{batch_num}} returned an invalid response structure on attempt {{attempt}} (provider: {{provider}}).",
+    "warning_rate_limited": "Batch {{batch_num}} hit a rate limit on attempt {{attempt}} (provider: {{provider}}).",
+    "warning_invalid_key_format": "The translated entry contains an invalid localization key format.",
+    "warning_validation_prefix": "[{{level}}] ",
+    "warning_validation_generic": "Validation warning",
+    "warning_details_suffix": "Details: {{details}}",
+    "warning_generic_with_error": "Warning details: {{error}}",
+    "no_files_warning": "No files were detected for incremental processing.",
+    "status_ws_initializing": "Initializing WebSocket connection...",
+    "status_ws_error": "WebSocket connection error. Falling back to polling.",
+    "task_id_missing": "No task ID returned from server.",
+    "critical_error": "Critical Error: {{message}}",
+    "translation_completed_success": "Translation completed successfully!",
+    "task_failed_check_logs": "Task failed! Check logs for details.",
+    "error_title": "Error",
+    "resume_detail_title": "Resume Details",
+    "resume_detail_completed": "Completed Files: {{count}}",
+    "resume_detail_batch": "Last Batch: {{current}} / {{total}}",
+    "resume_detail_time": "Last Saved: {{time}}",
+    "resume_detail_file": "Last Completed File: {{file}}",
+    "embedded_workshop_enabled": "Embed Smart Workshop format fixing into the incremental workflow",
+    "embedded_workshop_enabled_desc": "Enabled by default. After translation finishes, the workflow runs one automatic format-fixing pass and refreshes the validation result.",
+    "embedded_workshop_settings": "Smart Workshop Settings",
+    "embedded_workshop_settings_desc": "Collapsed by default. Expand to fine-tune proofreading settings separately from translation.",
+    "embedded_workshop_follow": "Follow the current translation API and model by default",
+    "embedded_workshop_follow_desc": "Disable this if you want separate proofreading settings, such as a larger model for translation and a smaller one for proofreading.",
+    "embedded_workshop_provider": "Proofreading API",
+    "embedded_workshop_model": "Proofreading Model",
+    "embedded_workshop_batch_size": "Issues Per Fix Batch",
+    "embedded_workshop_concurrency": "Proofreading Concurrency",
+    "embedded_workshop_rpm": "Proofreading RPM",
+    "batch_size_limit_desc": "Only applies to this translation run. Auto uses the current provider default."
+  },
+  "recent_activity_type_translate": "Incremental Update",
+  "project_management": {
+    "tabs_validation": "Format Check",
+    "list": {
+      "title": "Project List",
+      "desc": "View and manage all your localization projects here."
+    },
+    "create": {
+      "title": "Start from Scratch",
+      "desc": "Create your first translation project. Ensure your API Key is ready in Settings -> API before starting."
+    },
+    "new_task": {
+      "title": "New Task",
+      "desc": "Create file-based tasks or even just custom notes for your mod."
+    },
+    "stats": {
+      "title": "Project Overview",
+      "desc": "Quickly check total files, lines, and the percentage of translation and proofreading progress."
+    },
+    "start": {
+      "title": "Key Action: Start Translation",
+      "desc": "When everything is ready, click this button to enter the translation configuration and start the AI-powered process."
+    },
+    "paths": {
+      "title": "Path Management",
+      "desc": "Configure source and export paths for each specific Mod."
+    },
+    "tabs": {
+      "title": "Task Board",
+      "desc": "Navigate between file overview and the Kanban board for visual task management."
+    },
+    "delete_note_confirm_content": "Are you sure you want to delete this note? This action cannot be undone."
+  },
+  "translation": {
+    "select": {
+      "title": "Select Project",
+      "desc": "Please select a project to begin the translation process."
+    },
+    "config": {
+      "title": "Configure Translation",
+      "desc": "Set up your source/target languages and choosing an AI model."
+    },
+    "start": {
+      "title": "Start Batch",
+      "desc": "Click this to begin the automated translation batch."
+    },
+    "processing": {
+      "title": "Processing",
+      "desc": "The AI is now translating your files. You can watch the real-time logs here."
+    }
+  },
+  "tools": {
+    "tabs": {
+      "title": "Toolbox Tabs",
+      "desc": "Switch between different tools like Thumbnail Generator, Workshop Description Generator, etc."
+    },
+    "thumbnail": {
+      "canvas": {
+        "title": "Design Canvas",
+        "desc": "Your main workspace. You can drag and drop a background image here to start."
+      },
+      "toolbox": {
+        "title": "Generator Toolbox",
+        "desc": "Just a few clicks to easily add flags or languages to an original cover, transforming it into a proper translation mod cover."
+      },
+      "drag": {
+        "title": "Drag to Upload",
+        "desc": "Drag and drop to upload a background image, and you can also upload and overlay custom logos on top of it."
+      }
+    }
+  },
+  "translation_completed": "Translation completed!",
+  "report_success_summary": "Successfully completed the translation flow for {{mod_name}} from {{source_lang}} to {{target_langs}}.",
+  "report_error_count": "{{count}} file(s) encountered errors",
+  "report_no_errors": "No errors were encountered during translation",
+  "report_glossary_issues": "Detected {{count}} potential glossary issue(s)",
+  "report_no_glossary_issues": "No glossary issues detected!",
+  "report_format_issues": "Detected {{count}} potential formatting issue(s)",
+  "report_no_format_issues": "No formatting issues detected!",
+  "report_title_errors": "Errors",
+  "report_title_glossary": "Glossary Check",
+  "report_title_formatting": "Formatting Check",
+  "button_translate_another": "Translate Another Project",
+  "button_go_dashboard": "Go to Project Management",
+  "show_detailed_logs": "Show Detailed Logs",
+  "hide_detailed_logs": "Hide Detailed Logs",
+  "stage_creating_backup": "Creating backup",
+  "stage_translating": "Translating",
+  "stage_reading_source": "Reading source files",
+  "stage_initializing": "Initializing",
+  "stage_failed": "Translation failed",
+  "tools_tab_workshop_generator": "Workshop Generator",
+  "game_name_eu5": "Europa Universalis 5",
+  "thumbnail_generator": {
+    "description": "Add flags, text, or custom emblems. Click \"Add All Flags\" to quickly generate a Victoria 3 style cover.",
+    "drag_hint": "Drag and drop your project logo here to preview the result in real time."
+  },
+  "proofreading": {
+    "target_language": "Target Language",
+    "modal": {
+      "title": "Invalid Operation Warning",
+      "content_1": "You changed the **Key** in the editor.",
+      "content_2": "The editor is currently in **Patching Mode**. In this mode, the system locates entries by the original file key and only replaces the value. **Your key edits will be discarded on save**; only value changes will be preserved.",
+      "button_cancel": "Go Back and Edit"
+    }
+  },
+  "homepage_greetings": {
+    "morning": [
+      "Good morning.",
+      "Morning."
+    ],
+    "afternoon": [
+      "Good afternoon.",
+      "Welcome back this afternoon."
+    ],
+    "evening": [
+      "Good evening.",
+      "Time to wrap up for the day."
+    ]
   }
 }

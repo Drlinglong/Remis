@@ -1,29 +1,25 @@
 /**
- * =============================================================================
- * 🏮 DEVELOPER OPTIONS / 开发者选项 🏮
- * =============================================================================
- * Toggle this to show/hide all work-in-progress (WIP) and experimental features.
- * Used for development, debugging, and advanced functionality.
- * =============================================================================
+ * Developer feature master switch.
+ * Keep this false for normal user-facing builds.
  */
 const ENABLE_EXPERIMENTAL_FEATURES = false;
 
 export const FEATURES = {
-    // Export master switch status if needed for UI indications
+    // Master switch for unfinished or internal-only features
     ENABLE_EXPERIMENTAL_FEATURES,
 
-    // Neologism Tribunal (新词审判庭)
+    // Mature features that should stay visible even when developer features are hidden
+    ENABLE_INCREMENTAL_TRANSLATION: true,
+    ENABLE_AGENT_WORKSHOP: true,
+    ENABLE_PROJECT_HISTORY: true,
+
+    // Developer-only pages and tools
     ENABLE_NEOLOGISM_TRIBUNAL: ENABLE_EXPERIMENTAL_FEATURES,
-
-    // Documentation
     ENABLE_DOCS: ENABLE_EXPERIMENTAL_FEATURES,
+    ENABLE_WORKSHOP_GENERATOR: ENABLE_EXPERIMENTAL_FEATURES,
+    ENABLE_EVENT_RENDERER: ENABLE_EXPERIMENTAL_FEATURES,
+    ENABLE_UI_DEBUGGER: ENABLE_EXPERIMENTAL_FEATURES,
 
-    // Tools Tab Features
-    ENABLE_WORKSHOP_GENERATOR: ENABLE_EXPERIMENTAL_FEATURES, // Steam Workshop Description Generator
-    ENABLE_EVENT_RENDERER: ENABLE_EXPERIMENTAL_FEATURES,     // Paradox Event Renderer
-    ENABLE_UI_DEBUGGER: ENABLE_EXPERIMENTAL_FEATURES,        // Internal UI Debugger
-    ENABLE_PROJECT_HISTORY: ENABLE_EXPERIMENTAL_FEATURES,    // Project History Timeline
-
-    // Providers
-    ENABLE_HUNYUAN_PROVIDER: ENABLE_EXPERIMENTAL_FEATURES    // Hunyuan (Tencent) Provider
+    // Developer-only providers
+    ENABLE_HUNYUAN_PROVIDER: ENABLE_EXPERIMENTAL_FEATURES,
 };

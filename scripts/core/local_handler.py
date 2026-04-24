@@ -123,7 +123,7 @@ class LocalLLMHandler(BaseApiHandler):
         except Exception as e:
              # Check for context length error message in the exception string or checking type if imported
              error_str = str(e).lower()
-             if "context length" in error_str and "4096" in error_str:
+             if "context length" in error_str or "context size has been exceeded" in error_str:
                  self.logger.error("Context Length Exceeded! The prompt is too long for the current model configuration.")
                  self.logger.error("SUGGESTION: Increase context length in LM Studio/vLLM (e.g., to 8192) or reduce 'chunk_size' in config.")
              

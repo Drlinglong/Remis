@@ -11,16 +11,13 @@ if project_root not in sys.path:
 from scripts.app_settings import GAME_PROFILES
 from scripts.utils import tag_scanner
 
-# --- DEVELOPER-SPECIFIC CONFIGURATION ---
-# Please update these paths to match your local game installation directories.
-# This is a developer tool, so it's okay to have hardcoded local paths here.
-GAME_INSTALLATION_PATHS = {
-    "victoria3": "I:\\SteamLibrary\\steamapps\\common\\Victoria 3\\game\\localization",
-    "stellaris": "I:\\SteamLibrary\\steamapps\\common\\Stellaris\\localisation",
-    "hoi4": "I:\\SteamLibrary\\steamapps\\common\\Hearts of Iron IV\\localisation",
-    "eu4": "K:\\SteamLibrary\\steamapps\\common\\Europa Universalis IV\\localisation",
-    "ck3": "K:\\SteamLibrary\\steamapps\\common\\Crusader Kings III\\game\\localization",
-    "eu5": "I:\\SteamLibrary\\steamapps\\common\\Europa Universalis V\\game",
+GAME_PATH_ENV_VARS = {
+    "victoria3": "REMIS_VICTORIA3_PATH",
+    "stellaris": "REMIS_STELLARIS_PATH",
+    "hoi4": "REMIS_HOI4_PATH",
+    "eu4": "REMIS_EU4_PATH",
+    "ck3": "REMIS_CK3_PATH",
+    "eu5": "REMIS_EU5_PATH",
 }
 
 def main():
@@ -41,10 +38,14 @@ def main():
 
         logging.info(f"--- Processing game: {game_profile.get('name', game_id)} ---")
 
-        # 1. Get the game's installation path from our hardcoded dictionary
-        game_loc_path = GAME_INSTALLATION_PATHS.get(game_id)
+        env_var = GAME_PATH_ENV_VARS.get(game_id)
+        game_loc_path = os.environ.get(env_var) if env_var else None
         if not game_loc_path:
-            logging.error(f"  - ERROR: Local installation path for '{game_id}' not found in GAME_INSTALLATION_PATHS. Please add it.")
+            logging.error(
+                "  - ERROR: Missing game path for '%s'. Set %s before running this script.",
+                game_id,
+                env_var or "<unknown>",
+            )
             fail_count += 1
             continue
 

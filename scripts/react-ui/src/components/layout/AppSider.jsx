@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Stack, Tooltip, UnstyledButton, rem, Text, Box } from '@mantine/core';
+import { Stack, UnstyledButton, rem, Text, Box } from '@mantine/core';
 import {
     IconHome,
     IconBook,
@@ -30,10 +30,10 @@ const navItems = [
     { icon: IconHome, label: 'page_title_home', path: '/' },
     { icon: IconBriefcase, label: 'page_title_project_management', path: '/project-management' },
     { icon: IconLanguage, label: 'page_title_translation', path: '/translation' },
-    ...(FEATURES.ENABLE_EXPERIMENTAL_FEATURES ? [{ icon: IconRocket, label: 'incremental_translation.title', path: '/incremental-translation' }] : []),
+    ...(FEATURES.ENABLE_INCREMENTAL_TRANSLATION ? [{ icon: IconRocket, label: 'incremental_translation.title', path: '/incremental-translation' }] : []),
     { icon: IconVocabulary, label: 'page_title_glossary_manager', path: '/glossary-manager' },
     { icon: IconChecklist, label: 'page_title_proofreading', path: '/proofreading' },
-    ...(FEATURES.ENABLE_EXPERIMENTAL_FEATURES ? [{ icon: IconRobot, label: 'page_title_agent_workshop', path: '/agent-workshop' }] : []),
+    ...(FEATURES.ENABLE_AGENT_WORKSHOP ? [{ icon: IconRobot, label: 'page_title_agent_workshop', path: '/agent-workshop' }] : []),
     // Conditionally include Neologism Tribunal
     ...(FEATURES.ENABLE_NEOLOGISM_TRIBUNAL ? [{ icon: IconSparkles, label: 'neologism_review.title', path: '/neologism-review' }] : []),
     { icon: IconTools, label: 'page_title_tools', path: '/tools', id: 'nav-tools' },
@@ -52,28 +52,27 @@ function NavbarLink({ icon: Icon, label, active, onClick, expanded, id, classNam
     const { theme } = React.useContext(ThemeContext);
 
     return (
-        <Tooltip label={t(label)} position="right" transitionProps={{ duration: 0 }} disabled={expanded}>
-            <UnstyledButton
-                id={id}
-                onClick={onClick}
-                data-active={active || undefined}
-                className={`${styles.navLink} ${className || ''}`}
-                style={{
-                    width: '100%',
-                    padding: '10px', /* equivalent to theme.spacing.xs approximately */
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: expanded ? 'flex-start' : 'center',
-                }}
-            >
-                <Icon className={styles.icon} style={{ width: rem(22), height: rem(22) }} stroke={1.5} />
-                {expanded && (
-                    <Text size="sm" ml="md" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'var(--font-body)' }}>
-                        {t(label)}
-                    </Text>
-                )}
-            </UnstyledButton>
-        </Tooltip>
+        <UnstyledButton
+            id={id}
+            onClick={onClick}
+            data-active={active || undefined}
+            className={`${styles.navLink} ${className || ''}`}
+            title={expanded ? undefined : t(label)}
+            style={{
+                width: '100%',
+                padding: '10px', /* equivalent to theme.spacing.xs approximately */
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: expanded ? 'flex-start' : 'center',
+            }}
+        >
+            <Icon className={styles.icon} style={{ width: rem(22), height: rem(22) }} stroke={1.5} />
+            {expanded && (
+                <Text size="sm" ml="md" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'var(--font-body)' }}>
+                    {t(label)}
+                </Text>
+            )}
+        </UnstyledButton>
     );
 }
 

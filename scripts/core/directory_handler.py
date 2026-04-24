@@ -173,36 +173,35 @@ def write_localisation_file(dest_path: str, content: str, game_profile: dict):
         f.write(content)
 
 
-def create_output_structure(mod_name: str, output_folder_name: str, game_profile: dict):
+def create_output_structure(mod_name: str, output_folder_name: str, game_profile: dict, base_dest_dir: str = None):
     """
-    创建输出目录结构
-    
+    Create the output directory structure for a translated mod.
+
     Args:
-        mod_name: mod名称
-        output_folder_name: 输出文件夹名称
-        game_profile: 游戏配置
-        
+        mod_name: Source mod name.
+        output_folder_name: Name of the generated output folder.
+        game_profile: Active game profile configuration.
+
     Returns:
-        bool: 是否成功创建
+        bool: True if the structure was created successfully.
     """
     try:
         from scripts.app_settings import DEST_DIR
-        
-        # 创建主输出目录
-        main_output_dir = os.path.join(DEST_DIR, output_folder_name)
+
+        dest_root = base_dest_dir or DEST_DIR
+        main_output_dir = os.path.join(dest_root, output_folder_name)
         logging.info(f"DEBUG: Attempting to create directory: {main_output_dir}")
-        logging.info(f"DEBUG: DEST_DIR is: {DEST_DIR}")
+        logging.info(f"DEBUG: DEST_DIR is: {dest_root}")
         os.makedirs(main_output_dir, exist_ok=True)
         logging.info(f"DEBUG: Directory exists after creation? {os.path.exists(main_output_dir)}")
-        
-        # 根据游戏配置创建必要的子目录
+
         source_loc_folder = game_profile.get("source_localization_folder", "localization")
         loc_dir = os.path.join(main_output_dir, source_loc_folder)
         os.makedirs(loc_dir, exist_ok=True)
-        
+
         logging.info(i18n.t("output_structure_created", path=main_output_dir))
         return True
-        
+
     except Exception as e:
         logging.error(i18n.t("output_structure_creation_failed", error=e))
         raise

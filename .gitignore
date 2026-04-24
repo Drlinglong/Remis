@@ -34,6 +34,7 @@ env/
 *.swp
 *.swo
 *~
+*.backup*
 
 # OS
 .DS_Store
@@ -49,12 +50,32 @@ source_mod/
 my_translation/
 data/*.sqlite
 data/*.db
+mods.sqlite
 data/seed_data_*.sql
 logs/
 temp/
 *.tmp
 *.db
 test_*.db
+sandbox_*/
+tmp_*_check.py
+failure.log
+last_failure.txt
+lint_output.txt
+out.txt
+out2.txt
+output.txt
+pytest_full.log
+test_output.txt
+test_result.log
+tests_collection_error.txt
+test_projects_repo.db-shm
+test_projects_repo.db-wal
+scripts/.vscode/
+tests_tmp/
+sandbox_test_tmp/
+tmp/
+.pytest_cache/
 
 # Do NOT ignore these folders
 !/source_mod/.gitkeep

@@ -86,18 +86,23 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     };
 
     const handleOpenFolder = async () => {
-        if (!task?.result_path) {
+        const directFolderPath = Array.isArray(task?.output_dirs) && task.output_dirs.length > 0
+            ? task.output_dirs[0]
+            : null;
+        if (!directFolderPath && !task?.result_path) {
             notificationService.error('Output folder path is not available yet.', { title: 'Cannot Open Folder' });
             return;
         }
 
-        const zipPath = task.result_path;
-        const folderPath = zipPath.replace(/\.zip$/i, '');
-        const parentDir = zipPath.includes('\\')
-            ? zipPath.substring(0, zipPath.lastIndexOf('\\'))
-            : zipPath.substring(0, zipPath.lastIndexOf('/'));
+        const zipPath = task?.result_path || '';
+        const derivedFolderPath = zipPath ? zipPath.replace(/\.zip$/i, '') : null;
+        const parentDir = zipPath
+            ? (zipPath.includes('\\')
+                ? zipPath.substring(0, zipPath.lastIndexOf('\\'))
+                : zipPath.substring(0, zipPath.lastIndexOf('/')))
+            : null;
 
-        const candidates = [folderPath, parentDir].filter(Boolean);
+        const candidates = [directFolderPath, derivedFolderPath, parentDir].filter(Boolean);
         let lastError = null;
 
         for (const candidate of candidates) {
@@ -117,14 +122,14 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     };
 
     const handleDeploy = async () => {
-        if (!task?.result_path || !translationDetails?.gameId) return;
+        const outputDir = Array.isArray(task?.output_dirs) && task.output_dirs.length > 0
+            ? task.output_dirs[0]
+            : (task?.result_path ? task.result_path.replace(/\.zip$/i, '') : null);
+        if (!outputDir || !translationDetails?.gameId) return;
 
         setDeployStatus('loading');
 
-        // result_path: .../DEST_DIR/folder.zip
-        // We need the folder name: folder
-        const zipName = task.result_path.split(/[\\/]/).pop();
-        const folderName = zipName.replace('.zip', '');
+        const folderName = outputDir.split(/[\\/]/).pop();
 
         try {
             const response = await api.post('/api/tools/deploy_mod', {

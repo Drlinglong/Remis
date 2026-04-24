@@ -4,7 +4,7 @@ import {
   Stack, Badge, ScrollArea, Table, Box, Tabs, Center, Paper, BackgroundImage,
   ActionIcon, SimpleGrid, Overlay, Input, Tooltip, Checkbox, Alert
 } from '@mantine/core';
-import { IconPlus, IconFolder, IconEdit, IconArrowLeft, IconSearch, IconBooks, IconCompass, IconArrowRight, IconArchive, IconTrash, IconRestore, IconAlertTriangle, IconUpload } from '@tabler/icons-react';
+import { IconPlus, IconFolder, IconEdit, IconArrowLeft, IconSearch, IconBooks, IconCompass, IconArrowRight, IconArchive, IconTrash, IconRestore, IconAlertTriangle } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +18,7 @@ import { usePersistentState } from '../hooks/usePersistentState';
 import ProjectOverview from '../components/tools/ProjectOverview';
 import KanbanBoard from '../components/tools/KanbanBoard';
 import ProjectHistory from '../components/project/ProjectHistory';
+import ProjectValidation from '../components/project/ProjectValidation';
 import styles from './ProjectManagement.module.css';
 
 // Assets
@@ -42,6 +43,7 @@ export default function ProjectManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteSourceFiles, setDeleteSourceFiles] = useState(false);
+  const [projectDataRefreshToken, setProjectDataRefreshToken] = useState(0);
 
   // View Mode: 'active' | 'archives'
   const [viewMode, setViewMode] = usePersistentState('pm_view_mode', 'active');
@@ -99,12 +101,23 @@ export default function ProjectManagement() {
   };
 
   useEffect(() => {
-    if (selectedProject) {
-      setPageContext('project-management-dashboard');
-    } else {
+    if (!selectedProject) {
       setPageContext('project-management-list');
+      return;
     }
-  }, [selectedProject, setPageContext]);
+
+    if (activeTab === 'validation') {
+      setPageContext('project-management-validation');
+      return;
+    }
+
+    if (activeTab === 'history') {
+      setPageContext('project-management-history');
+      return;
+    }
+
+    setPageContext('project-management-dashboard');
+  }, [activeTab, selectedProject, setPageContext]);
 
   useEffect(() => {
     if (selectedProject) {
@@ -134,13 +147,15 @@ export default function ProjectManagement() {
 
   const fetchProjectFiles = async (projectId) => {
     try {
-      const [filesRes, configRes] = await Promise.all([
+      const [filesRes, configRes, archiveRes] = await Promise.all([
         api.get(`/api/project/${projectId}/files`),
-        api.get(`/api/project/${projectId}/config`)
+        api.get(`/api/project/${projectId}/config`),
+        api.get(`/api/project/${projectId}/check-archive`).catch(() => ({ data: null }))
       ]);
 
       const files = filesRes.data;
       const config = configRes.data;
+      const archiveInfo = archiveRes?.data?.exists ? archiveRes.data : null;
       // setProjectFiles(files);
 
       // Construct Details for Overview
@@ -151,6 +166,18 @@ export default function ProjectManagement() {
         name: selectedProject.name, // Pass name
         status: selectedProject.status, // Pass status
         notes: selectedProject.notes, // Pass notes
+        source_language: config.source_language || selectedProject.source_language,
+        archived_languages: archiveInfo?.archived_languages || [],
+        archive_summary: archiveInfo ? {
+          version_id: archiveInfo.version_id,
+          created_at: archiveInfo.created_at,
+          last_upload_at: archiveInfo.last_upload_at,
+          source_entry_count: archiveInfo.source_entry_count || 0,
+          source_file_count: archiveInfo.source_file_count || 0,
+          total_translation_entries: archiveInfo.total_translation_entries || 0,
+          target_language_count: archiveInfo.target_language_count || 0,
+          baseline_versions: archiveInfo.baseline_versions || [],
+        } : null,
         overview: {
           totalFiles: files.length,
           totalLines: totalLines,
@@ -359,22 +386,14 @@ export default function ProjectManagement() {
     if (!selectedProject) return;
     try {
       await api.post(`/api/project/${selectedProject.project_id}/refresh`);
-      fetchProjectFiles(selectedProject.project_id);
+      await Promise.all([
+        fetchProjects(),
+        fetchProjectFiles(selectedProject.project_id),
+      ]);
+      setProjectDataRefreshToken(prev => prev + 1);
       setProjectDetails(prev => ({ ...prev, refreshKey: Date.now() }));
     } catch (error) {
       console.error("Failed to refresh files", error);
-    }
-  };
-
-  const handleUploadTranslations = async () => {
-    if (!selectedProject) return;
-    try {
-      const res = await api.post(`/api/project/${selectedProject.project_id}/upload-translations`);
-      notificationService.success(res.data.message || "Translations uploaded successfully", notificationStyle);
-      handleRefreshFiles(); // Refresh to show logs in activity
-    } catch (error) {
-      console.error("Failed to upload translations", error);
-      notificationService.error(`Failed: ${error.response?.data?.detail || error.message}`, notificationStyle);
     }
   };
 
@@ -523,11 +542,6 @@ export default function ProjectManagement() {
             </Badge>
           </Group>
           <Group>
-            <Tooltip label={t('project_management.upload_translations_desc')}>
-              <Button variant="light" color="cyan" size="xs" leftSection={<IconUpload size={14} />} onClick={handleUploadTranslations}>
-                {t('project_management.upload_translations')}
-              </Button>
-            </Tooltip>
             <Tooltip label={t('project_management.tooltip_refresh')}>
               <Button variant="light" size="xs" onClick={handleRefreshFiles}>{t('project_management.refresh_files')}</Button>
             </Tooltip>
@@ -541,13 +555,14 @@ export default function ProjectManagement() {
         list: styles.tabsList,
         panel: styles.tabsPanel
       }}>
-        <Tabs.List style={{ paddingLeft: '1rem', paddingTop: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
+          <Tabs.List style={{ paddingLeft: '1rem', paddingTop: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
           <Tabs.Tab value="overview">{t('project_management.tabs_overview')}</Tabs.Tab>
           <Tabs.Tab value="taskboard" id="kanban-tab-control">{t('project_management.tabs_kanban')}</Tabs.Tab>
+          <Tabs.Tab value="validation">{t('project_management.tabs_validation')}</Tabs.Tab>
           {FEATURES.ENABLE_PROJECT_HISTORY && <Tabs.Tab value="history">{t('project_management.tabs_history', 'History')}</Tabs.Tab>}
         </Tabs.List>
 
-        <Tabs.Panel value="overview" style={{ flex: 1, overflow: 'hidden', padding: '1rem', minHeight: 0 }}>
+        <Tabs.Panel value="overview" style={{ flex: 1, overflow: 'auto', padding: '1rem', minHeight: 0 }}>
           {projectDetails ? (
             <ProjectOverview
               projectDetails={projectDetails}
@@ -563,8 +578,12 @@ export default function ProjectManagement() {
           ) : <Text>Loading details...</Text>}
         </Tabs.Panel>
 
-        <Tabs.Panel value="taskboard" style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+        <Tabs.Panel value="taskboard" style={{ flex: 1, overflow: 'auto', position: 'relative', minHeight: 0 }}>
           <KanbanBoard projectId={selectedProject.project_id} key={selectedProject.project_id + (projectDetails?.refreshKey || '')} />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="validation" style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
+          <ProjectValidation projectId={selectedProject.project_id} />
         </Tabs.Panel>
 
         {FEATURES.ENABLE_PROJECT_HISTORY && (
@@ -572,6 +591,15 @@ export default function ProjectManagement() {
             <ProjectHistory
               projectId={selectedProject.project_id}
               projectDetails={projectDetails}
+              refreshToken={projectDataRefreshToken}
+              onProjectDataChanged={() => {
+                const refreshPromise = Promise.all([
+                  fetchProjects(),
+                  fetchProjectFiles(selectedProject.project_id),
+                ]);
+                setProjectDataRefreshToken(prev => prev + 1);
+                return refreshPromise;
+              }}
             />
           </Tabs.Panel>
         )}

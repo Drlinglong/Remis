@@ -62,7 +62,27 @@ def ensure_min_google_genai(env_python):
 
 # The conda environment to use for building. Must match the project's dedicated env.
 CONDA_ENV_NAME = "local_factory"
-CONDA_ENVS_ROOT = r"K:\MiniConda\envs"
+
+
+def resolve_conda_env_path(env_name):
+    override = os.environ.get("REMIS_CONDA_ENV_PATH")
+    if override:
+        return override
+
+    conda_prefix = os.environ.get("CONDA_PREFIX")
+    if conda_prefix and os.path.basename(conda_prefix).lower() == env_name.lower():
+        return conda_prefix
+
+    conda_exe = os.environ.get("CONDA_EXE")
+    if conda_exe:
+        conda_root = os.path.dirname(os.path.dirname(conda_exe))
+        return os.path.join(conda_root, "envs", env_name)
+
+    miniconda = os.environ.get("MINICONDA_ROOT")
+    if miniconda:
+        return os.path.join(miniconda, "envs", env_name)
+
+    return os.path.join(os.path.expanduser("~"), "miniconda3", "envs", env_name)
 
 def main():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -72,7 +92,7 @@ def main():
     binaries_dir = os.path.join(src_tauri_dir, "binaries")
 
     # Resolved paths to the dedicated conda env's executables
-    conda_env_path = os.path.join(CONDA_ENVS_ROOT, CONDA_ENV_NAME)
+    conda_env_path = resolve_conda_env_path(CONDA_ENV_NAME)
     env_python = os.path.join(conda_env_path, "python.exe")
     env_pyinstaller = os.path.join(conda_env_path, "Scripts", "pyinstaller.exe")
 
@@ -305,7 +325,7 @@ def main():
     # Step 5: Move Artifacts
     print_step("Step 5: Move Artifacts")
     
-    release_dir = r"J:\V3_Mod_Localization_Factory\archive\release"
+    release_dir = os.path.join(project_root, "archive", "release")
     if not os.path.exists(release_dir):
         print(f"[INIT] Creating {release_dir}")
         os.makedirs(release_dir)

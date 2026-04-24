@@ -3,27 +3,28 @@
 This directory contains all English documentation for the V3 Mod Localization Factory project.
 
 ## Quick Start
-- [Quick Start Guide](user-guides/quick-start.md) - Get started quickly with the project
-- [Beginner's Guide](user-guides/beginner-guide.md) - Guide for new users
+- [How the Factory Works](user-guides/how_the_factory_works.md) - Recommended user-facing starting point
+- [Frequently Asked Questions (FAQ)](user-guides/faq.md) - Common questions and solutions
 
 ## User Guides
 - [Frequently Asked Questions (FAQ)](user-guides/faq.md) - Common questions and solutions
-- [Common Issues](user-guides/troubleshooting.md) - Solutions to common problems
+- [How the Factory Works](user-guides/how_the_factory_works.md) - User workflow overview
 - [Using Ollama for Localization](user-guides/using_ollama.md) - Guide to using local LLMs with Ollama
+- [Using Custom OpenAI API](user-guides/using_custom_openai_api.md) - Custom endpoint configuration
+- [Using ModelScope and SiliconFlow](user-guides/using_modelscope_and_siliconflow.md) - Third-party provider setup
 
 ## Installation and Configuration
-- [First-time Installation and Configuration Script](setup/首次安装配置.bat) - Windows automated installation script
+- [Development Setup](developer/development-setup.md) - Repository development environment
+- [Local CI Guide](../zh/developer/ci-setup.md) - Minimal pre-commit checks
 
 ## Developer Documentation
-- [AI Agent Development Regulations](../agent.md) - AI Agent development specifications
+- [Documentation Status](../docs_status.md) - Current entry points vs historical records
+- [AI Agent Development Regulations](../agent.md) - Deprecated legacy entry kept for compatibility
 - [Architecture Overview](developer/architecture.md) - System architecture and design
 - [Release Build Script Guide](developer/build-release-script-guide.md) - Usage guide for `build_release.bat` script
+- [Feature Flags Guide](../zh/developer/feature_flags.md) - Frontend experimental feature switches
 - [Format Prompt Improvements and Game-Specific Rules](developer/format-prompt-improvements.md) - AI prompt optimization and game-specific format rules
-- [Multi-file Parallel Processing Implementation Summary](developer/parallel-processing-implementation.md) - Parallel processing architecture refactoring record
 - [Multi-file Parallel Processing Architecture Description](developer/parallel-processing.md) - Detailed explanation of parallel processing technology
-- [Punctuation Handler Refactoring Description](developer/punctuation-handler-refactor.md) - Code refactoring and architecture optimization
-- [Gemini CLI Integration Architecture Summary](developer/gemini-cli-integration-summary.md) - Summary of Gemini CLI integration architecture
-- [Case-Insensitive Validation Summary](developer/case-insensitive-validation-summary.md) - Summary of case-insensitive validation
 
 ## Glossary System
 - [Glossary System Overview](glossary/overview.md) - Complete introduction to the glossary system
@@ -33,5 +34,6 @@ This directory contains all English documentation for the V3 Mod Localization Fa
 
 ## Navigation
 - [Chinese Documentation](../zh/index.md) - Chinese documentation index
+- [Archived Docs](../archive/README.md) - Historical records and retired overviews
+- [Developer History Archive](../archive/developer-history/README.md) - Refactor and design history
 - [Back to Documentation Center](../../documentation-center.md) - Back to documentation center
-

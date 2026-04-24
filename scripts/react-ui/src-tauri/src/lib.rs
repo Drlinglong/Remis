@@ -1,5 +1,6 @@
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[allow(unused_imports)]
+use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
 
 pub fn run() {
@@ -15,22 +16,27 @@ pub fn run() {
       app.handle().plugin(tauri_plugin_dialog::init())?;
       app.handle().plugin(tauri_plugin_shell::init())?;
 
-      // Auto-start backend sidecar ONLY in Release mode
-      #[cfg(not(debug_assertions))]
+      // DEBUG ONLY: auto-open devtools on launch — remove before release
+      if let Some(window) = app.get_webview_window("main") {
+          window.open_devtools();
+      }
+
+      // Auto-start backend sidecar in both dev and release.
+      // Dev previously booted only the frontend, which left API calls failing with "Network Error".
       {
-          let sidecar_command = app.handle().shell().sidecar("web_server").map_err(|e| {
-            eprintln!("Failed to create sidecar command: {}", e);
-            e
-          })?;
-          
-          match sidecar_command.spawn() {
-            Ok((mut _rx, _child)) => {
-                println!("Sidecar spawned successfully");
-            }
-            Err(e) => {
-                eprintln!("CRITICAL: Failed to spawn sidecar: {}", e);
-            }
+        let sidecar_command = app.handle().shell().sidecar("web_server").map_err(|e| {
+          eprintln!("Failed to create sidecar command: {}", e);
+          e
+        })?;
+
+        match sidecar_command.spawn() {
+          Ok((_rx, _child)) => {
+            println!("Sidecar spawned successfully");
           }
+          Err(e) => {
+            eprintln!("CRITICAL: Failed to spawn sidecar: {}", e);
+          }
+        }
       }
 
       Ok(())
