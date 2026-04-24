@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import shutil
 import sqlite3
 
@@ -10,6 +11,7 @@ from scripts.core.db_migrations import migrate_main_database
 
 init_logger = logging.getLogger("remis_init")
 init_logger.setLevel(logging.DEBUG)
+DEV_PROJECT_ROOT_PATTERN = re.compile(r"[A-Za-z]:[\\/]+[^\\/\n]*V3_Mod_Localization_Factory", re.IGNORECASE)
 
 
 def setup_init_logging():
@@ -118,8 +120,6 @@ def seed_main_database(db_path, resource_dir):
 
 def fix_demo_paths(conn, persistent_demo_root, persistent_translation_root):
     """Hydrates demo placeholders and legacy dev paths with current runtime paths."""
-    import re
-
     try:
         demo_root = persistent_demo_root.replace("\\", "/")
         trans_root = persistent_translation_root.replace("\\", "/")
@@ -268,13 +268,6 @@ def hydrate_json_configs(app_data_dir):
     init_logger.info("[JSON] Hydrating .remis_project.json files (Targeted Scan)...")
 
     app_data_root = app_data_dir.replace("\\", "/")
-    dev_roots = [
-        "J:/V3_Mod_Localization_Factory",
-        "j:/V3_Mod_Localization_Factory",
-        "J:\\\\V3_Mod_Localization_Factory",
-        "j:\\\\V3_Mod_Localization_Factory",
-    ]
-
     target_dirs = [
         os.path.join(app_data_dir, "my_translation"),
         os.path.join(app_data_dir, "demos"),
@@ -295,8 +288,7 @@ def hydrate_json_configs(app_data_dir):
                     content = f.read()
 
                 original_content = content
-                for dev_root in dev_roots:
-                    content = content.replace(dev_root, app_data_root)
+                content = DEV_PROJECT_ROOT_PATTERN.sub(app_data_root, content)
 
                 content = content.replace("/source_mod/", "/demos/")
                 content = content.replace("\\\\source_mod\\\\", "/demos/")

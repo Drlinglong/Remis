@@ -12,7 +12,7 @@
                 "id": "a6047e4a-7972-5e44-a1cd-2334a18a4010",
                 "type": "file",
                 "title": "remis_demo_l_simp_chinese.yml",
-                "filePath": "J:\\V3_Mod_Localization_Factory\\source_mod\\Test_Project_Remis_Vic3\\localization\\simp_chinese\\remis_demo_l_simp_chinese.yml",
+                "filePath": "{{BUNDLED_DEMO_ROOT}}/Test_Project_Remis_Vic3/localization/simp_chinese/remis_demo_l_simp_chinese.yml",
                 "status": "done",
                 "comments": "",
                 "priority": "medium",
@@ -27,7 +27,7 @@
                 "id": "ce683bec-e770-5189-a803-bebe88421bfe",
                 "type": "file",
                 "title": ".remis_project.json",
-                "filePath": "J:\\V3_Mod_Localization_Factory\\source_mod\\Test_Project_Remis_Vic3\\.remis_project.json",
+                "filePath": "{{BUNDLED_DEMO_ROOT}}/Test_Project_Remis_Vic3/.remis_project.json",
                 "status": "done",
                 "comments": "Configuration/Metadata File",
                 "priority": "low",
@@ -41,7 +41,7 @@
                 "id": "cf7f1cd6-0075-56b9-998e-216909e2f307",
                 "type": "file",
                 "title": ".remis_checkpoint_en.json",
-                "filePath": "J:\\V3_Mod_Localization_Factory\\my_translation\\Multilanguage-Test_Project_Remis_Vic3\\.remis_checkpoint_en.json",
+                "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/zh-CN-Test_Project_Remis_Vic3/.remis_checkpoint_en.json",
                 "status": "todo",
                 "meta": {
                     "lines": 10,
@@ -55,7 +55,7 @@
                 "id": "214d3b19-8b65-5fdb-9fff-61b13e9a4dd8",
                 "type": "file",
                 "title": "校对进度表 Proofreading Progress.csv",
-                "filePath": "J:\\V3_Mod_Localization_Factory\\my_translation\\Multilanguage-Test_Project_Remis_Vic3\\校对进度表 Proofreading Progress.csv",
+                "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/zh-CN-Test_Project_Remis_Vic3/校对进度表 Proofreading Progress.csv",
                 "status": "todo",
                 "meta": {
                     "lines": 3,
@@ -69,7 +69,7 @@
                 "id": "99ff5435-3d61-53fc-867c-e4dadf07828c",
                 "type": "file",
                 "title": "remis_demo_l_english.yml",
-                "filePath": "J:\\V3_Mod_Localization_Factory\\my_translation\\Multilanguage-Test_Project_Remis_Vic3\\localization\\english\\simp_chinese\\remis_demo_l_english.yml",
+                "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/zh-CN-Test_Project_Remis_Vic3/localization/english/simp_chinese/remis_demo_l_english.yml",
                 "status": "todo",
                 "meta": {
                     "lines": 67,
@@ -83,7 +83,7 @@
                 "id": "b6227bfe-0a3b-5ad5-8a1c-17f0156a7c9f",
                 "type": "file",
                 "title": "remis_demo_l_japanese.yml",
-                "filePath": "J:\\V3_Mod_Localization_Factory\\my_translation\\Multilanguage-Test_Project_Remis_Vic3\\localization\\japanese\\simp_chinese\\remis_demo_l_japanese.yml",
+                "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/zh-CN-Test_Project_Remis_Vic3/localization/japanese/simp_chinese/remis_demo_l_japanese.yml",
                 "status": "todo",
                 "meta": {
                     "lines": 67,
@@ -104,14 +104,14 @@
     },
     "config": {
         "translation_dirs": [
-            "J:\\V3_Mod_Localization_Factory\\my_translation\\Multilanguage-Test_Project_Remis_Vic3"
+            "{{BUNDLED_TRANSLATION_ROOT}}/zh-CN-Test_Project_Remis_Vic3"
         ],
         "source_language": "zh-CN"
     },
     "notes": [
         {
             "id": "1767017907.81147",
-            "content": "tets2",
+            "content": "Demo project seeded for the bundled Victoria 3 showcase.",
             "created_at": "2025-12-30T01:18:27.811470"
         }
     ]

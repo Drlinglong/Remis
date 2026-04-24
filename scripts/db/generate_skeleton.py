@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 import shutil
 import sys
@@ -27,6 +28,8 @@ KEEP_PROJECT_IDS = [
 
 DEMO_ROOT_PLACEHOLDER = "{{BUNDLED_DEMO_ROOT}}"
 TRANS_ROOT_PLACEHOLDER = "{{BUNDLED_TRANSLATION_ROOT}}"
+DEV_SOURCE_ROOT_PATTERN = re.compile(r"[A-Za-z]:\\.*?V3_Mod_Localization_Factory\\source_mod\\", re.IGNORECASE)
+DEV_TRANSLATION_ROOT_PATTERN = re.compile(r"[A-Za-z]:\\.*?V3_Mod_Localization_Factory\\my_translation\\", re.IGNORECASE)
 
 # Hardcoded replacement logic:
 # Map the DEV path to the PLACEHOLDER path relative structure.
@@ -49,6 +52,22 @@ def ensure_assets_dir():
     if not os.path.exists(ASSETS_DIR):
         print(f"[INFO] Creating assets directory: {ASSETS_DIR}")
         os.makedirs(ASSETS_DIR)
+
+
+def sanitize_project_file_paths(cursor):
+    cursor.execute("SELECT file_id, file_path FROM project_files")
+    for file_id, file_path in cursor.fetchall():
+        if not file_path:
+            continue
+
+        sanitized = DEV_SOURCE_ROOT_PATTERN.sub(f"{DEMO_ROOT_PLACEHOLDER}/", file_path)
+        sanitized = DEV_TRANSLATION_ROOT_PATTERN.sub(f"{TRANS_ROOT_PLACEHOLDER}/", sanitized)
+        sanitized = sanitized.replace("\\", "/")
+        if sanitized != file_path:
+            cursor.execute(
+                "UPDATE project_files SET file_path = ? WHERE file_id = ?",
+                (sanitized, file_id),
+            )
 
 def create_skeleton():
     print(f"[INFO] Starting Skeleton Database Generation...")
@@ -241,23 +260,13 @@ def create_skeleton():
     
     # Check file paths
     print("[CHECK] Verifying file paths...")
-    # If file paths are absolute, we must fix them.
     cursor.execute("SELECT file_path FROM project_files LIMIT 1")
     row = cursor.fetchone()
     if row:
-        sample_path = row[0]
-        print(f"Sample file path: {sample_path}")
-        if "J:" in sample_path or ":" in sample_path:
-             print("[SANITIZE] Fixing absolute file paths in project_files...")
-             cursor.execute("""
-                UPDATE project_files
-                SET file_path = REPLACE(file_path, 'J:\\V3_Mod_Localization_Factory\\source_mod\\', ? || '/')
-             """, (DEMO_ROOT_PLACEHOLDER,))
-             cursor.execute("""
-                UPDATE project_files
-                SET file_path = REPLACE(file_path, 'J:\\V3_Mod_Localization_Factory\\my_translation\\', ? || '/')
-             """, (TRANS_ROOT_PLACEHOLDER,))
-             conn.commit()
+        print(f"Sample file path: {row[0]}")
+    print("[SANITIZE] Fixing absolute file paths in project_files...")
+    sanitize_project_file_paths(cursor)
+    conn.commit()
     
     # 7. Cleanup & Optimize
     print("[CLEAN] Vacuuming...")
