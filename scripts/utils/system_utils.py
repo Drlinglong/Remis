@@ -18,9 +18,33 @@ def panic_log(message: str):
     except Exception:
         pass
 
+def _is_remis_backend_process(proc: Any) -> bool:
+    try:
+        name = (proc.name() or "").lower()
+        cmdline = " ".join(proc.cmdline()).lower()
+        exe = (proc.exe() or "").lower()
+    except Exception:
+        return False
+
+    if name == "web_server.exe":
+        return True
+
+    remis_markers = (
+        "v3_mod_localization_factory",
+        "remismodfactory",
+        "remis-mod-factory",
+        "scripts\\web_server.py",
+        "scripts/web_server.py",
+    )
+    if name.startswith("python") and any(marker in cmdline for marker in remis_markers):
+        return True
+
+    return any(marker in exe for marker in remis_markers) and "web_server" in cmdline
+
+
 def force_free_port(port: int):
     """
-    Checks if a port is in use and attempts to kill the process holding it.
+    Checks if a port is in use and attempts to stop stale Remis backend processes.
     Uses psutil for reliable cross-platform process discovery.
     """
     # Aggressive console print for debugging
@@ -38,7 +62,8 @@ def force_free_port(port: int):
             parent_pid = psutil.Process(current_pid).ppid()
         except: pass
             
-        pids_to_kill = set()
+        processes_to_kill = []
+        untouched_pids = set()
         
         # Iterate over all system connections
         try:
@@ -46,40 +71,52 @@ def force_free_port(port: int):
                 if conn.laddr.port == port:
                     pid = conn.pid
                     if pid and pid != current_pid and pid != parent_pid:
-                        pids_to_kill.add(pid)
-        except (psutil.AccessDenied, psutil.NoSuchProcess):
-            # Fallback to netstat
-            print(f"[SYSTEM] psutil.net_connections access denied, falling back to netstat...", file=sys.stderr, flush=True)
-            cmd = f'netstat -ano | findstr LISTENING | findstr :{port}'
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-            if result.returncode == 0:
-                for line in result.stdout.strip().split('\n'):
-                    parts = line.split()
-                    if len(parts) >= 5:
                         try:
-                            pid = int(parts[-1])
-                            if pid > 0 and pid != current_pid and pid != parent_pid:
-                                pids_to_kill.add(pid)
-                        except: pass
+                            proc = psutil.Process(pid)
+                            if _is_remis_backend_process(proc):
+                                processes_to_kill.append(proc)
+                            else:
+                                msg = f"[PORT] Port {port} is occupied by non-Remis PID {pid} ({proc.name()}). Leaving it untouched."
+                                print(msg, file=sys.stderr, flush=True)
+                                panic_log(msg)
+                                untouched_pids.add(pid)
+                        except (psutil.AccessDenied, psutil.NoSuchProcess):
+                            pass
+        except (psutil.AccessDenied, psutil.NoSuchProcess):
+            msg = f"[PORT] psutil could not inspect port {port}; refusing blind taskkill fallback."
+            print(msg, file=sys.stderr, flush=True)
+            panic_log(msg)
 
-        if not pids_to_kill:
-            print(f"[SYSTEM] Port {port} is clear.", file=sys.stderr, flush=True)
+        if not processes_to_kill:
+            if untouched_pids:
+                print(f"[SYSTEM] No stale Remis backend found on port {port}; non-Remis process was left untouched.", file=sys.stderr, flush=True)
+            else:
+                print(f"[SYSTEM] Port {port} is clear.", file=sys.stderr, flush=True)
             return
 
-        for pid in pids_to_kill:
+        for proc in processes_to_kill:
             try:
-                proc = psutil.Process(pid)
+                pid = proc.pid
                 p_name = proc.name()
             except:
+                pid = "Unknown"
                 p_name = "Unknown"
                 
-            msg = f"[PORT] Port {port} is occupied by PID {pid} ({p_name}). Terminating..."
+            msg = f"[PORT] Port {port} is occupied by stale Remis backend PID {pid} ({p_name}). Terminating..."
             print(f"\033[91m{msg}\033[0m", file=sys.stderr, flush=True)
             panic_log(msg)
-            
-            # Kill the process and its children
-            subprocess.run(f"taskkill /F /T /PID {pid}", shell=True, capture_output=True)
-            time.sleep(0.5)
+
+            try:
+                children = proc.children(recursive=True)
+                proc.terminate()
+                gone, alive = psutil.wait_procs([proc] + children, timeout=2)
+                for alive_proc in alive:
+                    alive_proc.kill()
+                psutil.wait_procs(alive, timeout=2)
+            except Exception:
+                if isinstance(pid, int):
+                    subprocess.run(f"taskkill /F /T /PID {pid}", shell=True, capture_output=True)
+            time.sleep(0.25)
                 
         time.sleep(1.0)
         print(f"[SYSTEM] Port {port} cleared successfully.", file=sys.stderr, flush=True)

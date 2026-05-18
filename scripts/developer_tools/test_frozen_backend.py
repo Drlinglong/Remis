@@ -83,7 +83,8 @@ def main():
     # Step 3: Health Check
     print_step("Performing Health Check")
     try:
-        resp = requests.get("http://127.0.0.1:8081/api/health", timeout=2)
+        port = os.getenv("REMIS_BACKEND_PORT", "1453")
+        resp = requests.get(f"http://127.0.0.1:{port}/api/health", timeout=2)
         if resp.status_code == 200:
             print("[PASS] Health check passed!")
             print(resp.json())

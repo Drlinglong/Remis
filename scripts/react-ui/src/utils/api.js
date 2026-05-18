@@ -3,8 +3,9 @@ import axios from 'axios';
 
 
 // In Development (Vite): Use relative '/api' so Vite proxy handles it.
-// In Production (Tauri): Use absolute 'http://127.0.0.1:8081' because there is no proxy.
-const baseURL = import.meta.env.DEV ? '' : 'http://127.0.0.1:8081';
+// In Production (Tauri): Use absolute localhost because there is no Vite proxy.
+const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '1453';
+const baseURL = import.meta.env.DEV ? '' : `http://127.0.0.1:${BACKEND_PORT}`;
 
 console.log(`[API Config] Environment: ${import.meta.env.MODE}, BaseURL: ${baseURL}`);
 

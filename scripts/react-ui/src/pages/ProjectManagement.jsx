@@ -550,7 +550,7 @@ export default function ProjectManagement() {
         </Group>
       </Paper>
 
-      <Tabs value={activeTab} onChange={setActiveTab} variant="outline" radius="md" style={{ flex: 1, display: 'flex', flexDirection: 'column' }} classNames={{
+      <Tabs value={activeTab} onChange={setActiveTab} keepMounted={false} variant="outline" radius="md" style={{ flex: 1, display: 'flex', flexDirection: 'column' }} classNames={{
         root: styles.tabsRoot,
         list: styles.tabsList,
         panel: styles.tabsPanel

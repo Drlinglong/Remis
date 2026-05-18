@@ -76,9 +76,10 @@ export const TranslationProvider = ({ children }) => {
             if (!taskId || cancelled) return;
 
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            // Note: In a production Tauri environment, we point directly to localhost:8081.
+            const backendPort = import.meta.env.VITE_BACKEND_PORT || '1453';
+            // Note: In a production Tauri environment, we point directly to localhost.
             // In dev, we also point to the backend port.
-            const host = import.meta.env.DEV ? '127.0.0.1:8081' : '127.0.0.1:8081';
+            const host = `127.0.0.1:${backendPort}`;
             const wsUrl = `${protocol}//${host}/api/ws/status/${taskId}`;
 
             console.log(`[WebSocket] Connecting to ${wsUrl}`);

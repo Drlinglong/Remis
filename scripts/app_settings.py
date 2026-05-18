@@ -77,12 +77,13 @@ ARCHIVE_RESULTS_AFTER_TRANSLATION = True
 
 # --- API Configuration Default ---
 DEFAULT_RPM_LIMIT = 40
+DEFAULT_BACKEND_PORT = 1453
 
 # --- 项目信息 ----------------------------------------------------
 PROJECT_NAME = "Paradox Mod 本地化工厂 - Paradox Mod Localization Factory"
 PROJECT_DISPLAY_NAME = "蕾姆丝计划 - Project Remis "
-VERSION = "3.0.0"
-LAST_UPDATE_DATE = "2026-04-06"
+VERSION = "3.0.1"
+LAST_UPDATE_DATE = "2026-05-14"
 COPYRIGHT = "© 2026 Project Remis Team"
 
 # --- 项目信息显示配置 --------------------------------------------
@@ -170,6 +171,12 @@ CONFIG_DIR = os.path.join(APP_DATA_DIR, 'config') if getattr(sys, 'frozen', Fals
 SOURCE_DIR = os.path.join(APP_DATA_DIR, 'source_mod') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'source_mod')
 DEST_DIR = os.path.join(APP_DATA_DIR, 'my_translation') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'my_translation')
 OUTPUT_DIR = os.path.join(APP_DATA_DIR, 'output') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'output')
+
+def get_backend_port() -> int:
+    try:
+        return int(os.getenv("REMIS_BACKEND_PORT", DEFAULT_BACKEND_PORT))
+    except ValueError:
+        return DEFAULT_BACKEND_PORT
 
 # --- Database Paths ---
 # All user databases live in AppData
