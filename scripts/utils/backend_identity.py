@@ -80,11 +80,16 @@ def get_backend_fingerprint() -> str:
 
 def get_backend_identity() -> Dict[str, Any]:
     root = _project_root()
+    try:
+        from scripts.app_settings import VERSION
+    except Exception:
+        VERSION = "unknown"
+
     return {
         "status": "ok",
         "app": "remis",
         "pid": os.getpid(),
-        "version": "3.0.1",
+        "version": VERSION,
         "api_contract": API_CONTRACT_VERSION,
         "is_frozen": bool(getattr(sys, "frozen", False)),
         "app_root": root.replace("\\", "/"),

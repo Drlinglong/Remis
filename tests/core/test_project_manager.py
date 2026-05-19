@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch, AsyncMock
 import os
 import shutil
+import tempfile
 from scripts.core.project_manager import ProjectManager
 import scripts.app_settings as app_settings
 
@@ -79,6 +80,95 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         self.mock_file_service.scan_and_sync_files.assert_called_once()
         
         self.assertEqual(result["id"], "123")
+
+    @patch("scripts.core.project_manager.ProjectJsonManager")
+    async def test_create_project_copies_detected_localization_scope(self, mock_json_mgr):
+        """
+        Large mod imports should copy known localization/metadata paths instead of the whole mod tree.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mod_root = os.path.join(temp_dir, "HugeMod")
+            source_root = os.path.join(temp_dir, "source_mod")
+            os.makedirs(os.path.join(mod_root, "localisation"), exist_ok=True)
+            os.makedirs(os.path.join(mod_root, "gfx", "large_assets"), exist_ok=True)
+            os.makedirs(source_root, exist_ok=True)
+            with open(os.path.join(mod_root, "localisation", "demo_l_english.yml"), "w", encoding="utf-8") as handle:
+                handle.write("l_english:\n demo_key:0 \"Demo\"\n")
+            with open(os.path.join(mod_root, "descriptor.mod"), "w", encoding="utf-8") as handle:
+                handle.write("name=\"HugeMod\"\n")
+            with open(os.path.join(mod_root, "gfx", "large_assets", "skip.bin"), "w", encoding="utf-8") as handle:
+                handle.write("not localization")
+
+            mock_pydantic_proj = MagicMock()
+            mock_pydantic_proj.model_dump.return_value = {
+                "project_id": "scoped-copy",
+                "name": "HugeMod",
+                "source_path": os.path.join(source_root, "HugeMod"),
+                "game_id": "hoi4",
+            }
+            self.mock_repo.create_project.return_value = mock_pydantic_proj
+            self.mock_repo.get_project.return_value = mock_pydantic_proj
+
+            with patch("scripts.core.project_manager.SOURCE_DIR", source_root):
+                await self.pm.create_project(
+                    name="HugeMod",
+                    folder_path=mod_root,
+                    game_id="hoi4",
+                    source_language="en",
+                    import_mode="copy",
+                )
+
+            copied_root = os.path.join(source_root, "HugeMod")
+            self.assertTrue(os.path.exists(os.path.join(copied_root, "localisation", "demo_l_english.yml")))
+            self.assertTrue(os.path.exists(os.path.join(copied_root, "descriptor.mod")))
+            self.assertFalse(os.path.exists(os.path.join(copied_root, "gfx", "large_assets", "skip.bin")))
+            mock_json_mgr.return_value.update_config.assert_called_once()
+            config_payload = mock_json_mgr.return_value.update_config.call_args.args[0]
+            self.assertEqual(config_payload["project_import"]["copy_scope"], "selected")
+
+    @patch("scripts.core.project_manager.ProjectJsonManager")
+    async def test_create_project_reference_mode_normalizes_localization_subfolder_to_mod_root(self, mock_json_mgr):
+        """
+        Selecting TNO/localisation should still register TNO as the project root so metadata stays visible.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mod_root = os.path.join(temp_dir, "TNO")
+            source_root = os.path.join(temp_dir, "source_mod")
+            localisation_dir = os.path.join(mod_root, "localisation")
+            os.makedirs(localisation_dir, exist_ok=True)
+            os.makedirs(source_root, exist_ok=True)
+            with open(os.path.join(mod_root, "descriptor.mod"), "w", encoding="utf-8") as handle:
+                handle.write("name=\"TNO\"\n")
+
+            mock_pydantic_proj = MagicMock()
+            mock_pydantic_proj.model_dump.return_value = {
+                "project_id": "reference-root",
+                "name": "TNO",
+                "source_path": mod_root,
+                "game_id": "hoi4",
+            }
+            self.mock_repo.create_project.return_value = mock_pydantic_proj
+            self.mock_repo.get_project.return_value = mock_pydantic_proj
+
+            with patch("scripts.core.project_manager.SOURCE_DIR", source_root), patch(
+                "scripts.core.project_manager.shutil.copytree"
+            ) as mock_copytree:
+                await self.pm.create_project(
+                    name="TNO",
+                    folder_path=localisation_dir,
+                    game_id="hoi4",
+                    source_language="en",
+                    import_mode="reference",
+                )
+
+            created_project = self.mock_repo.create_project.call_args.args[0]
+            self.assertEqual(created_project.source_path, os.path.abspath(mod_root))
+            mock_json_mgr.assert_called_with(os.path.abspath(mod_root))
+            mock_copytree.assert_not_called()
+            config_payload = mock_json_mgr.return_value.update_config.call_args.args[0]
+            self.assertEqual(config_payload["project_import"]["selected_path"], os.path.abspath(localisation_dir))
+            self.assertEqual(config_payload["project_import"]["original_path"], os.path.abspath(mod_root))
+            self.assertEqual(config_payload["project_import"]["import_mode"], "reference")
 
     async def test_refresh_project_files_delegation(self):
         """

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   Container, Title, Button, Group, Card, Text, Grid, Modal, TextInput, Select,
   Stack, Badge, ScrollArea, Table, Box, Tabs, Center, Paper, BackgroundImage,
-  ActionIcon, SimpleGrid, Overlay, Input, Tooltip, Checkbox, Alert
+  ActionIcon, SimpleGrid, Overlay, Input, Tooltip, Checkbox, Alert, SegmentedControl,
+  Progress
 } from '@mantine/core';
-import { IconPlus, IconFolder, IconEdit, IconArrowLeft, IconSearch, IconBooks, IconCompass, IconArrowRight, IconArchive, IconTrash, IconRestore, IconAlertTriangle } from '@tabler/icons-react';
+import { IconPlus, IconFolder, IconEdit, IconArrowLeft, IconSearch, IconBooks, IconCompass, IconArrowRight, IconArchive, IconTrash, IconRestore, IconAlertTriangle, IconLink, IconCopy } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useTranslation } from 'react-i18next';
@@ -25,8 +26,6 @@ import styles from './ProjectManagement.module.css';
 import heroBg from '../assets/project_hero_bg.png';
 import cardNewProject from '../assets/card_new_project.png';
 import cardOpenProject from '../assets/card_open_project.png'; // Reusing for Archives
-
-import { normalizeGameId, toIsoLang } from '../utils/paradoxMapping';
 
 // API_BASE is handled by axios instance 'api'
 import { FEATURES } from '../config/features';
@@ -65,6 +64,9 @@ export default function ProjectManagement() {
   const [newProjectPath, setNewProjectPath] = useState('');
   const [newProjectGame, setNewProjectGame] = useState('stellaris');
   const [newProjectSourceLang, setNewProjectSourceLang] = useState('en');
+  const [newProjectImportMode, setNewProjectImportMode] = useState('copy');
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [createProgressMessage, setCreateProgressMessage] = useState('');
 
   // Manage Project State
   const [manageModalOpen, setManageModalOpen] = useState(false);
@@ -204,17 +206,32 @@ export default function ProjectManagement() {
   };
 
   const handleCreateProject = async () => {
+    if (!newProjectName || !newProjectPath) {
+      setCreateProgressMessage(t('project_management.create_missing_fields'));
+      return;
+    }
+
+    setIsCreatingProject(true);
+    setCreateProgressMessage(
+      newProjectImportMode === 'copy'
+        ? t('project_management.create_progress_copying')
+        : t('project_management.create_progress_referencing')
+    );
+
     try {
       const res = await api.post(`/api/project/create`, {
         name: newProjectName,
         folder_path: newProjectPath,
         game_id: newProjectGame,
-        source_language: newProjectSourceLang
+        source_language: newProjectSourceLang,
+        import_mode: newProjectImportMode
       });
+      setCreateProgressMessage(t('project_management.create_progress_refreshing'));
       setIsCreateModalOpen(false);
       await fetchProjects();
       setNewProjectName('');
       setNewProjectPath('');
+      setCreateProgressMessage('');
 
       // Auto-select the new project to redirect to dashboard
       if (res.data && res.data.project && res.data.project.project_id) {
@@ -224,7 +241,10 @@ export default function ProjectManagement() {
         setSelectedProjectId(res.data.project_id);
       }
     } catch (error) {
+      setCreateProgressMessage('');
       alert(`Failed to create project: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setIsCreatingProject(false);
     }
   };
 
@@ -616,6 +636,8 @@ export default function ProjectManagement() {
         onClose={() => setIsCreateModalOpen(false)}
         title={t('project_management.actions.create_new')}
         size="lg"
+        closeOnClickOutside={!isCreatingProject}
+        closeOnEscape={!isCreatingProject}
       >
         <Stack>
           <TextInput
@@ -632,11 +654,33 @@ export default function ProjectManagement() {
               value={newProjectPath}
               onChange={(e) => setNewProjectPath(e.currentTarget.value)}
               style={{ flex: 1 }}
+              disabled={isCreatingProject}
             />
-            <Button onClick={handleBrowseFolder} leftSection={<IconFolder size={16} />}>
+            <Button onClick={handleBrowseFolder} leftSection={<IconFolder size={16} />} disabled={isCreatingProject}>
               {t('btn_browse')}
             </Button>
           </Group>
+          <SegmentedControl
+            fullWidth
+            value={newProjectImportMode}
+            onChange={setNewProjectImportMode}
+            disabled={isCreatingProject}
+            data={[
+              { value: 'copy', label: t('project_management.import_mode_copy') },
+              { value: 'reference', label: t('project_management.import_mode_reference') }
+            ]}
+          />
+          <Alert
+            color={newProjectImportMode === 'reference' ? 'yellow' : 'blue'}
+            variant="light"
+            icon={newProjectImportMode === 'reference' ? <IconLink size={16} /> : <IconCopy size={16} />}
+          >
+            <Text size="sm">
+              {newProjectImportMode === 'reference'
+                ? t('project_management.import_mode_reference_desc')
+                : t('project_management.import_mode_copy_desc')}
+            </Text>
+          </Alert>
           <Select
             label={t('form_label_game')}
             data={availableGames.length > 0 ? availableGames : [
@@ -648,6 +692,7 @@ export default function ProjectManagement() {
             ]}
             value={newProjectGame}
             onChange={(val) => setNewProjectGame(val)}
+            disabled={isCreatingProject}
           />
           <Select
             label={t('form_label_source_language')}
@@ -658,8 +703,26 @@ export default function ProjectManagement() {
             ]}
             value={newProjectSourceLang}
             onChange={(val) => setNewProjectSourceLang(val)}
+            disabled={isCreatingProject}
           />
-          <Button onClick={handleCreateProject} fullWidth mt="md">{t('project_management.actions.create_new')}</Button>
+          {isCreatingProject && (
+            <Box>
+              <Progress value={100} animated striped />
+              <Text size="sm" c="dimmed" mt="xs">{createProgressMessage}</Text>
+            </Box>
+          )}
+          {!isCreatingProject && createProgressMessage && (
+            <Text size="sm" c="yellow">{createProgressMessage}</Text>
+          )}
+          <Button
+            onClick={handleCreateProject}
+            fullWidth
+            mt="md"
+            loading={isCreatingProject}
+            disabled={!newProjectName || !newProjectPath}
+          >
+            {isCreatingProject ? t('project_management.create_progress_title') : t('project_management.actions.create_new')}
+          </Button>
         </Stack>
       </Modal>
 
