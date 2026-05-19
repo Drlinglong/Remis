@@ -17,6 +17,9 @@ if sys.stderr is None:
 import datetime
 import multiprocessing
 import os
+import json
+import urllib.error
+import urllib.request
 
 # Add project root to Python path IMMEDIATELY
 # This allows us to import system_utils right away
@@ -38,13 +41,36 @@ def panic_log(msg):
     except:
         pass
 
+def _fetch_existing_backend_health(port):
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/health", timeout=0.6) as response:
+            if response.status != 200:
+                return None
+            return json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError):
+        return None
+
+
 # 0. Robust Port Check (Call ASAP)
-# This prevents [WinError 10013] and [Errno 10048]
+# Reuse a healthy backend that matches this workspace/fingerprint; only clean stale Remis processes.
 try:
+    from scripts.app_settings import get_backend_port
+    backend_port = get_backend_port()
+    existing_health = _fetch_existing_backend_health(backend_port)
+    from scripts.utils.backend_identity import is_reusable_backend_health
+    if is_reusable_backend_health(existing_health):
+        panic_log(
+            "Existing backend is healthy and matches current workspace/fingerprint. "
+            "Reusing it and exiting new sidecar."
+        )
+        sys.exit(0)
+
     from scripts.utils.system_utils import force_free_port
-    force_free_port(8081)
-except Exception:
-    pass
+    force_free_port(backend_port)
+except SystemExit:
+    raise
+except Exception as exc:
+    panic_log(f"Port preflight failed: {exc}")
 
 panic_log("=== WEB SERVER STARTUP (LOG_CONFIG=NONE) ===")
 
@@ -101,7 +127,10 @@ def read_root():
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "timestamp": time.time()}
+    from scripts.utils.backend_identity import get_backend_identity
+    identity = get_backend_identity()
+    identity["timestamp"] = time.time()
+    return identity
 
 def setup_app_routers():
     """Deferred import and registration of routers to speed up initial boot."""
@@ -227,7 +256,7 @@ if __name__ == "__main__":
         server_config = uvicorn.Config(
             app, 
             host="127.0.0.1", 
-            port=8081, 
+            port=get_backend_port(),
             log_config=None,
             reload=not getattr(sys, 'frozen', False)
         )

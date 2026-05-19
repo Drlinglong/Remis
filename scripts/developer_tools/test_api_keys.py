@@ -2,8 +2,7 @@ import requests
 import os
 from dotenv import load_dotenv
 
-# Load env to get current port if needed, though we assume 8081
-BASE_URL = "http://localhost:8081"
+BASE_URL = f"http://localhost:{os.getenv('REMIS_BACKEND_PORT', '1453')}"
 
 def test_get_api_keys():
     print("Testing GET /api/api-keys...")

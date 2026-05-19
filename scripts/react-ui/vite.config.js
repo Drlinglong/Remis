@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-const backendPort = process.env.BACKEND_PORT || 8081;
+const backendPort = process.env.VITE_BACKEND_PORT || process.env.REMIS_BACKEND_PORT || process.env.BACKEND_PORT || 1453;
 console.log(`[Vite Config] Proxying /api to http://127.0.0.1:${backendPort}`);
 
 export default defineConfig({

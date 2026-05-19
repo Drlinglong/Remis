@@ -23,9 +23,10 @@ if defined CONDA_EXE (
 )
 
 echo [INFO] Checking for port conflicts...
-python -m scripts.utils.system_utils 8081
+if "%REMIS_BACKEND_PORT%"=="" set "REMIS_BACKEND_PORT=1453"
+python -m scripts.utils.system_utils %REMIS_BACKEND_PORT%
 
 echo Starting Python server...
-python -m uvicorn scripts.web_server:app --host 127.0.0.1 --port 8081 --reload
+python -m uvicorn scripts.web_server:app --host 127.0.0.1 --port %REMIS_BACKEND_PORT% --reload
 
 pause
