@@ -7,6 +7,7 @@ class CreateProjectRequest(BaseModel):
     folder_path: str
     game_id: str
     source_language: LanguageCode = LanguageCode.EN
+    import_mode: str = "copy"
 
     @field_validator('source_language', mode='before')
     @classmethod

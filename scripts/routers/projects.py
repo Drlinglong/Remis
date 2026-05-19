@@ -66,7 +66,13 @@ async def create_project(request: CreateProjectRequest):
         if not os.path.exists(request.folder_path):
              raise HTTPException(status_code=404, detail=f"Path not found: {request.folder_path}")
 
-        project = await project_manager.create_project(request.name, request.folder_path, request.game_id, request.source_language)
+        project = await project_manager.create_project(
+            request.name,
+            request.folder_path,
+            request.game_id,
+            request.source_language,
+            import_mode=request.import_mode,
+        )
         return {"status": "success", "project": project}
     except HTTPException:
         raise

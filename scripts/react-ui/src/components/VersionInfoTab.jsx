@@ -1,20 +1,21 @@
+/* global __APP_VERSION__ */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Stack, Group, Text, Title, Paper, Anchor, Alert, ThemeIcon, List, Box, Divider, Button } from '@mantine/core';
-import { IconBrandGithub, IconInfoCircle, IconStar, IconBug, IconFileCode, IconFolderOpen } from '@tabler/icons-react';
+import { Stack, Group, Text, Title, Paper, Anchor, Alert, ThemeIcon, Box, Divider, Button } from '@mantine/core';
+import { IconBrandGithub, IconStar, IconBug, IconFileCode, IconFolderOpen } from '@tabler/icons-react';
 import api from '../utils/api';
 import { notifications } from '@mantine/notifications';
 
 const VersionInfoTab = () => {
     const { t } = useTranslation();
-    const REMIS_VERSION = "3.0.0"; // Project version
-    const lastUpdated = "2026-04-06"; // Last updated date
+    const REMIS_VERSION = __APP_VERSION__; // Injected from package.json by Vite.
+    const lastUpdated = "2026-05-20"; // Last updated date
     const githubRepoUrl = "https://github.com/Drlinglong/Remis";
 
     const handleOpenLogs = async () => {
         try {
             await api.post('/api/system/open-logs');
-        } catch (error) {
+        } catch {
             notifications.show({
                 title: 'Error',
                 message: 'Failed to open logs directory',
@@ -26,7 +27,7 @@ const VersionInfoTab = () => {
     const handleOpenUrl = async (url) => {
         try {
             await api.post('/api/system/open-url', { url });
-        } catch (error) {
+        } catch {
             window.open(url, '_blank'); // Fallback
         }
     };

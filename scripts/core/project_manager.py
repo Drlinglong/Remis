@@ -92,22 +92,122 @@ class ProjectManager:
 
         return abs_path
 
-    async def create_project(self, name: str, folder_path: str, game_id: str, source_language: str) -> Dict[str, Any]:
+    def _get_import_scope_items(self, source_root: str, game_profile: Optional[Dict[str, Any]]) -> List[Path]:
+        root_path = Path(source_root)
+        if not root_path.exists():
+            return []
+
+        candidate_rel_paths = []
+        if game_profile:
+            candidate_rel_paths.extend(game_profile.get("protected_items", []) or [])
+            source_loc_folder = game_profile.get("source_localization_folder")
+            metadata_file = game_profile.get("metadata_file")
+            if source_loc_folder:
+                candidate_rel_paths.append(source_loc_folder)
+            if metadata_file:
+                candidate_rel_paths.append(metadata_file)
+
+        candidate_rel_paths.extend([
+            "localisation",
+            "localization",
+            "descriptor.mod",
+            ".descriptor.mod",
+            "metadata.json",
+            ".metadata",
+            "thumbnail.png",
+        ])
+
+        items = []
+        seen = set()
+        for rel_path in candidate_rel_paths:
+            if not rel_path:
+                continue
+            candidate = root_path / Path(str(rel_path).replace("\\", os.sep).replace("/", os.sep))
+            try:
+                resolved = candidate.resolve()
+            except OSError:
+                resolved = candidate.absolute()
+            key = str(resolved).lower()
+            if key in seen or not candidate.exists():
+                continue
+            seen.add(key)
+            items.append(candidate)
+
+        return items
+
+    def _copy_project_source_scope(self, source_path: str, target_path: str, game_profile: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        import_items = self._get_import_scope_items(source_path, game_profile)
+        copied_items = []
+
+        if not import_items:
+            shutil.copytree(source_path, target_path)
+            return {
+                "copy_scope": "full",
+                "copied_items": ["."],
+            }
+
+        os.makedirs(target_path, exist_ok=False)
+        source_root = Path(source_path)
+        target_root = Path(target_path)
+
+        for item in import_items:
+            rel_path = item.relative_to(source_root)
+            destination = target_root / rel_path
+            if item.is_dir():
+                shutil.copytree(item, destination)
+            else:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(item, destination)
+            copied_items.append(str(rel_path).replace("\\", "/"))
+
+        return {
+            "copy_scope": "selected",
+            "copied_items": copied_items,
+        }
+
+    def _is_inside_source_root(self, folder_path: str, source_root: str) -> bool:
+        try:
+            return os.path.commonpath([os.path.abspath(folder_path), source_root]) == source_root
+        except ValueError:
+            return False
+
+    async def create_project(
+        self,
+        name: str,
+        folder_path: str,
+        game_id: str,
+        source_language: str,
+        import_mode: str = "copy",
+    ) -> Dict[str, Any]:
         """
         Creates a new project.
         """
         # Normalize game_id
         game_id = GAME_ID_ALIASES.get(game_id.lower(), game_id)
+        game_profile = GAME_PROFILES_BY_ID.get(game_id)
+        import_mode = (import_mode or "copy").lower()
+        if import_mode not in {"copy", "reference"}:
+            raise ValueError("import_mode must be 'copy' or 'reference'")
         
-        logger.info(f"Creating project '{name}' from '{folder_path}' for game '{game_id}' (Source: {source_language})")
+        logger.info(
+            f"Creating project '{name}' from '{folder_path}' for game '{game_id}' "
+            f"(Source: {source_language}, import_mode={import_mode})"
+        )
 
         # 1. Handle Folder Movement/Validation
         source_root = os.path.abspath(SOURCE_DIR)
         abs_folder_path = self._normalize_source_root_path(folder_path, game_id)
         final_source_path = abs_folder_path
+        import_metadata = {
+            "import_mode": import_mode,
+            "selected_path": os.path.abspath(folder_path),
+            "original_path": abs_folder_path,
+            "copy_scope": "referenced",
+            "copied_items": [],
+        }
 
-        if not abs_folder_path.startswith(source_root):
-            logger.info(f"Folder {abs_folder_path} is not in {source_root}. Moving...")
+        if import_mode == "copy" and not self._is_inside_source_root(abs_folder_path, source_root):
+            logger.info(f"Folder {abs_folder_path} is not in {source_root}. Copying selected project source scope...")
             target_dir_name = os.path.basename(abs_folder_path)
             final_source_path = os.path.join(source_root, target_dir_name)
             counter = 1
@@ -118,13 +218,13 @@ class ProjectManager:
                 counter += 1
 
             try:
-                shutil.copytree(abs_folder_path, final_source_path)
-                logger.info(f"Copied to {final_source_path}")
+                import_metadata.update(self._copy_project_source_scope(abs_folder_path, final_source_path, game_profile))
+                logger.info(f"Copied project source scope to {final_source_path}: {import_metadata}")
             except Exception as e:
                 logger.error(f"Failed to copy folder: {e}")
                 raise RuntimeError(f"Failed to copy folder to source directory: {e}")
         else:
-            logger.info("Folder is already in source directory.")
+            logger.info("Using selected folder in place.")
 
         project_id = str(uuid.uuid4())
         now = datetime.datetime.now().isoformat()
@@ -146,7 +246,8 @@ class ProjectManager:
         json_manager = ProjectJsonManager(final_source_path)
         json_manager.update_config({
             "translation_dirs": [],
-            "source_language": source_language
+            "source_language": source_language,
+            "project_import": import_metadata,
         })
 
         # Scan files (Initial Scan)
