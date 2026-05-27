@@ -1,4 +1,4 @@
-<svg viewBox="0 0 900 540" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1000 600" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <filter id="glow-blue" x="-20%" y="-20%" width="140%" height="140%">
       <feGaussianBlur stdDeviation="5" result="blur" />
@@ -34,26 +34,26 @@
       }
 
       @keyframes packet-main {
-        0%   { transform: translate(170px, 270px); opacity: 0; }
+        0%   { transform: translate(170px, 315px); opacity: 0; }
         5%   { opacity: 1; }
-        25%  { transform: translate(265px, 270px); opacity: 1; }
-        50%  { transform: translate(450px, 270px); opacity: 1; }
+        25%  { transform: translate(290px, 315px); opacity: 1; }
+        50%  { transform: translate(500px, 315px); opacity: 1; }
         95%  { opacity: 1; }
-        100% { transform: translate(730px, 270px); opacity: 0; }
+        100% { transform: translate(730px, 315px); opacity: 0; }
       }
 
       @keyframes packet-context {
-        0%   { transform: translate(450px, 170px); opacity: 0; }
+        0%   { transform: translate(500px, 180px); opacity: 0; }
         15%  { opacity: 1; }
-        85%  { transform: translate(450px, 195px); opacity: 1; }
-        100% { transform: translate(450px, 205px); opacity: 0; }
+        85%  { transform: translate(500px, 235px); opacity: 1; }
+        100% { transform: translate(500px, 245px); opacity: 0; }
       }
 
       @keyframes packet-test {
-        0%   { transform: translate(450px, 370px); opacity: 0; }
+        0%   { transform: translate(500px, 385px); opacity: 0; }
         15%  { opacity: 1; }
-        85%  { transform: translate(450px, 345px); opacity: 1; }
-        100% { transform: translate(450px, 335px); opacity: 0; }
+        85%  { transform: translate(500px, 440px); opacity: 1; }
+        100% { transform: translate(500px, 450px); opacity: 0; }
       }
 
       @keyframes feedback-loop {
@@ -70,11 +70,11 @@
       .packet-context { animation: packet-context 2s infinite linear; }
       .packet-test { animation: packet-test 2.2s infinite linear; animation-delay: 0.5s; }
       .loop-line { animation: feedback-loop 2.6s infinite linear; }
-      .ring { animation: spin 14s infinite linear; transform-origin: 450px 270px; }
+      .ring { animation: spin 14s infinite linear; transform-origin: 500px 315px; }
 
       .text-code { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; fill: #8b949e; }
-      .text-title { font-family: 'Segoe UI', sans-serif; font-size: 17px; font-weight: bold; fill: #c9d1d9; }
-      .text-center-title { font-family: 'Segoe UI', sans-serif; font-size: 22px; font-weight: 800; fill: #ffffff; }
+      .text-title { font-family: 'Segoe UI', sans-serif; font-size: 16px; font-weight: bold; fill: #c9d1d9; }
+      .text-center-title { font-family: 'Segoe UI', sans-serif; font-size: 20px; font-weight: 800; fill: #ffffff; }
       .text-blue { fill: #58a6ff; font-weight: bold; }
       .text-purple { fill: #d2a8ff; font-weight: bold; }
       .text-green { fill: #3fb950; font-weight: bold; }
@@ -90,67 +90,64 @@
   </pattern>
   <rect width="100%" height="100%" fill="url(#grid)" />
 
-  <text x="450" y="46" font-family="'Segoe UI', sans-serif" font-size="20" font-weight="800" fill="#c9d1d9" text-anchor="middle">Agentic Smart Repair Workflow</text>
+  <text x="500" y="46" font-family="'Segoe UI', sans-serif" font-size="22" font-weight="800" fill="#c9d1d9" text-anchor="middle">Agentic Smart Repair Architecture</text>
 
   <!-- Horizontal pipelines -->
-  <path d="M 170 270 L 210 270" stroke="#30363d" stroke-width="6" stroke-linecap="round" />
-  <path d="M 320 270 L 340 270" stroke="#30363d" stroke-width="6" stroke-linecap="round" />
-  <path d="M 560 270 L 730 270" stroke="#30363d" stroke-width="6" stroke-linecap="round" />
+  <path d="M 250 315 L 360 315" stroke="#30363d" stroke-width="6" stroke-linecap="round" />
+  <path d="M 640 315 L 750 315" stroke="#30363d" stroke-width="6" stroke-linecap="round" />
 
   <!-- Vertical pipelines -->
-  <path d="M 450 170 L 450 205" stroke="#30363d" stroke-width="5" stroke-linecap="round" />
-  <path d="M 450 335 L 450 370" stroke="#30363d" stroke-width="5" stroke-linecap="round" />
+  <path d="M 500 180 L 500 245" stroke="#30363d" stroke-width="5" stroke-linecap="round" />
+  <path d="M 500 385 L 500 450" stroke="#30363d" stroke-width="5" stroke-linecap="round" />
 
   <!-- Loop line for retry -->
-  <path d="M 560 408 C 650 408 650 335 540 335" fill="none" stroke="#f85149" stroke-width="2.5" stroke-dasharray="12 12" class="loop-line" />
+  <path d="M 640 495 C 710 495 710 385 600 385" fill="none" stroke="#f85149" stroke-width="2.5" stroke-dasharray="12 12" class="loop-line" />
 
-  <!-- Block 1: Issue Queue -->
-  <rect x="50" y="225" width="120" height="90" rx="9" fill="#161b22" stroke="#f85149" stroke-width="2.5" filter="url(#glow-red)" />
-  <text x="110" y="258" class="text-title text-red" text-anchor="middle">Issue Queue</text>
-  <text x="110" y="280" class="text-code" text-anchor="middle">Broken entries</text>
-  <text x="110" y="298" class="text-code" text-anchor="middle">Syntax errors</text>
-  <circle cx="170" cy="270" r="4.5" fill="#ff7b72" />
+  <!-- Block 1: Scanner & Issue Queue -->
+  <rect x="70" y="265" width="180" height="100" rx="9" fill="#161b22" stroke="#f85149" stroke-width="2.5" filter="url(#glow-red)" />
+  <text x="160" y="295" class="text-title text-red" text-anchor="middle">Scanner &amp; Queue</text>
+  <text x="85" y="318" class="text-code" text-anchor="start">• Syntax errors</text>
+  <text x="85" y="336" class="text-code" text-anchor="start">• Variable errors</text>
+  <text x="85" y="354" class="text-code" text-anchor="start">• Damaged entries</text>
 
-  <!-- Block 2: Diagnose -->
-  <rect x="210" y="225" width="110" height="90" rx="9" fill="#161b22" stroke="#58a6ff" stroke-width="2.5" filter="url(#glow-blue)" />
-  <text x="265" y="258" class="text-title text-blue" text-anchor="middle">Diagnose</text>
-  <text x="265" y="280" class="text-code" text-anchor="middle">Analyze logs</text>
-  <text x="265" y="298" class="text-code" text-anchor="middle">Extract issues</text>
+  <!-- Block 2: Context Pack (Top) -->
+  <rect x="360" y="90" width="280" height="90" rx="9" fill="#0d1117" stroke="#a371f7" stroke-width="2.5" filter="url(#glow-purple)" />
+  <text x="500" y="118" class="text-title text-purple" text-anchor="middle">Dynamic Context Pack</text>
+  <text x="375" y="140" class="text-code" text-anchor="start">• Glossary terms (fuzzy match)</text>
+  <text x="375" y="156" class="text-code" text-anchor="start">• Dynamic few-shot examples</text>
+  <text x="375" y="172" class="text-code" text-anchor="start">• Original source text fallback</text>
 
-  <!-- Block 3: Context Pack (Top) -->
-  <rect x="340" y="95" width="220" height="75" rx="9" fill="#0d1117" stroke="#a371f7" stroke-width="2.5" filter="url(#glow-purple)" />
-  <text x="450" y="127" class="text-title text-purple" text-anchor="middle">Context Pack</text>
-  <text x="450" y="149" class="text-code" text-anchor="middle">Glossary | Source | Rules</text>
-
-  <!-- Block 4: Reflexion Agent (Center) -->
+  <!-- Block 3: Reflexion Agent (Center) -->
   <g>
-    <circle cx="450" cy="270" r="102" fill="none" stroke="#21262d" stroke-width="2" class="ring" stroke-dasharray="18 10 5 10" />
-    <rect x="340" y="205" width="220" height="130" rx="12" fill="#090c10" stroke="#a371f7" stroke-width="3" class="agent-core" filter="url(#glow-purple)" />
-    <text x="450" y="244" class="text-center-title" text-anchor="middle">REFLEXION AGENT</text>
-    <text x="450" y="267" class="text-code text-purple" font-weight="700" text-anchor="middle">Reflect -> Suggest -> Verify</text>
+    <circle cx="500" cy="315" r="110" fill="none" stroke="#21262d" stroke-width="2" class="ring" stroke-dasharray="18 10 5 10" />
+    <rect x="360" y="245" width="280" height="140" rx="12" fill="#090c10" stroke="#a371f7" stroke-width="3" class="agent-core" filter="url(#glow-purple)" />
+    <text x="500" y="280" class="text-center-title" text-anchor="middle">REFLEXION AGENT</text>
+    <text x="500" y="303" class="text-code text-purple" font-weight="700" text-anchor="middle">Reflect ➔ Suggest ➔ Verify</text>
 
     <!-- Sub-boxes for Reflection / Suggestion / Verification -->
-    <rect x="355" y="290" width="58" height="22" rx="4" fill="#1f2428" stroke="#30363d" />
-    <text x="384" y="305" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Reflect</text>
+    <rect x="385" y="330" width="70" height="24" rx="4" fill="#1f2428" stroke="#30363d" />
+    <text x="420" y="346" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Reflect</text>
     
-    <rect x="421" y="290" width="58" height="22" rx="4" fill="#1f2428" stroke="#30363d" />
-    <text x="450" y="305" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Suggest</text>
+    <rect x="465" y="330" width="70" height="24" rx="4" fill="#1f2428" stroke="#30363d" />
+    <text x="500" y="346" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Suggest</text>
     
-    <rect x="487" y="290" width="58" height="22" rx="4" fill="#1f2428" stroke="#30363d" />
-    <text x="516" y="305" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Verify</text>
+    <rect x="545" y="330" width="70" height="24" rx="4" fill="#1f2428" stroke="#30363d" />
+    <text x="580" y="346" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Verify</text>
   </g>
 
-  <!-- Block 5: Post-Validator (Bottom) -->
-  <rect x="340" y="370" width="220" height="75" rx="9" fill="#0d1117" stroke="#d29922" stroke-width="2.5" filter="url(#glow-orange)" />
-  <text x="450" y="402" class="text-title text-orange" text-anchor="middle">Post-Validator</text>
-  <text x="450" y="424" class="text-code" text-anchor="middle">Tag Parity | Game Rules | Retries</text>
+  <!-- Block 4: Post-Validator (Bottom) -->
+  <rect x="360" y="450" width="280" height="90" rx="9" fill="#0d1117" stroke="#d29922" stroke-width="2.5" filter="url(#glow-orange)" />
+  <text x="500" y="478" class="text-title text-orange" text-anchor="middle">Post-Validator Gate</text>
+  <text x="375" y="500" class="text-code" text-anchor="start">• Tag closures (§Y/§!)</text>
+  <text x="375" y="516" class="text-code" text-anchor="start">• Variable parity ($var$)</text>
+  <text x="375" y="532" class="text-code" text-anchor="start">• Character set filter</text>
 
-  <!-- Block 6: Fixed Output (Far-right) -->
-  <rect x="730" y="225" width="120" height="90" rx="9" fill="#161b22" stroke="#3fb950" stroke-width="2.5" filter="url(#glow-green)" />
-  <text x="790" y="258" class="text-title text-green" text-anchor="middle">Fixed Output</text>
-  <text x="790" y="280" class="text-code" text-anchor="middle">Deploy-ready</text>
-  <text x="790" y="298" class="text-code" text-anchor="middle">clean patch set</text>
-  <circle cx="730" cy="270" r="4.5" fill="#3fb950" />
+  <!-- Block 5: Clean Output & Persist (Right) -->
+  <rect x="750" y="265" width="180" height="100" rx="9" fill="#161b22" stroke="#3fb950" stroke-width="2.5" filter="url(#glow-green)" />
+  <text x="840" y="295" class="text-title text-green" text-anchor="middle">Output &amp; Persist</text>
+  <text x="765" y="318" class="text-code" text-anchor="start">• SQLite database</text>
+  <text x="765" y="336" class="text-code" text-anchor="start">• Deploy-ready YML</text>
+  <text x="765" y="354" class="text-code" text-anchor="start">• Clean patch sets</text>
 
   <!-- Animated moving packets -->
   <g class="packet-main-1">
@@ -168,9 +165,9 @@
   </g>
 
   <!-- Labels on pipeline lines -->
-  <text x="190" y="253" class="text-code" text-anchor="middle">Collect</text>
-  <text x="645" y="253" class="text-code" text-anchor="middle">Apply</text>
-  <text x="610" y="376" class="text-code text-red" text-anchor="start">Failed checks retry loop</text>
-  <text x="438" y="192" class="text-code text-purple" text-anchor="end">Evidence</text>
-  <text x="462" y="355" class="text-code text-orange" text-anchor="start">Validation gate</text>
+  <text x="305" y="298" class="text-code" text-anchor="middle">Input</text>
+  <text x="695" y="298" class="text-code" text-anchor="middle">Output</text>
+  <text x="680" y="440" class="text-code text-red" text-anchor="start">Sieve &amp; Retry</text>
+  <text x="490" y="212" class="text-code text-purple" text-anchor="end">Evidence</text>
+  <text x="510" y="418" class="text-code text-orange" text-anchor="start">Validation Gate</text>
 </svg>
