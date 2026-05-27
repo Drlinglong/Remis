@@ -35,6 +35,30 @@ For recruiters and engineering reviewers: this project demonstrates full-stack p
 - **Glossary-aware translation:** reusable terminology management with fuzzy search, abbreviation support, and cross-game dictionaries.
 - **Operational quality:** project tracking, translation archive snapshots, proofreading UI, CI/test coverage, release notes, and installer builds.
 
+## Core Workflows
+
+Project Remis is built around three product workflows: project management, incremental translation reuse, and agentic smart repair for broken localization entries.
+
+### Project Management Workflow
+
+<p align="center">
+  <img src="project_management.svg" width="90%" alt="Project management workflow diagram">
+</p>
+
+### Incremental Update Workflow
+
+<p align="center">
+  <img src="Incremental_%20Update.svg" width="90%" alt="Incremental update workflow diagram">
+</p>
+
+### Agentic Smart Repair Workflow
+
+The smart repair flow is the project's agentic workflow: it collects broken entries, builds a context pack, asks the repair agent to diagnose and patch the issue, then loops through verification before producing a review-ready fix.
+
+<p align="center">
+  <img src="agentic_repair_workflow.svg" width="90%" alt="Agentic smart repair workflow diagram">
+</p>
+
 <p align="center">
   <img src="gfx/screenshot_en1.jpg" width="80%" alt="Main Interface Preview">
 </p>

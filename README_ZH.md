@@ -27,6 +27,32 @@
 
 ---
 
+## 核心工作流
+
+Project Remis 围绕三个核心产品工作流构建：项目管理、增量更新复用，以及面向异常本地化条目的智能修复。
+
+### 项目管理工作流
+
+<p align="center">
+  <img src="project_management.svg" width="90%" alt="项目管理工作流示意图">
+</p>
+
+### 增量更新工作流
+
+<p align="center">
+  <img src="Incremental_%20Update.svg" width="90%" alt="增量更新工作流示意图">
+</p>
+
+### 智能修复工作流
+
+智能修复是本项目中最典型的 agentic workflow：系统收集损坏条目，构建上下文包，由修复 Agent 诊断并生成补丁，再通过验证环节循环收敛，最后输出可审阅的修复结果。
+
+<p align="center">
+  <img src="agentic_repair_workflow.svg" width="90%" alt="智能修复工作流示意图">
+</p>
+
+---
+
 ## ✨ 功能亮点
 
 ### 🏗️ 以项目为核心的工作流

@@ -1,0 +1,162 @@
+<svg viewBox="0 0 900 500" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="glow-heavy" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#090c10" />
+      <stop offset="100%" stop-color="#161b22" />
+    </linearGradient>
+
+    <style>
+      /* 绿色高速继承通道 */
+      @keyframes move-fast {
+        0%   { transform: translate(150px, 250px); opacity: 0; }
+        5%   { opacity: 1; }
+        20%  { transform: translate(300px, 250px); }
+        25%  { transform: translate(300px, 120px); }
+        45%  { transform: translate(450px, 120px); opacity: 1; } /* 到达缓存区 */
+        55%  { transform: translate(500px, 120px); opacity: 1; } /* 极速穿过 */
+        75%  { transform: translate(750px, 120px); }
+        80%  { transform: translate(750px, 250px); opacity: 1; }
+        90%  { transform: translate(750px, 250px); opacity: 0; }
+        100% { transform: translate(750px, 250px); opacity: 0; }
+      }
+
+      /* 橙色慢速翻译通道 */
+      @keyframes move-slow {
+        0%   { transform: translate(150px, 250px); opacity: 0; }
+        5%   { opacity: 1; }
+        20%  { transform: translate(300px, 250px); }
+        25%  { transform: translate(300px, 380px); }
+        40%  { transform: translate(460px, 380px); opacity: 1; } /* 到达LLM区 */
+        70%  { transform: translate(490px, 380px); opacity: 1; } /* 缓慢处理 (耗时更长) */
+        85%  { transform: translate(750px, 380px); }
+        90%  { transform: translate(750px, 250px); opacity: 1; }
+        95%  { transform: translate(750px, 250px); opacity: 0; }
+        100% { transform: translate(750px, 250px); opacity: 0; }
+      }
+
+      @keyframes pulse-db {
+        0%   { stroke: #2ea043; filter: drop-shadow(0 0 2px #2ea043); }
+        50%  { stroke: #3fb950; filter: drop-shadow(0 0 8px #3fb950); }
+        100% { stroke: #2ea043; filter: drop-shadow(0 0 2px #2ea043); }
+      }
+
+      @keyframes pulse-llm {
+        0%   { stroke: #d29922; filter: drop-shadow(0 0 2px #d29922); }
+        50%  { stroke: #e3b341; filter: drop-shadow(0 0 10px #e3b341); }
+        100% { stroke: #d29922; filter: drop-shadow(0 0 2px #d29922); }
+      }
+
+      /* 齿轮旋转 */
+      @keyframes spin {
+        0%   { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .packet-green-1 { animation: move-fast 4s infinite linear; }
+      .packet-green-2 { animation: move-fast 4s infinite linear; animation-delay: 1s; }
+      .packet-green-3 { animation: move-fast 4s infinite linear; animation-delay: 2.5s; }
+
+      .packet-orange { animation: move-slow 6s infinite linear; animation-delay: 1.5s; }
+
+      .db-glow { animation: pulse-db 2s infinite ease-in-out; }
+      .llm-glow { animation: pulse-llm 3s infinite ease-in-out; }
+      .gear-spin { animation: spin 5s infinite linear; transform-origin: 300px 250px; }
+
+      .text-code { font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; fill: #8b949e; }
+      .text-title { font-family: 'Segoe UI', sans-serif; font-size: 18px; font-weight: bold; fill: #c9d1d9; }
+      .text-green { fill: #3fb950; font-weight: bold; }
+      .text-orange { fill: #e3b341; font-weight: bold; }
+      .text-blue { fill: #58a6ff; font-weight: bold; }
+    </style>
+  </defs>
+
+  <rect width="100%" height="100%" fill="url(#bg-grad)" rx="12" />
+
+  <g stroke="#21262d" stroke-width="1">
+    <path d="M0,120 L900,120 M0,250 L900,250 M0,380 L900,380" stroke-dasharray="4 4" />
+    <path d="M150,0 L150,500 M300,0 L300,500 M750,0 L750,500" stroke-dasharray="4 4" />
+  </g>
+
+  <path d="M 150 250 L 300 250" stroke="#30363d" stroke-width="4" fill="none" />
+
+  <path d="M 300 250 L 300 120 L 750 120 L 750 250" stroke="#238636" stroke-width="6" stroke-opacity="0.3" fill="none" />
+  <path d="M 300 250 L 300 120 L 750 120 L 750 250" stroke="#2ea043" stroke-width="2" stroke-dasharray="8 4" fill="none" filter="url(#glow)" />
+
+  <path d="M 300 250 L 300 380 L 750 380 L 750 250" stroke="#9e6a03" stroke-width="6" stroke-opacity="0.3" fill="none" />
+  <path d="M 300 250 L 300 380 L 750 380 L 750 250" stroke="#d29922" stroke-width="2" stroke-dasharray="8 4" fill="none" filter="url(#glow)" />
+
+  <rect x="50" y="210" width="120" height="80" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="2" />
+  <text x="110" y="245" class="text-title text-blue" text-anchor="middle">Source V2</text>
+  <text x="110" y="265" class="text-code" text-anchor="middle">Updated Mods</text>
+  <circle cx="170" cy="250" r="4" fill="#58a6ff" filter="url(#glow)" />
+
+  <g class="gear-spin">
+    <circle cx="300" cy="250" r="30" fill="#0d1117" stroke="#8b949e" stroke-width="3" stroke-dasharray="12 8" />
+  </g>
+  <circle cx="300" cy="250" r="18" fill="#161b22" stroke="#58a6ff" stroke-width="2" />
+  <path d="M294,250 L306,250 M300,244 L300,256" stroke="#58a6ff" stroke-width="2" />
+  <text x="240" y="295" class="text-title" text-anchor="end">Diff Engine</text>
+  <text x="240" y="315" class="text-code" text-anchor="end">Entry Comparison</text>
+
+  <rect x="420" y="80" width="160" height="80" rx="8" fill="#0d1117" stroke-width="2" class="db-glow" />
+  <ellipse cx="500" cy="100" rx="20" ry="6" fill="none" stroke="#3fb950" stroke-width="2" />
+  <path d="M480,100 L480,115 A20,6 0 0,0 520,115 L520,100" fill="none" stroke="#3fb950" stroke-width="2" />
+  <path d="M480,115 L480,130 A20,6 0 0,0 520,130 L520,115" fill="none" stroke="#3fb950" stroke-width="2" />
+  <text x="500" y="155" class="text-title text-green" text-anchor="middle">mods_cache.sqlite</text>
+  <text x="500" y="175" class="text-code text-green" text-anchor="middle">100% Inherit | 0 Token</text>
+
+  <rect x="420" y="340" width="160" height="80" rx="8" fill="#0d1117" stroke-width="2" class="llm-glow" />
+  <circle cx="480" cy="380" r="4" fill="#e3b341" />
+  <circle cx="500" cy="365" r="4" fill="#e3b341" />
+  <circle cx="520" cy="380" r="4" fill="#e3b341" />
+  <circle cx="500" cy="395" r="4" fill="#e3b341" />
+  <path d="M480,380 L500,365 L520,380 L500,395 Z" fill="none" stroke="#e3b341" stroke-width="1" opacity="0.5" />
+  <text x="500" y="445" class="text-title text-orange" text-anchor="middle">Delta Translate</text>
+  <text x="500" y="465" class="text-code text-orange" text-anchor="middle">Changed &amp; New Only</text>
+
+  <rect x="690" y="210" width="120" height="80" rx="8" fill="#161b22" stroke="#8b949e" stroke-width="2" />
+  <text x="750" y="245" class="text-title" text-anchor="middle">Remis Build</text>
+  <text x="750" y="265" class="text-code" text-anchor="middle">Merged Output</text>
+  <circle cx="690" cy="250" r="4" fill="#8b949e" />
+
+  <g class="packet-green-1">
+    <rect x="-10" y="-10" width="20" height="20" rx="4" fill="#238636" stroke="#3fb950" stroke-width="2" filter="url(#glow)" />
+    <text x="0" y="-15" class="text-code text-green" text-anchor="middle">Unchanged</text>
+  </g>
+  <g class="packet-green-2">
+    <rect x="-10" y="-10" width="20" height="20" rx="4" fill="#238636" stroke="#3fb950" stroke-width="2" filter="url(#glow)" />
+  </g>
+  <g class="packet-green-3">
+    <rect x="-10" y="-10" width="20" height="20" rx="4" fill="#238636" stroke="#3fb950" stroke-width="2" filter="url(#glow)" />
+  </g>
+
+  <g class="packet-orange">
+    <rect x="-12" y="-12" width="24" height="24" rx="4" fill="#9e6a03" stroke="#e3b341" stroke-width="2" filter="url(#glow)" />
+    <text x="0" y="-18" class="text-code text-orange" text-anchor="middle">Modified (Diff)</text>
+  </g>
+
+  <g transform="translate(320, 245)">
+    <text x="0" y="0" class="text-code">90% Traffic</text>
+  </g>
+  <g transform="translate(320, 310)">
+    <text x="0" y="0" class="text-code">10% Traffic</text>
+  </g>
+
+</svg>

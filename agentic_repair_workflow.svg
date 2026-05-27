@@ -1,0 +1,162 @@
+<svg viewBox="0 0 900 540" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow-blue" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    <filter id="glow-purple" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    <filter id="glow-red" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+
+    <linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#090c10" />
+      <stop offset="100%" stop-color="#161b22" />
+    </linearGradient>
+
+    <style>
+      @keyframes core-pulse {
+        0%   { stroke: #a371f7; filter: drop-shadow(0 0 4px #a371f7); }
+        50%  { stroke: #d2a8ff; filter: drop-shadow(0 0 16px #d2a8ff); }
+        100% { stroke: #a371f7; filter: drop-shadow(0 0 4px #a371f7); }
+      }
+
+      @keyframes flow-forward {
+        0%   { transform: translate(155px, 270px); opacity: 0; }
+        8%   { opacity: 1; }
+        28%  { transform: translate(310px, 270px); opacity: 1; }
+        44%  { transform: translate(450px, 270px); opacity: 1; }
+        62%  { transform: translate(590px, 270px); opacity: 1; }
+        84%  { transform: translate(735px, 270px); opacity: 1; }
+        100% { transform: translate(755px, 270px); opacity: 0; }
+      }
+
+      @keyframes flow-context {
+        0%   { transform: translate(400px, 145px); opacity: 0; }
+        15%  { opacity: 1; }
+        80%  { transform: translate(400px, 210px); opacity: 1; }
+        100% { transform: translate(400px, 220px); opacity: 0; }
+      }
+
+      @keyframes flow-test {
+        0%   { transform: translate(565px, 395px); opacity: 0; }
+        15%  { opacity: 1; }
+        80%  { transform: translate(565px, 330px); opacity: 1; }
+        100% { transform: translate(565px, 320px); opacity: 0; }
+      }
+
+      @keyframes feedback-loop {
+        0%   { stroke-dashoffset: 0; opacity: 0.35; }
+        50%  { opacity: 0.9; }
+        100% { stroke-dashoffset: -48; opacity: 0.35; }
+      }
+
+      @keyframes scan {
+        0%   { transform: translateY(-34px); opacity: 0; }
+        15%  { opacity: 1; }
+        80%  { opacity: 1; }
+        100% { transform: translateY(34px); opacity: 0; }
+      }
+
+      .agent-core { animation: core-pulse 3s infinite ease-in-out; }
+      .packet-forward-1 { animation: flow-forward 4.2s infinite linear; }
+      .packet-forward-2 { animation: flow-forward 4.2s infinite linear; animation-delay: 1.4s; }
+      .packet-context { animation: flow-context 2s infinite linear; }
+      .packet-test { animation: flow-test 2.2s infinite linear; animation-delay: 0.5s; }
+      .loop-line { animation: feedback-loop 2.6s infinite linear; }
+      .scan-line { animation: scan 1.8s infinite ease-in-out; }
+
+      .text-code { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; fill: #8b949e; }
+      .text-title { font-family: 'Segoe UI', sans-serif; font-size: 17px; font-weight: bold; fill: #c9d1d9; }
+      .text-center-title { font-family: 'Segoe UI', sans-serif; font-size: 21px; font-weight: 800; fill: #ffffff; }
+      .text-blue { fill: #58a6ff; font-weight: bold; }
+      .text-purple { fill: #d2a8ff; font-weight: bold; }
+      .text-green { fill: #3fb950; font-weight: bold; }
+      .text-red { fill: #ff7b72; font-weight: bold; }
+    </style>
+  </defs>
+
+  <rect width="100%" height="100%" fill="url(#bg-grad)" rx="12" />
+
+  <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+    <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#21262d" stroke-width="0.5" />
+  </pattern>
+  <rect width="100%" height="100%" fill="url(#grid)" />
+
+  <path d="M 155 270 L 745 270" stroke="#30363d" stroke-width="6" stroke-linecap="round" />
+  <path d="M 400 145 L 400 220" stroke="#30363d" stroke-width="4" stroke-linecap="round" />
+  <path d="M 565 320 L 565 395" stroke="#30363d" stroke-width="4" stroke-linecap="round" />
+  <path d="M 620 395 C 760 430 790 160 620 150" fill="none" stroke="#f85149" stroke-width="2" stroke-dasharray="12 12" class="loop-line" />
+
+  <rect x="45" y="230" width="140" height="80" rx="8" fill="#161b22" stroke="#f85149" stroke-width="2" filter="url(#glow-red)" />
+  <text x="115" y="263" class="text-title text-red" text-anchor="middle">Issue Queue</text>
+  <text x="115" y="285" class="text-code" text-anchor="middle">Broken entries</text>
+  <circle cx="183" cy="270" r="4" fill="#ff7b72" />
+
+  <rect x="265" y="230" width="140" height="80" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="2" filter="url(#glow-blue)" />
+  <text x="335" y="263" class="text-title text-blue" text-anchor="middle">Diagnose</text>
+  <text x="335" y="285" class="text-code" text-anchor="middle">Parse logs &amp; context</text>
+  <g transform="translate(335 287)">
+    <rect x="-36" y="10" width="72" height="20" rx="4" fill="#0d1117" stroke="#30363d" />
+    <line x1="-28" y1="18" x2="28" y2="18" stroke="#58a6ff" stroke-width="2" opacity="0.65" />
+    <line x1="-28" y1="25" x2="12" y2="25" stroke="#58a6ff" stroke-width="2" opacity="0.4" />
+    <line x1="-36" y1="10" x2="36" y2="10" stroke="#79c0ff" stroke-width="2" class="scan-line" />
+  </g>
+
+  <rect x="345" y="70" width="220" height="75" rx="8" fill="#0d1117" stroke="#a371f7" stroke-width="2" filter="url(#glow-purple)" />
+  <text x="455" y="102" class="text-title text-purple" text-anchor="middle">Context Pack</text>
+  <text x="455" y="124" class="text-code" text-anchor="middle">Glossary | Source | Rules</text>
+
+  <g>
+    <circle cx="455" cy="270" r="100" fill="none" stroke="#21262d" stroke-width="2" stroke-dasharray="18 10 5 10" />
+    <rect x="345" y="205" width="220" height="130" rx="12" fill="#090c10" stroke="#a371f7" stroke-width="3" class="agent-core" filter="url(#glow-purple)" />
+    <text x="455" y="246" class="text-center-title" text-anchor="middle">REPAIR AGENT</text>
+    <text x="455" y="270" class="text-code text-purple" text-anchor="middle">Plan -> Patch -> Explain</text>
+
+    <rect x="367" y="292" width="54" height="20" rx="4" fill="#1f2428" stroke="#30363d" />
+    <text x="394" y="306" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Target</text>
+    <rect x="428" y="292" width="54" height="20" rx="4" fill="#1f2428" stroke="#30363d" />
+    <text x="455" y="306" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Patch</text>
+    <rect x="489" y="292" width="54" height="20" rx="4" fill="#1f2428" stroke="#30363d" />
+    <text x="516" y="306" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Rationale</text>
+  </g>
+
+  <rect x="475" y="395" width="180" height="75" rx="8" fill="#0d1117" stroke="#d29922" stroke-width="2" />
+  <text x="565" y="427" class="text-title" fill="#e3b341" text-anchor="middle">Verification</text>
+  <text x="565" y="449" class="text-code" fill="#e3b341" text-anchor="middle">Lint | Tests | Re-run</text>
+
+  <rect x="715" y="230" width="140" height="80" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="2" filter="url(#glow-green)" />
+  <text x="785" y="263" class="text-title text-green" text-anchor="middle">Fixed Output</text>
+  <text x="785" y="285" class="text-code" text-anchor="middle">Review-ready patch</text>
+  <circle cx="717" cy="270" r="4" fill="#3fb950" />
+
+  <g class="packet-forward-1">
+    <rect x="-11" y="-11" width="22" height="22" rx="5" fill="#f85149" stroke="#ff7b72" stroke-width="2" filter="url(#glow-red)" />
+  </g>
+  <g class="packet-forward-2">
+    <rect x="-10" y="-10" width="20" height="20" rx="5" fill="#58a6ff" stroke="#79c0ff" stroke-width="2" filter="url(#glow-blue)" />
+  </g>
+
+  <g class="packet-context">
+    <circle cx="0" cy="0" r="5" fill="#d2a8ff" filter="url(#glow-purple)" />
+  </g>
+  <g class="packet-test">
+    <rect x="-5" y="-8" width="10" height="16" rx="2" fill="#e3b341" />
+  </g>
+
+  <text x="225" y="253" class="text-code" text-anchor="middle">Collect</text>
+  <text x="635" y="253" class="text-code" text-anchor="middle">Apply</text>
+  <text x="665" y="382" class="text-code text-red" text-anchor="start">Failed check loops back</text>
+  <text x="392" y="182" class="text-code text-purple" text-anchor="end">Evidence</text>
+  <text x="573" y="367" class="text-code" fill="#e3b341" text-anchor="start">Regression gate</text>
+
+  <text x="450" y="35" font-family="'Segoe UI', sans-serif" font-size="18" font-weight="800" fill="#c9d1d9" text-anchor="middle">Agentic Smart Repair Workflow</text>
+</svg>
