@@ -106,6 +106,14 @@ const SettingsPage = () => {
                                             { value: 'en', label: 'English (en-US)' },
                                             { value: 'zh', label: '简体中文 (zh-CN)' },
                                             { value: 'ru', label: 'Русский (ru-RU)' },
+                                            { value: 'fr', label: 'Français (fr-FR)' },
+                                            { value: 'de', label: 'Deutsch (de-DE)' },
+                                            { value: 'es', label: 'Español (es-ES)' },
+                                            { value: 'ja', label: '日本語 (ja-JP)' },
+                                            { value: 'ko', label: '한국어 (ko-KR)' },
+                                            { value: 'pl', label: 'Polski (pl-PL)' },
+                                            { value: 'pt-BR', label: 'Português (pt-BR)' },
+                                            { value: 'tr', label: 'Türkçe (tr-TR)' },
                                         ]}
                                         style={{ width: 200 }}
                                     />

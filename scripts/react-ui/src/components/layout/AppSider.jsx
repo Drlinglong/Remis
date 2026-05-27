@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Stack, UnstyledButton, rem, Text, Box } from '@mantine/core';
+import { Stack, UnstyledButton, rem, Text, Box, ActionIcon } from '@mantine/core';
 import {
     IconHome,
     IconBook,
@@ -17,6 +17,8 @@ import {
     IconQuestionMark,
     IconRocket,
     IconRobot,
+    IconPin,
+    IconPinFilled,
 } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -80,7 +82,10 @@ export function AppSider() {
     const navigate = useNavigate();
     const location = useLocation();
     const { startTour } = useTutorial();
-    const [expanded, setExpanded] = useState(false);
+    const [isPinned, setIsPinned] = useState(() => localStorage.getItem('sidebar_pinned') === 'true');
+    const [hovered, setHovered] = useState(false);
+    const expanded = isPinned || hovered;
+    const { t } = useTranslation();
 
     const links = navItems.map((link) => (
         <NavbarLink
@@ -107,8 +112,8 @@ export function AppSider() {
         <Box
             id="sidebar-nav"
             className={styles.sidebarLeft}
-            onMouseEnter={() => setExpanded(true)}
-            onMouseLeave={() => setExpanded(false)}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
             style={{
                 height: '100%',
                 display: 'flex',
@@ -120,17 +125,37 @@ export function AppSider() {
                 background: 'transparent', /* Ensure no double background */
             }}
         >
-            <Stack justify="center" gap={0} mb="md" align="center" style={{ height: 60, flexShrink: 0 }}>
+            <Stack justify="center" gap={0} mb="md" align="center" style={{ height: 60, flexShrink: 0, width: '100%' }}>
                 {expanded ? (
-                    <img
-                        src="/Project Remis.png"
-                        alt="Remis Logo"
-                        style={{
-                            height: '40px',
-                            objectFit: 'contain',
-                            filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.3))'
-                        }}
-                    />
+                    <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0 8px' }}>
+                        <img
+                            src="/Project Remis.png"
+                            alt="Remis Logo"
+                            style={{
+                                height: '40px',
+                                objectFit: 'contain',
+                                filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.3))',
+                                maxWidth: '140px'
+                            }}
+                        />
+                        <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            onClick={() => {
+                                const newVal = !isPinned;
+                                setIsPinned(newVal);
+                                localStorage.setItem('sidebar_pinned', String(newVal));
+                            }}
+                            title={isPinned ? t('sidebar.unpin') : t('sidebar.pin')}
+                            style={{
+                                transition: 'transform 0.2s ease',
+                                transform: isPinned ? 'rotate(45deg)' : 'none',
+                                color: isPinned ? 'var(--text-highlight)' : 'var(--text-muted)',
+                            }}
+                        >
+                            {isPinned ? <IconPinFilled size={18} /> : <IconPin size={18} />}
+                        </ActionIcon>
+                    </Box>
                 ) : (
                     <img
                         src="/Project Remis.png"

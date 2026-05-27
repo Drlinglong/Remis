@@ -163,7 +163,15 @@ const SplashScreen = ({ onReady }) => {
                         data={[
                             { value: 'en', label: 'English' },
                             { value: 'zh', label: '简体中文' },
-                            { value: 'ru', label: 'Русский' }
+                            { value: 'ru', label: 'Русский' },
+                            { value: 'fr', label: 'Français' },
+                            { value: 'de', label: 'Deutsch' },
+                            { value: 'es', label: 'Español' },
+                            { value: 'ja', label: '日本語' },
+                            { value: 'ko', label: '한국어' },
+                            { value: 'pl', label: 'Polski' },
+                            { value: 'pt-BR', label: 'Português (Brasil)' },
+                            { value: 'tr', label: 'Türkçe' }
                         ]}
                         value={i18n.language ? i18n.language.split('-')[0] : 'en'}
                         onChange={(val) => {
