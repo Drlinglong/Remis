@@ -12,8 +12,8 @@
   </p>
 
   <p>
-    <a href="README.md"><img src="https://img.shields.io/badge/阅读文档-简体中文-blue.svg?style=flat-square"></a>
-    <a href="README_EN.md"><img src="https://img.shields.io/badge/Read_Docs-English-green.svg?style=flat-square"></a>
+    <a href="README_ZH.md"><img src="https://img.shields.io/badge/阅读文档-简体中文-blue.svg?style=flat-square"></a>
+    <a href="README.md"><img src="https://img.shields.io/badge/Read_Docs-English-green.svg?style=flat-square"></a>
     <a href="README_RU.md"><img src="https://img.shields.io/badge/Документация-Русский-red.svg?style=flat-square"></a>
   </p>
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Pre-commit hook for automatic quality checks
+# Example pre-commit hook for local quality checks.
 # Install: copy this file to .git/hooks/pre-commit
 
 echo ""
 echo "==========================================="
-echo "  Running Pre-Commit Checks..."
+echo "  Running Remis Pre-Commit Checks..."
 echo "==========================================="
 echo ""
 

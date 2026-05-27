@@ -1,5 +1,6 @@
 FROM ./translategemma-27b-it.Q6_K.gguf
 
+# Local Ollama profile for deterministic TranslateGemma experiments.
 # Set the temperature to a lower value for more deterministic translations
 PARAMETER temperature 0.1
 

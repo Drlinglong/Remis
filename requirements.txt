@@ -3,7 +3,7 @@
 PyYAML
 
 # AI API Dependencies
-# 用户可以选择使用OpenAI或Google Gemini API
+# Users can choose OpenAI-compatible or Google Gemini APIs.
 openai>=1.0.0
 google-genai>=1.68.0,<2
 
