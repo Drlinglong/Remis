@@ -25,6 +25,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         self.mock_repo.add_history_entry = AsyncMock()
         self.mock_repo.touch_project = AsyncMock()
         self.mock_repo.update_project_metadata = AsyncMock()
+        self.mock_repo.update_project_source_path = AsyncMock()
         
         self.mock_kanban = MagicMock()
         
@@ -169,6 +170,74 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(config_payload["project_import"]["selected_path"], os.path.abspath(localisation_dir))
             self.assertEqual(config_payload["project_import"]["original_path"], os.path.abspath(mod_root))
             self.assertEqual(config_payload["project_import"]["import_mode"], "reference")
+
+    @patch("scripts.core.project_manager.ProjectJsonManager")
+    async def test_create_project_copy_mode_renames_target_when_source_dir_name_conflicts(self, mock_json_mgr):
+        """
+        Copy-mode imports should append a numeric suffix when the destination folder already exists.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mod_root = os.path.join(temp_dir, "HugeMod")
+            source_root = os.path.join(temp_dir, "source_mod")
+            os.makedirs(os.path.join(mod_root, "localisation"), exist_ok=True)
+            os.makedirs(os.path.join(source_root, "HugeMod"), exist_ok=True)
+            with open(os.path.join(mod_root, "descriptor.mod"), "w", encoding="utf-8") as handle:
+                handle.write("name=\"HugeMod\"\n")
+
+            mock_pydantic_proj = MagicMock()
+            mock_pydantic_proj.model_dump.return_value = {
+                "project_id": "renamed-copy",
+                "name": "HugeMod",
+                "source_path": os.path.join(source_root, "HugeMod_1"),
+                "game_id": "hoi4",
+            }
+            self.mock_repo.create_project.return_value = mock_pydantic_proj
+            self.mock_repo.get_project.return_value = mock_pydantic_proj
+
+            with patch("scripts.core.project_manager.SOURCE_DIR", source_root):
+                await self.pm.create_project(
+                    name="HugeMod",
+                    folder_path=mod_root,
+                    game_id="hoi4",
+                    source_language="en",
+                    import_mode="copy",
+                )
+
+            created_project = self.mock_repo.create_project.call_args.args[0]
+            expected_target = os.path.join(source_root, "HugeMod_1")
+            self.assertEqual(created_project.source_path, expected_target)
+            self.assertTrue(os.path.exists(os.path.join(expected_target, "descriptor.mod")))
+            config_payload = mock_json_mgr.return_value.update_config.call_args.args[0]
+            self.assertEqual(config_payload["project_import"]["copy_scope"], "selected")
+            self.assertEqual(config_payload["project_import"]["original_path"], os.path.abspath(mod_root))
+
+    async def test_get_project_normalizes_legacy_localisation_subfolder_and_persists_it(self):
+        """
+        Legacy projects stored at the localisation folder should be normalized back to the mod root.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mod_root = os.path.join(temp_dir, "TNO")
+            localisation_dir = os.path.join(mod_root, "localisation")
+            os.makedirs(localisation_dir, exist_ok=True)
+            with open(os.path.join(mod_root, "descriptor.mod"), "w", encoding="utf-8") as handle:
+                handle.write("name=\"TNO\"\n")
+
+            mock_obj = MagicMock()
+            mock_obj.model_dump.return_value = {
+                "project_id": "legacy-proj",
+                "name": "TNO",
+                "game_id": "hoi4",
+                "source_path": localisation_dir,
+            }
+            self.mock_repo.get_project.return_value = mock_obj
+
+            result = await self.pm.get_project("legacy-proj")
+
+        self.assertEqual(result["source_path"], os.path.abspath(mod_root))
+        self.mock_repo.update_project_source_path.assert_awaited_once_with(
+            "legacy-proj",
+            os.path.abspath(mod_root),
+        )
 
     async def test_refresh_project_files_delegation(self):
         """

@@ -43,3 +43,28 @@ def test_create_project_invalid_path(mock_project_manager):
     })
     
     assert response.status_code == 404
+
+def test_create_project_defaults_to_copy_mode(mock_project_manager):
+    mock_project_manager.create_project.return_value = {
+        "project_id": "proj-1",
+        "name": "Test Project",
+        "source_path": "C:/Mods/TestProject",
+    }
+
+    client = TestClient(app)
+    with patch("scripts.routers.projects.os.path.exists", return_value=True):
+        response = client.post("/api/project/create", json={
+            "name": "Test Project",
+            "folder_path": "C:/Mods/TestProject",
+            "game_id": "stellaris",
+        })
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    mock_project_manager.create_project.assert_awaited_once_with(
+        "Test Project",
+        "C:/Mods/TestProject",
+        "stellaris",
+        "en",
+        import_mode="copy",
+    )
