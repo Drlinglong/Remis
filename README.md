@@ -3,7 +3,7 @@
   <img src="gfx/Project Remis.png" width="150" alt="Project Remis Logo">
 
   <h1>Project Remis</h1>
-  <strong>P社Mod本地化工厂 (Paradox Mod Localization Factory)</strong>
+  <strong>Paradox Mod Localization Factory</strong>
 
   <p>
     <a href="https://github.com/Drlinglong/Remis/releases/latest"><img src="https://img.shields.io/github/v/release/Drlinglong/Remis?style=for-the-badge&logo=github&label=Release&labelColor=1a1a2e&color=4ecdc4" alt="Release Version"></a>
@@ -12,213 +12,227 @@
   </p>
 
   <p>
-    <a href="README.md"><img src="https://img.shields.io/badge/阅读文档-简体中文-blue.svg?style=flat-square"></a>
-    <a href="README_EN.md"><img src="https://img.shields.io/badge/Read_Docs-English-green.svg?style=flat-square"></a>
+    <a href="README_ZH.md"><img src="https://img.shields.io/badge/阅读文档-简体中文-blue.svg?style=flat-square"></a>
+    <a href="README.md"><img src="https://img.shields.io/badge/Read_Docs-English-green.svg?style=flat-square"></a>
     <a href="README_RU.md"><img src="https://img.shields.io/badge/Документация-Русский-red.svg?style=flat-square"></a>
   </p>
 
 </div>
 
-> **告别复制粘贴，拥抱自动化。** 一款为 P社游戏 Mod 打造的 AI 驱动本地化桌面应用，让翻译不再成为门槛。
+> **Say goodbye to copy-pasting, embrace automation.** An AI-powered desktop application for localizing Paradox game mods — making translation accessible to everyone.
+
+## Portfolio Summary
+
+Project Remis is a production desktop application that turns Paradox mod localization into a structured, auditable workflow. It combines a Tauri desktop shell, a React/Mantine interface, and a Python FastAPI backend to parse game localization files, run glossary-aware LLM translation, preserve translation history, support proofreading, and deploy generated localization mods.
+
+For recruiters and engineering reviewers: this project demonstrates full-stack product ownership across desktop packaging, API design, AI workflow orchestration, local data modeling, UX polish, automated tests, release engineering, and community support.
+
+### Engineering Highlights
+
+- **Desktop product architecture:** Tauri + React frontend with a FastAPI backend, packaged for Windows users.
+- **AI workflow orchestration:** provider-agnostic translation support for OpenAI-compatible APIs, Gemini, DeepSeek, Grok, Ollama, NVIDIA NIM, OpenRouter, and related services.
+- **Domain-specific parsing:** Paradox localization file handling, game profile configuration, validation, and incremental update workflows.
+- **Glossary-aware translation:** reusable terminology management with fuzzy search, abbreviation support, and cross-game dictionaries.
+- **Operational quality:** project tracking, translation archive snapshots, proofreading UI, CI/test coverage, release notes, and installer builds.
 
 <p align="center">
-  <img src="gfx/screenshot_cn1.jpg" width="80%" alt="主界面预览">
+  <img src="gfx/screenshot_en1.jpg" width="80%" alt="Main Interface Preview">
 </p>
 
 ---
 
-## ✨ 功能亮点
+## ✨ Feature Highlights
 
-### 🏗️ 以项目为核心的工作流
-告别 CLI 时代的繁琐操作！全新的桌面应用采用**项目管理**模式——创建项目、导入 Mod、一键翻译，所有进度自动追踪。
+### 🏗️ Project-Centric Workflow
+Say goodbye to the CLI era! The new desktop app adopts a **project management** approach — create a project, import your mod, translate with one click, and track all progress automatically.
 
 <p align="center">
-  <img src="gfx/screenshot_cn2.jpg" width="80%" alt="项目状态概览">
+  <img src="gfx/screenshot_en2.jpg" width="80%" alt="Project Status Overview">
 </p>
 
-### 📚 强大的词典管理系统
-内置智能词典，让 AI 像老玩家一样精准地翻译游戏术语。支持**拼音搜索、模糊匹配、缩写识别**，并可跨游戏管理多套词典。
+### 📚 Powerful Glossary Management
+Built-in intelligent glossary system ensures AI translates game terminology like a veteran player. Supports **phonetic search, fuzzy matching, and abbreviation recognition**, with cross-game glossary management.
 
 <p align="center">
-  <img src="gfx/screenshot_cn3.jpg" width="80%" alt="词典管理">
+  <img src="gfx/screenshot_en3.jpg" width="80%" alt="Glossary Manager">
 </p>
 
-### ✏️ 专业的校对工作区
-翻译完成后，进入**并排对照**的校对模式。AI 初稿自动归档，方便你精修润色每一行文本。
+### ✏️ Professional Proofreading Workspace
+After translation, enter a **side-by-side comparison** proofreading mode. AI drafts are automatically archived for easy review and refinement.
 
 <p align="center">
-  <img src="gfx/screenshot_cn4.jpg" width="80%" alt="校对工作区">
+  <img src="gfx/screenshot_en4.jpg" width="80%" alt="Proofreading Workspace">
 </p>
 
-### 🛠️ 实用工具箱
-内置**封面图制作器**等实用工具，更多功能持续开发中！
+### 🛠️ Utility Toolbox
+Built-in tools like **Cover Image Maker**, with more features coming soon!
 
 <p align="center">
-  <img src="gfx/screenshot_cn5.jpg" width="80%" alt="工具箱">
+  <img src="gfx/screenshot_en5.jpg" width="80%" alt="Toolbox">
 </p>
 
-### ⚙️ 灵活的翻译配置
-支持多款主流 AI 服务：**Gemini、OpenAI、DeepSeek、Grok、Ollama、NVIDIA NIM、OpenRouter** 等。5 款精美主题任你选择。
+### ⚙️ Flexible Translation Configuration
+Supports multiple AI providers: **Gemini, OpenAI, DeepSeek, Grok, Ollama, NVIDIA NIM, OpenRouter**, and more. Choose from 5 beautiful themes.
 
 <p align="center">
-  <img src="gfx/screenshot_cn6.jpg" width="80%" alt="翻译配置">
+  <img src="gfx/screenshot_en6.jpg" width="80%" alt="Translation Configuration">
 </p>
 
 ---
 
-## 📥 下载与安装
+## 📥 Download & Install
 
-得益于全新的 **Tauri** 打包技术，安装变得前所未有的简单：
+Thanks to the new **Tauri** packaging technology, installation is simpler than ever:
 
-1. 📦 从 [Releases 页面](https://github.com/Drlinglong/Remis/releases/latest) 下载最新的 **安装包** (`.exe`)
-2. 🖱️ 双击运行，按照安装向导完成安装
-3. 🚀 启动应用，跟随**内置引导教程**完成 API 配置
+1. 📦 Download the latest **installer** (`.exe`) from the [Releases page](https://github.com/Drlinglong/Remis/releases/latest)
+2. 🖱️ Double-click to run and follow the installation wizard
+3. 🚀 Launch the app and follow the **built-in tutorial** to configure your API
 
-> **💡 温馨提示**
-> 
-> 本工具是 AI 翻译的"搬运工"，需要你自行准备 API 密钥。
-> 首次启动时，应用会引导你选择 AI 服务（如 Gemini、OpenAI 等）并输入 API Key。
-> 
-> **⚠️ 使用 API 可能产生费用，请妥善保管密钥！**
-
----
-
-## 🚀 快速开始
-
-应用内置了**交互式引导教程**，会一步步带你完成：
-
-1. **配置 AI 服务** — 选择翻译引擎，输入 API 密钥
-2. **创建翻译项目** — 导入 Mod 文件夹，选择游戏类型
-3. **启动翻译** — 配置源语言和目标语言，点击开始
-4. **校对精修** — 在校对工作区审阅并完善译文
-5. **一键部署** — 将翻译成果部署到游戏目录
-
-> 应用内置了 **3 个演示 Mod**（群星、维多利亚 3、EU5），你可以直接用它们来体验完整的翻译流程！
+> **💡 Quick Note**
+>
+> This tool is an "AI translation porter" — you'll need your own API key.
+> On first launch, the app will guide you to select an AI service (e.g., Gemini, OpenAI) and enter your API key.
+>
+> **⚠️ API usage may incur costs. Keep your key safe!**
 
 ---
 
-## 🎮 在游戏中启用 Mod
+## 🚀 Quick Start
 
-完成翻译后，你需要在游戏中启用本地化 Mod：
+The app includes an **interactive guided tutorial** that walks you through:
 
-1. 打开 `my_translation` 文件夹，找到生成的本地化包（如 `zh-CN-你的Mod名`）
-2. 将这个文件夹复制到游戏的 `mod` 目录：
-   - **维多利亚3**: `C:\Users\你的用户名\Documents\Paradox Interactive\Victoria 3\mod`
-   - **群星**: `C:\Users\你的用户名\Documents\Paradox Interactive\Stellaris\mod`
-   - **钢铁雄心4**: `C:\Users\你的用户名\Documents\Paradox Interactive\Hearts of Iron IV\mod`
-   - **十字军之王3**: `C:\Users\你的用户名\Documents\Paradox Interactive\Crusader Kings III\mod`
-3. 在游戏启动器的"播放集"中，同时启用**原 Mod** 和**汉化 Mod**
-4. **关键一步**：确保**汉化 Mod** 的加载顺序在原 Mod **之下**
+1. **Configure AI Service** — Select your translation engine and enter API key
+2. **Create Translation Project** — Import mod folder, select game type
+3. **Start Translation** — Configure source and target languages, click start
+4. **Proofread & Refine** — Review and polish translations in the proofreading workspace
+5. **One-Click Deploy** — Deploy translations to your game directory
 
-> 💡 应用也提供了**一键部署**功能，可以自动完成上述步骤。
+> The app includes **3 demo mods** (Stellaris, Victoria 3, EU5) — try the complete translation workflow immediately!
 
 ---
 
-## ❓ 故障排除
+## 🎮 Enable Mod in Game
 
-| 问题 | 解决方案 |
-|------|----------|
-| **翻译不生效** | 检查汉化 Mod 的加载顺序是否在原 Mod **之下** |
-| **原 Mod 有假本地化文件** | 删除原 Mod `localization` 目录下除原语言外的其他语言文件夹 |
-| **API 报错** | 检查 API Key 是否正确、账户余额是否充足 |
-| **翻译质量不佳** | 尝试在词典管理器中添加专业术语，或在翻译时输入 Mod 主题描述 |
+After translation, you need to enable the localization mod in-game:
 
-更多问题请参阅 [常见问题 (FAQ)](docs/zh/user-guides/faq.md)。
+1. Open the `my_translation` folder and locate the generated localization package (e.g., `zh-CN-YourModName`)
+2. Copy this folder to your game's `mod` directory:
+   - **Victoria 3**: `C:\Users\YourUsername\Documents\Paradox Interactive\Victoria 3\mod`
+   - **Stellaris**: `C:\Users\YourUsername\Documents\Paradox Interactive\Stellaris\mod`
+   - **Hearts of Iron IV**: `C:\Users\YourUsername\Documents\Paradox Interactive\Hearts of Iron IV\mod`
+   - **Crusader Kings III**: `C:\Users\YourUsername\Documents\Paradox Interactive\Crusader Kings III\mod`
+3. In the game launcher's "Playsets," enable both the **original mod** and the **localization mod**
+4. **Crucial step**: Ensure the **localization mod** loads **after** the original mod
+
+> 💡 The app also provides a **one-click deploy** feature that automates these steps.
+
+---
+
+## ❓ Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| **Translation not working** | Ensure localization mod loads **after** the original mod |
+| **Original mod has fake localization** | Delete all language folders except the original language in the mod's `localization` directory |
+| **API errors** | Verify your API key and check account balance |
+| **Poor translation quality** | Add specialized terms in the Glossary Manager, or provide mod theme description |
+
+For more help, see [Frequently Asked Questions (FAQ)](docs/en/user-guides/faq.md).
 
 > [!IMPORTANT]
-> **🛑 关于“假本地化”（假中文）与翻译失效**
-> 
-> 如果汉化 Mod 加载后不生效，最常见的原因是原 Mod 包含了“假本地化文件”。
-> 
-> **什么是假本地化？**
-> 许多 Mod 作者为了让所有语言的玩家都能运行 Mod（防止出现乱码 Key），会把英文文件复制一份并重命名为 `simp_chinese`、`french` 等。这就导致即使你加载了汉化 Mod，游戏也会优先读取原 Mod 里的这些“假中文”文件。
-> 
-> **如何解决？**
-> 1. 打开原 Mod 目录：`SteamLibrary\steamapps\workshop\content\[游戏ID]\[ModID]\localization`
-> 2. **删除除原语言（如 english）以外的所有文件夹**。
-> 3. *或者：如果您使用本工具的“一键部署”并选择覆盖模式，可以自动覆盖这些文件。*
+> **🛑 About "Fake Localization" & Translation Failure**
+>
+> If the translation doesn't work after loading the mod, the most common reason is "Fake Localization Files" in the original mod.
+>
+> **What is Fake Localization?**
+> Many mod authors duplicate their English localization files into folders like `simp_chinese` or `french` to prevent missing key errors for players in other languages. As a result, the game prioritizes these "fake" files from the original mod over your translation mod.
+>
+> **How to Fix?**
+> 1. Open the original mod directory: `SteamLibrary\steamapps\workshop\content\[GameID]\[ModID]\localization`
+> 2. **Delete all folders except the original language (e.g., english)**.
+> 3. *Alternatively: Use this tool's "One-Click Deploy" in overwrite mode to automatically replace these files.*
 
 ---
 
-## 📖 词典系统
+## 📖 Glossary System
 
-### 工作原理
-词典是一份"游戏术语对照表"。在翻译前，我们会把这份对照表交给 AI，让它在遇到特定术语时严格按照规定翻译。
+### How It Works
+The glossary is a "game terminology reference sheet." Before translation, we provide this reference to the AI, ensuring specific terms are translated consistently.
 
-**举例：**
-- ❌ 没有词典：AI 可能把 `convoy` 翻译成"护航"、"车队"或"护卫队"
-- ✅ 有了词典：AI 会统一翻译为"船队"
+**Example:**
+- ❌ Without glossary: AI might translate `convoy` as "escort," "motorcade," or "guard"
+- ✅ With glossary: AI consistently translates it as "fleet"
 
-### 词典位置
-你可以在应用的**词典管理器**中直接编辑，或手动修改以下文件：
+### Glossary Locations
+You can edit directly in the **Glossary Manager**, or manually modify:
 - **Victoria 3**: `data/glossary/victoria3/glossary.json`
 - **Stellaris**: `data/glossary/stellaris/glossary.json`
 
-### 词典来源致谢
-- **Victoria 3**: 维多利亚3 汉化 更新V1.2、Morgenröte 汉语、Better Politics Mod 简中汉化、牛奶汉化
-- **Stellaris**: 鸽组汉化词典、Shrouded Regions 汉化词典、L网群星 mod 汉化集词典
+### Glossary Credits
+- **Victoria 3**: Victoria 3 Localization V1.2, Morgenröte Chinese, Better Politics Mod CN, Milk Localization
+- **Stellaris**: Pigeon Group Glossary, Shrouded Regions Glossary, L-Network Stellaris Mod Collection
 
 ---
 
-## 🏛️ 项目架构
+## 🏛️ Project Architecture
 
-本项目采用 **Tauri + React + Python** 技术栈构建，实现了桌面级用户体验与强大的 AI 翻译引擎的完美结合。
+Built with **Tauri + React + Python**, combining a desktop-class user experience with a powerful AI translation engine.
 
 ```
 remis-mod-factory/
-├── src-tauri/                     # [桌面外壳] Tauri/Rust 桌面应用框架
+├── src-tauri/                     # [Desktop Shell] Tauri/Rust desktop framework
 │
 ├── scripts/
-│   ├── react-ui/                  # [前端界面] React + Mantine UI
+│   ├── react-ui/                  # [Frontend] React + Mantine UI
 │   │   ├── src/
-│   │   │   ├── pages/             # 页面组件 (项目管理/词典/校对/工具...)
-│   │   │   ├── components/        # 可复用 UI 组件
-│   │   │   └── hooks/             # 自定义 React Hooks
+│   │   │   ├── pages/             # Page components (Projects/Glossary/Proofread/Tools...)
+│   │   │   ├── components/        # Reusable UI components
+│   │   │   └── hooks/             # Custom React hooks
 │   │   └── ...
 │   │
-│   ├── web_server.py              # [后端服务] FastAPI Web 服务器
-│   ├── routers/                   # API 路由层
-│   ├── services/                  # 业务服务层
+│   ├── web_server.py              # [Backend] FastAPI web server
+│   ├── routers/                   # API routing layer
+│   ├── services/                  # Business service layer
 │   │
-│   ├── core/                      # [核心引擎] 可复用的底层功能模块
-│   │   ├── api_handler.py         # AI API 处理器工厂
-│   │   ├── gemini_handler.py      # Google Gemini 接口
-│   │   ├── openai_handler.py      # OpenAI 接口
-│   │   ├── glossary_manager.py    # 词典管理器
-│   │   ├── file_parser.py         # P社 YML 文件解析器
+│   ├── core/                      # [Core Engine] Reusable underlying modules
+│   │   ├── api_handler.py         # AI API handler factory
+│   │   ├── gemini_handler.py      # Google Gemini interface
+│   │   ├── openai_handler.py      # OpenAI interface
+│   │   ├── glossary_manager.py    # Glossary manager
+│   │   ├── file_parser.py         # Paradox YML file parser
 │   │   └── ...
 │   │
-│   └── workflows/                 # [工作流] 翻译业务流程
-│       └── initial_translate.py   # 初始翻译工作流
+│   └── workflows/                 # [Workflows] Translation business processes
+│       └── initial_translate.py   # Initial translation workflow
 │
-└── data/                          # [数据] 词典、配置、缓存
-    ├── glossary/                  # 游戏词典
-    └── remis.sqlite            # 本地数据库
+└── data/                          # [Data] Glossaries, config, cache
+    ├── glossary/                  # Game glossaries
+    └── remis.sqlite               # Local database
 ```
 
-> 想深入了解技术细节？请查阅 [开发者文档](docs/documentation-center.md)。
+> Want to dive deeper? Check out the [Developer Documentation](docs/documentation-center.md).
 
 ---
 
-## 🤝 贡献与反馈
+## 🤝 Contributing
 
-这是一个在社区反馈中不断成长的开源项目。欢迎提交 Issue、PR 或任何形式的建议！
+This is an open-source project that grows with community feedback. Issues, PRs, and suggestions are always welcome!
 
 ---
 
-## 📜 许可协议
+## 📜 License
 
-本项目采用**双许可证模式**：
+This project uses a **dual-license model**:
 
-1. **代码部分** (`.py`, `.jsx`, `.rs` 等源代码)  
-   采用 **[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html)**
+1. **Code** (`.py`, `.jsx`, `.rs`, etc.)
+   Licensed under **[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html)**
 
-2. **数据与文档部分** (词典、`.md` 文档等)  
-   采用 **[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans)**
+2. **Data & Documentation** (glossaries, `.md` files, etc.)
+   Licensed under **[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)**
 
-### ❤️ 致谢
+### ❤️ Credits
 
-如果你使用本工具制作了 Mod 汉化并上传到创意工坊，欢迎在描述中署名并附上仓库链接：
+If you use this tool to create mod localizations and upload to the Workshop, we'd appreciate a mention with a link to the repository:
 
 **`https://github.com/Drlinglong/Remis`**
 
