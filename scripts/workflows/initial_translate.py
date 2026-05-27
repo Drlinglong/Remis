@@ -168,12 +168,12 @@ def _create_source_snapshot(
 
 
 def _sync_project_file_status(source_file_path: str):
-    """Update translated status for a file in the project database."""
+    """Mark a file as complete in the project database."""
     try:
         import uuid
 
         file_id = str(uuid.uuid5(uuid.NAMESPACE_URL, source_file_path.lower().replace('\\', '/')))
-        asyncio.run(project_manager.repository.update_file_status_by_id(file_id, 'translated'))
+        asyncio.run(project_manager.repository.update_file_status_by_id(file_id, 'done'))
     except Exception as e:
         logging.error(f"Failed to update DB status for {os.path.basename(source_file_path)}: {e}")
 

@@ -16,6 +16,10 @@
       <feGaussianBlur stdDeviation="5" result="blur" />
       <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
     </filter>
+    <filter id="glow-orange" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
 
     <linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#090c10" />
@@ -29,58 +33,54 @@
         100% { stroke: #a371f7; filter: drop-shadow(0 0 4px #a371f7); }
       }
 
-      @keyframes flow-forward {
-        0%   { transform: translate(155px, 270px); opacity: 0; }
-        8%   { opacity: 1; }
-        28%  { transform: translate(310px, 270px); opacity: 1; }
-        44%  { transform: translate(450px, 270px); opacity: 1; }
-        62%  { transform: translate(590px, 270px); opacity: 1; }
-        84%  { transform: translate(735px, 270px); opacity: 1; }
-        100% { transform: translate(755px, 270px); opacity: 0; }
+      @keyframes packet-main {
+        0%   { transform: translate(160px, 270px); opacity: 0; }
+        5%   { opacity: 1; }
+        25%  { transform: translate(260px, 270px); opacity: 1; }
+        50%  { transform: translate(450px, 270px); opacity: 1; }
+        75%  { transform: translate(640px, 270px); opacity: 1; }
+        95%  { opacity: 1; }
+        100% { transform: translate(740px, 270px); opacity: 0; }
       }
 
-      @keyframes flow-context {
-        0%   { transform: translate(400px, 145px); opacity: 0; }
+      @keyframes packet-context {
+        0%   { transform: translate(450px, 170px); opacity: 0; }
         15%  { opacity: 1; }
-        80%  { transform: translate(400px, 210px); opacity: 1; }
-        100% { transform: translate(400px, 220px); opacity: 0; }
+        85%  { transform: translate(450px, 195px); opacity: 1; }
+        100% { transform: translate(450px, 205px); opacity: 0; }
       }
 
-      @keyframes flow-test {
-        0%   { transform: translate(565px, 395px); opacity: 0; }
+      @keyframes packet-test {
+        0%   { transform: translate(450px, 370px); opacity: 0; }
         15%  { opacity: 1; }
-        80%  { transform: translate(565px, 330px); opacity: 1; }
-        100% { transform: translate(565px, 320px); opacity: 0; }
+        85%  { transform: translate(450px, 345px); opacity: 1; }
+        100% { transform: translate(450px, 335px); opacity: 0; }
       }
 
       @keyframes feedback-loop {
         0%   { stroke-dashoffset: 0; opacity: 0.35; }
-        50%  { opacity: 0.9; }
+        50%  { opacity: 0.85; }
         100% { stroke-dashoffset: -48; opacity: 0.35; }
       }
 
-      @keyframes scan {
-        0%   { transform: translateY(-34px); opacity: 0; }
-        15%  { opacity: 1; }
-        80%  { opacity: 1; }
-        100% { transform: translateY(34px); opacity: 0; }
-      }
+      @keyframes spin { 100% { transform: rotate(360deg); } }
 
       .agent-core { animation: core-pulse 3s infinite ease-in-out; }
-      .packet-forward-1 { animation: flow-forward 4.2s infinite linear; }
-      .packet-forward-2 { animation: flow-forward 4.2s infinite linear; animation-delay: 1.4s; }
-      .packet-context { animation: flow-context 2s infinite linear; }
-      .packet-test { animation: flow-test 2.2s infinite linear; animation-delay: 0.5s; }
+      .packet-main-1 { animation: packet-main 4.2s infinite linear; }
+      .packet-main-2 { animation: packet-main 4.2s infinite linear; animation-delay: 1.4s; }
+      .packet-context { animation: packet-context 2s infinite linear; }
+      .packet-test { animation: packet-test 2.2s infinite linear; animation-delay: 0.5s; }
       .loop-line { animation: feedback-loop 2.6s infinite linear; }
-      .scan-line { animation: scan 1.8s infinite ease-in-out; }
+      .ring { animation: spin 14s infinite linear; transform-origin: 450px 270px; }
 
       .text-code { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; fill: #8b949e; }
       .text-title { font-family: 'Segoe UI', sans-serif; font-size: 17px; font-weight: bold; fill: #c9d1d9; }
-      .text-center-title { font-family: 'Segoe UI', sans-serif; font-size: 21px; font-weight: 800; fill: #ffffff; }
+      .text-center-title { font-family: 'Segoe UI', sans-serif; font-size: 22px; font-weight: 800; fill: #ffffff; }
       .text-blue { fill: #58a6ff; font-weight: bold; }
       .text-purple { fill: #d2a8ff; font-weight: bold; }
       .text-green { fill: #3fb950; font-weight: bold; }
       .text-red { fill: #ff7b72; font-weight: bold; }
+      .text-orange { fill: #e3b341; font-weight: bold; }
     </style>
   </defs>
 
@@ -91,57 +91,80 @@
   </pattern>
   <rect width="100%" height="100%" fill="url(#grid)" />
 
-  <path d="M 155 270 L 745 270" stroke="#30363d" stroke-width="6" stroke-linecap="round" />
-  <path d="M 400 145 L 400 220" stroke="#30363d" stroke-width="4" stroke-linecap="round" />
-  <path d="M 565 320 L 565 395" stroke="#30363d" stroke-width="4" stroke-linecap="round" />
-  <path d="M 620 395 C 760 430 790 160 620 150" fill="none" stroke="#f85149" stroke-width="2" stroke-dasharray="12 12" class="loop-line" />
+  <text x="450" y="46" font-family="'Segoe UI', sans-serif" font-size="20" font-weight="800" fill="#c9d1d9" text-anchor="middle">Agentic Smart Repair Workflow</text>
 
-  <rect x="45" y="230" width="140" height="80" rx="8" fill="#161b22" stroke="#f85149" stroke-width="2" filter="url(#glow-red)" />
-  <text x="115" y="263" class="text-title text-red" text-anchor="middle">Issue Queue</text>
-  <text x="115" y="285" class="text-code" text-anchor="middle">Broken entries</text>
-  <circle cx="183" cy="270" r="4" fill="#ff7b72" />
+  <!-- Horizontal pipelines -->
+  <path d="M 160 270 L 200 270" stroke="#30363d" stroke-width="6" stroke-linecap="round" />
+  <path d="M 320 270 L 340 270" stroke="#30363d" stroke-width="6" stroke-linecap="round" />
+  <path d="M 560 270 L 580 270" stroke="#30363d" stroke-width="6" stroke-linecap="round" />
+  <path d="M 700 270 L 740 270" stroke="#30363d" stroke-width="6" stroke-linecap="round" />
 
-  <rect x="265" y="230" width="140" height="80" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="2" filter="url(#glow-blue)" />
-  <text x="335" y="263" class="text-title text-blue" text-anchor="middle">Diagnose</text>
-  <text x="335" y="285" class="text-code" text-anchor="middle">Parse logs &amp; context</text>
-  <g transform="translate(335 287)">
-    <rect x="-36" y="10" width="72" height="20" rx="4" fill="#0d1117" stroke="#30363d" />
-    <line x1="-28" y1="18" x2="28" y2="18" stroke="#58a6ff" stroke-width="2" opacity="0.65" />
-    <line x1="-28" y1="25" x2="12" y2="25" stroke="#58a6ff" stroke-width="2" opacity="0.4" />
-    <line x1="-36" y1="10" x2="36" y2="10" stroke="#79c0ff" stroke-width="2" class="scan-line" />
-  </g>
+  <!-- Vertical pipelines -->
+  <path d="M 450 170 L 450 205" stroke="#30363d" stroke-width="5" stroke-linecap="round" />
+  <path d="M 450 335 L 450 370" stroke="#30363d" stroke-width="5" stroke-linecap="round" />
 
-  <rect x="345" y="70" width="220" height="75" rx="8" fill="#0d1117" stroke="#a371f7" stroke-width="2" filter="url(#glow-purple)" />
-  <text x="455" y="102" class="text-title text-purple" text-anchor="middle">Context Pack</text>
-  <text x="455" y="124" class="text-code" text-anchor="middle">Glossary | Source | Rules</text>
+  <!-- Loop line for retry -->
+  <path d="M 560 408 C 650 408 650 335 540 335" fill="none" stroke="#f85149" stroke-width="2.5" stroke-dasharray="12 12" class="loop-line" />
 
+  <!-- Block 1: Issue Queue -->
+  <rect x="40" y="225" width="120" height="90" rx="9" fill="#161b22" stroke="#f85149" stroke-width="2.5" filter="url(#glow-red)" />
+  <text x="100" y="258" class="text-title text-red" text-anchor="middle">Issue Queue</text>
+  <text x="100" y="280" class="text-code" text-anchor="middle">Broken entries</text>
+  <text x="100" y="298" class="text-code" text-anchor="middle">Syntax errors</text>
+  <circle cx="160" cy="270" r="4.5" fill="#ff7b72" />
+
+  <!-- Block 2: Diagnose -->
+  <rect x="200" y="225" width="120" height="90" rx="9" fill="#161b22" stroke="#58a6ff" stroke-width="2.5" filter="url(#glow-blue)" />
+  <text x="260" y="258" class="text-title text-blue" text-anchor="middle">Diagnose</text>
+  <text x="260" y="280" class="text-code" text-anchor="middle">Analyze logs</text>
+  <text x="260" y="298" class="text-code" text-anchor="middle">Extract issues</text>
+
+  <!-- Block 3: Context Pack (Top) -->
+  <rect x="340" y="95" width="220" height="75" rx="9" fill="#0d1117" stroke="#a371f7" stroke-width="2.5" filter="url(#glow-purple)" />
+  <text x="450" y="127" class="text-title text-purple" text-anchor="middle">Context Pack</text>
+  <text x="450" y="149" class="text-code" text-anchor="middle">Glossary | Source | Rules</text>
+
+  <!-- Block 4: Reflexion Agent (Center) -->
   <g>
-    <circle cx="455" cy="270" r="100" fill="none" stroke="#21262d" stroke-width="2" stroke-dasharray="18 10 5 10" />
-    <rect x="345" y="205" width="220" height="130" rx="12" fill="#090c10" stroke="#a371f7" stroke-width="3" class="agent-core" filter="url(#glow-purple)" />
-    <text x="455" y="246" class="text-center-title" text-anchor="middle">REPAIR AGENT</text>
-    <text x="455" y="270" class="text-code text-purple" text-anchor="middle">Plan -> Patch -> Explain</text>
+    <circle cx="450" cy="270" r="102" fill="none" stroke="#21262d" stroke-width="2" class="ring" stroke-dasharray="18 10 5 10" />
+    <rect x="340" y="205" width="220" height="130" rx="12" fill="#090c10" stroke="#a371f7" stroke-width="3" class="agent-core" filter="url(#glow-purple)" />
+    <text x="450" y="244" class="text-center-title" text-anchor="middle">REFLEXION AGENT</text>
+    <text x="450" y="267" class="text-code text-purple" font-weight="700" text-anchor="middle">Reflect -> Suggest -> Verify</text>
 
-    <rect x="367" y="292" width="54" height="20" rx="4" fill="#1f2428" stroke="#30363d" />
-    <text x="394" y="306" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Target</text>
-    <rect x="428" y="292" width="54" height="20" rx="4" fill="#1f2428" stroke="#30363d" />
-    <text x="455" y="306" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Patch</text>
-    <rect x="489" y="292" width="54" height="20" rx="4" fill="#1f2428" stroke="#30363d" />
-    <text x="516" y="306" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Rationale</text>
+    <!-- Sub-boxes for Reflection / Suggestion / Verification -->
+    <rect x="355" y="290" width="58" height="22" rx="4" fill="#1f2428" stroke="#30363d" />
+    <text x="384" y="305" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Reflect</text>
+    
+    <rect x="421" y="290" width="58" height="22" rx="4" fill="#1f2428" stroke="#30363d" />
+    <text x="450" y="305" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Suggest</text>
+    
+    <rect x="487" y="290" width="58" height="22" rx="4" fill="#1f2428" stroke="#30363d" />
+    <text x="516" y="305" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Verify</text>
   </g>
 
-  <rect x="475" y="395" width="180" height="75" rx="8" fill="#0d1117" stroke="#d29922" stroke-width="2" />
-  <text x="565" y="427" class="text-title" fill="#e3b341" text-anchor="middle">Verification</text>
-  <text x="565" y="449" class="text-code" fill="#e3b341" text-anchor="middle">Lint | Tests | Re-run</text>
+  <!-- Block 5: Post-Validator (Bottom) -->
+  <rect x="340" y="370" width="220" height="75" rx="9" fill="#0d1117" stroke="#d29922" stroke-width="2.5" filter="url(#glow-orange)" />
+  <text x="450" y="402" class="text-title text-orange" text-anchor="middle">Post-Validator</text>
+  <text x="450" y="424" class="text-code" text-anchor="middle">Tag Parity | Game Rules | Retries</text>
 
-  <rect x="715" y="230" width="140" height="80" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="2" filter="url(#glow-green)" />
-  <text x="785" y="263" class="text-title text-green" text-anchor="middle">Fixed Output</text>
-  <text x="785" y="285" class="text-code" text-anchor="middle">Review-ready patch</text>
-  <circle cx="717" cy="270" r="4" fill="#3fb950" />
+  <!-- Block 6: Proofreader (Right-mid) -->
+  <rect x="580" y="225" width="120" height="90" rx="9" fill="#161b22" stroke="#58a6ff" stroke-width="2.5" filter="url(#glow-blue)" />
+  <text x="640" y="258" class="text-title text-blue" text-anchor="middle">Proofreader</text>
+  <text x="640" y="280" class="text-code" text-anchor="middle">Side-by-side</text>
+  <text x="640" y="298" class="text-code" text-anchor="middle">User approval</text>
 
-  <g class="packet-forward-1">
-    <rect x="-11" y="-11" width="22" height="22" rx="5" fill="#f85149" stroke="#ff7b72" stroke-width="2" filter="url(#glow-red)" />
+  <!-- Block 7: Fixed Output (Far-right) -->
+  <rect x="740" y="225" width="120" height="90" rx="9" fill="#161b22" stroke="#3fb950" stroke-width="2.5" filter="url(#glow-green)" />
+  <text x="800" y="258" class="text-title text-green" text-anchor="middle">Fixed Output</text>
+  <text x="800" y="280" class="text-code" text-anchor="middle">Deploy-ready</text>
+  <text x="800" y="298" class="text-code" text-anchor="middle">clean patch set</text>
+  <circle cx="740" cy="270" r="4.5" fill="#3fb950" />
+
+  <!-- Animated moving packets -->
+  <g class="packet-main-1">
+    <rect x="-10" y="-10" width="20" height="20" rx="5" fill="#f85149" stroke="#ff7b72" stroke-width="2" filter="url(#glow-red)" />
   </g>
-  <g class="packet-forward-2">
+  <g class="packet-main-2">
     <rect x="-10" y="-10" width="20" height="20" rx="5" fill="#58a6ff" stroke="#79c0ff" stroke-width="2" filter="url(#glow-blue)" />
   </g>
 
@@ -152,11 +175,10 @@
     <rect x="-5" y="-8" width="10" height="16" rx="2" fill="#e3b341" />
   </g>
 
-  <text x="225" y="253" class="text-code" text-anchor="middle">Collect</text>
-  <text x="635" y="253" class="text-code" text-anchor="middle">Apply</text>
-  <text x="665" y="382" class="text-code text-red" text-anchor="start">Failed check loops back</text>
-  <text x="392" y="182" class="text-code text-purple" text-anchor="end">Evidence</text>
-  <text x="573" y="367" class="text-code" fill="#e3b341" text-anchor="start">Regression gate</text>
-
-  <text x="450" y="35" font-family="'Segoe UI', sans-serif" font-size="18" font-weight="800" fill="#c9d1d9" text-anchor="middle">Agentic Smart Repair Workflow</text>
+  <!-- Labels on pipeline lines -->
+  <text x="180" y="253" class="text-code" text-anchor="middle">Collect</text>
+  <text x="720" y="253" class="text-code" text-anchor="middle">Apply</text>
+  <text x="610" y="376" class="text-code text-red" text-anchor="start">Failed checks retry loop</text>
+  <text x="438" y="192" class="text-code text-purple" text-anchor="end">Evidence</text>
+  <text x="462" y="355" class="text-code text-orange" text-anchor="start">Validation gate</text>
 </svg>

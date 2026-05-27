@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # ---------------------------------------------------------------
 #  scripts/core/scripted_loc_parser.py
 # ---------------------------------------------------------------
@@ -31,7 +33,6 @@ Obsługa plików customizable_localization/*.txt (scripted loc).
 •  zbierz do listy  -> zwracamy texts_to_translate i mapę pozycji
 •  po tłumaczeniu   -> wstawiamy translated_text na pierwotne miejsce
 """
-from __future__ import annotations
 import re, pathlib
 from typing import List, Tuple
 

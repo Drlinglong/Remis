@@ -10,6 +10,13 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
+def normalize_project_file_status(status: Optional[str]) -> Optional[str]:
+    """Map legacy file statuses onto the canonical project workflow columns."""
+    if status == "translated":
+        return "done"
+    return status
+
+
 class ProjectRepository:
     """
     Persistence layer for Projects and Project Files using Async SQLModel.
@@ -284,7 +291,11 @@ class ProjectRepository:
                 logger.info(f"ProjectRepository: Upserting {len(project_files)} files for project {project_files[0].get('project_id')}")
                 # logger.debug(f"Payload sample: {project_files[0]}")
 
-                await session.execute(stmt, project_files)
+                normalized_files = [
+                    {**file_data, "status": normalize_project_file_status(file_data.get("status"))}
+                    for file_data in project_files
+                ]
+                await session.execute(stmt, normalized_files)
                 await session.commit()
                 logger.info(f"ProjectRepository: Batch upsert committed successfully.")
             except Exception as e:
@@ -306,6 +317,7 @@ class ProjectRepository:
                 raise e
 
     async def update_file_status_by_id(self, file_id: str, status: str):
+        status = normalize_project_file_status(status)
         async for session in self._session_scope():
             stmt = select(ProjectFile).where(ProjectFile.file_id == file_id)
             result = await session.execute(stmt)
@@ -352,8 +364,12 @@ class ProjectRepository:
             result = await session.execute(stmt)
             file_stats = result.mappings().all()
             
-            status_counts = {row['status']: row['count'] for row in file_stats}
-            status_keys = {row['status']: (row['total_keys'] or 0) for row in file_stats}
+            status_counts = {}
+            status_keys = {}
+            for row in file_stats:
+                normalized_status = normalize_project_file_status(row['status'])
+                status_counts[normalized_status] = status_counts.get(normalized_status, 0) + row['count']
+                status_keys[normalized_status] = status_keys.get(normalized_status, 0) + (row['total_keys'] or 0)
             
             total_keys = sum(status_keys.values())
             translated_keys = status_keys.get('done', 0)

@@ -156,6 +156,60 @@ async def test_batch_upsert_files(repo):
     assert f1.original_key_count == 10
 
 @pytest.mark.asyncio
+async def test_legacy_translated_status_is_normalized_on_write(repo):
+    project_id = "test_proj_legacy_status"
+    await repo.create_project(Project(
+        project_id=project_id,
+        name="Legacy Status Test",
+        game_id="eu4",
+        source_path="/tmp/source_legacy_status",
+        source_language="english"
+    ))
+
+    await repo.batch_upsert_files([
+        {
+            "file_id": "legacy-file",
+            "project_id": project_id,
+            "file_path": "/tmp/source_legacy_status/file.yml",
+            "status": "translated",
+            "original_key_count": 7,
+            "line_count": 20,
+            "file_type": "source"
+        }
+    ])
+
+    files = await repo.get_project_files(project_id)
+    assert files[0].status == "done"
+
+@pytest.mark.asyncio
+async def test_legacy_translated_status_counts_as_done_in_dashboard(repo):
+    project_id = "test_proj_legacy_dashboard"
+    await repo.create_project(Project(
+        project_id=project_id,
+        name="Legacy Dashboard Test",
+        game_id="eu4",
+        source_path="/tmp/source_legacy_dashboard",
+        source_language="english"
+    ))
+
+    files = [
+        {"file_id": "legacy-done", "project_id": project_id, "file_path": "/tmp/source_legacy_dashboard/done.yml", "status": "done", "original_key_count": 5, "line_count": 10, "file_type": "source"},
+        {"file_id": "legacy-translated", "project_id": project_id, "file_path": "/tmp/source_legacy_dashboard/translated.yml", "status": "translated", "original_key_count": 3, "line_count": 10, "file_type": "source"}
+    ]
+    await repo.batch_upsert_files(files)
+    from sqlalchemy import text
+    async for session in repo._session_scope():
+        await session.execute(
+            text("UPDATE project_files SET status = 'translated' WHERE file_id = 'legacy-translated'")
+        )
+        await session.commit()
+
+    stats = await repo.get_dashboard_stats()
+
+    assert stats["translated_keys"] == 8
+    assert stats["translated_files"] == 2
+
+@pytest.mark.asyncio
 async def test_get_dashboard_stats(repo):
     # Arrange
     # Project 1: Active, 10 keys todo
@@ -195,4 +249,3 @@ async def test_get_dashboard_stats(repo):
     # Expect: [{'name': 'stellaris', 'value': 1}, {'name': 'hoi4', 'value': 1}] (order may vary)
     assert len(dist) == 2, msg
     assert any(d['name'] == 'stellaris' and d['value'] == 1 for d in dist), msg
-

@@ -51,26 +51,26 @@ def _fetch_existing_backend_health(port):
         return None
 
 
-# 0. Robust Port Check (Call ASAP)
-# Reuse a healthy backend that matches this workspace/fingerprint; only clean stale Remis processes.
-try:
-    from scripts.app_settings import get_backend_port
-    backend_port = get_backend_port()
-    existing_health = _fetch_existing_backend_health(backend_port)
-    from scripts.utils.backend_identity import is_reusable_backend_health
-    if is_reusable_backend_health(existing_health):
-        panic_log(
-            "Existing backend is healthy and matches current workspace/fingerprint. "
-            "Reusing it and exiting new sidecar."
-        )
-        sys.exit(0)
+def run_port_preflight():
+    """Prepare the backend port when this module is launched as a server process."""
+    try:
+        from scripts.app_settings import get_backend_port
+        backend_port = get_backend_port()
+        existing_health = _fetch_existing_backend_health(backend_port)
+        from scripts.utils.backend_identity import is_reusable_backend_health
+        if is_reusable_backend_health(existing_health):
+            panic_log(
+                "Existing backend is healthy and matches current workspace/fingerprint. "
+                "Reusing it and exiting new sidecar."
+            )
+            sys.exit(0)
 
-    from scripts.utils.system_utils import force_free_port
-    force_free_port(backend_port)
-except SystemExit:
-    raise
-except Exception as exc:
-    panic_log(f"Port preflight failed: {exc}")
+        from scripts.utils.system_utils import force_free_port
+        force_free_port(backend_port)
+    except SystemExit:
+        raise
+    except Exception as exc:
+        panic_log(f"Port preflight failed: {exc}")
 
 panic_log("=== WEB SERVER STARTUP (LOG_CONFIG=NONE) ===")
 
@@ -246,6 +246,7 @@ setup_app_routers()
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
+    run_port_preflight()
     
     # Specific entry point for the frozen application (PyInstaller)
     import uvicorn
@@ -253,6 +254,7 @@ if __name__ == "__main__":
 
     try:
         panic_log("Starting Uvicorn Server...")
+        from scripts.app_settings import get_backend_port
         server_config = uvicorn.Config(
             app, 
             host="127.0.0.1", 
