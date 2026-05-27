@@ -108,6 +108,7 @@ describe('locale consistency', () => {
     criticalValues.forEach((value) => {
       expect(value).not.toMatch(/^\?+$/);
       expect(value).not.toMatch(/^\?[\?\s:{}\/()-]*$/);
+      // eslint-disable-next-line no-control-regex
       expect(value).toMatch(/[^\x00-\x7F]/);
     });
   });

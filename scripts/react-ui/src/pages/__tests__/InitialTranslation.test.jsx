@@ -258,4 +258,102 @@ describe('InitialTranslation', () => {
       expect(screen.getByDisplayValue('gpt-4.1-mini')).toBeInTheDocument();
     });
   });
+
+  it('renders checkpoint status alert and resume details card when checkpoints exist', async () => {
+    const mockCheckpointResponse = {
+      exists: true,
+      completed_count: 5,
+      total_files_estimate: 10,
+      metadata: {
+        current_batch: 2,
+        total_batches: 5,
+        last_saved_at: '2026-05-28 07:00:00',
+        last_completed_file: 'events/test.yml',
+      },
+      targets: [
+        {
+          target_lang_code: 'zh-CN',
+          completed_count: 5,
+          last_saved_at: '2026-05-28 07:00:00',
+          metadata: {
+            current_batch: 2,
+            total_batches: 5,
+            last_completed_file: 'events/test.yml',
+          }
+        }
+      ]
+    };
+
+    apiPostMock.mockImplementation((url) => {
+      if (url === '/api/translation/checkpoint-status') {
+        return Promise.resolve({ data: mockCheckpointResponse });
+      }
+      return Promise.resolve({ data: { exists: false } });
+    });
+
+    try {
+      const { container } = renderPage(['/?projectId=proj-1']);
+
+      await waitFor(() => {
+        expect(screen.getByText('检测到可用断点')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('断点续传详情')).toBeInTheDocument();
+      expect(screen.queryByText('zh-CN')).not.toBeInTheDocument();
+
+      // 在 waitFor 之后，重新拉取并点击“展开”按钮以保证渲染稳定性
+      await waitFor(() => {
+        const expandButtons = screen.getAllByRole('button', { name: '展开' });
+        expect(expandButtons.length).toBeGreaterThan(0);
+      });
+
+      const expandButtons = screen.getAllByRole('button', { name: '展开' });
+      fireEvent.click(expandButtons[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText('zh-CN')).toBeInTheDocument();
+        expect(screen.getByText('已完成文件：{{count}}')).toBeInTheDocument();
+      });
+    } finally {
+      apiPostMock.mockImplementation((url) => {
+        if (url === '/api/translation/checkpoint-status') {
+          return Promise.resolve({ data: { exists: false } });
+        }
+        return Promise.reject(new Error(`Unhandled POST ${url}`));
+      });
+    }
+  });
+
+  it('manages embedded workshop toggle and custom provider/model linkage', async () => {
+    const { container } = renderPage(['/?projectId=proj-1']);
+
+    await waitFor(() => {
+      expect(screen.getByText('智能工坊设置')).toBeInTheDocument();
+    });
+
+    // 重新获取展开按钮以保证渲染稳定性
+    await waitFor(() => {
+      const expandButtons = screen.getAllByRole('button', { name: '展开' });
+      expect(expandButtons.length).toBeGreaterThan(1);
+    });
+
+    const expandButtons = screen.getAllByRole('button', { name: '展开' });
+    fireEvent.click(expandButtons[1]);
+
+    await waitFor(() => {
+      expect(screen.getByText('当前将跟随主翻译配置：{{provider}} / {{model}}')).toBeInTheDocument();
+    });
+
+    // 通过 ID 稳定选择 Switch 的 input 并点击
+    const workshopSwitch = container.querySelector('#embedded-workshop-switch');
+    expect(workshopSwitch).toBeInTheDocument();
+    expect(workshopSwitch.checked).toBe(true);
+
+    fireEvent.click(workshopSwitch);
+    expect(workshopSwitch.checked).toBe(false);
+
+    // 状态切换后展开按钮变为了收起按钮并被禁用
+    const collapseButton = screen.getByRole('button', { name: '收起' });
+    expect(collapseButton).toBeDisabled();
+  });
 });

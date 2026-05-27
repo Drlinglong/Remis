@@ -15,6 +15,8 @@ import {
   Textarea,
   ThemeIcon,
   Tooltip,
+  NativeSelect,
+  MultiSelect,
 } from '@mantine/core';
 import {
   IconAdjustments,
@@ -100,37 +102,33 @@ export default function ConfigStep({
     </Group>
   );
 
-  const renderNativeSelect = ({ label, value, onChange, options, multiple = false, minHeight, description }) => (
-    <Box>
-      {typeof label === 'string' ? (
-        <Text size="sm" mb={6} c="var(--text-main)">
-          {label}
-        </Text>
-      ) : (
-        <Box mb={6}>{label}</Box>
-      )}
-      <select
-        multiple={multiple}
-        value={value}
-        onChange={onChange}
-        style={{
-          ...nativeSelectStyle,
-          minHeight: minHeight || (multiple ? 128 : 40),
-        }}
-      >
-        {!multiple && <option value="">{t('common.select', 'Select')}</option>}
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      {description && (
-        <Text size="xs" c="dimmed" mt={6}>
-          {description}
-        </Text>
-      )}
-    </Box>
+  const renderNativeSelect = ({ label, value, onChange, options, description }) => (
+    <NativeSelect
+      label={label}
+      value={value}
+      onChange={onChange}
+      data={[
+        { value: '', label: t('common.select', 'Select') },
+        ...options.map(o => ({ value: o.value, label: o.label }))
+      ]}
+      description={description}
+      styles={{
+        input: {
+          minHeight: 40,
+          borderRadius: 10,
+          border: '1px solid var(--glass-border)',
+          background: 'var(--glass-bg)',
+          color: 'var(--text-main)',
+          boxShadow: 'var(--shadow-elevation)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          transition: 'all 150ms ease',
+        },
+        description: {
+          marginTop: 6,
+        }
+      }}
+    />
   );
 
   const renderCollapsibleCard = ({
@@ -468,17 +466,27 @@ export default function ConfigStep({
                 </Stack>
 
                 <Box style={{ flex: 1 }}>
-                  {renderNativeSelect({
-                    label: t('form_label_extra_glossaries'),
-                    value: form.values.selected_glossary_ids,
-                    multiple: true,
-                    minHeight: 140,
-                    options: glossaryOptions,
-                    onChange: (event) => {
-                      const values = Array.from(event.currentTarget.selectedOptions, (option) => option.value);
-                      form.setFieldValue('selected_glossary_ids', values);
-                    },
-                  })}
+                  <MultiSelect
+                    label={t('form_label_extra_glossaries')}
+                    placeholder={t('common.select', 'Select')}
+                    data={glossaryOptions}
+                    value={(form.values.selected_glossary_ids || []).map(String)}
+                    onChange={(values) => form.setFieldValue('selected_glossary_ids', values.map(Number))}
+                    searchable
+                    clearable
+                    styles={{
+                      input: {
+                        minHeight: 40,
+                        borderRadius: 10,
+                        border: '1px solid var(--glass-border)',
+                        background: 'var(--glass-bg)',
+                        color: 'var(--text-main)',
+                        boxShadow: 'var(--shadow-elevation)',
+                        backdropFilter: 'blur(12px)',
+                        WebkitBackdropFilter: 'blur(12px)',
+                      }
+                    }}
+                  />
                 </Box>
               </Group>
 
@@ -509,6 +517,7 @@ export default function ConfigStep({
                 description: t('translation_page.resume_detail_subtitle', { defaultValue: '默认收起。展开后可查看上次工作进行到什么时间、什么批次。' }),
                 action: (
                   <Switch
+                    id="use-resume-switch"
                     label={t('form_label_use_resume')}
                     description={t('form_desc_use_resume')}
                     checked={form.values.use_resume}
@@ -571,6 +580,7 @@ export default function ConfigStep({
                 description: t('translation_page.embedded_workshop_settings_desc', { defaultValue: '默认收起。展开后可微调校对设置，并可改成和翻译模型不同的组合。' }),
                 action: (
                   <Switch
+                    id="embedded-workshop-switch"
                     label={t('translation_page.embedded_workshop_enabled', { defaultValue: '在翻译工作流中嵌入智能工坊格式校对' })}
                     description={t('translation_page.embedded_workshop_enabled_desc', { defaultValue: '默认开启。翻译完成后会自动执行一轮格式问题修复，再生成最新的校验结果。' })}
                     checked={form.values.embedded_workshop_enabled}

@@ -405,7 +405,7 @@ async def load_cached_errors(project_id: str):
 
     current_errors = ValidationLogger.load_errors(project['source_path'])
     if current_errors:
-        return [ValidationIssue(**e) for e in _active_issue_dicts(current_errors)]
+        return _active_issue_dicts(current_errors)
 
     sidecar_issues = _load_project_sidecar_issues(project)
     if sidecar_issues:
@@ -414,7 +414,7 @@ async def load_cached_errors(project_id: str):
             if str(issue.status or "detected").lower() not in {"fixed", "ignored"}
         ]
         ValidationLogger.save_errors(project['source_path'], [issue.model_dump() for issue in active_issues])
-        return active_issues
+        return [issue.model_dump() for issue in active_issues]
 
     return []
 
@@ -439,7 +439,7 @@ async def scan_project(project_id: str, force: bool = Query(False)):
                 len(current_errors),
                 project_id,
             )
-            return [ValidationIssue(**e) for e in _active_issue_dicts(current_errors)]
+            return _active_issue_dicts(current_errors)
 
         sidecar_issues = _load_project_sidecar_issues(project)
         if sidecar_issues:
@@ -453,7 +453,7 @@ async def scan_project(project_id: str, force: bool = Query(False)):
                 if str(issue.status or "detected").lower() not in {"fixed", "ignored"}
             ]
             ValidationLogger.save_errors(project['source_path'], [issue.model_dump() for issue in active_issues])
-            return active_issues
+            return [issue.model_dump() for issue in active_issues]
 
     logger.info(
         "[AgentWorkshop] Fresh scan started for project %s (%s) at %s",
@@ -546,10 +546,10 @@ async def scan_project(project_id: str, force: bool = Query(False)):
                     ))
     
     # Cache results
-    ValidationLogger.save_errors(project['source_path'], [i.dict() for i in issues])
+    ValidationLogger.save_errors(project['source_path'], [i.model_dump() for i in issues])
     logger.info("[AgentWorkshop] Fresh scan completed with %s issue(s)", len(issues))
                     
-    return issues
+    return [i.model_dump() for i in issues]
 
 def apply_translation_fix_to_file(file_path: Path, key_to_fix: str, new_value: str) -> bool:
     from scripts.core.loc_parser import parse_loc_file_with_lines
