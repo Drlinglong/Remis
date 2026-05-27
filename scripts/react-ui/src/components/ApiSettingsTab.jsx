@@ -53,6 +53,22 @@ const PROVIDER_GROUPS = {
 };
 
 const GLOBAL_CUSTOM_PROVIDER_ID = 'your_favourite_api';
+const URL_EDITABLE_PROVIDER_IDS = ['lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'ollama'];
+const LOCAL_OPENAI_PROVIDER_IDS = ['lm_studio', 'vllm', 'koboldcpp', 'oobabooga'];
+const OLLAMA_PROVIDER_ID = 'ollama';
+const CONCRETE_OPENAI_ENDPOINTS = ['/responses', '/chat/completions'];
+
+const isConcreteOpenAIEndpoint = (providerId, apiUrl) => {
+    if (!LOCAL_OPENAI_PROVIDER_IDS.includes(providerId) || !apiUrl) return false;
+    const normalized = apiUrl.trim().replace(/\/+$/, '').toLowerCase();
+    return CONCRETE_OPENAI_ENDPOINTS.some((endpoint) => normalized.endsWith(endpoint));
+};
+
+const getApiUrlPlaceholder = (providerId) => {
+    if (providerId === OLLAMA_PROVIDER_ID) return 'http://localhost:11434';
+    if (LOCAL_OPENAI_PROVIDER_IDS.includes(providerId)) return 'http://localhost:1234/v1';
+    return 'https://api.example.com/v1';
+};
 
 
 const ApiSettingsTab = () => {
@@ -107,6 +123,15 @@ const ApiSettingsTab = () => {
     };
 
     const handleSave = async (providerId) => {
+        if (isConcreteOpenAIEndpoint(providerId, editForm.apiUrl)) {
+            notifications.show({
+                title: t('error'),
+                message: t('api_url_endpoint_error'),
+                color: 'red'
+            });
+            return;
+        }
+
         setSubmitting(true);
         try {
             const payload = {
@@ -146,6 +171,17 @@ const ApiSettingsTab = () => {
         if (!provider) return null;
 
         const isEditing = editingId === provider.id;
+        const canEditUrl = provider.id === GLOBAL_CUSTOM_PROVIDER_ID || URL_EDITABLE_PROVIDER_IDS.includes(provider.id);
+        const isLocalOpenAIProvider = LOCAL_OPENAI_PROVIDER_IDS.includes(provider.id);
+        const isOllamaProvider = provider.id === OLLAMA_PROVIDER_ID;
+        const apiUrlError = isConcreteOpenAIEndpoint(provider.id, editForm.apiUrl)
+            ? t('api_url_endpoint_error')
+            : null;
+        const apiUrlHelp = isOllamaProvider
+            ? t('api_url_ollama_help')
+            : isLocalOpenAIProvider
+                ? t('api_url_openai_compatible_help')
+                : t('api_url_generic_help');
 
         return (
             <div key={provider.id} id={`api-provider-card-${provider.id}`} className={styles.card}>
@@ -181,14 +217,23 @@ const ApiSettingsTab = () => {
                             )}
 
                             {/* Show URL edit for Custom OR Local models */}
-                            {(provider.id === GLOBAL_CUSTOM_PROVIDER_ID || ['lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'ollama'].includes(provider.id)) && (
+                            {canEditUrl && (
                                 <TextInput
                                     label={t('api_url_label', 'API Base URL')}
-                                    placeholder="http://localhost:1234/v1"
+                                    placeholder={getApiUrlPlaceholder(provider.id)}
                                     value={editForm.apiUrl}
                                     onChange={(e) => setEditForm({ ...editForm, apiUrl: e.currentTarget.value })}
+                                    error={apiUrlError}
                                     size="xs"
                                     leftSection={<IconServer size={14} />}
+                                    rightSectionPointerEvents="auto"
+                                    rightSection={
+                                        <Tooltip label={apiUrlHelp} multiline w={280} withArrow>
+                                            <ActionIcon variant="subtle" size="sm" aria-label={t('api_url_help_label', 'API URL format help')}>
+                                                <IconInfoCircle size={14} />
+                                            </ActionIcon>
+                                        </Tooltip>
+                                    }
                                 />
                             )}
 

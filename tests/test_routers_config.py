@@ -15,6 +15,12 @@ MOCK_API_PROVIDERS = {
         "available_models": ["gemini-1.5-pro"],
         "default_model": "gemini-1.5-pro",
     },
+    "lm_studio": {
+        "name": "LM Studio",
+        "available_models": ["local-model"],
+        "default_model": "local-model",
+        "base_url": "http://localhost:1234/v1",
+    },
     "keyless_provider": {
         "name": "Local Ollama",
         # 无 api_key_env 表示不需要 Key
@@ -83,3 +89,33 @@ class TestPostApiKeys:
             "api_key": "AIza_test_key"
         })
         assert response.status_code == 500
+
+
+class TestPostProviderConfig:
+    """回归测试：POST /api/providers/config"""
+
+    def test_rejects_local_openai_endpoint_url(self, mock_config_env):
+        client = TestClient(app)
+        response = client.post("/api/providers/config", json={
+            "provider_id": "lm_studio",
+            "api_url": "http://localhost:1234/v1/responses",
+            "models": [],
+            "selected_model": "local-model"
+        })
+
+        assert response.status_code == 400
+        assert "Base URL" in response.json()["detail"]
+        mock_config_env.set_value.assert_not_called()
+
+    def test_accepts_local_openai_base_url(self, mock_config_env):
+        client = TestClient(app)
+        response = client.post("/api/providers/config", json={
+            "provider_id": "lm_studio",
+            "api_url": "http://localhost:1234/v1",
+            "models": [],
+            "selected_model": "local-model"
+        })
+
+        assert response.status_code == 200
+        saved_config = mock_config_env.set_value.call_args.args[1]
+        assert saved_config["lm_studio"]["api_url"] == "http://localhost:1234/v1"

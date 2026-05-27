@@ -3,6 +3,7 @@ import os
 import requests
 import logging
 from typing import Any
+from urllib.parse import urlsplit
 from openai import OpenAI
 
 from scripts.core.base_handler import BaseApiHandler
@@ -12,6 +13,31 @@ class LocalLLMHandler(BaseApiHandler):
     Unified Handler for all Local LLMs.
     "Wear one pair of pants" - Handles both Native Ollama API and OpenAI-Compatible Local APIs.
     """
+
+    OPENAI_ENDPOINT_SUFFIXES = ("/chat/completions", "/responses")
+
+    @classmethod
+    def _validate_openai_base_url(cls, raw_url: str) -> str:
+        """Validate that the user supplied a base URL, not a concrete endpoint."""
+        url = (raw_url or "http://localhost:1234/v1").strip().rstrip("/")
+        parsed = urlsplit(url)
+        path = parsed.path.rstrip("/").lower()
+
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError(
+                "Invalid local OpenAI-compatible API Base URL. "
+                "Use a full base URL such as http://localhost:1234/v1."
+            )
+
+        if any(path.endswith(suffix) for suffix in cls.OPENAI_ENDPOINT_SUFFIXES):
+            raise ValueError(
+                "Invalid local OpenAI-compatible API Base URL. "
+                "Enter the service base URL, not a concrete endpoint. "
+                "For LM Studio, use http://localhost:1234/v1 instead of "
+                f"{url}."
+            )
+
+        return url
 
     def initialize_client(self) -> Any:
         provider_config = self.get_provider_config()
@@ -29,7 +55,11 @@ class LocalLLMHandler(BaseApiHandler):
             return self
         else:
             # For LM Studio, vLLM, etc.
-            self.base_url = provider_config.get("base_url", "http://localhost:1234/v1")
+            base_url_env = provider_config.get("base_url_env")
+            raw_base_url = (
+                os.getenv(base_url_env, "") if base_url_env else ""
+            ) or provider_config.get("base_url", "http://localhost:1234/v1")
+            self.base_url = self._validate_openai_base_url(raw_base_url)
             
             # Dummy Key for local services that don't need it
             api_key = provider_config.get("api_key", "local-no-key-required")
@@ -119,7 +149,22 @@ class LocalLLMHandler(BaseApiHandler):
                 # presence_penalty=0.0,
                 # frequency_penalty=0.0
             )
-            return response.choices[0].message.content.strip()
+            choices = getattr(response, "choices", None)
+            if not choices:
+                raise ValueError(
+                    "Local OpenAI-compatible API returned no chat choices. "
+                    "Check that the base URL is an OpenAI chat base such as "
+                    f"http://localhost:1234/v1; current base URL: {self.base_url}"
+                )
+
+            message = getattr(choices[0], "message", None)
+            content = getattr(message, "content", None)
+            if not content:
+                raise ValueError(
+                    "Local OpenAI-compatible API returned an empty chat message. "
+                    f"Model '{model_name}' may not be loaded, or the endpoint at {self.base_url} is not serving chat completions."
+                )
+            return content.strip()
         except Exception as e:
              # Check for context length error message in the exception string or checking type if imported
              error_str = str(e).lower()
