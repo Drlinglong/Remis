@@ -74,6 +74,7 @@ def update_task(
     append_log: Optional[str] = None,
     progress: Optional[Dict[str, Any]] = None,
     summary: Optional[Dict[str, Any]] = None,
+    fields: Optional[Dict[str, Any]] = None,
     result_path: Optional[str] = None,
     clear_result_path: bool = False,
     push: bool = True,
@@ -90,6 +91,8 @@ def update_task(
         if summary is not None:
             current_summary = task.setdefault("summary", {})
             _merge_dict(current_summary, summary)
+        if fields is not None:
+            _merge_dict(task, fields)
         if clear_result_path:
             task.pop("result_path", None)
         elif result_path is not None:
