@@ -7,8 +7,9 @@ import {
 } from '@mantine/core';
 import { IconPlus, IconFolder, IconEdit, IconArrowLeft, IconSearch, IconBooks, IconCompass, IconArrowRight, IconArchive, IconTrash, IconRestore, IconAlertTriangle, IconLink, IconCopy } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/api';
 import { useTranslation } from 'react-i18next';
+import projectService from '../services/projectService';
+import configService from '../services/configService';
 import { useNotification } from '../context/NotificationContext';
 import { useTutorial } from '../context/TutorialContext';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -82,7 +83,7 @@ export default function ProjectManagement() {
 
   const fetchGameConfig = async () => {
     try {
-      const res = await api.get('/api/config');
+      const res = await configService.getConfig();
       if (res.data && res.data.game_profiles) {
         const profiles = Object.values(res.data.game_profiles).map(p => ({
           value: p.id,
@@ -132,13 +133,13 @@ export default function ProjectManagement() {
     try {
       let res;
       if (viewMode === 'active') {
-        res = await api.get(`/api/projects?status=active`);
+        res = await projectService.getProjectsByStatus('active');
         setProjects(res.data);
       } else {
         // Fetch both archived and deleted for archives view
         const [archivedRes, deletedRes] = await Promise.all([
-          api.get(`/api/projects?status=archived`),
-          api.get(`/api/projects?status=deleted`)
+          projectService.getProjectsByStatus('archived'),
+          projectService.getProjectsByStatus('deleted')
         ]);
         setProjects([...archivedRes.data, ...deletedRes.data]);
       }
@@ -150,9 +151,9 @@ export default function ProjectManagement() {
   const fetchProjectFiles = async (projectId) => {
     try {
       const [filesRes, configRes, archiveRes] = await Promise.all([
-        api.get(`/api/project/${projectId}/files`),
-        api.get(`/api/project/${projectId}/config`),
-        api.get(`/api/project/${projectId}/check-archive`).catch(() => ({ data: null }))
+        projectService.getProjectFiles(projectId),
+        projectService.getProjectConfig(projectId),
+        projectService.checkArchive(projectId).catch(() => ({ data: null }))
       ]);
 
       const files = filesRes.data;
@@ -219,7 +220,7 @@ export default function ProjectManagement() {
     );
 
     try {
-      const res = await api.post(`/api/project/create`, {
+      const res = await projectService.createProject({
         name: newProjectName,
         folder_path: newProjectPath,
         game_id: newProjectGame,
@@ -286,7 +287,7 @@ export default function ProjectManagement() {
   const handleUpdateNotes = async (notes) => {
     if (!selectedProject) return;
     try {
-      await api.post(`/api/project/${selectedProject.project_id}/notes`, { notes });
+      await projectService.updateProjectNotes(selectedProject.project_id, { notes });
       // Update local state in the projects list
       setProjects(prev => prev.map(p =>
         p.project_id === selectedProject.project_id ? { ...p, notes } : p
@@ -302,7 +303,7 @@ export default function ProjectManagement() {
   const handleUpdateStatus = async (status) => {
     if (!selectedProject) return;
     try {
-      await api.post(`/api/project/${selectedProject.project_id}/status`, { status });
+      await projectService.updateProjectStatus(selectedProject.project_id, { status });
       // If status changes such that it leaves the current view, we might want to go back or refresh
       // But for now, just update local state and refresh list
       setProjects(prev => prev.map(p =>
@@ -329,7 +330,7 @@ export default function ProjectManagement() {
   const handleFileStatusChange = async (fileId, status) => {
     if (!selectedProject) return;
     try {
-      await api.put(`/api/project/${selectedProject.project_id}/file/${fileId}/status`, { status });
+      await projectService.updateFileStatus(selectedProject.project_id, fileId, { status });
       // Refresh only files to update the list and avoid full project refresh if possible
       // But fetchProjectFiles actually updates projectDetails which is what we need
       fetchProjectFiles(selectedProject.project_id);
@@ -360,7 +361,7 @@ export default function ProjectManagement() {
   const handleUpdateMetadata = async () => {
     if (!selectedProject) return;
     try {
-      await api.post(`/api/project/${selectedProject.project_id}/metadata`, {
+      await projectService.updateProjectMetadata(selectedProject.project_id, {
         game_id: editGameId,
         source_language: editSourceLang
       });
@@ -392,7 +393,7 @@ export default function ProjectManagement() {
   const handleDeleteForever = async () => {
     if (!selectedProject) return;
     try {
-      await api.delete(`/api/project/${selectedProject.project_id}?delete_files=${deleteSourceFiles}`);
+      await projectService.deleteProject(selectedProject.project_id, deleteSourceFiles);
       setDeleteModalOpen(false);
       setSelectedProjectId(null);
       setDeleteSourceFiles(false);
@@ -405,7 +406,7 @@ export default function ProjectManagement() {
   const handleRefreshFiles = async () => {
     if (!selectedProject) return;
     try {
-      await api.post(`/api/project/${selectedProject.project_id}/refresh`);
+      await projectService.refreshProjectFiles(selectedProject.project_id);
       await Promise.all([
         fetchProjects(),
         fetchProjectFiles(selectedProject.project_id),

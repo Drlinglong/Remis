@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Title, Text, Container, Paper, Button, Group, Select, Badge, Stack, Modal, Code,
   Alert, LoadingOverlay, Box, Stepper, TextInput, SimpleGrid, Card, Progress, Accordion,
@@ -7,8 +7,11 @@ import {
   IconRobot, IconCheck, IconRefresh, IconInfoCircle, IconSearch, IconWand,
   IconPlayerPlay, IconChartBar, IconSettings, IconFolderCode, IconAlertTriangle,
 } from '@tabler/icons-react';
-import api from '../utils/api';
 import { useTranslation } from 'react-i18next';
+import projectService from '../services/projectService';
+import configService from '../services/configService';
+import workshopService from '../services/workshopService';
+import PerformanceControlPanel from '../components/shared/PerformanceControlPanel';
 import { useLocation } from 'react-router-dom';
 import { getTutorialKey, useTutorial } from '../context/TutorialContext';
 import styles from './AgentWorkshop.module.css';
@@ -150,7 +153,10 @@ const AgentWorkshopPage = () => {
   useEffect(() => {
     const bootstrap = async () => {
       try {
-        const [projectsRes, configRes] = await Promise.all([api.get('/api/projects?status=active'), api.get('/api/config')]);
+        const [projectsRes, configRes] = await Promise.all([
+          projectService.getActiveProjects(),
+          configService.getConfig()
+        ]);
         const projectList = normalizeArrayPayload(projectsRes.data, ['projects', 'items', 'data', 'results']);
         const providers = normalizeArrayPayload(configRes.data?.api_providers, ['items', 'data', 'results']);
         setProjects(projectList);
@@ -221,8 +227,8 @@ const AgentWorkshopPage = () => {
     setProjectContextLoading(true);
     try {
       const [archiveRes, historyRes] = await Promise.all([
-        api.get(`/api/project/${projectId}/check-archive`),
-        api.get(`/api/project/${projectId}/history`),
+        projectService.checkArchive(projectId),
+        projectService.getProjectHistory(projectId),
       ]);
       setArchiveInfo(archiveRes.data || null);
       setProjectHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
@@ -251,7 +257,7 @@ const AgentWorkshopPage = () => {
     if (!selectedProjectId) return;
     setScanLoading(true);
     try {
-      const res = await api.get(`/api/agent-workshop/scan?project_id=${selectedProjectId}`);
+      const res = await workshopService.scanProject(selectedProjectId);
       const nextIssues = normalizeArrayPayload(res.data, ['issues', 'items', 'data', 'results']);
       setIssues(nextIssues);
       setIsCached(nextIssues.length > 0);
@@ -273,7 +279,7 @@ const AgentWorkshopPage = () => {
     if (!selectedProjectId || !currentIssue) return;
     setFixing(true);
     try {
-      const res = await api.post('/api/agent-workshop/fix', {
+      const res = await workshopService.fixIssue({
         project_id: selectedProjectId,
         api_provider: selectedProvider,
         api_model: selectedModel,
@@ -338,7 +344,7 @@ const AgentWorkshopPage = () => {
         const { batchNumber, batch } = claimed;
         addExecutionLog(`Worker ${workerId}: fixing batch ${batchNumber}/${batches.length} (${batch.length} issue(s))`);
         try {
-          const res = await api.post('/api/agent-workshop/fix-batch', {
+          const res = await workshopService.fixBatch({
             project_id: selectedProjectId,
             api_provider: selectedProvider,
             api_model: selectedModel,
@@ -457,13 +463,24 @@ const AgentWorkshopPage = () => {
             <Stepper.Step label={t('agent_workshop.step_scan_summary')} description={t('agent_workshop.step_scan_summary_desc')} icon={<IconChartBar size={18} />}>
               <Stack mt="xl" gap="md">
                 <Paper withBorder p="lg" radius="md" className={translationStyles.glassCard}>
-                  <SimpleGrid id="agent-workshop-fix-settings" cols={{ base: 1, sm: 2, lg: 4 }} mb="lg">
+                  <SimpleGrid id="agent-workshop-fix-settings" cols={{ base: 1, sm: 2 }} spacing="md" mb="md">
                     <Select label={t('agent_workshop.provider_label')} data={apiProviders} value={selectedProvider} onChange={handleProviderChange} />
                     <Select label={t('agent_workshop.model_label')} data={modelOptions} value={selectedModel} onChange={setSelectedModel} searchable />
-                    <Select label={t('agent_workshop.batch_size')} data={['1', '3', '10', '20'].map((value) => ({ value, label: value }))} value={batchSizeLimit} onChange={setBatchSizeLimit} />
-                    <Select label={t('incremental_translation.concurrency_limit')} data={['1', '2', '3', '5', '10'].map((value) => ({ value, label: value }))} value={concurrencyLimit} onChange={setConcurrencyLimit} />
-                    <Select label={t('incremental_translation.rpm_limit')} data={['5', '10', '20', '30', '40', '60'].map((value) => ({ value, label: value }))} value={rpmLimit} onChange={setRpmLimit} />
                   </SimpleGrid>
+                  <Card withBorder p="md" radius="md" mb="lg">
+                    <Text size="sm" fw={600} mb="xs">{t('translation_page.performance_settings', { defaultValue: '性能限制' })}</Text>
+                    <PerformanceControlPanel
+                      batchSize={batchSizeLimit}
+                      onChangeBatchSize={setBatchSizeLimit}
+                      concurrency={concurrencyLimit}
+                      onChangeConcurrency={setConcurrencyLimit}
+                      rpm={rpmLimit}
+                      onChangeRpm={setRpmLimit}
+                      batchSizeOpts={['1', '3', '10', '20'].map((value) => ({ value, label: value }))}
+                      concurrencyOpts={['1', '2', '3', '5', '10'].map((value) => ({ value, label: value }))}
+                      rpmOpts={['5', '10', '20', '30', '40', '60'].map((value) => ({ value, label: value }))}
+                    />
+                  </Card>
                   <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md" mb="lg">
                     <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.total_entries')}</Text><Title order={3}>{archiveInfo?.source_entry_count ?? '--'}</Title></Card>
                     <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.issue_entries')}</Text><Title order={3} c={issues.length ? 'orange' : 'green'}>{issues.length}</Title></Card>
