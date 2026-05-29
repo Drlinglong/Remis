@@ -91,6 +91,73 @@ async def test_create_and_get_project(repo):
     assert fetched.source_language == "english"
 
 @pytest.mark.asyncio
+async def test_create_project_does_not_mutate_input_model(repo):
+    project_id = "test_proj_no_mutation"
+    source_path = os.path.join(os.getcwd(), "source_mod", "mutation_source")
+    target_path = os.path.join(os.getcwd(), "my_translation", "mutation_target")
+    new_project = Project(
+        project_id=project_id,
+        name="No Mutation Test",
+        game_id="stellaris",
+        source_path=source_path,
+        target_path=target_path,
+        source_language="english",
+        status="active",
+    )
+
+    created = await repo.create_project(new_project)
+
+    assert created is not new_project
+    assert new_project.source_path == source_path
+    assert new_project.target_path == target_path
+
+@pytest.mark.asyncio
+async def test_batch_upsert_files_does_not_mutate_input_payload(repo):
+    project_id = "test_proj_file_payload_no_mutation"
+    await repo.create_project(Project(
+        project_id=project_id,
+        name="File Payload No Mutation",
+        game_id="stellaris",
+        source_path="/tmp/source_payload",
+        source_language="english"
+    ))
+
+    files_data = [{
+        "file_id": "payload_f1",
+        "project_id": project_id,
+        "file_path": r"C:\tmp\source_payload\f1.yml",
+        "status": "todo",
+        "original_key_count": 10,
+        "line_count": 100,
+        "file_type": "source"
+    }]
+    original_path = files_data[0]["file_path"]
+
+    await repo.batch_upsert_files(files_data)
+
+    assert files_data[0]["file_path"] == original_path
+
+@pytest.mark.asyncio
+async def test_repository_does_not_commit_caller_owned_session(repo):
+    from scripts.core.db_manager import db_manager
+
+    project_id = "test_proj_external_session"
+    async for session in db_manager.get_async_session():
+        await repo.create_project(Project(
+            project_id=project_id,
+            name="External Session Test",
+            game_id="stellaris",
+            source_path="/tmp/external_session",
+            source_language="english",
+            status="active",
+        ), session=session)
+        await session.rollback()
+        break
+
+    fetched = await repo.get_project(project_id)
+    assert fetched is None
+
+@pytest.mark.asyncio
 async def test_update_project_metadata(repo):
     # Arrange
     project_id = "test_proj_meta"
@@ -195,4 +262,3 @@ async def test_get_dashboard_stats(repo):
     # Expect: [{'name': 'stellaris', 'value': 1}, {'name': 'hoi4', 'value': 1}] (order may vary)
     assert len(dist) == 2, msg
     assert any(d['name'] == 'stellaris' and d['value'] == 1 for d in dist), msg
-

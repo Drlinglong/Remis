@@ -5,6 +5,7 @@ import projectService from '../services/projectService';
 import configService from '../services/configService';
 import translationService from '../services/translationService';
 import notificationService from '../services/notificationService';
+import { open } from '@tauri-apps/plugin-dialog';
 
 const INCREMENTAL_STATE_STORAGE_KEY = 'incremental_translation_state_v1';
 const LOCAL_PROVIDERS = ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui'];
@@ -282,6 +283,25 @@ export const useIncrementalTranslation = (notificationStyle) => {
             setCheckpointInfo(null);
         }
     }, [notificationStyle, t]);
+
+    const handleSelectFolder = useCallback(async () => {
+        try {
+            const selected = await open({
+                directory: true,
+                multiple: false,
+                title: t('incremental_translation.select_new_folder')
+            });
+            if (selected && typeof selected === 'string') {
+                setCustomSourcePath(selected);
+                if (selectedProject) {
+                    checkCheckpoint(selectedProject, selected, selectedLangs);
+                }
+            }
+        } catch (err) {
+            console.error('Failed to open folder dialog:', err);
+            notificationService.error(t('notification.error_generic'), notificationStyle);
+        }
+    }, [checkCheckpoint, notificationStyle, selectedLangs, selectedProject, t]);
 
     const fetchProjects = useCallback(async () => {
         try {
@@ -707,6 +727,8 @@ export const useIncrementalTranslation = (notificationStyle) => {
         embeddedWorkshopRpm, setEmbeddedWorkshopRpm,
         showWorkshopSettings, setShowWorkshopSettings,
         runPreScan, startTranslation, openOutputFolder,
+        handleSelectFolder,
+        completionSource: completionSourceRef.current,
         resetPersistedState, addLog, getArchivedTargetLanguages
     };
 };

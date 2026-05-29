@@ -101,7 +101,7 @@ export const IncrementalTranslationPage = () => {
                         setSelectedModel={state.setSelectedModel}
                         models={state.models}
                         customSourcePath={state.customSourcePath}
-                        onSelectFolder={state.customSourcePath ? undefined : state.handleSelectFolder} // If Tauri open folder, else custom logic
+                        onSelectFolder={state.handleSelectFolder}
                         selectedLangs={state.selectedLangs}
                         setSelectedLangs={state.setSelectedLangs}
                         batchSizeLimit={state.batchSizeLimit}

@@ -18,6 +18,8 @@ import {
     Select,
     Switch,
     Accordion,
+    Tooltip,
+    ThemeIcon,
 } from '@mantine/core';
 import {
     IconCheck,

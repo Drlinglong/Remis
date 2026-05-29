@@ -27,8 +27,21 @@ class ProjectRepository:
             yield session
         else:
             from scripts.core.db_manager import db_manager
-            async with db_manager.async_session_scope() as local_session:
+            async for local_session in db_manager.get_async_session():
+                local_session.info["_remis_repository_owns_session"] = True
                 yield local_session
+                break
+
+    def _owns_session(self, session: AsyncSession) -> bool:
+        return bool(session.info.get("_remis_repository_owns_session"))
+
+    async def _commit_if_owner(self, session: AsyncSession):
+        if self._owns_session(session):
+            await session.commit()
+
+    async def _rollback_if_owner(self, session: AsyncSession):
+        if self._owns_session(session):
+            await session.rollback()
 
     async def add_history_entry(self, project_id: str, action_type: str, description: str, snapshot_id: Optional[int] = None, extra_metadata: Optional[Dict[str, Any]] = None, session: Optional[AsyncSession] = None):
         """
@@ -60,9 +73,9 @@ class ProjectRepository:
                     project.last_modified = datetime.datetime.now().isoformat()
                     session.add(project)
 
-                await session.commit()
+                await self._commit_if_owner(session)
             except Exception as e:
-                await session.rollback()
+                await self._rollback_if_owner(session)
                 logger.error(f"Failed to add history entry: {e}")
                 raise e
 
@@ -107,9 +120,9 @@ class ProjectRepository:
                 history = result.scalar_one_or_none()
                 if history:
                     await session.delete(history)
-                    await session.commit()
+                    await self._commit_if_owner(session)
             except Exception as e:
-                await session.rollback()
+                await self._rollback_if_owner(session)
                 logger.error(f"Failed to delete history event: {e}")
                 raise e
 
@@ -142,18 +155,20 @@ class ProjectRepository:
     async def create_project(self, project_data: Project, session: Optional[AsyncSession] = None) -> Project:
         async with self._use_session(session) as session:
             try:
-                # 压缩绝对路径为相对标记
-                project_data.source_path = relativize_path(project_data.source_path)
-                project_data.target_path = relativize_path(project_data.target_path)
-                session.add(project_data)
-                await session.commit()
-                await session.refresh(project_data)
-                # 还原绝对路径供外部业务层透明使用
-                project_data.source_path = resolve_path(project_data.source_path)
-                project_data.target_path = resolve_path(project_data.target_path)
-                return project_data
+                db_project = project_data.model_copy(update={
+                    "source_path": relativize_path(project_data.source_path),
+                    "target_path": relativize_path(project_data.target_path),
+                })
+                session.add(db_project)
+                await self._commit_if_owner(session)
+                if self._owns_session(session):
+                    await session.refresh(db_project)
+                return db_project.model_copy(update={
+                    "source_path": resolve_path(db_project.source_path),
+                    "target_path": resolve_path(db_project.target_path),
+                })
             except Exception as e:
-                await session.rollback()
+                await self._rollback_if_owner(session)
                 raise e
 
     async def update_project_status(self, project_id: str, status: str, session: Optional[AsyncSession] = None):
@@ -166,7 +181,7 @@ class ProjectRepository:
                 project.status = status
                 project.last_modified = current_time
                 session.add(project)
-                await session.commit()
+                await self._commit_if_owner(session)
 
     async def update_project_notes(self, project_id: str, notes: str, session: Optional[AsyncSession] = None):
         """Persists project notes to the database and updates last_modified."""
@@ -179,7 +194,7 @@ class ProjectRepository:
                 project.notes = notes
                 project.last_modified = current_time
                 session.add(project)
-                await session.commit()
+                await self._commit_if_owner(session)
 
     async def touch_project(self, project_id: str, session: Optional[AsyncSession] = None):
         """Updates the last_modified timestamp for a project."""
@@ -191,7 +206,7 @@ class ProjectRepository:
             if project:
                 project.last_modified = current_time
                 session.add(project)
-                await session.commit()
+                await self._commit_if_owner(session)
 
     async def update_project_metadata(self, project_id: str, game_id: str, source_language: str, session: Optional[AsyncSession] = None):
         async with self._use_session(session) as session:
@@ -204,7 +219,7 @@ class ProjectRepository:
                 project.source_language = source_language
                 project.last_modified = current_time
                 session.add(project)
-                await session.commit()
+                await self._commit_if_owner(session)
 
     async def update_project_source_path(self, project_id: str, source_path: str, session: Optional[AsyncSession] = None):
         async with self._use_session(session) as session:
@@ -216,7 +231,7 @@ class ProjectRepository:
                 project.source_path = relativize_path(source_path)
                 project.last_modified = current_time
                 session.add(project)
-                await session.commit()
+                await self._commit_if_owner(session)
 
     async def delete_project(self, project_id: str, session: Optional[AsyncSession] = None):
         async with self._use_session(session) as session:
@@ -235,9 +250,9 @@ class ProjectRepository:
                 if project:
                     await session.delete(project)
                 
-                await session.commit()
+                await self._commit_if_owner(session)
             except Exception as e:
-                await session.rollback()
+                await self._rollback_if_owner(session)
                 raise e
 
     async def get_project_by_file_id(self, file_id: str, session: Optional[AsyncSession] = None) -> Optional[Dict[str, Any]]:
@@ -263,10 +278,12 @@ class ProjectRepository:
         if not project_files:
             return
 
-        # 压缩每一条文件的物理路径
-        for f in project_files:
-            if "file_path" in f:
-                f["file_path"] = relativize_path(f["file_path"])
+        db_project_files = []
+        for file_data in project_files:
+            db_file_data = dict(file_data)
+            if "file_path" in db_file_data:
+                db_file_data["file_path"] = relativize_path(db_file_data["file_path"])
+            db_project_files.append(db_file_data)
 
         from sqlalchemy import text
         
@@ -282,14 +299,14 @@ class ProjectRepository:
                         file_path = excluded.file_path
                 ''')
                 
-                logger.info(f"ProjectRepository: Upserting {len(project_files)} files for project {project_files[0].get('project_id')}")
+                logger.info(f"ProjectRepository: Upserting {len(db_project_files)} files for project {db_project_files[0].get('project_id')}")
 
-                await session.execute(stmt, project_files)
-                await session.commit()
+                await session.execute(stmt, db_project_files)
+                await self._commit_if_owner(session)
                 logger.info(f"ProjectRepository: Batch upsert committed successfully.")
             except Exception as e:
                 logger.error(f"Batch upsert failed: {str(e)}", exc_info=True)
-                await session.rollback()
+                await self._rollback_if_owner(session)
                 raise e
 
     async def delete_files_by_ids(self, file_ids: List[str], session: Optional[AsyncSession] = None):
@@ -300,9 +317,9 @@ class ProjectRepository:
             try:
                 stmt = delete(ProjectFile).where(col(ProjectFile.file_id).in_(file_ids))
                 await session.execute(stmt)
-                await session.commit()
+                await self._commit_if_owner(session)
             except Exception as e:
-                await session.rollback()
+                await self._rollback_if_owner(session)
                 raise e
 
     async def update_file_status_by_id(self, file_id: str, status: str, session: Optional[AsyncSession] = None):
@@ -313,7 +330,7 @@ class ProjectRepository:
             if file_record:
                 file_record.status = status
                 session.add(file_record)
-                await session.commit()
+                await self._commit_if_owner(session)
 
     async def get_project_file_ids(self, project_id: str, session: Optional[AsyncSession] = None) -> List[str]:
         async with self._use_session(session) as session:
