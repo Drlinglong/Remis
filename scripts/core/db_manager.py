@@ -2,6 +2,7 @@ import sqlite3
 import threading
 import logging
 from typing import Optional
+from contextlib import asynccontextmanager
 from scripts.app_settings import PROJECTS_DB_PATH
 
 logger = logging.getLogger(__name__)
@@ -93,6 +94,27 @@ class DatabaseConnectionManager:
         
         async with async_session() as session:
             yield session
+
+    @asynccontextmanager
+    async def async_session_scope(self):
+        """
+        异步事务上下文管理器。
+        """
+        from sqlmodel.ext.asyncio.session import AsyncSession
+        from sqlalchemy.orm import sessionmaker
+
+        engine = self.get_async_engine()
+        async_session = sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
+        
+        async with async_session() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
 
 # Singleton Instance
 db_manager = DatabaseConnectionManager()

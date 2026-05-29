@@ -1,11 +1,12 @@
 import datetime
 import logging
 from typing import List, Optional, Dict, Any, Sequence
+from contextlib import asynccontextmanager
 from sqlmodel import select, col
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import selectinload
 from scripts.core.db_models import Project, ProjectFile, ProjectHistory
-from scripts.app_settings import PROJECTS_DB_PATH
+from scripts.app_settings import PROJECTS_DB_PATH, relativize_path, resolve_path
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -20,37 +21,22 @@ class ProjectRepository:
     def __init__(self, db_path: str = PROJECTS_DB_PATH):
         self.db_path = db_path
 
-    async def _get_session(self) -> AsyncSession:
-        """
-        Creates a new AsyncSession using the DatabaseConnectionManager.
-        Note: The caller is responsible for closing the session/transaction context.
-        Ideally usage is `async for session in db_manager.get_async_session(): ...`
-        but effectively we will use proper async with context managers in methods.
-        """
-        from scripts.core.db_manager import DatabaseConnectionManager
-        # get_async_session is a generator, so we use it as context manager
-        session_gen = DatabaseConnectionManager(self.db_path).get_async_session()
-        # This returns the generator. We need to iterate it or use `async with` on calling side?
-        # Actually `get_async_session` is defined as `async for`.
-        # Correct usage: async with async_session() as session.
-        # But get_async_session is a Helper Generator.
-        # Let's verify `db_manager.py` implementation again.
-        # It yields session. 
-        # So: 
-        async for session in session_gen:
+    @asynccontextmanager
+    async def _use_session(self, session: Optional[AsyncSession] = None):
+        if session is not None:
             yield session
+        else:
+            from scripts.core.db_manager import db_manager
+            async with db_manager.async_session_scope() as local_session:
+                yield local_session
 
-    def _session_scope(self):
-        from scripts.core.db_manager import db_manager
-        return db_manager.get_async_session()
-
-    async def add_history_entry(self, project_id: str, action_type: str, description: str, snapshot_id: Optional[int] = None, extra_metadata: Optional[Dict[str, Any]] = None):
+    async def add_history_entry(self, project_id: str, action_type: str, description: str, snapshot_id: Optional[int] = None, extra_metadata: Optional[Dict[str, Any]] = None, session: Optional[AsyncSession] = None):
         """
         New Unified DB Way:
         1. Logs entry to ProjectHistory.
         2. Updates Project's last_activity fields for denormalized summary.
         """
-        async for session in self._session_scope():
+        async with self._use_session(session) as session:
             try:
                 # 1. Create History Entry
                 history_entry = ProjectHistory(
@@ -80,9 +66,9 @@ class ProjectRepository:
                 logger.error(f"Failed to add history entry: {e}")
                 raise e
 
-    async def get_recent_logs(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_recent_logs(self, limit: int = 10, session: Optional[AsyncSession] = None) -> List[Dict[str, Any]]:
         """Retrieves the latest history events with project names."""
-        async for session in self._session_scope():
+        async with self._use_session(session) as session:
             # Join ProjectHistory and Project to get project names
             # Use outerjoin to include history even if project was deleted
             stmt = select(ProjectHistory, Project.name.label("project_name")) \
@@ -102,20 +88,19 @@ class ProjectRepository:
                 dump['type'] = history.action_type
                 recent_logs.append(dump)
             return recent_logs
-        return []
 
     # Removed add_project_history as it's folded into add_history_entry
 
-    async def get_project_history(self, project_id: str) -> List[ProjectHistory]:
+    async def get_project_history(self, project_id: str, session: Optional[AsyncSession] = None) -> List[ProjectHistory]:
         """Retrieves history for a specific project, ordered by timestamp desc."""
-        async for session in self._session_scope():
+        async with self._use_session(session) as session:
             stmt = select(ProjectHistory).where(ProjectHistory.project_id == project_id).order_by(col(ProjectHistory.timestamp).desc())
             result = await session.execute(stmt)
             return list(result.scalars().all())
 
-    async def delete_history_event(self, history_id: str):
+    async def delete_history_event(self, history_id: str, session: Optional[AsyncSession] = None):
         """Deletes a specific history event."""
-        async for session in self._session_scope():
+        async with self._use_session(session) as session:
             try:
                 stmt = select(ProjectHistory).where(ProjectHistory.history_id == history_id)
                 result = await session.execute(stmt)
@@ -130,37 +115,49 @@ class ProjectRepository:
 
     # --- Project CRUD ---
 
-    async def get_project(self, project_id: str) -> Optional[Project]:
-        async for session in self._session_scope():
+    async def get_project(self, project_id: str, session: Optional[AsyncSession] = None) -> Optional[Project]:
+        async with self._use_session(session) as session:
             start_q = select(Project).where(Project.project_id == project_id)
             result = await session.execute(start_q)
-            return result.scalar_one_or_none()
-        return None
+            project = result.scalar_one_or_none()
+            if project:
+                project.source_path = resolve_path(project.source_path)
+                project.target_path = resolve_path(project.target_path)
+            return project
 
-    async def list_projects(self, status: Optional[str] = None) -> List[Project]:
-        async for session in self._session_scope():
+    async def list_projects(self, status: Optional[str] = None, session: Optional[AsyncSession] = None) -> List[Project]:
+        async with self._use_session(session) as session:
             query = select(Project)
             if status:
                 query = query.where(Project.status == status)
             query = query.order_by(col(Project.last_modified).desc())
             
             result = await session.execute(query)
-            return list(result.scalars().all())
-        return []
+            projects = list(result.scalars().all())
+            for p in projects:
+                p.source_path = resolve_path(p.source_path)
+                p.target_path = resolve_path(p.target_path)
+            return projects
 
-    async def create_project(self, project_data: Project) -> Project:
-        async for session in self._session_scope():
+    async def create_project(self, project_data: Project, session: Optional[AsyncSession] = None) -> Project:
+        async with self._use_session(session) as session:
             try:
+                # 压缩绝对路径为相对标记
+                project_data.source_path = relativize_path(project_data.source_path)
+                project_data.target_path = relativize_path(project_data.target_path)
                 session.add(project_data)
                 await session.commit()
                 await session.refresh(project_data)
+                # 还原绝对路径供外部业务层透明使用
+                project_data.source_path = resolve_path(project_data.source_path)
+                project_data.target_path = resolve_path(project_data.target_path)
                 return project_data
             except Exception as e:
                 await session.rollback()
                 raise e
 
-    async def update_project_status(self, project_id: str, status: str):
-        async for session in self._session_scope():
+    async def update_project_status(self, project_id: str, status: str, session: Optional[AsyncSession] = None):
+        async with self._use_session(session) as session:
             current_time = datetime.datetime.now().isoformat()
             statement = select(Project).where(Project.project_id == project_id)
             results = await session.execute(statement)
@@ -171,9 +168,9 @@ class ProjectRepository:
                 session.add(project)
                 await session.commit()
 
-    async def update_project_notes(self, project_id: str, notes: str):
+    async def update_project_notes(self, project_id: str, notes: str, session: Optional[AsyncSession] = None):
         """Persists project notes to the database and updates last_modified."""
-        async for session in self._session_scope():
+        async with self._use_session(session) as session:
             current_time = datetime.datetime.now().isoformat()
             statement = select(Project).where(Project.project_id == project_id)
             results = await session.execute(statement)
@@ -184,9 +181,9 @@ class ProjectRepository:
                 session.add(project)
                 await session.commit()
 
-    async def touch_project(self, project_id: str):
+    async def touch_project(self, project_id: str, session: Optional[AsyncSession] = None):
         """Updates the last_modified timestamp for a project."""
-        async for session in self._session_scope():
+        async with self._use_session(session) as session:
             current_time = datetime.datetime.now().isoformat()
             statement = select(Project).where(Project.project_id == project_id)
             results = await session.execute(statement)
@@ -196,8 +193,8 @@ class ProjectRepository:
                 session.add(project)
                 await session.commit()
 
-    async def update_project_metadata(self, project_id: str, game_id: str, source_language: str):
-        async for session in self._session_scope():
+    async def update_project_metadata(self, project_id: str, game_id: str, source_language: str, session: Optional[AsyncSession] = None):
+        async with self._use_session(session) as session:
             current_time = datetime.datetime.now().isoformat()
             statement = select(Project).where(Project.project_id == project_id)
             results = await session.execute(statement)
@@ -209,20 +206,20 @@ class ProjectRepository:
                 session.add(project)
                 await session.commit()
 
-    async def update_project_source_path(self, project_id: str, source_path: str):
-        async for session in self._session_scope():
+    async def update_project_source_path(self, project_id: str, source_path: str, session: Optional[AsyncSession] = None):
+        async with self._use_session(session) as session:
             current_time = datetime.datetime.now().isoformat()
             statement = select(Project).where(Project.project_id == project_id)
             results = await session.execute(statement)
             project = results.scalar_one_or_none()
             if project:
-                project.source_path = source_path
+                project.source_path = relativize_path(source_path)
                 project.last_modified = current_time
                 session.add(project)
                 await session.commit()
 
-    async def delete_project(self, project_id: str):
-        async for session in self._session_scope():
+    async def delete_project(self, project_id: str, session: Optional[AsyncSession] = None):
+        async with self._use_session(session) as session:
             try:
                 # 1. Delete Files
                 statement_files = select(ProjectFile).where(ProjectFile.project_id == project_id)
@@ -243,17 +240,20 @@ class ProjectRepository:
                 await session.rollback()
                 raise e
 
-    async def get_project_by_file_id(self, file_id: str) -> Optional[Dict[str, Any]]:
-        # This was doing a JOIN and returning project data.
-        async for session in self._session_scope():
+    async def get_project_by_file_id(self, file_id: str, session: Optional[AsyncSession] = None) -> Optional[Dict[str, Any]]:
+        async with self._use_session(session) as session:
             query = select(Project).join(ProjectFile).where(ProjectFile.file_id == file_id)
             result = await session.execute(query)
             project = result.scalar_one_or_none()
-            return project.model_dump() if project else None
+            if project:
+                project.source_path = resolve_path(project.source_path)
+                project.target_path = resolve_path(project.target_path)
+                return project.model_dump()
+            return None
 
     # --- File Operations (Async Batch) ---
 
-    async def batch_upsert_files(self, project_files: List[Dict[str, Any]]):
+    async def batch_upsert_files(self, project_files: List[Dict[str, Any]], session: Optional[AsyncSession] = None):
         """
         Upserts a batch of files. SQLModel doesn't support generic upsert easily across DBs,
         but since we are SQLite specific with async engine, we can use SQLite ON CONFLICT logic 
@@ -263,14 +263,15 @@ class ProjectRepository:
         if not project_files:
             return
 
+        # 压缩每一条文件的物理路径
+        for f in project_files:
+            if "file_path" in f:
+                f["file_path"] = relativize_path(f["file_path"])
+
         from sqlalchemy import text
         
-        async for session in self._session_scope():
+        async with self._use_session(session) as session:
             try:
-                # Construct list of binding params
-                # We can't use executemany with async session directly in the same way as sqlite3 cursor?
-                # SQLAlchemy 1.4/2.0 async session.execute supports list of params for bulk insert.
-                
                 stmt = text('''
                     INSERT INTO project_files (file_id, project_id, file_path, status, original_key_count, line_count, file_type)
                     VALUES (:file_id, :project_id, :file_path, :status, :original_key_count, :line_count, :file_type)
@@ -282,7 +283,6 @@ class ProjectRepository:
                 ''')
                 
                 logger.info(f"ProjectRepository: Upserting {len(project_files)} files for project {project_files[0].get('project_id')}")
-                # logger.debug(f"Payload sample: {project_files[0]}")
 
                 await session.execute(stmt, project_files)
                 await session.commit()
@@ -292,11 +292,11 @@ class ProjectRepository:
                 await session.rollback()
                 raise e
 
-    async def delete_files_by_ids(self, file_ids: List[str]):
+    async def delete_files_by_ids(self, file_ids: List[str], session: Optional[AsyncSession] = None):
         if not file_ids: return
         from sqlalchemy import delete
         
-        async for session in self._session_scope():
+        async with self._use_session(session) as session:
             try:
                 stmt = delete(ProjectFile).where(col(ProjectFile.file_id).in_(file_ids))
                 await session.execute(stmt)
@@ -305,8 +305,8 @@ class ProjectRepository:
                 await session.rollback()
                 raise e
 
-    async def update_file_status_by_id(self, file_id: str, status: str):
-        async for session in self._session_scope():
+    async def update_file_status_by_id(self, file_id: str, status: str, session: Optional[AsyncSession] = None):
+        async with self._use_session(session) as session:
             stmt = select(ProjectFile).where(ProjectFile.file_id == file_id)
             result = await session.execute(stmt)
             file_record = result.scalar_one_or_none()
@@ -315,25 +315,28 @@ class ProjectRepository:
                 session.add(file_record)
                 await session.commit()
 
-    async def get_project_file_ids(self, project_id: str) -> List[str]:
-        async for session in self._session_scope():
+    async def get_project_file_ids(self, project_id: str, session: Optional[AsyncSession] = None) -> List[str]:
+        async with self._use_session(session) as session:
             stmt = select(ProjectFile.file_id).where(ProjectFile.project_id == project_id)
             result = await session.execute(stmt)
             return list(result.scalars().all())
 
-    async def get_project_files(self, project_id: str) -> List[ProjectFile]:
-        async for session in self._session_scope():
+    async def get_project_files(self, project_id: str, session: Optional[AsyncSession] = None) -> List[ProjectFile]:
+        async with self._use_session(session) as session:
             stmt = select(ProjectFile).where(ProjectFile.project_id == project_id)
             result = await session.execute(stmt)
-            return list(result.scalars().all())
+            files = list(result.scalars().all())
+            for f in files:
+                f.file_path = resolve_path(f.file_path)
+            return files
 
-    async def get_dashboard_stats(self) -> Dict[str, Any]:
+    async def get_dashboard_stats(self, session: Optional[AsyncSession] = None) -> Dict[str, Any]:
         """
         Retrieves aggregate statistics for the dashboard.
         """
         from sqlalchemy import func, text
         
-        async for session in self._session_scope():
+        async with self._use_session(session) as session:
             # 1. Total Projects
             res = await session.execute(select(func.count(Project.project_id)))
             total_projects = res.scalar_one()
@@ -343,7 +346,6 @@ class ProjectRepository:
             active_projects = res.scalar_one()
             
             # 3. File Statistics (by status)
-            # Use raw SQL for group by simplicity or construct complex sqlalchemy query
             stmt = text("""
                 SELECT status, COUNT(*) as count, SUM(original_key_count) as total_keys
                 FROM project_files
