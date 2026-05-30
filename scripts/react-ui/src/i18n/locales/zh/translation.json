@@ -1434,7 +1434,10 @@
     "failed_count": "仍失败",
     "duration": "耗时",
     "no_source_context": "（未找到原文上下文）",
-    "validation_residual_punctuation_found": "检测到残留的源语言标点符号"
+    "validation_residual_punctuation_found": "检测到残留的源语言标点符号",
+    "validation_generic_color_tags_count_localized": "发现 {{startCount}} 个起始标签，但有 {{endCount}} 个结束符。",
+    "validation_residual_punctuation_details_localized": "发现了以下本应被转换的标点符号: {{punctuations}}",
+    "validation_invalid_key_format_details_localized": "键名 '{{foundText}}' 包含非法字符。预期为字母数字、下划线、点或连字符。"
   },
   "project_validation": {
     "title": "格式校对",

@@ -1183,7 +1183,10 @@
     "failed_count": "Sigue fallando",
     "duration": "Duración",
     "no_source_context": "(No se encontró contexto de origen)",
-    "validation_residual_punctuation_found": "Puntuación residual de la lengua de origen detectada"
+    "validation_residual_punctuation_found": "Puntuación residual de la lengua de origen detectada",
+    "validation_generic_color_tags_count_localized": "Se encontraron {{startCount}} etiquetas de inicio, pero {{endCount}} marcadores de fin.",
+    "validation_residual_punctuation_details_localized": "Se encontraron los siguientes signos de puntuación que debieron haber sido convertidos: {{punctuations}}",
+    "validation_invalid_key_format_details_localized": "El nombre de clave '{{foundText}}' contiene caracteres no válidos. Se esperaba alfanumérico, guion bajo, punto o guion."
   },
   "project_validation": {
     "title": "Comprobación de formato",

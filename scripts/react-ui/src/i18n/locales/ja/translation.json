@@ -1183,7 +1183,10 @@
     "failed_count": "失敗のまま",
     "duration": "所要時間",
     "no_source_context": "(ソースのコンテキストが見つかりません)",
-    "validation_residual_punctuation_found": "原文の残留記号が検出されました"
+    "validation_residual_punctuation_found": "原文の残留記号が検出されました",
+    "validation_generic_color_tags_count_localized": "開始タグが {{startCount}} 個検出されましたが、終了タグは {{endCount}} 個です。",
+    "validation_residual_punctuation_details_localized": "変換されるべき以下の記号が検出されました: {{punctuations}}",
+    "validation_invalid_key_format_details_localized": "キー名 '{{foundText}}' に無効な文字が含まれています。英数字、アンダースコア、ドット、またはハイフンが期待されます。"
   },
   "project_validation": {
     "title": "形式チェック",

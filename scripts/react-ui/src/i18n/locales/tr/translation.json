@@ -1183,7 +1183,10 @@
     "failed_count": "Hala Başarısız",
     "duration": "Süre",
     "no_source_context": "(Kaynak bağlamı bulunamadı)",
-    "validation_residual_punctuation_found": "Artık kaynak dil noktalama işareti algılandı"
+    "validation_residual_punctuation_found": "Artık kaynak dil noktalama işareti algılandı",
+    "validation_generic_color_tags_count_localized": "{{startCount}} başlangıç etiketi bulundu, ancak {{endCount}} bitiş işareti var.",
+    "validation_residual_punctuation_details_localized": "Dönüştürülmesi gereken şu noktalama işaretleri bulundu: {{punctuations}}",
+    "validation_invalid_key_format_details_localized": "'{{foundText}}' anahtar adı geçersiz karakterler içeriyor. Alfanümerik, alt çizgi, nokta veya kısa çizgi bekleniyor."
   },
   "project_validation": {
     "title": "Format Kontrolü",

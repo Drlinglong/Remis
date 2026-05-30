@@ -1183,7 +1183,10 @@
     "failed_count": "Ainda com falha",
     "duration": "Duração",
     "no_source_context": "(Nenhum contexto de origem encontrado)",
-    "validation_residual_punctuation_found": "Pontuação residual do idioma de origem detectada"
+    "validation_residual_punctuation_found": "Pontuação residual do idioma de origem detectada",
+    "validation_generic_color_tags_count_localized": "Encontradas {{startCount}} tags de início, mas {{endCount}} marcadores de fim.",
+    "validation_residual_punctuation_details_localized": "Encontrada a seguinte pontuação que deveria ter sido convertida: {{punctuations}}",
+    "validation_invalid_key_format_details_localized": "O nome da chave '{{foundText}}' contém caracteres inválidos. Esperado alfanumérico, ponto ou hífen."
   },
   "project_validation": {
     "title": "Verificação de Formato",

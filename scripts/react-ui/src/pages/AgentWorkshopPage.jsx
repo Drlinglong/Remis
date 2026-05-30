@@ -130,6 +130,45 @@ const AgentWorkshopPage = () => {
     return key;
   }, [t]);
 
+  const localizeIssueDetails = useCallback((details) => {
+    if (!details) return '';
+    const text = String(details).trim();
+
+    // 1. "发现 {start_count} 个起始标签，但有 {end_count} 个结束符。"
+    const colorTagsMatch = text.match(/发现\s*(\d+)\s*个起始标签，但有\s*(\d+)\s*个结束符/);
+    if (colorTagsMatch) {
+      const startCount = colorTagsMatch[1];
+      const endCount = colorTagsMatch[2];
+      return t('agent_workshop.validation_generic_color_tags_count_localized', {
+        defaultValue: 'Found {{startCount}} start tags, but {{endCount}} end markers.',
+        startCount,
+        endCount,
+      });
+    }
+
+    // 2. "发现了以下本应被转换的标点符号: {punctuations}"
+    const puncMatch = text.match(/发现了以下本应被转换的标点符号:\s*(.+)/);
+    if (puncMatch) {
+      const punctuations = puncMatch[1];
+      return t('agent_workshop.validation_residual_punctuation_details_localized', {
+        defaultValue: 'Found the following punctuations that should have been converted: {{punctuations}}',
+        punctuations,
+      });
+    }
+
+    // 3. "键名 '{found_text}' 包含非法字符。预期为字母数字、下划线、点或连字符。"
+    const keyFormatMatch = text.match(/键名\s*'([^']+)'\s*包含非法字符。预期为字母数字、下划线、点或连字符。/);
+    if (keyFormatMatch) {
+      const foundText = keyFormatMatch[1];
+      return t('agent_workshop.validation_invalid_key_format_details_localized', {
+        defaultValue: "Key '{{foundText}}' contains invalid characters. Expected alphanumeric, underscore, dot, or hyphen.",
+        foundText,
+      });
+    }
+
+    return text;
+  }, [t]);
+
   const groupedIssues = useMemo(() => {
     const groups = new Map();
     issues.forEach((issue) => {
@@ -502,7 +541,7 @@ const AgentWorkshopPage = () => {
                   <Alert icon={<IconAlertTriangle size={16} />} color={issues.length ? 'orange' : 'green'} radius="md">{issues.length ? t('agent_workshop.start_fix_confirm') : t('agent_workshop.no_errors_desc')}</Alert>
                   <Group justify="flex-end" mt="md"><Button variant="light" onClick={() => setActive(1)}>{t('common.back')}</Button><Button id="agent-workshop-start-fix-btn" leftSection={<IconPlayerPlay size={18} />} onClick={executeFixRun} disabled={!issues.length || !selectedProvider || !selectedModel || executing}>{t('agent_workshop.start_fix')}</Button></Group>
                   {issueTypeSummary.length > 0 && <Stack gap="xs" mt="xl"><Text size="sm" fw={600}>{t('agent_workshop.issue_type_summary')}</Text><SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>{issueTypeSummary.map((item) => <Card key={item.label} withBorder p="sm" radius="md"><Text size="xs" c="dimmed" lineClamp={2}>{localizeIssueLabel(item.label)}</Text><Text size="sm" fw={700}>{item.count}</Text></Card>)}</SimpleGrid></Stack>}
-                  {groupedIssues.length > 0 && <Accordion id="agent-workshop-issue-details" variant="separated" radius="md" mt="xl"><Accordion.Item value="file-details"><Accordion.Control><Group justify="space-between" wrap="nowrap"><Text fw={600}>{t('agent_workshop.file_issue_details')}</Text><Badge color="orange" variant="light">{groupedIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{groupedIssues.map(([fileKey, fileIssues]) => <Accordion key={fileKey} variant="contained" radius="md"><Accordion.Item value={fileKey}><Accordion.Control><Group justify="space-between" wrap="nowrap"><Box style={{ minWidth: 0 }}><Text size="sm" fw={600} truncate>{fileKey}</Text><Text size="xs" c="dimmed">{fileIssues[0]?.target_lang || '--'}</Text></Box><Badge color="orange" variant="light">{fileIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{fileIssues.map((issue, index) => <Paper key={`${issue.file_name}:${issue.key}:${index}`} p="sm" withBorder><Group justify="space-between" align="flex-start" wrap="nowrap"><Box style={{ minWidth: 0, flex: 1 }}><Text size="sm" fw={600}>{issue.key}</Text><Badge color="red" variant="light" mt={6}>{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge><Text size="xs" c="dimmed" mt={8}>{issue.details}</Text><Code block mt="sm">{issue.target_str}</Code></Box><Button size="xs" variant="light" leftSection={<IconWand size={14} />} onClick={() => openFixModal(issue)} style={{ whiteSpace: 'nowrap' }}>{t('agent_workshop.fix_btn')}</Button></Group></Paper>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>}
+                  {groupedIssues.length > 0 && <Accordion id="agent-workshop-issue-details" variant="separated" radius="md" mt="xl"><Accordion.Item value="file-details"><Accordion.Control><Group justify="space-between" wrap="nowrap"><Text fw={600}>{t('agent_workshop.file_issue_details')}</Text><Badge color="orange" variant="light">{groupedIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{groupedIssues.map(([fileKey, fileIssues]) => <Accordion key={fileKey} variant="contained" radius="md"><Accordion.Item value={fileKey}><Accordion.Control><Group justify="space-between" wrap="nowrap"><Box style={{ minWidth: 0 }}><Text size="sm" fw={600} truncate>{fileKey}</Text><Text size="xs" c="dimmed">{fileIssues[0]?.target_lang || '--'}</Text></Box><Badge color="orange" variant="light">{fileIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{fileIssues.map((issue, index) => <Paper key={`${issue.file_name}:${issue.key}:${index}`} p="sm" withBorder><Group justify="space-between" align="flex-start" wrap="nowrap"><Box style={{ minWidth: 0, flex: 1 }}><Text size="sm" fw={600}>{issue.key}</Text><Badge color="red" variant="light" mt={6}>{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge><Text size="xs" c="dimmed" mt={8}>{localizeIssueDetails(issue.details)}</Text><Code block mt="sm">{issue.target_str}</Code></Box><Button size="xs" variant="light" leftSection={<IconWand size={14} />} onClick={() => openFixModal(issue)} style={{ whiteSpace: 'nowrap' }}>{t('agent_workshop.fix_btn')}</Button></Group></Paper>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>}
                 </Paper>
               </Stack>
             </Stepper.Step>
@@ -530,7 +569,7 @@ const AgentWorkshopPage = () => {
                                   </Box>
                                   <Badge color="green" variant="light">{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge>
                                 </Group>
-                                <Text size="xs" c="dimmed">{issue.details}</Text>
+                                <Text size="xs" c="dimmed">{localizeIssueDetails(issue.details)}</Text>
                                 <Text size="xs" fw={700}>{t('agent_workshop.before_fix')}</Text>
                                 <Code block>{issue.target_str}</Code>
                                 <Text size="xs" fw={700}>{t('agent_workshop.after_fix')}</Text>
@@ -555,7 +594,7 @@ const AgentWorkshopPage = () => {
             <LoadingOverlay visible={fixing} overlayBlur={2} />
             <Stack gap="md">
               <Paper p="xs" withBorder><Text size="xs" fw={700} c="dimmed" tt="uppercase">{t('agent_workshop.modal_source_context')}</Text><Code block>{currentIssue?.source_str || t('agent_workshop.no_source_context')}</Code></Paper>
-              <Paper p="xs" withBorder><Text size="xs" fw={700} c="red" tt="uppercase">{t('agent_workshop.modal_error_detected')}</Text><Code block color="red">{currentIssue?.target_str}</Code><Text size="xs" mt={4}>{currentIssue?.details}</Text></Paper>
+              <Paper p="xs" withBorder><Text size="xs" fw={700} c="red" tt="uppercase">{t('agent_workshop.modal_error_detected')}</Text><Code block color="red">{currentIssue?.target_str}</Code><Text size="xs" mt={4}>{localizeIssueDetails(currentIssue?.details)}</Text></Paper>
               {!fixResult && <Button fullWidth variant="gradient" gradient={{ from: 'indigo', to: 'cyan' }} onClick={handleFixRequest} disabled={fixing || !selectedProvider}>{selectedProvider ? t('agent_workshop.fix_btn') : t('agent_workshop.select_model_hint')}</Button>}
               {fixResult && <Stack gap="md"><Alert icon={<IconInfoCircle size={16} />} title={t('agent_workshop.modal_analysis')} color="indigo" variant="light"><Text size="sm" fs="italic">{fixResult.reflection}</Text>{fixResult.report_path && <Text size="xs" mt={8} c="dimmed">{t('agent_workshop.report_path')}: {fixResult.report_path}</Text>}</Alert><Paper p="xs" withBorder style={{ backgroundColor: 'rgba(40, 167, 69, 0.05)' }}><Text size="xs" fw={700} c="green" tt="uppercase">{t('agent_workshop.modal_suggestion')}</Text><Code block color="green">{fixResult.suggested_fix}</Code>{fixResult.parity_message && <Text size="xs" mt={4} c={fixResult.status === 'SUCCESS' ? 'green' : 'orange'}><IconCheck size={12} /> {fixResult.parity_message}</Text>}</Paper><Group grow mt="lg"><Button variant="subtle" onClick={() => setFixResult(null)}>{t('agent_workshop.regenerate')}</Button><Button color="green" onClick={() => { setIsModalOpen(false); setIssues((prev) => prev.filter((item) => item.key !== currentIssue.key || item.file_name !== currentIssue.file_name)); }}>{t('agent_workshop.apply_fix')}</Button></Group></Stack>}
             </Stack>

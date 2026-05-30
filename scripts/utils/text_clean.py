@@ -123,6 +123,11 @@ def restore_special_tokens(text: str, target_lang: str) -> str:
     if not text:
         return text
 
+    import re
+    # Normalize variants with spaces (e.g. [[ _NL_ ]], [[_QT_ ]]) to standard tokens
+    text = re.sub(r'\[\[\s*_NL_\s*\]\]', MASK_NEWLINE, text)
+    text = re.sub(r'\[\[\s*_QT_\s*\]\]', MASK_QUOTE, text)
+
     # 1. Restore Newlines
     # Paradox localization files usually expect escaped newlines (\n)
     # Clean up spaces LLM might add around newline masks FIRST

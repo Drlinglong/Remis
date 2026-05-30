@@ -1183,7 +1183,10 @@
     "failed_count": "Weiterhin fehlgeschlagen",
     "duration": "Dauer",
     "no_source_context": "(Kein Quellkontext gefunden)",
-    "validation_residual_punctuation_found": "Verbleibende Satzzeichen der Quellsprache gefunden"
+    "validation_residual_punctuation_found": "Verbleibende Satzzeichen der Quellsprache gefunden",
+    "validation_generic_color_tags_count_localized": "Es wurden {{startCount}} Start-Tags gefunden, aber {{endCount}} End-Tags.",
+    "validation_residual_punctuation_details_localized": "Folgende Satzzeichen wurden gefunden, die hätten konvertiert werden müssen: {{punctuations}}",
+    "validation_invalid_key_format_details_localized": "Der Schlüsselname '{{foundText}}' enthält ungültige Zeichen. Erwartet werden alphanumerische Zeichen, Unterstriche, Punkte oder Bindestriche."
   },
   "project_validation": {
     "title": "Formatprüfung",

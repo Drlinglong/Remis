@@ -1183,7 +1183,10 @@
     "failed_count": "Still Failed",
     "duration": "Duration",
     "no_source_context": "(No source context found)",
-    "validation_residual_punctuation_found": "Residual punctuation found"
+    "validation_residual_punctuation_found": "Residual punctuation found",
+    "validation_generic_color_tags_count_localized": "Found {{startCount}} start tags, but {{endCount}} end markers.",
+    "validation_residual_punctuation_details_localized": "Found the following punctuations that should have been converted: {{punctuations}}",
+    "validation_invalid_key_format_details_localized": "Key '{{foundText}}' contains invalid characters. Expected alphanumeric, underscore, dot, or hyphen."
   },
   "project_validation": {
     "title": "Format Check",

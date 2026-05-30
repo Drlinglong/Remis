@@ -1183,7 +1183,10 @@
     "failed_count": "Toujours en échec",
     "duration": "Durée",
     "no_source_context": "(Aucun contexte source trouvé)",
-    "validation_residual_punctuation_found": "Ponctuation résiduelle de la langue source détectée"
+    "validation_residual_punctuation_found": "Ponctuation résiduelle de la langue source détectée",
+    "validation_generic_color_tags_count_localized": "{{startCount}} balises de début trouvées, mais {{endCount}} marqueurs de fin.",
+    "validation_residual_punctuation_details_localized": "Trouvé les ponctuations suivantes qui auraient dû être converties : {{punctuations}}",
+    "validation_invalid_key_format_details_localized": "Le nom de clé '{{foundText}}' contient des caractères invalides. Caractère alphanumérique, trait d'union bas, point ou trait d'union attendu."
   },
   "project_validation": {
     "title": "Vérification du format",

@@ -1183,7 +1183,10 @@
     "failed_count": "여전히 실패함",
     "duration": "소요 시간",
     "no_source_context": "(원본 컨텍스트를 찾을 수 없음)",
-    "validation_residual_punctuation_found": "원문 잔류 문장 부호 감지됨"
+    "validation_residual_punctuation_found": "원문 잔류 문장 부호 감지됨",
+    "validation_generic_color_tags_count_localized": "시작 태그 {{startCount}}개가 발견되었으나, 종료 태그가 {{endCount}}개 있습니다.",
+    "validation_residual_punctuation_details_localized": "변환되어야 할 다음과 같은 문장 부호가 발견되었습니다: {{punctuations}}",
+    "validation_invalid_key_format_details_localized": "키 이름 '{{foundText}}'에 잘못된 문자가 포함되어 있습니다. 영문자, 숫자, 밑줄, 마침표 또는 하이픈이어야 합니다."
   },
   "project_validation": {
     "title": "형식 검사",
