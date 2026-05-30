@@ -1477,5 +1477,13 @@
   "deploy_clean_confirm_msg": "Sind Sie sicher, dass Sie alle nicht-originalen Sprachordner und -dateien im Lokalisierungsverzeichnis der Original-Mod suchen und physisch löschen möchten? Dies ist eine SEHR RISKANTE Operation, die Dateien im Steam-Workshop-Verzeichnis direkt verändert!",
   "deploy_clean_confirm_btn": "Ja, ich kenne das Risiko. Fortfahren!",
   "deploy_clean_success_title": "Bereinigung & Bereitstellung erfolgreich",
-  "deploy_clean_success_message": "Gefälschte Lokalisierungen erfolgreich bereinigt! Mod erfolgreich im Paradox-Verzeichnis bereitgestellt."
+  "deploy_clean_success_message": "Gefälschte Lokalisierungen erfolgreich bereinigt! Mod erfolgreich im Paradox-Verzeichnis bereitgestellt.",
+  "deploy_workshop_path_error": "Automatische Erkennung fehlgeschlagen. Bitte manuell eingeben, um gefälschte Lokalisierungen zu bereinigen.",
+  "deploy_loading_paths": "Lade Bereitstellungspfade...",
+  "deploy_loading_original_paths": "Lade ursprüngliche Mod-Pfade...",
+  "project_management.manage_paths.source_section": "Quelllokalisierungs-Stammverzeichnis",
+  "project_management.manage_paths.source_desc": "Der Stammordner der Quelldateien der Mod. Es ist nur ein Quellverzeichnis pro Projekt zulässig.",
+  "project_management.manage_paths.source_placeholder": "Mod-Quellverzeichnis auswählen...",
+  "project_management.manage_paths.translation_section": "Übersetzungsausgabeverzeichnisse (Mehrere)",
+  "project_management.manage_paths.translation_desc": "Verzeichnisse, in die die übersetzten Lokalisierungsdateien erstellt und exportiert werden."
 }

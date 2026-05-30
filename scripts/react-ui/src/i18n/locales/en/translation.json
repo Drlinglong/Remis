@@ -1477,5 +1477,13 @@
       "Good evening.",
       "Time to wrap up for the day."
     ]
-  }
+  },
+  "deploy_workshop_path_error": "Could not auto-detect. Please input manually if you want to clean fake localization.",
+  "deploy_loading_paths": "Loading deployment paths...",
+  "deploy_loading_original_paths": "Loading original mod paths...",
+  "project_management.manage_paths.source_section": "Source localization root directory",
+  "project_management.manage_paths.source_desc": "The root folder of the mod's source files. Only one source directory is allowed per project.",
+  "project_management.manage_paths.source_placeholder": "Select mod source directory...",
+  "project_management.manage_paths.translation_section": "Translation Output Directories (Multiple)",
+  "project_management.manage_paths.translation_desc": "Directories where the translated localization files will be built and exported."
 }

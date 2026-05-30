@@ -1496,5 +1496,13 @@
       "content_2": "The editor is currently in **Patching Mode**. In this mode, the system locates entries by the original file key and only replaces the value. **Your key edits will be discarded on save**; only value changes will be preserved.",
       "button_cancel": "Go Back and Edit"
     }
-  }
+  },
+  "deploy_workshop_path_error": "无法自动探测。如果您想清理假本地化文件，请手动输入路径。",
+  "deploy_loading_paths": "正在加载部署路径...",
+  "deploy_loading_original_paths": "正在加载原始模组路径...",
+  "project_management.manage_paths.source_section": "源语言本地化根目录",
+  "project_management.manage_paths.source_desc": "存放原始语言本地化文件的目录。每个项目只能有一个源文件目录。",
+  "project_management.manage_paths.source_placeholder": "选择 Mod 的源语言文件目录...",
+  "project_management.manage_paths.translation_section": "翻译输出目录 (支持配置多个)",
+  "project_management.manage_paths.translation_desc": "生成的翻译文件将要输出并写入到的目录，支持同时输出到多个位置。"
 }

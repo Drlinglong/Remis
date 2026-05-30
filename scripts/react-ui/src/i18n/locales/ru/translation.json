@@ -1500,5 +1500,13 @@
   "project_management.update_summary": "Update Summary",
   "project_management.dry_run_complete": "Dry Run complete. If results are correct, uncheck 'Dry Run' and start the actual update.",
   "project_management.update_complete": "Incremental update completed successfully. Files updated.",
-  "common.confirm_delete": "Are you sure you want to delete this history record?"
+  "common.confirm_delete": "Are you sure you want to delete this history record?",
+  "deploy_workshop_path_error": "Не удалось обнаружить автоматически. Пожалуйста, введите вручную для удаления фейковой локализации.",
+  "deploy_loading_paths": "Загрузка путей развертывания...",
+  "deploy_loading_original_paths": "Загрузка оригинальных путей мода...",
+  "project_management.manage_paths.source_section": "Корневой каталог исходной локализации",
+  "project_management.manage_paths.source_desc": "Корневая папка исходных файлов мода. Для проекта разрешен только один исходный каталог.",
+  "project_management.manage_paths.source_placeholder": "Выберите исходный каталог мода...",
+  "project_management.manage_paths.translation_section": "Выходные каталоги перевода (Несколько)",
+  "project_management.manage_paths.translation_desc": "Каталоги, в которые будут собираться и экспортироваться переведенные файлы локализации."
 }

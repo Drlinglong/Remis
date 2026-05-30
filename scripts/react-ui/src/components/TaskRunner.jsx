@@ -469,7 +469,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                         {infoLoading ? (
                             <Stack align="center" py="xl">
                                 <Loader size="md" />
-                                <Text size="sm">Loading deployment paths...</Text>
+                                <Text size="sm">{t('deploy_loading_paths')}</Text>
                             </Stack>
                         ) : (
                             <Stack gap="md">
@@ -479,7 +479,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                                     description={t('deploy_target_path_desc')}
                                     value={deployPath}
                                     onChange={(e) => setDeployPath(e.currentTarget.value)}
-                                />
+                                    />
 
                                 <TextInput
                                     label={t('deploy_workshop_path_label')}
@@ -487,7 +487,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                                     description={t('deploy_workshop_path_desc')}
                                     value={workshopPath}
                                     onChange={(e) => setWorkshopPath(e.currentTarget.value)}
-                                    error={!workshopPath && "Could not auto-detect. Please input manually if you want to clean fake localization."}
+                                    error={!workshopPath && t('deploy_workshop_path_error')}
                                 />
 
                                 <Group justify="flex-end" mt="lg">

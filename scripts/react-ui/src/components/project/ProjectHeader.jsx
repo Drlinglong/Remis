@@ -306,7 +306,7 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                     {infoLoading ? (
                         <Stack align="center" py="xl">
                             <Loader size="md" />
-                            <Text size="sm">Loading original mod paths...</Text>
+                            <Text size="sm">{t('deploy_loading_original_paths')}</Text>
                         </Stack>
                     ) : (
                         <Stack gap="md">
@@ -324,7 +324,7 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                                 description={t('deploy_workshop_path_desc')}
                                 value={workshopPath}
                                 onChange={(e) => setWorkshopPath(e.currentTarget.value)}
-                                error={!workshopPath && "Could not auto-detect. Please input manually if you want to clean fake localization."}
+                                error={!workshopPath && t('deploy_workshop_path_error')}
                             />
 
                             <Group justify="flex-end" mt="lg">

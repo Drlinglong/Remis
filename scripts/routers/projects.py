@@ -224,6 +224,31 @@ async def update_project_config(project_id: str, request: UpdateConfigRequest):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     try:
+        old_source_path = project['source_path']
+        new_source_path = request.source_path
+
+        # 1. Update source path if provided and different
+        if new_source_path and new_source_path != old_source_path:
+            if not os.path.exists(new_source_path) or not os.path.isdir(new_source_path):
+                raise HTTPException(status_code=400, detail=f"Source directory not found: {new_source_path}")
+            
+            # Copy .remis_project.json from old source path to new source path if it exists
+            old_json_path = os.path.join(old_source_path, '.remis_project.json')
+            new_json_path = os.path.join(new_source_path, '.remis_project.json')
+            if os.path.exists(old_json_path) and not os.path.exists(new_json_path):
+                try:
+                    import shutil
+                    shutil.copy2(old_json_path, new_json_path)
+                    logging.info(f"Copied .remis_project.json sidecar to new source path: {new_source_path}")
+                except Exception as exc:
+                    logging.error(f"Failed to copy .remis_project.json to new source path: {exc}")
+            
+            # Update source path in database
+            await project_manager.repository.touch_project(project_id)
+            await project_manager.repository.update_project_source_path(project_id, new_source_path)
+            project['source_path'] = new_source_path
+
+        # 2. Update config file (kanban, translation directories, etc)
         json_manager = ProjectJsonManager(project['source_path'])
         
         if request.translation_dirs is not None:
@@ -240,8 +265,12 @@ async def update_project_config(project_id: str, request: UpdateConfigRequest):
             json_manager.add_translation_dir(request.path)
         elif request.action == 'remove_dir':
             json_manager.remove_translation_dir(request.path)
+        elif new_source_path is not None:
+            # We updated source_path, but didn't provide translation_dirs / action
+            pass
         else:
             raise HTTPException(status_code=400, detail="Invalid action or missing parameters")
+
         await project_manager.refresh_project_files(project_id)
         return {"status": "success"}
     except HTTPException:

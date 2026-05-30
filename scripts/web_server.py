@@ -58,7 +58,7 @@ try:
     backend_port = get_backend_port()
     existing_health = _fetch_existing_backend_health(backend_port)
     from scripts.utils.backend_identity import is_reusable_backend_health
-    if is_reusable_backend_health(existing_health):
+    if is_reusable_backend_health(existing_health) and "pytest" not in sys.modules:
         panic_log(
             "Existing backend is healthy and matches current workspace/fingerprint. "
             "Reusing it and exiting new sidecar."

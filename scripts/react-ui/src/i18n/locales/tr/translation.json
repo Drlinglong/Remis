@@ -1477,5 +1477,13 @@
   "deploy_clean_confirm_msg": "Orijinal mod yerelleştirme dizini içindeki orijinal dil dışındaki tüm dil klasörlerini ve dosyalarını aramak ve fiziksel olarak silmek istediğinizden emin misiniz? Bu, Steam atölye dizini dosyalarını doğrudan değiştiren YÜKSEK RİSKLİ bir işlemdir!",
   "deploy_clean_confirm_btn": "Evet, riski biliyorum. Devam et!",
   "deploy_clean_success_title": "Temizleme ve dağıtım başarılı",
-  "deploy_clean_success_message": "Sahte yerelleştirmeler başarıyla temizlendi! Mod, Paradox dizinine başarıyla dağıtıldı."
+  "deploy_clean_success_message": "Sahte yerelleştirmeler başarıyla temizlendi! Mod, Paradox dizinine başarıyla dağıtıldı.",
+  "deploy_workshop_path_error": "Otomatik olarak tespit edilemedi. Sahte yerelleştirmeyi temizlemek istiyorsanız lütfen manuel olarak girin.",
+  "deploy_loading_paths": "Dağıtım yolları yükleniyor...",
+  "deploy_loading_original_paths": "Orijinal mod yolları yükleniyor...",
+  "project_management.manage_paths.source_section": "Kaynak yerelleştirme kök dizini",
+  "project_management.manage_paths.source_desc": "Modun kaynak dosyalarının kök klasörü. Proje başına yalnızca bir kaynak dizine izin verilir.",
+  "project_management.manage_paths.source_placeholder": "Mod kaynak dizinini seçin...",
+  "project_management.manage_paths.translation_section": "Çeviri Çıkış Dizinleri (Çoklu)",
+  "project_management.manage_paths.translation_desc": "Çevrilmiş yerelleştirme dosyalarının derleneceği ve aktarılacağı dizinler."
 }

@@ -23,6 +23,9 @@ const resources = {
   zh: {
     translation: zh,
   },
+  'zh-CN': {
+    translation: zh,
+  },
   fr: {
     translation: fr,
   },

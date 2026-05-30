@@ -1477,5 +1477,13 @@
   "deploy_clean_confirm_msg": "オリジナルModのローカライズディレクトリ内にある、オリジナル言語以外のすべての言語フォルダとファイルを検索し、物理的に削除してもよろしいですか？これはSteamワークショップのディレクトリファイルを直接変更する【高リスク】な操作です！",
   "deploy_clean_confirm_btn": "リスクを理解した上で続行する",
   "deploy_clean_success_title": "クリーンアップとデプロイの成功",
-  "deploy_clean_success_message": "偽のローカライズのクリーンアップが成功しました！翻訳ModがParadoxディレクトリに正常にデプロイされました。"
+  "deploy_clean_success_message": "偽のローカライズのクリーンアップが成功しました！翻訳ModがParadoxディレクトリに正常にデプロイされました。",
+  "deploy_workshop_path_error": "自動検出できませんでした。偽のローカライズをクリーンアップしたい場合は、手動で入力してください。",
+  "deploy_loading_paths": "デプロイメントパスを読み込んでいます...",
+  "deploy_loading_original_paths": "オリジナルModのパスを読み込んでいます...",
+  "project_management.manage_paths.source_section": "ソースローカライズのルートディレクトリ",
+  "project_management.manage_paths.source_desc": "Modのソースファイルのルートフォルダーです。プロジェクトごとに1つのソースディレクトリのみ許可されます。",
+  "project_management.manage_paths.source_placeholder": "Modのソースディレクトリを選択してください...",
+  "project_management.manage_paths.translation_section": "翻訳出力ディレクトリ（複数）",
+  "project_management.manage_paths.translation_desc": "翻訳済みのローカライズファイルがビルドおよびエクスポートされるディレクトリです。"
 }

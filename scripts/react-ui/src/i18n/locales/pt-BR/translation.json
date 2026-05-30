@@ -1477,5 +1477,13 @@
   "deploy_clean_confirm_msg": "Tem certeza de que deseja pesquisar e excluir fisicamente todas as pastas e arquivos de idiomas não originais dentro do diretório de localização del mod original? Esta é uma operação de ALTO RISCO que modifica diretamente os arquivos do diretório do workshop do Steam!",
   "deploy_clean_confirm_btn": "Sim, eu conheço o risco. Prosseguir!",
   "deploy_clean_success_title": "Limpeza e implantação bem-sucedidas",
-  "deploy_clean_success_message": "Localizações falsas limpas com sucesso! Mod implantado com sucesso no diretório da Paradox."
+  "deploy_clean_success_message": "Localizações falsas limpas com sucesso! Mod implantado com sucesso no diretório da Paradox.",
+  "deploy_workshop_path_error": "Não foi possível detectar automaticamente. Insira manualmente se desejar limpar a localização falsa.",
+  "deploy_loading_paths": "Carregando caminhos de implantação...",
+  "deploy_loading_original_paths": "Carregando caminhos originais do mod...",
+  "project_management.manage_paths.source_section": "Diretório raiz de localização de origem",
+  "project_management.manage_paths.source_desc": "A pasta raiz dos arquivos de origem do mod. Apenas um diretório de origem é permitido por projeto.",
+  "project_management.manage_paths.source_placeholder": "Selecionar diretório de origem do mod...",
+  "project_management.manage_paths.translation_section": "Diretórios de saída de tradução (Múltiplos)",
+  "project_management.manage_paths.translation_desc": "Diretórios onde os arquivos de localização traduzidos serão compilados e exportados."
 }

@@ -1477,5 +1477,13 @@
   "deploy_clean_confirm_msg": "Êtes-vous sûr de vouloir rechercher et supprimer physiquement tous les dossiers et fichiers de langue non originaux dans le répertoire de localisation du mod d'origine ? Il s'agit d'une opération à HAUT RISQUE qui modifie directement les fichiers du répertoire du workshop Steam !",
   "deploy_clean_confirm_btn": "Oui, je connais le risque. Continuer !",
   "deploy_clean_success_title": "Nettoyage et déploiement réussis",
-  "deploy_clean_success_message": "Fausses localisations nettoyées avec succès ! Mod déployé avec succès dans le répertoire Paradox."
+  "deploy_clean_success_message": "Fausses localisations nettoyées avec succès ! Mod déployé avec succès dans le répertoire Paradox.",
+  "deploy_workshop_path_error": "Détection automatique impossible. Veuillez saisir manuellement pour nettoyer les fausses localisations.",
+  "deploy_loading_paths": "Chargement des chemins de déploiement...",
+  "deploy_loading_original_paths": "Chargement des chemins d'origine du mod...",
+  "project_management.manage_paths.source_section": "Répertoire racine de localisation source",
+  "project_management.manage_paths.source_desc": "Le dossier racine des fichiers sources du mod. Un seul répertoire source est autorisé par projet.",
+  "project_management.manage_paths.source_placeholder": "Sélectionner le répertoire source du mod...",
+  "project_management.manage_paths.translation_section": "Répertoires de sortie de traduction (Plusieurs)",
+  "project_management.manage_paths.translation_desc": "Répertoires dans lesquels les fichiers de localisation traduits seront générés et exportés."
 }

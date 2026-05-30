@@ -1477,5 +1477,13 @@
   "deploy_clean_confirm_msg": "Czy na pewno chcesz wyszukać i fizycznie usunąć wszystkie nieoryginalne foldery i pliki językowe w katalogu lokalizacji oryginalnego moda? Jest to operacja WYSOKIEGO RYZYKA, która bezpośrednio modyfikuje pliki w katalogu warsztatu Steam!",
   "deploy_clean_confirm_btn": "Tak, znam ryzyko. Kontynuuj!",
   "deploy_clean_success_title": "Czyszczenie i wdrożenie zakończone sukcesem",
-  "deploy_clean_success_message": "Fałszywe lokalizacje zostały pomyślnie wyczyszczone! Mod wdrożony pomyślnie do katalogu Paradox."
+  "deploy_clean_success_message": "Fałszywe lokalizacje zostały pomyślnie wyczyszczone! Mod wdrożony pomyślnie do katalogu Paradox.",
+  "deploy_workshop_path_error": "Nie udało się automatycznie wykryć. Wprowadź ręcznie, jeśli chcesz wyczyścić fałszywą lokalizację.",
+  "deploy_loading_paths": "Ładowanie ścieżek wdrażania...",
+  "deploy_loading_original_paths": "Ładowanie oryginalnych ścieżek modyfikacji...",
+  "project_management.manage_paths.source_section": "Katalog główny lokalizacji źródłowej",
+  "project_management.manage_paths.source_desc": "Folder główny plików źródłowych modyfikacji. Dozwolony jest tylko jeden katalog źródłowy na projekt.",
+  "project_management.manage_paths.source_placeholder": "Wybierz katalog źródłowy moda...",
+  "project_management.manage_paths.translation_section": "Katalogi wyjściowe tłumaczenia (Wiele)",
+  "project_management.manage_paths.translation_desc": "Katalogi, do których będą budowane i eksportowane przetłumaczone pliki lokalizacyjne."
 }

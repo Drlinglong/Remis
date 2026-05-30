@@ -1477,5 +1477,13 @@
   "deploy_clean_confirm_msg": "원본 모드 로컬라이징 디렉토리 내에서 원본 언어 이외의 모든 언어 폴더와 파일을 검색하고 완전히 삭제하시겠습니까? 이는 Steam 창작마당 디렉토리 파일을 직접 수정하는 【고위험】 작업입니다!",
   "deploy_clean_confirm_btn": "위험을 이해했으며, 계속 진행합니다",
   "deploy_clean_success_title": "정리 및 배포 성공",
-  "deploy_clean_success_message": "가짜 로컬라이징 정리가 성공적으로 완료되었습니다! 모드가 Paradox 디렉토리에 성공적으로 배포되었습니다."
+  "deploy_clean_success_message": "가짜 로컬라이징 정리가 성공적으로 완료되었습니다! 모드가 Paradox 디렉토리에 성공적으로 배포되었습니다.",
+  "deploy_workshop_path_error": "자동 감지할 수 없습니다. 가짜 로컬라이징을 정리하려면 수동으로 입력하십시오.",
+  "deploy_loading_paths": "배포 경로를 로드하는 중...",
+  "deploy_loading_original_paths": "원본 모드 경로를 로드하는 중...",
+  "project_management.manage_paths.source_section": "원본 로컬라이징 루트 디렉토리",
+  "project_management.manage_paths.source_desc": "모드 원본 파일의 루트 폴더입니다. 프로젝트당 하나의 원본 디렉토리만 허용됩니다.",
+  "project_management.manage_paths.source_placeholder": "모드 원본 디렉토리 선택...",
+  "project_management.manage_paths.translation_section": "번역 출력 디렉토리 (다중)",
+  "project_management.manage_paths.translation_desc": "번역된 로컬라이징 파일이 빌드되고 내보내지는 디렉토리입니다."
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Paper, Group, Text, Button, Modal, Stack, TextInput, ActionIcon, Tooltip } from '@mantine/core';
+import { Paper, Group, Text, Button, Modal, Stack, TextInput, ActionIcon, Tooltip, Divider } from '@mantine/core';
 import { IconFolder, IconPlus, IconTrash, IconExternalLink } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -9,26 +9,43 @@ import styles from '../../pages/ProjectManagement.module.css';
 const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
     const { t } = useTranslation();
     const [managePathsOpen, setManagePathsOpen] = useState(false);
+    const [sourcePath, setSourcePath] = useState('');
     const [translationDirs, setTranslationDirs] = useState([]);
     const [newDirPath, setNewDirPath] = useState('');
 
     const handleOpenManagePaths = () => {
+        setSourcePath(projectDetails.source_path || '');
         setTranslationDirs(projectDetails.translation_dirs || []);
         setManagePathsOpen(true);
     };
 
-    const handleBrowseFolder = async () => {
+    const handleBrowseSourcePath = async () => {
         try {
             const selected = await open({
                 directory: true,
                 multiple: false,
-                title: 'Select Translation Directory'
+                title: t('project_management.manage_paths.source_placeholder')
+            });
+            if (selected && typeof selected === 'string') {
+                setSourcePath(selected);
+            }
+        } catch (err) {
+            console.error('Failed to open source browse dialog:', err);
+        }
+    };
+
+    const handleBrowseTranslationPath = async () => {
+        try {
+            const selected = await open({
+                directory: true,
+                multiple: false,
+                title: t('project_management.manage_paths.placeholder')
             });
             if (selected && typeof selected === 'string') {
                 setNewDirPath(selected);
             }
         } catch (err) {
-            console.error('Failed to open dialog:', err);
+            console.error('Failed to open translation browse dialog:', err);
         }
     };
 
@@ -46,6 +63,7 @@ const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
     const handleSavePaths = async () => {
         try {
             const response = await api.post(`/api/project/${projectDetails.project_id}/config`, {
+                source_path: sourcePath,
                 translation_dirs: translationDirs
             });
             console.log('Save response:', response.data);
@@ -55,7 +73,7 @@ const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
             }
         } catch (error) {
             console.error('Failed to save paths:', error);
-            alert(`Failed to save translation directories: ${error.response?.data?.detail || error.message}`);
+            alert(`Failed to save project paths: ${error.response?.data?.detail || error.message}`);
         }
     };
 
@@ -114,27 +132,56 @@ const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
                 title={t('project_management.manage_paths.title')}
                 size="lg"
             >
-                <Stack gap="md">
+                <Stack gap="lg">
+                    {/* Section 1: Source file directory (Single) */}
                     <div>
-                        <Text size="sm" fw={500} mb="xs">{t('project_management.manage_paths.current_dirs')}:</Text>
-                        {translationDirs.length === 0 ? (
-                            <Text size="sm" c="dimmed">{t('project_management.manage_paths.no_dirs')}</Text>
-                        ) : (
-                            <Stack gap="xs">
-                                {translationDirs.map((dir, index) => (
-                                    <Group key={index} justify="space-between">
-                                        <Text size="sm" style={{ flex: 1, wordBreak: 'break-all' }}>{dir}</Text>
-                                        <ActionIcon color="red" onClick={() => handleRemoveDir(index)}>
-                                            <IconTrash size={16} />
-                                        </ActionIcon>
-                                    </Group>
-                                ))}
-                            </Stack>
-                        )}
+                        <Text size="sm" fw={600} mb="xs" c="blue">
+                            {t('project_management.manage_paths.source_section')} (1)
+                        </Text>
+                        <Text size="xs" c="dimmed" mb="sm">
+                            {t('project_management.manage_paths.source_desc')}
+                        </Text>
+                        <Group align="flex-end">
+                            <TextInput
+                                placeholder={t('project_management.manage_paths.source_placeholder')}
+                                value={sourcePath}
+                                onChange={(e) => setSourcePath(e.currentTarget.value)}
+                                style={{ flex: 1 }}
+                            />
+                            <Button onClick={handleBrowseSourcePath} leftSection={<IconFolder size={16} />}>
+                                {t('project_management.manage_paths.browse')}
+                            </Button>
+                        </Group>
                     </div>
 
+                    <Divider />
+
+                    {/* Section 2: Translation output directories (Multiple) */}
                     <div>
-                        <Text size="sm" fw={500} mb="xs">{t('project_management.manage_paths.add_new')}:</Text>
+                        <Text size="sm" fw={600} mb="xs" c="teal">
+                            {t('project_management.manage_paths.translation_section')}
+                        </Text>
+                        <Text size="xs" c="dimmed" mb="sm">
+                            {t('project_management.manage_paths.translation_desc')}
+                        </Text>
+                        
+                        <Stack gap="xs" mb="md">
+                            {translationDirs.length === 0 ? (
+                                <Text size="sm" c="dimmed" italic>{t('project_management.manage_paths.no_dirs')}</Text>
+                            ) : (
+                                translationDirs.map((dir, index) => (
+                                    <Paper key={index} withBorder p="xs" radius="sm" style={{ background: 'rgba(0,0,0,0.1)' }}>
+                                        <Group justify="space-between">
+                                            <Text size="sm" style={{ flex: 1, wordBreak: 'break-all' }}>{dir}</Text>
+                                            <ActionIcon color="red" variant="subtle" onClick={() => handleRemoveDir(index)}>
+                                                <IconTrash size={16} />
+                                            </ActionIcon>
+                                        </Group>
+                                    </Paper>
+                                ))
+                            )}
+                        </Stack>
+
                         <Group align="flex-end">
                             <TextInput
                                 placeholder={t('project_management.manage_paths.placeholder')}
@@ -142,7 +189,7 @@ const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
                                 onChange={(e) => setNewDirPath(e.currentTarget.value)}
                                 style={{ flex: 1 }}
                             />
-                            <Button onClick={handleBrowseFolder} leftSection={<IconFolder size={16} />}>
+                            <Button onClick={handleBrowseTranslationPath} leftSection={<IconFolder size={16} />}>
                                 {t('project_management.manage_paths.browse')}
                             </Button>
                             <Button onClick={handleAddDir} leftSection={<IconPlus size={16} />} disabled={!newDirPath}>
@@ -151,7 +198,9 @@ const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
                         </Group>
                     </div>
 
-                    <Group justify="flex-end" mt="md">
+                    <Divider mt="xs" />
+
+                    <Group justify="flex-end">
                         <Button variant="default" onClick={() => setManagePathsOpen(false)}>
                             {t('project_management.manage_paths.cancel')}
                         </Button>
