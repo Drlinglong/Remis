@@ -142,6 +142,9 @@ def create_skeleton():
     cursor.execute("DELETE FROM main.projects")
     cursor.execute("DELETE FROM main.project_files")
     cursor.execute("DELETE FROM main.activity_log")
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_history'")
+    if cursor.fetchone():
+        cursor.execute("DELETE FROM main.project_history")
     
     # Projects
     # We need to handle potential missing columns in SRC by selecting literals if needed.
@@ -200,6 +203,15 @@ def create_skeleton():
         """, (KEEP_PROJECT_IDS[0], KEEP_PROJECT_IDS[1], KEEP_PROJECT_IDS[2]))
     else:
         print("[WARN] activity_log table not found in source DB. Skipping logs.")
+
+    if 'project_history' in src_tables:
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_history'")
+        if cursor.fetchone():
+            cursor.execute("""
+                INSERT INTO main.project_history
+                SELECT * FROM src.project_history
+                WHERE project_id IN (?, ?, ?)
+            """, (KEEP_PROJECT_IDS[0], KEEP_PROJECT_IDS[1], KEEP_PROJECT_IDS[2]))
 
     conn.commit()
     

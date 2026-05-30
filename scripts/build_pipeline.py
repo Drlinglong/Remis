@@ -192,6 +192,7 @@ def main():
     demos_map = {
         "Test_Project_Remis_stellaris": "demos/Test_Project_Remis_stellaris",
         "Test_Project_Remis_Vic3": "demos/Test_Project_Remis_Vic3",
+        "Test_Project_Remis_Vic3_Incremental_Frozen": "demos/Test_Project_Remis_Vic3_Incremental_Frozen",
         "Test_Project_Remis_EU5": "demos/Test_Project_Remis_EU5"
     }
     

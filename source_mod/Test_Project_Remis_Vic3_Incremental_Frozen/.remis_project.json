@@ -1,0 +1,9 @@
+{
+  "name": "Project Remis Demo Mod - Incremental Frozen Update",
+  "source_language": "zh-CN",
+  "notes": [
+    {
+      "content": "Frozen update target for the bundled Victoria 3 Remis demo. Expected delta against Test_Project_Remis_Vic3: 2 modified entries, 2 added entries in the existing file, 1 deleted entry, and 1 new localization file."
+    }
+  ]
+}

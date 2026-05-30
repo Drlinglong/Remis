@@ -1,0 +1,15 @@
+{
+  "name": "Project Remis Demo Mod - Incremental Frozen Update",
+  "id": "1.0.1-incremental-smoke",
+  "version": "1.0.1",
+  "supported_game_version": "",
+  "short_description": "Project Remis Vic3 demo frozen update for incremental translation smoke testing.",
+  "tags": [
+    "demo",
+    "incremental-smoke"
+  ],
+  "relationships": [],
+  "game_custom_data": {
+    "multiplayer_synchronized": true
+  }
+}
