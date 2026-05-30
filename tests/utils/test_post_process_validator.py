@@ -46,6 +46,11 @@ def test_invalid_key_format_exposes_structured_details(validator):
     assert result.details_code == "validation_invalid_key_format_details_localized"
     assert result.details_params == {"foundText": "bad key"}
 
+def test_paradox_localization_version_suffix_is_valid(validator):
+    results = validator.validate_entry("victoria3", "remis_event.1.t:0", "The Storm's Gift", 3)
+
+    assert not [result for result in results if result.code == "validation_invalid_key_format"]
+
 def test_residual_punctuation_check_finds_japanese_issue(validator, mocker):
     """
     Tests that the check correctly identifies Japanese punctuation when source is Japanese.

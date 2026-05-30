@@ -62,3 +62,17 @@ def test_remis_vic3_frozen_incremental_fixture_has_expected_delta(tmp_path):
     tasks_by_file = {task.filename: task.texts_to_translate for task in result["file_tasks_for_ai"]}
     assert len(tasks_by_file["remis_demo_l_simp_chinese.yml"]) == 4
     assert len(tasks_by_file["remis_newspaper_l_simp_chinese.yml"]) == 4
+
+
+def test_remis_vic3_demo_uses_victoria3_formatting_tags():
+    root = Path(__file__).resolve().parents[1]
+    demo_paths = [
+        root / "source_mod" / "Test_Project_Remis_Vic3",
+        root / "source_mod" / "Test_Project_Remis_Vic3_Incremental_Frozen",
+        root / "my_translation" / "en-Test_Project_Remis_Vic3",
+    ]
+
+    for demo_path in demo_paths:
+        for loc_file in demo_path.rglob("*.yml"):
+            content = loc_file.read_text(encoding="utf-8-sig")
+            assert "§" not in content, f"{loc_file} contains non-Vic3 formatting syntax"
