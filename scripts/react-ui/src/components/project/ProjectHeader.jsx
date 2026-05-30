@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import styles from '../../pages/ProjectManagement.module.css';
 import api from '../../utils/api';
+import { useDeployActions } from '../../hooks/useDeployActions';
+
 const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, onManageProject, onRefresh }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -13,135 +15,30 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
     const archiveSummary = projectDetails?.archive_summary || null;
     const latestArchiveTime = archiveSummary?.last_upload_at || archiveSummary?.created_at || null;
 
-    // Deploy & Fake Loc Cleanup State
-    const [deployModalOpen, setDeployModalOpen] = useState(false);
-    const [cleanModalOpen, setCleanModalOpen] = useState(false);
-    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-    
-    const [deployPath, setDeployPath] = useState('');
-    const [workshopPath, setWorkshopPath] = useState('');
-    const [sourceLanguage, setSourceLanguage] = useState('english');
-    
-    const [loading, setLoading] = useState(false);
-    const [infoLoading, setInfoLoading] = useState(false);
+    // Shared deployment hooks
+    const {
+        deployModalOpen, setDeployModalOpen,
+        cleanModalOpen, setCleanModalOpen,
+        confirmDeleteOpen, setConfirmDeleteOpen,
+        deployPath, setDeployPath,
+        workshopPath, setWorkshopPath,
+        loading, infoLoading,
+        handleOpenDeployModal,
+        handleOpenCleanModal,
+        handleExecuteDeploy,
+        handleExecuteClean
+    } = useDeployActions({
+        getOutputFolderName: () => {
+            const outputDir = Array.isArray(projectDetails?.translation_dirs) && projectDetails.translation_dirs.length > 0
+                ? projectDetails.translation_dirs[0]
+                : null;
+            return outputDir ? outputDir.split(/[\\/]/).pop() : projectDetails.name;
+        },
+        projectId: projectDetails?.project_id,
+        gameId: projectDetails?.game_id
+    });
 
-    const getFolderName = () => {
-        const outputDir = Array.isArray(projectDetails?.translation_dirs) && projectDetails.translation_dirs.length > 0
-            ? projectDetails.translation_dirs[0]
-            : null;
-        if (outputDir) {
-            return outputDir.split(/[\\/]/).pop();
-        }
-        return projectDetails.name;
-    };
 
-    const fetchDeployInfo = async () => {
-        setInfoLoading(true);
-        try {
-            const folderName = getFolderName();
-            const response = await api.post('/api/tools/deploy_info', {
-                project_id: projectDetails?.project_id || null,
-                game_id: projectDetails?.game_id || '',
-                output_folder_name: folderName
-            });
-            setDeployPath(response.data.default_deploy_path || '');
-            setWorkshopPath(response.data.detected_workshop_path || '');
-            setSourceLanguage(response.data.source_language || 'english');
-        } catch (error) {
-            console.error("Failed to load deploy info:", error);
-            notifications.show({ title: 'Error', message: "Failed to load deployment info", color: 'red' });
-        } finally {
-            setInfoLoading(false);
-        }
-    };
-
-    const handleOpenDeployModal = () => {
-        setDeployModalOpen(true);
-        fetchDeployInfo();
-    };
-
-    const handleOpenCleanModal = () => {
-        setCleanModalOpen(true);
-        fetchDeployInfo();
-    };
-
-    const getErrorMessage = (error) => {
-        const detail = error.response?.data?.detail || error.message || '';
-        if (detail.includes("Source directory not found")) {
-            return t('deploy_error_source_not_found', { defaultValue: "Source translated mod folder not found. Please translate the mod first before deploying." });
-        }
-        if (detail.includes("Original mod path does not exist")) {
-            return t('deploy_error_original_not_found', { defaultValue: "Original mod directory path does not exist. Please specify a valid folder path." });
-        }
-        if (detail.includes("Could not determine Paradox mod folder")) {
-            return t('deploy_error_paradox_dir_not_found', { defaultValue: "Could not determine Paradox mod folder for game. Please specify path manually." });
-        }
-        return detail;
-    };
-
-    const handleExecuteDeploy = async () => {
-        setLoading(true);
-        try {
-            const folderName = getFolderName();
-            const response = await api.post('/api/tools/deploy_mod', {
-                project_id: projectDetails?.project_id || null,
-                output_folder_name: folderName,
-                game_id: projectDetails?.game_id,
-                target_deploy_path: deployPath,
-                clean_fake_loc: false,
-                source_language: sourceLanguage
-            });
-
-            if (response.data.status === 'success') {
-                notifications.show({ title: t('deploy_success_title'), message: t('deploy_success_message'), color: 'green' });
-                setDeployModalOpen(false);
-            } else {
-                notifications.show({ title: t('deploy_failed_title'), message: response.data.message || 'Deployment failed', color: 'red' });
-            }
-        } catch (error) {
-            console.error("Deployment failed:", error);
-            const errorMsg = getErrorMessage(error);
-            notifications.show({ title: t('deploy_failed_title'), message: errorMsg, color: 'red' });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleExecuteClean = async () => {
-        setLoading(true);
-        try {
-            const response = await api.post('/api/tools/clean_fake_loc', {
-                workshop_path: workshopPath,
-                source_language: sourceLanguage
-            });
-
-            if (response.data.status === 'success' || response.data.status === 'partial_success' || response.data.status === 'warning') {
-                let cleanMsg = t('deploy_clean_success_message');
-                if (response.data.status === 'success' || response.data.status === 'partial_success') {
-                    const fCount = response.data.removed_folders?.length || 0;
-                    const fileCount = response.data.removed_files?.length || 0;
-                    if (fCount === 0 && fileCount === 0) {
-                        cleanMsg = t('deploy_clean_no_files_found', 'No fake localization files found to clean.');
-                    } else {
-                        cleanMsg += t('deploy_clean_files_removed', { folders: fCount, files: fileCount, defaultValue: ` (${fCount} folder(s), ${fileCount} file(s) removed)` });
-                    }
-                } else if (response.data.status === 'warning') {
-                    cleanMsg = `${cleanMsg} (Warning: ${response.data.message})`;
-                }
-                notifications.show({ title: t('deploy_clean_success_title'), message: cleanMsg, color: 'green' });
-                setCleanModalOpen(false);
-            } else {
-                notifications.show({ title: t('deploy_failed_title'), message: response.data.message || 'Cleanup failed', color: 'red' });
-            }
-        } catch (error) {
-            console.error("Cleanup failed:", error);
-            const errorMsg = getErrorMessage(error);
-            notifications.show({ title: t('deploy_failed_title'), message: errorMsg, color: 'red' });
-        } finally {
-            setLoading(false);
-            setConfirmDeleteOpen(false);
-        }
-    };
 
     return (
         <Paper withBorder p="md" radius="md" className={styles.glassCard} mb="md">
@@ -300,7 +197,7 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                     {infoLoading ? (
                         <Stack align="center" py="xl">
                             <Loader size="md" />
-                            <Text size="sm">Loading deployment target path...</Text>
+                            <Text size="sm">{t('deploy_loading_paths')}</Text>
                         </Stack>
                     ) : (
                         <Stack gap="md">
@@ -316,7 +213,7 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                                 <Button variant="default" onClick={() => setDeployModalOpen(false)} disabled={loading}>
                                     {t('cancel')}
                                 </Button>
-                                <Button color="blue" onClick={() => handleExecuteDeploy(false)} loading={loading}>
+                                <Button color="blue" onClick={handleExecuteDeploy} loading={loading}>
                                     {t('deploy_btn_direct_deploy')}
                                 </Button>
                             </Group>
@@ -345,7 +242,6 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                         </Stack>
                     ) : (
                         <Stack gap="md">
-
 
                             <TextInput
                                 label={t('deploy_workshop_path_label')}
@@ -393,7 +289,7 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                         <Button variant="default" onClick={() => setConfirmDeleteOpen(false)}>
                             {t('cancel')}
                         </Button>
-                        <Button color="red" onClick={handleExecuteClean}>
+                        <Button color="red" onClick={handleExecuteClean} loading={loading}>
                             {t('deploy_clean_confirm_btn')}
                         </Button>
                     </Group>

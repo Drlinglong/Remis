@@ -632,6 +632,48 @@ class ProjectManager:
         
         logger.info(f"Updated metadata for project {project_id}: game_id={game_id}, source_language={source_language}")
 
+    async def update_source_path(self, project_id: str, new_source_path: str):
+        """
+        Updates the project's source_path, migrating the .remis_project.json sidecar
+        file if it exists at the old location but not at the new one.
+
+        Raises:
+            ValueError: If the project is not found or new_source_path is invalid.
+        """
+        project = await self.get_project(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+
+        old_source_path = project['source_path']
+        new_source_path = os.path.abspath(new_source_path)
+
+        # Normalize paths for comparison (case-insensitive on Windows)
+        norm_old = os.path.normpath(old_source_path).replace("\\", "/").lower()
+        norm_new = os.path.normpath(new_source_path).replace("\\", "/").lower()
+
+        if norm_old == norm_new:
+            logger.info(f"Source path unchanged for project {project_id}")
+            return
+
+        if not os.path.exists(new_source_path) or not os.path.isdir(new_source_path):
+            raise ValueError(f"Source directory not found: {new_source_path}")
+
+        # Migrate .remis_project.json sidecar if needed
+        old_json_path = os.path.join(old_source_path, '.remis_project.json')
+        new_json_path = os.path.join(new_source_path, '.remis_project.json')
+        if os.path.exists(old_json_path) and not os.path.exists(new_json_path):
+            try:
+                shutil.copy2(old_json_path, new_json_path)
+                logger.info(f"Migrated .remis_project.json sidecar to new source path: {new_source_path}")
+            except Exception as exc:
+                logger.error(f"Failed to copy .remis_project.json to new source path: {exc}")
+
+        # Update database
+        await self.repository.touch_project(project_id)
+        await self.repository.update_project_source_path(project_id, new_source_path)
+
+        logger.info(f"Updated source_path for project {project_id}: {old_source_path} -> {new_source_path}")
+
     async def upload_project_translations(self, project_id: str) -> Dict[str, Any]:
         """
         Scans existing translation files in the project and uploads them to the archive.

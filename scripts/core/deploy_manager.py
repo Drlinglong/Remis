@@ -36,23 +36,28 @@ class ModDeployer:
         "hoi4": "394360",
         "eu4": "236850",
         "ck3": "1158310",
-        "eu5": "236850"
+        "eu5": "3450310"
     }
 
     def get_documents_path(self) -> Path:
         """Returns the user's Documents path, handling Windows specifically."""
         if platform.system() == "Windows":
-            # Potentially more robust: use ctypes to get shell folders
-            # but for now, expanduser is usually sufficient for standard setups.
             docs = Path(os.path.expanduser("~")) / "Documents"
-            
-            # Check for OneDrive redirection (common on modern Windows)
             onedrive_docs = Path(os.path.expanduser("~")) / "OneDrive" / "Documents"
+            
+            # Check which Documents folder actually contains the Paradox Interactive directory
+            if (docs / "Paradox Interactive").exists():
+                return docs
+            if onedrive_docs.exists() and (onedrive_docs / "Paradox Interactive").exists():
+                return onedrive_docs
+            
+            # Fallback: prefer standard Documents, then OneDrive if it exists
+            if docs.exists():
+                return docs
             if onedrive_docs.exists():
                 return onedrive_docs
             return docs
         else:
-            # On Linux/macOS, PDS folders are in different places, but we focus on Windows for now
             return Path(os.path.expanduser("~")) / "Documents"
 
     def get_paradox_mod_dir(self, game_id: str) -> Optional[Path]:
@@ -234,7 +239,8 @@ class ModDeployer:
                 loc_dirs.append(d)
 
         if not loc_dirs:
-            return {"status": "warning", "message": f"No localization directory found in {original_mod_path}"}
+            logger.warning(f"Refusing to clean: no localization/localisation directory found in {original_mod_path}")
+            return {"status": "error", "message": f"Safety check failed: no 'localization' or 'localisation' directory found in {original_mod_path}. This does not appear to be a valid Paradox mod directory."}
 
         removed_folders = []
         removed_files = []

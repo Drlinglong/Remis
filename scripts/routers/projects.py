@@ -1,4 +1,5 @@
 import os
+import shutil
 import logging
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from typing import Optional, Dict, Any, Callable
@@ -224,33 +225,17 @@ async def update_project_config(project_id: str, request: UpdateConfigRequest):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     try:
-        old_source_path = project['source_path']
         new_source_path = request.source_path
 
-        # Normalize paths for case and slash insensitive comparison
-        norm_old_source_path = os.path.normpath(old_source_path).replace("\\", "/").lower() if old_source_path else ""
-        norm_new_source_path = os.path.normpath(new_source_path).replace("\\", "/").lower() if new_source_path else ""
+        # 1. Update source path if provided (delegates to service layer)
+        if new_source_path:
+            try:
+                await project_manager.update_source_path(project_id, new_source_path)
+                # Refresh project data after source path update
+                project = await project_manager.get_project(project_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc))
 
-        # 1. Update source path if provided and different
-        if norm_new_source_path and norm_new_source_path != norm_old_source_path:
-            if not os.path.exists(new_source_path) or not os.path.isdir(new_source_path):
-                raise HTTPException(status_code=400, detail=f"Source directory not found: {new_source_path}")
-            
-            # Copy .remis_project.json from old source path to new source path if it exists
-            old_json_path = os.path.join(old_source_path, '.remis_project.json')
-            new_json_path = os.path.join(new_source_path, '.remis_project.json')
-            if os.path.exists(old_json_path) and not os.path.exists(new_json_path):
-                try:
-                    import shutil
-                    shutil.copy2(old_json_path, new_json_path)
-                    logging.info(f"Copied .remis_project.json sidecar to new source path: {new_source_path}")
-                except Exception as exc:
-                    logging.error(f"Failed to copy .remis_project.json to new source path: {exc}")
-            
-            # Update source path in database
-            await project_manager.repository.touch_project(project_id)
-            await project_manager.repository.update_project_source_path(project_id, new_source_path)
-            project['source_path'] = new_source_path
 
         # 2. Update config file (kanban, translation directories, etc)
         json_manager = ProjectJsonManager(project['source_path'])

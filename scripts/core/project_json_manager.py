@@ -58,7 +58,7 @@ class ProjectJsonManager:
                 json.dump(save_data, f, indent=4, ensure_ascii=False)
         except Exception as e:
             logger.error(f"Failed to save project JSON: {e}")
-            raise e
+            raise
 
     def get_kanban_data(self) -> Dict[str, Any]:
         data = self._load_json()
