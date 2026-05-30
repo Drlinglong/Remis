@@ -2,6 +2,7 @@
 import { spawn } from 'child_process';
 import fs from 'fs';
 import net from 'net';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -35,7 +36,7 @@ async function main() {
     console.log(`[Remis Dev] Starting Vite dev server on port ${port}...`);
     const viteProcess = spawn(npxCommand, ['vite', '--port', port.toString(), '--strictPort'], {
         stdio: 'inherit',
-        shell: false
+        shell: true
     });
 
     // 2. Start Tauri dev, pointing to the dynamically allocated port
@@ -59,10 +60,12 @@ async function main() {
         }
     };
     const tauriConfigOverride = JSON.stringify(mergedConfig);
+    const tauriConfigPath = path.join(os.tmpdir(), `remis-tauri-dev-${process.pid}.json`);
+    fs.writeFileSync(tauriConfigPath, tauriConfigOverride, 'utf-8');
 
-    const tauriProcess = spawn(npxCommand, ['tauri', 'dev', '--no-dev-server', '--config', tauriConfigOverride], {
+    const tauriProcess = spawn(npxCommand, ['tauri', 'dev', '--no-dev-server', '--config', tauriConfigPath], {
         stdio: 'inherit',
-        shell: false
+        shell: true
     });
 
     // Handle clean process termination
@@ -70,6 +73,7 @@ async function main() {
         console.log('\n[Remis Dev] Shutting down Vite and Tauri development servers...');
         viteProcess.kill('SIGINT');
         tauriProcess.kill('SIGINT');
+        fs.rmSync(tauriConfigPath, { force: true });
         process.exit(0);
     };
 
@@ -83,6 +87,7 @@ async function main() {
     tauriProcess.on('exit', (code) => {
         if (code !== 0) console.error(`[Remis Dev] Tauri process exited with code ${code}`);
         viteProcess.kill('SIGINT');
+        fs.rmSync(tauriConfigPath, { force: true });
         process.exit(code);
     });
 }
