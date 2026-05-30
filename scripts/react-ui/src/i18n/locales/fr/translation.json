@@ -983,6 +983,10 @@
   "context_sidebar.glossary_history": "Historique des modifications du terme.",
   "context_sidebar.tab_info": "Infos",
   "context_sidebar.tab_history": "Historique",
+  "sidebar": {
+    "pin": "Épingler la barre latérale",
+    "unpin": "Désépingler la barre latérale"
+  },
   "homepage_pie_chart_status_title": "Progression du projet",
   "project_management.incremental_update_title": "Mise à jour incrémentielle",
   "project_management.incremental_update_desc": "Analysez les modifications de la source et traduisez uniquement les entrées nouvelles/modifiées. Réutilisez automatiquement les enregistrements historiques (y compris la réutilisation intelligente inter-projets).",

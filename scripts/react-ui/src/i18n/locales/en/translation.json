@@ -983,6 +983,10 @@
   "context_sidebar.glossary_history": "Term edit history.",
   "context_sidebar.tab_info": "Info",
   "context_sidebar.tab_history": "History",
+  "sidebar": {
+    "pin": "Pin sidebar",
+    "unpin": "Unpin sidebar"
+  },
   "homepage_pie_chart_status_title": "Project Progress",
   "project_management.incremental_update_title": "Incremental Update",
   "project_management.incremental_update_desc": "Analyze source changes and translate only new/modified entries. Automatically reuse historical records (including cross-project smart reuse).",

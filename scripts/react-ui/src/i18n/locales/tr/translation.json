@@ -983,6 +983,10 @@
   "context_sidebar.glossary_history": "Terim düzenleme geçmişi.",
   "context_sidebar.tab_info": "Bilgi",
   "context_sidebar.tab_history": "Geçmiş",
+  "sidebar": {
+    "pin": "Kenar çubuğunu sabitle",
+    "unpin": "Kenar çubuğu sabitlemesini kaldır"
+  },
   "homepage_pie_chart_status_title": "Proje İlerlemesi",
   "project_management.incremental_update_title": "Artımlı Güncelleme",
   "project_management.incremental_update_desc": "Kaynak değişikliklerini analiz edin ve yalnızca yeni/değiştirilen girdileri çevirin. Geçmiş kayıtları otomatik olarak yeniden kullanın (projeler arası akıllı yeniden kullanım dahil).",

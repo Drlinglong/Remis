@@ -983,6 +983,10 @@
   "context_sidebar.glossary_history": "Bearbeitungsverlauf des Begriffs.",
   "context_sidebar.tab_info": "Info",
   "context_sidebar.tab_history": "Verlauf",
+  "sidebar": {
+    "pin": "Seitenleiste anheften",
+    "unpin": "Seitenleiste lösen"
+  },
   "homepage_pie_chart_status_title": "Projektfortschritt",
   "project_management.incremental_update_title": "Inkrementelles Update",
   "project_management.incremental_update_desc": "Quelländerungen analysieren und nur neue/geänderte Einträge übersetzen. Historische Datensätze automatisch wiederverwenden (einschließlich projektübergreifender intelligenter Wiederverwendung).",

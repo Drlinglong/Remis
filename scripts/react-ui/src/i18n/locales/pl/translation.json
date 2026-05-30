@@ -983,6 +983,10 @@
   "context_sidebar.glossary_history": "Historia edycji terminu.",
   "context_sidebar.tab_info": "Informacje",
   "context_sidebar.tab_history": "Historia",
+  "sidebar": {
+    "pin": "Przypnij pasek boczny",
+    "unpin": "Odepnij pasek boczny"
+  },
   "homepage_pie_chart_status_title": "Postęp projektu",
   "project_management.incremental_update_title": "Aktualizacja przyrostowa",
   "project_management.incremental_update_desc": "Analizuj zmiany źródłowe i tłumacz tylko nowe/zmodyfikowane wpisy. Automatycznie wykorzystuj ponownie rekordy historyczne (w tym inteligentne ponowne użycie międzyprojektowe).",

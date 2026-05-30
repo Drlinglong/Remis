@@ -1103,6 +1103,10 @@
   "context_sidebar.glossary_history": "术语编辑历史。",
   "context_sidebar.tab_info": "信息",
   "context_sidebar.tab_history": "历史",
+  "sidebar": {
+    "pin": "固定侧边栏",
+    "unpin": "取消固定侧边栏"
+  },
   "homepage_pie_chart_status_title": "项目进度",
   "homepage_pie_chart_distribution_title": "游戏分布",
   "gemini_cli_timeout": "Gemini CLI 响应超时 (5s)。请检查网络或安装状态，建议切换到 API 模式。",

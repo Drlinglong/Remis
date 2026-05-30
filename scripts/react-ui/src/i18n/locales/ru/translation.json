@@ -1024,6 +1024,10 @@
   "context_sidebar.glossary_term": "Термин глоссария",
   "context_sidebar.glossary_info": "Выберите термин для просмотра определений.",
   "context_sidebar.glossary_history": "История правок термина.",
+  "sidebar": {
+    "pin": "Закрепить боковую панель",
+    "unpin": "Открепить боковую панель"
+  },
   "page_title_agent_workshop": "Мастерская агентов",
   "agent_workshop": {
     "title": "Мастерская агентов",

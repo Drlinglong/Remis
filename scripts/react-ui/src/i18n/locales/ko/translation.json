@@ -983,6 +983,10 @@
   "context_sidebar.glossary_history": "용어 편집 기록.",
   "context_sidebar.tab_info": "정보",
   "context_sidebar.tab_history": "기록",
+  "sidebar": {
+    "pin": "사이드바 고정",
+    "unpin": "사이드바 고정 해제"
+  },
   "homepage_pie_chart_status_title": "프로젝트 진행 상황",
   "project_management.incremental_update_title": "증분 업데이트",
   "project_management.incremental_update_desc": "소스 변경 사항을 분석하고 새 항목이나 수정된 항목만 번역합니다. 기록된 데이터(교차 프로젝트 스마트 재사용 포함)를 자동으로 재사용합니다.",

@@ -983,6 +983,10 @@
   "context_sidebar.glossary_history": "用語の編集履歴",
   "context_sidebar.tab_info": "情報",
   "context_sidebar.tab_history": "履歴",
+  "sidebar": {
+    "pin": "サイドバーを固定",
+    "unpin": "サイドバーの固定を解除"
+  },
   "homepage_pie_chart_status_title": "プロジェクトの進捗",
   "project_management.incremental_update_title": "差分更新",
   "project_management.incremental_update_desc": "ソースの変更を分析し、新規または変更されたエントリのみを翻訳します。過去の記録を自動的に再利用します（プロジェクトを跨いだスマート再利用を含む）。",

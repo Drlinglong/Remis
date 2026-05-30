@@ -983,6 +983,10 @@
   "context_sidebar.glossary_history": "Historial de edición de términos.",
   "context_sidebar.tab_info": "Información",
   "context_sidebar.tab_history": "Historial",
+  "sidebar": {
+    "pin": "Fijar barra lateral",
+    "unpin": "Desfijar barra lateral"
+  },
   "homepage_pie_chart_status_title": "Progreso del proyecto",
   "project_management.incremental_update_title": "Actualización incremental",
   "project_management.incremental_update_desc": "Analiza los cambios en el origen y traduce solo las entradas nuevas o modificadas. Reutiliza automáticamente los registros históricos (incluida la reutilización inteligente entre proyectos).",
