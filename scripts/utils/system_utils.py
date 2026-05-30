@@ -4,6 +4,7 @@ import time
 import sys
 import re
 import hashlib
+import socket
 from typing import Optional, Any
 
 def panic_log(message: str):
@@ -126,6 +127,39 @@ def force_free_port(port: int):
         print(f"\033[91m{error_msg}\033[0m", file=sys.stderr, flush=True)
         panic_log(error_msg)
 
+def is_port_available(port: int) -> bool:
+    """Return True when 127.0.0.1:port can be bound by a new backend."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.bind(("127.0.0.1", port))
+        except OSError:
+            return False
+    return True
+
+def find_available_port(start_port: int) -> int:
+    """Find the first bindable localhost port at or above start_port."""
+    port = start_port
+    while port <= 65535:
+        if is_port_available(port):
+            return port
+        port += 1
+    raise RuntimeError(f"No available localhost port found at or above {start_port}")
+
+def select_backend_port(start_port: int) -> int:
+    """Clean stale Remis backends on start_port, then fall back to the next free port."""
+    force_free_port(start_port)
+    if is_port_available(start_port):
+        return start_port
+
+    selected_port = find_available_port(start_port + 1)
+    print(
+        f"[SYSTEM] Port {start_port} is still unavailable; using backend port {selected_port}.",
+        file=sys.stderr,
+        flush=True,
+    )
+    return selected_port
+
 def slugify_to_ascii(text: str) -> str:
     """
     Converts a string (potentially with CJK characters) into a safe ASCII-only slug for folder names.
@@ -199,8 +233,12 @@ def sanitize_for_json(obj: Any) -> Any:
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         try:
-            p = int(sys.argv[1])
-            force_free_port(p)
+            if sys.argv[1] == "--select-backend-port":
+                start = int(sys.argv[2]) if len(sys.argv) > 2 else 1453
+                print(select_backend_port(start))
+            else:
+                p = int(sys.argv[1])
+                force_free_port(p)
         except ValueError:
             print(f"Invalid port: {sys.argv[1]}")
     else:

@@ -8,6 +8,9 @@ ECHO.
 ECHO Launching backend (FastAPI) and frontend (Tauri Desktop) in separate windows...
 
 if "%REMIS_BACKEND_PORT%"=="" set "REMIS_BACKEND_PORT=1453"
+for /f "usebackq delims=" %%P in (`python -m scripts.utils.system_utils --select-backend-port %REMIS_BACKEND_PORT%`) do set "REMIS_BACKEND_PORT=%%P"
+set "VITE_BACKEND_PORT=%REMIS_BACKEND_PORT%"
+ECHO Using backend port %REMIS_BACKEND_PORT%.
 
 start "Remis Backend" scripts\react-ui\run-backend.bat
 

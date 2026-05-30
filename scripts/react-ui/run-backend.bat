@@ -39,7 +39,9 @@ if not "%PYTHON_EXE%"=="python" (
 
 echo [INFO] Checking for port conflicts...
 if "%REMIS_BACKEND_PORT%"=="" set "REMIS_BACKEND_PORT=1453"
-"%PYTHON_EXE%" -m scripts.utils.system_utils %REMIS_BACKEND_PORT%
+for /f "usebackq delims=" %%P in (`"%PYTHON_EXE%" -m scripts.utils.system_utils --select-backend-port %REMIS_BACKEND_PORT%`) do set "REMIS_BACKEND_PORT=%%P"
+set "VITE_BACKEND_PORT=%REMIS_BACKEND_PORT%"
+echo [INFO] Using backend port %REMIS_BACKEND_PORT%.
 
 echo Starting Python server...
 "%PYTHON_EXE%" -m uvicorn scripts.web_server:app --host 127.0.0.1 --port %REMIS_BACKEND_PORT% --reload

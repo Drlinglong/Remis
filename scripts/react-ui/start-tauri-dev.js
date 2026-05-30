@@ -1,7 +1,12 @@
 // scripts/react-ui/start-tauri-dev.js
-const { spawn } = require('child_process');
-const net = require('net');
-const path = require('path');
+import { spawn } from 'child_process';
+import fs from 'fs';
+import net from 'net';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Helper to find a free port starting from a default port
 function findFreePort(startPort) {
@@ -34,7 +39,6 @@ async function main() {
 
     // 2. Start Tauri dev, pointing to the dynamically allocated port
     // We also read src-tauri/tauri.dev.conf.json to merge any custom configuration
-    const fs = require('fs');
     let devConfig = {};
     const devConfigPath = path.join(__dirname, 'src-tauri', 'tauri.dev.conf.json');
     if (fs.existsSync(devConfigPath)) {
