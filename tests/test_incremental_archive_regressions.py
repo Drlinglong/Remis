@@ -157,6 +157,28 @@ def test_diff_service_matches_unique_key_fallbacks():
     assert entry is None
 
 
+def test_diff_service_reprocesses_exact_source_text_translation():
+    service = IncrementalDiffService()
+    history_entry = {
+        "file_path": "localization/english/sample_l_english.yml",
+        "key": "key.same",
+        "original": "Hello world",
+        "translation": "Hello world",
+    }
+    history_index = service.build_history_index([history_entry])
+
+    status, entry = service.classify_entry(
+        "localization/english/sample_l_english.yml",
+        "key.same",
+        "Hello world",
+        history_index,
+        target_lang_code="zh-CN",
+    )
+
+    assert status == "changed"
+    assert entry is history_entry
+
+
 def test_archive_manager_normalizes_stored_relative_paths(temp_archive_db):
     mod_id = temp_archive_db.get_or_create_mod_entry("PathMod", "path-mod-project")
     version_id = temp_archive_db.create_source_version(

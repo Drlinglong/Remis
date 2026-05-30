@@ -25,7 +25,7 @@ class IncrementalDiffService:
         key: str,
         source_text: str,
         history_index: Dict[Tuple[str, str], Dict[str, Any]],
-        target_lang_code: Optional[str] = None,
+        target_lang_code: str | None = None,
     ) -> Tuple[str, Optional[Dict[str, Any]]]:
         normalized_key = self._normalize_key(key)
         normalized_file_path = self._normalize_file_path(file_path)
@@ -37,29 +37,14 @@ class IncrementalDiffService:
         if not history_entry:
             return "new", None
 
-        # Check for invalid translations (empty or untranslated same-as-english)
+        # Empty or exact source-text reuse should be reprocessed instead of copied forward.
         translation = history_entry.get("translation")
         is_invalid_translation = False
         if translation is None:
             is_invalid_translation = True
         elif isinstance(translation, str):
-            if translation.strip() == "":
+            if translation.strip() == "" or translation == source_text:
                 is_invalid_translation = True
-            elif target_lang_code and target_lang_code != "en" and translation == source_text:
-                # Check if it contains actual English words to translate
-                import re
-                if re.search(r'[a-zA-Z]', source_text):
-                    cleaned = source_text.strip()
-                    is_placeholder = (
-                        (cleaned.startswith("$") and cleaned.endswith("$") and cleaned.count("$") == 2) or
-                        (cleaned.startswith("@") and cleaned.endswith("!") and cleaned.count("@") == 1)
-                    )
-                    if not is_placeholder:
-                        import string
-                        chars_to_ignore = string.digits + string.punctuation + " "
-                        is_pure_symbols = all(c in chars_to_ignore for c in cleaned)
-                        if not is_pure_symbols:
-                            is_invalid_translation = True
 
         if is_invalid_translation:
             return "changed", history_entry

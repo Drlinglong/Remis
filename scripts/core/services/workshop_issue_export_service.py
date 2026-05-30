@@ -115,6 +115,8 @@ class WorkshopIssueExportService:
                         "error_type": result.message,
                         "error_code": result.code or result.message,
                         "details": result.details or "",
+                        "details_code": result.details_code or "",
+                        "details_params": result.details_params or {},
                         "severity": result.level.value,
                         "status": "detected",
                         "workflow": workflow,
