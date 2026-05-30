@@ -442,7 +442,7 @@
   "project_management.overview.to_be_proofread": "Korrektur zu lesen",
   "project_management.details.lines_count": "Zeilen: {{count}}",
   "project_management.tabs_kanban": "Aufgaben-Kanban",
-"project_management.tabs_history": "Projektverlauf",
+  "project_management.tabs_history": "Projektverlauf",
   "project_management.tabs_overview": "Statusübersicht",
   "project_management.tooltip_refresh": "Wenn Sie Dateien in den Quell- oder Übersetzungsverzeichnissen hinzugefügt oder entfernt haben, können Sie die Dateiliste hier aktualisieren.",
   "project_management.tooltip_archive": "Projekt archivieren. Archivierte Projekte können in den Projektarchiven eingesehen oder wieder in den aktiven Status versetzt werden.",
@@ -944,7 +944,9 @@
     "embedded_workshop_concurrency_tooltip": "Steuert, wie viele Korrektur-Batches des Smart Workshop gleichzeitig ausgeführt werden. Gilt nur für diesen Lauf. Sofern Sie keinen eindeutigen Übersetzungs-Engpass haben oder genau wissen, was Sie tun, behalten Sie den Standardwert bei.",
     "embedded_workshop_concurrency_desc": "Gilt nur für diesen Übersetzungslauf. Niedrigere Werte sind sicherer für lokale Modelle.",
     "embedded_workshop_rpm_tooltip": "Begrenzt die Anfragen des Smart Workshop pro Minute für diesen Lauf, um Ratenbegrenzungen oder eine Überlastung lokaler Dienste zu vermeiden. Sofern Sie keinen eindeutigen Übersetzungs-Engpass haben oder genau wissen, was Sie tun, behalten Sie den Standardwert bei.",
-    "embedded_workshop_rpm_desc": "Gilt nur für diesen Übersetzungslauf. Die Standardeinstellung behält die aktuelle Systemgeschwindigkeit bei."
+    "embedded_workshop_rpm_desc": "Gilt nur für diesen Übersetzungslauf. Die Standardeinstellung behält die aktuelle Systemgeschwindigkeit bei.",
+    "translation_limit": "Batch-Größenbegrenzung",
+    "translation_concurrency": "Parallelitätsbegrenzung"
   },
   "version_info": {
     "tab_title": "Versionsinfo",
@@ -1331,7 +1333,8 @@
     "embedded_workshop_batch_size": "Probleme pro Korrektur-Batch",
     "embedded_workshop_concurrency": "Parallelität beim Korrekturlesen",
     "embedded_workshop_rpm": "RPM beim Korrekturlesen",
-    "batch_size_limit_desc": "Gilt nur für diesen Übersetzungslauf. 'Auto' verwendet den aktuellen Standard des Anbieters."
+    "batch_size_limit_desc": "Gilt nur für diesen Übersetzungslauf. 'Auto' verwendet den aktuellen Standard des Anbieters.",
+    "run_pre_scan": "Pre-Scan ausführen"
   },
   "recent_activity_type_translate": "Inkrementelles Update",
   "project_management": {

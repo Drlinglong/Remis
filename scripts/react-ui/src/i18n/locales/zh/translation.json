@@ -449,7 +449,7 @@
   "project_management.overview_title": "项目概览",
   "project_management.manage_project": "项目设置",
   "project_management.tabs_kanban": "任务看板",
-"project_management.tabs_history": "项目历史",
+  "project_management.tabs_history": "项目历史",
   "project_management.tabs_overview": "状态概览",
   "project_management.delete_project": "删除项目",
   "project_management.tooltip_refresh": "如果您在源文件或翻译输出目录中增加或删除了文件，可以在此刷新文件详情列表",
@@ -1064,7 +1064,9 @@
     "embedded_workshop_concurrency_tooltip": "控制智能工坊同时跑多少个修复批次。仅对本次翻译生效。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
     "embedded_workshop_concurrency_desc": "仅对本次翻译生效。本地模型建议使用较低并发。",
     "embedded_workshop_rpm_tooltip": "限制智能工坊本次翻译中的每分钟请求数，用来减少接口限流或本地服务过载。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
-    "embedded_workshop_rpm_desc": "仅对本次翻译生效。默认值会保持当前系统节奏。"
+    "embedded_workshop_rpm_desc": "仅对本次翻译生效。默认值会保持当前系统节奏。",
+    "translation_limit": "每批翻译限制",
+    "translation_concurrency": "并发限制"
   },
   "version_info": {
     "tab_title": "版本信息",
@@ -1339,7 +1341,8 @@
     "embedded_workshop_batch_size": "Issues Per Fix Batch",
     "embedded_workshop_concurrency": "Proofreading Concurrency",
     "embedded_workshop_rpm": "Proofreading RPM",
-    "batch_size_limit_desc": "仅对本次翻译生效。自动会沿用当前 provider 的默认策略。"
+    "batch_size_limit_desc": "仅对本次翻译生效。自动会沿用当前 provider 的默认策略。",
+    "run_pre_scan": "执行预扫描"
   },
   "translation_config": {
     "provider": "API 供应商",

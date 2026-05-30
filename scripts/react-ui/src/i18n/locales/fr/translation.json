@@ -442,7 +442,7 @@
   "project_management.overview.to_be_proofread": "À relire",
   "project_management.details.lines_count": "Lignes : {{count}}",
   "project_management.tabs_kanban": "Tableau Kanban des tâches",
-"project_management.tabs_history": "Historique du projet",
+  "project_management.tabs_history": "Historique du projet",
   "project_management.tabs_overview": "Aperçu de l'état",
   "project_management.tooltip_refresh": "Si vous avez ajouté ou supprimé des fichiers dans les répertoires source ou de sortie de traduction, vous pouvez actualiser la liste des fichiers ici",
   "project_management.tooltip_archive": "Archiver le projet. Les projets archivés peuvent être consultés dans les Archives de projets ou restaurés en état actif.",
@@ -944,7 +944,9 @@
     "embedded_workshop_concurrency_tooltip": "Contrôle le nombre de lots de correction Smart Workshop exécutés en même temps. S'applique uniquement à cette exécution. À moins d'avoir un goulot d'étranglement de traduction évident ou de savoir exactement ce que vous faites, conservez la valeur par défaut.",
     "embedded_workshop_concurrency_desc": "S'applique uniquement à cette session de traduction. Des valeurs plus basses sont plus sûres pour les modèles locaux.",
     "embedded_workshop_rpm_tooltip": "Limite les requêtes Smart Workshop par minute pour cette session afin d'éviter les limites de débit ou la surcharge du service local. À moins que vous n'ayez un goulot d'étranglement de traduction évident ou que vous sachiez exactement ce que vous faites, conservez la valeur par défaut.",
-    "embedded_workshop_rpm_desc": "S'applique uniquement à cette session de traduction. La valeur par défaut conserve le rythme actuel du système."
+    "embedded_workshop_rpm_desc": "S'applique uniquement à cette session de traduction. La valeur par défaut conserve le rythme actuel du système.",
+    "translation_limit": "Limite de taille de lot",
+    "translation_concurrency": "Limite de simultanéité"
   },
   "version_info": {
     "tab_title": "Informations de version",
@@ -1331,7 +1333,8 @@
     "embedded_workshop_batch_size": "Problèmes par lot de correction",
     "embedded_workshop_concurrency": "Simultanéité de relecture",
     "embedded_workshop_rpm": "RPM de relecture",
-    "batch_size_limit_desc": "S'applique uniquement à cette exécution de traduction. « Auto » utilise le paramètre par défaut du fournisseur actuel."
+    "batch_size_limit_desc": "S'applique uniquement à cette exécution de traduction. « Auto » utilise le paramètre par défaut du fournisseur actuel.",
+    "run_pre_scan": "Lancer le pré-scan"
   },
   "recent_activity_type_translate": "Mise à jour incrémentielle",
   "project_management": {

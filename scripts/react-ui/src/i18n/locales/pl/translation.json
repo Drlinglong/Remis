@@ -442,7 +442,7 @@
   "project_management.overview.to_be_proofread": "Do korekty",
   "project_management.details.lines_count": "Linie: {{count}}",
   "project_management.tabs_kanban": "Kanban zadań",
-"project_management.tabs_history": "Historia projektu",
+  "project_management.tabs_history": "Historia projektu",
   "project_management.tabs_overview": "Przegląd statusu",
   "project_management.tooltip_refresh": "Jeśli dodałeś lub usunąłeś pliki w katalogach źródłowych lub docelowych tłumaczenia, możesz tutaj odświeżyć listę plików.",
   "project_management.tooltip_archive": "Zarchiwizuj projekt. Zarchiwizowane projekty można przeglądać w Archiwum Projektów lub przywrócić do statusu aktywnego.",
@@ -944,7 +944,9 @@
     "embedded_workshop_concurrency_tooltip": "Kontroluje, ile partii naprawczych Smart Workshop jest uruchamianych jednocześnie. Dotyczy tylko tego przebiegu. O ile nie występuje wyraźne wąskie gardło lub nie wiesz dokładnie, co robisz, zachowaj wartość domyślną.",
     "embedded_workshop_concurrency_desc": "Dotyczy tylko tego przebiegu tłumaczenia. Niższe wartości są bezpieczniejsze dla modeli lokalnych.",
     "embedded_workshop_rpm_tooltip": "Ogranicza liczbę żądań Smart Workshop na minutę dla tego przebiegu, aby uniknąć limitów szybkości lub przeciążenia lokalnej usługi. O ile nie występuje wyraźne wąskie gardło lub nie wiesz dokładnie, co robisz, zachowaj wartość domyślną.",
-    "embedded_workshop_rpm_desc": "Dotyczy tylko tego przebiegu tłumaczenia. Domyślne ustawienie zachowuje bieżące tempo systemu."
+    "embedded_workshop_rpm_desc": "Dotyczy tylko tego przebiegu tłumaczenia. Domyślne ustawienie zachowuje bieżące tempo systemu.",
+    "translation_limit": "Limit rozmiaru partii",
+    "translation_concurrency": "Limit współbieżności"
   },
   "version_info": {
     "tab_title": "Informacje o wersji",
@@ -1331,7 +1333,8 @@
     "embedded_workshop_batch_size": "Problemy na partię naprawczą",
     "embedded_workshop_concurrency": "Współbieżność korekty",
     "embedded_workshop_rpm": "RPM korekty",
-    "batch_size_limit_desc": "Dotyczy tylko tego przebiegu tłumaczenia. Opcja Auto używa domyślnych ustawień dostawcy."
+    "batch_size_limit_desc": "Dotyczy tylko tego przebiegu tłumaczenia. Opcja Auto używa domyślnych ustawień dostawcy.",
+    "run_pre_scan": "Uruchom wstępne skanowanie"
   },
   "recent_activity_type_translate": "Aktualizacja przyrostowa",
   "project_management": {

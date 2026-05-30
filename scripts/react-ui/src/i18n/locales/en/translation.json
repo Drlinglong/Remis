@@ -442,7 +442,7 @@
   "project_management.overview.to_be_proofread": "To Be Proofread",
   "project_management.details.lines_count": "Lines: {{count}}",
   "project_management.tabs_kanban": "Task Kanban",
-"project_management.tabs_history": "Project History",
+  "project_management.tabs_history": "Project History",
   "project_management.tabs_overview": "Status Overview",
   "project_management.tooltip_refresh": "If you have added or removed files in the source or translation output directories, you can refresh the file list here",
   "project_management.tooltip_archive": "Archive the project. Archived projects can be viewed in the Project Archives or restored to active status.",
@@ -944,7 +944,9 @@
     "embedded_workshop_concurrency_tooltip": "Controls how many Smart Workshop fix batches run at the same time. Only applies to this run. Unless you have a clear translation bottleneck or really know what you are doing, keep the default value.",
     "embedded_workshop_concurrency_desc": "Only applies to this translation run. Lower values are safer for local models.",
     "embedded_workshop_rpm_tooltip": "Limits Smart Workshop requests per minute for this run to avoid rate limits or local service overload. Unless you have a clear translation bottleneck or really know what you are doing, keep the default value.",
-    "embedded_workshop_rpm_desc": "Only applies to this translation run. The default keeps the current system pacing."
+    "embedded_workshop_rpm_desc": "Only applies to this translation run. The default keeps the current system pacing.",
+    "translation_limit": "Batch Size Limit",
+    "translation_concurrency": "Concurrency Limit"
   },
   "version_info": {
     "tab_title": "Version Info",
@@ -1331,7 +1333,8 @@
     "embedded_workshop_batch_size": "Issues Per Fix Batch",
     "embedded_workshop_concurrency": "Proofreading Concurrency",
     "embedded_workshop_rpm": "Proofreading RPM",
-    "batch_size_limit_desc": "Only applies to this translation run. Auto uses the current provider default."
+    "batch_size_limit_desc": "Only applies to this translation run. Auto uses the current provider default.",
+    "run_pre_scan": "Run Pre-scan"
   },
   "recent_activity_type_translate": "Incremental Update",
   "project_management": {

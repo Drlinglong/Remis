@@ -442,7 +442,7 @@
   "project_management.overview.to_be_proofread": "要校正",
   "project_management.details.lines_count": "行数: {{count}}",
   "project_management.tabs_kanban": "タスクかんばん",
-"project_management.tabs_history": "プロジェクト履歴",
+  "project_management.tabs_history": "プロジェクト履歴",
   "project_management.tabs_overview": "ステータス概要",
   "project_management.tooltip_refresh": "ソースまたは翻訳出力ディレクトリでファイルを追加または削除した場合、ここでファイルリストを更新できます",
   "project_management.tooltip_archive": "プロジェクトをアーカイブします。アーカイブされたプロジェクトはプロジェクトアーカイブで確認したり、アクティブな状態に復元したりできます。",
@@ -944,7 +944,9 @@
     "embedded_workshop_concurrency_tooltip": "同時に実行されるSmart Workshopの修正バッチの数を制御します。この実行にのみ適用されます。明確な翻訳のボトルネックがある場合や、動作を熟知している場合を除き、デフォルト値のままにしてください。",
     "embedded_workshop_concurrency_desc": "この翻訳実行にのみ適用されます。値が小さいほどローカルモデルにとって安全です。",
     "embedded_workshop_rpm_tooltip": "レート制限やローカルサービスの過負荷を避けるために、この実行のSmart Workshopのリクエスト数（RPM）を制限します。明確な翻訳のボトルネックがある場合や、動作を熟知している場合を除き、デフォルト値のままにしてください。",
-    "embedded_workshop_rpm_desc": "この翻訳実行にのみ適用されます。デフォルトでは現在のシステムのペースが維持されます。"
+    "embedded_workshop_rpm_desc": "この翻訳実行にのみ適用されます。デフォルトでは現在のシステムのペースが維持されます。",
+    "translation_limit": "バッチサイズ制限",
+    "translation_concurrency": "並行処理制限"
   },
   "version_info": {
     "tab_title": "バージョン情報",
@@ -1331,7 +1333,8 @@
     "embedded_workshop_batch_size": "修正バッチあたりの問題数",
     "embedded_workshop_concurrency": "校正の並列数",
     "embedded_workshop_rpm": "校正のRPM",
-    "batch_size_limit_desc": "この翻訳実行にのみ適用されます。「自動」は現在のプロバイダーのデフォルトを使用します。"
+    "batch_size_limit_desc": "この翻訳実行にのみ適用されます。「自動」は現在のプロバイダーのデフォルトを使用します。",
+    "run_pre_scan": "事前スキャンを実行"
   },
   "recent_activity_type_translate": "インクリメンタル更新",
   "project_management": {

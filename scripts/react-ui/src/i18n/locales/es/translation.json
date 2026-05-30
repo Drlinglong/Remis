@@ -442,7 +442,7 @@
   "project_management.overview.to_be_proofread": "Por corregir",
   "project_management.details.lines_count": "Líneas: {{count}}",
   "project_management.tabs_kanban": "Kanban de tareas",
-"project_management.tabs_history": "Historial del proyecto",
+  "project_management.tabs_history": "Historial del proyecto",
   "project_management.tabs_overview": "Resumen de estado",
   "project_management.tooltip_refresh": "Si has añadido o eliminado archivos en los directorios de origen o de salida de traducción, puedes actualizar la lista de archivos aquí.",
   "project_management.tooltip_archive": "Archivar el proyecto. Los proyectos archivados se pueden ver en los Archivos del Proyecto o restaurarse al estado activo.",
@@ -944,7 +944,9 @@
     "embedded_workshop_concurrency_tooltip": "Controla cuántos lotes de corrección de Smart Workshop se ejecutan al mismo tiempo. Solo se aplica a esta ejecución. A menos que tenga un cuello de botella claro o sepa realmente lo que está haciendo, mantenga el valor predeterminado.",
     "embedded_workshop_concurrency_desc": "Solo se aplica a esta ejecución de traducción. Los valores más bajos son más seguros para los modelos locales.",
     "embedded_workshop_rpm_tooltip": "Limita las solicitudes de Smart Workshop por minuto para esta ejecución para evitar límites de velocidad o sobrecarga del servicio local. A menos que tenga un cuello de botella claro o sepa realmente lo que está haciendo, mantenga el valor predeterminado.",
-    "embedded_workshop_rpm_desc": "Solo se aplica a esta ejecución de traducción. El valor predeterminado mantiene el ritmo actual del sistema."
+    "embedded_workshop_rpm_desc": "Solo se aplica a esta ejecución de traducción. El valor predeterminado mantiene el ritmo actual del sistema.",
+    "translation_limit": "Límite de tamaño de lote",
+    "translation_concurrency": "Límite de concurrencia"
   },
   "version_info": {
     "tab_title": "Información de versión",
@@ -1331,7 +1333,8 @@
     "embedded_workshop_batch_size": "Problemas por lote de corrección",
     "embedded_workshop_concurrency": "Concurrencia de corrección",
     "embedded_workshop_rpm": "RPM de corrección",
-    "batch_size_limit_desc": "Solo se aplica a esta ejecución de traducción. Auto utiliza el valor predeterminado del proveedor actual."
+    "batch_size_limit_desc": "Solo se aplica a esta ejecución de traducción. Auto utiliza el valor predeterminado del proveedor actual.",
+    "run_pre_scan": "Ejecutar preanálisis"
   },
   "recent_activity_type_translate": "Actualización incremental",
   "project_management": {

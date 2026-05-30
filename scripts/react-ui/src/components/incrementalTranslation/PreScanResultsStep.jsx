@@ -14,7 +14,8 @@ import {
     Badge,
     ThemeIcon,
     Tooltip,
-    Group
+    Group,
+    Stack
 } from '@mantine/core';
 import {
     IconChartBar,

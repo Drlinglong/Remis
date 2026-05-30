@@ -442,7 +442,7 @@
   "project_management.overview.to_be_proofread": "Para Revisar",
   "project_management.details.lines_count": "Linhas: {{count}}",
   "project_management.tabs_kanban": "Kanban de Tarefas",
-"project_management.tabs_history": "Histórico do projeto",
+  "project_management.tabs_history": "Histórico do projeto",
   "project_management.tabs_overview": "Visão Geral do Status",
   "project_management.tooltip_refresh": "Se você adicionou ou removeu arquivos nos diretórios de origem ou de saída da tradução, pode atualizar a lista de arquivos aqui",
   "project_management.tooltip_archive": "Arquive o projeto. Projetos arquivados podem ser visualizados nos Arquivos de Projetos ou restaurados para o status ativo.",
@@ -944,7 +944,9 @@
     "embedded_workshop_concurrency_tooltip": "Controla quantos lotes de correção da Oficina Inteligente são executados simultaneamente. Aplica-se apenas a esta execução. A menos que você tenha um gargalo de tradução claro ou saiba exatamente o que está fazendo, mantenha o valor padrão.",
     "embedded_workshop_concurrency_desc": "Aplica-se apenas a esta execução de tradução. Valores mais baixos são mais seguros para modelos locais.",
     "embedded_workshop_rpm_tooltip": "Limita as requisições por minuto da Oficina Inteligente nesta execução para evitar limites de taxa ou sobrecarga do serviço local. A menos que você tenha um gargalo de tradução claro ou saiba exatamente o que está fazendo, mantenha o valor padrão.",
-    "embedded_workshop_rpm_desc": "Aplica-se apenas a esta execução de tradução. O padrão mantém o ritmo atual do sistema."
+    "embedded_workshop_rpm_desc": "Aplica-se apenas a esta execução de tradução. O padrão mantém o ritmo atual do sistema.",
+    "translation_limit": "Limite de tamanho do lote",
+    "translation_concurrency": "Limite de simultaneidade"
   },
   "version_info": {
     "tab_title": "Informações da Versão",
@@ -1331,7 +1333,8 @@
     "embedded_workshop_batch_size": "Problemas por Lote de Correção",
     "embedded_workshop_concurrency": "Concorrência de Revisão",
     "embedded_workshop_rpm": "RPM de Revisão",
-    "batch_size_limit_desc": "Aplica-se apenas a esta execução de tradução. O modo Automático usa o padrão atual do provedor."
+    "batch_size_limit_desc": "Aplica-se apenas a esta execução de tradução. O modo Automático usa o padrão atual do provedor.",
+    "run_pre_scan": "Executar pré-escaneamento"
   },
   "recent_activity_type_translate": "Atualização Incremental",
   "project_management": {

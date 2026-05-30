@@ -442,7 +442,7 @@
   "project_management.overview.to_be_proofread": "Redaksiyon Bekliyor",
   "project_management.details.lines_count": "Satırlar: {{count}}",
   "project_management.tabs_kanban": "Görev Kanbanı",
-"project_management.tabs_history": "Proje geçmişi",
+  "project_management.tabs_history": "Proje geçmişi",
   "project_management.tabs_overview": "Durum Genel Bakışı",
   "project_management.tooltip_refresh": "Kaynak veya çeviri çıktı dizinlerinde dosya eklediyseniz veya kaldırdıysanız, dosya listesini buradan yenileyebilirsiniz",
   "project_management.tooltip_archive": "Projeyi arşivleyin. Arşivlenen projeler Proje Arşivleri'nde görüntülenebilir veya aktif duruma geri yüklenebilir.",
@@ -944,7 +944,9 @@
     "embedded_workshop_concurrency_tooltip": "Aynı anda kaç Akıllı Atölye düzeltme grubunun çalışacağını kontrol eder. Sadece bu çalışma için geçerlidir. Net bir çeviri darboğazınız yoksa veya ne yaptığınızı gerçekten bilmiyorsanız, varsayılan değeri koruyun.",
     "embedded_workshop_concurrency_desc": "Sadece bu çeviri çalışması için geçerlidir. Düşük değerler yerel modeller için daha güvenlidir.",
     "embedded_workshop_rpm_tooltip": "İstek sınırlarından veya yerel hizmet aşırı yüklenmesinden kaçınmak için bu çalışma için Akıllı Atölye dakika başına isteklerini (RPM) sınırlar. Net bir çeviri darboğazınız yoksa veya ne yaptığınızı gerçekten bilmiyorsanız, varsayılan değeri koruyun.",
-    "embedded_workshop_rpm_desc": "Sadece bu çeviri çalışması için geçerlidir. Varsayılan, mevcut sistem hızını korur."
+    "embedded_workshop_rpm_desc": "Sadece bu çeviri çalışması için geçerlidir. Varsayılan, mevcut sistem hızını korur.",
+    "translation_limit": "Toplu İşlem Boyut Sınırı",
+    "translation_concurrency": "Eşzamanlılık Sınırı"
   },
   "version_info": {
     "tab_title": "Sürüm Bilgisi",
@@ -1331,7 +1333,8 @@
     "embedded_workshop_batch_size": "Düzeltme Paketi Başına Sorun Sayısı",
     "embedded_workshop_concurrency": "Eşzamanlı Redaksiyon Sayısı",
     "embedded_workshop_rpm": "Redaksiyon RPM",
-    "batch_size_limit_desc": "Yalnızca bu çeviri çalışması için geçerlidir. Otomatik, mevcut sağlayıcı varsayılanını kullanır."
+    "batch_size_limit_desc": "Yalnızca bu çeviri çalışması için geçerlidir. Otomatik, mevcut sağlayıcı varsayılanını kullanır.",
+    "run_pre_scan": "Ön Taramayı Çalıştır"
   },
   "recent_activity_type_translate": "Artımlı Güncelleme",
   "project_management": {
