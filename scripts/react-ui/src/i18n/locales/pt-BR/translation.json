@@ -1489,5 +1489,7 @@
   "deploy_original_mod_location": "Localização original do mod",
   "deploy_error_source_not_found": "Pasta do mod traduzido não encontrada. Traduza o mod antes de implantar.",
   "deploy_error_original_not_found": "O diretório do mod original não existe. Especifique um caminho de pasta válido.",
-  "deploy_error_paradox_dir_not_found": "Não foi possível determinar a pasta de mods da Paradox para o jogo. Especifique o caminho manualmente."
+  "deploy_error_paradox_dir_not_found": "Não foi possível determinar a pasta de mods da Paradox para o jogo. Especifique o caminho manualmente.",
+  "deploy_clean_no_files_found": "Nenhum arquivo de localização falsa encontrado para limpar.",
+  "deploy_clean_files_removed": " ({{folders}} pasta(s), {{files}} arquivo(s) removido(s))"
 }

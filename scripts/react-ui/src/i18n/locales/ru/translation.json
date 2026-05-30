@@ -1512,5 +1512,7 @@
   "deploy_original_mod_location": "Оригинальное расположение мода",
   "deploy_error_source_not_found": "Папка переведенного мода не найдена. Пожалуйста, сначала переведите мод перед развертыванием.",
   "deploy_error_original_not_found": "Исходный каталог мода не существует. Укажите действительный путь к папке.",
-  "deploy_error_paradox_dir_not_found": "Не удалось определить папку модов Paradox для игры. Укажите путь вручную."
+  "deploy_error_paradox_dir_not_found": "Не удалось определить папку модов Paradox для игры. Укажите путь вручную.",
+  "deploy_clean_no_files_found": "Фейковые файлы локализации не найдены для очистки.",
+  "deploy_clean_files_removed": " (удалено {{folders}} папок, {{files}} файлов)"
 }

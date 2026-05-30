@@ -1489,5 +1489,7 @@
   "deploy_original_mod_location": "Orijinal Mod Konumu",
   "deploy_error_source_not_found": "Çevrilmiş mod klasörü bulunamadı. Lütfen dağıtımdan önce modu çevirin.",
   "deploy_error_original_not_found": "Orijinal mod dizin yolu mevcut değil. Lütfen geçerli bir klasör yolu belirtin.",
-  "deploy_error_paradox_dir_not_found": "Oyun için Paradox mod klasörü belirlenemedi. Lütfen yolu manuel olarak belirtin."
+  "deploy_error_paradox_dir_not_found": "Oyun için Paradox mod klasörü belirlenemedi. Lütfen yolu manuel olarak belirtin.",
+  "deploy_clean_no_files_found": "Temizlenecek sahte yerelleştirme dosyası bulunamadı.",
+  "deploy_clean_files_removed": " ({{folders}} klasör, {{files}} dosya kaldırıldı)"
 }

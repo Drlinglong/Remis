@@ -1508,5 +1508,7 @@
   "deploy_original_mod_location": "原始模组路径",
   "deploy_error_source_not_found": "未找到已翻译的模组文件夹，请在部署前先对模组执行初次翻译。",
   "deploy_error_original_not_found": "原始模组目录路径不存在，请指定有效的文件夹路径。",
-  "deploy_error_paradox_dir_not_found": "无法确定该游戏的 Paradox 用户模组目录，请手动指定部署路径。"
+  "deploy_error_paradox_dir_not_found": "无法确定该游戏的 Paradox 用户模组目录，请手动指定部署路径。",
+  "deploy_clean_no_files_found": "没有任何需要清理的假本地化文件。",
+  "deploy_clean_files_removed": " (已移除 {{folders}} 个文件夹，{{files}} 个文件)"
 }

@@ -1489,5 +1489,7 @@
   "deploy_original_mod_location": "Oryginalna lokalizacja modyfikacji",
   "deploy_error_source_not_found": "Nie znaleziono folderu przetłumaczonego moda. Przetłumacz mod przed wdrożeniem.",
   "deploy_error_original_not_found": "Oryginalny katalog modyfikacji nie istnieje. Podaj prawidłową ścieżkę folderu.",
-  "deploy_error_paradox_dir_not_found": "Nie można określić folderu modyfikacji Paradox dla gry. Podaj ścieżkę ręcznie."
+  "deploy_error_paradox_dir_not_found": "Nie można określić folderu modyfikacji Paradox dla gry. Podaj ścieżkę ręcznie.",
+  "deploy_clean_no_files_found": "Nie znaleziono fałszywych plików lokalizacyjnych do wyczyszczenia.",
+  "deploy_clean_files_removed": " (usunięto {{folders}} folder(s), {{files}} plik(ów))"
 }

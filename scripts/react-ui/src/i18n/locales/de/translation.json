@@ -1489,5 +1489,7 @@
   "deploy_original_mod_location": "Ursprünglicher Mod-Speicherort",
   "deploy_error_source_not_found": "Übersetzter Mod-Ordner nicht gefunden. Bitte übersetzen Sie den Mod zuerst, bevor Sie ihn bereitstellen.",
   "deploy_error_original_not_found": "Ursprüngliches Mod-Verzeichnis existiert nicht. Bitte geben Sie einen gültigen Ordnerpfad an.",
-  "deploy_error_paradox_dir_not_found": "Paradox-Mod-Verzeichnis für das Spiel konnte nicht ermittelt werden. Bitte geben Sie den Pfad manuell an."
+  "deploy_error_paradox_dir_not_found": "Paradox-Mod-Verzeichnis für das Spiel konnte nicht ermittelt werden. Bitte geben Sie den Pfad manuell an.",
+  "deploy_clean_no_files_found": "Keine gefälschten Lokalisierungsdateien zum Bereinigen gefunden.",
+  "deploy_clean_files_removed": " ({{folders}} Ordner, {{files}} Dateien entfernt)"
 }

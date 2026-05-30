@@ -1489,5 +1489,7 @@
   "deploy_original_mod_location": "オリジナルModの場所",
   "deploy_error_source_not_found": "翻訳されたModフォルダーが見つかりません。デプロイする前に、まずModを翻訳してください。",
   "deploy_error_original_not_found": "オリジナルModのディレクトリパスが存在しません。有効なフォルダーパスを指定してください。",
-  "deploy_error_paradox_dir_not_found": "ゲームのParadox Modフォルダを特定できませんでした。手動でパスを指定してください。"
+  "deploy_error_paradox_dir_not_found": "ゲームのParadox Modフォルダを特定できませんでした。手動でパスを指定してください。",
+  "deploy_clean_no_files_found": "クリーンアップが必要な偽のローカライズファイルは見つかりませんでした。",
+  "deploy_clean_files_removed": " ({{folders}}個のフォルダ、{{files}}個のファイルが削除されました)"
 }

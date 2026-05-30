@@ -1489,5 +1489,7 @@
   "deploy_original_mod_location": "Emplacement d'origine du mod",
   "deploy_error_source_not_found": "Dossier du mod traduit introuvable. Veuillez d'abord traduire le mod avant de le déployer.",
   "deploy_error_original_not_found": "Le répertoire du mod d'origine n'existe pas. Veuillez spécifier un chemin de dossier valide.",
-  "deploy_error_paradox_dir_not_found": "Impossible de déterminer le dossier du mod Paradox pour ce jeu. Veuillez spécifier le chemin manuellement."
+  "deploy_error_paradox_dir_not_found": "Impossible de déterminer le dossier du mod Paradox pour ce jeu. Veuillez spécifier le chemin manuellement.",
+  "deploy_clean_no_files_found": "Aucun fichier de fausse localisation trouvé à nettoyer.",
+  "deploy_clean_files_removed": " ({{folders}} dossier(s), {{files}} fichier(s) supprimé(s))"
 }

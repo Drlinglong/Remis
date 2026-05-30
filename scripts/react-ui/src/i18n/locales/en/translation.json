@@ -1489,5 +1489,7 @@
   "deploy_original_mod_location": "Original Mod Location",
   "deploy_error_source_not_found": "Source translated mod folder not found. Please translate the mod first before deploying.",
   "deploy_error_original_not_found": "Original mod directory path does not exist. Please specify a valid folder path.",
-  "deploy_error_paradox_dir_not_found": "Could not determine Paradox mod folder for game. Please specify path manually."
+  "deploy_error_paradox_dir_not_found": "Could not determine Paradox mod folder for game. Please specify path manually.",
+  "deploy_clean_no_files_found": "No fake localization files found to clean.",
+  "deploy_clean_files_removed": " ({{folders}} folder(s), {{files}} file(s) removed)"
 }

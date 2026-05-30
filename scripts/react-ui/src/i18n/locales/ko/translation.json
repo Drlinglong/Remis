@@ -1489,5 +1489,7 @@
   "deploy_original_mod_location": "원본 모드 위치",
   "deploy_error_source_not_found": "번역된 모드 폴더를 찾을 수 없습니다. 배포하기 전에 먼저 모드를 번역하십시오.",
   "deploy_error_original_not_found": "원본 모드 디렉토리 경로가 존재하지 않습니다. 올바른 폴더 경로를 지정하십시오.",
-  "deploy_error_paradox_dir_not_found": "게임의 Paradox 모드 폴더를 확인할 수 없습니다. 경로를 수동으로 지정하십시오."
+  "deploy_error_paradox_dir_not_found": "게임의 Paradox 모드 폴더를 확인할 수 없습니다. 경로를 수동으로 지정하십시오.",
+  "deploy_clean_no_files_found": "정리할 가짜 로컬라이징 파일이 없습니다.",
+  "deploy_clean_files_removed": " ({{folders}}개 폴더, {{files}}개 파일 삭제됨)"
 }

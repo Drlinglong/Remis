@@ -249,7 +249,11 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                 if (response.data.status === 'success' || response.data.status === 'partial_success') {
                     const fCount = response.data.removed_folders?.length || 0;
                     const fileCount = response.data.removed_files?.length || 0;
-                    cleanMsg += ` (${fCount} folder(s), ${fileCount} file(s) removed)`;
+                    if (fCount === 0 && fileCount === 0) {
+                        cleanMsg = t('deploy_clean_no_files_found', 'No fake localization files found to clean.');
+                    } else {
+                        cleanMsg += t('deploy_clean_files_removed', { folders: fCount, files: fileCount, defaultValue: ` (${fCount} folder(s), ${fileCount} file(s) removed)` });
+                    }
                 } else if (response.data.status === 'warning') {
                     cleanMsg = `${cleanMsg} (Warning: ${response.data.message})`;
                 }
