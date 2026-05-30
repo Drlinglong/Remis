@@ -65,7 +65,21 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
         fetchDeployInfo();
     };
 
-    const handleExecuteDeploy = async (clean = false) => {
+    const getErrorMessage = (error) => {
+        const detail = error.response?.data?.detail || error.message || '';
+        if (detail.includes("Source directory not found")) {
+            return t('deploy_error_source_not_found', { defaultValue: "Source translated mod folder not found. Please translate the mod first before deploying." });
+        }
+        if (detail.includes("Original mod path does not exist")) {
+            return t('deploy_error_original_not_found', { defaultValue: "Original mod directory path does not exist. Please specify a valid folder path." });
+        }
+        if (detail.includes("Could not determine Paradox mod folder")) {
+            return t('deploy_error_paradox_dir_not_found', { defaultValue: "Could not determine Paradox mod folder for game. Please specify path manually." });
+        }
+        return detail;
+    };
+
+    const handleExecuteDeploy = async () => {
         setLoading(true);
         try {
             const folderName = getFolderName();
@@ -74,37 +88,54 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                 output_folder_name: folderName,
                 game_id: projectDetails?.game_id,
                 target_deploy_path: deployPath,
-                workshop_path: clean ? workshopPath : null,
-                clean_fake_loc: clean,
+                clean_fake_loc: false,
                 source_language: sourceLanguage
             });
 
             if (response.data.status === 'success') {
-                if (clean) {
-                    let cleanMsg = t('deploy_clean_success_message');
-                    const r = response.data.clean_result;
-                    if (r && r.status === 'success') {
-                        const fCount = r.removed_folders?.length || 0;
-                        const fileCount = r.removed_files?.length || 0;
-                        cleanMsg += ` (${fCount} folder(s), ${fileCount} file(s) removed)`;
-                    } else if (r && r.status === 'warning') {
-                        cleanMsg = `${cleanMsg} (Warning: ${r.message})`;
-                    }
-                    notifications.show({ title: t('deploy_clean_success_title'), message: cleanMsg, color: 'green' });
-                } else {
-                    notifications.show({ title: t('deploy_success_title'), message: t('deploy_success_message'), color: 'green' });
-                }
+                notifications.show({ title: t('deploy_success_title'), message: t('deploy_success_message'), color: 'green' });
                 setDeployModalOpen(false);
-                setCleanModalOpen(false);
             } else {
                 notifications.show({ title: t('deploy_failed_title'), message: response.data.message || 'Deployment failed', color: 'red' });
             }
         } catch (error) {
             console.error("Deployment failed:", error);
-            const errorMsg = error.response?.data?.detail || error.message;
+            const errorMsg = getErrorMessage(error);
             notifications.show({ title: t('deploy_failed_title'), message: errorMsg, color: 'red' });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleExecuteClean = async () => {
+        setLoading(true);
+        try {
+            const response = await api.post('/api/tools/clean_fake_loc', {
+                workshop_path: workshopPath,
+                source_language: sourceLanguage
+            });
+
+            if (response.data.status === 'success' || response.data.status === 'partial_success' || response.data.status === 'warning') {
+                let cleanMsg = t('deploy_clean_success_message');
+                if (response.data.status === 'success' || response.data.status === 'partial_success') {
+                    const fCount = response.data.removed_folders?.length || 0;
+                    const fileCount = response.data.removed_files?.length || 0;
+                    cleanMsg += ` (${fCount} folder(s), ${fileCount} file(s) removed)`;
+                } else if (response.data.status === 'warning') {
+                    cleanMsg = `${cleanMsg} (Warning: ${response.data.message})`;
+                }
+                notifications.show({ title: t('deploy_clean_success_title'), message: cleanMsg, color: 'green' });
+                setCleanModalOpen(false);
+            } else {
+                notifications.show({ title: t('deploy_failed_title'), message: response.data.message || 'Cleanup failed', color: 'red' });
+            }
+        } catch (error) {
+            console.error("Cleanup failed:", error);
+            const errorMsg = getErrorMessage(error);
+            notifications.show({ title: t('deploy_failed_title'), message: errorMsg, color: 'red' });
+        } finally {
+            setLoading(false);
+            setConfirmDeleteOpen(false);
         }
     };
 
@@ -310,13 +341,7 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                         </Stack>
                     ) : (
                         <Stack gap="md">
-                            <TextInput
-                                label={t('deploy_target_path_label')}
-                                placeholder={t('deploy_target_path_placeholder')}
-                                description={t('deploy_target_path_desc')}
-                                value={deployPath}
-                                onChange={(e) => setDeployPath(e.currentTarget.value)}
-                            />
+
 
                             <TextInput
                                 label={t('deploy_workshop_path_label')}
@@ -358,13 +383,13 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                         {t('deploy_clean_confirm_msg')}
                     </Alert>
                     <Text size="sm" c="dimmed">
-                        Original Mod Location: <Code block>{workshopPath}</Code>
+                        {t('deploy_original_mod_location')}: <Code block>{workshopPath}</Code>
                     </Text>
                     <Group justify="flex-end" mt="md">
                         <Button variant="default" onClick={() => setConfirmDeleteOpen(false)}>
                             {t('cancel')}
                         </Button>
-                        <Button color="red" onClick={() => handleExecuteDeploy(true)}>
+                        <Button color="red" onClick={handleExecuteClean}>
                             {t('deploy_clean_confirm_btn')}
                         </Button>
                     </Group>

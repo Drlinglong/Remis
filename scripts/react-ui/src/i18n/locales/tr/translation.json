@@ -1485,5 +1485,9 @@
   "project_management.manage_paths.source_desc": "Modun kaynak dosyalarının kök klasörü. Proje başına yalnızca bir kaynak dizine izin verilir.",
   "project_management.manage_paths.source_placeholder": "Mod kaynak dizinini seçin...",
   "project_management.manage_paths.translation_section": "Çeviri Çıkış Dizinleri (Çoklu)",
-  "project_management.manage_paths.translation_desc": "Çevrilmiş yerelleştirme dosyalarının derleneceği ve aktarılacağı dizinler."
+  "project_management.manage_paths.translation_desc": "Çevrilmiş yerelleştirme dosyalarının derleneceği ve aktarılacağı dizinler.",
+  "deploy_original_mod_location": "Orijinal Mod Konumu",
+  "deploy_error_source_not_found": "Çevrilmiş mod klasörü bulunamadı. Lütfen dağıtımdan önce modu çevirin.",
+  "deploy_error_original_not_found": "Orijinal mod dizin yolu mevcut değil. Lütfen geçerli bir klasör yolu belirtin.",
+  "deploy_error_paradox_dir_not_found": "Oyun için Paradox mod klasörü belirlenemedi. Lütfen yolu manuel olarak belirtin."
 }

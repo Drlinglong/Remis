@@ -1504,5 +1504,9 @@
   "project_management.manage_paths.source_desc": "存放原始语言本地化文件的目录。每个项目只能有一个源文件目录。",
   "project_management.manage_paths.source_placeholder": "选择 Mod 的源语言文件目录...",
   "project_management.manage_paths.translation_section": "翻译输出目录 (支持配置多个)",
-  "project_management.manage_paths.translation_desc": "生成的翻译文件将要输出并写入到的目录，支持同时输出到多个位置。"
+  "project_management.manage_paths.translation_desc": "生成的翻译文件将要输出并写入到的目录，支持同时输出到多个位置。",
+  "deploy_original_mod_location": "原始模组路径",
+  "deploy_error_source_not_found": "未找到已翻译的模组文件夹，请在部署前先对模组执行初次翻译。",
+  "deploy_error_original_not_found": "原始模组目录路径不存在，请指定有效的文件夹路径。",
+  "deploy_error_paradox_dir_not_found": "无法确定该游戏的 Paradox 用户模组目录，请手动指定部署路径。"
 }

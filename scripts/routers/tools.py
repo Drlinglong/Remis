@@ -45,6 +45,20 @@ def deploy_mod(payload: DeployRequest):
         raise HTTPException(status_code=500, detail=result["message"])
     return result
 
+class CleanFakeLocRequest(BaseModel):
+    workshop_path: str
+    source_language: str = "english"
+
+@router.post("/api/tools/clean_fake_loc")
+def clean_fake_loc(payload: CleanFakeLocRequest):
+    result = deploy_manager.mod_deployer.clean_fake_localization(
+        original_mod_path=payload.workshop_path,
+        source_lang=payload.source_language
+    )
+    if result.get("status") == "error":
+        raise HTTPException(status_code=500, detail=result["message"])
+    return result
+
 class DeployInfoRequest(BaseModel):
     project_id: Optional[str] = None
     game_id: str

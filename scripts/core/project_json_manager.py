@@ -53,10 +53,12 @@ class ProjectJsonManager:
                 relativized_dirs = [relativize_path(d) for d in save_data["config"]["translation_dirs"]]
                 save_data["config"]["translation_dirs"] = relativized_dirs
 
+            os.makedirs(os.path.dirname(self.json_path), exist_ok=True)
             with open(self.json_path, 'w', encoding='utf-8') as f:
                 json.dump(save_data, f, indent=4, ensure_ascii=False)
         except Exception as e:
             logger.error(f"Failed to save project JSON: {e}")
+            raise e
 
     def get_kanban_data(self) -> Dict[str, Any]:
         data = self._load_json()

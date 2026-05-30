@@ -1485,5 +1485,9 @@
   "project_management.manage_paths.source_desc": "Folder główny plików źródłowych modyfikacji. Dozwolony jest tylko jeden katalog źródłowy na projekt.",
   "project_management.manage_paths.source_placeholder": "Wybierz katalog źródłowy moda...",
   "project_management.manage_paths.translation_section": "Katalogi wyjściowe tłumaczenia (Wiele)",
-  "project_management.manage_paths.translation_desc": "Katalogi, do których będą budowane i eksportowane przetłumaczone pliki lokalizacyjne."
+  "project_management.manage_paths.translation_desc": "Katalogi, do których będą budowane i eksportowane przetłumaczone pliki lokalizacyjne.",
+  "deploy_original_mod_location": "Oryginalna lokalizacja modyfikacji",
+  "deploy_error_source_not_found": "Nie znaleziono folderu przetłumaczonego moda. Przetłumacz mod przed wdrożeniem.",
+  "deploy_error_original_not_found": "Oryginalny katalog modyfikacji nie istnieje. Podaj prawidłową ścieżkę folderu.",
+  "deploy_error_paradox_dir_not_found": "Nie można określić folderu modyfikacji Paradox dla gry. Podaj ścieżkę ręcznie."
 }

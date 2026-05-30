@@ -1508,5 +1508,9 @@
   "project_management.manage_paths.source_desc": "Корневая папка исходных файлов мода. Для проекта разрешен только один исходный каталог.",
   "project_management.manage_paths.source_placeholder": "Выберите исходный каталог мода...",
   "project_management.manage_paths.translation_section": "Выходные каталоги перевода (Несколько)",
-  "project_management.manage_paths.translation_desc": "Каталоги, в которые будут собираться и экспортироваться переведенные файлы локализации."
+  "project_management.manage_paths.translation_desc": "Каталоги, в которые будут собираться и экспортироваться переведенные файлы локализации.",
+  "deploy_original_mod_location": "Оригинальное расположение мода",
+  "deploy_error_source_not_found": "Папка переведенного мода не найдена. Пожалуйста, сначала переведите мод перед развертыванием.",
+  "deploy_error_original_not_found": "Исходный каталог мода не существует. Укажите действительный путь к папке.",
+  "deploy_error_paradox_dir_not_found": "Не удалось определить папку модов Paradox для игры. Укажите путь вручную."
 }

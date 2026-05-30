@@ -227,8 +227,12 @@ async def update_project_config(project_id: str, request: UpdateConfigRequest):
         old_source_path = project['source_path']
         new_source_path = request.source_path
 
+        # Normalize paths for case and slash insensitive comparison
+        norm_old_source_path = os.path.normpath(old_source_path).replace("\\", "/").lower() if old_source_path else ""
+        norm_new_source_path = os.path.normpath(new_source_path).replace("\\", "/").lower() if new_source_path else ""
+
         # 1. Update source path if provided and different
-        if new_source_path and new_source_path != old_source_path:
+        if norm_new_source_path and norm_new_source_path != norm_old_source_path:
             if not os.path.exists(new_source_path) or not os.path.isdir(new_source_path):
                 raise HTTPException(status_code=400, detail=f"Source directory not found: {new_source_path}")
             

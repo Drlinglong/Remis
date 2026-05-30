@@ -1485,5 +1485,9 @@
   "project_management.manage_paths.source_desc": "Der Stammordner der Quelldateien der Mod. Es ist nur ein Quellverzeichnis pro Projekt zulässig.",
   "project_management.manage_paths.source_placeholder": "Mod-Quellverzeichnis auswählen...",
   "project_management.manage_paths.translation_section": "Übersetzungsausgabeverzeichnisse (Mehrere)",
-  "project_management.manage_paths.translation_desc": "Verzeichnisse, in die die übersetzten Lokalisierungsdateien erstellt und exportiert werden."
+  "project_management.manage_paths.translation_desc": "Verzeichnisse, in die die übersetzten Lokalisierungsdateien erstellt und exportiert werden.",
+  "deploy_original_mod_location": "Ursprünglicher Mod-Speicherort",
+  "deploy_error_source_not_found": "Übersetzter Mod-Ordner nicht gefunden. Bitte übersetzen Sie den Mod zuerst, bevor Sie ihn bereitstellen.",
+  "deploy_error_original_not_found": "Ursprüngliches Mod-Verzeichnis existiert nicht. Bitte geben Sie einen gültigen Ordnerpfad an.",
+  "deploy_error_paradox_dir_not_found": "Paradox-Mod-Verzeichnis für das Spiel konnte nicht ermittelt werden. Bitte geben Sie den Pfad manuell an."
 }

@@ -1485,5 +1485,9 @@
   "project_management.manage_paths.source_desc": "The root folder of the mod's source files. Only one source directory is allowed per project.",
   "project_management.manage_paths.source_placeholder": "Select mod source directory...",
   "project_management.manage_paths.translation_section": "Translation Output Directories (Multiple)",
-  "project_management.manage_paths.translation_desc": "Directories where the translated localization files will be built and exported."
+  "project_management.manage_paths.translation_desc": "Directories where the translated localization files will be built and exported.",
+  "deploy_original_mod_location": "Original Mod Location",
+  "deploy_error_source_not_found": "Source translated mod folder not found. Please translate the mod first before deploying.",
+  "deploy_error_original_not_found": "Original mod directory path does not exist. Please specify a valid folder path.",
+  "deploy_error_paradox_dir_not_found": "Could not determine Paradox mod folder for game. Please specify path manually."
 }

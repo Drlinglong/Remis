@@ -1485,5 +1485,9 @@
   "project_management.manage_paths.source_desc": "Modのソースファイルのルートフォルダーです。プロジェクトごとに1つのソースディレクトリのみ許可されます。",
   "project_management.manage_paths.source_placeholder": "Modのソースディレクトリを選択してください...",
   "project_management.manage_paths.translation_section": "翻訳出力ディレクトリ（複数）",
-  "project_management.manage_paths.translation_desc": "翻訳済みのローカライズファイルがビルドおよびエクスポートされるディレクトリです。"
+  "project_management.manage_paths.translation_desc": "翻訳済みのローカライズファイルがビルドおよびエクスポートされるディレクトリです。",
+  "deploy_original_mod_location": "オリジナルModの場所",
+  "deploy_error_source_not_found": "翻訳されたModフォルダーが見つかりません。デプロイする前に、まずModを翻訳してください。",
+  "deploy_error_original_not_found": "オリジナルModのディレクトリパスが存在しません。有効なフォルダーパスを指定してください。",
+  "deploy_error_paradox_dir_not_found": "ゲームのParadox Modフォルダを特定できませんでした。手動でパスを指定してください。"
 }

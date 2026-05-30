@@ -1485,5 +1485,9 @@
   "project_management.manage_paths.source_desc": "La carpeta raíz de los archivos de origen del mod. Solo se permite un directorio de origen por proyecto.",
   "project_management.manage_paths.source_placeholder": "Seleccionar directorio de origen del mod...",
   "project_management.manage_paths.translation_section": "Directorios de salida de traducción (Múltiples)",
-  "project_management.manage_paths.translation_desc": "Directorios donde se compilarán y exportarán los archivos de localización traducidos."
+  "project_management.manage_paths.translation_desc": "Directorios donde se compilarán y exportarán los archivos de localización traducidos.",
+  "deploy_original_mod_location": "Ubicación original del mod",
+  "deploy_error_source_not_found": "No se encontró la carpeta del mod traducido. Traduzca el mod primero antes de implementarlo.",
+  "deploy_error_original_not_found": "El directorio del mod original no existe. Especifique una ruta de carpeta válida.",
+  "deploy_error_paradox_dir_not_found": "No se pudo determinar la carpeta de mod de Paradox para el juego. Especifique la ruta manualmente."
 }
