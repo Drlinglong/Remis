@@ -56,7 +56,8 @@ async function main() {
         ...devConfig,
         build: {
             ...devConfig.build,
-            devUrl: `http://127.0.0.1:${port}`
+            devUrl: `http://127.0.0.1:${port}`,
+            beforeDevCommand: null
         }
     };
     const tauriConfigOverride = JSON.stringify(mergedConfig);
