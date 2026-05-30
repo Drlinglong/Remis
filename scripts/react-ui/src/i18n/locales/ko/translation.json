@@ -1491,5 +1491,13 @@
   "deploy_error_original_not_found": "원본 모드 디렉토리 경로가 존재하지 않습니다. 올바른 폴더 경로를 지정하십시오.",
   "deploy_error_paradox_dir_not_found": "게임의 Paradox 모드 폴더를 확인할 수 없습니다. 경로를 수동으로 지정하십시오.",
   "deploy_clean_no_files_found": "정리할 가짜 로컬라이징 파일이 없습니다.",
-  "deploy_clean_files_removed": " ({{folders}}개 폴더, {{files}}개 파일 삭제됨)"
+  "deploy_clean_files_removed": " ({{folders}}개 폴더, {{files}}개 파일 삭제됨)",
+  "deploy_loading_target_path": "Loading deployment target path...",
+  "deploy_error_load_info": "Failed to load deployment info",
+  "translation_completed_with_warnings": "Translation Completed With Warnings",
+  "translation_partial_fail_summary": "Some files or batches fell back to the original text. Review the error report before using the output.",
+  "error_cannot_open_folder": "Cannot Open Folder",
+  "error_output_folder_not_available": "Output folder path is not available yet.",
+  "partial_failure_title": "Partial Failure",
+  "partial_failure_review_msg": "Open the detailed logs and review the failed files before deploying."
 }

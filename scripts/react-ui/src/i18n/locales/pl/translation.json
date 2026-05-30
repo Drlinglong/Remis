@@ -1491,5 +1491,13 @@
   "deploy_error_original_not_found": "Oryginalny katalog modyfikacji nie istnieje. Podaj prawidłową ścieżkę folderu.",
   "deploy_error_paradox_dir_not_found": "Nie można określić folderu modyfikacji Paradox dla gry. Podaj ścieżkę ręcznie.",
   "deploy_clean_no_files_found": "Nie znaleziono fałszywych plików lokalizacyjnych do wyczyszczenia.",
-  "deploy_clean_files_removed": " (usunięto {{folders}} folder(s), {{files}} plik(ów))"
+  "deploy_clean_files_removed": " (usunięto {{folders}} folder(s), {{files}} plik(ów))",
+  "deploy_loading_target_path": "Loading deployment target path...",
+  "deploy_error_load_info": "Failed to load deployment info",
+  "translation_completed_with_warnings": "Translation Completed With Warnings",
+  "translation_partial_fail_summary": "Some files or batches fell back to the original text. Review the error report before using the output.",
+  "error_cannot_open_folder": "Cannot Open Folder",
+  "error_output_folder_not_available": "Output folder path is not available yet.",
+  "partial_failure_title": "Partial Failure",
+  "partial_failure_review_msg": "Open the detailed logs and review the failed files before deploying."
 }

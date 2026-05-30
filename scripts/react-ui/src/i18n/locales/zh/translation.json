@@ -1510,5 +1510,13 @@
   "deploy_error_original_not_found": "原始模组目录路径不存在，请指定有效的文件夹路径。",
   "deploy_error_paradox_dir_not_found": "无法确定该游戏的 Paradox 用户模组目录，请手动指定部署路径。",
   "deploy_clean_no_files_found": "没有任何需要清理的假本地化文件。",
-  "deploy_clean_files_removed": " (已移除 {{folders}} 个文件夹，{{files}} 个文件)"
+  "deploy_clean_files_removed": " (已移除 {{folders}} 个文件夹，{{files}} 个文件)",
+  "deploy_loading_target_path": "正在探测一键部署目标路径...",
+  "deploy_error_load_info": "加载部署路径及环境信息失败",
+  "translation_completed_with_warnings": "翻译已完成但有部分警告",
+  "translation_partial_fail_summary": "有部分批次或文件翻译失败，已自动回退到原文。请在一键部署前检查校对与错误报告。",
+  "error_cannot_open_folder": "无法打开文件夹",
+  "error_output_folder_not_available": "尚未生成汉化输出目录，请先进行翻译。",
+  "partial_failure_title": "部分文件翻译失败",
+  "partial_failure_review_msg": "在部署前，请先打开详细日志或错误报告，审查并修复失败的文件。"
 }

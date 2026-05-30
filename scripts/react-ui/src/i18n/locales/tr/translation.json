@@ -1491,5 +1491,13 @@
   "deploy_error_original_not_found": "Orijinal mod dizin yolu mevcut değil. Lütfen geçerli bir klasör yolu belirtin.",
   "deploy_error_paradox_dir_not_found": "Oyun için Paradox mod klasörü belirlenemedi. Lütfen yolu manuel olarak belirtin.",
   "deploy_clean_no_files_found": "Temizlenecek sahte yerelleştirme dosyası bulunamadı.",
-  "deploy_clean_files_removed": " ({{folders}} klasör, {{files}} dosya kaldırıldı)"
+  "deploy_clean_files_removed": " ({{folders}} klasör, {{files}} dosya kaldırıldı)",
+  "deploy_loading_target_path": "Loading deployment target path...",
+  "deploy_error_load_info": "Failed to load deployment info",
+  "translation_completed_with_warnings": "Translation Completed With Warnings",
+  "translation_partial_fail_summary": "Some files or batches fell back to the original text. Review the error report before using the output.",
+  "error_cannot_open_folder": "Cannot Open Folder",
+  "error_output_folder_not_available": "Output folder path is not available yet.",
+  "partial_failure_title": "Partial Failure",
+  "partial_failure_review_msg": "Open the detailed logs and review the failed files before deploying."
 }

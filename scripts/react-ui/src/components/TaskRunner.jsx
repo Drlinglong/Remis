@@ -40,6 +40,7 @@ import { useTranslation } from 'react-i18next';
 import { notifications } from '@mantine/notifications';
 import api from '../utils/api';
 import { useDeployActions } from '../hooks/useDeployActions';
+import { DeployModals } from './deploy/DeployModals';
 
 const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     const { t } = useTranslation();
@@ -49,19 +50,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     const viewport = useRef(null);
 
     // Shared deployment hooks
-    const {
-        deployModalOpen, setDeployModalOpen,
-        cleanModalOpen, setCleanModalOpen,
-        confirmDeleteOpen, setConfirmDeleteOpen,
-        deployPath, setDeployPath,
-        workshopPath, setWorkshopPath,
-        sourceLanguage, setSourceLanguage,
-        loading, infoLoading,
-        handleOpenDeployModal,
-        handleOpenCleanModal,
-        handleExecuteDeploy,
-        handleExecuteClean
-    } = useDeployActions({
+    const deployActions = useDeployActions({
         getOutputFolderName: () => {
             const outputDir = Array.isArray(task?.output_dirs) && task.output_dirs.length > 0
                 ? task.output_dirs[0]
@@ -73,6 +62,11 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
         onDeploySuccess: () => setDeployStatus('success'),
         onCleanSuccess: () => setDeployStatus('success')
     });
+
+    const {
+        handleOpenDeployModal,
+        handleOpenCleanModal
+    } = deployActions;
 
     // Auto-scroll logs
     useEffect(() => {
@@ -121,7 +115,11 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
             ? task.output_dirs[0]
             : null;
         if (!directFolderPath && !task?.result_path) {
-            notifications.show({ title: 'Cannot Open Folder', message: 'Output folder path is not available yet.', color: 'red' });
+            notifications.show({
+                title: t('error_cannot_open_folder', 'Cannot Open Folder'),
+                message: t('error_output_folder_not_available', 'Output folder path is not available yet.'),
+                color: 'red'
+            });
             return;
         }
 
@@ -158,9 +156,9 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     // Render Report Card
     if (isDoneWithOutput) {
         const statusColor = isPartiallyFailed ? 'yellow' : 'green';
-        const statusTitle = isPartiallyFailed ? 'Translation Completed With Warnings' : t('translation_completed');
+        const statusTitle = isPartiallyFailed ? t('translation_completed_with_warnings', 'Translation Completed With Warnings') : t('translation_completed');
         const statusSummary = isPartiallyFailed
-            ? 'Some files or batches fell back to the original text. Review the error report before using the output.'
+            ? t('translation_partial_fail_summary', 'Some files or batches fell back to the original text. Review the error report before using the output.')
             : t('report_success_summary', {
                 mod_name: translationDetails?.modName || 'Mod',
                 source_lang: translationDetails?.sourceLang || 'Source',
@@ -181,12 +179,12 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                         {isPartiallyFailed && (
                             <Alert
                                 icon={<IconAlertCircle size={20} />}
-                                title="Partial Failure"
+                                title={t('partial_failure_title', 'Partial Failure')}
                                 color="yellow"
                                 variant="light"
                                 w="100%"
                             >
-                                Open the detailed logs and review the failed files before deploying.
+                                {t('partial_failure_review_msg', 'Open the detailed logs and review the failed files before deploying.')}
                             </Alert>
                         )}
 
@@ -302,122 +300,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                     </Paper>
                 </Collapse>
 
-                {/* 0. 一键部署弹窗 */}
-                <Modal
-                    opened={deployModalOpen}
-                    onClose={() => setDeployModalOpen(false)}
-                    title={<Text fw={700} size="lg">{t('button_auto_deploy')}</Text>}
-                    size="md"
-                    radius="md"
-                    centered
-                >
-                    <Stack gap="md">
-                        <Alert icon={<IconRocket size={20} />} title={t('button_auto_deploy')} color="blue" variant="light">
-                            {t('deploy_tooltip_label')}
-                        </Alert>
-
-                        {infoLoading ? (
-                            <Stack align="center" py="xl">
-                                <Loader size="md" />
-                                <Text size="sm">{t('deploy_loading_paths')}</Text>
-                            </Stack>
-                        ) : (
-                            <Stack gap="md">
-                                <TextInput
-                                    label={t('deploy_target_path_label')}
-                                    placeholder={t('deploy_target_path_placeholder')}
-                                    description={t('deploy_target_path_desc')}
-                                    value={deployPath}
-                                    onChange={(e) => setDeployPath(e.currentTarget.value)}
-                                />
-
-                                <Group justify="flex-end" mt="lg">
-                                    <Button variant="default" onClick={() => setDeployModalOpen(false)} disabled={loading}>
-                                        {t('cancel')}
-                                    </Button>
-                                    <Button color="blue" onClick={handleExecuteDeploy} loading={loading}>
-                                        {t('deploy_btn_direct_deploy')}
-                                    </Button>
-                                </Group>
-                            </Stack>
-                        )}
-                    </Stack>
-                </Modal>
-
-                {/* 1. 清理假本地化与部署 Modal */}
-                <Modal
-                    opened={cleanModalOpen}
-                    onClose={() => setCleanModalOpen(false)}
-                    title={<Text fw={700} size="lg">{t('deploy_modal_title')}</Text>}
-                    size="lg"
-                    radius="md"
-                    centered
-                >
-                    <Stack gap="md">
-                        <Alert icon={<IconAlertCircle size={20} />} title={t('deploy_modal_title')} color="blue" variant="light">
-                            {t('deploy_modal_description')}
-                        </Alert>
-
-                        {infoLoading ? (
-                            <Stack align="center" py="xl">
-                                <Loader size="md" />
-                                <Text size="sm">{t('deploy_loading_paths')}</Text>
-                            </Stack>
-                        ) : (
-                            <Stack gap="md">
-
-                                <TextInput
-                                    label={t('deploy_workshop_path_label')}
-                                    placeholder={t('deploy_workshop_path_placeholder')}
-                                    description={t('deploy_workshop_path_desc')}
-                                    value={workshopPath}
-                                    onChange={(e) => setWorkshopPath(e.currentTarget.value)}
-                                    error={!workshopPath && t('deploy_workshop_path_error')}
-                                />
-
-                                <Group justify="flex-end" mt="lg">
-                                    <Button variant="default" onClick={() => setCleanModalOpen(false)} disabled={loading}>
-                                        {t('cancel')}
-                                    </Button>
-                                    <Button 
-                                        color="red" 
-                                        onClick={() => setConfirmDeleteOpen(true)} 
-                                        loading={loading && confirmDeleteOpen}
-                                        disabled={!workshopPath || loading}
-                                    >
-                                        {t('deploy_btn_clean_and_deploy')}
-                                    </Button>
-                                </Group>
-                            </Stack>
-                        )}
-                    </Stack>
-                </Modal>
-
-                {/* 2. 高风险二次确认 Modal */}
-                <Modal
-                    opened={confirmDeleteOpen}
-                    onClose={() => setConfirmDeleteOpen(false)}
-                    title={<Text fw={700} color="red">{t('deploy_clean_confirm_title')}</Text>}
-                    size="md"
-                    centered
-                >
-                    <Stack gap="md">
-                        <Alert icon={<IconAlertCircle size={20} />} title={t('deploy_clean_confirm_title')} color="red" variant="filled">
-                            {t('deploy_clean_confirm_msg')}
-                        </Alert>
-                        <Text size="sm" c="dimmed">
-                            {t('deploy_original_mod_location')}: <Code block>{workshopPath}</Code>
-                        </Text>
-                        <Group justify="flex-end" mt="md">
-                            <Button variant="default" onClick={() => setConfirmDeleteOpen(false)}>
-                                {t('cancel')}
-                            </Button>
-                            <Button color="red" onClick={handleExecuteClean} loading={loading}>
-                                {t('deploy_clean_confirm_btn')}
-                            </Button>
-                        </Group>
-                    </Stack>
-                </Modal>
+                <DeployModals deployActions={deployActions} />
             </Stack>
         );
     }

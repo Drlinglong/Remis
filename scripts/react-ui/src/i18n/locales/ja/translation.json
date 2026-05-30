@@ -1491,5 +1491,13 @@
   "deploy_error_original_not_found": "オリジナルModのディレクトリパスが存在しません。有効なフォルダーパスを指定してください。",
   "deploy_error_paradox_dir_not_found": "ゲームのParadox Modフォルダを特定できませんでした。手動でパスを指定してください。",
   "deploy_clean_no_files_found": "クリーンアップが必要な偽のローカライズファイルは見つかりませんでした。",
-  "deploy_clean_files_removed": " ({{folders}}個のフォルダ、{{files}}個のファイルが削除されました)"
+  "deploy_clean_files_removed": " ({{folders}}個のフォルダ、{{files}}個のファイルが削除されました)",
+  "deploy_loading_target_path": "Loading deployment target path...",
+  "deploy_error_load_info": "Failed to load deployment info",
+  "translation_completed_with_warnings": "Translation Completed With Warnings",
+  "translation_partial_fail_summary": "Some files or batches fell back to the original text. Review the error report before using the output.",
+  "error_cannot_open_folder": "Cannot Open Folder",
+  "error_output_folder_not_available": "Output folder path is not available yet.",
+  "partial_failure_title": "Partial Failure",
+  "partial_failure_review_msg": "Open the detailed logs and review the failed files before deploying."
 }

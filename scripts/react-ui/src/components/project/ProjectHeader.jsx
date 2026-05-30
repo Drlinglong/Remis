@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Paper, Group, Title, Button, Tooltip, Grid, Card, Text, ActionIcon, Modal, TextInput, Stack, Alert, Loader, Code } from '@mantine/core';
 import { IconArchive, IconRestore, IconTrash, IconSettings, IconPlayerPlay, IconRocket, IconAlertCircle } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { notifications } from '@mantine/notifications';
 import styles from '../../pages/ProjectManagement.module.css';
-import api from '../../utils/api';
 import { useDeployActions } from '../../hooks/useDeployActions';
+import { DeployModals } from '../deploy/DeployModals';
 
-const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, onManageProject, onRefresh }) => {
+const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, onManageProject }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
 
@@ -16,18 +15,7 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
     const latestArchiveTime = archiveSummary?.last_upload_at || archiveSummary?.created_at || null;
 
     // Shared deployment hooks
-    const {
-        deployModalOpen, setDeployModalOpen,
-        cleanModalOpen, setCleanModalOpen,
-        confirmDeleteOpen, setConfirmDeleteOpen,
-        deployPath, setDeployPath,
-        workshopPath, setWorkshopPath,
-        loading, infoLoading,
-        handleOpenDeployModal,
-        handleOpenCleanModal,
-        handleExecuteDeploy,
-        handleExecuteClean
-    } = useDeployActions({
+    const deployActions = useDeployActions({
         getOutputFolderName: () => {
             const outputDir = Array.isArray(projectDetails?.translation_dirs) && projectDetails.translation_dirs.length > 0
                 ? projectDetails.translation_dirs[0]
@@ -37,6 +25,11 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
         projectId: projectDetails?.project_id,
         gameId: projectDetails?.game_id
     });
+
+    const {
+        handleOpenDeployModal,
+        handleOpenCleanModal
+    } = deployActions;
 
 
 
@@ -181,120 +174,7 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                 </Grid.Col>
             </Grid>
 
-            {/* 1. 一键部署弹窗 */}
-            <Modal
-                opened={deployModalOpen}
-                onClose={() => setDeployModalOpen(false)}
-                title={<Text fw={700} size="lg">{t('button_auto_deploy')}</Text>}
-                size="md"
-                centered
-            >
-                <Stack gap="md">
-                    <Alert icon={<IconRocket size={20} />} title={t('button_auto_deploy')} color="blue" variant="light">
-                        {t('deploy_tooltip_label')}
-                    </Alert>
-
-                    {infoLoading ? (
-                        <Stack align="center" py="xl">
-                            <Loader size="md" />
-                            <Text size="sm">{t('deploy_loading_paths')}</Text>
-                        </Stack>
-                    ) : (
-                        <Stack gap="md">
-                            <TextInput
-                                label={t('deploy_target_path_label')}
-                                placeholder={t('deploy_target_path_placeholder')}
-                                description={t('deploy_target_path_desc')}
-                                value={deployPath}
-                                onChange={(e) => setDeployPath(e.currentTarget.value)}
-                            />
-
-                            <Group justify="flex-end" mt="lg">
-                                <Button variant="default" onClick={() => setDeployModalOpen(false)} disabled={loading}>
-                                    {t('cancel')}
-                                </Button>
-                                <Button color="blue" onClick={handleExecuteDeploy} loading={loading}>
-                                    {t('deploy_btn_direct_deploy')}
-                                </Button>
-                            </Group>
-                        </Stack>
-                    )}
-                </Stack>
-            </Modal>
-
-            {/* 2. 清理并部署弹窗 */}
-            <Modal
-                opened={cleanModalOpen}
-                onClose={() => setCleanModalOpen(false)}
-                title={<Text fw={700} size="lg">{t('deploy_modal_title')}</Text>}
-                size="lg"
-                centered
-            >
-                <Stack gap="md">
-                    <Alert icon={<IconAlertCircle size={20} />} title={t('deploy_modal_title')} color="red" variant="light">
-                        {t('deploy_modal_description')}
-                    </Alert>
-
-                    {infoLoading ? (
-                        <Stack align="center" py="xl">
-                            <Loader size="md" />
-                            <Text size="sm">{t('deploy_loading_original_paths')}</Text>
-                        </Stack>
-                    ) : (
-                        <Stack gap="md">
-
-                            <TextInput
-                                label={t('deploy_workshop_path_label')}
-                                placeholder={t('deploy_workshop_path_placeholder')}
-                                description={t('deploy_workshop_path_desc')}
-                                value={workshopPath}
-                                onChange={(e) => setWorkshopPath(e.currentTarget.value)}
-                                error={!workshopPath && t('deploy_workshop_path_error')}
-                            />
-
-                            <Group justify="flex-end" mt="lg">
-                                <Button variant="default" onClick={() => setCleanModalOpen(false)} disabled={loading}>
-                                    {t('cancel')}
-                                </Button>
-                                <Button 
-                                    color="red" 
-                                    onClick={() => setConfirmDeleteOpen(true)} 
-                                    loading={loading && confirmDeleteOpen}
-                                    disabled={!workshopPath || loading}
-                                >
-                                    {t('deploy_btn_clean_and_deploy')}
-                                </Button>
-                            </Group>
-                        </Stack>
-                    )}
-                </Stack>
-            </Modal>
-
-            {/* 3. 二次确认清理弹窗 */}
-            <Modal
-                opened={confirmDeleteOpen}
-                onClose={() => setConfirmDeleteOpen(false)}
-                title={<Text fw={700} color="red">{t('deploy_clean_confirm_title')}</Text>}
-                size="md"
-                centered
-            >
-                <Stack gap="md">
-                    <Alert icon={<IconAlertCircle size={20} />} title={t('deploy_clean_confirm_title')} color="red" variant="filled">
-                        {t('deploy_clean_confirm_msg')}
-                    </Alert>
-                    <Text size="sm" c="dimmed">
-                        {t('deploy_original_mod_location')}: <Code block>{workshopPath}</Code>
-                    </Text>
-                    <Group justify="flex-end" mt="md">
-                        <Button variant="default" onClick={() => setConfirmDeleteOpen(false)}>
-                            {t('cancel')}
-                        </Button>
-                        <Button color="red" onClick={handleExecuteClean} loading={loading}>
-                            {t('deploy_clean_confirm_btn')}
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
+            <DeployModals deployActions={deployActions} />
         </Paper>
     );
 };
