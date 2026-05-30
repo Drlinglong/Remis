@@ -8,6 +8,9 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
     const { t } = useTranslation();
     const navigate = useNavigate();
 
+    const archiveSummary = projectDetails?.archive_summary || null;
+    const latestArchiveTime = archiveSummary?.last_upload_at || archiveSummary?.created_at || null;
+
     return (
         <Paper withBorder p="md" radius="md" className={styles.glassCard} mb="md">
             <Group justify="space-between" mb="md">
@@ -87,8 +90,9 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                         <Grid.Col span={3}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('project_management.overview.total_lines')}</Text><Title order={3}>{projectDetails.overview.totalLines}</Title></Card></Grid.Col>
                         <Grid.Col span={3}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('project_management.overview.translated')}</Text><Title order={3} c="green">{projectDetails.overview.translated}%</Title></Card></Grid.Col>
                         <Grid.Col span={3}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('project_management.overview.to_be_proofread')}</Text><Title order={3} c="yellow">{projectDetails.overview.toBeProofread}%</Title></Card></Grid.Col>
-                        <Grid.Col span={6}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('incremental_translation.project_source_language')}</Text><Text fw={600}>{projectDetails.source_language || '--'}</Text></Card></Grid.Col>
-                        <Grid.Col span={6}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('incremental_translation.archived_target_languages')}</Text><Text fw={600}>{Array.isArray(projectDetails.archived_languages) && projectDetails.archived_languages.length > 0 ? projectDetails.archived_languages.join(', ') : t('incremental_translation.none_archived')}</Text></Card></Grid.Col>
+                        <Grid.Col span={4}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('incremental_translation.project_source_language')}</Text><Text fw={600}>{projectDetails.source_language || '--'}</Text></Card></Grid.Col>
+                        <Grid.Col span={4}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('incremental_translation.archived_target_languages')}</Text><Text fw={600}>{Array.isArray(projectDetails.archived_languages) && projectDetails.archived_languages.length > 0 ? projectDetails.archived_languages.join(', ') : t('incremental_translation.none_archived')}</Text></Card></Grid.Col>
+                        <Grid.Col span={4}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('project_history.last_archive_time', 'Last Upload / Build')}</Text><Text fw={600}>{latestArchiveTime ? new Date(latestArchiveTime).toLocaleString() : t('project_history.no_archive_data', 'No archive data')}</Text></Card></Grid.Col>
                     </Grid>
                 </Grid.Col>
                 <Grid.Col span={4}>
