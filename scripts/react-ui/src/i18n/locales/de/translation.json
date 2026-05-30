@@ -1182,7 +1182,8 @@
     "fixed_count": "Behoben",
     "failed_count": "Weiterhin fehlgeschlagen",
     "duration": "Dauer",
-    "no_source_context": "(Kein Quellkontext gefunden)"
+    "no_source_context": "(Kein Quellkontext gefunden)",
+    "validation_residual_punctuation_found": "Verbleibende Satzzeichen der Quellsprache gefunden"
   },
   "project_validation": {
     "title": "Formatprüfung",

@@ -1182,7 +1182,8 @@
     "fixed_count": "修正済み",
     "failed_count": "失敗のまま",
     "duration": "所要時間",
-    "no_source_context": "(ソースのコンテキストが見つかりません)"
+    "no_source_context": "(ソースのコンテキストが見つかりません)",
+    "validation_residual_punctuation_found": "原文の残留記号が検出されました"
   },
   "project_validation": {
     "title": "形式チェック",

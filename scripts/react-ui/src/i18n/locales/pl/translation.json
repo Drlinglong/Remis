@@ -1182,7 +1182,8 @@
     "fixed_count": "Naprawiono",
     "failed_count": "Nadal nieudane",
     "duration": "Czas trwania",
-    "no_source_context": "(Nie znaleziono kontekstu źródłowego)"
+    "no_source_context": "(Nie znaleziono kontekstu źródłowego)",
+    "validation_residual_punctuation_found": "Wykryto szczątkowe znaki interpunkcyjne języka źródłowego"
   },
   "project_validation": {
     "title": "Sprawdzanie formatu",

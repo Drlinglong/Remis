@@ -18,10 +18,23 @@ const ProjectValidation = ({ projectId }) => {
     const known = {
       validation_vic3_variable_parity_mismatch: t('agent_workshop.issue_vic3_variable_parity'),
       validation_vic3_color_tags_mismatch: t('agent_workshop.issue_vic3_color_tags'),
+      validation_residual_punctuation_found: t('agent_workshop.validation_residual_punctuation_found'),
       validation_invalid_key_format: t('agent_workshop.issue_invalid_key_format'),
       'Invalid key format': t('agent_workshop.issue_invalid_key_format'),
     };
     if (known[key]) return known[key];
+
+    // Defensive fallback translation for legacy cached or hardcoded Chinese labels
+    if (key.includes('颜色标签') && key.includes('结束符')) {
+      return t('agent_workshop.issue_vic3_color_tags');
+    }
+    if (key.includes('源语言标点') || key.includes('标点符号')) {
+      return t('agent_workshop.validation_residual_punctuation_found');
+    }
+    if (key.includes('变量数量') || key.includes('变量')) {
+      return t('agent_workshop.issue_vic3_variable_parity');
+    }
+
     if (key.startsWith('validation_')) {
       return t('agent_workshop.issue_validation_generic');
     }

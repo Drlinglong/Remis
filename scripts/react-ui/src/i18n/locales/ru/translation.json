@@ -1118,7 +1118,8 @@
     "issue_validation_generic": "Проблема валидации",
     "issue_vic3_variable_parity": "Несовпадение числа переменных Victoria 3",
     "issue_vic3_color_tags": "Несовпадение цветовых тегов Victoria 3",
-    "issue_invalid_key_format": "Некорректный формат ключа локализации"
+    "issue_invalid_key_format": "Некорректный формат ключа локализации",
+    "validation_residual_punctuation_found": "Обнаружена остаточная пунктуация исходного языка"
   },
   "translation_config": {
     "provider": "Провайдер API",

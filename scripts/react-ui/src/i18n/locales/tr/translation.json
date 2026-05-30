@@ -1182,7 +1182,8 @@
     "fixed_count": "Düzeltildi",
     "failed_count": "Hala Başarısız",
     "duration": "Süre",
-    "no_source_context": "(Kaynak bağlamı bulunamadı)"
+    "no_source_context": "(Kaynak bağlamı bulunamadı)",
+    "validation_residual_punctuation_found": "Artık kaynak dil noktalama işareti algılandı"
   },
   "project_validation": {
     "title": "Format Kontrolü",

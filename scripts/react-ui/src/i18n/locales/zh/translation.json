@@ -1433,7 +1433,8 @@
     "fixed_count": "已修复",
     "failed_count": "仍失败",
     "duration": "耗时",
-    "no_source_context": "（未找到原文上下文）"
+    "no_source_context": "（未找到原文上下文）",
+    "validation_residual_punctuation_found": "检测到残留的源语言标点符号"
   },
   "project_validation": {
     "title": "格式校对",

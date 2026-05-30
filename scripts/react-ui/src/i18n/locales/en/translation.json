@@ -1182,7 +1182,8 @@
     "fixed_count": "Fixed",
     "failed_count": "Still Failed",
     "duration": "Duration",
-    "no_source_context": "(No source context found)"
+    "no_source_context": "(No source context found)",
+    "validation_residual_punctuation_found": "Residual punctuation found"
   },
   "project_validation": {
     "title": "Format Check",

@@ -1182,7 +1182,8 @@
     "fixed_count": "Corrigido",
     "failed_count": "Ainda com falha",
     "duration": "Duração",
-    "no_source_context": "(Nenhum contexto de origem encontrado)"
+    "no_source_context": "(Nenhum contexto de origem encontrado)",
+    "validation_residual_punctuation_found": "Pontuação residual do idioma de origem detectada"
   },
   "project_validation": {
     "title": "Verificação de Formato",
