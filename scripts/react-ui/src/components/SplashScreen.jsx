@@ -153,13 +153,37 @@ const SplashScreen = ({ onReady }) => {
                      */}
                 </Box>
 
-                <Stack gap={4} mb="xl" align="center">
-                    <Text size="xs" fw={700} style={{ letterSpacing: '2px', textTransform: 'uppercase', color: styles.dimmedColor, opacity: 0.8 }}>
-                        {t('splash_language_menu', 'LANGUAGE MENU')}
-                    </Text>
+                <Stack gap={6} mb="xl" align="center">
+                    <Group gap={8} align="center" justify="center" wrap="nowrap">
+                        <Box
+                            aria-hidden="true"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                minWidth: '42px',
+                                height: '24px',
+                                padding: '0 7px',
+                                borderRadius: '6px',
+                                border: `1px solid ${styles.dimmedColor}`,
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                color: styles.textColor,
+                                fontFamily: 'system-ui, sans-serif',
+                                fontSize: '13px',
+                                fontWeight: 800,
+                                lineHeight: 1
+                            }}
+                        >
+                            文/A
+                        </Box>
+                        <Text size="xs" fw={700} style={{ letterSpacing: '2px', textTransform: 'uppercase', color: styles.dimmedColor, opacity: 0.8 }}>
+                            {t('splash_language_menu', 'LANGUAGE MENU')}
+                        </Text>
+                    </Group>
                     <Select
-                        leftSection={<IconWorld size={16} />}
-                        placeholder="Language"
+                        leftSection={<IconWorld size={16} aria-hidden="true" />}
+                        aria-label={t('splash_language_menu', 'Language menu')}
+                        placeholder={t('splash_language_menu', 'Language menu')}
                         data={[
                             { value: 'en', label: 'English' },
                             { value: 'zh', label: '简体中文' },
