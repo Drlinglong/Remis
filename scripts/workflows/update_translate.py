@@ -304,10 +304,19 @@ async def run_incremental_update(
                     config=embedded_workshop,
                     fallback_provider=selected_provider,
                     fallback_model=model_name,
+                    fallback_concurrency=concurrency_limit,
+                    fallback_batch_size=batch_size_limit,
+                    fallback_rpm=rpm_limit,
+                    progress_callback=(
+                        (lambda data, idx=lang_index, total=total_target_langs, code=target_lang_code:
+                            progress_callback(_build_aggregated_progress(data, idx, total, code)))
+                        if progress_callback else None
+                    ),
                 )
                 export_result = {
                     **export_result,
                     "issue_count": workshop_summary.get("remaining_count", export_result.get("issue_count", 0)),
+                    "issues": workshop_summary.get("issues", []),
                     "issues_path": workshop_summary.get("issues_path", export_result.get("issues_path")),
                     "sidecar_path": workshop_summary.get("sidecar_path", export_result.get("sidecar_path")),
                     "embedded_workshop": workshop_summary,

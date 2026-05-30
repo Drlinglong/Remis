@@ -118,6 +118,10 @@ async def run_embedded_workshop(
     config: Optional[Dict[str, Any]] = None,
     fallback_provider: Optional[str] = None,
     fallback_model: Optional[str] = None,
+    fallback_concurrency: Optional[int] = None,
+    fallback_batch_size: Optional[int] = None,
+    fallback_rpm: Optional[int] = None,
+    progress_callback: Optional[Any] = None,
 ) -> Dict[str, Any]:
     output_root = Path(output_root)
     sidecar_path = output_root / WorkshopIssueExportService.OUTPUT_FILENAME
@@ -132,6 +136,7 @@ async def run_embedded_workshop(
             "fixed_count": 0,
             "failed_count": 0,
             "remaining_count": 0,
+            "issues": [],
             "issues_path": str(sidecar_path),
         }
 
@@ -143,9 +148,10 @@ async def run_embedded_workshop(
         fallback_model=fallback_model,
     )
 
-    batch_size = max(1, int(config.get("batch_size_limit") or (3 if provider_name in LOCAL_PROVIDERS else 10)))
-    concurrency = max(1, int(config.get("concurrency_limit") or 1))
-    rpm_limit = max(1, int(config.get("rpm_limit") or 40))
+    follow_primary = config.get("follow_primary_settings", True)
+    batch_size = max(1, int((None if follow_primary else config.get("batch_size_limit")) or fallback_batch_size or (3 if provider_name in LOCAL_PROVIDERS else 10)))
+    concurrency = max(1, int((None if follow_primary else config.get("concurrency_limit")) or fallback_concurrency or 1))
+    rpm_limit = max(1, int((None if follow_primary else config.get("rpm_limit")) or fallback_rpm or 40))
     dispatch_interval = 60.0 / rpm_limit
 
     handler = get_handler(provider_name, model_name=model_name)
@@ -193,6 +199,15 @@ async def run_embedded_workshop(
             for item in batch_result.get("results", []):
                 results.append(item)
 
+            if progress_callback and initial_issue_count > 0:
+                progress_percent = int((len(results) / initial_issue_count) * 100)
+                progress_callback({
+                    "stage": f"Smart Workshop (Proofreading {target_lang_info.get('code', '')})",
+                    "stage_code": "embedded_workshop",
+                    "percent": min(99, progress_percent),
+                    "message": f"[{target_lang_info.get('code', '').upper()}] Smart Workshop: Fixed {len(results)}/{initial_issue_count} format issues...",
+                })
+
     await asyncio.gather(*(worker(worker_id + 1) for worker_id in range(max(1, concurrency))))
 
     fixed_count = 0
@@ -238,6 +253,7 @@ async def run_embedded_workshop(
         "fixed_count": fixed_count,
         "failed_count": failed_count,
         "remaining_count": int(refreshed_export.get("issue_count", 0) or 0),
+        "issues": refreshed_export.get("issues", []),
         "issues_path": refreshed_export.get("issues_path"),
         "sidecar_path": refreshed_export.get("sidecar_path"),
     }

@@ -430,6 +430,9 @@ def _run_embedded_workshop_for_language(
     game_profile: dict,
     selected_provider: str,
     model_name: Optional[str],
+    concurrency_limit: Optional[int] = None,
+    batch_size_limit: Optional[int] = None,
+    rpm_limit: Optional[int] = None,
 ):
     if not embedded_workshop or not embedded_workshop.get("enabled", True):
         return
@@ -448,6 +451,9 @@ def _run_embedded_workshop_for_language(
             config=embedded_workshop,
             fallback_provider=selected_provider,
             fallback_model=model_name,
+            fallback_concurrency=concurrency_limit,
+            fallback_batch_size=batch_size_limit,
+            fallback_rpm=rpm_limit,
         ))
         logging.info(
             "Embedded workshop finished for %s: fixed=%s failed=%s remaining=%s provider=%s model=%s",
@@ -790,6 +796,9 @@ def run(mod_name: str,
             game_profile,
             selected_provider,
             gemini_cli_model,
+            concurrency_limit=concurrency_limit,
+            batch_size_limit=batch_size_limit,
+            rpm_limit=rpm_limit,
         )
 
     _finalize_workflow_run(
