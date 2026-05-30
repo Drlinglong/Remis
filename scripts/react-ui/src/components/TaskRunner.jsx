@@ -37,8 +37,8 @@ import {
     IconTrash
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { notifications } from '@mantine/notifications';
 import api from '../utils/api';
-import notificationService from '../services/notificationService';
 
 const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     const { t } = useTranslation();
@@ -104,7 +104,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
             ? task.output_dirs[0]
             : null;
         if (!directFolderPath && !task?.result_path) {
-            notificationService.error('Output folder path is not available yet.', { title: 'Cannot Open Folder' });
+            notifications.show({ title: 'Cannot Open Folder', message: 'Output folder path is not available yet.', color: 'red' });
             return;
         }
 
@@ -129,41 +129,11 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
             }
         }
 
-        notificationService.error(
-            `Cannot open output location: ${lastError?.response?.data?.detail || lastError?.message || 'Unknown error'}`,
-            { title: 'Error' }
-        );
-    };
-
-    const handleDeploy = async () => {
-        const outputDir = Array.isArray(task?.output_dirs) && task.output_dirs.length > 0
-            ? task.output_dirs[0]
-            : (task?.result_path ? task.result_path.replace(/\.zip$/i, '') : null);
-        if (!outputDir || !translationDetails?.gameId) return;
-
-        setDeployStatus('loading');
-
-        const folderName = outputDir.split(/[\\/]/).pop();
-
-        try {
-            const response = await api.post('/api/tools/deploy_mod', {
-                output_folder_name: folderName,
-                game_id: translationDetails.gameId
-            });
-
-            if (response.data.status === 'success') {
-                setDeployStatus('success');
-                notificationService.success(t('deploy_success_message'), { title: t('deploy_success_title') });
-            } else {
-                setDeployStatus('error');
-                notificationService.error(response.data.message || 'Deployment failed', { title: t('deploy_failed_title') });
-            }
-        } catch (error) {
-            console.error("Deployment failed:", error);
-            setDeployStatus('error');
-            const errorMsg = error.response?.data?.detail || error.message;
-            notificationService.error(errorMsg, { title: t('deploy_failed_title') });
-        }
+        notifications.show({
+            title: 'Error',
+            message: `Cannot open output location: ${lastError?.response?.data?.detail || lastError?.message || 'Unknown error'}`,
+            color: 'red'
+        });
     };
 
     const handleOpenDeployModal = async () => {
@@ -186,7 +156,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
             setSourceLanguage(response.data.source_language || 'english');
         } catch (error) {
             console.error("Failed to load deploy info:", error);
-            notificationService.error("Failed to load deployment info");
+            notifications.show({ title: 'Error', message: "Failed to load deployment info", color: 'red' });
         } finally {
             setInfoLoading(false);
         }
@@ -212,7 +182,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
             setSourceLanguage(response.data.source_language || 'english');
         } catch (error) {
             console.error("Failed to load deploy info:", error);
-            notificationService.error("Failed to load deployment info");
+            notifications.show({ title: 'Error', message: "Failed to load deployment info", color: 'red' });
         } finally {
             setInfoLoading(false);
         }
@@ -235,17 +205,17 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
             });
 
             if (response.data.status === 'success') {
-                notificationService.success(t('deploy_success_message'), { title: t('deploy_success_title') });
+                notifications.show({ title: t('deploy_success_title'), message: t('deploy_success_message'), color: 'green' });
                 setDeployModalOpen(false);
                 setCleanModalOpen(false);
                 setDeployStatus('success');
             } else {
-                notificationService.error(response.data.message || 'Deployment failed', { title: t('deploy_failed_title') });
+                notifications.show({ title: t('deploy_failed_title'), message: response.data.message || 'Deployment failed', color: 'red' });
             }
         } catch (error) {
             console.error("Direct deploy failed:", error);
             const errorMsg = error.response?.data?.detail || error.message;
-            notificationService.error(errorMsg, { title: t('deploy_failed_title') });
+            notifications.show({ title: t('deploy_failed_title'), message: errorMsg, color: 'red' });
         } finally {
             setCleanLoading(false);
         }
@@ -278,16 +248,16 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                     const fileCount = r.removed_files?.length || 0;
                     cleanMsg += ` (${fCount} folder(s), ${fileCount} file(s) removed)`;
                 }
-                notificationService.success(cleanMsg, { title: t('deploy_clean_success_title') });
+                notifications.show({ title: t('deploy_clean_success_title'), message: cleanMsg, color: 'green' });
                 setCleanModalOpen(false);
                 setDeployStatus('success');
             } else {
-                notificationService.error(response.data.message || 'Deployment & Cleanup failed', { title: t('deploy_failed_title') });
+                notifications.show({ title: t('deploy_failed_title'), message: response.data.message || 'Deployment & Cleanup failed', color: 'red' });
             }
         } catch (error) {
             console.error("Deploy and clean failed:", error);
             const errorMsg = error.response?.data?.detail || error.message;
-            notificationService.error(errorMsg, { title: t('deploy_failed_title') });
+            notifications.show({ title: t('deploy_failed_title'), message: errorMsg, color: 'red' });
         } finally {
             setCleanLoading(false);
         }
@@ -523,14 +493,6 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                                 <Group justify="flex-end" mt="lg">
                                     <Button variant="default" onClick={() => setCleanModalOpen(false)} disabled={cleanLoading}>
                                         {t('cancel')}
-                                    </Button>
-                                    <Button 
-                                        color="blue" 
-                                        onClick={handleModalDirectDeploy} 
-                                        loading={cleanLoading && !confirmDeleteOpen}
-                                        disabled={cleanLoading}
-                                    >
-                                        {t('deploy_btn_direct_deploy')}
                                     </Button>
                                     <Button 
                                         color="red" 

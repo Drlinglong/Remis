@@ -1,5 +1,7 @@
 import React, { createContext, useState, useEffect, useMemo } from 'react';
 import { MantineProvider } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
+import '@mantine/notifications/styles.css';
 import { theme as customTheme } from './theme';
 
 // 1. Create the context
@@ -44,6 +46,7 @@ export const ThemeProvider = ({ children }) => {
   return (
     <ThemeContext.Provider value={value}>
       <MantineProvider theme={customTheme} defaultColorScheme="dark">
+        <Notifications />
         {children}
       </MantineProvider>
     </ThemeContext.Provider>

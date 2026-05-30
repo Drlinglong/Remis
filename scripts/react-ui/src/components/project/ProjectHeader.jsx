@@ -3,9 +3,9 @@ import { Paper, Group, Title, Button, Tooltip, Grid, Card, Text, ActionIcon, Mod
 import { IconArchive, IconRestore, IconTrash, IconSettings, IconPlayerPlay, IconRocket, IconAlertCircle } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { notifications } from '@mantine/notifications';
 import styles from '../../pages/ProjectManagement.module.css';
 import api from '../../utils/api';
-import notificationService from '../../services/notificationService';
 const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, onManageProject, onRefresh }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -49,7 +49,7 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
             setSourceLanguage(response.data.source_language || 'english');
         } catch (error) {
             console.error("Failed to load deploy info:", error);
-            notificationService.error("Failed to load deployment info");
+            notifications.show({ title: 'Error', message: "Failed to load deployment info", color: 'red' });
         } finally {
             setInfoLoading(false);
         }
@@ -90,19 +90,19 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                     } else if (r && r.status === 'warning') {
                         cleanMsg = `${cleanMsg} (Warning: ${r.message})`;
                     }
-                    notificationService.success(cleanMsg, { title: t('deploy_clean_success_title') });
+                    notifications.show({ title: t('deploy_clean_success_title'), message: cleanMsg, color: 'green' });
                 } else {
-                    notificationService.success(t('deploy_success_message'), { title: t('deploy_success_title') });
+                    notifications.show({ title: t('deploy_success_title'), message: t('deploy_success_message'), color: 'green' });
                 }
                 setDeployModalOpen(false);
                 setCleanModalOpen(false);
             } else {
-                notificationService.error(response.data.message || 'Deployment failed', { title: t('deploy_failed_title') });
+                notifications.show({ title: t('deploy_failed_title'), message: response.data.message || 'Deployment failed', color: 'red' });
             }
         } catch (error) {
             console.error("Deployment failed:", error);
             const errorMsg = error.response?.data?.detail || error.message;
-            notificationService.error(errorMsg, { title: t('deploy_failed_title') });
+            notifications.show({ title: t('deploy_failed_title'), message: errorMsg, color: 'red' });
         } finally {
             setLoading(false);
         }
@@ -330,14 +330,6 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                             <Group justify="flex-end" mt="lg">
                                 <Button variant="default" onClick={() => setCleanModalOpen(false)} disabled={loading}>
                                     {t('cancel')}
-                                </Button>
-                                <Button 
-                                    color="blue" 
-                                    onClick={() => handleExecuteDeploy(false)} 
-                                    loading={loading && !confirmDeleteOpen}
-                                    disabled={loading}
-                                >
-                                    {t('deploy_btn_direct_deploy')}
                                 </Button>
                                 <Button 
                                     color="red" 
