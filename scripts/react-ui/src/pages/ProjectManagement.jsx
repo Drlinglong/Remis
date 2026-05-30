@@ -579,8 +579,8 @@ export default function ProjectManagement() {
           <Tabs.List style={{ paddingLeft: '1rem', paddingTop: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
           <Tabs.Tab value="overview">{t('project_management.tabs_overview')}</Tabs.Tab>
           <Tabs.Tab value="taskboard" id="kanban-tab-control">{t('project_management.tabs_kanban')}</Tabs.Tab>
-          <Tabs.Tab value="validation">{t('project_management.tabs_validation')}</Tabs.Tab>
-          {FEATURES.ENABLE_PROJECT_HISTORY && <Tabs.Tab value="history">{t('project_management.tabs_history', 'History')}</Tabs.Tab>}
+          <Tabs.Tab value="validation" id="validation-tab-control">{t('project_management.tabs_validation')}</Tabs.Tab>
+          {FEATURES.ENABLE_PROJECT_HISTORY && <Tabs.Tab value="history" id="history-tab-control">{t('project_management.tabs_history', 'Project History')}</Tabs.Tab>}
         </Tabs.List>
 
         <Tabs.Panel value="overview" style={{ flex: 1, overflow: 'auto', padding: '1rem', minHeight: 0 }}>

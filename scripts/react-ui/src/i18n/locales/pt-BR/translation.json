@@ -442,7 +442,7 @@
   "project_management.overview.to_be_proofread": "Para Revisar",
   "project_management.details.lines_count": "Linhas: {{count}}",
   "project_management.tabs_kanban": "Kanban de Tarefas",
-  "project_management.tabs_history": "Histórico",
+"project_management.tabs_history": "Histórico do projeto",
   "project_management.tabs_overview": "Visão Geral do Status",
   "project_management.tooltip_refresh": "Se você adicionou ou removeu arquivos nos diretórios de origem ou de saída da tradução, pode atualizar a lista de arquivos aqui",
   "project_management.tooltip_archive": "Arquive o projeto. Projetos arquivados podem ser visualizados nos Arquivos de Projetos ou restaurados para o status ativo.",
@@ -648,6 +648,14 @@
       "tabs": {
         "title": "Quadro de Tarefas",
         "desc": "Navegue entre a visão geral do arquivo e o quadro Kanban para gerenciamento visual de tarefas."
+      },
+      "validation_tab": {
+        "title": "Aba de validação de formato",
+        "desc": "Use esta aba para revisar o formato de localização da Paradox, variáveis e chaves após a tradução."
+      },
+      "history_tab": {
+        "title": "Aba de histórico do projeto",
+        "desc": "Use esta aba para revisar bases arquivadas, traduções enviadas e eventos de versão antes de atualizações incrementais."
       },
       "validation_scope": {
         "title": "Apenas Verificações de Formato",
@@ -1079,7 +1087,11 @@
   "translation_config": {
     "provider": "Provedor de API",
     "model": "Modelo de IA",
-    "target_languages": "Idiomas de Destino"
+    "source_path": "Caminho da nova versão do mod",
+    "target_languages": "Idiomas de Destino",
+    "api_provider": "Provedor de API",
+    "api_model": "Modelo de IA",
+    "select_path_tooltip": "Selecionar a pasta da nova versão do mod"
   },
   "common": {
     "browse": "Navegar",

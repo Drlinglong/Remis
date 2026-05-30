@@ -442,7 +442,7 @@
   "project_management.overview.to_be_proofread": "Redaksiyon Bekliyor",
   "project_management.details.lines_count": "Satırlar: {{count}}",
   "project_management.tabs_kanban": "Görev Kanbanı",
-  "project_management.tabs_history": "Geçmiş",
+"project_management.tabs_history": "Proje geçmişi",
   "project_management.tabs_overview": "Durum Genel Bakışı",
   "project_management.tooltip_refresh": "Kaynak veya çeviri çıktı dizinlerinde dosya eklediyseniz veya kaldırdıysanız, dosya listesini buradan yenileyebilirsiniz",
   "project_management.tooltip_archive": "Projeyi arşivleyin. Arşivlenen projeler Proje Arşivleri'nde görüntülenebilir veya aktif duruma geri yüklenebilir.",
@@ -648,6 +648,14 @@
       "tabs": {
         "title": "Görev Panosu",
         "desc": "Görsel görev yönetimi için dosya genel bakışı ve Kanban panosu arasında gezinin."
+      },
+      "validation_tab": {
+        "title": "Biçim doğrulama sekmesi",
+        "desc": "Çeviriden sonra Paradox yerelleştirme biçimini, değişkenleri ve anahtarları denetlemek için bu sekmeyi kullanın."
+      },
+      "history_tab": {
+        "title": "Proje geçmişi sekmesi",
+        "desc": "Artımlı güncellemelerden önce arşiv temellerini, yüklenen çevirileri ve sürüm olaylarını incelemek için bu sekmeyi kullanın."
       },
       "validation_scope": {
         "title": "Yalnızca Biçim Kontrolleri",
@@ -1079,7 +1087,11 @@
   "translation_config": {
     "provider": "API Sağlayıcısı",
     "model": "Yapay Zeka Modeli",
-    "target_languages": "Hedef Diller"
+    "source_path": "Yeni mod sürümü yolu",
+    "target_languages": "Hedef Diller",
+    "api_provider": "API Sağlayıcısı",
+    "api_model": "Yapay Zeka Modeli",
+    "select_path_tooltip": "Yeni mod sürümü klasörünü seç"
   },
   "common": {
     "browse": "Gözat",

@@ -442,7 +442,7 @@
   "project_management.overview.to_be_proofread": "Korrektur zu lesen",
   "project_management.details.lines_count": "Zeilen: {{count}}",
   "project_management.tabs_kanban": "Aufgaben-Kanban",
-  "project_management.tabs_history": "Verlauf",
+"project_management.tabs_history": "Projektverlauf",
   "project_management.tabs_overview": "Statusübersicht",
   "project_management.tooltip_refresh": "Wenn Sie Dateien in den Quell- oder Übersetzungsverzeichnissen hinzugefügt oder entfernt haben, können Sie die Dateiliste hier aktualisieren.",
   "project_management.tooltip_archive": "Projekt archivieren. Archivierte Projekte können in den Projektarchiven eingesehen oder wieder in den aktiven Status versetzt werden.",
@@ -648,6 +648,14 @@
       "tabs": {
         "title": "Aufgabenboard",
         "desc": "Navigieren Sie zur visuellen Aufgabenverwaltung zwischen der Dateiübersicht und dem Kanban-Board."
+      },
+      "validation_tab": {
+        "title": "Formatprüfungs-Tab",
+        "desc": "Prüfen Sie hier nach der Übersetzung Paradox-Lokalisierungsformat, Variablen und Schlüssel."
+      },
+      "history_tab": {
+        "title": "Projektverlaufs-Tab",
+        "desc": "Prüfen Sie hier Archiv-Baselines, hochgeladene Übersetzungen und Versionsereignisse vor inkrementellen Updates."
       },
       "validation_scope": {
         "title": "Nur Formatprüfungen",
@@ -1079,7 +1087,11 @@
   "translation_config": {
     "provider": "API-Anbieter",
     "model": "KI-Modell",
-    "target_languages": "Zielsprachen"
+    "source_path": "Pfad zur neuen Mod-Version",
+    "target_languages": "Zielsprachen",
+    "api_provider": "API-Anbieter",
+    "api_model": "KI-Modell",
+    "select_path_tooltip": "Ordner der neuen Mod-Version auswählen"
   },
   "common": {
     "browse": "Durchsuchen",

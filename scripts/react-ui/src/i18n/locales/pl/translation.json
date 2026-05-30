@@ -442,7 +442,7 @@
   "project_management.overview.to_be_proofread": "Do korekty",
   "project_management.details.lines_count": "Linie: {{count}}",
   "project_management.tabs_kanban": "Kanban zadań",
-  "project_management.tabs_history": "Historia",
+"project_management.tabs_history": "Historia projektu",
   "project_management.tabs_overview": "Przegląd statusu",
   "project_management.tooltip_refresh": "Jeśli dodałeś lub usunąłeś pliki w katalogach źródłowych lub docelowych tłumaczenia, możesz tutaj odświeżyć listę plików.",
   "project_management.tooltip_archive": "Zarchiwizuj projekt. Zarchiwizowane projekty można przeglądać w Archiwum Projektów lub przywrócić do statusu aktywnego.",
@@ -648,6 +648,14 @@
       "tabs": {
         "title": "Tablica zadań",
         "desc": "Nawiguj między widokiem plików a tablicą Kanban w celu wizualnego zarządzania zadaniami."
+      },
+      "validation_tab": {
+        "title": "Karta walidacji formatu",
+        "desc": "Użyj tej karty po tłumaczeniu, aby sprawdzić format lokalizacji Paradox, zmienne i klucze."
+      },
+      "history_tab": {
+        "title": "Karta historii projektu",
+        "desc": "Użyj tej karty przed aktualizacją przyrostową, aby sprawdzić bazę archiwum, przesłane tłumaczenia i zdarzenia wersji."
       },
       "validation_scope": {
         "title": "Tylko sprawdzanie formatowania",
@@ -1079,7 +1087,11 @@
   "translation_config": {
     "provider": "Dostawca API",
     "model": "Model AI",
-    "target_languages": "Języki docelowe"
+    "source_path": "Ścieżka nowej wersji moda",
+    "target_languages": "Języki docelowe",
+    "api_provider": "Dostawca API",
+    "api_model": "Model AI",
+    "select_path_tooltip": "Wybierz folder nowej wersji moda"
   },
   "common": {
     "browse": "Przeglądaj",

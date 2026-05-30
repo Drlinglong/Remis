@@ -442,7 +442,7 @@
   "project_management.overview.to_be_proofread": "要校正",
   "project_management.details.lines_count": "行数: {{count}}",
   "project_management.tabs_kanban": "タスクかんばん",
-  "project_management.tabs_history": "履歴",
+"project_management.tabs_history": "プロジェクト履歴",
   "project_management.tabs_overview": "ステータス概要",
   "project_management.tooltip_refresh": "ソースまたは翻訳出力ディレクトリでファイルを追加または削除した場合、ここでファイルリストを更新できます",
   "project_management.tooltip_archive": "プロジェクトをアーカイブします。アーカイブされたプロジェクトはプロジェクトアーカイブで確認したり、アクティブな状態に復元したりできます。",
@@ -648,6 +648,14 @@
       "tabs": {
         "title": "タスクボード",
         "desc": "ファイル概要とカンバンボードを切り替えて、視覚的にタスクを管理します。"
+      },
+      "validation_tab": {
+        "title": "形式チェックタブ",
+        "desc": "翻訳後にParadoxローカライズ形式、変数、キーを確認するためのタブです。"
+      },
+      "history_tab": {
+        "title": "プロジェクト履歴タブ",
+        "desc": "増分更新の前に、アーカイブ基準、アップロード済み翻訳、バージョンイベントを確認するためのタブです。"
       },
       "validation_scope": {
         "title": "フォーマットチェックのみ",
@@ -1079,7 +1087,11 @@
   "translation_config": {
     "provider": "APIプロバイダー",
     "model": "AIモデル",
-    "target_languages": "ターゲット言語"
+    "source_path": "新しいModバージョンのパス",
+    "target_languages": "ターゲット言語",
+    "api_provider": "APIプロバイダー",
+    "api_model": "AIモデル",
+    "select_path_tooltip": "新しいModバージョンのフォルダーを選択"
   },
   "common": {
     "browse": "参照",

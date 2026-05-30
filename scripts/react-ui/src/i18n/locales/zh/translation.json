@@ -449,7 +449,7 @@
   "project_management.overview_title": "项目概览",
   "project_management.manage_project": "项目设置",
   "project_management.tabs_kanban": "任务看板",
-  "project_management.tabs_history": "历史",
+"project_management.tabs_history": "项目历史",
   "project_management.tabs_overview": "状态概览",
   "project_management.delete_project": "删除项目",
   "project_management.tooltip_refresh": "如果您在源文件或翻译输出目录中增加或删除了文件，可以在此刷新文件详情列表",
@@ -857,6 +857,14 @@
       "tabs": {
         "title": "任务看板",
         "desc": "在总文件列表和看板视图之间切换，更直观地管理任务。"
+      },
+      "validation_tab": {
+        "title": "格式校对子标签",
+        "desc": "这里会检查 P 社本地化格式、变量和 key 是否可能出错。它适合在翻译后做一轮快速体检。"
+      },
+      "history_tab": {
+        "title": "项目历史子标签",
+        "desc": "这里保存归档基线、翻译上载和版本事件。做增量更新前，先在这里确认基线是否已经建立。"
       },
       "validation_scope": {
         "title": "这里只检查格式问题",
@@ -1336,7 +1344,11 @@
   "translation_config": {
     "provider": "API 供应商",
     "model": "AI 模型",
-    "target_languages": "目标语言"
+    "source_path": "新版本 Mod 路径",
+    "target_languages": "目标语言",
+    "api_provider": "API 供应商",
+    "api_model": "AI 模型",
+    "select_path_tooltip": "选择新版本 Mod 文件夹"
   },
   "page_title_agent_workshop": "智能工坊",
   "agent_workshop": {

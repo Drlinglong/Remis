@@ -442,7 +442,7 @@
   "project_management.overview.to_be_proofread": "교정 대기 중",
   "project_management.details.lines_count": "줄 수: {{count}}",
   "project_management.tabs_kanban": "작업 칸반",
-  "project_management.tabs_history": "기록",
+"project_management.tabs_history": "프로젝트 기록",
   "project_management.tabs_overview": "상태 개요",
   "project_management.tooltip_refresh": "원본 또는 번역 출력 디렉토리에서 파일을 추가하거나 삭제한 경우, 여기서 파일 목록을 새로고침할 수 있습니다.",
   "project_management.tooltip_archive": "프로젝트를 보관합니다. 보관된 프로젝트는 프로젝트 보관함에서 확인하거나 활성 상태로 복원할 수 있습니다.",
@@ -648,6 +648,14 @@
       "tabs": {
         "title": "작업 보드",
         "desc": "파일 개요와 시각적 작업 관리를 위한 칸반 보드 사이를 전환하세요."
+      },
+      "validation_tab": {
+        "title": "형식 검증 탭",
+        "desc": "번역 후 Paradox 현지화 형식, 변수, 키를 확인하는 탭입니다."
+      },
+      "history_tab": {
+        "title": "프로젝트 기록 탭",
+        "desc": "증분 업데이트 전에 보관 기준선, 업로드된 번역, 버전 이벤트를 확인하는 탭입니다."
       },
       "validation_scope": {
         "title": "포맷 검사 전용",
@@ -1079,7 +1087,11 @@
   "translation_config": {
     "provider": "API 제공자",
     "model": "AI 모델",
-    "target_languages": "대상 언어"
+    "source_path": "새 Mod 버전 경로",
+    "target_languages": "대상 언어",
+    "api_provider": "API 제공자",
+    "api_model": "AI 모델",
+    "select_path_tooltip": "새 Mod 버전 폴더 선택"
   },
   "common": {
     "browse": "찾아보기",
