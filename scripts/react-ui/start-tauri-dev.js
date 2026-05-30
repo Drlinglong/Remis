@@ -1,5 +1,5 @@
 // scripts/react-ui/start-tauri-dev.js
-import { spawn } from 'child_process';
+import { execFileSync, spawn } from 'child_process';
 import fs from 'fs';
 import net from 'net';
 import os from 'os';
@@ -9,6 +9,35 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const npxCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+
+function isWindowsProcessRunning(imageName) {
+    if (process.platform !== 'win32') {
+        return false;
+    }
+
+    try {
+        const output = execFileSync(
+            'tasklist',
+            ['/FI', `IMAGENAME eq ${imageName}`, '/FO', 'CSV', '/NH'],
+            { encoding: 'utf-8', windowsHide: true }
+        );
+        return output.toLowerCase().includes(imageName.toLowerCase());
+    } catch {
+        return false;
+    }
+}
+
+function ensureNoRunningTauriDevApp() {
+    const tauriDevExe = 'remis-mod-factory.exe';
+    if (!isWindowsProcessRunning(tauriDevExe)) {
+        return;
+    }
+
+    console.error('\n[Remis Dev] Another Remis desktop development window is already running.');
+    console.error(`[Remis Dev] Close ${tauriDevExe} before starting run-dev.bat again.`);
+    console.error('[Remis Dev] If the window is gone but the process is stuck, run stop-dev.bat from the project root.');
+    process.exit(1);
+}
 
 // Helper to find a free port starting from a default port
 function findFreePort(startPort) {
@@ -25,6 +54,8 @@ function findFreePort(startPort) {
 }
 
 async function main() {
+    ensureNoRunningTauriDevApp();
+
     const startPort = 5174;
     const port = await findFreePort(startPort);
     console.log(`\n=================================================================`);
