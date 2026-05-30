@@ -139,8 +139,9 @@ def fix_demo_paths(conn, persistent_demo_root, persistent_translation_root):
         translation_folders = {
             "zh-CN-Test_Project_Remis_stellaris": "zh-CN-Test_Project_Remis_stellaris",
             "Multilanguage-Test_Project_Remis_stellaris": "zh-CN-Test_Project_Remis_stellaris",
-            "zh-CN-Test_Project_Remis_Vic3": "zh-CN-Test_Project_Remis_Vic3",
-            "Multilanguage-Test_Project_Remis_Vic3": "zh-CN-Test_Project_Remis_Vic3",
+            "en-Test_Project_Remis_Vic3": "en-Test_Project_Remis_Vic3",
+            "zh-CN-Test_Project_Remis_Vic3": "en-Test_Project_Remis_Vic3",
+            "Multilanguage-Test_Project_Remis_Vic3": "en-Test_Project_Remis_Vic3",
             "zh-CN-Test_Project_Remis_EU5": "zh-CN-Test_Project_Remis_EU5",
         }
 
@@ -208,7 +209,7 @@ def fix_demo_paths(conn, persistent_demo_root, persistent_translation_root):
 
         try:
             old_dir_name = "Multilanguage-Test_Project_Remis_Vic3"
-            new_dir_name = "zh-CN-Test_Project_Remis_Vic3"
+            new_dir_name = "en-Test_Project_Remis_Vic3"
             old_full_path = os.path.join(persistent_translation_root, old_dir_name)
             new_full_path = os.path.join(persistent_translation_root, new_dir_name)
             if os.path.exists(old_full_path) and not os.path.exists(new_full_path):
@@ -220,10 +221,15 @@ def fix_demo_paths(conn, persistent_demo_root, persistent_translation_root):
         cursor.execute(
             """
             UPDATE projects
-            SET target_path = REPLACE(target_path, 'Multilanguage-Test_Project_Remis_Vic3', 'zh-CN-Test_Project_Remis_Vic3')
+            SET target_path = REPLACE(target_path, 'Multilanguage-Test_Project_Remis_Vic3', 'en-Test_Project_Remis_Vic3')
             WHERE project_id = 'a525f596-6c71-43fe-ade2-52c9205a2720'
               AND target_path LIKE '%Multilanguage-Test_Project_Remis_Vic3%'
             """
+        )
+
+        cursor.execute(
+            "UPDATE projects SET target_path = ? WHERE project_id = ?",
+            (f"{trans_root}/en-Test_Project_Remis_Vic3", "a525f596-6c71-43fe-ade2-52c9205a2720"),
         )
 
         try:
@@ -289,10 +295,15 @@ def hydrate_json_configs(app_data_dir):
 
                 original_content = content
                 content = DEV_PROJECT_ROOT_PATTERN.sub(app_data_root, content)
+                content = content.replace("{{BUNDLED_DEMO_ROOT}}", f"{app_data_root}/demos")
+                content = content.replace("{{BUNDLED_TRANSLATION_ROOT}}", f"{app_data_root}/my_translation")
+                content = content.replace("{{DEMO_ROOT}}/demos", f"{app_data_root}/demos")
+                content = content.replace("{{DEMO_ROOT}}", app_data_root)
 
                 content = content.replace("/source_mod/", "/demos/")
                 content = content.replace("\\\\source_mod\\\\", "/demos/")
-                content = content.replace("Multilanguage-Test_Project_Remis_Vic3", "zh-CN-Test_Project_Remis_Vic3")
+                content = content.replace("Multilanguage-Test_Project_Remis_Vic3", "en-Test_Project_Remis_Vic3")
+                content = content.replace("zh-CN-Test_Project_Remis_Vic3", "en-Test_Project_Remis_Vic3")
                 content = content.replace(
                     "Multilanguage-Test_Project_Remis_stellaris",
                     "zh-CN-Test_Project_Remis_stellaris",
@@ -308,6 +319,38 @@ def hydrate_json_configs(app_data_dir):
                 init_logger.error("Failed to hydrate JSON at %s: %s", json_path, e)
 
     init_logger.info("[JSON] Hydration complete. Fixed %s config files.", fix_count)
+
+
+def extract_bundled_demo_translations(src_root, dst_root, force=False):
+    """Copies bundled demo translation folders without deleting user translation output."""
+    if not os.path.exists(src_root):
+        return False
+
+    try:
+        os.makedirs(dst_root, exist_ok=True)
+    except OSError:
+        return False
+
+    extracted = False
+    for name in os.listdir(src_root):
+        src_dir = os.path.join(src_root, name)
+        if not os.path.isdir(src_dir):
+            continue
+
+        dst_dir = os.path.join(dst_root, name)
+        if os.path.exists(dst_dir) and not force:
+            continue
+
+        try:
+            if os.path.exists(dst_dir):
+                shutil.rmtree(dst_dir)
+            shutil.copytree(src_dir, dst_dir)
+            extracted = True
+            init_logger.info("Bundled demo translation extracted: %s (Force=%s).", name, force)
+        except Exception as e:
+            init_logger.error("Failed to extract bundled demo translation %s: %s", name, e)
+
+    return extracted
 
 
 def initialize_database():
@@ -391,7 +434,7 @@ def initialize_database():
                     init_logger.error("[CONFIG] Failed to extract %s: %s", filename, e)
 
     demo_extracted = extract(b_demos, p_demos, "Demos", force=main_db_is_fresh)
-    trans_extracted = extract(b_trans, p_trans, "Translations", force=False)
+    trans_extracted = extract_bundled_demo_translations(b_trans, p_trans, force=main_db_is_fresh)
 
     config_dir = app_settings.CONFIG_DIR
     bundled_config_dir = os.path.join(resource_dir, "data", "config")

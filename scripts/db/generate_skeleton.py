@@ -8,6 +8,7 @@ import sys
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.insert(0, PROJECT_ROOT)
 from scripts import app_settings
+from scripts.core.file_parser import extract_translatable_content
 
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
 ASSETS_DIR = os.path.join(PROJECT_ROOT, 'assets')
@@ -30,6 +31,10 @@ DEMO_ROOT_PLACEHOLDER = "{{BUNDLED_DEMO_ROOT}}"
 TRANS_ROOT_PLACEHOLDER = "{{BUNDLED_TRANSLATION_ROOT}}"
 DEV_SOURCE_ROOT_PATTERN = re.compile(r"[A-Za-z]:\\.*?V3_Mod_Localization_Factory\\source_mod\\", re.IGNORECASE)
 DEV_TRANSLATION_ROOT_PATTERN = re.compile(r"[A-Za-z]:\\.*?V3_Mod_Localization_Factory\\my_translation\\", re.IGNORECASE)
+DEV_APPDATA_DEMO_PATTERN = re.compile(r"[A-Za-z]:/Users/[^/]+/AppData/Roaming/RemisModFactoryDev/demos/", re.IGNORECASE)
+DEV_APPDATA_TRANSLATION_PATTERN = re.compile(r"[A-Za-z]:/Users/[^/]+/AppData/Roaming/RemisModFactoryDev/my_translation/", re.IGNORECASE)
+VIC3_PROJECT_ID = 'a525f596-6c71-43fe-ade2-52c9205a2720'
+VIC3_DEMO_NAME = '蕾姆丝计划 - 演示Mod - 维多利亚3'
 
 # Hardcoded replacement logic:
 # Map the DEV path to the PLACEHOLDER path relative structure.
@@ -63,11 +68,109 @@ def sanitize_project_file_paths(cursor):
         sanitized = DEV_SOURCE_ROOT_PATTERN.sub(f"{DEMO_ROOT_PLACEHOLDER}/", file_path)
         sanitized = DEV_TRANSLATION_ROOT_PATTERN.sub(f"{TRANS_ROOT_PLACEHOLDER}/", sanitized)
         sanitized = sanitized.replace("\\", "/")
+        sanitized = DEV_APPDATA_DEMO_PATTERN.sub(f"{DEMO_ROOT_PLACEHOLDER}/", sanitized)
+        sanitized = DEV_APPDATA_TRANSLATION_PATTERN.sub(f"{TRANS_ROOT_PLACEHOLDER}/", sanitized)
         if sanitized != file_path:
             cursor.execute(
                 "UPDATE project_files SET file_path = ? WHERE file_id = ?",
                 (sanitized, file_id),
             )
+
+
+def _entries_by_key(file_path):
+    if not os.path.exists(file_path):
+        print(f"[WARN] Demo archive file missing: {file_path}")
+        return {}
+
+    _, texts, key_map = extract_translatable_content(file_path)
+    entries = {}
+    for idx, text in enumerate(texts):
+        key = key_map.get(idx, {}).get("key_part")
+        if key:
+            entries[key] = text
+    return entries
+
+
+def seed_vic3_demo_translations(cursor):
+    """Ensures the packaged cache has a usable English baseline for the Vic3 incremental demo."""
+    source_file = os.path.join(
+        PROJECT_ROOT,
+        "source_mod",
+        "Test_Project_Remis_Vic3",
+        "localization",
+        "simp_chinese",
+        "remis_demo_l_simp_chinese.yml",
+    )
+    translation_file = os.path.join(
+        PROJECT_ROOT,
+        "my_translation",
+        "en-Test_Project_Remis_Vic3",
+        "localization",
+        "english",
+        "simp_chinese",
+        "remis_demo_l_english.yml",
+    )
+
+    source_entries = _entries_by_key(source_file)
+    translated_entries = _entries_by_key(translation_file)
+    if not source_entries or not translated_entries:
+        return
+
+    cursor.execute("SELECT mod_id FROM mods WHERE name = ?", (VIC3_DEMO_NAME,))
+    row = cursor.fetchone()
+    if not row:
+        print(f"[WARN] Vic3 demo archive mod missing: {VIC3_DEMO_NAME}")
+        return
+
+    mod_id = row[0]
+    cursor.execute(
+        "SELECT version_id FROM source_versions WHERE mod_id = ? ORDER BY created_at DESC LIMIT 1",
+        (mod_id,),
+    )
+    row = cursor.fetchone()
+    if not row:
+        print("[WARN] Vic3 demo source version missing.")
+        return
+
+    version_id = row[0]
+    normalized_file_path = "localization/simp_chinese/remis_demo_l_simp_chinese.yml"
+    inserted = 0
+
+    for key, source_text in source_entries.items():
+        translated_text = translated_entries.get(key)
+        if translated_text is None:
+            continue
+
+        cursor.execute(
+            """
+            INSERT OR IGNORE INTO source_entries (version_id, entry_key, source_text, file_path)
+            VALUES (?, ?, ?, ?)
+            """,
+            (version_id, key, source_text, normalized_file_path),
+        )
+        cursor.execute(
+            """
+            SELECT source_entry_id FROM source_entries
+            WHERE version_id = ? AND file_path = ? AND entry_key = ?
+            """,
+            (version_id, normalized_file_path, key),
+        )
+        source_row = cursor.fetchone()
+        if not source_row:
+            continue
+
+        cursor.execute(
+            """
+            INSERT INTO translated_entries (source_entry_id, language_code, translated_text)
+            VALUES (?, ?, ?)
+            ON CONFLICT(source_entry_id, language_code)
+            DO UPDATE SET translated_text = excluded.translated_text
+            """,
+            (source_row[0], "en", translated_text),
+        )
+        inserted += 1
+
+    print(f"[SEED] Vic3 demo English translations ensured: {inserted}")
 
 def create_skeleton():
     print(f"[INFO] Starting Skeleton Database Generation...")
@@ -242,9 +345,10 @@ def create_skeleton():
         # Let's map them robustly.
         trans_folders = {
             'zh-CN-Test_Project_Remis_stellaris': 'zh-CN-Test_Project_Remis_stellaris',
-            'zh-CN-Test_Project_Remis_Vic3': 'zh-CN-Test_Project_Remis_Vic3', # Note: mapping to the bundled structure
-            'Multilanguage-Test_Project_Remis_Vic3': 'zh-CN-Test_Project_Remis_Vic3',
-            'zh-CN-蕾姆丝计划演示模组：最后一位罗马人': 'zh-CN-Test_Project_Remis_Vic3',
+            'en-Test_Project_Remis_Vic3': 'en-Test_Project_Remis_Vic3',
+            'zh-CN-Test_Project_Remis_Vic3': 'en-Test_Project_Remis_Vic3',
+            'Multilanguage-Test_Project_Remis_Vic3': 'en-Test_Project_Remis_Vic3',
+            'zh-CN-蕾姆丝计划演示模组：最后一位罗马人': 'en-Test_Project_Remis_Vic3',
             'zh-CN-Test_Project_Remis_EU5': 'zh-CN-Test_Project_Remis_EU5'
         }
         
@@ -257,7 +361,7 @@ def create_skeleton():
     # Force set target_path if it's NULL for our demo projects
     cursor.execute(f"UPDATE projects SET target_path = ? || '/zh-CN-Test_Project_Remis_stellaris' WHERE project_id = ? AND (target_path IS NULL OR target_path = '')", 
                    (TRANS_ROOT_PLACEHOLDER, KEEP_PROJECT_IDS[0]))
-    cursor.execute(f"UPDATE projects SET target_path = ? || '/zh-CN-Test_Project_Remis_Vic3' WHERE project_id = ? AND (target_path IS NULL OR target_path = '')", 
+    cursor.execute(f"UPDATE projects SET target_path = ? || '/en-Test_Project_Remis_Vic3' WHERE project_id = ? AND (target_path IS NULL OR target_path = '')", 
                    (TRANS_ROOT_PLACEHOLDER, KEEP_PROJECT_IDS[1]))
     cursor.execute(f"UPDATE projects SET target_path = ? || '/zh-CN-Test_Project_Remis_EU5' WHERE project_id = ? AND (target_path IS NULL OR target_path = '')", 
                    (TRANS_ROOT_PLACEHOLDER, KEEP_PROJECT_IDS[2]))
@@ -278,6 +382,10 @@ def create_skeleton():
         print(f"Sample file path: {row[0]}")
     print("[SANITIZE] Fixing absolute file paths in project_files...")
     sanitize_project_file_paths(cursor)
+    cursor.execute(
+        "UPDATE projects SET target_path = ? || '/en-Test_Project_Remis_Vic3' WHERE project_id = ?",
+        (TRANS_ROOT_PLACEHOLDER, VIC3_PROJECT_ID),
+    )
     conn.commit()
     
     # 7. Cleanup & Optimize
@@ -352,6 +460,7 @@ def create_skeleton():
         
         # 5. Migrate Translated Entries
         cursor_dest.execute("INSERT INTO main.translated_entries SELECT * FROM src_cache.translated_entries WHERE source_entry_id IN (SELECT source_entry_id FROM main.source_entries)")
+        seed_vic3_demo_translations(cursor_dest)
         
         conn_dest.commit()
         cursor_dest.execute("DETACH DATABASE src_cache")

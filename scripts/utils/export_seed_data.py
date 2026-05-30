@@ -18,8 +18,12 @@ KEEP_PROJECT_NAMES = [
     "蕾姆丝计划 - 演示Mod - 维多利亚3",
     "Project Remis - Demo Mod -EU5"
 ]
+DEMO_TARGET_OVERRIDES = {
+    "a525f596-6c71-43fe-ade2-52c9205a2720": "{{BUNDLED_TRANSLATION_ROOT}}/en-Test_Project_Remis_Vic3",
+}
 OUTPUT_FILE_MAIN = os.path.join(project_root, 'data', 'seed_data_main.sql')
 OUTPUT_FILE_PROJECTS = os.path.join(project_root, 'data', 'seed_data_projects.sql')
+MAIN_SEED_TABLES = {"glossaries", "entries"}
 
 # ... (rest of imports and config)
 SOURCE_DB = app_settings.DATABASE_PATH
@@ -72,6 +76,9 @@ def export_table_data(cursor, table_name, condition=None, params=None):
     return statements
 
 def sanitize_path(path):
+    if not path:
+        return path
+
     path = path.replace("\\", "/")
     # Handle development paths mapping to demos
     if "/source_mod/" in path:
@@ -83,8 +90,8 @@ def sanitize_path(path):
     
     # If it's a translation output path in the user's workspace, try to sanitize it
     if "/my_translation/" in path:
-         # For seed data, we probably want to clear this or point to a default
-         return ""
+         parts = path.split("/my_translation/")
+         return "{{BUNDLED_TRANSLATION_ROOT}}/" + parts[1]
          
     return path
 
@@ -105,7 +112,8 @@ def main():
             tables = [row[0] for row in cursor.fetchall()]
             
             for table in tables:
-                if table == "sqlite_sequence": continue
+                if table == "sqlite_sequence" or table not in MAIN_SEED_TABLES:
+                    continue
                 f.write(f"-- Schema for {table}\n")
                 f.write(export_schema(cursor, table))
                 
@@ -148,11 +156,18 @@ def main():
             path_idx = -1
             if 'source_path' in col_names:
                 path_idx = col_names.index('source_path')
+            target_path_idx = -1
+            if 'target_path' in col_names:
+                target_path_idx = col_names.index('target_path')
             
             for row in projects:
                 row_list = list(row)
                 if path_idx != -1 and row_list[path_idx]:
                     row_list[path_idx] = sanitize_path(row_list[path_idx])
+                if target_path_idx != -1 and row_list[target_path_idx]:
+                    row_list[target_path_idx] = sanitize_path(row_list[target_path_idx])
+                if row_list[0] in DEMO_TARGET_OVERRIDES and target_path_idx != -1:
+                    row_list[target_path_idx] = DEMO_TARGET_OVERRIDES[row_list[0]]
                 
                 values = []
                 for val in row_list:

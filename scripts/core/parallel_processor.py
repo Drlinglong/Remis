@@ -348,7 +348,7 @@ class ParallelProcessor:
                             file_failed = False
                             
                             for task in sorted_batches:
-                                if task.failed:
+                                if task.failed or task.fell_back_to_source:
                                     file_failed = True
                                 full_translated_texts.extend(task.translated_texts or [])
                             
@@ -393,7 +393,7 @@ class ParallelProcessor:
 
             for batch_idx in sorted_batch_indices:
                 task = file_batches[batch_idx]
-                if task.failed:
+                if task.failed or task.fell_back_to_source:
                     file_failed = True
                     break
                 file_translated_texts.extend(task.translated_texts)

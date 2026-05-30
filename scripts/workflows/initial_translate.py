@@ -744,11 +744,11 @@ def run(mod_name: str,
                         run_state.error_count += 1
                         logging.error(f"File {file_task.filename} failed to translate (partially or fully). Using fallback.")
                         update_progress(file_task.filename, "Failed", log_message=f"ERROR: File {file_task.filename} failed to translate. Rolled back to original text.")
+                    else:
+                        update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
 
                     if warnings:
                         pass
-
-                    update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
 
                     _finalize_translated_file(
                         file_task,
@@ -766,6 +766,11 @@ def run(mod_name: str,
         finally:
             if rpm_limit and previous_rpm != rate_limiter.rpm:
                 rate_limiter.update_rpm(previous_rpm)
+
+        if run_state.error_count:
+            message = f"Translation failed for {run_state.error_count} file(s) while translating to {target_lang['name']}."
+            logging.error(message)
+            raise RuntimeError(message)
 
         _finalize_language_run(
             mod_name,

@@ -57,7 +57,7 @@ class TestDemoRepairLogic(unittest.TestCase):
             source_path,
             f"{self.demo_root.replace(os.sep, '/')}/Test_Project_Remis_Vic3",
         )
-        self.assertTrue(target_path.endswith("zh-CN-Test_Project_Remis_Vic3"))
+        self.assertTrue(target_path.endswith("en-Test_Project_Remis_Vic3"))
 
         self.cursor.execute("SELECT file_path FROM project_files WHERE file_id = 'file-1'")
         file_path = self.cursor.fetchone()[0]
@@ -71,7 +71,7 @@ class TestDemoRepairLogic(unittest.TestCase):
         self.assertEqual(is_main, 1)
 
         self.assertFalse(os.path.exists(os.path.join(self.translation_root, "Multilanguage-Test_Project_Remis_Vic3")))
-        self.assertTrue(os.path.exists(os.path.join(self.translation_root, "zh-CN-Test_Project_Remis_Vic3")))
+        self.assertTrue(os.path.exists(os.path.join(self.translation_root, "en-Test_Project_Remis_Vic3")))
 
     def test_fix_demo_paths_replaces_placeholders(self):
         self.cursor.execute(
@@ -110,9 +110,9 @@ class TestDemoRepairLogic(unittest.TestCase):
         os.makedirs(translations_dir, exist_ok=True)
 
         payload = {
-            "source_path": "J:/V3_Mod_Localization_Factory/source_mod/sample_mod",
+            "source_path": "{{BUNDLED_DEMO_ROOT}}/sample_mod",
             "translation_dirs": [
-                "J:/V3_Mod_Localization_Factory/my_translation/Multilanguage-Test_Project_Remis_Vic3",
+                "{{BUNDLED_TRANSLATION_ROOT}}/Multilanguage-Test_Project_Remis_Vic3",
                 "J:/V3_Mod_Localization_Factory/my_translation/Multilanguage-Test_Project_Remis_stellaris",
             ],
         }
@@ -127,7 +127,7 @@ class TestDemoRepairLogic(unittest.TestCase):
 
         normalized_root = self.test_dir.replace("\\", "/")
         self.assertEqual(hydrated["source_path"], f"{normalized_root}/demos/sample_mod")
-        self.assertIn(f"{normalized_root}/my_translation/zh-CN-Test_Project_Remis_Vic3", hydrated["translation_dirs"])
+        self.assertIn(f"{normalized_root}/my_translation/en-Test_Project_Remis_Vic3", hydrated["translation_dirs"])
         self.assertIn(f"{normalized_root}/my_translation/zh-CN-Test_Project_Remis_stellaris", hydrated["translation_dirs"])
 
 
