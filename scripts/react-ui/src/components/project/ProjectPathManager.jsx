@@ -43,6 +43,13 @@ const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
             });
             if (selected && typeof selected === 'string') {
                 setNewDirPath(selected);
+                // Seamless UX: Automatically append to list right away
+                setTranslationDirs(prev => {
+                    if (!prev.includes(selected)) {
+                        return [...prev, selected];
+                    }
+                    return prev;
+                });
             }
         } catch (err) {
             console.error('Failed to open translation browse dialog:', err);
@@ -62,12 +69,18 @@ const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
 
     const handleSavePaths = async () => {
         try {
+            // Auto-append any typed/browsed path that is not yet added to translationDirs array
+            let finalDirs = [...translationDirs];
+            if (newDirPath && !finalDirs.includes(newDirPath)) {
+                finalDirs.push(newDirPath);
+            }
             const response = await api.post(`/api/project/${projectDetails.project_id}/config`, {
                 source_path: sourcePath,
-                translation_dirs: translationDirs
+                translation_dirs: finalDirs
             });
             console.log('Save response:', response.data);
             setManagePathsOpen(false);
+            setNewDirPath(''); // Reset the input box
             if (onPathsUpdated) {
                 onPathsUpdated();
             }
@@ -110,7 +123,9 @@ const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
                             )}
                         </Group>
                         <Text size="xs" c="dimmed" style={{ wordBreak: 'break-all' }}>
-                            {projectDetails.translation_dirs ? projectDetails.translation_dirs.join(', ') : 'Default'}
+                            {projectDetails.translation_dirs && projectDetails.translation_dirs.length > 0
+                                ? projectDetails.translation_dirs.join(', ')
+                                : t('project_management.path_not_configured', 'Default')}
                         </Text>
                     </div>
                     <Tooltip label={t('project_management.tooltip_manage_paths')}>
