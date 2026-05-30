@@ -115,6 +115,7 @@ export function resolvePreferredModel(models = [], currentModelName, selectedMod
 
 export function buildTranslationDetails(values, selectedProject, languages = {}) {
   return {
+    projectId: selectedProject?.value,
     modName: selectedProject?.label,
     provider: values.api_provider,
     model: values.model_name,

@@ -15,7 +15,10 @@ import {
     useMantineTheme,
     Alert,
     SimpleGrid,
-    Loader
+    Loader,
+    Modal,
+    TextInput,
+    Tooltip
 } from '@mantine/core';
 import {
     IconChevronDown,
@@ -30,7 +33,8 @@ import {
     IconTypography,
     IconFolderOpen,
     IconRocket,
-    IconCloudUpload
+    IconCloudUpload,
+    IconTrash
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
@@ -42,6 +46,15 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     const [showLogs, setShowLogs] = useState(false);
     const [deployStatus, setDeployStatus] = useState('idle'); // 'idle', 'loading', 'success', 'error'
     const viewport = useRef(null);
+
+    // Optimized Deploy & Fake Loc Cleanup State
+    const [cleanModalOpen, setCleanModalOpen] = useState(false);
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+    const [deployPath, setDeployPath] = useState('');
+    const [workshopPath, setWorkshopPath] = useState('');
+    const [sourceLanguage, setSourceLanguage] = useState('english');
+    const [cleanLoading, setCleanLoading] = useState(false);
+    const [infoLoading, setInfoLoading] = useState(false);
 
     // Auto-scroll logs
     useEffect(() => {
@@ -152,6 +165,106 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
         }
     };
 
+    const handleOpenCleanModal = async () => {
+        setCleanModalOpen(true);
+        setInfoLoading(true);
+        try {
+            const outputDir = Array.isArray(task?.output_dirs) && task.output_dirs.length > 0
+                ? task.output_dirs[0]
+                : (task?.result_path ? task.result_path.replace(/\.zip$/i, '') : null);
+            const folderName = outputDir ? outputDir.split(/[\\/]/).pop() : '';
+
+            const response = await api.post('/api/tools/deploy_info', {
+                project_id: translationDetails?.projectId || null,
+                game_id: translationDetails?.gameId || '',
+                output_folder_name: folderName
+            });
+
+            setDeployPath(response.data.default_deploy_path || '');
+            setWorkshopPath(response.data.detected_workshop_path || '');
+            setSourceLanguage(response.data.source_language || 'english');
+        } catch (error) {
+            console.error("Failed to load deploy info:", error);
+            notificationService.error("Failed to load deployment info");
+        } finally {
+            setInfoLoading(false);
+        }
+    };
+
+    const handleModalDirectDeploy = async () => {
+        setCleanLoading(true);
+        try {
+            const outputDir = Array.isArray(task?.output_dirs) && task.output_dirs.length > 0
+                ? task.output_dirs[0]
+                : (task?.result_path ? task.result_path.replace(/\.zip$/i, '') : null);
+            const folderName = outputDir ? outputDir.split(/[\\/]/).pop() : '';
+
+            const response = await api.post('/api/tools/deploy_mod', {
+                project_id: translationDetails?.projectId || null,
+                output_folder_name: folderName,
+                game_id: translationDetails?.gameId,
+                target_deploy_path: deployPath,
+                clean_fake_loc: false
+            });
+
+            if (response.data.status === 'success') {
+                notificationService.success(t('deploy_success_message'), { title: t('deploy_success_title') });
+                setCleanModalOpen(false);
+                setDeployStatus('success');
+            } else {
+                notificationService.error(response.data.message || 'Deployment failed', { title: t('deploy_failed_title') });
+            }
+        } catch (error) {
+            console.error("Direct deploy failed:", error);
+            const errorMsg = error.response?.data?.detail || error.message;
+            notificationService.error(errorMsg, { title: t('deploy_failed_title') });
+        } finally {
+            setCleanLoading(false);
+        }
+    };
+
+    const handleModalCleanAndDeploy = async () => {
+        setConfirmDeleteOpen(false);
+        setCleanLoading(true);
+        try {
+            const outputDir = Array.isArray(task?.output_dirs) && task.output_dirs.length > 0
+                ? task.output_dirs[0]
+                : (task?.result_path ? task.result_path.replace(/\.zip$/i, '') : null);
+            const folderName = outputDir ? outputDir.split(/[\\/]/).pop() : '';
+
+            const response = await api.post('/api/tools/deploy_mod', {
+                project_id: translationDetails?.projectId || null,
+                output_folder_name: folderName,
+                game_id: translationDetails?.gameId,
+                target_deploy_path: deployPath,
+                workshop_path: workshopPath,
+                clean_fake_loc: true,
+                source_language: sourceLanguage
+            });
+
+            if (response.data.status === 'success') {
+                let cleanMsg = t('deploy_clean_success_message');
+                const r = response.data.clean_result;
+                if (r && r.status === 'success') {
+                    const fCount = r.removed_folders?.length || 0;
+                    const fileCount = r.removed_files?.length || 0;
+                    cleanMsg += ` (${fCount} folder(s), ${fileCount} file(s) removed)`;
+                }
+                notificationService.success(cleanMsg, { title: t('deploy_clean_success_title') });
+                setCleanModalOpen(false);
+                setDeployStatus('success');
+            } else {
+                notificationService.error(response.data.message || 'Deployment & Cleanup failed', { title: t('deploy_failed_title') });
+            }
+        } catch (error) {
+            console.error("Deploy and clean failed:", error);
+            const errorMsg = error.response?.data?.detail || error.message;
+            notificationService.error(errorMsg, { title: t('deploy_failed_title') });
+        } finally {
+            setCleanLoading(false);
+        }
+    };
+
     // Render Report Card
     if (isDoneWithOutput) {
         const statusColor = isPartiallyFailed ? 'yellow' : 'green';
@@ -234,16 +347,30 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                             >
                                 {t('button_open_folder', 'Open Folder')}
                             </Button>
-                            <Button
-                                leftSection={deployStatus === 'loading' ? <Loader size={14} color="white" /> : <IconRocket size={20} />}
-                                size="lg"
-                                color={deployStatus === 'success' ? 'green' : (deployStatus === 'error' ? 'red' : 'blue')}
-                                onClick={handleDeploy}
-                                loading={deployStatus === 'loading'}
-                                disabled={deployStatus === 'success'}
-                            >
-                                {deployStatus === 'loading' ? t('button_deploying') : t('button_auto_deploy')}
-                            </Button>
+                            <Tooltip label={t('deploy_tooltip_label')} position="top" withArrow>
+                                <Button
+                                    leftSection={deployStatus === 'loading' ? <Loader size={14} color="white" /> : <IconRocket size={20} />}
+                                    size="lg"
+                                    color={deployStatus === 'success' ? 'green' : (deployStatus === 'error' ? 'red' : 'blue')}
+                                    onClick={handleDeploy}
+                                    loading={deployStatus === 'loading'}
+                                    disabled={deployStatus === 'success'}
+                                >
+                                    {deployStatus === 'loading' ? t('button_deploying') : t('button_auto_deploy')}
+                                </Button>
+                            </Tooltip>
+                            
+                            <Tooltip label={t('deploy_clean_tooltip_label')} position="top" withArrow>
+                                <Button
+                                    leftSection={<IconTrash size={20} />}
+                                    size="lg"
+                                    color="red"
+                                    onClick={handleOpenCleanModal}
+                                    disabled={deployStatus === 'loading'}
+                                >
+                                    {t('button_clean_fake_loc')}
+                                </Button>
+                            </Tooltip>
                             <Button
                                 leftSection={<IconRefresh size={20} />}
                                 size="lg"
@@ -284,6 +411,96 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                         </ScrollArea>
                     </Paper>
                 </Collapse>
+
+                {/* 1. 清理假本地化与部署 Modal */}
+                <Modal
+                    opened={cleanModalOpen}
+                    onClose={() => setCleanModalOpen(false)}
+                    title={<Text fw={700} size="lg">{t('deploy_modal_title')}</Text>}
+                    size="lg"
+                    radius="md"
+                    centered
+                >
+                    <Stack gap="md">
+                        <Alert icon={<IconAlertCircle size={20} />} title={t('deploy_modal_title')} color="blue" variant="light">
+                            {t('deploy_modal_description')}
+                        </Alert>
+
+                        {infoLoading ? (
+                            <Stack align="center" py="xl">
+                                <Loader size="md" />
+                                <Text size="sm">Loading deployment paths...</Text>
+                            </Stack>
+                        ) : (
+                            <Stack gap="md">
+                                <TextInput
+                                    label={t('deploy_target_path_label')}
+                                    placeholder={t('deploy_target_path_placeholder')}
+                                    description={t('deploy_target_path_desc')}
+                                    value={deployPath}
+                                    onChange={(e) => setDeployPath(e.currentTarget.value)}
+                                />
+
+                                <TextInput
+                                    label={t('deploy_workshop_path_label')}
+                                    placeholder={t('deploy_workshop_path_placeholder')}
+                                    description={t('deploy_workshop_path_desc')}
+                                    value={workshopPath}
+                                    onChange={(e) => setWorkshopPath(e.currentTarget.value)}
+                                    error={!workshopPath && "Could not auto-detect. Please input manually if you want to clean fake localization."}
+                                />
+
+                                <Group justify="flex-end" mt="lg">
+                                    <Button variant="default" onClick={() => setCleanModalOpen(false)} disabled={cleanLoading}>
+                                        {t('cancel')}
+                                    </Button>
+                                    <Button 
+                                        color="blue" 
+                                        onClick={handleModalDirectDeploy} 
+                                        loading={cleanLoading && !confirmDeleteOpen}
+                                        disabled={cleanLoading}
+                                    >
+                                        {t('deploy_btn_direct_deploy')}
+                                    </Button>
+                                    <Button 
+                                        color="red" 
+                                        onClick={() => setConfirmDeleteOpen(true)} 
+                                        loading={cleanLoading && confirmDeleteOpen}
+                                        disabled={!workshopPath || cleanLoading}
+                                    >
+                                        {t('deploy_btn_clean_and_deploy')}
+                                    </Button>
+                                </Group>
+                            </Stack>
+                        )}
+                    </Stack>
+                </Modal>
+
+                {/* 2. 高风险二次确认 Modal */}
+                <Modal
+                    opened={confirmDeleteOpen}
+                    onClose={() => setConfirmDeleteOpen(false)}
+                    title={<Text fw={700} color="red">{t('deploy_clean_confirm_title')}</Text>}
+                    size="md"
+                    centered
+                >
+                    <Stack gap="md">
+                        <Alert icon={<IconAlertCircle size={20} />} title={t('deploy_clean_confirm_title')} color="red" variant="filled">
+                            {t('deploy_clean_confirm_msg')}
+                        </Alert>
+                        <Text size="sm" c="dimmed">
+                            Original Mod Location: <Code block>{workshopPath}</Code>
+                        </Text>
+                        <Group justify="flex-end" mt="md">
+                            <Button variant="default" onClick={() => setConfirmDeleteOpen(false)}>
+                                {t('cancel')}
+                            </Button>
+                            <Button color="red" onClick={handleModalCleanAndDeploy}>
+                                {t('deploy_clean_confirm_btn')}
+                            </Button>
+                        </Group>
+                    </Stack>
+                </Modal>
             </Stack>
         );
     }
