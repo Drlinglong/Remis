@@ -25,15 +25,30 @@
 
 Project Remis is a production desktop application that turns Paradox mod localization into a structured, auditable workflow. It combines a Tauri desktop shell, a React/Mantine interface, and a Python FastAPI backend to parse game localization files, run glossary-aware LLM translation, preserve translation history, support proofreading, and deploy generated localization mods.
 
-For recruiters and engineering reviewers: this project demonstrates full-stack product ownership across desktop packaging, API design, AI workflow orchestration, local data modeling, UX polish, automated tests, release engineering, and community support.
+---
 
-### Engineering Highlights
+## 🛠️ Technical Highlights & Engineering Challenges
 
-- **Desktop product architecture:** Tauri + React frontend with a FastAPI backend, packaged for Windows users.
-- **AI workflow orchestration:** provider-agnostic translation support for OpenAI-compatible APIs, Gemini, DeepSeek, Grok, Ollama, NVIDIA NIM, OpenRouter, and related services.
-- **Domain-specific parsing:** Paradox localization file handling, game profile configuration, validation, and incremental update workflows.
-- **Glossary-aware translation:** reusable terminology management with fuzzy search, abbreviation support, and cross-game dictionaries.
-- **Operational quality:** project tracking, translation archive snapshots, proofreading UI, CI/test coverage, release notes, and installer builds.
+Project Remis is a production-grade showcase of modern full-stack development, solving complex localization, AI orchestrations, and desktop native integration challenges.
+
+### 🧩 1. Robust Paradox YML Parsing & Encoding Integrity
+- **Challenge:** Paradox localization files (.yml) use specialized formatting, strict structure requirements, and are highly prone to encoding corruption (e.g., Mix of UTF-8-BOM and Mojibake issues).
+- **Solution:** Designed a custom parser (`file_parser.py` and `file_builder.py`) with strict dual-validation pipelines (`JSON.parse` and regex sanity checks) that run on automated test hooks to completely prevent translation text pollution.
+
+### 🤖 2. Context-Aware Glossary & AI Orchestration
+- **Challenge:** Standard AI translation often hallucinates game-specific jargon (e.g., translating `convoy` literally instead of "船队").
+- **Solution:** Architected a modular AI service factory supporting multiple providers (Gemini, DeepSeek, OpenAI, etc.). Engineered a high-performance local glossary system utilizing phonetic search and fuzzy matching to dynamically inject context into translation prompts.
+
+### 💻 3. Cross-Platform Desktop Packaging & Dev Server
+- **Challenge:** Providing a seamless desktop experience while leveraging a powerful Python localization engine.
+- **Solution:** Implemented a hybrid architecture utilizing **Tauri (Rust)** for a lightweight desktop shell, **React + Mantine UI** for a sleek UX, and a localized **FastAPI backend** running fully offline. Optimized the build process with native executable packaging.
+
+### 🧪 4. High-Standard Quality Control & Local Database
+- **Challenge:** Ensuring project configurations, translation progress, and glossary changes are persisted safely without external infrastructure.
+- **Solution:** Modeled data schemas using **SQLite + SQLAlchemy**, backed by a comprehensive automated test suite (Pytest + ESLint checks) executed via customized pre-commit check scripts (`check_before_commit.bat`).
+
+---
+
 
 ## Core Workflows
 
