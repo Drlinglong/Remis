@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const npxCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 
 // Helper to find a free port starting from a default port
 function findFreePort(startPort) {
@@ -32,9 +33,9 @@ async function main() {
     // 1. Start Vite dev server on the allocated port
     // We run it with strictPort to ensure it binds exactly to the allocated port
     console.log(`[Remis Dev] Starting Vite dev server on port ${port}...`);
-    const viteProcess = spawn('npx', ['vite', '--port', port.toString(), '--strictPort'], {
+    const viteProcess = spawn(npxCommand, ['vite', '--port', port.toString(), '--strictPort'], {
         stdio: 'inherit',
-        shell: true
+        shell: false
     });
 
     // 2. Start Tauri dev, pointing to the dynamically allocated port
@@ -59,9 +60,9 @@ async function main() {
     };
     const tauriConfigOverride = JSON.stringify(mergedConfig);
 
-    const tauriProcess = spawn('npx', ['tauri', 'dev', '--no-dev-server', '--config', tauriConfigOverride], {
+    const tauriProcess = spawn(npxCommand, ['tauri', 'dev', '--no-dev-server', '--config', tauriConfigOverride], {
         stdio: 'inherit',
-        shell: true
+        shell: false
     });
 
     // Handle clean process termination
