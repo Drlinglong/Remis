@@ -1459,5 +1459,23 @@
       "Bonsoir.",
       "Il est temps de terminer la journée."
     ]
-  }
+  },
+  "button_clean_fake_loc": "Nettoyer les fausses localisations",
+  "deploy_tooltip_label": "Déployer le mod traduit directement dans le répertoire des mods standard de Paradox.",
+  "deploy_clean_tooltip_label": "Nettoyer les dossiers de fausses localisations dans le répertoire d'origine du mod pour éviter qu'ils ne remplacent votre mod traduit.",
+  "deploy_modal_title": "Nettoyer les fausses localisations et déployer",
+  "deploy_modal_description": "De nombreux auteurs de mods copient les fichiers de localisation anglais dans des dossiers comme 'simp_chinese' ou 'french' pour éviter les erreurs de clé manquante, ce qui amène le jeu à prioriser les faux fichiers d'origine sur votre mod traduit. Vous pouvez les détecter et les nettoyer automatiquement ici.",
+  "deploy_target_path_label": "1. Répertoire de déploiement cible (Où le mod traduit est copié)",
+  "deploy_target_path_placeholder": "Dossier de mods Paradox Interactive, ex. Documents/Paradox Interactive/.../mod",
+  "deploy_target_path_desc": "Le dossier dans le répertoire Documents de Paradox où le jeu lit le mod traduit.",
+  "deploy_workshop_path_label": "2. Répertoire d'origine du mod (Steam Workshop / Local)",
+  "deploy_workshop_path_placeholder": "ex. SteamLibrary/steamapps/workshop/content/...",
+  "deploy_workshop_path_desc": "L'emplacement du mod d'origine. Requis si vous souhaitez rechercher et supprimer de fausses localisations. Le système tentera de le détecter via le registre et les métadonnées.",
+  "deploy_btn_direct_deploy": "Déployer directement le mod",
+  "deploy_btn_clean_and_deploy": "Supprimer les fausses localisations et déployer",
+  "deploy_clean_confirm_title": "⚠️ AVERTISSEMENT : Nettoyer les fausses localisations",
+  "deploy_clean_confirm_msg": "Êtes-vous sûr de vouloir rechercher et supprimer physiquement tous les dossiers et fichiers de langue non originaux dans le répertoire de localisation du mod d'origine ? Il s'agit d'une opération à HAUT RISQUE qui modifie directement les fichiers du répertoire du workshop Steam !",
+  "deploy_clean_confirm_btn": "Oui, je connais le risque. Continuer !",
+  "deploy_clean_success_title": "Nettoyage et déploiement réussis",
+  "deploy_clean_success_message": "Fausses localisations nettoyées avec succès ! Mod déployé avec succès dans le répertoire Paradox."
 }

@@ -1459,5 +1459,23 @@
       "Dobry wieczór.",
       "Czas kończyć na dziś."
     ]
-  }
+  },
+  "button_clean_fake_loc": "Wyczyść fałszywe lokalizacje",
+  "deploy_tooltip_label": "Wdróż przetłumaczony pakiet modyfikacji bezpośrednio do standardowego katalogu modów Paradox.",
+  "deploy_clean_tooltip_label": "Wyczyść foldery z fałszywymi lokalizacjami w oryginalnym katalogu modyfikacji, aby zapobiec nadpisaniu przetłumaczonego moda.",
+  "deploy_modal_title": "Wyczyść fałszywe lokalizacje i wdróż",
+  "deploy_modal_description": "Wielu autorów modów kopiuje angielskie pliki lokalizacyjne do folderów takich jak 'simp_chinese' lub 'french', aby zapobiec błędom brakujących kluczy. Powoduje to, że gra priorytetyzuje oryginalne fałszywe pliki nad Twoim przetłumaczonym modem. Możesz je tutaj automatycznie wykryć i wyczyścić.",
+  "deploy_target_path_label": "1. Docelowy katalog wdrożenia (Gdzie mod zostanie skopiowany)",
+  "deploy_target_path_placeholder": "Folder modów Paradox Interactive, np. Documents/Paradox Interactive/.../mod",
+  "deploy_target_path_desc": "Folder w katalogu Dokumentów Paradox, z którego gra wczytuje przetłumaczonego moda.",
+  "deploy_workshop_path_label": "2. Oryginalny katalog modyfikacji (Steam Workshop / Lokalny)",
+  "deploy_workshop_path_placeholder": "np. SteamLibrary/steamapps/workshop/content/...",
+  "deploy_workshop_path_desc": "Lokalizacja oryginalnego moda. Wymagane, jeśli chcesz znaleźć i usunąć fałszywe pliki lokalizacyjne. System spróbuje automatycznie to wykryć za pomocą rejestru i metadanych.",
+  "deploy_btn_direct_deploy": "Wdróż moda bezpośrednio",
+  "deploy_btn_clean_and_deploy": "Usuń fałszywe lokalizacje i wdróż",
+  "deploy_clean_confirm_title": "⚠️ OSTRZEŻENIE: Wyczyść fałszywe lokalizacje",
+  "deploy_clean_confirm_msg": "Czy na pewno chcesz wyszukać i fizycznie usunąć wszystkie nieoryginalne foldery i pliki językowe w katalogu lokalizacji oryginalnego moda? Jest to operacja WYSOKIEGO RYZYKA, która bezpośrednio modyfikuje pliki w katalogu warsztatu Steam!",
+  "deploy_clean_confirm_btn": "Tak, znam ryzyko. Kontynuuj!",
+  "deploy_clean_success_title": "Czyszczenie i wdrożenie zakończone sukcesem",
+  "deploy_clean_success_message": "Fałszywe lokalizacje zostały pomyślnie wyczyszczone! Mod wdrożony pomyślnie do katalogu Paradox."
 }

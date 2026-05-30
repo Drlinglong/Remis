@@ -166,6 +166,7 @@ export default function ProjectManagement() {
 
       setProjectDetails({
         project_id: projectId,
+        game_id: selectedProject.game_id,
         name: selectedProject.name, // Pass name
         status: selectedProject.status, // Pass status
         notes: selectedProject.notes, // Pass notes

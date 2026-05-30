@@ -1459,5 +1459,23 @@
       "Buenas noches.",
       "Es hora de terminar por hoy."
     ]
-  }
+  },
+  "button_clean_fake_loc": "Limpiar localizaciones falsas",
+  "deploy_tooltip_label": "Desplegar el paquete de mod traducido directamente en el directorio de mods estándar de Paradox.",
+  "deploy_clean_tooltip_label": "Limpiar las carpetas de localización falsas en el directorio original del mod para evitar que sobrescriban su mod traducido.",
+  "deploy_modal_title": "Limpiar localizaciones falsas y desplegar",
+  "deploy_modal_description": "Muchos autores de mods copian archivos de localización en inglés a carpetas como 'simp_chinese' o 'french' para evitar errores de claves faltantes, lo que hace que el juego priorice los archivos falsos originales sobre su mod traducido. Puede detectarlos y limpiarlos automáticamente aquí.",
+  "deploy_target_path_label": "1. Directorio de despliegue de destino (Donde se copia el mod traducido)",
+  "deploy_target_path_placeholder": "Carpeta de mods de Paradox Interactive, ej., Documents/Paradox Interactive/.../mod",
+  "deploy_target_path_desc": "La carpeta en el directorio de Documentos de Paradox donde el juego lee el mod traducido.",
+  "deploy_workshop_path_label": "2. Directorio original del mod (Steam Workshop / Local)",
+  "deploy_workshop_path_placeholder": "ej., SteamLibrary/steamapps/workshop/content/...",
+  "deploy_workshop_path_desc": "La ubicación del mod original. Necesario si desea buscar y eliminar archivos de localización falsos. El sistema intentará detectarlo automáticamente a través del registro y los metadatos.",
+  "deploy_btn_direct_deploy": "Desplegar mod directamente",
+  "deploy_btn_clean_and_deploy": "Eliminar localizaciones falsas y desplegar",
+  "deploy_clean_confirm_title": "⚠️ ADVERTENCIA: Limpiar localizaciones falsas",
+  "deploy_clean_confirm_msg": "¿Está seguro de que desea buscar y eliminar físicamente todas las carpetas y archivos de idiomas no originales dentro del directorio de localización del mod original? ¡Esta es una operación de ALTO RIESGO que modifica directamente los archivos del directorio del taller de Steam!",
+  "deploy_clean_confirm_btn": "Sí, conozco el riesgo. ¡Proceder!",
+  "deploy_clean_success_title": "Limpieza y despliegue exitosos",
+  "deploy_clean_success_message": "¡Localizaciones falsas limpiadas con éxito! Mod desplegado con éxito en el directorio de Paradox."
 }

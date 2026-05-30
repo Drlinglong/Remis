@@ -1459,5 +1459,23 @@
       "Guten Abend.",
       "Zeit, für heute Feierabend zu machen."
     ]
-  }
+  },
+  "button_clean_fake_loc": "Gefälschte Lokalisierungen bereinigen",
+  "deploy_tooltip_label": "Das übersetzte Mod-Paket direkt im Paradox-Mod-Verzeichnis bereitstellen.",
+  "deploy_clean_tooltip_label": "Bereinigen Sie gefälschte Lokalisierungsordner im ursprünglichen Mod-Verzeichnis, um ein Überschreiben Ihrer Übersetzung zu verhindern.",
+  "deploy_modal_title": "Gefälschte Lokalisierungen bereinigen & bereitstellen",
+  "deploy_modal_description": "Viele Mod-Autoren kopieren englische Lokalisierungsdateien in Ordner wie 'simp_chinese' oder 'french', um Fehler bei fehlenden Schlüsseln zu vermeiden. Dies führt dazu, dass das Spiel diese gefälschten Originaldateien gegenüber Ihrer Übersetzung bevorzugt. Sie können diese hier automatisch erkennen und bereinigen.",
+  "deploy_target_path_label": "1. Zieldienst-Verzeichnis (Wohin die übersetzte Mod kopiert wird)",
+  "deploy_target_path_placeholder": "Paradox Interactive Mod-Ordner, z.B. Documents/Paradox Interactive/.../mod",
+  "deploy_target_path_desc": "Der Ordner im Paradox-Dokumentenverzeichnis, aus dem das Spiel die übersetzte Mod liest.",
+  "deploy_workshop_path_label": "2. Ursprüngliches Mod-Verzeichnis (Steam Workshop / Lokal)",
+  "deploy_workshop_path_placeholder": "z.B. SteamLibrary/steamapps/workshop/content/...",
+  "deploy_workshop_path_desc": "Der Speicherort der Original-Mod. Erforderlich, wenn Sie gefälschte Lokalisierungsdateien finden und entfernen möchten. Das System versucht, dies über die Registry und Metadaten automatisch zu erkennen.",
+  "deploy_btn_direct_deploy": "Mod direkt bereitstellen",
+  "deploy_btn_clean_and_deploy": "Gefälschte Lokalisierungen löschen & bereitstellen",
+  "deploy_clean_confirm_title": "⚠️ WARNUNG: Gefälschte Lokalisierungen bereinigen",
+  "deploy_clean_confirm_msg": "Sind Sie sicher, dass Sie alle nicht-originalen Sprachordner und -dateien im Lokalisierungsverzeichnis der Original-Mod suchen und physisch löschen möchten? Dies ist eine SEHR RISKANTE Operation, die Dateien im Steam-Workshop-Verzeichnis direkt verändert!",
+  "deploy_clean_confirm_btn": "Ja, ich kenne das Risiko. Fortfahren!",
+  "deploy_clean_success_title": "Bereinigung & Bereitstellung erfolgreich",
+  "deploy_clean_success_message": "Gefälschte Lokalisierungen erfolgreich bereinigt! Mod erfolgreich im Paradox-Verzeichnis bereitgestellt."
 }

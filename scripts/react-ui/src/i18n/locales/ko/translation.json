@@ -1459,5 +1459,23 @@
       "좋은 저녁입니다.",
       "하루를 마무리할 시간입니다."
     ]
-  }
+  },
+  "button_clean_fake_loc": "가짜 로컬라이징 파일 삭제",
+  "deploy_tooltip_label": "번역된 모드 패키지를 Paradox 표준 모드 디렉토리에 직접 배포합니다.",
+  "deploy_clean_tooltip_label": "번역 모드가 덮어씌워지는 것을 방지하기 위해 원본 모드 디렉토리 내부의 가짜 로컬라이징 폴더를 정리합니다.",
+  "deploy_modal_title": "가짜 로컬라이징 정리 및 배포",
+  "deploy_modal_description": "많은 모드 제작자들이 키 누락 오류를 방지하기 위해 영어 로컬라이징 파일을 'simp_chinese'나 'french' 등의 폴더에 복제합니다. 이로 인해 게임이 번역 모드보다 원본의 '가짜' 파일을 우선시하게 됩니다. 여기에서 이를 자동으로 감지하고 정리할 수 있습니다.",
+  "deploy_target_path_label": "1. 대상 배포 디렉토리 (번역 모드가 복사될 위치)",
+  "deploy_target_path_placeholder": "Paradox Interactive 모드 폴더 (예: Documents/Paradox Interactive/.../mod)",
+  "deploy_target_path_desc": "게임이 번역 모드를 읽어오는 Paradox의 Documents 디렉토리 내의 폴더입니다.",
+  "deploy_workshop_path_label": "2. 원본 모드 디렉토리 (Steam 창작마당 / 로컬)",
+  "deploy_workshop_path_placeholder": "예: SteamLibrary/steamapps/workshop/content/...",
+  "deploy_workshop_path_desc": "원본 모드의 위치입니다. 가짜 로컬라이징 파일을 찾아 삭제하려는 경우에 필요합니다. 시스템은 레지스트리와 메타데이터를 통해 이를 자동 감지합니다.",
+  "deploy_btn_direct_deploy": "모드 직접 배포",
+  "deploy_btn_clean_and_deploy": "가짜 로컬라이징 삭제 및 배포",
+  "deploy_clean_confirm_title": "⚠️ 경고: 가짜 로컬라이징 정리",
+  "deploy_clean_confirm_msg": "원본 모드 로컬라이징 디렉토리 내에서 원본 언어 이외의 모든 언어 폴더와 파일을 검색하고 완전히 삭제하시겠습니까? 이는 Steam 창작마당 디렉토리 파일을 직접 수정하는 【고위험】 작업입니다!",
+  "deploy_clean_confirm_btn": "위험을 이해했으며, 계속 진행합니다",
+  "deploy_clean_success_title": "정리 및 배포 성공",
+  "deploy_clean_success_message": "가짜 로컬라이징 정리가 성공적으로 완료되었습니다! 모드가 Paradox 디렉토리에 성공적으로 배포되었습니다."
 }

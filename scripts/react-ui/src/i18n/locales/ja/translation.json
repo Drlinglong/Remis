@@ -1459,5 +1459,23 @@
       "こんばんは。",
       "今日はお疲れ様でした。"
     ]
-  }
+  },
+  "button_clean_fake_loc": "偽のローカライズファイルを削除",
+  "deploy_tooltip_label": "翻訳されたModパッケージをParadoxの標準Modディレクトリに直接デプロイします。",
+  "deploy_clean_tooltip_label": "翻訳Modが上書きされるのを防ぐため、オリジナルのModディレクトリ内にある偽のローカライズフォルダをクリーンアップします。",
+  "deploy_modal_title": "偽 of ローカライズのクリーンアップとデプロイ",
+  "deploy_modal_description": "多くのMod制作者は、キーの欠落エラーを防ぐために英語のローカライズファイルを「simp_chinese」や「french」などのフォルダに複製します。その結果、ゲームは翻訳Modよりもオリジナルの「偽の」ファイルを優先してしまいます。ここでは、それらを自動的に検出してクリーンアップできます。",
+  "deploy_target_path_label": "1. 対象デプロイ先ディレクトリ（翻訳Modのコピー先）",
+  "deploy_target_path_placeholder": "Paradox InteractiveのModフォルダ（例：Documents/Paradox Interactive/.../mod）",
+  "deploy_target_path_desc": "ゲームが翻訳Modを読み込むための、ParadoxのDocumentsディレクトリ内のフォルダです。",
+  "deploy_workshop_path_label": "2. オリジナルModのディレクトリ（Steamワークショップ / ローカル）",
+  "deploy_workshop_path_placeholder": "例：SteamLibrary/steamapps/workshop/content/...",
+  "deploy_workshop_path_desc": "オリジナルModの場所です。偽 of ローカライズファイルを検索して削除する場合に必要です。システムはレジストリとメタデータを通じてこれを自動検出します。",
+  "deploy_btn_direct_deploy": "Modを直接デプロイ",
+  "deploy_btn_clean_and_deploy": "偽のローカライズを削除してデプロイ",
+  "deploy_clean_confirm_title": "⚠️ 警告: 偽のローカライズのクリーンアップ",
+  "deploy_clean_confirm_msg": "オリジナルModのローカライズディレクトリ内にある、オリジナル言語以外のすべての言語フォルダとファイルを検索し、物理的に削除してもよろしいですか？これはSteamワークショップのディレクトリファイルを直接変更する【高リスク】な操作です！",
+  "deploy_clean_confirm_btn": "リスクを理解した上で続行する",
+  "deploy_clean_success_title": "クリーンアップとデプロイの成功",
+  "deploy_clean_success_message": "偽のローカライズのクリーンアップが成功しました！翻訳ModがParadoxディレクトリに正常にデプロイされました。"
 }

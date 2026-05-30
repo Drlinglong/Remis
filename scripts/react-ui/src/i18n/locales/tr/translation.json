@@ -1459,5 +1459,23 @@
       "İyi akşamlar.",
       "Günü tamamlama vakti."
     ]
-  }
+  },
+  "button_clean_fake_loc": "Sahte yerelleştirmeleri temizle",
+  "deploy_tooltip_label": "Çevrilmiş mod paketini doğrudan standart Paradox mod dizinine dağıtın.",
+  "deploy_clean_tooltip_label": "Çevrilmiş modunuzun üzerine yazılmasını önlemek için orijinal mod dizinindeki sahte yerelleştirme klasörlerini temizleyin.",
+  "deploy_modal_title": "Sahte yerelleştirmeleri temizle ve dağıt",
+  "deploy_modal_description": "Birçok mod yazarı, eksik anahtar hatalarını önlemek için İngilizce yerelleştirme dosyalarını 'simp_chinese' veya 'french' gibi klasörlere kopyalar; bu da oyunun orijinal sahte dosyaları çeviri modunuzdan daha öncelikli tutmasına neden olur. Bunları buradan otomatik olarak tespit edip temizleyebilirsiniz.",
+  "deploy_target_path_label": "1. Hedef Dağıtım Dizini (Çevrilmiş modun kopyalanacağı yer)",
+  "deploy_target_path_placeholder": "Paradox Interactive mod klasörü, örn. Documents/Paradox Interactive/.../mod",
+  "deploy_target_path_desc": "Paradox'un Documents dizininde oyunun çevrilmiş modu okuduğu klasör.",
+  "deploy_workshop_path_label": "2. Orijinal Mod Dizini (Steam Workshop / Yerel)",
+  "deploy_workshop_path_placeholder": "örn. SteamLibrary/steamapps/workshop/content/...",
+  "deploy_workshop_path_desc": "Orijinal modun konumu. Sahte yerelleştirme dosyalarını bulup kaldırmak istiyorsanız gereklidir. Sistem bunu kayıt defteri ve meta veriler aracılığıyla otomatik olarak algılamaya çalışacaktır.",
+  "deploy_btn_direct_deploy": "Modu doğrudan dağıt",
+  "deploy_btn_clean_and_deploy": "Sahte yerelleştirmeleri sil ve dağıt",
+  "deploy_clean_confirm_title": "⚠️ UYARI: Sahte yerelleştirmeleri temizle",
+  "deploy_clean_confirm_msg": "Orijinal mod yerelleştirme dizini içindeki orijinal dil dışındaki tüm dil klasörlerini ve dosyalarını aramak ve fiziksel olarak silmek istediğinizden emin misiniz? Bu, Steam atölye dizini dosyalarını doğrudan değiştiren YÜKSEK RİSKLİ bir işlemdir!",
+  "deploy_clean_confirm_btn": "Evet, riski biliyorum. Devam et!",
+  "deploy_clean_success_title": "Temizleme ve dağıtım başarılı",
+  "deploy_clean_success_message": "Sahte yerelleştirmeler başarıyla temizlendi! Mod, Paradox dizinine başarıyla dağıtıldı."
 }
