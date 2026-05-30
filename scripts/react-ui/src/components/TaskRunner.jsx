@@ -48,6 +48,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     const viewport = useRef(null);
 
     // Optimized Deploy & Fake Loc Cleanup State
+    const [deployModalOpen, setDeployModalOpen] = useState(false);
     const [cleanModalOpen, setCleanModalOpen] = useState(false);
     const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
     const [deployPath, setDeployPath] = useState('');
@@ -165,6 +166,32 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
         }
     };
 
+    const handleOpenDeployModal = async () => {
+        setDeployModalOpen(true);
+        setInfoLoading(true);
+        try {
+            const outputDir = Array.isArray(task?.output_dirs) && task.output_dirs.length > 0
+                ? task.output_dirs[0]
+                : (task?.result_path ? task.result_path.replace(/\.zip$/i, '') : null);
+            const folderName = outputDir ? outputDir.split(/[\\/]/).pop() : '';
+
+            const response = await api.post('/api/tools/deploy_info', {
+                project_id: translationDetails?.projectId || null,
+                game_id: translationDetails?.gameId || '',
+                output_folder_name: folderName
+            });
+
+            setDeployPath(response.data.default_deploy_path || '');
+            setWorkshopPath(response.data.detected_workshop_path || '');
+            setSourceLanguage(response.data.source_language || 'english');
+        } catch (error) {
+            console.error("Failed to load deploy info:", error);
+            notificationService.error("Failed to load deployment info");
+        } finally {
+            setInfoLoading(false);
+        }
+    };
+
     const handleOpenCleanModal = async () => {
         setCleanModalOpen(true);
         setInfoLoading(true);
@@ -209,6 +236,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
 
             if (response.data.status === 'success') {
                 notificationService.success(t('deploy_success_message'), { title: t('deploy_success_title') });
+                setDeployModalOpen(false);
                 setCleanModalOpen(false);
                 setDeployStatus('success');
             } else {
@@ -352,7 +380,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                                     leftSection={deployStatus === 'loading' ? <Loader size={14} color="white" /> : <IconRocket size={20} />}
                                     size="lg"
                                     color={deployStatus === 'success' ? 'green' : (deployStatus === 'error' ? 'red' : 'blue')}
-                                    onClick={handleDeploy}
+                                    onClick={handleOpenDeployModal}
                                     loading={deployStatus === 'loading'}
                                     disabled={deployStatus === 'success'}
                                 >
@@ -411,6 +439,48 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                         </ScrollArea>
                     </Paper>
                 </Collapse>
+
+                {/* 0. 一键部署弹窗 */}
+                <Modal
+                    opened={deployModalOpen}
+                    onClose={() => setDeployModalOpen(false)}
+                    title={<Text fw={700} size="lg">{t('button_auto_deploy')}</Text>}
+                    size="md"
+                    radius="md"
+                    centered
+                >
+                    <Stack gap="md">
+                        <Alert icon={<IconRocket size={20} />} title={t('button_auto_deploy')} color="blue" variant="light">
+                            {t('deploy_tooltip_label')}
+                        </Alert>
+
+                        {infoLoading ? (
+                            <Stack align="center" py="xl">
+                                <Loader size="md" />
+                                <Text size="sm">Loading deployment target path...</Text>
+                            </Stack>
+                        ) : (
+                            <Stack gap="md">
+                                <TextInput
+                                    label={t('deploy_target_path_label')}
+                                    placeholder={t('deploy_target_path_placeholder')}
+                                    description={t('deploy_target_path_desc')}
+                                    value={deployPath}
+                                    onChange={(e) => setDeployPath(e.currentTarget.value)}
+                                />
+
+                                <Group justify="flex-end" mt="lg">
+                                    <Button variant="default" onClick={() => setDeployModalOpen(false)} disabled={cleanLoading}>
+                                        {t('cancel')}
+                                    </Button>
+                                    <Button color="blue" onClick={handleModalDirectDeploy} loading={cleanLoading}>
+                                        {t('deploy_btn_direct_deploy')}
+                                    </Button>
+                                </Group>
+                            </Stack>
+                        )}
+                    </Stack>
+                </Modal>
 
                 {/* 1. 清理假本地化与部署 Modal */}
                 <Modal
