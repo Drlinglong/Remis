@@ -113,8 +113,8 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
             : null;
         if (!directFolderPath && !task?.result_path) {
             notifications.show({
-                title: t('error_cannot_open_folder', 'Cannot Open Folder'),
-                message: t('error_output_folder_not_available', 'Output folder path is not available yet.'),
+                title: t('error_cannot_open_folder'),
+                message: t('error_output_folder_not_available'),
                 color: 'red'
             });
             return;

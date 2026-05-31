@@ -1492,12 +1492,12 @@
   "deploy_error_paradox_dir_not_found": "Paradox-Mod-Verzeichnis für das Spiel konnte nicht ermittelt werden. Bitte geben Sie den Pfad manuell an.",
   "deploy_clean_no_files_found": "Keine gefälschten Lokalisierungsdateien zum Bereinigen gefunden.",
   "deploy_clean_files_removed": " ({{folders}} Ordner, {{files}} Dateien entfernt)",
-  "deploy_loading_target_path": "Loading deployment target path...",
-  "deploy_error_load_info": "Failed to load deployment info",
-  "translation_completed_with_warnings": "Translation Completed With Warnings",
-  "translation_partial_fail_summary": "Some files or batches fell back to the original text. Review the error report before using the output.",
-  "error_cannot_open_folder": "Cannot Open Folder",
-  "error_output_folder_not_available": "Output folder path is not available yet.",
-  "partial_failure_title": "Partial Failure",
-  "partial_failure_review_msg": "Open the detailed logs and review the failed files before deploying."
+  "deploy_loading_target_path": "Lade Zielpfad für die Bereitstellung...",
+  "deploy_error_load_info": "Bereitstellungsinformationen konnten nicht geladen werden",
+  "translation_completed_with_warnings": "Übersetzung mit Warnungen abgeschlossen",
+  "translation_partial_fail_summary": "Einige Dateien oder Stapel wurden auf den Originaltext zurückgesetzt. Prüfen Sie den Fehlerbericht, bevor Sie die Ausgabe verwenden.",
+  "error_cannot_open_folder": "Ordner kann nicht geöffnet werden",
+  "error_output_folder_not_available": "Der Ausgabepfad ist noch nicht verfügbar.",
+  "partial_failure_title": "Teilweiser Fehler",
+  "partial_failure_review_msg": "Öffnen Sie vor der Bereitstellung die detaillierten Protokolle und prüfen Sie die fehlgeschlagenen Dateien."
 }

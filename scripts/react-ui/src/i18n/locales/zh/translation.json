@@ -994,7 +994,7 @@
       "desc": "切换到看板视图来推拽管理任务进度。"
     },
     "tabs_validation": "格式校对",
-    "delete_note_confirm_content": "Are you sure you want to delete this note? This action cannot be undone."
+    "delete_note_confirm_content": "确定要删除这条备注吗？此操作不可撤销。"
   },
   "translation": {
     "select": {
@@ -1065,7 +1065,7 @@
     "embedded_workshop_batch_size": "每批修复条数",
     "embedded_workshop_concurrency": "校对并发",
     "embedded_workshop_rpm": "校对 RPM",
-    "resume_detail_empty": "No detailed checkpoint entries are available yet.",
+    "resume_detail_empty": "暂无详细断点记录。",
     "resume_detail_none": "当前没有未完成的工作。",
     "embedded_workshop_following_summary": "当前跟随主翻译配置：{{provider}} / {{model}}",
     "embedded_workshop_custom_summary": "当前使用独立校对配置：{{provider}} / {{model}}",

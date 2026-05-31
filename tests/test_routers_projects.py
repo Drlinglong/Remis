@@ -12,6 +12,7 @@ def mock_project_manager():
     with patch("scripts.routers.projects.project_manager", new_callable=MagicMock) as mock:
         # Configure methods to be async
         mock.get_projects = AsyncMock()
+        mock.get_project = AsyncMock()
         mock.create_project = AsyncMock()
         mock.refresh_project_files = AsyncMock()
         mock.update_project_files_to_db = AsyncMock()
@@ -19,6 +20,7 @@ def mock_project_manager():
         mock.update_project_metadata = AsyncMock()
         mock.update_project_status = AsyncMock()
         mock.update_project_notes = AsyncMock()
+        mock.update_source_path = AsyncMock()
         yield mock
 
 def test_read_projects(mock_project_manager):
@@ -136,3 +138,34 @@ def test_run_incremental_update_background_marks_task_completed(monkeypatch, tmp
         {"languages": [{"target_lang": "zh-CN", "written": 1}]},
     )
     assert ws_push.call_count >= 2
+
+
+def test_update_project_config_delegates_source_path_to_manager(mock_project_manager):
+    mock_project_manager.get_project.side_effect = [
+        {
+            "project_id": "proj-1",
+            "source_path": "C:/Mods/Old",
+            "game_id": "hoi4",
+        },
+        {
+            "project_id": "proj-1",
+            "source_path": "C:/Mods/New",
+            "game_id": "hoi4",
+        },
+    ]
+
+    client = TestClient(app)
+    with patch("scripts.routers.projects.ProjectJsonManager") as mock_json_manager:
+        mock_json_manager.return_value.get_config.return_value = {"translation_dirs": []}
+        response = client.post(
+            "/api/project/proj-1/config",
+            json={"source_path": "C:/Mods/New", "translation_dirs": ["C:/Mods/New/out"]},
+        )
+
+    assert response.status_code == 200
+    mock_project_manager.update_source_path.assert_awaited_once_with("proj-1", "C:/Mods/New")
+    mock_json_manager.assert_called_with("C:/Mods/New")
+    mock_json_manager.return_value.update_config.assert_called_once_with(
+        {"translation_dirs": ["C:/Mods/New/out"]}
+    )
+    mock_project_manager.refresh_project_files.assert_awaited_once_with("proj-1")

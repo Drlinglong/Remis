@@ -289,6 +289,57 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
             project_id, "stellaris", "english"
         )
 
+    async def test_update_source_path_migrates_sidecar_and_updates_repository(self):
+        """
+        Source path migration should live in ProjectManager, not the router.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_source = os.path.join(temp_dir, "old_mod")
+            new_source = os.path.join(temp_dir, "new_mod")
+            os.makedirs(old_source)
+            os.makedirs(new_source)
+            sidecar_path = os.path.join(old_source, ".remis_project.json")
+            with open(sidecar_path, "w", encoding="utf-8") as handle:
+                handle.write('{"config": {"translation_dirs": []}}')
+
+            mock_obj = MagicMock()
+            mock_obj.model_dump.return_value = {
+                "project_id": "source-proj",
+                "name": "Source Project",
+                "game_id": "hoi4",
+                "source_path": old_source,
+            }
+            self.mock_repo.get_project.return_value = mock_obj
+
+            await self.pm.update_source_path("source-proj", new_source)
+
+            self.assertTrue(os.path.exists(os.path.join(new_source, ".remis_project.json")))
+            self.mock_repo.touch_project.assert_awaited_once_with("source-proj")
+            self.mock_repo.update_project_source_path.assert_awaited_once_with(
+                "source-proj",
+                os.path.abspath(new_source),
+            )
+
+    async def test_update_source_path_rejects_missing_directory(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_source = os.path.join(temp_dir, "old_mod")
+            missing_source = os.path.join(temp_dir, "missing_mod")
+            os.makedirs(old_source)
+
+            mock_obj = MagicMock()
+            mock_obj.model_dump.return_value = {
+                "project_id": "missing-source-proj",
+                "name": "Missing Source Project",
+                "game_id": "hoi4",
+                "source_path": old_source,
+            }
+            self.mock_repo.get_project.return_value = mock_obj
+
+            with self.assertRaisesRegex(ValueError, "Source directory not found"):
+                await self.pm.update_source_path("missing-source-proj", missing_source)
+
+            self.mock_repo.update_project_source_path.assert_not_called()
+
     async def test_run_incremental_update_workflow_falls_back_to_defaults(self):
         """
         Unknown source language and game ID should fall back to English and victoria3.

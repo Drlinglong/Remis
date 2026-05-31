@@ -1,5 +1,4 @@
 import os
-import shutil
 import logging
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from typing import Optional, Dict, Any, Callable

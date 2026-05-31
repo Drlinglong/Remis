@@ -989,7 +989,7 @@
     "embedded_workshop_batch_size": "Размер батча вычитки",
     "embedded_workshop_concurrency": "Параллелизм вычитки",
     "embedded_workshop_rpm": "Лимит RPM для вычитки",
-    "resume_detail_empty": "No detailed checkpoint entries are available yet.",
+    "resume_detail_empty": "Подробных записей контрольной точки пока нет.",
     "resume_detail_none": "Сейчас нет незавершенной работы.",
     "embedded_workshop_following_summary": "Сейчас используется основная конфигурация перевода: {{provider}} / {{model}}",
     "embedded_workshop_custom_summary": "Сейчас используется отдельная конфигурация проверки: {{provider}} / {{model}}",

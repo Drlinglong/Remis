@@ -7,8 +7,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const localeFiles = {
+  de: path.resolve(__dirname, '../locales/de/translation.json'),
   en: path.resolve(__dirname, '../locales/en/translation.json'),
+  es: path.resolve(__dirname, '../locales/es/translation.json'),
+  fr: path.resolve(__dirname, '../locales/fr/translation.json'),
+  ja: path.resolve(__dirname, '../locales/ja/translation.json'),
+  ko: path.resolve(__dirname, '../locales/ko/translation.json'),
+  pl: path.resolve(__dirname, '../locales/pl/translation.json'),
+  'pt-BR': path.resolve(__dirname, '../locales/pt-BR/translation.json'),
   ru: path.resolve(__dirname, '../locales/ru/translation.json'),
+  tr: path.resolve(__dirname, '../locales/tr/translation.json'),
   zh: path.resolve(__dirname, '../locales/zh/translation.json'),
 };
 
@@ -111,5 +119,56 @@ describe('locale consistency', () => {
       // eslint-disable-next-line no-control-regex
       expect(value).toMatch(/[^\x00-\x7F]/);
     });
+  });
+
+  it('localizes recent deploy and warning strings outside English', () => {
+    const enLocale = loadLocale(localeFiles.en);
+    const enEntries = Object.fromEntries(flattenEntries(enLocale));
+    const keysThatMustNotMirrorEnglish = [
+      'deploy_loading_target_path',
+      'deploy_error_load_info',
+      'translation_completed_with_warnings',
+      'translation_partial_fail_summary',
+      'error_cannot_open_folder',
+      'error_output_folder_not_available',
+      'partial_failure_title',
+      'partial_failure_review_msg',
+    ];
+
+    const offenders = Object.entries(localeFiles)
+      .filter(([locale]) => locale !== 'en')
+      .flatMap(([locale, filePath]) => {
+        const entries = Object.fromEntries(flattenEntries(loadLocale(filePath)));
+        return keysThatMustNotMirrorEnglish
+          .filter((key) => entries[key] === enEntries[key])
+          .map((key) => `${locale}.${key} still mirrors English`);
+      });
+
+    expect(offenders, offenders.join('\n')).toEqual([]);
+  });
+
+  it('does not leave known Chinese UI blocks in English', () => {
+    const zhEntries = Object.fromEntries(flattenEntries(loadLocale(localeFiles.zh)));
+    const keysThatMustContainChinese = [
+      'project_management.delete_note_confirm_content',
+      'translation_page.resume_detail_empty',
+      'incremental_translation.resume_detail_title',
+      'incremental_translation.resume_detail_completed',
+      'incremental_translation.embedded_workshop_enabled',
+      'incremental_translation.embedded_workshop_settings',
+      'thumbnail_generator.description',
+      'thumbnail_generator.drag_hint',
+      'proofreading.target_language',
+      'proofreading.modal.title',
+      'proofreading.modal.content_1',
+      'proofreading.modal.content_2',
+      'proofreading.modal.button_cancel',
+    ];
+
+    const offenders = keysThatMustContainChinese
+      .filter((key) => !/[\u4e00-\u9fff]/.test(zhEntries[key] || ''))
+      .map((key) => `${key}: ${JSON.stringify(zhEntries[key])}`);
+
+    expect(offenders, offenders.join('\n')).toEqual([]);
   });
 });

@@ -312,7 +312,7 @@ class ModDeployer:
                         if item_name_lower != preserve_lang:
                             try:
                                 shutil.rmtree(item)
-                                removed_folders.append(str(item.relative_to(path)))
+                                removed_folders.append(str(item.relative_to(path)).replace("\\", "/"))
                             except Exception as e:
                                 errors.append(f"Failed to delete folder {item.name}: {e}")
                     # 2. Handle File
@@ -322,7 +322,7 @@ class ModDeployer:
                         if "_l_" in item_name_lower and f"_l_{preserve_lang}" not in item_name_lower:
                             try:
                                 item.unlink()
-                                removed_files.append(str(item.relative_to(path)))
+                                removed_files.append(str(item.relative_to(path)).replace("\\", "/"))
                             except Exception as e:
                                 errors.append(f"Failed to delete file {item.name}: {e}")
             except Exception as e:
