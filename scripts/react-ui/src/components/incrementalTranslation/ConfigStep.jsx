@@ -372,35 +372,36 @@ export const ConfigStep = ({
                                             />
 
                                             {!embeddedWorkshopFollowPrimary && (
-                                                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-                                                    <Select
-                                                        label={t('translation_page.embedded_workshop_provider', { defaultValue: '校对 Provider' })}
-                                                        data={apiProviders}
-                                                        value={embeddedWorkshopProvider}
-                                                        onChange={setEmbeddedWorkshopProvider}
-                                                    />
-                                                    <Select
-                                                        label={t('translation_page.embedded_workshop_model', { defaultValue: '校对 Model' })}
-                                                        data={resolveProviderModels(embeddedWorkshopProvider)}
-                                                        value={embeddedWorkshopModel}
-                                                        onChange={setEmbeddedWorkshopModel}
-                                                    />
-                                                </SimpleGrid>
-                                            )}
+                                                <>
+                                                    <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+                                                        <Select
+                                                            label={t('translation_page.embedded_workshop_provider', { defaultValue: '校对 Provider' })}
+                                                            data={apiProviders}
+                                                            value={embeddedWorkshopProvider}
+                                                            onChange={setEmbeddedWorkshopProvider}
+                                                        />
+                                                        <Select
+                                                            label={t('translation_page.embedded_workshop_model', { defaultValue: '校对 Model' })}
+                                                            data={resolveProviderModels(embeddedWorkshopProvider)}
+                                                            value={embeddedWorkshopModel}
+                                                            onChange={setEmbeddedWorkshopModel}
+                                                        />
+                                                    </SimpleGrid>
 
-                                            {/* Renders PerformanceControlPanel for embedded workshop settings */}
-                                            <PerformanceControlPanel
-                                                batchSize={embeddedWorkshopFollowPrimary ? batchSizeLimit : embeddedWorkshopBatchSize}
-                                                onChangeBatchSize={setEmbeddedWorkshopBatchSize}
-                                                concurrency={embeddedWorkshopFollowPrimary ? concurrencyLimit : embeddedWorkshopConcurrency}
-                                                onChangeConcurrency={setEmbeddedWorkshopConcurrency}
-                                                rpm={embeddedWorkshopFollowPrimary ? rpmLimit : embeddedWorkshopRpm}
-                                                onChangeRpm={setEmbeddedWorkshopRpm}
-                                                batchSizeOpts={['3', '5', '10', '15', '20'].map(value => ({ value, label: value }))}
-                                                concurrencyOpts={['1', '2', '3', '5'].map(value => ({ value, label: value }))}
-                                                rpmOpts={['5', '10', '20', '40', '60', '100'].map(value => ({ value, label: value }))}
-                                                disabled={embeddedWorkshopFollowPrimary}
-                                            />
+                                                    {/* Renders PerformanceControlPanel for embedded workshop settings */}
+                                                    <PerformanceControlPanel
+                                                        batchSize={embeddedWorkshopBatchSize}
+                                                        onChangeBatchSize={setEmbeddedWorkshopBatchSize}
+                                                        concurrency={embeddedWorkshopConcurrency}
+                                                        onChangeConcurrency={setEmbeddedWorkshopConcurrency}
+                                                        rpm={embeddedWorkshopRpm}
+                                                        onChangeRpm={setEmbeddedWorkshopRpm}
+                                                        batchSizeOpts={['3', '5', '10', '15', '20'].map(value => ({ value, label: value }))}
+                                                        concurrencyOpts={['1', '2', '3', '5'].map(value => ({ value, label: value }))}
+                                                        rpmOpts={['5', '10', '20', '40', '60', '100'].map(value => ({ value, label: value }))}
+                                                    />
+                                                </>
+                                            )}
                                         </Stack>
                                     )}
                                 </Accordion.Panel>

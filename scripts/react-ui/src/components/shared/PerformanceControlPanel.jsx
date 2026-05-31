@@ -22,7 +22,6 @@ export const PerformanceControlPanel = ({
     batchSizeOpts = null,
     concurrencyOpts = null,
     rpmOpts = null,
-    disabled = false,
 }) => {
     const { t } = useTranslation();
 
@@ -61,7 +60,6 @@ export const PerformanceControlPanel = ({
                     data={batchSizeOpts || defaultBatchSizeOptions}
                     value={batchSize}
                     onChange={onChangeBatchSize}
-                    disabled={disabled}
                 />
             )}
 
@@ -74,7 +72,6 @@ export const PerformanceControlPanel = ({
                     data={concurrencyOpts || defaultConcurrencyOptions}
                     value={concurrency}
                     onChange={onChangeConcurrency}
-                    disabled={disabled}
                 />
             )}
 
@@ -87,7 +84,6 @@ export const PerformanceControlPanel = ({
                     data={rpmOpts || defaultRpmOptions}
                     value={rpm}
                     onChange={onChangeRpm}
-                    disabled={disabled}
                 />
             )}
         </SimpleGrid>
