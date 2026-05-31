@@ -1492,12 +1492,12 @@
   "deploy_error_paradox_dir_not_found": "Impossible de déterminer le dossier du mod Paradox pour ce jeu. Veuillez spécifier le chemin manuellement.",
   "deploy_clean_no_files_found": "Aucun fichier de fausse localisation trouvé à nettoyer.",
   "deploy_clean_files_removed": " ({{folders}} dossier(s), {{files}} fichier(s) supprimé(s))",
-  "deploy_loading_target_path": "Loading deployment target path...",
-  "deploy_error_load_info": "Failed to load deployment info",
-  "translation_completed_with_warnings": "Translation Completed With Warnings",
-  "translation_partial_fail_summary": "Some files or batches fell back to the original text. Review the error report before using the output.",
-  "error_cannot_open_folder": "Cannot Open Folder",
-  "error_output_folder_not_available": "Output folder path is not available yet.",
-  "partial_failure_title": "Partial Failure",
-  "partial_failure_review_msg": "Open the detailed logs and review the failed files before deploying."
+  "deploy_loading_target_path": "Chargement du chemin de déploiement cible...",
+  "deploy_error_load_info": "Impossible de charger les informations de déploiement",
+  "translation_completed_with_warnings": "Traduction terminée avec des avertissements",
+  "translation_partial_fail_summary": "Certains fichiers ou lots sont revenus au texte source. Consultez le rapport d'erreurs avant d'utiliser la sortie.",
+  "error_cannot_open_folder": "Impossible d'ouvrir le dossier",
+  "error_output_folder_not_available": "Le chemin du dossier de sortie n'est pas encore disponible.",
+  "partial_failure_title": "Échec partiel",
+  "partial_failure_review_msg": "Ouvrez les journaux détaillés et vérifiez les fichiers en échec avant le déploiement."
 }

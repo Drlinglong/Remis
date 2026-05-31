@@ -1204,7 +1204,7 @@
       "status_processing": "正在处理任务...",
       "status_idle": "准备就绪",
       "checkpoint_detected": "检测到翻译断点 (已完成 {{count}} 个文件)",
-      "resume_detail_subtitle": "Expand to see when the last resume point was saved and which batch it reached."
+      "resume_detail_subtitle": "展开后可查看上次断点保存时间，以及当时推进到哪个批次。"
     },
     "scanning_files": "正在扫描文件...",
     "everything_up_to_date": "所有内容都已是最新状态"
@@ -1343,22 +1343,22 @@
     "translation_completed_success": "翻译已成功完成！",
     "task_failed_check_logs": "任务失败，请检查日志详情。",
     "error_title": "错误",
-    "resume_detail_title": "Resume Details",
-    "resume_detail_completed": "Completed Files: {{count}}",
-    "resume_detail_batch": "Last Batch: {{current}} / {{total}}",
-    "resume_detail_time": "Last Saved: {{time}}",
-    "resume_detail_file": "Last Completed File: {{file}}",
-    "embedded_workshop_enabled": "Embed Smart Workshop format fixing into the incremental workflow",
-    "embedded_workshop_enabled_desc": "Enabled by default. After translation finishes, the workflow runs one automatic format-fixing pass and refreshes the validation result.",
-    "embedded_workshop_settings": "Smart Workshop Settings",
-    "embedded_workshop_settings_desc": "Collapsed by default. Expand to fine-tune proofreading settings separately from translation.",
-    "embedded_workshop_follow": "Follow the current translation API and model by default",
-    "embedded_workshop_follow_desc": "Disable this if you want separate proofreading settings, such as a larger model for translation and a smaller one for proofreading.",
-    "embedded_workshop_provider": "Proofreading API",
-    "embedded_workshop_model": "Proofreading Model",
-    "embedded_workshop_batch_size": "Issues Per Fix Batch",
-    "embedded_workshop_concurrency": "Proofreading Concurrency",
-    "embedded_workshop_rpm": "Proofreading RPM",
+    "resume_detail_title": "断点详情",
+    "resume_detail_completed": "已完成文件：{{count}}",
+    "resume_detail_batch": "上次批次：{{current}} / {{total}}",
+    "resume_detail_time": "上次保存：{{time}}",
+    "resume_detail_file": "上次完成文件：{{file}}",
+    "embedded_workshop_enabled": "在增量翻译流程中嵌入智能工坊格式修复",
+    "embedded_workshop_enabled_desc": "默认开启。翻译完成后，流程会自动执行一轮格式修复，并刷新校验结果。",
+    "embedded_workshop_settings": "智能工坊设置",
+    "embedded_workshop_settings_desc": "默认收起。展开后可单独微调校对设置。",
+    "embedded_workshop_follow": "默认跟随当前翻译 API 与模型",
+    "embedded_workshop_follow_desc": "如果需要单独设置校对模型，请关闭此项，例如翻译用大模型、校对用小模型。",
+    "embedded_workshop_provider": "校对 API",
+    "embedded_workshop_model": "校对模型",
+    "embedded_workshop_batch_size": "每批修复条数",
+    "embedded_workshop_concurrency": "校对并发",
+    "embedded_workshop_rpm": "校对 RPM",
     "batch_size_limit_desc": "仅对本次翻译生效。自动会沿用当前 provider 的默认策略。",
     "run_pre_scan": "执行预扫描"
   },
@@ -1485,16 +1485,16 @@
   "api_model_select_description": "从当前提供商可用的模型中选择一个。",
   "api_models_description": "你也可以在这里自定义并管理可用模型列表。",
   "thumbnail_generator": {
-    "description": "Add flags, text, or custom emblems. Click \"Add All Flags\" to quickly generate a Victoria 3 style cover.",
-    "drag_hint": "Drag and drop your project logo here to preview the result in real time."
+    "description": "添加国旗、文字或自定义标识。点击“一键添加所有旗帜”即可快速生成维多利亚3风格封面。",
+    "drag_hint": "将项目 Logo 拖放到这里，即可实时预览效果。"
   },
   "proofreading": {
-    "target_language": "Target Language",
+    "target_language": "目标语言",
     "modal": {
-      "title": "Invalid Operation Warning",
-      "content_1": "You changed the **Key** in the editor.",
-      "content_2": "The editor is currently in **Patching Mode**. In this mode, the system locates entries by the original file key and only replaces the value. **Your key edits will be discarded on save**; only value changes will be preserved.",
-      "button_cancel": "Go Back and Edit"
+      "title": "无效操作警告",
+      "content_1": "你修改了编辑器中的 **Key**。",
+      "content_2": "当前编辑器处于 **补丁模式**。在此模式下，系统通过原始文件的 Key 定位条目，只替换 Value。**保存时会丢弃你对 Key 的修改**，只保留 Value 的变更。",
+      "button_cancel": "返回继续编辑"
     }
   },
   "deploy_workshop_path_error": "无法自动探测。如果您想清理假本地化文件，请手动输入路径。",

@@ -54,7 +54,7 @@ export function DeployModals({ deployActions }) {
                     {infoLoading ? (
                         <Stack align="center" py="xl">
                             <Loader size="md" />
-                            <Text size="sm">{t('deploy_loading_target_path', 'Loading deployment target path...')}</Text>
+                            <Text size="sm">{t('deploy_loading_target_path')}</Text>
                         </Stack>
                     ) : (
                         <Stack gap="md">

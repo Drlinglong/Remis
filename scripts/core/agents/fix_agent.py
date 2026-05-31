@@ -99,6 +99,7 @@ class ReflexionFixAgent:
         Runs the Reflexion workflow for a FULL BATCH of issues to save time and tokens.
         """
         import json
+        import asyncio
         from scripts.utils.post_process_validator import PostProcessValidator
         from scripts.utils.structured_parser import parse_response
         from scripts.core.schemas import TranslationResponse
@@ -117,7 +118,8 @@ class ReflexionFixAgent:
                 "is_fixed": False,
                 "suggested_fix": "",
                 "key": issue["key"],
-                "file_name": issue["file_name"]
+                "file_name": issue["file_name"],
+                "reflection": ""
             })
             
         for attempt in range(max_retries):
@@ -128,6 +130,29 @@ class ReflexionFixAgent:
                 break
                 
             self.logger.info(f"Batch Fix Attempt {attempt + 1}/{max_retries} for {len(active_indices)} issues.")
+            
+            # 1.5 Generate diagnostic reflections for retries (attempt > 0)
+            if attempt > 0:
+                self.logger.info(f"Generating diagnostic reflections for {len(active_indices)} remaining issues...")
+                reflection_tasks = []
+                for idx in active_indices:
+                    state = current_state[idx]
+                    err_msg = " | ".join(state["error_messages"])
+                    err_dtl = " | ".join(state["error_details"])
+                    reflection_tasks.append(self._reflect(state["source"], state["target"], err_msg, err_dtl))
+                
+                reflection_results = await asyncio.gather(*reflection_tasks, return_exceptions=True)
+                for idx_in_active, reflection in enumerate(reflection_results):
+                    orig_idx = active_indices[idx_in_active]
+                    if isinstance(reflection, Exception):
+                        self.logger.error(f"Reflection failed for index {orig_idx}: {reflection}")
+                        current_state[orig_idx]["reflection"] = ""
+                    else:
+                        current_state[orig_idx]["reflection"] = reflection
+            else:
+                for idx in active_indices:
+                    current_state[idx]["reflection"] = ""
+
             prompt = self._build_batch_prompt([current_state[i] for i in active_indices], game_id)
             
             try:
@@ -211,7 +236,7 @@ class ReflexionFixAgent:
                 
         # 2. Build dynamic few-shot examples via the new configuration mapping
         examples = get_examples_for_game(game_id, error_types_present)
-            
+        
         examples_text = ""
         if examples:
             examples_text = "--- 常见错误修正范例 (Few-Shot Examples) ---\n" + "\n".join(examples) + "\n----------------------------------------"
@@ -221,12 +246,18 @@ class ReflexionFixAgent:
         for i, issue in enumerate(active_issues):
             errors = " | ".join(issue["error_messages"] + issue["error_details"])
             source_text = issue["source"] if issue["source"] else "[SOURCE CONTEXT UNAVAILABLE]"
-            payload_items.append(
+            
+            payload_item = (
                 f"Item {i+1}:\n"
                 f"  Source: {source_text}\n"
                 f"  Bad Translation: {issue['target']}\n"
                 f"  Reported Error: {errors}"
             )
+            # Inject reflection if available
+            if issue.get("reflection"):
+                payload_item += f"\n  Diagnostic Reflection: {issue['reflection']}"
+                
+            payload_items.append(payload_item)
             
         prompt = (
             "### SYSTEM ROLE\n"
@@ -242,7 +273,10 @@ class ReflexionFixAgent:
             "6. **MISSING SOURCE CONTEXT**: If the Source is marked as unavailable, do best-effort format repair and conservative recovery from the broken translation only. Do not invent semantic details or perform aggressive rewriting.\n"
             "7. **MINIMAL NECESSARY CHANGE**: Keep valid parts of the translation intact. Do not rewrite more than needed to make it technically valid and semantically reasonable.\n"
             "8. **OUTPUT FORMAT**: You must output a JSON array of strings. Return ONLY the JSON. No conversational filler, no markdown code blocks, just the raw JSON array.\n"
-            f"9. **ITEM COUNT**: I will provide {len(active_issues)} items. You MUST provide exactly {len(active_issues)} repaired strings in the array.\n\n"
+            f"9. **ITEM COUNT**: I will provide {len(active_issues)} items. You MUST provide exactly {len(active_issues)} repaired strings in the array.\n"
+            "10. **DIAGNOSTIC REFLECTION**: Some items in this batch may contain a 'Diagnostic Reflection' providing deep analysis of why the previous repair attempt failed. You MUST treat this reflection as highly authoritative guidance to correct the specific tag mismatch or semantic error.\n"
+            "11. **PRESERVE PARADOX COLOR TAGS**: In Hearts of Iron IV (hoi4), color tags ALWAYS start with the section sign symbol '§' followed by a single letter (e.g., §Y, §g, §R, §P, §L, §G) and close with '§!'. If the bad translation corrupted '§' into '%' (e.g., %g, %Y, %P) or other characters, refer to the Source and IMMEDIATELY correct them back to '§' tags (e.g., change '%g' back to '§g'). Keep all colors from the Source exactly. Never lose color codes.\n"
+            "12. **PUNCTUATION TRANSLATION**: When localizing to English (en), you MUST translate all Chinese double-byte punctuations (like '。', '，', '：', '；', '（', '）', '、') to English standard punctuations ('.', ',', ':', ';', '(', ')', ','). Never leave Chinese punctuations in the final target.\n\n"
             "### ITEMS TO REPAIR\n" +
             "\n\n".join(payload_items) + "\n\n"
             "### JSON OUTPUT PREVIEW\n"

@@ -222,25 +222,52 @@ class ModDeployer:
 
         return None
 
+    def _find_localization_dirs(self, original_mod_path: str) -> tuple[Optional[Path], list[Path], Optional[str]]:
+        """Return safe localization directories under a candidate Paradox mod root."""
+        path = Path(original_mod_path).expanduser()
+        try:
+            resolved_root = path.resolve()
+        except OSError as exc:
+            return None, [], f"Failed to resolve original mod path: {exc}"
+
+        if not resolved_root.exists():
+            return None, [], f"Original mod path does not exist: {original_mod_path}"
+        if not resolved_root.is_dir():
+            return None, [], f"Original mod path is not a directory: {original_mod_path}"
+
+        loc_dirs = []
+        for name in ["localization", "localisation"]:
+            candidate = resolved_root / name
+            if not candidate.exists() or not candidate.is_dir():
+                continue
+            try:
+                resolved_candidate = candidate.resolve()
+            except OSError as exc:
+                return None, [], f"Failed to resolve localization directory {candidate}: {exc}"
+            if not resolved_candidate.is_relative_to(resolved_root):
+                return None, [], (
+                    "Safety check failed: localization directory resolves outside "
+                    f"the selected mod directory: {candidate}"
+                )
+            loc_dirs.append(resolved_candidate)
+
+        if not loc_dirs:
+            return resolved_root, [], (
+                "Safety check failed: no 'localization' or 'localisation' directory "
+                f"found in {original_mod_path}. This does not appear to be a valid Paradox mod directory."
+            )
+
+        return resolved_root, loc_dirs, None
+
     def clean_fake_localization(self, original_mod_path: str, source_lang: str = "english") -> dict:
         """
         Cleans up the 'Fake Localization' files/directories inside the original mod folder.
         Keeps only the folders and files corresponding to the original language (source_lang).
         """
-        path = Path(original_mod_path)
-        if not path.exists():
-            return {"status": "error", "message": f"Original mod path does not exist: {original_mod_path}"}
-
-        # Look for localization / localisation directories
-        loc_dirs = []
-        for name in ["localization", "localisation"]:
-            d = path / name
-            if d.exists() and d.is_dir():
-                loc_dirs.append(d)
-
-        if not loc_dirs:
-            logger.warning(f"Refusing to clean: no localization/localisation directory found in {original_mod_path}")
-            return {"status": "error", "message": f"Safety check failed: no 'localization' or 'localisation' directory found in {original_mod_path}. This does not appear to be a valid Paradox mod directory."}
+        path, loc_dirs, safety_error = self._find_localization_dirs(original_mod_path)
+        if safety_error:
+            logger.warning(f"Refusing to clean fake localization: {safety_error}")
+            return {"status": "error", "message": safety_error}
 
         removed_folders = []
         removed_files = []

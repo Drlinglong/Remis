@@ -1492,12 +1492,12 @@
   "deploy_error_paradox_dir_not_found": "Não foi possível determinar a pasta de mods da Paradox para o jogo. Especifique o caminho manualmente.",
   "deploy_clean_no_files_found": "Nenhum arquivo de localização falsa encontrado para limpar.",
   "deploy_clean_files_removed": " ({{folders}} pasta(s), {{files}} arquivo(s) removido(s))",
-  "deploy_loading_target_path": "Loading deployment target path...",
-  "deploy_error_load_info": "Failed to load deployment info",
-  "translation_completed_with_warnings": "Translation Completed With Warnings",
-  "translation_partial_fail_summary": "Some files or batches fell back to the original text. Review the error report before using the output.",
-  "error_cannot_open_folder": "Cannot Open Folder",
-  "error_output_folder_not_available": "Output folder path is not available yet.",
-  "partial_failure_title": "Partial Failure",
-  "partial_failure_review_msg": "Open the detailed logs and review the failed files before deploying."
+  "deploy_loading_target_path": "Carregando caminho de implantação de destino...",
+  "deploy_error_load_info": "Falha ao carregar informações de implantação",
+  "translation_completed_with_warnings": "Tradução concluída com avisos",
+  "translation_partial_fail_summary": "Alguns arquivos ou lotes voltaram para o texto original. Revise o relatório de erros antes de usar a saída.",
+  "error_cannot_open_folder": "Não foi possível abrir a pasta",
+  "error_output_folder_not_available": "O caminho da pasta de saída ainda não está disponível.",
+  "partial_failure_title": "Falha parcial",
+  "partial_failure_review_msg": "Abra os logs detalhados e revise os arquivos com falha antes de implantar."
 }

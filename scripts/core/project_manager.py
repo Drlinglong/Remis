@@ -579,7 +579,7 @@ class ProjectManager:
                 
         except Exception as e:
             logger.error(f"Failed to delete project: {e}")
-            raise e
+            raise
 
     async def add_translation_path(self, project_id: str, translation_path: str):
         """

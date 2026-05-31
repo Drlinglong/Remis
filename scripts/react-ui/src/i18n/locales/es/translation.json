@@ -1492,12 +1492,12 @@
   "deploy_error_paradox_dir_not_found": "No se pudo determinar la carpeta de mod de Paradox para el juego. Especifique la ruta manualmente.",
   "deploy_clean_no_files_found": "No se encontraron archivos de localización falsos para limpiar.",
   "deploy_clean_files_removed": " ({{folders}} carpeta(s), {{files}} archivo(s) eliminado(s))",
-  "deploy_loading_target_path": "Loading deployment target path...",
-  "deploy_error_load_info": "Failed to load deployment info",
-  "translation_completed_with_warnings": "Translation Completed With Warnings",
-  "translation_partial_fail_summary": "Some files or batches fell back to the original text. Review the error report before using the output.",
-  "error_cannot_open_folder": "Cannot Open Folder",
-  "error_output_folder_not_available": "Output folder path is not available yet.",
-  "partial_failure_title": "Partial Failure",
-  "partial_failure_review_msg": "Open the detailed logs and review the failed files before deploying."
+  "deploy_loading_target_path": "Cargando ruta de despliegue de destino...",
+  "deploy_error_load_info": "No se pudo cargar la información de despliegue",
+  "translation_completed_with_warnings": "Traducción completada con advertencias",
+  "translation_partial_fail_summary": "Algunos archivos o lotes volvieron al texto original. Revise el informe de errores antes de usar la salida.",
+  "error_cannot_open_folder": "No se puede abrir la carpeta",
+  "error_output_folder_not_available": "La ruta de la carpeta de salida aún no está disponible.",
+  "partial_failure_title": "Fallo parcial",
+  "partial_failure_review_msg": "Abra los registros detallados y revise los archivos fallidos antes de desplegar."
 }

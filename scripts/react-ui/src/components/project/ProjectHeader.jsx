@@ -1,6 +1,6 @@
 import React from 'react';
-import { Paper, Group, Title, Button, Tooltip, Grid, Card, Text, ActionIcon, Modal, TextInput, Stack, Alert, Loader, Code } from '@mantine/core';
-import { IconArchive, IconRestore, IconTrash, IconSettings, IconPlayerPlay, IconRocket, IconAlertCircle } from '@tabler/icons-react';
+import { Paper, Group, Title, Button, Tooltip, Grid, Card, Text, Stack } from '@mantine/core';
+import { IconArchive, IconRestore, IconTrash, IconSettings, IconPlayerPlay, IconRocket } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import styles from '../../pages/ProjectManagement.module.css';
@@ -140,7 +140,7 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                                 }}
                             >
                                 <Text className={styles.startBtnLabel}>
-                                    {t('button_start_translation', '开始翻译')}
+                                    {t('button_start_translation')}
                                 </Text>
                             </Button>
                         </Tooltip>
@@ -154,7 +154,7 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                                     onClick={handleOpenDeployModal}
                                     fullWidth
                                 >
-                                    {t('button_auto_deploy', '一键部署')}
+                                    {t('button_auto_deploy')}
                                 </Button>
                             </Tooltip>
 
@@ -166,7 +166,7 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                                     onClick={handleOpenCleanModal}
                                     fullWidth
                                 >
-                                    {t('button_clean_fake_loc', '删除假本地化')}
+                                    {t('button_clean_fake_loc')}
                                 </Button>
                             </Tooltip>
                         </Group>

@@ -1492,12 +1492,12 @@
   "deploy_error_paradox_dir_not_found": "게임의 Paradox 모드 폴더를 확인할 수 없습니다. 경로를 수동으로 지정하십시오.",
   "deploy_clean_no_files_found": "정리할 가짜 로컬라이징 파일이 없습니다.",
   "deploy_clean_files_removed": " ({{folders}}개 폴더, {{files}}개 파일 삭제됨)",
-  "deploy_loading_target_path": "Loading deployment target path...",
-  "deploy_error_load_info": "Failed to load deployment info",
-  "translation_completed_with_warnings": "Translation Completed With Warnings",
-  "translation_partial_fail_summary": "Some files or batches fell back to the original text. Review the error report before using the output.",
-  "error_cannot_open_folder": "Cannot Open Folder",
-  "error_output_folder_not_available": "Output folder path is not available yet.",
-  "partial_failure_title": "Partial Failure",
-  "partial_failure_review_msg": "Open the detailed logs and review the failed files before deploying."
+  "deploy_loading_target_path": "배포 대상 경로를 불러오는 중...",
+  "deploy_error_load_info": "배포 정보를 불러오지 못했습니다",
+  "translation_completed_with_warnings": "경고와 함께 번역 완료",
+  "translation_partial_fail_summary": "일부 파일 또는 배치가 원문으로 대체되었습니다. 출력물을 사용하기 전에 오류 보고서를 확인하세요.",
+  "error_cannot_open_folder": "폴더를 열 수 없음",
+  "error_output_folder_not_available": "출력 폴더 경로를 아직 사용할 수 없습니다.",
+  "partial_failure_title": "부분 실패",
+  "partial_failure_review_msg": "배포하기 전에 상세 로그를 열고 실패한 파일을 확인하세요."
 }

@@ -16,8 +16,6 @@ import {
     Alert,
     SimpleGrid,
     Loader,
-    Modal,
-    TextInput,
     Tooltip
 } from '@mantine/core';
 import {
@@ -33,7 +31,6 @@ import {
     IconTypography,
     IconFolderOpen,
     IconRocket,
-    IconCloudUpload,
     IconTrash
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -145,7 +142,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
         }
 
         notifications.show({
-            title: 'Error',
+            title: t('error_title'),
             message: `Cannot open output location: ${lastError?.response?.data?.detail || lastError?.message || 'Unknown error'}`,
             color: 'red'
         });
@@ -156,9 +153,9 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     // Render Report Card
     if (isDoneWithOutput) {
         const statusColor = isPartiallyFailed ? 'yellow' : 'green';
-        const statusTitle = isPartiallyFailed ? t('translation_completed_with_warnings', 'Translation Completed With Warnings') : t('translation_completed');
+        const statusTitle = isPartiallyFailed ? t('translation_completed_with_warnings') : t('translation_completed');
         const statusSummary = isPartiallyFailed
-            ? t('translation_partial_fail_summary', 'Some files or batches fell back to the original text. Review the error report before using the output.')
+            ? t('translation_partial_fail_summary')
             : t('report_success_summary', {
                 mod_name: translationDetails?.modName || 'Mod',
                 source_lang: translationDetails?.sourceLang || 'Source',
@@ -179,12 +176,12 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                         {isPartiallyFailed && (
                             <Alert
                                 icon={<IconAlertCircle size={20} />}
-                                title={t('partial_failure_title', 'Partial Failure')}
+                                title={t('partial_failure_title')}
                                 color="yellow"
                                 variant="light"
                                 w="100%"
                             >
-                                {t('partial_failure_review_msg', 'Open the detailed logs and review the failed files before deploying.')}
+                                {t('partial_failure_review_msg')}
                             </Alert>
                         )}
 
@@ -233,7 +230,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                                 color="teal"
                                 onClick={handleOpenFolder}
                             >
-                                {t('button_open_folder', 'Open Folder')}
+                                {t('button_open_folder')}
                             </Button>
                             <Tooltip label={t('deploy_tooltip_label')} position="top" withArrow>
                                 <Button
