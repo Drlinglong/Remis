@@ -414,9 +414,15 @@ export const useIncrementalTranslation = (notificationStyle) => {
                     follow_primary_settings: embeddedWorkshopFollowPrimary,
                     api_provider: embeddedWorkshopFollowPrimary ? null : embeddedWorkshopProvider,
                     api_model: embeddedWorkshopFollowPrimary ? null : embeddedWorkshopModel,
-                    batch_size_limit: Number(embeddedWorkshopBatchSize),
-                    concurrency_limit: Number(embeddedWorkshopConcurrency),
-                    rpm_limit: Number(embeddedWorkshopRpm),
+                    batch_size_limit: embeddedWorkshopFollowPrimary
+                        ? (batchSizeLimit ? Number(batchSizeLimit) : null)
+                        : Number(embeddedWorkshopBatchSize),
+                    concurrency_limit: embeddedWorkshopFollowPrimary
+                        ? Number(concurrencyLimit)
+                        : Number(embeddedWorkshopConcurrency),
+                    rpm_limit: embeddedWorkshopFollowPrimary
+                        ? Number(rpmLimit)
+                        : Number(embeddedWorkshopRpm),
                 }
             });
 
@@ -483,9 +489,15 @@ export const useIncrementalTranslation = (notificationStyle) => {
                     follow_primary_settings: embeddedWorkshopFollowPrimary,
                     api_provider: embeddedWorkshopFollowPrimary ? null : embeddedWorkshopProvider,
                     api_model: embeddedWorkshopFollowPrimary ? null : embeddedWorkshopModel,
-                    batch_size_limit: Number(embeddedWorkshopBatchSize),
-                    concurrency_limit: Number(embeddedWorkshopConcurrency),
-                    rpm_limit: Number(embeddedWorkshopRpm),
+                    batch_size_limit: embeddedWorkshopFollowPrimary
+                        ? (batchSizeLimit ? Number(batchSizeLimit) : null)
+                        : Number(embeddedWorkshopBatchSize),
+                    concurrency_limit: embeddedWorkshopFollowPrimary
+                        ? Number(concurrencyLimit)
+                        : Number(embeddedWorkshopConcurrency),
+                    rpm_limit: embeddedWorkshopFollowPrimary
+                        ? Number(rpmLimit)
+                        : Number(embeddedWorkshopRpm),
                 }
             });
 

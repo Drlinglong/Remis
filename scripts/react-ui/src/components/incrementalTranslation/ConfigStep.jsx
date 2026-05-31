@@ -390,15 +390,16 @@ export const ConfigStep = ({
 
                                             {/* Renders PerformanceControlPanel for embedded workshop settings */}
                                             <PerformanceControlPanel
-                                                batchSize={embeddedWorkshopBatchSize}
+                                                batchSize={embeddedWorkshopFollowPrimary ? batchSizeLimit : embeddedWorkshopBatchSize}
                                                 onChangeBatchSize={setEmbeddedWorkshopBatchSize}
-                                                concurrency={embeddedWorkshopConcurrency}
+                                                concurrency={embeddedWorkshopFollowPrimary ? concurrencyLimit : embeddedWorkshopConcurrency}
                                                 onChangeConcurrency={setEmbeddedWorkshopConcurrency}
-                                                rpm={embeddedWorkshopRpm}
+                                                rpm={embeddedWorkshopFollowPrimary ? rpmLimit : embeddedWorkshopRpm}
                                                 onChangeRpm={setEmbeddedWorkshopRpm}
                                                 batchSizeOpts={['3', '5', '10', '15', '20'].map(value => ({ value, label: value }))}
                                                 concurrencyOpts={['1', '2', '3', '5'].map(value => ({ value, label: value }))}
                                                 rpmOpts={['5', '10', '20', '40', '60', '100'].map(value => ({ value, label: value }))}
+                                                disabled={embeddedWorkshopFollowPrimary}
                                             />
                                         </Stack>
                                     )}

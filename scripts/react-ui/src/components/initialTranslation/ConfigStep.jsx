@@ -102,11 +102,12 @@ export default function ConfigStep({
     </Group>
   );
 
-  const renderNativeSelect = ({ label, value, onChange, options, description }) => (
+  const renderNativeSelect = ({ label, value, onChange, options, description, disabled = false }) => (
     <NativeSelect
       label={label}
       value={value}
       onChange={onChange}
+      disabled={disabled}
       data={[
         { value: '', label: t('common.select', 'Select') },
         ...options.map(o => ({ value: o.value, label: o.label }))
@@ -653,9 +654,12 @@ export default function ConfigStep({
                             t('translation_page.embedded_workshop_batch_size', { defaultValue: '每批修复条数' }),
                             t('translation_page.embedded_workshop_batch_size_tooltip', { defaultValue: '控制每次交给智能工坊修复的条目数量。只对本次翻译生效。' }),
                           ),
-                          value: form.values.embedded_workshop_batch_size_limit,
+                          value: form.values.embedded_workshop_follow_primary_settings
+                            ? form.values.translation_batch_size_limit
+                            : form.values.embedded_workshop_batch_size_limit,
                           options: ['3', '5', '10', '15', '20'].map((value) => ({ value, label: value })),
                           onChange: (event) => form.setFieldValue('embedded_workshop_batch_size_limit', event.currentTarget.value),
+                          disabled: form.values.embedded_workshop_follow_primary_settings,
                         })}
                       </Box>
                       <Box style={{ flex: 1 }}>
@@ -664,9 +668,12 @@ export default function ConfigStep({
                             t('translation_page.embedded_workshop_concurrency', { defaultValue: '校对并发' }),
                             t('translation_page.embedded_workshop_concurrency_tooltip', { defaultValue: '控制智能工坊同时修复多少个批次。只对本次翻译生效。' }),
                           ),
-                          value: form.values.embedded_workshop_concurrency_limit,
+                          value: form.values.embedded_workshop_follow_primary_settings
+                            ? form.values.translation_concurrency_limit
+                            : form.values.embedded_workshop_concurrency_limit,
                           options: ['1', '2', '3', '5'].map((value) => ({ value, label: value })),
                           onChange: (event) => form.setFieldValue('embedded_workshop_concurrency_limit', event.currentTarget.value),
+                          disabled: form.values.embedded_workshop_follow_primary_settings,
                         })}
                       </Box>
                       <Box style={{ flex: 1 }}>
@@ -675,9 +682,12 @@ export default function ConfigStep({
                             t('translation_page.embedded_workshop_rpm', { defaultValue: '校对 RPM' }),
                             t('translation_page.embedded_workshop_rpm_tooltip', { defaultValue: '限制智能工坊每分钟请求数。只对本次翻译生效。' }),
                           ),
-                          value: form.values.embedded_workshop_rpm_limit,
+                          value: form.values.embedded_workshop_follow_primary_settings
+                            ? form.values.translation_rpm_limit
+                            : form.values.embedded_workshop_rpm_limit,
                           options: ['5', '10', '20', '40', '60', '100'].map((value) => ({ value, label: value })),
                           onChange: (event) => form.setFieldValue('embedded_workshop_rpm_limit', event.currentTarget.value),
+                          disabled: form.values.embedded_workshop_follow_primary_settings,
                         })}
                       </Box>
                     </Group>
