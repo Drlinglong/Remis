@@ -15,6 +15,7 @@ def mock_project_manager():
         mock.get_project = AsyncMock()
         mock.create_project = AsyncMock()
         mock.refresh_project_files = AsyncMock()
+        mock.repair_project_metadata = AsyncMock()
         mock.update_project_files_to_db = AsyncMock()
         mock.update_file_status_with_kanban_sync = AsyncMock()
         mock.update_project_metadata = AsyncMock()
@@ -169,3 +170,20 @@ def test_update_project_config_delegates_source_path_to_manager(mock_project_man
         {"translation_dirs": ["C:/Mods/New/out"]}
     )
     mock_project_manager.refresh_project_files.assert_awaited_once_with("proj-1")
+
+
+def test_repair_project_metadata_delegates_to_manager(mock_project_manager):
+    mock_project_manager.repair_project_metadata.return_value = {
+        "status": "success",
+        "actions": ["created_project_sidecar"],
+        "warnings": [],
+        "file_count": 2,
+    }
+
+    client = TestClient(app)
+    response = client.post("/api/project/proj-1/repair-metadata")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    assert response.json()["file_count"] == 2
+    mock_project_manager.repair_project_metadata.assert_awaited_once_with("proj-1")

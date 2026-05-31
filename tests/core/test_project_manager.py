@@ -269,6 +269,39 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
                 "Test"
             )
 
+    async def test_repair_project_metadata_rebuilds_sidecars_and_refreshes_files(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_root = os.path.join(temp_dir, "project")
+            translation_root = os.path.join(temp_dir, "translation")
+            os.makedirs(source_root)
+            os.makedirs(translation_root)
+            sidecar_path = os.path.join(source_root, ".remis_project.json")
+            with open(sidecar_path, "w", encoding="utf-8") as handle:
+                handle.write("{broken json")
+            with open(os.path.join(source_root, ".remis_errors.json"), "w", encoding="utf-8") as handle:
+                handle.write("[{\"file_name\":\"../translation/demo_l_english.yml\",\"source_context_status\":\"missing\"}]")
+
+            mock_obj = MagicMock()
+            mock_obj.model_dump.return_value = {
+                "project_id": "repair-proj",
+                "name": "Repair Project",
+                "game_id": "hoi4",
+                "source_language": "zh-CN",
+                "source_path": source_root,
+            }
+            self.mock_repo.get_project.return_value = mock_obj
+            self.mock_repo.get_project_files.return_value = [
+                MagicMock(model_dump=MagicMock(return_value={"file_path": "one.yml"}))
+            ]
+
+            result = await self.pm.repair_project_metadata("repair-proj")
+
+        self.assertEqual(result["status"], "success")
+        self.assertIn("cleared_stale_project_error_cache", result["actions"])
+        self.assertEqual(result["error_cache_status"], "cleared_stale")
+        self.assertEqual(result["file_count"], 1)
+        self.mock_file_service.scan_and_sync_files.assert_called()
+
     async def test_update_project_metadata(self):
         """
         Verify metadata update flows to repository calls correctly.

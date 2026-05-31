@@ -1499,5 +1499,9 @@
   "error_cannot_open_folder": "Impossible d'ouvrir le dossier",
   "error_output_folder_not_available": "Le chemin du dossier de sortie n'est pas encore disponible.",
   "partial_failure_title": "Échec partiel",
-  "partial_failure_review_msg": "Ouvrez les journaux détaillés et vérifiez les fichiers en échec avant le déploiement."
+  "partial_failure_review_msg": "Ouvrez les journaux détaillés et vérifiez les fichiers en échec avant le déploiement.",
+  "project_management.repair_metadata": "Repair Metadata",
+  "project_management.tooltip_repair_metadata": "Validate sidecar metadata, repair stale caches, and rebuild the file index.",
+  "project_management.repair_metadata_success": "Project metadata checked and rebuilt.",
+  "project_management.repair_metadata_error": "Failed to repair project metadata."
 }

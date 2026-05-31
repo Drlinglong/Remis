@@ -1518,5 +1518,9 @@
   "error_cannot_open_folder": "无法打开文件夹",
   "error_output_folder_not_available": "尚未生成汉化输出目录，请先进行翻译。",
   "partial_failure_title": "部分文件翻译失败",
-  "partial_failure_review_msg": "在部署前，请先打开详细日志或错误报告，审查并修复失败的文件。"
+  "partial_failure_review_msg": "在部署前，请先打开详细日志或错误报告，审查并修复失败的文件。",
+  "project_management.repair_metadata": "检验/重建元数据",
+  "project_management.tooltip_repair_metadata": "检查项目侧元数据、清理过期缓存，并重建文件索引。",
+  "project_management.repair_metadata_success": "项目元数据已检查并重建。",
+  "project_management.repair_metadata_error": "项目元数据修复失败。"
 }

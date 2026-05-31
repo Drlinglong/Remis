@@ -1499,5 +1499,9 @@
   "error_cannot_open_folder": "フォルダーを開けません",
   "error_output_folder_not_available": "出力フォルダーのパスはまだ利用できません。",
   "partial_failure_title": "一部失敗",
-  "partial_failure_review_msg": "デプロイ前に詳細ログを開き、失敗したファイルを確認してください。"
+  "partial_failure_review_msg": "デプロイ前に詳細ログを開き、失敗したファイルを確認してください。",
+  "project_management.repair_metadata": "Repair Metadata",
+  "project_management.tooltip_repair_metadata": "Validate sidecar metadata, repair stale caches, and rebuild the file index.",
+  "project_management.repair_metadata_success": "Project metadata checked and rebuilt.",
+  "project_management.repair_metadata_error": "Failed to repair project metadata."
 }

@@ -189,6 +189,15 @@ async def refresh_project_files(project_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/api/project/{project_id}/repair-metadata")
+async def repair_project_metadata(project_id: str):
+    try:
+        return await project_manager.repair_project_metadata(project_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/api/project/{project_id}/upload-translations")
 async def upload_project_translations(project_id: str):
     """Scans and uploads existing translations to the archive."""

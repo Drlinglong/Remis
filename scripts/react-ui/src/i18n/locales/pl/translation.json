@@ -1499,5 +1499,9 @@
   "error_cannot_open_folder": "Nie można otworzyć folderu",
   "error_output_folder_not_available": "Ścieżka folderu wyjściowego nie jest jeszcze dostępna.",
   "partial_failure_title": "Częściowe niepowodzenie",
-  "partial_failure_review_msg": "Przed wdrożeniem otwórz szczegółowe logi i sprawdź pliki zakończone błędem."
+  "partial_failure_review_msg": "Przed wdrożeniem otwórz szczegółowe logi i sprawdź pliki zakończone błędem.",
+  "project_management.repair_metadata": "Repair Metadata",
+  "project_management.tooltip_repair_metadata": "Validate sidecar metadata, repair stale caches, and rebuild the file index.",
+  "project_management.repair_metadata_success": "Project metadata checked and rebuilt.",
+  "project_management.repair_metadata_error": "Failed to repair project metadata."
 }

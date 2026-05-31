@@ -1499,5 +1499,9 @@
   "error_cannot_open_folder": "No se puede abrir la carpeta",
   "error_output_folder_not_available": "La ruta de la carpeta de salida aún no está disponible.",
   "partial_failure_title": "Fallo parcial",
-  "partial_failure_review_msg": "Abra los registros detallados y revise los archivos fallidos antes de desplegar."
+  "partial_failure_review_msg": "Abra los registros detallados y revise los archivos fallidos antes de desplegar.",
+  "project_management.repair_metadata": "Repair Metadata",
+  "project_management.tooltip_repair_metadata": "Validate sidecar metadata, repair stale caches, and rebuild the file index.",
+  "project_management.repair_metadata_success": "Project metadata checked and rebuilt.",
+  "project_management.repair_metadata_error": "Failed to repair project metadata."
 }

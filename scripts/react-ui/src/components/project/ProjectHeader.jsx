@@ -1,13 +1,13 @@
 import React from 'react';
 import { Paper, Group, Title, Button, Tooltip, Grid, Card, Text, Stack } from '@mantine/core';
-import { IconArchive, IconRestore, IconTrash, IconSettings, IconPlayerPlay, IconRocket } from '@tabler/icons-react';
+import { IconArchive, IconRestore, IconTrash, IconSettings, IconPlayerPlay, IconRocket, IconDatabaseCog } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import styles from '../../pages/ProjectManagement.module.css';
 import { useDeployActions } from '../../hooks/useDeployActions';
 import { DeployModals } from '../deploy/DeployModals';
 
-const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, onManageProject }) => {
+const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, onManageProject, onRepairMetadata, repairingMetadata }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
 
@@ -71,6 +71,18 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                                     onClick={onManageProject}
                                 >
                                     {t('project_management.manage_project')}
+                                </Button>
+                            </Tooltip>
+                            <Tooltip label={t('project_management.tooltip_repair_metadata', 'Validate sidecar metadata, repair stale caches, and rebuild the file index.')}>
+                                <Button
+                                    variant="light"
+                                    color="teal"
+                                    size="xs"
+                                    leftSection={<IconDatabaseCog size={16} />}
+                                    onClick={onRepairMetadata}
+                                    loading={repairingMetadata}
+                                >
+                                    {t('project_management.repair_metadata', 'Repair Metadata')}
                                 </Button>
                             </Tooltip>
                         </>

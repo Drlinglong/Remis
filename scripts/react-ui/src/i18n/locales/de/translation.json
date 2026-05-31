@@ -1499,5 +1499,9 @@
   "error_cannot_open_folder": "Ordner kann nicht geöffnet werden",
   "error_output_folder_not_available": "Der Ausgabepfad ist noch nicht verfügbar.",
   "partial_failure_title": "Teilweiser Fehler",
-  "partial_failure_review_msg": "Öffnen Sie vor der Bereitstellung die detaillierten Protokolle und prüfen Sie die fehlgeschlagenen Dateien."
+  "partial_failure_review_msg": "Öffnen Sie vor der Bereitstellung die detaillierten Protokolle und prüfen Sie die fehlgeschlagenen Dateien.",
+  "project_management.repair_metadata": "Repair Metadata",
+  "project_management.tooltip_repair_metadata": "Validate sidecar metadata, repair stale caches, and rebuild the file index.",
+  "project_management.repair_metadata_success": "Project metadata checked and rebuilt.",
+  "project_management.repair_metadata_error": "Failed to repair project metadata."
 }

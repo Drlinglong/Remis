@@ -1499,5 +1499,9 @@
   "error_cannot_open_folder": "Não foi possível abrir a pasta",
   "error_output_folder_not_available": "O caminho da pasta de saída ainda não está disponível.",
   "partial_failure_title": "Falha parcial",
-  "partial_failure_review_msg": "Abra os logs detalhados e revise os arquivos com falha antes de implantar."
+  "partial_failure_review_msg": "Abra os logs detalhados e revise os arquivos com falha antes de implantar.",
+  "project_management.repair_metadata": "Repair Metadata",
+  "project_management.tooltip_repair_metadata": "Validate sidecar metadata, repair stale caches, and rebuild the file index.",
+  "project_management.repair_metadata_success": "Project metadata checked and rebuilt.",
+  "project_management.repair_metadata_error": "Failed to repair project metadata."
 }

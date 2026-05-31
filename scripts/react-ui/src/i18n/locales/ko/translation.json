@@ -1499,5 +1499,9 @@
   "error_cannot_open_folder": "폴더를 열 수 없음",
   "error_output_folder_not_available": "출력 폴더 경로를 아직 사용할 수 없습니다.",
   "partial_failure_title": "부분 실패",
-  "partial_failure_review_msg": "배포하기 전에 상세 로그를 열고 실패한 파일을 확인하세요."
+  "partial_failure_review_msg": "배포하기 전에 상세 로그를 열고 실패한 파일을 확인하세요.",
+  "project_management.repair_metadata": "Repair Metadata",
+  "project_management.tooltip_repair_metadata": "Validate sidecar metadata, repair stale caches, and rebuild the file index.",
+  "project_management.repair_metadata_success": "Project metadata checked and rebuilt.",
+  "project_management.repair_metadata_error": "Failed to repair project metadata."
 }

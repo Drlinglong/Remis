@@ -44,6 +44,7 @@ export default function ProjectManagement() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteSourceFiles, setDeleteSourceFiles] = useState(false);
   const [projectDataRefreshToken, setProjectDataRefreshToken] = useState(0);
+  const [metadataRepairLoading, setMetadataRepairLoading] = useState(false);
 
   // View Mode: 'active' | 'archives'
   const [viewMode, setViewMode] = usePersistentState('pm_view_mode', 'active');
@@ -419,6 +420,37 @@ export default function ProjectManagement() {
     }
   };
 
+  const handleRepairMetadata = async () => {
+    if (!selectedProject || metadataRepairLoading) return;
+    setMetadataRepairLoading(true);
+    try {
+      const res = await projectService.repairProjectMetadata(selectedProject.project_id);
+      await Promise.all([
+        fetchProjects(),
+        fetchProjectFiles(selectedProject.project_id),
+      ]);
+      setProjectDataRefreshToken(prev => prev + 1);
+      setProjectDetails(prev => ({ ...prev, refreshKey: Date.now() }));
+      const warningCount = res.data?.warnings?.length || 0;
+      const actionCount = res.data?.actions?.length || 0;
+      notificationService.success(
+        t(
+          'project_management.repair_metadata_success',
+          `Project metadata checked. ${actionCount} repairs, ${warningCount} warnings.`
+        ),
+        notificationStyle
+      );
+    } catch (error) {
+      console.error("Failed to repair metadata", error);
+      notificationService.error(
+        error.response?.data?.detail || t('project_management.repair_metadata_error', 'Failed to repair project metadata.'),
+        notificationStyle
+      );
+    } finally {
+      setMetadataRepairLoading(false);
+    }
+  };
+
   // --- Render Views ---
 
   // View 1: Project List (Hero UI)
@@ -596,6 +628,8 @@ export default function ProjectManagement() {
               onDeleteForever={() => setDeleteModalOpen(true)}
               onManageProject={handleOpenManage}
               onRefresh={handleRefreshFiles}
+              onRepairMetadata={handleRepairMetadata}
+              repairingMetadata={metadataRepairLoading}
             />
           ) : <Text>Loading details...</Text>}
         </Tabs.Panel>

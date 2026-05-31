@@ -106,6 +106,13 @@ export const projectService = {
      * @returns {Promise} Axios response promise
      */
     refreshProjectFiles: (projectId) => api.post(`/api/project/${projectId}/refresh`),
+
+    /**
+     * Validate and rebuild project-side metadata/cache files, then refresh file indexing.
+     * @param {string} projectId Project ID
+     * @returns {Promise} Axios response promise
+     */
+    repairProjectMetadata: (projectId) => api.post(`/api/project/${projectId}/repair-metadata`),
 };
 
 export default projectService;
