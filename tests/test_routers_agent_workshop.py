@@ -119,6 +119,109 @@ def test_load_cached_falls_back_to_workshop_sidecar(tmp_path):
     assert cached[0]["key"] == "demo.one"
 
 
+def test_load_cached_prefers_translation_sidecar_over_stale_project_cache(tmp_path):
+    project_root = tmp_path / "project"
+    translation_root = tmp_path / "translation"
+    project_root.mkdir()
+    translation_root.mkdir()
+
+    ProjectJsonManager(str(project_root)).update_config({
+        "translation_dirs": [str(translation_root)]
+    })
+    ValidationLogger.save_errors(str(project_root), [{
+        "file_name": "../translation/events/test_l_english.yml",
+        "key": "demo.one",
+        "source_str": "",
+        "source_context_status": "missing",
+        "target_str": "Broken",
+        "error_type": "validation_error",
+        "details": "broken",
+        "status": "detected",
+    }])
+    (translation_root / "workshop_issues.json").write_text(
+        json.dumps({
+            "issues": [{
+                "file_name": "events/test_l_english.yml",
+                "file_path": str(translation_root / "events" / "test_l_english.yml"),
+                "key": "demo.one",
+                "source_str": "Hello",
+                "source_context_status": "found",
+                "target_str": "Broken",
+                "error_type": "validation_error",
+                "details": "broken",
+                "target_lang": "en",
+                "status": "detected",
+            }]
+        }),
+        encoding="utf-8",
+    )
+
+    with patch("scripts.routers.agent_workshop.project_manager", new_callable=MagicMock) as mock_pm:
+        mock_pm.get_project = AsyncMock(return_value={
+            "project_id": "p2b",
+            "source_path": str(project_root),
+            "game_id": "hoi4",
+        })
+
+        response = client.get("/api/agent-workshop/load-cached", params={"project_id": "p2b"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data[0]["file_name"] == "events/test_l_english.yml"
+    assert data[0]["file_path"] == str(translation_root / "events" / "test_l_english.yml")
+    assert data[0]["source_context_status"] == "found"
+    assert data[0]["target_lang"] == "en"
+
+
+def test_scan_uses_translation_relative_paths_for_external_translation_dirs(tmp_path):
+    project_root = tmp_path / "project"
+    translation_root = tmp_path / "translation"
+    source_file = project_root / "localisation" / "simp_chinese" / "demo_l_simp_chinese.yml"
+    translation_file = translation_root / "localisation" / "english" / "demo_l_english.yml"
+    project_root.mkdir()
+    ProjectJsonManager(str(project_root)).update_config({
+        "translation_dirs": [str(translation_root)]
+    })
+    _write_loc_file(source_file, "l_simp_chinese", [("demo.one:0", "你好")])
+    _write_loc_file(translation_file, "l_english", [("demo.one:0", "Hello。")])
+
+    fake_result = MagicMock()
+    fake_result.level.value = "warning"
+    fake_result.message = "Chinese punctuation in English"
+    fake_result.details = "Use English punctuation."
+
+    with patch("scripts.routers.agent_workshop.project_manager", new_callable=MagicMock) as mock_pm, \
+         patch("scripts.routers.agent_workshop.PostProcessValidator") as mock_validator_cls:
+        mock_pm.get_project = AsyncMock(return_value={
+            "project_id": "p2c",
+            "source_path": str(project_root),
+            "game_id": "hoi4",
+            "source_language": "zh-CN",
+        })
+        mock_pm.get_project_files = AsyncMock(return_value=[
+            {
+                "file_path": str(source_file),
+                "file_type": "source",
+            },
+            {
+                "file_path": str(translation_file),
+                "file_type": "translation",
+            },
+        ])
+        mock_validator_cls.return_value.validate_entry.return_value = [fake_result]
+
+        response = client.get("/api/agent-workshop/scan", params={"project_id": "p2c", "force": True})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["file_name"] == "localisation/english/demo_l_english.yml"
+    assert data[0]["file_path"] == str(translation_file)
+    assert data[0]["source_str"] == "你好"
+    assert data[0]["source_context_status"] == "found"
+    assert data[0]["target_lang"] == "en"
+
+
 def test_fix_issue_updates_file_status_and_report(tmp_path):
     project_root = tmp_path / "project"
     translation_root = tmp_path / "translation"

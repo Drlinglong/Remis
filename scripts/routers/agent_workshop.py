@@ -176,6 +176,24 @@ def _active_issue_dicts(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     ]
 
 
+def _should_prefer_translation_sidecar(
+    current_errors: List[Dict[str, Any]],
+    sidecar_issues: List[ValidationIssue],
+) -> bool:
+    if not current_errors or not sidecar_issues:
+        return False
+
+    for issue in current_errors:
+        file_name = str(issue.get("file_name") or "").replace("\\", "/")
+        if file_name.startswith("../") or "/../" in file_name:
+            return True
+        if not issue.get("file_path") and issue.get("source_context_status") == "missing":
+            return True
+        if issue.get("target_lang") is None and any(item.target_lang for item in sidecar_issues):
+            return True
+    return False
+
+
 def _slugify_filename(value: str) -> str:
     safe = re.sub(r"[^A-Za-z0-9._-]+", "_", value or "")
     return safe.strip("._") or "issue"
@@ -323,6 +341,19 @@ def _load_project_sidecar_issues(project: Dict[str, Any]) -> List[ValidationIssu
     return issues
 
 
+def _relative_to_any(path: Path, roots: List[Path], fallback_root: Path) -> str:
+    resolved_path = path.resolve()
+    for root in roots:
+        try:
+            return resolved_path.relative_to(root.resolve()).as_posix()
+        except ValueError:
+            continue
+    try:
+        return os.path.relpath(resolved_path, fallback_root.resolve()).replace("\\", "/")
+    except ValueError:
+        return str(path)
+
+
 def _resolve_issue_target_path(project: Dict[str, Any], issue_file_path: Optional[str], issue_file_name: Optional[str]) -> Optional[Path]:
     if issue_file_path:
         candidate = Path(issue_file_path)
@@ -404,10 +435,10 @@ async def load_cached_errors(project_id: str):
         raise HTTPException(status_code=404, detail="Project not found")
 
     current_errors = ValidationLogger.load_errors(project['source_path'])
-    if current_errors:
+    sidecar_issues = _load_project_sidecar_issues(project)
+    if current_errors and not _should_prefer_translation_sidecar(current_errors, sidecar_issues):
         return _active_issue_dicts(current_errors)
 
-    sidecar_issues = _load_project_sidecar_issues(project)
     if sidecar_issues:
         active_issues = [
             issue for issue in sidecar_issues
@@ -433,7 +464,8 @@ async def scan_project(project_id: str, force: bool = Query(False)):
 
     if not force:
         current_errors = ValidationLogger.load_errors(project['source_path'])
-        if current_errors:
+        sidecar_issues = _load_project_sidecar_issues(project)
+        if current_errors and not _should_prefer_translation_sidecar(current_errors, sidecar_issues):
             logger.info(
                 "[AgentWorkshop] Returning %s cached project-side issues for %s",
                 len(current_errors),
@@ -441,7 +473,6 @@ async def scan_project(project_id: str, force: bool = Query(False)):
             )
             return _active_issue_dicts(current_errors)
 
-        sidecar_issues = _load_project_sidecar_issues(project)
         if sidecar_issues:
             logger.info(
                 "[AgentWorkshop] Returning %s translation-sidecar issues for %s",
@@ -471,13 +502,19 @@ async def scan_project(project_id: str, force: bool = Query(False)):
     files = await project_manager.get_project_files(project_id)
     logger.info("[AgentWorkshop] Project file inventory size: %s", len(files))
     
-    def get_rel_path(p):
-        try:
-            return os.path.relpath(p, project['source_path']).replace('\\', '/')
-        except ValueError:
-            return p
+    json_manager = ProjectJsonManager(project['source_path'])
+    translation_roots = [
+        Path(path)
+        for path in (json_manager.get_config().get("translation_dirs", []) or [])
+    ]
 
-    source_files = {get_rel_path(f['file_path']): f for f in files if f.get('file_type') == 'source'}
+    def get_source_rel_path(p):
+        return _relative_to_any(Path(p), [source_root], source_root)
+
+    def get_translation_rel_path(p):
+        return _relative_to_any(Path(p), translation_roots, source_root)
+
+    source_files = {get_source_rel_path(f['file_path']): f for f in files if f.get('file_type') == 'source'}
     translation_files = [f for f in files if f.get('file_type') == 'translation']
     logger.info(
         "[AgentWorkshop] Source files: %s, translation files: %s",
@@ -489,8 +526,8 @@ async def scan_project(project_id: str, force: bool = Query(False)):
     source_cache = {}
 
     for file_info in translation_files:
-        rel_path = get_rel_path(file_info['file_path'])
         file_path = Path(file_info['file_path'])
+        rel_path = file_info.get('relative_path') or get_translation_rel_path(file_path)
         if not file_path.exists():
             logger.warning("[AgentWorkshop] Translation file missing on disk: %s", file_info['file_path'])
             continue
@@ -533,7 +570,8 @@ async def scan_project(project_id: str, force: bool = Query(False)):
                         res.message,
                     )
                     issues.append(ValidationIssue(
-                        file_name=file_info['relative_path'] if 'relative_path' in file_info else get_rel_path(file_info['file_path']),
+                        file_name=rel_path,
+                        file_path=str(file_path),
                         key=key,
                         source_str=source_entries.get(key, ""),
                         source_context_status="found" if source_entries.get(key, "") else "missing",
@@ -542,6 +580,7 @@ async def scan_project(project_id: str, force: bool = Query(False)):
                         target_str=value,
                         error_type=res.message,
                         details=res.details or "",
+                        target_lang=target_lang,
                         status="detected"
                     ))
     
