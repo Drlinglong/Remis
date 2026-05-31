@@ -33,7 +33,7 @@ import { FEATURES } from '../config/features';
 
 
 export default function ProjectManagement() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { setPageContext } = useTutorial();
   const { notificationStyle } = useNotification();
   const [projects, setProjects] = useState([]);
@@ -420,6 +420,48 @@ export default function ProjectManagement() {
     }
   };
 
+  const formatRepairMetadataNotification = (metadata) => {
+    const isChinese = (i18n.language || '').toLowerCase().startsWith('zh');
+    const actions = Array.isArray(metadata?.actions) ? metadata.actions : [];
+    const warnings = Array.isArray(metadata?.warnings) ? metadata.warnings : [];
+    const updatedFiles = new Set();
+
+    if (actions.some(action => [
+      'created_project_sidecar',
+      'deduplicated_translation_dir',
+      'repaired_kanban_metadata',
+    ].includes(action))) {
+      updatedFiles.add('.remis_project.json');
+    }
+    if (actions.some(action => [
+      'cleared_stale_project_error_cache',
+      'rebuilt_invalid_error_cache',
+    ].includes(action))) {
+      updatedFiles.add('.remis_errors.json');
+    }
+
+    const fileIndexText = isChinese
+      ? `项目文件索引已刷新（${metadata?.file_count ?? 0} 个文件）`
+      : `Project file index refreshed (${metadata?.file_count ?? 0} files)`;
+    const updatedText = updatedFiles.size
+      ? (isChinese ? `更新文件：${Array.from(updatedFiles).join('、')}` : `Updated files: ${Array.from(updatedFiles).join(', ')}`)
+      : (isChinese ? '元数据文件已校验，无需改写' : 'Metadata files checked; no metadata file rewrite needed');
+    const translationDirText = isChinese
+      ? `翻译目录：${metadata?.translation_dirs?.length ?? 0} 个`
+      : `Translation dirs: ${metadata?.translation_dirs?.length ?? 0}`;
+    const warningText = warnings.length
+      ? (isChinese ? `警告：${warnings.length} 个（${warnings[0]}）` : `Warnings: ${warnings.length} (${warnings[0]})`)
+      : (isChinese ? '无警告' : 'No warnings');
+
+    return [
+      t('project_management.repair_metadata_success', isChinese ? '项目元数据检验/重建成功。' : 'Project metadata checked/rebuilt successfully.'),
+      updatedText,
+      fileIndexText,
+      translationDirText,
+      warningText,
+    ].join('\n');
+  };
+
   const handleRepairMetadata = async () => {
     if (!selectedProject || metadataRepairLoading) return;
     setMetadataRepairLoading(true);
@@ -431,19 +473,16 @@ export default function ProjectManagement() {
       ]);
       setProjectDataRefreshToken(prev => prev + 1);
       setProjectDetails(prev => ({ ...prev, refreshKey: Date.now() }));
-      const warningCount = res.data?.warnings?.length || 0;
-      const actionCount = res.data?.actions?.length || 0;
       notificationService.success(
-        t(
-          'project_management.repair_metadata_success',
-          `Project metadata checked. ${actionCount} repairs, ${warningCount} warnings.`
-        ),
+        formatRepairMetadataNotification(res.data || {}),
         notificationStyle
       );
     } catch (error) {
       console.error("Failed to repair metadata", error);
+      const isChinese = (i18n.language || '').toLowerCase().startsWith('zh');
+      const failureDetail = error.response?.data?.detail || t('project_management.repair_metadata_error', 'Failed to repair project metadata.');
       notificationService.error(
-        error.response?.data?.detail || t('project_management.repair_metadata_error', 'Failed to repair project metadata.'),
+        isChinese ? `项目元数据检验/重建失败：${failureDetail}` : `Project metadata repair failed: ${failureDetail}`,
         notificationStyle
       );
     } finally {

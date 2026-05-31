@@ -129,6 +129,7 @@ class ReflexionFixAgent:
             })
 
         resolved_target_lang = self._resolve_batch_target_lang(current_state, target_lang_code)
+        attempt_summaries = []
             
         for attempt in range(max_retries):
             # 1. Filter out already fixed issues for the prompt
@@ -138,6 +139,18 @@ class ReflexionFixAgent:
                 break
                 
             self.logger.info(f"Batch Fix Attempt {attempt + 1}/{max_retries} for {len(active_indices)} issues.")
+            fixed_before_attempt = sum(1 for state in current_state if state["is_fixed"])
+            attempt_summary = {
+                "attempt": attempt + 1,
+                "max_retries": max_retries,
+                "active_count": len(active_indices),
+                "used_reflection": attempt > 0,
+                "reflections_generated": 0,
+                "fixed_count": 0,
+                "remaining_count": len(active_indices),
+                "status": "started",
+                "message": "",
+            }
             
             # 1.5 Generate diagnostic reflections for retries (attempt > 0)
             if attempt > 0:
@@ -157,6 +170,7 @@ class ReflexionFixAgent:
                         current_state[orig_idx]["reflection"] = ""
                     else:
                         current_state[orig_idx]["reflection"] = reflection
+                        attempt_summary["reflections_generated"] += 1
             else:
                 for idx in active_indices:
                     current_state[idx]["reflection"] = ""
@@ -186,7 +200,11 @@ class ReflexionFixAgent:
                         pass
                 
                 if len(fixed_texts) != len(active_indices):
-                    self.logger.error(f"Length mismatch: Expected {len(active_indices)}, got {len(fixed_texts)}")
+                    message = f"Length mismatch: Expected {len(active_indices)}, got {len(fixed_texts)}"
+                    self.logger.error(message)
+                    attempt_summary["status"] = "invalid_response"
+                    attempt_summary["message"] = message
+                    attempt_summaries.append(attempt_summary)
                     continue
                     
                 # 3. Apply fixes and validate
@@ -212,8 +230,18 @@ class ReflexionFixAgent:
                         state["error_messages"] = [e.message for e in errors]
                         state["error_details"] = [e.details for e in errors if e.details]
                         state["target"] = fixed_text # Update target to the current failed attempt for the next prompt
+
+                fixed_after_attempt = sum(1 for state in current_state if state["is_fixed"])
+                remaining_after_attempt = len([state for state in current_state if not state["is_fixed"]])
+                attempt_summary["fixed_count"] = max(0, fixed_after_attempt - fixed_before_attempt)
+                attempt_summary["remaining_count"] = remaining_after_attempt
+                attempt_summary["status"] = "completed"
+                attempt_summaries.append(attempt_summary)
             except Exception as e:
                 self.logger.error(f"Batch Fix API Call failed: {e}")
+                attempt_summary["status"] = "api_error"
+                attempt_summary["message"] = str(e)
+                attempt_summaries.append(attempt_summary)
                 
         # Return summary
         results_list = []
@@ -226,7 +254,11 @@ class ReflexionFixAgent:
                 "parity_message": "Validation passed." if state["is_fixed"] else " | ".join(state["error_messages"])
             })
             
-        return {"results": results_list}
+        return {
+            "results": results_list,
+            "attempts": attempt_summaries,
+            "max_retries": max_retries,
+        }
 
     def _build_batch_prompt(
         self,

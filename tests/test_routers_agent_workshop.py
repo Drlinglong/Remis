@@ -381,6 +381,31 @@ def test_fix_batch_only_marks_successful_items_fixed(tmp_path):
 
     mock_agent = MagicMock()
     mock_agent.fix_batch_loop = AsyncMock(return_value={
+        "attempts": [
+            {
+                "attempt": 1,
+                "max_retries": 3,
+                "active_count": 2,
+                "used_reflection": False,
+                "reflections_generated": 0,
+                "fixed_count": 1,
+                "remaining_count": 1,
+                "status": "completed",
+                "message": "",
+            },
+            {
+                "attempt": 2,
+                "max_retries": 3,
+                "active_count": 1,
+                "used_reflection": True,
+                "reflections_generated": 1,
+                "fixed_count": 0,
+                "remaining_count": 1,
+                "status": "completed",
+                "message": "",
+            },
+        ],
+        "max_retries": 3,
         "results": [
             {
                 "file_name": "events/test_l_simp_chinese.yml",
@@ -435,10 +460,15 @@ def test_fix_batch_only_marks_successful_items_fixed(tmp_path):
         })
 
     assert response.status_code == 200
-    results = response.json()["results"]
+    payload = response.json()
+    results = payload["results"]
     assert [item["status"] for item in results] == ["SUCCESS", "FAILED"]
     assert results[0]["report_path"]
     assert results[1]["report_path"] is None
+    assert payload["attempts"][1]["used_reflection"] is True
+    assert payload["attempts"][1]["reflections_generated"] == 1
+    mock_agent.fix_batch_loop.assert_awaited_once()
+    assert mock_agent.fix_batch_loop.await_args.kwargs["max_retries"] == 3
 
     content = translation_file.read_text(encoding="utf-8-sig")
     assert 'demo.one:0 "修复一"' in content

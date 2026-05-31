@@ -340,13 +340,14 @@ const AgentWorkshopPage = () => {
     let failedCount = 0;
     const startedAt = Date.now();
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const maxRetries = 3;
 
     setExecuting(true);
     setProgress(0);
     setExecutionLogs([]);
     setExecutionStats(null);
     setActive(3);
-    addExecutionLog(`Starting fix run for ${total} issue(s) in ${batches.length} batch(es) of up to ${batchSize}.`);
+    addExecutionLog(`Starting fix run for ${total} issue(s) in ${batches.length} batch(es) of up to ${batchSize}; max ${maxRetries} attempt(s) per batch.`);
     if (LOCAL_PROVIDERS.includes(selectedProvider) && batchSize < 10) {
       addExecutionLog(`Using smaller local batches to avoid context overflow on the selected local model.`);
     }
@@ -367,15 +368,26 @@ const AgentWorkshopPage = () => {
         const claimed = await claimBatch();
         if (!claimed) return;
         const { batchNumber, batch } = claimed;
-        addExecutionLog(`Worker ${workerId}: fixing batch ${batchNumber}/${batches.length} (${batch.length} issue(s))`);
+        addExecutionLog(`Worker ${workerId}: fixing batch ${batchNumber}/${batches.length} (${batch.length} issue(s), up to ${maxRetries} attempt(s))`);
         try {
           const res = await workshopService.fixBatch({
             project_id: selectedProjectId,
             api_provider: selectedProvider,
             api_model: selectedModel,
+            max_retries: maxRetries,
             issues: batch,
           });
           const results = Array.isArray(res.data?.results) ? res.data.results : [];
+          const attempts = Array.isArray(res.data?.attempts) ? res.data.attempts : [];
+          attempts.forEach((attempt) => {
+            const reflectionNote = attempt.used_reflection
+              ? `, ${attempt.reflections_generated || 0} reflection(s)`
+              : '';
+            const message = attempt.message ? ` (${attempt.message})` : '';
+            addExecutionLog(
+              `Batch ${batchNumber} attempt ${attempt.attempt}/${attempt.max_retries}: ${attempt.active_count} active${reflectionNote}, ${attempt.fixed_count} fixed, ${attempt.remaining_count} remaining, ${attempt.status}.${message}`
+            );
+          });
           const fixedByKey = new Map(results.map((item) => [`${item.file_name}::${item.key}`, item]));
           batch.forEach((issue) => {
             const result = fixedByKey.get(`${issue.file_name}::${issue.key}`);

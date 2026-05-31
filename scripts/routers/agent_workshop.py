@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from scripts.utils.post_process_validator import PostProcessValidator
 from scripts.config.validators.hoi4_rules import RULES as HOI4_RULES
@@ -94,7 +94,19 @@ class FixBatchRequest(BaseModel):
     project_id: str
     api_provider: Optional[str] = None
     api_model: Optional[str] = None
+    max_retries: Optional[int] = None
     issues: List[Dict[str, Any]] # Collection of the original issue fields
+
+class BatchAttemptSummary(BaseModel):
+    attempt: int
+    max_retries: int
+    active_count: int
+    used_reflection: bool = False
+    reflections_generated: int = 0
+    fixed_count: int = 0
+    remaining_count: int = 0
+    status: str = "completed"
+    message: str = ""
 
 class BatchResultItem(BaseModel):
     file_name: str
@@ -106,6 +118,8 @@ class BatchResultItem(BaseModel):
 
 class FixBatchResponse(BaseModel):
     results: List[BatchResultItem]
+    attempts: List[BatchAttemptSummary] = Field(default_factory=list)
+    max_retries: int = 3
 
 
 def _normalize_issue_dict(issue: Dict[str, Any]) -> Dict[str, Any]:
@@ -834,6 +848,7 @@ async def fix_batch(request: FixBatchRequest):
     batch_result = await agent.fix_batch_loop(
         issues=request.issues,
         game_id=game_id,
+        max_retries=max(1, min(request.max_retries or 3, 5)),
         target_lang_code=target_lang,
     )
     
@@ -913,4 +928,13 @@ async def fix_batch(request: FixBatchRequest):
                 res["report_path"] = None
             final_results.append(BatchResultItem(**res))
             
-    return FixBatchResponse(results=final_results)
+    attempts = [
+        BatchAttemptSummary(**attempt)
+        for attempt in batch_result.get("attempts", [])
+        if isinstance(attempt, dict)
+    ]
+    return FixBatchResponse(
+        results=final_results,
+        attempts=attempts,
+        max_retries=batch_result.get("max_retries", request.max_retries or 3),
+    )
