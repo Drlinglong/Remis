@@ -195,7 +195,11 @@ async def run_embedded_workshop(
                 total_batches,
                 len(batch),
             )
-            batch_result = await agent.fix_batch_loop(batch, game_id=game_profile.get("id", ""))
+            batch_result = await agent.fix_batch_loop(
+                batch,
+                game_id=game_profile.get("id", ""),
+                target_lang_code=target_lang_info.get("code"),
+            )
             for item in batch_result.get("results", []):
                 results.append(item)
 

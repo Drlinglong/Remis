@@ -787,9 +787,15 @@ async def fix_batch(request: FixBatchRequest):
     game_id = project.get('game_id', 'vic3') if project else 'vic3'
     
     agent = ReflexionFixAgent(handler)
+    first_issue = request.issues[0] if request.issues else {}
+    target_lang = _infer_target_lang_from_issue(
+        first_issue.get("file_name"),
+        first_issue.get("target_lang"),
+    )
     batch_result = await agent.fix_batch_loop(
         issues=request.issues,
-        game_id=game_id
+        game_id=game_id,
+        target_lang_code=target_lang,
     )
     
     final_results = []
