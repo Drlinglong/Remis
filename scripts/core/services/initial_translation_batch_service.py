@@ -28,11 +28,42 @@ def resolve_max_workers(concurrency_limit: Optional[int], selected_provider: str
 def summarize_batch_warning_codes(warnings: Iterable) -> str:
     warning_codes = []
     for warning in warnings:
-        if isinstance(warning, dict):
-            warning_codes.append(str(warning.get("type") or warning.get("level") or "warning"))
-        else:
-            warning_codes.append(str(getattr(warning, "code", None) or getattr(warning, "message", "warning")))
+        warning_codes.append(get_batch_warning_code(warning))
     return ", ".join(sorted(set(warning_codes))[:6]) or "unknown"
+
+
+def get_batch_warning_code(warning) -> str:
+    if isinstance(warning, dict):
+        if warning.get("type"):
+            return str(warning["type"])
+        if warning.get("source_term") or warning.get("target_term"):
+            return "glossary_mismatch"
+        return str(warning.get("level") or "warning")
+    return str(getattr(warning, "code", None) or getattr(warning, "message", "warning"))
+
+
+def format_batch_warning_detail(warning, index: int, total: int) -> str:
+    code = get_batch_warning_code(warning)
+    if not isinstance(warning, dict):
+        return f"Batch warning detail {index}/{total}: code={code}; message={str(warning)}"
+
+    parts = [f"Batch warning detail {index}/{total}: code={code}"]
+    for key in ("batch_num", "batch_id", "attempt", "provider"):
+        if key in warning:
+            parts.append(f"{key}={warning[key]}")
+    if warning.get("source_term") or warning.get("target_term"):
+        parts.append(
+            "glossary="
+            f"{warning.get('source_term', '')}({warning.get('source_count', '?')})"
+            " -> "
+            f"{warning.get('target_term', '')}({warning.get('translated_count', '?')})"
+        )
+    if warning.get("message"):
+        message = " ".join(str(warning["message"]).split())
+        if len(message) > 300:
+            message = message[:297] + "..."
+        parts.append(f"message={message}")
+    return "; ".join(parts)
 
 
 def log_batch_warnings(filename: str, warnings: Iterable):
@@ -47,6 +78,9 @@ def log_batch_warnings(filename: str, warnings: Iterable):
         filename,
         summarize_batch_warning_codes(warnings),
     )
+    for index, warning in enumerate(warnings, start=1):
+        logging.warning("%s; file=%s", format_batch_warning_detail(warning, index, len(warnings)), filename)
+
 
 
 @contextmanager

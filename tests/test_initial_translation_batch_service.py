@@ -27,10 +27,33 @@ def test_summarize_batch_warning_codes_handles_dicts_and_objects():
             WarningObject(),
             object(),
             {"type": "api_error"},
+            {"level": "warning", "source_term": "泰尔紫", "target_term": "Tyrian Purple"},
         ]
     )
 
-    assert summary == "api_error, placeholder_mismatch, warning"
+    assert summary == "api_error, glossary_mismatch, placeholder_mismatch, warning"
+
+
+def test_log_batch_warnings_outputs_details(caplog):
+    warnings = [
+        {
+            "level": "warning",
+            "batch_id": 0,
+            "source_term": "泰尔紫",
+            "target_term": "Tyrian Purple",
+            "source_count": 1,
+            "translated_count": 0,
+            "message": "Expected glossary term was not used.",
+        }
+    ]
+
+    with caplog.at_level(logging.WARNING):
+        batch_service.log_batch_warnings("remis_demo.yml", warnings)
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("glossary_mismatch" in message for message in messages)
+    assert any("泰尔紫(1) -> Tyrian Purple(0)" in message for message in messages)
+    assert any("file=remis_demo.yml" in message for message in messages)
 
 
 def test_log_batch_warnings_skips_empty_warnings(caplog):
