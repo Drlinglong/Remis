@@ -106,6 +106,30 @@ class TestGlossaryPhonetics:
         assert match['match_type'] == 'exact', "Should be an exact match"
         assert match['confidence'] == 1.0
 
+    def test_skips_noisy_single_character_cjk_terms(self, glossary_manager):
+        glossary_manager.in_memory_glossary = {
+            'entries': [
+                {
+                    'entry_id': 'victoria3_reich',
+                    'translations': {'zh-CN': '国', 'en': 'Reich'},
+                    'variants': {},
+                    'abbreviations': {},
+                    'raw_metadata': {}
+                },
+                {
+                    'entry_id': 'victoria3_architect',
+                    'translations': {'zh-CN': '建筑师', 'en': 'Architect'},
+                    'variants': {},
+                    'abbreviations': {},
+                    'raw_metadata': {}
+                }
+            ]
+        }
+
+        results = glossary_manager.extract_relevant_terms(["建筑师来自这个国家。"], 'zh-CN', 'en')
+
+        assert [item['id'] for item in results] == ['victoria3_architect']
+
 if __name__ == "__main__":
     # Manually run tests if executed as script
     gm = GlossaryManager()
