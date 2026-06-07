@@ -110,6 +110,35 @@ const InitialTranslation = () => {
     ? 'custom'
     : form.values.target_lang_codes.join('|');
 
+  useEffect(() => {
+    if (!selectedProject?.source_language) {
+      return;
+    }
+
+    const langConfig = findLanguageByCode(config.languages, selectedProject.source_language);
+    if (!langConfig) {
+      return;
+    }
+
+    if (form.values.source_lang_code !== langConfig.code) {
+      form.setFieldValue('source_lang_code', langConfig.code);
+    }
+
+    if (!form.values.english_disguise && form.values.target_lang_codes.includes(langConfig.code)) {
+      form.setFieldValue(
+        'target_lang_codes',
+        form.values.target_lang_codes.filter((code) => code !== langConfig.code),
+      );
+    }
+  }, [
+    config.languages,
+    form,
+    form.values.english_disguise,
+    form.values.source_lang_code,
+    form.values.target_lang_codes,
+    selectedProject?.source_language,
+  ]);
+
   // Handle projectId from URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);

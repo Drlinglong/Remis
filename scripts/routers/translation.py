@@ -48,7 +48,11 @@ def _reject_source_language_targets(source_lang_code: str, target_languages: Lis
         if lang.get("code") and lang.get("code") == source_lang_code
     ]
     if duplicates:
-        raise ValueError("Target language must be different from the source language.")
+        target_codes = [lang.get("code") for lang in target_languages]
+        raise ValueError(
+            "Target language must be different from the source language. "
+            f"source={source_lang_code}, targets={target_codes}"
+        )
 
 
 def _get_output_folder_name(mod_name: str, target_lang: dict) -> str:
@@ -193,6 +197,7 @@ def run_translation_workflow_v2(
     def progress_callback(current, total, current_file, stage="Translating",
                           current_batch=0, total_batches=0,
                           error_count=0, glossary_issues=0, format_issues=0,
+                          format_repair=None, workshop_progress=None,
                           log_message: str = None):
         import time
         current_time = time.time()
@@ -212,6 +217,8 @@ def run_translation_workflow_v2(
             error_count=error_count,
             glossary_issues=glossary_issues,
             format_issues=format_issues,
+            format_repair=format_repair,
+            workshop_progress=workshop_progress,
             log_message=log_message,
             push=should_push,
         )

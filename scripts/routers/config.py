@@ -53,6 +53,8 @@ def get_config():
             "available_models": pconf.get("available_models", []),
             "default_model": pconf.get("default_model"),
             "selected_model": override.get("selected_model", pconf.get("default_model")),
+            "prompt_prefix": override.get("prompt_prefix", ""),
+            "system_prompt_suffix": override.get("system_prompt_suffix", ""),
         }
         
         # Add custom models and URL if present
@@ -108,7 +110,9 @@ def get_api_keys():
             "available_models": config.get("available_models", []),
             "selected_model": override.get("selected_model", config.get("default_model")),
             "custom_models": override.get("models", []),
-            "api_url": override.get("api_url", config.get("base_url", ""))
+            "api_url": override.get("api_url", config.get("base_url", "")),
+            "prompt_prefix": override.get("prompt_prefix", ""),
+            "system_prompt_suffix": override.get("system_prompt_suffix", ""),
         })
     return sanitize_for_json(providers)
 
@@ -175,6 +179,12 @@ def update_provider_config(payload: UpdateProviderConfigRequest):
 
     if payload.selected_model is not None:
         current_overrides[provider_id]["selected_model"] = payload.selected_model
+
+    if payload.prompt_prefix is not None:
+        current_overrides[provider_id]["prompt_prefix"] = payload.prompt_prefix
+
+    if payload.system_prompt_suffix is not None:
+        current_overrides[provider_id]["system_prompt_suffix"] = payload.system_prompt_suffix
         
     config_manager.set_value("provider_config", current_overrides)
     

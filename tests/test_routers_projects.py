@@ -1,4 +1,6 @@
 import pytest
+import json
+import os
 from unittest.mock import MagicMock, patch, AsyncMock
 from fastapi.testclient import TestClient
 from scripts.routers import projects as projects_router
@@ -187,3 +189,157 @@ def test_repair_project_metadata_delegates_to_manager(mock_project_manager):
     assert response.json()["status"] == "success"
     assert response.json()["file_count"] == 2
     mock_project_manager.repair_project_metadata.assert_awaited_once_with("proj-1")
+
+
+def test_project_validation_status_prefers_translation_sidecar(mock_project_manager, tmp_path):
+    source_root = tmp_path / "source" / "DemoMod"
+    translation_root = tmp_path / "translation" / "en-DemoMod"
+    source_root.mkdir(parents=True)
+    translation_root.mkdir(parents=True)
+
+    (source_root / ".remis_project.json").write_text(
+        json.dumps({"config": {"translation_dirs": [str(translation_root)]}}),
+        encoding="utf-8",
+    )
+    (source_root / ".remis_errors.json").write_text(
+        json.dumps(
+            {
+                "issues": [
+                    {
+                        "file_name": "old.yml",
+                        "key": "old.key",
+                        "error_code": "old_source_issue",
+                        "status": "detected",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    translation_sidecar = translation_root / ".remis_errors.json"
+    translation_sidecar.write_text(
+        json.dumps(
+            {
+                "issues": [
+                    {
+                        "file_name": "localization/english/demo_l_english.yml",
+                        "key": "demo.one",
+                        "target_lang": "en",
+                        "error_code": "validation_residual_punctuation_found",
+                        "status": "detected",
+                    },
+                    {
+                        "file_name": "localization/english/demo_l_english.yml",
+                        "key": "demo.two",
+                        "target_lang": "en",
+                        "error_code": "validation_vic3_color_tags_mismatch",
+                        "status": "fixed",
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    os.utime(source_root / ".remis_errors.json", (3000, 3000))
+    os.utime(translation_sidecar, (2000, 2000))
+
+    mock_project_manager.get_project.return_value = {
+        "project_id": "proj-1",
+        "source_path": str(source_root),
+    }
+
+    client = TestClient(app)
+    response = client.get("/api/project/proj-1/validation-status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["issues_count"] == 1
+    assert payload["sidecar_path"] == str(translation_sidecar)
+    assert payload["issue_type_counts"] == {"validation_residual_punctuation_found": 1}
+    assert payload["last_updated_at"].endswith("+00:00")
+    assert {candidate["path"] for candidate in payload["sidecar_candidates"]} == {
+        str(source_root / ".remis_errors.json"),
+        str(translation_sidecar),
+    }
+
+
+def test_project_validation_status_can_select_source_sidecar(mock_project_manager, tmp_path):
+    source_root = tmp_path / "source" / "DemoMod"
+    translation_root = tmp_path / "translation" / "en-DemoMod"
+    source_root.mkdir(parents=True)
+    translation_root.mkdir(parents=True)
+
+    (source_root / ".remis_project.json").write_text(
+        json.dumps({"config": {"translation_dirs": [str(translation_root)]}}),
+        encoding="utf-8",
+    )
+    source_sidecar = source_root / ".remis_errors.json"
+    source_sidecar.write_text(
+        json.dumps(
+            {
+                "issues": [
+                    {
+                        "file_name": "source.yml",
+                        "key": "source.key",
+                        "error_code": "source_issue",
+                        "status": "detected",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    translation_sidecar = translation_root / ".remis_errors.json"
+    translation_sidecar.write_text(
+        json.dumps(
+            {
+                "issues": [
+                    {
+                        "file_name": "translated.yml",
+                        "key": "translated.key",
+                        "error_code": "translation_issue",
+                        "status": "detected",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    mock_project_manager.get_project.return_value = {
+        "project_id": "proj-1",
+        "source_path": str(source_root),
+    }
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/project/proj-1/validation-status",
+        params={"sidecar_path": str(source_sidecar)},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["issues_count"] == 1
+    assert payload["sidecar_path"] == str(source_sidecar)
+    assert payload["issue_type_counts"] == {"source_issue": 1}
+
+
+def test_project_validation_status_rejects_unknown_sidecar(mock_project_manager, tmp_path):
+    source_root = tmp_path / "source" / "DemoMod"
+    source_root.mkdir(parents=True)
+    (source_root / ".remis_errors.json").write_text(
+        json.dumps({"issues": []}),
+        encoding="utf-8",
+    )
+    mock_project_manager.get_project.return_value = {
+        "project_id": "proj-1",
+        "source_path": str(source_root),
+    }
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/project/proj-1/validation-status",
+        params={"sidecar_path": str(tmp_path / "outside.json")},
+    )
+
+    assert response.status_code == 400

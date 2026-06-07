@@ -269,6 +269,37 @@ def run_projects_db_migrations(db_path):
         init_logger.error("Failed to run DB migrations: %s", e)
 
 
+def sync_development_demo_sources(source_mod_root, persistent_demo_root):
+    """
+    In development worktrees the bundled demos directory may not exist. Keep the
+    AppData demo copy fresh from known demo projects under source_mod instead.
+    """
+    demo_folders = [
+        "Test_Project_Remis_stellaris",
+        "Test_Project_Remis_Vic3",
+        "Test_Project_Remis_EU5",
+    ]
+    if not os.path.isdir(source_mod_root):
+        return False
+
+    synced = False
+    os.makedirs(persistent_demo_root, exist_ok=True)
+    for folder in demo_folders:
+        src_dir = os.path.join(source_mod_root, folder)
+        dst_dir = os.path.join(persistent_demo_root, folder)
+        if not os.path.isdir(src_dir):
+            continue
+
+        try:
+            shutil.copytree(src_dir, dst_dir, dirs_exist_ok=True)
+            synced = True
+            init_logger.info("[INIT] Development demo synced from source_mod: %s", folder)
+        except Exception as e:
+            init_logger.error("[INIT] Failed to sync development demo %s: %s", folder, e)
+
+    return synced
+
+
 def hydrate_json_configs(app_data_dir):
     """Recursively finds all .remis_project.json files and fixes hardcoded paths."""
     init_logger.info("[JSON] Hydrating .remis_project.json files (Targeted Scan)...")
@@ -434,6 +465,8 @@ def initialize_database():
                     init_logger.error("[CONFIG] Failed to extract %s: %s", filename, e)
 
     demo_extracted = extract(b_demos, p_demos, "Demos", force=main_db_is_fresh)
+    if not demo_extracted and not os.path.exists(b_demos):
+        demo_extracted = sync_development_demo_sources(os.path.join(resource_dir, "source_mod"), p_demos)
     trans_extracted = extract_bundled_demo_translations(b_trans, p_trans, force=main_db_is_fresh)
 
     config_dir = app_settings.CONFIG_DIR

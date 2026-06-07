@@ -4,11 +4,10 @@ from typing import List, Annotated, Any
 def flatten_nested_list(v: Any) -> Any:
     """
     Validator to handle LLM hallucinations where a string is wrapped in a list.
-    Example: ["text"] -> "text"
+    Example: ["text"] -> "text"; [["text"]] -> "text"
     """
-    if isinstance(v, list) and len(v) == 1 and isinstance(v[0], str):
-        # Only flatten if it's a single element list (hallucination)
-        return v[0]
+    while isinstance(v, list) and len(v) == 1:
+        v = v[0]
     return v
 
 # Define a robust string type that auto-flattens lists

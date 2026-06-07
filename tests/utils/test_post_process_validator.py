@@ -51,6 +51,43 @@ def test_paradox_localization_version_suffix_is_valid(validator):
 
     assert not [result for result in results if result.code == "validation_invalid_key_format"]
 
+
+def test_vic3_format_marker_parity_flags_missing_source_wrapper(validator):
+    results = validator.validate_entry(
+        "victoria3",
+        "remis_event.1.f:0",
+        "reminiscent of the legendary Tyrian Purple.",
+        12,
+        SOURCE_LANG_ZH,
+        source_value="像极了传说中早已失传的#r 泰尔紫 (Tyrian Purple)#!。",
+        target_lang="en",
+    )
+
+    parity_result = next((r for r in results if r.code == "validation_format_marker_parity_mismatch"), None)
+
+    assert parity_result is not None
+    assert parity_result.level == ValidationLevel.WARNING
+    assert parity_result.details_params == {
+        "sourceStartCount": 1,
+        "targetStartCount": 0,
+        "sourceEndCount": 1,
+        "targetEndCount": 0,
+    }
+
+
+def test_vic3_format_marker_parity_allows_translated_text_inside_wrapper(validator):
+    results = validator.validate_entry(
+        "victoria3",
+        "remis_event.1.f:0",
+        "reminiscent of the legendary #r Tyrian Purple#!.",
+        12,
+        SOURCE_LANG_ZH,
+        source_value="像极了传说中早已失传的#r 泰尔紫 (Tyrian Purple)#!。",
+        target_lang="en",
+    )
+
+    assert not [r for r in results if r.code == "validation_format_marker_parity_mismatch"]
+
 def test_residual_punctuation_check_finds_japanese_issue(validator, mocker):
     """
     Tests that the check correctly identifies Japanese punctuation when source is Japanese.

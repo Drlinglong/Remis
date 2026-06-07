@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Badge, Button, Card, Group, Loader, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Alert, Badge, Button, Card, Group, Loader, Paper, Select, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { IconInfoCircle, IconRefresh, IconRobot } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
@@ -11,6 +11,7 @@ const ProjectValidation = ({ projectId }) => {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedSidecarPath, setSelectedSidecarPath] = useState(null);
 
   const localizeIssueLabel = useCallback((code) => {
     if (!code) return t('agent_workshop.unknown_issue');
@@ -18,6 +19,7 @@ const ProjectValidation = ({ projectId }) => {
     const known = {
       validation_vic3_variable_parity_mismatch: t('agent_workshop.issue_vic3_variable_parity'),
       validation_vic3_color_tags_mismatch: t('agent_workshop.issue_vic3_color_tags'),
+      validation_format_marker_parity_mismatch: t('agent_workshop.issue_format_marker_parity'),
       validation_residual_punctuation_found: t('agent_workshop.validation_residual_punctuation_found'),
       validation_invalid_key_format: t('agent_workshop.issue_invalid_key_format'),
       'Invalid key format': t('agent_workshop.issue_invalid_key_format'),
@@ -27,6 +29,9 @@ const ProjectValidation = ({ projectId }) => {
     // Defensive fallback translation for legacy cached or hardcoded Chinese labels
     if (key.includes('颜色标签') && key.includes('结束符')) {
       return t('agent_workshop.issue_vic3_color_tags');
+    }
+    if (key.includes('格式标记') || key.includes('format marker') || key.includes('format_marker_parity')) {
+      return t('agent_workshop.issue_format_marker_parity');
     }
     if (key.includes('源语言标点') || key.includes('标点符号')) {
       return t('agent_workshop.validation_residual_punctuation_found');
@@ -44,15 +49,20 @@ const ProjectValidation = ({ projectId }) => {
   const loadStatus = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/api/project/${projectId}/validation-status`);
-      setStatus(res.data || null);
+      const params = selectedSidecarPath ? `?sidecar_path=${encodeURIComponent(selectedSidecarPath)}` : '';
+      const res = await api.get(`/api/project/${projectId}/validation-status${params}`);
+      const payload = res.data || null;
+      setStatus(payload);
+      if (!selectedSidecarPath && payload?.sidecar_path) {
+        setSelectedSidecarPath(payload.sidecar_path);
+      }
     } catch (error) {
       console.error('Failed to load validation status', error);
       setStatus(null);
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, selectedSidecarPath]);
 
   useEffect(() => {
     loadStatus();
@@ -76,6 +86,14 @@ const ProjectValidation = ({ projectId }) => {
 
   const entries = useMemo(
     () => Object.entries(status?.issue_type_counts || {}).sort((a, b) => b[1] - a[1]),
+    [status]
+  );
+
+  const sidecarOptions = useMemo(
+    () => (status?.sidecar_candidates || []).map((candidate) => ({
+      value: candidate.path,
+      label: `${candidate.path} (${candidate.issue_count ?? 0})`,
+    })),
     [status]
   );
 
@@ -125,18 +143,36 @@ const ProjectValidation = ({ projectId }) => {
         </SimpleGrid>
 
         <Card withBorder p="sm" radius="md" mb="md">
-          <Text size="xs" c="dimmed">{t('project_validation.sidecar_path')}</Text>
-          <Text
-            size="sm"
-            fw={600}
-            style={{
-              wordBreak: 'break-all',
-              overflowWrap: 'anywhere',
-              whiteSpace: 'normal',
-            }}
-          >
-            {status?.sidecar_path || '--'}
-          </Text>
+          {sidecarOptions.length > 0 ? (
+            <Select
+              label={t('project_validation.sidecar_path')}
+              data={sidecarOptions}
+              value={selectedSidecarPath || status?.sidecar_path || null}
+              onChange={setSelectedSidecarPath}
+              searchable
+              allowDeselect={false}
+              styles={{
+                input: {
+                  fontWeight: 600,
+                },
+              }}
+            />
+          ) : (
+            <>
+              <Text size="xs" c="dimmed">{t('project_validation.sidecar_path')}</Text>
+              <Text
+                size="sm"
+                fw={600}
+                style={{
+                  wordBreak: 'break-all',
+                  overflowWrap: 'anywhere',
+                  whiteSpace: 'normal',
+                }}
+              >
+                {status?.sidecar_path || '--'}
+              </Text>
+            </>
+          )}
         </Card>
 
         <Alert icon={<IconInfoCircle size={16} />} color="blue" radius="md" mb="sm">

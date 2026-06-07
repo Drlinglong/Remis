@@ -113,9 +113,13 @@ class TestPostProviderConfig:
             "provider_id": "lm_studio",
             "api_url": "http://localhost:1234/v1",
             "models": [],
-            "selected_model": "local-model"
+            "selected_model": "local-model",
+            "prompt_prefix": "/no_think",
+            "system_prompt_suffix": "/no_think",
         })
 
         assert response.status_code == 200
         saved_config = mock_config_env.set_value.call_args.args[1]
         assert saved_config["lm_studio"]["api_url"] == "http://localhost:1234/v1"
+        assert saved_config["lm_studio"]["prompt_prefix"] == "/no_think"
+        assert saved_config["lm_studio"]["system_prompt_suffix"] == "/no_think"

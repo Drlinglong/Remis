@@ -19,6 +19,7 @@ import {
     Collapse,
     TagsInput,
     TextInput,
+    Textarea,
     Divider,
     Select,
     Accordion
@@ -26,7 +27,7 @@ import {
 import {
     IconCheck, IconX, IconEdit, IconKey, IconInfoCircle, IconServer, IconRobot,
     IconWorld, IconHome, IconBuildingSkyscraper, IconSchool, IconAlertTriangle,
-    IconBrandYoutube, IconBrandBilibili, IconChevronDown, IconChevronRight
+    IconBrandYoutube, IconBrandBilibili, IconChevronDown, IconChevronRight, IconMessage
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
@@ -82,7 +83,9 @@ const ApiSettingsTab = () => {
         apiKey: '',
         models: [],
         apiUrl: '',
-        selectedModel: ''
+        selectedModel: '',
+        promptPrefix: '',
+        systemPromptSuffix: ''
     });
 
     const [submitting, setSubmitting] = useState(false);
@@ -113,13 +116,15 @@ const ApiSettingsTab = () => {
             apiKey: '', // Always start empty for security
             models: provider.custom_models || [],
             apiUrl: provider.api_url || '',
-            selectedModel: provider.selected_model || ''
+            selectedModel: provider.selected_model || '',
+            promptPrefix: provider.prompt_prefix || '',
+            systemPromptSuffix: provider.system_prompt_suffix || ''
         });
     };
 
     const handleCancelEdit = () => {
         setEditingId(null);
-        setEditForm({ apiKey: '', models: [], apiUrl: '', selectedModel: '' });
+        setEditForm({ apiKey: '', models: [], apiUrl: '', selectedModel: '', promptPrefix: '', systemPromptSuffix: '' });
     };
 
     const handleSave = async (providerId) => {
@@ -138,7 +143,9 @@ const ApiSettingsTab = () => {
                 provider_id: providerId,
                 models: editForm.models,
                 api_url: editForm.apiUrl,
-                selected_model: editForm.selectedModel
+                selected_model: editForm.selectedModel,
+                prompt_prefix: editForm.promptPrefix,
+                system_prompt_suffix: editForm.systemPromptSuffix
             };
 
             if (editForm.apiKey.trim()) {
@@ -272,6 +279,29 @@ const ApiSettingsTab = () => {
                                 clearable
                             />
 
+                            <Divider label={t('api_prompt_controls_label', 'Prompt Controls')} labelPosition="center" />
+
+                            <TextInput
+                                label={t('api_prompt_prefix_label', 'User Prompt Prefix')}
+                                placeholder="/no_think"
+                                description={t('api_prompt_prefix_description', 'Prepended to every user prompt for this provider. Leave blank for model defaults.')}
+                                value={editForm.promptPrefix}
+                                onChange={(e) => setEditForm({ ...editForm, promptPrefix: e.currentTarget.value })}
+                                size="xs"
+                                leftSection={<IconMessage size={14} />}
+                            />
+
+                            <Textarea
+                                label={t('api_system_prompt_suffix_label', 'System Prompt Suffix')}
+                                placeholder="/no_think"
+                                description={t('api_system_prompt_suffix_description', 'Appended to local provider system prompts. Useful for prompt-controlled thinking modes.')}
+                                value={editForm.systemPromptSuffix}
+                                onChange={(e) => setEditForm({ ...editForm, systemPromptSuffix: e.currentTarget.value })}
+                                size="xs"
+                                autosize
+                                minRows={2}
+                            />
+
                             <Group grow mt="xs">
                                 <Button
                                     size="xs"
@@ -321,6 +351,13 @@ const ApiSettingsTab = () => {
                                 <Group justify="space-between">
                                     <Text size="xs" c="dimmed">Models:</Text>
                                     <Badge size="xs" variant="outline">{provider.custom_models.length} custom</Badge>
+                                </Group>
+                            )}
+
+                            {(provider.prompt_prefix || provider.system_prompt_suffix) && (
+                                <Group justify="space-between">
+                                    <Text size="xs" c="dimmed">{t('api_prompt_controls_label', 'Prompt Controls')}</Text>
+                                    <Badge size="xs" color="violet" variant="light">enabled</Badge>
                                 </Group>
                             )}
 

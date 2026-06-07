@@ -101,6 +101,62 @@ describe('initialTranslation utils', () => {
     });
   });
 
+  it('uses the selected project source language and filters matching targets', () => {
+    const payload = buildTranslationPayload({
+      source_lang_code: 'en',
+      target_lang_codes: ['en', 'ja'],
+      api_provider: 'local',
+      model_name: 'local-model',
+      mod_context: '',
+      selected_glossary_ids: [],
+      use_main_glossary: true,
+      clean_source: false,
+      use_resume: false,
+      translation_batch_size_limit: '',
+      translation_concurrency_limit: '',
+      translation_rpm_limit: '40',
+      embedded_workshop_enabled: true,
+      embedded_workshop_follow_primary_settings: true,
+      embedded_workshop_api_provider: '',
+      embedded_workshop_api_model: '',
+      embedded_workshop_batch_size_limit: '',
+      embedded_workshop_concurrency_limit: '',
+      embedded_workshop_rpm_limit: '',
+      english_disguise: false,
+    }, 'proj-1', { source_language: 'zh-CN' });
+
+    expect(payload.source_lang_code).toBe('zh-CN');
+    expect(payload.target_lang_codes).toEqual(['en', 'ja']);
+  });
+
+  it('removes the project source language from target languages before starting', () => {
+    const payload = buildTranslationPayload({
+      source_lang_code: 'en',
+      target_lang_codes: ['zh-CN', 'en'],
+      api_provider: 'local',
+      model_name: 'local-model',
+      mod_context: '',
+      selected_glossary_ids: [],
+      use_main_glossary: true,
+      clean_source: false,
+      use_resume: false,
+      translation_batch_size_limit: '',
+      translation_concurrency_limit: '',
+      translation_rpm_limit: '40',
+      embedded_workshop_enabled: true,
+      embedded_workshop_follow_primary_settings: true,
+      embedded_workshop_api_provider: '',
+      embedded_workshop_api_model: '',
+      embedded_workshop_batch_size_limit: '',
+      embedded_workshop_concurrency_limit: '',
+      embedded_workshop_rpm_limit: '',
+      english_disguise: false,
+    }, 'proj-1', { source_language: 'zh-CN' });
+
+    expect(payload.source_lang_code).toBe('zh-CN');
+    expect(payload.target_lang_codes).toEqual(['en']);
+  });
+
   it('prefers the provider selected model when the current model is no longer valid', () => {
     const nextModel = resolvePreferredModel(
       [

@@ -82,6 +82,7 @@ class BaseGameValidator:
             "banned_chars": self._check_banned_chars,
             "formatting_tags": self._check_formatting_tags,
             "mismatched_tags": self._check_mismatched_tags,
+            "format_marker_parity": self._check_format_marker_parity,
             "informational_pattern": self._check_informational_pattern,
             "variable_parity": self._check_variable_parity,
         }
@@ -216,6 +217,62 @@ class BaseGameValidator:
         except re.error as e:
             self.logger.warning(self._get_i18n_message("validator_error_regex_error", rule_name=rule['name'], e=e, pattern=start_tag_pattern))
         return results
+
+    def _check_format_marker_parity(self, text: str, rule: Dict, line_number: Optional[int], source_text: Optional[str] = None, **kwargs) -> List[ValidationResult]:
+        """
+        Check that formatting wrappers present in the source are still represented
+        in the translation. This intentionally compares marker counts only; it does
+        not protect or compare the translatable text inside the wrapper.
+        """
+        if not source_text:
+            return []
+
+        params = rule.get("params", {})
+        start_tag_patterns = params.get("start_tag_patterns", [])
+        end_tag_strings = params.get("end_tag_strings", [])
+
+        try:
+            source_start_count = sum(len(re.findall(pattern, source_text)) for pattern in start_tag_patterns)
+            target_start_count = sum(len(re.findall(pattern, text)) for pattern in start_tag_patterns)
+        except re.error as e:
+            self.logger.warning(self._get_i18n_message("validator_error_regex_error", rule_name=rule.get('name', 'N/A'), e=e, pattern=", ".join(start_tag_patterns)))
+            return []
+
+        source_end_count = sum(source_text.count(marker) for marker in end_tag_strings)
+        target_end_count = sum(text.count(marker) for marker in end_tag_strings)
+
+        if (
+            source_start_count == target_start_count
+            and source_end_count == target_end_count
+        ):
+            return []
+
+        if not any([source_start_count, target_start_count, source_end_count, target_end_count]):
+            return []
+
+        message_key = rule.get("message_key", "validation_format_marker_parity_mismatch")
+        details_key = params.get("details_key", "validation_format_marker_parity_details")
+        details_params = {
+            "sourceStartCount": source_start_count,
+            "targetStartCount": target_start_count,
+            "sourceEndCount": source_end_count,
+            "targetEndCount": target_end_count,
+        }
+        details = self._get_i18n_message(details_key, **details_params)
+
+        return [
+            ValidationResult(
+                is_valid=False,
+                level=ValidationLevel(rule["level"]),
+                message=self._get_i18n_message(message_key),
+                code=message_key,
+                details=details,
+                details_code="validation_format_marker_parity_details_localized",
+                details_params=details_params,
+                line_number=line_number,
+                text_sample=text[:100],
+            )
+        ]
         
     def _check_informational_pattern(self, text: str, rule: Dict, line_number: Optional[int], **kwargs) -> List[ValidationResult]:
         """

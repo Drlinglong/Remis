@@ -84,7 +84,9 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
         failed_batches: 0,
         error_count: 0,
         glossary_issues: 0,
-        format_issues: 0
+        format_issues: 0,
+        format_repair: null,
+        workshop_progress: null
     };
 
     const isCompleted = task?.status === 'completed';
@@ -95,8 +97,35 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     // Calculate remaining
     const remainingFiles = Math.max(0, progress.total - progress.current);
     const remainingBatches = Math.max(0, progress.total_batches - progress.current_batch);
+    const workshopProgress = progress.workshop_progress;
+    const hasWorkshopProgress = Boolean(workshopProgress && workshopProgress.detected_count > 0);
+    const formatRepair = progress.format_repair;
+    const hasFormatRepair = Boolean(formatRepair && formatRepair.detected_count > 0);
+    const formatRepairFixed = hasFormatRepair ? (formatRepair.fixed_count || 0) : 0;
+    const formatRepairDetected = hasFormatRepair ? formatRepair.detected_count : 0;
+    const formatRemaining = hasFormatRepair
+        ? (formatRepairFixed >= formatRepairDetected ? 0 : (formatRepair.remaining_count || 0))
+        : progress.format_issues;
+    const formatAlertColor = formatRemaining > 0 ? "yellow" : "green";
+    const formatReportText = hasFormatRepair
+        ? (formatRemaining > 0
+            ? t('report_format_repair_partial', {
+                detected: formatRepair.detected_count,
+                fixed: formatRepair.fixed_count || 0,
+                remaining: formatRemaining
+            })
+            : t('report_format_repair_complete', {
+                detected: formatRepairDetected,
+                fixed: formatRepairFixed
+            }))
+        : (progress.format_issues > 0
+            ? t('report_format_issues', { count: progress.format_issues })
+            : t('report_no_format_issues'));
 
     const getLocalizedStage = (stage) => {
+        if (String(stage || '').startsWith('Smart Workshop')) {
+            return t('stage_smart_workshop', { defaultValue: 'Smart Workshop' });
+        }
         const map = {
             'Creating Backup': 'stage_creating_backup',
             'Translating': 'stage_translating',
@@ -215,12 +244,10 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                             <Alert
                                 icon={<IconTypography size={20} />}
                                 title={t('report_title_formatting')}
-                                color={progress.format_issues > 0 ? "yellow" : "green"}
+                                color={formatAlertColor}
                                 variant="light"
                             >
-                                {progress.format_issues > 0
-                                    ? t('report_format_issues', { count: progress.format_issues })
-                                    : t('report_no_format_issues')}
+                                {formatReportText}
                             </Alert>
                         </SimpleGrid>
 
@@ -335,14 +362,21 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                     </Text>
 
                     <Text size="md" fw={500}>
-                        {t('progress_status', {
-                            processed_files: progress.current,
-                            completed_batches: progress.current_batch,
-                            successful_batches: progress.successful_batches || 0,
-                            failed_batches: progress.failed_batches || 0,
-                            remaining_files: remainingFiles,
-                            remaining_batches: remainingBatches
-                        })}
+                        {hasWorkshopProgress
+                            ? t('progress_smart_workshop_status', {
+                                detected: workshopProgress.detected_count,
+                                processed: workshopProgress.processed_count || 0,
+                                round: workshopProgress.reflection_round || 1,
+                                defaultValue: `正在修复 ${workshopProgress.detected_count} 个潜在格式问题，已处理 ${workshopProgress.processed_count || 0}/${workshopProgress.detected_count}，进行第 ${workshopProgress.reflection_round || 1} 轮反思`
+                            })
+                            : t('progress_status', {
+                                processed_files: progress.current,
+                                completed_batches: progress.current_batch,
+                                successful_batches: progress.successful_batches || 0,
+                                failed_batches: progress.failed_batches || 0,
+                                remaining_files: remainingFiles,
+                                remaining_batches: remainingBatches
+                            })}
                     </Text>
 
                     {/* Progress Bar */}

@@ -113,13 +113,18 @@ export function resolvePreferredModel(models = [], currentModelName, selectedMod
   return currentModelName;
 }
 
+export function resolveProjectSourceLanguage(values, selectedProject) {
+  return selectedProject?.source_language || values.source_lang_code;
+}
+
 export function buildTranslationDetails(values, selectedProject, languages = {}) {
+  const sourceLangCode = resolveProjectSourceLanguage(values, selectedProject);
   return {
     projectId: selectedProject?.value,
     modName: selectedProject?.label,
     provider: values.api_provider,
     model: values.model_name,
-    sourceLang: findLanguageByCode(languages, values.source_lang_code)?.name,
+    sourceLang: findLanguageByCode(languages, sourceLangCode)?.name,
     targetLangs: values.english_disguise
       ? ['Custom (Disguise)']
       : values.target_lang_codes.map((code) => findLanguageByCode(languages, code)?.name),
@@ -127,10 +132,11 @@ export function buildTranslationDetails(values, selectedProject, languages = {})
   };
 }
 
-export function buildTranslationPayload(values, selectedProjectId) {
+export function buildTranslationPayload(values, selectedProjectId, selectedProject = null) {
+  const sourceLangCode = resolveProjectSourceLanguage(values, selectedProject);
   const payload = {
     project_id: selectedProjectId,
-    source_lang_code: values.source_lang_code,
+    source_lang_code: sourceLangCode,
     api_provider: values.api_provider,
     model: values.model_name,
     mod_context: values.mod_context,
@@ -167,7 +173,7 @@ export function buildTranslationPayload(values, selectedProjectId) {
     };
     payload.target_lang_codes = ['custom'];
   } else {
-    payload.target_lang_codes = values.target_lang_codes;
+    payload.target_lang_codes = (values.target_lang_codes || []).filter((code) => code !== sourceLangCode);
   }
 
   return payload;

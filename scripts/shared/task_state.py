@@ -23,6 +23,8 @@ DEFAULT_PROGRESS = {
     "error_count": 0,
     "glossary_issues": 0,
     "format_issues": 0,
+    "format_repair": None,
+    "workshop_progress": None,
 }
 
 
@@ -118,6 +120,8 @@ def update_progress(
     error_count: Optional[int] = None,
     glossary_issues: Optional[int] = None,
     format_issues: Optional[int] = None,
+    format_repair: Optional[Dict[str, Any]] = None,
+    workshop_progress: Optional[Dict[str, Any]] = None,
     log_message: Optional[str] = None,
     push: bool = False,
 ) -> Dict[str, Any]:
@@ -144,6 +148,10 @@ def update_progress(
         progress_updates["glossary_issues"] = glossary_issues
     if format_issues is not None:
         progress_updates["format_issues"] = format_issues
+    if format_repair is not None:
+        progress_updates["format_repair"] = format_repair
+    if workshop_progress is not None:
+        progress_updates["workshop_progress"] = workshop_progress
 
     if total and current is not None:
         progress_updates["percent"] = int((current / total) * 100)

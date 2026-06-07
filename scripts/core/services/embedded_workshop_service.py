@@ -211,6 +211,13 @@ async def run_embedded_workshop(
                     "stage_code": "embedded_workshop",
                     "percent": min(99, progress_percent),
                     "message": f"[{target_lang_info.get('code', '').upper()}] Smart Workshop: Proofreading and fixing format issues ({len(results)}/{initial_issue_count} processed)...",
+                    "workshop_progress": {
+                        "detected_count": initial_issue_count,
+                        "processed_count": len(results),
+                        "fixed_count": sum(1 for result in results if result.get("status") == "fixed"),
+                        "failed_count": sum(1 for result in results if result.get("status") == "failed"),
+                        "reflection_round": 1,
+                    },
                 })
 
     await asyncio.gather(*(worker(worker_id + 1) for worker_id in range(max(1, concurrency))))

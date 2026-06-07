@@ -8,6 +8,14 @@ from openai import OpenAI
 
 from scripts.core.base_handler import BaseApiHandler
 
+
+def _append_system_suffix(system_prompt: str, provider_config: dict) -> str:
+    suffix = (provider_config.get("system_prompt_suffix") or "").strip()
+    if not suffix or system_prompt.rstrip().endswith(suffix):
+        return system_prompt
+    return f"{system_prompt.rstrip()} {suffix}"
+
+
 class LocalLLMHandler(BaseApiHandler):
     """
     Unified Handler for all Local LLMs.
@@ -96,12 +104,13 @@ class LocalLLMHandler(BaseApiHandler):
         
         try:
             # Handle prompt splitting if needed (legacy Ollama logic)
-            system_prompt = "You are a professional translator."
+            system_prompt = _append_system_suffix("You are a professional translator.", provider_config)
             user_prompt = prompt
             if "--- INPUT LIST ---" in prompt:
                  parts = prompt.split("--- INPUT LIST ---", 1)
                  if len(parts) == 2:
-                     system_prompt, user_prompt = parts
+                     system_prompt = _append_system_suffix(parts[0], provider_config)
+                     user_prompt = parts[1]
                      user_prompt = "--- INPUT LIST ---" + user_prompt
 
             payload = {
@@ -137,7 +146,7 @@ class LocalLLMHandler(BaseApiHandler):
         
         try:
             messages = [
-                {"role": "system", "content": "You are a professional translator."},
+                {"role": "system", "content": _append_system_suffix("You are a professional translator.", provider_config)},
                 {"role": "user", "content": prompt}
             ]
             
@@ -159,6 +168,28 @@ class LocalLLMHandler(BaseApiHandler):
 
             message = getattr(choices[0], "message", None)
             content = getattr(message, "content", None)
+            finish_reason = getattr(choices[0], "finish_reason", None)
+            reasoning_content = (getattr(message, "reasoning_content", None) or "").strip()
+            tool_calls = getattr(message, "tool_calls", None) or []
+
+            if not content and tool_calls:
+                raise ValueError(
+                    "Local OpenAI-compatible model returned tool calls instead of translation text. "
+                    "Disable tool/function calling for this local model or choose a plain chat/translation model."
+                )
+
+            if not content and reasoning_content:
+                if finish_reason == "length":
+                    raise ValueError(
+                        "Local OpenAI-compatible model returned reasoning-only output and hit the context/output limit. "
+                        f"Model '{model_name}' produced reasoning_content but no final chat content. "
+                        "Disable thinking/reasoning for this model, increase LM Studio context/output limits, or reduce batch size."
+                    )
+                raise ValueError(
+                    "Local OpenAI-compatible model returned reasoning_content but no final chat content. "
+                    "Disable thinking/reasoning for this model or use a model that writes translations to message.content."
+                )
+
             if not content:
                 raise ValueError(
                     "Local OpenAI-compatible API returned an empty chat message. "

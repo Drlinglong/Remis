@@ -31,7 +31,7 @@ export function useInitialTranslationFlow({
 
     setTranslationDetails(buildTranslationDetails(values, selectedProject, config.languages));
 
-    const payload = buildTranslationPayload(values, selectedProjectId);
+    const payload = buildTranslationPayload(values, selectedProjectId, selectedProject);
 
     setTaskId(null);
     setStatus('pending');

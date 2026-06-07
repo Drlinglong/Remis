@@ -62,6 +62,10 @@ class BaseApiHandler(ABC):
 
             if "api_url" in user_overrides and user_overrides["api_url"]:
                 base_config["base_url"] = user_overrides["api_url"]
+            if "prompt_prefix" in user_overrides:
+                base_config["prompt_prefix"] = user_overrides.get("prompt_prefix") or ""
+            if "system_prompt_suffix" in user_overrides:
+                base_config["system_prompt_suffix"] = user_overrides.get("system_prompt_suffix") or ""
         elif self.model_id:
             # If no overrides but we have a request model, use it
             base_config["default_model"] = self.model_id
@@ -296,6 +300,7 @@ class BaseApiHandler(ABC):
 
     def _apply_model_prompt_adapter(self, prompt: str) -> str:
         model_name = (self.model_id or self.get_provider_config().get("default_model") or "").strip().lower()
+        prompt = self._apply_provider_prompt_controls(prompt)
 
         if model_name in self.NEMOTRON_CASCADE_MODELS:
             adapted = prompt.lstrip()
@@ -304,6 +309,15 @@ class BaseApiHandler(ABC):
             return f"<think></think>\n{prompt}"
 
         return prompt
+
+    def _apply_provider_prompt_controls(self, prompt: str) -> str:
+        provider_config = self.get_provider_config()
+        prompt_prefix = (provider_config.get("prompt_prefix") or "").strip()
+        if not prompt_prefix:
+            return prompt
+        if prompt.lstrip().startswith(prompt_prefix):
+            return prompt
+        return f"{prompt_prefix}\n{prompt}"
 
     def translate_single_text(self, text: str, task_description: str, mod_name: str, source_lang: dict, target_lang: dict, mod_context: str, game_profile: dict) -> str:
         """【通用工作流】翻译单条文本，带一次调用，失败则返回原文。"""

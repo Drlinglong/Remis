@@ -101,6 +101,17 @@ RULES = {
       }
     },
     {
+      "name": "format_marker_parity",
+      "check_function": "format_marker_parity",
+      "level": "warning",
+      "message_key": "validation_format_marker_parity_mismatch",
+      "params": {
+        "start_tag_patterns": [r"#[a-zA-Z0-9_]+", r"§[a-zA-Z0-9_]+"],
+        "end_tag_strings": ["#!", "§!"],
+        "details_key": "validation_format_marker_parity_details"
+      }
+    },
+    {
       "name": "variable_parity",
       "check_function": "variable_parity",
       "level": "error",

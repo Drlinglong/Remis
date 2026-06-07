@@ -19,6 +19,11 @@ def test_robust_string_flattening():
     model = TranslationResponse(**data)
     assert model.translations == ["Start", "Middle", "End"]
 
+    # Deeply wrapped single values can appear when local models mangle quote masks.
+    data = {"translations": ["Hello", [["[[ _QT_ ]]"]]]}
+    model = TranslationResponse(**data)
+    assert model.translations == ["Hello", "[[ _QT_ ]]"]
+
 def test_robust_string_invalid():
     """Test that other invalid types still fail validation."""
     # Invalid case (list len > 1) - should fail because it can't be flattened to a string

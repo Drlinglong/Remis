@@ -124,6 +124,12 @@ def restore_special_tokens(text: str, target_lang: str) -> str:
         return text
 
     import re
+    bare_token = text.strip()
+    if bare_token in {"QT_", "_QT_", "[_QT_]"}:
+        text = MASK_QUOTE
+    elif bare_token in {"NL_", "_NL_", "[_NL_]"}:
+        text = MASK_NEWLINE
+
     # Normalize variants with spaces (e.g. [[ _NL_ ]], [[_QT_ ]]) to standard tokens
     text = re.sub(r'\[\[\s*_NL_\s*\]\]', MASK_NEWLINE, text)
     text = re.sub(r'\[\[\s*_QT_\s*\]\]', MASK_QUOTE, text)

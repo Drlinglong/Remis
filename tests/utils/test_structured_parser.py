@@ -148,3 +148,14 @@ def test_parse_composite_pollution_format():
     assert result is not None
     assert isinstance(result, TranslationResponse)
     assert result.translations == ["Final", "Test"]
+
+def test_parse_deeply_wrapped_translation_items():
+    """
+    Local OpenAI-compatible models sometimes wrap one translation item in
+    multiple single-element arrays. This should be normalized before the
+    batch-length contract is checked.
+    """
+    json_string = '{"translations": ["hello", [["[[ _QT_ ]]"]], [["QT_"]]]}'
+    result = parse_response(json_string, TranslationResponse)
+    assert result is not None
+    assert result.translations == ["hello", "“", "“"]
