@@ -788,7 +788,11 @@ def run(mod_name: str,
                         update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
 
                     if warnings:
-                        pass
+                        logging.warning(
+                            "Batch validation reported %s issue(s) for %s; final file validation will run next.",
+                            len(warnings),
+                            file_task.filename,
+                        )
 
                     _finalize_translated_file(
                         file_task,

@@ -181,10 +181,24 @@ export default function ConfigStep({
     </Card>
   );
 
-  const languageOptions = Object.values(config.languages).map((language) => ({
-    value: language.code,
-    label: language.name,
-  }));
+  const sourceLanguageCode = selectedProject?.source_language;
+  const languageOptions = Object.values(config.languages)
+    .filter((language) => language.code !== sourceLanguageCode)
+    .map((language) => ({
+      value: language.code,
+      label: language.name,
+    }));
+
+  React.useEffect(() => {
+    if (!sourceLanguageCode) return;
+    const selectedTargets = form.values.target_lang_codes || [];
+    if (selectedTargets.includes(sourceLanguageCode)) {
+      form.setFieldValue(
+        'target_lang_codes',
+        selectedTargets.filter((code) => code !== sourceLanguageCode)
+      );
+    }
+  }, [sourceLanguageCode, form.values.target_lang_codes]);
 
   const providerOptions = config.api_providers
     .filter((provider) => provider.value !== 'hunyuan' || FEATURES.ENABLE_HUNYUAN_PROVIDER)

@@ -15,7 +15,7 @@ def _file_task() -> FileTask:
         is_custom_loc=False,
         target_lang={"code": "zh-CN", "name": "Simplified Chinese"},
         source_lang={"code": "en", "name": "English"},
-        game_profile={"id": "test"},
+        game_profile={},
         mod_context="",
         provider_name="lm_studio",
         output_folder_name="out",
@@ -71,3 +71,21 @@ def test_stream_processor_treats_source_fallback_as_file_failure():
     assert translated_texts == ["Hello"]
     assert warnings == []
     assert is_failed is True
+
+
+def test_stream_processor_preserves_batch_warnings():
+    processor = ParallelProcessor(max_workers=1, chunk_size_override=1)
+    file_task = _file_task()
+
+    def translation_with_warning(task: BatchTask) -> BatchTask:
+        task.translated_texts = ["你好"]
+        task.warnings.append({"type": "format_validation", "message": "placeholder mismatch"})
+        return task
+
+    results = list(processor.process_files_stream(iter([file_task]), translation_with_warning))
+
+    assert len(results) == 1
+    _, translated_texts, warnings, is_failed = results[0]
+    assert translated_texts == ["你好"]
+    assert warnings == [{"type": "format_validation", "message": "placeholder mismatch"}]
+    assert is_failed is False

@@ -41,6 +41,16 @@ def _resolve_requested_target_languages(target_lang_codes: List[str], custom_lan
     return _resolve_target_languages(target_lang_codes)
 
 
+def _reject_source_language_targets(source_lang_code: str, target_languages: List[dict]):
+    duplicates = [
+        lang.get("code")
+        for lang in target_languages
+        if lang.get("code") and lang.get("code") == source_lang_code
+    ]
+    if duplicates:
+        raise ValueError("Target language must be different from the source language.")
+
+
 def _get_output_folder_name(mod_name: str, target_lang: dict) -> str:
     prefix = target_lang.get("folder_prefix", f"{target_lang.get('code', 'unknown')}-")
     return f"{prefix}{slugify_to_ascii(mod_name)}"
@@ -234,6 +244,7 @@ def run_translation_workflow_v2(
         if not all([game_profile, source_lang]) or (not target_languages and not custom_lang_config):
             logging.error(f"Validation Failed: GameProfile={game_profile}, SourceLang={source_lang}, TargetLangs={target_languages}")
             raise ValueError("Failed to resolve game profile, source language, or target languages.")
+        _reject_source_language_targets(source_lang_code, target_languages)
 
         final_glossary_ids = list(selected_glossary_ids) if selected_glossary_ids else []
         if use_main_glossary:

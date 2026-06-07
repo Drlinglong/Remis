@@ -222,6 +222,7 @@ class ParallelProcessor:
         file_buffers: Dict[str, Dict[int, BatchTask]] = {}
         # Track total batches expected per file: {filename: total_batches}
         file_batch_counts: Dict[str, int] = {}
+        file_warning_buffers: Dict[str, List[Dict[str, Any]]] = {}
         
         # We need a way to map futures back to their file and batch index
         # But since we are consuming a generator, we can't submit everything at once if we want to be lazy?
@@ -247,13 +248,14 @@ class ParallelProcessor:
             def submit_file(file_task: FileTask):
                 if not file_task.texts_to_translate:
                     # Handle empty file immediately
-                    return True, (file_task.filename, [], [])
+                    return True, (file_task, [], [], False)
                 
                 chunk_size = self._resolve_chunk_size(file_task.provider_name)
                 texts = file_task.texts_to_translate
                 total_batches = (len(texts) + chunk_size - 1) // chunk_size
                 file_batch_counts[file_task.filename] = total_batches
                 file_buffers[file_task.filename] = {}
+                file_warning_buffers[file_task.filename] = []
                 
                 for i in range(0, len(texts), chunk_size):
                     batch_texts = texts[i:i + chunk_size]
@@ -320,6 +322,7 @@ class ParallelProcessor:
                     for future in done:
                         filename, batch_index, batch_task = future_to_info.pop(future)
                         pending_batches_count -= 1
+                        warnings = []
                         
                         try:
                             processed_task, warnings = future.result()
@@ -334,6 +337,8 @@ class ParallelProcessor:
                             continue
                             
                         file_buffers[filename][batch_index] = processed_task
+                        if warnings:
+                            file_warning_buffers.setdefault(filename, []).extend(warnings)
                         
                         # Check if file is complete (all batches accounted for, even if failed)
                         if len(file_buffers[filename]) == file_batch_counts[filename]:
@@ -351,16 +356,19 @@ class ParallelProcessor:
                                 if task.failed or task.fell_back_to_source:
                                     file_failed = True
                                 full_translated_texts.extend(task.translated_texts or [])
+
+                            file_warnings = file_warning_buffers.get(filename, [])
                             
                             if file_failed:
                                 self.logger.error(f"File {filename} incomplete or failed.")
-                                yield (file_task_ref, full_translated_texts, [], True) # Fourth item is 'failed' flag
+                                yield (file_task_ref, full_translated_texts, file_warnings, True) # Fourth item is 'failed' flag
                             else:
-                                yield (file_task_ref, full_translated_texts, [], False)
+                                yield (file_task_ref, full_translated_texts, file_warnings, False)
                             
                             # Cleanup
                             del file_buffers[filename]
                             del file_batch_counts[filename]
+                            file_warning_buffers.pop(filename, None)
 
     def _collect_file_results(
         self,
