@@ -30,12 +30,17 @@ from scripts.core.services.initial_translation_workshop_service import (
     export_workshop_issues_for_language,
     run_embedded_workshop_for_language,
 )
+from scripts.core.services.initial_translation_batch_service import (
+    log_batch_warnings,
+    resolve_max_workers,
+    temporary_rpm_limit,
+)
 from scripts.core.services.initial_translation_workspace_service import (
     clean_source_directory,
     load_glossaries_for_run,
     prepare_output_workspace,
 )
-from scripts.app_settings import SOURCE_DIR, DEST_DIR, LANGUAGES, RECOMMENDED_MAX_WORKERS
+from scripts.app_settings import SOURCE_DIR, DEST_DIR, LANGUAGES
 from scripts.utils import i18n
 from scripts.utils.system_utils import slugify_to_ascii
 
@@ -255,15 +260,8 @@ def run(mod_name: str,
         )
 
         # 初始化并行处理器
-        max_workers = max(1, int(concurrency_limit)) if concurrency_limit else RECOMMENDED_MAX_WORKERS
-        if not concurrency_limit and selected_provider in ["ollama", "lm_studio", "local", "vllm", "koboldcpp", "oobabooga", "hunyuan"]:
-            max_workers = 1 # Local LLMs usually can't handle parallel requests well (OOM risk)
-
+        max_workers = resolve_max_workers(concurrency_limit, selected_provider)
         processor = ParallelProcessor(max_workers=max_workers, chunk_size_override=effective_chunk_size)
-        from scripts.utils.rate_limiter import rate_limiter
-        previous_rpm = rate_limiter.rpm
-        if rpm_limit:
-            rate_limiter.update_rpm(int(rpm_limit))
 
         # 定义翻译函数 (Consumer)
         def translation_wrapper(batch_task):
@@ -273,7 +271,7 @@ def run(mod_name: str,
                 update_progress(batch_task.file_task.filename)
             return result
 
-        try:
+        with temporary_rpm_limit(rpm_limit):
             with progress_log_bridge(update_progress):
                 for file_task, translated_texts, warnings, is_failed in processor.process_files_stream(file_task_generator, translation_wrapper):
                     if is_failed:
@@ -283,21 +281,7 @@ def run(mod_name: str,
                     else:
                         update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
 
-                    if warnings:
-                        warning_codes = []
-                        for warning in warnings:
-                            if isinstance(warning, dict):
-                                warning_codes.append(str(warning.get("type") or warning.get("level") or "warning"))
-                            else:
-                                warning_codes.append(str(getattr(warning, "code", None) or getattr(warning, "message", "warning")))
-                        warning_summary = ", ".join(sorted(set(warning_codes))[:6])
-                        logging.warning(
-                            "Preliminary batch response validation reported %s issue(s) for %s (%s); "
-                            "final file format validation will run next.",
-                            len(warnings),
-                            file_task.filename,
-                            warning_summary or "unknown",
-                        )
+                    log_batch_warnings(file_task.filename, warnings)
 
                     finalize_translated_file(
                         file_task,
@@ -312,9 +296,6 @@ def run(mod_name: str,
                         version_id,
                         all_files_content,
                     )
-        finally:
-            if rpm_limit and previous_rpm != rate_limiter.rpm:
-                rate_limiter.update_rpm(previous_rpm)
 
         if run_state.error_count:
             message = f"Translation failed for {run_state.error_count} file(s) while translating to {target_lang['name']}."
