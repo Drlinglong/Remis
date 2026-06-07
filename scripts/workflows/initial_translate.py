@@ -313,6 +313,7 @@ def _build_file_task_iterator(
             client=handler.client,
             mod_name=mod_name,
             loc_root=file_data.get("loc_root", ""),
+            file_path=file_data.get("file_path", file_data["filename"]),
         )
 
 
@@ -389,7 +390,7 @@ def _finalize_translated_file(
         try:
             archive_manager.archive_translated_results(
                 version_id,
-                {file_task.filename: translated_texts},
+                {file_task.file_path or file_task.filename: translated_texts},
                 all_files_content,
                 target_lang.get("code")
             )
@@ -1063,9 +1064,11 @@ def discover_files(mod_name: str, game_profile: dict, source_lang: dict, overrid
         for root, _, files in os.walk(loc_path):
             for fn in files:
                 if suffix_pattern.search(fn):
+                    file_path = os.path.join(root, fn)
                     # loc_path 是当前模块的 localization 根目录
                     all_file_paths.append({
-                        "path": os.path.join(root, fn), 
+                        "path": file_path,
+                        "file_path": os.path.relpath(file_path, mod_root_path).replace(os.sep, "/"),
                         "filename": fn, 
                         "root": root, 
                         "is_custom_loc": False,
@@ -1076,8 +1079,10 @@ def discover_files(mod_name: str, game_profile: dict, source_lang: dict, overrid
         for root, _, files in os.walk(cust_loc_root):
             for fn in files:
                 if fn.endswith(".txt"):
+                    file_path = os.path.join(root, fn)
                     all_file_paths.append({
-                        "path": os.path.join(root, fn), 
+                        "path": file_path,
+                        "file_path": os.path.relpath(file_path, mod_root_path).replace(os.sep, "/"),
                         "filename": fn, 
                         "root": root, 
                         "is_custom_loc": True,

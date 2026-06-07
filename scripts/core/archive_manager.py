@@ -849,7 +849,25 @@ class ArchiveManager:
 
     def _build_file_path_candidates(self, file_path: str) -> List[str]:
         normalized = self._normalize_archive_file_path(file_path)
-        return [normalized]
+        candidates: List[str] = []
+
+        def add_candidate(candidate: str):
+            candidate = self._normalize_archive_file_path(candidate)
+            if candidate and candidate not in candidates:
+                candidates.append(candidate)
+
+        add_candidate(normalized)
+
+        lowered = normalized.lower()
+        for marker in ("/localization/", "/localisation/", "/customizable_localization/"):
+            marker_index = lowered.find(marker)
+            if marker_index != -1:
+                add_candidate(normalized[marker_index + 1:])
+
+        basename = os.path.basename(normalized)
+        add_candidate(basename)
+
+        return candidates or [normalized]
 
     def _build_file_path_where_clause(self, candidates: List[str], table_alias: str = "") -> str:
         column = f"{table_alias}.file_path" if table_alias else "file_path"

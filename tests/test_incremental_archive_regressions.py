@@ -237,6 +237,42 @@ def test_get_entries_accepts_non_normalized_file_path_inputs(temp_archive_db):
     assert entries[0]["translation"] == "A"
 
 
+def test_get_entries_falls_back_to_filename_for_legacy_snapshots(temp_archive_db):
+    mod_id = temp_archive_db.get_or_create_mod_entry("LegacyFilenameMod", "legacy-filename-project")
+    version_id = temp_archive_db.create_source_version(
+        mod_id,
+        [
+            {
+                "filename": "remis_demo_l_simp_chinese.yml",
+                "texts_to_translate": ["Storm's gift"],
+                "key_map": {0: {"key_part": "remis_event.1.t"}},
+            }
+        ],
+    )
+    temp_archive_db.archive_translated_results(
+        version_id,
+        {"remis_demo_l_simp_chinese.yml": ["The Gift of the Storm"]},
+        [
+            {
+                "filename": "remis_demo_l_simp_chinese.yml",
+                "texts_to_translate": ["Storm's gift"],
+                "key_map": [{"key_part": "remis_event.1.t"}],
+            }
+        ],
+        "en",
+    )
+
+    entries = temp_archive_db.get_entries(
+        project_id="legacy-filename-project",
+        file_path=r"J:\V3_Mod_Localization_Factory\source_mod\Test_Project_Remis_Vic3\localization\simp_chinese\remis_demo_l_simp_chinese.yml",
+        language="en",
+    )
+
+    assert len(entries) == 1
+    assert entries[0]["key"] == "remis_event.1.t"
+    assert entries[0]["translation"] == "The Gift of the Storm"
+
+
 def test_archive_translated_results_falls_back_from_versioned_keys(temp_archive_db):
     mod_id = temp_archive_db.get_or_create_mod_entry("VersionedKeyMod", "versioned-key-project")
     version_id = temp_archive_db.create_source_version(
