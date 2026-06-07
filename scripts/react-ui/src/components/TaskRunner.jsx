@@ -101,6 +101,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
             'Creating Backup': 'stage_creating_backup',
             'Translating': 'stage_translating',
             'Reading Source': 'stage_reading_source',
+            'Analyzing Files': 'stage_analyzing_files',
             'Initializing': 'stage_initializing',
             'Failed': 'stage_failed'
         };

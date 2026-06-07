@@ -1429,6 +1429,7 @@
   "stage_creating_backup": "백업 생성 중",
   "stage_translating": "번역 중",
   "stage_reading_source": "소스 파일 읽는 중",
+  "stage_analyzing_files": "파일 분석 중",
   "stage_initializing": "초기화 중",
   "stage_failed": "번역 실패",
   "tools_tab_workshop_generator": "워크숍 생성기",

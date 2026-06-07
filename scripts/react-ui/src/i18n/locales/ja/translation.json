@@ -1429,6 +1429,7 @@
   "stage_creating_backup": "バックアップを作成中",
   "stage_translating": "翻訳中",
   "stage_reading_source": "ソースファイルを読み込み中",
+  "stage_analyzing_files": "ファイルを解析中",
   "stage_initializing": "初期化中",
   "stage_failed": "翻訳に失敗しました",
   "tools_tab_workshop_generator": "ワークショップジェネレーター",

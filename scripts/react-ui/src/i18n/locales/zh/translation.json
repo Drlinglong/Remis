@@ -66,6 +66,7 @@
   "stage_creating_backup": "正在创建备份",
   "stage_translating": "正在翻译",
   "stage_reading_source": "正在读取源文件",
+  "stage_analyzing_files": "正在分析文件",
   "stage_initializing": "初始化中",
   "stage_failed": "翻译失败",
   "nav_docs": "文档",

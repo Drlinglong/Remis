@@ -1429,6 +1429,7 @@
   "stage_creating_backup": "Tworzenie kopii zapasowej",
   "stage_translating": "Tłumaczenie",
   "stage_reading_source": "Odczytywanie plików źródłowych",
+  "stage_analyzing_files": "Analizowanie plików",
   "stage_initializing": "Inicjowanie",
   "stage_failed": "Tłumaczenie nie powiodło się",
   "tools_tab_workshop_generator": "Generator Workshop",

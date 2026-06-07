@@ -1429,6 +1429,7 @@
   "stage_creating_backup": "Backup wird erstellt",
   "stage_translating": "Wird übersetzt",
   "stage_reading_source": "Quelldateien werden gelesen",
+  "stage_analyzing_files": "Dateien werden analysiert",
   "stage_initializing": "Initialisierung",
   "stage_failed": "Übersetzung fehlgeschlagen",
   "tools_tab_workshop_generator": "Workshop-Generator",

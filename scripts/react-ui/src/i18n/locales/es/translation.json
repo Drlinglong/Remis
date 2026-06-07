@@ -1429,6 +1429,7 @@
   "stage_creating_backup": "Creando copia de seguridad",
   "stage_translating": "Traduciendo",
   "stage_reading_source": "Leyendo archivos de origen",
+  "stage_analyzing_files": "Analizando archivos",
   "stage_initializing": "Inicializando",
   "stage_failed": "La traducción falló",
   "tools_tab_workshop_generator": "Generador de Workshop",

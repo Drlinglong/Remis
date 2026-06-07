@@ -1447,6 +1447,7 @@
   "stage_creating_backup": "Creating backup",
   "stage_translating": "Translating",
   "stage_reading_source": "Reading source files",
+  "stage_analyzing_files": "Analyzing files",
   "stage_initializing": "Initializing",
   "stage_failed": "Translation failed",
   "tools_tab_workshop_generator": "Workshop Generator",

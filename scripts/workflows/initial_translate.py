@@ -419,6 +419,7 @@ def _finalize_language_run(
         output_folder_name,
         proofreading_tracker,
         update_progress_callback,
+        source_root=source_root,
         dynamic_valid_tags=dynamic_valid_tags,
     )
     proofreading_tracker.save_proofreading_progress()
@@ -788,10 +789,18 @@ def run(mod_name: str,
                         update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
 
                     if warnings:
+                        warning_codes = []
+                        for warning in warnings:
+                            if isinstance(warning, dict):
+                                warning_codes.append(str(warning.get("type") or warning.get("level") or "warning"))
+                            else:
+                                warning_codes.append(str(getattr(warning, "code", None) or getattr(warning, "message", "warning")))
+                        warning_summary = ", ".join(sorted(set(warning_codes))[:6])
                         logging.warning(
-                            "Batch validation reported %s issue(s) for %s; final file validation will run next.",
+                            "Batch validation reported %s issue(s) for %s (%s); final file validation will run next.",
                             len(warnings),
                             file_task.filename,
+                            warning_summary or "unknown",
                         )
 
                     _finalize_translated_file(
@@ -912,6 +921,7 @@ def _run_post_processing(
     output_folder_name,
     proofreading_tracker,
     update_progress_callback=None,
+    source_root: Optional[str] = None,
     dynamic_valid_tags: Optional[List[str]] = None,
 ):
     """运行后处理验证"""
@@ -921,7 +931,11 @@ def _run_post_processing(
         dynamic_tags = dynamic_valid_tags
         
         output_folder_path = os.path.join(DEST_DIR, output_folder_name)
-        post_processor = PostProcessingManager(game_profile, output_folder_path)
+        post_processor = PostProcessingManager(
+            game_profile,
+            output_folder_path,
+            source_root=source_root or os.path.join(SOURCE_DIR, mod_name),
+        )
         validation_success = post_processor.run_validation(target_lang, source_lang, dynamic_valid_tags=dynamic_tags)
         
         # Get validation stats and update frontend

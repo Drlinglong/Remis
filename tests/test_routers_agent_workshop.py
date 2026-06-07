@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.routers.agent_workshop import apply_translation_fix_to_file
+from scripts.routers.agent_workshop import _resolve_source_entries_for_translation
 from scripts.utils.validation_logger import ValidationLogger
 from scripts.web_server import app
 
@@ -19,6 +20,23 @@ def _write_loc_file(path: Path, header: str, entries: list[tuple[str, str]]):
     for key, value in entries:
         lines.append(f' {key} "{value}"\n')
     path.write_text("".join(lines), encoding="utf-8-sig")
+
+
+def test_resolve_source_entries_falls_back_to_source_root_scan(tmp_path):
+    source_root = tmp_path / "source"
+    source_file = source_root / "localization" / "simp_chinese" / "demo_l_simp_chinese.yml"
+    _write_loc_file(source_file, "l_simp_chinese", [("demo.one:0", "你好，[Root.GetCountry.GetName]。")])
+
+    entries, target_lang = _resolve_source_entries_for_translation(
+        "localization/english/simp_chinese/demo_l_english.yml",
+        "zh-CN",
+        source_files={},
+        source_cache={},
+        source_root=source_root,
+    )
+
+    assert target_lang == "en"
+    assert entries["demo.one:0"] == "你好，[Root.GetCountry.GetName]。"
 
 
 def test_load_cached_filters_fixed_entries(tmp_path):

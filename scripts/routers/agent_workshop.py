@@ -399,6 +399,7 @@ def _resolve_source_entries_for_translation(
     source_lang_iso: str,
     source_files: Dict[str, Dict[str, Any]],
     source_cache: Dict[str, Dict[str, str]],
+    source_root: Optional[Path] = None,
 ) -> tuple[Dict[str, str], Optional[str]]:
     from scripts.utils.i18n_utils import iso_to_paradox, paradox_to_iso
 
@@ -429,6 +430,19 @@ def _resolve_source_entries_for_translation(
                 logger.info(
                     "[AgentWorkshop] Matched source file %s for translation %s",
                     candidate_rel_path,
+                    rel_path,
+                )
+                return entries, target_lang
+
+    if source_root and source_root.exists():
+        for found in source_root.rglob(source_basename):
+            if found.name.lower() == source_basename.lower() and found.exists():
+                entries = dict(parse_loc_file(found))
+                cache_key = _relative_to_any(found, [source_root], source_root)
+                source_cache[cache_key] = entries
+                logger.info(
+                    "[AgentWorkshop] Matched source file by disk fallback %s for translation %s",
+                    cache_key,
                     rel_path,
                 )
                 return entries, target_lang
@@ -561,6 +575,7 @@ async def scan_project(project_id: str, force: bool = Query(False)):
             source_lang_iso,
             source_files,
             source_cache,
+            source_root=source_root,
         )
 
         # Parse the translation file

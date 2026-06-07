@@ -1429,6 +1429,7 @@
   "stage_creating_backup": "Yedek oluşturuluyor",
   "stage_translating": "Çevriliyor",
   "stage_reading_source": "Kaynak dosyalar okunuyor",
+  "stage_analyzing_files": "Dosyalar analiz ediliyor",
   "stage_initializing": "Başlatılıyor",
   "stage_failed": "Çeviri başarısız",
   "tools_tab_workshop_generator": "Atölye Oluşturucu",

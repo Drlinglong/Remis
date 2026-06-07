@@ -66,6 +66,7 @@
   "stage_creating_backup": "Создание резервной копии",
   "stage_translating": "Перевод",
   "stage_reading_source": "Чтение исходных файлов",
+  "stage_analyzing_files": "Анализ файлов",
   "stage_initializing": "Инициализация",
   "stage_failed": "Ошибка перевода",
   "nav_docs": "Документация",

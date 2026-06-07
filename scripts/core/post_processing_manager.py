@@ -10,17 +10,19 @@ import csv
 import logging
 from typing import Dict, List, Optional
 from datetime import datetime
+from pathlib import Path
 
 from scripts.utils.post_process_validator import PostProcessValidator, ValidationResult, ValidationLevel
 from scripts.app_settings import GAME_PROFILES
 from scripts.utils import i18n
 from scripts.utils.quote_extractor import QuoteExtractor
+from scripts.core.loc_parser import parse_loc_file, parse_loc_file_with_lines
 
 
 class PostProcessingManager:
     """后处理验证管理器"""
     
-    def __init__(self, game_profile: dict, output_folder: str):
+    def __init__(self, game_profile: dict, output_folder: str, source_root: Optional[str] = None):
         """
         初始化后处理验证管理器
         
@@ -30,6 +32,7 @@ class PostProcessingManager:
         """
         self.game_profile = game_profile
         self.output_folder = output_folder
+        self.source_root = Path(source_root).resolve() if source_root else None
         self.game_id = game_profile.get("id", "")
         # 优先使用配置中的 name，其次回退到 id
         self.game_name = game_profile.get("name") or game_profile.get("display_name") or game_profile.get("id") or "Unknown Game"
@@ -50,7 +53,13 @@ class PostProcessingManager:
         # 详细的验证结果
         self.validation_results: Dict[str, List[ValidationResult]] = {}
     
-    def run_validation(self, target_lang: dict, source_lang: dict, dynamic_valid_tags: Optional[List[str]] = None) -> bool:
+    def run_validation(
+        self,
+        target_lang: dict,
+        source_lang: dict,
+        dynamic_valid_tags: Optional[List[str]] = None,
+        source_root: Optional[str] = None,
+    ) -> bool:
         """
         运行后处理验证
         
@@ -63,6 +72,8 @@ class PostProcessingManager:
             bool: 验证是否成功完成
         """
         try:
+            if source_root:
+                self.source_root = Path(source_root).resolve()
             # 启动验证
             self.logger.info(i18n.t("post_processing_start"))
             self.logger.info(i18n.t("post_processing_game", game_name=self.game_name))
@@ -203,6 +214,60 @@ class PostProcessingManager:
         
         return content
 
+    def _resolve_source_file(self, target_file_path: str, target_lang: dict, source_lang: dict) -> Optional[Path]:
+        if not self.source_root:
+            return None
+
+        target_path = Path(target_file_path)
+        output_root = Path(self.output_folder).resolve()
+        target_paradox = (target_lang.get("key", "") or "").replace("l_", "", 1)
+        source_paradox = (source_lang.get("key", "") or "").replace("l_", "", 1)
+
+        try:
+            rel_parts = list(target_path.resolve().relative_to(output_root).parts)
+        except Exception:
+            rel_parts = list(target_path.parts)
+
+        for index, part in enumerate(rel_parts[:-1]):
+            if part.lower() == target_paradox.lower():
+                rel_parts[index] = source_paradox
+
+        import re
+        rel_parts[-1] = re.sub(
+            rf"(?P<prefix>[_\s])l_{re.escape(target_paradox)}(?=\.yml$)",
+            rf"\g<prefix>l_{source_paradox}",
+            rel_parts[-1],
+            flags=re.IGNORECASE,
+        )
+
+        candidate = self.source_root.joinpath(*rel_parts)
+        if candidate.exists():
+            return candidate
+
+        expected_name = Path(rel_parts[-1]).name
+        for found in self.source_root.rglob(expected_name):
+            if found.name.lower() == expected_name.lower():
+                return found
+        return None
+
+    def _load_source_entries(self, target_file_path: str, target_lang: dict, source_lang: dict) -> Dict[str, str]:
+        source_file = self._resolve_source_file(target_file_path, target_lang, source_lang)
+        if not source_file:
+            return {}
+        try:
+            return dict(parse_loc_file(source_file))
+        except Exception as e:
+            self.logger.warning(f"Failed to parse source file {source_file}: {e}")
+            return {}
+
+    def _lookup_source_value(self, source_entries: Dict[str, str], key: str) -> str:
+        if key in source_entries:
+            return source_entries[key]
+        base_key = key.split(":")[0]
+        if base_key in source_entries:
+            return source_entries[base_key]
+        return source_entries.get(f"{base_key}:0", "")
+
     def _validate_single_file(self, file_path: str, target_lang: dict, source_lang: dict, dynamic_valid_tags: Optional[List[str]] = None):
         """
         验证单个文件，均值并自动修复常见格式错误
@@ -225,32 +290,42 @@ class PostProcessingManager:
                 except Exception as e:
                     self.logger.error(f"Failed to write back sanitized content: {e}")
 
-            # 按行分割内容
-            lines = content.split('\n')
-            
-            # 验证每一行
+            source_entries = self._load_source_entries(file_path, target_lang, source_lang)
             file_results = []
-            for line_num, line in enumerate(lines, 1):
-                stripped = line.strip()
-                
-                # 跳过空行和注释行
-                if not stripped or stripped.startswith("#"):
-                    continue
-                
-                # 使用统一的引号提取工具
-                translatable_content = QuoteExtractor.extract_from_line(line)
-                if translatable_content:
-                    # 只检查引号内的内容，并传入动态标签列表
-                    results = self.validator.validate_game_text(
+            parsed_entries = parse_loc_file_with_lines(Path(file_path))
+            if parsed_entries:
+                for key, translatable_content, line_num in parsed_entries:
+                    results = self.validator.validate_entry(
                         self.normalized_game_key,
+                        key,
                         translatable_content,
                         line_num,
                         source_lang,
+                        source_value=self._lookup_source_value(source_entries, key),
                         target_lang=target_lang.get("code"),
                         dynamic_valid_tags=dynamic_valid_tags
                     )
                     if results:
                         file_results.extend(results)
+            else:
+                # Fallback for malformed files that the loc parser cannot parse.
+                lines = content.split('\n')
+                for line_num, line in enumerate(lines, 1):
+                    stripped = line.strip()
+                    if not stripped or stripped.startswith("#"):
+                        continue
+                    translatable_content = QuoteExtractor.extract_from_line(line)
+                    if translatable_content:
+                        results = self.validator.validate_game_text(
+                            self.normalized_game_key,
+                            translatable_content,
+                            line_num,
+                            source_lang,
+                            target_lang=target_lang.get("code"),
+                            dynamic_valid_tags=dynamic_valid_tags
+                        )
+                        if results:
+                            file_results.extend(results)
             
             # 记录文件验证结果
             if file_results:

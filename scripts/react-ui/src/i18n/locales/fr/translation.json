@@ -1429,6 +1429,7 @@
   "stage_creating_backup": "Création de la sauvegarde",
   "stage_translating": "Traduction en cours",
   "stage_reading_source": "Lecture des fichiers sources",
+  "stage_analyzing_files": "Analyse des fichiers",
   "stage_initializing": "Initialisation",
   "stage_failed": "La traduction a échoué",
   "tools_tab_workshop_generator": "Générateur pour le Workshop",
