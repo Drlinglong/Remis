@@ -15,7 +15,7 @@ from scripts.core.parallel_processor import ParallelProcessor
 from scripts.core.archive_manager import archive_manager
 from scripts.core.checkpoint_manager import CheckpointManager
 from scripts.core.services.embedded_workshop_service import run_embedded_workshop
-from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService
+from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService, resolve_dynamic_valid_tags
 from scripts.shared.services import project_manager
 from scripts.app_settings import SOURCE_DIR, DEST_DIR, LANGUAGES, RECOMMENDED_MAX_WORKERS, CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE, OLLAMA_CHUNK_SIZE
 from scripts.utils import i18n
@@ -405,8 +405,11 @@ def _finalize_language_run(
     output_folder_name: str,
     proofreading_tracker: Any,
     update_progress_callback,
+    override_path: Optional[str] = None,
 ):
     """Run post-processing and persist proofreading progress for one target language."""
+    source_root = override_path if override_path else os.path.join(SOURCE_DIR, mod_name)
+    dynamic_valid_tags = resolve_dynamic_valid_tags(game_profile, source_root)
     _run_post_processing(
         mod_name,
         game_profile,
@@ -415,8 +418,10 @@ def _finalize_language_run(
         output_folder_name,
         proofreading_tracker,
         update_progress_callback,
+        dynamic_valid_tags=dynamic_valid_tags,
     )
     proofreading_tracker.save_proofreading_progress()
+    return dynamic_valid_tags
 
 
 def _run_embedded_workshop_for_language(
@@ -433,6 +438,7 @@ def _run_embedded_workshop_for_language(
     concurrency_limit: Optional[int] = None,
     batch_size_limit: Optional[int] = None,
     rpm_limit: Optional[int] = None,
+    dynamic_valid_tags: Optional[List[str]] = None,
 ):
     if not embedded_workshop or not embedded_workshop.get("enabled", True):
         return
@@ -454,6 +460,7 @@ def _run_embedded_workshop_for_language(
             fallback_concurrency=concurrency_limit,
             fallback_batch_size=batch_size_limit,
             fallback_rpm=rpm_limit,
+            dynamic_valid_tags=dynamic_valid_tags,
         ))
         logging.info(
             "Embedded workshop finished for %s: fixed=%s failed=%s remaining=%s provider=%s model=%s",
@@ -476,6 +483,7 @@ def _export_workshop_issues_for_language(
     source_lang: dict,
     target_lang: dict,
     game_profile: dict,
+    dynamic_valid_tags: Optional[List[str]] = None,
 ):
     archive_mod_name = _resolve_archive_mod_name(mod_name, project_id)
     exporter = WorkshopIssueExportService()
@@ -487,6 +495,8 @@ def _export_workshop_issues_for_language(
         game_profile=game_profile,
         workflow="initial",
         project_name=archive_mod_name,
+        project_id=project_id or "",
+        dynamic_valid_tags=dynamic_valid_tags,
     )
     logging.info(
         "Exported %s workshop issues for %s to %s",
@@ -772,7 +782,7 @@ def run(mod_name: str,
             logging.error(message)
             raise RuntimeError(message)
 
-        _finalize_language_run(
+        dynamic_valid_tags = _finalize_language_run(
             mod_name,
             game_profile,
             target_lang,
@@ -780,6 +790,7 @@ def run(mod_name: str,
             output_folder_name,
             proofreading_tracker,
             update_progress,
+            override_path=override_path,
         )
         _export_workshop_issues_for_language(
             output_dir_path,
@@ -789,6 +800,7 @@ def run(mod_name: str,
             source_lang,
             target_lang,
             game_profile,
+            dynamic_valid_tags=dynamic_valid_tags,
         )
         _run_embedded_workshop_for_language(
             embedded_workshop,
@@ -804,6 +816,7 @@ def run(mod_name: str,
             concurrency_limit=concurrency_limit,
             batch_size_limit=batch_size_limit,
             rpm_limit=rpm_limit,
+            dynamic_valid_tags=dynamic_valid_tags,
         )
 
     _finalize_workflow_run(
@@ -856,18 +869,21 @@ def _handle_empty_file(file_info, orig, texts, km, source_lang, target_lang, gam
         })
 
 
-def _run_post_processing(mod_name, game_profile, target_lang, source_lang, output_folder_name, proofreading_tracker, update_progress_callback=None):
+def _run_post_processing(
+    mod_name,
+    game_profile,
+    target_lang,
+    source_lang,
+    output_folder_name,
+    proofreading_tracker,
+    update_progress_callback=None,
+    dynamic_valid_tags: Optional[List[str]] = None,
+):
     """运行后处理验证"""
     try:
         from scripts.core.post_processing_manager import PostProcessingManager
-        from scripts.utils import tag_scanner
         
-        dynamic_tags = None
-        official_tags_path = game_profile.get("official_tags_codex")
-        
-        if official_tags_path:
-            mod_loc_path_for_scan = os.path.join(SOURCE_DIR, mod_name, game_profile["source_localization_folder"])
-            dynamic_tags = tag_scanner.analyze_mod_and_get_all_valid_tags(mod_loc_path=mod_loc_path_for_scan, official_tags_json_path=official_tags_path)
+        dynamic_tags = dynamic_valid_tags
         
         output_folder_path = os.path.join(DEST_DIR, output_folder_name)
         post_processor = PostProcessingManager(game_profile, output_folder_path)

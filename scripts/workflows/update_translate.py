@@ -14,7 +14,7 @@ from scripts.core.services.incremental_archive_service import IncrementalArchive
 from scripts.core.services.incremental_package_service import IncrementalPackageService
 from scripts.core.services.incremental_preparation_service import IncrementalPreparationService
 from scripts.core.services.incremental_translation_service import IncrementalTranslationService
-from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService
+from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService, resolve_dynamic_valid_tags
 from scripts.core.services.embedded_workshop_service import run_embedded_workshop
 
 logger = logging.getLogger(__name__)
@@ -279,6 +279,7 @@ async def run_incremental_update(
         lang_telemetry["build_ms"] = round((perf_counter() - build_started_at) * 1000, 1)
         written_files = build_result["written_files"]
         all_written_files.extend(written_files)
+        dynamic_valid_tags = resolve_dynamic_valid_tags(game_profile, source_path)
 
         export_result = workshop_issue_exporter.export_for_output(
             output_root=lang_output_dir,
@@ -289,6 +290,7 @@ async def run_incremental_update(
             workflow="incremental",
             project_name=project_name,
             project_id=project_id or "",
+            dynamic_valid_tags=dynamic_valid_tags,
         )
         if embedded_workshop and embedded_workshop.get("enabled", True):
             try:
@@ -307,6 +309,7 @@ async def run_incremental_update(
                     fallback_concurrency=concurrency_limit,
                     fallback_batch_size=batch_size_limit,
                     fallback_rpm=rpm_limit,
+                    dynamic_valid_tags=dynamic_valid_tags,
                     progress_callback=(
                         (lambda data, idx=lang_index, total=total_target_langs, code=target_lang_code:
                             progress_callback(_build_aggregated_progress(data, idx, total, code)))

@@ -122,6 +122,7 @@ async def run_embedded_workshop(
     fallback_batch_size: Optional[int] = None,
     fallback_rpm: Optional[int] = None,
     progress_callback: Optional[Any] = None,
+    dynamic_valid_tags: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     output_root = Path(output_root)
     sidecar_path = output_root / WorkshopIssueExportService.OUTPUT_FILENAME
@@ -243,6 +244,8 @@ async def run_embedded_workshop(
         game_profile=game_profile,
         workflow=workflow,
         project_name=project_name,
+        project_id=project_id or "",
+        dynamic_valid_tags=dynamic_valid_tags,
     )
 
     return {

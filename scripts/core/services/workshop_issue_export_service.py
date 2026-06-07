@@ -15,6 +15,25 @@ from scripts.utils.validation_logger import ValidationLogger
 logger = logging.getLogger(__name__)
 
 
+def resolve_dynamic_valid_tags(game_profile: Dict[str, Any], source_root: str | Path) -> Optional[List[str]]:
+    official_tags_path = game_profile.get("official_tags_codex")
+    if not official_tags_path:
+        return None
+
+    try:
+        from scripts.utils import tag_scanner
+
+        source_root = Path(source_root)
+        loc_folder = game_profile.get("source_localization_folder", "localization")
+        return tag_scanner.analyze_mod_and_get_all_valid_tags(
+            mod_loc_path=str(source_root / loc_folder),
+            official_tags_json_path=official_tags_path,
+        )
+    except Exception as exc:
+        logger.warning("Failed to resolve dynamic validation tags for %s: %s", game_profile.get("id"), exc)
+        return None
+
+
 class WorkshopIssueExportService:
     """
     Builds a structured validation sidecar from translated output files.
@@ -37,6 +56,7 @@ class WorkshopIssueExportService:
         workflow: str,
         project_name: str = "",
         project_id: str = "",
+        dynamic_valid_tags: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         output_root = Path(output_root)
         source_root = Path(source_root)
@@ -92,6 +112,7 @@ class WorkshopIssueExportService:
                         source_lang=source_lang_info,
                         source_value=source_value,
                         target_lang=target_lang_info.get("code"),
+                        dynamic_valid_tags=dynamic_valid_tags,
                     )
                 except Exception as exc:
                     logger.error(f"Failed to validate {translated_file} [{key}]: {exc}")

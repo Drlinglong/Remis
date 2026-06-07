@@ -18,6 +18,7 @@ from scripts.core.base_handler import BaseApiHandler # For typing or creation
 from scripts.core.loc_parser import parse_loc_file
 from scripts.utils.validation_logger import ValidationLogger
 from scripts.core.project_json_manager import ProjectJsonManager
+from scripts.core.services.workshop_issue_export_service import resolve_dynamic_valid_tags
 
 router = APIRouter(prefix="/api/agent-workshop", tags=["agent-workshop"])
 logger = logging.getLogger(__name__)
@@ -475,6 +476,10 @@ async def scan_project(project_id: str, force: bool = Query(False)):
     source_root = Path(project['source_path'])
     game_id = project['game_id']
     source_lang_iso = project.get('source_language', 'en')
+    from scripts.app_settings import GAME_ID_ALIASES, GAME_PROFILES_BY_ID
+
+    normalized_game_id = GAME_ID_ALIASES.get(str(game_id).lower(), game_id)
+    game_profile = GAME_PROFILES_BY_ID.get(normalized_game_id) or GAME_PROFILES_BY_ID.get(game_id) or {"id": game_id}
 
     if not force:
         current_errors = ValidationLogger.load_errors(project['source_path'])
@@ -509,6 +514,7 @@ async def scan_project(project_id: str, force: bool = Query(False)):
     
     # Select rules
     validator = PostProcessValidator()
+    dynamic_valid_tags = resolve_dynamic_valid_tags(game_profile, source_root)
     
     issues = []
     
@@ -568,7 +574,8 @@ async def scan_project(project_id: str, force: bool = Query(False)):
                     key, 
                     value, 
                     source_value=source_entries.get(key, ""),
-                    target_lang=target_lang
+                    target_lang=target_lang,
+                    dynamic_valid_tags=dynamic_valid_tags,
                 )
             except ValueError as e:
                 # Catch strict game ID validation error

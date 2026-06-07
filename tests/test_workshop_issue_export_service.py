@@ -39,3 +39,34 @@ def test_export_includes_structured_issue_details(tmp_path):
     assert issue["error_code"] == "validation_residual_punctuation_found"
     assert issue["details_code"] == "validation_residual_punctuation_details_localized"
     assert issue["details_params"] == {"punctuations": "，"}
+
+
+def test_export_uses_dynamic_tags_for_vic3_warning_detection(tmp_path):
+    source_root = tmp_path / "source"
+    output_root = tmp_path / "output"
+
+    _write_loc(
+        source_root / "localization" / "simp_chinese" / "sample_l_simp_chinese.yml",
+        'l_simp_chinese:\n demo.key:0 "你好。"\n',
+    )
+    _write_loc(
+        output_root / "localization" / "english" / "sample_l_english.yml",
+        'l_english:\n demo.key:0 "Hello #unsupported_text#!."\n',
+    )
+
+    result = WorkshopIssueExportService().export_for_output(
+        output_root=output_root,
+        source_root=source_root,
+        source_lang_info={"code": "zh-CN", "key": "l_simp_chinese"},
+        target_lang_info={"code": "en", "key": "l_english"},
+        game_profile={"id": "victoria3"},
+        workflow="test",
+        project_name="Demo",
+        dynamic_valid_tags=["known_text"],
+    )
+
+    issue = next(
+        item for item in result["issues"]
+        if item["error_code"] == "validation_vic3_unknown_formatting"
+    )
+    assert issue["severity"] == "warning"

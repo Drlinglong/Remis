@@ -191,7 +191,8 @@ def test_scan_uses_translation_relative_paths_for_external_translation_dirs(tmp_
     fake_result.details = "Use English punctuation."
 
     with patch("scripts.routers.agent_workshop.project_manager", new_callable=MagicMock) as mock_pm, \
-         patch("scripts.routers.agent_workshop.PostProcessValidator") as mock_validator_cls:
+         patch("scripts.routers.agent_workshop.PostProcessValidator") as mock_validator_cls, \
+         patch("scripts.routers.agent_workshop.resolve_dynamic_valid_tags", return_value=["known_text"]) as mock_dynamic_tags:
         mock_pm.get_project = AsyncMock(return_value={
             "project_id": "p2c",
             "source_path": str(project_root),
@@ -213,6 +214,9 @@ def test_scan_uses_translation_relative_paths_for_external_translation_dirs(tmp_
         response = client.get("/api/agent-workshop/scan", params={"project_id": "p2c", "force": True})
 
     assert response.status_code == 200
+    mock_dynamic_tags.assert_called_once()
+    mock_validator_cls.return_value.validate_entry.assert_called_once()
+    assert mock_validator_cls.return_value.validate_entry.call_args.kwargs["dynamic_valid_tags"] == ["known_text"]
     data = response.json()
     assert len(data) == 1
     assert data[0]["file_name"] == "localisation/english/demo_l_english.yml"
