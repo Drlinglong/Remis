@@ -1504,5 +1504,13 @@
   "project_management.repair_metadata": "Repair Metadata",
   "project_management.tooltip_repair_metadata": "Validate sidecar metadata, repair stale caches, and rebuild the file index.",
   "project_management.repair_metadata_success": "Project metadata checked and rebuilt.",
-  "project_management.repair_metadata_error": "Failed to repair project metadata."
+  "project_management.repair_metadata_error": "Failed to repair project metadata.",
+  "deploy_btn_browse_original_mod": "Procurar...",
+  "deploy_select_original_mod_folder": "Selecionar pasta do mod original",
+  "deploy_btn_detect_original_mod": "Detectar mod original",
+  "deploy_btn_delete_fake_loc": "Excluir arquivos de localização falsa",
+  "deploy_detect_success_title": "Mod original detectado",
+  "deploy_detect_success_message": "A pasta do mod original foi preenchida a partir dos metadados do projeto/oficina.",
+  "deploy_detect_failed_title": "Mod original não encontrado",
+  "deploy_detect_failed_message": "Nenhum caminho vinculado ao mod original foi encontrado. Selecione a pasta manualmente."
 }

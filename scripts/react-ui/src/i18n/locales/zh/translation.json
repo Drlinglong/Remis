@@ -1523,5 +1523,13 @@
   "project_management.repair_metadata": "检验/重建元数据",
   "project_management.tooltip_repair_metadata": "检查项目侧元数据、清理过期缓存，并重建文件索引。",
   "project_management.repair_metadata_success": "项目元数据已检查并重建。",
-  "project_management.repair_metadata_error": "项目元数据修复失败。"
+  "project_management.repair_metadata_error": "项目元数据修复失败。",
+  "deploy_btn_browse_original_mod": "浏览...",
+  "deploy_select_original_mod_folder": "选择原始 Mod 文件夹",
+  "deploy_btn_detect_original_mod": "自动寻找原始模组",
+  "deploy_btn_delete_fake_loc": "删除路径下的假本地化文件",
+  "deploy_detect_success_title": "已找到原始模组目录",
+  "deploy_detect_success_message": "已根据项目/工坊元数据填入原始模组目录。",
+  "deploy_detect_failed_title": "未能自动找到原始模组",
+  "deploy_detect_failed_message": "未找到关联的原始模组路径，请手动选择目录。"
 }

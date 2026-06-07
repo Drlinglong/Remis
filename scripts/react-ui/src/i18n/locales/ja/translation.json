@@ -1504,5 +1504,13 @@
   "project_management.repair_metadata": "Repair Metadata",
   "project_management.tooltip_repair_metadata": "Validate sidecar metadata, repair stale caches, and rebuild the file index.",
   "project_management.repair_metadata_success": "Project metadata checked and rebuilt.",
-  "project_management.repair_metadata_error": "Failed to repair project metadata."
+  "project_management.repair_metadata_error": "Failed to repair project metadata.",
+  "deploy_btn_browse_original_mod": "参照...",
+  "deploy_select_original_mod_folder": "元Modフォルダーを選択",
+  "deploy_btn_detect_original_mod": "元Modを自動検出",
+  "deploy_btn_delete_fake_loc": "偽ローカライズファイルを削除",
+  "deploy_detect_success_title": "元Modを検出しました",
+  "deploy_detect_success_message": "プロジェクト/ワークショップのメタデータから元Modフォルダーを入力しました。",
+  "deploy_detect_failed_title": "元Modが見つかりません",
+  "deploy_detect_failed_message": "関連付けられた元Modパスが見つかりませんでした。フォルダーを手動で選択してください。"
 }

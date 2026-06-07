@@ -1504,5 +1504,13 @@
   "project_management.repair_metadata": "Repair Metadata",
   "project_management.tooltip_repair_metadata": "Validate sidecar metadata, repair stale caches, and rebuild the file index.",
   "project_management.repair_metadata_success": "Project metadata checked and rebuilt.",
-  "project_management.repair_metadata_error": "Failed to repair project metadata."
+  "project_management.repair_metadata_error": "Failed to repair project metadata.",
+  "deploy_btn_browse_original_mod": "Gözat...",
+  "deploy_select_original_mod_folder": "Orijinal mod klasörünü seç",
+  "deploy_btn_detect_original_mod": "Orijinal modu otomatik bul",
+  "deploy_btn_delete_fake_loc": "Sahte yerelleştirme dosyalarını sil",
+  "deploy_detect_success_title": "Orijinal mod bulundu",
+  "deploy_detect_success_message": "Orijinal mod klasörü proje/atölye meta verilerinden dolduruldu.",
+  "deploy_detect_failed_title": "Orijinal mod bulunamadı",
+  "deploy_detect_failed_message": "Bağlı bir orijinal mod yolu bulunamadı. Klasörü elle seçin."
 }

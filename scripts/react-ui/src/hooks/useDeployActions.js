@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
+import { open } from '@tauri-apps/plugin-dialog';
 import api from '../utils/api';
 
 /**
@@ -31,6 +32,12 @@ export function useDeployActions({ getOutputFolderName, projectId, gameId, onDep
     const [loading, setLoading] = useState(false);
     const [infoLoading, setInfoLoading] = useState(false);
 
+    const applyDeployInfo = (data) => {
+        setDeployPath(data.default_deploy_path || '');
+        setWorkshopPath(data.detected_workshop_path || '');
+        setSourceLanguage(data.source_language || 'english');
+    };
+
     const fetchDeployInfo = async () => {
         setInfoLoading(true);
         try {
@@ -40,9 +47,8 @@ export function useDeployActions({ getOutputFolderName, projectId, gameId, onDep
                 game_id: gameId || '',
                 output_folder_name: folderName
             });
-            setDeployPath(response.data.default_deploy_path || '');
-            setWorkshopPath(response.data.detected_workshop_path || '');
-            setSourceLanguage(response.data.source_language || 'english');
+            applyDeployInfo(response.data);
+            return response.data;
         } catch (error) {
             console.error("Failed to load deploy info:", error);
             notifications.show({
@@ -50,6 +56,7 @@ export function useDeployActions({ getOutputFolderName, projectId, gameId, onDep
                 message: t('deploy_error_load_info'),
                 color: 'red'
             });
+            return null;
         } finally {
             setInfoLoading(false);
         }
@@ -77,6 +84,36 @@ export function useDeployActions({ getOutputFolderName, projectId, gameId, onDep
             return t('deploy_error_paradox_dir_not_found');
         }
         return detail;
+    };
+
+    const handleDetectWorkshopPath = async () => {
+        const data = await fetchDeployInfo();
+        if (data?.detected_workshop_path) {
+            notifications.show({
+                title: t('deploy_detect_success_title'),
+                message: t('deploy_detect_success_message'),
+                color: 'green'
+            });
+            return;
+        }
+
+        notifications.show({
+            title: t('deploy_detect_failed_title'),
+            message: t('deploy_detect_failed_message'),
+            color: 'yellow'
+        });
+    };
+
+    const handleBrowseWorkshopPath = async () => {
+        const selected = await open({
+            directory: true,
+            multiple: false,
+            title: t('deploy_select_original_mod_folder')
+        });
+
+        if (typeof selected === 'string') {
+            setWorkshopPath(selected);
+        }
     };
 
     const handleExecuteDeploy = async () => {
@@ -158,6 +195,8 @@ export function useDeployActions({ getOutputFolderName, projectId, gameId, onDep
         // Actions
         handleOpenDeployModal,
         handleOpenCleanModal,
+        handleDetectWorkshopPath,
+        handleBrowseWorkshopPath,
         handleExecuteDeploy,
         handleExecuteClean,
     };

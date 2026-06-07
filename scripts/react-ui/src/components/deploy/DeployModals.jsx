@@ -12,7 +12,9 @@ import {
 } from '@mantine/core';
 import {
     IconRocket,
-    IconAlertCircle
+    IconAlertCircle,
+    IconFolderOpen,
+    IconSearch
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
@@ -32,6 +34,8 @@ export function DeployModals({ deployActions }) {
         workshopPath, setWorkshopPath,
         loading, infoLoading,
         handleExecuteDeploy,
+        handleDetectWorkshopPath,
+        handleBrowseWorkshopPath,
         handleExecuteClean
     } = deployActions;
 
@@ -100,27 +104,51 @@ export function DeployModals({ deployActions }) {
                         </Stack>
                     ) : (
                         <Stack gap="md">
-                            <TextInput
-                                label={t('deploy_workshop_path_label')}
-                                placeholder={t('deploy_workshop_path_placeholder')}
-                                description={t('deploy_workshop_path_desc')}
-                                value={workshopPath}
-                                onChange={(e) => setWorkshopPath(e.currentTarget.value)}
-                                error={!workshopPath && t('deploy_workshop_path_error')}
-                            />
+                            <Group align="flex-end" wrap="nowrap">
+                                <TextInput
+                                    label={t('deploy_workshop_path_label')}
+                                    placeholder={t('deploy_workshop_path_placeholder')}
+                                    description={t('deploy_workshop_path_desc')}
+                                    value={workshopPath}
+                                    onChange={(e) => setWorkshopPath(e.currentTarget.value)}
+                                    error={!workshopPath && t('deploy_workshop_path_error')}
+                                    title={workshopPath}
+                                    style={{ flex: 1, minWidth: 0 }}
+                                    styles={{ input: { fontFamily: 'monospace' } }}
+                                />
+                                <Button
+                                    variant="light"
+                                    leftSection={<IconFolderOpen size={16} />}
+                                    onClick={handleBrowseWorkshopPath}
+                                    disabled={loading || infoLoading}
+                                >
+                                    {t('deploy_btn_browse_original_mod')}
+                                </Button>
+                            </Group>
 
-                            <Group justify="flex-end" mt="lg">
+                            <Group justify="space-between" mt="lg" wrap="wrap">
                                 <Button variant="default" onClick={() => setCleanModalOpen(false)} disabled={loading}>
                                     {t('cancel')}
                                 </Button>
-                                <Button 
-                                    color="red" 
-                                    onClick={() => setConfirmDeleteOpen(true)} 
-                                    loading={loading && confirmDeleteOpen}
-                                    disabled={!workshopPath || loading}
-                                >
-                                    {t('deploy_btn_clean_and_deploy')}
-                                </Button>
+                                <Group justify="flex-end" wrap="wrap">
+                                    <Button
+                                        variant="light"
+                                        leftSection={<IconSearch size={16} />}
+                                        onClick={handleDetectWorkshopPath}
+                                        loading={infoLoading}
+                                        disabled={loading}
+                                    >
+                                        {t('deploy_btn_detect_original_mod')}
+                                    </Button>
+                                    <Button
+                                        color="red"
+                                        onClick={() => setConfirmDeleteOpen(true)}
+                                        loading={loading && confirmDeleteOpen}
+                                        disabled={!workshopPath || loading || infoLoading}
+                                    >
+                                        {t('deploy_btn_delete_fake_loc')}
+                                    </Button>
+                                </Group>
                             </Group>
                         </Stack>
                     )}
