@@ -439,12 +439,27 @@ def _run_embedded_workshop_for_language(
     batch_size_limit: Optional[int] = None,
     rpm_limit: Optional[int] = None,
     dynamic_valid_tags: Optional[List[str]] = None,
+    update_progress_callback=None,
 ):
-    if not embedded_workshop or not embedded_workshop.get("enabled", True):
+    if embedded_workshop is None:
+        embedded_workshop = {"enabled": True, "follow_primary_settings": True}
+
+    if not embedded_workshop.get("enabled", True):
+        logging.info("Embedded workshop skipped for %s: disabled or not configured.", target_lang.get("code"))
+        if update_progress_callback:
+            update_progress_callback(log_message=f"[{target_lang.get('code', '').upper()}] Smart Workshop skipped: disabled.")
         return
 
     archive_mod_name = _resolve_archive_mod_name(mod_name, project_id)
     try:
+        def embedded_progress(data):
+            if not update_progress_callback:
+                return
+            update_progress_callback(
+                stage=data.get("stage", "Smart Workshop"),
+                log_message=data.get("message"),
+            )
+
         workshop_summary = asyncio.run(run_embedded_workshop(
             output_root=output_dir_path,
             source_root=override_path if override_path else os.path.join(SOURCE_DIR, mod_name),
@@ -461,7 +476,21 @@ def _run_embedded_workshop_for_language(
             fallback_batch_size=batch_size_limit,
             fallback_rpm=rpm_limit,
             dynamic_valid_tags=dynamic_valid_tags,
+            progress_callback=embedded_progress,
         ))
+        if workshop_summary.get("detected_count", 0) == 0:
+            logging.info("Embedded workshop skipped for %s: no fixable validation issues in sidecar.", target_lang.get("code"))
+            if update_progress_callback:
+                update_progress_callback(log_message=f"[{target_lang.get('code', '').upper()}] Smart Workshop skipped: no fixable validation issues.")
+        elif update_progress_callback:
+            update_progress_callback(
+                stage="Smart Workshop",
+                log_message=(
+                    f"[{target_lang.get('code', '').upper()}] Smart Workshop completed: "
+                    f"{workshop_summary.get('fixed_count', 0)}/{workshop_summary.get('detected_count', 0)} fixed, "
+                    f"{workshop_summary.get('remaining_count', 0)} remaining."
+                ),
+            )
         logging.info(
             "Embedded workshop finished for %s: fixed=%s failed=%s remaining=%s provider=%s model=%s",
             target_lang.get("code"),
@@ -817,6 +846,7 @@ def run(mod_name: str,
             batch_size_limit=batch_size_limit,
             rpm_limit=rpm_limit,
             dynamic_valid_tags=dynamic_valid_tags,
+            update_progress_callback=update_progress,
         )
 
     _finalize_workflow_run(
