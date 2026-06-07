@@ -15,7 +15,8 @@ import {
     useMantineTheme,
     Alert,
     SimpleGrid,
-    Loader
+    Loader,
+    Tooltip
 } from '@mantine/core';
 import {
     IconChevronDown,
@@ -30,11 +31,13 @@ import {
     IconTypography,
     IconFolderOpen,
     IconRocket,
-    IconCloudUpload
+    IconTrash
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { notifications } from '@mantine/notifications';
 import api from '../utils/api';
-import notificationService from '../services/notificationService';
+import { useDeployActions } from '../hooks/useDeployActions';
+import { DeployModals } from './deploy/DeployModals';
 
 const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     const { t } = useTranslation();
@@ -42,6 +45,25 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     const [showLogs, setShowLogs] = useState(false);
     const [deployStatus, setDeployStatus] = useState('idle'); // 'idle', 'loading', 'success', 'error'
     const viewport = useRef(null);
+
+    // Shared deployment hooks
+    const deployActions = useDeployActions({
+        getOutputFolderName: () => {
+            const outputDir = Array.isArray(task?.output_dirs) && task.output_dirs.length > 0
+                ? task.output_dirs[0]
+                : (task?.result_path ? task.result_path.replace(/\.zip$/i, '') : null);
+            return outputDir ? outputDir.split(/[\\/]/).pop() : '';
+        },
+        projectId: translationDetails?.projectId,
+        gameId: translationDetails?.gameId,
+        onDeploySuccess: () => setDeployStatus('success'),
+        onCleanSuccess: () => setDeployStatus('success')
+    });
+
+    const {
+        handleOpenDeployModal,
+        handleOpenCleanModal
+    } = deployActions;
 
     // Auto-scroll logs
     useEffect(() => {
@@ -79,6 +101,7 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
             'Creating Backup': 'stage_creating_backup',
             'Translating': 'stage_translating',
             'Reading Source': 'stage_reading_source',
+            'Analyzing Files': 'stage_analyzing_files',
             'Initializing': 'stage_initializing',
             'Failed': 'stage_failed'
         };
@@ -90,7 +113,11 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
             ? task.output_dirs[0]
             : null;
         if (!directFolderPath && !task?.result_path) {
-            notificationService.error('Output folder path is not available yet.', { title: 'Cannot Open Folder' });
+            notifications.show({
+                title: t('error_cannot_open_folder'),
+                message: t('error_output_folder_not_available'),
+                color: 'red'
+            });
             return;
         }
 
@@ -115,49 +142,21 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
             }
         }
 
-        notificationService.error(
-            `Cannot open output location: ${lastError?.response?.data?.detail || lastError?.message || 'Unknown error'}`,
-            { title: 'Error' }
-        );
+        notifications.show({
+            title: t('error_title'),
+            message: `Cannot open output location: ${lastError?.response?.data?.detail || lastError?.message || 'Unknown error'}`,
+            color: 'red'
+        });
     };
 
-    const handleDeploy = async () => {
-        const outputDir = Array.isArray(task?.output_dirs) && task.output_dirs.length > 0
-            ? task.output_dirs[0]
-            : (task?.result_path ? task.result_path.replace(/\.zip$/i, '') : null);
-        if (!outputDir || !translationDetails?.gameId) return;
 
-        setDeployStatus('loading');
-
-        const folderName = outputDir.split(/[\\/]/).pop();
-
-        try {
-            const response = await api.post('/api/tools/deploy_mod', {
-                output_folder_name: folderName,
-                game_id: translationDetails.gameId
-            });
-
-            if (response.data.status === 'success') {
-                setDeployStatus('success');
-                notificationService.success(t('deploy_success_message'), { title: t('deploy_success_title') });
-            } else {
-                setDeployStatus('error');
-                notificationService.error(response.data.message || 'Deployment failed', { title: t('deploy_failed_title') });
-            }
-        } catch (error) {
-            console.error("Deployment failed:", error);
-            setDeployStatus('error');
-            const errorMsg = error.response?.data?.detail || error.message;
-            notificationService.error(errorMsg, { title: t('deploy_failed_title') });
-        }
-    };
 
     // Render Report Card
     if (isDoneWithOutput) {
         const statusColor = isPartiallyFailed ? 'yellow' : 'green';
-        const statusTitle = isPartiallyFailed ? 'Translation Completed With Warnings' : t('translation_completed');
+        const statusTitle = isPartiallyFailed ? t('translation_completed_with_warnings') : t('translation_completed');
         const statusSummary = isPartiallyFailed
-            ? 'Some files or batches fell back to the original text. Review the error report before using the output.'
+            ? t('translation_partial_fail_summary')
             : t('report_success_summary', {
                 mod_name: translationDetails?.modName || 'Mod',
                 source_lang: translationDetails?.sourceLang || 'Source',
@@ -178,12 +177,12 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                         {isPartiallyFailed && (
                             <Alert
                                 icon={<IconAlertCircle size={20} />}
-                                title="Partial Failure"
+                                title={t('partial_failure_title')}
                                 color="yellow"
                                 variant="light"
                                 w="100%"
                             >
-                                Open the detailed logs and review the failed files before deploying.
+                                {t('partial_failure_review_msg')}
                             </Alert>
                         )}
 
@@ -232,18 +231,32 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                                 color="teal"
                                 onClick={handleOpenFolder}
                             >
-                                {t('button_open_folder', 'Open Folder')}
+                                {t('button_open_folder')}
                             </Button>
-                            <Button
-                                leftSection={deployStatus === 'loading' ? <Loader size={14} color="white" /> : <IconRocket size={20} />}
-                                size="lg"
-                                color={deployStatus === 'success' ? 'green' : (deployStatus === 'error' ? 'red' : 'blue')}
-                                onClick={handleDeploy}
-                                loading={deployStatus === 'loading'}
-                                disabled={deployStatus === 'success'}
-                            >
-                                {deployStatus === 'loading' ? t('button_deploying') : t('button_auto_deploy')}
-                            </Button>
+                            <Tooltip label={t('deploy_tooltip_label')} position="top" withArrow>
+                                <Button
+                                    leftSection={deployStatus === 'loading' ? <Loader size={14} color="white" /> : <IconRocket size={20} />}
+                                    size="lg"
+                                    color={deployStatus === 'success' ? 'green' : (deployStatus === 'error' ? 'red' : 'blue')}
+                                    onClick={handleOpenDeployModal}
+                                    loading={deployStatus === 'loading'}
+                                    disabled={deployStatus === 'success'}
+                                >
+                                    {deployStatus === 'loading' ? t('button_deploying') : t('button_auto_deploy')}
+                                </Button>
+                            </Tooltip>
+                            
+                            <Tooltip label={t('deploy_clean_tooltip_label')} position="top" withArrow>
+                                <Button
+                                    leftSection={<IconTrash size={20} />}
+                                    size="lg"
+                                    color="red"
+                                    onClick={handleOpenCleanModal}
+                                    disabled={deployStatus === 'loading'}
+                                >
+                                    {t('button_clean_fake_loc')}
+                                </Button>
+                            </Tooltip>
                             <Button
                                 leftSection={<IconRefresh size={20} />}
                                 size="lg"
@@ -284,6 +297,8 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                         </ScrollArea>
                     </Paper>
                 </Collapse>
+
+                <DeployModals deployActions={deployActions} />
             </Stack>
         );
     }

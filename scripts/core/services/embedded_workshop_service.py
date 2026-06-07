@@ -118,6 +118,11 @@ async def run_embedded_workshop(
     config: Optional[Dict[str, Any]] = None,
     fallback_provider: Optional[str] = None,
     fallback_model: Optional[str] = None,
+    fallback_concurrency: Optional[int] = None,
+    fallback_batch_size: Optional[int] = None,
+    fallback_rpm: Optional[int] = None,
+    progress_callback: Optional[Any] = None,
+    dynamic_valid_tags: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     output_root = Path(output_root)
     sidecar_path = output_root / WorkshopIssueExportService.OUTPUT_FILENAME
@@ -132,6 +137,7 @@ async def run_embedded_workshop(
             "fixed_count": 0,
             "failed_count": 0,
             "remaining_count": 0,
+            "issues": [],
             "issues_path": str(sidecar_path),
         }
 
@@ -143,9 +149,10 @@ async def run_embedded_workshop(
         fallback_model=fallback_model,
     )
 
-    batch_size = max(1, int(config.get("batch_size_limit") or (3 if provider_name in LOCAL_PROVIDERS else 10)))
-    concurrency = max(1, int(config.get("concurrency_limit") or 1))
-    rpm_limit = max(1, int(config.get("rpm_limit") or 40))
+    follow_primary = config.get("follow_primary_settings", True)
+    batch_size = max(1, int((None if follow_primary else config.get("batch_size_limit")) or fallback_batch_size or (3 if provider_name in LOCAL_PROVIDERS else 10)))
+    concurrency = max(1, int((None if follow_primary else config.get("concurrency_limit")) or fallback_concurrency or 1))
+    rpm_limit = max(1, int((None if follow_primary else config.get("rpm_limit")) or fallback_rpm or 40))
     dispatch_interval = 60.0 / rpm_limit
 
     handler = get_handler(provider_name, model_name=model_name)
@@ -189,9 +196,22 @@ async def run_embedded_workshop(
                 total_batches,
                 len(batch),
             )
-            batch_result = await agent.fix_batch_loop(batch, game_id=game_profile.get("id", ""))
+            batch_result = await agent.fix_batch_loop(
+                batch,
+                game_id=game_profile.get("id", ""),
+                target_lang_code=target_lang_info.get("code"),
+            )
             for item in batch_result.get("results", []):
                 results.append(item)
+
+            if progress_callback and initial_issue_count > 0:
+                progress_percent = int((len(results) / initial_issue_count) * 100)
+                progress_callback({
+                    "stage": f"Smart Workshop (Proofreading {target_lang_info.get('code', '')})",
+                    "stage_code": "embedded_workshop",
+                    "percent": min(99, progress_percent),
+                    "message": f"[{target_lang_info.get('code', '').upper()}] Smart Workshop: Proofreading and fixing format issues ({len(results)}/{initial_issue_count} processed)...",
+                })
 
     await asyncio.gather(*(worker(worker_id + 1) for worker_id in range(max(1, concurrency))))
 
@@ -224,6 +244,8 @@ async def run_embedded_workshop(
         game_profile=game_profile,
         workflow=workflow,
         project_name=project_name,
+        project_id=project_id or "",
+        dynamic_valid_tags=dynamic_valid_tags,
     )
 
     return {
@@ -238,6 +260,7 @@ async def run_embedded_workshop(
         "fixed_count": fixed_count,
         "failed_count": failed_count,
         "remaining_count": int(refreshed_export.get("issue_count", 0) or 0),
+        "issues": refreshed_export.get("issues", []),
         "issues_path": refreshed_export.get("issues_path"),
         "sidecar_path": refreshed_export.get("sidecar_path"),
     }

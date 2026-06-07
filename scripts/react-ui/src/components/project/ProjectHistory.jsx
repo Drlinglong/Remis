@@ -173,7 +173,6 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
                         <IconGitBranch size={24} color="var(--mantine-color-blue-filled)" />
                         <Stack gap={0}>
                             <Title order={4}>{t('project_history.current_state', 'Current State')}</Title>
-                            <Text size="xs" c="dimmed">{t('project_history.monitor_desc', 'Ready for incremental translation')}</Text>
                         </Stack>
                     </Group>
                     <Button

@@ -11,6 +11,25 @@ from scripts.utils.system_utils import sanitize_for_json
 
 router = APIRouter()
 
+LOCAL_OPENAI_COMPATIBLE_PROVIDERS = {"lm_studio", "vllm", "koboldcpp", "oobabooga"}
+OPENAI_ENDPOINT_SUFFIXES = ("/chat/completions", "/responses")
+
+
+def _validate_local_openai_base_url(provider_id: str, api_url: str) -> None:
+    if provider_id not in LOCAL_OPENAI_COMPATIBLE_PROVIDERS or not api_url:
+        return
+
+    normalized_path = api_url.strip().rstrip("/").lower()
+    if any(normalized_path.endswith(suffix) for suffix in OPENAI_ENDPOINT_SUFFIXES):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "API URL must be a Base URL, not a concrete endpoint. "
+                "For LM Studio, use http://localhost:1234/v1, not /responses "
+                "or /chat/completions."
+            ),
+        )
+
 @router.get("/api/config")
 def get_config():
     """Returns the global configuration for the frontend."""
@@ -151,6 +170,7 @@ def update_provider_config(payload: UpdateProviderConfigRequest):
         current_overrides[provider_id]["models"] = payload.models
         
     if payload.api_url is not None:
+        _validate_local_openai_base_url(provider_id, payload.api_url)
         current_overrides[provider_id]["api_url"] = payload.api_url
 
     if payload.selected_model is not None:

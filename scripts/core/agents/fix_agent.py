@@ -1,8 +1,9 @@
+import asyncio
+import json
 import logging
 from typing import List, Dict, Any, Optional, Tuple
 import re
 
-from scripts.core.base_handler import BaseApiHandler
 from scripts.core.base_handler import BaseApiHandler
 
 logger = logging.getLogger(__name__)
@@ -94,11 +95,16 @@ class ReflexionFixAgent:
             "parity_message": f"Failed after {max_retries} attempts. Remaining errors: {current_error_type}."
         }
 
-    async def fix_batch_loop(self, issues: List[Dict[str, Any]], game_id: str, max_retries: int = 3) -> Dict[str, Any]:
+    async def fix_batch_loop(
+        self,
+        issues: List[Dict[str, Any]],
+        game_id: str,
+        max_retries: int = 3,
+        target_lang_code: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Runs the Reflexion workflow for a FULL BATCH of issues to save time and tokens.
         """
-        import json
         from scripts.utils.post_process_validator import PostProcessValidator
         from scripts.utils.structured_parser import parse_response
         from scripts.core.schemas import TranslationResponse
@@ -117,8 +123,13 @@ class ReflexionFixAgent:
                 "is_fixed": False,
                 "suggested_fix": "",
                 "key": issue["key"],
-                "file_name": issue["file_name"]
+                "file_name": issue["file_name"],
+                "reflection": "",
+                "target_lang": issue.get("target_lang") or target_lang_code,
             })
+
+        resolved_target_lang = self._resolve_batch_target_lang(current_state, target_lang_code)
+        attempt_summaries = []
             
         for attempt in range(max_retries):
             # 1. Filter out already fixed issues for the prompt
@@ -128,7 +139,47 @@ class ReflexionFixAgent:
                 break
                 
             self.logger.info(f"Batch Fix Attempt {attempt + 1}/{max_retries} for {len(active_indices)} issues.")
-            prompt = self._build_batch_prompt([current_state[i] for i in active_indices], game_id)
+            fixed_before_attempt = sum(1 for state in current_state if state["is_fixed"])
+            attempt_summary = {
+                "attempt": attempt + 1,
+                "max_retries": max_retries,
+                "active_count": len(active_indices),
+                "used_reflection": attempt > 0,
+                "reflections_generated": 0,
+                "fixed_count": 0,
+                "remaining_count": len(active_indices),
+                "status": "started",
+                "message": "",
+            }
+            
+            # 1.5 Generate diagnostic reflections for retries (attempt > 0)
+            if attempt > 0:
+                self.logger.info(f"Generating diagnostic reflections for {len(active_indices)} remaining issues...")
+                reflection_tasks = []
+                for idx in active_indices:
+                    state = current_state[idx]
+                    err_msg = " | ".join(state["error_messages"])
+                    err_dtl = " | ".join(state["error_details"])
+                    reflection_tasks.append(self._reflect(state["source"], state["target"], err_msg, err_dtl))
+                
+                reflection_results = await asyncio.gather(*reflection_tasks, return_exceptions=True)
+                for idx_in_active, reflection in enumerate(reflection_results):
+                    orig_idx = active_indices[idx_in_active]
+                    if isinstance(reflection, Exception):
+                        self.logger.error(f"Reflection failed for index {orig_idx}: {reflection}")
+                        current_state[orig_idx]["reflection"] = ""
+                    else:
+                        current_state[orig_idx]["reflection"] = reflection
+                        attempt_summary["reflections_generated"] += 1
+            else:
+                for idx in active_indices:
+                    current_state[idx]["reflection"] = ""
+
+            prompt = self._build_batch_prompt(
+                [current_state[i] for i in active_indices],
+                game_id,
+                target_lang_code=resolved_target_lang,
+            )
             
             try:
                 # 2. Call LLM for the batch
@@ -145,11 +196,15 @@ class ReflexionFixAgent:
                         json_match = re.search(r'\[.*\]', raw_response, re.DOTALL)
                         if json_match:
                             fixed_texts = json.loads(json_match.group(0))
-                    except:
+                    except Exception:
                         pass
                 
                 if len(fixed_texts) != len(active_indices):
-                    self.logger.error(f"Length mismatch: Expected {len(active_indices)}, got {len(fixed_texts)}")
+                    message = f"Length mismatch: Expected {len(active_indices)}, got {len(fixed_texts)}"
+                    self.logger.error(message)
+                    attempt_summary["status"] = "invalid_response"
+                    attempt_summary["message"] = message
+                    attempt_summaries.append(attempt_summary)
                     continue
                     
                 # 3. Apply fixes and validate
@@ -175,8 +230,18 @@ class ReflexionFixAgent:
                         state["error_messages"] = [e.message for e in errors]
                         state["error_details"] = [e.details for e in errors if e.details]
                         state["target"] = fixed_text # Update target to the current failed attempt for the next prompt
+
+                fixed_after_attempt = sum(1 for state in current_state if state["is_fixed"])
+                remaining_after_attempt = len([state for state in current_state if not state["is_fixed"]])
+                attempt_summary["fixed_count"] = max(0, fixed_after_attempt - fixed_before_attempt)
+                attempt_summary["remaining_count"] = remaining_after_attempt
+                attempt_summary["status"] = "completed"
+                attempt_summaries.append(attempt_summary)
             except Exception as e:
                 self.logger.error(f"Batch Fix API Call failed: {e}")
+                attempt_summary["status"] = "api_error"
+                attempt_summary["message"] = str(e)
+                attempt_summaries.append(attempt_summary)
                 
         # Return summary
         results_list = []
@@ -189,14 +254,31 @@ class ReflexionFixAgent:
                 "parity_message": "Validation passed." if state["is_fixed"] else " | ".join(state["error_messages"])
             })
             
-        return {"results": results_list}
+        return {
+            "results": results_list,
+            "attempts": attempt_summaries,
+            "max_retries": max_retries,
+        }
 
-    def _build_batch_prompt(self, active_issues: List[Dict[str, Any]], game_id: str) -> str:
+    def _build_batch_prompt(
+        self,
+        active_issues: List[Dict[str, Any]],
+        game_id: str,
+        target_lang_code: Optional[str] = None,
+    ) -> str:
         """
         Builds the PROMPT for the batch fix, injecting dynamic Few-Shot examples based on the specific errors present in the batch.
         """
-        import json
         from scripts.config.validators.fixer_examples import get_examples_for_game
+
+        target_lang_code = self._resolve_batch_target_lang(active_issues, target_lang_code)
+        english_punctuation_rule = ""
+        if self._is_english_target(target_lang_code):
+            english_punctuation_rule = (
+                "12. **PUNCTUATION TRANSLATION**: When localizing to English (en), you MUST translate all Chinese double-byte punctuations "
+                "(like '。', '，', '：', '；', '（', '）', '、') to English standard punctuations "
+                "('.', ',', ':', ';', '(', ')', ','). Never leave Chinese punctuations in the final target.\n"
+            )
         
         # 1. Identify error categories present in this batch
         error_types_present = set()
@@ -211,7 +293,7 @@ class ReflexionFixAgent:
                 
         # 2. Build dynamic few-shot examples via the new configuration mapping
         examples = get_examples_for_game(game_id, error_types_present)
-            
+        
         examples_text = ""
         if examples:
             examples_text = "--- 常见错误修正范例 (Few-Shot Examples) ---\n" + "\n".join(examples) + "\n----------------------------------------"
@@ -221,17 +303,25 @@ class ReflexionFixAgent:
         for i, issue in enumerate(active_issues):
             errors = " | ".join(issue["error_messages"] + issue["error_details"])
             source_text = issue["source"] if issue["source"] else "[SOURCE CONTEXT UNAVAILABLE]"
-            payload_items.append(
+            
+            payload_item = (
                 f"Item {i+1}:\n"
                 f"  Source: {source_text}\n"
                 f"  Bad Translation: {issue['target']}\n"
                 f"  Reported Error: {errors}"
             )
+            # Inject reflection if available
+            if issue.get("reflection"):
+                payload_item += f"\n  Diagnostic Reflection: {issue['reflection']}"
+                
+            payload_items.append(payload_item)
             
         prompt = (
             "### SYSTEM ROLE\n"
             "You are an elite Game Localization Recovery Agent. Your mission is to repair localization output that may contain formatting damage, failed-chunk corruption, or low-quality translation mistakes. "
             "You must preserve technical correctness first, then recover missing or damaged content, and only perform limited source-aware translation revision when the source context is available.\n\n"
+            "### TARGET LANGUAGE\n"
+            f"{target_lang_code or 'unknown'}\n\n"
             f"{examples_text}\n\n"
             "### REPAIR GUIDELINES (GOLDEN RULES)\n"
             "1. **ZERO TOLERANCE**: Do NOT translate or localize any variables inside $...$, [Concept...], [SCOPE...], or icons like @...! or £...£. Keep them exactly as they appear in the Source.\n"
@@ -242,13 +332,36 @@ class ReflexionFixAgent:
             "6. **MISSING SOURCE CONTEXT**: If the Source is marked as unavailable, do best-effort format repair and conservative recovery from the broken translation only. Do not invent semantic details or perform aggressive rewriting.\n"
             "7. **MINIMAL NECESSARY CHANGE**: Keep valid parts of the translation intact. Do not rewrite more than needed to make it technically valid and semantically reasonable.\n"
             "8. **OUTPUT FORMAT**: You must output a JSON array of strings. Return ONLY the JSON. No conversational filler, no markdown code blocks, just the raw JSON array.\n"
-            f"9. **ITEM COUNT**: I will provide {len(active_issues)} items. You MUST provide exactly {len(active_issues)} repaired strings in the array.\n\n"
+            f"9. **ITEM COUNT**: I will provide {len(active_issues)} items. You MUST provide exactly {len(active_issues)} repaired strings in the array.\n"
+            "10. **DIAGNOSTIC REFLECTION**: Some items in this batch may contain a 'Diagnostic Reflection' providing deep analysis of why the previous repair attempt failed. You MUST treat this reflection as highly authoritative guidance to correct the specific tag mismatch or semantic error.\n"
+            "11. **PRESERVE PARADOX COLOR TAGS**: In Hearts of Iron IV (hoi4), color tags ALWAYS start with the section sign symbol '§' followed by a single letter (e.g., §Y, §g, §R, §P, §L, §G) and close with '§!'. If the bad translation corrupted '§' into '%' (e.g., %g, %Y, %P) or other characters, refer to the Source and IMMEDIATELY correct them back to '§' tags (e.g., change '%g' back to '§g'). Keep all colors from the Source exactly. Never lose color codes.\n"
+            f"{english_punctuation_rule}\n"
             "### ITEMS TO REPAIR\n" +
             "\n\n".join(payload_items) + "\n\n"
             "### JSON OUTPUT PREVIEW\n"
             "[\n  \"Repaired String 1\",\n  \"Repaired String 2\"\n]"
         )
         return prompt
+
+    @staticmethod
+    def _resolve_batch_target_lang(
+        issues: List[Dict[str, Any]],
+        explicit_target_lang: Optional[str] = None,
+    ) -> Optional[str]:
+        if explicit_target_lang:
+            return explicit_target_lang
+        for issue in issues:
+            target_lang = issue.get("target_lang")
+            if target_lang:
+                return str(target_lang)
+        return None
+
+    @staticmethod
+    def _is_english_target(target_lang_code: Optional[str]) -> bool:
+        if not target_lang_code:
+            return False
+        normalized = str(target_lang_code).strip().lower().replace("_", "-")
+        return normalized == "en" or normalized.startswith("en-") or normalized == "english"
 
     async def _reflect(self, source: str, target: str, error_type: str, details: str) -> str:
         source_for_prompt = source or "[SOURCE CONTEXT UNAVAILABLE]"

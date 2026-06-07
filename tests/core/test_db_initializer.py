@@ -2,7 +2,11 @@ import os
 import sqlite3
 
 from scripts import app_settings
-from scripts.core.db_initializer import initialize_database, run_projects_db_migrations
+from scripts.core.db_initializer import (
+    extract_bundled_demo_translations,
+    initialize_database,
+    run_projects_db_migrations,
+)
 
 
 def _write_file(path, content):
@@ -43,6 +47,8 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
 
     os.makedirs(resource_dir / "demos" / "Test_Project_Remis_EU5", exist_ok=True)
     os.makedirs(resource_dir / "my_translation" / "zh-CN-Test_Project_Remis_EU5", exist_ok=True)
+    _write_file(resource_dir / "my_translation" / "zh-CN-Test_Project_Remis_EU5" / "demo.yml", "demo")
+    _write_file(app_data_dir / "my_translation" / "user-output" / "keep.yml", "keep")
 
     monkeypatch.setattr(app_settings, "APP_DATA_DIR", str(app_data_dir).replace("\\", "/"))
     monkeypatch.setattr(app_settings, "RESOURCE_DIR", str(resource_dir).replace("\\", "/"))
@@ -76,6 +82,25 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
     cursor.execute("SELECT COUNT(*) FROM entries")
     assert cursor.fetchone()[0] == 1
     conn.close()
+
+    assert (app_data_dir / "my_translation" / "zh-CN-Test_Project_Remis_EU5" / "demo.yml").exists()
+    assert (app_data_dir / "my_translation" / "user-output" / "keep.yml").exists()
+
+
+def test_extract_bundled_demo_translations_only_replaces_bundled_children(tmp_path):
+    source_root = tmp_path / "resources" / "my_translation"
+    dest_root = tmp_path / "appdata" / "my_translation"
+
+    _write_file(source_root / "zh-CN-Test_Project_Remis_Vic3" / "fresh.yml", "fresh")
+    _write_file(dest_root / "zh-CN-Test_Project_Remis_Vic3" / "stale.yml", "stale")
+    _write_file(dest_root / "user-project" / "keep.yml", "keep")
+
+    changed = extract_bundled_demo_translations(str(source_root), str(dest_root), force=True)
+
+    assert changed is True
+    assert (dest_root / "zh-CN-Test_Project_Remis_Vic3" / "fresh.yml").exists()
+    assert not (dest_root / "zh-CN-Test_Project_Remis_Vic3" / "stale.yml").exists()
+    assert (dest_root / "user-project" / "keep.yml").exists()
 
 
 def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):

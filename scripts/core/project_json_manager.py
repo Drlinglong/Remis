@@ -2,6 +2,7 @@ import json
 import os
 import logging
 from typing import Dict, Any, List
+from scripts.app_settings import relativize_path, resolve_path
 
 logger = logging.getLogger(__name__)
 
@@ -35,17 +36,29 @@ class ProjectJsonManager:
     def _load_json(self) -> Dict[str, Any]:
         try:
             with open(self.json_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                data = json.load(f)
+                if "config" in data and "translation_dirs" in data["config"]:
+                    resolved_dirs = [resolve_path(d) for d in data["config"]["translation_dirs"]]
+                    data["config"]["translation_dirs"] = resolved_dirs
+                return data
         except Exception as e:
             logger.error(f"Failed to load project JSON: {e}")
             return {}
 
     def _save_json(self, data: Dict[str, Any]):
         try:
+            save_data = data.copy()
+            if "config" in save_data and "translation_dirs" in save_data["config"]:
+                save_data["config"] = save_data["config"].copy()
+                relativized_dirs = [relativize_path(d) for d in save_data["config"]["translation_dirs"]]
+                save_data["config"]["translation_dirs"] = relativized_dirs
+
+            os.makedirs(os.path.dirname(self.json_path), exist_ok=True)
             with open(self.json_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
+                json.dump(save_data, f, indent=4, ensure_ascii=False)
         except Exception as e:
             logger.error(f"Failed to save project JSON: {e}")
+            raise
 
     def get_kanban_data(self) -> Dict[str, Any]:
         data = self._load_json()

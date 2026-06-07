@@ -13,8 +13,6 @@ from scripts.core.parallel_types import FileTask, BatchTask
 from scripts.core.glossary_manager import glossary_manager
 from scripts.utils import i18n
 from scripts.app_settings import CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE, LOCAL_LLM_CHUNK_SIZE, OLLAMA_CHUNK_SIZE
-from scripts.core.agents.translation_fixer_agent import TranslationFixerAgent
-from scripts.utils.post_process_validator import PostProcessValidator
 
 
 class ParallelProcessor:
@@ -137,7 +135,6 @@ class ParallelProcessor:
         translation_function: Callable
     ) -> Tuple[BatchTask, List[Dict[str, Any]]]:
         warnings = []
-        MAX_FIX_ATTEMPTS = 0 # Agent Fixer is disabled until it is more robust
         
         # Initial Translation Pass
         processed_task = translation_function(batch_task)
@@ -168,45 +165,6 @@ class ParallelProcessor:
                 if validation_warnings:
                     warnings.extend(validation_warnings)
 
-        # --- Post-Processing Validation ---
-        game_id = processed_task.file_task.game_profile.get("id")
-        if not game_id:
-            return processed_task, warnings
-            
-        format_validator = PostProcessValidator()
-        current_translations = processed_task.translated_texts
-        
-        for attempt in range(MAX_FIX_ATTEMPTS + 1):
-            format_warnings = []
-            has_critical_error = False
-            
-            # 1. Run Validation
-            batch_num = processed_task.batch_index + 1
-            start_line = processed_task.start_index + 1
-            
-            format_results = format_validator.validate_batch(
-                game_id=game_id, 
-                texts=current_translations, 
-                start_line=start_line, 
-                source_lang=processed_task.file_task.source_lang,
-                source_texts=processed_task.texts, # <-- Pass the original texts for Parity Check
-                target_lang=processed_task.file_task.target_lang.get("code")
-            )
-            
-            for line_res in format_results.values():
-                for res in line_res:
-                    format_warnings.append(res)
-                    if res.level.value == 'error':
-                        has_critical_error = True
-                        
-            # 2. Check if we need to loop (Fixer is disabled, so we just collect warnings)
-            if not has_critical_error or attempt >= MAX_FIX_ATTEMPTS:
-                warnings.extend(format_warnings)
-                processed_task.translated_texts = current_translations
-                break
-                
-            # Agent Fixer logic removed/bypassed
-
         return processed_task, warnings
 
     def process_files_stream(
@@ -222,6 +180,7 @@ class ParallelProcessor:
         file_buffers: Dict[str, Dict[int, BatchTask]] = {}
         # Track total batches expected per file: {filename: total_batches}
         file_batch_counts: Dict[str, int] = {}
+        file_warning_buffers: Dict[str, List[Dict[str, Any]]] = {}
         
         # We need a way to map futures back to their file and batch index
         # But since we are consuming a generator, we can't submit everything at once if we want to be lazy?
@@ -247,13 +206,14 @@ class ParallelProcessor:
             def submit_file(file_task: FileTask):
                 if not file_task.texts_to_translate:
                     # Handle empty file immediately
-                    return True, (file_task.filename, [], [])
+                    return True, (file_task, [], [], False)
                 
                 chunk_size = self._resolve_chunk_size(file_task.provider_name)
                 texts = file_task.texts_to_translate
                 total_batches = (len(texts) + chunk_size - 1) // chunk_size
                 file_batch_counts[file_task.filename] = total_batches
                 file_buffers[file_task.filename] = {}
+                file_warning_buffers[file_task.filename] = []
                 
                 for i in range(0, len(texts), chunk_size):
                     batch_texts = texts[i:i + chunk_size]
@@ -320,6 +280,7 @@ class ParallelProcessor:
                     for future in done:
                         filename, batch_index, batch_task = future_to_info.pop(future)
                         pending_batches_count -= 1
+                        warnings = []
                         
                         try:
                             processed_task, warnings = future.result()
@@ -334,6 +295,8 @@ class ParallelProcessor:
                             continue
                             
                         file_buffers[filename][batch_index] = processed_task
+                        if warnings:
+                            file_warning_buffers.setdefault(filename, []).extend(warnings)
                         
                         # Check if file is complete (all batches accounted for, even if failed)
                         if len(file_buffers[filename]) == file_batch_counts[filename]:
@@ -348,19 +311,22 @@ class ParallelProcessor:
                             file_failed = False
                             
                             for task in sorted_batches:
-                                if task.failed:
+                                if task.failed or task.fell_back_to_source:
                                     file_failed = True
                                 full_translated_texts.extend(task.translated_texts or [])
+
+                            file_warnings = file_warning_buffers.get(filename, [])
                             
                             if file_failed:
                                 self.logger.error(f"File {filename} incomplete or failed.")
-                                yield (file_task_ref, full_translated_texts, [], True) # Fourth item is 'failed' flag
+                                yield (file_task_ref, full_translated_texts, file_warnings, True) # Fourth item is 'failed' flag
                             else:
-                                yield (file_task_ref, full_translated_texts, [], False)
+                                yield (file_task_ref, full_translated_texts, file_warnings, False)
                             
                             # Cleanup
                             del file_buffers[filename]
                             del file_batch_counts[filename]
+                            file_warning_buffers.pop(filename, None)
 
     def _collect_file_results(
         self,
@@ -393,7 +359,7 @@ class ParallelProcessor:
 
             for batch_idx in sorted_batch_indices:
                 task = file_batches[batch_idx]
-                if task.failed:
+                if task.failed or task.fell_back_to_source:
                     file_failed = True
                     break
                 file_translated_texts.extend(task.translated_texts)

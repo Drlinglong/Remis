@@ -157,6 +157,28 @@ def test_diff_service_matches_unique_key_fallbacks():
     assert entry is None
 
 
+def test_diff_service_reprocesses_exact_source_text_translation():
+    service = IncrementalDiffService()
+    history_entry = {
+        "file_path": "localization/english/sample_l_english.yml",
+        "key": "key.same",
+        "original": "Hello world",
+        "translation": "Hello world",
+    }
+    history_index = service.build_history_index([history_entry])
+
+    status, entry = service.classify_entry(
+        "localization/english/sample_l_english.yml",
+        "key.same",
+        "Hello world",
+        history_index,
+        target_lang_code="zh-CN",
+    )
+
+    assert status == "changed"
+    assert entry is history_entry
+
+
 def test_archive_manager_normalizes_stored_relative_paths(temp_archive_db):
     mod_id = temp_archive_db.get_or_create_mod_entry("PathMod", "path-mod-project")
     version_id = temp_archive_db.create_source_version(
@@ -213,3 +235,111 @@ def test_get_entries_accepts_non_normalized_file_path_inputs(temp_archive_db):
 
     assert len(entries) == 1
     assert entries[0]["translation"] == "A"
+
+
+def test_get_entries_falls_back_to_filename_for_legacy_snapshots(temp_archive_db):
+    mod_id = temp_archive_db.get_or_create_mod_entry("LegacyFilenameMod", "legacy-filename-project")
+    version_id = temp_archive_db.create_source_version(
+        mod_id,
+        [
+            {
+                "filename": "remis_demo_l_simp_chinese.yml",
+                "texts_to_translate": ["Storm's gift"],
+                "key_map": {0: {"key_part": "remis_event.1.t"}},
+            }
+        ],
+    )
+    temp_archive_db.archive_translated_results(
+        version_id,
+        {"remis_demo_l_simp_chinese.yml": ["The Gift of the Storm"]},
+        [
+            {
+                "filename": "remis_demo_l_simp_chinese.yml",
+                "texts_to_translate": ["Storm's gift"],
+                "key_map": [{"key_part": "remis_event.1.t"}],
+            }
+        ],
+        "en",
+    )
+
+    entries = temp_archive_db.get_entries(
+        project_id="legacy-filename-project",
+        file_path=r"J:\V3_Mod_Localization_Factory\source_mod\Test_Project_Remis_Vic3\localization\simp_chinese\remis_demo_l_simp_chinese.yml",
+        language="en",
+    )
+
+    assert len(entries) == 1
+    assert entries[0]["key"] == "remis_event.1.t"
+    assert entries[0]["translation"] == "The Gift of the Storm"
+
+
+def test_archive_translated_results_falls_back_from_versioned_keys(temp_archive_db):
+    mod_id = temp_archive_db.get_or_create_mod_entry("VersionedKeyMod", "versioned-key-project")
+    version_id = temp_archive_db.create_source_version(
+        mod_id,
+        [
+            {
+                "filename": "sample_l_simp_chinese.yml",
+                "file_path": "localisation/simp_chinese/sample_l_simp_chinese.yml",
+                "texts_to_translate": ["Alpha"],
+                "key_map": {0: {"key_part": "legacy.key"}},
+            }
+        ],
+    )
+
+    temp_archive_db.archive_translated_results(
+        version_id,
+        {"localisation/simp_chinese/sample_l_simp_chinese.yml": ["A"]},
+        [
+            {
+                "filename": "sample_l_simp_chinese.yml",
+                "file_path": "localisation/simp_chinese/sample_l_simp_chinese.yml",
+                "texts_to_translate": ["Alpha"],
+                "key_map": [{"key_part": "legacy.key:0"}],
+            }
+        ],
+        "en",
+    )
+
+    row = temp_archive_db.connection.execute(
+        """
+        SELECT t.translated_text
+        FROM translated_entries t
+        JOIN source_entries s ON t.source_entry_id = s.source_entry_id
+        WHERE s.version_id = ? AND s.entry_key = 'legacy.key' AND t.language_code = 'en'
+        """,
+        (version_id,),
+    ).fetchone()
+
+    assert row["translated_text"] == "A"
+
+
+def test_update_translations_uses_source_entry_lookup_row_directly(temp_archive_db):
+    mod_id = temp_archive_db.get_or_create_mod_entry("UpdateLookupMod", "update-lookup-project")
+    temp_archive_db.create_source_version(
+        mod_id,
+        [
+            {
+                "filename": "sample_l_simp_chinese.yml",
+                "file_path": "localisation/simp_chinese/sample_l_simp_chinese.yml",
+                "texts_to_translate": ["Alpha"],
+                "key_map": {0: {"key_part": "update.key"}},
+            }
+        ],
+    )
+
+    temp_archive_db.update_translations(
+        "UpdateLookupMod",
+        "localisation/simp_chinese/sample_l_simp_chinese.yml",
+        [{"key": "update.key", "translation": "Updated"}],
+        "en",
+    )
+
+    entries = temp_archive_db.get_entries(
+        project_id="update-lookup-project",
+        file_path="localisation/simp_chinese/sample_l_simp_chinese.yml",
+        language="en",
+    )
+
+    assert len(entries) == 1
+    assert entries[0]["translation"] == "Updated"

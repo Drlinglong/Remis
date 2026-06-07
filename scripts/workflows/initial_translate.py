@@ -15,7 +15,7 @@ from scripts.core.parallel_processor import ParallelProcessor
 from scripts.core.archive_manager import archive_manager
 from scripts.core.checkpoint_manager import CheckpointManager
 from scripts.core.services.embedded_workshop_service import run_embedded_workshop
-from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService
+from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService, resolve_dynamic_valid_tags
 from scripts.shared.services import project_manager
 from scripts.app_settings import SOURCE_DIR, DEST_DIR, LANGUAGES, RECOMMENDED_MAX_WORKERS, CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE, OLLAMA_CHUNK_SIZE
 from scripts.utils import i18n
@@ -313,6 +313,7 @@ def _build_file_task_iterator(
             client=handler.client,
             mod_name=mod_name,
             loc_root=file_data.get("loc_root", ""),
+            file_path=file_data.get("file_path", file_data["filename"]),
         )
 
 
@@ -389,7 +390,7 @@ def _finalize_translated_file(
         try:
             archive_manager.archive_translated_results(
                 version_id,
-                {file_task.filename: translated_texts},
+                {file_task.file_path or file_task.filename: translated_texts},
                 all_files_content,
                 target_lang.get("code")
             )
@@ -405,8 +406,11 @@ def _finalize_language_run(
     output_folder_name: str,
     proofreading_tracker: Any,
     update_progress_callback,
+    override_path: Optional[str] = None,
 ):
     """Run post-processing and persist proofreading progress for one target language."""
+    source_root = override_path if override_path else os.path.join(SOURCE_DIR, mod_name)
+    dynamic_valid_tags = resolve_dynamic_valid_tags(game_profile, source_root)
     _run_post_processing(
         mod_name,
         game_profile,
@@ -415,8 +419,11 @@ def _finalize_language_run(
         output_folder_name,
         proofreading_tracker,
         update_progress_callback,
+        source_root=source_root,
+        dynamic_valid_tags=dynamic_valid_tags,
     )
     proofreading_tracker.save_proofreading_progress()
+    return dynamic_valid_tags
 
 
 def _run_embedded_workshop_for_language(
@@ -430,12 +437,31 @@ def _run_embedded_workshop_for_language(
     game_profile: dict,
     selected_provider: str,
     model_name: Optional[str],
+    concurrency_limit: Optional[int] = None,
+    batch_size_limit: Optional[int] = None,
+    rpm_limit: Optional[int] = None,
+    dynamic_valid_tags: Optional[List[str]] = None,
+    update_progress_callback=None,
 ):
-    if not embedded_workshop or not embedded_workshop.get("enabled", True):
+    if embedded_workshop is None:
+        embedded_workshop = {"enabled": True, "follow_primary_settings": True}
+
+    if not embedded_workshop.get("enabled", True):
+        logging.info("Embedded workshop skipped for %s: disabled or not configured.", target_lang.get("code"))
+        if update_progress_callback:
+            update_progress_callback(log_message=f"[{target_lang.get('code', '').upper()}] Smart Workshop skipped: disabled.")
         return
 
     archive_mod_name = _resolve_archive_mod_name(mod_name, project_id)
     try:
+        def embedded_progress(data):
+            if not update_progress_callback:
+                return
+            update_progress_callback(
+                stage=data.get("stage", "Smart Workshop"),
+                log_message=data.get("message"),
+            )
+
         workshop_summary = asyncio.run(run_embedded_workshop(
             output_root=output_dir_path,
             source_root=override_path if override_path else os.path.join(SOURCE_DIR, mod_name),
@@ -448,7 +474,25 @@ def _run_embedded_workshop_for_language(
             config=embedded_workshop,
             fallback_provider=selected_provider,
             fallback_model=model_name,
+            fallback_concurrency=concurrency_limit,
+            fallback_batch_size=batch_size_limit,
+            fallback_rpm=rpm_limit,
+            dynamic_valid_tags=dynamic_valid_tags,
+            progress_callback=embedded_progress,
         ))
+        if workshop_summary.get("detected_count", 0) == 0:
+            logging.info("Embedded workshop skipped for %s: no fixable validation issues in sidecar.", target_lang.get("code"))
+            if update_progress_callback:
+                update_progress_callback(log_message=f"[{target_lang.get('code', '').upper()}] Smart Workshop skipped: no fixable validation issues.")
+        elif update_progress_callback:
+            update_progress_callback(
+                stage="Smart Workshop",
+                log_message=(
+                    f"[{target_lang.get('code', '').upper()}] Smart Workshop completed: "
+                    f"{workshop_summary.get('fixed_count', 0)}/{workshop_summary.get('detected_count', 0)} fixed, "
+                    f"{workshop_summary.get('remaining_count', 0)} remaining."
+                ),
+            )
         logging.info(
             "Embedded workshop finished for %s: fixed=%s failed=%s remaining=%s provider=%s model=%s",
             target_lang.get("code"),
@@ -470,6 +514,7 @@ def _export_workshop_issues_for_language(
     source_lang: dict,
     target_lang: dict,
     game_profile: dict,
+    dynamic_valid_tags: Optional[List[str]] = None,
 ):
     archive_mod_name = _resolve_archive_mod_name(mod_name, project_id)
     exporter = WorkshopIssueExportService()
@@ -481,6 +526,8 @@ def _export_workshop_issues_for_language(
         game_profile=game_profile,
         workflow="initial",
         project_name=archive_mod_name,
+        project_id=project_id or "",
+        dynamic_valid_tags=dynamic_valid_tags,
     )
     logging.info(
         "Exported %s workshop issues for %s to %s",
@@ -738,11 +785,23 @@ def run(mod_name: str,
                         run_state.error_count += 1
                         logging.error(f"File {file_task.filename} failed to translate (partially or fully). Using fallback.")
                         update_progress(file_task.filename, "Failed", log_message=f"ERROR: File {file_task.filename} failed to translate. Rolled back to original text.")
+                    else:
+                        update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
 
                     if warnings:
-                        pass
-
-                    update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
+                        warning_codes = []
+                        for warning in warnings:
+                            if isinstance(warning, dict):
+                                warning_codes.append(str(warning.get("type") or warning.get("level") or "warning"))
+                            else:
+                                warning_codes.append(str(getattr(warning, "code", None) or getattr(warning, "message", "warning")))
+                        warning_summary = ", ".join(sorted(set(warning_codes))[:6])
+                        logging.warning(
+                            "Batch validation reported %s issue(s) for %s (%s); final file validation will run next.",
+                            len(warnings),
+                            file_task.filename,
+                            warning_summary or "unknown",
+                        )
 
                     _finalize_translated_file(
                         file_task,
@@ -761,7 +820,12 @@ def run(mod_name: str,
             if rpm_limit and previous_rpm != rate_limiter.rpm:
                 rate_limiter.update_rpm(previous_rpm)
 
-        _finalize_language_run(
+        if run_state.error_count:
+            message = f"Translation failed for {run_state.error_count} file(s) while translating to {target_lang['name']}."
+            logging.error(message)
+            raise RuntimeError(message)
+
+        dynamic_valid_tags = _finalize_language_run(
             mod_name,
             game_profile,
             target_lang,
@@ -769,6 +833,7 @@ def run(mod_name: str,
             output_folder_name,
             proofreading_tracker,
             update_progress,
+            override_path=override_path,
         )
         _export_workshop_issues_for_language(
             output_dir_path,
@@ -778,6 +843,7 @@ def run(mod_name: str,
             source_lang,
             target_lang,
             game_profile,
+            dynamic_valid_tags=dynamic_valid_tags,
         )
         _run_embedded_workshop_for_language(
             embedded_workshop,
@@ -790,6 +856,11 @@ def run(mod_name: str,
             game_profile,
             selected_provider,
             gemini_cli_model,
+            concurrency_limit=concurrency_limit,
+            batch_size_limit=batch_size_limit,
+            rpm_limit=rpm_limit,
+            dynamic_valid_tags=dynamic_valid_tags,
+            update_progress_callback=update_progress,
         )
 
     _finalize_workflow_run(
@@ -842,31 +913,47 @@ def _handle_empty_file(file_info, orig, texts, km, source_lang, target_lang, gam
         })
 
 
-def _run_post_processing(mod_name, game_profile, target_lang, source_lang, output_folder_name, proofreading_tracker, update_progress_callback=None):
+def _run_post_processing(
+    mod_name,
+    game_profile,
+    target_lang,
+    source_lang,
+    output_folder_name,
+    proofreading_tracker,
+    update_progress_callback=None,
+    source_root: Optional[str] = None,
+    dynamic_valid_tags: Optional[List[str]] = None,
+):
     """运行后处理验证"""
     try:
         from scripts.core.post_processing_manager import PostProcessingManager
-        from scripts.utils import tag_scanner
         
-        dynamic_tags = None
-        official_tags_path = game_profile.get("official_tags_codex")
-        
-        if official_tags_path:
-            mod_loc_path_for_scan = os.path.join(SOURCE_DIR, mod_name, game_profile["source_localization_folder"])
-            dynamic_tags = tag_scanner.analyze_mod_and_get_all_valid_tags(mod_loc_path=mod_loc_path_for_scan, official_tags_json_path=official_tags_path)
+        dynamic_tags = dynamic_valid_tags
         
         output_folder_path = os.path.join(DEST_DIR, output_folder_name)
-        post_processor = PostProcessingManager(game_profile, output_folder_path)
+        post_processor = PostProcessingManager(
+            game_profile,
+            output_folder_path,
+            source_root=source_root or os.path.join(SOURCE_DIR, mod_name),
+        )
         validation_success = post_processor.run_validation(target_lang, source_lang, dynamic_valid_tags=dynamic_tags)
         
         # Get validation stats and update frontend
         stats = post_processor.get_validation_stats()
-        total_issues = stats.get('total_errors', 0) + stats.get('total_warnings', 0)
+        total_errors = stats.get('total_errors', 0)
+        total_warnings = stats.get('total_warnings', 0)
+        total_issues = total_errors + total_warnings
         
         if update_progress_callback:
             # Update the format_issues count in the frontend
             # We use "Translating" stage or maybe "Verifying"? Let's keep it simple.
-            update_progress_callback(log_message=f"Validation completed. Found {total_issues} issues.", format_issues_override=total_issues)
+            update_progress_callback(
+                log_message=(
+                    "Validation completed. "
+                    f"Found {total_issues} issue(s): {total_errors} error(s), {total_warnings} warning(s)."
+                ),
+                format_issues_override=total_issues,
+            )
 
         if validation_success:
             post_processor.attach_results_to_proofreading_tracker(proofreading_tracker)
@@ -995,9 +1082,11 @@ def discover_files(mod_name: str, game_profile: dict, source_lang: dict, overrid
         for root, _, files in os.walk(loc_path):
             for fn in files:
                 if suffix_pattern.search(fn):
+                    file_path = os.path.join(root, fn)
                     # loc_path 是当前模块的 localization 根目录
                     all_file_paths.append({
-                        "path": os.path.join(root, fn), 
+                        "path": file_path,
+                        "file_path": os.path.relpath(file_path, mod_root_path).replace(os.sep, "/"),
                         "filename": fn, 
                         "root": root, 
                         "is_custom_loc": False,
@@ -1008,8 +1097,10 @@ def discover_files(mod_name: str, game_profile: dict, source_lang: dict, overrid
         for root, _, files in os.walk(cust_loc_root):
             for fn in files:
                 if fn.endswith(".txt"):
+                    file_path = os.path.join(root, fn)
                     all_file_paths.append({
-                        "path": os.path.join(root, fn), 
+                        "path": file_path,
+                        "file_path": os.path.relpath(file_path, mod_root_path).replace(os.sep, "/"),
                         "filename": fn, 
                         "root": root, 
                         "is_custom_loc": True,

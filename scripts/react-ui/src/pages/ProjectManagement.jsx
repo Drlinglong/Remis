@@ -7,8 +7,9 @@ import {
 } from '@mantine/core';
 import { IconPlus, IconFolder, IconEdit, IconArrowLeft, IconSearch, IconBooks, IconCompass, IconArrowRight, IconArchive, IconTrash, IconRestore, IconAlertTriangle, IconLink, IconCopy } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/api';
 import { useTranslation } from 'react-i18next';
+import projectService from '../services/projectService';
+import configService from '../services/configService';
 import { useNotification } from '../context/NotificationContext';
 import { useTutorial } from '../context/TutorialContext';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -32,7 +33,7 @@ import { FEATURES } from '../config/features';
 
 
 export default function ProjectManagement() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { setPageContext } = useTutorial();
   const { notificationStyle } = useNotification();
   const [projects, setProjects] = useState([]);
@@ -43,6 +44,7 @@ export default function ProjectManagement() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteSourceFiles, setDeleteSourceFiles] = useState(false);
   const [projectDataRefreshToken, setProjectDataRefreshToken] = useState(0);
+  const [metadataRepairLoading, setMetadataRepairLoading] = useState(false);
 
   // View Mode: 'active' | 'archives'
   const [viewMode, setViewMode] = usePersistentState('pm_view_mode', 'active');
@@ -82,7 +84,7 @@ export default function ProjectManagement() {
 
   const fetchGameConfig = async () => {
     try {
-      const res = await api.get('/api/config');
+      const res = await configService.getConfig();
       if (res.data && res.data.game_profiles) {
         const profiles = Object.values(res.data.game_profiles).map(p => ({
           value: p.id,
@@ -132,13 +134,13 @@ export default function ProjectManagement() {
     try {
       let res;
       if (viewMode === 'active') {
-        res = await api.get(`/api/projects?status=active`);
+        res = await projectService.getProjectsByStatus('active');
         setProjects(res.data);
       } else {
         // Fetch both archived and deleted for archives view
         const [archivedRes, deletedRes] = await Promise.all([
-          api.get(`/api/projects?status=archived`),
-          api.get(`/api/projects?status=deleted`)
+          projectService.getProjectsByStatus('archived'),
+          projectService.getProjectsByStatus('deleted')
         ]);
         setProjects([...archivedRes.data, ...deletedRes.data]);
       }
@@ -150,9 +152,9 @@ export default function ProjectManagement() {
   const fetchProjectFiles = async (projectId) => {
     try {
       const [filesRes, configRes, archiveRes] = await Promise.all([
-        api.get(`/api/project/${projectId}/files`),
-        api.get(`/api/project/${projectId}/config`),
-        api.get(`/api/project/${projectId}/check-archive`).catch(() => ({ data: null }))
+        projectService.getProjectFiles(projectId),
+        projectService.getProjectConfig(projectId),
+        projectService.checkArchive(projectId).catch(() => ({ data: null }))
       ]);
 
       const files = filesRes.data;
@@ -165,6 +167,7 @@ export default function ProjectManagement() {
 
       setProjectDetails({
         project_id: projectId,
+        game_id: selectedProject.game_id,
         name: selectedProject.name, // Pass name
         status: selectedProject.status, // Pass status
         notes: selectedProject.notes, // Pass notes
@@ -219,7 +222,7 @@ export default function ProjectManagement() {
     );
 
     try {
-      const res = await api.post(`/api/project/create`, {
+      const res = await projectService.createProject({
         name: newProjectName,
         folder_path: newProjectPath,
         game_id: newProjectGame,
@@ -286,7 +289,7 @@ export default function ProjectManagement() {
   const handleUpdateNotes = async (notes) => {
     if (!selectedProject) return;
     try {
-      await api.post(`/api/project/${selectedProject.project_id}/notes`, { notes });
+      await projectService.updateProjectNotes(selectedProject.project_id, { notes });
       // Update local state in the projects list
       setProjects(prev => prev.map(p =>
         p.project_id === selectedProject.project_id ? { ...p, notes } : p
@@ -302,7 +305,7 @@ export default function ProjectManagement() {
   const handleUpdateStatus = async (status) => {
     if (!selectedProject) return;
     try {
-      await api.post(`/api/project/${selectedProject.project_id}/status`, { status });
+      await projectService.updateProjectStatus(selectedProject.project_id, { status });
       // If status changes such that it leaves the current view, we might want to go back or refresh
       // But for now, just update local state and refresh list
       setProjects(prev => prev.map(p =>
@@ -329,7 +332,7 @@ export default function ProjectManagement() {
   const handleFileStatusChange = async (fileId, status) => {
     if (!selectedProject) return;
     try {
-      await api.put(`/api/project/${selectedProject.project_id}/file/${fileId}/status`, { status });
+      await projectService.updateFileStatus(selectedProject.project_id, fileId, { status });
       // Refresh only files to update the list and avoid full project refresh if possible
       // But fetchProjectFiles actually updates projectDetails which is what we need
       fetchProjectFiles(selectedProject.project_id);
@@ -360,7 +363,7 @@ export default function ProjectManagement() {
   const handleUpdateMetadata = async () => {
     if (!selectedProject) return;
     try {
-      await api.post(`/api/project/${selectedProject.project_id}/metadata`, {
+      await projectService.updateProjectMetadata(selectedProject.project_id, {
         game_id: editGameId,
         source_language: editSourceLang
       });
@@ -392,7 +395,7 @@ export default function ProjectManagement() {
   const handleDeleteForever = async () => {
     if (!selectedProject) return;
     try {
-      await api.delete(`/api/project/${selectedProject.project_id}?delete_files=${deleteSourceFiles}`);
+      await projectService.deleteProject(selectedProject.project_id, deleteSourceFiles);
       setDeleteModalOpen(false);
       setSelectedProjectId(null);
       setDeleteSourceFiles(false);
@@ -405,7 +408,7 @@ export default function ProjectManagement() {
   const handleRefreshFiles = async () => {
     if (!selectedProject) return;
     try {
-      await api.post(`/api/project/${selectedProject.project_id}/refresh`);
+      await projectService.refreshProjectFiles(selectedProject.project_id);
       await Promise.all([
         fetchProjects(),
         fetchProjectFiles(selectedProject.project_id),
@@ -414,6 +417,76 @@ export default function ProjectManagement() {
       setProjectDetails(prev => ({ ...prev, refreshKey: Date.now() }));
     } catch (error) {
       console.error("Failed to refresh files", error);
+    }
+  };
+
+  const formatRepairMetadataNotification = (metadata) => {
+    const isChinese = (i18n.language || '').toLowerCase().startsWith('zh');
+    const actions = Array.isArray(metadata?.actions) ? metadata.actions : [];
+    const warnings = Array.isArray(metadata?.warnings) ? metadata.warnings : [];
+    const updatedFiles = new Set();
+
+    if (actions.some(action => [
+      'created_project_sidecar',
+      'deduplicated_translation_dir',
+      'repaired_kanban_metadata',
+    ].includes(action))) {
+      updatedFiles.add('.remis_project.json');
+    }
+    if (actions.some(action => [
+      'cleared_stale_project_error_cache',
+      'rebuilt_invalid_error_cache',
+    ].includes(action))) {
+      updatedFiles.add('.remis_errors.json');
+    }
+
+    const fileIndexText = isChinese
+      ? `项目文件索引已刷新（${metadata?.file_count ?? 0} 个文件）`
+      : `Project file index refreshed (${metadata?.file_count ?? 0} files)`;
+    const updatedText = updatedFiles.size
+      ? (isChinese ? `更新文件：${Array.from(updatedFiles).join('、')}` : `Updated files: ${Array.from(updatedFiles).join(', ')}`)
+      : (isChinese ? '元数据文件已校验，无需改写' : 'Metadata files checked; no metadata file rewrite needed');
+    const translationDirText = isChinese
+      ? `翻译目录：${metadata?.translation_dirs?.length ?? 0} 个`
+      : `Translation dirs: ${metadata?.translation_dirs?.length ?? 0}`;
+    const warningText = warnings.length
+      ? (isChinese ? `警告：${warnings.length} 个（${warnings[0]}）` : `Warnings: ${warnings.length} (${warnings[0]})`)
+      : (isChinese ? '无警告' : 'No warnings');
+
+    return [
+      t('project_management.repair_metadata_success', isChinese ? '项目元数据检验/重建成功。' : 'Project metadata checked/rebuilt successfully.'),
+      updatedText,
+      fileIndexText,
+      translationDirText,
+      warningText,
+    ].join('\n');
+  };
+
+  const handleRepairMetadata = async () => {
+    if (!selectedProject || metadataRepairLoading) return;
+    setMetadataRepairLoading(true);
+    try {
+      const res = await projectService.repairProjectMetadata(selectedProject.project_id);
+      await Promise.all([
+        fetchProjects(),
+        fetchProjectFiles(selectedProject.project_id),
+      ]);
+      setProjectDataRefreshToken(prev => prev + 1);
+      setProjectDetails(prev => ({ ...prev, refreshKey: Date.now() }));
+      notificationService.success(
+        formatRepairMetadataNotification(res.data || {}),
+        notificationStyle
+      );
+    } catch (error) {
+      console.error("Failed to repair metadata", error);
+      const isChinese = (i18n.language || '').toLowerCase().startsWith('zh');
+      const failureDetail = error.response?.data?.detail || t('project_management.repair_metadata_error', 'Failed to repair project metadata.');
+      notificationService.error(
+        isChinese ? `项目元数据检验/重建失败：${failureDetail}` : `Project metadata repair failed: ${failureDetail}`,
+        notificationStyle
+      );
+    } finally {
+      setMetadataRepairLoading(false);
     }
   };
 
@@ -578,8 +651,8 @@ export default function ProjectManagement() {
           <Tabs.List style={{ paddingLeft: '1rem', paddingTop: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
           <Tabs.Tab value="overview">{t('project_management.tabs_overview')}</Tabs.Tab>
           <Tabs.Tab value="taskboard" id="kanban-tab-control">{t('project_management.tabs_kanban')}</Tabs.Tab>
-          <Tabs.Tab value="validation">{t('project_management.tabs_validation')}</Tabs.Tab>
-          {FEATURES.ENABLE_PROJECT_HISTORY && <Tabs.Tab value="history">{t('project_management.tabs_history', 'History')}</Tabs.Tab>}
+          <Tabs.Tab value="validation" id="validation-tab-control">{t('project_management.tabs_validation')}</Tabs.Tab>
+          {FEATURES.ENABLE_PROJECT_HISTORY && <Tabs.Tab value="history" id="history-tab-control">{t('project_management.tabs_history', 'Project History')}</Tabs.Tab>}
         </Tabs.List>
 
         <Tabs.Panel value="overview" style={{ flex: 1, overflow: 'auto', padding: '1rem', minHeight: 0 }}>
@@ -594,6 +667,8 @@ export default function ProjectManagement() {
               onDeleteForever={() => setDeleteModalOpen(true)}
               onManageProject={handleOpenManage}
               onRefresh={handleRefreshFiles}
+              onRepairMetadata={handleRepairMetadata}
+              repairingMetadata={metadataRepairLoading}
             />
           ) : <Text>Loading details...</Text>}
         </Tabs.Panel>

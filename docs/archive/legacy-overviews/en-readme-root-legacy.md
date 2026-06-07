@@ -160,6 +160,28 @@ You can edit directly in the **Glossary Manager**, or manually modify:
 
 ---
 
+## 🛠️ Technical Highlights & Engineering Challenges
+
+Project Remis is a production-grade showcase of modern full-stack development, solving complex localization, AI orchestrations, and desktop native integration challenges.
+
+### 🧩 1. Robust Paradox YML Parsing & Encoding Integrity
+- **Challenge:** Paradox localization files (.yml) use specialized formatting, strict structure requirements, and are highly prone to encoding corruption (e.g., Mix of UTF-8-BOM and Mojibake issues).
+- **Solution:** Designed a custom parser (`file_parser.py` and `file_builder.py`) with strict dual-validation pipelines (`JSON.parse` and regex sanity checks) that run on automated test hooks to completely prevent translation text pollution.
+
+### 🤖 2. Context-Aware Glossary & AI Orchestration
+- **Challenge:** Standard AI translation often hallucinates game-specific jargon (e.g., translating `convoy` literally instead of "船队").
+- **Solution:** Architected a modular AI service factory supporting multiple providers (Gemini, DeepSeek, OpenAI, etc.). Engineered a high-performance local glossary system utilizing phonetic search and fuzzy matching to dynamically inject context into translation prompts.
+
+### 💻 3. Cross-Platform Desktop Packaging & Dev Server
+- **Challenge:** Providing a seamless desktop experience while leveraging a powerful Python localization engine.
+- **Solution:** Implemented a hybrid architecture utilizing **Tauri (Rust)** for a lightweight desktop shell, **React + Mantine UI** for a sleek UX, and a localized **FastAPI backend** running fully offline. Optimized the build process with native executable packaging.
+
+### 🧪 4. High-Standard Quality Control & Local Database
+- **Challenge:** Ensuring project configurations, translation progress, and glossary changes are persisted safely without external infrastructure.
+- **Solution:** Modeled data schemas using **SQLite + SQLAlchemy**, backed by a comprehensive automated test suite (Pytest + ESLint checks) executed via customized pre-commit check scripts (`check_before_commit.bat`).
+
+---
+
 ## 🏛️ Project Architecture
 
 Built with **Tauri + React + Python**, combining a desktop-class user experience with a powerful AI translation engine.

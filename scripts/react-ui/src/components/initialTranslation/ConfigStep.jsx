@@ -15,6 +15,8 @@ import {
   Textarea,
   ThemeIcon,
   Tooltip,
+  NativeSelect,
+  MultiSelect,
 } from '@mantine/core';
 import {
   IconAdjustments,
@@ -100,37 +102,33 @@ export default function ConfigStep({
     </Group>
   );
 
-  const renderNativeSelect = ({ label, value, onChange, options, multiple = false, minHeight, description }) => (
-    <Box>
-      {typeof label === 'string' ? (
-        <Text size="sm" mb={6} c="var(--text-main)">
-          {label}
-        </Text>
-      ) : (
-        <Box mb={6}>{label}</Box>
-      )}
-      <select
-        multiple={multiple}
-        value={value}
-        onChange={onChange}
-        style={{
-          ...nativeSelectStyle,
-          minHeight: minHeight || (multiple ? 128 : 40),
-        }}
-      >
-        {!multiple && <option value="">{t('common.select', 'Select')}</option>}
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      {description && (
-        <Text size="xs" c="dimmed" mt={6}>
-          {description}
-        </Text>
-      )}
-    </Box>
+  const renderNativeSelect = ({ label, value, onChange, options, description }) => (
+    <NativeSelect
+      label={label}
+      value={value}
+      onChange={onChange}
+      data={[
+        { value: '', label: t('common.select', 'Select') },
+        ...options.map(o => ({ value: o.value, label: o.label }))
+      ]}
+      description={description}
+      styles={{
+        input: {
+          minHeight: 40,
+          borderRadius: 10,
+          border: '1px solid var(--glass-border)',
+          background: 'var(--glass-bg)',
+          color: 'var(--text-main)',
+          boxShadow: 'var(--shadow-elevation)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          transition: 'all 150ms ease',
+        },
+        description: {
+          marginTop: 6,
+        }
+      }}
+    />
   );
 
   const renderCollapsibleCard = ({
@@ -183,10 +181,24 @@ export default function ConfigStep({
     </Card>
   );
 
-  const languageOptions = Object.values(config.languages).map((language) => ({
-    value: language.code,
-    label: language.name,
-  }));
+  const sourceLanguageCode = selectedProject?.source_language;
+  const languageOptions = Object.values(config.languages)
+    .filter((language) => language.code !== sourceLanguageCode)
+    .map((language) => ({
+      value: language.code,
+      label: language.name,
+    }));
+
+  React.useEffect(() => {
+    if (!sourceLanguageCode) return;
+    const selectedTargets = form.values.target_lang_codes || [];
+    if (selectedTargets.includes(sourceLanguageCode)) {
+      form.setFieldValue(
+        'target_lang_codes',
+        selectedTargets.filter((code) => code !== sourceLanguageCode)
+      );
+    }
+  }, [sourceLanguageCode, form.values.target_lang_codes]);
 
   const providerOptions = config.api_providers
     .filter((provider) => provider.value !== 'hunyuan' || FEATURES.ENABLE_HUNYUAN_PROVIDER)
@@ -468,17 +480,27 @@ export default function ConfigStep({
                 </Stack>
 
                 <Box style={{ flex: 1 }}>
-                  {renderNativeSelect({
-                    label: t('form_label_extra_glossaries'),
-                    value: form.values.selected_glossary_ids,
-                    multiple: true,
-                    minHeight: 140,
-                    options: glossaryOptions,
-                    onChange: (event) => {
-                      const values = Array.from(event.currentTarget.selectedOptions, (option) => option.value);
-                      form.setFieldValue('selected_glossary_ids', values);
-                    },
-                  })}
+                  <MultiSelect
+                    label={t('form_label_extra_glossaries')}
+                    placeholder={t('common.select', 'Select')}
+                    data={glossaryOptions}
+                    value={(form.values.selected_glossary_ids || []).map(String)}
+                    onChange={(values) => form.setFieldValue('selected_glossary_ids', values.map(Number))}
+                    searchable
+                    clearable
+                    styles={{
+                      input: {
+                        minHeight: 40,
+                        borderRadius: 10,
+                        border: '1px solid var(--glass-border)',
+                        background: 'var(--glass-bg)',
+                        color: 'var(--text-main)',
+                        boxShadow: 'var(--shadow-elevation)',
+                        backdropFilter: 'blur(12px)',
+                        WebkitBackdropFilter: 'blur(12px)',
+                      }
+                    }}
+                  />
                 </Box>
               </Group>
 
@@ -509,6 +531,7 @@ export default function ConfigStep({
                 description: t('translation_page.resume_detail_subtitle', { defaultValue: '默认收起。展开后可查看上次工作进行到什么时间、什么批次。' }),
                 action: (
                   <Switch
+                    id="use-resume-switch"
                     label={t('form_label_use_resume')}
                     description={t('form_desc_use_resume')}
                     checked={form.values.use_resume}
@@ -571,6 +594,7 @@ export default function ConfigStep({
                 description: t('translation_page.embedded_workshop_settings_desc', { defaultValue: '默认收起。展开后可微调校对设置，并可改成和翻译模型不同的组合。' }),
                 action: (
                   <Switch
+                    id="embedded-workshop-switch"
                     label={t('translation_page.embedded_workshop_enabled', { defaultValue: '在翻译工作流中嵌入智能工坊格式校对' })}
                     description={t('translation_page.embedded_workshop_enabled_desc', { defaultValue: '默认开启。翻译完成后会自动执行一轮格式问题修复，再生成最新的校验结果。' })}
                     checked={form.values.embedded_workshop_enabled}
@@ -611,66 +635,68 @@ export default function ConfigStep({
                     />
 
                     {!form.values.embedded_workshop_follow_primary_settings && (
-                      <Group grow align="flex-start">
-                        <Box style={{ flex: 1 }}>
-                          {renderNativeSelect({
-                            label: t('translation_page.embedded_workshop_provider', { defaultValue: '校对 API' }),
-                            value: form.values.embedded_workshop_api_provider,
-                            options: providerOptions,
-                            onChange: (event) => {
-                              const providerValue = event.currentTarget.value;
-                              const models = buildModelOptions(providerValue, config.api_providers);
-                              form.setFieldValue('embedded_workshop_api_provider', providerValue);
-                              form.setFieldValue('embedded_workshop_api_model', models[0]?.value || '');
-                            },
-                          })}
-                        </Box>
-                        <Box style={{ flex: 1 }}>
-                          {renderNativeSelect({
-                            label: t('translation_page.embedded_workshop_model', { defaultValue: '校对模型' }),
-                            value: form.values.embedded_workshop_api_model,
-                            options: embeddedWorkshopModelOptions,
-                            onChange: (event) => form.setFieldValue('embedded_workshop_api_model', event.currentTarget.value),
-                          })}
-                        </Box>
-                      </Group>
-                    )}
+                      <>
+                        <Group grow align="flex-start">
+                          <Box style={{ flex: 1 }}>
+                            {renderNativeSelect({
+                              label: t('translation_page.embedded_workshop_provider', { defaultValue: '校对 API' }),
+                              value: form.values.embedded_workshop_api_provider,
+                              options: providerOptions,
+                              onChange: (event) => {
+                                const providerValue = event.currentTarget.value;
+                                const models = buildModelOptions(providerValue, config.api_providers);
+                                form.setFieldValue('embedded_workshop_api_provider', providerValue);
+                                form.setFieldValue('embedded_workshop_api_model', models[0]?.value || '');
+                              },
+                            })}
+                          </Box>
+                          <Box style={{ flex: 1 }}>
+                            {renderNativeSelect({
+                              label: t('translation_page.embedded_workshop_model', { defaultValue: '校对模型' }),
+                              value: form.values.embedded_workshop_api_model,
+                              options: embeddedWorkshopModelOptions,
+                              onChange: (event) => form.setFieldValue('embedded_workshop_api_model', event.currentTarget.value),
+                            })}
+                          </Box>
+                        </Group>
 
-                    <Group grow align="flex-start">
-                      <Box style={{ flex: 1 }}>
-                        {renderNativeSelect({
-                          label: renderInfoLabel(
-                            t('translation_page.embedded_workshop_batch_size', { defaultValue: '每批修复条数' }),
-                            t('translation_page.embedded_workshop_batch_size_tooltip', { defaultValue: '控制每次交给智能工坊修复的条目数量。只对本次翻译生效。' }),
-                          ),
-                          value: form.values.embedded_workshop_batch_size_limit,
-                          options: ['3', '5', '10', '15', '20'].map((value) => ({ value, label: value })),
-                          onChange: (event) => form.setFieldValue('embedded_workshop_batch_size_limit', event.currentTarget.value),
-                        })}
-                      </Box>
-                      <Box style={{ flex: 1 }}>
-                        {renderNativeSelect({
-                          label: renderInfoLabel(
-                            t('translation_page.embedded_workshop_concurrency', { defaultValue: '校对并发' }),
-                            t('translation_page.embedded_workshop_concurrency_tooltip', { defaultValue: '控制智能工坊同时修复多少个批次。只对本次翻译生效。' }),
-                          ),
-                          value: form.values.embedded_workshop_concurrency_limit,
-                          options: ['1', '2', '3', '5'].map((value) => ({ value, label: value })),
-                          onChange: (event) => form.setFieldValue('embedded_workshop_concurrency_limit', event.currentTarget.value),
-                        })}
-                      </Box>
-                      <Box style={{ flex: 1 }}>
-                        {renderNativeSelect({
-                          label: renderInfoLabel(
-                            t('translation_page.embedded_workshop_rpm', { defaultValue: '校对 RPM' }),
-                            t('translation_page.embedded_workshop_rpm_tooltip', { defaultValue: '限制智能工坊每分钟请求数。只对本次翻译生效。' }),
-                          ),
-                          value: form.values.embedded_workshop_rpm_limit,
-                          options: ['5', '10', '20', '40', '60', '100'].map((value) => ({ value, label: value })),
-                          onChange: (event) => form.setFieldValue('embedded_workshop_rpm_limit', event.currentTarget.value),
-                        })}
-                      </Box>
-                    </Group>
+                        <Group grow align="flex-start">
+                          <Box style={{ flex: 1 }}>
+                            {renderNativeSelect({
+                              label: renderInfoLabel(
+                                t('translation_page.embedded_workshop_batch_size', { defaultValue: '每批修复条数' }),
+                                t('translation_page.embedded_workshop_batch_size_tooltip', { defaultValue: '控制每次交给智能工坊修复的条目数量。只对本次翻译生效。' }),
+                              ),
+                              value: form.values.embedded_workshop_batch_size_limit,
+                              options: ['3', '5', '10', '15', '20'].map((value) => ({ value, label: value })),
+                              onChange: (event) => form.setFieldValue('embedded_workshop_batch_size_limit', event.currentTarget.value),
+                            })}
+                          </Box>
+                          <Box style={{ flex: 1 }}>
+                            {renderNativeSelect({
+                              label: renderInfoLabel(
+                                t('translation_page.embedded_workshop_concurrency', { defaultValue: '校对并发' }),
+                                t('translation_page.embedded_workshop_concurrency_tooltip', { defaultValue: '控制智能工坊同时修复多少个批次。只对本次翻译生效。' }),
+                              ),
+                              value: form.values.embedded_workshop_concurrency_limit,
+                              options: ['1', '2', '3', '5'].map((value) => ({ value, label: value })),
+                              onChange: (event) => form.setFieldValue('embedded_workshop_concurrency_limit', event.currentTarget.value),
+                            })}
+                          </Box>
+                          <Box style={{ flex: 1 }}>
+                            {renderNativeSelect({
+                              label: renderInfoLabel(
+                                t('translation_page.embedded_workshop_rpm', { defaultValue: '校对 RPM' }),
+                                t('translation_page.embedded_workshop_rpm_tooltip', { defaultValue: '限制智能工坊每分钟请求数。只对本次翻译生效。' }),
+                              ),
+                              value: form.values.embedded_workshop_rpm_limit,
+                              options: ['5', '10', '20', '40', '60', '100'].map((value) => ({ value, label: value })),
+                              onChange: (event) => form.setFieldValue('embedded_workshop_rpm_limit', event.currentTarget.value),
+                            })}
+                          </Box>
+                        </Group>
+                      </>
+                    )}
                   </Stack>
                 ),
               })}

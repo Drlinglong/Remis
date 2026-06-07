@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Title, Text, Container, Paper, Button, Group, Select, Badge, Stack, Modal, Code,
   Alert, LoadingOverlay, Box, Stepper, TextInput, SimpleGrid, Card, Progress, Accordion,
@@ -7,8 +7,11 @@ import {
   IconRobot, IconCheck, IconRefresh, IconInfoCircle, IconSearch, IconWand,
   IconPlayerPlay, IconChartBar, IconSettings, IconFolderCode, IconAlertTriangle,
 } from '@tabler/icons-react';
-import api from '../utils/api';
 import { useTranslation } from 'react-i18next';
+import projectService from '../services/projectService';
+import configService from '../services/configService';
+import workshopService from '../services/workshopService';
+import PerformanceControlPanel from '../components/shared/PerformanceControlPanel';
 import { useLocation } from 'react-router-dom';
 import { getTutorialKey, useTutorial } from '../context/TutorialContext';
 import styles from './AgentWorkshop.module.css';
@@ -104,14 +107,39 @@ const AgentWorkshopPage = () => {
     const known = {
       validation_vic3_variable_parity_mismatch: t('agent_workshop.issue_vic3_variable_parity'),
       validation_vic3_color_tags_mismatch: t('agent_workshop.issue_vic3_color_tags'),
+      validation_residual_punctuation_found: t('agent_workshop.validation_residual_punctuation_found'),
       validation_invalid_key_format: t('agent_workshop.issue_invalid_key_format'),
       'Invalid key format': t('agent_workshop.issue_invalid_key_format'),
     };
     if (known[key]) return known[key];
+
+    // Defensive fallback translation for legacy cached or hardcoded Chinese labels
+    if (key.includes('颜色标签') && key.includes('结束符')) {
+      return t('agent_workshop.issue_vic3_color_tags');
+    }
+    if (key.includes('源语言标点') || key.includes('标点符号')) {
+      return t('agent_workshop.validation_residual_punctuation_found');
+    }
+    if (key.includes('变量数量') || key.includes('变量')) {
+      return t('agent_workshop.issue_vic3_variable_parity');
+    }
+
     if (key.startsWith('validation_')) {
       return t('agent_workshop.issue_validation_generic');
     }
     return key;
+  }, [t]);
+
+  const localizeIssueDetails = useCallback((issue) => {
+    if (!issue) return '';
+    const detailsCode = issue.details_code || issue.detailsKey;
+    if (detailsCode) {
+      return t(`agent_workshop.${detailsCode}`, {
+        defaultValue: issue.details || detailsCode,
+        ...(issue.details_params || issue.detailsParams || {}),
+      });
+    }
+    return issue.details ? String(issue.details).trim() : '';
   }, [t]);
 
   const groupedIssues = useMemo(() => {
@@ -150,7 +178,10 @@ const AgentWorkshopPage = () => {
   useEffect(() => {
     const bootstrap = async () => {
       try {
-        const [projectsRes, configRes] = await Promise.all([api.get('/api/projects?status=active'), api.get('/api/config')]);
+        const [projectsRes, configRes] = await Promise.all([
+          projectService.getActiveProjects(),
+          configService.getConfig()
+        ]);
         const projectList = normalizeArrayPayload(projectsRes.data, ['projects', 'items', 'data', 'results']);
         const providers = normalizeArrayPayload(configRes.data?.api_providers, ['items', 'data', 'results']);
         setProjects(projectList);
@@ -221,8 +252,8 @@ const AgentWorkshopPage = () => {
     setProjectContextLoading(true);
     try {
       const [archiveRes, historyRes] = await Promise.all([
-        api.get(`/api/project/${projectId}/check-archive`),
-        api.get(`/api/project/${projectId}/history`),
+        projectService.checkArchive(projectId),
+        projectService.getProjectHistory(projectId),
       ]);
       setArchiveInfo(archiveRes.data || null);
       setProjectHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
@@ -251,7 +282,7 @@ const AgentWorkshopPage = () => {
     if (!selectedProjectId) return;
     setScanLoading(true);
     try {
-      const res = await api.get(`/api/agent-workshop/scan?project_id=${selectedProjectId}`);
+      const res = await workshopService.scanProject(selectedProjectId);
       const nextIssues = normalizeArrayPayload(res.data, ['issues', 'items', 'data', 'results']);
       setIssues(nextIssues);
       setIsCached(nextIssues.length > 0);
@@ -273,7 +304,7 @@ const AgentWorkshopPage = () => {
     if (!selectedProjectId || !currentIssue) return;
     setFixing(true);
     try {
-      const res = await api.post('/api/agent-workshop/fix', {
+      const res = await workshopService.fixIssue({
         project_id: selectedProjectId,
         api_provider: selectedProvider,
         api_model: selectedModel,
@@ -309,13 +340,14 @@ const AgentWorkshopPage = () => {
     let failedCount = 0;
     const startedAt = Date.now();
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const maxRetries = 3;
 
     setExecuting(true);
     setProgress(0);
     setExecutionLogs([]);
     setExecutionStats(null);
     setActive(3);
-    addExecutionLog(`Starting fix run for ${total} issue(s) in ${batches.length} batch(es) of up to ${batchSize}.`);
+    addExecutionLog(`Starting fix run for ${total} issue(s) in ${batches.length} batch(es) of up to ${batchSize}; max ${maxRetries} attempt(s) per batch.`);
     if (LOCAL_PROVIDERS.includes(selectedProvider) && batchSize < 10) {
       addExecutionLog(`Using smaller local batches to avoid context overflow on the selected local model.`);
     }
@@ -336,15 +368,26 @@ const AgentWorkshopPage = () => {
         const claimed = await claimBatch();
         if (!claimed) return;
         const { batchNumber, batch } = claimed;
-        addExecutionLog(`Worker ${workerId}: fixing batch ${batchNumber}/${batches.length} (${batch.length} issue(s))`);
+        addExecutionLog(`Worker ${workerId}: fixing batch ${batchNumber}/${batches.length} (${batch.length} issue(s), up to ${maxRetries} attempt(s))`);
         try {
-          const res = await api.post('/api/agent-workshop/fix-batch', {
+          const res = await workshopService.fixBatch({
             project_id: selectedProjectId,
             api_provider: selectedProvider,
             api_model: selectedModel,
+            max_retries: maxRetries,
             issues: batch,
           });
           const results = Array.isArray(res.data?.results) ? res.data.results : [];
+          const attempts = Array.isArray(res.data?.attempts) ? res.data.attempts : [];
+          attempts.forEach((attempt) => {
+            const reflectionNote = attempt.used_reflection
+              ? `, ${attempt.reflections_generated || 0} reflection(s)`
+              : '';
+            const message = attempt.message ? ` (${attempt.message})` : '';
+            addExecutionLog(
+              `Batch ${batchNumber} attempt ${attempt.attempt}/${attempt.max_retries}: ${attempt.active_count} active${reflectionNote}, ${attempt.fixed_count} fixed, ${attempt.remaining_count} remaining, ${attempt.status}.${message}`
+            );
+          });
           const fixedByKey = new Map(results.map((item) => [`${item.file_name}::${item.key}`, item]));
           batch.forEach((issue) => {
             const result = fixedByKey.get(`${issue.file_name}::${issue.key}`);
@@ -457,13 +500,24 @@ const AgentWorkshopPage = () => {
             <Stepper.Step label={t('agent_workshop.step_scan_summary')} description={t('agent_workshop.step_scan_summary_desc')} icon={<IconChartBar size={18} />}>
               <Stack mt="xl" gap="md">
                 <Paper withBorder p="lg" radius="md" className={translationStyles.glassCard}>
-                  <SimpleGrid id="agent-workshop-fix-settings" cols={{ base: 1, sm: 2, lg: 4 }} mb="lg">
+                  <SimpleGrid id="agent-workshop-fix-settings" cols={{ base: 1, sm: 2 }} spacing="md" mb="md">
                     <Select label={t('agent_workshop.provider_label')} data={apiProviders} value={selectedProvider} onChange={handleProviderChange} />
                     <Select label={t('agent_workshop.model_label')} data={modelOptions} value={selectedModel} onChange={setSelectedModel} searchable />
-                    <Select label={t('agent_workshop.batch_size')} data={['1', '3', '10', '20'].map((value) => ({ value, label: value }))} value={batchSizeLimit} onChange={setBatchSizeLimit} />
-                    <Select label={t('incremental_translation.concurrency_limit')} data={['1', '2', '3', '5', '10'].map((value) => ({ value, label: value }))} value={concurrencyLimit} onChange={setConcurrencyLimit} />
-                    <Select label={t('incremental_translation.rpm_limit')} data={['5', '10', '20', '30', '40', '60'].map((value) => ({ value, label: value }))} value={rpmLimit} onChange={setRpmLimit} />
                   </SimpleGrid>
+                  <Card withBorder p="md" radius="md" mb="lg">
+                    <Text size="sm" fw={600} mb="xs">{t('translation_page.performance_settings', { defaultValue: '性能限制' })}</Text>
+                    <PerformanceControlPanel
+                      batchSize={batchSizeLimit}
+                      onChangeBatchSize={setBatchSizeLimit}
+                      concurrency={concurrencyLimit}
+                      onChangeConcurrency={setConcurrencyLimit}
+                      rpm={rpmLimit}
+                      onChangeRpm={setRpmLimit}
+                      batchSizeOpts={['1', '3', '10', '20'].map((value) => ({ value, label: value }))}
+                      concurrencyOpts={['1', '2', '3', '5', '10'].map((value) => ({ value, label: value }))}
+                      rpmOpts={['5', '10', '20', '30', '40', '60'].map((value) => ({ value, label: value }))}
+                    />
+                  </Card>
                   <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md" mb="lg">
                     <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.total_entries')}</Text><Title order={3}>{archiveInfo?.source_entry_count ?? '--'}</Title></Card>
                     <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.issue_entries')}</Text><Title order={3} c={issues.length ? 'orange' : 'green'}>{issues.length}</Title></Card>
@@ -472,7 +526,7 @@ const AgentWorkshopPage = () => {
                   <Alert icon={<IconAlertTriangle size={16} />} color={issues.length ? 'orange' : 'green'} radius="md">{issues.length ? t('agent_workshop.start_fix_confirm') : t('agent_workshop.no_errors_desc')}</Alert>
                   <Group justify="flex-end" mt="md"><Button variant="light" onClick={() => setActive(1)}>{t('common.back')}</Button><Button id="agent-workshop-start-fix-btn" leftSection={<IconPlayerPlay size={18} />} onClick={executeFixRun} disabled={!issues.length || !selectedProvider || !selectedModel || executing}>{t('agent_workshop.start_fix')}</Button></Group>
                   {issueTypeSummary.length > 0 && <Stack gap="xs" mt="xl"><Text size="sm" fw={600}>{t('agent_workshop.issue_type_summary')}</Text><SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>{issueTypeSummary.map((item) => <Card key={item.label} withBorder p="sm" radius="md"><Text size="xs" c="dimmed" lineClamp={2}>{localizeIssueLabel(item.label)}</Text><Text size="sm" fw={700}>{item.count}</Text></Card>)}</SimpleGrid></Stack>}
-                  {groupedIssues.length > 0 && <Accordion id="agent-workshop-issue-details" variant="separated" radius="md" mt="xl"><Accordion.Item value="file-details"><Accordion.Control><Group justify="space-between" wrap="nowrap"><Text fw={600}>{t('agent_workshop.file_issue_details')}</Text><Badge color="orange" variant="light">{groupedIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{groupedIssues.map(([fileKey, fileIssues]) => <Accordion key={fileKey} variant="contained" radius="md"><Accordion.Item value={fileKey}><Accordion.Control><Group justify="space-between" wrap="nowrap"><Box style={{ minWidth: 0 }}><Text size="sm" fw={600} truncate>{fileKey}</Text><Text size="xs" c="dimmed">{fileIssues[0]?.target_lang || '--'}</Text></Box><Badge color="orange" variant="light">{fileIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{fileIssues.map((issue, index) => <Paper key={`${issue.file_name}:${issue.key}:${index}`} p="sm" withBorder><Group justify="space-between" align="flex-start" wrap="nowrap"><Box style={{ minWidth: 0, flex: 1 }}><Text size="sm" fw={600}>{issue.key}</Text><Badge color="red" variant="light" mt={6}>{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge><Text size="xs" c="dimmed" mt={8}>{issue.details}</Text><Code block mt="sm">{issue.target_str}</Code></Box><Button size="xs" variant="light" leftSection={<IconWand size={14} />} onClick={() => openFixModal(issue)} style={{ whiteSpace: 'nowrap' }}>{t('agent_workshop.fix_btn')}</Button></Group></Paper>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>}
+                  {groupedIssues.length > 0 && <Accordion id="agent-workshop-issue-details" variant="separated" radius="md" mt="xl"><Accordion.Item value="file-details"><Accordion.Control><Group justify="space-between" wrap="nowrap"><Text fw={600}>{t('agent_workshop.file_issue_details')}</Text><Badge color="orange" variant="light">{groupedIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{groupedIssues.map(([fileKey, fileIssues]) => <Accordion key={fileKey} variant="contained" radius="md"><Accordion.Item value={fileKey}><Accordion.Control><Group justify="space-between" wrap="nowrap"><Box style={{ minWidth: 0 }}><Text size="sm" fw={600} truncate>{fileKey}</Text><Text size="xs" c="dimmed">{fileIssues[0]?.target_lang || '--'}</Text></Box><Badge color="orange" variant="light">{fileIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{fileIssues.map((issue, index) => <Paper key={`${issue.file_name}:${issue.key}:${index}`} p="sm" withBorder><Group justify="space-between" align="flex-start" wrap="nowrap"><Box style={{ minWidth: 0, flex: 1 }}><Text size="sm" fw={600}>{issue.key}</Text><Badge color="red" variant="light" mt={6}>{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge><Text size="xs" c="dimmed" mt={8}>{localizeIssueDetails(issue)}</Text><Code block mt="sm">{issue.target_str}</Code></Box><Button size="xs" variant="light" leftSection={<IconWand size={14} />} onClick={() => openFixModal(issue)} style={{ whiteSpace: 'nowrap' }}>{t('agent_workshop.fix_btn')}</Button></Group></Paper>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>}
                 </Paper>
               </Stack>
             </Stepper.Step>
@@ -500,7 +554,7 @@ const AgentWorkshopPage = () => {
                                   </Box>
                                   <Badge color="green" variant="light">{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge>
                                 </Group>
-                                <Text size="xs" c="dimmed">{issue.details}</Text>
+                                <Text size="xs" c="dimmed">{localizeIssueDetails(issue)}</Text>
                                 <Text size="xs" fw={700}>{t('agent_workshop.before_fix')}</Text>
                                 <Code block>{issue.target_str}</Code>
                                 <Text size="xs" fw={700}>{t('agent_workshop.after_fix')}</Text>
@@ -525,7 +579,7 @@ const AgentWorkshopPage = () => {
             <LoadingOverlay visible={fixing} overlayBlur={2} />
             <Stack gap="md">
               <Paper p="xs" withBorder><Text size="xs" fw={700} c="dimmed" tt="uppercase">{t('agent_workshop.modal_source_context')}</Text><Code block>{currentIssue?.source_str || t('agent_workshop.no_source_context')}</Code></Paper>
-              <Paper p="xs" withBorder><Text size="xs" fw={700} c="red" tt="uppercase">{t('agent_workshop.modal_error_detected')}</Text><Code block color="red">{currentIssue?.target_str}</Code><Text size="xs" mt={4}>{currentIssue?.details}</Text></Paper>
+              <Paper p="xs" withBorder><Text size="xs" fw={700} c="red" tt="uppercase">{t('agent_workshop.modal_error_detected')}</Text><Code block color="red">{currentIssue?.target_str}</Code><Text size="xs" mt={4}>{localizeIssueDetails(currentIssue)}</Text></Paper>
               {!fixResult && <Button fullWidth variant="gradient" gradient={{ from: 'indigo', to: 'cyan' }} onClick={handleFixRequest} disabled={fixing || !selectedProvider}>{selectedProvider ? t('agent_workshop.fix_btn') : t('agent_workshop.select_model_hint')}</Button>}
               {fixResult && <Stack gap="md"><Alert icon={<IconInfoCircle size={16} />} title={t('agent_workshop.modal_analysis')} color="indigo" variant="light"><Text size="sm" fs="italic">{fixResult.reflection}</Text>{fixResult.report_path && <Text size="xs" mt={8} c="dimmed">{t('agent_workshop.report_path')}: {fixResult.report_path}</Text>}</Alert><Paper p="xs" withBorder style={{ backgroundColor: 'rgba(40, 167, 69, 0.05)' }}><Text size="xs" fw={700} c="green" tt="uppercase">{t('agent_workshop.modal_suggestion')}</Text><Code block color="green">{fixResult.suggested_fix}</Code>{fixResult.parity_message && <Text size="xs" mt={4} c={fixResult.status === 'SUCCESS' ? 'green' : 'orange'}><IconCheck size={12} /> {fixResult.parity_message}</Text>}</Paper><Group grow mt="lg"><Button variant="subtle" onClick={() => setFixResult(null)}>{t('agent_workshop.regenerate')}</Button><Button color="green" onClick={() => { setIsModalOpen(false); setIssues((prev) => prev.filter((item) => item.key !== currentIssue.key || item.file_name !== currentIssue.file_name)); }}>{t('agent_workshop.apply_fix')}</Button></Group></Stack>}
             </Stack>

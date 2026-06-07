@@ -3,6 +3,7 @@ import os
 import shutil
 import uuid
 import re
+import json
 import datetime
 import logging
 import asyncio
@@ -21,6 +22,7 @@ from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.core.services.kanban_service import KanbanService
 from scripts.core.services.translation_archive_service import TranslationArchiveService
 from scripts.utils.i18n_utils import paradox_to_iso
+from scripts.utils.validation_logger import ValidationLogger
 from scripts.core.db_models import Project as DBProject, ProjectFile as DBProjectFile, ProjectHistory
 
 # Keep deprecated dataclasses for backward compatibility if imported elsewhere,
@@ -316,6 +318,133 @@ class ProjectManager:
         else:
             logger.error("FileService not initialized in ProjectManager!")
 
+    async def repair_project_metadata(self, project_id: str) -> Dict[str, Any]:
+        """
+        Validates and repairs project-side metadata/cache files, then refreshes the
+        project file index. This is intentionally conservative: it preserves
+        existing translation directories when possible and only rewrites known
+        corrupt/missing sidecars.
+        """
+        project = await self.get_project(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+
+        source_path = Path(project["source_path"])
+        if not source_path.exists() or not source_path.is_dir():
+            raise ValueError(f"Project source path is missing or not a directory: {source_path}")
+
+        actions: List[str] = []
+        warnings: List[str] = []
+
+        sidecar_path = source_path / ".remis_project.json"
+        sidecar_existed = sidecar_path.exists()
+        raw_sidecar: Dict[str, Any] = {}
+        if sidecar_existed:
+            try:
+                raw_sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+                if not isinstance(raw_sidecar, dict):
+                    warnings.append(".remis_project.json did not contain an object; rebuilding.")
+                    raw_sidecar = {}
+            except Exception as exc:
+                warnings.append(f".remis_project.json was unreadable; rebuilding. ({exc})")
+                raw_sidecar = {}
+        else:
+            actions.append("created_project_sidecar")
+
+        json_manager = ProjectJsonManager(str(source_path))
+        config = json_manager.get_config()
+        if not config and isinstance(raw_sidecar.get("config"), dict):
+            config = raw_sidecar["config"]
+        translation_dirs = config.get("translation_dirs", [])
+        if not isinstance(translation_dirs, list):
+            warnings.append("translation_dirs was not a list; resetting to an empty list.")
+            translation_dirs = []
+
+        normalized_dirs: List[str] = []
+        seen_dirs = set()
+        missing_translation_dirs: List[str] = []
+        for raw_dir in translation_dirs:
+            if not isinstance(raw_dir, str) or not raw_dir.strip():
+                warnings.append("Dropped an invalid translation directory entry.")
+                continue
+            resolved_dir = os.path.abspath(raw_dir)
+            if resolved_dir in seen_dirs:
+                actions.append("deduplicated_translation_dir")
+                continue
+            seen_dirs.add(resolved_dir)
+            normalized_dirs.append(resolved_dir)
+            if not Path(resolved_dir).exists():
+                missing_translation_dirs.append(resolved_dir)
+
+        if missing_translation_dirs:
+            warnings.append(
+                f"{len(missing_translation_dirs)} translation director"
+                f"{'y is' if len(missing_translation_dirs) == 1 else 'ies are'} missing on disk."
+            )
+
+        if not isinstance(raw_sidecar.get("kanban"), dict):
+            actions.append("repaired_kanban_metadata")
+            raw_sidecar["kanban"] = {
+                "columns": ["todo", "in_progress", "proofreading", "paused", "done"],
+                "tasks": {},
+                "column_order": ["todo", "in_progress", "proofreading", "paused", "done"],
+            }
+
+        json_manager.update_config({
+            "translation_dirs": normalized_dirs,
+            "source_language": project.get("source_language", "en"),
+        })
+        json_manager.get_kanban_data()
+
+        error_cache_path = source_path / ValidationLogger.FILENAME
+        error_cache_status = "missing"
+        if error_cache_path.exists():
+            try:
+                cache_payload = json.loads(error_cache_path.read_text(encoding="utf-8"))
+                if isinstance(cache_payload, list):
+                    error_cache_status = "valid"
+                    stale_entries = [
+                        item for item in cache_payload
+                        if isinstance(item, dict)
+                        and (
+                            str(item.get("file_name") or "").replace("\\", "/").startswith("../")
+                            or (
+                                not item.get("file_path")
+                                and item.get("source_context_status") == "missing"
+                            )
+                        )
+                    ]
+                    if stale_entries:
+                        ValidationLogger.save_errors(str(source_path), [])
+                        error_cache_status = "cleared_stale"
+                        actions.append("cleared_stale_project_error_cache")
+                else:
+                    ValidationLogger.save_errors(str(source_path), [])
+                    error_cache_status = "rebuilt_empty"
+                    actions.append("rebuilt_invalid_error_cache")
+            except Exception as exc:
+                ValidationLogger.save_errors(str(source_path), [])
+                error_cache_status = "rebuilt_empty"
+                warnings.append(f".remis_errors.json was unreadable; rebuilt as empty. ({exc})")
+                actions.append("rebuilt_invalid_error_cache")
+
+        await self.refresh_project_files(project_id)
+        files = await self.get_project_files(project_id)
+
+        return {
+            "status": "success",
+            "project_id": project_id,
+            "source_path": str(source_path),
+            "sidecar_path": str(sidecar_path),
+            "sidecar_existed": sidecar_existed,
+            "translation_dirs": normalized_dirs,
+            "missing_translation_dirs": missing_translation_dirs,
+            "error_cache_status": error_cache_status,
+            "file_count": len(files),
+            "actions": actions,
+            "warnings": warnings,
+        }
+
     async def get_projects(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
         """Returns a list of projects, ordered by last_modified."""
         projects = await self.repository.list_projects(status)
@@ -579,7 +708,7 @@ class ProjectManager:
                 
         except Exception as e:
             logger.error(f"Failed to delete project: {e}")
-            raise e
+            raise
 
     async def add_translation_path(self, project_id: str, translation_path: str):
         """
@@ -631,6 +760,48 @@ class ProjectManager:
             logger.error(f"Failed to update source_language in JSON for project {project_id}: {e}")
         
         logger.info(f"Updated metadata for project {project_id}: game_id={game_id}, source_language={source_language}")
+
+    async def update_source_path(self, project_id: str, new_source_path: str):
+        """
+        Updates the project's source_path, migrating the .remis_project.json sidecar
+        file if it exists at the old location but not at the new one.
+
+        Raises:
+            ValueError: If the project is not found or new_source_path is invalid.
+        """
+        project = await self.get_project(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+
+        old_source_path = project['source_path']
+        new_source_path = os.path.abspath(new_source_path)
+
+        # Normalize paths for comparison (case-insensitive on Windows)
+        norm_old = os.path.normpath(old_source_path).replace("\\", "/").lower()
+        norm_new = os.path.normpath(new_source_path).replace("\\", "/").lower()
+
+        if norm_old == norm_new:
+            logger.info(f"Source path unchanged for project {project_id}")
+            return
+
+        if not os.path.exists(new_source_path) or not os.path.isdir(new_source_path):
+            raise ValueError(f"Source directory not found: {new_source_path}")
+
+        # Migrate .remis_project.json sidecar if needed
+        old_json_path = os.path.join(old_source_path, '.remis_project.json')
+        new_json_path = os.path.join(new_source_path, '.remis_project.json')
+        if os.path.exists(old_json_path) and not os.path.exists(new_json_path):
+            try:
+                shutil.copy2(old_json_path, new_json_path)
+                logger.info(f"Migrated .remis_project.json sidecar to new source path: {new_source_path}")
+            except Exception as exc:
+                logger.error(f"Failed to copy .remis_project.json to new source path: {exc}")
+
+        # Update database
+        await self.repository.touch_project(project_id)
+        await self.repository.update_project_source_path(project_id, new_source_path)
+
+        logger.info(f"Updated source_path for project {project_id}: {old_source_path} -> {new_source_path}")
 
     async def upload_project_translations(self, project_id: str) -> Dict[str, Any]:
         """

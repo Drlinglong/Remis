@@ -178,6 +178,15 @@ def test_package_service_builds_playable_output_root(tmp_path, monkeypatch):
     assert (package_root / "thumbnail.png").exists()
 
 
+def test_package_service_builds_multilang_output_folder_name(monkeypatch):
+    monkeypatch.setattr(IncrementalPackageService, "_build_date_stamp", lambda self: "20260326")
+
+    service = IncrementalPackageService()
+    result = service.build_multilang_output_folder_name("Test Mod Deluxe")
+
+    assert result == "Multilanguage-test_mod_deluxe-incremental-update-20260326"
+
+
 @pytest.mark.asyncio
 async def test_check_archive_returns_only_archived_languages(tmp_path):
     repo = MagicMock()

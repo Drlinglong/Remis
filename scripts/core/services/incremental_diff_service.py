@@ -25,6 +25,7 @@ class IncrementalDiffService:
         key: str,
         source_text: str,
         history_index: Dict[Tuple[str, str], Dict[str, Any]],
+        target_lang_code: str | None = None,
     ) -> Tuple[str, Optional[Dict[str, Any]]]:
         normalized_key = self._normalize_key(key)
         normalized_file_path = self._normalize_file_path(file_path)
@@ -35,6 +36,19 @@ class IncrementalDiffService:
 
         if not history_entry:
             return "new", None
+
+        # Empty or exact source-text reuse should be reprocessed instead of copied forward.
+        translation = history_entry.get("translation")
+        is_invalid_translation = False
+        if translation is None:
+            is_invalid_translation = True
+        elif isinstance(translation, str):
+            if translation.strip() == "" or translation == source_text:
+                is_invalid_translation = True
+
+        if is_invalid_translation:
+            return "changed", history_entry
+
         if history_entry.get("original") != source_text:
             return "changed", history_entry
         return "unchanged", history_entry

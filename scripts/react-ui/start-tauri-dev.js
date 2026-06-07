@@ -1,0 +1,130 @@
+// scripts/react-ui/start-tauri-dev.js
+import { execFileSync, spawn } from 'child_process';
+import fs from 'fs';
+import net from 'net';
+import os from 'os';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const npxCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+
+function isWindowsProcessRunning(imageName) {
+    if (process.platform !== 'win32') {
+        return false;
+    }
+
+    try {
+        const output = execFileSync(
+            'tasklist',
+            ['/FI', `IMAGENAME eq ${imageName}`, '/FO', 'CSV', '/NH'],
+            { encoding: 'utf-8', windowsHide: true }
+        );
+        return output.toLowerCase().includes(imageName.toLowerCase());
+    } catch {
+        return false;
+    }
+}
+
+function ensureNoRunningTauriDevApp() {
+    const tauriDevExe = 'remis-mod-factory.exe';
+    if (!isWindowsProcessRunning(tauriDevExe)) {
+        return;
+    }
+
+    console.error('\n[Remis Dev] Another Remis desktop development window is already running.');
+    console.error(`[Remis Dev] Close ${tauriDevExe} before starting run-dev.bat again.`);
+    console.error('[Remis Dev] If the window is gone but the process is stuck, run stop-dev.bat from the project root.');
+    process.exit(1);
+}
+
+// Helper to find a free port starting from a default port
+function findFreePort(startPort) {
+    return new Promise((resolve) => {
+        const server = net.createServer();
+        server.listen(startPort, '127.0.0.1', () => {
+            const port = server.address().port;
+            server.close(() => resolve(port));
+        });
+        server.on('error', () => {
+            resolve(findFreePort(startPort + 1));
+        });
+    });
+}
+
+async function main() {
+    ensureNoRunningTauriDevApp();
+
+    const startPort = 5174;
+    const port = await findFreePort(startPort);
+    console.log(`\n=================================================================`);
+    console.log(`[Remis Port Finder] Dynamically allocated port: ${port}`);
+    console.log(`=================================================================\n`);
+
+    // 1. Start Vite dev server on the allocated port
+    // We run it with strictPort to ensure it binds exactly to the allocated port
+    console.log(`[Remis Dev] Starting Vite dev server on port ${port}...`);
+    const viteProcess = spawn(npxCommand, ['vite', '--port', port.toString(), '--strictPort'], {
+        stdio: 'inherit',
+        shell: true
+    });
+
+    // 2. Start Tauri dev, pointing to the dynamically allocated port
+    // We also read src-tauri/tauri.dev.conf.json to merge any custom configuration
+    let devConfig = {};
+    const devConfigPath = path.join(__dirname, 'src-tauri', 'tauri.dev.conf.json');
+    if (fs.existsSync(devConfigPath)) {
+        try {
+            devConfig = JSON.parse(fs.readFileSync(devConfigPath, 'utf-8'));
+        } catch (e) {
+            console.error('[Remis Dev] Failed to parse tauri.dev.conf.json:', e);
+        }
+    }
+
+    console.log(`[Remis Dev] Launching Tauri desktop shell connected to http://127.0.0.1:${port}...`);
+    const mergedConfig = {
+        ...devConfig,
+        build: {
+            ...devConfig.build,
+            devUrl: `http://127.0.0.1:${port}`,
+            beforeDevCommand: null
+        }
+    };
+    const tauriConfigOverride = JSON.stringify(mergedConfig);
+    const tauriConfigPath = path.join(os.tmpdir(), `remis-tauri-dev-${process.pid}.json`);
+    fs.writeFileSync(tauriConfigPath, tauriConfigOverride, 'utf-8');
+
+    const tauriProcess = spawn(npxCommand, ['tauri', 'dev', '--no-dev-server', '--config', tauriConfigPath], {
+        stdio: 'inherit',
+        shell: true
+    });
+
+    // Handle clean process termination
+    const cleanUp = () => {
+        console.log('\n[Remis Dev] Shutting down Vite and Tauri development servers...');
+        viteProcess.kill('SIGINT');
+        tauriProcess.kill('SIGINT');
+        fs.rmSync(tauriConfigPath, { force: true });
+        process.exit(0);
+    };
+
+    process.on('SIGINT', cleanUp);
+    process.on('SIGTERM', cleanUp);
+
+    // Let the processes handle their own error exits
+    viteProcess.on('exit', (code) => {
+        if (code !== 0) console.error(`[Remis Dev] Vite process exited with code ${code}`);
+    });
+    tauriProcess.on('exit', (code) => {
+        if (code !== 0) console.error(`[Remis Dev] Tauri process exited with code ${code}`);
+        viteProcess.kill('SIGINT');
+        fs.rmSync(tauriConfigPath, { force: true });
+        process.exit(code);
+    });
+}
+
+main().catch((err) => {
+    console.error('[Remis Dev] Failed to start development launcher:', err);
+    process.exit(1);
+});

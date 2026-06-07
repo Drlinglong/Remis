@@ -41,7 +41,7 @@
                 "id": "cf7f1cd6-0075-56b9-998e-216909e2f307",
                 "type": "file",
                 "title": ".remis_checkpoint_en.json",
-                "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/zh-CN-Test_Project_Remis_Vic3/.remis_checkpoint_en.json",
+                "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/en-Test_Project_Remis_Vic3/.remis_checkpoint_en.json",
                 "status": "todo",
                 "meta": {
                     "lines": 10,
@@ -55,7 +55,7 @@
                 "id": "214d3b19-8b65-5fdb-9fff-61b13e9a4dd8",
                 "type": "file",
                 "title": "校对进度表 Proofreading Progress.csv",
-                "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/zh-CN-Test_Project_Remis_Vic3/校对进度表 Proofreading Progress.csv",
+                "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/en-Test_Project_Remis_Vic3/校对进度表 Proofreading Progress.csv",
                 "status": "todo",
                 "meta": {
                     "lines": 3,
@@ -69,7 +69,7 @@
                 "id": "99ff5435-3d61-53fc-867c-e4dadf07828c",
                 "type": "file",
                 "title": "remis_demo_l_english.yml",
-                "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/zh-CN-Test_Project_Remis_Vic3/localization/english/simp_chinese/remis_demo_l_english.yml",
+                "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/en-Test_Project_Remis_Vic3/localization/english/simp_chinese/remis_demo_l_english.yml",
                 "status": "todo",
                 "meta": {
                     "lines": 67,
@@ -83,7 +83,7 @@
                 "id": "b6227bfe-0a3b-5ad5-8a1c-17f0156a7c9f",
                 "type": "file",
                 "title": "remis_demo_l_japanese.yml",
-                "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/zh-CN-Test_Project_Remis_Vic3/localization/japanese/simp_chinese/remis_demo_l_japanese.yml",
+                "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/en-Test_Project_Remis_Vic3/localization/japanese/simp_chinese/remis_demo_l_japanese.yml",
                 "status": "todo",
                 "meta": {
                     "lines": 67,
@@ -104,7 +104,7 @@
     },
     "config": {
         "translation_dirs": [
-            "{{BUNDLED_TRANSLATION_ROOT}}/zh-CN-Test_Project_Remis_Vic3"
+            "{{BUNDLED_TRANSLATION_ROOT}}/en-Test_Project_Remis_Vic3"
         ],
         "source_language": "zh-CN"
     },

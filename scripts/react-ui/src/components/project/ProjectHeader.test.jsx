@@ -52,7 +52,7 @@ describe('ProjectHeader', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'project_management.archive_project' }));
     fireEvent.click(screen.getByRole('button', { name: 'project_management.manage_project' }));
-    fireEvent.click(screen.getByRole('button', { name: '开始翻译' }));
+    fireEvent.click(screen.getByRole('button', { name: 'button_start_translation' }));
 
     expect(handleStatusChange).toHaveBeenCalledWith('archived');
     expect(onManageProject).toHaveBeenCalledOnce();

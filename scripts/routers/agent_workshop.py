@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from scripts.utils.post_process_validator import PostProcessValidator
 from scripts.config.validators.hoi4_rules import RULES as HOI4_RULES
@@ -18,6 +18,7 @@ from scripts.core.base_handler import BaseApiHandler # For typing or creation
 from scripts.core.loc_parser import parse_loc_file
 from scripts.utils.validation_logger import ValidationLogger
 from scripts.core.project_json_manager import ProjectJsonManager
+from scripts.core.services.workshop_issue_export_service import resolve_dynamic_valid_tags
 
 router = APIRouter(prefix="/api/agent-workshop", tags=["agent-workshop"])
 logger = logging.getLogger(__name__)
@@ -94,7 +95,19 @@ class FixBatchRequest(BaseModel):
     project_id: str
     api_provider: Optional[str] = None
     api_model: Optional[str] = None
+    max_retries: Optional[int] = None
     issues: List[Dict[str, Any]] # Collection of the original issue fields
+
+class BatchAttemptSummary(BaseModel):
+    attempt: int
+    max_retries: int
+    active_count: int
+    used_reflection: bool = False
+    reflections_generated: int = 0
+    fixed_count: int = 0
+    remaining_count: int = 0
+    status: str = "completed"
+    message: str = ""
 
 class BatchResultItem(BaseModel):
     file_name: str
@@ -106,6 +119,8 @@ class BatchResultItem(BaseModel):
 
 class FixBatchResponse(BaseModel):
     results: List[BatchResultItem]
+    attempts: List[BatchAttemptSummary] = Field(default_factory=list)
+    max_retries: int = 3
 
 
 def _normalize_issue_dict(issue: Dict[str, Any]) -> Dict[str, Any]:
@@ -174,6 +189,24 @@ def _active_issue_dicts(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         for item in items
         if str(item.get("status", "detected")).lower() not in {"fixed", "ignored"}
     ]
+
+
+def _should_prefer_translation_sidecar(
+    current_errors: List[Dict[str, Any]],
+    sidecar_issues: List[ValidationIssue],
+) -> bool:
+    if not current_errors or not sidecar_issues:
+        return False
+
+    for issue in current_errors:
+        file_name = str(issue.get("file_name") or "").replace("\\", "/")
+        if file_name.startswith("../") or "/../" in file_name:
+            return True
+        if not issue.get("file_path") and issue.get("source_context_status") == "missing":
+            return True
+        if issue.get("target_lang") is None and any(item.target_lang for item in sidecar_issues):
+            return True
+    return False
 
 
 def _slugify_filename(value: str) -> str:
@@ -323,6 +356,19 @@ def _load_project_sidecar_issues(project: Dict[str, Any]) -> List[ValidationIssu
     return issues
 
 
+def _relative_to_any(path: Path, roots: List[Path], fallback_root: Path) -> str:
+    resolved_path = path.resolve()
+    for root in roots:
+        try:
+            return resolved_path.relative_to(root.resolve()).as_posix()
+        except ValueError:
+            continue
+    try:
+        return os.path.relpath(resolved_path, fallback_root.resolve()).replace("\\", "/")
+    except ValueError:
+        return str(path)
+
+
 def _resolve_issue_target_path(project: Dict[str, Any], issue_file_path: Optional[str], issue_file_name: Optional[str]) -> Optional[Path]:
     if issue_file_path:
         candidate = Path(issue_file_path)
@@ -353,6 +399,7 @@ def _resolve_source_entries_for_translation(
     source_lang_iso: str,
     source_files: Dict[str, Dict[str, Any]],
     source_cache: Dict[str, Dict[str, str]],
+    source_root: Optional[Path] = None,
 ) -> tuple[Dict[str, str], Optional[str]]:
     from scripts.utils.i18n_utils import iso_to_paradox, paradox_to_iso
 
@@ -387,6 +434,19 @@ def _resolve_source_entries_for_translation(
                 )
                 return entries, target_lang
 
+    if source_root and source_root.exists():
+        for found in source_root.rglob(source_basename):
+            if found.name.lower() == source_basename.lower() and found.exists():
+                entries = dict(parse_loc_file(found))
+                cache_key = _relative_to_any(found, [source_root], source_root)
+                source_cache[cache_key] = entries
+                logger.info(
+                    "[AgentWorkshop] Matched source file by disk fallback %s for translation %s",
+                    cache_key,
+                    rel_path,
+                )
+                return entries, target_lang
+
     logger.warning(
         "[AgentWorkshop] Could not match source file for translation %s (expected base name %s)",
         rel_path,
@@ -404,17 +464,17 @@ async def load_cached_errors(project_id: str):
         raise HTTPException(status_code=404, detail="Project not found")
 
     current_errors = ValidationLogger.load_errors(project['source_path'])
-    if current_errors:
-        return [ValidationIssue(**e) for e in _active_issue_dicts(current_errors)]
-
     sidecar_issues = _load_project_sidecar_issues(project)
+    if current_errors and not _should_prefer_translation_sidecar(current_errors, sidecar_issues):
+        return _active_issue_dicts(current_errors)
+
     if sidecar_issues:
         active_issues = [
             issue for issue in sidecar_issues
             if str(issue.status or "detected").lower() not in {"fixed", "ignored"}
         ]
         ValidationLogger.save_errors(project['source_path'], [issue.model_dump() for issue in active_issues])
-        return active_issues
+        return [issue.model_dump() for issue in active_issues]
 
     return []
 
@@ -430,18 +490,22 @@ async def scan_project(project_id: str, force: bool = Query(False)):
     source_root = Path(project['source_path'])
     game_id = project['game_id']
     source_lang_iso = project.get('source_language', 'en')
+    from scripts.app_settings import GAME_ID_ALIASES, GAME_PROFILES_BY_ID
+
+    normalized_game_id = GAME_ID_ALIASES.get(str(game_id).lower(), game_id)
+    game_profile = GAME_PROFILES_BY_ID.get(normalized_game_id) or GAME_PROFILES_BY_ID.get(game_id) or {"id": game_id}
 
     if not force:
         current_errors = ValidationLogger.load_errors(project['source_path'])
-        if current_errors:
+        sidecar_issues = _load_project_sidecar_issues(project)
+        if current_errors and not _should_prefer_translation_sidecar(current_errors, sidecar_issues):
             logger.info(
                 "[AgentWorkshop] Returning %s cached project-side issues for %s",
                 len(current_errors),
                 project_id,
             )
-            return [ValidationIssue(**e) for e in _active_issue_dicts(current_errors)]
+            return _active_issue_dicts(current_errors)
 
-        sidecar_issues = _load_project_sidecar_issues(project)
         if sidecar_issues:
             logger.info(
                 "[AgentWorkshop] Returning %s translation-sidecar issues for %s",
@@ -453,7 +517,7 @@ async def scan_project(project_id: str, force: bool = Query(False)):
                 if str(issue.status or "detected").lower() not in {"fixed", "ignored"}
             ]
             ValidationLogger.save_errors(project['source_path'], [issue.model_dump() for issue in active_issues])
-            return active_issues
+            return [issue.model_dump() for issue in active_issues]
 
     logger.info(
         "[AgentWorkshop] Fresh scan started for project %s (%s) at %s",
@@ -464,6 +528,7 @@ async def scan_project(project_id: str, force: bool = Query(False)):
     
     # Select rules
     validator = PostProcessValidator()
+    dynamic_valid_tags = resolve_dynamic_valid_tags(game_profile, source_root)
     
     issues = []
     
@@ -471,13 +536,19 @@ async def scan_project(project_id: str, force: bool = Query(False)):
     files = await project_manager.get_project_files(project_id)
     logger.info("[AgentWorkshop] Project file inventory size: %s", len(files))
     
-    def get_rel_path(p):
-        try:
-            return os.path.relpath(p, project['source_path']).replace('\\', '/')
-        except ValueError:
-            return p
+    json_manager = ProjectJsonManager(project['source_path'])
+    translation_roots = [
+        Path(path)
+        for path in (json_manager.get_config().get("translation_dirs", []) or [])
+    ]
 
-    source_files = {get_rel_path(f['file_path']): f for f in files if f.get('file_type') == 'source'}
+    def get_source_rel_path(p):
+        return _relative_to_any(Path(p), [source_root], source_root)
+
+    def get_translation_rel_path(p):
+        return _relative_to_any(Path(p), translation_roots, source_root)
+
+    source_files = {get_source_rel_path(f['file_path']): f for f in files if f.get('file_type') == 'source'}
     translation_files = [f for f in files if f.get('file_type') == 'translation']
     logger.info(
         "[AgentWorkshop] Source files: %s, translation files: %s",
@@ -489,8 +560,8 @@ async def scan_project(project_id: str, force: bool = Query(False)):
     source_cache = {}
 
     for file_info in translation_files:
-        rel_path = get_rel_path(file_info['file_path'])
         file_path = Path(file_info['file_path'])
+        rel_path = file_info.get('relative_path') or get_translation_rel_path(file_path)
         if not file_path.exists():
             logger.warning("[AgentWorkshop] Translation file missing on disk: %s", file_info['file_path'])
             continue
@@ -504,6 +575,7 @@ async def scan_project(project_id: str, force: bool = Query(False)):
             source_lang_iso,
             source_files,
             source_cache,
+            source_root=source_root,
         )
 
         # Parse the translation file
@@ -517,7 +589,8 @@ async def scan_project(project_id: str, force: bool = Query(False)):
                     key, 
                     value, 
                     source_value=source_entries.get(key, ""),
-                    target_lang=target_lang
+                    target_lang=target_lang,
+                    dynamic_valid_tags=dynamic_valid_tags,
                 )
             except ValueError as e:
                 # Catch strict game ID validation error
@@ -533,7 +606,8 @@ async def scan_project(project_id: str, force: bool = Query(False)):
                         res.message,
                     )
                     issues.append(ValidationIssue(
-                        file_name=file_info['relative_path'] if 'relative_path' in file_info else get_rel_path(file_info['file_path']),
+                        file_name=rel_path,
+                        file_path=str(file_path),
                         key=key,
                         source_str=source_entries.get(key, ""),
                         source_context_status="found" if source_entries.get(key, "") else "missing",
@@ -542,14 +616,15 @@ async def scan_project(project_id: str, force: bool = Query(False)):
                         target_str=value,
                         error_type=res.message,
                         details=res.details or "",
+                        target_lang=target_lang,
                         status="detected"
                     ))
     
     # Cache results
-    ValidationLogger.save_errors(project['source_path'], [i.dict() for i in issues])
+    ValidationLogger.save_errors(project['source_path'], [i.model_dump() for i in issues])
     logger.info("[AgentWorkshop] Fresh scan completed with %s issue(s)", len(issues))
                     
-    return issues
+    return [i.model_dump() for i in issues]
 
 def apply_translation_fix_to_file(file_path: Path, key_to_fix: str, new_value: str) -> bool:
     from scripts.core.loc_parser import parse_loc_file_with_lines
@@ -787,9 +862,16 @@ async def fix_batch(request: FixBatchRequest):
     game_id = project.get('game_id', 'vic3') if project else 'vic3'
     
     agent = ReflexionFixAgent(handler)
+    first_issue = request.issues[0] if request.issues else {}
+    target_lang = _infer_target_lang_from_issue(
+        first_issue.get("file_name"),
+        first_issue.get("target_lang"),
+    )
     batch_result = await agent.fix_batch_loop(
         issues=request.issues,
-        game_id=game_id
+        game_id=game_id,
+        max_retries=max(1, min(request.max_retries or 3, 5)),
+        target_lang_code=target_lang,
     )
     
     final_results = []
@@ -868,4 +950,13 @@ async def fix_batch(request: FixBatchRequest):
                 res["report_path"] = None
             final_results.append(BatchResultItem(**res))
             
-    return FixBatchResponse(results=final_results)
+    attempts = [
+        BatchAttemptSummary(**attempt)
+        for attempt in batch_result.get("attempts", [])
+        if isinstance(attempt, dict)
+    ]
+    return FixBatchResponse(
+        results=final_results,
+        attempts=attempts,
+        max_retries=batch_result.get("max_retries", request.max_retries or 3),
+    )

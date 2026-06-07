@@ -189,6 +189,15 @@ async def refresh_project_files(project_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/api/project/{project_id}/repair-metadata")
+async def repair_project_metadata(project_id: str):
+    try:
+        return await project_manager.repair_project_metadata(project_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/api/project/{project_id}/upload-translations")
 async def upload_project_translations(project_id: str):
     """Scans and uploads existing translations to the archive."""
@@ -224,6 +233,19 @@ async def update_project_config(project_id: str, request: UpdateConfigRequest):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     try:
+        new_source_path = request.source_path
+
+        # 1. Update source path if provided (delegates to service layer)
+        if new_source_path:
+            try:
+                await project_manager.update_source_path(project_id, new_source_path)
+                # Refresh project data after source path update
+                project = await project_manager.get_project(project_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc))
+
+
+        # 2. Update config file (kanban, translation directories, etc)
         json_manager = ProjectJsonManager(project['source_path'])
         
         if request.translation_dirs is not None:
@@ -240,8 +262,12 @@ async def update_project_config(project_id: str, request: UpdateConfigRequest):
             json_manager.add_translation_dir(request.path)
         elif request.action == 'remove_dir':
             json_manager.remove_translation_dir(request.path)
+        elif new_source_path is not None:
+            # We updated source_path, but didn't provide translation_dirs / action
+            pass
         else:
             raise HTTPException(status_code=400, detail="Invalid action or missing parameters")
+
         await project_manager.refresh_project_files(project_id)
         return {"status": "success"}
     except HTTPException:

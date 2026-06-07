@@ -62,7 +62,9 @@ class IncrementalPreparationService:
             for key, source_text, line_num in file_data["parsed_entries"]:
                 summary["total"] += 1
                 file_summary["total"] += 1
-                status, history_entry = diff_service.classify_entry(file_path, key, source_text, history_index)
+                status, history_entry = diff_service.classify_entry(
+                    file_path, key, source_text, history_index, target_lang_code=target_lang_code
+                )
 
                 entry_info = {
                     "key": key,

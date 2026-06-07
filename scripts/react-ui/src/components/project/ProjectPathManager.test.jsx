@@ -65,7 +65,10 @@ describe('ProjectPathManager', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'project_management.manage_paths_button' }));
-    fireEvent.click(screen.getByRole('button', { name: 'project_management.manage_paths.browse' }));
+    
+    // Click the browse button for translation paths (index 1)
+    const browseButtons = screen.getAllByRole('button', { name: 'project_management.manage_paths.browse' });
+    fireEvent.click(browseButtons[1]);
 
     await waitFor(() => {
       expect(open).toHaveBeenCalled();
@@ -76,6 +79,7 @@ describe('ProjectPathManager', () => {
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/api/project/proj-1/config', {
+        source_path: 'C:/mods/source',
         translation_dirs: ['C:/mods/old-translation', 'C:/mods/new-translation'],
       });
     });
@@ -89,7 +93,9 @@ describe('ProjectPathManager', () => {
     renderWithProvider(<ProjectPathManager projectDetails={projectDetails} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'project_management.manage_paths_button' }));
-    fireEvent.click(screen.getByRole('button', { name: 'project_management.manage_paths.browse' }));
+    
+    const browseButtons = screen.getAllByRole('button', { name: 'project_management.manage_paths.browse' });
+    fireEvent.click(browseButtons[1]);
 
     await waitFor(() => {
       expect(open).toHaveBeenCalled();
@@ -100,8 +106,42 @@ describe('ProjectPathManager', () => {
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/api/project/proj-1/config', {
+        source_path: 'C:/mods/source',
         translation_dirs: ['C:/mods/old-translation'],
       });
     });
+  });
+
+  it('updates the source directory and saves it', async () => {
+    const onPathsUpdated = vi.fn();
+    open.mockResolvedValue('C:/mods/new-source');
+
+    renderWithProvider(
+      <ProjectPathManager
+        projectDetails={projectDetails}
+        onPathsUpdated={onPathsUpdated}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'project_management.manage_paths_button' }));
+    
+    // Click the browse button for source path (index 0)
+    const browseButtons = screen.getAllByRole('button', { name: 'project_management.manage_paths.browse' });
+    fireEvent.click(browseButtons[0]);
+
+    await waitFor(() => {
+      expect(open).toHaveBeenCalled();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'project_management.manage_paths.save' }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/api/project/proj-1/config', {
+        source_path: 'C:/mods/new-source',
+        translation_dirs: ['C:/mods/old-translation'],
+      });
+    });
+
+    expect(onPathsUpdated).toHaveBeenCalledOnce();
   });
 });

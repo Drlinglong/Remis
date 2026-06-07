@@ -27,13 +27,13 @@
   "translation_completed": "翻译完成！",
   "report_success_summary": "已经成功完成 {{mod_name}} 的从 {{source_lang}} 翻译为 {{target_langs}} 的翻译流程。",
   "report_error_count": "有 {{count}} 个文件出现错误",
-  "report_no_errors": "翻译过程中未出现错误",
+  "report_no_errors": "翻译执行过程中未出现阻断性错误",
   "report_glossary_issues": "在术语核对中发现 {{count}} 个潜在的术语问题",
   "report_no_glossary_issues": "未发现术语问题！",
   "report_format_issues": "在校对过程中发现 {{count}} 个潜在的格式问题",
   "report_no_format_issues": "未发现格式问题！",
   "button_translate_another": "翻译其他项目",
-  "report_title_errors": "错误",
+  "report_title_errors": "执行错误",
   "report_title_glossary": "术语检查",
   "report_title_formatting": "格式检查",
   "button_go_dashboard": "前往项目管理",
@@ -43,11 +43,30 @@
   "deploy_success_title": "部署成功",
   "deploy_success_message": "Mod 已成功部署到 Paradox 官方目录，现在可以直接启动游戏查看了。",
   "deploy_failed_title": "部署失败",
+  "button_clean_fake_loc": "删除假本地化文件",
+  "deploy_tooltip_label": "快速将翻译成果部署到 Paradox 的用户文档 Mod 目录下。",
+  "deploy_clean_tooltip_label": "寻找并删除原始模组目录下的“假本地化/假中文”文件夹，以防止覆盖你的汉化 Mod。",
+  "deploy_modal_title": "清理假本地化与部署",
+  "deploy_modal_description": "许多 Mod 作者将英文文件复制为 simp_chinese 等文件夹以防止报错，这会导致游戏优先使用这些“假本地化”而无视你的翻译 Mod。你可以在此自动探测并一键清理它们。",
+  "deploy_target_path_label": "1. 目标部署目录 (汉化 Mod 被移动到的位置)",
+  "deploy_target_path_placeholder": "Paradox Interactive 模组目录，例如 Documents/Paradox Interactive/.../mod",
+  "deploy_target_path_desc": "游戏读取翻译 Mod 的用户目录。汉化包将部署到此处。",
+  "deploy_workshop_path_label": "2. 原始模组目录 (Steam 创意工坊位置)",
+  "deploy_workshop_path_placeholder": "例如：SteamLibrary/steamapps/workshop/content/...",
+  "deploy_workshop_path_desc": "自动从元数据关联探测到的原始模组路径。如果需要清理假本地化文件，则必须指定此目录。",
+  "deploy_btn_direct_deploy": "直接部署翻译",
+  "deploy_btn_clean_and_deploy": "寻找并删除原始模组的假本地化文件",
+  "deploy_clean_confirm_title": "⚠️ 高风险操作：确认删除原始模组的假本地化",
+  "deploy_clean_confirm_msg": "你确定要寻找并【彻底删除】原始模组（创意工坊目录）下除了原始语言（如 english）之外的所有其他语言文件夹和相关本地化冲突文件吗？此操作将直接修改创意工坊的缓存目录，属于高风险操作！",
+  "deploy_clean_confirm_btn": "已了解风险，确认删除",
+  "deploy_clean_success_title": "清理并部署成功",
+  "deploy_clean_success_message": "假本地化文件清理成功，且翻译成果已部署到官方目录！",
   "show_detailed_logs": "显示详细日志",
   "hide_detailed_logs": "隐藏详细日志",
   "stage_creating_backup": "正在创建备份",
   "stage_translating": "正在翻译",
   "stage_reading_source": "正在读取源文件",
+  "stage_analyzing_files": "正在分析文件",
   "stage_initializing": "初始化中",
   "stage_failed": "翻译失败",
   "nav_docs": "文档",
@@ -449,7 +468,7 @@
   "project_management.overview_title": "项目概览",
   "project_management.manage_project": "项目设置",
   "project_management.tabs_kanban": "任务看板",
-  "project_management.tabs_history": "历史",
+  "project_management.tabs_history": "项目历史",
   "project_management.tabs_overview": "状态概览",
   "project_management.delete_project": "删除项目",
   "project_management.tooltip_refresh": "如果您在源文件或翻译输出目录中增加或删除了文件，可以在此刷新文件详情列表",
@@ -576,6 +595,11 @@
   "api_models_label": "自定义模型",
   "api_models_placeholder": "输入并按回车添加模型",
   "api_url_label": "API 基础 URL",
+  "api_url_help_label": "API URL 格式说明",
+  "api_url_endpoint_error": "这里只能填写 API 基础 URL。LM Studio 请填写 http://localhost:1234/v1，不要填写 /responses 或 /chat/completions。",
+  "api_url_openai_compatible_help": "这里需要填写 OpenAI-compatible 基础 URL。例如 http://localhost:1234/v1。不要包含 /responses 或 /chat/completions。",
+  "api_url_ollama_help": "Remis 当前对 Ollama 使用原生 API。这里填写 Ollama 服务基础地址，通常是 http://localhost:11434。不要添加 /api/generate。",
+  "api_url_generic_help": "请填写服务商的基础 URL。除非服务商文档明确要求，否则不要粘贴具体请求端点。",
   "model_settings_hint": "您可以在 设置 > API 设置 中添加更多模型",
   "prompt_fetch_error": "加载 Prompt 失败",
   "prompt_save_success": "Prompt 保存成功",
@@ -853,6 +877,14 @@
         "title": "任务看板",
         "desc": "在总文件列表和看板视图之间切换，更直观地管理任务。"
       },
+      "validation_tab": {
+        "title": "格式校对子标签",
+        "desc": "这里会检查 P 社本地化格式、变量和 key 是否可能出错。它适合在翻译后做一轮快速体检。"
+      },
+      "history_tab": {
+        "title": "项目历史子标签",
+        "desc": "这里保存归档基线、翻译上载和版本事件。做增量更新前，先在这里确认基线是否已经建立。"
+      },
       "validation_scope": {
         "title": "这里只检查格式问题",
         "desc": "这里仅检查 P 社脚本语言中的格式问题，例如变量、标签、换行和本地化键名等，不负责判断措辞润色或翻译风格。"
@@ -963,7 +995,7 @@
       "desc": "切换到看板视图来推拽管理任务进度。"
     },
     "tabs_validation": "格式校对",
-    "delete_note_confirm_content": "Are you sure you want to delete this note? This action cannot be undone."
+    "delete_note_confirm_content": "确定要删除这条备注吗？此操作不可撤销。"
   },
   "translation": {
     "select": {
@@ -1034,7 +1066,7 @@
     "embedded_workshop_batch_size": "每批修复条数",
     "embedded_workshop_concurrency": "校对并发",
     "embedded_workshop_rpm": "校对 RPM",
-    "resume_detail_empty": "No detailed checkpoint entries are available yet.",
+    "resume_detail_empty": "暂无详细断点记录。",
     "resume_detail_none": "当前没有未完成的工作。",
     "embedded_workshop_following_summary": "当前跟随主翻译配置：{{provider}} / {{model}}",
     "embedded_workshop_custom_summary": "当前使用独立校对配置：{{provider}} / {{model}}",
@@ -1051,7 +1083,9 @@
     "embedded_workshop_concurrency_tooltip": "控制智能工坊同时跑多少个修复批次。仅对本次翻译生效。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
     "embedded_workshop_concurrency_desc": "仅对本次翻译生效。本地模型建议使用较低并发。",
     "embedded_workshop_rpm_tooltip": "限制智能工坊本次翻译中的每分钟请求数，用来减少接口限流或本地服务过载。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
-    "embedded_workshop_rpm_desc": "仅对本次翻译生效。默认值会保持当前系统节奏。"
+    "embedded_workshop_rpm_desc": "仅对本次翻译生效。默认值会保持当前系统节奏。",
+    "translation_limit": "每批翻译限制",
+    "translation_concurrency": "并发限制"
   },
   "version_info": {
     "tab_title": "版本信息",
@@ -1098,6 +1132,10 @@
   "context_sidebar.glossary_history": "术语编辑历史。",
   "context_sidebar.tab_info": "信息",
   "context_sidebar.tab_history": "历史",
+  "sidebar": {
+    "pin": "固定侧边栏",
+    "unpin": "取消固定侧边栏"
+  },
   "homepage_pie_chart_status_title": "项目进度",
   "homepage_pie_chart_distribution_title": "游戏分布",
   "gemini_cli_timeout": "Gemini CLI 响应超时 (5s)。请检查网络或安装状态，建议切换到 API 模式。",
@@ -1167,7 +1205,7 @@
       "status_processing": "正在处理任务...",
       "status_idle": "准备就绪",
       "checkpoint_detected": "检测到翻译断点 (已完成 {{count}} 个文件)",
-      "resume_detail_subtitle": "Expand to see when the last resume point was saved and which batch it reached."
+      "resume_detail_subtitle": "展开后可查看上次断点保存时间，以及当时推进到哪个批次。"
     },
     "scanning_files": "正在扫描文件...",
     "everything_up_to_date": "所有内容都已是最新状态"
@@ -1306,28 +1344,33 @@
     "translation_completed_success": "翻译已成功完成！",
     "task_failed_check_logs": "任务失败，请检查日志详情。",
     "error_title": "错误",
-    "resume_detail_title": "Resume Details",
-    "resume_detail_completed": "Completed Files: {{count}}",
-    "resume_detail_batch": "Last Batch: {{current}} / {{total}}",
-    "resume_detail_time": "Last Saved: {{time}}",
-    "resume_detail_file": "Last Completed File: {{file}}",
-    "embedded_workshop_enabled": "Embed Smart Workshop format fixing into the incremental workflow",
-    "embedded_workshop_enabled_desc": "Enabled by default. After translation finishes, the workflow runs one automatic format-fixing pass and refreshes the validation result.",
-    "embedded_workshop_settings": "Smart Workshop Settings",
-    "embedded_workshop_settings_desc": "Collapsed by default. Expand to fine-tune proofreading settings separately from translation.",
-    "embedded_workshop_follow": "Follow the current translation API and model by default",
-    "embedded_workshop_follow_desc": "Disable this if you want separate proofreading settings, such as a larger model for translation and a smaller one for proofreading.",
-    "embedded_workshop_provider": "Proofreading API",
-    "embedded_workshop_model": "Proofreading Model",
-    "embedded_workshop_batch_size": "Issues Per Fix Batch",
-    "embedded_workshop_concurrency": "Proofreading Concurrency",
-    "embedded_workshop_rpm": "Proofreading RPM",
-    "batch_size_limit_desc": "仅对本次翻译生效。自动会沿用当前 provider 的默认策略。"
+    "resume_detail_title": "断点详情",
+    "resume_detail_completed": "已完成文件：{{count}}",
+    "resume_detail_batch": "上次批次：{{current}} / {{total}}",
+    "resume_detail_time": "上次保存：{{time}}",
+    "resume_detail_file": "上次完成文件：{{file}}",
+    "embedded_workshop_enabled": "在增量翻译流程中嵌入智能工坊格式修复",
+    "embedded_workshop_enabled_desc": "默认开启。翻译完成后，流程会自动执行一轮格式修复，并刷新校验结果。",
+    "embedded_workshop_settings": "智能工坊设置",
+    "embedded_workshop_settings_desc": "默认收起。展开后可单独微调校对设置。",
+    "embedded_workshop_follow": "默认跟随当前翻译 API 与模型",
+    "embedded_workshop_follow_desc": "如果需要单独设置校对模型，请关闭此项，例如翻译用大模型、校对用小模型。",
+    "embedded_workshop_provider": "校对 API",
+    "embedded_workshop_model": "校对模型",
+    "embedded_workshop_batch_size": "每批修复条数",
+    "embedded_workshop_concurrency": "校对并发",
+    "embedded_workshop_rpm": "校对 RPM",
+    "batch_size_limit_desc": "仅对本次翻译生效。自动会沿用当前 provider 的默认策略。",
+    "run_pre_scan": "执行预扫描"
   },
   "translation_config": {
     "provider": "API 供应商",
     "model": "AI 模型",
-    "target_languages": "目标语言"
+    "source_path": "新版本 Mod 路径",
+    "target_languages": "目标语言",
+    "api_provider": "API 供应商",
+    "api_model": "AI 模型",
+    "select_path_tooltip": "选择新版本 Mod 文件夹"
   },
   "page_title_agent_workshop": "智能工坊",
   "agent_workshop": {
@@ -1409,7 +1452,11 @@
     "fixed_count": "已修复",
     "failed_count": "仍失败",
     "duration": "耗时",
-    "no_source_context": "（未找到原文上下文）"
+    "no_source_context": "（未找到原文上下文）",
+    "validation_residual_punctuation_found": "检测到残留的源语言标点符号",
+    "validation_generic_color_tags_count_localized": "发现 {{startCount}} 个起始标签，但有 {{endCount}} 个结束符。",
+    "validation_residual_punctuation_details_localized": "发现了以下本应被转换的标点符号: {{punctuations}}",
+    "validation_invalid_key_format_details_localized": "键名 '{{foundText}}' 包含非法字符。预期为字母数字、下划线、点或连字符。"
   },
   "project_validation": {
     "title": "格式校对",
@@ -1439,16 +1486,50 @@
   "api_model_select_description": "从当前提供商可用的模型中选择一个。",
   "api_models_description": "你也可以在这里自定义并管理可用模型列表。",
   "thumbnail_generator": {
-    "description": "Add flags, text, or custom emblems. Click \"Add All Flags\" to quickly generate a Victoria 3 style cover.",
-    "drag_hint": "Drag and drop your project logo here to preview the result in real time."
+    "description": "添加国旗、文字或自定义标识。点击“一键添加所有旗帜”即可快速生成维多利亚3风格封面。",
+    "drag_hint": "将项目 Logo 拖放到这里，即可实时预览效果。"
   },
   "proofreading": {
-    "target_language": "Target Language",
+    "target_language": "目标语言",
     "modal": {
-      "title": "Invalid Operation Warning",
-      "content_1": "You changed the **Key** in the editor.",
-      "content_2": "The editor is currently in **Patching Mode**. In this mode, the system locates entries by the original file key and only replaces the value. **Your key edits will be discarded on save**; only value changes will be preserved.",
-      "button_cancel": "Go Back and Edit"
+      "title": "无效操作警告",
+      "content_1": "你修改了编辑器中的 **Key**。",
+      "content_2": "当前编辑器处于 **补丁模式**。在此模式下，系统通过原始文件的 Key 定位条目，只替换 Value。**保存时会丢弃你对 Key 的修改**，只保留 Value 的变更。",
+      "button_cancel": "返回继续编辑"
     }
-  }
+  },
+  "deploy_workshop_path_error": "无法自动探测。如果您想清理假本地化文件，请手动输入路径。",
+  "deploy_loading_paths": "正在加载部署路径...",
+  "deploy_loading_original_paths": "正在加载原始模组路径...",
+  "project_management.manage_paths.source_section": "源语言本地化根目录",
+  "project_management.manage_paths.source_desc": "存放原始语言本地化文件的目录。每个项目只能有一个源文件目录。",
+  "project_management.manage_paths.source_placeholder": "选择 Mod 的源语言文件目录...",
+  "project_management.manage_paths.translation_section": "翻译输出目录 (支持配置多个)",
+  "project_management.manage_paths.translation_desc": "生成的翻译文件将要输出并写入到的目录，支持同时输出到多个位置。",
+  "deploy_original_mod_location": "原始模组路径",
+  "deploy_error_source_not_found": "未找到已翻译的模组文件夹，请在部署前先对模组执行初次翻译。",
+  "deploy_error_original_not_found": "原始模组目录路径不存在，请指定有效的文件夹路径。",
+  "deploy_error_paradox_dir_not_found": "无法确定该游戏的 Paradox 用户模组目录，请手动指定部署路径。",
+  "deploy_clean_no_files_found": "没有任何需要清理的假本地化文件。",
+  "deploy_clean_files_removed": " (已移除 {{folders}} 个文件夹，{{files}} 个文件)",
+  "deploy_loading_target_path": "正在探测一键部署目标路径...",
+  "deploy_error_load_info": "加载部署路径及环境信息失败",
+  "translation_completed_with_warnings": "翻译已完成但有部分警告",
+  "translation_partial_fail_summary": "有部分批次或文件翻译失败，已自动回退到原文。请在一键部署前检查校对与错误报告。",
+  "error_cannot_open_folder": "无法打开文件夹",
+  "error_output_folder_not_available": "尚未生成汉化输出目录，请先进行翻译。",
+  "partial_failure_title": "部分文件翻译失败",
+  "partial_failure_review_msg": "在部署前，请先打开详细日志或错误报告，审查并修复失败的文件。",
+  "project_management.repair_metadata": "检验/重建元数据",
+  "project_management.tooltip_repair_metadata": "检查项目侧元数据、清理过期缓存，并重建文件索引。",
+  "project_management.repair_metadata_success": "项目元数据已检查并重建。",
+  "project_management.repair_metadata_error": "项目元数据修复失败。",
+  "deploy_btn_browse_original_mod": "浏览...",
+  "deploy_select_original_mod_folder": "选择原始 Mod 文件夹",
+  "deploy_btn_detect_original_mod": "自动寻找原始模组",
+  "deploy_btn_delete_fake_loc": "删除路径下的假本地化文件",
+  "deploy_detect_success_title": "已找到原始模组目录",
+  "deploy_detect_success_message": "已根据项目/工坊元数据填入原始模组目录。",
+  "deploy_detect_failed_title": "未能自动找到原始模组",
+  "deploy_detect_failed_message": "未找到关联的原始模组路径，请手动选择目录。"
 }

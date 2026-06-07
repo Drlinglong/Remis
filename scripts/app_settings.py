@@ -161,6 +161,55 @@ PROJECT_ROOT = get_app_root().replace("\\", "/")
 APP_DATA_DIR = get_app_data_dir().replace("\\", "/")
 RESOURCE_DIR = get_resource_dir().replace("\\", "/")
 
+def relativize_path(abs_path: str) -> str:
+    """
+    将绝对路径转换为含有占位符的相对路径。
+    """
+    if not abs_path:
+        return abs_path
+    
+    # 统一使用正斜杠处理，防止 Windows 上的反斜杠影响匹配
+    normalized_path = abs_path.replace("\\", "/")
+    app_data_prefix = APP_DATA_DIR.replace("\\", "/")
+    project_root_prefix = PROJECT_ROOT.replace("\\", "/")
+    
+    if normalized_path == app_data_prefix:
+        return "{{APP_DATA_DIR}}"
+    if normalized_path == project_root_prefix:
+        return "{{PROJECT_ROOT}}"
+        
+    if normalized_path.startswith(app_data_prefix + "/"):
+        return "{{APP_DATA_DIR}}" + normalized_path[len(app_data_prefix):]
+    if normalized_path.startswith(project_root_prefix + "/"):
+        return "{{PROJECT_ROOT}}" + normalized_path[len(project_root_prefix):]
+        
+    return normalized_path
+
+def resolve_path(rel_path: str) -> str:
+    """
+    将含有占位符的相对路径还原为当前系统的绝对物理路径。
+    """
+    if not rel_path:
+        return rel_path
+        
+    normalized_path = rel_path.replace("\\", "/")
+    app_data_prefix = APP_DATA_DIR.replace("\\", "/")
+    project_root_prefix = PROJECT_ROOT.replace("\\", "/")
+    
+    if normalized_path == "{{APP_DATA_DIR}}":
+        return os.path.normpath(APP_DATA_DIR)
+    if normalized_path == "{{PROJECT_ROOT}}":
+        return os.path.normpath(PROJECT_ROOT)
+        
+    if normalized_path.startswith("{{APP_DATA_DIR}}/"):
+        resolved = app_data_prefix + normalized_path[len("{{APP_DATA_DIR}}"):]
+        return os.path.normpath(resolved)
+    if normalized_path.startswith("{{PROJECT_ROOT}}/"):
+        resolved = project_root_prefix + normalized_path[len("{{PROJECT_ROOT}}"):]
+        return os.path.normpath(resolved)
+        
+    return os.path.normpath(rel_path)
+
 # Data directory for static assets (in dev) or resources (in prod)
 # In dev: PROJECT_ROOT/data
 # In prod: RESOURCE_DIR/data (if we ship data folder) or just RESOURCE_DIR if flattened

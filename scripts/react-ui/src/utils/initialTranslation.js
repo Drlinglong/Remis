@@ -115,6 +115,7 @@ export function resolvePreferredModel(models = [], currentModelName, selectedMod
 
 export function buildTranslationDetails(values, selectedProject, languages = {}) {
   return {
+    projectId: selectedProject?.value,
     modName: selectedProject?.label,
     provider: values.api_provider,
     model: values.model_name,
@@ -145,9 +146,15 @@ export function buildTranslationPayload(values, selectedProjectId) {
       follow_primary_settings: values.embedded_workshop_follow_primary_settings,
       api_provider: values.embedded_workshop_follow_primary_settings ? null : values.embedded_workshop_api_provider,
       api_model: values.embedded_workshop_follow_primary_settings ? null : values.embedded_workshop_api_model,
-      batch_size_limit: Number(values.embedded_workshop_batch_size_limit || 10),
-      concurrency_limit: Number(values.embedded_workshop_concurrency_limit || 1),
-      rpm_limit: Number(values.embedded_workshop_rpm_limit || 40),
+      batch_size_limit: values.embedded_workshop_follow_primary_settings
+        ? (values.translation_batch_size_limit ? Number(values.translation_batch_size_limit) : null)
+        : Number(values.embedded_workshop_batch_size_limit || 10),
+      concurrency_limit: values.embedded_workshop_follow_primary_settings
+        ? (values.translation_concurrency_limit ? Number(values.translation_concurrency_limit) : null)
+        : Number(values.embedded_workshop_concurrency_limit || 1),
+      rpm_limit: values.embedded_workshop_follow_primary_settings
+        ? (values.translation_rpm_limit ? Number(values.translation_rpm_limit) : null)
+        : Number(values.embedded_workshop_rpm_limit || 40),
     },
   };
 

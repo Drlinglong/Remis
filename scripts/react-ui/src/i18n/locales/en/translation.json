@@ -189,6 +189,24 @@
   "deploy_success_title": "Deploy Successful",
   "deploy_success_message": "Mod has been deployed to the Paradox official directory. You can now launch the game to see it.",
   "deploy_failed_title": "Deploy Failed",
+  "button_clean_fake_loc": "Clean Fake Localizations",
+  "deploy_tooltip_label": "Deploy the translated mod package directly to Paradox standard mod directory.",
+  "deploy_clean_tooltip_label": "Clean fake localization folders inside the original mod directory to prevent overriding your translated mod.",
+  "deploy_modal_title": "Clean Fake Localizations & Deploy",
+  "deploy_modal_description": "Many mod authors copy English localization files to simp_chinese or french folders to prevent missing key errors, which causes the game to prioritize original fake files over your translation mod. You can automatically detect and clean them up here.",
+  "deploy_target_path_label": "1. Target Deployment Directory (Where translated mod is copied)",
+  "deploy_target_path_placeholder": "Paradox Interactive mod folder, e.g., Documents/Paradox Interactive/.../mod",
+  "deploy_target_path_desc": "The folder in Paradox's Documents directory where game reads the translated mod.",
+  "deploy_workshop_path_label": "2. Original Mod Directory (Steam Workshop / Local)",
+  "deploy_workshop_path_placeholder": "e.g., SteamLibrary/steamapps/workshop/content/...",
+  "deploy_workshop_path_desc": "The location of the original mod. Needed if you want to find and remove fake localization files. System will try to auto-detect this via registry and metadata.",
+  "deploy_btn_direct_deploy": "Direct Deploy Mod",
+  "deploy_btn_clean_and_deploy": "Delete Fake Localizations & Deploy",
+  "deploy_clean_confirm_title": "⚠️ WARNING: Clean Fake Localizations",
+  "deploy_clean_confirm_msg": "Are you sure you want to search and physical delete all non-original language folders and files inside the original mod localization directory? This is a HIGH RISK operation that directly modifies Steam workshop directory files!",
+  "deploy_clean_confirm_btn": "Yes, I know the risk. Proceed!",
+  "deploy_clean_success_title": "Clean & Deploy Successful",
+  "deploy_clean_success_message": "Fake localizations cleaned up successfully! Mod deployed successfully to Paradox directory.",
   "job_details_title": "Translation Job Details",
   "job_details_mod_name": "Mod Name",
   "job_details_game": "Game",
@@ -442,7 +460,7 @@
   "project_management.overview.to_be_proofread": "To Be Proofread",
   "project_management.details.lines_count": "Lines: {{count}}",
   "project_management.tabs_kanban": "Task Kanban",
-  "project_management.tabs_history": "History",
+  "project_management.tabs_history": "Project History",
   "project_management.tabs_overview": "Status Overview",
   "project_management.tooltip_refresh": "If you have added or removed files in the source or translation output directories, you can refresh the file list here",
   "project_management.tooltip_archive": "Archive the project. Archived projects can be viewed in the Project Archives or restored to active status.",
@@ -526,6 +544,11 @@
   "api_models_placeholder": "Type and press Enter to add models",
   "api_models_description": "Define extra models to be available in the selector above.",
   "api_url_label": "API Base URL",
+  "api_url_help_label": "API URL format help",
+  "api_url_endpoint_error": "Enter the API Base URL only. For LM Studio, use http://localhost:1234/v1, not /responses or /chat/completions.",
+  "api_url_openai_compatible_help": "This field expects the OpenAI-compatible Base URL. Example: http://localhost:1234/v1. Do not include /responses or /chat/completions.",
+  "api_url_ollama_help": "Ollama currently uses its native API in Remis. Enter the Ollama server base URL, usually http://localhost:11434. Do not add /api/generate.",
+  "api_url_generic_help": "Enter the provider Base URL. Do not paste a specific request endpoint unless the provider documentation explicitly says this field should include it.",
   "model_settings_hint": "You can add more models in Settings > API Settings",
   "prompt_fetch_error": "Failed to load prompts",
   "prompt_save_success": "Prompt saved successfully",
@@ -643,6 +666,14 @@
       "tabs": {
         "title": "Task Board",
         "desc": "Navigate between file overview and the Kanban board for visual task management."
+      },
+      "validation_tab": {
+        "title": "Format Validation Tab",
+        "desc": "Use this tab to check Paradox localization formatting, variables, and keys after translation."
+      },
+      "history_tab": {
+        "title": "Project History Tab",
+        "desc": "Use this tab to review archive baselines, uploaded translations, and version events before incremental updates."
       },
       "validation_scope": {
         "title": "Format Checks Only",
@@ -931,7 +962,9 @@
     "embedded_workshop_concurrency_tooltip": "Controls how many Smart Workshop fix batches run at the same time. Only applies to this run. Unless you have a clear translation bottleneck or really know what you are doing, keep the default value.",
     "embedded_workshop_concurrency_desc": "Only applies to this translation run. Lower values are safer for local models.",
     "embedded_workshop_rpm_tooltip": "Limits Smart Workshop requests per minute for this run to avoid rate limits or local service overload. Unless you have a clear translation bottleneck or really know what you are doing, keep the default value.",
-    "embedded_workshop_rpm_desc": "Only applies to this translation run. The default keeps the current system pacing."
+    "embedded_workshop_rpm_desc": "Only applies to this translation run. The default keeps the current system pacing.",
+    "translation_limit": "Batch Size Limit",
+    "translation_concurrency": "Concurrency Limit"
   },
   "version_info": {
     "tab_title": "Version Info",
@@ -978,6 +1011,10 @@
   "context_sidebar.glossary_history": "Term edit history.",
   "context_sidebar.tab_info": "Info",
   "context_sidebar.tab_history": "History",
+  "sidebar": {
+    "pin": "Pin sidebar",
+    "unpin": "Unpin sidebar"
+  },
   "homepage_pie_chart_status_title": "Project Progress",
   "project_management.incremental_update_title": "Incremental Update",
   "project_management.incremental_update_desc": "Analyze source changes and translate only new/modified entries. Automatically reuse historical records (including cross-project smart reuse).",
@@ -1070,7 +1107,11 @@
   "translation_config": {
     "provider": "API Provider",
     "model": "AI Model",
-    "target_languages": "Target Languages"
+    "source_path": "New Mod Version Path",
+    "target_languages": "Target Languages",
+    "api_provider": "API Provider",
+    "api_model": "AI Model",
+    "select_path_tooltip": "Select the new mod version folder"
   },
   "common": {
     "browse": "Browse",
@@ -1159,7 +1200,11 @@
     "fixed_count": "Fixed",
     "failed_count": "Still Failed",
     "duration": "Duration",
-    "no_source_context": "(No source context found)"
+    "no_source_context": "(No source context found)",
+    "validation_residual_punctuation_found": "Residual punctuation found",
+    "validation_generic_color_tags_count_localized": "Found {{startCount}} start tags, but {{endCount}} end markers.",
+    "validation_residual_punctuation_details_localized": "Found the following punctuations that should have been converted: {{punctuations}}",
+    "validation_invalid_key_format_details_localized": "Key '{{foundText}}' contains invalid characters. Expected alphanumeric, underscore, dot, or hyphen."
   },
   "project_validation": {
     "title": "Format Check",
@@ -1310,7 +1355,8 @@
     "embedded_workshop_batch_size": "Issues Per Fix Batch",
     "embedded_workshop_concurrency": "Proofreading Concurrency",
     "embedded_workshop_rpm": "Proofreading RPM",
-    "batch_size_limit_desc": "Only applies to this translation run. Auto uses the current provider default."
+    "batch_size_limit_desc": "Only applies to this translation run. Auto uses the current provider default.",
+    "run_pre_scan": "Run Pre-scan"
   },
   "recent_activity_type_translate": "Incremental Update",
   "project_management": {
@@ -1386,12 +1432,12 @@
   "translation_completed": "Translation completed!",
   "report_success_summary": "Successfully completed the translation flow for {{mod_name}} from {{source_lang}} to {{target_langs}}.",
   "report_error_count": "{{count}} file(s) encountered errors",
-  "report_no_errors": "No errors were encountered during translation",
+  "report_no_errors": "No blocking translation errors were encountered",
   "report_glossary_issues": "Detected {{count}} potential glossary issue(s)",
   "report_no_glossary_issues": "No glossary issues detected!",
   "report_format_issues": "Detected {{count}} potential formatting issue(s)",
   "report_no_format_issues": "No formatting issues detected!",
-  "report_title_errors": "Errors",
+  "report_title_errors": "Runtime Errors",
   "report_title_glossary": "Glossary Check",
   "report_title_formatting": "Formatting Check",
   "button_translate_another": "Translate Another Project",
@@ -1401,6 +1447,7 @@
   "stage_creating_backup": "Creating backup",
   "stage_translating": "Translating",
   "stage_reading_source": "Reading source files",
+  "stage_analyzing_files": "Analyzing files",
   "stage_initializing": "Initializing",
   "stage_failed": "Translation failed",
   "tools_tab_workshop_generator": "Workshop Generator",
@@ -1431,5 +1478,39 @@
       "Good evening.",
       "Time to wrap up for the day."
     ]
-  }
+  },
+  "deploy_workshop_path_error": "Could not auto-detect. Please input manually if you want to clean fake localization.",
+  "deploy_loading_paths": "Loading deployment paths...",
+  "deploy_loading_original_paths": "Loading original mod paths...",
+  "project_management.manage_paths.source_section": "Source localization root directory",
+  "project_management.manage_paths.source_desc": "The root folder of the mod's source files. Only one source directory is allowed per project.",
+  "project_management.manage_paths.source_placeholder": "Select mod source directory...",
+  "project_management.manage_paths.translation_section": "Translation Output Directories (Multiple)",
+  "project_management.manage_paths.translation_desc": "Directories where the translated localization files will be built and exported.",
+  "deploy_original_mod_location": "Original Mod Location",
+  "deploy_error_source_not_found": "Source translated mod folder not found. Please translate the mod first before deploying.",
+  "deploy_error_original_not_found": "Original mod directory path does not exist. Please specify a valid folder path.",
+  "deploy_error_paradox_dir_not_found": "Could not determine Paradox mod folder for game. Please specify path manually.",
+  "deploy_clean_no_files_found": "No fake localization files found to clean.",
+  "deploy_clean_files_removed": " ({{folders}} folder(s), {{files}} file(s) removed)",
+  "deploy_loading_target_path": "Loading deployment target path...",
+  "deploy_error_load_info": "Failed to load deployment info",
+  "translation_completed_with_warnings": "Translation Completed With Warnings",
+  "translation_partial_fail_summary": "Some files or batches fell back to the original text. Review the error report before using the output.",
+  "error_cannot_open_folder": "Cannot Open Folder",
+  "error_output_folder_not_available": "Output folder path is not available yet.",
+  "partial_failure_title": "Partial Failure",
+  "partial_failure_review_msg": "Open the detailed logs and review the failed files before deploying.",
+  "project_management.repair_metadata": "Repair Metadata",
+  "project_management.tooltip_repair_metadata": "Validate sidecar metadata, repair stale caches, and rebuild the file index.",
+  "project_management.repair_metadata_success": "Project metadata checked and rebuilt.",
+  "project_management.repair_metadata_error": "Failed to repair project metadata.",
+  "deploy_btn_browse_original_mod": "Browse...",
+  "deploy_select_original_mod_folder": "Select original mod folder",
+  "deploy_btn_detect_original_mod": "Auto-detect original mod",
+  "deploy_btn_delete_fake_loc": "Delete fake localization files",
+  "deploy_detect_success_title": "Original mod detected",
+  "deploy_detect_success_message": "Filled the original mod directory from project/workshop metadata.",
+  "deploy_detect_failed_title": "Original mod not found",
+  "deploy_detect_failed_message": "No linked original mod path was found. Select the folder manually."
 }

@@ -240,6 +240,24 @@ export const getTutorialSteps = (t, pageName) => {
                     side: "bottom",
                     align: 'center'
                 }
+            },
+            {
+                element: '#validation-tab-control',
+                popover: {
+                    title: t('tutorial.project_management.validation_tab.title'),
+                    description: t('tutorial.project_management.validation_tab.desc'),
+                    side: "bottom",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#history-tab-control',
+                popover: {
+                    title: t('tutorial.project_management.history_tab.title'),
+                    description: t('tutorial.project_management.history_tab.desc'),
+                    side: "bottom",
+                    align: 'center'
+                }
             }
         ],
         'project-management-validation': [

@@ -1,12 +1,37 @@
-import React, { useState } from 'react';
-import { Paper, Group, Title, Button, Tooltip, Grid, Card, Text, ActionIcon } from '@mantine/core';
-import { IconArchive, IconRestore, IconTrash, IconSettings, IconPlayerPlay, IconRocket } from '@tabler/icons-react';
+import React from 'react';
+import { Paper, Group, Title, Button, Tooltip, Grid, Card, Text, Stack } from '@mantine/core';
+import { IconArchive, IconRestore, IconTrash, IconSettings, IconPlayerPlay, IconRocket, IconDatabaseCog } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import styles from '../../pages/ProjectManagement.module.css';
-const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, onManageProject, onRefresh }) => {
+import { useDeployActions } from '../../hooks/useDeployActions';
+import { DeployModals } from '../deploy/DeployModals';
+
+const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, onManageProject, onRepairMetadata, repairingMetadata }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+
+    const archiveSummary = projectDetails?.archive_summary || null;
+    const latestArchiveTime = archiveSummary?.last_upload_at || archiveSummary?.created_at || null;
+
+    // Shared deployment hooks
+    const deployActions = useDeployActions({
+        getOutputFolderName: () => {
+            const outputDir = Array.isArray(projectDetails?.translation_dirs) && projectDetails.translation_dirs.length > 0
+                ? projectDetails.translation_dirs[0]
+                : null;
+            return outputDir ? outputDir.split(/[\\/]/).pop() : projectDetails.name;
+        },
+        projectId: projectDetails?.project_id,
+        gameId: projectDetails?.game_id
+    });
+
+    const {
+        handleOpenDeployModal,
+        handleOpenCleanModal
+    } = deployActions;
+
+
 
     return (
         <Paper withBorder p="md" radius="md" className={styles.glassCard} mb="md">
@@ -48,6 +73,18 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                                     {t('project_management.manage_project')}
                                 </Button>
                             </Tooltip>
+                            <Tooltip label={t('project_management.tooltip_repair_metadata', 'Validate sidecar metadata, repair stale caches, and rebuild the file index.')}>
+                                <Button
+                                    variant="light"
+                                    color="teal"
+                                    size="xs"
+                                    leftSection={<IconDatabaseCog size={16} />}
+                                    onClick={onRepairMetadata}
+                                    loading={repairingMetadata}
+                                >
+                                    {t('project_management.repair_metadata', 'Repair Metadata')}
+                                </Button>
+                            </Tooltip>
                         </>
                     )}
                     {projectDetails.status === 'archived' && (
@@ -87,38 +124,69 @@ const ProjectHeader = ({ projectDetails, handleStatusChange, onDeleteForever, on
                         <Grid.Col span={3}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('project_management.overview.total_lines')}</Text><Title order={3}>{projectDetails.overview.totalLines}</Title></Card></Grid.Col>
                         <Grid.Col span={3}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('project_management.overview.translated')}</Text><Title order={3} c="green">{projectDetails.overview.translated}%</Title></Card></Grid.Col>
                         <Grid.Col span={3}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('project_management.overview.to_be_proofread')}</Text><Title order={3} c="yellow">{projectDetails.overview.toBeProofread}%</Title></Card></Grid.Col>
-                        <Grid.Col span={6}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('incremental_translation.project_source_language')}</Text><Text fw={600}>{projectDetails.source_language || '--'}</Text></Card></Grid.Col>
-                        <Grid.Col span={6}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('incremental_translation.archived_target_languages')}</Text><Text fw={600}>{Array.isArray(projectDetails.archived_languages) && projectDetails.archived_languages.length > 0 ? projectDetails.archived_languages.join(', ') : t('incremental_translation.none_archived')}</Text></Card></Grid.Col>
+                        <Grid.Col span={4}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('incremental_translation.project_source_language')}</Text><Text fw={600}>{projectDetails.source_language || '--'}</Text></Card></Grid.Col>
+                        <Grid.Col span={4}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('incremental_translation.archived_target_languages')}</Text><Text fw={600}>{Array.isArray(projectDetails.archived_languages) && projectDetails.archived_languages.length > 0 ? projectDetails.archived_languages.join(', ') : t('incremental_translation.none_archived')}</Text></Card></Grid.Col>
+                        <Grid.Col span={4}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('project_history.last_archive_time', 'Last Upload / Build')}</Text><Text fw={600}>{latestArchiveTime ? new Date(latestArchiveTime).toLocaleString() : t('project_history.no_archive_data', 'No archive data')}</Text></Card></Grid.Col>
                     </Grid>
                 </Grid.Col>
                 <Grid.Col span={4}>
-                    <Tooltip label={t('project_management.tooltip_start_translation')}>
-                        <Button
-                            id="start-translation-btn"
-                            fullWidth
-                            h="100%"
-                            size="xl"
-                            variant="gradient"
-                            className={styles.startTranslationButton}
-                            leftSection={<IconPlayerPlay size={32} className={styles.startBtnIcon} />}
-                            onClick={() => navigate(`/translation?projectId=${projectDetails.project_id}`)}
-                            styles={{
-                                inner: {
-                                    flexDirection: 'column',
-                                    gap: '12px'
-                                },
-                                label: {
-                                    className: styles.startBtnLabel
-                                }
-                            }}
-                        >
-                            <Text className={styles.startBtnLabel}>
-                                {t('button_start_translation', '开始翻译')}
-                            </Text>
-                        </Button>
-                    </Tooltip>
+                    <Stack gap="xs" h="100%" justify="space-between">
+                        <Tooltip label={t('project_management.tooltip_start_translation')}>
+                            <Button
+                                id="start-translation-btn"
+                                fullWidth
+                                h={80}
+                                size="xl"
+                                variant="gradient"
+                                className={styles.startTranslationButton}
+                                leftSection={<IconPlayerPlay size={24} className={styles.startBtnIcon} />}
+                                onClick={() => navigate(`/translation?projectId=${projectDetails.project_id}`)}
+                                styles={{
+                                    inner: {
+                                        flexDirection: 'row',
+                                        gap: '8px'
+                                    },
+                                    label: {
+                                        className: styles.startBtnLabel
+                                    }
+                                }}
+                            >
+                                <Text className={styles.startBtnLabel}>
+                                    {t('button_start_translation')}
+                                </Text>
+                            </Button>
+                        </Tooltip>
+
+                        <Group gap="xs" grow>
+                            <Tooltip label={t('deploy_tooltip_label')} position="top" withArrow>
+                                <Button
+                                    leftSection={<IconRocket size={16} />}
+                                    size="sm"
+                                    color="blue"
+                                    onClick={handleOpenDeployModal}
+                                    fullWidth
+                                >
+                                    {t('button_auto_deploy')}
+                                </Button>
+                            </Tooltip>
+
+                            <Tooltip label={t('deploy_clean_tooltip_label')} position="top" withArrow>
+                                <Button
+                                    leftSection={<IconTrash size={16} />}
+                                    size="sm"
+                                    color="red"
+                                    onClick={handleOpenCleanModal}
+                                    fullWidth
+                                >
+                                    {t('button_clean_fake_loc')}
+                                </Button>
+                            </Tooltip>
+                        </Group>
+                    </Stack>
                 </Grid.Col>
             </Grid>
+
+            <DeployModals deployActions={deployActions} />
         </Paper>
     );
 };

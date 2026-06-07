@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "3.0.2",
+  "version": "3.0.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,7 @@
     "test": "vitest run",
     "preview": "vite preview",
     "tauri": "tauri",
-    "tauri:desktop-dev": "tauri dev --config src-tauri/tauri.dev.conf.json"
+    "tauri:desktop-dev": "node start-tauri-dev.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

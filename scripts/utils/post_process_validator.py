@@ -47,6 +47,8 @@ class ValidationResult:
     message: str
     code: Optional[str] = None
     details: Optional[str] = None
+    details_code: Optional[str] = None
+    details_params: Optional[Dict[str, Any]] = None
     line_number: Optional[int] = None
     text_sample: Optional[str] = None
     key: Optional[str] = None  # Added key field
@@ -169,13 +171,13 @@ class BaseGameValidator:
                 if normalized_tag not in valid_tags:
                     message = self._get_i18n_message(params["unknown_tag_error_key"], key=tag_found)
                     details = self._get_i18n_message(params["unsupported_formatting_details_key"], found_text=match.group(0))
-                    results.append(ValidationResult(is_valid=False, level=ValidationLevel(rule["level"]), message=message, code=params.get("unknown_tag_error_key"), details=details, line_number=line_number, text_sample=text[:100]))
+                    results.append(ValidationResult(is_valid=False, level=ValidationLevel(rule["level"]), message=message, code=params.get("unknown_tag_error_key"), details=details, details_code=params["unsupported_formatting_details_key"], details_params={"foundText": match.group(0)}, line_number=line_number, text_sample=text[:100]))
                 elif normalized_tag not in no_space_required_tags:
                     next_char_pos = match.end()
                     if next_char_pos < len(text) and text[next_char_pos] not in (' ', '#', '!', ';'):
                         message = self._get_i18n_message(rule["message_key"], key=tag_found)
                         details = self._get_i18n_message(params["missing_space_details_key"], found_text=match.group(0))
-                        results.append(ValidationResult(is_valid=False, level=ValidationLevel(rule["level"]), message=message, code=rule.get("message_key"), details=details, line_number=line_number, text_sample=text[:100]))
+                        results.append(ValidationResult(is_valid=False, level=ValidationLevel(rule["level"]), message=message, code=rule.get("message_key"), details=details, details_code=params["missing_space_details_key"], details_params={"foundText": match.group(0)}, line_number=line_number, text_sample=text[:100]))
         except re.error as e:
             self.logger.warning(self._get_i18n_message("validator_error_regex_error", rule_name=rule['name'], e=e, pattern=pattern))
         return results
@@ -200,7 +202,17 @@ class BaseGameValidator:
                 message = self._get_i18n_message(rule["message_key"])
                 details_key = params.get("details_key", "validation_generic_tags_count")
                 details = self._get_i18n_message(details_key, start_count=start_tags_count, end_count=end_tags_count)
-                results.append(ValidationResult(is_valid=False, level=ValidationLevel(rule["level"]), message=message, code=rule.get("message_key"), details=details, line_number=line_number, text_sample=text[:100]))
+                results.append(ValidationResult(
+                    is_valid=False,
+                    level=ValidationLevel(rule["level"]),
+                    message=message,
+                    code=rule.get("message_key"),
+                    details=details,
+                    details_code="validation_generic_color_tags_count_localized",
+                    details_params={"startCount": start_tags_count, "endCount": end_tags_count},
+                    line_number=line_number,
+                    text_sample=text[:100],
+                ))
         except re.error as e:
             self.logger.warning(self._get_i18n_message("validator_error_regex_error", rule_name=rule['name'], e=e, pattern=start_tag_pattern))
         return results
@@ -269,6 +281,8 @@ class BaseGameValidator:
                             message=message,
                             code=message_key,
                             details=details,
+                            details_code="validation_generic_variable_parity_details",
+                            details_params={"var": var, "sourceCount": count, "targetCount": target_count},
                             line_number=line_number,
                             text_sample=text[:100]
                         ))
@@ -293,6 +307,8 @@ class BaseGameValidator:
                             message=message,
                             code=message_key,
                             details=details,
+                            details_code="validation_generic_variable_parity_details",
+                            details_params={"var": var, "sourceCount": 0, "targetCount": count},
                             line_number=line_number,
                             text_sample=text[:100]
                         ))
@@ -347,6 +363,8 @@ class BaseGameValidator:
                 message=message,
                 code="validation_residual_punctuation_found",
                 details=details,
+                details_code="validation_residual_punctuation_details_localized",
+                details_params={"punctuations": found_punctuations},
                 line_number=line_number,
                 text_sample=text[:100]
             ))
@@ -360,10 +378,12 @@ class BaseGameValidator:
         results = []
         if not key:
             return results
+
+        key_for_validation = re.sub(r":[0-9]+$", "", key.strip())
             
         # 简单的键名检查：只允许字母、数字、下划线、点、冒号(某些游戏允许?)
         # 通常P社键名是 alphanumeric + underscore + dot
-        if not re.match(r'^[a-zA-Z0-9_\.\-]+$', key):
+        if not re.match(r'^[a-zA-Z0-9_\.\-]+$', key_for_validation):
              # 暂时只作为 Warning，因为有些Mod可能有奇怪的键名
             message = "Invalid key format"
             details = f"Key '{key}' contains invalid characters. Expected alphanumeric, underscore, dot, or hyphen."
@@ -373,6 +393,8 @@ class BaseGameValidator:
                 message=message,
                 code="validation_invalid_key_format",
                 details=details,
+                details_code="validation_invalid_key_format_details_localized",
+                details_params={"foundText": key},
                 line_number=line_number,
                 text_sample=key,
                 key=key

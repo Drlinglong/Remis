@@ -192,6 +192,7 @@ def main():
     demos_map = {
         "Test_Project_Remis_stellaris": "demos/Test_Project_Remis_stellaris",
         "Test_Project_Remis_Vic3": "demos/Test_Project_Remis_Vic3",
+        "Test_Project_Remis_Vic3_Incremental_Frozen": "demos/Test_Project_Remis_Vic3_Incremental_Frozen",
         "Test_Project_Remis_EU5": "demos/Test_Project_Remis_EU5"
     }
     
@@ -207,7 +208,7 @@ def main():
     # We map the dev folders to the clean structure expected by rehydration.
     trans_map = {
         "zh-CN-Test_Project_Remis_stellaris": "my_translation/zh-CN-Test_Project_Remis_stellaris",
-        "Multilanguage-Test_Project_Remis_Vic3": "my_translation/zh-CN-Test_Project_Remis_Vic3",
+        "en-Test_Project_Remis_Vic3": "my_translation/en-Test_Project_Remis_Vic3",
         "zh-CN-Test_Project_Remis_EU5": "my_translation/zh-CN-Test_Project_Remis_EU5",
         "zh-CN-蕾姆丝计划演示模组：最后一位罗马人": "my_translation/legacy_vic3" # Fallback
     }

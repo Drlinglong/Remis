@@ -95,13 +95,14 @@ export function useInitialTranslationPageData({ form, notificationStyle, selecte
         }
 
         const normalizedGlossaries = normalizeAvailableGlossaries(response.data);
-        setAvailableGlossaries(normalizedGlossaries);
+        setAvailableGlossaries((prev) => (JSON.stringify(prev) === JSON.stringify(normalizedGlossaries) ? prev : normalizedGlossaries));
 
-        const allowedValues = new Set(normalizedGlossaries.map((glossary) => glossary.value));
-        const filteredSelectedGlossaries = (values.selected_glossary_ids || [])
+        const allowedValues = new Set(normalizedGlossaries.map((glossary) => String(glossary.value)));
+        const currentSelected = values.selected_glossary_ids || [];
+        const filteredSelectedGlossaries = currentSelected
           .filter((glossaryId) => allowedValues.has(String(glossaryId)));
 
-        if (filteredSelectedGlossaries.length !== (values.selected_glossary_ids || []).length) {
+        if (filteredSelectedGlossaries.length !== currentSelected.length) {
           setFieldValueRef.current('selected_glossary_ids', filteredSelectedGlossaries);
         }
       })
@@ -119,7 +120,7 @@ export function useInitialTranslationPageData({ form, notificationStyle, selecte
     return () => {
       cancelled = true;
     };
-  }, [selectedGameId, values.selected_glossary_ids]);
+  }, [selectedGameId]);
 
   useEffect(() => {
     const providerConfig = config.api_providers.find((provider) => provider.value === values.api_provider);

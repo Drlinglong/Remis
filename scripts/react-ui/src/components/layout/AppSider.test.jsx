@@ -61,4 +61,13 @@ describe('AppSider', () => {
 
     expect(startTourMock).toHaveBeenCalledOnce();
   });
+
+  it('localizes the sidebar pin toggle tooltip', () => {
+    renderWithProvider(<AppSider />);
+
+    const sidebar = document.getElementById('sidebar-nav');
+    fireEvent.mouseEnter(sidebar);
+
+    expect(screen.getByTitle('sidebar.pin')).toBeInTheDocument();
+  });
 });

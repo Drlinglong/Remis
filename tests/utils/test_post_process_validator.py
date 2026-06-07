@@ -32,9 +32,24 @@ def test_residual_punctuation_check_finds_chinese_issue(validator, mocker):
     assert punc_result is not None, "A specific punctuation validation result should be found."
     assert punc_result.is_valid is False
     assert punc_result.level == ValidationLevel.WARNING
+    assert punc_result.details_code == "validation_residual_punctuation_details_localized"
+    assert punc_result.details_params == {"punctuations": "，, 。"}
     # The details will now be something like: "validation_residual_punctuation_details {'punctuations': '，, 。'}"
     assert "，" in punc_result.details
     assert "。" in punc_result.details
+
+
+def test_invalid_key_format_exposes_structured_details(validator):
+    result = validator.validate_entry("victoria3", "bad key", "Value", 3)[0]
+
+    assert result.code == "validation_invalid_key_format"
+    assert result.details_code == "validation_invalid_key_format_details_localized"
+    assert result.details_params == {"foundText": "bad key"}
+
+def test_paradox_localization_version_suffix_is_valid(validator):
+    results = validator.validate_entry("victoria3", "remis_event.1.t:0", "The Storm's Gift", 3)
+
+    assert not [result for result in results if result.code == "validation_invalid_key_format"]
 
 def test_residual_punctuation_check_finds_japanese_issue(validator, mocker):
     """

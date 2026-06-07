@@ -49,9 +49,9 @@ describe('initialTranslation utils', () => {
         follow_primary_settings: true,
         api_provider: null,
         api_model: null,
-        batch_size_limit: 15,
-        concurrency_limit: 2,
-        rpm_limit: 80,
+        batch_size_limit: 20,
+        concurrency_limit: 4,
+        rpm_limit: 60,
       },
     });
   });

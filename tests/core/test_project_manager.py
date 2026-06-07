@@ -25,6 +25,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         self.mock_repo.add_history_entry = AsyncMock()
         self.mock_repo.touch_project = AsyncMock()
         self.mock_repo.update_project_metadata = AsyncMock()
+        self.mock_repo.update_project_source_path = AsyncMock()
         
         self.mock_kanban = MagicMock()
         
@@ -170,6 +171,74 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(config_payload["project_import"]["original_path"], os.path.abspath(mod_root))
             self.assertEqual(config_payload["project_import"]["import_mode"], "reference")
 
+    @patch("scripts.core.project_manager.ProjectJsonManager")
+    async def test_create_project_copy_mode_renames_target_when_source_dir_name_conflicts(self, mock_json_mgr):
+        """
+        Copy-mode imports should append a numeric suffix when the destination folder already exists.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mod_root = os.path.join(temp_dir, "HugeMod")
+            source_root = os.path.join(temp_dir, "source_mod")
+            os.makedirs(os.path.join(mod_root, "localisation"), exist_ok=True)
+            os.makedirs(os.path.join(source_root, "HugeMod"), exist_ok=True)
+            with open(os.path.join(mod_root, "descriptor.mod"), "w", encoding="utf-8") as handle:
+                handle.write("name=\"HugeMod\"\n")
+
+            mock_pydantic_proj = MagicMock()
+            mock_pydantic_proj.model_dump.return_value = {
+                "project_id": "renamed-copy",
+                "name": "HugeMod",
+                "source_path": os.path.join(source_root, "HugeMod_1"),
+                "game_id": "hoi4",
+            }
+            self.mock_repo.create_project.return_value = mock_pydantic_proj
+            self.mock_repo.get_project.return_value = mock_pydantic_proj
+
+            with patch("scripts.core.project_manager.SOURCE_DIR", source_root):
+                await self.pm.create_project(
+                    name="HugeMod",
+                    folder_path=mod_root,
+                    game_id="hoi4",
+                    source_language="en",
+                    import_mode="copy",
+                )
+
+            created_project = self.mock_repo.create_project.call_args.args[0]
+            expected_target = os.path.join(source_root, "HugeMod_1")
+            self.assertEqual(created_project.source_path, expected_target)
+            self.assertTrue(os.path.exists(os.path.join(expected_target, "descriptor.mod")))
+            config_payload = mock_json_mgr.return_value.update_config.call_args.args[0]
+            self.assertEqual(config_payload["project_import"]["copy_scope"], "selected")
+            self.assertEqual(config_payload["project_import"]["original_path"], os.path.abspath(mod_root))
+
+    async def test_get_project_normalizes_legacy_localisation_subfolder_and_persists_it(self):
+        """
+        Legacy projects stored at the localisation folder should be normalized back to the mod root.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mod_root = os.path.join(temp_dir, "TNO")
+            localisation_dir = os.path.join(mod_root, "localisation")
+            os.makedirs(localisation_dir, exist_ok=True)
+            with open(os.path.join(mod_root, "descriptor.mod"), "w", encoding="utf-8") as handle:
+                handle.write("name=\"TNO\"\n")
+
+            mock_obj = MagicMock()
+            mock_obj.model_dump.return_value = {
+                "project_id": "legacy-proj",
+                "name": "TNO",
+                "game_id": "hoi4",
+                "source_path": localisation_dir,
+            }
+            self.mock_repo.get_project.return_value = mock_obj
+
+            result = await self.pm.get_project("legacy-proj")
+
+        self.assertEqual(result["source_path"], os.path.abspath(mod_root))
+        self.mock_repo.update_project_source_path.assert_awaited_once_with(
+            "legacy-proj",
+            os.path.abspath(mod_root),
+        )
+
     async def test_refresh_project_files_delegation(self):
         """
         Test that refresh_project_files correctly delegates to FileService.
@@ -200,6 +269,39 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
                 "Test"
             )
 
+    async def test_repair_project_metadata_rebuilds_sidecars_and_refreshes_files(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_root = os.path.join(temp_dir, "project")
+            translation_root = os.path.join(temp_dir, "translation")
+            os.makedirs(source_root)
+            os.makedirs(translation_root)
+            sidecar_path = os.path.join(source_root, ".remis_project.json")
+            with open(sidecar_path, "w", encoding="utf-8") as handle:
+                handle.write("{broken json")
+            with open(os.path.join(source_root, ".remis_errors.json"), "w", encoding="utf-8") as handle:
+                handle.write("[{\"file_name\":\"../translation/demo_l_english.yml\",\"source_context_status\":\"missing\"}]")
+
+            mock_obj = MagicMock()
+            mock_obj.model_dump.return_value = {
+                "project_id": "repair-proj",
+                "name": "Repair Project",
+                "game_id": "hoi4",
+                "source_language": "zh-CN",
+                "source_path": source_root,
+            }
+            self.mock_repo.get_project.return_value = mock_obj
+            self.mock_repo.get_project_files.return_value = [
+                MagicMock(model_dump=MagicMock(return_value={"file_path": "one.yml"}))
+            ]
+
+            result = await self.pm.repair_project_metadata("repair-proj")
+
+        self.assertEqual(result["status"], "success")
+        self.assertIn("cleared_stale_project_error_cache", result["actions"])
+        self.assertEqual(result["error_cache_status"], "cleared_stale")
+        self.assertEqual(result["file_count"], 1)
+        self.mock_file_service.scan_and_sync_files.assert_called()
+
     async def test_update_project_metadata(self):
         """
         Verify metadata update flows to repository calls correctly.
@@ -219,6 +321,57 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         self.mock_repo.update_project_metadata.assert_called_once_with(
             project_id, "stellaris", "english"
         )
+
+    async def test_update_source_path_migrates_sidecar_and_updates_repository(self):
+        """
+        Source path migration should live in ProjectManager, not the router.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_source = os.path.join(temp_dir, "old_mod")
+            new_source = os.path.join(temp_dir, "new_mod")
+            os.makedirs(old_source)
+            os.makedirs(new_source)
+            sidecar_path = os.path.join(old_source, ".remis_project.json")
+            with open(sidecar_path, "w", encoding="utf-8") as handle:
+                handle.write('{"config": {"translation_dirs": []}}')
+
+            mock_obj = MagicMock()
+            mock_obj.model_dump.return_value = {
+                "project_id": "source-proj",
+                "name": "Source Project",
+                "game_id": "hoi4",
+                "source_path": old_source,
+            }
+            self.mock_repo.get_project.return_value = mock_obj
+
+            await self.pm.update_source_path("source-proj", new_source)
+
+            self.assertTrue(os.path.exists(os.path.join(new_source, ".remis_project.json")))
+            self.mock_repo.touch_project.assert_awaited_once_with("source-proj")
+            self.mock_repo.update_project_source_path.assert_awaited_once_with(
+                "source-proj",
+                os.path.abspath(new_source),
+            )
+
+    async def test_update_source_path_rejects_missing_directory(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_source = os.path.join(temp_dir, "old_mod")
+            missing_source = os.path.join(temp_dir, "missing_mod")
+            os.makedirs(old_source)
+
+            mock_obj = MagicMock()
+            mock_obj.model_dump.return_value = {
+                "project_id": "missing-source-proj",
+                "name": "Missing Source Project",
+                "game_id": "hoi4",
+                "source_path": old_source,
+            }
+            self.mock_repo.get_project.return_value = mock_obj
+
+            with self.assertRaisesRegex(ValueError, "Source directory not found"):
+                await self.pm.update_source_path("missing-source-proj", missing_source)
+
+            self.mock_repo.update_project_source_path.assert_not_called()
 
     async def test_run_incremental_update_workflow_falls_back_to_defaults(self):
         """
