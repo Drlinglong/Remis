@@ -235,3 +235,75 @@ def test_get_entries_accepts_non_normalized_file_path_inputs(temp_archive_db):
 
     assert len(entries) == 1
     assert entries[0]["translation"] == "A"
+
+
+def test_archive_translated_results_falls_back_from_versioned_keys(temp_archive_db):
+    mod_id = temp_archive_db.get_or_create_mod_entry("VersionedKeyMod", "versioned-key-project")
+    version_id = temp_archive_db.create_source_version(
+        mod_id,
+        [
+            {
+                "filename": "sample_l_simp_chinese.yml",
+                "file_path": "localisation/simp_chinese/sample_l_simp_chinese.yml",
+                "texts_to_translate": ["Alpha"],
+                "key_map": {0: {"key_part": "legacy.key"}},
+            }
+        ],
+    )
+
+    temp_archive_db.archive_translated_results(
+        version_id,
+        {"localisation/simp_chinese/sample_l_simp_chinese.yml": ["A"]},
+        [
+            {
+                "filename": "sample_l_simp_chinese.yml",
+                "file_path": "localisation/simp_chinese/sample_l_simp_chinese.yml",
+                "texts_to_translate": ["Alpha"],
+                "key_map": [{"key_part": "legacy.key:0"}],
+            }
+        ],
+        "en",
+    )
+
+    row = temp_archive_db.connection.execute(
+        """
+        SELECT t.translated_text
+        FROM translated_entries t
+        JOIN source_entries s ON t.source_entry_id = s.source_entry_id
+        WHERE s.version_id = ? AND s.entry_key = 'legacy.key' AND t.language_code = 'en'
+        """,
+        (version_id,),
+    ).fetchone()
+
+    assert row["translated_text"] == "A"
+
+
+def test_update_translations_uses_source_entry_lookup_row_directly(temp_archive_db):
+    mod_id = temp_archive_db.get_or_create_mod_entry("UpdateLookupMod", "update-lookup-project")
+    temp_archive_db.create_source_version(
+        mod_id,
+        [
+            {
+                "filename": "sample_l_simp_chinese.yml",
+                "file_path": "localisation/simp_chinese/sample_l_simp_chinese.yml",
+                "texts_to_translate": ["Alpha"],
+                "key_map": {0: {"key_part": "update.key"}},
+            }
+        ],
+    )
+
+    temp_archive_db.update_translations(
+        "UpdateLookupMod",
+        "localisation/simp_chinese/sample_l_simp_chinese.yml",
+        [{"key": "update.key", "translation": "Updated"}],
+        "en",
+    )
+
+    entries = temp_archive_db.get_entries(
+        project_id="update-lookup-project",
+        file_path="localisation/simp_chinese/sample_l_simp_chinese.yml",
+        language="en",
+    )
+
+    assert len(entries) == 1
+    assert entries[0]["translation"] == "Updated"

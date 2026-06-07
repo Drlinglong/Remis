@@ -875,12 +875,20 @@ def _run_post_processing(mod_name, game_profile, target_lang, source_lang, outpu
         
         # Get validation stats and update frontend
         stats = post_processor.get_validation_stats()
-        total_issues = stats.get('total_errors', 0) + stats.get('total_warnings', 0)
+        total_errors = stats.get('total_errors', 0)
+        total_warnings = stats.get('total_warnings', 0)
+        total_issues = total_errors + total_warnings
         
         if update_progress_callback:
             # Update the format_issues count in the frontend
             # We use "Translating" stage or maybe "Verifying"? Let's keep it simple.
-            update_progress_callback(log_message=f"Validation completed. Found {total_issues} issues.", format_issues_override=total_issues)
+            update_progress_callback(
+                log_message=(
+                    "Validation completed. "
+                    f"Found {total_issues} issue(s): {total_errors} error(s), {total_warnings} warning(s)."
+                ),
+                format_issues_override=total_issues,
+            )
 
         if validation_success:
             post_processor.attach_results_to_proofreading_tracker(proofreading_tracker)

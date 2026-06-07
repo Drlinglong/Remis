@@ -467,7 +467,7 @@ class ArchiveManager:
                     # [FALLBACK] If not found and key has :version, try without version (for legacy compatibility)
                     if not row and ":" in entry_key:
                         pure_key = entry_key.split(':')[0]
-                        row = self._find_source_entry_id(cursor, version_id, pure_key, file_path_candidates).fetchone()
+                        row = self._find_source_entry_id(cursor, version_id, pure_key, file_path_candidates)
 
                     if row:
                         source_entry_id = row['source_entry_id']
@@ -825,7 +825,7 @@ class ArchiveManager:
             translation = entry.get('translation', '')
 
             # Find source entry ID
-            row = self._find_source_entry_id(cursor, version_id, key, file_path_candidates).fetchone()
+            row = self._find_source_entry_id(cursor, version_id, key, file_path_candidates)
 
             if row:
                 source_entry_id = row['source_entry_id']
