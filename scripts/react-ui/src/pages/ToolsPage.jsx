@@ -1,19 +1,27 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Stack, Text, Group, Button, Tabs, Title, Container, Paper } from '@mantine/core';
+import { Center, Loader, Modal, Stack, Text, Group, Button, Tabs, Title, Container, Paper } from '@mantine/core';
 import { IconPhoto, IconTools, IconBug, IconCode } from '@tabler/icons-react';
-import ThumbnailGenerator from '../components/tools/ThumbnailGenerator';
-import WorkshopGenerator from '../components/tools/WorkshopGenerator';
-import EventRenderer from './EventRenderer';
-import UIDebugger from './UIDebugger';
 import layoutStyles from '../components/layout/Layout.module.css';
 import { FEATURES } from '../config/features';
 import { useTutorial, getTutorialKey } from '../context/TutorialContext';
+
+const ThumbnailGenerator = lazy(() => import('../components/tools/ThumbnailGenerator'));
+const WorkshopGenerator = lazy(() => import('../components/tools/WorkshopGenerator'));
+const EventRenderer = lazy(() => import('./EventRenderer'));
+const UIDebugger = lazy(() => import('./UIDebugger'));
+
+const ToolPanelFallback = () => (
+    <Center h={240}>
+        <Loader type="dots" />
+    </Center>
+);
 
 const ToolsPage = () => {
     const { t } = useTranslation();
     const { startTour, setPageContext } = useTutorial();
     const [showTutorialPrompt, setShowTutorialPrompt] = React.useState(false);
+    const [activeTab, setActiveTab] = React.useState('thumbnail');
 
     React.useEffect(() => {
         setPageContext('tools');
@@ -29,7 +37,7 @@ const ToolsPage = () => {
         <Container size="lg" py="xl">
             <Paper withBorder p="xl" radius="md" className={layoutStyles.glassCard}>
                 <Title order={2} mb="xl">{t('page_title_tools')}</Title>
-                <Tabs defaultValue="thumbnail" variant="pills" radius="md">
+                <Tabs value={activeTab} onChange={(value) => setActiveTab(value || 'thumbnail')} variant="pills" radius="md" keepMounted={false}>
                     <Tabs.List id="tools-tabs-list" mb="lg">
                         <Tabs.Tab value="thumbnail" leftSection={<IconPhoto size={16} />}>{t('tools_tab_thumbnail_generator')}</Tabs.Tab>
 
@@ -47,24 +55,32 @@ const ToolsPage = () => {
                     </Tabs.List>
 
                     <Tabs.Panel value="thumbnail">
-                        <ThumbnailGenerator />
+                        <Suspense fallback={<ToolPanelFallback />}>
+                            {activeTab === 'thumbnail' && <ThumbnailGenerator />}
+                        </Suspense>
                     </Tabs.Panel>
 
                     {FEATURES.ENABLE_WORKSHOP_GENERATOR && (
                         <Tabs.Panel value="workshop">
-                            <WorkshopGenerator />
+                            <Suspense fallback={<ToolPanelFallback />}>
+                                {activeTab === 'workshop' && <WorkshopGenerator />}
+                            </Suspense>
                         </Tabs.Panel>
                     )}
 
                     {FEATURES.ENABLE_EVENT_RENDERER && (
                         <Tabs.Panel value="event">
-                            <EventRenderer />
+                            <Suspense fallback={<ToolPanelFallback />}>
+                                {activeTab === 'event' && <EventRenderer />}
+                            </Suspense>
                         </Tabs.Panel>
                     )}
 
                     {FEATURES.ENABLE_UI_DEBUGGER && (
                         <Tabs.Panel value="debugger">
-                            <UIDebugger />
+                            <Suspense fallback={<ToolPanelFallback />}>
+                                {activeTab === 'debugger' && <UIDebugger />}
+                            </Suspense>
                         </Tabs.Panel>
                     )}
                 </Tabs>

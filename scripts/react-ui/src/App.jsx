@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { Center, Loader } from '@mantine/core';
 
 // import { MantineProvider } from '@mantine/core'; // Removed unused import
 import '@mantine/core/styles.css';
@@ -16,33 +17,38 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 import './App.css';
 
-// Import pages...
-import OriginalHomepage from './pages/HomePage';
-import OriginalDocumentation from './pages/Documentation';
-import OriginalInitialTranslation from './pages/InitialTranslation';
-import OriginalProjectManagement from './pages/ProjectManagement';
-import GlossaryManagerPage from './pages/GlossaryManagerPage';
-import ProofreadingPage from './pages/ProofreadingPage';
-import ToolsPage from './pages/ToolsPage';
-import CICDPage from './pages/CICDPage';
-import SettingsPage from './pages/SettingsPage';
-import IncrementalTranslationPage from './pages/IncrementalTranslationPage';
-import UnderDevelopmentPage from './pages/UnderDevelopmentPage';
-import UnderConstructionPage from './pages/UnderConstructionPage';
-import InConceptionPage from './pages/InConceptionPage';
-import ArchivesPage from './pages/ArchivesPage';
-import NeologismReviewPage from './pages/NeologismReviewPage';
-import AgentWorkshopPage from './pages/AgentWorkshopPage';
+const HomePage = lazy(() => import('./pages/HomePage'));
+const DocumentationPage = lazy(() => import('./pages/Documentation'));
+const InitialTranslationPage = lazy(() => import('./pages/InitialTranslation'));
+const ProjectManagementPage = lazy(() => import('./pages/ProjectManagement'));
+const GlossaryManagerPage = lazy(() => import('./pages/GlossaryManagerPage'));
+const ProofreadingPage = lazy(() => import('./pages/ProofreadingPage'));
+const ToolsPage = lazy(() => import('./pages/ToolsPage'));
+const CICDPage = lazy(() => import('./pages/CICDPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const IncrementalTranslationPage = lazy(() => import('./pages/IncrementalTranslationPage'));
+const UnderDevelopmentPage = lazy(() => import('./pages/UnderDevelopmentPage'));
+const UnderConstructionPage = lazy(() => import('./pages/UnderConstructionPage'));
+const InConceptionPage = lazy(() => import('./pages/InConceptionPage'));
+const ArchivesPage = lazy(() => import('./pages/ArchivesPage'));
+const NeologismReviewPage = lazy(() => import('./pages/NeologismReviewPage'));
+const AgentWorkshopPage = lazy(() => import('./pages/AgentWorkshopPage'));
+
+const RouteFallback = () => (
+    <Center h="50vh">
+        <Loader size="lg" type="dots" />
+    </Center>
+);
 
 // --- Single Source of Truth for Routing ---
 const appRouteConfig = [
-    { path: '/', element: <OriginalHomepage /> },
-    { path: '/docs', element: <OriginalDocumentation /> },
-    { path: '/translation', element: <OriginalInitialTranslation /> },
+    { path: '/', element: <HomePage /> },
+    { path: '/docs', element: <DocumentationPage /> },
+    { path: '/translation', element: <InitialTranslationPage /> },
     { path: '/glossary-manager', element: <GlossaryManagerPage /> },
     { path: '/proofreading', element: <ProofreadingPage /> },
-    { path: '/project-management', element: <OriginalProjectManagement /> },
-    { path: '/project-management/:projectId', element: <OriginalProjectManagement /> },
+    { path: '/project-management', element: <ProjectManagementPage /> },
+    { path: '/project-management/:projectId', element: <ProjectManagementPage /> },
     { path: '/incremental-translation', element: <IncrementalTranslationPage /> },
     { path: '/neologism-review', element: <NeologismReviewPage /> },
     { path: '/archives', element: <ArchivesPage /> },
@@ -71,11 +77,13 @@ const App = () => {
                                 <Router>
                                     <TutorialProvider>
                                         <MainLayout>
-                                            <Routes>
-                                                {appRouteConfig.map(route => (
-                                                    <Route key={route.path} path={route.path} element={route.element} />
-                                                ))}
-                                            </Routes>
+                                            <Suspense fallback={<RouteFallback />}>
+                                                <Routes>
+                                                    {appRouteConfig.map(route => (
+                                                        <Route key={route.path} path={route.path} element={route.element} />
+                                                    ))}
+                                                </Routes>
+                                            </Suspense>
                                         </MainLayout>
                                     </TutorialProvider>
                                 </Router>

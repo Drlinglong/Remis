@@ -12,6 +12,7 @@ import projectService from '../services/projectService';
 import configService from '../services/configService';
 import workshopService from '../services/workshopService';
 import PerformanceControlPanel from '../components/shared/PerformanceControlPanel';
+import BusyHeartbeat from '../components/shared/BusyHeartbeat';
 import { useLocation } from 'react-router-dom';
 import { getTutorialKey, useTutorial } from '../context/TutorialContext';
 import styles from './AgentWorkshop.module.css';
@@ -535,7 +536,16 @@ const AgentWorkshopPage = () => {
               <Stack mt="xl"><Paper id="agent-workshop-execution-panel" withBorder p="xl" radius="md" className={translationStyles.glassCard}>
                 <Title order={4} mb="md">{t('agent_workshop.execution_title')}</Title>
                 <Progress value={progress} label={progress > 0 ? `${progress}%` : ''} size="xl" radius="xl" animated={executing} mb="sm" />
-                <Group justify="space-between" mb="xl"><Box><Text size="sm" fw={600}>{executing ? t('agent_workshop.execution_in_progress') : t('agent_workshop.execution_completed')}</Text><Text size="xs" c="dimmed">{executionStats ? `${executionStats.completed} / ${executionStats.total}` : t('agent_workshop.execution_pending')}</Text></Box><Text size="xs" fw={700} c="blue">{progress}%</Text></Group>
+                {executing && (
+                  <BusyHeartbeat
+                    active
+                    compact
+                    title={t('agent_workshop.execution_in_progress')}
+                    description={executionStats ? `${executionStats.completed} / ${executionStats.total}` : t('agent_workshop.execution_pending')}
+                    color="teal"
+                  />
+                )}
+                <Group justify="space-between" mt={executing ? 'md' : 0} mb="xl"><Box><Text size="sm" fw={600}>{executing ? t('agent_workshop.execution_in_progress') : t('agent_workshop.execution_completed')}</Text><Text size="xs" c="dimmed">{executionStats ? `${executionStats.completed} / ${executionStats.total}` : t('agent_workshop.execution_pending')}</Text></Box><Text size="xs" fw={700} c="blue">{progress}%</Text></Group>
                 <Box ref={logViewportRef} className={translationStyles.logScrollBox}>{executionLogs.map((log, index) => <Text key={`${log}-${index}`} size="xs" style={{ fontFamily: 'monospace' }} mb={2}>{log}</Text>)}</Box>
               {executionStats && !executing && <Stack mt="xl"><SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md"><Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.fixed_count')}</Text><Title order={3} c="green">{executionStats.successCount}</Title></Card><Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.failed_count')}</Text><Title order={3} c="orange">{executionStats.failedCount}</Title></Card><Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.duration')}</Text><Title order={5}>{`${(executionStats.durationMs / 1000).toFixed(1)} s`}</Title></Card></SimpleGrid>
                 {fixedIssues.length > 0 && (

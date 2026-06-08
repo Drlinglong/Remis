@@ -21,6 +21,7 @@ import {
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import styles from '../../pages/Translation.module.css';
+import BusyHeartbeat from '../shared/BusyHeartbeat';
 
 export const ExecutionStep = ({
     progress,
@@ -83,6 +84,8 @@ export const ExecutionStep = ({
         }
         return progressState.message || '';
     }, [t]);
+    const stageTitle = getStageTitle(progressInfo, false);
+    const stageDescription = getStageDescription(progressInfo) || (executing ? t('incremental_translation.status_processing') : t('incremental_translation.status_idle'));
 
     const getValidationIssueCount = useCallback((summary) => {
         if (!summary || !Array.isArray(summary.workshop_issue_exports)) return 0;
@@ -286,11 +289,21 @@ export const ExecutionStep = ({
                     mb="sm"
                 />
 
-                <Group justify="space-between" mb="xl">
+                {executing && (
+                    <BusyHeartbeat
+                        active
+                        compact
+                        title={stageTitle}
+                        description={stageDescription}
+                        color="blue"
+                    />
+                )}
+
+                <Group justify="space-between" mt={executing ? 'md' : 0} mb="xl">
                     <Box>
-                        <Text size="sm" fw={600}>{getStageTitle(progressInfo, false)}</Text>
+                        <Text size="sm" fw={600}>{stageTitle}</Text>
                         <Text size="xs" c="dimmed">
-                            {getStageDescription(progressInfo) || (executing ? t('incremental_translation.status_processing') : t('incremental_translation.status_idle'))}
+                            {stageDescription}
                         </Text>
                     </Box>
                     <Text size="xs" fw={700} c="blue">

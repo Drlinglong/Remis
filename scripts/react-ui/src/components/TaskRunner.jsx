@@ -38,6 +38,7 @@ import { notifications } from '@mantine/notifications';
 import api from '../utils/api';
 import { useDeployActions } from '../hooks/useDeployActions';
 import { DeployModals } from './deploy/DeployModals';
+import BusyHeartbeat from './shared/BusyHeartbeat';
 
 const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
     const { t } = useTranslation();
@@ -136,6 +137,27 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
         };
         return t(map[stage] || stage);
     };
+    const progressTitle = isFailed ? t('stage_failed') : getLocalizedStage(progress.stage);
+    const progressModelText = t('progress_translating_model', {
+        model: translationDetails?.model || 'AI',
+        total_files: progress.total,
+        total_batches: progress.total_batches
+    });
+    const progressStatusText = hasWorkshopProgress
+        ? t('progress_smart_workshop_status', {
+            detected: workshopProgress.detected_count,
+            processed: workshopProgress.processed_count || 0,
+            round: workshopProgress.reflection_round || 1,
+            defaultValue: `正在修复 ${workshopProgress.detected_count} 个潜在格式问题，已处理 ${workshopProgress.processed_count || 0}/${workshopProgress.detected_count}，进行第 ${workshopProgress.reflection_round || 1} 轮反思`
+        })
+        : t('progress_status', {
+            processed_files: progress.current,
+            completed_batches: progress.current_batch,
+            successful_batches: progress.successful_batches || 0,
+            failed_batches: progress.failed_batches || 0,
+            remaining_files: remainingFiles,
+            remaining_batches: remainingBatches
+        });
 
     const handleOpenFolder = async () => {
         const directFolderPath = Array.isArray(task?.output_dirs) && task.output_dirs.length > 0
@@ -349,35 +371,19 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
                         {isFailed ? <IconAlertCircle size={40} /> : <IconTerminal2 size={40} />}
                     </ThemeIcon>
 
-                    <Title order={3}>
-                        {isFailed ? t('stage_failed') : getLocalizedStage(progress.stage)}
-                    </Title>
-
-                    <Text c="dimmed" size="sm">
-                        {t('progress_translating_model', {
-                            model: translationDetails?.model || 'AI',
-                            total_files: progress.total,
-                            total_batches: progress.total_batches
-                        })}
-                    </Text>
-
-                    <Text size="md" fw={500}>
-                        {hasWorkshopProgress
-                            ? t('progress_smart_workshop_status', {
-                                detected: workshopProgress.detected_count,
-                                processed: workshopProgress.processed_count || 0,
-                                round: workshopProgress.reflection_round || 1,
-                                defaultValue: `正在修复 ${workshopProgress.detected_count} 个潜在格式问题，已处理 ${workshopProgress.processed_count || 0}/${workshopProgress.detected_count}，进行第 ${workshopProgress.reflection_round || 1} 轮反思`
-                            })
-                            : t('progress_status', {
-                                processed_files: progress.current,
-                                completed_batches: progress.current_batch,
-                                successful_batches: progress.successful_batches || 0,
-                                failed_batches: progress.failed_batches || 0,
-                                remaining_files: remainingFiles,
-                                remaining_batches: remainingBatches
-                            })}
-                    </Text>
+                    {isFailed ? (
+                        <>
+                            <Title order={3}>{progressTitle}</Title>
+                            <Text size="md" fw={500}>{progressStatusText}</Text>
+                        </>
+                    ) : (
+                        <BusyHeartbeat
+                            active
+                            title={progressTitle}
+                            description={`${progressModelText} ${progressStatusText}`}
+                            color={hasWorkshopProgress ? 'teal' : 'blue'}
+                        />
+                    )}
 
                     {/* Progress Bar */}
                     <Box w="100%" pos="relative" mt="md">

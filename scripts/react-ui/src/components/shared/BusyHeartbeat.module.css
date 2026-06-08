@@ -1,0 +1,91 @@
+.shell,
+.compactShell {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border: 1px solid rgba(74, 144, 226, 0.35);
+  background: rgba(28, 126, 214, 0.08);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.compactShell {
+  padding: 10px 12px;
+}
+
+.loaderWrap {
+  width: 34px;
+  display: flex;
+  justify-content: center;
+}
+
+.beats span {
+  display: block;
+  width: 6px;
+  height: 22px;
+  border-radius: 999px;
+  background: currentColor;
+  color: var(--mantine-color-blue-5);
+  opacity: 0.35;
+  animation: heartbeatPulse 1s ease-in-out infinite;
+}
+
+.beats span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.beats span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+.shimmer {
+  position: absolute;
+  left: -35%;
+  bottom: 0;
+  width: 35%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(74, 144, 226, 0.9), transparent);
+  animation: heartbeatSweep 1.8s ease-in-out infinite;
+}
+
+[data-color='teal'] .beats span {
+  color: var(--mantine-color-teal-5);
+}
+
+[data-color='teal'] .shimmer {
+  background: linear-gradient(90deg, transparent, rgba(32, 201, 151, 0.9), transparent);
+}
+
+[data-color='orange'] .beats span {
+  color: var(--mantine-color-orange-5);
+}
+
+[data-color='orange'] .shimmer {
+  background: linear-gradient(90deg, transparent, rgba(253, 126, 20, 0.9), transparent);
+}
+
+@keyframes heartbeatPulse {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+    opacity: 0.35;
+  }
+  45% {
+    transform: scaleY(1);
+    opacity: 0.95;
+  }
+}
+
+@keyframes heartbeatSweep {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(390%);
+    opacity: 0;
+  }
+}
