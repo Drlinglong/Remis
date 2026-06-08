@@ -1,19 +1,8 @@
 import logging
-import threading
 from typing import Any, Optional, List
 
-from scripts.core.proofreading_tracker import create_proofreading_tracker
-from scripts.core.parallel_processor import ParallelProcessor
 from scripts.core.services.initial_translation_discovery_service import discover_localizable_files
-from scripts.core.services.initial_translation_file_service import finalize_translated_file
 from scripts.core.services.initial_translation_completion_service import finalize_workflow_run
-from scripts.core.services.initial_translation_progress_service import (
-    LanguageRunState,
-    build_checkpoint_manager,
-    emit_progress,
-    progress_log_bridge,
-)
-from scripts.core.services.initial_translation_postprocess_service import finalize_language_run
 from scripts.core.services.initial_translation_snapshot_service import (
     calculate_total_batches,
     create_source_snapshot,
@@ -25,16 +14,7 @@ from scripts.core.services.initial_translation_run_service import (
     create_translation_handler,
     resolve_provider_model,
 )
-from scripts.core.services.initial_translation_task_service import build_file_task_iterator
-from scripts.core.services.initial_translation_workshop_service import (
-    export_workshop_issues_for_language,
-    run_embedded_workshop_for_language,
-)
-from scripts.core.services.initial_translation_batch_service import (
-    log_batch_warnings,
-    resolve_max_workers,
-    temporary_rpm_limit,
-)
+from scripts.core.services.initial_translation_language_service import run_language_translation
 from scripts.core.services.initial_translation_workspace_service import (
     clean_source_directory,
     load_glossaries_for_run,
@@ -131,132 +111,32 @@ def run(mod_name: str,
 
     # ───────────── 5. 多语言并行翻译 (Streaming from Memory) ─────────────
     
+    last_target_lang = None
     for target_lang in target_languages:
-        logging.info(i18n.t("translating_to_language", lang_name=target_lang["name"]))
-        
-        proofreading_tracker = create_proofreading_tracker(
-            mod_name, output_folder_name, target_lang.get("code", "zh-CN")
-        )
-
-        checkpoint_manager = build_checkpoint_manager(
-            output_dir_path,
-            selected_provider,
-            gemini_cli_model,
-            source_lang,
-            target_lang,
-            use_resume,
-        )
-        run_state = LanguageRunState()
-        progress_lock = threading.Lock()
-
-        def update_progress(current_file_name="", stage="Translating", log_message=None, format_issues_override=None, format_repair=None, workshop_progress=None):
-            emit_progress(
-                progress_callback,
-                run_state,
-                total_batches,
-                current_file_name,
-                stage,
-                log_message,
-                format_issues_override,
-                format_repair,
-                workshop_progress,
-            )
-
-        file_task_generator = build_file_task_iterator(
-            all_files_content,
-            checkpoint_manager,
-            source_lang,
-            target_lang,
-            game_profile,
-            mod_context,
-            handler,
-            output_folder_name,
-            mod_name,
-            proofreading_tracker,
-            progress_callback,
-            run_state,
-            total_batches,
-        )
-
-        # 初始化并行处理器
-        max_workers = resolve_max_workers(concurrency_limit, selected_provider)
-        processor = ParallelProcessor(max_workers=max_workers, chunk_size_override=effective_chunk_size)
-
-        # 定义翻译函数 (Consumer)
-        def translation_wrapper(batch_task):
-            result = handler.translate_batch(batch_task)
-            with progress_lock:
-                run_state.completed_batches += 1
-                update_progress(batch_task.file_task.filename)
-            return result
-
-        with temporary_rpm_limit(rpm_limit):
-            with progress_log_bridge(update_progress):
-                for file_task, translated_texts, warnings, is_failed in processor.process_files_stream(file_task_generator, translation_wrapper):
-                    if is_failed:
-                        run_state.error_count += 1
-                        logging.error(f"File {file_task.filename} failed to translate (partially or fully). Using fallback.")
-                        update_progress(file_task.filename, "Failed", log_message=f"ERROR: File {file_task.filename} failed to translate. Rolled back to original text.")
-                    else:
-                        update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
-
-                    log_batch_warnings(file_task.filename, warnings)
-
-                    finalize_translated_file(
-                        file_task,
-                        translated_texts,
-                        is_failed,
-                        target_lang,
-                        output_folder_name,
-                        game_profile,
-                        proofreading_tracker,
-                        checkpoint_manager,
-                        project_id,
-                        version_id,
-                        all_files_content,
-                    )
-
-        if run_state.error_count:
-            message = f"Translation failed for {run_state.error_count} file(s) while translating to {target_lang['name']}."
-            logging.error(message)
-            raise RuntimeError(message)
-
-        dynamic_valid_tags = finalize_language_run(
-            mod_name,
-            game_profile,
-            target_lang,
-            source_lang,
-            output_folder_name,
-            proofreading_tracker,
-            update_progress,
+        last_target_lang = target_lang
+        run_language_translation(
+            mod_name=mod_name,
+            source_lang=source_lang,
+            target_lang=target_lang,
+            game_profile=game_profile,
+            mod_context=mod_context,
+            handler=handler,
+            output_folder_name=output_folder_name,
+            output_dir_path=output_dir_path,
+            selected_provider=selected_provider,
+            model_name=gemini_cli_model,
+            all_files_content=all_files_content,
+            total_batches=total_batches,
+            effective_chunk_size=effective_chunk_size,
+            progress_callback=progress_callback,
+            project_id=project_id,
+            version_id=version_id,
             override_path=override_path,
-        )
-        export_workshop_issues_for_language(
-            output_dir_path,
-            override_path,
-            mod_name,
-            project_id,
-            source_lang,
-            target_lang,
-            game_profile,
-            dynamic_valid_tags=dynamic_valid_tags,
-        )
-        run_embedded_workshop_for_language(
-            embedded_workshop,
-            output_dir_path,
-            override_path,
-            mod_name,
-            project_id,
-            source_lang,
-            target_lang,
-            game_profile,
-            selected_provider,
-            gemini_cli_model,
+            use_resume=use_resume,
             concurrency_limit=concurrency_limit,
-            batch_size_limit=batch_size_limit,
             rpm_limit=rpm_limit,
-            dynamic_valid_tags=dynamic_valid_tags,
-            update_progress_callback=update_progress,
+            batch_size_limit=batch_size_limit,
+            embedded_workshop=embedded_workshop,
         )
 
     finalize_workflow_run(
@@ -265,7 +145,7 @@ def run(mod_name: str,
         handler,
         source_lang,
         primary_target_lang,
-        target_lang,
+        last_target_lang,
         output_folder_name,
         mod_context,
         game_profile,
