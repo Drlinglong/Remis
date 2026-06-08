@@ -342,8 +342,6 @@ class GlossaryManager:
             target_term = translations.get(target_lang, "")
             if not source_term or not target_term:
                 continue
-            if self._is_noisy_cjk_single_character_term(source_term, source_lang):
-                continue
                 
             # 1. Exact Match
             if source_term.lower() in text:
@@ -479,14 +477,6 @@ class GlossaryManager:
         if lang in ['zh-CN', 'zh-TW', 'ja', 'ko']:
             return list(text)
         return re.findall(r'\w+', text.lower())
-
-    def _is_noisy_cjk_single_character_term(self, source_term: str, source_lang: str) -> bool:
-        if source_lang not in ['zh-CN', 'zh-TW', 'ja', 'ko']:
-            return False
-        term = source_term.strip()
-        if len(term) != 1:
-            return False
-        return bool(re.match(r'[\u3400-\u9fff\uf900-\ufaff]', term))
 
     def _is_similar_word(self, word1: str, word2: str) -> bool:
         if len(word1) < 3 or len(word2) < 3: return False

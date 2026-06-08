@@ -13,15 +13,6 @@ class GlossaryValidator:
     Validates translation consistency against a glossary.
     """
 
-    def _is_noisy_cjk_single_character_term(self, term: str, lang_code: str) -> bool:
-        normalized_lang_code = (lang_code or '').lower()
-        if normalized_lang_code not in ['zh-cn', 'zh-tw', 'zh', 'ja', 'ko']:
-            return False
-        stripped = term.strip()
-        if len(stripped) != 1:
-            return False
-        return bool(re.match(r'[\u3400-\u9fff\uf900-\ufaff]', stripped))
-
     def _get_pattern_for_lang(self, term: str, lang_code: str) -> str:
         """根据语言代码，为术语生成合适的正则表达式模式。"""
         is_cjk = any(lang in lang_code for lang in ['zh', 'ja', 'ko'])
@@ -55,8 +46,6 @@ class GlossaryValidator:
         source_lang_code = task.file_task.source_lang.get("code", "").lower()
 
         for source_term, target_term in glossary.items():
-            if self._is_noisy_cjk_single_character_term(source_term, source_lang_code):
-                continue
             try:
                 source_pattern = self._get_pattern_for_lang(source_term, source_lang_code)
                 target_pattern = self._get_pattern_for_lang(target_term, target_lang_code)

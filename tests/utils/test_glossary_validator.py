@@ -81,13 +81,6 @@ def validator():
             ["Sensei is a ninja."],
             False
         ),
-        (
-            "cjk_single_character_noise_skipped", "zh-CN", "en",
-            {"国": "Reich", "人": "taŋata", "建筑师": "Architect"},
-            ["建筑师来自这个国家，很多人在这里。"],
-            ["The Architect came from this country, and many people are here."],
-            False,
-        ),
     ]
 )
 def test_glossary_validator(validator, mock_i18n, name, source_lang, target_lang, glossary, original_texts, translated_texts, expect_warning):
