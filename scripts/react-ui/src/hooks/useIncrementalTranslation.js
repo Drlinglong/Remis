@@ -13,6 +13,7 @@ import {
     LOCAL_PROVIDERS,
     normalizeArrayPayload,
 } from './incrementalTranslationPayload';
+import { useIncrementalTaskMonitor } from './useIncrementalTaskMonitor';
 
 export const useIncrementalTranslation = (notificationStyle) => {
     const { t } = useTranslation();
@@ -70,9 +71,6 @@ export const useIncrementalTranslation = (notificationStyle) => {
     const [showWorkshopSettings, setShowWorkshopSettings] = useState(false);
 
     // Refs
-    const wsRef = useRef(null);
-    const pollTimerRef = useRef(null);
-    const completionSourceRef = useRef(null);
     const preScanInFlightRef = useRef(false);
     const executionInFlightRef = useRef(false);
     const persistedStateRef = useRef(null);
@@ -86,12 +84,26 @@ export const useIncrementalTranslation = (notificationStyle) => {
         setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
     }, []);
 
-    const clearTaskPolling = useCallback(() => {
-        if (pollTimerRef.current) {
-            clearInterval(pollTimerRef.current);
-            pollTimerRef.current = null;
-        }
-    }, []);
+    const {
+        completionSourceRef,
+        connectWebSocket,
+        handleTaskUpdate,
+    } = useIncrementalTaskMonitor({
+        addLog,
+        executionInFlightRef,
+        preScanInFlightRef,
+        setActive,
+        setCurrentTaskId,
+        setCurrentTaskMode,
+        setExecuting,
+        setFinalSummary,
+        setLoading,
+        setLogs,
+        setProgress,
+        setProgressInfo,
+        setScanResults,
+        t,
+    });
 
     const resolveProviderModels = useCallback((providerValue) => {
         const providerData = apiProviders.find((provider) => provider.value === providerValue);
@@ -134,109 +146,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         executionInFlightRef.current = false;
         completionSourceRef.current = null;
         statusResyncRef.current = false;
-    }, []);
-
-    const handleTaskUpdate = useCallback((data, isPreScan = false, source = 'unknown') => {
-        if (!data) return;
-
-        if (data.progress) {
-            setProgress(data.progress.percent || 0);
-            setProgressInfo(data.progress);
-        }
-
-        if (data.log) {
-            setLogs(data.log);
-        }
-
-        if (data.status === 'completed') {
-            completionSourceRef.current = source;
-            console.info(`Incremental task completed via ${source}.`);
-            clearTaskPolling();
-            if (isPreScan) {
-                preScanInFlightRef.current = false;
-                setCurrentTaskId(null);
-                setCurrentTaskMode(null);
-                setScanResults({
-                    ...(data.summary || {}),
-                    file_summaries: data.file_summaries || [],
-                    telemetry: data.telemetry || null,
-                });
-                setActive(2);
-                setLoading(false);
-            } else {
-                executionInFlightRef.current = false;
-                setFinalSummary(data);
-                addLog(t('incremental_translation.translation_completed_success'));
-                setProgress(100);
-                setProgressInfo(data.progress || {});
-                setExecuting(false);
-            }
-            if (wsRef.current) {
-                wsRef.current.close();
-            }
-        } else if (data.status === 'failed') {
-            completionSourceRef.current = source;
-            console.warn(`Incremental task failed via ${source}.`);
-            clearTaskPolling();
-            addLog(t('incremental_translation.task_failed_check_logs'));
-            if (isPreScan) {
-                preScanInFlightRef.current = false;
-                setCurrentTaskId(null);
-                setCurrentTaskMode(null);
-                setLoading(false);
-            } else {
-                executionInFlightRef.current = false;
-                setExecuting(false);
-            }
-            if (wsRef.current) {
-                wsRef.current.close();
-            }
-        }
-    }, [clearTaskPolling, addLog, t]);
-
-    const startTaskPolling = useCallback((taskId, isPreScan = false) => {
-        clearTaskPolling();
-        console.info(`Starting polling fallback for incremental task ${taskId}.`);
-        pollTimerRef.current = setInterval(async () => {
-            try {
-                const res = await projectService.getTaskStatus(taskId);
-                handleTaskUpdate(res.data, isPreScan, 'polling');
-            } catch (err) {
-                console.error('Polling task status failed:', err);
-            }
-        }, 1000);
-    }, [clearTaskPolling, handleTaskUpdate]);
-
-    const connectWebSocket = useCallback((taskId, isPreScan = false) => {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.host;
-        const wsUrl = `${protocol}//${host}/api/ws/status/${taskId}`;
-
-        console.log(`Connecting to WS (${isPreScan ? 'Pre-scan' : 'Execution'}): ${wsUrl}`);
-        if (wsRef.current) wsRef.current.close();
-        startTaskPolling(taskId, isPreScan);
-        
-        const ws = new WebSocket(wsUrl);
-        wsRef.current = ws;
-
-        ws.onopen = () => {
-            console.info(`Incremental task WebSocket connected: ${taskId}`);
-        };
-
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            handleTaskUpdate(data, isPreScan, 'websocket');
-        };
-
-        ws.onerror = (err) => {
-            console.error('WebSocket Error:', err);
-            addLog(t('incremental_translation.status_ws_error'));
-        };
-
-        ws.onclose = () => {
-            console.log('WebSocket connection closed.');
-        };
-    }, [startTaskPolling, handleTaskUpdate, addLog, t]);
+    }, [completionSourceRef]);
 
     const checkCheckpoint = useCallback(async (project, sourcePath, targetLangs) => {
         try {
@@ -365,7 +275,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         } finally {
             setLoading(false);
         }
-    }, [checkCheckpoint]);
+    }, [checkCheckpoint, completionSourceRef]);
 
     const runPreScan = useCallback(async () => {
         if (!selectedProject || !customSourcePath || loading || executing || preScanInFlightRef.current || executionInFlightRef.current) return;
@@ -493,7 +403,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         selectedProvider, selectedModel, batchSizeLimit, concurrencyLimit, rpmLimit, customSourcePath,
         useResume, embeddedWorkshopEnabled, embeddedWorkshopFollowPrimary, embeddedWorkshopProvider,
         embeddedWorkshopModel, embeddedWorkshopBatchSize, embeddedWorkshopConcurrency, embeddedWorkshopRpm,
-        connectWebSocket, addLog, notificationStyle, t
+        completionSourceRef, connectWebSocket, addLog, notificationStyle, t
     ]);
 
     const openOutputFolder = useCallback(async () => {
@@ -574,7 +484,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         if (persistedState.rpmLimit) setRpmLimit(String(persistedState.rpmLimit));
 
         restorationAppliedRef.current = true;
-    }, [configLoaded, handleSelectProject, location.state, projects, projectsLoaded, applyProviderSelection, resetPersistedState]);
+    }, [completionSourceRef, configLoaded, handleSelectProject, location.state, projects, projectsLoaded, applyProviderSelection, resetPersistedState]);
 
     // SYNC STATE TO SESSION STORAGE
     useEffect(() => {
@@ -627,7 +537,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         embeddedWorkshopEnabled, embeddedWorkshopFollowPrimary, embeddedWorkshopModel, embeddedWorkshopProvider,
         embeddedWorkshopRpm, executing, finalSummary, loading, logs, progress, progressInfo, rpmLimit, scanResults,
         selectedLangs, selectedModel, selectedProject, selectedProvider, showResumeDetails, showWorkshopSettings,
-        errorKey, useResume
+        completionSourceRef, errorKey, useResume
     ]);
 
     // LOAD BASICS ON MOUNT
@@ -686,16 +596,6 @@ export const useIncrementalTranslation = (notificationStyle) => {
                 connectWebSocket(currentTaskId, isPreScan);
             });
     }, [currentTaskId, currentTaskMode, executing, loading, handleTaskUpdate, connectWebSocket]);
-
-    // CLEANUP ON UNMOUNT
-    useEffect(() => {
-        return () => {
-            clearTaskPolling();
-            if (wsRef.current) {
-                wsRef.current.close();
-            }
-        };
-    }, [clearTaskPolling]);
 
     return {
         active, setActive,
