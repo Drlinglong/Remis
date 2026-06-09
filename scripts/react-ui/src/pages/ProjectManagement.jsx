@@ -1,33 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Container, Title, Button, Group, Card, Text, Grid, Modal, TextInput, Select,
-  Stack, Badge, ScrollArea, Table, Box, Tabs, Center, Paper, BackgroundImage,
-  ActionIcon, SimpleGrid, Overlay, Input, Tooltip, Checkbox, Alert, SegmentedControl,
+  Button, Group, Text, Modal, TextInput, Select,
+  Stack, Paper, Box, Checkbox, Alert, SegmentedControl,
   Progress
 } from '@mantine/core';
-import { IconPlus, IconFolder, IconEdit, IconArrowLeft, IconSearch, IconBooks, IconCompass, IconArrowRight, IconArchive, IconTrash, IconRestore, IconAlertTriangle, IconLink, IconCopy } from '@tabler/icons-react';
+import { IconFolder, IconTrash, IconAlertTriangle, IconLink, IconCopy } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContextCore';
 import { useTutorial } from '../context/TutorialContextCore';
+import { ProjectDashboardView } from '../components/projectManagement/ProjectDashboardView';
+import { ProjectListView } from '../components/projectManagement/ProjectListView';
 import { useProjectManagementActions } from '../hooks/useProjectManagementActions';
 import { useProjectManagementData } from '../hooks/useProjectManagementData';
-
-// Restore original components
-import ProjectOverview from '../components/tools/ProjectOverview';
-import KanbanBoard from '../components/tools/KanbanBoard';
-import ProjectHistory from '../components/project/ProjectHistory';
-import ProjectValidation from '../components/project/ProjectValidation';
-import styles from './ProjectManagement.module.css';
-
-// Assets
-import heroBg from '../assets/project_hero_bg.png';
-import cardNewProject from '../assets/card_new_project.png';
-import cardOpenProject from '../assets/card_open_project.png'; // Reusing for Archives
-
-// API_BASE is handled by axios instance 'api'
-import { FEATURES } from '../config/features';
-
 
 export default function ProjectManagement() {
   const { t } = useTranslation();
@@ -124,221 +109,42 @@ export default function ProjectManagement() {
     setPageContext('project-management-dashboard');
   }, [activeTab, selectedProject, setPageContext]);
 
-  // --- Render Views ---
-
-  // View 1: Project List (Hero UI)
-  const renderProjectList = () => {
-    const filteredProjects = projects.filter(p =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.game_id.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    return (
-      <div id="project-list-container" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Hero Section */}
-        <Box style={{ height: '300px', position: 'relative', flexShrink: 0 }}>
-          <BackgroundImage src={heroBg} radius="md" style={{ height: '100%' }}>
-            <Overlay color="#000" opacity={0.6} zIndex={1} radius="md" />
-            <Center p="md" style={{ height: '100%', position: 'relative', zIndex: 2, flexDirection: 'column' }}>
-              <Title order={1} className={styles.heroTitle}>
-                {viewMode === 'active' ? t('page_title_project_management') : t('project_management.archives_title')}
-              </Title>
-              <Text size="lg" mt="sm" className={styles.heroSubtitle}>
-                {viewMode === 'active' ? t('project_management.hero_desc') : t('project_management.actions.archives_desc')}
-              </Text>
-
-              <Group mt="xl">
-                {viewMode === 'archives' && (
-                  <Button variant="outline" color="gray" leftSection={<IconArrowLeft />} onClick={() => setViewMode('active')}>
-                    {t('button_back')}
-                  </Button>
-                )}
-                <Input
-                  icon={<IconSearch size={16} />}
-                  placeholder="Search projects..."
-                  radius="xl"
-                  size="md"
-                  style={{ width: '400px' }}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.currentTarget.value)}
-                  styles={{ input: { background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' } }}
-                />
-              </Group>
-            </Center>
-          </BackgroundImage>
-        </Box>
-
-        {/* Content Section */}
-        <ScrollArea style={{ flex: 1, padding: '20px' }}>
-          {viewMode === 'active' && (
-            <>
-              <Title order={3} mb="md">Actions</Title>
-              <SimpleGrid cols={3} gap="lg" breakpoints={[{ maxWidth: 'sm', cols: 1 }]}>
-
-                {/* Create New Card */}
-                <Card
-                  id="create-project-btn"
-                  padding="lg"
-                  radius="md"
-                  className={styles.actionCard}
-                  onClick={() => setIsCreateModalOpen(true)}
-                >
-                  <Card.Section>
-                    <BackgroundImage src={cardNewProject} style={{ height: 140 }} />
-                  </Card.Section>
-                  <Group justify="space-between" mt="md" mb="xs">
-                    <Text fw={500}>{t('project_management.actions.create_new')}</Text>
-                    <Badge color="pink" variant="light">New</Badge>
-                  </Group>
-                  <Text size="sm" color="dimmed">
-                    {t('project_management.actions.create_new_desc')}
-                  </Text>
-                </Card>
-
-                {/* Archives Card */}
-                <Card
-                  padding="lg"
-                  radius="md"
-                  className={styles.actionCard}
-                  onClick={() => setViewMode('archives')}
-                >
-                  <Card.Section>
-                    <BackgroundImage src={cardOpenProject} style={{ height: 140 }} />
-                  </Card.Section>
-                  <Group justify="space-between" mt="md" mb="xs">
-                    <Text fw={500}>{t('project_management.actions.archives')}</Text>
-                    <Badge color="gray" variant="light">View</Badge>
-                  </Group>
-                  <Text size="sm" color="dimmed">
-                    {t('project_management.actions.archives_desc')}
-                  </Text>
-                </Card>
-              </SimpleGrid>
-            </>
-          )}
-
-          <Title order={3} mt="xl" mb="md">
-            {viewMode === 'active' ? t('page_title_project_management') : t('project_management.archives_title')}
-            <Badge ml="md" size="lg" variant="outline">
-              {filteredProjects.length}
-            </Badge>
-          </Title>
-
-          <SimpleGrid cols={3} gap="lg" breakpoints={[{ maxWidth: 'sm', cols: 1 }]}>
-            {filteredProjects.map(project => (
-              <Card
-                key={project.project_id}
-                padding="lg"
-                radius="md"
-                onClick={() => setSelectedProjectId(project.project_id)}
-                className={styles.projectCard}
-              >
-                <Group justify="space-between" mb="xs">
-                  <Text fw={500} className={styles.projectTitle}>{project.name}</Text>
-                  <Badge color={project.status === 'active' ? 'blue' : 'gray'}>{project.game_id}</Badge>
-                </Group>
-                <Text size="sm" color="dimmed" lineClamp={2}>
-                  {project.notes || t('project_management.no_notes', "No notes")}
-                </Text>
-                <Group mt="md">
-                  <Text size="xs" color="dimmed">
-                    {t('project_management.last_updated', 'Last updated')}: {new Date(project.last_updated || Date.now()).toLocaleDateString()}
-                  </Text>
-                </Group>
-              </Card>
-            ))}
-          </SimpleGrid>
-        </ScrollArea>
-      </div>
-    );
-  };
-
-  const renderProjectDashboard = () => (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <Paper p="md" shadow="xs" style={{ zIndex: 10 }}>
-        <Group justify="space-between">
-          <Group>
-            <Button variant="subtle" onClick={() => setSelectedProjectId(null)} leftSection={<IconArrowLeft size={16} />}>
-              {t('button_back')}
-            </Button>
-            <Title order={3} style={{ fontFamily: 'var(--font-header)', color: 'var(--text-highlight)' }}>
-              {selectedProject.name}
-            </Title>
-            <Badge color={selectedProject.status === 'active' ? 'blue' : selectedProject.status === 'archived' ? 'orange' : 'red'}>
-              {t(`project_management.status.${selectedProject.status}`)}
-            </Badge>
-          </Group>
-          <Group>
-            <Tooltip label={t('project_management.tooltip_refresh')}>
-              <Button variant="light" size="xs" onClick={handleRefreshFiles}>{t('project_management.refresh_files')}</Button>
-            </Tooltip>
-            <Badge size="lg">{selectedProject.game_id}</Badge>
-          </Group>
-        </Group>
-      </Paper>
-
-      <Tabs value={activeTab} onChange={setActiveTab} keepMounted={false} variant="outline" radius="md" style={{ flex: 1, display: 'flex', flexDirection: 'column' }} classNames={{
-        root: styles.tabsRoot,
-        list: styles.tabsList,
-        panel: styles.tabsPanel
-      }}>
-          <Tabs.List style={{ paddingLeft: '1rem', paddingTop: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
-          <Tabs.Tab value="overview">{t('project_management.tabs_overview')}</Tabs.Tab>
-          <Tabs.Tab value="taskboard" id="kanban-tab-control">{t('project_management.tabs_kanban')}</Tabs.Tab>
-          <Tabs.Tab value="validation" id="validation-tab-control">{t('project_management.tabs_validation')}</Tabs.Tab>
-          {FEATURES.ENABLE_PROJECT_HISTORY && <Tabs.Tab value="history" id="history-tab-control">{t('project_management.tabs_history', 'Project History')}</Tabs.Tab>}
-        </Tabs.List>
-
-        <Tabs.Panel value="overview" style={{ flex: 1, overflow: 'auto', padding: '1rem', minHeight: 0 }}>
-          {projectDetails ? (
-            <ProjectOverview
-              projectDetails={projectDetails}
-              handleProofread={handleProofread}
-              handleStatusChange={handleUpdateStatus}
-              onFileStatusChange={handleFileStatusChange}
-              handleNotesChange={handleUpdateNotes}
-              onPathsUpdated={() => fetchProjectFiles(selectedProject.project_id)}
-              onDeleteForever={() => setDeleteModalOpen(true)}
-              onManageProject={handleOpenManage}
-              onRefresh={handleRefreshFiles}
-              onRepairMetadata={handleRepairMetadata}
-              repairingMetadata={metadataRepairLoading}
-            />
-          ) : <Text>Loading details...</Text>}
-        </Tabs.Panel>
-
-        <Tabs.Panel value="taskboard" style={{ flex: 1, overflow: 'auto', position: 'relative', minHeight: 0 }}>
-          <KanbanBoard projectId={selectedProject.project_id} key={selectedProject.project_id + (projectDetails?.refreshKey || '')} />
-        </Tabs.Panel>
-
-        <Tabs.Panel value="validation" style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
-          <ProjectValidation projectId={selectedProject.project_id} />
-        </Tabs.Panel>
-
-        {FEATURES.ENABLE_PROJECT_HISTORY && (
-          <Tabs.Panel value="history" style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
-            <ProjectHistory
-              projectId={selectedProject.project_id}
-              projectDetails={projectDetails}
-              refreshToken={projectDataRefreshToken}
-              onProjectDataChanged={() => {
-                const refreshPromise = Promise.all([
-                  fetchProjects(),
-                  fetchProjectFiles(selectedProject.project_id),
-                ]);
-                setProjectDataRefreshToken(prev => prev + 1);
-                return refreshPromise;
-              }}
-            />
-          </Tabs.Panel>
-        )}
-      </Tabs>
-    </div>
-  );
-
   return (
     <>
-      {selectedProject ? renderProjectDashboard() : renderProjectList()}
+      {selectedProject ? (
+        <ProjectDashboardView
+          activeTab={activeTab}
+          fetchProjectFiles={fetchProjectFiles}
+          fetchProjects={fetchProjects}
+          handleFileStatusChange={handleFileStatusChange}
+          handleOpenManage={handleOpenManage}
+          handleProofread={handleProofread}
+          handleRefreshFiles={handleRefreshFiles}
+          handleRepairMetadata={handleRepairMetadata}
+          handleUpdateNotes={handleUpdateNotes}
+          handleUpdateStatus={handleUpdateStatus}
+          metadataRepairLoading={metadataRepairLoading}
+          projectDataRefreshToken={projectDataRefreshToken}
+          projectDetails={projectDetails}
+          selectedProject={selectedProject}
+          setActiveTab={setActiveTab}
+          setDeleteModalOpen={setDeleteModalOpen}
+          setProjectDataRefreshToken={setProjectDataRefreshToken}
+          setSelectedProjectId={setSelectedProjectId}
+          t={t}
+        />
+      ) : (
+        <ProjectListView
+          projects={projects}
+          searchQuery={searchQuery}
+          setIsCreateModalOpen={setIsCreateModalOpen}
+          setSearchQuery={setSearchQuery}
+          setSelectedProjectId={setSelectedProjectId}
+          setViewMode={setViewMode}
+          t={t}
+          viewMode={viewMode}
+        />
+      )}
 
       <Modal
         opened={isCreateModalOpen}
