@@ -1,29 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import projectService from '../services/projectService';
 import configService from '../services/configService';
 import translationService from '../services/translationService';
 import notificationService from '../services/notificationService';
 import { open } from '@tauri-apps/plugin-dialog';
-
-const INCREMENTAL_STATE_STORAGE_KEY = 'incremental_translation_state_v1';
-const LOCAL_PROVIDERS = ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui'];
-
-const normalizeArrayPayload = (payload, keys = []) => {
-    if (Array.isArray(payload)) return payload;
-    if (!payload || typeof payload !== 'object') return [];
-
-    for (const key of keys) {
-        if (Array.isArray(payload[key])) return payload[key];
-    }
-
-    return [];
-};
+import {
+    buildIncrementalUpdatePayload,
+    getArchivedTargetLanguages,
+    INCREMENTAL_STATE_STORAGE_KEY,
+    LOCAL_PROVIDERS,
+    normalizeArrayPayload,
+} from './incrementalTranslationPayload';
 
 export const useIncrementalTranslation = (notificationStyle) => {
     const { t } = useTranslation();
-    const navigate = useNavigate();
+    const location = useLocation();
 
     // UI Steps / Navigation
     const [active, setActive] = useState(0);
@@ -85,20 +78,9 @@ export const useIncrementalTranslation = (notificationStyle) => {
     const persistedStateRef = useRef(null);
     const restorationAppliedRef = useRef(false);
     const statusResyncRef = useRef(false);
-    const routePrefillAppliedRef = useRef(false);
+    const routeSelectionAppliedRef = useRef(false);
     const [projectsLoaded, setProjectsLoaded] = useState(false);
     const [configLoaded, setConfigLoaded] = useState(false);
-
-    const getArchivedTargetLanguages = useCallback((info) => {
-        if (!info) return [];
-        if (Array.isArray(info.archived_languages)) {
-            return info.archived_languages.filter(Boolean);
-        }
-        if (Array.isArray(info.target_languages)) {
-            return info.target_languages.filter(Boolean);
-        }
-        return info.target_language ? [info.target_language] : [];
-    }, []);
 
     const addLog = useCallback((msg) => {
         setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -341,9 +323,10 @@ export const useIncrementalTranslation = (notificationStyle) => {
         }
     }, []);
 
-    const handleSelectProject = useCallback(async (project) => {
+    const handleSelectProject = useCallback(async (project, sourcePathOverride = null) => {
+        const nextSourcePath = sourcePathOverride || project.source_path;
         setSelectedProject(project);
-        setCustomSourcePath(project.source_path);
+        setCustomSourcePath(nextSourcePath);
         setError(null);
         setArchiveInfo(null);
         setScanResults(null);
@@ -367,7 +350,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
                 setArchiveInfo(res.data);
                 const availableLangs = getArchivedTargetLanguages(res.data);
                 setSelectedLangs(availableLangs);
-                checkCheckpoint(project, project.source_path, availableLangs);
+                checkCheckpoint(project, nextSourcePath, availableLangs);
                 if (availableLangs.length === 0) {
                     setErrorKey('incremental_translation.no_archived_target_languages');
                     setError(null);
@@ -382,7 +365,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         } finally {
             setLoading(false);
         }
-    }, [checkCheckpoint, getArchivedTargetLanguages]);
+    }, [checkCheckpoint]);
 
     const runPreScan = useCallback(async () => {
         if (!selectedProject || !customSourcePath || loading || executing || preScanInFlightRef.current || executionInFlightRef.current) return;
@@ -398,33 +381,28 @@ export const useIncrementalTranslation = (notificationStyle) => {
             setProgress(0);
             setProgressInfo({ percent: 0, stage_code: 'initializing', stage: t('incremental_translation.progress_stage_initializing') });
             setLogs([t('incremental_translation.pre_scan_bootstrap_log')]);
-            const res = await translationService.startIncrementalUpdate(selectedProject.project_id, {
-                project_id: selectedProject.project_id,
-                target_lang_codes: targetLangCodes,
-                dry_run: true,
-                api_provider: selectedProvider,
-                model: selectedModel,
-                batch_size_limit: batchSizeLimit ? Number(batchSizeLimit) : null,
-                concurrency_limit: Number(concurrencyLimit),
-                rpm_limit: Number(rpmLimit),
-                custom_source_path: customSourcePath,
-                use_resume: useResume,
-                embedded_workshop: {
-                    enabled: embeddedWorkshopEnabled,
-                    follow_primary_settings: embeddedWorkshopFollowPrimary,
-                    api_provider: embeddedWorkshopFollowPrimary ? null : embeddedWorkshopProvider,
-                    api_model: embeddedWorkshopFollowPrimary ? null : embeddedWorkshopModel,
-                    batch_size_limit: embeddedWorkshopFollowPrimary
-                        ? (batchSizeLimit ? Number(batchSizeLimit) : null)
-                        : Number(embeddedWorkshopBatchSize),
-                    concurrency_limit: embeddedWorkshopFollowPrimary
-                        ? Number(concurrencyLimit)
-                        : Number(embeddedWorkshopConcurrency),
-                    rpm_limit: embeddedWorkshopFollowPrimary
-                        ? Number(rpmLimit)
-                        : Number(embeddedWorkshopRpm),
-                }
-            });
+            const res = await translationService.startIncrementalUpdate(
+                selectedProject.project_id,
+                buildIncrementalUpdatePayload({
+                    batchSizeLimit,
+                    concurrencyLimit,
+                    customSourcePath,
+                    dryRun: true,
+                    embeddedWorkshopBatchSize,
+                    embeddedWorkshopConcurrency,
+                    embeddedWorkshopEnabled,
+                    embeddedWorkshopFollowPrimary,
+                    embeddedWorkshopModel,
+                    embeddedWorkshopProvider,
+                    embeddedWorkshopRpm,
+                    projectId: selectedProject.project_id,
+                    rpmLimit,
+                    selectedModel,
+                    selectedProvider,
+                    targetLangCodes,
+                    useResume,
+                })
+            );
 
             const taskId = res.data.task_id;
             if (taskId) {
@@ -450,7 +428,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
             preScanInFlightRef.current = false;
         }
     }, [
-        selectedProject, customSourcePath, loading, executing, selectedLangs, archiveInfo, getArchivedTargetLanguages,
+        selectedProject, customSourcePath, loading, executing, selectedLangs, archiveInfo,
         selectedProvider, selectedModel, batchSizeLimit, concurrencyLimit, rpmLimit, useResume, embeddedWorkshopEnabled,
         embeddedWorkshopFollowPrimary, embeddedWorkshopProvider, embeddedWorkshopModel, embeddedWorkshopBatchSize,
         embeddedWorkshopConcurrency, embeddedWorkshopRpm, connectWebSocket, notificationStyle, t
@@ -473,33 +451,28 @@ export const useIncrementalTranslation = (notificationStyle) => {
         completionSourceRef.current = null;
 
         try {
-            const res = await translationService.startIncrementalUpdate(selectedProject.project_id, {
-                project_id: selectedProject.project_id,
-                target_lang_codes: targetLangCodes,
-                dry_run: false,
-                api_provider: selectedProvider,
-                model: selectedModel,
-                batch_size_limit: batchSizeLimit ? Number(batchSizeLimit) : null,
-                concurrency_limit: Number(concurrencyLimit),
-                rpm_limit: Number(rpmLimit),
-                custom_source_path: customSourcePath,
-                use_resume: useResume,
-                embedded_workshop: {
-                    enabled: embeddedWorkshopEnabled,
-                    follow_primary_settings: embeddedWorkshopFollowPrimary,
-                    api_provider: embeddedWorkshopFollowPrimary ? null : embeddedWorkshopProvider,
-                    api_model: embeddedWorkshopFollowPrimary ? null : embeddedWorkshopModel,
-                    batch_size_limit: embeddedWorkshopFollowPrimary
-                        ? (batchSizeLimit ? Number(batchSizeLimit) : null)
-                        : Number(embeddedWorkshopBatchSize),
-                    concurrency_limit: embeddedWorkshopFollowPrimary
-                        ? Number(concurrencyLimit)
-                        : Number(embeddedWorkshopConcurrency),
-                    rpm_limit: embeddedWorkshopFollowPrimary
-                        ? Number(rpmLimit)
-                        : Number(embeddedWorkshopRpm),
-                }
-            });
+            const res = await translationService.startIncrementalUpdate(
+                selectedProject.project_id,
+                buildIncrementalUpdatePayload({
+                    batchSizeLimit,
+                    concurrencyLimit,
+                    customSourcePath,
+                    dryRun: false,
+                    embeddedWorkshopBatchSize,
+                    embeddedWorkshopConcurrency,
+                    embeddedWorkshopEnabled,
+                    embeddedWorkshopFollowPrimary,
+                    embeddedWorkshopModel,
+                    embeddedWorkshopProvider,
+                    embeddedWorkshopRpm,
+                    projectId: selectedProject.project_id,
+                    rpmLimit,
+                    selectedModel,
+                    selectedProvider,
+                    targetLangCodes,
+                    useResume,
+                })
+            );
 
             const taskId = res.data.task_id;
             if (!taskId) {
@@ -516,11 +489,11 @@ export const useIncrementalTranslation = (notificationStyle) => {
             executionInFlightRef.current = false;
         }
     }, [
-        loading, executing, selectedLangs, archiveInfo, getArchivedTargetLanguages, selectedProject,
+        loading, executing, selectedLangs, archiveInfo, selectedProject,
         selectedProvider, selectedModel, batchSizeLimit, concurrencyLimit, rpmLimit, customSourcePath,
         useResume, embeddedWorkshopEnabled, embeddedWorkshopFollowPrimary, embeddedWorkshopProvider,
         embeddedWorkshopModel, embeddedWorkshopBatchSize, embeddedWorkshopConcurrency, embeddedWorkshopRpm,
-        connectWebSocket, addLog, t
+        connectWebSocket, addLog, notificationStyle, t
     ]);
 
     const openOutputFolder = useCallback(async () => {
@@ -538,6 +511,18 @@ export const useIncrementalTranslation = (notificationStyle) => {
     // RESTORE STATE FROM SESSION STORAGE
     useEffect(() => {
         if (restorationAppliedRef.current || !projectsLoaded || !configLoaded) return;
+
+        const routeState = location.state || {};
+        if (!routeSelectionAppliedRef.current && routeState.projectId) {
+            const routeProject = projects.find((project) => project.project_id === routeState.projectId);
+            if (routeProject) {
+                routeSelectionAppliedRef.current = true;
+                restorationAppliedRef.current = true;
+                resetPersistedState();
+                handleSelectProject(routeProject, routeState.customSourcePath || routeProject.source_path);
+                return;
+            }
+        }
 
         const persistedState = persistedStateRef.current;
         if (!persistedState) {
@@ -589,7 +574,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         if (persistedState.rpmLimit) setRpmLimit(String(persistedState.rpmLimit));
 
         restorationAppliedRef.current = true;
-    }, [configLoaded, projects, projectsLoaded, applyProviderSelection]);
+    }, [configLoaded, handleSelectProject, location.state, projects, projectsLoaded, applyProviderSelection, resetPersistedState]);
 
     // SYNC STATE TO SESSION STORAGE
     useEffect(() => {
@@ -642,7 +627,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         embeddedWorkshopEnabled, embeddedWorkshopFollowPrimary, embeddedWorkshopModel, embeddedWorkshopProvider,
         embeddedWorkshopRpm, executing, finalSummary, loading, logs, progress, progressInfo, rpmLimit, scanResults,
         selectedLangs, selectedModel, selectedProject, selectedProvider, showResumeDetails, showWorkshopSettings,
-        useResume
+        errorKey, useResume
     ]);
 
     // LOAD BASICS ON MOUNT
