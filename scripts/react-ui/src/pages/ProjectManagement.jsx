@@ -9,12 +9,11 @@ import { IconPlus, IconFolder, IconEdit, IconArrowLeft, IconSearch, IconBooks, I
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import projectService from '../services/projectService';
-import configService from '../services/configService';
-import { useNotification } from '../context/NotificationContext';
-import { useTutorial } from '../context/TutorialContext';
+import { useNotification } from '../context/NotificationContextCore';
+import { useTutorial } from '../context/TutorialContextCore';
 import { open } from '@tauri-apps/plugin-dialog';
 import notificationService from '../services/notificationService';
-import { usePersistentState } from '../hooks/usePersistentState';
+import { useProjectManagementData } from '../hooks/useProjectManagementData';
 
 // Restore original components
 import ProjectOverview from '../components/tools/ProjectOverview';
@@ -36,30 +35,29 @@ export default function ProjectManagement() {
   const { t, i18n } = useTranslation();
   const { setPageContext } = useTutorial();
   const { notificationStyle } = useNotification();
-  const [projects, setProjects] = useState([]);
-  const [availableGames, setAvailableGames] = useState([]);
-  const [availableLanguages, setAvailableLanguages] = useState([]);
+  const {
+    activeTab,
+    availableGames,
+    availableLanguages,
+    fetchProjectFiles,
+    fetchProjects,
+    projectDataRefreshToken,
+    projectDetails,
+    projects,
+    selectedProject,
+    setActiveTab,
+    setProjectDataRefreshToken,
+    setProjectDetails,
+    setProjects,
+    setSelectedProjectId,
+    setViewMode,
+    viewMode,
+  } = useProjectManagementData();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteSourceFiles, setDeleteSourceFiles] = useState(false);
-  const [projectDataRefreshToken, setProjectDataRefreshToken] = useState(0);
   const [metadataRepairLoading, setMetadataRepairLoading] = useState(false);
-
-  // View Mode: 'active' | 'archives'
-  const [viewMode, setViewMode] = usePersistentState('pm_view_mode', 'active');
-
-  // Persistence: Store Project ID only
-  const [selectedProjectId, setSelectedProjectId] = usePersistentState('pm_selected_project_id', null);
-  // Computed selected project
-  const selectedProject = projects.find(p => p.project_id === selectedProjectId) || null;
-
-  // Persistence: Active Tab (Overview/Kanban)
-  const [activeTab, setActiveTab] = usePersistentState('pm_active_tab', 'overview');
-
-  // Selection State
-  // const [projectFiles, setProjectFiles] = useState([]); // Unused
-  const [projectDetails, setProjectDetails] = useState(null); // For Overview
 
   // Form State
   const [newProjectName, setNewProjectName] = useState('');
@@ -76,33 +74,6 @@ export default function ProjectManagement() {
   const [editSourceLang, setEditSourceLang] = useState('');
 
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchProjects();
-    fetchGameConfig();
-  }, [viewMode]);
-
-  const fetchGameConfig = async () => {
-    try {
-      const res = await configService.getConfig();
-      if (res.data && res.data.game_profiles) {
-        const profiles = Object.values(res.data.game_profiles).map(p => ({
-          value: p.id,
-          label: p.name
-        }));
-        setAvailableGames(profiles);
-      }
-      if (res.data && res.data.languages) {
-        const langs = Object.values(res.data.languages).map(l => ({
-          value: l.code,
-          label: l.name
-        }));
-        setAvailableLanguages(langs);
-      }
-    } catch (error) {
-      console.error("Failed to fetch game config", error);
-    }
-  };
 
   useEffect(() => {
     if (!selectedProject) {
@@ -122,91 +93,6 @@ export default function ProjectManagement() {
 
     setPageContext('project-management-dashboard');
   }, [activeTab, selectedProject, setPageContext]);
-
-  useEffect(() => {
-    if (selectedProject) {
-      setProjectDetails(null); // Clear stale details
-      fetchProjectFiles(selectedProject.project_id);
-    }
-  }, [selectedProject]);
-
-  const fetchProjects = async () => {
-    try {
-      let res;
-      if (viewMode === 'active') {
-        res = await projectService.getProjectsByStatus('active');
-        setProjects(res.data);
-      } else {
-        // Fetch both archived and deleted for archives view
-        const [archivedRes, deletedRes] = await Promise.all([
-          projectService.getProjectsByStatus('archived'),
-          projectService.getProjectsByStatus('deleted')
-        ]);
-        setProjects([...archivedRes.data, ...deletedRes.data]);
-      }
-    } catch (error) {
-      console.error("Failed to load projects", error);
-    }
-  };
-
-  const fetchProjectFiles = async (projectId) => {
-    try {
-      const [filesRes, configRes, archiveRes] = await Promise.all([
-        projectService.getProjectFiles(projectId),
-        projectService.getProjectConfig(projectId),
-        projectService.checkArchive(projectId).catch(() => ({ data: null }))
-      ]);
-
-      const files = filesRes.data;
-      const config = configRes.data;
-      const archiveInfo = archiveRes?.data?.exists ? archiveRes.data : null;
-      // setProjectFiles(files);
-
-      // Construct Details for Overview
-      const totalLines = files.reduce((acc, f) => acc + (f.line_count || 0), 0);
-
-      setProjectDetails({
-        project_id: projectId,
-        game_id: selectedProject.game_id,
-        name: selectedProject.name, // Pass name
-        status: selectedProject.status, // Pass status
-        notes: selectedProject.notes, // Pass notes
-        source_language: config.source_language || selectedProject.source_language,
-        archived_languages: archiveInfo?.archived_languages || [],
-        archive_summary: archiveInfo ? {
-          version_id: archiveInfo.version_id,
-          created_at: archiveInfo.created_at,
-          last_upload_at: archiveInfo.last_upload_at,
-          source_entry_count: archiveInfo.source_entry_count || 0,
-          source_file_count: archiveInfo.source_file_count || 0,
-          total_translation_entries: archiveInfo.total_translation_entries || 0,
-          target_language_count: archiveInfo.target_language_count || 0,
-          baseline_versions: archiveInfo.baseline_versions || [],
-        } : null,
-        overview: {
-          totalFiles: files.length,
-          totalLines: totalLines,
-          translated: Math.round((files.filter(f => f.status === 'done').length / files.length) * 100) || 0,
-          toBeProofread: Math.round((files.filter(f => f.status === 'proofreading' || f.status === 'todo').length / files.length) * 100) || 0,
-          glossary: 'Default'
-        },
-        source_path: config.source_path,
-        translation_dirs: config.translation_dirs,
-        files: files.map(f => ({
-          key: f.file_id,
-          name: f.file_path,
-          status: f.status,
-          lines: f.line_count,
-          file_type: f.file_type,
-          progress: f.status === 'done' ? '100%' : '0%',
-          actions: ['Proofread']
-        }))
-      });
-
-    } catch (error) {
-      console.error("Failed to load files or config", error);
-    }
-  };
 
   const handleCreateProject = async () => {
     if (!newProjectName || !newProjectPath) {

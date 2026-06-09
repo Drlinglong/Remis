@@ -1,16 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 import { usePersistentState } from '../hooks/usePersistentState';
-
-const TranslationContext = createContext();
-
-export const useTranslationContext = () => {
-    const context = useContext(TranslationContext);
-    if (!context) {
-        throw new Error('useTranslationContext must be used within a TranslationProvider');
-    }
-    return context;
-};
+import { TranslationContext } from './TranslationContextCore';
 
 export const TranslationProvider = ({ children }) => {
     const [activeStep, setActiveStep] = usePersistentState('trans_active_step', 0);
@@ -27,7 +18,7 @@ export const TranslationProvider = ({ children }) => {
         setIsProcessing(false);
         setActiveStep(0);
         setTranslationDetails(null);
-    }, []);
+    }, [setActiveStep]);
 
     const applyTaskUpdate = useCallback((data) => {
         setTaskStatus(data);

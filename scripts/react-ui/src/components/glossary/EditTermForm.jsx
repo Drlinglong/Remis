@@ -40,7 +40,9 @@ const EditTermForm = ({
         },
     });
 
-    // Load selected term data or reset for creation
+    // Load selected term data or reset for creation.
+    // Mantine's form object should not drive this effect; setValues inside the
+    // effect can otherwise re-render into an update loop when a term is selected.
     useEffect(() => {
         if (isCreating) {
             form.reset();
@@ -78,6 +80,7 @@ const EditTermForm = ({
             });
             setJsonError(null);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedTerm, isCreating, selectedTargetLang]);
 
     const handleSubmit = async (values) => {
@@ -87,12 +90,12 @@ const EditTermForm = ({
             if (values.metadata) {
                 JSON.parse(values.metadata);
             }
-        } catch (e) {
+        } catch {
             setJsonError(t('glossary_editor.error_invalid_json'));
             return;
         }
 
-        const { source, translation, notes, variants, abbreviations, metadata } = values;
+        const { source, translation, notes, variants, abbreviations } = values;
 
         const variantsObject = variants.reduce((acc, item) => {
             if (item.lang && item.value) {
@@ -242,7 +245,7 @@ const EditTermForm = ({
                                         try {
                                             JSON.parse(val);
                                             setJsonError(null);
-                                        } catch (e) {
+                                        } catch {
                                             setJsonError(t('glossary_editor.error_invalid_json'));
                                         }
                                     }}

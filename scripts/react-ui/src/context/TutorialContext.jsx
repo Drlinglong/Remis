@@ -1,16 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import { useTranslation } from 'react-i18next';
 import { getTutorialSteps } from '../config/tutorialSteps';
-
-const TutorialContext = createContext();
-
-export const TUTORIAL_VERSION = 'v1';
-export const getTutorialKey = (page = 'general') => `remis_tutorial_${page}_${TUTORIAL_VERSION}`;
+import { TutorialContext } from './TutorialContextCore';
 
 export const TutorialProvider = ({ children }) => {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const [isTourActive, setIsTourActive] = useState(false);
     const [pageContext, setPageContext] = useState('home'); // Default page context
 
@@ -59,12 +55,4 @@ export const TutorialProvider = ({ children }) => {
             {children}
         </TutorialContext.Provider>
     );
-};
-
-export const useTutorial = () => {
-    const context = useContext(TutorialContext);
-    if (!context) {
-        throw new Error('useTutorial must be used within a TutorialProvider');
-    }
-    return context;
 };
