@@ -8,11 +8,9 @@ import {
 import { IconPlus, IconFolder, IconEdit, IconArrowLeft, IconSearch, IconBooks, IconCompass, IconArrowRight, IconArchive, IconTrash, IconRestore, IconAlertTriangle, IconLink, IconCopy } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import projectService from '../services/projectService';
 import { useNotification } from '../context/NotificationContextCore';
 import { useTutorial } from '../context/TutorialContextCore';
-import { open } from '@tauri-apps/plugin-dialog';
-import notificationService from '../services/notificationService';
+import { useProjectManagementActions } from '../hooks/useProjectManagementActions';
 import { useProjectManagementData } from '../hooks/useProjectManagementData';
 
 // Restore original components
@@ -32,7 +30,7 @@ import { FEATURES } from '../config/features';
 
 
 export default function ProjectManagement() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { setPageContext } = useTutorial();
   const { notificationStyle } = useNotification();
   const {
@@ -53,27 +51,59 @@ export default function ProjectManagement() {
     setViewMode,
     viewMode,
   } = useProjectManagementData();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleteSourceFiles, setDeleteSourceFiles] = useState(false);
-  const [metadataRepairLoading, setMetadataRepairLoading] = useState(false);
-
-  // Form State
-  const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectPath, setNewProjectPath] = useState('');
-  const [newProjectGame, setNewProjectGame] = useState('stellaris');
-  const [newProjectSourceLang, setNewProjectSourceLang] = useState('en');
-  const [newProjectImportMode, setNewProjectImportMode] = useState('copy');
-  const [isCreatingProject, setIsCreatingProject] = useState(false);
-  const [createProgressMessage, setCreateProgressMessage] = useState('');
-
-  // Manage Project State
-  const [manageModalOpen, setManageModalOpen] = useState(false);
-  const [editGameId, setEditGameId] = useState('');
-  const [editSourceLang, setEditSourceLang] = useState('');
 
   const navigate = useNavigate();
+  const {
+    createProgressMessage,
+    deleteModalOpen,
+    deleteSourceFiles,
+    editGameId,
+    editSourceLang,
+    handleBrowseFolder,
+    handleCreateProject,
+    handleDeleteForever,
+    handleFileStatusChange,
+    handleOpenManage,
+    handleProofread,
+    handleRefreshFiles,
+    handleRepairMetadata,
+    handleUpdateMetadata,
+    handleUpdateNotes,
+    handleUpdateStatus,
+    isCreateModalOpen,
+    isCreatingProject,
+    manageModalOpen,
+    metadataRepairLoading,
+    newProjectGame,
+    newProjectImportMode,
+    newProjectName,
+    newProjectPath,
+    newProjectSourceLang,
+    setDeleteModalOpen,
+    setDeleteSourceFiles,
+    setEditGameId,
+    setEditSourceLang,
+    setIsCreateModalOpen,
+    setManageModalOpen,
+    setNewProjectGame,
+    setNewProjectImportMode,
+    setNewProjectName,
+    setNewProjectPath,
+    setNewProjectSourceLang,
+  } = useProjectManagementActions({
+    fetchProjectFiles,
+    fetchProjects,
+    navigate,
+    notificationStyle,
+    projectDetails,
+    selectedProject,
+    setProjectDataRefreshToken,
+    setProjectDetails,
+    setProjects,
+    setSelectedProjectId,
+    viewMode,
+  });
 
   useEffect(() => {
     if (!selectedProject) {
@@ -93,288 +123,6 @@ export default function ProjectManagement() {
 
     setPageContext('project-management-dashboard');
   }, [activeTab, selectedProject, setPageContext]);
-
-  const handleCreateProject = async () => {
-    if (!newProjectName || !newProjectPath) {
-      setCreateProgressMessage(t('project_management.create_missing_fields'));
-      return;
-    }
-
-    setIsCreatingProject(true);
-    setCreateProgressMessage(
-      newProjectImportMode === 'copy'
-        ? t('project_management.create_progress_copying')
-        : t('project_management.create_progress_referencing')
-    );
-
-    try {
-      const res = await projectService.createProject({
-        name: newProjectName,
-        folder_path: newProjectPath,
-        game_id: newProjectGame,
-        source_language: newProjectSourceLang,
-        import_mode: newProjectImportMode
-      });
-      setCreateProgressMessage(t('project_management.create_progress_refreshing'));
-      setIsCreateModalOpen(false);
-      await fetchProjects();
-      setNewProjectName('');
-      setNewProjectPath('');
-      setCreateProgressMessage('');
-
-      // Auto-select the new project to redirect to dashboard
-      if (res.data && res.data.project && res.data.project.project_id) {
-        setSelectedProjectId(res.data.project.project_id);
-      } else if (res.data && res.data.project_id) {
-        // Fallback for flat structure
-        setSelectedProjectId(res.data.project_id);
-      }
-    } catch (error) {
-      setCreateProgressMessage('');
-      alert(`Failed to create project: ${error.response?.data?.detail || error.message}`);
-    } finally {
-      setIsCreatingProject(false);
-    }
-  };
-
-  const handleBrowseFolder = async () => {
-    try {
-      const selected = await open({
-        directory: true,
-        multiple: false,
-        title: 'Select Project Folder'
-      });
-      if (selected && typeof selected === 'string') {
-        setNewProjectPath(selected);
-      }
-    } catch (err) {
-      console.error('Failed to open dialog:', err);
-    }
-  };
-
-  const handleProofread = (file) => {
-    console.log("handleProofread called with:", file);
-    if (!selectedProject) {
-      console.error("No selected project!");
-      return;
-    }
-
-    // Ensure we have a file ID
-    const fileId = file.key || file.file_id;
-    if (!fileId) {
-      console.error("No fileId found in file object:", file);
-      alert("Error: Cannot identify file. Please refresh the project.");
-      return;
-    }
-
-    const url = `/proofreading?projectId=${selectedProject.project_id}&fileId=${fileId}`;
-    console.log("Navigating to:", url);
-    navigate(url);
-  };
-
-  const handleUpdateNotes = async (notes) => {
-    if (!selectedProject) return;
-    try {
-      await projectService.updateProjectNotes(selectedProject.project_id, { notes });
-      // Update local state in the projects list
-      setProjects(prev => prev.map(p =>
-        p.project_id === selectedProject.project_id ? { ...p, notes } : p
-      ));
-      // Update details view
-      setProjectDetails(prev => ({ ...prev, notes }));
-    } catch (error) {
-      console.error("Failed to update notes", error);
-      alert("Failed to save notes");
-    }
-  };
-
-  const handleUpdateStatus = async (status) => {
-    if (!selectedProject) return;
-    try {
-      await projectService.updateProjectStatus(selectedProject.project_id, { status });
-      // If status changes such that it leaves the current view, we might want to go back or refresh
-      // But for now, just update local state and refresh list
-      setProjects(prev => prev.map(p =>
-        p.project_id === selectedProject.project_id ? { ...p, status } : p
-      ));
-      setProjectDetails(prev => ({ ...prev, status }));
-      fetchProjects(); // Refresh list to reflect changes
-
-      // If we archived/deleted while in active view, go back to list
-      if (viewMode === 'active' && status !== 'active') {
-        setSelectedProjectId(null);
-      }
-      // If we restored while in archives view, go back to list
-      if (viewMode === 'archives' && status === 'active') {
-        setSelectedProjectId(null);
-      }
-
-    } catch (error) {
-      console.error("Failed to update status", error);
-      alert("Failed to update status");
-    }
-  };
-
-  const handleFileStatusChange = async (fileId, status) => {
-    if (!selectedProject) return;
-    try {
-      await projectService.updateFileStatus(selectedProject.project_id, fileId, { status });
-      // Refresh only files to update the list and avoid full project refresh if possible
-      // But fetchProjectFiles actually updates projectDetails which is what we need
-      fetchProjectFiles(selectedProject.project_id);
-    } catch (error) {
-      console.error("Failed to update file status", error);
-      alert("Failed to update file status");
-    }
-  };
-
-  const handleOpenManage = () => {
-    if (selectedProject) {
-      // Normalization Map: Handle legacy IDs (e.g., old projects might use 'vic3', new config uses 'victoria3')
-      const gameMap = { 'vic3': 'victoria3', 'victoria 3': 'victoria3' };
-      // const langMap = { 'zh-cn': 'simp_chinese' }; // Generally standard
-
-      let gId = (selectedProject.game_id || 'stellaris').toLowerCase();
-      // If the current ID is in our map (e.g. vic3), convert it to canonical (victoria3). 
-      // Otherwise, keep it as is (e.g. eu4, stellaris).
-      setEditGameId(gameMap[gId] || gId);
-
-      let sLang = selectedProject.source_language || 'en';
-      setEditSourceLang(sLang);
-
-      setManageModalOpen(true);
-    }
-  };
-
-  const handleUpdateMetadata = async () => {
-    if (!selectedProject) return;
-    try {
-      await projectService.updateProjectMetadata(selectedProject.project_id, {
-        game_id: editGameId,
-        source_language: editSourceLang
-      });
-
-      // Update local state
-      setProjects(prev => prev.map(p =>
-        p.project_id === selectedProject.project_id
-          ? { ...p, game_id: editGameId, source_language: editSourceLang }
-          : p
-      ));
-
-      // Also update projectDetails if it exists
-      if (projectDetails) {
-        setProjectDetails(prev => ({
-          ...prev,
-          game_id: editGameId,
-          source_language: editSourceLang
-        }));
-      }
-
-      notificationService.success(t('api_key_success_title'), notificationStyle);
-      setManageModalOpen(false);
-
-    } catch (error) {
-      alert(`Failed to update project: ${error.response?.data?.detail || error.message} `);
-    }
-  };
-
-  const handleDeleteForever = async () => {
-    if (!selectedProject) return;
-    try {
-      await projectService.deleteProject(selectedProject.project_id, deleteSourceFiles);
-      setDeleteModalOpen(false);
-      setSelectedProjectId(null);
-      setDeleteSourceFiles(false);
-      fetchProjects();
-    } catch (error) {
-      alert(`Failed to delete project: ${error.response?.data?.detail || error.message}`);
-    }
-  };
-
-  const handleRefreshFiles = async () => {
-    if (!selectedProject) return;
-    try {
-      await projectService.refreshProjectFiles(selectedProject.project_id);
-      await Promise.all([
-        fetchProjects(),
-        fetchProjectFiles(selectedProject.project_id),
-      ]);
-      setProjectDataRefreshToken(prev => prev + 1);
-      setProjectDetails(prev => ({ ...prev, refreshKey: Date.now() }));
-    } catch (error) {
-      console.error("Failed to refresh files", error);
-    }
-  };
-
-  const formatRepairMetadataNotification = (metadata) => {
-    const isChinese = (i18n.language || '').toLowerCase().startsWith('zh');
-    const actions = Array.isArray(metadata?.actions) ? metadata.actions : [];
-    const warnings = Array.isArray(metadata?.warnings) ? metadata.warnings : [];
-    const updatedFiles = new Set();
-
-    if (actions.some(action => [
-      'created_project_sidecar',
-      'deduplicated_translation_dir',
-      'repaired_kanban_metadata',
-    ].includes(action))) {
-      updatedFiles.add('.remis_project.json');
-    }
-    if (actions.some(action => [
-      'cleared_stale_project_error_cache',
-      'rebuilt_invalid_error_cache',
-    ].includes(action))) {
-      updatedFiles.add('.remis_errors.json');
-    }
-
-    const fileIndexText = isChinese
-      ? `项目文件索引已刷新（${metadata?.file_count ?? 0} 个文件）`
-      : `Project file index refreshed (${metadata?.file_count ?? 0} files)`;
-    const updatedText = updatedFiles.size
-      ? (isChinese ? `更新文件：${Array.from(updatedFiles).join('、')}` : `Updated files: ${Array.from(updatedFiles).join(', ')}`)
-      : (isChinese ? '元数据文件已校验，无需改写' : 'Metadata files checked; no metadata file rewrite needed');
-    const translationDirText = isChinese
-      ? `翻译目录：${metadata?.translation_dirs?.length ?? 0} 个`
-      : `Translation dirs: ${metadata?.translation_dirs?.length ?? 0}`;
-    const warningText = warnings.length
-      ? (isChinese ? `警告：${warnings.length} 个（${warnings[0]}）` : `Warnings: ${warnings.length} (${warnings[0]})`)
-      : (isChinese ? '无警告' : 'No warnings');
-
-    return [
-      t('project_management.repair_metadata_success', isChinese ? '项目元数据检验/重建成功。' : 'Project metadata checked/rebuilt successfully.'),
-      updatedText,
-      fileIndexText,
-      translationDirText,
-      warningText,
-    ].join('\n');
-  };
-
-  const handleRepairMetadata = async () => {
-    if (!selectedProject || metadataRepairLoading) return;
-    setMetadataRepairLoading(true);
-    try {
-      const res = await projectService.repairProjectMetadata(selectedProject.project_id);
-      await Promise.all([
-        fetchProjects(),
-        fetchProjectFiles(selectedProject.project_id),
-      ]);
-      setProjectDataRefreshToken(prev => prev + 1);
-      setProjectDetails(prev => ({ ...prev, refreshKey: Date.now() }));
-      notificationService.success(
-        formatRepairMetadataNotification(res.data || {}),
-        notificationStyle
-      );
-    } catch (error) {
-      console.error("Failed to repair metadata", error);
-      const isChinese = (i18n.language || '').toLowerCase().startsWith('zh');
-      const failureDetail = error.response?.data?.detail || t('project_management.repair_metadata_error', 'Failed to repair project metadata.');
-      notificationService.error(
-        isChinese ? `项目元数据检验/重建失败：${failureDetail}` : `Project metadata repair failed: ${failureDetail}`,
-        notificationStyle
-      );
-    } finally {
-      setMetadataRepairLoading(false);
-    }
-  };
 
   // --- Render Views ---
 
