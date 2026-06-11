@@ -14,6 +14,7 @@ import {
     normalizeArrayPayload,
 } from './incrementalTranslationPayload';
 import {
+    applyIncrementalStateSnapshot,
     buildIncrementalStateSnapshot,
     readIncrementalStateSnapshot,
     writeIncrementalStateSnapshot,
@@ -445,38 +446,38 @@ export const useIncrementalTranslation = (notificationStyle) => {
             return;
         }
 
-        const matchedProject = persistedState.selectedProject?.project_id
-            ? projects.find((project) => project.project_id === persistedState.selectedProject.project_id) || persistedState.selectedProject
-            : null;
-
-        if (matchedProject) setSelectedProject(matchedProject);
-        if (typeof persistedState.active === 'number') setActive(persistedState.active);
-        if (typeof persistedState.loading === 'boolean') setLoading(persistedState.loading);
-        if (persistedState.customSourcePath) setCustomSourcePath(persistedState.customSourcePath);
-        if (Array.isArray(persistedState.selectedLangs)) setSelectedLangs(persistedState.selectedLangs);
-        if (persistedState.archiveInfo) setArchiveInfo(persistedState.archiveInfo);
-        if (persistedState.scanResults) setScanResults(persistedState.scanResults);
-        if (persistedState.errorKey) setErrorKey(persistedState.errorKey);
-        if (typeof persistedState.executing === 'boolean') setExecuting(persistedState.executing);
-        if (typeof persistedState.progress === 'number') setProgress(persistedState.progress);
-        if (persistedState.progressInfo) setProgressInfo(persistedState.progressInfo);
-        if (Array.isArray(persistedState.logs)) setLogs(persistedState.logs);
-        if (persistedState.finalSummary) setFinalSummary(persistedState.finalSummary);
-        if (typeof persistedState.checkpointFound === 'boolean') setCheckpointFound(persistedState.checkpointFound);
-        if (persistedState.checkpointInfo) setCheckpointInfo(persistedState.checkpointInfo);
-        if (typeof persistedState.useResume === 'boolean') setUseResume(persistedState.useResume);
-        if (typeof persistedState.showResumeDetails === 'boolean') setShowResumeDetails(persistedState.showResumeDetails);
-        if (typeof persistedState.embeddedWorkshopEnabled === 'boolean') setEmbeddedWorkshopEnabled(persistedState.embeddedWorkshopEnabled);
-        if (typeof persistedState.embeddedWorkshopFollowPrimary === 'boolean') setEmbeddedWorkshopFollowPrimary(persistedState.embeddedWorkshopFollowPrimary);
-        if (persistedState.embeddedWorkshopProvider) setEmbeddedWorkshopProvider(persistedState.embeddedWorkshopProvider);
-        if (persistedState.embeddedWorkshopModel) setEmbeddedWorkshopModel(persistedState.embeddedWorkshopModel);
-        if (persistedState.embeddedWorkshopBatchSize) setEmbeddedWorkshopBatchSize(String(persistedState.embeddedWorkshopBatchSize));
-        if (persistedState.embeddedWorkshopConcurrency) setEmbeddedWorkshopConcurrency(String(persistedState.embeddedWorkshopConcurrency));
-        if (persistedState.embeddedWorkshopRpm) setEmbeddedWorkshopRpm(String(persistedState.embeddedWorkshopRpm));
-        if (typeof persistedState.showWorkshopSettings === 'boolean') setShowWorkshopSettings(persistedState.showWorkshopSettings);
-        if (persistedState.currentTaskId) setCurrentTaskId(persistedState.currentTaskId);
-        if (persistedState.currentTaskMode) setCurrentTaskMode(persistedState.currentTaskMode);
-        if (persistedState.completionSource) completionSourceRef.current = persistedState.completionSource;
+        applyIncrementalStateSnapshot(persistedState, {
+            setActive,
+            setArchiveInfo,
+            setCheckpointFound,
+            setCheckpointInfo,
+            setCurrentTaskId,
+            setCurrentTaskMode,
+            setCustomSourcePath,
+            setEmbeddedWorkshopBatchSize,
+            setEmbeddedWorkshopConcurrency,
+            setEmbeddedWorkshopEnabled,
+            setEmbeddedWorkshopFollowPrimary,
+            setEmbeddedWorkshopModel,
+            setEmbeddedWorkshopProvider,
+            setEmbeddedWorkshopRpm,
+            setErrorKey,
+            setExecuting,
+            setFinalSummary,
+            setLoading,
+            setLogs,
+            setProgress,
+            setProgressInfo,
+            setScanResults,
+            setSelectedLangs,
+            setSelectedProject,
+            setShowResumeDetails,
+            setShowWorkshopSettings,
+            setUseResume,
+        }, {
+            completionSourceRef,
+            projects,
+        });
 
         applyProviderSelection(
             persistedState.selectedProvider || 'gemini',
