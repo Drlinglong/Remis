@@ -150,6 +150,9 @@ export function useIncrementalTaskMonitor({
 
     ws.onerror = (error) => {
       console.error('WebSocket Error:', error);
+      if (completionSourceRef.current || wsRef.current !== ws) {
+        return;
+      }
       addLog(t('incremental_translation.status_ws_error'));
     };
 
