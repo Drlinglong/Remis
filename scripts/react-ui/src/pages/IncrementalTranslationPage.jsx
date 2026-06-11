@@ -12,6 +12,8 @@ import PreScanResultsStep from '../components/incrementalTranslation/PreScanResu
 import ExecutionStep from '../components/incrementalTranslation/ExecutionStep';
 import styles from './Translation.module.css';
 
+const EMPTY_ARRAY = [];
+
 export const IncrementalTranslationPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -27,25 +29,34 @@ export const IncrementalTranslationPage = () => {
 
     // Business Logic Custom Hook
     const state = useIncrementalTranslation(notificationStyle);
+    const safeProjects = Array.isArray(state.projects) ? state.projects : EMPTY_ARRAY;
+    const safeModels = Array.isArray(state.models) ? state.models : EMPTY_ARRAY;
+    const safeApiProviders = Array.isArray(state.apiProviders) ? state.apiProviders : EMPTY_ARRAY;
+    const safeSelectedLangs = Array.isArray(state.selectedLangs) ? state.selectedLangs : EMPTY_ARRAY;
+    const {
+        active,
+        handleSelectProject,
+        selectedProject,
+    } = state;
 
     // Sync Page Context for Tutorial Tour
     useEffect(() => {
         setPageContext((prev) => {
-            const nextContext = `incremental-translation-step-${state.active}`;
+            const nextContext = `incremental-translation-step-${active}`;
             return prev === nextContext ? prev : nextContext;
         });
-    }, [state.active, setPageContext]);
+    }, [active, setPageContext]);
 
     // Handle prefilled project from React Router Navigation state
     useEffect(() => {
         const routedProjectId = location.state?.projectId;
-        if (routedProjectId && state.projects.length > 0 && !state.selectedProject) {
-            const matchedProject = state.projects.find((project) => project.project_id === routedProjectId);
+        if (routedProjectId && safeProjects.length > 0 && !selectedProject) {
+            const matchedProject = safeProjects.find((project) => project.project_id === routedProjectId);
             if (matchedProject) {
-                state.handleSelectProject(matchedProject);
+                handleSelectProject(matchedProject);
             }
         }
-    }, [location.state, state.projects, state.selectedProject, state.handleSelectProject]);
+    }, [handleSelectProject, location.state, safeProjects, selectedProject]);
 
     const handleFinish = () => {
         state.resetPersistedState();
@@ -67,7 +78,7 @@ export const IncrementalTranslationPage = () => {
                     icon={<IconSearch size={18} />}
                 >
                     <ProjectSelectStep
-                        projects={state.projects}
+                        projects={safeProjects}
                         searchQuery={state.searchQuery}
                         setSearchQuery={state.setSearchQuery}
                         gameFilter={state.gameFilter}
@@ -99,10 +110,10 @@ export const IncrementalTranslationPage = () => {
                         handleProviderChange={state.handleProviderChange}
                         selectedModel={state.selectedModel}
                         setSelectedModel={state.setSelectedModel}
-                        models={state.models}
+                        models={safeModels}
                         customSourcePath={state.customSourcePath}
                         onSelectFolder={state.handleSelectFolder}
-                        selectedLangs={state.selectedLangs}
+                        selectedLangs={safeSelectedLangs}
                         setSelectedLangs={state.setSelectedLangs}
                         batchSizeLimit={state.batchSizeLimit}
                         setBatchSizeLimit={state.setBatchSizeLimit}
@@ -128,7 +139,7 @@ export const IncrementalTranslationPage = () => {
                         setEmbeddedWorkshopRpm={state.setEmbeddedWorkshopRpm}
                         showWorkshopSettings={state.showWorkshopSettings}
                         setShowWorkshopSettings={state.setShowWorkshopSettings}
-                        apiProviders={state.apiProviders}
+                        apiProviders={safeApiProviders}
 
                         // Actions
                         runPreScan={state.runPreScan}
@@ -148,7 +159,7 @@ export const IncrementalTranslationPage = () => {
                         handleProviderChange={state.handleProviderChange}
                         selectedModel={state.selectedModel}
                         setSelectedModel={state.setSelectedModel}
-                        models={state.models}
+                        models={safeModels}
                         batchSizeLimit={state.batchSizeLimit}
                         setBatchSizeLimit={state.setBatchSizeLimit}
                         concurrencyLimit={state.concurrencyLimit}
@@ -157,8 +168,8 @@ export const IncrementalTranslationPage = () => {
                         setRpmLimit={state.setRpmLimit}
                         customSourcePath={state.customSourcePath}
                         selectedProject={state.selectedProject}
-                        selectedLangs={state.selectedLangs}
-                        apiProviders={state.apiProviders}
+                        selectedLangs={safeSelectedLangs}
+                        apiProviders={safeApiProviders}
                         archiveInfo={state.archiveInfo}
                         startTranslation={state.startTranslation}
                         onBack={() => state.setActive(1)}

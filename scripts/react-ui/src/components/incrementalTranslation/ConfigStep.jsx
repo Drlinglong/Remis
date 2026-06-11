@@ -47,10 +47,10 @@ export const ConfigStep = ({
     handleProviderChange,
     selectedModel,
     setSelectedModel,
-    models,
+    models = [],
     customSourcePath,
     onSelectFolder,
-    selectedLangs,
+    selectedLangs = [],
     setSelectedLangs,
     batchSizeLimit,
     setBatchSizeLimit,
@@ -76,7 +76,7 @@ export const ConfigStep = ({
     setEmbeddedWorkshopRpm,
     showWorkshopSettings,
     setShowWorkshopSettings,
-    apiProviders,
+    apiProviders = [],
 
     // Actions
     runPreScan,

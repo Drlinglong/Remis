@@ -5,10 +5,10 @@ import { useTranslation } from 'react-i18next';
 import styles from '../../pages/Translation.module.css';
 
 export const ProjectSelectStep = ({
-    projects,
-    searchQuery,
+    projects = [],
+    searchQuery = '',
     setSearchQuery,
-    gameFilter,
+    gameFilter = 'all',
     setGameFilter,
     selectedProject,
     onSelectProject,
