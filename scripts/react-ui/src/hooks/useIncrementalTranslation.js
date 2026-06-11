@@ -13,6 +13,11 @@ import {
     LOCAL_PROVIDERS,
     normalizeArrayPayload,
 } from './incrementalTranslationPayload';
+import {
+    buildIncrementalStateSnapshot,
+    readIncrementalStateSnapshot,
+    writeIncrementalStateSnapshot,
+} from './incrementalTranslationPersistence';
 import { useIncrementalTaskMonitor } from './useIncrementalTaskMonitor';
 
 export const useIncrementalTranslation = (notificationStyle) => {
@@ -490,44 +495,44 @@ export const useIncrementalTranslation = (notificationStyle) => {
     useEffect(() => {
         if (!restorationAppliedRef.current) return;
 
-        const stateToPersist = {
+        const stateToPersist = buildIncrementalStateSnapshot({
             active,
-            loading,
-            selectedProject,
-            selectedProvider,
-            selectedModel,
-            customSourcePath,
-            selectedLangs,
-            batchSizeLimit,
-            concurrencyLimit,
-            rpmLimit,
             archiveInfo,
-            scanResults,
-            errorKey,
-            executing,
-            progress,
-            progressInfo,
-            logs,
-            finalSummary,
+            batchSizeLimit,
             checkpointFound,
             checkpointInfo,
-            useResume,
-            showResumeDetails,
-            embeddedWorkshopEnabled,
-            embeddedWorkshopFollowPrimary,
-            embeddedWorkshopProvider,
-            embeddedWorkshopModel,
-            embeddedWorkshopBatchSize,
-            embeddedWorkshopConcurrency,
-            embeddedWorkshopRpm,
-            showWorkshopSettings,
+            completionSource: completionSourceRef.current,
+            concurrencyLimit,
             currentTaskId,
             currentTaskMode,
-            completionSource: completionSourceRef.current,
-        };
+            customSourcePath,
+            embeddedWorkshopBatchSize,
+            embeddedWorkshopConcurrency,
+            embeddedWorkshopEnabled,
+            embeddedWorkshopFollowPrimary,
+            embeddedWorkshopModel,
+            embeddedWorkshopProvider,
+            embeddedWorkshopRpm,
+            errorKey,
+            executing,
+            finalSummary,
+            loading,
+            logs,
+            progress,
+            progressInfo,
+            rpmLimit,
+            scanResults,
+            selectedLangs,
+            selectedModel,
+            selectedProject,
+            selectedProvider,
+            showResumeDetails,
+            showWorkshopSettings,
+            useResume,
+        });
 
         try {
-            sessionStorage.setItem(INCREMENTAL_STATE_STORAGE_KEY, JSON.stringify(stateToPersist));
+            writeIncrementalStateSnapshot(stateToPersist);
         } catch (err) {
             console.warn('Failed to persist incremental translation state:', err);
         }
@@ -543,8 +548,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
     // LOAD BASICS ON MOUNT
     useEffect(() => {
         try {
-            const rawState = sessionStorage.getItem(INCREMENTAL_STATE_STORAGE_KEY);
-            persistedStateRef.current = rawState ? JSON.parse(rawState) : null;
+            persistedStateRef.current = readIncrementalStateSnapshot();
         } catch (err) {
             console.warn('Failed to read incremental translation persisted state:', err);
             persistedStateRef.current = null;
