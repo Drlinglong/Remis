@@ -9,12 +9,15 @@ from scripts.core.glossary_manager import glossary_manager
 from scripts.core.project_manager import ProjectManager
 from scripts.core.archive_manager import ArchiveManager
 from scripts.core.repositories.project_repository import ProjectRepository
+from scripts.core.repositories.project_watch_repository import ProjectWatchRepository
+from scripts.core.services.project_watch_service import ProjectWatchService
 
 # Initialize Managers/Services
 # Order matters for dependency injection
 
 # 1. Base Services / Managers / Repositories
 project_repository = ProjectRepository()
+project_watch_repository = ProjectWatchRepository()
 # glossary_manager imported from scripts.core.glossary_manager
 archive_manager = ArchiveManager()
 kanban_service = KanbanService()
@@ -32,6 +35,11 @@ project_manager = ProjectManager(
     file_service=file_service,
     project_repository=project_repository,
     kanban_service=kanban_service
+)
+
+project_watch_service = ProjectWatchService(
+    watch_repository=project_watch_repository,
+    project_repository=project_repository,
 )
 
 proofreading_service = ProofreadingService(

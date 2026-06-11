@@ -17,6 +17,7 @@ import {
     IconQuestionMark,
     IconRocket,
     IconRobot,
+    IconRadar,
     IconPin,
     IconPinFilled,
 } from '@tabler/icons-react';
@@ -24,13 +25,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import styles from './Layout.module.css';
 import { FEATURES } from '../../config/features';
-import { useTutorial } from '../../context/TutorialContext';
-import ThemeContext from '../../ThemeContext';
+import { useTutorial } from '../../context/TutorialContextCore';
 
 // Navigation items configuration
 const navItems = [
     { icon: IconHome, label: 'page_title_home', path: '/' },
     { icon: IconBriefcase, label: 'page_title_project_management', path: '/project-management' },
+    { icon: IconRadar, label: '项目追踪', path: '/project-tracking' },
     { icon: IconLanguage, label: 'page_title_translation', path: '/translation' },
     ...(FEATURES.ENABLE_INCREMENTAL_TRANSLATION ? [{ icon: IconRocket, label: 'incremental_translation.title', path: '/incremental-translation' }] : []),
     { icon: IconVocabulary, label: 'page_title_glossary_manager', path: '/glossary-manager' },
@@ -49,9 +50,9 @@ const developmentItems = [
     { icon: IconBulb, label: 'page_title_in_conception', path: '/in-conception' },
 ];
 
-function NavbarLink({ icon: Icon, label, active, onClick, expanded, id, className }) {
+function NavbarLink({ icon, label, active, onClick, expanded, id, className }) {
     const { t } = useTranslation();
-    const { theme } = React.useContext(ThemeContext);
+    const LinkIcon = icon;
 
     return (
         <UnstyledButton
@@ -68,7 +69,7 @@ function NavbarLink({ icon: Icon, label, active, onClick, expanded, id, classNam
                 justifyContent: expanded ? 'flex-start' : 'center',
             }}
         >
-            <Icon className={styles.icon} style={{ width: rem(22), height: rem(22) }} stroke={1.5} />
+            <LinkIcon className={styles.icon} style={{ width: rem(22), height: rem(22) }} stroke={1.5} />
             {expanded && (
                 <Text size="sm" ml="md" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'var(--font-body)' }}>
                     {t(label)}

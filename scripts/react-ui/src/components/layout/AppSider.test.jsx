@@ -19,7 +19,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('../../context/TutorialContext', () => ({
+vi.mock('../../context/TutorialContextCore', () => ({
   useTutorial: () => ({
     startTour: startTourMock,
   }),
@@ -60,6 +60,16 @@ describe('AppSider', () => {
     fireEvent.click(screen.getByText('tutorial.sidebar_tutorial_btn'));
 
     expect(startTourMock).toHaveBeenCalledOnce();
+  });
+
+  it('shows project tracking and neologism entries in the main navigation', () => {
+    renderWithProvider(<AppSider />);
+
+    const sidebar = document.getElementById('sidebar-nav');
+    fireEvent.mouseEnter(sidebar);
+
+    expect(screen.getByText('项目追踪')).toBeInTheDocument();
+    expect(screen.getByText('neologism_review.title')).toBeInTheDocument();
   });
 
   it('localizes the sidebar pin toggle tooltip', () => {

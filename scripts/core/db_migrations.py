@@ -12,11 +12,13 @@ from scripts.core.db_models import (
     Project,
     ProjectFile,
     ProjectHistory,
+    ProjectWatch,
+    ProjectWatchFileSnapshot,
 )
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 1
+MAIN_DB_TARGET_VERSION = 2
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -116,9 +118,53 @@ def _migration_001_establish_managed_main_schema(db_path: str) -> None:
         _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_project_history_project_id ON project_history (project_id)")
         conn.commit()
 
+def _migration_002_add_project_watches(db_path: str) -> None:
+    path = db_path.replace("\\", "/")
+    engine = create_engine(f"sqlite:///{path}")
+    SQLModel.metadata.create_all(engine)
+
+    with _connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS project_watches (
+                watch_id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                path TEXT NOT NULL,
+                project_id TEXT,
+                enabled BOOLEAN NOT NULL DEFAULT 1,
+                scan_interval_minutes INTEGER,
+                last_scan_at TEXT,
+                last_change_at TEXT,
+                status TEXT NOT NULL DEFAULT 'never_scanned',
+                last_scan_summary JSON,
+                FOREIGN KEY(project_id) REFERENCES projects(project_id)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS project_watch_file_snapshots (
+                snapshot_id TEXT PRIMARY KEY,
+                watch_id TEXT NOT NULL,
+                relative_path TEXT NOT NULL,
+                sha256 TEXT NOT NULL,
+                size INTEGER NOT NULL,
+                mtime_ns INTEGER NOT NULL,
+                last_seen_at TEXT NOT NULL,
+                FOREIGN KEY(watch_id) REFERENCES project_watches(watch_id)
+            )
+            """
+        )
+        _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_project_watches_project_id ON project_watches (project_id)")
+        _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_project_watches_status ON project_watches (status)")
+        _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_project_watch_file_snapshots_watch_id ON project_watch_file_snapshots (watch_id)")
+        _ensure_index(conn, "CREATE UNIQUE INDEX IF NOT EXISTS ux_project_watch_snapshot_path ON project_watch_file_snapshots (watch_id, relative_path)")
+        conn.commit()
+
 
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
+    (2, "add_project_watches", _migration_002_add_project_watches),
 ]
 
 

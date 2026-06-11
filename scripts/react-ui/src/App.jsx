@@ -14,6 +14,7 @@ import { TutorialProvider } from './context/TutorialContext';
 import { MainLayout } from './components/layout/MainLayout';
 import SplashScreen from './components/SplashScreen';
 import ErrorBoundary from './components/ErrorBoundary';
+import ProjectWatchScheduler from './components/ProjectWatchScheduler';
 
 import './App.css';
 
@@ -21,6 +22,7 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const DocumentationPage = lazy(() => import('./pages/Documentation'));
 const InitialTranslationPage = lazy(() => import('./pages/InitialTranslation'));
 const ProjectManagementPage = lazy(() => import('./pages/ProjectManagement'));
+const ProjectTrackingPage = lazy(() => import('./pages/ProjectTrackingPage'));
 const GlossaryManagerPage = lazy(() => import('./pages/GlossaryManagerPage'));
 const ProofreadingPage = lazy(() => import('./pages/ProofreadingPage'));
 const ToolsPage = lazy(() => import('./pages/ToolsPage'));
@@ -49,6 +51,7 @@ const appRouteConfig = [
     { path: '/proofreading', element: <ProofreadingPage /> },
     { path: '/project-management', element: <ProjectManagementPage /> },
     { path: '/project-management/:projectId', element: <ProjectManagementPage /> },
+    { path: '/project-tracking', element: <ProjectTrackingPage /> },
     { path: '/incremental-translation', element: <IncrementalTranslationPage /> },
     { path: '/neologism-review', element: <NeologismReviewPage /> },
     { path: '/archives', element: <ArchivesPage /> },
@@ -77,6 +80,7 @@ const App = () => {
                                 <Router>
                                     <TutorialProvider>
                                         <MainLayout>
+                                            <ProjectWatchScheduler />
                                             <Suspense fallback={<RouteFallback />}>
                                                 <Routes>
                                                     {appRouteConfig.map(route => (

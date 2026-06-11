@@ -221,8 +221,9 @@ class BaseGameValidator:
     def _check_format_marker_parity(self, text: str, rule: Dict, line_number: Optional[int], source_text: Optional[str] = None, **kwargs) -> List[ValidationResult]:
         """
         Check that formatting wrappers present in the source are still represented
-        in the translation. This intentionally compares marker counts only; it does
-        not protect or compare the translatable text inside the wrapper.
+        in the translation. This is the v1 narrow parity rule: it intentionally
+        compares marker counts only and does not protect or compare the
+        translatable text inside the wrapper.
         """
         if not source_text:
             return []

@@ -76,6 +76,7 @@ def test_vic3_format_marker_parity_flags_missing_source_wrapper(validator):
 
 
 def test_vic3_format_marker_parity_allows_translated_text_inside_wrapper(validator):
+    """The v1 parity rule only compares wrapper marker counts, not inner text."""
     results = validator.validate_entry(
         "victoria3",
         "remis_event.1.f:0",
