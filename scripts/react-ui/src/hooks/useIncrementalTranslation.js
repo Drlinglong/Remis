@@ -10,7 +10,6 @@ import {
     buildIncrementalUpdatePayload,
     getArchivedTargetLanguages,
     INCREMENTAL_STATE_STORAGE_KEY,
-    LOCAL_PROVIDERS,
     normalizeArrayPayload,
 } from './incrementalTranslationPayload';
 import {
@@ -19,6 +18,10 @@ import {
     readIncrementalStateSnapshot,
     writeIncrementalStateSnapshot,
 } from './incrementalTranslationPersistence';
+import {
+    buildProviderSelection,
+    resolveProviderModels,
+} from './incrementalTranslationProviders';
 import { useIncrementalTaskMonitor } from './useIncrementalTaskMonitor';
 
 export const useIncrementalTranslation = (notificationStyle) => {
@@ -111,38 +114,19 @@ export const useIncrementalTranslation = (notificationStyle) => {
         t,
     });
 
-    const resolveProviderModels = useCallback((providerValue) => {
-        const providerData = apiProviders.find((provider) => provider.value === providerValue);
-        if (!providerData) return [];
-        const availableModels = providerData.available_models || [];
-        const customModels = providerData.custom_models || [];
-        const merged = [...new Set([...availableModels, ...customModels])];
-        if (providerData.selected_model && !merged.includes(providerData.selected_model)) {
-            merged.unshift(providerData.selected_model);
-        }
-        if (providerData.default_model && !merged.includes(providerData.default_model)) {
-            merged.unshift(providerData.default_model);
-        }
-        return merged;
-    }, [apiProviders]);
-
     const applyProviderSelection = useCallback((providerValue, preferredModel = '', preferredConcurrency = null) => {
-        const nextProvider = providerValue || 'gemini';
-        const availableModels = resolveProviderModels(nextProvider);
-        const nextModel = preferredModel && availableModels.includes(preferredModel)
-            ? preferredModel
-            : (availableModels[0] || '');
+        const selection = buildProviderSelection({
+            providers: apiProviders,
+            providerValue,
+            preferredModel,
+            preferredConcurrency,
+        });
 
-        setSelectedProvider(nextProvider);
-        setModels(availableModels);
-        setSelectedModel(nextModel);
-
-        if (preferredConcurrency !== null && preferredConcurrency !== undefined) {
-            setConcurrencyLimit(String(preferredConcurrency));
-        } else {
-            setConcurrencyLimit(LOCAL_PROVIDERS.includes(nextProvider) ? '1' : '10');
-        }
-    }, [resolveProviderModels]);
+        setSelectedProvider(selection.selectedProvider);
+        setModels(selection.models);
+        setSelectedModel(selection.selectedModel);
+        setConcurrencyLimit(selection.concurrencyLimit);
+    }, [apiProviders]);
 
     const resetPersistedState = useCallback(() => {
         sessionStorage.removeItem(INCREMENTAL_STATE_STORAGE_KEY);
@@ -221,15 +205,15 @@ export const useIncrementalTranslation = (notificationStyle) => {
 
             setApiProviders(providers);
 
-            const defaultProvider = data.default_provider || 'gemini';
-            setSelectedProvider(defaultProvider);
-
-            const providerData = providers.find(p => p.value === defaultProvider);
-            if (providerData) {
-                const availableModels = providerData.available_models || providerData.custom_models || [];
-                setModels(availableModels);
-                setSelectedModel(data.default_model || availableModels[0] || '');
-            }
+            const selection = buildProviderSelection({
+                providers,
+                providerValue: data.default_provider || 'gemini',
+                preferredModel: data.default_model || '',
+            });
+            setSelectedProvider(selection.selectedProvider);
+            setModels(selection.models);
+            setSelectedModel(selection.selectedModel);
+            setConcurrencyLimit(selection.concurrencyLimit);
             setBatchSizeLimit('');
             setRpmLimit(String(data.rpm_limit || 40));
         } catch (err) {
@@ -564,11 +548,11 @@ export const useIncrementalTranslation = (notificationStyle) => {
             return;
         }
 
-        const modelsForProvider = resolveProviderModels(embeddedWorkshopProvider);
+        const modelsForProvider = resolveProviderModels(apiProviders, embeddedWorkshopProvider);
         if (!embeddedWorkshopProvider && apiProviders.length > 0) {
             const providerValue = apiProviders[0]?.value || '';
             setEmbeddedWorkshopProvider(providerValue);
-            setEmbeddedWorkshopModel(resolveProviderModels(providerValue)[0] || '');
+            setEmbeddedWorkshopModel(resolveProviderModels(apiProviders, providerValue)[0] || '');
             return;
         }
 
@@ -576,7 +560,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
             setEmbeddedWorkshopModel(modelsForProvider[0]);
         }
     }, [
-        apiProviders, embeddedWorkshopFollowPrimary, embeddedWorkshopModel, embeddedWorkshopProvider, resolveProviderModels
+        apiProviders, embeddedWorkshopFollowPrimary, embeddedWorkshopModel, embeddedWorkshopProvider
     ]);
 
     // RESYNC ONGOING TASK IF RESTORED ACTIVE WORK
