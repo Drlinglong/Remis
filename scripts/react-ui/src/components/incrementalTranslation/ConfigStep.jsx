@@ -29,6 +29,7 @@ import {
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import PerformanceControlPanel from '../shared/PerformanceControlPanel';
+import { resolveProviderModels } from '../../hooks/incrementalTranslationProviders';
 import styles from '../../pages/Translation.module.css';
 
 export const ConfigStep = ({
@@ -74,8 +75,6 @@ export const ConfigStep = ({
     setEmbeddedWorkshopConcurrency,
     embeddedWorkshopRpm,
     setEmbeddedWorkshopRpm,
-    showWorkshopSettings,
-    setShowWorkshopSettings,
     apiProviders = [],
 
     // Actions
@@ -101,21 +100,6 @@ export const ConfigStep = ({
         }
         return info.target_language ? [info.target_language] : [];
     }, []);
-
-    const resolveProviderModels = useCallback((providerValue) => {
-        const providerData = apiProviders.find((provider) => provider.value === providerValue);
-        if (!providerData) return [];
-        const availableModels = providerData.available_models || [];
-        const customModels = providerData.custom_models || [];
-        const merged = [...new Set([...availableModels, ...customModels])];
-        if (providerData.selected_model && !merged.includes(providerData.selected_model)) {
-            merged.unshift(providerData.selected_model);
-        }
-        if (providerData.default_model && !merged.includes(providerData.default_model)) {
-            merged.unshift(providerData.default_model);
-        }
-        return merged;
-    }, [apiProviders]);
 
     const targetLangOptions = getArchivedTargetLanguages(archiveInfo).map((lang) => ({
         value: lang,
@@ -296,7 +280,6 @@ export const ConfigStep = ({
                             <TextInput
                                 label={t('translation_config.source_path')}
                                 value={customSourcePath}
-                                onChange={(e) => {}}
                                 readOnly
                                 rightSection={
                                     <Tooltip label={t('translation_config.select_path_tooltip')}>
@@ -382,7 +365,7 @@ export const ConfigStep = ({
                                                         />
                                                         <Select
                                                             label={t('translation_page.embedded_workshop_model', { defaultValue: '校对 Model' })}
-                                                            data={resolveProviderModels(embeddedWorkshopProvider)}
+                                                            data={resolveProviderModels(apiProviders, embeddedWorkshopProvider)}
                                                             value={embeddedWorkshopModel}
                                                             onChange={setEmbeddedWorkshopModel}
                                                         />

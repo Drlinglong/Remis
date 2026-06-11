@@ -3,8 +3,8 @@ import { Container, Stepper, Title, Modal, Stack, Text, Group, Button } from '@m
 import { IconRocket, IconSearch, IconSettings, IconChartBar } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useNotification } from '../context/NotificationContext';
-import { getTutorialKey, useTutorial } from '../context/TutorialContext';
+import { useNotification } from '../context/NotificationContextCore';
+import { getTutorialKey, useTutorial } from '../context/TutorialContextCore';
 import useIncrementalTranslation from '../hooks/useIncrementalTranslation';
 import ProjectSelectStep from '../components/incrementalTranslation/ProjectSelectStep';
 import ConfigStep from '../components/incrementalTranslation/ConfigStep';

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import {
     Paper,
     SimpleGrid,
@@ -63,17 +63,6 @@ export const PreScanResultsStep = ({
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return value;
         return date.toLocaleString();
-    }, []);
-
-    const getArchivedTargetLanguages = useCallback((info) => {
-        if (!info) return [];
-        if (Array.isArray(info.archived_languages)) {
-            return info.archived_languages.filter(Boolean);
-        }
-        if (Array.isArray(info.target_languages)) {
-            return info.target_languages.filter(Boolean);
-        }
-        return info.target_language ? [info.target_language] : [];
     }, []);
 
     const renderTelemetry = useCallback((telemetry) => {
