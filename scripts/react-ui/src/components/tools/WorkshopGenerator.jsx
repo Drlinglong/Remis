@@ -68,7 +68,7 @@ const WorkshopGenerator = () => {
           }
         }
 
-      } catch (err) {
+      } catch {
         const fetchError = t('workshop_generator.errors.fetch_config_failed');
         setError(fetchError);
         notifications.show({ title: 'Error', message: fetchError, color: 'red' });

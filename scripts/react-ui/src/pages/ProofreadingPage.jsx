@@ -13,7 +13,7 @@ import {
   IconFolder
 } from '@tabler/icons-react';
 import layoutStyles from '../components/layout/Layout.module.css';
-import { useTutorial } from '../context/TutorialContext';
+import { useTutorial } from '../context/TutorialContextCore';
 import useProofreadingState from '../hooks/useProofreadingState';
 import { usePersistentState } from '../hooks/usePersistentState';
 import ProjectSelector from '../components/proofreading/ProjectSelector';

@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import React from 'react';
 import { MantineProvider } from '@mantine/core';
@@ -31,7 +31,7 @@ vi.mock('react-i18next', () => ({
     }),
 }));
 
-vi.mock('../../context/TutorialContext', () => ({
+vi.mock('../../context/TutorialContextCore', () => ({
     useTutorial: () => ({
         setPageContext: setPageContextMock,
         startTour: startTourMock,

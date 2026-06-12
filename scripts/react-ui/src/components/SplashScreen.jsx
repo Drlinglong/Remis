@@ -46,7 +46,7 @@ const SplashScreen = ({ onReady }) => {
                 setProgress(100);
                 setStatus('ready');
 
-            } catch (error) {
+            } catch {
                 if (!isMounted) return;
                 addLog(`Connection failed... retrying in 500ms`);
                 // Retry in 500ms

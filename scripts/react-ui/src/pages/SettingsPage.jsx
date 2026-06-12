@@ -8,7 +8,7 @@ import { AVAILABLE_THEMES } from '../config/themes';
 import ApiSettingsTab from '../components/ApiSettingsTab';
 import PromptSettingsTab from '../components/PromptSettingsTab';
 import VersionInfoTab from '../components/VersionInfoTab';
-import { useTutorial, getTutorialKey } from '../context/TutorialContext';
+import { useTutorial, getTutorialKey } from '../context/TutorialContextCore';
 
 import styles from './SettingsPage.module.css';
 

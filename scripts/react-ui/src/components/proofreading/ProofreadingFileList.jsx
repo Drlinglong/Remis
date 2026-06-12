@@ -58,7 +58,6 @@ export const SourceFileSelector = ({
  * AI初稿选择器组件
  */
 export const AIFileSelector = ({
-    sourceFiles,
     currentSourceFile,
     targetFilesMap,
     currentTargetFile,

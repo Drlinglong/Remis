@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Grid, Card, Title, Text, ThemeIcon, Group, Stack, Box, Button, BackgroundImage, Overlay, ActionIcon } from '@mantine/core';
@@ -12,7 +12,7 @@ import RecentActivityList from '../components/RecentActivityList';
 
 import api from '../utils/api';
 import styles from './HomePage.module.css';
-import { useTutorial } from '../context/TutorialContext';
+import { useTutorial } from '../context/TutorialContextCore';
 
 const HomePage = () => {
   const { t, i18n } = useTranslation();
@@ -38,6 +38,21 @@ const HomePage = () => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/api/system/stats');
+      const data = response.data;
+      setStats(data.stats);
+      setCharts(data.charts);
+      setRecentActivity(data.recent_activity);
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const slogans = t('homepage_slogans', { returnObjects: true });
     if (Array.isArray(slogans) && slogans.length > 0) {
@@ -62,22 +77,7 @@ const HomePage = () => {
     }
 
     fetchDashboardData();
-  }, [i18n.language]);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/api/system/stats');
-      const data = response.data;
-      setStats(data.stats);
-      setCharts(data.charts);
-      setRecentActivity(data.recent_activity);
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchDashboardData, i18n.language, t]);
 
   return (
     <Box h="100vh" style={{ overflow: 'hidden' }}>

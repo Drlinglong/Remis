@@ -15,12 +15,10 @@ import {
     Loader
 } from '@mantine/core';
 import { IconCheck, IconAlertTriangle, IconInfoCircle, IconX } from '@tabler/icons-react';
-import { useTranslation } from 'react-i18next';
 import api from '../../utils/api';
 import layoutStyles from '../layout/Layout.module.css';
 
 const LinterTab = () => {
-    const { t } = useTranslation();
     const [content, setContent] = useState('');
     const [gameId, setGameId] = useState('1'); // Default to Victoria 3 (ID: 1)
     const [results, setResults] = useState([]);

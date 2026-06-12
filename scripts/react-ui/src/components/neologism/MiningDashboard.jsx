@@ -73,7 +73,7 @@ const MiningDashboard = () => {
                 color: 'blue',
                 icon: <IconSparkles size={18} />
             });
-        } catch (error) {
+        } catch {
             notifications.show({ title: 'Error', message: 'Failed to start scan', color: 'red' });
         } finally {
             setScanning(false);

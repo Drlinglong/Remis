@@ -36,7 +36,7 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => navigateMock,
 }));
 
-vi.mock('../context/TutorialContext', () => ({
+vi.mock('../context/TutorialContextCore', () => ({
   useTutorial: () => ({
     startTour: startTourMock,
     setPageContext: setPageContextMock,

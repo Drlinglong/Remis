@@ -126,13 +126,13 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('../../context/NotificationContext', () => ({
+vi.mock('../../context/NotificationContextCore', () => ({
   useNotification: () => ({
     notificationStyle: 'minimal',
   }),
 }));
 
-vi.mock('../../context/TutorialContext', () => ({
+vi.mock('../../context/TutorialContextCore', () => ({
   useTutorial: () => ({
     setPageContext: setPageContextMock,
     startTour: startTourMock,
@@ -140,7 +140,7 @@ vi.mock('../../context/TutorialContext', () => ({
   getTutorialKey: (page = 'general') => `remis_tutorial_${page}_v1`,
 }));
 
-vi.mock('../../context/TranslationContext', () => ({
+vi.mock('../../context/TranslationContextCore', () => ({
   useTranslationContext: () => {
     const [activeStep, setActiveStep] = React.useState(0);
     const [selectedProjectId, setSelectedProjectId] = React.useState(null);
@@ -184,9 +184,6 @@ const renderPage = (initialEntries = ['/']) =>
 const findSingleSelectByOptions = (container, optionValues) => Array.from(container.querySelectorAll('select:not([multiple])'))
   .find((select) => optionValues.every((value) => Array.from(select.options).some((option) => option.value === value)));
 
-const findMultiSelectByOptions = (container, optionValues) => Array.from(container.querySelectorAll('select[multiple]'))
-  .find((select) => optionValues.every((value) => Array.from(select.options).some((option) => option.value === value)));
-
 describe('InitialTranslation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -216,7 +213,7 @@ describe('InitialTranslation', () => {
   });
 
   it('refreshes checkpoint hint request when target languages change', async () => {
-    const { container } = renderPage(['/?projectId=proj-1']);
+    renderPage(['/?projectId=proj-1']);
 
     await waitFor(() => {
       expect(screen.getByText('Extra Terms')).toBeInTheDocument();
@@ -292,7 +289,7 @@ describe('InitialTranslation', () => {
     });
 
     try {
-      const { container } = renderPage(['/?projectId=proj-1']);
+      renderPage(['/?projectId=proj-1']);
 
       await waitFor(() => {
         expect(screen.getByText('检测到可用断点')).toBeInTheDocument();

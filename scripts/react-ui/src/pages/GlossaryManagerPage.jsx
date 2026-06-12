@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
     Select, Input, Title, Button, Group, LoadingOverlay,
     Tooltip, Text, Paper, ScrollArea, Table, ActionIcon, Stack,
     Modal
 } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
 import { IconPlus, IconTrash, IconDots, IconTrashX } from '@tabler/icons-react';
 import {
     useReactTable,
@@ -14,8 +12,8 @@ import {
     flexRender,
     getFilteredRowModel,
 } from '@tanstack/react-table';
-import { useSidebar } from '../context/SidebarContext';
-import { useTutorial } from '../context/TutorialContext';
+import { useSidebar } from '../context/SidebarContextCore';
+import { useTutorial } from '../context/TutorialContextCore';
 import useGlossaryActions from '../hooks/useGlossaryActions';
 import FileTree from '../components/glossary/FileTree';
 import NewFileModal from '../components/glossary/NewFileModal';
@@ -355,6 +353,26 @@ const GlossaryManagerPage = () => {
                 selectedTargetLang={glossary.selectedTargetLang}
                 isSaving={glossary.isSaving}
             />
+
+            {/* Delete Entry Confirmation Modal */}
+            <Modal
+                opened={isDeleteModalVisible}
+                onClose={() => setIsDeleteModalVisible(false)}
+                title={t('glossary_delete_entry_confirm_title', 'Delete entry?')}
+                centered
+            >
+                <Text mb="md">
+                    {t('glossary_delete_entry_confirm_desc', 'This glossary entry will be removed. This action cannot be undone.')}
+                </Text>
+                <Group justify="flex-end">
+                    <Button variant="default" onClick={() => setIsDeleteModalVisible(false)}>
+                        {t('cancel')}
+                    </Button>
+                    <Button color="red" onClick={handleDeleteConfirm} loading={glossary.isSaving}>
+                        {t('delete')}
+                    </Button>
+                </Group>
+            </Modal>
 
             {/* Delete Glossary Confirmation Modal */}
             <Modal

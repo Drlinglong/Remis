@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNotification } from '../context/NotificationContext';
-import { useTranslationContext } from '../context/TranslationContext';
+import { useNotification } from '../context/NotificationContextCore';
+import { useTranslationContext } from '../context/TranslationContextCore';
 import { useForm } from '@mantine/form';
 import {
   Stepper,
@@ -13,7 +13,7 @@ import {
   Box,
 } from '@mantine/core';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useTutorial } from '../context/TutorialContext';
+import { useTutorial } from '../context/TutorialContextCore';
 import '../App.css';
 import layoutStyles from '../components/layout/Layout.module.css';
 
@@ -56,7 +56,7 @@ const InitialTranslation = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [status, setStatus] = useState(null);
+  const [, setStatus] = useState(null);
   const [checkpointHintInfo, setCheckpointHintInfo] = useState(null);
   const checkpointHintRequestRef = useRef(0);
 
@@ -110,6 +110,21 @@ const InitialTranslation = () => {
     ? 'custom'
     : form.values.target_lang_codes.join('|');
 
+  const handleProjectSelect = useCallback((projectId) => {
+    const project = findProjectById(projects, projectId);
+    if (project) {
+      setSelectedProjectId(projectId);
+      // Auto-set source language from project metadata if available
+      if (project.source_language) {
+        const langConfig = findLanguageByCode(config.languages, project.source_language);
+        if (langConfig) {
+          form.setFieldValue('source_lang_code', langConfig.code);
+        }
+      }
+      setActive(1); // Auto-advance to configuration
+    }
+  }, [config.languages, form, projects, setActive, setSelectedProjectId]);
+
   useEffect(() => {
     if (!selectedProject?.source_language) {
       return;
@@ -148,7 +163,7 @@ const InitialTranslation = () => {
         handleProjectSelect(projectIdFromUrl);
       }
     }
-  }, [location.search, active, projects, selectedProjectId]);
+  }, [active, handleProjectSelect, location.search, projects.length, selectedProjectId]);
 
   useEffect(() => {
     const nextPageContext = `translation-step-${active}`;
@@ -190,6 +205,7 @@ const InitialTranslation = () => {
   }, [
     active,
     checkpointTargetSignature,
+    form.values,
     selectedProject?.label,
   ]);
 
@@ -236,21 +252,6 @@ const InitialTranslation = () => {
     setTaskId,
     setTranslationDetails,
   });
-
-  const handleProjectSelect = (projectId) => {
-    const project = findProjectById(projects, projectId);
-    if (project) {
-      setSelectedProjectId(projectId);
-      // Auto-set source language from project metadata if available
-      if (project.source_language) {
-        const langConfig = findLanguageByCode(config.languages, project.source_language);
-        if (langConfig) {
-          form.setFieldValue('source_lang_code', langConfig.code);
-        }
-      }
-      setActive(1); // Auto-advance to configuration
-    }
-  };
 
   const handleBack = () => {
     if (active > 0) {

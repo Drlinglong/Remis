@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { DndContext, DragOverlay, defaultDropAnimationSideEffects, useSensor, useSensors, PointerSensor, closestCorners } from '@dnd-kit/core';
 import { createPortal } from 'react-dom';
-import { useSidebar } from '../../context/SidebarContext';
+import { useSidebar } from '../../context/SidebarContextCore';
 import { useKanban } from '../../hooks/useKanban';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';

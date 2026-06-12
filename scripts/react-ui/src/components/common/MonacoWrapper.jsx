@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import Editor, { loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
-import { useMantineTheme } from '@mantine/core';
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
 import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
@@ -39,7 +38,6 @@ const MonacoWrapper = ({
     scrollRef // Optional ref to expose editor instance for sync scrolling
 }) => {
     const editorRef = useRef(null);
-    const mantineTheme = useMantineTheme();
 
     const handleEditorDidMount = (editor, monaco) => {
         editorRef.current = editor;
@@ -118,7 +116,7 @@ const MonacoWrapper = ({
 
     // 暂时直接使用 vs-dark 测试背景色
     const effectiveLanguage = language === 'yaml' ? 'paradox-loc' : language;
-    const effectiveTheme = 'vs-dark';
+    const effectiveTheme = theme;
 
     return (
         <div style={{ height: height, width: '100%', overflow: 'hidden' }}>

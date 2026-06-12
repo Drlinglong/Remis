@@ -15,6 +15,7 @@ const useProofreadingState = () => {
     const navigation = useFileNavigation();
     const editor = useEditorContent();
     const linter = useLinter();
+    const { fileInfo, loadEditorData } = editor;
 
     // ==================== Coordinator States ====================
     const [validationResults, setValidationResults] = useState([]);
@@ -33,14 +34,14 @@ const useProofreadingState = () => {
                 : navigation.currentSourceFile.file_id;
 
             // G U A R D: Check if we already have this file loaded
-            if (editor.fileInfo &&
-                editor.fileInfo.project_id === navigation.selectedProject.project_id &&
-                editor.fileInfo.file_id === requestedFileId) {
+            if (fileInfo &&
+                fileInfo.project_id === navigation.selectedProject.project_id &&
+                fileInfo.file_id === requestedFileId) {
                 return; // Already loaded, skip to prevent loop
             }
 
             // Only load if different
-            editor.loadEditorData(
+            loadEditorData(
                 navigation.selectedProject.project_id,
                 navigation.currentSourceFile.file_path,
                 requestedFileId
@@ -50,8 +51,8 @@ const useProofreadingState = () => {
         navigation.selectedProject,
         navigation.currentSourceFile,
         navigation.currentTargetFile,
-        editor.loadEditorData,
-        editor.fileInfo // Add fileInfo to dependencies
+        loadEditorData,
+        fileInfo
     ]);
 
     const handleValidate = useCallback(async () => {
@@ -134,7 +135,7 @@ const useProofreadingState = () => {
             const dirPath = path.substring(0, path.lastIndexOf('/'));
             await api.post('/api/system/open_folder', { path: dirPath });
             notifications.show({ title: 'Success', message: 'Folder opened', color: 'green' });
-        } catch (error) {
+        } catch {
             notifications.show({ title: 'Error', message: 'Failed to open folder', color: 'red' });
         }
     }, [editor.fileInfo]);

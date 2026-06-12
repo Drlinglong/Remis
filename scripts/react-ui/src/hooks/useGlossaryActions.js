@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { notifications } from '@mantine/notifications';
 import { usePersistentState } from './usePersistentState';
 import api from '../utils/api';
@@ -28,6 +28,15 @@ const useGlossaryActions = () => {
     const [isLoadingTree, setIsLoadingTree] = useState(true);
     const [isLoadingContent, setIsLoadingContent] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const selectedGameRef = useRef(selectedGame);
+    const selectedTargetLangRef = useRef(selectedTargetLang);
+    const setSelectedGameRef = useRef(setSelectedGame);
+    const setSelectedTargetLangRef = useRef(setSelectedTargetLang);
+
+    selectedGameRef.current = selectedGame;
+    selectedTargetLangRef.current = selectedTargetLang;
+    setSelectedGameRef.current = setSelectedGame;
+    setSelectedTargetLangRef.current = setSelectedTargetLang;
 
     // ==================== 初始化数据获取 ====================
     useEffect(() => {
@@ -40,18 +49,18 @@ const useGlossaryActions = () => {
                 ]);
 
                 setTreeData(treeResponse.data);
-                if (treeResponse.data.length > 0 && !selectedGame) {
-                    setSelectedGame(treeResponse.data[0].key);
+                if (treeResponse.data.length > 0 && !selectedGameRef.current) {
+                    setSelectedGameRef.current(treeResponse.data[0].key);
                 }
 
                 const languages = Object.values(configResponse.data.languages);
                 setTargetLanguages(languages);
-                if (languages.length > 0 && !selectedTargetLang) {
-                    setSelectedTargetLang(
+                if (languages.length > 0 && !selectedTargetLangRef.current) {
+                    setSelectedTargetLangRef.current(
                         languages.find(l => l.code === 'zh-CN')?.code || languages[0].code
                     );
                 }
-            } catch (error) {
+            } catch {
                 notifications.show({
                     title: 'Error',
                     message: 'Failed to load initial configuration.',
@@ -61,11 +70,12 @@ const useGlossaryActions = () => {
                 setIsLoadingTree(false);
             }
         };
+
         fetchInitialConfigs();
     }, []);
 
     // ==================== 词典内容获取 ====================
-    const fetchGlossaryContent = async () => {
+    const fetchGlossaryContent = useCallback(async () => {
         const { pageIndex, pageSize } = pagination;
         setIsLoadingContent(true);
 
@@ -105,7 +115,7 @@ const useGlossaryActions = () => {
 
             setData(response.data.entries);
             setRowCount(response.data.totalCount);
-        } catch (error) {
+        } catch {
             notifications.show({
                 title: 'Error',
                 message: 'Failed to load content.',
@@ -116,11 +126,11 @@ const useGlossaryActions = () => {
         } finally {
             setIsLoadingContent(false);
         }
-    };
+    }, [filtering, pagination, searchScope, selectedFile, selectedGame]);
 
     useEffect(() => {
         fetchGlossaryContent();
-    }, [selectedFile, pagination, filtering, searchScope]);
+    }, [fetchGlossaryContent]);
 
     // ==================== 事件处理器 ====================
     const onSelectTree = (key, info) => {
@@ -162,7 +172,7 @@ const useGlossaryActions = () => {
 
             fetchGlossaryContent();
             return true;
-        } catch (error) {
+        } catch {
             notifications.show({
                 title: 'Error',
                 message: 'Failed to save glossary.',
@@ -195,7 +205,7 @@ const useGlossaryActions = () => {
             }
 
             return true;
-        } catch (error) {
+        } catch {
             notifications.show({
                 title: 'Error',
                 message: 'Failed to delete entry.',
@@ -228,7 +238,7 @@ const useGlossaryActions = () => {
             setTreeData(treeResponse.data);
 
             return true;
-        } catch (error) {
+        } catch {
             notifications.show({
                 title: 'Error',
                 message: 'Failed to create file.',
@@ -262,7 +272,7 @@ const useGlossaryActions = () => {
             setTreeData(treeResponse.data);
 
             return true;
-        } catch (error) {
+        } catch {
             notifications.show({
                 title: 'Error',
                 message: 'Failed to delete glossary.',

@@ -64,7 +64,7 @@ export const useEditorContent = () => {
 
     const parseEditorContentToEntries = useCallback((content) => {
         const entries = [];
-        const regex = /^\s*([\w\.-]+)\s*:\s*(\d*)\s*"((?:[^"\\]|\\.)*)"/gm;
+        const regex = /^\s*([\w.-]+)\s*:\s*(\d*)\s*"((?:[^"\\]|\\.)*)"/gm;
         let match;
         const headers = ["l_english", "l_simp_chinese", "l_french", "l_german", "l_spanish", "l_russian", "l_polish", "l_japanese", "l_korean", "l_turkish", "l_braz_por"];
 
@@ -157,7 +157,7 @@ export const useEditorContent = () => {
         }
 
         const currentKeys = new Set();
-        const regex = /^\s*([\w\.-]+)\s*:\s*(\d*)\s*"/gm;
+        const regex = /^\s*([\w.-]+)\s*:\s*(\d*)\s*"/gm;
         let match;
         const headers = ["l_english", "l_simp_chinese", "l_french", "l_german", "l_spanish", "l_russian", "l_polish", "l_japanese", "l_korean", "l_turkish", "l_braz_por"];
 

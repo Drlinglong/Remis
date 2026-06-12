@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Timeline, Text, Paper, Title, Group, Button,
     Stack, ActionIcon, Alert, Loader, Center,
@@ -19,7 +19,7 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
 
-    const fetchHistory = async () => {
+    const fetchHistory = useCallback(async () => {
         try {
             setLoading(true);
             const res = await api.get(`/api/project/${projectId}/history`);
@@ -29,13 +29,13 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
         } finally {
             setLoading(false);
         }
-    };
+    }, [projectId]);
 
-    const refreshProjectData = async () => {
+    const refreshProjectData = useCallback(async () => {
         if (onProjectDataChanged) {
             await onProjectDataChanged();
         }
-    };
+    }, [onProjectDataChanged]);
 
     const openIncrementalUpdate = () => {
         navigate('/incremental-translation', {
@@ -72,12 +72,12 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
 
     useEffect(() => {
         fetchHistory();
-    }, [projectId]);
+    }, [fetchHistory]);
 
     useEffect(() => {
         if (!refreshToken) return;
         fetchHistory();
-    }, [refreshToken]);
+    }, [fetchHistory, refreshToken]);
 
     const translateHistoryAction = (actionType) => {
         const actionKey = `agent_workshop.history.action_${actionType}`;

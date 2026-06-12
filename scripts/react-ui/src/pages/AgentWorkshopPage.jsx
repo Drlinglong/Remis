@@ -14,7 +14,7 @@ import workshopService from '../services/workshopService';
 import PerformanceControlPanel from '../components/shared/PerformanceControlPanel';
 import BusyHeartbeat from '../components/shared/BusyHeartbeat';
 import { useLocation } from 'react-router-dom';
-import { getTutorialKey, useTutorial } from '../context/TutorialContext';
+import { getTutorialKey, useTutorial } from '../context/TutorialContextCore';
 import styles from './AgentWorkshop.module.css';
 import translationStyles from './Translation.module.css';
 

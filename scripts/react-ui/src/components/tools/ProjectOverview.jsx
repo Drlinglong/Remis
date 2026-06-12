@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Text, Group, Button } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import api from '../../utils/api';
-import { useSidebar } from '../../context/SidebarContext';
+import { useSidebar } from '../../context/SidebarContextCore';
 
 import ProjectHeader from '../project/ProjectHeader';
 import ProjectNoteList from '../project/ProjectNoteList';
@@ -25,29 +25,44 @@ const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, 
         return () => {
             setSidebarContent(null);
         };
+    }, [setSidebarContent]);
+
+    const handleDeleteNote = useCallback((noteId) => {
+        setDeleteNoteId(noteId);
+        setDeleteModalOpen(true);
     }, []);
 
-    const handleViewNotesHistory = () => {
+    const handleViewNotesHistory = useCallback(() => {
+        if (!projectDetails) return;
+
         // Auto-expand sidebar if collapsed or too narrow
         if (!sidebarWidth || sidebarWidth < 300) {
             setSidebarWidth(350);
         }
         setSidebarCollapsed(false); // Expand sidebar
-        setSidebarContent(
-            <ProjectSidebar
-                projectId={projectDetails.project_id}
+            setSidebarContent(
+                <ProjectSidebar
+                projectId={projectDetails?.project_id}
                 onDeleteNote={handleDeleteNote}
                 key={refreshSidebarTrigger} // Force re-render to refresh list
             />
         );
-    };
+    }, [
+        handleDeleteNote,
+        projectDetails,
+        refreshSidebarTrigger,
+        setSidebarCollapsed,
+        setSidebarContent,
+        setSidebarWidth,
+        sidebarWidth,
+    ]);
 
     // Refresh sidebar when trigger changes
     useEffect(() => {
         if (sidebarWidth > 0) { // Only if sidebar is likely open/active
             handleViewNotesHistory();
         }
-    }, [refreshSidebarTrigger]);
+    }, [handleViewNotesHistory, refreshSidebarTrigger, sidebarWidth]);
 
 
     const onSaveNote = async () => {
@@ -60,11 +75,6 @@ const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, 
             console.error("Failed to save note", error);
             alert("Failed to save note");
         }
-    };
-
-    const handleDeleteNote = (noteId) => {
-        setDeleteNoteId(noteId);
-        setDeleteModalOpen(true);
     };
 
     const confirmDeleteNote = async () => {

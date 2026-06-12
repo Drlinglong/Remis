@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Grid, Paper, Title, Text, Stack, Group, Button,
@@ -29,18 +29,6 @@ const JudgmentCourt = () => {
     const [editSuggestion, setEditSuggestion] = useState("");
 
     useEffect(() => {
-        fetchProjects();
-    }, []);
-
-    useEffect(() => {
-        if (selectedProject) {
-            fetchCandidates(selectedProject);
-        } else {
-            setCandidates([]);
-        }
-    }, [selectedProject]);
-
-    useEffect(() => {
         if (selectedId) {
             const candidate = candidates.find(c => c.id === selectedId);
             if (candidate) {
@@ -49,7 +37,7 @@ const JudgmentCourt = () => {
         }
     }, [selectedId, candidates]);
 
-    const fetchProjects = async () => {
+    const fetchProjects = useCallback(async () => {
         try {
             const response = await api.get(`${API_BASE_URL}/projects`);
             setProjects(response.data);
@@ -59,22 +47,32 @@ const JudgmentCourt = () => {
         } catch (error) {
             console.error("Failed to fetch projects", error);
         }
-    };
+    }, []);
 
-    const fetchCandidates = async (projectId) => {
+    const fetchCandidates = useCallback(async (projectId) => {
         setLoading(true);
         try {
             const response = await api.get(`${API_BASE_URL}/neologisms?project_id=${projectId}`);
             setCandidates(response.data);
-            if (response.data.length > 0 && !selectedId) {
-                setSelectedId(response.data[0].id);
-            }
-        } catch (error) {
+            setSelectedId(prev => prev || response.data[0]?.id || null);
+        } catch {
             notifications.show({ title: 'Error', message: 'Failed to load candidates', color: 'red' });
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchProjects();
+    }, [fetchProjects]);
+
+    useEffect(() => {
+        if (selectedProject) {
+            fetchCandidates(selectedProject);
+        } else {
+            setCandidates([]);
+        }
+    }, [fetchCandidates, selectedProject]);
 
     const handleApprove = async () => {
         if (!selectedId || !selectedProject) return;
@@ -90,7 +88,7 @@ const JudgmentCourt = () => {
             });
             notifications.show({ title: 'Approved', message: 'Term added to glossary', color: 'green' });
             removeCandidate(selectedId);
-        } catch (error) {
+        } catch {
             notifications.show({ title: 'Error', message: 'Failed to approve', color: 'red' });
         } finally {
             setProcessing(false);
@@ -106,7 +104,7 @@ const JudgmentCourt = () => {
             });
             notifications.show({ title: 'Rejected', message: 'Term ignored', color: 'gray' });
             removeCandidate(selectedId);
-        } catch (error) {
+        } catch {
             notifications.show({ title: 'Error', message: 'Failed to reject', color: 'red' });
         } finally {
             setProcessing(false);

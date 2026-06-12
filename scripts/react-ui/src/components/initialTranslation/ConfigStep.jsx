@@ -67,21 +67,6 @@ export default function ConfigStep({
   ];
   const translationRpmOptions = ['10', '20', '40', '60', '80', '120'].map((value) => ({ value, label: value }));
 
-  const nativeSelectStyle = {
-    width: '100%',
-    minHeight: 40,
-    padding: '10px 12px',
-    borderRadius: 10,
-    border: '1px solid var(--glass-border)',
-    background: 'var(--glass-bg)',
-    color: 'var(--text-main)',
-    outline: 'none',
-    boxShadow: 'var(--shadow-elevation)',
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
-    colorScheme: 'dark',
-  };
-
   const sectionCardStyle = {
     background: 'linear-gradient(180deg, rgba(86, 111, 147, 0.16) 0%, rgba(41, 54, 72, 0.12) 100%)',
     border: '1px solid rgba(151, 177, 210, 0.16)',
@@ -198,7 +183,7 @@ export default function ConfigStep({
         selectedTargets.filter((code) => code !== sourceLanguageCode)
       );
     }
-  }, [sourceLanguageCode, form.values.target_lang_codes]);
+  }, [form, sourceLanguageCode, form.values.target_lang_codes]);
 
   const providerOptions = config.api_providers
     .filter((provider) => provider.value !== 'hunyuan' || FEATURES.ENABLE_HUNYUAN_PROVIDER)

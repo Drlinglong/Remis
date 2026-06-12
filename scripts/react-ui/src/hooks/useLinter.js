@@ -23,7 +23,7 @@ export const useLinter = () => {
                 source_lang_code: 'en_US'
             });
             setLinterResults(response.data);
-        } catch (err) {
+        } catch {
             setLinterError("Failed to validate.");
         } finally {
             setLinterLoading(false);

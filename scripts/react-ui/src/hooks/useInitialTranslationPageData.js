@@ -29,6 +29,7 @@ export function useInitialTranslationPageData({ form, notificationStyle, selecte
   const [availableModels, setAvailableModels] = useState([]);
   const [availableGlossaries, setAvailableGlossaries] = useState([]);
   const { values } = form;
+  const selectedGlossaryIds = values.selected_glossary_ids;
   const hasLoadedRef = useRef(false);
   const setFieldValueRef = useRef(form.setFieldValue);
   setFieldValueRef.current = form.setFieldValue;
@@ -82,7 +83,7 @@ export function useInitialTranslationPageData({ form, notificationStyle, selecte
 
     if (!selectedGameId) {
       setAvailableGlossaries((prev) => (prev.length === 0 ? prev : []));
-      if ((values.selected_glossary_ids || []).length > 0) {
+      if ((selectedGlossaryIds || []).length > 0) {
         setFieldValueRef.current('selected_glossary_ids', []);
       }
       return undefined;
@@ -98,7 +99,7 @@ export function useInitialTranslationPageData({ form, notificationStyle, selecte
         setAvailableGlossaries((prev) => (JSON.stringify(prev) === JSON.stringify(normalizedGlossaries) ? prev : normalizedGlossaries));
 
         const allowedValues = new Set(normalizedGlossaries.map((glossary) => String(glossary.value)));
-        const currentSelected = values.selected_glossary_ids || [];
+        const currentSelected = selectedGlossaryIds || [];
         const filteredSelectedGlossaries = currentSelected
           .filter((glossaryId) => allowedValues.has(String(glossaryId)));
 
@@ -112,7 +113,7 @@ export function useInitialTranslationPageData({ form, notificationStyle, selecte
         }
         console.error(`Failed to load glossaries for ${selectedGameId}:`, error);
         setAvailableGlossaries([]);
-        if ((values.selected_glossary_ids || []).length > 0) {
+        if ((selectedGlossaryIds || []).length > 0) {
           setFieldValueRef.current('selected_glossary_ids', []);
         }
       });
@@ -120,7 +121,7 @@ export function useInitialTranslationPageData({ form, notificationStyle, selecte
     return () => {
       cancelled = true;
     };
-  }, [selectedGameId]);
+  }, [selectedGameId, selectedGlossaryIds]);
 
   useEffect(() => {
     const providerConfig = config.api_providers.find((provider) => provider.value === values.api_provider);

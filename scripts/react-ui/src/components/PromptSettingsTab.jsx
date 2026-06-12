@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Stack,
     Title,
@@ -102,30 +102,18 @@ const PromptSettingsTab = () => {
         { label: '{task_description}', desc: 'Task Description' },
     ];
 
-    useEffect(() => {
-        fetchPrompts();
-    }, []);
-
-    useEffect(() => {
-        if (promptsData && selectedGameId) {
-            const gameData = promptsData.system_prompts[selectedGameId];
-            if (gameData) {
-                setCurrentSystemPrompt(gameData.current);
-                setCurrentFormatPrompt(gameData.format_current);
-            }
-        }
-    }, [selectedGameId, promptsData]);
-
-    const fetchPrompts = async () => {
+    const fetchPrompts = useCallback(async () => {
         try {
             const response = await api.get('/api/prompts');
             setPromptsData(response.data);
             setCustomGlobalPrompt(response.data.custom_global_prompt || '');
 
             // Select first game by default if not selected
-            if (!selectedGameId && response.data.system_prompts) {
+            if (response.data.system_prompts) {
                 const firstGame = Object.keys(response.data.system_prompts)[0];
-                if (firstGame) setSelectedGameId(firstGame);
+                if (firstGame) {
+                    setSelectedGameId(prev => prev || firstGame);
+                }
             }
         } catch (error) {
             console.error("Failed to fetch prompts:", error);
@@ -137,7 +125,21 @@ const PromptSettingsTab = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [t]);
+
+    useEffect(() => {
+        fetchPrompts();
+    }, [fetchPrompts]);
+
+    useEffect(() => {
+        if (promptsData && selectedGameId) {
+            const gameData = promptsData.system_prompts[selectedGameId];
+            if (gameData) {
+                setCurrentSystemPrompt(gameData.current);
+                setCurrentFormatPrompt(gameData.format_current);
+            }
+        }
+    }, [selectedGameId, promptsData]);
 
     const handleSaveSystemPrompt = async () => {
         if (!selectedGameId) return;

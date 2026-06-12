@@ -4,7 +4,7 @@ import { Center, Loader, Modal, Stack, Text, Group, Button, Tabs, Title, Contain
 import { IconPhoto, IconTools, IconBug, IconCode } from '@tabler/icons-react';
 import layoutStyles from '../components/layout/Layout.module.css';
 import { FEATURES } from '../config/features';
-import { useTutorial, getTutorialKey } from '../context/TutorialContext';
+import { useTutorial, getTutorialKey } from '../context/TutorialContextCore';
 
 const ThumbnailGenerator = lazy(() => import('../components/tools/ThumbnailGenerator'));
 const WorkshopGenerator = lazy(() => import('../components/tools/WorkshopGenerator'));

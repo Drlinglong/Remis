@@ -1,27 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Stack, Group, Title, ActionIcon, Text, Paper } from '@mantine/core';
 import { IconX, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../utils/api';
-import { useSidebar } from '../../context/SidebarContext';
+import { useSidebar } from '../../context/SidebarContextCore';
 
 const ProjectSidebar = ({ projectId, onDeleteNote }) => {
     const { t } = useTranslation();
     const { setSidebarContent } = useSidebar();
     const [history, setHistory] = useState([]);
 
-    const fetchHistory = async () => {
+    const fetchHistory = useCallback(async () => {
         try {
             const res = await api.get(`/api/project/${projectId}/notes`);
             setHistory(res.data);
         } catch (error) {
             console.error("Failed to load notes history", error);
         }
-    };
+    }, [projectId]);
 
     useEffect(() => {
         fetchHistory();
-    }, [projectId]);
+    }, [fetchHistory]);
 
     // Expose refresh method if needed, or just auto-refresh on mount
     // For external updates (like adding a note), we might need a trigger or context.

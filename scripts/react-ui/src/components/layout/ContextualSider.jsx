@@ -3,7 +3,7 @@ import { Box, Text, SegmentedControl, Group, ActionIcon } from '@mantine/core';
 import { IconInfoCircle, IconHistory, IconLayoutSidebarRightCollapse, IconLayoutSidebarRightExpand } from '@tabler/icons-react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useSidebar } from '../../context/SidebarContext';
+import { useSidebar } from '../../context/SidebarContextCore';
 import styles from './Layout.module.css';
 
 export function ContextualSider() {
