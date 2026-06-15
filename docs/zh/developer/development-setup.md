@@ -99,5 +99,6 @@ npm run tauri build
 ## 相关文档
 
 - [项目技术文档](../main.md)
+- [本地数据目录说明](./user_data_paths.md)
 - [前端开发指南](../frontend/)
 - [API 文档](../technical/)

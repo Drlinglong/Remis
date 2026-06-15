@@ -11,6 +11,7 @@ echo.
 echo This tool will DELETE all user data for Remis Mod Factory.
 echo.
 echo Target Directory: %APPDATA%\RemisModFactory
+echo Development Directory NOT touched: %APPDATA%\RemisModFactoryDev
 echo.
 echo [WARNING] This includes:
 echo  - Local Project Database (remis.sqlite)
@@ -19,6 +20,7 @@ echo  - Demo Mod Progress
 echo  - Cached Translations
 echo.
 echo Apps installed in "Program Files" will NOT be affected.
+echo Local development data in RemisModFactoryDev will NOT be affected.
 echo Use this only if the application fails to start or behaves abnormally.
 echo.
 echo ===============================================================================
