@@ -269,6 +269,32 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
                 "Test"
             )
 
+    async def test_get_project_kanban_reconciles_sidecar_with_db_files(self):
+        project_id = "kanban-proj"
+        project_data = {"project_id": project_id, "name": "Kanban", "source_path": "/path/to/source"}
+        mock_project = MagicMock()
+        mock_project.model_dump.return_value = project_data
+        mock_project.__getitem__ = lambda s, k: project_data[k]
+        mock_file = MagicMock()
+        mock_file.model_dump.return_value = {
+            "file_id": "source-id",
+            "project_id": project_id,
+            "file_path": "/path/to/source/localisation/demo_l_english.yml",
+            "status": "todo",
+            "file_type": "source",
+        }
+        self.mock_repo.get_project.return_value = mock_project
+        self.mock_repo.get_project_files.return_value = [mock_file]
+        self.mock_kanban.sync_board_to_files.return_value = {"tasks": {"source-id": {}}}
+
+        result = await self.pm.get_project_kanban(project_id)
+
+        self.assertEqual(result, {"tasks": {"source-id": {}}})
+        self.mock_kanban.sync_board_to_files.assert_called_once_with(
+            "/path/to/source",
+            [mock_file.model_dump.return_value],
+        )
+
     async def test_repair_project_metadata_rebuilds_sidecars_and_refreshes_files(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             source_root = os.path.join(temp_dir, "project")

@@ -39,6 +39,28 @@ class KanbanService:
             logger.error(f"Failed to save kanban board for {source_path}: {e}")
             raise
 
+    def sync_board_to_files(self, source_path: str, files: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Reconciles the JSON sidecar with the current DB file index.
+        """
+        board = self.get_board(source_path)
+        tasks = board.get("tasks", {})
+        reconciled_tasks = self.linking_strategy.process_files(source_path, files, tasks)
+
+        if reconciled_tasks != tasks:
+            board = {
+                **board,
+                "tasks": reconciled_tasks,
+            }
+            self.save_board(source_path, board)
+            logger.info(
+                "KanbanService: Reconciled board for %s. Removed %s stale task(s).",
+                source_path,
+                max(0, len(tasks) - len(reconciled_tasks)),
+            )
+
+        return board
+
     async def update_file_status_sync(self, project_id: str, source_path: str, file_id: str, status: str) -> None:
         """
         Updates file status in DB and also moves it in the Kanban JSON.

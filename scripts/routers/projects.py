@@ -283,11 +283,10 @@ async def delete_project_note(project_id: str, note_id: str):
 
 @router.get("/api/project/{project_id}/kanban")
 async def get_project_kanban(project_id: str):
-    project = await project_manager.get_project(project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
     try:
-        return project_manager.kanban_service.get_board(project['source_path'])
+        return await project_manager.get_project_kanban(project_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -489,88 +488,114 @@ async def get_project_validation_status(project_id: str, sidecar_path: Optional[
     }
 
 def run_incremental_update_background(task_id: str, project_id: str, request: IncrementalUpdateRequest):
-    from scripts.shared.state import tasks
-    from scripts.shared.ws_manager import ws_manager
-    import threading
+    from scripts.shared import task_state
     import asyncio
-    
-    # Initialize task state in sync way if needed, but it's already done in the route
-    task_lock = threading.Lock()
-    tasks[task_id]["status"] = "processing"
-    tasks[task_id]["progress"] = {"percent": 0, "stage": "Initializing", "stage_code": "initializing", "message": "Starting..."}
+
+    task_state.update_task(
+        task_id,
+        status="processing",
+        progress={
+            "percent": 0,
+            "stage": "Initializing",
+            "stage_code": "initializing",
+            "message": "Starting...",
+        },
+        push=True,
+    )
     
     def progress_callback(data: Dict[str, Any]):
-        with task_lock:
-            if task_id not in tasks: return
-            tasks[task_id]["progress"].update(data)
-            if "message" in data:
-                tasks[task_id]["log"].append(data["message"])
-            
-            # WebSocket Push
-            ws_manager.sync_send_task_update(task_id, dict(tasks[task_id]))
+        task_state.update_task(
+            task_id,
+            progress=data,
+            append_log=data.get("message"),
+            push=True,
+        )
 
     try:
         # Run the async workflow in this thread's event loop
         result = asyncio.run(project_manager.run_incremental_update_workflow(request, progress_callback))
         
         if result.get("status") == "error":
-            tasks[task_id]["status"] = "failed"
-            tasks[task_id]["log"].append(f"Error: {result.get('message')}")
+            task_state.update_task(
+                task_id,
+                status="failed",
+                append_log=f"Error: {result.get('message')}",
+                push=True,
+            )
         else:
-            tasks[task_id]["status"] = "completed"
-            tasks[task_id]["progress"]["percent"] = 100
-            tasks[task_id]["progress"]["stage"] = "Completed"
-            tasks[task_id]["progress"]["stage_code"] = "completed"
-            tasks[task_id]["log"].append("Incremental update completed successfully.")
-            tasks[task_id]["summary"] = result.get("summary")
-            tasks[task_id]["file_summaries"] = result.get("file_summaries", [])
-            tasks[task_id]["telemetry"] = result.get("telemetry", {})
-            tasks[task_id]["output_dir"] = result.get("output_dir")
-            tasks[task_id]["output_dirs"] = result.get("output_dirs", [])
-            tasks[task_id]["warnings"] = result.get("warnings", [])
-            tasks[task_id]["warning_count"] = result.get("warning_count", 0)
-            tasks[task_id]["workshop_issue_exports"] = result.get("workshop_issue_exports", [])
-            if tasks[task_id]["warning_count"] > 0:
-                tasks[task_id]["log"].append(
-                    f"Runtime translation warnings: {tasks[task_id]['warning_count']}."
+            fields = {
+                "file_summaries": result.get("file_summaries", []),
+                "telemetry": result.get("telemetry", {}),
+                "output_dir": result.get("output_dir"),
+                "output_dirs": result.get("output_dirs", []),
+                "warnings": result.get("warnings", []),
+                "warning_count": result.get("warning_count", 0),
+                "workshop_issue_exports": result.get("workshop_issue_exports", []),
+            }
+            task_state.update_task(
+                task_id,
+                status="completed",
+                progress={"percent": 100, "stage": "Completed", "stage_code": "completed"},
+                summary=result.get("summary"),
+                fields=fields,
+                append_log="Incremental update completed successfully.",
+                push=False,
+            )
+            task = task_state.get_task(task_id) or {}
+            if fields["warning_count"] > 0:
+                task = task_state.update_task(
+                    task_id,
+                    append_log=f"Runtime translation warnings: {fields['warning_count']}.",
+                    push=False,
                 )
             total_validation_issues = sum(
                 int(export_info.get("issue_count", 0) or 0)
-                for export_info in tasks[task_id]["workshop_issue_exports"]
+                for export_info in fields["workshop_issue_exports"]
             )
             if total_validation_issues > 0:
-                tasks[task_id]["log"].append(
-                    f"Post-build validation issues: {total_validation_issues}. "
-                    "See workshop_issues.json for structured diagnostics."
+                task = task_state.update_task(
+                    task_id,
+                    append_log=(
+                        f"Post-build validation issues: {total_validation_issues}. "
+                        "See workshop_issues.json for structured diagnostics."
+                    ),
+                    push=False,
                 )
-            for export_info in tasks[task_id]["workshop_issue_exports"]:
+            for export_info in fields["workshop_issue_exports"]:
                 issues_path = export_info.get("issues_path")
                 if issues_path:
-                    tasks[task_id]["log"].append(
-                        f"Workshop issue sidecar generated: {issues_path} "
-                        f"({export_info.get('issue_count', 0)} issue(s))."
+                    task = task_state.update_task(
+                        task_id,
+                        append_log=(
+                            f"Workshop issue sidecar generated: {issues_path} "
+                            f"({export_info.get('issue_count', 0)} issue(s))."
+                        ),
+                        push=False,
                     )
-            _write_incremental_logs(tasks[task_id]["output_dirs"], tasks[task_id]["log"], tasks[task_id]["telemetry"])
+            task = task_state.get_task(task_id) or task
+            _write_incremental_logs(fields["output_dirs"], task.get("log", []), fields["telemetry"])
             logging.info(f"Incremental task {task_id} completed successfully.")
-            
+
     except Exception as e:
         import traceback
         logging.error(f"Incremental update background task failed: {e}")
-        tasks[task_id]["status"] = "failed"
-        tasks[task_id]["log"].append(f"Critical Failure: {str(e)}\n{traceback.format_exc()}")
+        task_state.update_task(
+            task_id,
+            status="failed",
+            append_log=f"Critical Failure: {str(e)}\n{traceback.format_exc()}",
+            push=True,
+        )
     finally:
-        # Final WS push
-        if task_id in tasks:
-            ws_manager.sync_send_task_update(task_id, dict(tasks[task_id]))
+        task_state.push_task_update(task_id)
 
 @router.post("/api/project/{project_id}/incremental-update")
 async def run_incremental_update(project_id: str, request: IncrementalUpdateRequest, background_tasks: BackgroundTasks):
     """Triggers the incremental update workflow in background."""
-    from scripts.shared.state import tasks
+    from scripts.shared import task_state
     import uuid
     
     task_id = str(uuid.uuid4())
-    tasks[task_id] = {"status": "pending", "log": ["Queuing incremental update..."]}
+    task_state.create_task(task_id, status="pending", log_message="Queuing incremental update...")
     
     if request.project_id != project_id:
         request.project_id = project_id

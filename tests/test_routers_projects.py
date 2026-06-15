@@ -143,6 +143,43 @@ def test_run_incremental_update_background_marks_task_completed(monkeypatch, tmp
     assert ws_push.call_count >= 2
 
 
+def test_update_project_status_rejects_unknown_status(mock_project_manager):
+    client = TestClient(app)
+
+    response = client.post("/api/project/proj-1/status", json={"status": "half_deleted"})
+
+    assert response.status_code == 422
+    mock_project_manager.update_project_status.assert_not_awaited()
+
+
+def test_update_file_status_rejects_unknown_status(mock_project_manager):
+    client = TestClient(app)
+
+    response = client.put(
+        "/api/project/proj-1/file/file-1/status",
+        json={"status": "half_done"},
+    )
+
+    assert response.status_code == 422
+    mock_project_manager.update_file_status_with_kanban_sync.assert_not_awaited()
+
+
+def test_update_file_status_accepts_legacy_translated_status(mock_project_manager):
+    client = TestClient(app)
+
+    response = client.put(
+        "/api/project/proj-1/file/file-1/status",
+        json={"status": "translated"},
+    )
+
+    assert response.status_code == 200
+    mock_project_manager.update_file_status_with_kanban_sync.assert_awaited_once_with(
+        "proj-1",
+        "file-1",
+        "done",
+    )
+
+
 def test_update_project_config_delegates_source_path_to_manager(mock_project_manager):
     mock_project_manager.get_project.side_effect = [
         {

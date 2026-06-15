@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Badge, Button, Group, Paper, Tabs, Text, Title, Tooltip } from '@mantine/core';
 import { IconArrowLeft } from '@tabler/icons-react';
 
@@ -30,6 +30,17 @@ export function ProjectDashboardView({
   setSelectedProjectId,
   t,
 }) {
+  const previousTabRef = useRef(activeTab);
+
+  useEffect(() => {
+    const previousTab = previousTabRef.current;
+    previousTabRef.current = activeTab;
+
+    if (activeTab === 'overview' && previousTab !== 'overview') {
+      fetchProjectFiles(selectedProject.project_id);
+    }
+  }, [activeTab, fetchProjectFiles, selectedProject.project_id]);
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Paper p="md" shadow="xs" style={{ zIndex: 10 }}>

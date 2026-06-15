@@ -74,6 +74,9 @@ class ProjectManager:
             from scripts.core.repositories.project_repository import ProjectRepository
             self.repository = ProjectRepository(db_path)
 
+        if getattr(self.kanban_service, "repository", None) is None:
+            self.kanban_service.repository = self.repository
+
         self.archive_service = archive_service or TranslationArchiveService()
 
     def _normalize_source_root_path(self, folder_path: str, game_id: str) -> str:
@@ -613,6 +616,18 @@ class ProjectManager:
         """Returns all files for a project."""
         files = await self.repository.get_project_files(project_id)
         return [f.model_dump() for f in files]
+
+    async def get_project_kanban(self, project_id: str) -> Dict[str, Any]:
+        """Returns kanban board reconciled with the current DB file index."""
+        project = await self.get_project(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+
+        files = await self.repository.get_project_files(project_id)
+        return self.kanban_service.sync_board_to_files(
+            project['source_path'],
+            [f.model_dump() for f in files],
+        )
 
     async def update_project_status(self, project_id: str, status: str):
         # We use the unified add_history_entry which also updates the project status/last_modified indirectly?

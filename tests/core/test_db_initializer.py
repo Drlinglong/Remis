@@ -1,6 +1,9 @@
 import os
 import sqlite3
 
+import pytest
+
+import scripts.core.db_initializer as db_initializer
 from scripts import app_settings
 from scripts.core.db_initializer import (
     extract_bundled_demo_translations,
@@ -65,7 +68,10 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
 
     cursor.execute("SELECT version, name FROM schema_migrations")
     migrations = cursor.fetchall()
-    assert migrations == [(1, "establish_managed_main_schema")]
+    assert migrations == [
+        (1, "establish_managed_main_schema"),
+        (2, "add_project_watches"),
+    ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
     source_path, target_path = cursor.fetchone()
@@ -151,8 +157,23 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     assert {"source_language", "last_modified", "last_activity_type", "last_activity_desc", "notes", "target_path"}.issubset(project_columns)
 
     cursor.execute("SELECT version FROM schema_migrations")
-    assert cursor.fetchall() == [(1,)]
+    assert cursor.fetchall() == [(1,), (2,)]
+
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")
+    assert cursor.fetchone() == ("project_watches",)
 
     cursor.execute("SELECT name FROM glossaries WHERE glossary_id = 1")
     assert cursor.fetchone()[0] == "Legacy"
     conn.close()
+
+
+def test_run_projects_db_migrations_raises_on_failure(monkeypatch, tmp_path):
+    db_path = tmp_path / "broken.sqlite"
+
+    def fail_migration(_db_path):
+        raise RuntimeError("schema drift")
+
+    monkeypatch.setattr(db_initializer, "migrate_main_database", fail_migration)
+
+    with pytest.raises(RuntimeError, match="schema drift"):
+        run_projects_db_migrations(str(db_path))

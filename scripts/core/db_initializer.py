@@ -267,6 +267,7 @@ def run_projects_db_migrations(db_path):
         init_logger.info("Database schema initialized/verified with migrations. Current version: %s", version)
     except Exception as e:
         init_logger.error("Failed to run DB migrations: %s", e)
+        raise
 
 
 def sync_development_demo_sources(source_mod_root, persistent_demo_root):

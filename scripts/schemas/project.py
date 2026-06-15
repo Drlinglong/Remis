@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Literal
 from pydantic import BaseModel, field_validator
 from scripts.schemas.common import LanguageCode
 
@@ -17,13 +17,20 @@ class CreateProjectRequest(BaseModel):
         return v
 
 class UpdateProjectStatusRequest(BaseModel):
-    status: str
+    status: Literal["active", "archived", "deleted"]
 
 class UpdateProjectNotesRequest(BaseModel):
     notes: str
 
 class UpdateFileStatusRequest(BaseModel):
-    status: str
+    status: Literal["todo", "in_progress", "proofreading", "paused", "done"]
+
+    @field_validator('status', mode='before')
+    @classmethod
+    def normalize_legacy_file_status(cls, v):
+        if v == "translated":
+            return "done"
+        return v
 
 class UpdateProjectMetadataRequest(BaseModel):
     game_id: str

@@ -34,7 +34,11 @@ class ParadoxFileLinkingStrategy(FileLinkingStrategy):
     """
 
     def process_files(self, source_path: str, files: List[Dict[str, Any]], existing_tasks: Dict[str, Any]) -> Dict[str, Any]:
-        new_tasks = {}
+        new_tasks = {
+            task_id: task
+            for task_id, task in existing_tasks.items()
+            if task.get('type') == 'note'
+        }
         
         # 1. Deduplicate input files by file_id
         seen_ids = set()
@@ -102,19 +106,6 @@ class ParadoxFileLinkingStrategy(FileLinkingStrategy):
                     "parent_task_id": parent_task_id,
                     "rel_path": os.path.relpath(t_path, source_path) if t_path.startswith(source_path) else t_name
                 }
-            )
-            new_tasks[file_id] = task
-
-        # 5. Third Pass: Metadata/Config Files
-        meta_files = [f for f in unique_files if f.get('file_type') in ['metadata', 'config']]
-        for mf in meta_files:
-            file_id = mf['file_id']
-            task = self._create_or_update_task(
-                file_id, 
-                mf, 
-                existing_tasks, 
-                id_to_key, 
-                file_type=mf.get('file_type')
             )
             new_tasks[file_id] = task
 
