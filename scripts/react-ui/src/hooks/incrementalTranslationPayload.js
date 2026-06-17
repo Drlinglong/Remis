@@ -2,16 +2,7 @@ export const INCREMENTAL_STATE_STORAGE_KEY = 'incremental_translation_state_v1';
 
 export const LOCAL_PROVIDERS = ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui'];
 
-export const normalizeArrayPayload = (payload, keys = []) => {
-  if (Array.isArray(payload)) return payload;
-  if (!payload || typeof payload !== 'object') return [];
-
-  for (const key of keys) {
-    if (Array.isArray(payload[key])) return payload[key];
-  }
-
-  return [];
-};
+export { normalizeArrayPayload } from '../utils/payload';
 
 export const getArchivedTargetLanguages = (info) => {
   if (!info) return [];

@@ -15,22 +15,12 @@ import PerformanceControlPanel from '../components/shared/PerformanceControlPane
 import BusyHeartbeat from '../components/shared/BusyHeartbeat';
 import { useLocation } from 'react-router-dom';
 import { getTutorialKey, useTutorial } from '../context/TutorialContextCore';
+import { normalizeArrayPayload } from '../utils/payload';
 import styles from './AgentWorkshop.module.css';
 import translationStyles from './Translation.module.css';
 
 const STORAGE_KEY = 'agent_workshop_state_v2';
 const LOCAL_PROVIDERS = ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui'];
-
-const normalizeArrayPayload = (payload, keys = []) => {
-  if (Array.isArray(payload)) return payload;
-  if (!payload || typeof payload !== 'object') return [];
-
-  for (const key of keys) {
-    if (Array.isArray(payload[key])) return payload[key];
-  }
-
-  return [];
-};
 
 const AgentWorkshopPage = () => {
   const { t } = useTranslation();

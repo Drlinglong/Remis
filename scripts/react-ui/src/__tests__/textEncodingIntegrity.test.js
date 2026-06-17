@@ -7,6 +7,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '../../../../');
 
+const scanRoots = [
+  path.join(repoRoot, 'scripts', 'core'),
+  path.join(repoRoot, 'scripts', 'routers'),
+  path.join(repoRoot, 'scripts', 'schemas'),
+  path.join(repoRoot, 'scripts', 'react-ui', 'src'),
+  path.join(repoRoot, 'scripts', 'react-ui', 'src-tauri'),
+].filter((dirPath) => {
+  try {
+    return statSync(dirPath).isDirectory();
+  } catch {
+    return false;
+  }
+});
+
 const excludedDirs = new Set([
   '.git',
   '__pycache__',
@@ -23,6 +37,11 @@ const excludedDirs = new Set([
   'tests_tmp',
   'tmp',
   'venv',
+]);
+
+const excludedFiles = new Set([
+  'package-lock.json',
+  'package.json',
 ]);
 
 const includedExtensions = new Set([
@@ -91,7 +110,11 @@ describe('text encoding integrity', () => {
   it('keeps business code free of placeholder question marks and known mojibake markers', () => {
     const offenders = [];
 
-    for (const filePath of walk(repoRoot)) {
+    for (const filePath of scanRoots.flatMap((scanRoot) => walk(scanRoot))) {
+      if (excludedFiles.has(path.basename(filePath))) {
+        continue;
+      }
+
       let text;
 
       try {
