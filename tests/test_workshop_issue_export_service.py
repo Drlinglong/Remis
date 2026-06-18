@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService
 
@@ -70,3 +71,41 @@ def test_export_uses_dynamic_tags_for_vic3_warning_detection(tmp_path):
         if item["error_code"] == "validation_vic3_unknown_formatting"
     )
     assert issue["severity"] == "warning"
+
+
+def test_export_recovers_missing_source_context_from_archive(tmp_path):
+    source_root = tmp_path / "source"
+    output_root = tmp_path / "output"
+
+    _write_loc(
+        output_root / "localization" / "english" / "sample_l_english.yml",
+        'l_english:\n demo.key:0 "Hello."\n',
+    )
+
+    with patch(
+        "scripts.core.services.workshop_issue_export_service.archive_manager.get_source_entry",
+        return_value={"original": "你好，[Root.GetCountry.GetName]。"},
+    ) as mock_get_source_entry:
+        result = WorkshopIssueExportService().export_for_output(
+            output_root=output_root,
+            source_root=source_root,
+            source_lang_info={"code": "zh-CN", "key": "l_simp_chinese"},
+            target_lang_info={"code": "en", "key": "l_english"},
+            game_profile={"id": "victoria3"},
+            workflow="test",
+            project_name="Demo",
+            project_id="project-1",
+        )
+
+    issue = next(
+        item for item in result["issues"]
+        if item["error_code"] == "validation_vic3_variable_parity_mismatch"
+    )
+    assert issue["source_str"] == "你好，[Root.GetCountry.GetName]。"
+    assert issue["source_context_status"] == "fallback_found"
+    assert issue["source_context_origin"] == "archive_database"
+    assert "archive database" in issue["source_context_warning"]
+    mock_get_source_entry.assert_called_once()
+    assert mock_get_source_entry.call_args.kwargs["mod_name"] == "Demo"
+    assert mock_get_source_entry.call_args.kwargs["project_id"] == "project-1"
+    assert mock_get_source_entry.call_args.kwargs["entry_key"] == "demo.key:0"
