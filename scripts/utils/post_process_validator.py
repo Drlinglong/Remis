@@ -183,7 +183,7 @@ class BaseGameValidator:
             self.logger.warning(self._get_i18n_message("validator_error_regex_error", rule_name=rule['name'], e=e, pattern=pattern))
         return results
 
-    def _check_mismatched_tags(self, text: str, rule: Dict, line_number: Optional[int], **kwargs) -> List[ValidationResult]:
+    def _check_mismatched_tags(self, text: str, rule: Dict, line_number: Optional[int], source_text: Optional[str] = None, **kwargs) -> List[ValidationResult]:
         """
         工人方法：一个强大的通用方法，用于检查所有游戏中不成对的标签。
         它从 rule['params'] 中读取 start_tag_pattern 和 end_tag_string。
@@ -199,6 +199,15 @@ class BaseGameValidator:
         try:
             start_tags_count = len(re.findall(start_tag_pattern, text))
             end_tags_count = text.count(end_tag_string)
+            if source_text:
+                source_start_tags_count = len(re.findall(start_tag_pattern, source_text))
+                source_end_tags_count = source_text.count(end_tag_string)
+                if (
+                    start_tags_count == source_start_tags_count
+                    and end_tags_count == source_end_tags_count
+                ):
+                    return results
+
             if start_tags_count != end_tags_count:
                 message = self._get_i18n_message(rule["message_key"])
                 details_key = params.get("details_key", "validation_generic_tags_count")

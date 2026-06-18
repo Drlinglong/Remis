@@ -12,13 +12,10 @@ import {
     Button,
     Accordion,
     Badge,
-    ThemeIcon,
-    Tooltip,
     Group,
     Stack
 } from '@mantine/core';
 import {
-    IconChartBar,
     IconSettings,
     IconAlertCircle,
     IconPlayerPlay,
@@ -26,6 +23,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import PerformanceControlPanel from '../shared/PerformanceControlPanel';
 import TelemetrySummary from './TelemetrySummary';
+import { buildPreScanLanguageSummary } from './preScanSummary';
 import styles from '../../pages/Translation.module.css';
 
 export const PreScanResultsStep = ({
@@ -52,6 +50,28 @@ export const PreScanResultsStep = ({
     executing,
 }) => {
     const { t } = useTranslation();
+    const languageSummary = buildPreScanLanguageSummary({ scanResults, selectedLangs, archiveInfo });
+
+    const formatRange = useCallback((range) => (
+        range.uniform ? String(range.min) : `${range.min} - ${range.max}`
+    ), []);
+
+    const formatLanguageScope = useCallback(() => {
+        const languages = languageSummary.languages.length > 0 ? languageSummary.languages : selectedLangs;
+        if (languageSummary.languageCount <= 1) {
+            return t('incremental_translation.language_scope_single', {
+                language: languages[0] || '--',
+                defaultValue: '{{language}}',
+            });
+        }
+
+        const preview = languages.slice(0, 3).join(', ');
+        return t('incremental_translation.language_scope_multi', {
+            preview,
+            count: languageSummary.languageCount,
+            defaultValue: '{{preview}} and {{count}} languages',
+        });
+    }, [languageSummary.languageCount, languageSummary.languages, selectedLangs, t]);
 
     const renderFileDetails = useCallback((fileSummaries) => {
         const dirtyFiles = (fileSummaries || []).filter((item) => (item.new + item.changed) > 0);
@@ -156,20 +176,47 @@ export const PreScanResultsStep = ({
                         <Text size="sm">{t('incremental_translation.workflow_supported_desc')}</Text>
                     </Alert>
 
+                    <Alert icon={<IconAlertCircle size={16} />} color="blue" radius="md" mb="lg">
+                        <Text size="sm">
+                            {t('incremental_translation.language_scope_summary', {
+                                languages: formatLanguageScope(),
+                                defaultValue: 'Running incremental update for {{languages}}. Per-language metrics describe one target language; aggregate metrics describe the whole run.',
+                            })}
+                        </Text>
+                        <Text size="sm" mt={6}>
+                            {t('incremental_translation.reusable_scope_note')}
+                        </Text>
+                    </Alert>
+
                     <Divider mb="lg" />
 
                     <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md" mb="xl">
                         <Card withBorder p="md" radius="md">
-                            <Text size="xs" c="dimmed" mb={4}>{t('summary_total')}</Text>
-                            <Title order={3}>{scanResults.total}</Title>
+                            <Text size="xs" c="dimmed" mb={4}>{t('incremental_translation.per_language_total')}</Text>
+                            <Title order={3}>{formatRange(languageSummary.perLanguageTotal)}</Title>
                         </Card>
                         <Card withBorder p="md" radius="md" style={{ borderLeft: '4px solid var(--mantine-color-green-6)' }}>
-                            <Text size="xs" c="dimmed" mb={4}>{t('incremental_translation.reused_count', { count: '' })}</Text>
-                            <Title order={3} c="green">{scanResults.unchanged}</Title>
+                            <Text size="xs" c="dimmed" mb={4}>{t('incremental_translation.per_language_reused')}</Text>
+                            <Title order={3} c="green">{formatRange(languageSummary.perLanguageReusable)}</Title>
                         </Card>
                         <Card withBorder p="md" radius="md" style={{ borderLeft: '4px solid var(--mantine-color-orange-6)' }}>
-                            <Text size="xs" c="dimmed" mb={4}>{t('incremental_translation.new_count', { count: '' })}</Text>
-                            <Title order={3} c="orange">{scanResults.new + scanResults.changed}</Title>
+                            <Text size="xs" c="dimmed" mb={4}>{t('incremental_translation.per_language_new')}</Text>
+                            <Title order={3} c="orange">{formatRange(languageSummary.perLanguageDirty)}</Title>
+                        </Card>
+                    </SimpleGrid>
+
+                    <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md" mb="xl">
+                        <Card withBorder p="md" radius="md">
+                            <Text size="xs" c="dimmed" mb={4}>{t('incremental_translation.aggregate_total')}</Text>
+                            <Title order={3}>{languageSummary.aggregateTotal}</Title>
+                        </Card>
+                        <Card withBorder p="md" radius="md" style={{ borderLeft: '4px solid var(--mantine-color-green-6)' }}>
+                            <Text size="xs" c="dimmed" mb={4}>{t('incremental_translation.aggregate_reused')}</Text>
+                            <Title order={3} c="green">{languageSummary.aggregateReusable}</Title>
+                        </Card>
+                        <Card withBorder p="md" radius="md" style={{ borderLeft: '4px solid var(--mantine-color-orange-6)' }}>
+                            <Text size="xs" c="dimmed" mb={4}>{t('incremental_translation.aggregate_new')}</Text>
+                            <Title order={3} c="orange">{languageSummary.aggregateDirty}</Title>
                         </Card>
                     </SimpleGrid>
 

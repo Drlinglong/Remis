@@ -89,6 +89,40 @@ def test_vic3_format_marker_parity_allows_translated_text_inside_wrapper(validat
 
     assert not [r for r in results if r.code == "validation_format_marker_parity_mismatch"]
 
+
+def test_vic3_mismatched_color_tags_allows_source_preserved_imbalance(validator):
+    source = "#tooltippable #tooltip:$BREAKDOWN_TAG$ Pops outside their home land face low Acceptance.#!"
+    target = "#tooltippable #tooltip:$BREAKDOWN_TAG$ 处于家园之外的人口接纳较低。#!"
+
+    results = validator.validate_entry(
+        "victoria3",
+        "EFFECTS_ON_ACCEPTANCE_ut_law_subjecthood_fascist:0",
+        target,
+        926,
+        SOURCE_LANG_EN,
+        source_value=source,
+        target_lang="zh-CN",
+    )
+
+    assert not [r for r in results if r.code == "validation_vic3_color_tags_mismatch"]
+    assert not [r for r in results if r.code == "validation_format_marker_parity_mismatch"]
+
+
+def test_vic3_mismatched_color_tags_still_flags_target_only_imbalance(validator):
+    results = validator.validate_entry(
+        "victoria3",
+        "remis_event.1.f:0",
+        "#bold text",
+        12,
+        SOURCE_LANG_EN,
+        source_value="plain text",
+        target_lang="zh-CN",
+    )
+
+    assert [r for r in results if r.code == "validation_vic3_color_tags_mismatch"]
+    assert [r for r in results if r.code == "validation_format_marker_parity_mismatch"]
+
+
 def test_residual_punctuation_check_finds_japanese_issue(validator, mocker):
     """
     Tests that the check correctly identifies Japanese punctuation when source is Japanese.

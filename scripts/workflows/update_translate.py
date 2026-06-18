@@ -281,6 +281,7 @@ async def run_incremental_update(
         all_written_files.extend(written_files)
         dynamic_valid_tags = resolve_dynamic_valid_tags(game_profile, source_path)
 
+        workshop_export_started_at = perf_counter()
         export_result = workshop_issue_exporter.export_for_output(
             output_root=lang_output_dir,
             source_root=source_path,
@@ -292,8 +293,10 @@ async def run_incremental_update(
             project_id=project_id or "",
             dynamic_valid_tags=dynamic_valid_tags,
         )
+        lang_telemetry["workshop_export_ms"] = round((perf_counter() - workshop_export_started_at) * 1000, 1)
         if embedded_workshop and embedded_workshop.get("enabled", True):
             try:
+                embedded_workshop_started_at = perf_counter()
                 workshop_summary = await run_embedded_workshop(
                     output_root=lang_output_dir,
                     source_root=source_path,
@@ -316,6 +319,7 @@ async def run_incremental_update(
                         if progress_callback else None
                     ),
                 )
+                lang_telemetry["embedded_workshop_ms"] = round((perf_counter() - embedded_workshop_started_at) * 1000, 1)
                 export_result = {
                     **export_result,
                     "issue_count": workshop_summary.get("remaining_count", export_result.get("issue_count", 0)),
@@ -334,6 +338,7 @@ async def run_incremental_update(
                     workshop_summary.get("model"),
                 )
             except Exception as exc:
+                lang_telemetry["embedded_workshop_ms"] = round((perf_counter() - embedded_workshop_started_at) * 1000, 1)
                 logger.error("Embedded workshop failed for %s: %s", target_lang_code, exc)
         lang_telemetry["workshop_issue_count"] = export_result.get("issue_count", 0)
         lang_telemetry["workshop_issues_path"] = export_result.get("issues_path")

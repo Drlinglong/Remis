@@ -86,6 +86,8 @@ export const TelemetrySummary = ({ telemetry }) => {
                                         ['incremental_translation.telemetry_prepare', item.prepare_ms],
                                         ['incremental_translation.telemetry_translation', item.translation_ms],
                                         ['incremental_translation.telemetry_build', item.build_ms],
+                                        ['incremental_translation.telemetry_workshop_export', item.workshop_export_ms],
+                                        ['incremental_translation.telemetry_embedded_workshop', item.embedded_workshop_ms],
                                         ['incremental_translation.telemetry_archive_write', item.archive_write_ms],
                                     ]
                                         .filter(([, value]) => typeof value === 'number')

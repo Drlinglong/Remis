@@ -9,6 +9,24 @@ from scripts.utils.i18n_utils import iso_to_paradox
 
 logger = logging.getLogger(__name__)
 
+LOCALIZATION_DIR_NAMES = {"localization", "localisation"}
+KNOWN_PARADOX_LANGUAGE_DIRS = {
+    "braz_por",
+    "chinese",
+    "english",
+    "french",
+    "german",
+    "japanese",
+    "korean",
+    "polish",
+    "russian",
+    "simp_chinese",
+    "spanish",
+    "trad_chinese",
+    "turkish",
+}
+
+
 class FileService:
     """
     Service to orchestrate file scanning, database synchronization, and notification of other services.
@@ -19,6 +37,46 @@ class FileService:
         self.kanban_service = kanban_service
         self.archive_manager = archive_manager
         self.project_repository = project_repository
+
+    @staticmethod
+    def _source_language_in_path(path: str) -> str | None:
+        parts = [part.lower() for part in Path(path).parts]
+        for idx, part in enumerate(parts):
+            if part in LOCALIZATION_DIR_NAMES:
+                for nested in parts[idx + 1:]:
+                    if nested in KNOWN_PARADOX_LANGUAGE_DIRS:
+                        return nested
+        return None
+
+    @classmethod
+    def _is_source_language_path(cls, path: str, search_lang: str) -> bool:
+        if not search_lang:
+            return True
+
+        lang_in_path = cls._source_language_in_path(path)
+        return lang_in_path is None or lang_in_path == search_lang.lower()
+
+    @classmethod
+    def _prune_non_source_language_dirs(cls, root: str, dirs: List[str], search_lang: str) -> bool:
+        if not search_lang:
+            return True
+
+        normalized_search_lang = search_lang.lower()
+        current_lang = cls._source_language_in_path(root)
+        if current_lang and current_lang != normalized_search_lang:
+            dirs[:] = []
+            return False
+
+        root_name = Path(root).name.lower()
+        if root_name in LOCALIZATION_DIR_NAMES:
+            dirs[:] = [
+                directory
+                for directory in dirs
+                if directory.lower() not in KNOWN_PARADOX_LANGUAGE_DIRS
+                or directory.lower() == normalized_search_lang
+            ]
+
+        return True
 
     def scan_dir(self, root_path: str, file_type: str, search_lang: str, project_id: str, allowed_extensions: List[str] = None) -> List[Dict]:
         """
@@ -37,6 +95,8 @@ class FileService:
         for root, dirs, files in os.walk(root_path):
             # Exclude hidden directories
             dirs[:] = [d for d in dirs if not d.startswith('.')]
+            if file_type == 'source' and not self._prune_non_source_language_dirs(root, dirs, search_lang):
+                continue
 
             for file in files:
                 # Filter by allowed extensions
@@ -164,9 +224,9 @@ class FileService:
             logger.error(f"FileService: Kanban Sync failed: {e}")
 
         # 4. Notify Archive Manager
-        self._notify_archive_manager(project_id, project_name, source_path, files_to_upsert)
+        self._notify_archive_manager(project_id, project_name, source_path, files_to_upsert, disk_source_lang)
 
-    def _notify_archive_manager(self, project_id: str, project_name: str, source_path: str, files: List[Dict]):
+    def _notify_archive_manager(self, project_id: str, project_name: str, source_path: str, files: List[Dict], search_lang: str | None = None):
         """
         Orchestrates archiving logic.
         """
@@ -174,6 +234,12 @@ class FileService:
             source_files_data = []
             for f in files:
                 if f['file_type'] == 'source' and f['file_path'].endswith(('.yml', '.yaml')):
+                    if search_lang and not self._is_source_language_path(f['file_path'], search_lang):
+                        logger.warning(
+                            "FileService: Skipping non-source language file during archive: %s",
+                            f['file_path'],
+                        )
+                        continue
                     try:
                         entries = parse_loc_file(Path(f['file_path']))
                         if entries:
