@@ -69,7 +69,6 @@ const releaseDuplicateValueAllowlistPatterns = [
   /^workshop_generator\./,
   /^proofreading\./,
   /^select_game_profile$/,
-  /^neologism_review\./,
   /^stage_smart_workshop$/,
   /^progress_smart_workshop_status$/,
   /^agent_workshop\.(issue_format_marker_parity|validation_format_marker_parity_mismatch|validation_format_marker_parity_details_localized)$/,

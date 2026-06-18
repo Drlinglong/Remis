@@ -14,6 +14,8 @@ import api from '../../utils/api';
 
 const API_BASE_URL = '/api';
 
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /**
  * 新词审核法庭组件
  * 负责审核和批准 AI 挖掘的新词候选
@@ -27,6 +29,8 @@ const JudgmentCourt = () => {
     const [loading, setLoading] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [editSuggestion, setEditSuggestion] = useState("");
+    const [glossaries, setGlossaries] = useState([]);
+    const [selectedGlossaryId, setSelectedGlossaryId] = useState(null);
 
     useEffect(() => {
         if (selectedId) {
@@ -62,6 +66,30 @@ const JudgmentCourt = () => {
         }
     }, []);
 
+    const fetchGlossaries = useCallback(async (project) => {
+        if (!project?.game_id) {
+            setGlossaries([]);
+            setSelectedGlossaryId(null);
+            return;
+        }
+
+        try {
+            const response = await api.get(`${API_BASE_URL}/glossaries/${encodeURIComponent(project.game_id)}`);
+            const nextGlossaries = response.data || [];
+            setGlossaries(nextGlossaries);
+            const mainGlossary = nextGlossaries.find((glossary) => glossary.is_main);
+            setSelectedGlossaryId(String((mainGlossary || nextGlossaries[0])?.glossary_id || ''));
+        } catch {
+            setGlossaries([]);
+            setSelectedGlossaryId(null);
+            notifications.show({
+                title: t('neologism_review.common.error'),
+                message: t('neologism_review.court.glossary_load_failed'),
+                color: 'red'
+            });
+        }
+    }, [t]);
+
     useEffect(() => {
         fetchProjects();
     }, [fetchProjects]);
@@ -69,13 +97,16 @@ const JudgmentCourt = () => {
     useEffect(() => {
         if (selectedProject) {
             fetchCandidates(selectedProject);
+            fetchGlossaries(projects.find(p => p.project_id === selectedProject));
         } else {
             setCandidates([]);
+            setGlossaries([]);
+            setSelectedGlossaryId(null);
         }
-    }, [fetchCandidates, selectedProject]);
+    }, [fetchCandidates, fetchGlossaries, projects, selectedProject]);
 
     const handleApprove = async () => {
-        if (!selectedId || !selectedProject) return;
+        if (!selectedId || !selectedProject || !selectedGlossaryId) return;
         const candidate = candidates.find(c => c.id === selectedId);
         if (!candidate) return;
 
@@ -84,12 +115,22 @@ const JudgmentCourt = () => {
             await api.post(`${API_BASE_URL}/neologisms/${selectedId}/approve`, {
                 project_id: selectedProject,
                 final_translation: editSuggestion,
-                glossary_id: 1
+                glossary_id: Number(selectedGlossaryId),
+                source_lang: candidate.source_lang || currentProject?.source_language || 'en',
+                target_lang: candidate.target_lang || 'zh-CN'
             });
-            notifications.show({ title: 'Approved', message: 'Term added to glossary', color: 'green' });
+            notifications.show({
+                title: t('neologism_review.court.approved_title'),
+                message: t('neologism_review.court.approved_message'),
+                color: 'green'
+            });
             removeCandidate(selectedId);
         } catch {
-            notifications.show({ title: 'Error', message: 'Failed to approve', color: 'red' });
+            notifications.show({
+                title: t('neologism_review.common.error'),
+                message: t('neologism_review.court.approve_failed'),
+                color: 'red'
+            });
         } finally {
             setProcessing(false);
         }
@@ -102,10 +143,18 @@ const JudgmentCourt = () => {
             await api.post(`${API_BASE_URL}/neologisms/${selectedId}/reject`, {
                 project_id: selectedProject
             });
-            notifications.show({ title: 'Rejected', message: 'Term ignored', color: 'gray' });
+            notifications.show({
+                title: t('neologism_review.court.rejected_title'),
+                message: t('neologism_review.court.rejected_message'),
+                color: 'gray'
+            });
             removeCandidate(selectedId);
         } catch {
-            notifications.show({ title: 'Error', message: 'Failed to reject', color: 'red' });
+            notifications.show({
+                title: t('neologism_review.common.error'),
+                message: t('neologism_review.court.reject_failed'),
+                color: 'red'
+            });
         } finally {
             setProcessing(false);
         }
@@ -126,7 +175,7 @@ const JudgmentCourt = () => {
 
     const HighlightedText = ({ text, term }) => {
         if (!text || !term) return <Text>{text}</Text>;
-        const parts = text.split(new RegExp(`(${term})`, 'gi'));
+        const parts = text.split(new RegExp(`(${escapeRegExp(term)})`, 'gi'));
         return (
             <Text size="sm" c="dimmed" lh={1.6}>
                 {parts.map((part, i) =>
@@ -150,19 +199,31 @@ const JudgmentCourt = () => {
             <Paper p="md" mb="md" style={{ background: 'var(--glass-bg)', borderBottom: '1px solid var(--glass-border)' }}>
                 <Group justify="space-between" align="center">
                     <Box style={{ flex: 1 }}>
-                        <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>Current Project</Text>
+                        <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>{t('neologism_review.court.current_project')}</Text>
                         <Select
                             data={projects.map(p => ({ value: p.project_id, label: p.name }))}
                             value={selectedProject}
                             onChange={setSelectedProject}
-                            placeholder="Select a project..."
+                            placeholder={t('neologism_review.court.select_project')}
                             size="md"
                             mt="xs"
+                        />
+                        <Select
+                            data={glossaries.map((glossary) => ({
+                                value: String(glossary.glossary_id),
+                                label: glossary.is_main ? `${glossary.name} (${t('neologism_review.court.main_glossary')})` : glossary.name,
+                            }))}
+                            value={selectedGlossaryId}
+                            onChange={setSelectedGlossaryId}
+                            label={t('neologism_review.court.target_glossary')}
+                            placeholder={t('neologism_review.court.select_glossary')}
+                            size="sm"
+                            mt="sm"
                         />
                     </Box>
                     {currentProject && (
                         <Badge size="lg" variant="light" color="blue">
-                            {candidates.length} Pending Terms
+                            {t('neologism_review.court.pending_terms', { count: candidates.length })}
                         </Badge>
                     )}
                 </Group>
@@ -271,6 +332,7 @@ const JudgmentCourt = () => {
                                                     gradient={{ from: 'teal', to: 'lime', deg: 105 }}
                                                     leftSection={<IconGavel />}
                                                     onClick={handleApprove}
+                                                    disabled={!selectedGlossaryId}
                                                 >
                                                     {t('neologism_review.court.approve')}
                                                 </Button>

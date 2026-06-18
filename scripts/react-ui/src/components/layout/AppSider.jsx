@@ -37,7 +37,6 @@ const navItems = [
     { icon: IconVocabulary, label: 'page_title_glossary_manager', path: '/glossary-manager' },
     { icon: IconChecklist, label: 'page_title_proofreading', path: '/proofreading' },
     ...(FEATURES.ENABLE_AGENT_WORKSHOP ? [{ icon: IconRobot, label: 'page_title_agent_workshop', path: '/agent-workshop' }] : []),
-    // Conditionally include Neologism Tribunal
     ...(FEATURES.ENABLE_NEOLOGISM_TRIBUNAL ? [{ icon: IconSparkles, label: 'neologism_review.title', path: '/neologism-review' }] : []),
     { icon: IconTools, label: 'page_title_tools', path: '/tools', id: 'nav-tools' },
     ...(FEATURES.ENABLE_DOCS ? [{ icon: IconBook, label: 'page_title_docs', path: '/docs' }] : []),

@@ -2,13 +2,13 @@ import json
 import os
 import uuid
 import logging
-from typing import List, Dict, Optional, Literal
+import threading
+from typing import List, Dict, Optional, Literal, Any
 from pydantic import BaseModel
-from scripts.app_settings import PROJECT_ROOT, GAME_PROFILES
+from scripts.app_settings import PROJECT_ROOT
 from scripts.core.api_handler import get_handler
 from scripts.core.neologism_miner import NeologismMiner
 from scripts.core.glossary_manager import glossary_manager
-from scripts.core.project_manager import ProjectManager
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +23,38 @@ class Candidate(BaseModel):
     reasoning: str
     status: Literal["pending", "approved", "ignored"] = "pending"
     source_file: Optional[str] = None
+    source_lang: str = "en"
+    target_lang: str = "zh-CN"
 
 class NeologismManager:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-        self.project_manager = ProjectManager()
+        self._status_lock = threading.Lock()
+        self._mining_status: Dict[str, Dict[str, Any]] = {}
+
+    def _set_mining_status(self, project_id: str, **updates):
+        with self._status_lock:
+            current = self._mining_status.get(project_id, {
+                "status": "idle",
+                "processed_files": 0,
+                "total_files": 0,
+                "new_terms": 0,
+                "current_file": None,
+                "error": None,
+            })
+            current.update(updates)
+            self._mining_status[project_id] = current
+
+    def get_mining_status(self, project_id: str) -> Dict[str, Any]:
+        with self._status_lock:
+            return dict(self._mining_status.get(project_id, {
+                "status": "idle",
+                "processed_files": 0,
+                "total_files": 0,
+                "new_terms": 0,
+                "current_file": None,
+                "error": None,
+            }))
     
     def _get_cache_file(self, project_id: str) -> str:
         """Get project-specific cache file path."""
@@ -53,7 +80,7 @@ class NeologismManager:
         cache_file = self._get_cache_file(project_id)
         try:
             with open(cache_file, 'w', encoding='utf-8') as f:
-                json.dump([c.dict() for c in candidates], f, ensure_ascii=False, indent=2)
+                json.dump([c.model_dump() for c in candidates], f, ensure_ascii=False, indent=2)
         except Exception as e:
             self.logger.error(f"Failed to save candidates for {project_id}: {e}", exc_info=True)
 
@@ -61,7 +88,7 @@ class NeologismManager:
         """Get pending candidates, optionally filtered by project."""
         if project_id:
             candidates = self.load_candidates(project_id)
-            return [c.dict() for c in candidates if c.status == "pending"]
+            return [c.model_dump() for c in candidates if c.status == "pending"]
         else:
             # Return all pending from all projects
             all_pending = []
@@ -70,30 +97,46 @@ class NeologismManager:
                     if filename.endswith('.json'):
                         pid = filename[:-5]  # Remove .json
                         candidates = self.load_candidates(pid)
-                        all_pending.extend([c.dict() for c in candidates if c.status == "pending"])
+                        all_pending.extend([c.model_dump() for c in candidates if c.status == "pending"])
             return all_pending
 
-    def approve_candidate(self, project_id: str, candidate_id: str, final_translation: str, glossary_id: int) -> bool:
+    async def approve_candidate(
+        self,
+        project_id: str,
+        candidate_id: str,
+        final_translation: str,
+        glossary_id: int,
+        source_lang: Optional[str] = None,
+        target_lang: Optional[str] = None,
+    ) -> bool:
         """Approve a candidate and add it to glossary."""
         candidates = self.load_candidates(project_id)
         candidate = next((c for c in candidates if c.id == candidate_id), None)
         if not candidate:
             return False
+
+        resolved_source_lang = source_lang or candidate.source_lang or "en"
+        resolved_target_lang = target_lang or candidate.target_lang or "zh-CN"
         
         # Add to glossary
         new_entry_id = str(uuid.uuid4())
         storage_entry = {
             "id": new_entry_id,
-            "translations": {"en": candidate.original, "zh-CN": final_translation},
-            "raw_metadata": {
+            "translations": {
+                resolved_source_lang: candidate.original,
+                resolved_target_lang: final_translation
+            },
+            "metadata": {
                 "remarks": f"Auto-mined. Reasoning: {candidate.reasoning}",
-                "source_file": candidate.source_file
+                "source_file": candidate.source_file,
+                "source_lang": resolved_source_lang,
+                "target_lang": resolved_target_lang,
             },
             "variants": {},
             "abbreviations": {}
         }
         
-        if glossary_manager.add_entry(glossary_id, storage_entry):
+        if await glossary_manager.add_entry(glossary_id, storage_entry):
             candidate.status = "approved"
             self.save_candidates(project_id, candidates)
             self.logger.info(f"Approved candidate {candidate_id} for project {project_id}")
@@ -122,7 +165,15 @@ class NeologismManager:
             return True
         return False
 
-    def run_mining_workflow(self, project_id: str, file_paths: List[str], api_provider: str, source_lang: str = "en", target_lang: str = "zh"):
+    def run_mining_workflow(
+        self,
+        project_id: str,
+        file_paths: List[str],
+        api_provider: str,
+        source_lang: str = "en",
+        target_lang: str = "zh-CN",
+        game_name: str = "Paradox Game",
+    ):
         """
         Main workflow:
         1. Initialize Miner with API provider.
@@ -132,23 +183,30 @@ class NeologismManager:
         5. Call LLM for analysis (Stage B).
         6. Save candidates.
         """
-        self.logger.info(f"Starting mining workflow for project {project_id} with {len(file_paths)} files.")
-        handler = get_handler(api_provider)
+        total_files = len(file_paths)
+        self.logger.info(f"Starting mining workflow for project {project_id} with {total_files} files.")
+        self._set_mining_status(
+            project_id,
+            status="running",
+            processed_files=0,
+            total_files=total_files,
+            new_terms=0,
+            current_file=None,
+            error=None,
+        )
+        try:
+            handler = get_handler(api_provider)
+        except Exception as e:
+            self._set_mining_status(project_id, status="failed", error=str(e), current_file=None)
+            raise
         miner = NeologismMiner(handler)
-        
-        # Get Game Context
-        project = self.project_manager.get_project(project_id)
-        game_name = "Paradox Game"
-        if project:
-            game_id = project.get('game_id')
-            if game_id and game_id in GAME_PROFILES:
-                game_name = GAME_PROFILES[game_id]['name']
         
         all_terms = set()
         term_sources = {} # term -> source_file
         term_data = {} # Store analysis data from miner
         
-        for file_path in file_paths:
+        for index, file_path in enumerate(file_paths, start=1):
+            self._set_mining_status(project_id, processed_files=index - 1, current_file=file_path)
             try:
                 with open(file_path, 'r', encoding='utf-8-sig') as f:
                     lines = f.readlines()
@@ -184,6 +242,7 @@ class NeologismManager:
                         "ru": "Russian",
                         "es": "Spanish",
                         "pt": "Portuguese",
+                        "pt-BR": "Portuguese",
                         "pl": "Polish"
                     }
                     target_lang_name = lang_name_map.get(target_lang, target_lang)
@@ -201,6 +260,8 @@ class NeologismManager:
                             
             except Exception as e:
                 self.logger.error(f"Error reading file {file_path}: {e}", exc_info=True)
+            finally:
+                self._set_mining_status(project_id, processed_files=index)
 
         # Load existing candidates for this project
         existing_candidates = self.load_candidates(project_id)
@@ -230,7 +291,9 @@ class NeologismManager:
                 suggestion=analysis.suggestion if analysis else "",
                 reasoning=analysis.reasoning if analysis else "",
                 status="pending",
-                source_file=source_file
+                source_file=source_file,
+                source_lang=source_lang,
+                target_lang=target_lang,
             )
             new_candidates.append(candidate)
         
@@ -238,6 +301,15 @@ class NeologismManager:
         all_candidates = existing_candidates + new_candidates
         self.save_candidates(project_id, all_candidates)
         self.logger.info(f"Mining complete. Found {len(new_terms)} new terms.")
+        self._set_mining_status(
+            project_id,
+            status="completed",
+            processed_files=total_files,
+            total_files=total_files,
+            new_terms=len(new_terms),
+            current_file=None,
+            error=None,
+        )
         return len(new_terms)
 
     def _find_context_snippets(self, term: str, file_path: str, max_snippets: int = 3) -> List[str]:

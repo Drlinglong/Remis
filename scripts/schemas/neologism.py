@@ -5,6 +5,8 @@ class ApproveNeologismRequest(BaseModel):
     project_id: str
     final_translation: str
     glossary_id: int
+    source_lang: Optional[str] = None
+    target_lang: Optional[str] = None
 
 class UpdateNeologismRequest(BaseModel):
     project_id: str
