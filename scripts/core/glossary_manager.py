@@ -41,6 +41,69 @@ class GlossaryManager:
             return []
         return []
 
+    def get_project_glossary_name(self, project_id: str) -> str:
+        """Return the deterministic glossary name reserved for a single project."""
+        return f"Project Terms - {project_id}"
+
+    async def get_project_glossary(self, game_id: str, project_id: str) -> Optional[Dict]:
+        """Async: Return the dedicated glossary for a project if it exists."""
+        try:
+            async for session in self.db_manager.get_async_session():
+                statement = select(Glossary).where(
+                    Glossary.game_id == game_id,
+                    Glossary.name == self.get_project_glossary_name(project_id),
+                    Glossary.is_main == False,
+                )
+                result = await session.execute(statement)
+                glossary = result.scalar_one_or_none()
+                return glossary.model_dump() if glossary else None
+        except Exception as e:
+            logger.error(f"Failed to get project glossary for {project_id}: {e}")
+            return None
+        return None
+
+    async def get_or_create_project_glossary(self, game_id: str, project_id: str, project_name: Optional[str] = None) -> Optional[Dict]:
+        """Async: Ensure the dedicated glossary for a project exists and return it."""
+        existing = await self.get_project_glossary(game_id, project_id)
+        if existing:
+            return existing
+
+        try:
+            async for session in self.db_manager.get_async_session():
+                glossary = Glossary(
+                    game_id=game_id,
+                    name=self.get_project_glossary_name(project_id),
+                    description=f"Auto-mined project glossary for {project_name or project_id}",
+                    is_main=False,
+                    raw_metadata={
+                        "kind": "project_neologism_glossary",
+                        "project_id": project_id,
+                        "project_name": project_name,
+                    },
+                )
+                session.add(glossary)
+                await session.commit()
+                await session.refresh(glossary)
+                return glossary.model_dump()
+        except Exception as e:
+            logger.error(f"Failed to create project glossary for {project_id}: {e}")
+            return None
+        return None
+
+    async def get_entries_for_glossary_ids(self, glossary_ids: List[int]) -> List[Dict]:
+        """Async: Return all entries from a small set of glossaries."""
+        if not glossary_ids:
+            return []
+        try:
+            async for session in self.db_manager.get_async_session():
+                stmt = select(GlossaryEntry).where(GlossaryEntry.glossary_id.in_(glossary_ids))
+                results = await session.execute(stmt)
+                return [entry.model_dump() for entry in results.scalars().all()]
+        except Exception as e:
+            logger.error(f"Failed to get glossary entries for {glossary_ids}: {e}")
+            return []
+        return []
+
     async def get_glossary_tree_data(self) -> List[Dict]:
         """Async: Build glossary tree data."""
         try:

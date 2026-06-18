@@ -260,6 +260,16 @@ def run_translation_workflow_v2(
             if main_glossary and main_glossary['glossary_id'] not in final_glossary_ids:
                 final_glossary_ids.append(main_glossary['glossary_id'])
 
+        if project_id:
+            project_glossary = _run_async(glossary_manager.get_project_glossary(game_profile["id"], project_id))
+            if project_glossary and project_glossary.get('glossary_id') not in final_glossary_ids:
+                final_glossary_ids.append(project_glossary['glossary_id'])
+                logging.info(
+                    "Mounted project neologism glossary %s for project %s",
+                    project_glossary['glossary_id'],
+                    project_id,
+                )
+
         override_path = None
         if project_id:
             try:

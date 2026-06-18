@@ -3,12 +3,12 @@ import { useTranslation } from 'react-i18next';
 import {
     Grid, Paper, Title, Text, Stack, Group, Button,
     TextInput, ScrollArea, Badge, ActionIcon, LoadingOverlay, Box,
-    ThemeIcon, Select
+    ThemeIcon, Select, Alert
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
     IconCheck, IconX, IconBulb, IconQuote,
-    IconGavel, IconSparkles
+    IconGavel, IconSparkles, IconAlertTriangle
 } from '@tabler/icons-react';
 import api from '../../utils/api';
 
@@ -29,8 +29,7 @@ const JudgmentCourt = () => {
     const [loading, setLoading] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [editSuggestion, setEditSuggestion] = useState("");
-    const [glossaries, setGlossaries] = useState([]);
-    const [selectedGlossaryId, setSelectedGlossaryId] = useState(null);
+    const [projectGlossary, setProjectGlossary] = useState(null);
 
     useEffect(() => {
         if (selectedId) {
@@ -66,22 +65,17 @@ const JudgmentCourt = () => {
         }
     }, []);
 
-    const fetchGlossaries = useCallback(async (project) => {
-        if (!project?.game_id) {
-            setGlossaries([]);
-            setSelectedGlossaryId(null);
+    const fetchProjectGlossary = useCallback(async (projectId) => {
+        if (!projectId) {
+            setProjectGlossary(null);
             return;
         }
 
         try {
-            const response = await api.get(`${API_BASE_URL}/glossaries/${encodeURIComponent(project.game_id)}`);
-            const nextGlossaries = response.data || [];
-            setGlossaries(nextGlossaries);
-            const mainGlossary = nextGlossaries.find((glossary) => glossary.is_main);
-            setSelectedGlossaryId(String((mainGlossary || nextGlossaries[0])?.glossary_id || ''));
+            const response = await api.get(`${API_BASE_URL}/neologisms/project-glossary/${encodeURIComponent(projectId)}`);
+            setProjectGlossary(response.data);
         } catch {
-            setGlossaries([]);
-            setSelectedGlossaryId(null);
+            setProjectGlossary(null);
             notifications.show({
                 title: t('neologism_review.common.error'),
                 message: t('neologism_review.court.glossary_load_failed'),
@@ -97,16 +91,15 @@ const JudgmentCourt = () => {
     useEffect(() => {
         if (selectedProject) {
             fetchCandidates(selectedProject);
-            fetchGlossaries(projects.find(p => p.project_id === selectedProject));
+            fetchProjectGlossary(selectedProject);
         } else {
             setCandidates([]);
-            setGlossaries([]);
-            setSelectedGlossaryId(null);
+            setProjectGlossary(null);
         }
-    }, [fetchCandidates, fetchGlossaries, projects, selectedProject]);
+    }, [fetchCandidates, fetchProjectGlossary, selectedProject]);
 
     const handleApprove = async () => {
-        if (!selectedId || !selectedProject || !selectedGlossaryId) return;
+        if (!selectedId || !selectedProject) return;
         const candidate = candidates.find(c => c.id === selectedId);
         if (!candidate) return;
 
@@ -115,7 +108,7 @@ const JudgmentCourt = () => {
             await api.post(`${API_BASE_URL}/neologisms/${selectedId}/approve`, {
                 project_id: selectedProject,
                 final_translation: editSuggestion,
-                glossary_id: Number(selectedGlossaryId),
+                glossary_id: projectGlossary?.glossary_id || null,
                 source_lang: candidate.source_lang || currentProject?.source_language || 'en',
                 target_lang: candidate.target_lang || 'zh-CN'
             });
@@ -208,18 +201,10 @@ const JudgmentCourt = () => {
                             size="md"
                             mt="xs"
                         />
-                        <Select
-                            data={glossaries.map((glossary) => ({
-                                value: String(glossary.glossary_id),
-                                label: glossary.is_main ? `${glossary.name} (${t('neologism_review.court.main_glossary')})` : glossary.name,
-                            }))}
-                            value={selectedGlossaryId}
-                            onChange={setSelectedGlossaryId}
-                            label={t('neologism_review.court.target_glossary')}
-                            placeholder={t('neologism_review.court.select_glossary')}
-                            size="sm"
-                            mt="sm"
-                        />
+                        <Text size="xs" c="dimmed" mt="sm">{t('neologism_review.court.project_glossary')}</Text>
+                        <Badge variant="light" color={projectGlossary?.pending_creation ? 'blue' : 'teal'} size="lg">
+                            {projectGlossary?.name || t('neologism_review.court.project_glossary_pending')}
+                        </Badge>
                     </Box>
                     {currentProject && (
                         <Badge size="lg" variant="light" color="blue">
@@ -253,6 +238,11 @@ const JudgmentCourt = () => {
                                         }}
                                     >
                                         <Text fw={600} lineClamp={1}>{c.original}</Text>
+                                        {(c.duplicate_matches || []).length > 0 && (
+                                            <Badge color="orange" variant="light" size="xs">
+                                                {t('neologism_review.court.duplicate_badge')}
+                                            </Badge>
+                                        )}
                                         <Text size="xs" c="dimmed" truncate>{c.suggestion}</Text>
                                     </Paper>
                                 ))}
@@ -292,6 +282,25 @@ const JudgmentCourt = () => {
                                 {/* Left Column: Analysis & Action */}
                                 <Grid.Col span={7}>
                                     <Stack gap="lg" h="100%">
+                                        {(selectedCandidate.duplicate_matches || []).length > 0 && (
+                                            <Alert
+                                                icon={<IconAlertTriangle size={18} />}
+                                                color="orange"
+                                                variant="light"
+                                                title={t('neologism_review.court.duplicate_warning_title')}
+                                            >
+                                                <Stack gap={4}>
+                                                    <Text size="sm">
+                                                        {t('neologism_review.court.duplicate_warning_body')}
+                                                    </Text>
+                                                    {(selectedCandidate.duplicate_matches || []).slice(0, 3).map((match) => (
+                                                        <Text key={match.entry_id || match.source_term} size="xs" c="dimmed">
+                                                            {match.source_term} - {match.glossary_name}
+                                                        </Text>
+                                                    ))}
+                                                </Stack>
+                                            </Alert>
+                                        )}
                                         <Paper p="lg" radius="md" style={{ background: 'rgba(0,0,0,0.2)' }} withBorder>
                                             <Group mb="sm">
                                                 <ThemeIcon color="yellow" variant="light" size="lg"><IconBulb size={20} /></ThemeIcon>
@@ -332,7 +341,7 @@ const JudgmentCourt = () => {
                                                     gradient={{ from: 'teal', to: 'lime', deg: 105 }}
                                                     leftSection={<IconGavel />}
                                                     onClick={handleApprove}
-                                                    disabled={!selectedGlossaryId}
+                                                    disabled={!selectedProject}
                                                 >
                                                     {t('neologism_review.court.approve')}
                                                 </Button>

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class ApproveNeologismRequest(BaseModel):
     project_id: str
     final_translation: str
-    glossary_id: int
+    glossary_id: Optional[int] = None
     source_lang: Optional[str] = None
     target_lang: Optional[str] = None
 

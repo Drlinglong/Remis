@@ -80,3 +80,55 @@ def test_mining_status_defaults_and_updates():
         "current_file": None,
         "error": None,
     }
+
+
+class FakeExtractedTerm:
+    original = "Aetherophasic Engine"
+    suggestion = "以太相引擎"
+    reasoning = "Specific Stellaris megastructure."
+
+
+class FakeMiner:
+    def __init__(self, handler):
+        self.handler = handler
+
+    def extract_terms(self, *args, **kwargs):
+        return [FakeExtractedTerm()]
+
+
+def test_mining_marks_candidates_that_duplicate_main_glossary_terms(tmp_path, monkeypatch):
+    monkeypatch.setattr(neologism_module, "CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(neologism_module, "get_handler", lambda provider: object())
+    monkeypatch.setattr(neologism_module, "NeologismMiner", FakeMiner)
+
+    source_file = tmp_path / "source.yml"
+    source_file.write_text("Aetherophasic Engine powers the crisis.", encoding="utf-8")
+
+    manager = NeologismManager()
+    manager.run_mining_workflow(
+        "project-1",
+        [str(source_file)],
+        "gemini",
+        duplicate_index={
+            "aetherophasic engine": [
+                {
+                    "entry_id": "main-entry-1",
+                    "glossary_id": 1,
+                    "glossary_name": "Main",
+                    "source_term": "Aetherophasic Engine",
+                }
+            ]
+        },
+    )
+
+    candidates = manager.load_candidates("project-1")
+    assert len(candidates) == 1
+    assert candidates[0].duplicate_matches == [
+        {
+            "entry_id": "main-entry-1",
+            "glossary_id": 1,
+            "glossary_name": "Main",
+            "source_term": "Aetherophasic Engine",
+        }
+    ]
+    assert manager.get_mining_status("project-1")["duplicate_terms"] == 1

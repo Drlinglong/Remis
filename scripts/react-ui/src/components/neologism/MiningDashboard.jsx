@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Container, Grid, Paper, Title, Text, Stack, Group, Button,
@@ -29,6 +29,7 @@ const MiningDashboard = () => {
     const [targetLang, setTargetLang] = useState('zh-CN');
     const [scanning, setScanning] = useState(false);
     const [miningStatus, setMiningStatus] = useState(null);
+    const wsRef = useRef(null);
 
     useEffect(() => {
         fetchProjects();
@@ -37,25 +38,62 @@ const MiningDashboard = () => {
     useEffect(() => {
         if (selectedProject) {
             fetchFiles(selectedProject);
-            fetchMiningStatus(selectedProject);
+            closeMiningSocket();
         } else {
             setFiles([]);
             setSelectedFiles([]);
             setMiningStatus(null);
+            closeMiningSocket();
         }
     }, [selectedProject]);
 
     useEffect(() => {
-        if (!selectedProject || miningStatus?.status !== 'running') {
-            return undefined;
+        return () => closeMiningSocket();
+    }, []);
+
+    const closeMiningSocket = () => {
+        if (wsRef.current) {
+            wsRef.current.close();
+            wsRef.current = null;
         }
+    };
 
-        const intervalId = window.setInterval(() => {
-            fetchMiningStatus(selectedProject);
-        }, 2000);
+    const updateMiningStatusFromTask = (taskData) => {
+        const progress = taskData.progress || {};
+        const summary = taskData.summary || {};
+        setMiningStatus({
+            status: taskData.status === 'processing' ? 'running' : taskData.status,
+            processed_files: progress.current || 0,
+            total_files: progress.total || 0,
+            new_terms: summary.new_terms || 0,
+            duplicate_terms: summary.duplicate_terms || 0,
+            current_file: progress.current_file || null,
+            error: summary.error || taskData.error || null,
+        });
+    };
 
-        return () => window.clearInterval(intervalId);
-    }, [selectedProject, miningStatus?.status]);
+    const connectMiningSocket = (taskId) => {
+        closeMiningSocket();
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${protocol}//${window.location.host}/api/ws/status/${taskId}`);
+        wsRef.current = ws;
+
+        ws.onmessage = (event) => {
+            const taskData = JSON.parse(event.data);
+            updateMiningStatusFromTask(taskData);
+            if (['completed', 'failed'].includes(taskData.status)) {
+                closeMiningSocket();
+            }
+        };
+        ws.onerror = () => {
+            setMiningStatus((current) => ({
+                ...(current || {}),
+                status: 'failed',
+                error: t('neologism_review.mining.websocket_failed'),
+            }));
+            closeMiningSocket();
+        };
+    };
 
     const fetchProjects = async () => {
         try {
@@ -75,20 +113,11 @@ const MiningDashboard = () => {
         }
     };
 
-    const fetchMiningStatus = async (projectId) => {
-        try {
-            const response = await api.get(`${API_BASE_URL}/neologisms/status/${encodeURIComponent(projectId)}`);
-            setMiningStatus(response.data);
-        } catch (error) {
-            console.error("Failed to fetch mining status", error);
-        }
-    };
-
     const handleScan = async () => {
         if (!selectedProject) return;
         setScanning(true);
         try {
-            await api.post(`${API_BASE_URL}/neologisms/mine`, {
+            const response = await api.post(`${API_BASE_URL}/neologisms/mine`, {
                 project_id: selectedProject,
                 api_provider: apiProvider,
                 target_lang: targetLang,
@@ -102,7 +131,9 @@ const MiningDashboard = () => {
                 current_file: null,
                 error: null,
             });
-            window.setTimeout(() => fetchMiningStatus(selectedProject), 1000);
+            if (response.data?.task_id) {
+                connectMiningSocket(response.data.task_id);
+            }
             notifications.show({
                 title: t('neologism_review.mining.start_mining'),
                 message: t('neologism_review.mining.started_message'),
@@ -209,7 +240,10 @@ const MiningDashboard = () => {
                                         size="sm"
                                     />
                                     {miningStatus.status === 'completed' && (
-                                        <Text size="xs">{t('neologism_review.mining.completed_terms', { count: miningStatus.new_terms || 0 })}</Text>
+                                        <Text size="xs">
+                                            {t('neologism_review.mining.completed_terms', { count: miningStatus.new_terms || 0 })}
+                                            {(miningStatus.duplicate_terms || 0) > 0 && ` ${t('neologism_review.mining.duplicate_terms', { count: miningStatus.duplicate_terms })}`}
+                                        </Text>
                                     )}
                                     {miningStatus.error && <Text size="xs" c="red">{miningStatus.error}</Text>}
                                 </Stack>
