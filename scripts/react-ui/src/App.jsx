@@ -15,6 +15,7 @@ import { MainLayout } from './components/layout/MainLayout';
 import SplashScreen from './components/SplashScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProjectWatchScheduler from './components/ProjectWatchScheduler';
+import { FEATURES } from './config/features';
 
 import './App.css';
 
@@ -53,7 +54,7 @@ const appRouteConfig = [
     { path: '/project-management/:projectId', element: <ProjectManagementPage /> },
     { path: '/project-tracking', element: <ProjectTrackingPage /> },
     { path: '/incremental-translation', element: <IncrementalTranslationPage /> },
-    { path: '/neologism-review', element: <NeologismReviewPage /> },
+    ...(FEATURES.ENABLE_NEOLOGISM_TRIBUNAL ? [{ path: '/neologism-review', element: <NeologismReviewPage /> }] : []),
     { path: '/archives', element: <ArchivesPage /> },
     { path: '/agent-workshop', element: <AgentWorkshopPage /> },
     { path: '/cicd', element: <CICDPage /> },

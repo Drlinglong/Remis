@@ -55,7 +55,7 @@
   "theme_scifi": "SF",
   "theme_wwii": "第二次世界大戦",
   "theme_medieval": "中世",
-  "settings_save": "保存",
+  "settings_save": "設定を保存",
   "page_title_under_development": "開発中",
   "page_title_under_construction": "工事中",
   "page_title_in_conception": "構想中",
@@ -94,11 +94,11 @@
   "glossary_content": "コンテンツ",
   "glossary_add_entry": "新規エントリーを追加",
   "glossary_filter_placeholder": "コンテンツを絞り込む...",
-  "glossary_source_text": "原文",
+  "glossary_source_text": "ソース文",
   "glossary_translation": "翻訳",
   "glossary_notes": "ノート",
   "glossary_variants": "バリアント",
-  "glossary_actions": "操作",
+  "glossary_actions": "処理",
   "glossary_delete_confirm": "このエントリーを削除してもよろしいですか？",
   "glossary_delete_glossary": "用語集を削除",
   "glossary_delete_glossary_tooltip": "この用語集全体とすべてのエントリーを削除する",
@@ -180,7 +180,7 @@
   "form_placeholder_folder_prefix": "例: IT-",
   "button_back": "戻る",
   "button_create": "作成",
-  "button_save": "保存",
+  "button_save": "保存する",
   "button_start_translation": "翻訳開始",
   "button_abort_translation": "翻訳中止",
   "button_download_mod": "翻訳済みModをダウンロード",
@@ -215,7 +215,7 @@
   "glossary_show_entries": "{{count}} 件表示",
   "glossary_previous_page": "前のページ",
   "glossary_next_page": "次のページ",
-  "button_ok": "OK",
+  "button_ok": "確認",
   "button_cancel": "キャンセル",
   "glossary_advanced_mode": "高度なモード",
   "glossary_abbreviations": "略語",
@@ -353,13 +353,13 @@
   "api_key_not_configured": "未設定",
   "api_key_current": "現在のキー: {{key}}",
   "api_key_none_set": "APIキーが設定されていません",
-  "api_key_update": "更新",
+  "api_key_update": "更新する",
   "api_key_set": "キーを設定",
-  "api_key_save": "保存",
+  "api_key_save": "保存する",
   "api_key_cancel": "キャンセル",
   "api_key_placeholder": "新しいAPIキーを入力",
   "api_key_validation_empty": "APIキーを空にすることはできません",
-  "api_key_success_title": "成功",
+  "api_key_success_title": "成功しました",
   "api_key_success_message": "APIキーが正常に更新されました",
   "api_key_error_title": "エラー",
   "api_key_error_fetch": "API設定の読み込みに失敗しました",
@@ -875,6 +875,32 @@
     "version": {
       "title": "バージョンとフィードバック",
       "desc": "ここでは、バージョンの確認、ログフォルダの表示、GitHub Issueトラッカーへのアクセスが可能です。機能のリクエストやバグ報告（ログを添付してください）を歓迎します。"
+    },
+    "project_tracking": {
+      "add": {
+        "title": "追跡プロジェクトを追加",
+        "desc": "Workshop ModやローカルModフォルダーを今後のローカライズ更新のために監視したい場合は、ここから始めます。"
+      },
+      "table": {
+        "title": "監視中のフォルダー",
+        "desc": "各行には監視フォルダー、関連するRemisプロジェクト、最新のスキャン状態、検出された変更、更新操作が表示されます。"
+      },
+      "scan": {
+        "title": "手動スキャン",
+        "desc": "追跡プロジェクトを1つ以上選択し、スケジュールを待たずにすぐスキャンします。"
+      },
+      "path": {
+        "title": "Modフォルダーのパス",
+        "desc": "Steam Workshopのcontentディレクトリなど、実際のローカルModフォルダーを指定します。Remisはローカライズファイルだけを監視し、このフォルダーを編集しません。"
+      },
+      "linked_project": {
+        "title": "関連するRemisプロジェクト",
+        "desc": "このフォルダーを対応する翻訳プロジェクトに関連付けると、変更ファイルから直接増分更新へ進めます。"
+      },
+      "schedule": {
+        "title": "定期スキャン",
+        "desc": "有効にすると、アプリの実行中にRemisがこの追跡プロジェクトをスキャンします。分、時間、日を選べます。"
+      }
     }
   },
   "translation_page": {
@@ -1342,7 +1368,19 @@
     "embedded_workshop_concurrency": "校正の並列数",
     "embedded_workshop_rpm": "校正のRPM",
     "batch_size_limit_desc": "この翻訳実行にのみ適用されます。「自動」は現在のプロバイダーのデフォルトを使用します。",
-    "run_pre_scan": "事前スキャンを実行"
+    "run_pre_scan": "事前スキャンを実行",
+    "language_scope_single": "言語範囲: {{language}}",
+    "language_scope_multi": "言語範囲: {{count}} 言語",
+    "language_scope_summary": "{{language}}: 合計 {{total}}、再利用 {{reused}}、新規 {{new}}",
+    "reusable_scope_note": "再利用可能な項目は、選択した言語範囲内で計算されます。",
+    "per_language_total": "合計",
+    "per_language_reused": "再利用",
+    "per_language_new": "新規",
+    "aggregate_total": "集計合計",
+    "aggregate_reused": "集計再利用",
+    "aggregate_new": "集計新規",
+    "telemetry_workshop_export": "Workshopエクスポート",
+    "telemetry_embedded_workshop": "内蔵Workshop"
   },
   "recent_activity_type_translate": "インクリメンタル更新",
   "project_management": {
@@ -1519,5 +1557,48 @@
   "deploy_detect_success_title": "元Modを検出しました",
   "deploy_detect_success_message": "プロジェクト/ワークショップのメタデータから元Modフォルダーを入力しました。",
   "deploy_detect_failed_title": "元Modが見つかりません",
-  "deploy_detect_failed_message": "関連付けられた元Modパスが見つかりませんでした。フォルダーを手動で選択してください。"
+  "deploy_detect_failed_message": "関連付けられた元Modパスが見つかりませんでした。フォルダーを手動で選択してください。",
+  "page_title_project_tracking": "プロジェクト追跡",
+  "project_tracking": {
+    "title": "プロジェクト追跡",
+    "subtitle": "ディスク上のModフォルダーを監視し、Remisのプロジェクトに関連付け、ローカライズファイルが変わったら増分更新へすぐ移動します。",
+    "add_new_project": "追跡する新しいプロジェクトを追加",
+    "edit": "追跡プロジェクトを編集",
+    "scan_selected": "選択項目をスキャン",
+    "refresh": "更新",
+    "empty": "追跡中のプロジェクトパスはまだありません。",
+    "path": "パス",
+    "path_description": "継続的に監視したいModのローカル保存先を指定します。例: SteamLibrary\\steamapps\\workshop\\content\\ゲームID\\ワークショップアイテムID。Remisはこのフォルダー内のローカライズファイルの変更を検出し、更新があれば通知できます。",
+    "path_safety_description": "Remisはこのフォルダー内のファイルを変更または削除しません。",
+    "project": "関連プロジェクト",
+    "project_description": "このModに対応するRemis内の翻訳プロジェクトを選択します。",
+    "status": "状態",
+    "last_scan": "最終スキャン",
+    "changes": "変更",
+    "interval": "スキャン間隔",
+    "interval_unit": "単位",
+    "actions": "アクション",
+    "name": "名前",
+    "enabled": "定期スキャンを有効化",
+    "enabled_description": "Remisが起動している間、このプロジェクトを一定間隔でスキャンして更新を確認します。",
+    "unit_minutes": "分",
+    "unit_hours": "時間",
+    "unit_days": "日",
+    "save": "保存する",
+    "cancel": "キャンセル",
+    "browse": "参照",
+    "unlinked": "未関連付け",
+    "start_incremental": "増分更新を開始",
+    "status_baseline": "基準を作成済み",
+    "status_clean": "変更なし",
+    "status_changed": "変更あり",
+    "status_never": "未スキャン",
+    "status_no_localization": "ローカライズファイルなし",
+    "scanned_files": "スキャン済みファイル",
+    "scan_result": "スキャン完了",
+    "scan_message": "スキャン完了: {{status}}、スキャン済みファイル {{scanned}}、変更 {{changes}}。{{path}}",
+    "scan_now": "今すぐスキャン",
+    "delete": "削除",
+    "select_project_first": "この追跡プロジェクトはRemisプロジェクトに関連付けられていないため、増分更新へ移動できません。"
+  }
 }

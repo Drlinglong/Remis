@@ -13,7 +13,7 @@
   "modal_reset_db_safe_3": "Modyfikacji żadnego pliku na dysku.",
   "btn_reset_db": "Resetuj bazę danych",
   "settings_api_label_key": "Klucz:",
-  "settings_api_label_model": "Model:",
+  "settings_api_label_model": "Model AI:",
   "settings_api_label_url": "URL:",
   "settings_api_label_configure": "Konfiguruj",
   "settings_api_label_configuration": "Konfiguracja",
@@ -59,7 +59,7 @@
   "page_title_under_development": "W fazie rozwoju",
   "page_title_under_construction": "W budowie",
   "page_title_in_conception": "W fazie koncepcyjnej",
-  "homepage_title": "Smart Localization Workbench v2.0",
+  "homepage_title": "Inteligentny warsztat lokalizacji v2.0",
   "homepage_action_card_new_project": "Rozpocznij nowy projekt tłumaczeniowy",
   "homepage_action_card_update_project": "Aktualizuj istniejący projekt",
   "homepage_chart_pie_title": "Przegląd statusu projektu",
@@ -215,7 +215,7 @@
   "glossary_show_entries": "Pokaż {{count}} wpisów",
   "glossary_previous_page": "Poprzednia strona",
   "glossary_next_page": "Następna strona",
-  "button_ok": "OK",
+  "button_ok": "Dobrze",
   "button_cancel": "Anuluj",
   "glossary_advanced_mode": "Tryb zaawansowany",
   "glossary_abbreviations": "Skróty",
@@ -257,7 +257,7 @@
   "notification_tooltip_minimal": "Zminimalizowany log",
   "notification_tooltip_windowed": "Log w oknie",
   "notification_tooltip_sidebar": "Log w panelu bocznym",
-  "homepage_test_button": "Test RemisButton",
+  "homepage_test_button": "Test przycisku RemisButton",
   "project_management.kanban.columns.todo": "Do zrobienia",
   "project_management.kanban.columns.in_progress": "W toku",
   "project_management.kanban.columns.proofreading": "Korekta",
@@ -875,6 +875,32 @@
     "version": {
       "title": "Wersja i opinie",
       "desc": "Tutaj możesz sprawdzić wersję, otworzyć folder dzienników lub odwiedzić moduł śledzenia błędów w serwisie GitHub. Zachęcamy do zgłaszania sugestii funkcji i błędów (prosimy o załączenie dzienników)."
+    },
+    "project_tracking": {
+      "add": {
+        "title": "Dodaj śledzony projekt",
+        "desc": "Zacznij tutaj, gdy mod z Workshopu lub lokalny folder moda ma być monitorowany pod kątem przyszłych aktualizacji lokalizacji."
+      },
+      "table": {
+        "title": "Monitorowane foldery",
+        "desc": "Każdy wiersz pokazuje obserwowany folder, powiązany projekt Remis, ostatni stan skanu, wykryte zmiany i akcje aktualizacji."
+      },
+      "scan": {
+        "title": "Skan ręczny",
+        "desc": "Wybierz jeden lub kilka śledzonych projektów i zeskanuj je od razu, bez czekania na harmonogram."
+      },
+      "path": {
+        "title": "Ścieżka folderu moda",
+        "desc": "Użyj rzeczywistego lokalnego folderu moda, np. katalogu content Steam Workshop. Remis obserwuje tylko pliki lokalizacji i nie edytuje tego folderu."
+      },
+      "linked_project": {
+        "title": "Powiązany projekt Remis",
+        "desc": "Powiąż ten folder z właściwym projektem tłumaczenia, aby zmienione pliki mogły od razu przejść do aktualizacji przyrostowej."
+      },
+      "schedule": {
+        "title": "Skanowanie cykliczne",
+        "desc": "Po włączeniu Remis skanuje ten projekt, gdy aplikacja działa. Możesz wybrać minuty, godziny lub dni."
+      }
     }
   },
   "translation_page": {
@@ -1342,7 +1368,19 @@
     "embedded_workshop_concurrency": "Współbieżność korekty",
     "embedded_workshop_rpm": "RPM korekty",
     "batch_size_limit_desc": "Dotyczy tylko tego przebiegu tłumaczenia. Opcja Auto używa domyślnych ustawień dostawcy.",
-    "run_pre_scan": "Uruchom wstępne skanowanie"
+    "run_pre_scan": "Uruchom wstępne skanowanie",
+    "language_scope_single": "Zakres języka: {{language}}",
+    "language_scope_multi": "Zakres języka: {{count}} języków",
+    "language_scope_summary": "{{language}}: razem {{total}}, użyte ponownie {{reused}}, nowe {{new}}",
+    "reusable_scope_note": "Wpisy możliwe do ponownego użycia są liczone w wybranym zakresie językowym.",
+    "per_language_total": "Razem",
+    "per_language_reused": "Użyte ponownie",
+    "per_language_new": "Nowe",
+    "aggregate_total": "Suma zbiorcza",
+    "aggregate_reused": "Zbiorczo użyte ponownie",
+    "aggregate_new": "Zbiorczo nowe",
+    "telemetry_workshop_export": "Eksport Workshop",
+    "telemetry_embedded_workshop": "Wbudowany Workshop"
   },
   "recent_activity_type_translate": "Aktualizacja przyrostowa",
   "project_management": {
@@ -1519,5 +1557,48 @@
   "deploy_detect_success_title": "Wykryto oryginalny mod",
   "deploy_detect_success_message": "Uzupełniono folder oryginalnego moda z metadanych projektu/warsztatu.",
   "deploy_detect_failed_title": "Nie znaleziono oryginalnego moda",
-  "deploy_detect_failed_message": "Nie znaleziono powiązanej ścieżki oryginalnego moda. Wybierz folder ręcznie."
+  "deploy_detect_failed_message": "Nie znaleziono powiązanej ścieżki oryginalnego moda. Wybierz folder ręcznie.",
+  "page_title_project_tracking": "Śledzenie projektów",
+  "project_tracking": {
+    "title": "Śledzenie projektów",
+    "subtitle": "Monitoruj foldery modów na dysku, łącz je z projektami Remis i przechodź do aktualizacji przyrostowej, gdy zmienią się pliki lokalizacji.",
+    "add_new_project": "Dodaj nowy projekt do śledzenia",
+    "edit": "Edytuj śledzony projekt",
+    "scan_selected": "Skanuj zaznaczone",
+    "refresh": "Odśwież",
+    "empty": "Nie ma jeszcze śledzonych ścieżek projektów.",
+    "path": "Ścieżka",
+    "path_description": "Ustaw tutaj lokalny folder moda, który ma być stale monitorowany, np. SteamLibrary\\steamapps\\workshop\\content\\IDGry\\IDElementuWorkshop. Remis może wykrywać zmiany plików lokalizacji w tym folderze i powiadamiać o aktualizacjach.",
+    "path_safety_description": "Remis nie zmodyfikuje ani nie usunie żadnego pliku w tym folderze.",
+    "project": "Powiązany projekt",
+    "project_description": "Wybierz projekt tłumaczenia Remis odpowiadający temu modowi.",
+    "status": "Stan",
+    "last_scan": "Ostatni skan",
+    "changes": "Zmiany",
+    "interval": "Odstęp skanowania",
+    "interval_unit": "Jednostka",
+    "actions": "Akcje",
+    "name": "Nazwa",
+    "enabled": "Włącz skanowanie cykliczne",
+    "enabled_description": "Dopóki Remis działa, będzie skanować ten projekt w wybranych odstępach i sprawdzać dostępne aktualizacje.",
+    "unit_minutes": "minuty",
+    "unit_hours": "godziny",
+    "unit_days": "dni",
+    "save": "Zapisz",
+    "cancel": "Anuluj",
+    "browse": "Przeglądaj",
+    "unlinked": "Niepowiązany",
+    "start_incremental": "Uruchom aktualizację przyrostową",
+    "status_baseline": "Utworzono bazę",
+    "status_clean": "Bez zmian",
+    "status_changed": "Zmieniono",
+    "status_never": "Nigdy nie skanowano",
+    "status_no_localization": "Brak plików lokalizacji",
+    "scanned_files": "Zeskanowane pliki",
+    "scan_result": "Skan zakończony",
+    "scan_message": "Skan zakończony: {{status}}, zeskanowane pliki {{scanned}}, zmiany {{changes}}. {{path}}",
+    "scan_now": "Skanuj teraz",
+    "delete": "Usuń",
+    "select_project_first": "Ten śledzony projekt nie jest powiązany z projektem Remis, więc nie może przejść do aktualizacji przyrostowej."
+  }
 }

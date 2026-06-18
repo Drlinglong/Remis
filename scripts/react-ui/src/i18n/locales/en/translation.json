@@ -893,6 +893,32 @@
     "version": {
       "title": "Version & Feedback",
       "desc": "Here you can check the version, open the logs folder, or visit the GitHub Issue tracker. We welcome feature requests and bug reports (please attach logs)."
+    },
+    "project_tracking": {
+      "add": {
+        "title": "Add a tracked project",
+        "desc": "Start here when a workshop mod or local mod folder should be monitored for future localization updates."
+      },
+      "table": {
+        "title": "Tracked folders",
+        "desc": "Each row shows the watched folder, linked Remis project, latest scan status, detected changes, and update actions."
+      },
+      "scan": {
+        "title": "Manual scan",
+        "desc": "Select one or more tracked projects and scan them immediately without waiting for the schedule."
+      },
+      "path": {
+        "title": "Mod folder path",
+        "desc": "Use the real local mod folder, for example a Steam Workshop content directory. Remis only watches localization files and will not edit this folder."
+      },
+      "linked_project": {
+        "title": "Linked Remis project",
+        "desc": "Link this folder to the matching translation project so changed files can jump straight into incremental update."
+      },
+      "schedule": {
+        "title": "Scheduled scanning",
+        "desc": "When enabled, Remis scans this tracked project while the app is running. You can choose minutes, hours, or days."
+      }
     }
   },
   "translation_page": {
@@ -1531,5 +1557,48 @@
   "deploy_detect_success_title": "Original mod detected",
   "deploy_detect_success_message": "Filled the original mod directory from project/workshop metadata.",
   "deploy_detect_failed_title": "Original mod not found",
-  "deploy_detect_failed_message": "No linked original mod path was found. Select the folder manually."
+  "deploy_detect_failed_message": "No linked original mod path was found. Select the folder manually.",
+  "page_title_project_tracking": "Project Tracking",
+  "project_tracking": {
+    "title": "Project Tracking",
+    "subtitle": "Track mod folders on disk, link them to Remis projects, and jump into incremental update when localization files change.",
+    "add_new_project": "Add new project to track",
+    "edit": "Edit tracked project",
+    "scan_selected": "Scan Selected",
+    "refresh": "Refresh",
+    "empty": "No tracked project paths yet.",
+    "path": "Path",
+    "path_description": "Set this to the local disk folder of the mod you want to keep monitoring, such as SteamLibrary\\steamapps\\workshop\\content\\GameID\\WorkshopItemID. Remis can monitor localization file changes in this folder and notify you when updates appear.",
+    "path_safety_description": "Remis will not modify or delete any files in this folder.",
+    "project": "Linked Project",
+    "project_description": "Choose the Remis translation project that corresponds to this mod.",
+    "status": "Status",
+    "last_scan": "Last Scan",
+    "changes": "Changes",
+    "interval": "Scan every",
+    "interval_unit": "Unit",
+    "actions": "Actions",
+    "name": "Name",
+    "enabled": "Enable scheduled scanning",
+    "enabled_description": "As long as Remis is running, it will scan this project at intervals to check whether updates are available.",
+    "unit_minutes": "minutes",
+    "unit_hours": "hours",
+    "unit_days": "days",
+    "save": "Save",
+    "cancel": "Cancel",
+    "browse": "Browse",
+    "unlinked": "Unlinked",
+    "start_incremental": "Start Incremental Update",
+    "status_baseline": "Baseline created",
+    "status_clean": "Clean",
+    "status_changed": "Changed",
+    "status_never": "Never scanned",
+    "status_no_localization": "No localization files",
+    "scanned_files": "Scanned files",
+    "scan_result": "Scan complete",
+    "scan_message": "Scan complete: {{status}}, scanned files {{scanned}}, changes {{changes}}. {{path}}",
+    "scan_now": "Scan",
+    "delete": "Delete",
+    "select_project_first": "This tracked project is not linked to a Remis project, so it cannot jump into incremental update."
+  }
 }

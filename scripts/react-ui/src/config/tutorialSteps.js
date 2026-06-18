@@ -204,6 +204,64 @@ export const getTutorialSteps = (t, pageName) => {
                 }
             }
         ],
+        'project-tracking': [
+            {
+                element: '#project-tracking-add-btn',
+                popover: {
+                    title: t('tutorial.project_tracking.add.title'),
+                    description: t('tutorial.project_tracking.add.desc'),
+                    side: "left",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#project-tracking-table',
+                popover: {
+                    title: t('tutorial.project_tracking.table.title'),
+                    description: t('tutorial.project_tracking.table.desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#project-tracking-scan-selected-btn',
+                popover: {
+                    title: t('tutorial.project_tracking.scan.title'),
+                    description: t('tutorial.project_tracking.scan.desc'),
+                    side: "left",
+                    align: 'center'
+                }
+            }
+        ],
+        'project-tracking-modal': [
+            {
+                element: '#project-tracking-path-field',
+                popover: {
+                    title: t('tutorial.project_tracking.path.title'),
+                    description: t('tutorial.project_tracking.path.desc'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#project-tracking-linked-project-field',
+                popover: {
+                    title: t('tutorial.project_tracking.linked_project.title'),
+                    description: t('tutorial.project_tracking.linked_project.desc'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#project-tracking-schedule-field',
+                popover: {
+                    title: t('tutorial.project_tracking.schedule.title'),
+                    description: t('tutorial.project_tracking.schedule.desc'),
+                    side: "top",
+                    align: 'start'
+                }
+            }
+        ],
         'project-management-dashboard': [
             {
                 element: '#project-stats-grid',

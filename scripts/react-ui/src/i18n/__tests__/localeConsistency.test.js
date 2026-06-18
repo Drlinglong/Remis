@@ -48,6 +48,49 @@ const flattenEntries = (value, prefix = '') => {
   return prefix ? [[prefix, value]] : [];
 };
 
+const releaseDuplicateValueAllowlist = new Set([
+  'page_title_cicd',
+  'homepage_action_card_new_project_icon',
+  'homepage_action_card_update_project_icon',
+  'settings_api_label_url',
+  'form_placeholder_folder_path',
+  'api_desc_minimax',
+  'project_management.details.id',
+  'incremental_translation.warning_validation_prefix',
+]);
+
+const releaseDuplicateValueAllowlistPatterns = [
+  /^game_name_/,
+  /^theme_/,
+  /^app_title$/,
+  /^thumbnail_generator\./,
+  /^log_viewer_/,
+  /^initial_translation_/,
+  /^workshop_generator\./,
+  /^proofreading\./,
+  /^select_game_profile$/,
+  /^neologism_review\./,
+  /^stage_smart_workshop$/,
+  /^progress_smart_workshop_status$/,
+  /^agent_workshop\.(issue_format_marker_parity|validation_format_marker_parity_mismatch|validation_format_marker_parity_details_localized)$/,
+  /^agent_workshop\.(table_|discard|regenerate|batch_size|model_label)/,
+  /^tutorial\.(home|settings|version|sidebar_tutorial_btn)/,
+  /^translation_page\./,
+  /^translation_config\./,
+  /^context_sidebar\./,
+  /^summary_/,
+  /^stage_initializing$/,
+  /^deploy_/,
+  /^incremental_translation\.(progress_stage_|project_|reused_short|telemetry_(title|total)|rpm_limit|validation_issue_export_item|warning_details_suffix|error_title)/,
+  /^project_management\.(repair_metadata|tooltip_repair_metadata|repair_metadata_success|repair_metadata_error)$/,
+  /^project_management\.(details|manage_paths|actions|file_list|file_type|file_status)\./,
+];
+
+const isAllowedReleaseDuplicateKey = (key) => (
+  releaseDuplicateValueAllowlist.has(key)
+  || releaseDuplicateValueAllowlistPatterns.some((pattern) => pattern.test(key))
+);
+
 describe('locale consistency', () => {
   it('keeps all translation keys aligned across all locales', () => {
     const localeKeySets = Object.fromEntries(
@@ -67,6 +110,71 @@ describe('locale consistency', () => {
     });
 
     expect(mismatches, mismatches.join('\n')).toEqual([]);
+  });
+
+  it('keeps every release locale key populated and avoids identical values across all locales', () => {
+    const localeEntries = Object.fromEntries(
+      Object.entries(localeFiles).map(([locale, filePath]) => [
+        locale,
+        Object.fromEntries(flattenEntries(loadLocale(filePath))),
+      ]),
+    );
+
+    const allKeys = Object.keys(localeEntries.en);
+    const offenders = allKeys.flatMap((key) => {
+      const values = Object.entries(localeEntries).map(([locale, entries]) => [
+        locale,
+        entries[key],
+      ]);
+      const missing = values
+        .filter(([, value]) => typeof value !== 'string' || value.trim() === '')
+        .map(([locale]) => `${locale}.${key} missing or empty`);
+      if (missing.length > 0) {
+        return missing;
+      }
+
+      if (isAllowedReleaseDuplicateKey(key)) {
+        return [];
+      }
+
+      const seenValues = new Map();
+      const duplicatePairs = [];
+      values.forEach(([locale, value]) => {
+        const normalizedValue = value.trim();
+        if (seenValues.has(normalizedValue)) {
+          duplicatePairs.push(
+            `${key} duplicated in ${seenValues.get(normalizedValue)} and ${locale}: ${JSON.stringify(normalizedValue)}`,
+          );
+        } else {
+          seenValues.set(normalizedValue, locale);
+        }
+      });
+
+      if (duplicatePairs.length > 0) {
+        return duplicatePairs;
+      }
+      return [];
+    });
+
+    expect(offenders, offenders.join('\n')).toEqual([]);
+  });
+
+  it('does not ship project tracking strings as English fallbacks outside English', () => {
+    const enEntries = Object.fromEntries(flattenEntries(loadLocale(localeFiles.en)));
+    const projectTrackingKeys = Object.keys(enEntries).filter((key) => (
+      key.startsWith('project_tracking.') || key.startsWith('tutorial.project_tracking.')
+    ));
+
+    const offenders = Object.entries(localeFiles)
+      .filter(([locale]) => locale !== 'en')
+      .flatMap(([locale, filePath]) => {
+        const entries = Object.fromEntries(flattenEntries(loadLocale(filePath)));
+        return projectTrackingKeys
+          .filter((key) => entries[key] === enEntries[key])
+          .map((key) => `${locale}.${key} still mirrors English`);
+      });
+
+    expect(offenders, offenders.join('\n')).toEqual([]);
   });
 
   it('keeps common browse localized outside English', () => {

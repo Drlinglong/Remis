@@ -16,7 +16,7 @@
   "settings_api_label_model": "Modèle :",
   "settings_api_label_url": "URL :",
   "settings_api_label_configure": "Configurer",
-  "settings_api_label_configuration": "Configuration",
+  "settings_api_label_configuration": "Configuration avancee",
   "btn_confirm_reset": "Confirmer la réinitialisation",
   "enter_system": "ACCÉDER AU SYSTÈME",
   "splash_language_menu": "Menu de langue",
@@ -26,9 +26,9 @@
   "progress_status": "{{processed_files}} fichiers et {{completed_batches}} lots traités ; {{successful_batches}} lots réussis, {{failed_batches}} lots échoués ; {{remaining_files}} fichiers et {{remaining_batches}} lots restants",
   "progress_smart_workshop_status": "Fixing {{detected}} potential format issues, processed {{processed}}/{{detected}}, reflection round {{round}}",
   "nav_home": "Accueil",
-  "nav_docs": "Documentation",
+  "nav_docs": "Centre de documentation",
   "page_title_home": "Accueil",
-  "page_title_docs": "Documentation",
+  "page_title_docs": "Documentation Remis",
   "page_title_translation": "Traduction initiale",
   "page_title_glossary_manager": "Gestionnaire de glossaire",
   "page_title_proofreading": "Relecture",
@@ -96,9 +96,9 @@
   "glossary_filter_placeholder": "Filtrer le contenu...",
   "glossary_source_text": "Texte source",
   "glossary_translation": "Traduction",
-  "glossary_notes": "Notes",
-  "glossary_variants": "Variantes",
-  "glossary_actions": "Actions",
+  "glossary_notes": "Notes FR",
+  "glossary_variants": "Variantes FR",
+  "glossary_actions": "Operations",
   "glossary_delete_confirm": "Voulez-vous vraiment supprimer cette entrée ?",
   "glossary_delete_glossary": "Supprimer le glossaire",
   "glossary_delete_glossary_tooltip": "Supprimer tout ce glossaire et toutes ses entrées",
@@ -108,7 +108,7 @@
   "glossary_no_file_selected": "Aucun fichier sélectionné",
   "glossary_edit_entry": "Modifier l'entrée",
   "glossary_variants_tooltip": "Séparez les différentes variantes par une virgule",
-  "glossary_variants_placeholder": "variante1, variante2, ...",
+  "glossary_variants_placeholder": "variante-fr-1, variante-fr-2, ...",
   "glossary_target_language": "Langue cible",
   "glossary_create_new_file": "Créer un nouveau fichier de glossaire",
   "glossary_manager_title": "Gestion du glossaire",
@@ -215,7 +215,7 @@
   "glossary_show_entries": "Afficher {{count}} entrées",
   "glossary_previous_page": "Page précédente",
   "glossary_next_page": "Page suivante",
-  "button_ok": "OK",
+  "button_ok": "D’accord",
   "button_cancel": "Annuler",
   "glossary_advanced_mode": "Mode avancé",
   "glossary_abbreviations": "Abréviations",
@@ -875,6 +875,32 @@
     "version": {
       "title": "Version et commentaires",
       "desc": "Ici, vous pouvez vérifier la version, ouvrir le dossier des journaux ou consulter le suivi des problèmes sur GitHub. Nous accueillons les demandes de fonctionnalités et les rapports de bogues (veuillez joindre les journaux)."
+    },
+    "project_tracking": {
+      "add": {
+        "title": "Ajouter un projet suivi",
+        "desc": "Commence ici lorsqu’un mod Workshop ou un dossier local de mod doit être surveillé pour les futures mises à jour de localisation."
+      },
+      "table": {
+        "title": "Dossiers surveillés",
+        "desc": "Chaque ligne affiche le dossier observé, le projet Remis associé, le dernier état d’analyse, les changements détectés et les actions de mise à jour."
+      },
+      "scan": {
+        "title": "Analyse manuelle",
+        "desc": "Sélectionne un ou plusieurs projets suivis et analyse-les immédiatement sans attendre la planification."
+      },
+      "path": {
+        "title": "Chemin du dossier du mod",
+        "desc": "Utilise le vrai dossier local du mod, par exemple un répertoire content de Steam Workshop. Remis observe seulement les fichiers de localisation et ne modifie pas ce dossier."
+      },
+      "linked_project": {
+        "title": "Projet Remis associé",
+        "desc": "Associe ce dossier au projet de traduction correspondant afin que les fichiers modifiés puissent aller directement vers la mise à jour incrémentielle."
+      },
+      "schedule": {
+        "title": "Analyse planifiée",
+        "desc": "Une fois activé, Remis analyse ce projet pendant que l’application tourne. Tu peux choisir des minutes, des heures ou des jours."
+      }
     }
   },
   "translation_page": {
@@ -1342,7 +1368,19 @@
     "embedded_workshop_concurrency": "Simultanéité de relecture",
     "embedded_workshop_rpm": "RPM de relecture",
     "batch_size_limit_desc": "S'applique uniquement à cette exécution de traduction. « Auto » utilise le paramètre par défaut du fournisseur actuel.",
-    "run_pre_scan": "Lancer le pré-scan"
+    "run_pre_scan": "Lancer le pré-scan",
+    "language_scope_single": "Périmètre de langue : {{language}}",
+    "language_scope_multi": "Périmètre de langue : {{count}} langues",
+    "language_scope_summary": "{{language}} : {{total}} au total, {{reused}} réutilisés, {{new}} nouveaux",
+    "reusable_scope_note": "Les entrées réutilisables sont calculées dans le périmètre de langues sélectionné.",
+    "per_language_total": "Total de langue",
+    "per_language_reused": "Réutilisés",
+    "per_language_new": "Nouveaux",
+    "aggregate_total": "Total agrégé",
+    "aggregate_reused": "Réutilisés agrégés",
+    "aggregate_new": "Nouveaux agrégés",
+    "telemetry_workshop_export": "Export Workshop",
+    "telemetry_embedded_workshop": "Atelier intégré"
   },
   "recent_activity_type_translate": "Mise à jour incrémentielle",
   "project_management": {
@@ -1519,5 +1557,48 @@
   "deploy_detect_success_title": "Mod original détecté",
   "deploy_detect_success_message": "Le dossier du mod original a été rempli depuis les métadonnées du projet/workshop.",
   "deploy_detect_failed_title": "Mod original introuvable",
-  "deploy_detect_failed_message": "Aucun chemin de mod original lié n’a été trouvé. Sélectionnez le dossier manuellement."
+  "deploy_detect_failed_message": "Aucun chemin de mod original lié n’a été trouvé. Sélectionnez le dossier manuellement.",
+  "page_title_project_tracking": "Suivi de projet",
+  "project_tracking": {
+    "title": "Suivi de projet",
+    "subtitle": "Surveille les dossiers de mods sur le disque, associe-les à des projets Remis et ouvre la mise à jour incrémentielle quand des fichiers de localisation changent.",
+    "add_new_project": "Ajouter un nouveau projet à suivre",
+    "edit": "Modifier le projet suivi",
+    "scan_selected": "Analyser la sélection",
+    "refresh": "Actualiser",
+    "empty": "Aucun chemin de projet suivi pour le moment.",
+    "path": "Chemin",
+    "path_description": "Indique ici le dossier local du mod à surveiller en continu, par exemple SteamLibrary\\steamapps\\workshop\\content\\IDJeu\\IDObjetWorkshop. Remis peut détecter les changements des fichiers de localisation dans ce dossier et t’en avertir.",
+    "path_safety_description": "Remis ne modifiera ni ne supprimera aucun fichier de ce dossier.",
+    "project": "Projet associé",
+    "project_description": "Choisis le projet de traduction Remis correspondant à ce mod.",
+    "status": "État",
+    "last_scan": "Dernière analyse",
+    "changes": "Changements",
+    "interval": "Intervalle d’analyse",
+    "interval_unit": "Unité",
+    "actions": "Commandes",
+    "name": "Nom",
+    "enabled": "Activer l’analyse planifiée",
+    "enabled_description": "Tant que Remis est lancé, il analysera ce projet à intervalles réguliers pour vérifier les mises à jour.",
+    "unit_minutes": "min",
+    "unit_hours": "heures",
+    "unit_days": "jours",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "browse": "Parcourir",
+    "unlinked": "Non associé",
+    "start_incremental": "Lancer la mise à jour incrémentielle",
+    "status_baseline": "Référence créée",
+    "status_clean": "Aucun changement",
+    "status_changed": "Modifié",
+    "status_never": "Jamais analysé",
+    "status_no_localization": "Aucun fichier de localisation",
+    "scanned_files": "Fichiers analysés",
+    "scan_result": "Analyse terminée",
+    "scan_message": "Analyse terminée : {{status}}, fichiers analysés {{scanned}}, changements {{changes}}. {{path}}",
+    "scan_now": "Analyser maintenant",
+    "delete": "Supprimer",
+    "select_project_first": "Ce projet suivi n’est pas associé à un projet Remis ; il ne peut donc pas ouvrir la mise à jour incrémentielle."
+  }
 }

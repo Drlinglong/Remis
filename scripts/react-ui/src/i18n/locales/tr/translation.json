@@ -13,7 +13,7 @@
   "modal_reset_db_safe_3": "Diskinizdeki herhangi bir dosyayı değiştirmeyecektir.",
   "btn_reset_db": "Veritabanını Sıfırla",
   "settings_api_label_key": "Anahtar:",
-  "settings_api_label_model": "Model:",
+  "settings_api_label_model": "Model secimi:",
   "settings_api_label_url": "URL:",
   "settings_api_label_configure": "Yapılandır",
   "settings_api_label_configuration": "Yapılandırma",
@@ -45,7 +45,7 @@
   "common.back": "Geri",
   "common.finish": "Bitir",
   "settings_language": "Dil",
-  "settings_theme": "Tema",
+  "settings_theme": "Tema secimi",
   "settings_rpm_limit": "Genel RPM Sınırı",
   "settings_rpm_limit_desc": "Dakika başına maksimum istek (Tüm sağlayıcılar arasında paylaşılır)",
   "theme_light": "Açık",
@@ -257,7 +257,7 @@
   "notification_tooltip_minimal": "Küçültülmüş Günlük",
   "notification_tooltip_windowed": "Pencere Günlüğü",
   "notification_tooltip_sidebar": "Kenar Çubuğu Günlüğü",
-  "homepage_test_button": "Test RemisButton",
+  "homepage_test_button": "RemisButton testi",
   "project_management.kanban.columns.todo": "Yapılacaklar",
   "project_management.kanban.columns.in_progress": "Devam Ediyor",
   "project_management.kanban.columns.proofreading": "Son Okuma",
@@ -875,6 +875,32 @@
     "version": {
       "title": "Sürüm ve Geri Bildirim",
       "desc": "Buradan sürümü kontrol edebilir, günlükler klasörünü açabilir veya GitHub Sorun takipçisini ziyaret edebilirsiniz. Özellik isteklerini ve hata raporlarını bekliyoruz (lütfen günlükleri ekleyin)."
+    },
+    "project_tracking": {
+      "add": {
+        "title": "İzlenen proje ekle",
+        "desc": "Bir Workshop modu veya yerel mod klasörü gelecekteki yerelleştirme güncellemeleri için izlenecekse buradan başlayın."
+      },
+      "table": {
+        "title": "İzlenen klasörler",
+        "desc": "Her satır izlenen klasörü, bağlı Remis projesini, son tarama durumunu, bulunan değişiklikleri ve güncelleme eylemlerini gösterir."
+      },
+      "scan": {
+        "title": "Elle tarama",
+        "desc": "Bir veya daha fazla izlenen projeyi seçip zamanlamayı beklemeden hemen tarayın."
+      },
+      "path": {
+        "title": "Mod klasörü yolu",
+        "desc": "Steam Workshop content dizini gibi gerçek yerel mod klasörünü kullanın. Remis yalnızca yerelleştirme dosyalarını izler ve bu klasörü düzenlemez."
+      },
+      "linked_project": {
+        "title": "Bağlı Remis projesi",
+        "desc": "Bu klasörü uygun çeviri projesine bağlayın; böylece değişen dosyalar doğrudan artımlı güncellemeye gidebilir."
+      },
+      "schedule": {
+        "title": "Zamanlanmış tarama",
+        "desc": "Etkin olduğunda Remis, uygulama açıkken bu izlenen projeyi tarar. Dakika, saat veya gün seçebilirsiniz."
+      }
     }
   },
   "translation_page": {
@@ -1342,7 +1368,19 @@
     "embedded_workshop_concurrency": "Eşzamanlı Redaksiyon Sayısı",
     "embedded_workshop_rpm": "Redaksiyon RPM",
     "batch_size_limit_desc": "Yalnızca bu çeviri çalışması için geçerlidir. Otomatik, mevcut sağlayıcı varsayılanını kullanır.",
-    "run_pre_scan": "Ön Taramayı Çalıştır"
+    "run_pre_scan": "Ön Taramayı Çalıştır",
+    "language_scope_single": "Dil kapsamı: {{language}}",
+    "language_scope_multi": "Dil kapsamı: {{count}} dil",
+    "language_scope_summary": "{{language}}: toplam {{total}}, yeniden kullanılan {{reused}}, yeni {{new}}",
+    "reusable_scope_note": "Yeniden kullanılabilir kayıtlar seçili dil kapsamı içinde hesaplanır.",
+    "per_language_total": "Toplam",
+    "per_language_reused": "Yeniden kullanılan",
+    "per_language_new": "Yeni",
+    "aggregate_total": "Toplu toplam",
+    "aggregate_reused": "Toplu yeniden kullanılan",
+    "aggregate_new": "Toplu yeni",
+    "telemetry_workshop_export": "Workshop dışa aktarımı",
+    "telemetry_embedded_workshop": "Gömülü Workshop"
   },
   "recent_activity_type_translate": "Artımlı Güncelleme",
   "project_management": {
@@ -1519,5 +1557,48 @@
   "deploy_detect_success_title": "Orijinal mod bulundu",
   "deploy_detect_success_message": "Orijinal mod klasörü proje/atölye meta verilerinden dolduruldu.",
   "deploy_detect_failed_title": "Orijinal mod bulunamadı",
-  "deploy_detect_failed_message": "Bağlı bir orijinal mod yolu bulunamadı. Klasörü elle seçin."
+  "deploy_detect_failed_message": "Bağlı bir orijinal mod yolu bulunamadı. Klasörü elle seçin.",
+  "page_title_project_tracking": "Proje izleme",
+  "project_tracking": {
+    "title": "Proje izleme",
+    "subtitle": "Diskteki mod klasörlerini izle, Remis projeleriyle bağla ve yerelleştirme dosyaları değiştiğinde artımlı güncellemeye geç.",
+    "add_new_project": "İzlenecek yeni proje ekle",
+    "edit": "İzlenen projeyi düzenle",
+    "scan_selected": "Seçilenleri tara",
+    "refresh": "Yenile",
+    "empty": "Henüz izlenen proje yolu yok.",
+    "path": "Yol",
+    "path_description": "Sürekli güncelleme takibi yapılacak modun yerel disk klasörünü belirtin; örneğin SteamLibrary\\steamapps\\workshop\\content\\OyunID\\WorkshopÖğeID. Remis bu klasördeki yerelleştirme dosyalarının değişikliklerini izleyip güncelleme olduğunda haber verebilir.",
+    "path_safety_description": "Remis bu klasördeki hiçbir dosyayı değiştirmez veya silmez.",
+    "project": "Bağlı proje",
+    "project_description": "Bu moda karşılık gelen Remis çeviri projesini seçin.",
+    "status": "Durum",
+    "last_scan": "Son tarama",
+    "changes": "Değişiklikler",
+    "interval": "Tarama aralığı",
+    "interval_unit": "Birim",
+    "actions": "Eylemler",
+    "name": "Ad",
+    "enabled": "Zamanlanmış taramayı etkinleştir",
+    "enabled_description": "Remis çalıştığı sürece bu projeyi belirli aralıklarla tarar ve güncelleme olup olmadığını kontrol eder.",
+    "unit_minutes": "dakika",
+    "unit_hours": "saat",
+    "unit_days": "gün",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "browse": "Gözat",
+    "unlinked": "Bağlı değil",
+    "start_incremental": "Artımlı güncellemeyi başlat",
+    "status_baseline": "Başlangıç kaydı oluşturuldu",
+    "status_clean": "Değişiklik yok",
+    "status_changed": "Değişti",
+    "status_never": "Taranmadı",
+    "status_no_localization": "Yerelleştirme dosyası yok",
+    "scanned_files": "Taranan dosyalar",
+    "scan_result": "Tarama tamamlandı",
+    "scan_message": "Tarama tamamlandı: {{status}}, taranan dosya {{scanned}}, değişiklik {{changes}}. {{path}}",
+    "scan_now": "Şimdi tara",
+    "delete": "Sil",
+    "select_project_first": "Bu izlenen proje bir Remis projesine bağlı değil, bu yüzden artımlı güncellemeye geçemez."
+  }
 }

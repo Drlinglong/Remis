@@ -875,6 +875,32 @@
     "version": {
       "title": "버전 및 피드백",
       "desc": "여기에서 버전을 확인하거나 로그 폴더를 열고, GitHub 이슈 트래커를 방문할 수 있습니다. 기능 요청과 버그 제보를 환영합니다 (로그를 첨부해 주세요)."
+    },
+    "project_tracking": {
+      "add": {
+        "title": "추적 프로젝트 추가",
+        "desc": "Workshop Mod나 로컬 Mod 폴더를 향후 현지화 업데이트 대상으로 감시하려면 여기서 시작하세요."
+      },
+      "table": {
+        "title": "감시 중인 폴더",
+        "desc": "각 행에는 감시 폴더, 연결된 Remis 프로젝트, 최근 스캔 상태, 감지된 변경 및 업데이트 작업이 표시됩니다."
+      },
+      "scan": {
+        "title": "수동 스캔",
+        "desc": "하나 이상의 추적 프로젝트를 선택하고 예약 시간을 기다리지 않고 즉시 스캔합니다."
+      },
+      "path": {
+        "title": "Mod 폴더 경로",
+        "desc": "Steam Workshop content 디렉터리 같은 실제 로컬 Mod 폴더를 사용하세요. Remis는 현지화 파일만 감시하며 이 폴더를 편집하지 않습니다."
+      },
+      "linked_project": {
+        "title": "연결된 Remis 프로젝트",
+        "desc": "이 폴더를 맞는 번역 프로젝트와 연결하면 변경된 파일에서 바로 증분 업데이트로 이동할 수 있습니다."
+      },
+      "schedule": {
+        "title": "예약 스캔",
+        "desc": "활성화하면 앱이 실행 중일 때 Remis가 이 추적 프로젝트를 스캔합니다. 분, 시간, 일을 선택할 수 있습니다."
+      }
     }
   },
   "translation_page": {
@@ -1342,7 +1368,19 @@
     "embedded_workshop_concurrency": "교정 동시성",
     "embedded_workshop_rpm": "교정 RPM",
     "batch_size_limit_desc": "이번 번역 실행에만 적용됩니다. '자동'은 현재 제공업체의 기본값을 사용합니다.",
-    "run_pre_scan": "사전 스캔 실행"
+    "run_pre_scan": "사전 스캔 실행",
+    "language_scope_single": "언어 범위: {{language}}",
+    "language_scope_multi": "언어 범위: {{count}}개 언어",
+    "language_scope_summary": "{{language}}: 총 {{total}}, 재사용 {{reused}}, 신규 {{new}}",
+    "reusable_scope_note": "재사용 가능한 항목은 선택한 언어 범위 안에서 계산됩니다.",
+    "per_language_total": "합계",
+    "per_language_reused": "재사용",
+    "per_language_new": "신규",
+    "aggregate_total": "전체 합계",
+    "aggregate_reused": "전체 재사용",
+    "aggregate_new": "전체 신규",
+    "telemetry_workshop_export": "Workshop 내보내기",
+    "telemetry_embedded_workshop": "내장 Workshop"
   },
   "recent_activity_type_translate": "증분 업데이트",
   "project_management": {
@@ -1519,5 +1557,48 @@
   "deploy_detect_success_title": "원본 모드를 찾았습니다",
   "deploy_detect_success_message": "프로젝트/워크숍 메타데이터에서 원본 모드 폴더를 입력했습니다.",
   "deploy_detect_failed_title": "원본 모드를 찾지 못했습니다",
-  "deploy_detect_failed_message": "연결된 원본 모드 경로를 찾지 못했습니다. 폴더를 수동으로 선택하세요."
+  "deploy_detect_failed_message": "연결된 원본 모드 경로를 찾지 못했습니다. 폴더를 수동으로 선택하세요.",
+  "page_title_project_tracking": "프로젝트 추적",
+  "project_tracking": {
+    "title": "프로젝트 추적",
+    "subtitle": "디스크의 Mod 폴더를 감시하고 Remis 프로젝트와 연결한 뒤, 현지화 파일이 바뀌면 증분 업데이트로 바로 이동합니다.",
+    "add_new_project": "추적할 새 프로젝트 추가",
+    "edit": "추적 프로젝트 편집",
+    "scan_selected": "선택 항목 스캔",
+    "refresh": "새로고침",
+    "empty": "아직 추적 중인 프로젝트 경로가 없습니다.",
+    "path": "경로",
+    "path_description": "계속 업데이트를 감시할 Mod의 로컬 디스크 위치를 지정하세요. 예: SteamLibrary\\steamapps\\workshop\\content\\게임ID\\창작마당항목ID. Remis는 이 폴더의 현지화 파일 변경을 감지하고 업데이트가 있으면 알려줍니다.",
+    "path_safety_description": "Remis는 이 폴더의 어떤 파일도 수정하거나 삭제하지 않습니다.",
+    "project": "연결된 프로젝트",
+    "project_description": "이 Mod에 해당하는 Remis 번역 프로젝트를 선택하세요.",
+    "status": "상태",
+    "last_scan": "마지막 스캔",
+    "changes": "변경",
+    "interval": "스캔 간격",
+    "interval_unit": "단위",
+    "actions": "작업",
+    "name": "이름",
+    "enabled": "예약 스캔 활성화",
+    "enabled_description": "Remis가 실행 중인 동안 일정 간격으로 이 프로젝트를 스캔하여 업데이트 여부를 확인합니다.",
+    "unit_minutes": "분",
+    "unit_hours": "시간",
+    "unit_days": "일",
+    "save": "저장",
+    "cancel": "취소",
+    "browse": "찾아보기",
+    "unlinked": "연결 안 됨",
+    "start_incremental": "증분 업데이트 시작",
+    "status_baseline": "기준선 생성됨",
+    "status_clean": "변경 없음",
+    "status_changed": "변경 있음",
+    "status_never": "스캔 전",
+    "status_no_localization": "현지화 파일 없음",
+    "scanned_files": "스캔한 파일",
+    "scan_result": "스캔 완료",
+    "scan_message": "스캔 완료: {{status}}, 스캔한 파일 {{scanned}}, 변경 {{changes}}. {{path}}",
+    "scan_now": "지금 스캔",
+    "delete": "삭제",
+    "select_project_first": "이 추적 프로젝트는 Remis 프로젝트와 연결되어 있지 않아 증분 업데이트로 이동할 수 없습니다."
+  }
 }

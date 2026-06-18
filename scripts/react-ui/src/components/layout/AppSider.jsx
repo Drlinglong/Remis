@@ -31,7 +31,7 @@ import { useTutorial } from '../../context/TutorialContextCore';
 const navItems = [
     { icon: IconHome, label: 'page_title_home', path: '/' },
     { icon: IconBriefcase, label: 'page_title_project_management', path: '/project-management' },
-    { icon: IconRadar, label: '项目追踪', path: '/project-tracking' },
+    { icon: IconRadar, label: 'page_title_project_tracking', path: '/project-tracking' },
     { icon: IconLanguage, label: 'page_title_translation', path: '/translation' },
     ...(FEATURES.ENABLE_INCREMENTAL_TRANSLATION ? [{ icon: IconRocket, label: 'incremental_translation.title', path: '/incremental-translation' }] : []),
     { icon: IconVocabulary, label: 'page_title_glossary_manager', path: '/glossary-manager' },

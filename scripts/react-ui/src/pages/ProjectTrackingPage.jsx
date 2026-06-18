@@ -32,6 +32,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PROJECT_WATCHES_UPDATED_EVENT } from '../components/ProjectWatchScheduler';
+import { useTutorial } from '../context/TutorialContextCore';
 import projectService from '../services/projectService';
 import projectWatchService from '../services/projectWatchService';
 
@@ -42,80 +43,8 @@ const emptyForm = {
   path: '',
   project_id: '',
   enabled: true,
-  scan_interval_minutes: 30,
-};
-
-const labels = {
-  zh: {
-    title: '项目追踪',
-    subtitle: '追踪 Steam 或本地工具已经更新到硬盘上的 Mod 本地化目录，然后手动跳转到增量更新。',
-    add: '添加追踪',
-    edit: '编辑追踪',
-    scanSelected: '扫描选中项',
-    refresh: '刷新',
-    empty: '还没有追踪路径。',
-    path: '路径',
-    project: '关联项目',
-    status: '状态',
-    lastScan: '最后扫描',
-    changes: '变更',
-    interval: '定时扫描',
-    actions: '操作',
-    name: '名称',
-    enabled: '启用',
-    minutes: '分钟',
-    save: '保存',
-    cancel: '取消',
-    browse: '浏览',
-    unlinked: '未关联',
-    startIncremental: '开始增量更新',
-    baseline: '已建立基线',
-    clean: '无变更',
-    changed: '有变更',
-    never: '未扫描',
-    never_scanned: '未扫描',
-    no_localization: '没有本地化文件',
-    scannedFiles: '已扫描文件',
-    scanResult: '扫描完成',
-    scanNow: '扫描',
-    delete: '删除',
-    selectProjectFirst: '这个追踪项还没有关联项目，无法跳转到增量更新。',
-  },
-  en: {
-    title: 'Project Tracking',
-    subtitle: 'Track Mod localization folders that Steam or local tools have already updated on disk, then jump into incremental update manually.',
-    add: 'Add Watch',
-    edit: 'Edit Watch',
-    scanSelected: 'Scan Selected',
-    refresh: 'Refresh',
-    empty: 'No watched paths yet.',
-    path: 'Path',
-    project: 'Linked Project',
-    status: 'Status',
-    lastScan: 'Last Scan',
-    changes: 'Changes',
-    interval: 'Scheduled Scan',
-    actions: 'Actions',
-    name: 'Name',
-    enabled: 'Enabled',
-    minutes: 'minutes',
-    save: 'Save',
-    cancel: 'Cancel',
-    browse: 'Browse',
-    unlinked: 'Unlinked',
-    startIncremental: 'Start Incremental Update',
-    baseline: 'Baseline created',
-    clean: 'Clean',
-    changed: 'Changed',
-    never: 'Never scanned',
-    never_scanned: 'Never scanned',
-    no_localization: 'No localization files',
-    scannedFiles: 'Scanned files',
-    scanResult: 'Scan complete',
-    scanNow: 'Scan',
-    delete: 'Delete',
-    selectProjectFirst: 'This watch is not linked to a project, so it cannot jump into incremental update.',
-  },
+  scan_interval_value: 30,
+  scan_interval_unit: 'minutes',
 };
 
 const statusColor = {
@@ -140,10 +69,31 @@ const readCheckedValue = (valueOrEvent) => {
   return Boolean(valueOrEvent);
 };
 
+const intervalUnitToMinutes = {
+  minutes: 1,
+  hours: 60,
+  days: 60 * 24,
+};
+
+const toScanIntervalMinutes = (value, unit) => {
+  const numericValue = Number(value) || 1;
+  return numericValue * (intervalUnitToMinutes[unit] || 1);
+};
+
+const fromScanIntervalMinutes = (minutes = 30) => {
+  if (minutes % intervalUnitToMinutes.days === 0) {
+    return { scan_interval_value: minutes / intervalUnitToMinutes.days, scan_interval_unit: 'days' };
+  }
+  if (minutes % intervalUnitToMinutes.hours === 0) {
+    return { scan_interval_value: minutes / intervalUnitToMinutes.hours, scan_interval_unit: 'hours' };
+  }
+  return { scan_interval_value: minutes, scan_interval_unit: 'minutes' };
+};
+
 const ProjectTrackingPage = () => {
-  const { i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const text = (i18n?.language || '').toLowerCase().startsWith('zh') ? labels.zh : labels.en;
+  const { setPageContext } = useTutorial();
   const [watches, setWatches] = useState([]);
   const [projects, setProjects] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -152,6 +102,61 @@ const ProjectTrackingPage = () => {
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    setPageContext(modalOpen ? 'project-tracking-modal' : 'project-tracking');
+  }, [modalOpen, setPageContext]);
+
+  const text = useMemo(() => ({
+    title: t('project_tracking.title'),
+    subtitle: t('project_tracking.subtitle'),
+    add: t('project_tracking.add_new_project'),
+    edit: t('project_tracking.edit'),
+    scanSelected: t('project_tracking.scan_selected'),
+    refresh: t('project_tracking.refresh'),
+    empty: t('project_tracking.empty'),
+    path: t('project_tracking.path'),
+    project: t('project_tracking.project'),
+    status: t('project_tracking.status'),
+    lastScan: t('project_tracking.last_scan'),
+    changes: t('project_tracking.changes'),
+    interval: t('project_tracking.interval'),
+    actions: t('project_tracking.actions'),
+    name: t('project_tracking.name'),
+    enabled: t('project_tracking.enabled'),
+    save: t('project_tracking.save'),
+    cancel: t('project_tracking.cancel'),
+    browse: t('project_tracking.browse'),
+    unlinked: t('project_tracking.unlinked'),
+    startIncremental: t('project_tracking.start_incremental'),
+    baseline: t('project_tracking.status_baseline'),
+    clean: t('project_tracking.status_clean'),
+    changed: t('project_tracking.status_changed'),
+    never: t('project_tracking.status_never'),
+    never_scanned: t('project_tracking.status_never'),
+    no_localization: t('project_tracking.status_no_localization'),
+    scannedFiles: t('project_tracking.scanned_files'),
+    scanResult: t('project_tracking.scan_result'),
+    scanNow: t('project_tracking.scan_now'),
+    delete: t('project_tracking.delete'),
+    pathDescription: t('project_tracking.path_description'),
+    safetyDescription: t('project_tracking.path_safety_description'),
+    projectDescription: t('project_tracking.project_description'),
+    enabledDescription: t('project_tracking.enabled_description'),
+    intervalUnit: t('project_tracking.interval_unit'),
+    units: {
+      minutes: t('project_tracking.unit_minutes'),
+      hours: t('project_tracking.unit_hours'),
+      days: t('project_tracking.unit_days'),
+    },
+    selectProjectFirst: t('project_tracking.select_project_first'),
+  }), [t]);
+
+  const intervalUnitOptions = useMemo(() => [
+    { value: 'minutes', label: text.units.minutes },
+    { value: 'hours', label: text.units.hours },
+    { value: 'days', label: text.units.days },
+  ], [text.units.days, text.units.hours, text.units.minutes]);
 
   const updateFormField = (field, valueOrEvent) => {
     const nextValue = readInputValue(valueOrEvent);
@@ -227,7 +232,7 @@ const ProjectTrackingPage = () => {
       path: watch.path || '',
       project_id: watch.project_id || '',
       enabled: Boolean(watch.enabled),
-      scan_interval_minutes: watch.scan_interval_minutes || 30,
+      ...fromScanIntervalMinutes(watch.scan_interval_minutes || 30),
     });
     setModalOpen(true);
   };
@@ -243,9 +248,13 @@ const ProjectTrackingPage = () => {
     setBusy(true);
     setMessage('');
     const payload = {
-      ...form,
+      name: form.name,
+      path: form.path,
       project_id: form.project_id || null,
-      scan_interval_minutes: Number(form.scan_interval_minutes) || null,
+      enabled: form.enabled,
+      scan_interval_minutes: form.enabled
+        ? toScanIntervalMinutes(form.scan_interval_value, form.scan_interval_unit)
+        : null,
     };
     try {
       if (editingWatch) {
@@ -285,7 +294,12 @@ const ProjectTrackingPage = () => {
       if (results.length === 1) {
         const result = results[0];
         const changedCount = result.changed_count ?? 0;
-        setMessage(`${text.scanResult}: ${text[result.status] || result.status}, ${text.scannedFiles} ${result.scanned_file_count ?? 0}, ${text.changes} ${changedCount}. ${result.root_path || ''}`);
+        setMessage(t('project_tracking.scan_message', {
+          status: text[result.status] || result.status,
+          scanned: result.scanned_file_count ?? 0,
+          changes: changedCount,
+          path: result.root_path || '',
+        }));
       }
       await loadData();
     } catch (error) {
@@ -320,6 +334,11 @@ const ProjectTrackingPage = () => {
     return <Badge color={statusColor[status] || 'gray'} variant="light">{label}</Badge>;
   };
 
+  const formatInterval = (minutes) => {
+    const interval = fromScanIntervalMinutes(minutes || 30);
+    return `${interval.scan_interval_value} ${text.units[interval.scan_interval_unit]}`;
+  };
+
   const renderChangedCount = (watch) => {
     const summary = watch.last_scan_summary || {};
     const count = summary.changed_count || 0;
@@ -347,7 +366,7 @@ const ProjectTrackingPage = () => {
             <Button variant="light" leftSection={<IconRefresh size={16} />} onClick={loadData} disabled={busy}>
               {text.refresh}
             </Button>
-            <Button leftSection={<IconPlus size={16} />} onClick={openCreateModal}>
+            <Button id="project-tracking-add-btn" leftSection={<IconPlus size={16} />} onClick={openCreateModal}>
               {text.add}
             </Button>
           </Group>
@@ -366,6 +385,7 @@ const ProjectTrackingPage = () => {
               <Text size="sm" c="dimmed">{selectedIds.length} / {watches.length}</Text>
             </Group>
             <Button
+              id="project-tracking-scan-selected-btn"
               variant="light"
               leftSection={<IconRefresh size={16} />}
               disabled={!selectedIds.length || busy}
@@ -378,7 +398,7 @@ const ProjectTrackingPage = () => {
           {watches.length === 0 ? (
             <Text c="dimmed" ta="center" py="xl">{text.empty}</Text>
           ) : (
-            <Table striped highlightOnHover withTableBorder>
+            <Table id="project-tracking-table" striped highlightOnHover withTableBorder>
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th />
@@ -419,7 +439,7 @@ const ProjectTrackingPage = () => {
                       </Table.Td>
                       <Table.Td>
                         <Badge color={watch.enabled ? 'teal' : 'gray'} variant="light">
-                          {watch.enabled && watch.scan_interval_minutes ? `${watch.scan_interval_minutes} ${text.minutes}` : '-'}
+                          {watch.enabled && watch.scan_interval_minutes ? formatInterval(watch.scan_interval_minutes) : '-'}
                         </Badge>
                       </Table.Td>
                       <Table.Td><Text size="xs">{watch.last_scan_at ? new Date(watch.last_scan_at).toLocaleString() : '-'}</Text></Table.Td>
@@ -465,37 +485,54 @@ const ProjectTrackingPage = () => {
             onChange={(valueOrEvent) => updateFormField('name', valueOrEvent)}
             required
           />
-          <Group align="flex-end">
-            <TextInput
-              label={text.path}
-              aria-label={text.path}
-              value={form.path}
-              onChange={(valueOrEvent) => updateFormField('path', valueOrEvent)}
-              style={{ flex: 1 }}
-              required
+          <Stack id="project-tracking-path-field" gap={6}>
+            <Group align="flex-end">
+              <TextInput
+                label={text.path}
+                aria-label={text.path}
+                value={form.path}
+                onChange={(valueOrEvent) => updateFormField('path', valueOrEvent)}
+                description={text.pathDescription}
+                style={{ flex: 1 }}
+                required
+              />
+              <Button variant="light" leftSection={<IconFolder size={16} />} onClick={browseFolder}>{text.browse}</Button>
+            </Group>
+            <Text size="xs" c="dimmed">{text.safetyDescription}</Text>
+          </Stack>
+          <Stack id="project-tracking-linked-project-field" gap={4}>
+            <Select
+              label={text.project}
+              description={text.projectDescription}
+              data={projectOptions}
+              value={form.project_id}
+              onChange={(value) => setForm((current) => ({ ...current, project_id: value || '' }))}
             />
-            <Button variant="light" leftSection={<IconFolder size={16} />} onClick={browseFolder}>{text.browse}</Button>
-          </Group>
-          <Select
-            label={text.project}
-            data={projectOptions}
-            value={form.project_id}
-            onChange={(value) => setForm((current) => ({ ...current, project_id: value || '' }))}
-          />
-          <Group grow align="flex-end">
+          </Stack>
+          <Stack id="project-tracking-schedule-field" gap={8}>
             <Switch
               label={text.enabled}
+              description={text.enabledDescription}
               checked={form.enabled}
               onChange={(valueOrEvent) => updateFormCheckedField('enabled', valueOrEvent)}
             />
-            <NumberInput
-              label={text.interval}
-              min={1}
-              value={form.scan_interval_minutes}
-              onChange={(value) => setForm((current) => ({ ...current, scan_interval_minutes: value || 30 }))}
-              suffix={` ${text.minutes}`}
-            />
-          </Group>
+            {form.enabled && (
+              <Group grow align="flex-end">
+                <NumberInput
+                  label={text.interval}
+                  min={1}
+                  value={form.scan_interval_value}
+                  onChange={(value) => setForm((current) => ({ ...current, scan_interval_value: value || 1 }))}
+                />
+                <Select
+                  label={text.intervalUnit}
+                  data={intervalUnitOptions}
+                  value={form.scan_interval_unit}
+                  onChange={(value) => setForm((current) => ({ ...current, scan_interval_unit: value || 'minutes' }))}
+                />
+              </Group>
+            )}
+          </Stack>
           <Group justify="flex-end">
             <Button variant="default" onClick={() => setModalOpen(false)}>{text.cancel}</Button>
             <Button onClick={saveWatch} loading={busy} disabled={!form.name || !form.path}>{text.save}</Button>

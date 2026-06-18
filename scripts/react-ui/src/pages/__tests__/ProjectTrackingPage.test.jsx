@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +9,50 @@ import projectWatchService from '../../services/projectWatchService';
 import projectService from '../../services/projectService';
 
 const navigateMock = vi.fn();
+const setPageContextMock = vi.fn();
+
+const zhTranslations = {
+  'project_tracking.title': '项目追踪',
+  'project_tracking.subtitle': '给 Remis 添加需要持续监控的 Mod 本地路径，并在本地化文件发生变化后，一键跳转到增量更新。',
+  'project_tracking.add_new_project': '添加需要追踪的新项目',
+  'project_tracking.edit': '编辑需要追踪的项目',
+  'project_tracking.scan_selected': '扫描选中项',
+  'project_tracking.refresh': '刷新',
+  'project_tracking.empty': '还没有需要追踪的项目路径。',
+  'project_tracking.path': '路径',
+  'project_tracking.path_description': '把这个路径设置为你需要持续监控更新的 mod 在本地磁盘上的存放地址，例如 SteamLibrary\\steamapps\\workshop\\content\\游戏ID\\创意工坊物品ID。Remis 可以监控该文件夹中所有本地化文件的改动，并在出现改动时提示你。',
+  'project_tracking.path_safety_description': 'Remis 不会修改或者删除该文件夹中的任何文件。',
+  'project_tracking.project': '关联项目',
+  'project_tracking.project_description': '选择这个 mod 在 Remis 内对应的翻译项目。',
+  'project_tracking.status': '状态',
+  'project_tracking.last_scan': '最后扫描',
+  'project_tracking.changes': '变更',
+  'project_tracking.interval': '扫描间隔',
+  'project_tracking.interval_unit': '单位',
+  'project_tracking.actions': '操作',
+  'project_tracking.name': '名称',
+  'project_tracking.enabled': '启用定时扫描',
+  'project_tracking.enabled_description': '只要 Remis 处在运行状态，就会隔一定时间扫描本项目，检查是否有更新。',
+  'project_tracking.unit_minutes': '分钟',
+  'project_tracking.unit_hours': '小时',
+  'project_tracking.unit_days': '天',
+  'project_tracking.save': '保存',
+  'project_tracking.cancel': '取消',
+  'project_tracking.browse': '浏览',
+  'project_tracking.unlinked': '未关联',
+  'project_tracking.start_incremental': '开始增量更新',
+  'project_tracking.status_baseline': '已建立基线',
+  'project_tracking.status_clean': '无变更',
+  'project_tracking.status_changed': '有变更',
+  'project_tracking.status_never': '未扫描',
+  'project_tracking.status_no_localization': '没有本地化文件',
+  'project_tracking.scanned_files': '已扫描文件',
+  'project_tracking.scan_result': '扫描完成',
+  'project_tracking.scan_message': '扫描完成：{{status}}，已扫描文件 {{scanned}}，变更 {{changes}}。{{path}}',
+  'project_tracking.scan_now': '扫描',
+  'project_tracking.delete': '删除',
+  'project_tracking.select_project_first': '这个追踪项还没有关联 Remis 项目，无法跳转到增量更新。',
+};
 
 vi.mock('@mantine/core', async () => {
   const actual = await vi.importActual('@mantine/core');
@@ -33,7 +77,19 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    i18n: { language: 'zh' },
+    t: (key, values = {}) => {
+      let text = zhTranslations[key] || key;
+      Object.entries(values).forEach(([name, value]) => {
+        text = text.replace(`{{${name}}}`, value);
+      });
+      return text;
+    },
+  }),
+}));
+
+vi.mock('../../context/TutorialContextCore', () => ({
+  useTutorial: () => ({
+    setPageContext: setPageContextMock,
   }),
 }));
 
@@ -45,6 +101,7 @@ vi.mock('../../services/projectWatchService', () => ({
   default: {
     listWatches: vi.fn(),
     createWatch: vi.fn(),
+    updateWatch: vi.fn(),
     scanWatches: vi.fn(),
     deleteWatch: vi.fn(),
   },
@@ -119,12 +176,26 @@ describe('ProjectTrackingPage', () => {
     renderWithProvider(<ProjectTrackingPage />);
 
     await screen.findByText('Steam Vic3');
-    fireEvent.click(screen.getByRole('button', { name: '添加追踪' }));
+    fireEvent.click(screen.getByRole('button', { name: '添加需要追踪的新项目' }));
 
     fireEvent.change(screen.getByLabelText('名称'), { target: { value: 'Steam Workshop Test' } });
     fireEvent.change(screen.getByLabelText('路径'), { target: { value: 'J:/Steam/workshop/test' } });
 
     expect(screen.getByLabelText('名称')).toHaveValue('Steam Workshop Test');
     expect(screen.getByLabelText('路径')).toHaveValue('J:/Steam/workshop/test');
+  });
+
+  it('shows schedule interval only when scheduled scanning is enabled', async () => {
+    renderWithProvider(<ProjectTrackingPage />);
+
+    await screen.findByText('Steam Vic3');
+    fireEvent.click(screen.getByRole('button', { name: '添加需要追踪的新项目' }));
+
+    const dialog = screen.getByRole('dialog', { name: '添加需要追踪的新项目' });
+    expect(within(dialog).getByText('扫描间隔')).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('switch'));
+
+    expect(within(dialog).queryByText('扫描间隔')).not.toBeInTheDocument();
   });
 });

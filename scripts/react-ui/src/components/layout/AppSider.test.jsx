@@ -62,14 +62,14 @@ describe('AppSider', () => {
     expect(startTourMock).toHaveBeenCalledOnce();
   });
 
-  it('shows project tracking and neologism entries in the main navigation', () => {
+  it('shows project tracking and hides unfinished neologism entries in the main navigation', () => {
     renderWithProvider(<AppSider />);
 
     const sidebar = document.getElementById('sidebar-nav');
     fireEvent.mouseEnter(sidebar);
 
-    expect(screen.getByText('项目追踪')).toBeInTheDocument();
-    expect(screen.getByText('neologism_review.title')).toBeInTheDocument();
+    expect(screen.getByText('page_title_project_tracking')).toBeInTheDocument();
+    expect(screen.queryByText('neologism_review.title')).not.toBeInTheDocument();
   });
 
   it('localizes the sidebar pin toggle tooltip', () => {

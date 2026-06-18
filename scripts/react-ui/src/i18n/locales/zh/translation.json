@@ -102,7 +102,7 @@
   "theme_scifi": "太空科幻",
   "theme_wwii": "二战",
   "theme_medieval": "中世纪宫廷",
-  "settings_save": "保存",
+  "settings_save": "保存设置",
   "page_title_under_development": "待开发",
   "page_title_under_construction": "施工中",
   "page_title_in_conception": "构想中",
@@ -167,11 +167,11 @@
   "glossary_content": "内容",
   "glossary_add_entry": "新增词条",
   "glossary_filter_placeholder": "过滤内容...",
-  "glossary_source_text": "原文",
+  "glossary_source_text": "源文本",
   "glossary_translation": "译文",
   "glossary_notes": "备注",
   "glossary_variants": "变体",
-  "glossary_actions": "操作",
+  "glossary_actions": "操作项",
   "glossary_delete_confirm": "您确定要删除此词条吗？",
   "glossary_delete_glossary": "删除词典",
   "glossary_delete_glossary_tooltip": "删除整本词典及其所有词条",
@@ -266,7 +266,7 @@
   "form_placeholder_folder_prefix": "例如：IT-",
   "button_back": "返回",
   "button_create": "创建",
-  "button_save": "保存",
+  "button_save": "保存更改",
   "button_start_translation": "开始翻译",
   "button_abort_translation": "中断翻译",
   "button_download_mod": "下载翻译后的Mod",
@@ -408,13 +408,13 @@
   "api_key_not_configured": "未配置",
   "api_key_current": "当前密钥: {{key}}",
   "api_key_none_set": "未设置密钥",
-  "api_key_update": "更新",
+  "api_key_update": "更新密钥",
   "api_key_set": "设置密钥",
-  "api_key_save": "保存",
+  "api_key_save": "保存密钥",
   "api_key_cancel": "取消",
   "api_key_placeholder": "输入新的 API 密钥",
   "api_key_validation_empty": "API 密钥不能为空",
-  "api_key_success_title": "成功",
+  "api_key_success_title": "操作成功",
   "api_key_success_message": "API 密钥更新成功",
   "api_key_error_title": "错误",
   "api_key_error_fetch": "加载 API 设置失败",
@@ -947,6 +947,32 @@
           "desc": "把背景图拖到这里，再叠加你的 Logo 或其他素材。"
         }
       }
+    },
+    "project_tracking": {
+      "add": {
+        "title": "添加需要追踪的新项目",
+        "desc": "当某个创意工坊 Mod 或本地 Mod 文件夹需要持续关注更新时，从这里添加追踪。"
+      },
+      "table": {
+        "title": "追踪列表",
+        "desc": "这里显示被监控的文件夹、关联的 Remis 项目、最近扫描状态、发现的变更以及后续操作。"
+      },
+      "scan": {
+        "title": "手动扫描",
+        "desc": "选中一个或多个追踪项后，可以立即扫描，不必等定时任务触发。"
+      },
+      "path": {
+        "title": "Mod 文件夹路径",
+        "desc": "填写真实的本地 Mod 文件夹，例如 Steam 创意工坊 content 目录。Remis 只监控本地化文件，不会改写这个文件夹。"
+      },
+      "linked_project": {
+        "title": "关联 Remis 项目",
+        "desc": "把该文件夹关联到对应翻译项目，这样发现变更后才能直接跳到增量更新。"
+      },
+      "schedule": {
+        "title": "定时扫描",
+        "desc": "启用后，只要 Remis 正在运行，就会按你设置的分钟、小时或天间隔扫描该项目。"
+      }
     }
   },
   "tools": {
@@ -1258,7 +1284,7 @@
     "reused_count": "可复用（从存档/全库）",
     "new_count": "新增待翻译",
     "changed_count": "修改待重翻",
-    "language_scope_single": "{{language}}",
+    "language_scope_single": "语言范围：{{language}}",
     "language_scope_multi": "{{preview}} 等 {{count}} 种语言",
     "language_scope_summary": "正在为 {{languages}} 的翻译版本执行增量更新。下面“每个语言版本”是单语言口径，“本次共计”是所有目标语言合计。",
     "reusable_scope_note": "“可复用”只统计旧源文一致且已有有效译文的条目；空译文或与源文相同的疑似漏翻会计入待翻译，所以不同语言可能不同。",
@@ -1550,5 +1576,48 @@
   "deploy_detect_success_title": "已找到原始模组目录",
   "deploy_detect_success_message": "已根据项目/工坊元数据填入原始模组目录。",
   "deploy_detect_failed_title": "未能自动找到原始模组",
-  "deploy_detect_failed_message": "未找到关联的原始模组路径，请手动选择目录。"
+  "deploy_detect_failed_message": "未找到关联的原始模组路径，请手动选择目录。",
+  "page_title_project_tracking": "项目追踪",
+  "project_tracking": {
+    "title": "项目追踪",
+    "subtitle": "给 Remis 添加需要持续监控的 Mod 本地路径，并在本地化文件发生变化后，一键跳转到增量更新。",
+    "add_new_project": "添加需要追踪的新项目",
+    "edit": "编辑需要追踪的项目",
+    "scan_selected": "扫描选中项",
+    "refresh": "刷新",
+    "empty": "还没有需要追踪的项目路径。",
+    "path": "路径",
+    "path_description": "把这个路径设置为你需要持续监控更新的 mod 在本地磁盘上的存放地址，例如 SteamLibrary\\steamapps\\workshop\\content\\游戏ID\\创意工坊物品ID。Remis 可以监控该文件夹中所有本地化文件的改动，并在出现改动时提示你。",
+    "path_safety_description": "Remis 不会修改或者删除该文件夹中的任何文件。",
+    "project": "关联项目",
+    "project_description": "选择这个 mod 在 Remis 内对应的翻译项目。",
+    "status": "状态",
+    "last_scan": "最后扫描",
+    "changes": "变更",
+    "interval": "扫描间隔",
+    "interval_unit": "单位",
+    "actions": "操作",
+    "name": "名称",
+    "enabled": "启用定时扫描",
+    "enabled_description": "只要 Remis 处在运行状态，就会隔一定时间扫描本项目，检查是否有更新。",
+    "unit_minutes": "分钟",
+    "unit_hours": "小时",
+    "unit_days": "天",
+    "save": "保存",
+    "cancel": "取消",
+    "browse": "浏览",
+    "unlinked": "未关联",
+    "start_incremental": "开始增量更新",
+    "status_baseline": "已建立基线",
+    "status_clean": "无变更",
+    "status_changed": "有变更",
+    "status_never": "未扫描",
+    "status_no_localization": "没有本地化文件",
+    "scanned_files": "已扫描文件",
+    "scan_result": "扫描完成",
+    "scan_message": "扫描完成：{{status}}，已扫描文件 {{scanned}}，变更 {{changes}}。{{path}}",
+    "scan_now": "扫描",
+    "delete": "删除",
+    "select_project_first": "这个追踪项还没有关联 Remis 项目，无法跳转到增量更新。"
+  }
 }
