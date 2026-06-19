@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { usePersistentState } from './usePersistentState';
 import api from '../utils/api';
@@ -8,6 +9,7 @@ import api from '../utils/api';
  * 集中管理 API 调用、状态管理和事件处理
  */
 const useGlossaryActions = () => {
+    const location = useLocation();
     // ==================== 状态 ====================
     const [treeData, setTreeData] = useState([]);
     const [data, setData] = useState([]);
@@ -32,6 +34,7 @@ const useGlossaryActions = () => {
     const selectedTargetLangRef = useRef(selectedTargetLang);
     const setSelectedGameRef = useRef(setSelectedGame);
     const setSelectedTargetLangRef = useRef(setSelectedTargetLang);
+    const appliedDeepLinkRef = useRef(null);
 
     selectedGameRef.current = selectedGame;
     selectedTargetLangRef.current = selectedTargetLang;
@@ -73,6 +76,49 @@ const useGlossaryActions = () => {
 
         fetchInitialConfigs();
     }, []);
+
+    useEffect(() => {
+        if (!treeData.length || appliedDeepLinkRef.current === location.search) {
+            return;
+        }
+
+        const params = new URLSearchParams(location.search);
+        const gameId = params.get('game_id');
+        const glossaryId = params.get('glossary_id');
+        if (!gameId || !glossaryId) {
+            return;
+        }
+
+        const gameNode = treeData.find((node) => node.key === gameId);
+        const glossaryNode = gameNode?.children?.find((node) => {
+            const [, nodeGlossaryId] = node.key.split('|');
+            return nodeGlossaryId === glossaryId;
+        });
+        if (!glossaryNode) {
+            return;
+        }
+
+        const [, parsedGlossaryId, fileName] = glossaryNode.key.split('|');
+        setSelectedGame(gameId);
+        setSelectedFile({
+            key: glossaryNode.key,
+            title: fileName,
+            gameId,
+            glossaryId: parseInt(parsedGlossaryId, 10),
+        });
+        setSearchScope('file');
+        setFiltering('');
+        setPagination({ pageIndex: 0, pageSize: 25 });
+        appliedDeepLinkRef.current = location.search;
+    }, [
+        location.search,
+        setFiltering,
+        setPagination,
+        setSearchScope,
+        setSelectedGame,
+        setSelectedFile,
+        treeData,
+    ]);
 
     // ==================== 词典内容获取 ====================
     const fetchGlossaryContent = useCallback(async () => {

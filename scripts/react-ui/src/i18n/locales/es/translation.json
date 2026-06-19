@@ -1632,5 +1632,27 @@
     "scan_now": "Escanear ahora",
     "delete": "Eliminar",
     "select_project_first": "Este proyecto seguido no está vinculado a un proyecto de Remis, así que no puede saltar a la actualización incremental."
-  }
+  },
+  "project_management.tabs_project_glossary": "Glosario del proyecto",
+  "project_management.project_glossary.title": "Glosario del proyecto",
+  "project_management.project_glossary.description": "El glosario del mod generado automaticamente por el minero de neologismos se vincula a este proyecto. Esto ayuda a mantener nombres propios y terminos especificos coherentes durante todo el flujo de traduccion.",
+  "project_management.project_glossary.auto_binding_note": "Al iniciar la mineria de neologismos, Remis crea automaticamente un glosario para este proyecto y lo vincula al mod.",
+  "project_management.project_glossary.current_binding": "Vinculo actual",
+  "project_management.project_glossary.bound_to": "Este proyecto esta vinculado a {{name}}.",
+  "project_management.project_glossary.not_bound": "Este proyecto no esta vinculado a ningun glosario de proyecto.",
+  "project_management.project_glossary.select_label": "Glosario vinculado",
+  "project_management.project_glossary.select_placeholder": "Selecciona un glosario",
+  "project_management.project_glossary.bind_button": "Vincular glosario",
+  "project_management.project_glossary.unbind_button": "Quitar vinculo",
+  "project_management.project_glossary.inspect_button": "Revisar terminos del glosario",
+  "project_management.project_glossary.load_failed_title": "No se pudo cargar el glosario",
+  "project_management.project_glossary.load_failed_message": "No se pudieron cargar los datos del glosario del proyecto.",
+  "project_management.project_glossary.bind_success_title": "Glosario vinculado",
+  "project_management.project_glossary.bind_success_message": "Se actualizo el vinculo del glosario del proyecto.",
+  "project_management.project_glossary.bind_failed_title": "Error al vincular",
+  "project_management.project_glossary.bind_failed_message": "No se pudo vincular el glosario.",
+  "project_management.project_glossary.unbind_success_title": "Vinculo eliminado",
+  "project_management.project_glossary.unbind_success_message": "Este proyecto ya no esta vinculado a ese glosario.",
+  "project_management.project_glossary.unbind_failed_title": "Error al quitar vinculo",
+  "project_management.project_glossary.unbind_failed_message": "No se pudo quitar el vinculo del glosario."
 }

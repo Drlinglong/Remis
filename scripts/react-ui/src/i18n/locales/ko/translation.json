@@ -1631,5 +1631,27 @@
     "scan_now": "지금 스캔",
     "delete": "삭제",
     "select_project_first": "이 추적 프로젝트는 Remis 프로젝트와 연결되어 있지 않아 증분 업데이트로 이동할 수 없습니다."
-  }
+  },
+  "project_management.tabs_project_glossary": "프로젝트 용어집",
+  "project_management.project_glossary.title": "프로젝트 용어집",
+  "project_management.project_glossary.description": "신조어 채굴기가 자동 생성한 모드 용어집은 이 모드 프로젝트에 바인딩됩니다. 고유명사와 프로젝트 전용 용어를 전체 번역 흐름에서 일관되게 유지하는 데 도움이 됩니다.",
+  "project_management.project_glossary.auto_binding_note": "신조어 채굴을 시작하면 Remis가 이 프로젝트용 용어집을 자동으로 만들고 모드에 바인딩합니다.",
+  "project_management.project_glossary.current_binding": "현재 바인딩",
+  "project_management.project_glossary.bound_to": "이 프로젝트는 {{name}}에 바인딩되어 있습니다.",
+  "project_management.project_glossary.not_bound": "이 프로젝트는 현재 프로젝트 용어집에 바인딩되어 있지 않습니다.",
+  "project_management.project_glossary.select_label": "바인딩된 용어집",
+  "project_management.project_glossary.select_placeholder": "용어집 선택",
+  "project_management.project_glossary.bind_button": "용어집 바인딩",
+  "project_management.project_glossary.unbind_button": "바인딩 해제",
+  "project_management.project_glossary.inspect_button": "용어집 항목 확인",
+  "project_management.project_glossary.load_failed_title": "용어집 로드 실패",
+  "project_management.project_glossary.load_failed_message": "프로젝트 용어집 데이터를 불러올 수 없습니다.",
+  "project_management.project_glossary.bind_success_title": "용어집 바인딩됨",
+  "project_management.project_glossary.bind_success_message": "프로젝트 용어집 바인딩을 업데이트했습니다.",
+  "project_management.project_glossary.bind_failed_title": "바인딩 실패",
+  "project_management.project_glossary.bind_failed_message": "용어집을 바인딩할 수 없습니다.",
+  "project_management.project_glossary.unbind_success_title": "바인딩 제거됨",
+  "project_management.project_glossary.unbind_success_message": "이 프로젝트는 더 이상 해당 용어집에 바인딩되어 있지 않습니다.",
+  "project_management.project_glossary.unbind_failed_title": "바인딩 해제 실패",
+  "project_management.project_glossary.unbind_failed_message": "용어집 바인딩을 제거할 수 없습니다."
 }

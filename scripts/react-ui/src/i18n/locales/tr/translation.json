@@ -1631,5 +1631,27 @@
     "scan_now": "Şimdi tara",
     "delete": "Sil",
     "select_project_first": "Bu izlenen proje bir Remis projesine bağlı değil, bu yüzden artımlı güncellemeye geçemez."
-  }
+  },
+  "project_management.tabs_project_glossary": "Proje sozlugu",
+  "project_management.project_glossary.title": "Proje sozlugu",
+  "project_management.project_glossary.description": "Neologism madencisinin otomatik urettigi mod sozlugu bu mod projesine baglanir. Bu, ozel adlarin ve projeye ozgu terimlerin tum ceviri akisi boyunca tutarli kalmasina yardim eder.",
+  "project_management.project_glossary.auto_binding_note": "Neologism madenciligi basladiginda Remis bu proje icin otomatik bir sozluk olusturur ve moda baglar.",
+  "project_management.project_glossary.current_binding": "Gecerli baglanti",
+  "project_management.project_glossary.bound_to": "Bu proje {{name}} ile bagli.",
+  "project_management.project_glossary.not_bound": "Bu proje su anda bir proje sozlugune bagli degil.",
+  "project_management.project_glossary.select_label": "Bagli sozluk",
+  "project_management.project_glossary.select_placeholder": "Sozluk secin",
+  "project_management.project_glossary.bind_button": "Sozlugu bagla",
+  "project_management.project_glossary.unbind_button": "Baglantiyi kaldir",
+  "project_management.project_glossary.inspect_button": "Sozluk terimlerini kontrol et",
+  "project_management.project_glossary.load_failed_title": "Sozluk yuklenemedi",
+  "project_management.project_glossary.load_failed_message": "Proje sozlugu verileri yuklenemedi.",
+  "project_management.project_glossary.bind_success_title": "Sozluk baglandi",
+  "project_management.project_glossary.bind_success_message": "Proje sozlugu baglantisi guncellendi.",
+  "project_management.project_glossary.bind_failed_title": "Baglama basarisiz",
+  "project_management.project_glossary.bind_failed_message": "Sozluk baglanamadi.",
+  "project_management.project_glossary.unbind_success_title": "Baglanti kaldirildi",
+  "project_management.project_glossary.unbind_success_message": "Bu proje artik o sozluge bagli degil.",
+  "project_management.project_glossary.unbind_failed_title": "Kaldirma basarisiz",
+  "project_management.project_glossary.unbind_failed_message": "Sozluk baglantisi kaldirilamadi."
 }

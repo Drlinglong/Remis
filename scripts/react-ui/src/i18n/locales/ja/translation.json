@@ -1631,5 +1631,27 @@
     "scan_now": "今すぐスキャン",
     "delete": "削除",
     "select_project_first": "この追跡プロジェクトはRemisプロジェクトに関連付けられていないため、増分更新へ移動できません。"
-  }
+  },
+  "project_management.tabs_project_glossary": "プロジェクト用語集",
+  "project_management.project_glossary.title": "プロジェクト用語集",
+  "project_management.project_glossary.description": "新語抽出機が自動生成した Mod 用語集は、この Mod プロジェクトに紐付けられます。固有名詞やプロジェクト固有の用語を翻訳フロー全体で一貫させるために使われます。",
+  "project_management.project_glossary.auto_binding_note": "新語抽出を開始すると、Remis はこのプロジェクト用の用語集を自動作成し、Mod に紐付けます。",
+  "project_management.project_glossary.current_binding": "現在の紐付け",
+  "project_management.project_glossary.bound_to": "このプロジェクトは {{name}} に紐付いています。",
+  "project_management.project_glossary.not_bound": "このプロジェクトは現在、プロジェクト用語集に紐付いていません。",
+  "project_management.project_glossary.select_label": "紐付ける用語集",
+  "project_management.project_glossary.select_placeholder": "用語集を選択",
+  "project_management.project_glossary.bind_button": "用語集を紐付け",
+  "project_management.project_glossary.unbind_button": "紐付け解除",
+  "project_management.project_glossary.inspect_button": "用語集の用語を確認",
+  "project_management.project_glossary.load_failed_title": "用語集の読み込みに失敗しました",
+  "project_management.project_glossary.load_failed_message": "プロジェクト用語集データを読み込めませんでした。",
+  "project_management.project_glossary.bind_success_title": "用語集を紐付けました",
+  "project_management.project_glossary.bind_success_message": "プロジェクト用語集の紐付けを更新しました。",
+  "project_management.project_glossary.bind_failed_title": "紐付けに失敗しました",
+  "project_management.project_glossary.bind_failed_message": "用語集を紐付けできませんでした。",
+  "project_management.project_glossary.unbind_success_title": "紐付けを解除しました",
+  "project_management.project_glossary.unbind_success_message": "このプロジェクトはその用語集に紐付いていません。",
+  "project_management.project_glossary.unbind_failed_title": "解除に失敗しました",
+  "project_management.project_glossary.unbind_failed_message": "用語集の紐付けを解除できませんでした。"
 }

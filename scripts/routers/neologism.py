@@ -7,7 +7,12 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from scripts.core.neologism_manager import neologism_manager
 from scripts.shared.services import project_manager, glossary_manager
 from scripts.shared import task_state
-from scripts.schemas.neologism import ApproveNeologismRequest, UpdateNeologismRequest, MineNeologismsRequest
+from scripts.schemas.neologism import (
+    ApproveNeologismRequest,
+    ProjectGlossaryBindingRequest,
+    UpdateNeologismRequest,
+    MineNeologismsRequest,
+)
 from scripts.app_settings import GAME_PROFILES_BY_ID
 
 logger = logging.getLogger(__name__)
@@ -180,6 +185,44 @@ async def get_project_neologism_glossary(project_id: str):
         "is_main": False,
         "pending_creation": True,
     }
+
+@router.put("/api/neologisms/project-glossary/{project_id}")
+async def bind_project_neologism_glossary(project_id: str, payload: ProjectGlossaryBindingRequest):
+    """Bind this project to an existing non-main glossary for its game."""
+    project = await project_manager.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    target = await glossary_manager.get_glossary_by_id(payload.glossary_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Glossary not found")
+    if target.get("game_id") != project["game_id"]:
+        raise HTTPException(status_code=400, detail="Glossary belongs to a different game")
+    if target.get("is_main"):
+        raise HTTPException(status_code=400, detail="Main glossary cannot be used as a project glossary")
+    target_project = (target.get("raw_metadata") or {}).get("project_id")
+    if target_project and target_project != project_id:
+        raise HTTPException(status_code=409, detail="Glossary is already bound to another project")
+
+    glossary = await glossary_manager.bind_project_glossary(
+        project["game_id"],
+        project_id,
+        project.get("name"),
+        payload.glossary_id,
+    )
+    if not glossary:
+        raise HTTPException(status_code=500, detail="Failed to bind project glossary")
+    return glossary
+
+@router.delete("/api/neologisms/project-glossary/{project_id}")
+async def unbind_project_neologism_glossary(project_id: str):
+    """Unbind the current project glossary without deleting the glossary."""
+    project = await project_manager.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if not await glossary_manager.unbind_project_glossary(project["game_id"], project_id):
+        raise HTTPException(status_code=500, detail="Failed to unbind project glossary")
+    return {"status": "success"}
 
 @router.get("/api/neologisms/status/{project_id}")
 def get_mining_status(project_id: str):

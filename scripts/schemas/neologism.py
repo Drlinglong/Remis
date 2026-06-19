@@ -17,3 +17,6 @@ class MineNeologismsRequest(BaseModel):
     api_provider: str
     target_lang: str = "zh-CN"
     file_paths: Optional[List[str]] = None
+
+class ProjectGlossaryBindingRequest(BaseModel):
+    glossary_id: int

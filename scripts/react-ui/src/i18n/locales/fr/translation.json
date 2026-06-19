@@ -1631,5 +1631,27 @@
     "scan_now": "Analyser maintenant",
     "delete": "Supprimer",
     "select_project_first": "Ce projet suivi n’est pas associé à un projet Remis ; il ne peut donc pas ouvrir la mise à jour incrémentielle."
-  }
+  },
+  "project_management.tabs_project_glossary": "Glossaire du projet",
+  "project_management.project_glossary.title": "Glossaire du projet",
+  "project_management.project_glossary.description": "Le glossaire de mod cree automatiquement par le detecteur de neologismes est lie a ce projet de mod. Cela garde les noms propres et termes specifiques coherents dans tout le flux de traduction.",
+  "project_management.project_glossary.auto_binding_note": "Au demarrage de la detection de neologismes, Remis cree automatiquement un glossaire pour ce projet et le lie au mod.",
+  "project_management.project_glossary.current_binding": "Liaison actuelle",
+  "project_management.project_glossary.bound_to": "Ce projet est lie a {{name}}.",
+  "project_management.project_glossary.not_bound": "Ce projet n est lie a aucun glossaire de projet pour le moment.",
+  "project_management.project_glossary.select_label": "Glossaire lie",
+  "project_management.project_glossary.select_placeholder": "Selectionner un glossaire",
+  "project_management.project_glossary.bind_button": "Lier le glossaire",
+  "project_management.project_glossary.unbind_button": "Delier",
+  "project_management.project_glossary.inspect_button": "Verifier les termes du glossaire",
+  "project_management.project_glossary.load_failed_title": "Echec du chargement du glossaire",
+  "project_management.project_glossary.load_failed_message": "Impossible de charger les donnees du glossaire de projet.",
+  "project_management.project_glossary.bind_success_title": "Glossaire lie",
+  "project_management.project_glossary.bind_success_message": "La liaison du glossaire de projet a ete mise a jour.",
+  "project_management.project_glossary.bind_failed_title": "Echec de la liaison",
+  "project_management.project_glossary.bind_failed_message": "Impossible de lier le glossaire.",
+  "project_management.project_glossary.unbind_success_title": "Liaison supprimee",
+  "project_management.project_glossary.unbind_success_message": "Ce projet n est plus lie a ce glossaire.",
+  "project_management.project_glossary.unbind_failed_title": "Echec de la suppression",
+  "project_management.project_glossary.unbind_failed_message": "Impossible de retirer la liaison du glossaire."
 }

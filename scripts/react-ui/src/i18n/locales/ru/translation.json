@@ -1654,5 +1654,27 @@
     "scan_now": "Сканировать сейчас",
     "delete": "Удалить",
     "select_project_first": "Этот отслеживаемый проект не связан с проектом Remis, поэтому нельзя перейти к инкрементальному обновлению."
-  }
+  },
+  "project_management.tabs_project_glossary": "Глоссарий проекта",
+  "project_management.project_glossary.title": "Глоссарий проекта",
+  "project_management.project_glossary.description": "Глоссарий мода, автоматически созданный поиском новых терминов, привязывается к этому проекту. Это помогает сохранять единообразие имен и проектных терминов во всем процессе перевода.",
+  "project_management.project_glossary.auto_binding_note": "При запуске поиска новых терминов Remis автоматически создает глоссарий для этого проекта и привязывает его к моду.",
+  "project_management.project_glossary.current_binding": "Текущая привязка",
+  "project_management.project_glossary.bound_to": "Этот проект привязан к {{name}}.",
+  "project_management.project_glossary.not_bound": "Этот проект пока не привязан к проектному глоссарию.",
+  "project_management.project_glossary.select_label": "Привязанный глоссарий",
+  "project_management.project_glossary.select_placeholder": "Выберите глоссарий",
+  "project_management.project_glossary.bind_button": "Привязать глоссарий",
+  "project_management.project_glossary.unbind_button": "Отвязать",
+  "project_management.project_glossary.inspect_button": "Проверить термины глоссария",
+  "project_management.project_glossary.load_failed_title": "Не удалось загрузить глоссарий",
+  "project_management.project_glossary.load_failed_message": "Не удалось загрузить данные глоссария проекта.",
+  "project_management.project_glossary.bind_success_title": "Глоссарий привязан",
+  "project_management.project_glossary.bind_success_message": "Привязка глоссария проекта обновлена.",
+  "project_management.project_glossary.bind_failed_title": "Ошибка привязки",
+  "project_management.project_glossary.bind_failed_message": "Не удалось привязать глоссарий.",
+  "project_management.project_glossary.unbind_success_title": "Привязка удалена",
+  "project_management.project_glossary.unbind_success_message": "Этот проект больше не привязан к этому глоссарию.",
+  "project_management.project_glossary.unbind_failed_title": "Ошибка отвязки",
+  "project_management.project_glossary.unbind_failed_message": "Не удалось удалить привязку глоссария."
 }

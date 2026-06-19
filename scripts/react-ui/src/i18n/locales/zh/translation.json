@@ -1650,5 +1650,27 @@
     "scan_now": "扫描",
     "delete": "删除",
     "select_project_first": "这个追踪项还没有关联 Remis 项目，无法跳转到增量更新。"
-  }
+  },
+  "project_management.tabs_project_glossary": "项目词典",
+  "project_management.project_glossary.title": "项目词典",
+  "project_management.project_glossary.description": "新词挖掘机自动生成的 Mod 词典会与当前 Mod 项目绑定。这可以帮助专有名词和项目特有术语在整个翻译流程中保持一致。",
+  "project_management.project_glossary.auto_binding_note": "当新词挖掘开始时，Remis 会自动为这个项目创建一本项目词典，并绑定到当前 Mod。",
+  "project_management.project_glossary.current_binding": "当前绑定",
+  "project_management.project_glossary.bound_to": "当前项目已绑定到 {{name}}。",
+  "project_management.project_glossary.not_bound": "当前项目还没有绑定项目词典。",
+  "project_management.project_glossary.select_label": "绑定词典",
+  "project_management.project_glossary.select_placeholder": "选择一本词典",
+  "project_management.project_glossary.bind_button": "绑定词典",
+  "project_management.project_glossary.unbind_button": "解除绑定",
+  "project_management.project_glossary.inspect_button": "检查词典术语",
+  "project_management.project_glossary.load_failed_title": "加载词典失败",
+  "project_management.project_glossary.load_failed_message": "无法加载项目词典信息。",
+  "project_management.project_glossary.bind_success_title": "词典已绑定",
+  "project_management.project_glossary.bind_success_message": "项目词典绑定已更新。",
+  "project_management.project_glossary.bind_failed_title": "绑定失败",
+  "project_management.project_glossary.bind_failed_message": "无法绑定这本词典。",
+  "project_management.project_glossary.unbind_success_title": "绑定已解除",
+  "project_management.project_glossary.unbind_success_message": "当前项目已不再绑定这本词典。",
+  "project_management.project_glossary.unbind_failed_title": "解除绑定失败",
+  "project_management.project_glossary.unbind_failed_message": "无法解除项目词典绑定。"
 }

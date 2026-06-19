@@ -1631,5 +1631,27 @@
     "scan_now": "Skanuj teraz",
     "delete": "Usuń",
     "select_project_first": "Ten śledzony projekt nie jest powiązany z projektem Remis, więc nie może przejść do aktualizacji przyrostowej."
-  }
+  },
+  "project_management.tabs_project_glossary": "Glosariusz projektu",
+  "project_management.project_glossary.title": "Glosariusz projektu",
+  "project_management.project_glossary.description": "Glosariusz moda tworzony automatycznie przez wykrywacz neologizmow jest przypisany do tego projektu. Pomaga utrzymac spojnosc nazw wlasnych i terminow projektu w calym procesie tlumaczenia.",
+  "project_management.project_glossary.auto_binding_note": "Po uruchomieniu wykrywania neologizmow Remis automatycznie tworzy glosariusz dla tego projektu i przypisuje go do moda.",
+  "project_management.project_glossary.current_binding": "Biezace przypisanie",
+  "project_management.project_glossary.bound_to": "Ten projekt jest przypisany do {{name}}.",
+  "project_management.project_glossary.not_bound": "Ten projekt nie jest obecnie przypisany do glosariusza projektu.",
+  "project_management.project_glossary.select_label": "Przypisany glosariusz",
+  "project_management.project_glossary.select_placeholder": "Wybierz glosariusz",
+  "project_management.project_glossary.bind_button": "Przypisz glosariusz",
+  "project_management.project_glossary.unbind_button": "Usun przypisanie",
+  "project_management.project_glossary.inspect_button": "Sprawdz terminy glosariusza",
+  "project_management.project_glossary.load_failed_title": "Nie udalo sie wczytac glosariusza",
+  "project_management.project_glossary.load_failed_message": "Nie mozna wczytac danych glosariusza projektu.",
+  "project_management.project_glossary.bind_success_title": "Glosariusz przypisany",
+  "project_management.project_glossary.bind_success_message": "Przypisanie glosariusza projektu zostalo zaktualizowane.",
+  "project_management.project_glossary.bind_failed_title": "Przypisanie nie powiodlo sie",
+  "project_management.project_glossary.bind_failed_message": "Nie mozna przypisac glosariusza.",
+  "project_management.project_glossary.unbind_success_title": "Przypisanie usuniete",
+  "project_management.project_glossary.unbind_success_message": "Ten projekt nie jest juz przypisany do tego glosariusza.",
+  "project_management.project_glossary.unbind_failed_title": "Usuniecie nie powiodlo sie",
+  "project_management.project_glossary.unbind_failed_message": "Nie mozna usunac przypisania glosariusza."
 }

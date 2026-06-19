@@ -49,7 +49,6 @@ class GlossaryManager:
         """Async: Return the dedicated glossary for a project if it exists."""
         try:
             async for session in self.db_manager.get_async_session():
-                project_name_filter = self.get_project_glossary_name(project_id, project_name)
                 statement = select(Glossary).where(
                     Glossary.game_id == game_id,
                     Glossary.is_main == False,
@@ -64,13 +63,105 @@ class GlossaryManager:
                     ),
                     None,
                 )
-                if not glossary:
-                    glossary = next((g for g in glossaries if g.name == project_name_filter), None)
                 return glossary.model_dump() if glossary else None
         except Exception as e:
             logger.error(f"Failed to get project glossary for {project_id}: {e}")
             return None
         return None
+
+    async def get_glossary_by_id(self, glossary_id: int) -> Optional[Dict]:
+        """Async: Return a glossary by ID."""
+        try:
+            async for session in self.db_manager.get_async_session():
+                statement = select(Glossary).where(Glossary.glossary_id == glossary_id)
+                result = await session.execute(statement)
+                glossary = result.scalar_one_or_none()
+                return glossary.model_dump() if glossary else None
+        except Exception as e:
+            logger.error(f"Failed to get glossary {glossary_id}: {e}")
+            return None
+        return None
+
+    def _clear_project_glossary_binding(self, glossary: Glossary) -> None:
+        metadata = dict(glossary.raw_metadata or {})
+        for key in ("kind", "project_id", "project_name"):
+            metadata.pop(key, None)
+        glossary.raw_metadata = metadata
+
+    async def bind_project_glossary(self, game_id: str, project_id: str, project_name: Optional[str], glossary_id: int) -> Optional[Dict]:
+        """Async: Bind one non-main glossary to a project and clear previous binding."""
+        try:
+            async for session in self.db_manager.get_async_session():
+                statement = select(Glossary).where(
+                    Glossary.game_id == game_id,
+                    Glossary.is_main == False,
+                )
+                result = await session.execute(statement)
+                glossaries = result.scalars().all()
+                target = next((g for g in glossaries if g.glossary_id == glossary_id), None)
+                if not target:
+                    return None
+
+                target_metadata = target.raw_metadata or {}
+                bound_project_id = target_metadata.get("project_id")
+                if (
+                    target_metadata.get("kind") == "project_neologism_glossary"
+                    and bound_project_id
+                    and bound_project_id != project_id
+                ):
+                    return None
+
+                for glossary in glossaries:
+                    metadata = glossary.raw_metadata or {}
+                    if (
+                        metadata.get("kind") == "project_neologism_glossary"
+                        and metadata.get("project_id") == project_id
+                        and glossary.glossary_id != glossary_id
+                    ):
+                        self._clear_project_glossary_binding(glossary)
+                        session.add(glossary)
+
+                target.raw_metadata = {
+                    **target_metadata,
+                    "kind": "project_neologism_glossary",
+                    "project_id": project_id,
+                    "project_name": project_name,
+                }
+                session.add(target)
+                await session.commit()
+                await session.refresh(target)
+                return target.model_dump()
+        except Exception as e:
+            logger.error(f"Failed to bind project glossary {glossary_id} to {project_id}: {e}")
+            return None
+        return None
+
+    async def unbind_project_glossary(self, game_id: str, project_id: str) -> bool:
+        """Async: Remove project binding metadata from the current project glossary."""
+        try:
+            async for session in self.db_manager.get_async_session():
+                statement = select(Glossary).where(
+                    Glossary.game_id == game_id,
+                    Glossary.is_main == False,
+                )
+                result = await session.execute(statement)
+                changed = False
+                for glossary in result.scalars().all():
+                    metadata = glossary.raw_metadata or {}
+                    if (
+                        metadata.get("kind") == "project_neologism_glossary"
+                        and metadata.get("project_id") == project_id
+                    ):
+                        self._clear_project_glossary_binding(glossary)
+                        session.add(glossary)
+                        changed = True
+                if changed:
+                    await session.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Failed to unbind project glossary for {project_id}: {e}")
+            return False
+        return False
 
     async def get_or_create_project_glossary(self, game_id: str, project_id: str, project_name: Optional[str] = None) -> Optional[Dict]:
         """Async: Ensure the dedicated glossary for a project exists and return it."""

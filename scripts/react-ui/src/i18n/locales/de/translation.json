@@ -1631,5 +1631,27 @@
     "scan_now": "Jetzt scannen",
     "delete": "Löschen",
     "select_project_first": "Dieses verfolgte Projekt ist nicht mit einem Remis-Projekt verknüpft und kann daher nicht zur inkrementellen Aktualisierung springen."
-  }
+  },
+  "project_management.tabs_project_glossary": "Projektglossar",
+  "project_management.project_glossary.title": "Projektglossar",
+  "project_management.project_glossary.description": "Das vom Neologismus-Miner automatisch erzeugte Mod-Glossar wird an dieses Mod-Projekt gebunden. So bleiben Eigennamen und projektspezifische Begriffe im gesamten Übersetzungsablauf konsistent.",
+  "project_management.project_glossary.auto_binding_note": "Beim Start der Neologismus-Suche erstellt Remis automatisch ein Glossar für dieses Projekt und bindet es an den Mod.",
+  "project_management.project_glossary.current_binding": "Aktuelle Bindung",
+  "project_management.project_glossary.bound_to": "Dieses Projekt ist mit {{name}} verbunden.",
+  "project_management.project_glossary.not_bound": "Dieses Projekt ist derzeit mit keinem Projektglossar verbunden.",
+  "project_management.project_glossary.select_label": "Gebundenes Glossar",
+  "project_management.project_glossary.select_placeholder": "Glossar auswählen",
+  "project_management.project_glossary.bind_button": "Glossar binden",
+  "project_management.project_glossary.unbind_button": "Bindung lösen",
+  "project_management.project_glossary.inspect_button": "Glossarbegriffe prüfen",
+  "project_management.project_glossary.load_failed_title": "Glossar konnte nicht geladen werden",
+  "project_management.project_glossary.load_failed_message": "Die Projektglossar-Daten konnten nicht geladen werden.",
+  "project_management.project_glossary.bind_success_title": "Glossar verbunden",
+  "project_management.project_glossary.bind_success_message": "Das Projektglossar wurde aktualisiert.",
+  "project_management.project_glossary.bind_failed_title": "Bindung fehlgeschlagen",
+  "project_management.project_glossary.bind_failed_message": "Das Glossar konnte nicht gebunden werden.",
+  "project_management.project_glossary.unbind_success_title": "Bindung gelöst",
+  "project_management.project_glossary.unbind_success_message": "Das Projekt ist nicht mehr mit diesem Glossar verbunden.",
+  "project_management.project_glossary.unbind_failed_title": "Lösen fehlgeschlagen",
+  "project_management.project_glossary.unbind_failed_message": "Die Glossarbindung konnte nicht entfernt werden."
 }
