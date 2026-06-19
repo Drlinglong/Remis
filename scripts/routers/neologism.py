@@ -113,6 +113,14 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
     logger.info(f"Triggering neologism mining for project {payload.project_id} with {len(files)} files.")
     game_profile = GAME_PROFILES_BY_ID.get(project.get("game_id") or "")
     game_name = (game_profile or {}).get("name", "Paradox Game")
+    project_glossary = await glossary_manager.get_or_create_project_glossary(
+        project["game_id"],
+        payload.project_id,
+        project.get("name"),
+    )
+    if not project_glossary or not project_glossary.get("glossary_id"):
+        raise HTTPException(status_code=500, detail="Failed to prepare project glossary")
+
     task_id = str(uuid.uuid4())
     task_state.create_task(task_id, status="pending", log_message="Neologism mining queued.")
     task_state.init_progress(task_id, {
@@ -127,6 +135,8 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
         status="starting",
         summary={
             "project_id": payload.project_id,
+            "project_glossary_id": project_glossary["glossary_id"],
+            "project_glossary_name": project_glossary.get("name"),
             "new_terms": 0,
             "duplicate_terms": 0,
         },
@@ -160,11 +170,12 @@ async def get_project_neologism_glossary(project_id: str):
     glossary = await glossary_manager.get_project_glossary(
         project["game_id"],
         project_id,
+        project.get("name"),
     )
     return glossary or {
         "glossary_id": None,
         "game_id": project["game_id"],
-        "name": glossary_manager.get_project_glossary_name(project_id),
+        "name": glossary_manager.get_project_glossary_name(project_id, project.get("name")),
         "description": f"Auto-mined project glossary for {project.get('name') or project_id}",
         "is_main": False,
         "pending_creation": True,

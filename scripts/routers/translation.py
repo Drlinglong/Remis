@@ -260,8 +260,23 @@ def run_translation_workflow_v2(
             if main_glossary and main_glossary['glossary_id'] not in final_glossary_ids:
                 final_glossary_ids.append(main_glossary['glossary_id'])
 
+        override_path = None
+        project = None
         if project_id:
-            project_glossary = _run_async(glossary_manager.get_project_glossary(game_profile["id"], project_id))
+            try:
+                project = _run_async(project_manager.get_project(project_id))
+                if project and 'source_path' in project:
+                    override_path = project['source_path']
+                    logging.info(f"Using override source path from project: {override_path}")
+            except Exception as e:
+                logging.error(f"Failed to fetch override path: {e}")
+
+        if project_id:
+            project_glossary = _run_async(glossary_manager.get_project_glossary(
+                game_profile["id"],
+                project_id,
+                (project or {}).get("name"),
+            ))
             if project_glossary and project_glossary.get('glossary_id') not in final_glossary_ids:
                 final_glossary_ids.append(project_glossary['glossary_id'])
                 logging.info(
@@ -269,16 +284,6 @@ def run_translation_workflow_v2(
                     project_glossary['glossary_id'],
                     project_id,
                 )
-
-        override_path = None
-        if project_id:
-            try:
-                proj = _run_async(project_manager.get_project(project_id))
-                if proj and 'source_path' in proj:
-                    override_path = proj['source_path']
-                    logging.info(f"Using override source path from project: {override_path}")
-            except Exception as e:
-                logging.error(f"Failed to fetch override path: {e}")
 
         logging.info("Calling initial_translate.run...")
         initial_translate.run(
