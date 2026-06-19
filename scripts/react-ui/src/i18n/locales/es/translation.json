@@ -1654,5 +1654,14 @@
   "project_management.project_glossary.unbind_success_title": "Vinculo eliminado",
   "project_management.project_glossary.unbind_success_message": "Este proyecto ya no esta vinculado a ese glosario.",
   "project_management.project_glossary.unbind_failed_title": "Error al quitar vinculo",
-  "project_management.project_glossary.unbind_failed_message": "No se pudo quitar el vinculo del glosario."
+  "project_management.project_glossary.unbind_failed_message": "No se pudo quitar el vinculo del glosario.",
+  "project_management.project_glossary.all_games": "Todos los juegos",
+  "project_management.project_glossary.game_filter_label": "Filtro de juego",
+  "project_management.project_glossary.game_filter_placeholder": "Mostrar glosarios de todos los juegos",
+  "project_management.project_glossary.main_glossary_badge": "Glosario principal",
+  "project_management.project_glossary.create_button": "Crear y vincular glosario del proyecto",
+  "project_management.project_glossary.create_success_title": "Glosario del proyecto listo",
+  "project_management.project_glossary.create_success_message": "Se ha creado y vinculado un glosario del proyecto.",
+  "project_management.project_glossary.create_failed_title": "Error al crear",
+  "project_management.project_glossary.create_failed_message": "No se pudo crear el glosario del proyecto."
 }

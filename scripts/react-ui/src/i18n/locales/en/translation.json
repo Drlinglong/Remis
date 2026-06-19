@@ -1653,5 +1653,14 @@
   "project_management.project_glossary.unbind_success_title": "Binding removed",
   "project_management.project_glossary.unbind_success_message": "This project is no longer bound to that glossary.",
   "project_management.project_glossary.unbind_failed_title": "Unbind failed",
-  "project_management.project_glossary.unbind_failed_message": "Could not remove the glossary binding."
+  "project_management.project_glossary.unbind_failed_message": "Could not remove the glossary binding.",
+  "project_management.project_glossary.all_games": "All games",
+  "project_management.project_glossary.game_filter_label": "Game filter",
+  "project_management.project_glossary.game_filter_placeholder": "Show glossaries from all games",
+  "project_management.project_glossary.main_glossary_badge": "Main",
+  "project_management.project_glossary.create_button": "Create and bind project glossary",
+  "project_management.project_glossary.create_success_title": "Project glossary ready",
+  "project_management.project_glossary.create_success_message": "A project glossary has been created and bound.",
+  "project_management.project_glossary.create_failed_title": "Create failed",
+  "project_management.project_glossary.create_failed_message": "Could not create the project glossary."
 }

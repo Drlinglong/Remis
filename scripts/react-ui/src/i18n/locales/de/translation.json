@@ -1653,5 +1653,14 @@
   "project_management.project_glossary.unbind_success_title": "Bindung gelöst",
   "project_management.project_glossary.unbind_success_message": "Das Projekt ist nicht mehr mit diesem Glossar verbunden.",
   "project_management.project_glossary.unbind_failed_title": "Lösen fehlgeschlagen",
-  "project_management.project_glossary.unbind_failed_message": "Die Glossarbindung konnte nicht entfernt werden."
+  "project_management.project_glossary.unbind_failed_message": "Die Glossarbindung konnte nicht entfernt werden.",
+  "project_management.project_glossary.all_games": "Alle Spiele",
+  "project_management.project_glossary.game_filter_label": "Spielfilter",
+  "project_management.project_glossary.game_filter_placeholder": "Glossare aus allen Spielen anzeigen",
+  "project_management.project_glossary.main_glossary_badge": "Hauptglossar",
+  "project_management.project_glossary.create_button": "Projektglossar erstellen und binden",
+  "project_management.project_glossary.create_success_title": "Projektglossar bereit",
+  "project_management.project_glossary.create_success_message": "Ein Projektglossar wurde erstellt und gebunden.",
+  "project_management.project_glossary.create_failed_title": "Erstellen fehlgeschlagen",
+  "project_management.project_glossary.create_failed_message": "Das Projektglossar konnte nicht erstellt werden."
 }

@@ -1653,5 +1653,14 @@
   "project_management.project_glossary.unbind_success_title": "紐付けを解除しました",
   "project_management.project_glossary.unbind_success_message": "このプロジェクトはその用語集に紐付いていません。",
   "project_management.project_glossary.unbind_failed_title": "解除に失敗しました",
-  "project_management.project_glossary.unbind_failed_message": "用語集の紐付けを解除できませんでした。"
+  "project_management.project_glossary.unbind_failed_message": "用語集の紐付けを解除できませんでした。",
+  "project_management.project_glossary.all_games": "すべてのゲーム",
+  "project_management.project_glossary.game_filter_label": "ゲームフィルター",
+  "project_management.project_glossary.game_filter_placeholder": "すべてのゲームの用語集を表示",
+  "project_management.project_glossary.main_glossary_badge": "メイン",
+  "project_management.project_glossary.create_button": "プロジェクト用語集を作成して紐付け",
+  "project_management.project_glossary.create_success_title": "プロジェクト用語集の準備完了",
+  "project_management.project_glossary.create_success_message": "プロジェクト用語集を作成して紐付けました。",
+  "project_management.project_glossary.create_failed_title": "作成に失敗",
+  "project_management.project_glossary.create_failed_message": "プロジェクト用語集を作成できませんでした。"
 }

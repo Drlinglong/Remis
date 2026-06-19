@@ -27,6 +27,14 @@ class GlossaryEntry(SQLModel, table=True):
     variants: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
     raw_metadata: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
 
+class ProjectGlossaryBinding(SQLModel, table=True):
+    __tablename__ = "project_glossary_bindings"
+
+    project_id: str = Field(foreign_key="projects.project_id", primary_key=True)
+    glossary_id: int = Field(foreign_key="glossaries.glossary_id", index=True)
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
 class Project(SQLModel, table=True):
     __tablename__ = "projects"
 

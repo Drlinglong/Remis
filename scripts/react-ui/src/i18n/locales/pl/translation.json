@@ -1653,5 +1653,14 @@
   "project_management.project_glossary.unbind_success_title": "Przypisanie usuniete",
   "project_management.project_glossary.unbind_success_message": "Ten projekt nie jest juz przypisany do tego glosariusza.",
   "project_management.project_glossary.unbind_failed_title": "Usuniecie nie powiodlo sie",
-  "project_management.project_glossary.unbind_failed_message": "Nie mozna usunac przypisania glosariusza."
+  "project_management.project_glossary.unbind_failed_message": "Nie mozna usunac przypisania glosariusza.",
+  "project_management.project_glossary.all_games": "Wszystkie gry",
+  "project_management.project_glossary.game_filter_label": "Filtr gry",
+  "project_management.project_glossary.game_filter_placeholder": "Pokaz glosariusze ze wszystkich gier",
+  "project_management.project_glossary.main_glossary_badge": "Glowny",
+  "project_management.project_glossary.create_button": "Utworz i powiaz glosariusz projektu",
+  "project_management.project_glossary.create_success_title": "Glosariusz projektu gotowy",
+  "project_management.project_glossary.create_success_message": "Glosariusz projektu zostal utworzony i powiazany.",
+  "project_management.project_glossary.create_failed_title": "Tworzenie nie powiodlo sie",
+  "project_management.project_glossary.create_failed_message": "Nie mozna utworzyc glosariusza projektu."
 }

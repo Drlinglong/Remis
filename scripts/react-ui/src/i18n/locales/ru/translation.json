@@ -1676,5 +1676,14 @@
   "project_management.project_glossary.unbind_success_title": "Привязка удалена",
   "project_management.project_glossary.unbind_success_message": "Этот проект больше не привязан к этому глоссарию.",
   "project_management.project_glossary.unbind_failed_title": "Ошибка отвязки",
-  "project_management.project_glossary.unbind_failed_message": "Не удалось удалить привязку глоссария."
+  "project_management.project_glossary.unbind_failed_message": "Не удалось удалить привязку глоссария.",
+  "project_management.project_glossary.all_games": "Все игры",
+  "project_management.project_glossary.game_filter_label": "Фильтр игры",
+  "project_management.project_glossary.game_filter_placeholder": "Показать глоссарии всех игр",
+  "project_management.project_glossary.main_glossary_badge": "Основной",
+  "project_management.project_glossary.create_button": "Создать и привязать глоссарий проекта",
+  "project_management.project_glossary.create_success_title": "Глоссарий проекта готов",
+  "project_management.project_glossary.create_success_message": "Глоссарий проекта создан и привязан.",
+  "project_management.project_glossary.create_failed_title": "Не удалось создать",
+  "project_management.project_glossary.create_failed_message": "Не удалось создать глоссарий проекта."
 }

@@ -1653,5 +1653,14 @@
   "project_management.project_glossary.unbind_success_title": "Liaison supprimee",
   "project_management.project_glossary.unbind_success_message": "Ce projet n est plus lie a ce glossaire.",
   "project_management.project_glossary.unbind_failed_title": "Echec de la suppression",
-  "project_management.project_glossary.unbind_failed_message": "Impossible de retirer la liaison du glossaire."
+  "project_management.project_glossary.unbind_failed_message": "Impossible de retirer la liaison du glossaire.",
+  "project_management.project_glossary.all_games": "Tous les jeux",
+  "project_management.project_glossary.game_filter_label": "Filtre de jeu",
+  "project_management.project_glossary.game_filter_placeholder": "Afficher les glossaires de tous les jeux",
+  "project_management.project_glossary.main_glossary_badge": "Glossaire principal",
+  "project_management.project_glossary.create_button": "Creer et lier le glossaire du projet",
+  "project_management.project_glossary.create_success_title": "Glossaire du projet pret",
+  "project_management.project_glossary.create_success_message": "Un glossaire de projet a ete cree et lie.",
+  "project_management.project_glossary.create_failed_title": "Creation echouee",
+  "project_management.project_glossary.create_failed_message": "Impossible de creer le glossaire du projet."
 }

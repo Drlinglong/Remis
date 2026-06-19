@@ -2,16 +2,18 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Badge, Button, Group, Paper, Select, Stack, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconBook2, IconExternalLink, IconInfoCircle, IconLink, IconUnlink } from '@tabler/icons-react';
+import { IconBook2, IconExternalLink, IconInfoCircle, IconLink, IconPlus, IconUnlink } from '@tabler/icons-react';
 
 import api from '../../utils/api';
 
 const API_BASE_URL = '/api';
+const ALL_GAMES_FILTER = '__all__';
 
 export default function ProjectGlossaryPanel({ project, t }) {
   const navigate = useNavigate();
   const [glossaries, setGlossaries] = useState([]);
   const [projectGlossary, setProjectGlossary] = useState(null);
+  const [selectedGameId, setSelectedGameId] = useState(ALL_GAMES_FILTER);
   const [selectedGlossaryId, setSelectedGlossaryId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -21,7 +23,7 @@ export default function ProjectGlossaryPanel({ project, t }) {
     setIsLoading(true);
     try {
       const [glossariesResponse, projectGlossaryResponse] = await Promise.all([
-        api.get(`${API_BASE_URL}/glossaries/${encodeURIComponent(project.game_id)}`),
+        api.get(`${API_BASE_URL}/glossaries`),
         api.get(`${API_BASE_URL}/neologisms/project-glossary/${encodeURIComponent(project.project_id)}`),
       ]);
       const available = glossariesResponse.data || [];
@@ -44,17 +46,60 @@ export default function ProjectGlossaryPanel({ project, t }) {
     loadGlossaryState();
   }, [loadGlossaryState]);
 
+  const gameOptions = useMemo(() => {
+    const gameIds = Array.from(new Set(glossaries.map((glossary) => glossary.game_id).filter(Boolean))).sort();
+    return [
+      { value: ALL_GAMES_FILTER, label: t('project_management.project_glossary.all_games') },
+      ...gameIds.map((gameId) => ({ value: gameId, label: gameId })),
+    ];
+  }, [glossaries, t]);
+
+  const filteredGlossaries = useMemo(() => (
+    selectedGameId === ALL_GAMES_FILTER
+      ? glossaries
+      : glossaries.filter((glossary) => glossary.game_id === selectedGameId)
+  ), [glossaries, selectedGameId]);
+
   const glossaryOptions = useMemo(() => (
-    glossaries
-      .filter((glossary) => !glossary.is_main)
-      .map((glossary) => ({
-        value: String(glossary.glossary_id),
-        label: glossary.name,
-      }))
-  ), [glossaries]);
+    filteredGlossaries
+      .map((glossary) => {
+        const badges = [
+          glossary.game_id,
+          glossary.is_main ? t('project_management.project_glossary.main_glossary_badge') : null,
+        ].filter(Boolean).join(' / ');
+        return {
+          value: String(glossary.glossary_id),
+          label: badges ? `${glossary.name} (${badges})` : glossary.name,
+        };
+      })
+  ), [filteredGlossaries, t]);
 
   const selectedGlossary = glossaries.find((glossary) => String(glossary.glossary_id) === selectedGlossaryId);
   const hasBoundGlossary = Boolean(projectGlossary?.glossary_id && !projectGlossary?.pending_creation);
+
+  const handleEnsureProjectGlossary = async () => {
+    setIsSaving(true);
+    try {
+      const response = await api.post(`${API_BASE_URL}/neologisms/project-glossary/${encodeURIComponent(project.project_id)}`);
+      setProjectGlossary(response.data);
+      setSelectedGameId(ALL_GAMES_FILTER);
+      setSelectedGlossaryId(response.data?.glossary_id ? String(response.data.glossary_id) : '');
+      await loadGlossaryState();
+      notifications.show({
+        title: t('project_management.project_glossary.create_success_title'),
+        message: t('project_management.project_glossary.create_success_message'),
+        color: 'green',
+      });
+    } catch (error) {
+      notifications.show({
+        title: t('project_management.project_glossary.create_failed_title'),
+        message: error.response?.data?.detail || t('project_management.project_glossary.create_failed_message'),
+        color: 'red',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleBind = async () => {
     if (!selectedGlossaryId) return;
@@ -104,8 +149,9 @@ export default function ProjectGlossaryPanel({ project, t }) {
 
   const handleOpenGlossary = () => {
     const glossaryId = projectGlossary?.glossary_id || selectedGlossary?.glossary_id;
+    const glossaryGameId = projectGlossary?.game_id || selectedGlossary?.game_id || project.game_id;
     if (!glossaryId) return;
-    navigate(`/glossary-manager?game_id=${encodeURIComponent(project.game_id)}&glossary_id=${encodeURIComponent(glossaryId)}`);
+    navigate(`/glossary-manager?game_id=${encodeURIComponent(glossaryGameId)}&glossary_id=${encodeURIComponent(glossaryId)}`);
   };
 
   return (
@@ -144,6 +190,20 @@ export default function ProjectGlossaryPanel({ project, t }) {
           </div>
 
           <Select
+            label={t('project_management.project_glossary.game_filter_label')}
+            placeholder={t('project_management.project_glossary.game_filter_placeholder')}
+            data={gameOptions}
+            value={selectedGameId}
+            onChange={(value) => {
+              setSelectedGameId(value || ALL_GAMES_FILTER);
+              setSelectedGlossaryId('');
+            }}
+            disabled={isLoading || isSaving}
+            allowDeselect={false}
+            searchable
+          />
+
+          <Select
             label={t('project_management.project_glossary.select_label')}
             placeholder={t('project_management.project_glossary.select_placeholder')}
             data={glossaryOptions}
@@ -164,6 +224,14 @@ export default function ProjectGlossaryPanel({ project, t }) {
               {t('project_management.project_glossary.bind_button')}
             </Button>
             <Button
+              leftSection={<IconPlus size={16} />}
+              variant="light"
+              onClick={handleEnsureProjectGlossary}
+              loading={isSaving}
+            >
+              {t('project_management.project_glossary.create_button')}
+            </Button>
+            <Button
               leftSection={<IconUnlink size={16} />}
               variant="light"
               color="gray"
@@ -177,7 +245,7 @@ export default function ProjectGlossaryPanel({ project, t }) {
               leftSection={<IconExternalLink size={16} />}
               variant="outline"
               onClick={handleOpenGlossary}
-              disabled={!hasBoundGlossary}
+              disabled={!hasBoundGlossary && !selectedGlossary}
             >
               {t('project_management.project_glossary.inspect_button')}
             </Button>

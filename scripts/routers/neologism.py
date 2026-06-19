@@ -186,9 +186,24 @@ async def get_project_neologism_glossary(project_id: str):
         "pending_creation": True,
     }
 
+@router.post("/api/neologisms/project-glossary/{project_id}")
+async def ensure_project_neologism_glossary(project_id: str):
+    """Create the dedicated project glossary if needed and bind it to this project."""
+    project = await project_manager.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    glossary = await glossary_manager.get_or_create_project_glossary(
+        project["game_id"],
+        project_id,
+        project.get("name"),
+    )
+    if not glossary or not glossary.get("glossary_id"):
+        raise HTTPException(status_code=500, detail="Failed to prepare project glossary")
+    return glossary
+
 @router.put("/api/neologisms/project-glossary/{project_id}")
 async def bind_project_neologism_glossary(project_id: str, payload: ProjectGlossaryBindingRequest):
-    """Bind this project to an existing non-main glossary for its game."""
+    """Bind this project to an existing glossary."""
     project = await project_manager.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -196,13 +211,6 @@ async def bind_project_neologism_glossary(project_id: str, payload: ProjectGloss
     target = await glossary_manager.get_glossary_by_id(payload.glossary_id)
     if not target:
         raise HTTPException(status_code=404, detail="Glossary not found")
-    if target.get("game_id") != project["game_id"]:
-        raise HTTPException(status_code=400, detail="Glossary belongs to a different game")
-    if target.get("is_main"):
-        raise HTTPException(status_code=400, detail="Main glossary cannot be used as a project glossary")
-    target_project = (target.get("raw_metadata") or {}).get("project_id")
-    if target_project and target_project != project_id:
-        raise HTTPException(status_code=409, detail="Glossary is already bound to another project")
 
     glossary = await glossary_manager.bind_project_glossary(
         project["game_id"],

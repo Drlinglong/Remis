@@ -1672,5 +1672,14 @@
   "project_management.project_glossary.unbind_success_title": "绑定已解除",
   "project_management.project_glossary.unbind_success_message": "当前项目已不再绑定这本词典。",
   "project_management.project_glossary.unbind_failed_title": "解除绑定失败",
-  "project_management.project_glossary.unbind_failed_message": "无法解除项目词典绑定。"
+  "project_management.project_glossary.unbind_failed_message": "无法解除项目词典绑定。",
+  "project_management.project_glossary.all_games": "全部游戏",
+  "project_management.project_glossary.game_filter_label": "游戏筛选",
+  "project_management.project_glossary.game_filter_placeholder": "显示所有游戏的词典",
+  "project_management.project_glossary.main_glossary_badge": "主词典",
+  "project_management.project_glossary.create_button": "创建并绑定项目词典",
+  "project_management.project_glossary.create_success_title": "项目词典已就绪",
+  "project_management.project_glossary.create_success_message": "已创建并绑定当前项目的项目词典。",
+  "project_management.project_glossary.create_failed_title": "创建失败",
+  "project_management.project_glossary.create_failed_message": "无法创建项目词典。"
 }

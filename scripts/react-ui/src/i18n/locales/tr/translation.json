@@ -1653,5 +1653,14 @@
   "project_management.project_glossary.unbind_success_title": "Baglanti kaldirildi",
   "project_management.project_glossary.unbind_success_message": "Bu proje artik o sozluge bagli degil.",
   "project_management.project_glossary.unbind_failed_title": "Kaldirma basarisiz",
-  "project_management.project_glossary.unbind_failed_message": "Sozluk baglantisi kaldirilamadi."
+  "project_management.project_glossary.unbind_failed_message": "Sozluk baglantisi kaldirilamadi.",
+  "project_management.project_glossary.all_games": "Tum oyunlar",
+  "project_management.project_glossary.game_filter_label": "Oyun filtresi",
+  "project_management.project_glossary.game_filter_placeholder": "Tum oyunlardaki sozlukleri goster",
+  "project_management.project_glossary.main_glossary_badge": "Ana",
+  "project_management.project_glossary.create_button": "Proje sozlugunu olustur ve bagla",
+  "project_management.project_glossary.create_success_title": "Proje sozlugu hazir",
+  "project_management.project_glossary.create_success_message": "Bir proje sozlugu olusturuldu ve baglandi.",
+  "project_management.project_glossary.create_failed_title": "Olusturma basarisiz",
+  "project_management.project_glossary.create_failed_message": "Proje sozlugu olusturulamadi."
 }

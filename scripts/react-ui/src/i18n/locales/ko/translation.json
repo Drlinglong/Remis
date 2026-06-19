@@ -1653,5 +1653,14 @@
   "project_management.project_glossary.unbind_success_title": "바인딩 제거됨",
   "project_management.project_glossary.unbind_success_message": "이 프로젝트는 더 이상 해당 용어집에 바인딩되어 있지 않습니다.",
   "project_management.project_glossary.unbind_failed_title": "바인딩 해제 실패",
-  "project_management.project_glossary.unbind_failed_message": "용어집 바인딩을 제거할 수 없습니다."
+  "project_management.project_glossary.unbind_failed_message": "용어집 바인딩을 제거할 수 없습니다.",
+  "project_management.project_glossary.all_games": "모든 게임",
+  "project_management.project_glossary.game_filter_label": "게임 필터",
+  "project_management.project_glossary.game_filter_placeholder": "모든 게임의 용어집 표시",
+  "project_management.project_glossary.main_glossary_badge": "기본",
+  "project_management.project_glossary.create_button": "프로젝트 용어집 생성 및 연결",
+  "project_management.project_glossary.create_success_title": "프로젝트 용어집 준비됨",
+  "project_management.project_glossary.create_success_message": "프로젝트 용어집을 생성하고 연결했습니다.",
+  "project_management.project_glossary.create_failed_title": "생성 실패",
+  "project_management.project_glossary.create_failed_message": "프로젝트 용어집을 생성할 수 없습니다."
 }
