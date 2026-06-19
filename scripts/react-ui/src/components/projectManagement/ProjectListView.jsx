@@ -9,7 +9,6 @@ import {
   Group,
   Input,
   Overlay,
-  ScrollArea,
   SimpleGrid,
   Text,
   Title,
@@ -37,7 +36,7 @@ export function ProjectListView({
   ));
 
   return (
-    <div id="project-list-container" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div id="project-list-container" style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box style={{ height: '300px', position: 'relative', flexShrink: 0 }}>
         <BackgroundImage src={heroBg} radius="md" style={{ height: '100%' }}>
           <Overlay color="#000" opacity={0.6} zIndex={1} radius="md" />
@@ -70,7 +69,7 @@ export function ProjectListView({
         </BackgroundImage>
       </Box>
 
-      <ScrollArea style={{ flex: 1, padding: '20px' }}>
+      <Box style={{ flex: 1, padding: '20px' }}>
         {viewMode === 'active' && (
           <>
             <Title order={3} mb="md">Actions</Title>
@@ -146,7 +145,7 @@ export function ProjectListView({
             </Card>
           ))}
         </SimpleGrid>
-      </ScrollArea>
+      </Box>
     </div>
   );
 }
