@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from scripts.shared.services import project_manager, glossary_manager
-from scripts.app_settings import PROJECT_ROOT, REMIS_DB_PATH
+from scripts.app_settings import APP_DATA_DIR, PROJECT_ROOT, REMIS_DB_PATH, resolve_path
 from scripts.utils.system_utils import sanitize_for_json
 
 import webbrowser
@@ -15,6 +15,41 @@ from scripts.utils.logger import LOGS_DIR
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/system", tags=["System"])
+
+
+def _normalized_abs_path(path: str) -> str:
+    resolved = resolve_path(path)
+    if not os.path.isabs(resolved):
+        resolved = os.path.join(PROJECT_ROOT, resolved)
+    return os.path.abspath(os.path.normpath(resolved))
+
+
+def _is_path_under(path: str, root: str) -> bool:
+    try:
+        norm_path = os.path.normcase(os.path.abspath(os.path.normpath(path)))
+        norm_root = os.path.normcase(os.path.abspath(os.path.normpath(root)))
+        return os.path.commonpath([norm_path, norm_root]) == norm_root
+    except (OSError, ValueError):
+        return False
+
+
+def _allowed_file_roots() -> list[str]:
+    return [
+        _normalized_abs_path(PROJECT_ROOT),
+        _normalized_abs_path(APP_DATA_DIR),
+    ]
+
+
+def _resolve_allowed_file_path(raw_path: str) -> str:
+    if not raw_path or not raw_path.strip():
+        raise HTTPException(status_code=400, detail="File path is required")
+
+    candidate = _normalized_abs_path(raw_path)
+    if any(_is_path_under(candidate, root) for root in _allowed_file_roots()):
+        return candidate
+
+    logger.warning("Blocked local file API access outside allowed roots: %s", raw_path)
+    raise HTTPException(status_code=403, detail="File path is outside allowed Remis directories")
 
 
 def _open_directory_in_explorer(path: str):
@@ -200,17 +235,20 @@ async def save_file(request: SaveFileRequest):
     """
     Saves content to a local file with UTF-8-SIG encoding.
     """
+    file_path = _resolve_allowed_file_path(request.file_path)
     try:
         # Ensure directory exists
-        os.makedirs(os.path.dirname(request.file_path), exist_ok=True)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         
-        with open(request.file_path, 'w', encoding='utf-8-sig') as f:
+        with open(file_path, 'w', encoding='utf-8-sig') as f:
             f.write(request.content)
             
-        logger.info(f"Saved file: {request.file_path}")
+        logger.info(f"Saved file: {file_path}")
         return {"status": "success", "message": "File saved successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Failed to save file {request.file_path}: {e}")
+        logger.error(f"Failed to save file {file_path}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
 
 class ReadFileRequest(BaseModel):
@@ -221,19 +259,20 @@ async def read_file(request: ReadFileRequest):
     """
     Reads content from a local file with UTF-8-SIG encoding.
     """
+    file_path = _resolve_allowed_file_path(request.file_path)
     try:
-        if not os.path.exists(request.file_path):
-            raise HTTPException(status_code=404, detail=f"File not found: {request.file_path}")
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
         
-        with open(request.file_path, 'r', encoding='utf-8-sig') as f:
+        with open(file_path, 'r', encoding='utf-8-sig') as f:
             content = f.read()
             
-        logger.info(f"Read file: {request.file_path}")
+        logger.info(f"Read file: {file_path}")
         return {"status": "success", "content": content}
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to read file {request.file_path}: {e}")
+        logger.error(f"Failed to read file {file_path}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to read file: {str(e)}")
 
 
@@ -254,12 +293,14 @@ async def patch_file(request: PatchFileRequest):
     """
     import re
     
-    if not os.path.exists(request.file_path):
+    file_path = _resolve_allowed_file_path(request.file_path)
+
+    if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
 
     try:
         # Read all lines
-        with open(request.file_path, 'r', encoding='utf-8-sig') as f:
+        with open(file_path, 'r', encoding='utf-8-sig') as f:
             lines = f.readlines()
 
         # Regex to find the value part: key:0 "value" -> matches "value"
@@ -323,14 +364,16 @@ async def patch_file(request: PatchFileRequest):
                 modified_lines.append(f' {entry.key}:0 "{entry.value}"\n')
 
         # Write back
-        with open(request.file_path, 'w', encoding='utf-8-sig') as f:
+        with open(file_path, 'w', encoding='utf-8-sig') as f:
             f.writelines(modified_lines)
 
-        logger.info(f"Patched file: {request.file_path}")
+        logger.info(f"Patched file: {file_path}")
         return {"status": "success", "message": "File patched successfully"}
 
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Failed to patch file {request.file_path}: {e}")
+        logger.error(f"Failed to patch file {file_path}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to patch file: {str(e)}")
 @router.get("/debug/config")
 async def debug_config():
