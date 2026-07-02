@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 
 import { getTutorialKey, useTutorial } from '../context/TutorialContextCore';
 import {
-  appendAgentWorkshopLogSnapshot,
   clearAgentWorkshopSnapshot,
   createAgentWorkshopSnapshot,
   readAgentWorkshopSnapshot,
@@ -12,13 +11,16 @@ import {
 } from './agentWorkshopSession';
 import {
   buildAgentWorkshopModelOptions,
+  getAgentWorkshopRunStatus,
   loadAgentWorkshopBootstrap,
   loadAgentWorkshopProjectContext,
   requestAgentWorkshopIssueFix,
-  runAgentWorkshopFixBatches,
   scanAgentWorkshopProject,
   selectAgentWorkshopProvider,
+  startAgentWorkshopFixRun,
 } from '../services/agentWorkshopWorkflowService';
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const useAgentWorkshopController = () => {
   const { t } = useTranslation();
@@ -335,6 +337,7 @@ export const useAgentWorkshopController = () => {
   const executeFixRun = useCallback(async () => {
     if (!selectedProjectId || !issues.length || !selectedProvider || !selectedModel || executing) return;
 
+    const runIssues = [...issues];
     setExecuting(true);
     setProgress(0);
     setExecutionLogs([]);
@@ -348,35 +351,82 @@ export const useAgentWorkshopController = () => {
       executionStats: null,
     }));
 
+    const applyTaskStatus = (task) => {
+      const taskProgress = task?.progress || {};
+      if (typeof taskProgress.percent === 'number') {
+        setProgress(taskProgress.percent);
+      }
+      if (Array.isArray(task?.log)) {
+        setExecutionLogs(task.log);
+      }
+      if (task?.summary) {
+        const summary = task.summary;
+        setExecutionStats({
+          total: summary.total || 0,
+          completed: summary.completed || 0,
+          successCount: summary.successCount || 0,
+          failedCount: summary.failedCount || 0,
+          durationMs: summary.durationMs || 0,
+          batchSize: summary.batchSize || Number(batchSizeLimit) || 10,
+          totalBatches: summary.totalBatches || 0,
+        });
+      }
+    };
+
     try {
-      const stats = await runAgentWorkshopFixBatches({
-        addExecutionLog: (message) => {
-          setExecutionLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
-          appendAgentWorkshopLogSnapshot(message);
-        },
+      const run = await startAgentWorkshopFixRun({
         batchSizeLimit,
         concurrencyLimit,
-        issues,
-        onIssueFixed: (issue, result) => {
-          setFixedIssues((prev) => [{ ...issue, suggested_fix: result.suggested_fix, report_path: result.report_path }, ...prev]);
-          setIssues((prev) => prev.filter((item) => item.key !== issue.key || item.file_name !== issue.file_name));
-        },
-        onProgress: ({ percent, stats: nextStats }) => {
-          setProgress(percent);
-          setExecutionStats(nextStats);
-          persistState({ active: 3, progress: percent, executionStats: nextStats, executing: true });
-        },
+        issues: runIssues,
         projectId: selectedProjectId,
         rpmLimit,
         selectedModel,
         selectedProvider,
       });
+      writeAgentWorkshopSnapshot(createAgentWorkshopSnapshot(sessionState, {
+        active: 3,
+        executing: true,
+        currentRunTaskId: run.task_id,
+      }));
 
-      setExecutionStats(stats);
-      setProgress(100);
-      setExecuting(false);
-      addExecutionLog('Fix run completed.');
-      persistState({ active: 3, progress: 100, executionStats: stats, executing: false });
+      let task = null;
+      do {
+        await wait(1000);
+        task = await getAgentWorkshopRunStatus(run.task_id);
+        applyTaskStatus(task);
+      } while (task?.status && !['completed', 'failed'].includes(task.status));
+
+      if (task?.status === 'completed') {
+        const results = Array.isArray(task?.summary?.results) ? task.summary.results : [];
+        const successfulByKey = new Map(
+          results
+            .filter((result) => result.status === 'SUCCESS')
+            .map((result) => [`${result.file_name}::${result.key}`, result])
+        );
+        setFixedIssues((prev) => [
+          ...runIssues
+            .filter((issue) => successfulByKey.has(`${issue.file_name}::${issue.key}`))
+            .map((issue) => ({
+              ...issue,
+              ...successfulByKey.get(`${issue.file_name}::${issue.key}`),
+            })),
+          ...prev,
+        ]);
+        setIssues((prev) => prev.filter((issue) => !successfulByKey.has(`${issue.file_name}::${issue.key}`)));
+        setProgress(100);
+        persistState({
+          active: 3,
+          progress: 100,
+          executionStats: task.summary,
+          executing: false,
+          currentRunTaskId: null,
+        });
+      } else if (task?.status === 'failed') {
+        addExecutionLog(task.message || 'Agent Workshop run failed.');
+      }
+    } catch (error) {
+      console.error('Agent Workshop run failed', error);
+      addExecutionLog(error?.response?.data?.detail || error.message || 'Agent Workshop run failed.');
     } finally {
       setExecuting(false);
     }

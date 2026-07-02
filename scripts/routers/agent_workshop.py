@@ -3,15 +3,19 @@ import sqlite3
 import re
 import json
 import logging
+import asyncio
+import time
+import uuid
 from pathlib import Path
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from scripts.utils.post_process_validator import PostProcessValidator
 from scripts.config.validators.hoi4_rules import RULES as HOI4_RULES
 from scripts.config.validators.vic3_rules import RULES as VIC3_RULES
 from scripts.shared.services import project_manager
+from scripts.shared import task_state
 from scripts.core.agents.fix_agent import ReflexionFixAgent
 from scripts.core.base_handler import BaseApiHandler # For typing or creation
 
@@ -121,6 +125,20 @@ class FixBatchResponse(BaseModel):
     results: List[BatchResultItem]
     attempts: List[BatchAttemptSummary] = Field(default_factory=list)
     max_retries: int = 3
+
+class FixRunRequest(BaseModel):
+    project_id: str
+    api_provider: Optional[str] = None
+    api_model: Optional[str] = None
+    batch_size_limit: Optional[int] = None
+    concurrency_limit: Optional[int] = 1
+    rpm_limit: Optional[int] = 40
+    max_retries: Optional[int] = 3
+    issues: List[Dict[str, Any]]
+
+class FixRunResponse(BaseModel):
+    task_id: str
+    status: str = "started"
 
 
 def _normalize_issue_dict(issue: Dict[str, Any]) -> Dict[str, Any]:
@@ -844,11 +862,7 @@ async def fix_issue(request: FixRequest):
     return FixResult(**result)
 
 
-@router.post("/fix-batch", response_model=FixBatchResponse)
-async def fix_batch(request: FixBatchRequest):
-    """
-    Initiates the Reflexion Fix Workflow for a batch of issues.
-    """
+async def _run_fix_batch(request: FixBatchRequest) -> FixBatchResponse:
     from scripts.core.api_handler import get_handler
     
     provider_name, model_name = _resolve_workshop_model_config(
@@ -960,3 +974,193 @@ async def fix_batch(request: FixBatchRequest):
         attempts=attempts,
         max_retries=batch_result.get("max_retries", request.max_retries or 3),
     )
+
+
+@router.post("/fix-batch", response_model=FixBatchResponse)
+async def fix_batch(request: FixBatchRequest):
+    """
+    Initiates the Reflexion Fix Workflow for a batch of issues.
+    """
+    return await _run_fix_batch(request)
+
+
+def _build_fix_run_batches(issues: List[Dict[str, Any]], batch_size_limit: Optional[int]) -> List[List[Dict[str, Any]]]:
+    batch_size = max(1, min(batch_size_limit or 10, 50))
+    return [
+        issues[index:index + batch_size]
+        for index in range(0, len(issues), batch_size)
+    ]
+
+
+async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> None:
+    started_at = time.time()
+    batches = _build_fix_run_batches(request.issues, request.batch_size_limit)
+    total = len(request.issues)
+    total_batches = len(batches)
+    concurrency = max(1, min(request.concurrency_limit or 1, 5))
+    rpm = max(1, request.rpm_limit or 40)
+    interval_seconds = 60 / rpm
+    max_retries = max(1, min(request.max_retries or 3, 5))
+    queue = asyncio.Queue()
+    rate_lock = asyncio.Lock()
+    stats_lock = asyncio.Lock()
+    next_dispatch_at = 0.0
+    completed = 0
+    success_count = 0
+    failed_count = 0
+    all_results: List[Dict[str, Any]] = []
+    all_attempts: List[Dict[str, Any]] = []
+
+    for batch_number, batch in enumerate(batches, start=1):
+        queue.put_nowait((batch_number, batch))
+
+    task_state.init_progress(task_id, {
+        "total": total,
+        "current": 0,
+        "percent": 0,
+        "stage": "Agent Workshop",
+        "current_batch": 0,
+        "total_batches": total_batches,
+    })
+    task_state.update_task(
+        task_id,
+        status="processing",
+        append_log=f"Agent Workshop run started: {total} issue(s), {total_batches} batch(es), concurrency={concurrency}, rpm={rpm}.",
+    )
+
+    async def wait_for_rate_limit() -> None:
+        nonlocal next_dispatch_at
+        async with rate_lock:
+            now = time.monotonic()
+            wait_seconds = max(0.0, next_dispatch_at - now)
+            next_dispatch_at = max(now, next_dispatch_at) + interval_seconds
+        if wait_seconds > 0:
+            await asyncio.sleep(wait_seconds)
+
+    async def worker(worker_id: int) -> None:
+        nonlocal completed, success_count, failed_count
+        while True:
+            try:
+                batch_number, batch = queue.get_nowait()
+            except asyncio.QueueEmpty:
+                return
+
+            await wait_for_rate_limit()
+            task_state.update_progress(
+                task_id,
+                current=completed,
+                total=total,
+                current_batch=batch_number,
+                total_batches=total_batches,
+                stage="Agent Workshop",
+                log_message=f"Worker {worker_id}: fixing batch {batch_number}/{total_batches} ({len(batch)} issue(s)).",
+                push=True,
+            )
+
+            try:
+                response = await _run_fix_batch(FixBatchRequest(
+                    project_id=request.project_id,
+                    api_provider=request.api_provider,
+                    api_model=request.api_model,
+                    max_retries=max_retries,
+                    issues=batch,
+                ))
+                batch_results = [item.model_dump() for item in response.results]
+                batch_attempts = [item.model_dump() for item in response.attempts]
+                batch_success = sum(1 for item in batch_results if item.get("status") == "SUCCESS")
+                batch_failed = len(batch_results) - batch_success
+                async with stats_lock:
+                    all_results.extend(batch_results)
+                    all_attempts.extend([
+                        {"batch_number": batch_number, **attempt}
+                        for attempt in batch_attempts
+                    ])
+                    completed += len(batch)
+                    success_count += batch_success
+                    failed_count += batch_failed
+                    current_completed = completed
+                    current_success = success_count
+                    current_failed = failed_count
+                task_state.update_progress(
+                    task_id,
+                    current=current_completed,
+                    total=total,
+                    current_batch=batch_number,
+                    total_batches=total_batches,
+                    successful_batches=current_success,
+                    failed_batches=current_failed,
+                    stage="Agent Workshop",
+                    log_message=f"Batch {batch_number}/{total_batches} completed: {batch_success}/{len(batch)} fixed.",
+                    push=True,
+                )
+            except Exception as exc:
+                logger.exception("Agent Workshop batch %s failed", batch_number)
+                async with stats_lock:
+                    completed += len(batch)
+                    failed_count += len(batch)
+                    current_completed = completed
+                    current_failed = failed_count
+                task_state.update_progress(
+                    task_id,
+                    current=current_completed,
+                    total=total,
+                    current_batch=batch_number,
+                    total_batches=total_batches,
+                    failed_batches=current_failed,
+                    stage="Agent Workshop",
+                    log_message=f"Batch {batch_number}/{total_batches} failed: {exc}",
+                    push=True,
+                )
+            finally:
+                queue.task_done()
+
+    try:
+        await asyncio.gather(*[
+            worker(index)
+            for index in range(1, min(concurrency, max(total_batches, 1)) + 1)
+        ])
+        summary = {
+            "total": total,
+            "completed": completed,
+            "successCount": success_count,
+            "failedCount": failed_count,
+            "durationMs": int((time.time() - started_at) * 1000),
+            "batchSize": max(1, min(request.batch_size_limit or 10, 50)),
+            "totalBatches": total_batches,
+            "results": all_results,
+            "attempts": all_attempts,
+            "maxRetries": max_retries,
+        }
+        task_state.update_task(
+            task_id,
+            status="completed",
+            progress={"current": total, "total": total, "percent": 100, "stage": "Completed"},
+            summary=summary,
+            fields={"results": all_results, "attempts": all_attempts},
+            append_log="Agent Workshop run completed.",
+        )
+    except Exception as exc:
+        logger.exception("Agent Workshop run failed")
+        task_state.update_task(
+            task_id,
+            status="failed",
+            message=str(exc),
+            append_log=f"Agent Workshop run failed: {exc}",
+        )
+
+
+@router.post("/fix-run", response_model=FixRunResponse)
+async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTasks):
+    """
+    Starts a backend-managed Agent Workshop run.
+
+    The frontend should only trigger this task and subscribe to task status;
+    batching, worker concurrency, RPM throttling, retries, and reflection stay here.
+    """
+    if not request.issues:
+        raise HTTPException(status_code=400, detail="No issues supplied for Agent Workshop run.")
+
+    task_id = str(uuid.uuid4())
+    task_state.create_task(task_id, status="pending", log_message="Agent Workshop run queued.")
+    background_tasks.add_task(_run_agent_workshop_fix_task, task_id, request)
+    return FixRunResponse(task_id=task_id)

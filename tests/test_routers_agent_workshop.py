@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.routers.agent_workshop import apply_translation_fix_to_file
 from scripts.routers.agent_workshop import _resolve_source_entries_for_translation
+from scripts.routers.agent_workshop import BatchResultItem, FixBatchResponse
+from scripts.shared.state import tasks
 from scripts.utils.validation_logger import ValidationLogger
 from scripts.web_server import app
 
@@ -586,6 +588,57 @@ def test_fix_batch_does_not_mark_fixed_when_post_validation_fails(tmp_path):
     assert "Post-write validation failed" in cached[0]["failure_details"]
     assert cached[0]["last_suggested_fix"] == result["suggested_fix"]
     assert cached[0]["last_attempt_at"]
+
+
+def test_fix_run_creates_backend_managed_task():
+    tasks.clear()
+
+    async def fake_run_batch(request):
+        assert request.max_retries == 3
+        assert len(request.issues) == 1
+        return FixBatchResponse(
+            results=[
+                BatchResultItem(
+                    file_name="events/test_l_simp_chinese.yml",
+                    key="demo.one:0",
+                    suggested_fix="修复",
+                    status="SUCCESS",
+                    parity_message="Validation passed",
+                    report_path=None,
+                )
+            ],
+            attempts=[],
+            max_retries=3,
+        )
+
+    with patch("scripts.routers.agent_workshop._run_fix_batch", side_effect=fake_run_batch) as mock_run_batch:
+        response = client.post("/api/agent-workshop/fix-run", json={
+            "project_id": "p-run",
+            "api_provider": "gemini",
+            "api_model": "gemini-3-flash-preview",
+            "batch_size_limit": 1,
+            "concurrency_limit": 1,
+            "rpm_limit": 600,
+            "max_retries": 3,
+            "issues": [
+                {
+                    "file_name": "events/test_l_simp_chinese.yml",
+                    "key": "demo.one:0",
+                    "source_str": "Hello",
+                    "target_str": "坏译文",
+                    "error_type": "validation_error",
+                    "details": "broken",
+                }
+            ],
+        })
+
+    assert response.status_code == 200
+    task_id = response.json()["task_id"]
+    assert mock_run_batch.await_count == 1
+    assert tasks[task_id]["status"] == "completed"
+    assert tasks[task_id]["summary"]["successCount"] == 1
+    assert tasks[task_id]["summary"]["failedCount"] == 0
+    assert tasks[task_id]["summary"]["results"][0]["suggested_fix"] == "修复"
 
 
 def test_apply_translation_fix_to_file_escapes_quotes(tmp_path):

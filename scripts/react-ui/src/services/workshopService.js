@@ -24,6 +24,13 @@ export const workshopService = {
      * @returns {Promise} Axios response promise
      */
     fixBatch: (payload) => api.post('/api/agent-workshop/fix-batch', payload),
+
+    /**
+     * Start a backend-managed run for multiple localized issues.
+     * @param {Object} payload Payload containing project_id, provider/model, limits, and issues
+     * @returns {Promise} Axios response promise containing a task_id
+     */
+    startFixRun: (payload) => api.post('/api/agent-workshop/fix-run', payload),
 };
 
 export default workshopService;

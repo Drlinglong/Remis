@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  getAgentWorkshopRunStatus,
   loadAgentWorkshopBootstrap,
-  runAgentWorkshopFixBatches,
   scanAgentWorkshopProject,
   selectAgentWorkshopProvider,
+  startAgentWorkshopFixRun,
 } from './agentWorkshopWorkflowService';
 import configService from './configService';
 import projectService from './projectService';
@@ -18,6 +19,7 @@ vi.mock('./configService', () => ({
 
 vi.mock('./projectService', () => ({
   default: {
+    getTaskStatus: vi.fn(),
     getActiveProjects: vi.fn(),
   },
 }));
@@ -26,6 +28,7 @@ vi.mock('./workshopService', () => ({
   default: {
     fixBatch: vi.fn(),
     scanProject: vi.fn(),
+    startFixRun: vi.fn(),
   },
 }));
 
@@ -70,56 +73,40 @@ describe('agentWorkshopWorkflowService', () => {
     await expect(scanAgentWorkshopProject('project-1')).resolves.toEqual([{ key: 'issue-1' }]);
   });
 
-  it('runs batch fixes through the workflow service boundary', async () => {
-    workshopService.fixBatch.mockResolvedValue({
-      data: {
-        results: [
-          { file_name: 'a.yml', key: 'k1', status: 'SUCCESS', suggested_fix: 'fixed' },
-        ],
-        attempts: [
-          {
-            active_count: 1,
-            attempt: 1,
-            fixed_count: 1,
-            max_retries: 3,
-            remaining_count: 0,
-            status: 'completed',
-          },
-        ],
-      },
+  it('starts backend-managed fix runs instead of running frontend workers', async () => {
+    workshopService.startFixRun.mockResolvedValue({
+      data: { task_id: 'task-1', status: 'started' },
     });
-    const addExecutionLog = vi.fn();
-    const onIssueFixed = vi.fn();
-    const onProgress = vi.fn();
 
-    await expect(runAgentWorkshopFixBatches({
-      addExecutionLog,
+    await expect(startAgentWorkshopFixRun({
       batchSizeLimit: '10',
       concurrencyLimit: '1',
       issues: [{ file_name: 'a.yml', key: 'k1' }],
-      onIssueFixed,
-      onProgress,
       projectId: 'project-1',
       rpmLimit: '60',
       selectedModel: 'gemini-pro',
       selectedProvider: 'gemini',
-    })).resolves.toMatchObject({
-      completed: 1,
-      failedCount: 0,
-      successCount: 1,
-      total: 1,
-    });
+    })).resolves.toEqual({ task_id: 'task-1', status: 'started' });
 
-    expect(workshopService.fixBatch).toHaveBeenCalledWith(expect.objectContaining({
+    expect(workshopService.startFixRun).toHaveBeenCalledWith(expect.objectContaining({
       api_model: 'gemini-pro',
       api_provider: 'gemini',
+      batch_size_limit: 10,
+      concurrency_limit: 1,
       project_id: 'project-1',
+      rpm_limit: 60,
     }));
-    expect(onIssueFixed).toHaveBeenCalledWith(
-      { file_name: 'a.yml', key: 'k1' },
-      expect.objectContaining({ suggested_fix: 'fixed' })
-    );
-    expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({ percent: 100 }));
-    expect(addExecutionLog).toHaveBeenCalledWith(expect.stringContaining('Starting fix run'));
+    expect(workshopService.fixBatch).not.toHaveBeenCalled();
+  });
+
+  it('reads backend task status for Agent Workshop runs', async () => {
+    projectService.getTaskStatus.mockResolvedValue({
+      data: { task_id: 'task-1', status: 'completed' },
+    });
+
+    await expect(getAgentWorkshopRunStatus('task-1')).resolves.toEqual({
+      task_id: 'task-1',
+      status: 'completed',
+    });
   });
 });
