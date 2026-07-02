@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Title, Text, Container, Paper, Button, Group, Select, Badge, Stack, Modal, Code,
   Alert, LoadingOverlay, Box, Stepper, TextInput, SimpleGrid, Card, Progress, Accordion,
@@ -7,434 +7,76 @@ import {
   IconRobot, IconCheck, IconRefresh, IconInfoCircle, IconSearch, IconWand,
   IconPlayerPlay, IconChartBar, IconSettings, IconFolderCode, IconAlertTriangle,
 } from '@tabler/icons-react';
-import { useTranslation } from 'react-i18next';
-import projectService from '../services/projectService';
-import configService from '../services/configService';
-import workshopService from '../services/workshopService';
 import PerformanceControlPanel from '../components/shared/PerformanceControlPanel';
 import BusyHeartbeat from '../components/shared/BusyHeartbeat';
-import { useLocation } from 'react-router-dom';
-import { getTutorialKey, useTutorial } from '../context/TutorialContextCore';
-import { normalizeArrayPayload } from '../utils/payload';
+import { useAgentWorkshopController } from '../hooks/useAgentWorkshopController';
 import styles from './AgentWorkshop.module.css';
 import translationStyles from './Translation.module.css';
 
-const STORAGE_KEY = 'agent_workshop_state_v2';
-const LOCAL_PROVIDERS = ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui'];
-
 const AgentWorkshopPage = () => {
-  const { t } = useTranslation();
-  const location = useLocation();
-  const { setPageContext, startTour } = useTutorial();
-  const [active, setActive] = useState(0);
-  const [showTutorialPrompt, setShowTutorialPrompt] = useState(false);
-  const [projects, setProjects] = useState([]);
-  const [selectedProjectId, setSelectedProjectId] = useState(null);
-  const [archiveInfo, setArchiveInfo] = useState(null);
-  const [projectHistory, setProjectHistory] = useState([]);
-  const [issues, setIssues] = useState([]);
-  const [fixedIssues, setFixedIssues] = useState([]);
-  const [isCached, setIsCached] = useState(false);
-  const [scanLoading, setScanLoading] = useState(false);
-  const [projectContextLoading, setProjectContextLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [gameFilter, setGameFilter] = useState('all');
-  const [apiProviders, setApiProviders] = useState([]);
-  const [selectedProvider, setSelectedProvider] = useState('');
-  const [selectedModel, setSelectedModel] = useState('');
-  const [batchSizeLimit, setBatchSizeLimit] = useState('10');
-  const [concurrencyLimit, setConcurrencyLimit] = useState('1');
-  const [rpmLimit, setRpmLimit] = useState('40');
-  const [executing, setExecuting] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [executionLogs, setExecutionLogs] = useState([]);
-  const [executionStats, setExecutionStats] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentIssue, setCurrentIssue] = useState(null);
-  const [fixResult, setFixResult] = useState(null);
-  const [fixing, setFixing] = useState(false);
-  const restoredRef = useRef(false);
   const logViewportRef = useRef(null);
-
-  const selectedProject = useMemo(
-    () => projects.find((project) => project.project_id === selectedProjectId) || null,
-    [projects, selectedProjectId]
-  );
-
-  const modelOptions = useMemo(() => {
-    const provider = apiProviders.find((item) => item.value === selectedProvider);
-    return [...(provider?.available_models || []), ...(provider?.custom_models || [])];
-  }, [apiProviders, selectedProvider]);
-
-  const filteredProjects = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return projects.filter((project) => {
-      const gameOk = gameFilter === 'all' || project.game_id === gameFilter;
-      const haystack = [project.name, project.game_id, project.source_language, project.source_path]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return gameOk && (!q || haystack.includes(q));
-    });
-  }, [gameFilter, projects, searchQuery]);
-
-  const gameFilterOptions = useMemo(() => {
-    const games = Array.from(new Set(projects.map((p) => p.game_id).filter(Boolean)));
-    return [{ value: 'all', label: t('common.all_games') }, ...games.map((game) => ({ value: game, label: game.toUpperCase() }))];
-  }, [projects, t]);
-
-  const issueTypeSummary = useMemo(() => {
-    const counts = new Map();
-    issues.forEach((issue) => {
-      const key = issue.error_code || issue.error_type || 'unknown';
-      counts.set(key, (counts.get(key) || 0) + 1);
-    });
-    return Array.from(counts.entries()).map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
-  }, [issues]);
-
-  const localizeIssueLabel = useCallback((code) => {
-    if (!code) return t('agent_workshop.unknown_issue');
-    const key = String(code).trim();
-    const known = {
-      validation_vic3_variable_parity_mismatch: t('agent_workshop.issue_vic3_variable_parity'),
-      validation_vic3_color_tags_mismatch: t('agent_workshop.issue_vic3_color_tags'),
-      validation_residual_punctuation_found: t('agent_workshop.validation_residual_punctuation_found'),
-      validation_invalid_key_format: t('agent_workshop.issue_invalid_key_format'),
-      'Invalid key format': t('agent_workshop.issue_invalid_key_format'),
-    };
-    if (known[key]) return known[key];
-
-    // Defensive fallback translation for legacy cached or hardcoded Chinese labels
-    if (key.includes('颜色标签') && key.includes('结束符')) {
-      return t('agent_workshop.issue_vic3_color_tags');
-    }
-    if (key.includes('源语言标点') || key.includes('标点符号')) {
-      return t('agent_workshop.validation_residual_punctuation_found');
-    }
-    if (key.includes('变量数量') || key.includes('变量')) {
-      return t('agent_workshop.issue_vic3_variable_parity');
-    }
-
-    if (key.startsWith('validation_')) {
-      return t('agent_workshop.issue_validation_generic');
-    }
-    return key;
-  }, [t]);
-
-  const localizeIssueDetails = useCallback((issue) => {
-    if (!issue) return '';
-    const detailsCode = issue.details_code || issue.detailsKey;
-    if (detailsCode) {
-      return t(`agent_workshop.${detailsCode}`, {
-        defaultValue: issue.details || detailsCode,
-        ...(issue.details_params || issue.detailsParams || {}),
-      });
-    }
-    return issue.details ? String(issue.details).trim() : '';
-  }, [t]);
-
-  const groupedIssues = useMemo(() => {
-    const groups = new Map();
-    issues.forEach((issue) => {
-      const key = issue.file_name || issue.file_path || 'unknown';
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(issue);
-    });
-    return Array.from(groups.entries());
-  }, [issues]);
-
-  const persistState = useCallback((override = {}) => {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-      active, selectedProjectId, archiveInfo, projectHistory, issues, fixedIssues, isCached,
-      searchQuery, gameFilter, selectedProvider, selectedModel, batchSizeLimit, concurrencyLimit, rpmLimit,
-      executing, progress, executionLogs, executionStats, ...override,
-    }));
-  }, [active, selectedProjectId, archiveInfo, projectHistory, issues, fixedIssues, isCached, searchQuery, gameFilter, selectedProvider, selectedModel, batchSizeLimit, concurrencyLimit, rpmLimit, executing, progress, executionLogs, executionStats]);
-
-  const addExecutionLog = useCallback((message) => {
-    setExecutionLogs((prev) => {
-      const next = [...prev, `[${new Date().toLocaleTimeString()}] ${message}`];
-      const current = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, executionLogs: next }));
-      return next;
-    });
-  }, []);
+  const {
+    active,
+    apiProviders,
+    applyCurrentFixPreview,
+    archiveInfo,
+    batchSizeLimit,
+    closeFixModal,
+    concurrencyLimit,
+    confirmTutorialPrompt,
+    currentIssue,
+    dismissTutorialPrompt,
+    executeFixRun,
+    executing,
+    executionLogs,
+    executionStats,
+    filteredProjects,
+    fixing,
+    fixResult,
+    fixedIssues,
+    gameFilter,
+    gameFilterOptions,
+    groupedIssues,
+    handleFixRequest,
+    handleProjectSelect,
+    handleProviderChange,
+    handleScan,
+    isCached,
+    isModalOpen,
+    issueTypeSummary,
+    issues,
+    latestTranslationTime,
+    localizeIssueDetails,
+    localizeIssueLabel,
+    modelOptions,
+    openFixModal,
+    progress,
+    projectContextLoading,
+    resetFixResult,
+    resetWorkflow,
+    rpmLimit,
+    scanLoading,
+    searchQuery,
+    selectedModel,
+    selectedProject,
+    selectedProjectId,
+    selectedProvider,
+    setActive,
+    setBatchSizeLimit,
+    setConcurrencyLimit,
+    setGameFilter,
+    setRpmLimit,
+    setSearchQuery,
+    setSelectedModel,
+    showTutorialPrompt,
+    t,
+  } = useAgentWorkshopController();
 
   useEffect(() => {
     if (logViewportRef.current) {
       logViewportRef.current.scrollTo({ top: logViewportRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [executionLogs]);
-
-  useEffect(() => {
-    const bootstrap = async () => {
-      try {
-        const [projectsRes, configRes] = await Promise.all([
-          projectService.getActiveProjects(),
-          configService.getConfig()
-        ]);
-        const projectList = normalizeArrayPayload(projectsRes.data, ['projects', 'items', 'data', 'results']);
-        const providers = normalizeArrayPayload(configRes.data?.api_providers, ['items', 'data', 'results']);
-        setProjects(projectList);
-        setApiProviders(providers);
-        const persisted = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
-        const routeProjectId = location.state?.projectId || null;
-        if (!restoredRef.current) {
-          setActive(routeProjectId ? 1 : (persisted.active ?? 0));
-          setSelectedProjectId(routeProjectId || persisted.selectedProjectId || null);
-          setArchiveInfo(persisted.archiveInfo || null);
-          setProjectHistory(Array.isArray(persisted.projectHistory) ? persisted.projectHistory : []);
-          setIssues(Array.isArray(persisted.issues) ? persisted.issues : []);
-          setFixedIssues(Array.isArray(persisted.fixedIssues) ? persisted.fixedIssues : []);
-          setIsCached(Boolean(persisted.isCached));
-          setSearchQuery(persisted.searchQuery || '');
-          setGameFilter(persisted.gameFilter || 'all');
-          setBatchSizeLimit(persisted.batchSizeLimit || '10');
-          setConcurrencyLimit(persisted.concurrencyLimit || '1');
-          setRpmLimit(persisted.rpmLimit || '40');
-          setExecuting(Boolean(persisted.executing));
-          setProgress(persisted.progress || 0);
-          setExecutionLogs(Array.isArray(persisted.executionLogs) ? persisted.executionLogs : []);
-          setExecutionStats(persisted.executionStats || null);
-          restoredRef.current = true;
-        }
-        const providerName = persisted.selectedProvider || providers[0]?.value || '';
-        const provider = providers.find((item) => item.value === providerName) || providers[0];
-        const models = [...(provider?.available_models || []), ...(provider?.custom_models || [])];
-        setSelectedProvider(providerName);
-        setSelectedModel(persisted.selectedModel || provider?.selected_model || models[0] || '');
-        if (routeProjectId) {
-          await loadProjectContext(routeProjectId);
-        }
-      } catch (err) {
-        console.error('Failed to bootstrap agent workshop', err);
-      }
-    };
-    bootstrap();
-  }, [location.state]);
-
-  useEffect(() => {
-    setPageContext((prev) => {
-      const nextContext = `agent-workshop-step-${active}`;
-      return prev === nextContext ? prev : nextContext;
-    });
-  }, [active, setPageContext]);
-
-  useEffect(() => {
-    const tutorialKey = getTutorialKey('agent-workshop_prompt_seen');
-    if (!localStorage.getItem(tutorialKey)) {
-      setShowTutorialPrompt(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (restoredRef.current) persistState();
-  }, [persistState]);
-
-  const handleProviderChange = (value) => {
-    setSelectedProvider(value || '');
-    const provider = apiProviders.find((item) => item.value === value);
-    const models = [...(provider?.available_models || []), ...(provider?.custom_models || [])];
-    setSelectedModel(provider?.selected_model || models[0] || '');
-    setBatchSizeLimit(LOCAL_PROVIDERS.includes(value || '') ? '3' : '10');
-  };
-
-  const loadProjectContext = async (projectId) => {
-    setProjectContextLoading(true);
-    try {
-      const [archiveRes, historyRes] = await Promise.all([
-        projectService.checkArchive(projectId),
-        projectService.getProjectHistory(projectId),
-      ]);
-      setArchiveInfo(archiveRes.data || null);
-      setProjectHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
-    } catch (err) {
-      console.error('Failed to load project context', err);
-      setArchiveInfo(null);
-      setProjectHistory([]);
-    } finally {
-      setProjectContextLoading(false);
-    }
-  };
-
-  const handleProjectSelect = async (projectId) => {
-    setSelectedProjectId(projectId);
-    setIssues([]);
-    setFixedIssues([]);
-    setExecutionLogs([]);
-    setExecutionStats(null);
-    setProgress(0);
-    setIsCached(false);
-    setActive(1);
-    await loadProjectContext(projectId);
-  };
-
-  const handleScan = async () => {
-    if (!selectedProjectId) return;
-    setScanLoading(true);
-    try {
-      const res = await workshopService.scanProject(selectedProjectId);
-      const nextIssues = normalizeArrayPayload(res.data, ['issues', 'items', 'data', 'results']);
-      setIssues(nextIssues);
-      setIsCached(nextIssues.length > 0);
-      setActive(2);
-    } catch (err) {
-      console.error('Scan failed', err);
-    } finally {
-      setScanLoading(false);
-    }
-  };
-
-  const openFixModal = (issue) => {
-    setCurrentIssue(issue);
-    setFixResult(null);
-    setIsModalOpen(true);
-  };
-
-  const handleFixRequest = async () => {
-    if (!selectedProjectId || !currentIssue) return;
-    setFixing(true);
-    try {
-      const res = await workshopService.fixIssue({
-        project_id: selectedProjectId,
-        api_provider: selectedProvider,
-        api_model: selectedModel,
-        ...currentIssue,
-      });
-      if (res.data?.status === 'SUCCESS') {
-        setFixedIssues((prev) => [{ ...currentIssue, suggested_fix: res.data.suggested_fix, report_path: res.data.report_path }, ...prev]);
-        setIssues((prev) => prev.filter((item) => item.key !== currentIssue.key || item.file_name !== currentIssue.file_name));
-      }
-      setFixResult(res.data);
-    } catch (err) {
-      console.error('Fix failed', err);
-    } finally {
-      setFixing(false);
-    }
-  };
-
-  const executeFixRun = async () => {
-    if (!selectedProjectId || !issues.length || !selectedProvider || !selectedModel || executing) return;
-    const batchSize = Math.max(1, Number(batchSizeLimit) || (LOCAL_PROVIDERS.includes(selectedProvider) ? 3 : 10));
-    const total = issues.length;
-    const concurrency = Math.max(1, Number(concurrencyLimit) || 1);
-    const rpm = Math.max(1, Number(rpmLimit) || 1);
-    const intervalMs = Math.ceil(60000 / rpm);
-    const snapshot = [...issues];
-    const batches = Array.from({ length: Math.ceil(snapshot.length / batchSize) }, (_, index) =>
-      snapshot.slice(index * batchSize, (index + 1) * batchSize)
-    );
-    let nextBatchIndex = 0;
-    let nextDispatchAt = Date.now();
-    let completed = 0;
-    let successCount = 0;
-    let failedCount = 0;
-    const startedAt = Date.now();
-    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    const maxRetries = 3;
-
-    setExecuting(true);
-    setProgress(0);
-    setExecutionLogs([]);
-    setExecutionStats(null);
-    setActive(3);
-    addExecutionLog(`Starting fix run for ${total} issue(s) in ${batches.length} batch(es) of up to ${batchSize}; max ${maxRetries} attempt(s) per batch.`);
-    if (LOCAL_PROVIDERS.includes(selectedProvider) && batchSize < 10) {
-      addExecutionLog(`Using smaller local batches to avoid context overflow on the selected local model.`);
-    }
-
-    const claimBatch = async () => {
-      if (nextBatchIndex >= batches.length) return null;
-      const batchNumber = nextBatchIndex + 1;
-      const batch = batches[nextBatchIndex++];
-      const now = Date.now();
-      const waitMs = Math.max(0, nextDispatchAt - now);
-      nextDispatchAt = Math.max(now, nextDispatchAt) + intervalMs;
-      if (waitMs > 0) await sleep(waitMs);
-      return { batchNumber, batch };
-    };
-
-    const worker = async (workerId) => {
-      while (true) {
-        const claimed = await claimBatch();
-        if (!claimed) return;
-        const { batchNumber, batch } = claimed;
-        addExecutionLog(`Worker ${workerId}: fixing batch ${batchNumber}/${batches.length} (${batch.length} issue(s), up to ${maxRetries} attempt(s))`);
-        try {
-          const res = await workshopService.fixBatch({
-            project_id: selectedProjectId,
-            api_provider: selectedProvider,
-            api_model: selectedModel,
-            max_retries: maxRetries,
-            issues: batch,
-          });
-          const results = Array.isArray(res.data?.results) ? res.data.results : [];
-          const attempts = Array.isArray(res.data?.attempts) ? res.data.attempts : [];
-          attempts.forEach((attempt) => {
-            const reflectionNote = attempt.used_reflection
-              ? `, ${attempt.reflections_generated || 0} reflection(s)`
-              : '';
-            const message = attempt.message ? ` (${attempt.message})` : '';
-            addExecutionLog(
-              `Batch ${batchNumber} attempt ${attempt.attempt}/${attempt.max_retries}: ${attempt.active_count} active${reflectionNote}, ${attempt.fixed_count} fixed, ${attempt.remaining_count} remaining, ${attempt.status}.${message}`
-            );
-          });
-          const fixedByKey = new Map(results.map((item) => [`${item.file_name}::${item.key}`, item]));
-          batch.forEach((issue) => {
-            const result = fixedByKey.get(`${issue.file_name}::${issue.key}`);
-            if (result?.status === 'SUCCESS') {
-              successCount += 1;
-              setFixedIssues((prev) => [{ ...issue, suggested_fix: result.suggested_fix, report_path: result.report_path }, ...prev]);
-              setIssues((prev) => prev.filter((item) => item.key !== issue.key || item.file_name !== issue.file_name));
-            } else {
-              failedCount += 1;
-            }
-          });
-          addExecutionLog(`Batch ${batchNumber} completed: ${results.filter((item) => item.status === 'SUCCESS').length}/${batch.length} fixed.`);
-        } catch (err) {
-          failedCount += batch.length;
-          addExecutionLog(`Batch ${batchNumber} failed: ${err?.response?.data?.detail || err.message}`);
-        } finally {
-          completed += batch.length;
-          const stats = { total, completed, successCount, failedCount, durationMs: Date.now() - startedAt, batchSize, totalBatches: batches.length };
-          const percent = Math.round((completed / total) * 100);
-          setProgress(percent);
-          setExecutionStats(stats);
-          persistState({ active: 3, progress: percent, executionStats: stats, executing: true });
-        }
-      }
-    };
-
-    try {
-      await Promise.all(Array.from({ length: Math.min(concurrency, batches.length) }, (_, idx) => worker(idx + 1)));
-    } finally {
-      const stats = { total, completed: total, successCount, failedCount, durationMs: Date.now() - startedAt, batchSize, totalBatches: batches.length };
-      setExecutionStats(stats);
-      setProgress(100);
-      setExecuting(false);
-      addExecutionLog('Fix run completed.');
-      persistState({ active: 3, progress: 100, executionStats: stats, executing: false });
-    }
-  };
-
-  const resetWorkflow = () => {
-    sessionStorage.removeItem(STORAGE_KEY);
-    setActive(0);
-    setSelectedProjectId(null);
-    setArchiveInfo(null);
-    setProjectHistory([]);
-    setIssues([]);
-    setFixedIssues([]);
-    setIsCached(false);
-    setSearchQuery('');
-    setGameFilter('all');
-    setExecutionLogs([]);
-    setExecutionStats(null);
-    setProgress(0);
-    setExecuting(false);
-  };
-
-  const latestTranslationTime = archiveInfo?.last_upload_at || projectHistory[0]?.timestamp || projectHistory[0]?.created_at;
 
   return (
     <Box className={styles.container}>
@@ -574,24 +216,21 @@ const AgentWorkshopPage = () => {
           </Stepper>
         </Stack>
 
-        <Modal opened={isModalOpen} onClose={() => setIsModalOpen(false)} title={<Group gap="xs"><IconRobot size={20} /><Text fw={600}>{t('agent_workshop.modal_title')}</Text></Group>} size="lg">
+        <Modal opened={isModalOpen} onClose={closeFixModal} title={<Group gap="xs"><IconRobot size={20} /><Text fw={600}>{t('agent_workshop.modal_title')}</Text></Group>} size="lg">
           <Box style={{ position: 'relative' }}>
             <LoadingOverlay visible={fixing} overlayBlur={2} />
             <Stack gap="md">
               <Paper p="xs" withBorder><Text size="xs" fw={700} c="dimmed" tt="uppercase">{t('agent_workshop.modal_source_context')}</Text><Code block>{currentIssue?.source_str || t('agent_workshop.no_source_context')}</Code></Paper>
               <Paper p="xs" withBorder><Text size="xs" fw={700} c="red" tt="uppercase">{t('agent_workshop.modal_error_detected')}</Text><Code block color="red">{currentIssue?.target_str}</Code><Text size="xs" mt={4}>{localizeIssueDetails(currentIssue)}</Text></Paper>
               {!fixResult && <Button fullWidth variant="gradient" gradient={{ from: 'indigo', to: 'cyan' }} onClick={handleFixRequest} disabled={fixing || !selectedProvider}>{selectedProvider ? t('agent_workshop.fix_btn') : t('agent_workshop.select_model_hint')}</Button>}
-              {fixResult && <Stack gap="md"><Alert icon={<IconInfoCircle size={16} />} title={t('agent_workshop.modal_analysis')} color="indigo" variant="light"><Text size="sm" fs="italic">{fixResult.reflection}</Text>{fixResult.report_path && <Text size="xs" mt={8} c="dimmed">{t('agent_workshop.report_path')}: {fixResult.report_path}</Text>}</Alert><Paper p="xs" withBorder style={{ backgroundColor: 'rgba(40, 167, 69, 0.05)' }}><Text size="xs" fw={700} c="green" tt="uppercase">{t('agent_workshop.modal_suggestion')}</Text><Code block color="green">{fixResult.suggested_fix}</Code>{fixResult.parity_message && <Text size="xs" mt={4} c={fixResult.status === 'SUCCESS' ? 'green' : 'orange'}><IconCheck size={12} /> {fixResult.parity_message}</Text>}</Paper><Group grow mt="lg"><Button variant="subtle" onClick={() => setFixResult(null)}>{t('agent_workshop.regenerate')}</Button><Button color="green" onClick={() => { setIsModalOpen(false); setIssues((prev) => prev.filter((item) => item.key !== currentIssue.key || item.file_name !== currentIssue.file_name)); }}>{t('agent_workshop.apply_fix')}</Button></Group></Stack>}
+              {fixResult && <Stack gap="md"><Alert icon={<IconInfoCircle size={16} />} title={t('agent_workshop.modal_analysis')} color="indigo" variant="light"><Text size="sm" fs="italic">{fixResult.reflection}</Text>{fixResult.report_path && <Text size="xs" mt={8} c="dimmed">{t('agent_workshop.report_path')}: {fixResult.report_path}</Text>}</Alert><Paper p="xs" withBorder style={{ backgroundColor: 'rgba(40, 167, 69, 0.05)' }}><Text size="xs" fw={700} c="green" tt="uppercase">{t('agent_workshop.modal_suggestion')}</Text><Code block color="green">{fixResult.suggested_fix}</Code>{fixResult.parity_message && <Text size="xs" mt={4} c={fixResult.status === 'SUCCESS' ? 'green' : 'orange'}><IconCheck size={12} /> {fixResult.parity_message}</Text>}</Paper><Group grow mt="lg"><Button variant="subtle" onClick={resetFixResult}>{t('agent_workshop.regenerate')}</Button><Button color="green" onClick={applyCurrentFixPreview}>{t('agent_workshop.apply_fix')}</Button></Group></Stack>}
             </Stack>
           </Box>
         </Modal>
 
         <Modal
           opened={showTutorialPrompt}
-          onClose={() => {
-            setShowTutorialPrompt(false);
-            localStorage.setItem(getTutorialKey('agent-workshop_prompt_seen'), 'true');
-          }}
+          onClose={dismissTutorialPrompt}
           title={t('tutorial.auto_start_prompt.title')}
           centered
           radius="md"
@@ -602,20 +241,13 @@ const AgentWorkshopPage = () => {
               <Button
                 variant="subtle"
                 color="gray"
-                onClick={() => {
-                  setShowTutorialPrompt(false);
-                  localStorage.setItem(getTutorialKey('agent-workshop_prompt_seen'), 'true');
-                }}
+                onClick={dismissTutorialPrompt}
               >
                 {t('tutorial.auto_start_prompt.cancel')}
               </Button>
               <Button
                 color="blue"
-                onClick={() => {
-                  setShowTutorialPrompt(false);
-                  localStorage.setItem(getTutorialKey('agent-workshop_prompt_seen'), 'true');
-                  startTour();
-                }}
+                onClick={confirmTutorialPrompt}
               >
                 {t('tutorial.auto_start_prompt.confirm')}
               </Button>
