@@ -19,6 +19,7 @@ export const createAgentWorkshopSnapshot = (state, override = {}) => ({
   progress: state.progress,
   executionLogs: state.executionLogs,
   executionStats: state.executionStats,
+  currentRunTaskId: state.currentRunTaskId,
   ...override,
 });
 

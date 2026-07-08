@@ -56,8 +56,8 @@ export const loadAgentWorkshopProjectContext = async (projectId) => {
   };
 };
 
-export const scanAgentWorkshopProject = async (projectId) => {
-  const response = await workshopService.scanProject(projectId);
+export const scanAgentWorkshopProject = async (projectId, sidecarPath = null) => {
+  const response = await workshopService.scanProject(projectId, sidecarPath);
   return normalizeArrayPayload(response.data, ['issues', 'items', 'data', 'results']);
 };
 

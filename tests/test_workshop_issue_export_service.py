@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -109,3 +110,42 @@ def test_export_recovers_missing_source_context_from_archive(tmp_path):
     assert mock_get_source_entry.call_args.kwargs["mod_name"] == "Demo"
     assert mock_get_source_entry.call_args.kwargs["project_id"] == "project-1"
     assert mock_get_source_entry.call_args.kwargs["entry_key"] == "demo.key:0"
+
+
+def test_export_writes_project_run_and_source_version_metadata(tmp_path):
+    source_root = tmp_path / "source"
+    output_root = tmp_path / "output"
+
+    _write_loc(
+        source_root / "localization" / "simp_chinese" / "sample_l_simp_chinese.yml",
+        'l_simp_chinese:\n demo.key:0 "你好。"\n',
+    )
+    _write_loc(
+        output_root / "localization" / "english" / "sample_l_english.yml",
+        'l_english:\n demo.key:0 "Hello，"\n',
+    )
+
+    result = WorkshopIssueExportService().export_for_output(
+        output_root=output_root,
+        source_root=source_root,
+        source_lang_info={"code": "zh-CN", "key": "l_simp_chinese"},
+        target_lang_info={"code": "en", "key": "l_english"},
+        game_profile={"id": "victoria3"},
+        workflow="test",
+        project_name="Demo",
+        project_id="project-1",
+        run_id="run-1",
+        source_version_id=42,
+    )
+
+    payload = json.loads((output_root / "workshop_issues.json").read_text(encoding="utf-8"))
+    issue = next(item for item in payload["issues"] if item["error_code"] == "validation_residual_punctuation_found")
+    assert result["project_id"] == "project-1"
+    assert result["run_id"] == "run-1"
+    assert result["source_version_id"] == 42
+    assert payload["project_id"] == "project-1"
+    assert payload["run_id"] == "run-1"
+    assert payload["source_version_id"] == 42
+    assert issue["project_id"] == "project-1"
+    assert issue["run_id"] == "run-1"
+    assert issue["source_version_id"] == 42

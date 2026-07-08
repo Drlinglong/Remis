@@ -108,6 +108,42 @@ def test_vic3_mismatched_color_tags_allows_source_preserved_imbalance(validator)
     assert not [r for r in results if r.code == "validation_format_marker_parity_mismatch"]
 
 
+def test_vic3_mismatched_color_tags_allows_project_utopia_source_imbalance(validator):
+    source = "#bold #b The path to #italic Utopia#! is long#! but #i necessary#!."
+    target = "#bold #b 通往 #italic 乌托邦#! 的道路很长#! 但 #i 是必要的#!。"
+
+    results = validator.validate_entry(
+        "victoria3",
+        "concept_ut_nd_path_to_utopia_desc",
+        target,
+        42,
+        SOURCE_LANG_EN,
+        source_value=source,
+        target_lang="zh-CN",
+    )
+
+    assert not [r for r in results if r.code == "validation_vic3_color_tags_mismatch"]
+    assert not [r for r in results if r.code == "validation_format_marker_parity_mismatch"]
+
+
+def test_vic3_mismatched_color_tags_allows_target_change_when_source_is_imbalanced(validator):
+    source = "#tooltippable #tooltip:$BREAKDOWN_TAG$ Pops outside their home land face low Acceptance values.#!"
+    target = "#tooltippable #tooltip:$BREAKDOWN_TAG$ 处于家园之外的人口接纳值较低。#!#!"
+
+    results = validator.validate_entry(
+        "victoria3",
+        "EFFECTS_ON_ACCEPTANCE_ut_law_subjecthood_fascist",
+        target,
+        926,
+        SOURCE_LANG_EN,
+        source_value=source,
+        target_lang="zh-CN",
+    )
+
+    assert not [r for r in results if r.code == "validation_vic3_color_tags_mismatch"]
+    assert not [r for r in results if r.code == "validation_format_marker_parity_mismatch"]
+
+
 def test_vic3_mismatched_color_tags_still_flags_target_only_imbalance(validator):
     results = validator.validate_entry(
         "victoria3",

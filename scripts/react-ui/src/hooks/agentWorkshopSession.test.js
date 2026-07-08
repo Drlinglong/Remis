@@ -40,6 +40,7 @@ describe('agentWorkshopSession', () => {
       progress: 30,
       executionLogs: ['log'],
       executionStats: null,
+      currentRunTaskId: 'task-1',
     });
 
     writeAgentWorkshopSnapshot(snapshot, storage);

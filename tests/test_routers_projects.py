@@ -361,6 +361,319 @@ def test_project_validation_status_can_select_source_sidecar(mock_project_manage
     assert payload["issue_type_counts"] == {"source_issue": 1}
 
 
+def test_project_validation_status_groups_selected_current_translation_version(mock_project_manager, tmp_path):
+    source_root = tmp_path / "source" / "DemoMod"
+    current_en = tmp_path / "translation" / "en-Demo-incremental-update-20260708"
+    current_fr = tmp_path / "translation" / "fr-Demo-incremental-update-20260708"
+    old_de = tmp_path / "translation" / "de-Demo-incremental-update-20260701"
+    source_root.mkdir(parents=True)
+    current_en.mkdir(parents=True)
+    current_fr.mkdir(parents=True)
+    old_de.mkdir(parents=True)
+
+    (source_root / ".remis_project.json").write_text(
+        json.dumps({"config": {"translation_dirs": [str(current_en), str(current_fr), str(old_de)]}}),
+        encoding="utf-8",
+    )
+    selected_sidecar = current_en / "workshop_issues.json"
+    selected_sidecar.write_text(
+        json.dumps({
+            "issues": [{
+                "file_name": "en.yml",
+                "key": "en.key",
+                "error_code": "current_en_issue",
+                "target_lang": "en",
+                "status": "detected",
+            }]
+        }),
+        encoding="utf-8",
+    )
+    (current_fr / "workshop_issues.json").write_text(
+        json.dumps({
+            "issues": [{
+                "file_name": "fr.yml",
+                "key": "fr.key",
+                "error_code": "current_fr_issue",
+                "target_lang": "fr",
+                "status": "detected",
+            }]
+        }),
+        encoding="utf-8",
+    )
+    (old_de / "workshop_issues.json").write_text(
+        json.dumps({
+            "issues": [{
+                "file_name": "de.yml",
+                "key": "de.key",
+                "error_code": "old_de_issue",
+                "target_lang": "de",
+                "status": "detected",
+            }]
+        }),
+        encoding="utf-8",
+    )
+
+    mock_project_manager.get_project.return_value = {
+        "project_id": "proj-1",
+        "source_path": str(source_root),
+    }
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/project/proj-1/validation-status",
+        params={"sidecar_path": str(selected_sidecar)},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["issues_count"] == 2
+    assert payload["sidecar_scope"] == "current_translation_version"
+    assert payload["issue_type_counts"] == {
+        "current_en_issue": 1,
+        "current_fr_issue": 1,
+    }
+
+
+def test_project_validation_status_keeps_folder_versions_separate_when_run_id_matches(mock_project_manager, tmp_path):
+    source_root = tmp_path / "source" / "DemoMod"
+    current_translation = tmp_path / "translation" / "Multilanguage-Demo-incremental-update-20260708"
+    old_translation = tmp_path / "translation" / "Multilanguage-Demo-incremental-update-20260701"
+    source_root.mkdir(parents=True)
+    current_translation.mkdir(parents=True)
+    old_translation.mkdir(parents=True)
+
+    (source_root / ".remis_project.json").write_text(
+        json.dumps({"config": {"translation_dirs": [str(old_translation), str(current_translation)]}}),
+        encoding="utf-8",
+    )
+    selected_sidecar = current_translation / "workshop_issues.json"
+    selected_sidecar.write_text(
+        json.dumps({
+            "project_id": "proj-1",
+            "run_id": "same-run-from-bad-refresh",
+            "issues": [{
+                "file_name": "current.yml",
+                "key": "current.key",
+                "error_code": "current_issue",
+                "target_lang": "de",
+                "status": "detected",
+            }]
+        }),
+        encoding="utf-8",
+    )
+    (old_translation / "workshop_issues.json").write_text(
+        json.dumps({
+            "project_id": "proj-1",
+            "run_id": "same-run-from-bad-refresh",
+            "issues": [{
+                "file_name": "old.yml",
+                "key": "old.key",
+                "error_code": "old_issue",
+                "target_lang": "de",
+                "status": "detected",
+            }]
+        }),
+        encoding="utf-8",
+    )
+
+    mock_project_manager.get_project.return_value = {
+        "project_id": "proj-1",
+        "source_path": str(source_root),
+    }
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/project/proj-1/validation-status",
+        params={"sidecar_path": str(selected_sidecar)},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["issues_count"] == 1
+    assert payload["issue_type_counts"] == {"current_issue": 1}
+
+
+def test_project_validation_status_defaults_to_latest_folder_version(mock_project_manager, tmp_path):
+    source_root = tmp_path / "source" / "DemoMod"
+    current_translation = tmp_path / "translation" / "Multilanguage-Demo-incremental-update-20260708"
+    old_translation = tmp_path / "translation" / "Multilanguage-Demo-incremental-update-20260701"
+    source_root.mkdir(parents=True)
+    current_translation.mkdir(parents=True)
+    old_translation.mkdir(parents=True)
+
+    (source_root / ".remis_project.json").write_text(
+        json.dumps({"config": {"translation_dirs": [str(old_translation), str(current_translation)]}}),
+        encoding="utf-8",
+    )
+    (old_translation / "workshop_issues.json").write_text(
+        json.dumps({
+            "issues": [{
+                "file_name": "old.yml",
+                "key": "old.key",
+                "error_code": "old_issue",
+                "target_lang": "de",
+                "status": "detected",
+            }]
+        }),
+        encoding="utf-8",
+    )
+    current_sidecar = current_translation / "workshop_issues.json"
+    current_sidecar.write_text(
+        json.dumps({
+            "issues": [{
+                "file_name": "current.yml",
+                "key": "current.key",
+                "error_code": "current_issue",
+                "target_lang": "de",
+                "status": "detected",
+            }]
+        }),
+        encoding="utf-8",
+    )
+
+    mock_project_manager.get_project.return_value = {
+        "project_id": "proj-1",
+        "source_path": str(source_root),
+    }
+
+    client = TestClient(app)
+    response = client.get("/api/project/proj-1/validation-status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["sidecar_path"] == str(current_sidecar)
+    assert payload["issue_type_counts"] == {"current_issue": 1}
+
+
+def test_project_validation_status_keeps_distinct_details_for_same_key(mock_project_manager, tmp_path):
+    source_root = tmp_path / "source" / "DemoMod"
+    translation_root = tmp_path / "translation" / "Multilanguage-Demo-incremental-update-20260708"
+    source_root.mkdir(parents=True)
+    translation_root.mkdir(parents=True)
+
+    (source_root / ".remis_project.json").write_text(
+        json.dumps({"config": {"translation_dirs": [str(translation_root)]}}),
+        encoding="utf-8",
+    )
+    (translation_root / "workshop_issues.json").write_text(
+        json.dumps({
+            "issues": [
+                {
+                    "file_name": "current.yml",
+                    "key": "same.key",
+                    "error_code": "variable_mismatch",
+                    "details": "variable A missing",
+                    "target_lang": "de",
+                    "status": "detected",
+                },
+                {
+                    "file_name": "current.yml",
+                    "key": "same.key",
+                    "error_code": "variable_mismatch",
+                    "details": "variable B missing",
+                    "target_lang": "de",
+                    "status": "detected",
+                },
+            ]
+        }),
+        encoding="utf-8",
+    )
+
+    mock_project_manager.get_project.return_value = {
+        "project_id": "proj-1",
+        "source_path": str(source_root),
+    }
+
+    client = TestClient(app)
+    response = client.get("/api/project/proj-1/validation-status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["issues_count"] == 2
+    assert payload["issue_type_counts"] == {"variable_mismatch": 2}
+
+
+def test_project_validation_status_groups_explicit_run_metadata(mock_project_manager, tmp_path):
+    source_root = tmp_path / "source" / "DemoMod"
+    current_en = tmp_path / "translation" / "english-output"
+    current_fr = tmp_path / "translation" / "french-output"
+    old_de = tmp_path / "translation" / "german-output"
+    source_root.mkdir(parents=True)
+    current_en.mkdir(parents=True)
+    current_fr.mkdir(parents=True)
+    old_de.mkdir(parents=True)
+
+    (source_root / ".remis_project.json").write_text(
+        json.dumps({"config": {"translation_dirs": [str(current_en), str(current_fr), str(old_de)]}}),
+        encoding="utf-8",
+    )
+    selected_sidecar = current_en / "workshop_issues.json"
+    selected_sidecar.write_text(
+        json.dumps({
+            "project_id": "proj-1",
+            "run_id": "run-current",
+            "source_version_id": 7,
+            "issues": [{
+                "file_name": "en.yml",
+                "key": "en.key",
+                "error_code": "current_en_issue",
+                "target_lang": "en",
+                "status": "detected",
+            }]
+        }),
+        encoding="utf-8",
+    )
+    (current_fr / "workshop_issues.json").write_text(
+        json.dumps({
+            "project_id": "proj-1",
+            "run_id": "run-current",
+            "source_version_id": 7,
+            "issues": [{
+                "file_name": "fr.yml",
+                "key": "fr.key",
+                "error_code": "current_fr_issue",
+                "target_lang": "fr",
+                "status": "detected",
+            }]
+        }),
+        encoding="utf-8",
+    )
+    (old_de / "workshop_issues.json").write_text(
+        json.dumps({
+            "project_id": "proj-1",
+            "run_id": "run-old",
+            "source_version_id": 3,
+            "issues": [{
+                "file_name": "de.yml",
+                "key": "de.key",
+                "error_code": "old_de_issue",
+                "target_lang": "de",
+                "status": "detected",
+            }]
+        }),
+        encoding="utf-8",
+    )
+
+    mock_project_manager.get_project.return_value = {
+        "project_id": "proj-1",
+        "source_path": str(source_root),
+    }
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/project/proj-1/validation-status",
+        params={"sidecar_path": str(selected_sidecar)},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["issues_count"] == 2
+    assert payload["issue_type_counts"] == {
+        "current_en_issue": 1,
+        "current_fr_issue": 1,
+    }
+
+
 def test_project_validation_status_rejects_unknown_sidecar(mock_project_manager, tmp_path):
     source_root = tmp_path / "source" / "DemoMod"
     source_root.mkdir(parents=True)

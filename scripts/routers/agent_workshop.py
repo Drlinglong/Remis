@@ -22,10 +22,12 @@ from scripts.core.base_handler import BaseApiHandler # For typing or creation
 from scripts.core.loc_parser import parse_loc_file
 from scripts.utils.validation_logger import ValidationLogger
 from scripts.core.project_json_manager import ProjectJsonManager
-from scripts.core.services.workshop_issue_export_service import resolve_dynamic_valid_tags
+from scripts.core.services.validation_sidecar_service import ValidationSidecarService
+from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService, resolve_dynamic_valid_tags
 
 router = APIRouter(prefix="/api/agent-workshop", tags=["agent-workshop"])
 logger = logging.getLogger(__name__)
+validation_sidecars = ValidationSidecarService()
 
 
 def _resolve_workshop_model_config(
@@ -171,60 +173,12 @@ def _normalize_issue_dict(issue: Dict[str, Any]) -> Dict[str, Any]:
     return normalized
 
 
-def _issue_identity(issue: Dict[str, Any]) -> tuple:
-    return (
-        str(issue.get("file_name", "")),
-        str(issue.get("key", "")),
-        str(issue.get("error_code") or issue.get("error_type") or ""),
-        str(issue.get("target_lang", "")),
-        int(issue.get("line_number") or 0),
-    )
-
-
-def _load_sidecar_issue_file(path: Path) -> List[Dict[str, Any]]:
-    try:
-        with open(path, "r", encoding="utf-8") as handle:
-            payload = json.load(handle)
-    except Exception:
-        return []
-
-    if isinstance(payload, dict):
-        issues = payload.get("issues", [])
-    elif isinstance(payload, list):
-        issues = payload
-    else:
-        issues = []
-
-    if not isinstance(issues, list):
-        return []
-
-    return [_normalize_issue_dict(item) for item in issues if isinstance(item, dict)]
-
-
 def _active_issue_dicts(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return [
         _normalize_issue_dict(item)
         for item in items
         if str(item.get("status", "detected")).lower() not in {"fixed", "ignored"}
     ]
-
-
-def _should_prefer_translation_sidecar(
-    current_errors: List[Dict[str, Any]],
-    sidecar_issues: List[ValidationIssue],
-) -> bool:
-    if not current_errors or not sidecar_issues:
-        return False
-
-    for issue in current_errors:
-        file_name = str(issue.get("file_name") or "").replace("\\", "/")
-        if file_name.startswith("../") or "/../" in file_name:
-            return True
-        if not issue.get("file_path") and issue.get("source_context_status") == "missing":
-            return True
-        if issue.get("target_lang") is None and any(item.target_lang for item in sidecar_issues):
-            return True
-    return False
 
 
 def _slugify_filename(value: str) -> str:
@@ -335,35 +289,15 @@ def _write_fix_report(
     return str(report_path)
 
 
-def _load_project_sidecar_issues(project: Dict[str, Any]) -> List[ValidationIssue]:
+def _load_project_sidecar_issues(project: Dict[str, Any], selected_sidecar_path: Optional[str] = None) -> List[ValidationIssue]:
     source_path = project.get("source_path")
     if not source_path:
         return []
 
-    json_manager = ProjectJsonManager(source_path)
-    config = json_manager.get_config()
-    translation_dirs = config.get("translation_dirs", []) or []
-
-    candidate_files: List[Path] = []
-    for trans_dir in translation_dirs:
-        trans_path = Path(trans_dir)
-        workshop_path = trans_path / "workshop_issues.json"
-        remis_path = trans_path / ValidationLogger.FILENAME
-        if workshop_path.exists():
-            candidate_files.append(workshop_path)
-        elif remis_path.exists():
-            candidate_files.append(remis_path)
-
-    candidate_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-
-    merged: Dict[tuple, Dict[str, Any]] = {}
-    for sidecar_path in candidate_files:
-        for issue in _load_sidecar_issue_file(sidecar_path):
-            identity = _issue_identity(issue)
-            if identity not in merged:
-                merged[identity] = issue
-
-    issues = [ValidationIssue(**item) for item in merged.values()]
+    issues = [
+        ValidationIssue(**_normalize_issue_dict(item))
+        for item in validation_sidecars.current_translation_issues(source_path, selected_sidecar_path)
+    ]
     issues.sort(key=lambda item: (
         str(item.target_lang or ""),
         str(item.file_name or ""),
@@ -385,6 +319,93 @@ def _relative_to_any(path: Path, roots: List[Path], fallback_root: Path) -> str:
         return os.path.relpath(resolved_path, fallback_root.resolve()).replace("\\", "/")
     except ValueError:
         return str(path)
+
+
+def _find_translation_root(path: Path, translation_roots: List[Path]) -> Optional[Path]:
+    resolved_path = path.resolve(strict=False)
+    for root in translation_roots:
+        try:
+            resolved_path.relative_to(root.resolve(strict=False))
+            return root
+        except ValueError:
+            continue
+    return None
+
+
+def _write_fresh_scan_sidecars(
+    project: Dict[str, Any],
+    translation_roots: List[Path],
+    issues: List[ValidationIssue],
+) -> None:
+    if not translation_roots:
+        return
+
+    exporter = WorkshopIssueExportService()
+    project_id = str(project.get("project_id") or "")
+    run_id = str(uuid.uuid4())
+    resolved_roots = {
+        root.resolve(strict=False): root
+        for root in translation_roots
+    }
+    issues_by_root: Dict[Path, List[Dict[str, Any]]] = {
+        resolved_root: []
+        for resolved_root in resolved_roots
+    }
+
+    for issue in issues:
+        if not issue.file_path:
+            continue
+        root = _find_translation_root(Path(issue.file_path), translation_roots)
+        if root is None:
+            continue
+        resolved_root = root.resolve(strict=False)
+        issue_dict = issue.model_dump()
+        if project_id:
+            issue_dict["project_id"] = project_id
+        issue_dict["run_id"] = run_id
+        issues_by_root.setdefault(resolved_root, []).append(issue_dict)
+
+    for resolved_root, root in resolved_roots.items():
+        try:
+            exporter.write_issues(
+                root,
+                issues_by_root.get(resolved_root, []),
+                project_id=project_id,
+                run_id=run_id,
+            )
+        except Exception as exc:
+            logger.warning(
+                "[AgentWorkshop] Failed to refresh validation sidecar for %s: %s",
+                root,
+                exc,
+            )
+
+
+def _scoped_translation_roots(
+    project_root: str,
+    configured_roots: List[Path],
+    selected_sidecar_path: Optional[str],
+) -> List[Path]:
+    if not selected_sidecar_path:
+        return configured_roots
+
+    status = validation_sidecars.load_status(project_root, selected_sidecar_path)
+    if not status:
+        return configured_roots
+
+    scoped_roots: List[Path] = []
+    seen = set()
+    for source_path in status.get("source_paths", []):
+        path = Path(source_path)
+        if path.name not in {"workshop_issues.json", ValidationLogger.FILENAME}:
+            continue
+        root = path.parent.resolve(strict=False)
+        if str(root).lower() in seen:
+            continue
+        seen.add(str(root).lower())
+        scoped_roots.append(root)
+
+    return scoped_roots or configured_roots
 
 
 def _resolve_issue_target_path(project: Dict[str, Any], issue_file_path: Optional[str], issue_file_name: Optional[str]) -> Optional[Path]:
@@ -473,7 +494,7 @@ def _resolve_source_entries_for_translation(
     return {}, target_lang
 
 @router.get("/load-cached", response_model=List[ValidationIssue])
-async def load_cached_errors(project_id: str):
+async def load_cached_errors(project_id: str, sidecar_path: Optional[str] = None):
     """
     Loads previously scanned errors from the .remis_errors.json sidecar.
     """
@@ -482,10 +503,7 @@ async def load_cached_errors(project_id: str):
         raise HTTPException(status_code=404, detail="Project not found")
 
     current_errors = ValidationLogger.load_errors(project['source_path'])
-    sidecar_issues = _load_project_sidecar_issues(project)
-    if current_errors and not _should_prefer_translation_sidecar(current_errors, sidecar_issues):
-        return _active_issue_dicts(current_errors)
-
+    sidecar_issues = _load_project_sidecar_issues(project, sidecar_path)
     if sidecar_issues:
         active_issues = [
             issue for issue in sidecar_issues
@@ -494,10 +512,13 @@ async def load_cached_errors(project_id: str):
         ValidationLogger.save_errors(project['source_path'], [issue.model_dump() for issue in active_issues])
         return [issue.model_dump() for issue in active_issues]
 
+    if not sidecar_path and current_errors:
+        return _active_issue_dicts(current_errors)
+
     return []
 
 @router.get("/scan", response_model=List[ValidationIssue])
-async def scan_project(project_id: str, force: bool = Query(False)):
+async def scan_project(project_id: str, force: bool = Query(False), sidecar_path: Optional[str] = None):
     """
     Loads cached validation issues by default, or performs a fresh scan when forced.
     """
@@ -515,18 +536,10 @@ async def scan_project(project_id: str, force: bool = Query(False)):
 
     if not force:
         current_errors = ValidationLogger.load_errors(project['source_path'])
-        sidecar_issues = _load_project_sidecar_issues(project)
-        if current_errors and not _should_prefer_translation_sidecar(current_errors, sidecar_issues):
-            logger.info(
-                "[AgentWorkshop] Returning %s cached project-side issues for %s",
-                len(current_errors),
-                project_id,
-            )
-            return _active_issue_dicts(current_errors)
-
+        sidecar_issues = _load_project_sidecar_issues(project, sidecar_path)
         if sidecar_issues:
             logger.info(
-                "[AgentWorkshop] Returning %s translation-sidecar issues for %s",
+                "[AgentWorkshop] Returning %s current translation-sidecar issues for %s",
                 len(sidecar_issues),
                 project_id,
             )
@@ -536,6 +549,14 @@ async def scan_project(project_id: str, force: bool = Query(False)):
             ]
             ValidationLogger.save_errors(project['source_path'], [issue.model_dump() for issue in active_issues])
             return [issue.model_dump() for issue in active_issues]
+
+        if not sidecar_path and current_errors:
+            logger.info(
+                "[AgentWorkshop] Returning %s cached project-side issues for %s",
+                len(current_errors),
+                project_id,
+            )
+            return _active_issue_dicts(current_errors)
 
     logger.info(
         "[AgentWorkshop] Fresh scan started for project %s (%s) at %s",
@@ -555,10 +576,19 @@ async def scan_project(project_id: str, force: bool = Query(False)):
     logger.info("[AgentWorkshop] Project file inventory size: %s", len(files))
     
     json_manager = ProjectJsonManager(project['source_path'])
-    translation_roots = [
+    configured_translation_roots = [
         Path(path)
         for path in (json_manager.get_config().get("translation_dirs", []) or [])
     ]
+    translation_roots = _scoped_translation_roots(
+        project['source_path'],
+        configured_translation_roots,
+        sidecar_path,
+    )
+    logger.info(
+        "[AgentWorkshop] Scan translation roots: %s",
+        [str(root) for root in translation_roots],
+    )
 
     def get_source_rel_path(p):
         return _relative_to_any(Path(p), [source_root], source_root)
@@ -567,7 +597,14 @@ async def scan_project(project_id: str, force: bool = Query(False)):
         return _relative_to_any(Path(p), translation_roots, source_root)
 
     source_files = {get_source_rel_path(f['file_path']): f for f in files if f.get('file_type') == 'source'}
-    translation_files = [f for f in files if f.get('file_type') == 'translation']
+    translation_files = [
+        f for f in files
+        if f.get('file_type') == 'translation'
+        and (
+            not translation_roots
+            or _find_translation_root(Path(f.get('file_path', '')), translation_roots) is not None
+        )
+    ]
     logger.info(
         "[AgentWorkshop] Source files: %s, translation files: %s",
         len(source_files),
@@ -640,6 +677,7 @@ async def scan_project(project_id: str, force: bool = Query(False)):
     
     # Cache results
     ValidationLogger.save_errors(project['source_path'], [i.model_dump() for i in issues])
+    _write_fresh_scan_sidecars(project, translation_roots, issues)
     logger.info("[AgentWorkshop] Fresh scan completed with %s issue(s)", len(issues))
                     
     return [i.model_dump() for i in issues]

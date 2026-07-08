@@ -115,6 +115,7 @@ async def run_embedded_workshop(
     target_lang_info: Dict[str, Any],
     game_profile: Dict[str, Any],
     workflow: str,
+    run_id: str = "",
     config: Optional[Dict[str, Any]] = None,
     fallback_provider: Optional[str] = None,
     fallback_model: Optional[str] = None,
@@ -252,6 +253,7 @@ async def run_embedded_workshop(
         workflow=workflow,
         project_name=project_name,
         project_id=project_id or "",
+        run_id=run_id,
         dynamic_valid_tags=dynamic_valid_tags,
     )
 

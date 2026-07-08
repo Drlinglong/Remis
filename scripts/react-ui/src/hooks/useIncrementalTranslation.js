@@ -20,8 +20,13 @@ import {
 } from './incrementalTranslationPersistence';
 import {
     buildProviderSelection,
-    resolveProviderModels,
+    buildEmbeddedWorkshopSelection,
 } from './incrementalTranslationProviders';
+import { requestIncrementalCheckpointStatus } from './incrementalTranslationCheckpoint';
+import {
+    resyncIncrementalTask,
+    shouldResyncIncrementalTask,
+} from './incrementalTranslationTaskResync';
 import { useIncrementalTaskMonitor } from './useIncrementalTaskMonitor';
 
 export const useIncrementalTranslation = (notificationStyle) => {
@@ -140,22 +145,16 @@ export const useIncrementalTranslation = (notificationStyle) => {
 
     const checkCheckpoint = useCallback(async (project, sourcePath, targetLangs) => {
         try {
-            const normalizedTargetLangs = Array.isArray(targetLangs) ? targetLangs.filter(Boolean) : [];
-            if (normalizedTargetLangs.length === 0) {
-                setCheckpointFound(false);
-                setCheckpointInfo(null);
-                return;
-            }
-            const modName = sourcePath.split(/[\\/]/).pop();
-            const res = await translationService.getCheckpointStatus({
-                project_id: project.project_id,
-                mod_name: modName,
-                target_lang_codes: normalizedTargetLangs,
+            const checkpoint = await requestIncrementalCheckpointStatus({
+                project,
+                sourcePath,
+                targetLangs,
+                translationService,
             });
-            if (res.data.exists && res.data.completed_count > 0) {
+            if (checkpoint.found) {
                 setCheckpointFound(true);
-                setCheckpointInfo(res.data);
-                notificationService.info(t('incremental_translation.checkpoint_detected', { count: res.data.completed_count }), notificationStyle);
+                setCheckpointInfo(checkpoint.info);
+                notificationService.info(t('incremental_translation.checkpoint_detected', { count: checkpoint.info.completed_count }), notificationStyle);
             } else {
                 setCheckpointFound(false);
                 setCheckpointInfo(null);
@@ -544,20 +543,15 @@ export const useIncrementalTranslation = (notificationStyle) => {
 
     // SYNC WORKSHOP CONFIG WITH PRIMARY IF NECESSARY
     useEffect(() => {
-        if (embeddedWorkshopFollowPrimary) {
-            return;
-        }
-
-        const modelsForProvider = resolveProviderModels(apiProviders, embeddedWorkshopProvider);
-        if (!embeddedWorkshopProvider && apiProviders.length > 0) {
-            const providerValue = apiProviders[0]?.value || '';
-            setEmbeddedWorkshopProvider(providerValue);
-            setEmbeddedWorkshopModel(resolveProviderModels(apiProviders, providerValue)[0] || '');
-            return;
-        }
-
-        if (modelsForProvider.length > 0 && !modelsForProvider.includes(embeddedWorkshopModel)) {
-            setEmbeddedWorkshopModel(modelsForProvider[0]);
+        const selection = buildEmbeddedWorkshopSelection({
+            providers: apiProviders,
+            currentProvider: embeddedWorkshopProvider,
+            currentModel: embeddedWorkshopModel,
+            followPrimary: embeddedWorkshopFollowPrimary,
+        });
+        if (selection) {
+            setEmbeddedWorkshopProvider(selection.selectedProvider);
+            setEmbeddedWorkshopModel(selection.selectedModel);
         }
     }, [
         apiProviders, embeddedWorkshopFollowPrimary, embeddedWorkshopModel, embeddedWorkshopProvider
@@ -565,25 +559,24 @@ export const useIncrementalTranslation = (notificationStyle) => {
 
     // RESYNC ONGOING TASK IF RESTORED ACTIVE WORK
     useEffect(() => {
-        if (!restorationAppliedRef.current || statusResyncRef.current || !currentTaskId || !currentTaskMode) return;
-        if (!loading && !executing) return;
+        if (!shouldResyncIncrementalTask({
+            currentTaskId,
+            currentTaskMode,
+            executing,
+            loading,
+            restorationApplied: restorationAppliedRef.current,
+            statusResynced: statusResyncRef.current,
+        })) return;
 
         statusResyncRef.current = true;
 
-        const isPreScan = currentTaskMode === 'pre_scan';
-        projectService.getTaskStatus(currentTaskId)
-            .then((res) => {
-                const taskStatus = res.data?.status;
-                if (taskStatus === 'completed' || taskStatus === 'failed') {
-                    handleTaskUpdate(res.data, isPreScan, 'polling');
-                    return;
-                }
-                connectWebSocket(currentTaskId, isPreScan);
-            })
-            .catch((resumeErr) => {
-                console.error('Failed to resume incremental task state:', resumeErr);
-                connectWebSocket(currentTaskId, isPreScan);
-            });
+        resyncIncrementalTask({
+            connectWebSocket,
+            currentTaskId,
+            currentTaskMode,
+            handleTaskUpdate,
+            projectService,
+        });
     }, [currentTaskId, currentTaskMode, executing, loading, handleTaskUpdate, connectWebSocket]);
 
     return {

@@ -9,7 +9,11 @@ export const workshopService = {
      * @param {string} projectId Project ID
      * @returns {Promise} Axios response promise
      */
-    scanProject: (projectId) => api.get(`/api/agent-workshop/scan?project_id=${projectId}`),
+    scanProject: (projectId, sidecarPath = null) => {
+        const params = new URLSearchParams({ project_id: projectId });
+        if (sidecarPath) params.set('sidecar_path', sidecarPath);
+        return api.get(`/api/agent-workshop/scan?${params.toString()}`);
+    },
 
     /**
      * Request a targeted fix for a single localized issue.

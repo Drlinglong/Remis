@@ -71,6 +71,16 @@ describe('agentWorkshopWorkflowService', () => {
     });
 
     await expect(scanAgentWorkshopProject('project-1')).resolves.toEqual([{ key: 'issue-1' }]);
+    expect(workshopService.scanProject).toHaveBeenCalledWith('project-1', null);
+  });
+
+  it('passes selected validation sidecar through scan requests', async () => {
+    workshopService.scanProject.mockResolvedValue({
+      data: [{ key: 'issue-1' }],
+    });
+
+    await expect(scanAgentWorkshopProject('project-1', 'C:/mods/out/workshop_issues.json')).resolves.toEqual([{ key: 'issue-1' }]);
+    expect(workshopService.scanProject).toHaveBeenCalledWith('project-1', 'C:/mods/out/workshop_issues.json');
   });
 
   it('starts backend-managed fix runs instead of running frontend workers', async () => {

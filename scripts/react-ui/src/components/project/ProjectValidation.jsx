@@ -71,7 +71,10 @@ const ProjectValidation = ({ projectId }) => {
   const refreshSidecar = async () => {
     try {
       setRefreshing(true);
-      await api.get(`/api/agent-workshop/scan?project_id=${projectId}&force=true`);
+      const params = new URLSearchParams({ project_id: projectId, force: 'true' });
+      const activeSidecarPath = selectedSidecarPath || status?.sidecar_path;
+      if (activeSidecarPath) params.set('sidecar_path', activeSidecarPath);
+      await api.get(`/api/agent-workshop/scan?${params.toString()}`);
       await loadStatus();
     } catch (error) {
       console.error('Failed to refresh workshop sidecar', error);
@@ -81,7 +84,7 @@ const ProjectValidation = ({ projectId }) => {
   };
 
   const openWorkshop = () => {
-    navigate('/agent-workshop', { state: { projectId } });
+    navigate('/agent-workshop', { state: { projectId, sidecarPath: selectedSidecarPath || status?.sidecar_path || null } });
   };
 
   const entries = useMemo(

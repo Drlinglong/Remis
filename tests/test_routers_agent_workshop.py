@@ -139,6 +139,99 @@ def test_load_cached_falls_back_to_workshop_sidecar(tmp_path):
     assert cached[0]["key"] == "demo.one"
 
 
+def test_scan_uses_selected_sidecar_current_version_scope(tmp_path):
+    project_root = tmp_path / "project"
+    first_translation = tmp_path / "en-Demo-incremental-update-20260708"
+    second_translation = tmp_path / "fr-Demo-incremental-update-20260708"
+    old_translation = tmp_path / "de-Demo-incremental-update-20260701"
+    project_root.mkdir()
+    first_translation.mkdir()
+    second_translation.mkdir()
+    old_translation.mkdir()
+
+    ProjectJsonManager(str(project_root)).update_config({
+        "translation_dirs": [str(first_translation), str(second_translation), str(old_translation)]
+    })
+    selected_sidecar = first_translation / "workshop_issues.json"
+    selected_sidecar.write_text(
+        json.dumps({
+            "issues": [{
+                "file_name": "events/a_l_english.yml",
+                "key": "selected.one",
+                "source_str": "Hello",
+                "target_str": "Hello。",
+                "error_type": "validation_error",
+                "error_code": "validation_residual_punctuation_found",
+                "details": "broken",
+                "target_lang": "en",
+                "status": "detected",
+            }]
+        }),
+        encoding="utf-8",
+    )
+    (second_translation / "workshop_issues.json").write_text(
+        json.dumps({
+            "issues": [
+                {
+                    "file_name": "events/b_l_english.yml",
+                    "key": "other.one",
+                    "source_str": "World",
+                    "target_str": "World。",
+                    "error_type": "validation_error",
+                    "details": "broken",
+                    "target_lang": "en",
+                    "status": "detected",
+                },
+                {
+                    "file_name": "events/b_l_english.yml",
+                    "key": "other.two",
+                    "source_str": "World",
+                    "target_str": "World。",
+                    "error_type": "validation_error",
+                    "details": "broken",
+                    "target_lang": "en",
+                    "status": "detected",
+                },
+            ]
+        }),
+        encoding="utf-8",
+    )
+    (old_translation / "workshop_issues.json").write_text(
+        json.dumps({
+            "issues": [{
+                "file_name": "events/old_l_german.yml",
+                "key": "old.one",
+                "source_str": "Old",
+                "target_str": "Alt。",
+                "error_type": "validation_error",
+                "details": "old broken",
+                "target_lang": "de",
+                "status": "detected",
+            }]
+        }),
+        encoding="utf-8",
+    )
+
+    with patch("scripts.routers.agent_workshop.project_manager", new_callable=MagicMock) as mock_pm:
+        mock_pm.get_project = AsyncMock(return_value={
+            "project_id": "p2a",
+            "source_path": str(project_root),
+            "game_id": "victoria3",
+        })
+
+        response = client.get(
+            "/api/agent-workshop/scan",
+            params={"project_id": "p2a", "sidecar_path": str(selected_sidecar)},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert [item["key"] for item in data] == ["selected.one", "other.one", "other.two"]
+
+    cached = ValidationLogger.load_errors(str(project_root))
+    assert [item["key"] for item in cached] == ["selected.one", "other.one", "other.two"]
+
+
 def test_load_cached_prefers_translation_sidecar_over_stale_project_cache(tmp_path):
     project_root = tmp_path / "project"
     translation_root = tmp_path / "translation"
@@ -204,6 +297,23 @@ def test_scan_uses_translation_relative_paths_for_external_translation_dirs(tmp_
     })
     _write_loc_file(source_file, "l_simp_chinese", [("demo.one:0", "你好")])
     _write_loc_file(translation_file, "l_english", [("demo.one:0", "Hello。")])
+    (translation_root / "workshop_issues.json").write_text(
+        json.dumps({
+            "generated_at": "2026-07-01T10:00:00",
+            "issue_count": 1,
+            "issues": [{
+                "file_name": "localisation/english/demo_l_english.yml",
+                "file_path": str(translation_file),
+                "key": "stale.false_positive",
+                "source_str": "你好",
+                "target_str": "Hello",
+                "error_type": "stale issue",
+                "details": "old cache",
+                "status": "detected",
+            }],
+        }),
+        encoding="utf-8",
+    )
 
     fake_result = MagicMock()
     fake_result.level.value = "warning"
@@ -244,6 +354,105 @@ def test_scan_uses_translation_relative_paths_for_external_translation_dirs(tmp_
     assert data[0]["source_str"] == "你好"
     assert data[0]["source_context_status"] == "found"
     assert data[0]["target_lang"] == "en"
+
+    refreshed_sidecar = json.loads((translation_root / "workshop_issues.json").read_text(encoding="utf-8"))
+    assert refreshed_sidecar["project_id"] == "p2c"
+    assert refreshed_sidecar["issue_count"] == 1
+    assert [item["key"] for item in refreshed_sidecar["issues"]] == [data[0]["key"]]
+    assert "stale.false_positive" not in [item["key"] for item in refreshed_sidecar["issues"]]
+
+    translation_cache = ValidationLogger.load_errors(str(translation_root))
+    assert [item["key"] for item in translation_cache] == [data[0]["key"]]
+
+
+def test_force_scan_with_selected_sidecar_scans_only_current_translation_scope(tmp_path):
+    project_root = tmp_path / "project"
+    current_translation = tmp_path / "en-Demo-incremental-update-20260708"
+    old_translation = tmp_path / "en-Demo-incremental-update-20260701"
+    source_file = project_root / "localisation" / "simp_chinese" / "demo_l_simp_chinese.yml"
+    current_file = current_translation / "localisation" / "english" / "demo_l_english.yml"
+    old_file = old_translation / "localisation" / "english" / "demo_l_english.yml"
+    project_root.mkdir()
+    current_translation.mkdir()
+    old_translation.mkdir()
+    ProjectJsonManager(str(project_root)).update_config({
+        "translation_dirs": [str(old_translation), str(current_translation)]
+    })
+    _write_loc_file(source_file, "l_simp_chinese", [("demo.one:0", "你好")])
+    _write_loc_file(current_file, "l_english", [("demo.one:0", "Hello。")])
+    _write_loc_file(old_file, "l_english", [("demo.one:0", "Old。")])
+    selected_sidecar = current_translation / "workshop_issues.json"
+    selected_sidecar.write_text(
+        json.dumps({
+            "project_id": "p2d",
+            "run_id": "same-run-from-bad-refresh",
+            "issues": [{
+                "file_name": "localisation/english/demo_l_english.yml",
+                "file_path": str(current_file),
+                "key": "current.stale",
+                "source_str": "你好",
+                "target_str": "Hello",
+                "error_type": "current stale issue",
+                "target_lang": "en",
+                "status": "detected",
+            }],
+        }),
+        encoding="utf-8",
+    )
+    old_sidecar = old_translation / "workshop_issues.json"
+    old_sidecar.write_text(
+        json.dumps({
+            "project_id": "p2d",
+            "run_id": "same-run-from-bad-refresh",
+            "issues": [{
+                "file_name": "localisation/english/demo_l_english.yml",
+                "file_path": str(old_file),
+                "key": "old.must_not_be_scanned",
+                "source_str": "你好",
+                "target_str": "Old",
+                "error_type": "old issue",
+                "target_lang": "en",
+                "status": "detected",
+            }],
+        }),
+        encoding="utf-8",
+    )
+
+    fake_result = MagicMock()
+    fake_result.level.value = "warning"
+    fake_result.message = "Chinese punctuation in English"
+    fake_result.details = "Use English punctuation."
+
+    with patch("scripts.routers.agent_workshop.project_manager", new_callable=MagicMock) as mock_pm, \
+         patch("scripts.routers.agent_workshop.PostProcessValidator") as mock_validator_cls:
+        mock_pm.get_project = AsyncMock(return_value={
+            "project_id": "p2d",
+            "source_path": str(project_root),
+            "game_id": "hoi4",
+            "source_language": "zh-CN",
+        })
+        mock_pm.get_project_files = AsyncMock(return_value=[
+            {"file_path": str(source_file), "file_type": "source"},
+            {"file_path": str(current_file), "file_type": "translation"},
+            {"file_path": str(old_file), "file_type": "translation"},
+        ])
+        mock_validator_cls.return_value.validate_entry.return_value = [fake_result]
+
+        response = client.get(
+            "/api/agent-workshop/scan",
+            params={"project_id": "p2d", "force": True, "sidecar_path": str(selected_sidecar)},
+        )
+
+    assert response.status_code == 200
+    mock_validator_cls.return_value.validate_entry.assert_called_once()
+    assert response.json()[0]["file_path"] == str(current_file)
+
+    refreshed_current = json.loads(selected_sidecar.read_text(encoding="utf-8"))
+    assert refreshed_current["issue_count"] == 1
+    assert [item["file_path"] for item in refreshed_current["issues"]] == [str(current_file)]
+
+    preserved_old = json.loads(old_sidecar.read_text(encoding="utf-8"))
+    assert [item["key"] for item in preserved_old["issues"]] == ["old.must_not_be_scanned"]
 
 
 def test_fix_issue_updates_file_status_and_report(tmp_path):

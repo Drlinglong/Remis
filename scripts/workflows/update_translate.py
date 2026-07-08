@@ -1,5 +1,6 @@
 import logging
 import os
+import uuid
 from typing import List, Dict, Any, Optional, Callable
 from pathlib import Path
 from time import perf_counter
@@ -78,6 +79,7 @@ async def run_incremental_update(
     preparation_service = IncrementalPreparationService()
     translation_service = IncrementalTranslationService()
     workshop_issue_exporter = WorkshopIssueExportService()
+    run_id = str(uuid.uuid4())
     snapshot_started_at = perf_counter()
     current_files_data = snapshot_service.build_snapshot(source_path, source_lang_info, progress_callback)
     snapshot_elapsed_ms = round((perf_counter() - snapshot_started_at) * 1000, 1)
@@ -291,6 +293,7 @@ async def run_incremental_update(
             workflow="incremental",
             project_name=project_name,
             project_id=project_id or "",
+            run_id=run_id,
             dynamic_valid_tags=dynamic_valid_tags,
         )
         lang_telemetry["workshop_export_ms"] = round((perf_counter() - workshop_export_started_at) * 1000, 1)
@@ -306,6 +309,7 @@ async def run_incremental_update(
                     target_lang_info=target_lang_info,
                     game_profile=game_profile,
                     workflow="incremental",
+                    run_id=run_id,
                     config=embedded_workshop,
                     fallback_provider=selected_provider,
                     fallback_model=model_name,
@@ -374,6 +378,27 @@ async def run_incremental_update(
             archive_files_data=build_result["archive_files_data"],
             archive_results=build_result["archive_results"],
         )
+        if new_version_id:
+            export_result = {
+                **export_result,
+                **workshop_issue_exporter.update_export_metadata(
+                    output_root=lang_output_dir,
+                    project_id=project_id or "",
+                    run_id=run_id,
+                    source_version_id=new_version_id,
+                ),
+                "source_version_id": new_version_id,
+            }
+            for issue in export_result.get("issues", []):
+                issue["project_id"] = project_id or ""
+                issue["run_id"] = run_id
+                issue["source_version_id"] = new_version_id
+            if per_language_exports:
+                per_language_exports[-1] = {
+                    **per_language_exports[-1],
+                    **export_result,
+                    "source_version_id": new_version_id,
+                }
         lang_telemetry["archive_write_ms"] = round((perf_counter() - archive_write_started_at) * 1000, 1)
         lang_telemetry["total_ms"] = round(
             sum(
@@ -409,6 +434,8 @@ async def run_incremental_update(
         merged_export = workshop_issue_exporter.merge_exports(
             output_root=shared_output_dir,
             export_items=per_language_exports,
+            project_id=project_id or "",
+            run_id=run_id,
         )
         workshop_issue_exports = [{
             "target_lang": "all",

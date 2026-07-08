@@ -56,6 +56,8 @@ class WorkshopIssueExportService:
         workflow: str,
         project_name: str = "",
         project_id: str = "",
+        run_id: str = "",
+        source_version_id: Optional[int] = None,
         dynamic_valid_tags: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         output_root = Path(output_root)
@@ -141,6 +143,9 @@ class WorkshopIssueExportService:
                         "severity": result.level.value,
                         "status": "detected",
                         "workflow": workflow,
+                        "project_id": project_id,
+                        "run_id": run_id,
+                        "source_version_id": source_version_id,
                         "game_id": game_id,
                         "project_name": project_name,
                         "target_lang": target_lang_info.get("code", ""),
@@ -148,7 +153,14 @@ class WorkshopIssueExportService:
                         "generated_at": generated_at,
                     })
 
-        export_result = self._write_exports(output_root, issues, generated_at)
+        export_result = self._write_exports(
+            output_root,
+            issues,
+            generated_at,
+            project_id=project_id,
+            run_id=run_id,
+            source_version_id=source_version_id,
+        )
         export_result["issue_count"] = len(issues)
         export_result["issues"] = issues
         return export_result
@@ -158,6 +170,8 @@ class WorkshopIssueExportService:
         output_root: str | Path,
         export_items: List[Dict[str, Any]],
         generated_at: Optional[str] = None,
+        project_id: str = "",
+        run_id: str = "",
     ) -> Dict[str, Any]:
         output_root = Path(output_root)
         output_root.mkdir(parents=True, exist_ok=True)
@@ -178,15 +192,109 @@ class WorkshopIssueExportService:
             )
         )
 
-        return self._write_exports(output_root, merged_issues, generated_at or datetime.now().isoformat(timespec="seconds"))
+        source_version_ids = {
+            item.get("source_version_id")
+            for item in export_items
+            if item.get("source_version_id") is not None
+        }
+        language_source_versions = {
+            str(item.get("target_lang")): item.get("source_version_id")
+            for item in export_items
+            if item.get("target_lang") and item.get("source_version_id") is not None
+        }
+        source_version_id = next(iter(source_version_ids)) if len(source_version_ids) == 1 else None
 
-    def _write_exports(self, output_root: Path, issues: List[Dict[str, Any]], generated_at: str) -> Dict[str, Any]:
+        return self._write_exports(
+            output_root,
+            merged_issues,
+            generated_at or datetime.now().isoformat(timespec="seconds"),
+            project_id=project_id,
+            run_id=run_id,
+            source_version_id=source_version_id,
+            source_version_ids=sorted(source_version_ids),
+            language_source_versions=language_source_versions,
+        )
+
+    def update_export_metadata(
+        self,
+        output_root: str | Path,
+        *,
+        project_id: str = "",
+        run_id: str = "",
+        source_version_id: Optional[int] = None,
+        source_version_ids: Optional[List[int]] = None,
+        language_source_versions: Optional[Dict[str, int]] = None,
+    ) -> Dict[str, Any]:
+        output_root = Path(output_root)
+        workshop_path = output_root / self.OUTPUT_FILENAME
+        issues = self._load_existing_issues(workshop_path)
+        generated_at = datetime.now().isoformat(timespec="seconds")
+        return self._write_exports(
+            output_root,
+            issues,
+            generated_at,
+            project_id=project_id,
+            run_id=run_id,
+            source_version_id=source_version_id,
+            source_version_ids=source_version_ids,
+            language_source_versions=language_source_versions,
+        )
+
+    def write_issues(
+        self,
+        output_root: str | Path,
+        issues: List[Dict[str, Any]],
+        *,
+        project_id: str = "",
+        run_id: str = "",
+        source_version_id: Optional[int] = None,
+        source_version_ids: Optional[List[int]] = None,
+        language_source_versions: Optional[Dict[str, int]] = None,
+    ) -> Dict[str, Any]:
+        return self._write_exports(
+            Path(output_root),
+            issues,
+            datetime.now().isoformat(timespec="seconds"),
+            project_id=project_id,
+            run_id=run_id,
+            source_version_id=source_version_id,
+            source_version_ids=source_version_ids,
+            language_source_versions=language_source_versions,
+        )
+
+    def _write_exports(
+        self,
+        output_root: Path,
+        issues: List[Dict[str, Any]],
+        generated_at: str,
+        *,
+        project_id: str = "",
+        run_id: str = "",
+        source_version_id: Optional[int] = None,
+        source_version_ids: Optional[List[int]] = None,
+        language_source_versions: Optional[Dict[str, int]] = None,
+    ) -> Dict[str, Any]:
+        metadata = {
+            "project_id": project_id,
+            "run_id": run_id,
+            "source_version_id": source_version_id,
+            "source_version_ids": source_version_ids or ([] if source_version_id is None else [source_version_id]),
+            "language_source_versions": language_source_versions or {},
+        }
+        issues = [
+            {
+                **issue,
+                **{key: value for key, value in metadata.items() if value not in ("", None, [], {})},
+            }
+            for issue in issues
+        ]
         ValidationLogger.save_errors(str(output_root), issues)
 
         workshop_path = output_root / self.OUTPUT_FILENAME
         payload = {
             "generated_at": generated_at,
             "issue_count": len(issues),
+            **{key: value for key, value in metadata.items() if value not in ("", None, [], {})},
             "issues": issues,
         }
         with open(workshop_path, "w", encoding="utf-8") as handle:
@@ -196,7 +304,16 @@ class WorkshopIssueExportService:
             "issues_path": str(workshop_path),
             "sidecar_path": str(output_root / ValidationLogger.FILENAME),
             "issue_count": len(issues),
+            **{key: value for key, value in metadata.items() if value not in ("", None, [], {})},
         }
+
+    def _load_existing_issues(self, workshop_path: Path) -> List[Dict[str, Any]]:
+        try:
+            payload = json.loads(workshop_path.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+        issues = payload.get("issues", []) if isinstance(payload, dict) else payload if isinstance(payload, list) else []
+        return [issue for issue in issues if isinstance(issue, dict)]
 
     def _matches_target_language(self, translated_file: Path, target_paradox: str) -> bool:
         lower_name = translated_file.name.lower()

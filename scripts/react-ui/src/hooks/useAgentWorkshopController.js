@@ -30,6 +30,7 @@ export const useAgentWorkshopController = () => {
   const [showTutorialPrompt, setShowTutorialPrompt] = useState(false);
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [selectedSidecarPath, setSelectedSidecarPath] = useState(null);
   const [archiveInfo, setArchiveInfo] = useState(null);
   const [projectHistory, setProjectHistory] = useState([]);
   const [issues, setIssues] = useState([]);
@@ -49,11 +50,13 @@ export const useAgentWorkshopController = () => {
   const [progress, setProgress] = useState(0);
   const [executionLogs, setExecutionLogs] = useState([]);
   const [executionStats, setExecutionStats] = useState(null);
+  const [currentRunTaskId, setCurrentRunTaskId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentIssue, setCurrentIssue] = useState(null);
   const [fixResult, setFixResult] = useState(null);
   const [fixing, setFixing] = useState(false);
   const restoredRef = useRef(false);
+  const runResumeRef = useRef(false);
 
   const sessionState = useMemo(() => ({
     active,
@@ -74,6 +77,7 @@ export const useAgentWorkshopController = () => {
     progress,
     executionLogs,
     executionStats,
+    currentRunTaskId,
   }), [
     active,
     selectedProjectId,
@@ -93,6 +97,7 @@ export const useAgentWorkshopController = () => {
     progress,
     executionLogs,
     executionStats,
+    currentRunTaskId,
   ]);
 
   const selectedProject = useMemo(
@@ -209,6 +214,7 @@ export const useAgentWorkshopController = () => {
         const { projects: projectList, providers } = await loadAgentWorkshopBootstrap();
         const persisted = readAgentWorkshopSnapshot();
         const routeProjectId = location.state?.projectId || null;
+        const routeSidecarPath = location.state?.sidecarPath || null;
         const providerSelection = selectAgentWorkshopProvider({
           providers,
           providerValue: persisted.selectedProvider || providers[0]?.value || '',
@@ -221,6 +227,7 @@ export const useAgentWorkshopController = () => {
         if (!restoredRef.current) {
           setActive(routeProjectId ? 1 : (persisted.active ?? 0));
           setSelectedProjectId(routeProjectId || persisted.selectedProjectId || null);
+          setSelectedSidecarPath(routeProjectId ? routeSidecarPath : null);
           setArchiveInfo(persisted.archiveInfo || null);
           setProjectHistory(Array.isArray(persisted.projectHistory) ? persisted.projectHistory : []);
           setIssues(Array.isArray(persisted.issues) ? persisted.issues : []);
@@ -235,6 +242,7 @@ export const useAgentWorkshopController = () => {
           setProgress(persisted.progress || 0);
           setExecutionLogs(Array.isArray(persisted.executionLogs) ? persisted.executionLogs : []);
           setExecutionStats(persisted.executionStats || null);
+          setCurrentRunTaskId(persisted.currentRunTaskId || null);
           restoredRef.current = true;
         }
 
@@ -281,6 +289,7 @@ export const useAgentWorkshopController = () => {
 
   const handleProjectSelect = useCallback(async (projectId) => {
     setSelectedProjectId(projectId);
+    setSelectedSidecarPath(null);
     setIssues([]);
     setFixedIssues([]);
     setExecutionLogs([]);
@@ -295,7 +304,7 @@ export const useAgentWorkshopController = () => {
     if (!selectedProjectId) return;
     setScanLoading(true);
     try {
-      const nextIssues = await scanAgentWorkshopProject(selectedProjectId);
+      const nextIssues = await scanAgentWorkshopProject(selectedProjectId, selectedSidecarPath);
       setIssues(nextIssues);
       setIsCached(nextIssues.length > 0);
       setActive(2);
@@ -304,7 +313,7 @@ export const useAgentWorkshopController = () => {
     } finally {
       setScanLoading(false);
     }
-  }, [selectedProjectId]);
+  }, [selectedProjectId, selectedSidecarPath]);
 
   const openFixModal = useCallback((issue) => {
     setCurrentIssue(issue);
@@ -334,6 +343,100 @@ export const useAgentWorkshopController = () => {
     }
   }, [currentIssue, selectedModel, selectedProjectId, selectedProvider]);
 
+  const applyRunTaskStatus = useCallback((task, runIssues = issues) => {
+    const taskProgress = task?.progress || {};
+    if (typeof taskProgress.percent === 'number') {
+      setProgress(taskProgress.percent);
+    }
+    if (Array.isArray(task?.log)) {
+      setExecutionLogs(task.log);
+    }
+    if (task?.summary) {
+      const summary = task.summary;
+      setExecutionStats({
+        total: summary.total || 0,
+        completed: summary.completed || 0,
+        successCount: summary.successCount || 0,
+        failedCount: summary.failedCount || 0,
+        durationMs: summary.durationMs || 0,
+        batchSize: summary.batchSize || Number(batchSizeLimit) || 10,
+        totalBatches: summary.totalBatches || 0,
+      });
+    }
+
+    if (task?.status === 'completed') {
+      const results = Array.isArray(task?.summary?.results) ? task.summary.results : [];
+      const successfulByKey = new Map(
+        results
+          .filter((result) => result.status === 'SUCCESS')
+          .map((result) => [`${result.file_name}::${result.key}`, result])
+      );
+      setFixedIssues((prev) => [
+        ...runIssues
+          .filter((issue) => successfulByKey.has(`${issue.file_name}::${issue.key}`))
+          .map((issue) => ({
+            ...issue,
+            ...successfulByKey.get(`${issue.file_name}::${issue.key}`),
+          })),
+        ...prev,
+      ]);
+      setIssues((prev) => prev.filter((issue) => !successfulByKey.has(`${issue.file_name}::${issue.key}`)));
+      setProgress(100);
+      setExecuting(false);
+      setCurrentRunTaskId(null);
+      persistState({
+        active: 3,
+        progress: 100,
+        executionStats: task.summary,
+        executing: false,
+        currentRunTaskId: null,
+      });
+      return true;
+    }
+
+    if (task?.status === 'failed') {
+      addExecutionLog(task.message || 'Agent Workshop run failed.');
+      setExecuting(false);
+      setCurrentRunTaskId(null);
+      persistState({
+        executing: false,
+        currentRunTaskId: null,
+      });
+      return true;
+    }
+
+    return false;
+  }, [addExecutionLog, batchSizeLimit, issues, persistState]);
+
+  useEffect(() => {
+    if (!restoredRef.current || runResumeRef.current || !executing || !currentRunTaskId) return;
+
+    let cancelled = false;
+    runResumeRef.current = true;
+
+    const resumeRun = async () => {
+      let task = null;
+      do {
+        await wait(1000);
+        if (cancelled) return;
+        task = await getAgentWorkshopRunStatus(currentRunTaskId);
+        applyRunTaskStatus(task);
+      } while (task?.status && !['completed', 'failed'].includes(task.status));
+    };
+
+    resumeRun().catch((error) => {
+      if (cancelled) return;
+      console.error('Failed to resume Agent Workshop run', error);
+      addExecutionLog(error?.response?.data?.detail || error.message || 'Agent Workshop run failed.');
+      setExecuting(false);
+      setCurrentRunTaskId(null);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [addExecutionLog, applyRunTaskStatus, currentRunTaskId, executing]);
+
   const executeFixRun = useCallback(async () => {
     if (!selectedProjectId || !issues.length || !selectedProvider || !selectedModel || executing) return;
 
@@ -342,6 +445,7 @@ export const useAgentWorkshopController = () => {
     setProgress(0);
     setExecutionLogs([]);
     setExecutionStats(null);
+    setCurrentRunTaskId(null);
     setActive(3);
     writeAgentWorkshopSnapshot(createAgentWorkshopSnapshot(sessionState, {
       active: 3,
@@ -349,29 +453,8 @@ export const useAgentWorkshopController = () => {
       progress: 0,
       executionLogs: [],
       executionStats: null,
+      currentRunTaskId: null,
     }));
-
-    const applyTaskStatus = (task) => {
-      const taskProgress = task?.progress || {};
-      if (typeof taskProgress.percent === 'number') {
-        setProgress(taskProgress.percent);
-      }
-      if (Array.isArray(task?.log)) {
-        setExecutionLogs(task.log);
-      }
-      if (task?.summary) {
-        const summary = task.summary;
-        setExecutionStats({
-          total: summary.total || 0,
-          completed: summary.completed || 0,
-          successCount: summary.successCount || 0,
-          failedCount: summary.failedCount || 0,
-          durationMs: summary.durationMs || 0,
-          batchSize: summary.batchSize || Number(batchSizeLimit) || 10,
-          totalBatches: summary.totalBatches || 0,
-        });
-      }
-    };
 
     try {
       const run = await startAgentWorkshopFixRun({
@@ -383,6 +466,7 @@ export const useAgentWorkshopController = () => {
         selectedModel,
         selectedProvider,
       });
+      setCurrentRunTaskId(run.task_id);
       writeAgentWorkshopSnapshot(createAgentWorkshopSnapshot(sessionState, {
         active: 3,
         executing: true,
@@ -393,50 +477,22 @@ export const useAgentWorkshopController = () => {
       do {
         await wait(1000);
         task = await getAgentWorkshopRunStatus(run.task_id);
-        applyTaskStatus(task);
+        applyRunTaskStatus(task, runIssues);
       } while (task?.status && !['completed', 'failed'].includes(task.status));
-
-      if (task?.status === 'completed') {
-        const results = Array.isArray(task?.summary?.results) ? task.summary.results : [];
-        const successfulByKey = new Map(
-          results
-            .filter((result) => result.status === 'SUCCESS')
-            .map((result) => [`${result.file_name}::${result.key}`, result])
-        );
-        setFixedIssues((prev) => [
-          ...runIssues
-            .filter((issue) => successfulByKey.has(`${issue.file_name}::${issue.key}`))
-            .map((issue) => ({
-              ...issue,
-              ...successfulByKey.get(`${issue.file_name}::${issue.key}`),
-            })),
-          ...prev,
-        ]);
-        setIssues((prev) => prev.filter((issue) => !successfulByKey.has(`${issue.file_name}::${issue.key}`)));
-        setProgress(100);
-        persistState({
-          active: 3,
-          progress: 100,
-          executionStats: task.summary,
-          executing: false,
-          currentRunTaskId: null,
-        });
-      } else if (task?.status === 'failed') {
-        addExecutionLog(task.message || 'Agent Workshop run failed.');
-      }
     } catch (error) {
       console.error('Agent Workshop run failed', error);
       addExecutionLog(error?.response?.data?.detail || error.message || 'Agent Workshop run failed.');
+      setCurrentRunTaskId(null);
     } finally {
       setExecuting(false);
     }
   }, [
     addExecutionLog,
+    applyRunTaskStatus,
     batchSizeLimit,
     concurrencyLimit,
     executing,
     issues,
-    persistState,
     rpmLimit,
     selectedModel,
     selectedProjectId,
@@ -459,6 +515,7 @@ export const useAgentWorkshopController = () => {
     setExecutionStats(null);
     setProgress(0);
     setExecuting(false);
+    setCurrentRunTaskId(null);
   }, []);
 
   const closeFixModal = useCallback(() => setIsModalOpen(false), []);

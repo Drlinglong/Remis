@@ -17,10 +17,12 @@ from scripts.schemas.project import (
     IncrementalUpdateRequest
 )
 from scripts.schemas.config import UpdateConfigRequest
+from scripts.core.services.validation_sidecar_service import ValidationSidecarService
 from scripts.utils.system_utils import sanitize_for_json
 from scripts.utils.validation_logger import ValidationLogger
 
 router = APIRouter()
+validation_sidecars = ValidationSidecarService()
 
 
 def _write_incremental_logs(output_dirs: list[str], log_lines: list[str], telemetry: Optional[Dict[str, Any]] = None):
@@ -55,131 +57,6 @@ def _write_incremental_logs(output_dirs: list[str], log_lines: list[str], teleme
         except Exception as exc:
             logging.error(f"Failed to write incremental log file to {output_dir}: {exc}")
 
-
-def _active_validation_issues(issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    return [
-        issue for issue in issues
-        if str(issue.get("status", "detected")).lower() not in {"fixed", "ignored"}
-    ]
-
-
-def _load_workshop_issue_file(path: Path) -> List[Dict[str, Any]]:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except Exception as exc:
-        logging.warning("Failed to read workshop issue file %s: %s", path, exc)
-        return []
-
-    issues = payload.get("issues", []) if isinstance(payload, dict) else payload if isinstance(payload, list) else []
-    return [issue for issue in issues if isinstance(issue, dict)]
-
-
-def _format_file_mtime(path: Path) -> Optional[str]:
-    try:
-        return datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat()
-    except OSError:
-        return None
-
-
-def _validation_issue_counts(issues: List[Dict[str, Any]]) -> Dict[str, int]:
-    counts: Dict[str, int] = {}
-    for issue in issues:
-        label = issue.get("error_code") or issue.get("error_type") or "unknown"
-        counts[label] = counts.get(label, 0) + 1
-    return counts
-
-
-def _sidecar_candidate(path: Path, kind: str) -> Optional[Dict[str, Any]]:
-    if not path.exists():
-        return None
-
-    issues = _active_validation_issues(_load_workshop_issue_file(path))
-    return {
-        "path": str(path),
-        "kind": kind,
-        "issue_count": len(issues),
-        "last_updated_at": _format_file_mtime(path),
-    }
-
-
-def _list_validation_sidecar_candidates(project_root: str) -> List[Dict[str, Any]]:
-    candidates: List[Dict[str, Any]] = []
-    seen_paths = set()
-
-    def add_candidate(path: Path, kind: str):
-        resolved = str(path.resolve(strict=False)).lower()
-        if resolved in seen_paths:
-            return
-        candidate = _sidecar_candidate(path, kind)
-        if candidate:
-            seen_paths.add(resolved)
-            candidates.append(candidate)
-
-    add_candidate(ValidationLogger._get_log_path(project_root), "source")
-
-    try:
-        config = ProjectJsonManager(project_root).get_config()
-    except Exception as exc:
-        logging.warning("Failed to read project translation dirs for validation status: %s", exc)
-        config = {}
-
-    for trans_dir in config.get("translation_dirs", []) or []:
-        trans_path = Path(trans_dir)
-        add_candidate(trans_path / "workshop_issues.json", "translation")
-        add_candidate(trans_path / ValidationLogger.FILENAME, "translation")
-
-    candidates.sort(
-        key=lambda item: item.get("last_updated_at") or "",
-        reverse=True,
-    )
-    return candidates
-
-
-def _load_validation_status_from_sidecars(candidates: List[Dict[str, Any]], selected_sidecar_path: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    if not candidates:
-        return None
-
-    selected_candidate = next(
-        (candidate for candidate in candidates if candidate.get("kind") == "translation"),
-        candidates[0],
-    )
-    if selected_sidecar_path:
-        requested = str(Path(selected_sidecar_path).resolve(strict=False)).lower()
-        for candidate in candidates:
-            if str(Path(candidate["path"]).resolve(strict=False)).lower() == requested:
-                selected_candidate = candidate
-                break
-        else:
-            raise HTTPException(status_code=400, detail="Unknown validation sidecar path")
-
-    selected_path = Path(selected_candidate["path"])
-
-    merged: Dict[tuple, Dict[str, Any]] = {}
-    selected_kind = selected_candidate.get("kind")
-    source_mode = selected_kind == "source" or selected_sidecar_path
-    source_paths = [selected_path] if source_mode else [
-        Path(candidate["path"]) for candidate in candidates if candidate.get("kind") == "translation"
-    ]
-
-    for candidate_path in source_paths:
-        for issue in _load_workshop_issue_file(candidate_path):
-            identity = (
-                str(issue.get("target_lang", "")),
-                str(issue.get("file_name", "")),
-                str(issue.get("key", "")),
-                str(issue.get("error_code") or issue.get("error_type") or ""),
-            )
-            if identity not in merged:
-                merged[identity] = issue
-
-    active_issues = _active_validation_issues(list(merged.values()))
-
-    return {
-        "issues": active_issues,
-        "issue_type_counts": _validation_issue_counts(active_issues),
-        "sidecar_path": str(selected_path),
-        "last_updated_at": _format_file_mtime(selected_path),
-    }
 
 @router.get("/api/projects")
 async def list_projects(status: Optional[str] = None):
@@ -455,18 +332,21 @@ async def get_project_validation_status(project_id: str, sidecar_path: Optional[
         raise HTTPException(status_code=404, detail="Project not found")
 
     project_root = project["source_path"]
-    candidates = _list_validation_sidecar_candidates(project_root)
-    sidecar_status = _load_validation_status_from_sidecars(candidates, sidecar_path)
+    sidecar_status = validation_sidecars.load_status(project_root, sidecar_path)
     if sidecar_status:
         active_issues = sidecar_status["issues"]
         counts = sidecar_status["issue_type_counts"]
         selected_sidecar_path = sidecar_status["sidecar_path"]
         last_updated_at = sidecar_status["last_updated_at"]
+        candidates = sidecar_status["sidecar_candidates"]
+        sidecar_scope = sidecar_status["sidecar_scope"]
     else:
         active_issues = []
         counts = {}
         selected_sidecar_path = str(ValidationLogger._get_log_path(project_root))
         last_updated_at = None
+        candidates = []
+        sidecar_scope = "none"
 
     report_dir = os.path.join(project_root, ".agent_workshop_reports")
     report_count = 0
@@ -482,6 +362,7 @@ async def get_project_validation_status(project_id: str, sidecar_path: Optional[
         "issue_type_counts": counts,
         "last_updated_at": last_updated_at,
         "sidecar_path": selected_sidecar_path,
+        "sidecar_scope": sidecar_scope,
         "sidecar_candidates": candidates,
         "report_count": report_count,
         "report_dir": report_dir if os.path.isdir(report_dir) else None,
