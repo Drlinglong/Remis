@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import configService from '../services/configService';
 import projectService from '../services/projectService';
 import { usePersistentState } from './usePersistentState';
+import { normalizeArrayPayload } from '../utils/payload';
 
 const buildProjectDetails = ({ archiveInfo, config, files, project, projectId }) => {
   const totalLines = files.reduce((acc, file) => acc + (file.line_count || 0), 0);
@@ -85,7 +86,7 @@ export function useProjectManagementData() {
     try {
       if (viewMode === 'active') {
         const response = await projectService.getProjectsByStatus('active');
-        setProjects(response.data);
+        setProjects(normalizeArrayPayload(response.data, ['projects', 'items', 'data', 'results']));
         return;
       }
 
@@ -93,7 +94,9 @@ export function useProjectManagementData() {
         projectService.getProjectsByStatus('archived'),
         projectService.getProjectsByStatus('deleted'),
       ]);
-      setProjects([...archivedResponse.data, ...deletedResponse.data]);
+      const archivedProjects = normalizeArrayPayload(archivedResponse.data, ['projects', 'items', 'data', 'results']);
+      const deletedProjects = normalizeArrayPayload(deletedResponse.data, ['projects', 'items', 'data', 'results']);
+      setProjects([...archivedProjects, ...deletedProjects]);
     } catch (error) {
       console.error('Failed to load projects', error);
     }
@@ -110,10 +113,11 @@ export function useProjectManagementData() {
       ]);
 
       const archiveInfo = archiveResponse?.data?.exists ? archiveResponse.data : null;
+      const files = normalizeArrayPayload(filesResponse.data, ['files', 'items', 'data', 'results']);
       setProjectDetails(buildProjectDetails({
         archiveInfo,
         config: configResponse.data,
-        files: filesResponse.data,
+        files,
         project: selectedProject,
         projectId,
       }));
