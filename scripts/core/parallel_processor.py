@@ -12,7 +12,7 @@ from typing import List, Dict, Any, Callable, Optional, Tuple
 from scripts.core.parallel_types import FileTask, BatchTask
 from scripts.core.glossary_manager import glossary_manager
 from scripts.utils import i18n
-from scripts.app_settings import CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE, LOCAL_LLM_CHUNK_SIZE, OLLAMA_CHUNK_SIZE
+from scripts.app_settings import CHUNK_SIZE, LOCAL_LLM_CHUNK_SIZE, OLLAMA_CHUNK_SIZE
 
 
 class ParallelProcessor:
@@ -121,8 +121,6 @@ class ParallelProcessor:
     def _resolve_chunk_size(self, provider_name: str) -> int:
         if self.chunk_size_override:
             return self.chunk_size_override
-        if provider_name == "gemini_cli":
-            return GEMINI_CLI_CHUNK_SIZE
         if provider_name == "ollama":
             return OLLAMA_CHUNK_SIZE
         if provider_name in self.LOCAL_PROVIDERS:

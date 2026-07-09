@@ -1037,7 +1037,6 @@
     "open_logs_btn": "Open Logs Directory"
   },
   "api_desc_gemini": "Google Gemini (Official API)",
-  "api_desc_gemini_cli": "Via Google Gemini CLI, 1000 free calls/day, supports parallel processing",
   "api_desc_openai": "Official OpenAI API (GPT-5/4o/mini)",
   "api_desc_grok": "Access Grok-4 fast-reasoning model via official xAI API",
   "api_desc_anthropic": "Official Anthropic API (Claude 4.5/3.5 Sonnet & Haiku)",
@@ -1090,7 +1089,6 @@
   "summary_new": "New",
   "summary_changed": "Changed",
   "homepage_pie_chart_distribution_title": "Game Distribution",
-  "gemini_cli_timeout": "Gemini CLI check timed out (5s). Please check your internet or installation, or switch to API mode.",
   "homepage_pie_chart_todo": "To Do",
   "homepage_pie_chart_in_progress": "In Progress",
   "homepage_pie_chart_paused": "Paused",

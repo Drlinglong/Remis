@@ -9,7 +9,6 @@ if TYPE_CHECKING:
 # --- Handler Imports ---
 from .openai_handler import OpenAIHandler
 from .gemini_handler import GeminiHandler
-from .gemini_cli_handler import GeminiCLIHandler
 from .qwen_handler import QwenHandler
 from .deepseek_handler import DeepSeekHandler
 from .grok_handler import GrokHandler
@@ -27,14 +26,16 @@ def get_handler(provider_name: str, model_name: str = None) -> 'BaseApiHandler':
     【工厂函数】根据名称返回对应的API处理器实例。
     """
     try:
+        if provider_name == "gemini_cli":
+            raise ValueError(
+                "The Gemini CLI provider has been removed. Use the Gemini API provider with GEMINI_API_KEY instead."
+            )
         if provider_name == "openai":
             return OpenAIHandler(provider_name, model_id=model_name)
         elif provider_name == "qwen":
             return QwenHandler(provider_name, model_id=model_name)
         elif provider_name == "gemini":
             return GeminiHandler(provider_name, model_id=model_name)
-        elif provider_name == "gemini_cli":
-            return GeminiCLIHandler(provider_name, model_name=model_name)
         elif provider_name == "deepseek":
             return DeepSeekHandler(provider_name, model_id=model_name)
         elif provider_name == "grok":

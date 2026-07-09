@@ -18,7 +18,7 @@ def parse_response(response_text: str, pydantic_model: Type[T] = TranslationResp
     """
     Parses an LLM response string into a Pydantic model using a robust,
     layered approach that handles both direct JSON arrays (for TranslationResponse)
-    and nested JSON objects (like those from gemini-cli).
+    and nested JSON objects with a stringified ``response`` payload.
     
     Args:
         response_text: The raw text response from the LLM.
@@ -30,14 +30,14 @@ def parse_response(response_text: str, pydantic_model: Type[T] = TranslationResp
         repaired_json_str = repair_json(response_text)
         payload_to_validate = repaired_json_str
 
-        # Unpacking procedure: Check for and handle gemini-cli's nested structure.
+        # Unpacking procedure: handle nested provider responses.
         try:
             data = json.loads(repaired_json_str)
             if isinstance(data, dict) and 'response' in data and isinstance(data['response'], str):
                 # It's a nested structure. Extract the real payload.
                 # The payload itself might be a JSON string, so repair it again just in case.
                 payload_to_validate = repair_json(data['response'])
-                logger.debug("Unwrapped nested JSON response from gemini-cli.")
+                logger.debug("Unwrapped nested JSON response payload.")
         except (json.JSONDecodeError, TypeError):
             # If it fails to load as a dict, it's likely not a nested object.
             # Proceed with the repaired string directly.

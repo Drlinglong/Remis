@@ -1019,7 +1019,6 @@
     "open_logs_btn": "로그 디렉토리 열기"
   },
   "api_desc_gemini": "Google Gemini (공식 API)",
-  "api_desc_gemini_cli": "Google Gemini CLI 사용, 일일 1000회 무료 호출, 병렬 처리 지원",
   "api_desc_openai": "공식 OpenAI API (GPT-5/4o/mini)",
   "api_desc_grok": "공식 xAI API를 통해 Grok-4 고속 추론 모델 사용",
   "api_desc_anthropic": "공식 Anthropic API (Claude 4.5/3.5 Sonnet & Haiku)",
@@ -1072,7 +1071,6 @@
   "summary_new": "신규",
   "summary_changed": "변경됨",
   "homepage_pie_chart_distribution_title": "게임 배포",
-  "gemini_cli_timeout": "Gemini CLI 확인 시간이 초과되었습니다(5초). 인터넷 연결이나 설치 상태를 확인하거나 API 모드로 전환하세요.",
   "homepage_pie_chart_todo": "할 일",
   "homepage_pie_chart_in_progress": "진행 중",
   "homepage_pie_chart_paused": "일시 중지됨",

@@ -126,10 +126,10 @@ def test_json_with_nested_structures_and_newlines():
         "第三行\\n带有一个转义换行符。"
     ]
 
-def test_parse_nested_gemini_cli_format():
+def test_parse_nested_response_payload_format():
     """
     Tests the parser's ability to handle the specific nested JSON format
-    returned by gemini-cli: {"response": "[...]"}.
+    returned by providers that wrap JSON in a response field: {"response": "[...]"}.
     """
     nested_json_string = '{"response": "[\\"你好\\", \\"世界\\"]"}'
     result = parse_response(nested_json_string, TranslationResponse)
@@ -139,7 +139,7 @@ def test_parse_nested_gemini_cli_format():
 
 def test_parse_composite_pollution_format():
     """
-    Tests the parser's ability to handle the composite pollution from gemini-cli:
+    Tests the parser's ability to handle composite wrapped JSON:
     A nested JSON object whose string payload is wrapped in a markdown code block.
     e.g., {"response": "```json\n[...]\n```"}
     """

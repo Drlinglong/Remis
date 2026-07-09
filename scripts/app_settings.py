@@ -99,10 +99,6 @@ PROJECT_INFO = {
 CHUNK_SIZE = 40
 MAX_RETRIES = 2
 
-# --- Gemini CLI 特定配置 -----------------------------------------
-GEMINI_CLI_CHUNK_SIZE = 40
-GEMINI_CLI_MAX_RETRIES = 3
-
 # --- Ollama 特定配置 ---------------------------------------------
 OLLAMA_CHUNK_SIZE = 20
 OLLAMA_MAX_RETRIES = 2

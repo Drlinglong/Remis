@@ -25,10 +25,9 @@ def test_build_run_plan_for_multi_language_uses_multilanguage_folder(monkeypatch
     assert plan.primary_target_lang == {"code": "en", "name": "English"}
 
 
-def test_resolve_provider_model_defaults_gemini_cli_only():
-    assert run_service.resolve_provider_model("gemini_cli", None) == "gemini-1.5-flash"
+def test_resolve_provider_model_keeps_configured_model_only():
     assert run_service.resolve_provider_model("gemini", None) is None
-    assert run_service.resolve_provider_model("gemini_cli", "gemini-2.5-pro") == "gemini-2.5-pro"
+    assert run_service.resolve_provider_model("gemini", "gemini-3-pro-preview") == "gemini-3-pro-preview"
 
 
 def test_create_translation_handler_returns_none_without_client(monkeypatch):

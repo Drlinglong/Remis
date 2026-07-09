@@ -1161,7 +1161,6 @@
     "open_logs_btn": "打开日志目录"
   },
   "api_desc_gemini": "Google Gemini (官方对接)",
-  "api_desc_gemini_cli": "通过Google Gemini CLI调用，每天1000次免费，支持并行处理",
   "api_desc_openai": "OpenAI 官方接口 (GPT-5/4o/mini)",
   "api_desc_grok": "通过xAI官方API访问grok-4-fast-reasoning模型",
   "api_desc_anthropic": "Anthropic 官方接口 (Claude 4.5/3.5 Sonnet & Haiku)",
@@ -1199,7 +1198,6 @@
   },
   "homepage_pie_chart_status_title": "项目进度",
   "homepage_pie_chart_distribution_title": "游戏分布",
-  "gemini_cli_timeout": "Gemini CLI 响应超时 (5s)。请检查网络或安装状态，建议切换到 API 模式。",
   "homepage_pie_chart_todo": "待办",
   "homepage_pie_chart_in_progress": "翻译中",
   "homepage_pie_chart_paused": "挂起",

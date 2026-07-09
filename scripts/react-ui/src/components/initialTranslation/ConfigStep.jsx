@@ -288,7 +288,7 @@ export default function ConfigStep({
                 onChange: (event) => form.setFieldValue('api_provider', event.currentTarget.value),
               })}
 
-              {!['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'gemini_cli', 'hunyuan'].includes(form.values.api_provider) && (
+              {!['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'hunyuan'].includes(form.values.api_provider) && (
                 <Tooltip label={t('tutorial.api_key_warning_tooltip')} multiline w={340} withArrow>
                   <Group gap={4} mt={-6} style={{ width: 'fit-content', cursor: 'help' }}>
                     <IconAlertCircle size={14} color="orange" />
