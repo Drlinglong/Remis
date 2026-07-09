@@ -1514,6 +1514,13 @@
   },
   "proofreading": {
     "target_language": "Hedef Dil",
+    "errors": {
+      "project_not_found": "Bu proje artık mevcut olmadığı için düzeltme verileri yüklenemiyor.",
+      "file_not_indexed": "Bu dosya mevcut proje dosya dizininde olmadığı için düzeltme verileri yüklenemiyor. Proje dosyalarını yenileyip tekrar deneyin.",
+      "file_path_missing": "Bu proje dosyası için yerelleştirme dosyası yolu kayıtlı olmadığı için düzeltme verileri yüklenemiyor. Proje meta verilerini yenileyin veya onarın.",
+      "file_path_not_found": "Dizine alınmış yerelleştirme dosyası artık diskte bulunmadığı için düzeltme verileri yüklenemiyor. Dosyanın taşınıp taşınmadığını veya silinip silinmediğini kontrol edin ve dosya listesini yenileyin.",
+      "data_preparation_failed": "Bu dosya için düzeltme verileri hazırlanamadı. Kaynak ve çeviri dosyalarının geçerli yerelleştirme dosyaları olduğunu kontrol edin."
+    },
     "modal": {
       "title": "Geçersiz İşlem Uyarısı",
       "content_1": "Düzenleyicide **Anahtar**'ı değiştirdiniz.",

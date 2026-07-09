@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { notifications } from '@mantine/notifications';
 import api from '../utils/api';
 import { usePersistentState } from './usePersistentState';
@@ -7,6 +8,7 @@ import { usePersistentState } from './usePersistentState';
  * Hook for managing Monaco editor content and file data loading.
  */
 export const useEditorContent = () => {
+    const { t } = useTranslation();
     const [entries, setEntries] = useState([]);
     const [originalContentStr, setOriginalContentStr] = useState('');
     const [aiContentStr, setAiContentStr] = useState('');
@@ -14,6 +16,7 @@ export const useEditorContent = () => {
     const [loading, setLoading] = useState(false);
     const [fileInfo, setFileInfo] = useState(null);
     const [keyChangeWarning, setKeyChangeWarning] = useState(false);
+    const [baselineKeys, setBaselineKeys] = useState(new Set());
 
     // Draft cache
     const [draftCache, setDraftCache] = usePersistentState('remis_draft_cache', null);
@@ -29,6 +32,14 @@ export const useEditorContent = () => {
     const aiEditorRef = useRef(null);
     const finalEditorRef = useRef(null);
     const isScrolling = useRef(false);
+
+    const formatLocalizationEntry = useCallback((key, value) => {
+        const match = String(key || '').match(/^(.+?)(?::(\d+))?$/);
+        const baseKey = match?.[1] || key;
+        const version = match?.[2];
+        const versionText = version === undefined ? ':' : `:${version}`;
+        return `${baseKey}${versionText} "${value || ''}"`;
+    }, []);
 
     const alignEntries = useCallback((entries) => {
         let originalStr = "";
@@ -54,17 +65,17 @@ export const useEditorContent = () => {
             const pad1 = Math.max(0, maxL - calcLines(origText));
             const pad2 = Math.max(0, maxL - calcLines(aiText));
 
-            originalStr += `${e.key}:0 "${origText}"` + "\n".repeat(pad1) + "\n";
-            aiStr += `${e.key}:0 "${aiText}"` + "\n".repeat(pad2) + "\n";
-            finalStr += `${e.key}:0 "${finalText}"\n`;
+            originalStr += formatLocalizationEntry(e.key, origText) + "\n".repeat(pad1) + "\n";
+            aiStr += formatLocalizationEntry(e.key, aiText) + "\n".repeat(pad2) + "\n";
+            finalStr += `${formatLocalizationEntry(e.key, finalText)}\n`;
         });
 
         return { originalStr, aiStr, finalStr };
-    }, []);
+    }, [formatLocalizationEntry]);
 
     const parseEditorContentToEntries = useCallback((content) => {
         const entries = [];
-        const regex = /^\s*([\w.-]+)\s*:\s*(\d*)\s*"((?:[^"\\]|\\.)*)"/gm;
+        const regex = /^\s*([^:\s]+)\s*:\s*([0-9]*)\s*"((?:[^"\\]|\\.)*)"/gm;
         let match;
         const headers = ["l_english", "l_simp_chinese", "l_french", "l_german", "l_spanish", "l_russian", "l_polish", "l_japanese", "l_korean", "l_turkish", "l_braz_por"];
 
@@ -77,6 +88,43 @@ export const useEditorContent = () => {
         }
         return entries;
     }, []);
+
+    const extractLocalizationKeys = useCallback((content) => {
+        const keys = new Set();
+        const regex = /^\s*([^:\s]+)\s*:\s*([0-9]*)\s*"/gm;
+        let match;
+        const headers = ["l_english", "l_simp_chinese", "l_french", "l_german", "l_spanish", "l_russian", "l_polish", "l_japanese", "l_korean", "l_turkish", "l_braz_por"];
+
+        while ((match = regex.exec(content || '')) !== null) {
+            const keyBase = match[1].trim();
+            const version = match[2].trim();
+            if (headers.some(h => keyBase.startsWith(h))) continue;
+            const fullKey = version ? `${keyBase}:${version}` : keyBase;
+            keys.add(fullKey);
+        }
+        return keys;
+    }, []);
+
+    const getProofreadingLoadErrorMessage = useCallback((detail) => {
+        const fallback = typeof detail === 'string' && detail
+            ? detail
+            : 'Failed to load file data.';
+        if (!detail || typeof detail !== 'object' || !detail.code) {
+            return fallback;
+        }
+
+        const defaults = {
+            project_not_found: 'Cannot load proofreading data because the project no longer exists.',
+            file_not_indexed: 'Cannot load proofreading data because this file is not in the current project file index. Refresh project files and try again.',
+            file_path_missing: 'Cannot load proofreading data because this project file has no recorded localization path. Refresh or repair the project metadata.',
+            file_path_not_found: detail.message || 'Cannot load proofreading data because the indexed localization file no longer exists on disk.',
+            data_preparation_failed: 'Cannot prepare proofreading data for this file. Check that the source and translation files are valid localization files.',
+        };
+
+        return t(`proofreading.errors.${detail.code}`, {
+            defaultValue: detail.message || defaults[detail.code] || fallback,
+        });
+    }, [t]);
 
     const loadEditorData = useCallback(async (pId, sourceFilePath, targetId) => {
         setLoading(true);
@@ -119,20 +167,24 @@ export const useEditorContent = () => {
                 //     notifications.show({ title: 'Draft Restored', message: 'Restored unsaved changes.', color: 'blue' });
                 // }
 
+                setBaselineKeys(extractLocalizationKeys(contentToSet));
                 setFinalContentStr(contentToSet);
             } else {
                 setAiContentStr("");
                 setFinalContentStr("");
                 setEntries([]);
                 setFileInfo(null);
+                setBaselineKeys(new Set());
             }
         } catch (error) {
             console.error("Failed to load editor data", error);
-            notifications.show({ title: 'Error', message: "Failed to load file data.", color: 'red' });
+            const detail = error.response?.data?.detail;
+            const message = getProofreadingLoadErrorMessage(detail);
+            notifications.show({ title: 'Error', message, color: 'red' });
         } finally {
             setLoading(false);
         }
-    }, [alignEntries]); // draftCache removed from deps
+    }, [alignEntries, extractLocalizationKeys, getProofreadingLoadErrorMessage]); // draftCache removed from deps
 
     // Auto-save draft
     useEffect(() => {
@@ -151,36 +203,24 @@ export const useEditorContent = () => {
 
     // Key change detection
     useEffect(() => {
-        if (!entries.length || !finalContentStr) {
+        if (!baselineKeys.size || !finalContentStr) {
             setKeyChangeWarning(false);
             return;
         }
 
-        const currentKeys = new Set();
-        const regex = /^\s*([\w.-]+)\s*:\s*(\d*)\s*"/gm;
-        let match;
-        const headers = ["l_english", "l_simp_chinese", "l_french", "l_german", "l_spanish", "l_russian", "l_polish", "l_japanese", "l_korean", "l_turkish", "l_braz_por"];
+        const currentKeys = extractLocalizationKeys(finalContentStr);
 
-        while ((match = regex.exec(finalContentStr)) !== null) {
-            const keyBase = match[1].trim();
-            const version = match[2].trim();
-            if (headers.some(h => keyBase.startsWith(h))) continue;
-            const fullKey = version ? `${keyBase}:${version}` : keyBase;
-            currentKeys.add(fullKey);
-        }
-
-        const originalKeys = new Set(entries.map(e => e.key));
-        let hasChanges = currentKeys.size !== originalKeys.size;
+        let hasChanges = currentKeys.size !== baselineKeys.size;
         if (!hasChanges) {
             for (let k of currentKeys) {
-                if (!originalKeys.has(k)) {
+                if (!baselineKeys.has(k)) {
                     hasChanges = true;
                     break;
                 }
             }
         }
         setKeyChangeWarning(hasChanges);
-    }, [finalContentStr, entries]);
+    }, [baselineKeys, extractLocalizationKeys, finalContentStr]);
 
     // Sync scroll
     useEffect(() => {

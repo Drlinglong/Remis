@@ -1532,6 +1532,13 @@
   },
   "proofreading": {
     "target_language": "Target Language",
+    "errors": {
+      "project_not_found": "Cannot load proofreading data because the project no longer exists.",
+      "file_not_indexed": "Cannot load proofreading data because this file is not in the current project file index. Refresh project files and try again.",
+      "file_path_missing": "Cannot load proofreading data because this project file has no recorded localization path. Refresh or repair the project metadata.",
+      "file_path_not_found": "Cannot load proofreading data because the indexed localization file no longer exists on disk. Check whether the file was moved or deleted, then refresh the project file list.",
+      "data_preparation_failed": "Cannot prepare proofreading data for this file. Check that the source and translation files are valid localization files."
+    },
     "modal": {
       "title": "Invalid Operation Warning",
       "content_1": "You changed the **Key** in the editor.",

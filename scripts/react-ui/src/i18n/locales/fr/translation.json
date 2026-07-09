@@ -1514,6 +1514,13 @@
   },
   "proofreading": {
     "target_language": "Langue cible",
+    "errors": {
+      "project_not_found": "Impossible de charger les données de relecture, car ce projet n'existe plus.",
+      "file_not_indexed": "Impossible de charger les données de relecture, car ce fichier n'est pas dans l'index actuel du projet. Actualisez les fichiers du projet puis réessayez.",
+      "file_path_missing": "Impossible de charger les données de relecture, car ce fichier de projet n'a pas de chemin de localisation enregistré. Actualisez ou réparez les métadonnées du projet.",
+      "file_path_not_found": "Impossible de charger les données de relecture, car le fichier de localisation indexé n'existe plus sur le disque. Vérifiez s'il a été déplacé ou supprimé, puis actualisez la liste des fichiers.",
+      "data_preparation_failed": "Impossible de préparer les données de relecture pour ce fichier. Vérifiez que les fichiers source et de traduction sont des fichiers de localisation valides."
+    },
     "modal": {
       "title": "Avertissement d'opération invalide",
       "content_1": "Vous avez modifié la **Clé** dans l'éditeur.",

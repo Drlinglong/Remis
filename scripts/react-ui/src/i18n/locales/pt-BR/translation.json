@@ -1515,6 +1515,13 @@
   },
   "proofreading": {
     "target_language": "Idioma de Destino",
+    "errors": {
+      "project_not_found": "Não é possível carregar os dados de revisão porque este projeto não existe mais.",
+      "file_not_indexed": "Não é possível carregar os dados de revisão porque este arquivo não está no índice atual de arquivos do projeto. Atualize os arquivos do projeto e tente novamente.",
+      "file_path_missing": "Não é possível carregar os dados de revisão porque este arquivo do projeto não tem um caminho de localização registrado. Atualize ou repare os metadados do projeto.",
+      "file_path_not_found": "Não é possível carregar os dados de revisão porque o arquivo de localização indexado não existe mais no disco. Verifique se ele foi movido ou excluído e atualize a lista de arquivos.",
+      "data_preparation_failed": "Não foi possível preparar os dados de revisão para este arquivo. Verifique se os arquivos de origem e tradução são arquivos de localização válidos."
+    },
     "modal": {
       "title": "Aviso de Operação Inválida",
       "content_1": "Você alterou a **Chave** no editor.",

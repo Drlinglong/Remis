@@ -1514,6 +1514,13 @@
   },
   "proofreading": {
     "target_language": "Język docelowy",
+    "errors": {
+      "project_not_found": "Nie można załadować danych korekty, ponieważ ten projekt już nie istnieje.",
+      "file_not_indexed": "Nie można załadować danych korekty, ponieważ tego pliku nie ma w bieżącym indeksie plików projektu. Odśwież pliki projektu i spróbuj ponownie.",
+      "file_path_missing": "Nie można załadować danych korekty, ponieważ dla tego pliku projektu nie zapisano ścieżki lokalizacji. Odśwież lub napraw metadane projektu.",
+      "file_path_not_found": "Nie można załadować danych korekty, ponieważ zindeksowany plik lokalizacji nie istnieje już na dysku. Sprawdź, czy został przeniesiony lub usunięty, a następnie odśwież listę plików.",
+      "data_preparation_failed": "Nie udało się przygotować danych korekty dla tego pliku. Sprawdź, czy pliki źródłowe i tłumaczenia są prawidłowymi plikami lokalizacji."
+    },
     "modal": {
       "title": "Ostrzeżenie o nieprawidłowej operacji",
       "content_1": "Zmieniłeś **Klucz** w edytorze.",

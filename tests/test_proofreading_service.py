@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.core.services.proofreading_service import ProofreadingService
+from scripts.core.services.proofreading_service import ProofreadingDataError, ProofreadingService
 
 
 class FakeProjectManager:
@@ -122,3 +122,25 @@ async def test_find_source_template_falls_back_to_disk_search(monkeypatch):
     assert result.replace("\\", "/") == nested_source
     assert manager.get_project_files_calls == 1
     assert manager.get_project_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_get_proofread_data_reports_missing_indexed_file(monkeypatch):
+    manager = FakeProjectManager(
+        project={"project_id": "p1", "name": "Demo", "source_language": "en"},
+        files=[
+            {
+                "file_id": "f1",
+                "file_path": "J:/missing/localization/simp_chinese/demo_l_simp_chinese.yml",
+            }
+        ],
+    )
+    service = ProofreadingService(manager, archive_manager=None)
+
+    monkeypatch.setattr(__import__("os").path, "exists", lambda path: False)
+
+    with pytest.raises(ProofreadingDataError) as exc_info:
+        await service.get_proofread_data("p1", "f1")
+
+    assert exc_info.value.code == "file_path_not_found"
+    assert "indexed localization file no longer exists" in exc_info.value.message

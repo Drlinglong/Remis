@@ -1565,6 +1565,13 @@
   },
   "proofreading": {
     "target_language": "目标语言",
+    "errors": {
+      "project_not_found": "无法加载校对数据：这个项目已经不存在。",
+      "file_not_indexed": "无法加载校对数据：这个文件不在当前项目文件索引中。请先刷新项目文件列表后重试。",
+      "file_path_missing": "无法加载校对数据：这个项目文件没有记录本地化文件路径。请刷新项目文件或修复项目元数据。",
+      "file_path_not_found": "无法加载校对数据：索引中的本地化文件已不在磁盘上。请检查文件是否被移动/删除，或刷新项目文件列表。",
+      "data_preparation_failed": "无法准备校对数据。请检查源文件和译文文件是否是有效的本地化文件。"
+    },
     "modal": {
       "title": "无效操作警告",
       "content_1": "你修改了编辑器中的 **Key**。",

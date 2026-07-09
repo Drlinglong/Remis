@@ -1514,6 +1514,13 @@
   },
   "proofreading": {
     "target_language": "Zielsprache",
+    "errors": {
+      "project_not_found": "Korrekturdaten können nicht geladen werden, weil das Projekt nicht mehr existiert.",
+      "file_not_indexed": "Korrekturdaten können nicht geladen werden, weil diese Datei nicht im aktuellen Projektindex enthalten ist. Aktualisieren Sie die Projektdateien und versuchen Sie es erneut.",
+      "file_path_missing": "Korrekturdaten können nicht geladen werden, weil für diese Projektdatei kein Lokalisierungspfad gespeichert ist. Aktualisieren oder reparieren Sie die Projektmetadaten.",
+      "file_path_not_found": "Korrekturdaten können nicht geladen werden, weil die indexierte Lokalisierungsdatei nicht mehr auf dem Datenträger existiert. Prüfen Sie, ob sie verschoben oder gelöscht wurde, und aktualisieren Sie die Dateiliste.",
+      "data_preparation_failed": "Korrekturdaten für diese Datei konnten nicht vorbereitet werden. Prüfen Sie, ob Quell- und Übersetzungsdatei gültige Lokalisierungsdateien sind."
+    },
     "modal": {
       "title": "Warnung: Ungültiger Vorgang",
       "content_1": "Du hast den **Key** im Editor geändert.",

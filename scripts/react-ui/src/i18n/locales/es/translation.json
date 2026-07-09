@@ -1515,6 +1515,13 @@
   },
   "proofreading": {
     "target_language": "Idioma de destino",
+    "errors": {
+      "project_not_found": "No se pueden cargar los datos de revisión porque el proyecto ya no existe.",
+      "file_not_indexed": "No se pueden cargar los datos de revisión porque este archivo no está en el índice actual del proyecto. Actualiza los archivos del proyecto e inténtalo de nuevo.",
+      "file_path_missing": "No se pueden cargar los datos de revisión porque este archivo del proyecto no tiene una ruta de localización registrada. Actualiza o repara los metadatos del proyecto.",
+      "file_path_not_found": "No se pueden cargar los datos de revisión porque el archivo de localización indexado ya no existe en el disco. Comprueba si se movió o se eliminó y actualiza la lista de archivos.",
+      "data_preparation_failed": "No se pudieron preparar los datos de revisión para este archivo. Comprueba que los archivos de origen y traducción sean archivos de localización válidos."
+    },
     "modal": {
       "title": "Advertencia de operación no válida",
       "content_1": "Has cambiado la **Clave** en el editor.",

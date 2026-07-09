@@ -1,6 +1,7 @@
 import logging
 from fastapi import APIRouter, HTTPException
 
+from scripts.core.services.proofreading_service import ProofreadingDataError
 from scripts.shared.services import proofreading_service
 from scripts.schemas.proofreading import SaveProofreadingRequest
 
@@ -13,7 +14,13 @@ async def get_proofread_data(project_id: str, file_id: str):
     """
     获取校对数据 - Delegation to Service
     """
-    data = await proofreading_service.get_proofread_data(project_id, file_id)
+    try:
+        data = await proofreading_service.get_proofread_data(project_id, file_id)
+    except ProofreadingDataError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
     if not data:
         raise HTTPException(status_code=404, detail="Proofreading data not found")
     return data

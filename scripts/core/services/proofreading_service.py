@@ -11,6 +11,13 @@ from scripts.schemas.common import LanguageCode
 
 logger = logging.getLogger(__name__)
 
+class ProofreadingDataError(Exception):
+    def __init__(self, code: str, message: str, *, status_code: int = 404):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.status_code = status_code
+
 class ProofreadingService:
     def __init__(self, project_manager, archive_manager):
         self.project_manager = project_manager
@@ -98,14 +105,31 @@ class ProofreadingService:
     async def get_proofread_data(self, project_id: str, file_id: str) -> Dict[str, Any]:
         project = await self.project_manager.get_project(project_id)
         if not project:
-            return None
+            raise ProofreadingDataError(
+                "project_not_found",
+                "Cannot load proofreading data because the project no longer exists.",
+            )
             
         files = await self.project_manager.get_project_files(project_id)
         target_file = next((f for f in files if f['file_id'] == file_id), None)
         if not target_file:
-            return None
+            raise ProofreadingDataError(
+                "file_not_indexed",
+                "Cannot load proofreading data because this file is not in the current project file index. Refresh project files and try again.",
+            )
 
         target_file_path = target_file['file_path']
+        if not target_file_path:
+            raise ProofreadingDataError(
+                "file_path_missing",
+                "Cannot load proofreading data because this project file has no recorded localization path. Refresh or repair the project metadata.",
+            )
+        if not os.path.exists(target_file_path):
+            raise ProofreadingDataError(
+                "file_path_not_found",
+                f"Cannot load proofreading data because the indexed localization file no longer exists on disk: {target_file_path}",
+            )
+
         filename = os.path.basename(target_file_path)
         
         # 1. Detect Languages
@@ -215,7 +239,11 @@ class ProofreadingService:
             }
         except Exception as e:
             logger.error(f"ProofreadingService: Data preparation failed: {e}", exc_info=True)
-            return None
+            raise ProofreadingDataError(
+                "data_preparation_failed",
+                "Cannot prepare proofreading data for this file. Check that the source and translation files are valid localization files.",
+                status_code=500,
+            ) from e
 
     async def save_proofread_data(self, project_id: str, file_id: str, entries_list: List[Dict]) -> bool:
         """
