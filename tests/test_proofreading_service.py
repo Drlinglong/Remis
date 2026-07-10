@@ -303,6 +303,23 @@ def test_atomic_write_lines_replaces_file_and_changes_revision(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_get_document_revision_reads_current_disk_state(tmp_path):
+    target = tmp_path / "demo_l_english.yml"
+    target.write_text('l_english:\n demo.key:0 "Original"\n', encoding="utf-8-sig")
+    manager = FakeProjectManager(
+        files=[{"file_id": "file-1", "file_path": str(target)}],
+        project={"source_language": "en"},
+    )
+    service = ProofreadingService(manager, archive_manager=None)
+
+    first = await service.get_document_revision("project-1", "file-1")
+    target.write_text('l_english:\n demo.key:0 "External edit"\n', encoding="utf-8-sig")
+    second = await service.get_document_revision("project-1", "file-1")
+
+    assert first["document_revision"] != second["document_revision"]
+
+
+@pytest.mark.asyncio
 async def test_save_rejects_stale_document_revision_without_writing(tmp_path):
     target = tmp_path / "demo_l_english.yml"
     original = 'l_english:\n demo.key:0 "Original"\n'

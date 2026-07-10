@@ -148,3 +148,17 @@ def test_get_proofread_data_maps_service_error_detail():
             "message": "Indexed file is missing.",
         }
     }
+
+
+def test_get_proofread_revision_returns_lightweight_revision():
+    mock_service = MagicMock()
+    mock_service.get_document_revision = AsyncMock(return_value={
+        "document_revision": "revision-2",
+    })
+
+    with patch("scripts.routers.proofreading.proofreading_service", mock_service):
+        response = client.get("/api/proofread/project-1/file-1/revision")
+
+    assert response.status_code == 200
+    assert response.json() == {"document_revision": "revision-2"}
+    mock_service.get_document_revision.assert_awaited_once_with("project-1", "file-1")

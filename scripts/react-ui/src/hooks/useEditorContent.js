@@ -21,7 +21,9 @@ export const useEditorContent = () => {
     const [documentRevision, setDocumentRevision] = useState(null);
     const [draftRestoreStatus, setDraftRestoreStatus] = useState('clean');
     const [draftConflict, setDraftConflict] = useState(null);
+    const [externalChangeDetected, setExternalChangeDetected] = useState(null);
     const loadRequestRef = useRef(0);
+    const revisionRequestRef = useRef(0);
 
     const getRowsAsSaveEntries = useCallback(() => rows
         .filter(row => row.row_type === 'translation' && row.key)
@@ -63,6 +65,7 @@ export const useEditorContent = () => {
         setDocumentRevision(newRevision || documentRevision);
         setDraftRestoreStatus('clean');
         setDraftConflict(null);
+        setExternalChangeDetected(null);
         clearProofreadingSession();
     }, [documentRevision]);
 
@@ -98,9 +101,11 @@ export const useEditorContent = () => {
 
     const loadEditorData = useCallback(async (projectId, fileId) => {
         const requestId = ++loadRequestRef.current;
+        revisionRequestRef.current += 1;
         setLoading(true);
         setDraftConflict(null);
         setDraftRestoreStatus('clean');
+        setExternalChangeDetected(null);
         try {
             const response = await api.get(`/api/proofread/${projectId}/${fileId}`);
             if (requestId !== loadRequestRef.current) return;
@@ -144,13 +149,40 @@ export const useEditorContent = () => {
         }
     }, [getProofreadingLoadErrorMessage, t]);
 
+    const checkExternalRevision = useCallback(async () => {
+        if (!fileInfo || !documentRevision) return false;
+        const requestId = ++revisionRequestRef.current;
+        const checkedFile = fileInfo;
+        try {
+            const response = await api.get(
+                `/api/proofread/${checkedFile.project_id}/${checkedFile.file_id}/revision`
+            );
+            if (requestId !== revisionRequestRef.current) return false;
+            const diskRevision = response.data?.document_revision || null;
+            if (diskRevision && diskRevision !== documentRevision) {
+                setExternalChangeDetected({
+                    loadedRevision: documentRevision,
+                    diskRevision,
+                });
+                return true;
+            }
+            setExternalChangeDetected(null);
+            return false;
+        } catch (error) {
+            console.warn('Failed to check proofreading file revision', error);
+            return false;
+        }
+    }, [documentRevision, fileInfo]);
+
     const clearEditorData = useCallback(() => {
         loadRequestRef.current += 1;
+        revisionRequestRef.current += 1;
         setRows([]);
         setFileInfo(null);
         setDocumentRevision(null);
         setDraftRestoreStatus('clean');
         setDraftConflict(null);
+        setExternalChangeDetected(null);
         setLoading(false);
     }, []);
 
@@ -161,6 +193,7 @@ export const useEditorContent = () => {
         documentRevision,
         draftRestoreStatus,
         draftConflict,
+        externalChangeDetected,
         translationChangeCount,
         commentChangeCount,
         isDirty,
@@ -171,6 +204,7 @@ export const useEditorContent = () => {
         discardCurrentDraft,
         dismissDraftConflict,
         loadEditorData,
+        checkExternalRevision,
         clearEditorData,
     };
 };

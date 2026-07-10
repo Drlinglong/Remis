@@ -344,23 +344,23 @@ class ProofreadingService:
 
         return ""
 
-    async def get_proofread_data(self, project_id: str, file_id: str) -> Dict[str, Any]:
+    async def _resolve_target_file_path(self, project_id: str, file_id: str) -> tuple[Dict[str, Any], str]:
         project = await self.project_manager.get_project(project_id)
         if not project:
             raise ProofreadingDataError(
                 "project_not_found",
                 "Cannot load proofreading data because the project no longer exists.",
             )
-            
+
         files = await self.project_manager.get_project_files(project_id)
-        target_file = next((f for f in files if f['file_id'] == file_id), None)
+        target_file = next((item for item in files if item['file_id'] == file_id), None)
         if not target_file:
             raise ProofreadingDataError(
                 "file_not_indexed",
                 "Cannot load proofreading data because this file is not in the current project file index. Refresh project files and try again.",
             )
 
-        target_file_path = target_file['file_path']
+        target_file_path = target_file.get('file_path')
         if not target_file_path:
             raise ProofreadingDataError(
                 "file_path_missing",
@@ -371,6 +371,14 @@ class ProofreadingService:
                 "file_path_not_found",
                 f"Cannot load proofreading data because the indexed localization file no longer exists on disk: {target_file_path}",
             )
+        return project, target_file_path
+
+    async def get_document_revision(self, project_id: str, file_id: str) -> Dict[str, str]:
+        _, target_file_path = await self._resolve_target_file_path(project_id, file_id)
+        return {"document_revision": _file_revision(target_file_path)}
+
+    async def get_proofread_data(self, project_id: str, file_id: str) -> Dict[str, Any]:
+        project, target_file_path = await self._resolve_target_file_path(project_id, file_id)
 
         filename = os.path.basename(target_file_path)
         

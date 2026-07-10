@@ -40,12 +40,24 @@ class ValidationSidecarService:
                 enriched.append(item)
                 continue
             candidates = [item.get("file_path"), item.get("file_name")]
-            matches = set()
-            for candidate in filter(None, candidates):
-                normalized_candidate = str(candidate).replace("\\", "/").lower().lstrip("./")
-                for normalized_path, file_id in normalized_files:
-                    if normalized_path == normalized_candidate or normalized_path.endswith(f"/{normalized_candidate}"):
-                        matches.add(file_id)
+            normalized_candidates = [
+                str(candidate).replace("\\", "/").lower().lstrip("./")
+                for candidate in filter(None, candidates)
+            ]
+            exact_matches = {
+                file_id
+                for normalized_candidate in normalized_candidates
+                for normalized_path, file_id in normalized_files
+                if normalized_path == normalized_candidate
+            }
+            matches = exact_matches
+            if not matches:
+                matches = {
+                    file_id
+                    for normalized_candidate in normalized_candidates
+                    for normalized_path, file_id in normalized_files
+                    if normalized_path.endswith(f"/{normalized_candidate}")
+                }
             if len(matches) == 1:
                 item["file_id"] = matches.pop()
             enriched.append(item)

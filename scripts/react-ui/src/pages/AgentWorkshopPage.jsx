@@ -210,7 +210,7 @@ const AgentWorkshopPage = () => {
                                                 }))}
                                                 style={{ whiteSpace: 'nowrap' }}
                                               >
-                                                {t('agent_workshop.manual_proofreading', { defaultValue: 'Manual proofreading' })}
+                                                {t('proofreading.open_entry', { defaultValue: 'Manual proofreading' })}
                                               </Button>
                                               <Button size="xs" variant="light" leftSection={<IconWand size={14} />} onClick={() => openFixModal(issue)} style={{ whiteSpace: 'nowrap' }}>
                                                 {t('agent_workshop.fix_btn')}

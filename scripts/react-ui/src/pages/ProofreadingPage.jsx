@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -27,8 +27,12 @@ const ProofreadingPage = () => {
   const { t } = useTranslation();
   const { setPageContext } = useTutorial();
   const state = useProofreadingState();
+  const { checkExternalRevision, fileInfo } = state;
   const [zoomLevel, setZoomLevel] = usePersistentState('proofread_zoom_level', '1');
   const [pendingAction, setPendingAction] = useState(null);
+  const [closeRequested, setCloseRequested] = useState(false);
+  const tauriWindowRef = useRef(null);
+  const allowTauriCloseRef = useRef(false);
 
   useEffect(() => {
     setPageContext('proofreading');
@@ -46,18 +50,35 @@ const ProofreadingPage = () => {
   }, [state.isDirty]), { capture: true });
 
   useEffect(() => {
+    if (!fileInfo) return undefined;
+    const checkRevision = () => checkExternalRevision();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') checkRevision();
+    };
+    window.addEventListener('focus', checkRevision);
+    document.addEventListener('visibilitychange', handleVisibility);
+    const timer = window.setInterval(checkRevision, 15000);
+    return () => {
+      window.removeEventListener('focus', checkRevision);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.clearInterval(timer);
+    };
+  }, [checkExternalRevision, fileInfo]);
+
+  useEffect(() => {
     if (!isTauri()) return undefined;
     let disposed = false;
     let unlisten = null;
-    import('@tauri-apps/api/window').then(({ getCurrentWindow }) => (
-      getCurrentWindow().onCloseRequested((event) => {
-        if (state.isDirty && !window.confirm(t('proofreading.leave_confirm', {
-          defaultValue: 'You still have unsaved proofreading changes. Close without saving?',
-        }))) {
+    import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
+      const appWindow = getCurrentWindow();
+      tauriWindowRef.current = appWindow;
+      return appWindow.onCloseRequested((event) => {
+        if (state.isDirty && !allowTauriCloseRef.current) {
           event.preventDefault();
+          setCloseRequested(true);
         }
-      })
-    )).then((cleanup) => {
+      });
+    }).then((cleanup) => {
       if (disposed) cleanup();
       else unlisten = cleanup;
     }).catch((error) => {
@@ -66,8 +87,31 @@ const ProofreadingPage = () => {
     return () => {
       disposed = true;
       unlisten?.();
+      tauriWindowRef.current = null;
     };
-  }, [state.isDirty, t]);
+  }, [state.isDirty]);
+
+  const closeTauriWindow = useCallback(async () => {
+    if (!tauriWindowRef.current) return;
+    allowTauriCloseRef.current = true;
+    setCloseRequested(false);
+    try {
+      await tauriWindowRef.current.close();
+    } catch (error) {
+      allowTauriCloseRef.current = false;
+      console.warn('Failed to close Tauri window', error);
+    }
+  }, []);
+
+  const discardAndClose = useCallback(() => {
+    state.discardCurrentDraft();
+    closeTauriWindow();
+  }, [closeTauriWindow, state]);
+
+  const saveAndClose = useCallback(() => {
+    setCloseRequested(false);
+    state.requestSave(closeTauriWindow);
+  }, [closeTauriWindow, state]);
 
   const requestProtectedAction = useCallback((action) => {
     if (state.isDirty) setPendingAction(() => action);
@@ -196,6 +240,11 @@ const ProofreadingPage = () => {
             draftRestoreStatus={state.draftRestoreStatus}
             draftConflict={state.draftConflict}
             onDismissDraftConflict={state.dismissDraftConflict}
+            externalChangeDetected={state.externalChangeDetected}
+            onReloadFromDisk={() => state.loadEditorData(
+              state.fileInfo.project_id,
+              state.fileInfo.file_id,
+            )}
           />
         </div>
       </Paper>
@@ -227,6 +276,33 @@ const ProofreadingPage = () => {
             )}
             <Button onClick={saveAndLeave}>
               {t('proofreading.save_and_leave', { defaultValue: 'Save and leave' })}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={closeRequested}
+        onClose={() => setCloseRequested(false)}
+        title={t('proofreading.close_unsaved_title', { defaultValue: 'Close with unsaved changes?' })}
+        centered
+        closeOnClickOutside={false}
+      >
+        <Stack>
+          <Alert color="orange">
+            {t('proofreading.close_unsaved_body', {
+              defaultValue: 'Your proofreading changes have not been saved. Save them, discard them, or return to editing.',
+            })}
+          </Alert>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setCloseRequested(false)}>
+              {t('proofreading.continue_editing', { defaultValue: 'Continue editing' })}
+            </Button>
+            <Button variant="light" color="red" onClick={discardAndClose}>
+              {t('proofreading.discard_and_close', { defaultValue: 'Discard and close' })}
+            </Button>
+            <Button onClick={saveAndClose}>
+              {t('proofreading.save_and_close', { defaultValue: 'Save and close' })}
             </Button>
           </Group>
         </Stack>

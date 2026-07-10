@@ -119,6 +119,7 @@ const useProofreadingState = () => {
                 title: t('proofreading.notifications.error'),
                 message: t('proofreading.deep_link_missing', {
                     defaultValue: `The requested entry no longer exists: ${targetKey}`,
+                    key: targetKey,
                 }),
                 color: 'yellow',
             });

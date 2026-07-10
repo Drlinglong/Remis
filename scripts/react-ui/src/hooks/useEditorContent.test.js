@@ -162,4 +162,24 @@ describe('useEditorContent', () => {
     });
     expect(notifications.show).not.toHaveBeenCalled();
   });
+
+  it('detects a newer disk revision even when the local document is clean', async () => {
+    api.get.mockImplementation((url) => {
+      if (url.endsWith('/revision')) {
+        return Promise.resolve({ data: { document_revision: 'revision-2' } });
+      }
+      return Promise.resolve({ data: responseData() });
+    });
+    const { result } = renderHook(() => useEditorContent());
+    await act(async () => result.current.loadEditorData('project-1', 'file-1'));
+
+    expect(result.current.isDirty).toBe(false);
+    await act(async () => result.current.checkExternalRevision());
+
+    expect(api.get).toHaveBeenCalledWith('/api/proofread/project-1/file-1/revision');
+    expect(result.current.externalChangeDetected).toEqual({
+      loadedRevision: 'revision-1',
+      diskRevision: 'revision-2',
+    });
+  });
 });

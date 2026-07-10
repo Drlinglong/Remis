@@ -29,3 +29,23 @@ def test_attach_project_file_ids_does_not_guess_ambiguous_basenames(tmp_path):
     )[0]
 
     assert "file_id" not in issue
+
+
+def test_attach_project_file_ids_prefers_exact_path_over_ambiguous_relative_suffix(tmp_path):
+    old_target = tmp_path / "incremental-update-20260531" / "localization" / "german" / "ut_l_german.yml"
+    current_target = tmp_path / "incremental-update-20260618" / "localization" / "german" / "ut_l_german.yml"
+    files = [
+        {"file_id": "old-file", "file_path": str(old_target)},
+        {"file_id": "current-file", "file_path": str(current_target)},
+    ]
+
+    issue = ValidationSidecarService.attach_project_file_ids(
+        [{
+            "file_path": str(current_target),
+            "file_name": "localization/german/ut_l_german.yml",
+            "key": "concept_ut_nd_democrat_core_desc",
+        }],
+        files,
+    )[0]
+
+    assert issue["file_id"] == "current-file"

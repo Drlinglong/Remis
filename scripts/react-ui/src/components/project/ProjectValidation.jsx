@@ -212,7 +212,7 @@ const ProjectValidation = ({ projectId }) => {
       {issues.length > 0 && (
         <Paper withBorder p="md" radius="md">
           <Title order={5} mb="md">
-            {t('project_validation.issue_details', { defaultValue: 'Issue details' })}
+            {t('proofreading.issue_details', { defaultValue: 'Issue details' })}
           </Title>
           <ScrollArea.Autosize mah={360}>
             <Stack gap="xs">
@@ -236,7 +236,7 @@ const ProjectValidation = ({ projectId }) => {
                         lineHint: issue.line_number,
                       }))}
                     >
-                      {t('project_validation.open_proofreading', { defaultValue: 'Manual proofreading' })}
+                      {t('proofreading.open_entry', { defaultValue: 'Manual proofreading' })}
                     </Button>
                   </Group>
                 </Card>

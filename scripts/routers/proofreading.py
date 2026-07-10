@@ -9,6 +9,17 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
+@router.get("/api/proofread/{project_id}/{file_id}/revision")
+async def get_proofread_revision(project_id: str, file_id: str):
+    try:
+        return await proofreading_service.get_document_revision(project_id, file_id)
+    except ProofreadingDataError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+
 @router.get("/api/proofread/{project_id}/{file_id}")
 async def get_proofread_data(project_id: str, file_id: str):
     """

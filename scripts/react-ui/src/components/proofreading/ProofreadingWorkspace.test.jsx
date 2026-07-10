@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MantineProvider } from '@mantine/core';
 import ProofreadingWorkspace from './ProofreadingWorkspace';
@@ -39,6 +39,7 @@ const baseProps = {
   onFocusedEntryChange: vi.fn(),
   onRequestFocusEntry: vi.fn(),
   onDismissDraftConflict: vi.fn(),
+  onReloadFromDisk: vi.fn(),
 };
 
 const renderWorkspace = props => render(
@@ -66,5 +67,17 @@ describe('ProofreadingWorkspace', () => {
     });
     expect(screen.getByText('Save anyway')).toBeEnabled();
     expect(screen.getByText('[ROOT]')).toBeInTheDocument();
+  });
+
+  it('shows a reload action when the disk revision changes without local edits', () => {
+    const onReloadFromDisk = vi.fn();
+    renderWorkspace({
+      externalChangeDetected: { loadedRevision: 'old', diskRevision: 'new' },
+      onReloadFromDisk,
+    });
+
+    expect(screen.getByText('This file changed outside Remis')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reload from disk' }));
+    expect(onReloadFromDisk).toHaveBeenCalled();
   });
 });

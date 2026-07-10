@@ -53,12 +53,34 @@ const ProofreadingWorkspace = ({
     draftRestoreStatus,
     draftConflict,
     onDismissDraftConflict,
+    externalChangeDetected,
+    onReloadFromDisk,
 }) => {
     const { t } = useTranslation();
 
     return (
         <>
             <Stack gap="sm" mb="sm">
+                {externalChangeDetected && (
+                    <Alert
+                        color="orange"
+                        icon={<IconAlertTriangle size={18} />}
+                        title={t('proofreading.external_change_title', {
+                            defaultValue: 'This file changed outside Remis',
+                        })}
+                    >
+                        <Group justify="space-between" align="center">
+                            <Text size="sm">
+                                {t('proofreading.external_change_body', {
+                                    defaultValue: 'The page is showing an older version. Reload from disk before continuing, or keep your local edits and resolve the conflict when saving.',
+                                })}
+                            </Text>
+                            <Button size="xs" variant="light" color="orange" onClick={onReloadFromDisk}>
+                                {t('proofreading.reload_from_disk', { defaultValue: 'Reload from disk' })}
+                            </Button>
+                        </Group>
+                    </Alert>
+                )}
                 <Group justify="space-between">
                     <Group gap="xs">
                         <Text size="sm" fw={500} c="dimmed">{t('proofreading.mode.soft_protection')}</Text>
