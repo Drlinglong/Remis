@@ -1577,6 +1577,7 @@
       "raw": "Structure"
     },
     "hint": {
+      "key": "The read-only localization key used to identify this entry.",
       "original_source": "Original source file used as the translation reference.",
       "ai_source": "AI draft loaded from the project archive or translated file.",
       "final_source": "Final content saved to the selected translation file.",

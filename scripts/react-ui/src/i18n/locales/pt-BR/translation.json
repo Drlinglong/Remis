@@ -1532,6 +1532,7 @@
     "columns": { "key": "Chave", "source": "Origem", "ai_draft": "Rascunho da IA", "final": "Final" },
     "filter": { "all": "Tudo", "changed": "Alterado", "issues": "Problemas" },
     "structure": { "comment": "Comentário", "blank": "Linhas em branco", "header": "Cabeçalho", "raw": "Outra estrutura" },
+    "hint": { "key": "A chave de localização somente leitura que identifica esta entrada.", "original_source": "O arquivo-fonte original usado como referência da tradução.", "ai_source": "O rascunho da IA carregado do arquivo do projeto ou do arquivo de tradução.", "final_source": "O conteúdo final será salvo no arquivo de tradução selecionado." },
     "tooltips": { "errors": "Erros", "warnings": "Avisos" },
     "notifications": { "error": "Erro", "perfect": "Sem problemas", "perfect_message": "Nenhum problema de validação encontrado.", "issues_found": "Problemas encontrados", "issues_found_message": "Foram encontrados {{errors}} erros e {{warnings}} avisos.", "validation_failed": "A validação falhou.", "saved": "Salvo", "saved_message": "Arquivo salvo com sucesso.", "save_failed": "Não foi possível salvar o arquivo.", "folder_opened": "Pasta aberta", "folder_failed": "Não foi possível abrir a pasta" },
     "errors": {

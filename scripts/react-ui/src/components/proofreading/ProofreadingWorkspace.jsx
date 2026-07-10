@@ -112,7 +112,7 @@ const ProofreadingWorkspace = ({
 
                 <Tabs.Panel value="entries" pt="sm" style={{ display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, height: '100%' }}>
-                        <Group grow align="flex-start">
+                        <Group grow align="center" gap="sm">
                             {sourceFileSelector}
                             {aiFileSelector}
                         </Group>

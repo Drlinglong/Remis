@@ -1531,6 +1531,7 @@
     "columns": { "key": "Clé", "source": "Source", "ai_draft": "Brouillon IA", "final": "Final" },
     "filter": { "all": "Tout", "changed": "Modifié", "issues": "Problèmes" },
     "structure": { "comment": "Commentaire", "blank": "Lignes vides", "header": "En-tête", "raw": "Autre structure" },
+    "hint": { "key": "La clé de localisation en lecture seule qui identifie cette entrée.", "original_source": "Le fichier source original utilisé comme référence de traduction.", "ai_source": "Le brouillon IA chargé depuis l’archive du projet ou le fichier de traduction.", "final_source": "Le contenu final sera enregistré dans le fichier de traduction sélectionné." },
     "tooltips": { "errors": "Erreurs", "warnings": "Avertissements" },
     "notifications": { "error": "Erreur", "perfect": "Aucun problème", "perfect_message": "Aucun problème de validation trouvé.", "issues_found": "Problèmes trouvés", "issues_found_message": "{{errors}} erreurs et {{warnings}} avertissements trouvés.", "validation_failed": "La validation a échoué.", "saved": "Enregistré", "saved_message": "Fichier enregistré.", "save_failed": "Impossible d'enregistrer le fichier.", "folder_opened": "Dossier ouvert", "folder_failed": "Impossible d'ouvrir le dossier" },
     "errors": {

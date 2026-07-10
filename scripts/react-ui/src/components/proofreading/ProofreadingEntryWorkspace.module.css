@@ -73,6 +73,18 @@
     line-height: 20px;
 }
 
+.headerHelp {
+    flex: 0 0 auto;
+    color: var(--mantine-color-dimmed);
+    cursor: help;
+    outline-offset: 3px;
+}
+
+.headerHelp:hover,
+.headerHelp:focus-visible {
+    color: var(--mantine-primary-color-filled);
+}
+
 .keyCell {
     padding-left: 12px;
 }

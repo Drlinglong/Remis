@@ -1531,6 +1531,7 @@
     "columns": { "key": "키", "source": "원문", "ai_draft": "AI 초안", "final": "최종본" },
     "filter": { "all": "전체", "changed": "변경됨", "issues": "문제" },
     "structure": { "comment": "주석", "blank": "빈 줄", "header": "헤더", "raw": "기타 구조" },
+    "hint": { "key": "이 항목을 식별하는 읽기 전용 현지화 키입니다.", "original_source": "번역 참조로 사용하는 원본 소스 파일입니다.", "ai_source": "프로젝트 보관본 또는 번역 파일에서 불러온 AI 초안입니다.", "final_source": "최종 내용은 현재 선택한 번역 파일에 저장됩니다." },
     "tooltips": { "errors": "오류", "warnings": "경고" },
     "notifications": { "error": "오류", "perfect": "문제 없음", "perfect_message": "검증 문제가 없습니다.", "issues_found": "문제 발견", "issues_found_message": "오류 {{errors}}개와 경고 {{warnings}}개를 찾았습니다.", "validation_failed": "검증에 실패했습니다.", "saved": "저장됨", "saved_message": "파일을 저장했습니다.", "save_failed": "파일을 저장하지 못했습니다.", "folder_opened": "폴더를 열었습니다", "folder_failed": "폴더를 열지 못했습니다" },
     "errors": {

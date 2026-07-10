@@ -14,9 +14,25 @@ import {
     IconAlertTriangle,
     IconCode,
     IconHash,
+    IconHelpCircle,
     IconSearch
 } from '@tabler/icons-react';
 import classes from './ProofreadingEntryWorkspace.module.css';
+import { isProofreadingRowChanged } from './proofreadingEntryState';
+
+const ColumnHeader = ({ label, description }) => (
+    <Group gap={5} wrap="nowrap" className={classes.headerCell}>
+        <Text fw={700} c="dimmed" inherit>{label}</Text>
+        <Tooltip label={description} multiline w={260} withArrow>
+            <IconHelpCircle
+                size={15}
+                className={classes.headerHelp}
+                aria-label={description}
+                tabIndex={0}
+            />
+        </Tooltip>
+    </Group>
+);
 
 const ProofreadingEntryWorkspace = ({
     rows,
@@ -40,9 +56,7 @@ const ProofreadingEntryWorkspace = ({
     const filteredRows = useMemo(() => {
         const normalizedQuery = query.trim().toLowerCase();
         return rows.filter(row => {
-            const changed = row.row_type === 'translation'
-                ? row.final_value !== row.ai_value
-                : row.editable && row.final_value !== row.baseline_value;
+            const changed = isProofreadingRowChanged(row);
             if (filter === 'changed' && !changed) return false;
             if (filter === 'issues' && !issueKeys.has(row.key)) return false;
 
@@ -101,7 +115,6 @@ const ProofreadingEntryWorkspace = ({
                                 onChange={event => onFinalValueChange(row.entry_id, event.currentTarget.value)}
                                 autosize
                                 minRows={Math.min(2, lineCount)}
-                                maxRows={10}
                                 size="sm"
                                 classNames={{ input: classes.commentInput }}
                             />
@@ -122,7 +135,7 @@ const ProofreadingEntryWorkspace = ({
 
     const renderTranslationRow = row => {
         const hasIssue = issueKeys.has(row.key);
-        const changed = row.final_value !== row.ai_value;
+        const changed = isProofreadingRowChanged(row);
         return (
             <div className={`${classes.row} ${changed ? classes.changedRow : ''}`}>
                 <div className={classes.keyCell}>
@@ -157,7 +170,6 @@ const ProofreadingEntryWorkspace = ({
                         onChange={event => onFinalValueChange(row.entry_id, event.currentTarget.value)}
                         autosize
                         minRows={2}
-                        maxRows={10}
                         size="sm"
                         classNames={{ input: classes.finalInput }}
                     />
@@ -191,10 +203,10 @@ const ProofreadingEntryWorkspace = ({
 
             <div ref={scrollRef} className={classes.scrollArea} style={{ opacity: loading ? 0.55 : 1 }}>
                 <div className={`${classes.row} ${classes.headerRow}`}>
-                    <Text fw={700} c="dimmed" className={classes.headerCell}>{t('proofreading.columns.key')}</Text>
-                    <Text fw={700} c="dimmed" className={classes.headerCell}>{t('proofreading.columns.source')}</Text>
-                    <Text fw={700} c="dimmed" className={classes.headerCell}>{t('proofreading.columns.ai_draft')}</Text>
-                    <Text fw={700} c="dimmed" className={classes.headerCell}>{t('proofreading.columns.final')}</Text>
+                    <ColumnHeader label={t('proofreading.columns.key')} description={t('proofreading.hint.key')} />
+                    <ColumnHeader label={t('proofreading.columns.source')} description={t('proofreading.hint.original_source')} />
+                    <ColumnHeader label={t('proofreading.columns.ai_draft')} description={t('proofreading.hint.ai_source')} />
+                    <ColumnHeader label={t('proofreading.columns.final')} description={t('proofreading.hint.final_source')} />
                 </div>
 
                 {filteredRows.length === 0 ? (

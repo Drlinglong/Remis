@@ -1531,6 +1531,7 @@
     "columns": { "key": "Schlüssel", "source": "Quelle", "ai_draft": "KI-Entwurf", "final": "Endfassung" },
     "filter": { "all": "Alle", "changed": "Geändert", "issues": "Probleme" },
     "structure": { "comment": "Kommentar", "blank": "Leerzeilen", "header": "Kopfzeile", "raw": "Andere Struktur" },
+    "hint": { "key": "Der schreibgeschützte Lokalisierungsschlüssel für diesen Eintrag.", "original_source": "Die ursprüngliche Quelldatei als Übersetzungsreferenz.", "ai_source": "Der aus dem Projektarchiv oder der Übersetzungsdatei geladene KI-Entwurf.", "final_source": "Der endgültige Inhalt wird in der ausgewählten Übersetzungsdatei gespeichert." },
     "tooltips": { "errors": "Fehler", "warnings": "Warnungen" },
     "notifications": { "error": "Fehler", "perfect": "Keine Probleme", "perfect_message": "Keine Validierungsprobleme gefunden.", "issues_found": "Probleme gefunden", "issues_found_message": "{{errors}} Fehler und {{warnings}} Warnungen gefunden.", "validation_failed": "Validierung fehlgeschlagen.", "saved": "Gespeichert", "saved_message": "Datei erfolgreich gespeichert.", "save_failed": "Datei konnte nicht gespeichert werden.", "folder_opened": "Ordner geöffnet", "folder_failed": "Ordner konnte nicht geöffnet werden" },
     "errors": {

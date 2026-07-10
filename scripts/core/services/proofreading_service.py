@@ -6,6 +6,7 @@ from typing import List, Dict, Any
 
 from scripts.utils.quote_extractor import QuoteExtractor
 from scripts.core.file_builder import patch_file_content
+from scripts.core.loc_parser import unescape_value
 from scripts.utils.i18n_utils import iso_to_paradox
 from scripts.schemas.common import LanguageCode
 
@@ -32,6 +33,12 @@ class ProofreadingService:
         if re.match(r"^\s*l_[\w-]+:\s*$", line, re.IGNORECASE):
             return "header"
         return "raw"
+
+    @staticmethod
+    def _normalize_translation_value(value: Any) -> str:
+        if value is None:
+            return ""
+        return unescape_value(str(value))
 
     def _collect_structure_blocks(
         self,
@@ -72,9 +79,13 @@ class ProofreadingService:
                 "row_type": "translation",
                 "line_number": line_num + 1,
                 "key": line_info["key_part"].strip(),
-                "source_value": source_value,
-                "ai_value": ai_translated_texts[idx] if idx < len(ai_translated_texts) else "",
-                "final_value": disk_translated_texts[idx] if idx < len(disk_translated_texts) else "",
+                "source_value": self._normalize_translation_value(source_value),
+                "ai_value": self._normalize_translation_value(
+                    ai_translated_texts[idx] if idx < len(ai_translated_texts) else ""
+                ),
+                "final_value": self._normalize_translation_value(
+                    disk_translated_texts[idx] if idx < len(disk_translated_texts) else ""
+                ),
                 "editable": True,
                 "issues": [],
             }
@@ -356,6 +367,7 @@ class ProofreadingService:
         # 3. Parse and Patch
         try:
             original_lines, texts_to_translate, key_map = QuoteExtractor.extract_from_file(template_file_path)
+            texts_to_translate = [self._normalize_translation_value(text) for text in texts_to_translate]
             original_content = "".join(original_lines)
             
             # AI Draft
@@ -373,7 +385,11 @@ class ProofreadingService:
                     language=lang_code
                 )
 
-            db_translation_map = {e['key']: e['translation'] for e in db_entries if e['translation']}
+            db_translation_map = {
+                e['key']: self._normalize_translation_value(e['translation'])
+                for e in db_entries
+                if e['translation']
+            }
             
             # Disk State
             disk_translation_map = {}
@@ -382,7 +398,7 @@ class ProofreadingService:
                 target_lines, target_texts, target_map = QuoteExtractor.extract_from_file(target_file_path)
                 for i, text in enumerate(target_texts):
                     if i in target_map:
-                        disk_translation_map[target_map[i]['key_part'].strip()] = text
+                        disk_translation_map[target_map[i]['key_part'].strip()] = self._normalize_translation_value(text)
 
             entries = []
             ai_translated_texts = []
@@ -500,8 +516,12 @@ class ProofreadingService:
 
             # 3. Read Template and Prepare Data
             original_lines, texts_to_translate, key_map = QuoteExtractor.extract_from_file(template_file_path)
+            texts_to_translate = [self._normalize_translation_value(text) for text in texts_to_translate]
             target_lines, _, _ = QuoteExtractor.extract_from_file(target_file_path)
-            user_translation_map = {e['key']: e['translation'] for e in entries_list}
+            user_translation_map = {
+                e['key']: self._normalize_translation_value(e['translation'])
+                for e in entries_list
+            }
             
             translated_texts = []
             for i, text in enumerate(texts_to_translate):

@@ -1531,6 +1531,7 @@
     "columns": { "key": "Klucz", "source": "Źródło", "ai_draft": "Wersja AI", "final": "Wersja końcowa" },
     "filter": { "all": "Wszystkie", "changed": "Zmienione", "issues": "Problemy" },
     "structure": { "comment": "Komentarz", "blank": "Puste wiersze", "header": "Nagłówek", "raw": "Inna struktura" },
+    "hint": { "key": "Klucz lokalizacji tylko do odczytu identyfikujący ten wpis.", "original_source": "Oryginalny plik źródłowy używany jako odniesienie do tłumaczenia.", "ai_source": "Wersja AI wczytana z archiwum projektu lub pliku tłumaczenia.", "final_source": "Końcowa treść zostanie zapisana w wybranym pliku tłumaczenia." },
     "tooltips": { "errors": "Błędy", "warnings": "Ostrzeżenia" },
     "notifications": { "error": "Błąd", "perfect": "Brak problemów", "perfect_message": "Nie znaleziono problemów walidacji.", "issues_found": "Znaleziono problemy", "issues_found_message": "Znaleziono {{errors}} błędów i {{warnings}} ostrzeżeń.", "validation_failed": "Walidacja nie powiodła się.", "saved": "Zapisano", "saved_message": "Plik zapisano pomyślnie.", "save_failed": "Nie udało się zapisać pliku.", "folder_opened": "Otwarto folder", "folder_failed": "Nie udało się otworzyć folderu" },
     "errors": {

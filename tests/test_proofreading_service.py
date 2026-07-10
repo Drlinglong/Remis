@@ -191,6 +191,22 @@ def test_build_proofreading_rows_preserves_structure_lines():
     assert rows[4]["structure_type"] == "raw"
 
 
+def test_build_proofreading_rows_compares_logical_values_not_file_escapes():
+    service = ProofreadingService(project_manager=None, archive_manager=None)
+
+    rows = service._build_proofreading_rows(
+        [' demo.key:0 "Source"\n'],
+        [r'Source \"quote\"'],
+        {0: {"key_part": "demo.key:0", "line_num": 0}},
+        ['Translated "quote"'],
+        [r'Translated \"quote\"'],
+    )
+
+    assert rows[0]["source_value"] == 'Source "quote"'
+    assert rows[0]["ai_value"] == 'Translated "quote"'
+    assert rows[0]["final_value"] == rows[0]["ai_value"]
+
+
 def test_build_proofreading_rows_aligns_target_comments_by_block_order():
     service = ProofreadingService(project_manager=None, archive_manager=None)
     original_lines = [
