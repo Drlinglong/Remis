@@ -1,0 +1,16 @@
+{
+  "name": "Remis",
+  "short_name": "Remis",
+  "description": "Inspectable AI workflows for Paradox mod localization.",
+  "start_url": "/Remis/",
+  "display": "standalone",
+  "background_color": "#0b1013",
+  "theme_color": "#0b1013",
+  "icons": [
+    {
+      "src": "/Remis/assets/remis-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
