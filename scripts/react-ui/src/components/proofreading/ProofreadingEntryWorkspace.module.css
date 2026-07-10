@@ -149,6 +149,14 @@
     background: color-mix(in srgb, var(--mantine-color-blue-9) 18%, transparent);
 }
 
+.highlightedRow {
+    z-index: 2;
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: -2px;
+    background: color-mix(in srgb, var(--mantine-primary-color-filled) 16%, transparent);
+    transition: background 180ms ease;
+}
+
 @media (min-width: 1800px) {
     .root {
         --proofreading-grid: 220px minmax(280px, 1fr) minmax(280px, 1fr) minmax(320px, 1.15fr);

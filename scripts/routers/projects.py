@@ -334,7 +334,11 @@ async def get_project_validation_status(project_id: str, sidecar_path: Optional[
     project_root = project["source_path"]
     sidecar_status = validation_sidecars.load_status(project_root, sidecar_path)
     if sidecar_status:
-        active_issues = sidecar_status["issues"]
+        project_files = await project_manager.get_project_files(project_id)
+        active_issues = validation_sidecars.attach_project_file_ids(
+            sidecar_status["issues"],
+            project_files,
+        )
         counts = sidecar_status["issue_type_counts"]
         selected_sidecar_path = sidecar_status["sidecar_path"]
         last_updated_at = sidecar_status["last_updated_at"]
@@ -359,6 +363,7 @@ async def get_project_validation_status(project_id: str, sidecar_path: Optional[
     return {
         "project_id": project_id,
         "issues_count": len(active_issues),
+        "issues": active_issues,
         "issue_type_counts": counts,
         "last_updated_at": last_updated_at,
         "sidecar_path": selected_sidecar_path,

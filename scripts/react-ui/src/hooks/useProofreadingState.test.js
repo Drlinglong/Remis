@@ -35,6 +35,7 @@ describe('useProofreadingState', () => {
         });
 
         expect(result.current.selectedProject).toBeNull();
-        expect(result.current.originalContentStr).toBe('');
+        expect(result.current.rows).toEqual([]);
+        expect(result.current.isDirty).toBe(false);
     });
 });

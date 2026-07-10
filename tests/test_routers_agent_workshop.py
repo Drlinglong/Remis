@@ -71,6 +71,7 @@ def test_load_cached_filters_fixed_entries(tmp_path):
             "source_path": str(project_root),
             "game_id": "victoria3",
         })
+        mock_pm.get_project_files = AsyncMock(return_value=[])
 
         response = client.get("/api/agent-workshop/load-cached", params={"project_id": "p1"})
 
@@ -126,6 +127,7 @@ def test_load_cached_falls_back_to_workshop_sidecar(tmp_path):
             "source_path": str(project_root),
             "game_id": "victoria3",
         })
+        mock_pm.get_project_files = AsyncMock(return_value=[])
 
         response = client.get("/api/agent-workshop/load-cached", params={"project_id": "p2"})
 
@@ -218,6 +220,7 @@ def test_scan_uses_selected_sidecar_current_version_scope(tmp_path):
             "source_path": str(project_root),
             "game_id": "victoria3",
         })
+        mock_pm.get_project_files = AsyncMock(return_value=[])
 
         response = client.get(
             "/api/agent-workshop/scan",
@@ -275,6 +278,7 @@ def test_load_cached_prefers_translation_sidecar_over_stale_project_cache(tmp_pa
             "source_path": str(project_root),
             "game_id": "hoi4",
         })
+        mock_pm.get_project_files = AsyncMock(return_value=[])
 
         response = client.get("/api/agent-workshop/load-cached", params={"project_id": "p2b"})
 

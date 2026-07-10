@@ -2,7 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from scripts.core.services.proofreading_service import ProofreadingDataError, ProofreadingService
+from scripts.core.services.proofreading_service import (
+    ProofreadingConflictError,
+    ProofreadingDataError,
+    ProofreadingService,
+    _atomic_write_lines,
+    _file_revision,
+)
 
 
 class FakeProjectManager:
@@ -279,3 +285,41 @@ def test_apply_structure_patches_rejects_non_comment_ranges():
             ["l_english:\n", " demo.key:0 \"Text\"\n"],
             [{"line_start": 1, "line_end": 1, "content": "# Not a header"}],
         )
+
+
+def test_atomic_write_lines_replaces_file_and_changes_revision(tmp_path):
+    target = tmp_path / "demo_l_simp_chinese.yml"
+    target.write_text('l_simp_chinese:\n demo.key:0 "Old"\n', encoding="utf-8-sig")
+    old_revision = _file_revision(str(target))
+
+    _atomic_write_lines(
+        str(target),
+        ['l_simp_chinese:\n', ' demo.key:0 "New"\n'],
+    )
+
+    assert target.read_text(encoding="utf-8-sig").endswith('demo.key:0 "New"\n')
+    assert _file_revision(str(target)) != old_revision
+    assert list(tmp_path.glob("*.tmp")) == []
+
+
+@pytest.mark.asyncio
+async def test_save_rejects_stale_document_revision_without_writing(tmp_path):
+    target = tmp_path / "demo_l_english.yml"
+    original = 'l_english:\n demo.key:0 "Original"\n'
+    target.write_text(original, encoding="utf-8-sig")
+    manager = FakeProjectManager(
+        files=[{"file_id": "file-1", "file_path": str(target)}],
+        project={"source_language": "en"},
+    )
+    service = ProofreadingService(manager, archive_manager=None)
+
+    with pytest.raises(ProofreadingConflictError):
+        await service.save_proofread_data(
+            "project-1",
+            "file-1",
+            [{"key": "demo.key:0", "translation": "Edited"}],
+            [],
+            "stale-revision",
+        )
+
+    assert target.read_text(encoding="utf-8-sig") == original

@@ -16,6 +16,41 @@ logger = logging.getLogger(__name__)
 class ValidationSidecarService:
     CURRENT_VERSION_SCOPE = "current_translation_version"
 
+    @staticmethod
+    def attach_project_file_ids(
+        issues: List[Dict[str, Any]],
+        project_files: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Attach stable project file ids to legacy and current validation issues."""
+        normalized_files = []
+        for project_file in project_files or []:
+            file_path = project_file.get("file_path")
+            file_id = project_file.get("file_id")
+            if not file_path or not file_id:
+                continue
+            normalized_files.append((
+                str(Path(file_path).resolve(strict=False)).replace("\\", "/").lower(),
+                file_id,
+            ))
+
+        enriched = []
+        for issue in issues or []:
+            item = dict(issue)
+            if item.get("file_id"):
+                enriched.append(item)
+                continue
+            candidates = [item.get("file_path"), item.get("file_name")]
+            matches = set()
+            for candidate in filter(None, candidates):
+                normalized_candidate = str(candidate).replace("\\", "/").lower().lstrip("./")
+                for normalized_path, file_id in normalized_files:
+                    if normalized_path == normalized_candidate or normalized_path.endswith(f"/{normalized_candidate}"):
+                        matches.add(file_id)
+            if len(matches) == 1:
+                item["file_id"] = matches.pop()
+            enriched.append(item)
+        return enriched
+
     def load_issue_file(self, path: Path) -> List[Dict[str, Any]]:
         payload = self.load_payload(path)
         issues = payload.get("issues", []) if isinstance(payload, dict) else payload if isinstance(payload, list) else []

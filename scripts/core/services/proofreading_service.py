@@ -1,6 +1,8 @@
 import os
 import re
 import logging
+import hashlib
+import tempfile
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -18,6 +20,42 @@ class ProofreadingDataError(Exception):
         self.code = code
         self.message = message
         self.status_code = status_code
+
+
+class ProofreadingConflictError(Exception):
+    """Raised when the target file changed after the proofreading session loaded."""
+
+
+def _file_revision(file_path: str) -> str:
+    digest = hashlib.sha256()
+    with open(file_path, 'rb') as file_handle:
+        for chunk in iter(lambda: file_handle.read(1024 * 1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _atomic_write_lines(file_path: str, lines: List[str]) -> None:
+    target_path = Path(file_path)
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode='w',
+            delete=False,
+            encoding='utf-8-sig',
+            newline='',
+            dir=target_path.parent,
+            prefix=f'.{target_path.name}.',
+            suffix='.tmp',
+        ) as temp_file:
+            temp_path = temp_file.name
+            temp_file.writelines(lines)
+            temp_file.flush()
+            os.fsync(temp_file.fileno())
+        os.replace(temp_path, target_path)
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.unlink(temp_path)
+
 
 class ProofreadingService:
     def __init__(self, project_manager, archive_manager):
@@ -454,7 +492,8 @@ class ProofreadingService:
                 "rows": proofreading_rows,
                 "file_content": original_content,
                 "ai_content": "".join(ai_lines),
-                "final_content": "".join(final_lines)
+                "final_content": "".join(final_lines),
+                "document_revision": _file_revision(target_file_path),
             }
         except Exception as e:
             logger.error(f"ProofreadingService: Data preparation failed: {e}", exc_info=True)
@@ -470,7 +509,8 @@ class ProofreadingService:
         file_id: str,
         entries_list: List[Dict],
         structure_patches: List[Dict[str, Any]] = None,
-    ) -> bool:
+        base_revision: str = None,
+    ) -> Dict[str, Any] | bool:
         """
         Saves user-corrected translations back to the target file.
         """
@@ -483,6 +523,13 @@ class ProofreadingService:
                 return False
 
             target_file_path = target_file['file_path']
+            if not os.path.exists(target_file_path):
+                return False
+            current_revision = _file_revision(target_file_path)
+            if base_revision and current_revision != base_revision:
+                raise ProofreadingConflictError(
+                    "The proofreading target changed after it was loaded."
+                )
             filename = os.path.basename(target_file_path)
 
             # 1. Detect Languages
@@ -541,13 +588,17 @@ class ProofreadingService:
             })
             patched_lines = self._apply_structure_patches(patched_lines, list(merged_patches.values()))
             
-            with open(target_file_path, 'w', encoding='utf-8-sig') as f:
-                f.writelines(patched_lines)
+            _atomic_write_lines(target_file_path, patched_lines)
 
             # 5. Update Project State
             await self.project_manager.repository.update_file_status_by_id(file_id, "done")
-            return True
-            
+            return {
+                "status": "success",
+                "document_revision": _file_revision(target_file_path),
+            }
+
+        except ProofreadingConflictError:
+            raise
         except Exception as e:
             logger.error(f"ProofreadingService: Save failed: {e}", exc_info=True)
             return False

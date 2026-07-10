@@ -5,16 +5,19 @@ import {
 } from '@mantine/core';
 import {
   IconRobot, IconCheck, IconRefresh, IconInfoCircle, IconSearch, IconWand,
-  IconPlayerPlay, IconChartBar, IconSettings, IconFolderCode, IconAlertTriangle,
+  IconPlayerPlay, IconChartBar, IconSettings, IconFolderCode, IconAlertTriangle, IconEdit,
 } from '@tabler/icons-react';
+import { useNavigate } from 'react-router-dom';
 import PerformanceControlPanel from '../components/shared/PerformanceControlPanel';
 import BusyHeartbeat from '../components/shared/BusyHeartbeat';
 import { useAgentWorkshopController } from '../hooks/useAgentWorkshopController';
 import styles from './AgentWorkshop.module.css';
 import translationStyles from './Translation.module.css';
+import { buildProofreadingUrl } from '../utils/proofreadingLinks';
 
 const AgentWorkshopPage = () => {
   const logViewportRef = useRef(null);
+  const navigate = useNavigate();
   const {
     active,
     apiProviders,
@@ -159,7 +162,73 @@ const AgentWorkshopPage = () => {
                   <Alert icon={<IconAlertTriangle size={16} />} color={issues.length ? 'orange' : 'green'} radius="md">{issues.length ? t('agent_workshop.start_fix_confirm') : t('agent_workshop.no_errors_desc')}</Alert>
                   <Group justify="flex-end" mt="md"><Button variant="light" onClick={() => setActive(1)}>{t('common.back')}</Button><Button id="agent-workshop-start-fix-btn" leftSection={<IconPlayerPlay size={18} />} onClick={executeFixRun} disabled={!issues.length || !selectedProvider || !selectedModel || executing}>{t('agent_workshop.start_fix')}</Button></Group>
                   {issueTypeSummary.length > 0 && <Stack gap="xs" mt="xl"><Text size="sm" fw={600}>{t('agent_workshop.issue_type_summary')}</Text><SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>{issueTypeSummary.map((item) => <Card key={item.label} withBorder p="sm" radius="md"><Text size="xs" c="dimmed" lineClamp={2}>{localizeIssueLabel(item.label)}</Text><Text size="sm" fw={700}>{item.count}</Text></Card>)}</SimpleGrid></Stack>}
-                  {groupedIssues.length > 0 && <Accordion id="agent-workshop-issue-details" variant="separated" radius="md" mt="xl"><Accordion.Item value="file-details"><Accordion.Control><Group justify="space-between" wrap="nowrap"><Text fw={600}>{t('agent_workshop.file_issue_details')}</Text><Badge color="orange" variant="light">{groupedIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{groupedIssues.map(([fileKey, fileIssues]) => <Accordion key={fileKey} variant="contained" radius="md"><Accordion.Item value={fileKey}><Accordion.Control><Group justify="space-between" wrap="nowrap"><Box style={{ minWidth: 0 }}><Text size="sm" fw={600} truncate>{fileKey}</Text><Text size="xs" c="dimmed">{fileIssues[0]?.target_lang || '--'}</Text></Box><Badge color="orange" variant="light">{fileIssues.length}</Badge></Group></Accordion.Control><Accordion.Panel><Stack gap="sm">{fileIssues.map((issue, index) => <Paper key={`${issue.file_name}:${issue.key}:${index}`} p="sm" withBorder><Group justify="space-between" align="flex-start" wrap="nowrap"><Box style={{ minWidth: 0, flex: 1 }}><Text size="sm" fw={600}>{issue.key}</Text><Badge color="red" variant="light" mt={6}>{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge><Text size="xs" c="dimmed" mt={8}>{localizeIssueDetails(issue)}</Text><Code block mt="sm">{issue.target_str}</Code></Box><Button size="xs" variant="light" leftSection={<IconWand size={14} />} onClick={() => openFixModal(issue)} style={{ whiteSpace: 'nowrap' }}>{t('agent_workshop.fix_btn')}</Button></Group></Paper>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>)}</Stack></Accordion.Panel></Accordion.Item></Accordion>}
+                  {groupedIssues.length > 0 && (
+                    <Accordion id="agent-workshop-issue-details" variant="separated" radius="md" mt="xl">
+                      <Accordion.Item value="file-details">
+                        <Accordion.Control>
+                          <Group justify="space-between" wrap="nowrap">
+                            <Text fw={600}>{t('agent_workshop.file_issue_details')}</Text>
+                            <Badge color="orange" variant="light">{groupedIssues.length}</Badge>
+                          </Group>
+                        </Accordion.Control>
+                        <Accordion.Panel>
+                          <Stack gap="sm">
+                            {groupedIssues.map(([fileKey, fileIssues]) => (
+                              <Accordion key={fileKey} variant="contained" radius="md">
+                                <Accordion.Item value={fileKey}>
+                                  <Accordion.Control>
+                                    <Group justify="space-between" wrap="nowrap">
+                                      <Box style={{ minWidth: 0 }}>
+                                        <Text size="sm" fw={600} truncate>{fileKey}</Text>
+                                        <Text size="xs" c="dimmed">{fileIssues[0]?.target_lang || '--'}</Text>
+                                      </Box>
+                                      <Badge color="orange" variant="light">{fileIssues.length}</Badge>
+                                    </Group>
+                                  </Accordion.Control>
+                                  <Accordion.Panel>
+                                    <Stack gap="sm">
+                                      {fileIssues.map((issue, index) => (
+                                        <Paper key={`${issue.file_name}:${issue.key}:${index}`} p="sm" withBorder>
+                                          <Group justify="space-between" align="flex-start" wrap="nowrap">
+                                            <Box style={{ minWidth: 0, flex: 1 }}>
+                                              <Text size="sm" fw={600}>{issue.key}</Text>
+                                              <Badge color="red" variant="light" mt={6}>{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge>
+                                              <Text size="xs" c="dimmed" mt={8}>{localizeIssueDetails(issue)}</Text>
+                                              <Code block mt="sm">{issue.target_str}</Code>
+                                            </Box>
+                                            <Stack gap="xs">
+                                              <Button
+                                                size="xs"
+                                                variant="light"
+                                                leftSection={<IconEdit size={14} />}
+                                                disabled={!issue.file_id || !issue.key}
+                                                onClick={() => navigate(buildProofreadingUrl({
+                                                  projectId: selectedProjectId,
+                                                  fileId: issue.file_id,
+                                                  entryKey: issue.key,
+                                                  lineHint: issue.line_number,
+                                                }))}
+                                                style={{ whiteSpace: 'nowrap' }}
+                                              >
+                                                {t('agent_workshop.manual_proofreading', { defaultValue: 'Manual proofreading' })}
+                                              </Button>
+                                              <Button size="xs" variant="light" leftSection={<IconWand size={14} />} onClick={() => openFixModal(issue)} style={{ whiteSpace: 'nowrap' }}>
+                                                {t('agent_workshop.fix_btn')}
+                                              </Button>
+                                            </Stack>
+                                          </Group>
+                                        </Paper>
+                                      ))}
+                                    </Stack>
+                                  </Accordion.Panel>
+                                </Accordion.Item>
+                              </Accordion>
+                            ))}
+                          </Stack>
+                        </Accordion.Panel>
+                      </Accordion.Item>
+                    </Accordion>
+                  )}
                 </Paper>
               </Stack>
             </Stepper.Step>
