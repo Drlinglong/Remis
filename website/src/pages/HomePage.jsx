@@ -1,6 +1,13 @@
 import { MeasuredText } from '../components/MeasuredText'
 import { ButtonLink, SiteShell, TextLink } from '../components/SiteShell'
-import { assetPath, links, pipeline, proofPoints, shippedCapabilities, sitePath } from '../site'
+import {
+  assetPath,
+  links,
+  pipeline,
+  productLayers,
+  proofPoints,
+  sitePath,
+} from '../site'
 
 function ProofStrip() {
   return (
@@ -32,30 +39,56 @@ function Pipeline() {
   )
 }
 
+function ProductLayers() {
+  return (
+    <div className="product-layer-ledger" role="list" aria-label="Remis product layers and delivery status">
+      {productLayers.map((layer) => (
+        <article className="product-layer" key={layer.title} role="listitem">
+          <span className="product-layer__index">{layer.index}</span>
+          <div className="product-layer__identity">
+            <span>{layer.eyebrow}</span>
+            <strong className={`delivery-state delivery-state--${layer.status.toLowerCase().replaceAll(' ', '-')}`}>
+              {layer.status}
+            </strong>
+          </div>
+          <div className="product-layer__copy">
+            <h3>{layer.title}</h3>
+            <p>{layer.body}</p>
+          </div>
+          <code>{layer.code}</code>
+        </article>
+      ))}
+    </div>
+  )
+}
+
 export function HomePage() {
   return (
     <SiteShell activePage="home">
       <section className="hero hero--home">
         <div className="container hero-grid">
           <div className="hero-copy">
-            <p className="eyebrow">LOCAL-FIRST AI WORKFLOW · WINDOWS DESKTOP</p>
-            <MeasuredText className="display-heading">
-              Localization that stays inspectable after the model answers.
+            <div className="runtime-status" role="status">
+              <span aria-hidden="true"></span>
+              OPEN SOURCE · WINDOWS DESKTOP · CLOUD OR LOCAL MODELS
+            </div>
+            <MeasuredText className="display-heading display-heading--product">
+              The operating system for AI localization.
             </MeasuredText>
             <p className="hero-lead">
-              Remis turns Paradox mod localization into a controlled LLM pipeline with
-              glossary-aware context, structured output, validation, repair loops, and
-              human proofreading.
+              Remis turns Paradox game files into glossary-aware, reviewable localization
+              through a controlled LLM workflow. Project files, terminology, and review
+              history are managed on your machine, while inference can use cloud APIs,
+              Ollama, or OpenAI-compatible endpoints.
             </p>
             <div className="hero-actions">
               <ButtonLink href={links.releases} tone="accent" external>Download for Windows</ButtonLink>
-              <ButtonLink href={sitePath('engineering/')} tone="dark">Inspect the AI architecture</ButtonLink>
+              <ButtonLink href={sitePath('engineering/')} tone="dark">Explore AI Engineering</ButtonLink>
             </div>
-            <div className="keyword-rail" aria-label="Technical keywords">
-              <span>Context assembly</span>
-              <span>Structured outputs</span>
-              <span>Human-in-the-loop</span>
-              <span>LLMOps</span>
+            <div className="system-signals" aria-label="System principles">
+              <div><strong>6-stage</strong><span>governed workflow</span></div>
+              <div><strong>provider-flexible</strong><span>cloud or local inference</span></div>
+              <div><strong>human-controlled</strong><span>review before deployment</span></div>
             </div>
           </div>
 
@@ -71,8 +104,8 @@ export function HomePage() {
               />
             </div>
             <figcaption>
-              <span>01 / REAL PRODUCT</span>
-              <span>Tauri · React · FastAPI · SQLite</span>
+              <span>REAL PRODUCT · PUBLIC RELEASES</span>
+              <span>Tauri · React · FastAPI · SQLite · LLM APIs</span>
             </figcaption>
           </figure>
         </div>
@@ -104,28 +137,58 @@ export function HomePage() {
         <div className="container">
           <div className="section-heading section-heading--split">
             <div>
-              <p className="eyebrow">SHIPPED FOUNDATIONS</p>
+              <p className="eyebrow">CAPABILITIES · DELIVERY STATUS</p>
               <MeasuredText as="h2" className="section-title">
-                More than a translation prompt.
+                Built like a product. Explained like a system.
               </MeasuredText>
             </div>
             <p>
-              The system already contains the contracts and failure handling that make
-              future RAG and Copilot work useful instead of theatrical.
+              The shipped workflow is the product core. RAG and agent layers extend it
+              through explicit boundaries, not by replacing it with a free-roaming bot.
             </p>
           </div>
-          <div className="capability-ledger">
-            {shippedCapabilities.map((capability, index) => (
-              <article key={capability.title} className="ledger-row">
-                <span className="ledger-index">0{index + 1}</span>
-                <div>
-                  <span className="ledger-status">{capability.label}</span>
-                  <h3>{capability.title}</h3>
-                </div>
-                <p>{capability.body}</p>
-                <code>{capability.code}</code>
-              </article>
-            ))}
+          <ProductLayers />
+          <TextLink href={sitePath('roadmap/')}>See what is shipped, in development, and planned</TextLink>
+        </div>
+      </section>
+
+      <section className="section section--boundary">
+        <div className="container inference-boundary">
+          <div className="inference-boundary__copy">
+            <p className="eyebrow">LOCAL PROJECT CONTROL · PROVIDER-FLEXIBLE INFERENCE</p>
+            <MeasuredText as="h2" className="section-title section-title--compact">
+              Your workspace stays local. Your model choice stays open.
+            </MeasuredText>
+            <p>
+              Remis runs as a desktop application and keeps project state in the local
+              workspace. When you choose a cloud provider, the context required for that
+              model request is sent to that provider. A hosted Remis account or cloud
+              project workspace is never required.
+            </p>
+          </div>
+          <div className="provider-boundary" aria-label="Remis model provider boundary">
+            <div className="provider-boundary__local">
+              <span>ON YOUR MACHINE</span>
+              <strong>Remis workspace</strong>
+              <ul>
+                <li>Project files and mappings</li>
+                <li>Glossaries and review history</li>
+                <li>Validation and deployment state</li>
+              </ul>
+            </div>
+            <div className="provider-boundary__bridge" aria-hidden="true">
+              <span>required prompt context</span>
+              <b>→</b>
+            </div>
+            <div className="provider-boundary__models">
+              <span>YOU CHOOSE THE ENDPOINT</span>
+              <strong>Model inference</strong>
+              <ul>
+                <li>Cloud APIs</li>
+                <li>Ollama</li>
+                <li>OpenAI-compatible services</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>

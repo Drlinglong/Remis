@@ -1,25 +1,109 @@
 import { MeasuredText } from '../components/MeasuredText'
 import { ButtonLink, SiteShell, StatusPill, TextLink } from '../components/SiteShell'
-import { benchmarkMetrics, copilotLayers, links, shippedCapabilities, sitePath } from '../site'
+import {
+  assetPath,
+  benchmarkMetrics,
+  copilotLayers,
+  links,
+  sitePath,
+  workflowDiagrams,
+} from '../site'
+
+function SystemMap() {
+  return (
+    <div className="system-map" aria-label="Remis localization intelligence system map">
+      <div className="system-map__header">
+        <span>CONTEXT GRAPH / PRODUCT RUNTIME</span>
+        <span>READ · PROPOSE · VALIDATE · REVIEW</span>
+      </div>
+      <div className="system-map__canvas">
+        <span className="system-map__line system-map__line--one" aria-hidden="true"></span>
+        <span className="system-map__line system-map__line--two" aria-hidden="true"></span>
+        <span className="system-map__line system-map__line--three" aria-hidden="true"></span>
+        <span className="system-map__line system-map__line--four" aria-hidden="true"></span>
+        <div className="system-node system-node--source"><b>GAME FILES</b><span>keys · structure · source text</span></div>
+        <div className="system-node system-node--context"><b>PROJECT CONTEXT</b><span>glossary · history · parent entries</span></div>
+        <div className="system-node system-node--model"><b>MODEL PROVIDER</b><span>cloud API · Ollama · compatible endpoint</span></div>
+        <div className="system-node system-node--control"><b>REMIS CONTROL PLANE</b><span>schemas · validators · native handlers</span></div>
+        <div className="system-node system-node--review"><b>HUMAN REVIEW</b><span>compare · approve · deploy</span></div>
+      </div>
+      <p>Model output crosses a validation boundary before it can become product state.</p>
+    </div>
+  )
+}
+
+function WorkflowChapter({ workflow }) {
+  return (
+    <article className="workflow-chapter">
+      <div className="workflow-chapter__heading">
+        <div>
+          <p className="eyebrow eyebrow--dark">{workflow.eyebrow} · {workflow.index}</p>
+          <h3>{workflow.title}</h3>
+        </div>
+        <span className="workflow-chapter__status">ANIMATED SYSTEM VIEW</span>
+      </div>
+      <div className="workflow-chapter__body">
+        <figure className="workflow-visual">
+          <img src={assetPath(workflow.asset)} alt={workflow.alt} />
+          <div className="workflow-motion-note">
+            Animation is hidden because reduced motion is enabled. The workflow details remain available beside the diagram.
+          </div>
+          <figcaption>Existing Remis workflow asset · animation preserved from the repository README</figcaption>
+        </figure>
+        <dl className="workflow-questions">
+          <div><dt>01 / INPUT</dt><dd>{workflow.input}</dd></div>
+          <div><dt>02 / STATE</dt><dd>{workflow.state}</dd></div>
+          <div><dt>03 / MODEL ROLE</dt><dd>{workflow.model}</dd></div>
+          <div><dt>04 / RECOVERY</dt><dd>{workflow.recovery}</dd></div>
+        </dl>
+      </div>
+    </article>
+  )
+}
 
 export function EngineeringPage() {
   return (
     <SiteShell activePage="engineering">
       <section className="page-hero page-hero--engineering">
-        <div className="container page-hero__grid">
+        <div className="container engineering-hero-grid">
           <div>
-            <p className="eyebrow">AI ENGINEERING · ARCHITECTURE AND EVALUATION</p>
-            <MeasuredText className="display-heading display-heading--page">
-              Not a chatbot bolted onto a translator.
+            <p className="eyebrow">AI ENGINEERING · SYSTEM RELATIONSHIPS AND TRUST BOUNDARIES</p>
+            <MeasuredText className="display-heading display-heading--engineering">
+              Localization intelligence, without surrendering control.
             </MeasuredText>
-          </div>
-          <div className="page-hero__aside">
-            <p>
-              Remis treats model output as untrusted input. Retrieval is read-only,
-              intent is schema-bound, writes pass through native handlers, and the user
-              sees the plan before anything consequential happens.
+            <p className="hero-lead">
+              Remis coordinates game structure, project memory, provider-flexible
+              inference, deterministic validation, and human review. The model proposes.
+              The product decides what is safe to accept.
             </p>
-            <ButtonLink href={links.issue132} tone="accent" external>Read architecture issue #132</ButtonLink>
+            <div className="hero-actions">
+              <ButtonLink href={links.issue132} tone="accent" external>Read architecture issue #132</ButtonLink>
+              <ButtonLink href="#workflows" tone="dark">Trace the shipped workflows</ButtonLink>
+            </div>
+          </div>
+          <SystemMap />
+        </div>
+      </section>
+
+      <section className="section section--paper workflow-section" id="workflows">
+        <div className="container">
+          <div className="section-heading section-heading--split">
+            <div>
+              <p className="eyebrow eyebrow--dark">WORKING SYSTEMS · NOT CONCEPT ART</p>
+              <MeasuredText as="h2" className="section-title">
+                Three workflows that make the architecture real.
+              </MeasuredText>
+            </div>
+            <p>
+              These animated diagrams already document the repository. The product site
+              adds the questions a technical reviewer needs: input, state, model role,
+              and recovery behaviour.
+            </p>
+          </div>
+          <div className="workflow-chapters">
+            {workflowDiagrams.map((workflow) => (
+              <WorkflowChapter key={workflow.title} workflow={workflow} />
+            ))}
           </div>
         </div>
       </section>
@@ -59,34 +143,6 @@ export function EngineeringPage() {
             <span>UI EXPLAINS</span>
             <span>HUMAN CONFIRMS</span>
           </div>
-        </div>
-      </section>
-
-      <section className="section section--ink">
-        <div className="container">
-          <div className="section-heading section-heading--split">
-            <div>
-              <p className="eyebrow">CURRENT SYSTEM</p>
-              <MeasuredText as="h2" className="section-title">
-                The agent roadmap starts from working reliability primitives.
-              </MeasuredText>
-            </div>
-            <p>
-              These are shipped code paths, not future-tense architecture. They are the
-              reason a bounded Copilot can reuse real product capabilities.
-            </p>
-          </div>
-          <div className="evidence-grid">
-            {shippedCapabilities.map((capability) => (
-              <article key={capability.title} className="evidence-item">
-                <span className="ledger-status">{capability.label}</span>
-                <h3>{capability.title}</h3>
-                <p>{capability.body}</p>
-                <code>{capability.code}</code>
-              </article>
-            ))}
-          </div>
-          <TextLink href={links.architecture} external>Read the current architecture document</TextLink>
         </div>
       </section>
 
