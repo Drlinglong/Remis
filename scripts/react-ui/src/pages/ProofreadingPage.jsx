@@ -59,13 +59,13 @@ const ProofreadingPage = () => {
   );
 
   return (
-    <div style={{ height: 'calc(100vh - 20px)', display: 'flex', flexDirection: 'column', padding: '10px', width: '100%' }}>
-      <Paper withBorder p="xs" radius="md" className={layoutStyles.glassCard} style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', overflow: 'hidden' }}>
+    <div style={{ height: 'calc(100vh - 20px)', display: 'flex', flexDirection: 'column', padding: '10px', width: '100%', minHeight: 0 }}>
+      <Paper withBorder p="sm" radius="md" className={layoutStyles.glassCard} style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', minHeight: 0, overflow: 'hidden' }}>
 
         {/* Header */}
-        <Group justify="space-between" mb="xs" w="100%">
-          <Group>
-            <Title order={4}>{t('page_title_proofreading')}</Title>
+        <Group justify="space-between" mb="sm" w="100%" wrap="wrap">
+          <Group wrap="wrap">
+            <Title order={3}>{t('page_title_proofreading')}</Title>
             <Box id="proofreading-mod-select">
               <ProjectSelector
                 projects={state.projects}
@@ -77,8 +77,8 @@ const ProofreadingPage = () => {
 
           <Group>
 
-            <Group gap="xs">
-              <Text size="xs" c="dimmed" mr={4}>{t('common.page_scale', 'Scale')}:</Text>
+            <Group gap="sm">
+              <Text size="sm" c="dimmed" mr={4}>{t('proofreading.scale')}:</Text>
               <Select
                 value={zoomLevel}
                 onChange={setZoomLevel}
@@ -90,15 +90,15 @@ const ProofreadingPage = () => {
                   { value: '1.75', label: '175%' },
                   { value: '2', label: '200%' },
                 ]}
-                size="xs"
+                size="sm"
                 variant="filled"
-                style={{ width: 75 }}
+                style={{ width: 88 }}
                 styles={{ input: { paddingRight: 0, textAlign: 'center' } }}
               />
               <Button
                 variant="default"
-                size="xs"
-                leftSection={<IconFolder size={14} />}
+                size="sm"
+                leftSection={<IconFolder size={16} />}
                 onClick={state.handleOpenFolder}
               >
                 {t('proofreading.open_folder')}
@@ -113,7 +113,9 @@ const ProofreadingPage = () => {
             originalContentStr={state.originalContentStr}
             aiContentStr={state.aiContentStr}
             finalContentStr={state.finalContentStr}
+            rows={state.rows}
             onFinalContentChange={state.setFinalContentStr}
+            onFinalValueChange={state.updateRowFinalValue}
             originalEditorRef={state.originalEditorRef}
             aiEditorRef={state.aiEditorRef}
             finalEditorRef={state.finalEditorRef}
@@ -123,10 +125,12 @@ const ProofreadingPage = () => {
             validating={state.validating}
             saving={state.saving}
             keyChangeWarning={state.keyChangeWarning}
+            commentChangeCount={state.commentChangeCount}
             saveModalOpen={state.saveModalOpen}
             onValidate={state.handleValidate}
             onSave={state.handleSaveClick}
-            onConfirmSave={state.confirmSave}
+            onConfirmSave={() => state.confirmSave(true)}
+            onDiscardCommentChanges={() => state.confirmSave(false)}
             onCancelSave={() => state.setSaveModalOpen(false)}
             fileInfo={state.fileInfo}
             onOpenFolder={state.handleOpenFolder}

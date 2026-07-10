@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { notifications } from '@mantine/notifications';
 import api from '../utils/api';
@@ -10,6 +10,7 @@ import { usePersistentState } from './usePersistentState';
 export const useEditorContent = () => {
     const { t } = useTranslation();
     const [entries, setEntries] = useState([]);
+    const [rows, setRows] = useState([]);
     const [originalContentStr, setOriginalContentStr] = useState('');
     const [aiContentStr, setAiContentStr] = useState('');
     const [finalContentStr, setFinalContentStr] = useState('');
@@ -32,6 +33,7 @@ export const useEditorContent = () => {
     const aiEditorRef = useRef(null);
     const finalEditorRef = useRef(null);
     const isScrolling = useRef(false);
+    const loadRequestRef = useRef(0);
 
     const formatLocalizationEntry = useCallback((key, value) => {
         const match = String(key || '').match(/^(.+?)(?::(\d+))?$/);
@@ -89,6 +91,49 @@ export const useEditorContent = () => {
         return entries;
     }, []);
 
+    const getRowsAsSaveEntries = useCallback(() => {
+        return rows
+            .filter(row => row.row_type === 'translation' && row.key)
+            .map(row => ({
+                key: row.key,
+                value: row.final_value || '',
+            }));
+    }, [rows]);
+
+    const getStructurePatches = useCallback(() => {
+        return rows
+            .filter(row => (
+                row.row_type === 'structure'
+                && row.editable
+                && row.final_value !== row.baseline_value
+            ))
+            .map(row => ({
+                entry_id: row.entry_id,
+                line_start: row.line_start,
+                line_end: row.line_end,
+                content: row.final_value || '',
+            }));
+    }, [rows]);
+
+    const commentChangeCount = useMemo(() => getStructurePatches().length, [getStructurePatches]);
+
+    const updateRowFinalValue = useCallback((entryId, value) => {
+        setRows(currentRows => currentRows.map(row => (
+            row.entry_id === entryId
+                ? { ...row, final_value: value }
+                : row
+        )));
+    }, []);
+
+    const settleStructureChanges = useCallback((keepChanges) => {
+        setRows(currentRows => currentRows.map(row => {
+            if (row.row_type !== 'structure' || !row.editable) return row;
+            return keepChanges
+                ? { ...row, baseline_value: row.final_value }
+                : { ...row, final_value: row.baseline_value };
+        }));
+    }, []);
+
     const extractLocalizationKeys = useCallback((content) => {
         const keys = new Set();
         const regex = /^\s*([^:\s]+)\s*:\s*([0-9]*)\s*"/gm;
@@ -127,25 +172,34 @@ export const useEditorContent = () => {
     }, [t]);
 
     const loadEditorData = useCallback(async (pId, sourceFilePath, targetId) => {
+        const requestId = ++loadRequestRef.current;
         setLoading(true);
         try {
-            if (sourceFilePath && sourceFilePath.trim() !== '') {
-                try {
-                    const readRes = await api.post('/api/system/read_file', { file_path: sourceFilePath });
-                    setOriginalContentStr(readRes.data.content || "");
-                } catch (readError) {
-                    console.error("Failed to read source file:", readError);
-                    setOriginalContentStr("");
-                }
-            } else {
-                setOriginalContentStr("");
-            }
+            const sourceRequest = sourceFilePath && sourceFilePath.trim() !== ''
+                ? api.post('/api/system/read_file', { file_path: sourceFilePath })
+                    .then(response => response.data.content || "")
+                    .catch(readError => {
+                        console.error("Failed to read source file:", readError);
+                        return "";
+                    })
+                : Promise.resolve("");
+            const targetRequest = targetId
+                ? api.get(`/api/proofread/${pId}/${targetId}`)
+                : Promise.resolve(null);
 
-            if (targetId) {
-                const resTarget = await api.get(`/api/proofread/${pId}/${targetId}`);
+            const [sourceContent, resTarget] = await Promise.all([sourceRequest, targetRequest]);
+            if (requestId !== loadRequestRef.current) return;
+
+            setOriginalContentStr(sourceContent);
+
+            if (resTarget) {
                 const data = resTarget.data;
                 setFileInfo({ path: data.file_path, project_id: pId, file_id: targetId });
                 setEntries(data.entries || []);
+                setRows((data.rows || []).map(row => ({
+                    ...row,
+                    baseline_value: row.final_value,
+                })));
 
                 let contentToSet = "";
                 if (data.ai_content) {
@@ -173,18 +227,34 @@ export const useEditorContent = () => {
                 setAiContentStr("");
                 setFinalContentStr("");
                 setEntries([]);
+                setRows([]);
                 setFileInfo(null);
                 setBaselineKeys(new Set());
             }
         } catch (error) {
+            if (requestId !== loadRequestRef.current) return;
             console.error("Failed to load editor data", error);
             const detail = error.response?.data?.detail;
             const message = getProofreadingLoadErrorMessage(detail);
-            notifications.show({ title: 'Error', message, color: 'red' });
+            notifications.show({ title: t('proofreading.notifications.error'), message, color: 'red' });
         } finally {
-            setLoading(false);
+            if (requestId === loadRequestRef.current) {
+                setLoading(false);
+            }
         }
-    }, [alignEntries, extractLocalizationKeys, getProofreadingLoadErrorMessage]); // draftCache removed from deps
+    }, [alignEntries, extractLocalizationKeys, getProofreadingLoadErrorMessage, t]); // draftCache removed from deps
+
+    const clearEditorData = useCallback(() => {
+        loadRequestRef.current += 1;
+        setOriginalContentStr('');
+        setAiContentStr('');
+        setFinalContentStr('');
+        setEntries([]);
+        setRows([]);
+        setFileInfo(null);
+        setBaselineKeys(new Set());
+        setLoading(false);
+    }, []);
 
     // Auto-save draft
     useEffect(() => {
@@ -254,15 +324,22 @@ export const useEditorContent = () => {
 
     return {
         entries,
+        rows,
         originalContentStr,
         aiContentStr,
         finalContentStr,
         setFinalContentStr,
+        updateRowFinalValue,
+        commentChangeCount,
+        getStructurePatches,
+        settleStructureChanges,
         loading,
         fileInfo,
         keyChangeWarning,
         loadEditorData,
+        clearEditorData,
         parseEditorContentToEntries,
+        getRowsAsSaveEntries,
         originalEditorRef,
         aiEditorRef,
         finalEditorRef

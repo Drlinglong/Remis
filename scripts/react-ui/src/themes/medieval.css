@@ -8,6 +8,14 @@
     --medieval-ink: #F5E6D3;
     --medieval-gold-border: #B8860B;
 
+    --menu-bg: rgba(31, 24, 16, 0.98);
+    --menu-text: #F5E6D3;
+    --menu-muted: #C4A875;
+    --menu-border: #B8860B;
+    --menu-hover-bg: #4A3926;
+    --menu-selected-bg: #6A321F;
+    --menu-selected-text: #FFF4D6;
+
     --mantine-color-dark-9: var(--medieval-parchment-darker);
     --mantine-color-dark-8: var(--medieval-parchment);
     --mantine-color-dark-7: #3D2F1E;

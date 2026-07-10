@@ -40,12 +40,14 @@ vi.mock('react-router-dom', () => ({
 }));
 
 vi.mock('../utils/fileGrouping', () => ({
-  groupFiles: vi.fn(() => ({
-    sources: [{ file_id: 'source-1', file_path: 'events_l_english.yml' }],
-    targetsMap: {
-      'source-1': [{ file_id: 'target-1', file_path: 'events_l_simp_chinese.yml' }],
-    },
-  })),
+  groupFiles: vi.fn((files) => {
+    const source = files.find(file => file.file_path.includes('_l_english'));
+    const target = files.find(file => file.file_path.includes('_l_simp_chinese'));
+    return {
+      sources: source ? [source] : [],
+      targetsMap: source && target ? { [source.file_id]: [target] } : {},
+    };
+  }),
 }));
 
 describe('useFileNavigation', () => {
@@ -60,6 +62,11 @@ describe('useFileNavigation', () => {
             {
               project_id: 'proj-1',
               name: 'Demo Project',
+              source_language: 'english',
+            },
+            {
+              project_id: 'proj-2',
+              name: 'Second Project',
               source_language: 'english',
             },
           ],
@@ -88,7 +95,7 @@ describe('useFileNavigation', () => {
       expect(result.current.currentSourceFile?.file_id).toBe('source-1');
     });
 
-    expect(result.current.projects).toHaveLength(1);
+    expect(result.current.projects).toHaveLength(2);
     expect(result.current.currentTargetFile).toEqual({
       file_id: 'target-1',
       file_path: 'events_l_simp_chinese.yml',
@@ -99,7 +106,7 @@ describe('useFileNavigation', () => {
     const { result } = renderHook(() => useFileNavigation());
 
     await waitFor(() => {
-      expect(result.current.projects).toHaveLength(1);
+      expect(result.current.projects).toHaveLength(2);
     });
 
     act(() => {
@@ -107,6 +114,52 @@ describe('useFileNavigation', () => {
     });
 
     expect(setSearchParamsMock).toHaveBeenCalledWith({ projectId: 'proj-1' });
+  });
+
+  it('clears the previous project files before loading the newly selected project', async () => {
+    let resolveSecondProject;
+    api.get.mockImplementation((url) => {
+      if (url === '/api/projects?status=active') {
+        return Promise.resolve({
+          data: [
+            { project_id: 'proj-1', name: 'Demo Project', source_language: 'english' },
+            { project_id: 'proj-2', name: 'Second Project', source_language: 'english' },
+          ],
+        });
+      }
+      if (url === '/api/project/proj-1/files') {
+        return Promise.resolve({
+          data: [
+            { file_id: 'source-1', file_path: 'events_l_english.yml' },
+            { file_id: 'target-1', file_path: 'events_l_simp_chinese.yml' },
+          ],
+        });
+      }
+      if (url === '/api/project/proj-2/files') {
+        return new Promise(resolve => {
+          resolveSecondProject = resolve;
+        });
+      }
+      return Promise.reject(new Error(`unexpected GET ${url}`));
+    });
+
+    const { result } = renderHook(() => useFileNavigation());
+
+    await waitFor(() => {
+      expect(result.current.currentTargetFile?.file_id).toBe('target-1');
+    });
+
+    act(() => {
+      result.current.handleProjectSelect('proj-2');
+    });
+
+    expect(result.current.selectedProject?.project_id).toBe('proj-2');
+    expect(result.current.currentSourceFile).toBeNull();
+    expect(result.current.currentTargetFile).toBeNull();
+
+    await act(async () => {
+      resolveSecondProject({ data: [] });
+    });
   });
 
   it('switches source file and syncs the chosen target file into URL params', async () => {

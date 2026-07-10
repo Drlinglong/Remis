@@ -20,6 +20,12 @@ vi.mock('@mantine/notifications', () => ({
     },
 }));
 
+vi.mock('react-i18next', () => ({
+    useTranslation: () => ({
+        t: key => key,
+    }),
+}));
+
 describe('useProofreadingState', () => {
     it('initializes with default values', async () => {
         const { result } = renderHook(() => useProofreadingState());

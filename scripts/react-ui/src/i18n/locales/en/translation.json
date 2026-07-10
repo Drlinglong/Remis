@@ -1532,6 +1532,78 @@
   },
   "proofreading": {
     "target_language": "Target Language",
+    "scale": "Scale",
+    "select_project_placeholder": "Select a project",
+    "original": "Source file",
+    "ai_draft": "AI draft",
+    "final_edit": "Final edit",
+    "open_folder": "Open folder",
+    "select_source_file": "Select source file",
+    "select_translation": "Select translation",
+    "validate": "Validate",
+    "save": "Save",
+    "search": "Search keys and text",
+    "changed": "Changed",
+    "issue": "Issue",
+    "validation_issue": "Validation issue",
+    "not_applicable": "Not applicable",
+    "edit_comment": "Edit comment",
+    "edit_final": "Edit final translation for {{key}}",
+    "blank_lines": "{{count}} blank line(s)",
+    "no_entries": "No entries match the current filter.",
+    "validation_results": "Validation results",
+    "mode": {
+      "soft_protection": "Entry mode protects keys while allowing translation and comment edits."
+    },
+    "tabs": {
+      "entries": "Entries",
+      "raw": "Raw file"
+    },
+    "columns": {
+      "key": "Key",
+      "source": "Source",
+      "ai_draft": "AI draft",
+      "final": "Final"
+    },
+    "filter": {
+      "all": "All",
+      "changed": "Changed",
+      "issues": "Issues"
+    },
+    "structure": {
+      "comment": "Comment",
+      "blank": "Blank",
+      "header": "Header",
+      "raw": "Structure"
+    },
+    "hint": {
+      "original_source": "Original source file used as the translation reference.",
+      "ai_source": "AI draft loaded from the project archive or translated file.",
+      "final_source": "Final content saved to the selected translation file.",
+      "comments_ignored": "Raw mode is intended for advanced inspection."
+    },
+    "warning": {
+      "key_modified": "Key changed",
+      "key_modified_title": "Localization keys were changed",
+      "key_modified_desc": "Entry patching uses the original keys. Review the raw edit before saving."
+    },
+    "tooltips": {
+      "errors": "Errors",
+      "warnings": "Warnings"
+    },
+    "notifications": {
+      "error": "Error",
+      "perfect": "No issues",
+      "perfect_message": "No validation issues were found.",
+      "issues_found": "Issues found",
+      "issues_found_message": "Found {{errors}} errors and {{warnings}} warnings.",
+      "validation_failed": "Validation failed.",
+      "saved": "Saved",
+      "saved_message": "File saved successfully.",
+      "save_failed": "Failed to save file.",
+      "folder_opened": "Folder opened",
+      "folder_failed": "Failed to open folder"
+    },
     "errors": {
       "project_not_found": "Cannot load proofreading data because the project no longer exists.",
       "file_not_indexed": "Cannot load proofreading data because this file is not in the current project file index. Refresh project files and try again.",
@@ -1540,10 +1612,15 @@
       "data_preparation_failed": "Cannot prepare proofreading data for this file. Check that the source and translation files are valid localization files."
     },
     "modal": {
-      "title": "Invalid Operation Warning",
+      "title": "Review changes before saving",
       "content_1": "You changed the **Key** in the editor.",
       "content_2": "The editor is currently in **Patching Mode**. In this mode, the system locates entries by the original file key and only replaces the value. **Your key edits will be discarded on save**; only value changes will be preserved.",
-      "button_cancel": "Go Back and Edit"
+      "comments_title": "{{count}} comment block(s) changed",
+      "comments_content": "Choose whether to save the edited comments with the translations or discard only the comment edits.",
+      "confirm": "How would you like to save these changes?",
+      "button_cancel": "Go back",
+      "button_discard_comments": "Save translations only",
+      "button_confirm": "Save all changes"
     }
   },
   "homepage_greetings": {

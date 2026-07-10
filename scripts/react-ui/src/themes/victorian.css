@@ -8,6 +8,14 @@
     --victorian-ivory: #FFFFF0;
     --victorian-copper-green: #4A7C59;
 
+    --menu-bg: rgba(42, 24, 16, 0.98);
+    --menu-text: #FFFFF0;
+    --menu-muted: #D8C8A8;
+    --menu-border: #B8860B;
+    --menu-hover-bg: #4A3020;
+    --menu-selected-bg: #6B4B1F;
+    --menu-selected-text: #FFF8DC;
+
     --mantine-color-dark-9: var(--victorian-wood-darker);
     --mantine-color-dark-8: var(--victorian-wood-dark);
     --mantine-color-dark-7: #3D2818;

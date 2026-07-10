@@ -7,6 +7,14 @@
     --byzantine-gold-border: #B8860B;
     --byzantine-ivory: #F8F5E4;
 
+    --menu-bg: rgba(255, 248, 225, 0.98);
+    --menu-text: #3E2723;
+    --menu-muted: #6D4C41;
+    --menu-border: #B8860B;
+    --menu-hover-bg: #F0DCA2;
+    --menu-selected-bg: #E4C66A;
+    --menu-selected-text: #2E1A47;
+
     --mantine-color-dark-9: var(--byzantine-purple-darker);
     --mantine-color-dark-8: var(--byzantine-purple-dark);
     --mantine-color-dark-7: #3D2456;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import { groupFiles as performGrouping } from '../utils/fileGrouping';
@@ -20,6 +20,7 @@ export const useFileNavigation = () => {
     const [targetFilesMap, setTargetFilesMap] = useState({});
     const [currentSourceFile, setCurrentSourceFile] = useState(null);
     const [currentTargetFile, setCurrentTargetFile] = useState(null);
+    const projectFilesRequestRef = useRef(0);
 
     // ==================== Actions ====================
     const fetchProjects = useCallback(async () => {
@@ -39,19 +40,27 @@ export const useFileNavigation = () => {
     }, []);
 
     const fetchProjectFiles = useCallback(async (projectId, project) => {
+        const requestId = ++projectFilesRequestRef.current;
         try {
             const res = await api.get(`/api/project/${projectId}/files`);
-            if (res.data) {
+            if (requestId === projectFilesRequestRef.current && res.data) {
                 groupFiles(res.data, project);
             }
         } catch (error) {
-            console.error("Failed to load project files", error);
+            if (requestId === projectFilesRequestRef.current) {
+                console.error("Failed to load project files", error);
+            }
         }
     }, [groupFiles]);
 
     const handleProjectSelect = useCallback((val) => {
         const proj = projects.find(p => p.project_id === val);
         if (proj) {
+            projectFilesRequestRef.current += 1;
+            setSourceFiles([]);
+            setTargetFilesMap({});
+            setCurrentSourceFile(null);
+            setCurrentTargetFile(null);
             setSelectedProject(proj);
             setSearchParams({ projectId: proj.project_id });
         }
@@ -100,6 +109,10 @@ export const useFileNavigation = () => {
     // Fetch files when project changes
     useEffect(() => {
         if (selectedProject) {
+            setSourceFiles([]);
+            setTargetFilesMap({});
+            setCurrentSourceFile(null);
+            setCurrentTargetFile(null);
             fetchProjectFiles(selectedProject.project_id, selectedProject);
         }
     }, [selectedProject, fetchProjectFiles]);
@@ -174,4 +187,3 @@ export const useFileNavigation = () => {
         setSearchParams
     };
 };
-

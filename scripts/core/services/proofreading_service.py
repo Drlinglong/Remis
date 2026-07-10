@@ -23,6 +23,199 @@ class ProofreadingService:
         self.project_manager = project_manager
         self.archive_manager = archive_manager
 
+    def _classify_structure_line(self, line: str) -> str:
+        stripped = line.strip()
+        if not stripped:
+            return "blank"
+        if stripped.startswith("#"):
+            return "comment"
+        if re.match(r"^\s*l_[\w-]+:\s*$", line, re.IGNORECASE):
+            return "header"
+        return "raw"
+
+    def _collect_structure_blocks(
+        self,
+        lines: List[str],
+        structure_type: str,
+    ) -> List[Dict[str, Any]]:
+        blocks = []
+        start = None
+        for line_num, line in enumerate(lines):
+            matches = self._classify_structure_line(line) == structure_type
+            if matches and start is None:
+                start = line_num
+            if start is not None and (not matches or line_num == len(lines) - 1):
+                end = line_num if matches and line_num == len(lines) - 1 else line_num - 1
+                blocks.append({
+                    "start": start,
+                    "end": end,
+                    "lines": lines[start:end + 1],
+                })
+                start = None
+        return blocks
+
+    def _build_proofreading_rows(
+        self,
+        original_lines: List[str],
+        texts_to_translate: List[str],
+        key_map: Dict[int, Dict[str, Any]],
+        ai_translated_texts: List[str],
+        disk_translated_texts: List[str],
+        target_lines: List[str] = None,
+    ) -> List[Dict[str, Any]]:
+        entry_by_line = {}
+        for idx, source_value in enumerate(texts_to_translate):
+            line_info = key_map[idx]
+            line_num = line_info["line_num"]
+            entry_by_line[line_num] = {
+                "entry_id": f"entry-{idx}",
+                "row_type": "translation",
+                "line_number": line_num + 1,
+                "key": line_info["key_part"].strip(),
+                "source_value": source_value,
+                "ai_value": ai_translated_texts[idx] if idx < len(ai_translated_texts) else "",
+                "final_value": disk_translated_texts[idx] if idx < len(disk_translated_texts) else "",
+                "editable": True,
+                "issues": [],
+            }
+
+        target_lines = target_lines or original_lines
+        source_comment_blocks = self._collect_structure_blocks(original_lines, "comment")
+        target_comment_blocks = self._collect_structure_blocks(target_lines, "comment")
+        target_comments_by_source_start = {}
+        if len(source_comment_blocks) == len(target_comment_blocks):
+            target_comments_by_source_start = {
+                source_block["start"]: target_block["lines"]
+                for source_block, target_block in zip(source_comment_blocks, target_comment_blocks)
+            }
+        rows = []
+        pending_structure = None
+
+        def structure_value(lines: List[str]) -> str:
+            return "\n".join(line.rstrip("\r\n") for line in lines)
+
+        def flush_structure():
+            nonlocal pending_structure
+            if not pending_structure:
+                return
+
+            start = pending_structure["start"]
+            end = pending_structure["end"]
+            structure_type = pending_structure["structure_type"]
+            source_block = original_lines[start:end + 1]
+            target_block = target_comments_by_source_start.get(start) if structure_type == "comment" else None
+            if target_block is None:
+                target_block = []
+                for line_num in range(start, end + 1):
+                    source_line = original_lines[line_num]
+                    target_line = target_lines[line_num] if line_num < len(target_lines) else source_line
+                    if self._classify_structure_line(target_line) != self._classify_structure_line(source_line):
+                        target_line = source_line
+                    target_block.append(target_line)
+
+            source_value = structure_value(source_block)
+            final_value = structure_value(target_block)
+            rows.append({
+                "entry_id": f"structure-{structure_type}-{start}-{end}",
+                "row_type": "structure",
+                "structure_type": structure_type,
+                "line_number": start + 1,
+                "line_start": start + 1,
+                "line_end": end + 1,
+                "raw_source_line": source_value,
+                "display_text": source_value,
+                "source_value": source_value,
+                "final_value": final_value,
+                "editable": structure_type == "comment",
+            })
+            pending_structure = None
+
+        for line_num, line in enumerate(original_lines):
+            if line_num in entry_by_line:
+                flush_structure()
+                row = dict(entry_by_line[line_num])
+                row["raw_source_line"] = line.rstrip("\n")
+                rows.append(row)
+                continue
+
+            structure_type = self._classify_structure_line(line)
+            can_group = structure_type in {"comment", "blank"}
+            if (
+                can_group
+                and pending_structure
+                and pending_structure["structure_type"] == structure_type
+                and pending_structure["end"] == line_num - 1
+            ):
+                pending_structure["end"] = line_num
+                continue
+
+            flush_structure()
+            pending_structure = {
+                "start": line_num,
+                "end": line_num,
+                "structure_type": structure_type,
+            }
+
+        flush_structure()
+
+        return rows
+
+    def _build_preserved_comment_patches(
+        self,
+        source_lines: List[str],
+        target_lines: List[str],
+    ) -> List[Dict[str, Any]]:
+        source_blocks = self._collect_structure_blocks(source_lines, "comment")
+        target_blocks = self._collect_structure_blocks(target_lines, "comment")
+        if len(source_blocks) != len(target_blocks):
+            logger.warning(
+                "ProofreadingService: Cannot preserve target comments because comment block counts differ (%s source, %s target).",
+                len(source_blocks),
+                len(target_blocks),
+            )
+            return []
+
+        return [
+            {
+                "entry_id": f"preserved-comment-{source_block['start']}-{source_block['end']}",
+                "line_start": source_block["start"] + 1,
+                "line_end": source_block["end"] + 1,
+                "content": "\n".join(line.rstrip("\r\n") for line in target_block["lines"]),
+            }
+            for source_block, target_block in zip(source_blocks, target_blocks)
+        ]
+
+    def _apply_structure_patches(
+        self,
+        lines: List[str],
+        structure_patches: List[Dict[str, Any]],
+    ) -> List[str]:
+        patched_lines = list(lines)
+        ordered_patches = sorted(
+            structure_patches or [],
+            key=lambda patch: patch["line_start"],
+            reverse=True,
+        )
+
+        for patch in ordered_patches:
+            start = int(patch["line_start"]) - 1
+            end = int(patch["line_end"])
+            if start < 0 or end <= start or end > len(lines):
+                raise ValueError("Comment patch line range is outside the source file.")
+            if any(self._classify_structure_line(line) != "comment" for line in lines[start:end]):
+                raise ValueError("Only comment rows can be changed from the proofreading table.")
+
+            content = str(patch.get("content", ""))
+            if not content.strip():
+                raise ValueError("Comment blocks cannot be empty.")
+            replacement_lines = [f"{line}\n" for line in content.split("\n")]
+            if any(line.strip() and not line.lstrip().startswith("#") for line in replacement_lines):
+                raise ValueError("Edited comment lines must remain comments.")
+
+            patched_lines[start:end] = replacement_lines
+
+        return patched_lines
+
     async def find_source_template(self, target_path: str, source_lang: str, current_lang: str, project_id: str = None) -> str:
         """
         Robustly finds the source template file path given the target file path.
@@ -184,8 +377,9 @@ class ProofreadingService:
             
             # Disk State
             disk_translation_map = {}
+            target_lines = original_lines
             if os.path.exists(target_file_path):
-                _, target_texts, target_map = QuoteExtractor.extract_from_file(target_file_path)
+                target_lines, target_texts, target_map = QuoteExtractor.extract_from_file(target_file_path)
                 for i, text in enumerate(target_texts):
                     if i in target_map:
                         disk_translation_map[target_map[i]['key_part'].strip()] = text
@@ -227,12 +421,21 @@ class ProofreadingService:
 
             ai_lines = patch_file_content(original_lines, texts_to_translate, ai_translated_texts, key_map, source_lang_key, current_lang_key)
             final_lines = patch_file_content(original_lines, texts_to_translate, disk_translated_texts, key_map, source_lang_key, current_lang_key)
+            proofreading_rows = self._build_proofreading_rows(
+                original_lines,
+                texts_to_translate,
+                key_map,
+                ai_translated_texts,
+                disk_translated_texts,
+                target_lines,
+            )
 
             return {
                 "file_id": file_id,
                 "file_path": target_file_path,
                 "mod_name": project['name'],
                 "entries": entries,
+                "rows": proofreading_rows,
                 "file_content": original_content,
                 "ai_content": "".join(ai_lines),
                 "final_content": "".join(final_lines)
@@ -245,7 +448,13 @@ class ProofreadingService:
                 status_code=500,
             ) from e
 
-    async def save_proofread_data(self, project_id: str, file_id: str, entries_list: List[Dict]) -> bool:
+    async def save_proofread_data(
+        self,
+        project_id: str,
+        file_id: str,
+        entries_list: List[Dict],
+        structure_patches: List[Dict[str, Any]] = None,
+    ) -> bool:
         """
         Saves user-corrected translations back to the target file.
         """
@@ -291,6 +500,7 @@ class ProofreadingService:
 
             # 3. Read Template and Prepare Data
             original_lines, texts_to_translate, key_map = QuoteExtractor.extract_from_file(template_file_path)
+            target_lines, _, _ = QuoteExtractor.extract_from_file(target_file_path)
             user_translation_map = {e['key']: e['translation'] for e in entries_list}
             
             translated_texts = []
@@ -300,6 +510,16 @@ class ProofreadingService:
                 
             # 4. Patch and Write
             patched_lines = patch_file_content(original_lines, texts_to_translate, translated_texts, key_map, source_lang_key, current_lang_key)
+            preserved_patches = self._build_preserved_comment_patches(original_lines, target_lines)
+            merged_patches = {
+                (patch["line_start"], patch["line_end"]): patch
+                for patch in preserved_patches
+            }
+            merged_patches.update({
+                (patch["line_start"], patch["line_end"]): patch
+                for patch in (structure_patches or [])
+            })
+            patched_lines = self._apply_structure_patches(patched_lines, list(merged_patches.values()))
             
             with open(target_file_path, 'w', encoding='utf-8-sig') as f:
                 f.writelines(patched_lines)

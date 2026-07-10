@@ -8,6 +8,14 @@
     --wwii-manila: #F5E6D3;
     --wwii-gunmetal: #8B7355;
 
+    --menu-bg: #FCF5E5;
+    --menu-text: #2A2A1E;
+    --menu-muted: #56563D;
+    --menu-border: #8B7355;
+    --menu-hover-bg: #E7D8BC;
+    --menu-selected-bg: #C9B68E;
+    --menu-selected-text: #1F1F16;
+
     --mantine-color-dark-9: var(--wwii-olive-darker);
     --mantine-color-dark-8: var(--wwii-olive);
     --mantine-color-dark-7: #4A4A33;

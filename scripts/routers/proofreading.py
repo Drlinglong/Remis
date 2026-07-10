@@ -33,7 +33,8 @@ async def save_proofread_data(request: SaveProofreadingRequest):
     success = await proofreading_service.save_proofread_data(
         request.project_id, 
         request.file_id, 
-        [{'key': e.key, 'translation': e.translation} for e in request.entries]
+        [{'key': e.key, 'translation': e.translation} for e in request.entries],
+        [patch.model_dump() for patch in request.structure_patches],
     )
     if not success:
         raise HTTPException(status_code=500, detail="Failed to save proofreading data")
