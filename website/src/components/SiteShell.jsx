@@ -67,7 +67,7 @@ function Header({ activePage }) {
         </nav>
 
         <a className="github-link" href={links.github} target="_blank" rel="noreferrer">
-          Source <Arrow external />
+          GitHub <Arrow external />
         </a>
 
         <details className="mobile-nav">
@@ -76,7 +76,7 @@ function Header({ activePage }) {
             {pages.map((page) => (
               <a key={page.key} href={sitePath(page.path)}>{page.label}</a>
             ))}
-            <a href={links.github} target="_blank" rel="noreferrer">Source ↗</a>
+            <a href={links.github} target="_blank" rel="noreferrer">GitHub ↗</a>
           </nav>
         </details>
       </div>
@@ -90,7 +90,7 @@ function Footer() {
       <div className="container footer-grid">
         <div>
           <div className="footer-brand"><BrandMark /><strong>REMIS</strong></div>
-          <p>Open-source, local-first AI workflows for Paradox mod localization.</p>
+          <p>Open-source desktop AI orchestration for Paradox mod localization.</p>
         </div>
         <div>
           <span className="footer-label">Explore</span>

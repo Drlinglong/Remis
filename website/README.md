@@ -2,6 +2,11 @@
 
 React/Vite source for the Remis GitHub Pages site.
 
+The public positioning is a mature open-source desktop AI product, not a commercial
+SaaS. The homepage uses `The operating system for AI localization.` as the category
+statement, then distinguishes local project control from cloud-or-local model
+inference. Future RAG and agent claims must retain visible delivery status.
+
 ## Local development
 
 ```powershell
@@ -28,3 +33,17 @@ The site is a true multi-page Vite build. Each public route has its own HTML ent
 - `/Remis/roadmap/`
 
 GitHub Actions deploys `website/dist` when site changes land on `main`.
+
+## Engineering diagrams
+
+The Engineering page republishes the repository's existing animated workflow SVGs:
+
+- `public/assets/project-management-workflow.svg`
+- `public/assets/incremental-update-workflow.svg`
+- `public/assets/agentic-repair-workflow.svg`
+
+These are copied from the README assets in the repository root so GitHub Pages can
+serve them under the `/Remis/` base path. Keep the public copies synchronized when the
+source workflows change. The page supplies adjacent text for input, retained state,
+model role, and recovery behaviour; reduced-motion visitors receive the text without
+the animated image.
