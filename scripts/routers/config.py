@@ -1,18 +1,20 @@
 import os
 import json
 import logging
+import requests
 from fastapi import APIRouter, HTTPException
 from dotenv import load_dotenv
 
 from scripts.app_settings import API_PROVIDERS, get_api_key, get_appdata_config_path, GAME_PROFILES, LANGUAGES
-from scripts.schemas.config import UpdateApiKeyRequest, UpdateProviderConfigRequest
+from scripts.schemas.config import TestProviderConnectionRequest, UpdateApiKeyRequest, UpdateProviderConfigRequest
 from scripts.app_settings import config_manager
 from scripts.utils.system_utils import sanitize_for_json
 
 router = APIRouter()
 
-LOCAL_OPENAI_COMPATIBLE_PROVIDERS = {"lm_studio", "vllm", "koboldcpp", "oobabooga"}
+LOCAL_OPENAI_COMPATIBLE_PROVIDERS = {"lm_studio", "vllm", "koboldcpp", "oobabooga", "text-generation-webui"}
 OPENAI_ENDPOINT_SUFFIXES = ("/chat/completions", "/responses")
+LOCAL_PROVIDER_IDS = LOCAL_OPENAI_COMPATIBLE_PROVIDERS | {"ollama"}
 
 
 def _validate_local_openai_base_url(provider_id: str, api_url: str) -> None:
@@ -29,6 +31,10 @@ def _validate_local_openai_base_url(provider_id: str, api_url: str) -> None:
                 "or /chat/completions."
             ),
         )
+
+
+def _local_provider_display_name(provider_id: str) -> str:
+    return API_PROVIDERS.get(provider_id, {}).get("name", provider_id.replace("_", " ").title())
 
 @router.get("/api/config")
 def get_config():
@@ -189,6 +195,40 @@ def update_provider_config(payload: UpdateProviderConfigRequest):
     config_manager.set_value("provider_config", current_overrides)
     
     return {"status": "success"}
+
+
+@router.post("/api/providers/test-connection")
+def test_provider_connection(payload: TestProviderConnectionRequest):
+    """Checks whether a configured local LLM service is reachable."""
+    if payload.provider_id not in LOCAL_PROVIDER_IDS:
+        raise HTTPException(status_code=400, detail="Connection testing is only available for local providers")
+
+    api_url = payload.api_url.strip().rstrip("/")
+    if not api_url:
+        raise HTTPException(status_code=400, detail="API URL is required")
+    _validate_local_openai_base_url(payload.provider_id, api_url)
+
+    endpoint = (
+        f"{api_url}/api/version"
+        if payload.provider_id == "ollama"
+        else f"{api_url}/models"
+    )
+    provider_name = _local_provider_display_name(payload.provider_id)
+    try:
+        response = requests.get(endpoint, timeout=5)
+        if response.status_code >= 400:
+            raise requests.HTTPError(f"HTTP {response.status_code}")
+    except (requests.RequestException, OSError) as exc:
+        logging.warning("Local provider connection test failed for %s at %s: %s", provider_name, api_url, exc)
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"无法连接 {provider_name}：Remis 正在访问 {api_url}。"
+                "请检查本地服务是否已启动，并确认端口设置正确。"
+            ),
+        ) from exc
+
+    return {"status": "success", "provider": provider_name, "api_url": api_url}
 
 @router.post("/api/config/rpm")
 def update_rpm_limit(payload: dict):

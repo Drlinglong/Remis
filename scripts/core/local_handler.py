@@ -4,7 +4,7 @@ import requests
 import logging
 from typing import Any
 from urllib.parse import urlsplit
-from openai import OpenAI
+from openai import APIConnectionError, OpenAI
 
 from scripts.core.base_handler import BaseApiHandler
 
@@ -23,6 +23,24 @@ class LocalLLMHandler(BaseApiHandler):
     """
 
     OPENAI_ENDPOINT_SUFFIXES = ("/chat/completions", "/responses")
+    PROVIDER_DISPLAY_NAMES = {
+        "lm_studio": "LM Studio",
+        "vllm": "vLLM",
+        "koboldcpp": "KoboldCpp",
+        "oobabooga": "Oobabooga",
+        "text-generation-webui": "Text Generation WebUI",
+        "ollama": "Ollama",
+    }
+
+    def _connection_error_message(self) -> str:
+        provider_name = self.PROVIDER_DISPLAY_NAMES.get(
+            self.provider_name,
+            self.provider_name.replace("_", " ").title(),
+        )
+        return (
+            f"无法连接 {provider_name}：Remis 正在访问 {self.base_url}。"
+            "请检查本地服务是否已启动，并确认端口设置正确。"
+        )
 
     @classmethod
     def _validate_openai_base_url(cls, raw_url: str) -> str:
@@ -136,6 +154,10 @@ class LocalLLMHandler(BaseApiHandler):
             response.raise_for_status()
             return response.json().get("response", "").strip()
 
+        except requests.ConnectionError as e:
+            message = self._connection_error_message()
+            self.logger.error(message)
+            raise ConnectionError(message) from e
         except Exception as e:
             self.logger.exception(f"Ollama Native API call failed: {e}")
             raise
@@ -196,6 +218,10 @@ class LocalLLMHandler(BaseApiHandler):
                     f"Model '{model_name}' may not be loaded, or the endpoint at {self.base_url} is not serving chat completions."
                 )
             return content.strip()
+        except APIConnectionError as e:
+            message = self._connection_error_message()
+            self.logger.error(message)
+            raise ConnectionError(message) from e
         except Exception as e:
              # Check for context length error message in the exception string or checking type if imported
              error_str = str(e).lower()

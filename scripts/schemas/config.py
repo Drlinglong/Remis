@@ -19,3 +19,7 @@ class UpdateProviderConfigRequest(BaseModel):
     selected_model: Optional[str] = None # Currently selected model
     prompt_prefix: Optional[str] = None # Optional text prepended to user prompts, e.g. /no_think
     system_prompt_suffix: Optional[str] = None # Optional text appended to provider system prompts
+
+class TestProviderConnectionRequest(BaseModel):
+    provider_id: str
+    api_url: str

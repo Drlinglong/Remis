@@ -73,6 +73,27 @@ def test_stream_processor_treats_source_fallback_as_file_failure():
     assert is_failed is True
 
 
+def test_parallel_processor_surfaces_local_connection_failure_message():
+    processor = ParallelProcessor(max_workers=1, chunk_size_override=1)
+    file_task = _file_task()
+    connection_message = (
+        "无法连接 LM Studio：Remis 正在访问 http://127.0.0.1:1234/v1。"
+        "请检查本地服务是否已启动，并确认端口设置正确。"
+    )
+
+    def failed_translation(task: BatchTask) -> BatchTask:
+        task.failed = True
+        task.fell_back_to_source = True
+        task.translated_texts = task.texts
+        task.warnings.append({"type": "api_error", "message": connection_message})
+        return task
+
+    with pytest.raises(RuntimeError, match="无法连接 LM Studio") as exc_info:
+        processor.process_files_parallel([file_task], failed_translation)
+
+    assert connection_message in str(exc_info.value)
+
+
 def test_stream_processor_preserves_batch_warnings():
     processor = ParallelProcessor(max_workers=1, chunk_size_override=1)
     file_task = _file_task()

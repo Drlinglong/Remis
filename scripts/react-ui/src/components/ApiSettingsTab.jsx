@@ -49,13 +49,13 @@ const PROVIDER_GROUPS = {
     local: {
         title_key: 'api_group_local',
         icon: <IconHome size={20} />,
-        providers: ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga']
+        providers: ['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui']
     }
 };
 
 const GLOBAL_CUSTOM_PROVIDER_ID = 'your_favourite_api';
-const URL_EDITABLE_PROVIDER_IDS = ['lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'ollama'];
-const LOCAL_OPENAI_PROVIDER_IDS = ['lm_studio', 'vllm', 'koboldcpp', 'oobabooga'];
+const URL_EDITABLE_PROVIDER_IDS = ['lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui', 'ollama'];
+const LOCAL_OPENAI_PROVIDER_IDS = ['lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui'];
 const OLLAMA_PROVIDER_ID = 'ollama';
 const CONCRETE_OPENAI_ENDPOINTS = ['/responses', '/chat/completions'];
 
@@ -89,6 +89,7 @@ const ApiSettingsTab = () => {
     });
 
     const [submitting, setSubmitting] = useState(false);
+    const [testingConnection, setTestingConnection] = useState(false);
 
     const fetchProviders = useCallback(async () => {
         try {
@@ -173,6 +174,34 @@ const ApiSettingsTab = () => {
         }
     };
 
+    const handleTestConnection = async (providerId) => {
+        if (isConcreteOpenAIEndpoint(providerId, editForm.apiUrl)) {
+            notifications.show({ title: t('error'), message: t('api_url_endpoint_error'), color: 'red' });
+            return;
+        }
+
+        setTestingConnection(true);
+        try {
+            await api.post('/api/providers/test-connection', {
+                provider_id: providerId,
+                api_url: editForm.apiUrl,
+            });
+            notifications.show({
+                title: t('api_test_connection'),
+                message: t('api_connection_success'),
+                color: 'green',
+            });
+        } catch (error) {
+            notifications.show({
+                title: t('api_connection_failed'),
+                message: error.response?.data?.detail || error.message,
+                color: 'red',
+            });
+        } finally {
+            setTestingConnection(false);
+        }
+    };
+
     // Helper to render a single provider card
     const renderProviderCard = (provider) => {
         if (!provider) return null;
@@ -225,6 +254,7 @@ const ApiSettingsTab = () => {
 
                             {/* Show URL edit for Custom OR Local models */}
                             {canEditUrl && (
+                                <>
                                 <TextInput
                                     label={t('api_url_label', 'API Base URL')}
                                     placeholder={getApiUrlPlaceholder(provider.id)}
@@ -242,6 +272,18 @@ const ApiSettingsTab = () => {
                                         </Tooltip>
                                     }
                                 />
+                                {LOCAL_OPENAI_PROVIDER_IDS.includes(provider.id) || isOllamaProvider ? (
+                                    <Button
+                                        variant="light"
+                                        size="xs"
+                                        onClick={() => handleTestConnection(provider.id)}
+                                        loading={testingConnection}
+                                        disabled={!editForm.apiUrl.trim() || Boolean(apiUrlError)}
+                                    >
+                                        {t('api_test_connection')}
+                                    </Button>
+                                ) : null}
+                                </>
                             )}
 
                             <Select
