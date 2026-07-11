@@ -12,6 +12,42 @@
 *   **Structured Output**: Generates a release package that conforms to the Project Remis portable directory structure.
 *   **Optional Compression**: If 7-Zip is installed on the system, the script will automatically compress the generated release directory into a ZIP file.
 
+## Release Notes Standard
+
+Every release note must be written for ordinary users first and technical readers second.
+
+1. Begin both the English and Chinese sections with a short `Highlights` / `重点` section.
+2. Use two to five plain-language bullets to answer: What is new? What improved? What was removed or changed? Does the user need to take any action?
+3. Keep file names, function names, issue numbers, internal architecture, test commands, and other implementation details out of the opening highlights.
+4. Preserve those implementation details below under `Technical Details` / `技术细节`, followed by compatibility and validation information where applicable.
+5. Keep the English and Chinese summaries equivalent in meaning, even when their wording is adapted for readability.
+
+Recommended structure:
+
+```markdown
+## English
+
+## Highlights
+
+- **New or improved:** ...
+- **Removed or changed:** ...
+
+## Technical Details
+
+...
+
+## 中文
+
+## 重点
+
+- **新增或改进：**……
+- **移除或变更：**……
+
+## 技术细节
+
+……
+```
+
 ## Usage
 
 ### Prerequisites
