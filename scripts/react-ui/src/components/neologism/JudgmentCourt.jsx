@@ -3,16 +3,18 @@ import { useTranslation } from 'react-i18next';
 import {
     Grid, Paper, Title, Text, Stack, Group, Button,
     TextInput, ScrollArea, Badge, ActionIcon, LoadingOverlay, Box,
-    ThemeIcon, Select
+    ThemeIcon, Select, Alert
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
     IconCheck, IconX, IconBulb, IconQuote,
-    IconGavel, IconSparkles
+    IconGavel, IconSparkles, IconAlertTriangle
 } from '@tabler/icons-react';
 import api from '../../utils/api';
 
 const API_BASE_URL = '/api';
+
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * 新词审核法庭组件
@@ -27,6 +29,7 @@ const JudgmentCourt = () => {
     const [loading, setLoading] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [editSuggestion, setEditSuggestion] = useState("");
+    const [projectGlossary, setProjectGlossary] = useState(null);
 
     useEffect(() => {
         if (selectedId) {
@@ -62,6 +65,25 @@ const JudgmentCourt = () => {
         }
     }, []);
 
+    const fetchProjectGlossary = useCallback(async (projectId) => {
+        if (!projectId) {
+            setProjectGlossary(null);
+            return;
+        }
+
+        try {
+            const response = await api.get(`${API_BASE_URL}/neologisms/project-glossary/${encodeURIComponent(projectId)}`);
+            setProjectGlossary(response.data);
+        } catch {
+            setProjectGlossary(null);
+            notifications.show({
+                title: t('neologism_review.common.error'),
+                message: t('neologism_review.court.glossary_load_failed'),
+                color: 'red'
+            });
+        }
+    }, [t]);
+
     useEffect(() => {
         fetchProjects();
     }, [fetchProjects]);
@@ -69,10 +91,12 @@ const JudgmentCourt = () => {
     useEffect(() => {
         if (selectedProject) {
             fetchCandidates(selectedProject);
+            fetchProjectGlossary(selectedProject);
         } else {
             setCandidates([]);
+            setProjectGlossary(null);
         }
-    }, [fetchCandidates, selectedProject]);
+    }, [fetchCandidates, fetchProjectGlossary, selectedProject]);
 
     const handleApprove = async () => {
         if (!selectedId || !selectedProject) return;
@@ -84,12 +108,22 @@ const JudgmentCourt = () => {
             await api.post(`${API_BASE_URL}/neologisms/${selectedId}/approve`, {
                 project_id: selectedProject,
                 final_translation: editSuggestion,
-                glossary_id: 1
+                glossary_id: projectGlossary?.glossary_id || null,
+                source_lang: candidate.source_lang || currentProject?.source_language || 'en',
+                target_lang: candidate.target_lang || 'zh-CN'
             });
-            notifications.show({ title: 'Approved', message: 'Term added to glossary', color: 'green' });
+            notifications.show({
+                title: t('neologism_review.court.approved_title'),
+                message: t('neologism_review.court.approved_message'),
+                color: 'green'
+            });
             removeCandidate(selectedId);
         } catch {
-            notifications.show({ title: 'Error', message: 'Failed to approve', color: 'red' });
+            notifications.show({
+                title: t('neologism_review.common.error'),
+                message: t('neologism_review.court.approve_failed'),
+                color: 'red'
+            });
         } finally {
             setProcessing(false);
         }
@@ -102,10 +136,18 @@ const JudgmentCourt = () => {
             await api.post(`${API_BASE_URL}/neologisms/${selectedId}/reject`, {
                 project_id: selectedProject
             });
-            notifications.show({ title: 'Rejected', message: 'Term ignored', color: 'gray' });
+            notifications.show({
+                title: t('neologism_review.court.rejected_title'),
+                message: t('neologism_review.court.rejected_message'),
+                color: 'gray'
+            });
             removeCandidate(selectedId);
         } catch {
-            notifications.show({ title: 'Error', message: 'Failed to reject', color: 'red' });
+            notifications.show({
+                title: t('neologism_review.common.error'),
+                message: t('neologism_review.court.reject_failed'),
+                color: 'red'
+            });
         } finally {
             setProcessing(false);
         }
@@ -126,7 +168,7 @@ const JudgmentCourt = () => {
 
     const HighlightedText = ({ text, term }) => {
         if (!text || !term) return <Text>{text}</Text>;
-        const parts = text.split(new RegExp(`(${term})`, 'gi'));
+        const parts = text.split(new RegExp(`(${escapeRegExp(term)})`, 'gi'));
         return (
             <Text size="sm" c="dimmed" lh={1.6}>
                 {parts.map((part, i) =>
@@ -150,19 +192,23 @@ const JudgmentCourt = () => {
             <Paper p="md" mb="md" style={{ background: 'var(--glass-bg)', borderBottom: '1px solid var(--glass-border)' }}>
                 <Group justify="space-between" align="center">
                     <Box style={{ flex: 1 }}>
-                        <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>Current Project</Text>
+                        <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>{t('neologism_review.court.current_project')}</Text>
                         <Select
                             data={projects.map(p => ({ value: p.project_id, label: p.name }))}
                             value={selectedProject}
                             onChange={setSelectedProject}
-                            placeholder="Select a project..."
+                            placeholder={t('neologism_review.court.select_project')}
                             size="md"
                             mt="xs"
                         />
+                        <Text size="xs" c="dimmed" mt="sm">{t('neologism_review.court.project_glossary')}</Text>
+                        <Badge variant="light" color={projectGlossary?.pending_creation ? 'blue' : 'teal'} size="lg">
+                            {projectGlossary?.name || t('neologism_review.court.project_glossary_pending')}
+                        </Badge>
                     </Box>
                     {currentProject && (
                         <Badge size="lg" variant="light" color="blue">
-                            {candidates.length} Pending Terms
+                            {t('neologism_review.court.pending_terms', { count: candidates.length })}
                         </Badge>
                     )}
                 </Group>
@@ -192,6 +238,11 @@ const JudgmentCourt = () => {
                                         }}
                                     >
                                         <Text fw={600} lineClamp={1}>{c.original}</Text>
+                                        {(c.duplicate_matches || []).length > 0 && (
+                                            <Badge color="orange" variant="light" size="xs">
+                                                {t('neologism_review.court.duplicate_badge')}
+                                            </Badge>
+                                        )}
                                         <Text size="xs" c="dimmed" truncate>{c.suggestion}</Text>
                                     </Paper>
                                 ))}
@@ -231,6 +282,25 @@ const JudgmentCourt = () => {
                                 {/* Left Column: Analysis & Action */}
                                 <Grid.Col span={7}>
                                     <Stack gap="lg" h="100%">
+                                        {(selectedCandidate.duplicate_matches || []).length > 0 && (
+                                            <Alert
+                                                icon={<IconAlertTriangle size={18} />}
+                                                color="orange"
+                                                variant="light"
+                                                title={t('neologism_review.court.duplicate_warning_title')}
+                                            >
+                                                <Stack gap={4}>
+                                                    <Text size="sm">
+                                                        {t('neologism_review.court.duplicate_warning_body')}
+                                                    </Text>
+                                                    {(selectedCandidate.duplicate_matches || []).slice(0, 3).map((match) => (
+                                                        <Text key={match.entry_id || match.source_term} size="xs" c="dimmed">
+                                                            {match.source_term} - {match.glossary_name}
+                                                        </Text>
+                                                    ))}
+                                                </Stack>
+                                            </Alert>
+                                        )}
                                         <Paper p="lg" radius="md" style={{ background: 'rgba(0,0,0,0.2)' }} withBorder>
                                             <Group mb="sm">
                                                 <ThemeIcon color="yellow" variant="light" size="lg"><IconBulb size={20} /></ThemeIcon>
@@ -271,6 +341,7 @@ const JudgmentCourt = () => {
                                                     gradient={{ from: 'teal', to: 'lime', deg: 105 }}
                                                     leftSection={<IconGavel />}
                                                     onClick={handleApprove}
+                                                    disabled={!selectedProject}
                                                 >
                                                     {t('neologism_review.court.approve')}
                                                 </Button>

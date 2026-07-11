@@ -13,6 +13,10 @@ vi.mock('../project/ProjectValidation', () => ({
   default: () => <div>validation</div>,
 }));
 
+vi.mock('../project/ProjectGlossaryPanel', () => ({
+  default: () => <div>project glossary</div>,
+}));
+
 vi.mock('../tools/KanbanBoard', () => ({
   default: () => <div>kanban</div>,
 }));

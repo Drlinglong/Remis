@@ -91,4 +91,21 @@ describe('useIncrementalTaskMonitor', () => {
 
     expect(props.addLog).toHaveBeenCalledWith('incremental_translation.status_ws_error');
   });
+
+  it('keeps polling alive when a websocket message is malformed', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { props, result } = renderMonitor();
+
+    act(() => {
+      result.current.connectWebSocket('task-1', true);
+    });
+
+    const socket = FakeWebSocket.instances[0];
+    act(() => {
+      expect(() => socket.onmessage({ data: '{bad json' })).not.toThrow();
+    });
+
+    expect(props.addLog).toHaveBeenCalledWith('incremental_translation.status_ws_error');
+    expect(errorSpy).toHaveBeenCalledWith('Failed to parse incremental task WebSocket message:', expect.any(SyntaxError));
+  });
 });

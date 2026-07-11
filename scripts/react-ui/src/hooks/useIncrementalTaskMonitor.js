@@ -144,7 +144,16 @@ export function useIncrementalTaskMonitor({
     };
 
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      let data;
+      try {
+        data = JSON.parse(event.data);
+      } catch (error) {
+        console.error('Failed to parse incremental task WebSocket message:', error);
+        if (!completionSourceRef.current && wsRef.current === ws) {
+          addLog(t('incremental_translation.status_ws_error'));
+        }
+        return;
+      }
       handleTaskUpdate(data, isPreScan, 'websocket');
     };
 

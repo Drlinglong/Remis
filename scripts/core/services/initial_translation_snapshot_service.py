@@ -5,7 +5,7 @@ from typing import Any, List, Optional
 from scripts.core import file_parser
 from scripts.core.archive_manager import archive_manager
 from scripts.shared.services import project_manager
-from scripts.app_settings import CHUNK_SIZE, GEMINI_CLI_CHUNK_SIZE, OLLAMA_CHUNK_SIZE
+from scripts.app_settings import CHUNK_SIZE, OLLAMA_CHUNK_SIZE
 
 
 def read_files_for_backup(
@@ -39,8 +39,6 @@ def read_files_for_backup(
 def get_chunk_size_for_provider(selected_provider: str, batch_size_limit: Optional[int] = None) -> int:
     if batch_size_limit:
         return max(1, int(batch_size_limit))
-    if selected_provider == "gemini_cli":
-        return GEMINI_CLI_CHUNK_SIZE
     if selected_provider == "ollama":
         return OLLAMA_CHUNK_SIZE
     return CHUNK_SIZE

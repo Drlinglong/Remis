@@ -198,4 +198,61 @@ describe('ProjectTrackingPage', () => {
 
     expect(within(dialog).queryByText('扫描间隔')).not.toBeInTheDocument();
   });
+
+  it('blocks incremental update when a watched path is not linked to a project', async () => {
+    projectWatchService.listWatches.mockResolvedValueOnce({
+      data: [{
+        watch_id: 'w-unlinked',
+        name: 'Loose Workshop Folder',
+        path: 'J:/Steam/workshop/loose',
+        project_id: null,
+        enabled: true,
+        scan_interval_minutes: 30,
+        status: 'changed',
+        last_scan_at: null,
+        last_scan_summary: { changed_count: 1 },
+      }],
+    });
+
+    renderWithProvider(<ProjectTrackingPage />);
+
+    expect(await screen.findByText('Loose Workshop Folder')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('开始增量更新'));
+
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(screen.getByText('这个追踪项还没有关联 Remis 项目，无法跳转到增量更新。')).toBeInTheDocument();
+  });
+
+  it('preserves day-based schedule intervals when editing a watched path', async () => {
+    projectWatchService.listWatches.mockResolvedValueOnce({
+      data: [{
+        watch_id: 'w-days',
+        name: 'Weekly Workshop Folder',
+        path: 'J:/Steam/workshop/weekly',
+        project_id: 'p1',
+        enabled: true,
+        scan_interval_minutes: 2880,
+        status: 'clean',
+        last_scan_at: null,
+        last_scan_summary: { changed_count: 0 },
+      }],
+    });
+    projectWatchService.updateWatch.mockResolvedValue({ data: {} });
+
+    renderWithProvider(<ProjectTrackingPage />);
+
+    expect(await screen.findByText('Weekly Workshop Folder')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('编辑需要追踪的项目'));
+    fireEvent.click(screen.getByRole('button', { name: '保存' }));
+
+    await waitFor(() => {
+      expect(projectWatchService.updateWatch).toHaveBeenCalledWith('w-days', expect.objectContaining({
+        name: 'Weekly Workshop Folder',
+        path: 'J:/Steam/workshop/weekly',
+        project_id: 'p1',
+        enabled: true,
+        scan_interval_minutes: 2880,
+      }));
+    });
+  });
 });

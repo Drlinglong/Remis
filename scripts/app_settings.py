@@ -82,8 +82,8 @@ DEFAULT_BACKEND_PORT = 1453
 # --- 项目信息 ----------------------------------------------------
 PROJECT_NAME = "Paradox Mod 本地化工厂 - Paradox Mod Localization Factory"
 PROJECT_DISPLAY_NAME = "蕾姆丝计划 - Project Remis "
-VERSION = "3.0.5"
-LAST_UPDATE_DATE = "2026-06-18"
+VERSION = "3.0.6"
+LAST_UPDATE_DATE = "2026-07-11"
 COPYRIGHT = "© 2026 Project Remis Team"
 
 # --- 项目信息显示配置 --------------------------------------------
@@ -98,10 +98,6 @@ PROJECT_INFO = {
 # --- 核心配置 ----------------------------------------------------
 CHUNK_SIZE = 40
 MAX_RETRIES = 2
-
-# --- Gemini CLI 特定配置 -----------------------------------------
-GEMINI_CLI_CHUNK_SIZE = 40
-GEMINI_CLI_MAX_RETRIES = 3
 
 # --- Ollama 特定配置 ---------------------------------------------
 OLLAMA_CHUNK_SIZE = 20

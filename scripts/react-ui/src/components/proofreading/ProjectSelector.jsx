@@ -60,20 +60,9 @@ const ProjectSelector = ({
                 value={gameFilter}
                 onChange={setGameFilter}
                 variant="filled"
-                size="xs"
-                style={{ width: 110 }}
-                leftSection={<IconFilter size={14} style={{ opacity: 0.6 }} />}
-                styles={{
-                    input: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                        backdropFilter: 'blur(5px)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: 'var(--mantine-color-text)',
-                        '&:focus': {
-                            borderColor: 'var(--mantine-color-blue-filled)',
-                        }
-                    }
-                }}
+                size="sm"
+                style={{ width: 140 }}
+                leftSection={<IconFilter size={16} style={{ opacity: 0.6 }} />}
             />
 
             {/* Project Search & Select */}
@@ -85,26 +74,10 @@ const ProjectSelector = ({
                 searchable
                 nothingFoundMessage={t('common.nothing_found')}
                 variant="filled"
-                size="xs"
-                style={{ minWidth: 240, flex: 1 }}
-                leftSection={<IconSearch size={14} style={{ opacity: 0.6 }} />}
-                styles={{
-                    input: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                        backdropFilter: 'blur(5px)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: 'var(--mantine-color-text)',
-                        fontWeight: 500,
-                        '&:focus': {
-                            borderColor: 'var(--mantine-color-blue-filled)',
-                        }
-                    },
-                    dropdown: {
-                        backgroundColor: 'rgba(30, 30, 30, 0.95)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                    }
-                }}
+                size="sm"
+                style={{ minWidth: 280, flex: 1 }}
+                leftSection={<IconSearch size={16} style={{ opacity: 0.6 }} />}
+                styles={{ input: { fontWeight: 500 } }}
             />
         </Group>
     );

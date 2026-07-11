@@ -256,6 +256,18 @@ describe('InitialTranslation', () => {
     });
   });
 
+  it('keeps the project source language out of target language choices', async () => {
+    renderPage(['/?projectId=proj-1']);
+
+    await waitFor(() => {
+      expect(screen.getByText('Chinese')).toBeInTheDocument();
+      expect(screen.getByText('Russian')).toBeInTheDocument();
+    });
+
+    expect(screen.getByDisplayValue('English')).toBeInTheDocument();
+    expect(screen.queryByText('English')).not.toBeInTheDocument();
+  });
+
   it('renders checkpoint status alert and resume details card when checkpoints exist', async () => {
     const mockCheckpointResponse = {
       exists: true,
@@ -352,5 +364,31 @@ describe('InitialTranslation', () => {
     // 状态切换后展开按钮变为了收起按钮并被禁用
     const collapseButton = screen.getByRole('button', { name: '收起' });
     expect(collapseButton).toBeDisabled();
+  });
+
+  it('seeds embedded workshop independent settings from the primary provider and model', async () => {
+    const { container } = renderPage(['/?projectId=proj-1']);
+
+    await waitFor(() => {
+      expect(screen.getByText('智能工坊设置')).toBeInTheDocument();
+    });
+
+    const expandButtons = screen.getAllByRole('button', { name: '展开' });
+    fireEvent.click(expandButtons[1]);
+
+    await waitFor(() => {
+      expect(screen.getByText('当前将跟随主翻译配置：{{provider}} / {{model}}')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('默认跟随当前翻译 API 与模型'));
+
+    await waitFor(() => {
+      expect(screen.getByText('当前使用独立校对配置：{{provider}} / {{model}}')).toBeInTheDocument();
+    });
+
+    const workshopProviderSelect = findSingleSelectByOptions(container, ['gemini', 'openai']);
+    expect(workshopProviderSelect).toBeTruthy();
+    expect(workshopProviderSelect.value).toBe('gemini');
+    expect(screen.getAllByDisplayValue('gemini-flash').length).toBeGreaterThan(0);
   });
 });

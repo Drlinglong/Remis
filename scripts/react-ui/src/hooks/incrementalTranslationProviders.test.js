@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildEmbeddedWorkshopSelection,
   buildProviderSelection,
   resolveProviderModels,
 } from './incrementalTranslationProviders';
@@ -53,6 +54,39 @@ describe('incrementalTranslationProviders', () => {
       models: ['llama3'],
       selectedModel: 'llama3',
       selectedProvider: 'ollama',
+    });
+  });
+
+  it('selects embedded workshop defaults when independent settings have no provider yet', () => {
+    expect(buildEmbeddedWorkshopSelection({
+      providers,
+      currentProvider: '',
+      currentModel: '',
+      followPrimary: false,
+    })).toEqual({
+      selectedProvider: 'gemini',
+      selectedModel: 'gemini-default',
+    });
+  });
+
+  it('keeps embedded workshop settings quiet when following primary settings', () => {
+    expect(buildEmbeddedWorkshopSelection({
+      providers,
+      currentProvider: 'ollama',
+      currentModel: 'llama3',
+      followPrimary: true,
+    })).toBeNull();
+  });
+
+  it('repairs stale embedded workshop models for the selected provider', () => {
+    expect(buildEmbeddedWorkshopSelection({
+      providers,
+      currentProvider: 'ollama',
+      currentModel: 'missing',
+      followPrimary: false,
+    })).toEqual({
+      selectedProvider: 'ollama',
+      selectedModel: 'llama3',
     });
   });
 });

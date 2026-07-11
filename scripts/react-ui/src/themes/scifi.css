@@ -7,6 +7,14 @@
     --scifi-neon-cyan: #00FFCC;
     --scifi-holo-white: #E0F7FF;
 
+    --menu-bg: rgba(5, 8, 16, 0.98);
+    --menu-text: #E0F7FF;
+    --menu-muted: #91B7C4;
+    --menu-border: #00D9FF;
+    --menu-hover-bg: #152B3D;
+    --menu-selected-bg: #064E61;
+    --menu-selected-text: #FFFFFF;
+
     --mantine-color-dark-9: var(--scifi-space-darker);
     --mantine-color-dark-8: var(--scifi-space-black);
     --mantine-color-dark-7: #121827;

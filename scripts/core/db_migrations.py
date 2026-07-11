@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import sqlite3
 from typing import Callable
@@ -11,6 +12,7 @@ from scripts.core.db_models import (
     GlossaryEntry,
     Project,
     ProjectFile,
+    ProjectGlossaryBinding,
     ProjectHistory,
     ProjectWatch,
     ProjectWatchFileSnapshot,
@@ -18,7 +20,7 @@ from scripts.core.db_models import (
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 2
+MAIN_DB_TARGET_VERSION = 3
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -161,10 +163,51 @@ def _migration_002_add_project_watches(db_path: str) -> None:
         _ensure_index(conn, "CREATE UNIQUE INDEX IF NOT EXISTS ux_project_watch_snapshot_path ON project_watch_file_snapshots (watch_id, relative_path)")
         conn.commit()
 
+def _migration_003_add_project_glossary_bindings(db_path: str) -> None:
+    path = db_path.replace("\\", "/")
+    engine = create_engine(f"sqlite:///{path}")
+    SQLModel.metadata.create_all(engine)
+
+    now = datetime.datetime.now().isoformat()
+    with _connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS project_glossary_bindings (
+                project_id TEXT PRIMARY KEY,
+                glossary_id INTEGER NOT NULL,
+                created_at TEXT,
+                updated_at TEXT,
+                FOREIGN KEY(project_id) REFERENCES projects(project_id),
+                FOREIGN KEY(glossary_id) REFERENCES glossaries(glossary_id)
+            )
+            """
+        )
+        _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_project_glossary_bindings_glossary_id ON project_glossary_bindings (glossary_id)")
+
+        rows = conn.execute("SELECT glossary_id, raw_metadata FROM glossaries").fetchall()
+        for row in rows:
+            try:
+                metadata = json.loads(row["raw_metadata"] or "{}")
+            except (TypeError, json.JSONDecodeError):
+                continue
+            project_id = metadata.get("project_id")
+            if not project_id:
+                continue
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO project_glossary_bindings
+                    (project_id, glossary_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (project_id, row["glossary_id"], now, now),
+            )
+        conn.commit()
+
 
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
+    (3, "add_project_glossary_bindings", _migration_003_add_project_glossary_bindings),
 ]
 
 

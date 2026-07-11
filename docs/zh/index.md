@@ -21,6 +21,7 @@
 - [文档状态说明](../docs_status.md) - 当前文档入口与历史记录说明
 - [AI 智能体开发规章](../agent.md) - 已降级的旧入口，保留兼容说明
 - [架构概述](developer/architecture.md) - 系统架构和设计
+- [RAG 架构与模型选型](technical/rag-design.md) - 本地/云端双轨制 RAG 设计与模型选型方案
 - [重构决策指南](developer/refactor_decision_guide.md) - 什么时候该补丁，什么时候该重构
 - [发布构建脚本指南](developer/build-release-script-guide.md) - `build_release.bat` 脚本的使用说明
 - [Feature Flags 说明](developer/feature_flags.md) - 前端实验功能开关

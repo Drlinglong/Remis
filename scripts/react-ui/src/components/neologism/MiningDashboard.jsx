@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Container, Grid, Paper, Title, Text, Stack, Group, Button,
-    TextInput, ScrollArea, Select, Checkbox
+    ScrollArea, Select, Checkbox, Progress, Alert
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
-    IconRadar2, IconCpu, IconFileText, IconSparkles
+    IconRadar2, IconCpu, IconFileText, IconSparkles, IconInfoCircle
 } from '@tabler/icons-react';
 import api from '../../utils/api';
 
 const API_BASE_URL = '/api';
+
+const getProjectFilePath = (file) => file.file_path || file.path || '';
+const getProjectFileLabel = (file) => file.relative_path || file.rel_path || file.file_path || file.path || '';
 
 /**
  * 新词挖掘仪表板组件
@@ -25,6 +28,8 @@ const MiningDashboard = () => {
     const [apiProvider, setApiProvider] = useState('gemini');
     const [targetLang, setTargetLang] = useState('zh-CN');
     const [scanning, setScanning] = useState(false);
+    const [miningStatus, setMiningStatus] = useState(null);
+    const wsRef = useRef(null);
 
     useEffect(() => {
         fetchProjects();
@@ -33,11 +38,62 @@ const MiningDashboard = () => {
     useEffect(() => {
         if (selectedProject) {
             fetchFiles(selectedProject);
+            closeMiningSocket();
         } else {
             setFiles([]);
             setSelectedFiles([]);
+            setMiningStatus(null);
+            closeMiningSocket();
         }
     }, [selectedProject]);
+
+    useEffect(() => {
+        return () => closeMiningSocket();
+    }, []);
+
+    const closeMiningSocket = () => {
+        if (wsRef.current) {
+            wsRef.current.close();
+            wsRef.current = null;
+        }
+    };
+
+    const updateMiningStatusFromTask = (taskData) => {
+        const progress = taskData.progress || {};
+        const summary = taskData.summary || {};
+        setMiningStatus({
+            status: taskData.status === 'processing' ? 'running' : taskData.status,
+            processed_files: progress.current || 0,
+            total_files: progress.total || 0,
+            new_terms: summary.new_terms || 0,
+            duplicate_terms: summary.duplicate_terms || 0,
+            current_file: progress.current_file || null,
+            error: summary.error || taskData.error || null,
+        });
+    };
+
+    const connectMiningSocket = (taskId) => {
+        closeMiningSocket();
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${protocol}//${window.location.host}/api/ws/status/${taskId}`);
+        wsRef.current = ws;
+
+        ws.onmessage = (event) => {
+            const taskData = JSON.parse(event.data);
+            updateMiningStatusFromTask(taskData);
+            if (['completed', 'failed'].includes(taskData.status)) {
+                closeMiningSocket();
+            }
+        };
+        ws.onerror = () => {
+            setMiningStatus((current) => ({
+                ...(current || {}),
+                status: 'failed',
+                error: t('neologism_review.mining.websocket_failed'),
+            }));
+            closeMiningSocket();
+        };
+    };
 
     const fetchProjects = async () => {
         try {
@@ -50,7 +106,7 @@ const MiningDashboard = () => {
 
     const fetchFiles = async (projectId) => {
         try {
-            const response = await api.get(`${API_BASE_URL}/projects/${projectId}/files`);
+            const response = await api.get(`${API_BASE_URL}/project/${encodeURIComponent(projectId)}/files`);
             setFiles(response.data);
         } catch (error) {
             console.error("Failed to fetch files", error);
@@ -61,20 +117,35 @@ const MiningDashboard = () => {
         if (!selectedProject) return;
         setScanning(true);
         try {
-            await api.post(`${API_BASE_URL}/neologisms/mine`, {
+            const response = await api.post(`${API_BASE_URL}/neologisms/mine`, {
                 project_id: selectedProject,
                 api_provider: apiProvider,
                 target_lang: targetLang,
                 file_paths: selectedFiles.length > 0 ? selectedFiles : null
             });
+            setMiningStatus({
+                status: 'running',
+                processed_files: 0,
+                total_files: selectedFiles.length || files.length,
+                new_terms: 0,
+                current_file: null,
+                error: null,
+            });
+            if (response.data?.task_id) {
+                connectMiningSocket(response.data.task_id);
+            }
             notifications.show({
                 title: t('neologism_review.mining.start_mining'),
-                message: 'The AI is now mining neologisms in the background.',
+                message: t('neologism_review.mining.started_message'),
                 color: 'blue',
                 icon: <IconSparkles size={18} />
             });
         } catch {
-            notifications.show({ title: 'Error', message: 'Failed to start scan', color: 'red' });
+            notifications.show({
+                title: t('neologism_review.common.error'),
+                message: t('neologism_review.mining.start_failed'),
+                color: 'red'
+            });
         } finally {
             setScanning(false);
         }
@@ -100,8 +171,8 @@ const MiningDashboard = () => {
                         />
 
                         <Select
-                            label="Target Language"
-                            description="AI will provide suggestions in this language"
+                            label={t('neologism_review.mining.target_language')}
+                            description={t('neologism_review.mining.target_language_desc')}
                             data={[
                                 { value: 'zh-CN', label: 'Simplified Chinese (简体中文)' },
                                 { value: 'zh-TW', label: 'Traditional Chinese (繁體中文)' },
@@ -153,6 +224,31 @@ const MiningDashboard = () => {
                         <Text size="xs" c="dimmed" ta="center">
                             {t('neologism_review.mining.mining_disclaimer')}
                         </Text>
+                        {miningStatus && miningStatus.status !== 'idle' && (
+                            <Alert icon={<IconInfoCircle size={16} />} color={miningStatus.status === 'failed' ? 'red' : 'blue'} variant="light">
+                                <Stack gap={6}>
+                                    <Group justify="space-between">
+                                        <Text size="sm" fw={600}>
+                                            {t(`neologism_review.mining.status_${miningStatus.status}`, miningStatus.status)}
+                                        </Text>
+                                        <Text size="xs" c="dimmed">
+                                            {(miningStatus.processed_files || 0)} / {(miningStatus.total_files || 0)}
+                                        </Text>
+                                    </Group>
+                                    <Progress
+                                        value={miningStatus.total_files ? ((miningStatus.processed_files || 0) / miningStatus.total_files) * 100 : 0}
+                                        size="sm"
+                                    />
+                                    {miningStatus.status === 'completed' && (
+                                        <Text size="xs">
+                                            {t('neologism_review.mining.completed_terms', { count: miningStatus.new_terms || 0 })}
+                                            {(miningStatus.duplicate_terms || 0) > 0 && ` ${t('neologism_review.mining.duplicate_terms', { count: miningStatus.duplicate_terms })}`}
+                                        </Text>
+                                    )}
+                                    {miningStatus.error && <Text size="xs" c="red">{miningStatus.error}</Text>}
+                                </Stack>
+                            </Alert>
+                        )}
                     </Stack>
                 </Grid.Col>
 
@@ -165,18 +261,22 @@ const MiningDashboard = () => {
                             {files.length > 0 ? (
                                 <Checkbox.Group value={selectedFiles} onChange={setSelectedFiles}>
                                     <Stack gap="xs">
-                                        {files.map(f => (
+                                        {files.filter(getProjectFilePath).map(f => {
+                                            const filePath = getProjectFilePath(f);
+                                            const fileLabel = getProjectFileLabel(f);
+                                            return (
                                             <Checkbox
-                                                key={f.path}
-                                                value={f.path}
+                                                key={filePath}
+                                                value={filePath}
                                                 label={
                                                     <Group gap="xs">
                                                         <IconFileText size={14} />
-                                                        <Text size="sm">{f.rel_path}</Text>
+                                                        <Text size="sm">{fileLabel}</Text>
                                                     </Group>
                                                 }
                                             />
-                                        ))}
+                                        );
+                                        })}
                                     </Stack>
                                 </Checkbox.Group>
                             ) : (

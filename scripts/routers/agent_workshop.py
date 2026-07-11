@@ -3,25 +3,31 @@ import sqlite3
 import re
 import json
 import logging
+import asyncio
+import time
+import uuid
 from pathlib import Path
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from scripts.utils.post_process_validator import PostProcessValidator
 from scripts.config.validators.hoi4_rules import RULES as HOI4_RULES
 from scripts.config.validators.vic3_rules import RULES as VIC3_RULES
 from scripts.shared.services import project_manager
+from scripts.shared import task_state
 from scripts.core.agents.fix_agent import ReflexionFixAgent
 from scripts.core.base_handler import BaseApiHandler # For typing or creation
 
 from scripts.core.loc_parser import parse_loc_file
 from scripts.utils.validation_logger import ValidationLogger
 from scripts.core.project_json_manager import ProjectJsonManager
-from scripts.core.services.workshop_issue_export_service import resolve_dynamic_valid_tags
+from scripts.core.services.validation_sidecar_service import ValidationSidecarService
+from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService, resolve_dynamic_valid_tags
 
 router = APIRouter(prefix="/api/agent-workshop", tags=["agent-workshop"])
 logger = logging.getLogger(__name__)
+validation_sidecars = ValidationSidecarService()
 
 
 def _resolve_workshop_model_config(
@@ -44,6 +50,7 @@ def _resolve_workshop_model_config(
 
 class ValidationIssue(BaseModel):
     file_name: str
+    file_id: Optional[str] = None
     file_path: Optional[str] = None
     source_file: Optional[str] = None
     key: str
@@ -122,6 +129,20 @@ class FixBatchResponse(BaseModel):
     attempts: List[BatchAttemptSummary] = Field(default_factory=list)
     max_retries: int = 3
 
+class FixRunRequest(BaseModel):
+    project_id: str
+    api_provider: Optional[str] = None
+    api_model: Optional[str] = None
+    batch_size_limit: Optional[int] = None
+    concurrency_limit: Optional[int] = 1
+    rpm_limit: Optional[int] = 40
+    max_retries: Optional[int] = 3
+    issues: List[Dict[str, Any]]
+
+class FixRunResponse(BaseModel):
+    task_id: str
+    status: str = "started"
+
 
 def _normalize_issue_dict(issue: Dict[str, Any]) -> Dict[str, Any]:
     normalized = dict(issue)
@@ -153,60 +174,12 @@ def _normalize_issue_dict(issue: Dict[str, Any]) -> Dict[str, Any]:
     return normalized
 
 
-def _issue_identity(issue: Dict[str, Any]) -> tuple:
-    return (
-        str(issue.get("file_name", "")),
-        str(issue.get("key", "")),
-        str(issue.get("error_code") or issue.get("error_type") or ""),
-        str(issue.get("target_lang", "")),
-        int(issue.get("line_number") or 0),
-    )
-
-
-def _load_sidecar_issue_file(path: Path) -> List[Dict[str, Any]]:
-    try:
-        with open(path, "r", encoding="utf-8") as handle:
-            payload = json.load(handle)
-    except Exception:
-        return []
-
-    if isinstance(payload, dict):
-        issues = payload.get("issues", [])
-    elif isinstance(payload, list):
-        issues = payload
-    else:
-        issues = []
-
-    if not isinstance(issues, list):
-        return []
-
-    return [_normalize_issue_dict(item) for item in issues if isinstance(item, dict)]
-
-
 def _active_issue_dicts(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return [
         _normalize_issue_dict(item)
         for item in items
         if str(item.get("status", "detected")).lower() not in {"fixed", "ignored"}
     ]
-
-
-def _should_prefer_translation_sidecar(
-    current_errors: List[Dict[str, Any]],
-    sidecar_issues: List[ValidationIssue],
-) -> bool:
-    if not current_errors or not sidecar_issues:
-        return False
-
-    for issue in current_errors:
-        file_name = str(issue.get("file_name") or "").replace("\\", "/")
-        if file_name.startswith("../") or "/../" in file_name:
-            return True
-        if not issue.get("file_path") and issue.get("source_context_status") == "missing":
-            return True
-        if issue.get("target_lang") is None and any(item.target_lang for item in sidecar_issues):
-            return True
-    return False
 
 
 def _slugify_filename(value: str) -> str:
@@ -317,35 +290,23 @@ def _write_fix_report(
     return str(report_path)
 
 
-def _load_project_sidecar_issues(project: Dict[str, Any]) -> List[ValidationIssue]:
+def _load_project_sidecar_issues(
+    project: Dict[str, Any],
+    project_files: List[Dict[str, Any]],
+    selected_sidecar_path: Optional[str] = None,
+) -> List[ValidationIssue]:
     source_path = project.get("source_path")
     if not source_path:
         return []
 
-    json_manager = ProjectJsonManager(source_path)
-    config = json_manager.get_config()
-    translation_dirs = config.get("translation_dirs", []) or []
-
-    candidate_files: List[Path] = []
-    for trans_dir in translation_dirs:
-        trans_path = Path(trans_dir)
-        workshop_path = trans_path / "workshop_issues.json"
-        remis_path = trans_path / ValidationLogger.FILENAME
-        if workshop_path.exists():
-            candidate_files.append(workshop_path)
-        elif remis_path.exists():
-            candidate_files.append(remis_path)
-
-    candidate_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-
-    merged: Dict[tuple, Dict[str, Any]] = {}
-    for sidecar_path in candidate_files:
-        for issue in _load_sidecar_issue_file(sidecar_path):
-            identity = _issue_identity(issue)
-            if identity not in merged:
-                merged[identity] = issue
-
-    issues = [ValidationIssue(**item) for item in merged.values()]
+    raw_issues = validation_sidecars.attach_project_file_ids(
+        validation_sidecars.current_translation_issues(source_path, selected_sidecar_path),
+        project_files,
+    )
+    issues = [
+        ValidationIssue(**_normalize_issue_dict(item))
+        for item in raw_issues
+    ]
     issues.sort(key=lambda item: (
         str(item.target_lang or ""),
         str(item.file_name or ""),
@@ -367,6 +328,93 @@ def _relative_to_any(path: Path, roots: List[Path], fallback_root: Path) -> str:
         return os.path.relpath(resolved_path, fallback_root.resolve()).replace("\\", "/")
     except ValueError:
         return str(path)
+
+
+def _find_translation_root(path: Path, translation_roots: List[Path]) -> Optional[Path]:
+    resolved_path = path.resolve(strict=False)
+    for root in translation_roots:
+        try:
+            resolved_path.relative_to(root.resolve(strict=False))
+            return root
+        except ValueError:
+            continue
+    return None
+
+
+def _write_fresh_scan_sidecars(
+    project: Dict[str, Any],
+    translation_roots: List[Path],
+    issues: List[ValidationIssue],
+) -> None:
+    if not translation_roots:
+        return
+
+    exporter = WorkshopIssueExportService()
+    project_id = str(project.get("project_id") or "")
+    run_id = str(uuid.uuid4())
+    resolved_roots = {
+        root.resolve(strict=False): root
+        for root in translation_roots
+    }
+    issues_by_root: Dict[Path, List[Dict[str, Any]]] = {
+        resolved_root: []
+        for resolved_root in resolved_roots
+    }
+
+    for issue in issues:
+        if not issue.file_path:
+            continue
+        root = _find_translation_root(Path(issue.file_path), translation_roots)
+        if root is None:
+            continue
+        resolved_root = root.resolve(strict=False)
+        issue_dict = issue.model_dump()
+        if project_id:
+            issue_dict["project_id"] = project_id
+        issue_dict["run_id"] = run_id
+        issues_by_root.setdefault(resolved_root, []).append(issue_dict)
+
+    for resolved_root, root in resolved_roots.items():
+        try:
+            exporter.write_issues(
+                root,
+                issues_by_root.get(resolved_root, []),
+                project_id=project_id,
+                run_id=run_id,
+            )
+        except Exception as exc:
+            logger.warning(
+                "[AgentWorkshop] Failed to refresh validation sidecar for %s: %s",
+                root,
+                exc,
+            )
+
+
+def _scoped_translation_roots(
+    project_root: str,
+    configured_roots: List[Path],
+    selected_sidecar_path: Optional[str],
+) -> List[Path]:
+    if not selected_sidecar_path:
+        return configured_roots
+
+    status = validation_sidecars.load_status(project_root, selected_sidecar_path)
+    if not status:
+        return configured_roots
+
+    scoped_roots: List[Path] = []
+    seen = set()
+    for source_path in status.get("source_paths", []):
+        path = Path(source_path)
+        if path.name not in {"workshop_issues.json", ValidationLogger.FILENAME}:
+            continue
+        root = path.parent.resolve(strict=False)
+        if str(root).lower() in seen:
+            continue
+        seen.add(str(root).lower())
+        scoped_roots.append(root)
+
+    return scoped_roots or configured_roots
 
 
 def _resolve_issue_target_path(project: Dict[str, Any], issue_file_path: Optional[str], issue_file_name: Optional[str]) -> Optional[Path]:
@@ -455,7 +503,7 @@ def _resolve_source_entries_for_translation(
     return {}, target_lang
 
 @router.get("/load-cached", response_model=List[ValidationIssue])
-async def load_cached_errors(project_id: str):
+async def load_cached_errors(project_id: str, sidecar_path: Optional[str] = None):
     """
     Loads previously scanned errors from the .remis_errors.json sidecar.
     """
@@ -464,10 +512,8 @@ async def load_cached_errors(project_id: str):
         raise HTTPException(status_code=404, detail="Project not found")
 
     current_errors = ValidationLogger.load_errors(project['source_path'])
-    sidecar_issues = _load_project_sidecar_issues(project)
-    if current_errors and not _should_prefer_translation_sidecar(current_errors, sidecar_issues):
-        return _active_issue_dicts(current_errors)
-
+    project_files = await project_manager.get_project_files(project_id)
+    sidecar_issues = _load_project_sidecar_issues(project, project_files, sidecar_path)
     if sidecar_issues:
         active_issues = [
             issue for issue in sidecar_issues
@@ -476,10 +522,13 @@ async def load_cached_errors(project_id: str):
         ValidationLogger.save_errors(project['source_path'], [issue.model_dump() for issue in active_issues])
         return [issue.model_dump() for issue in active_issues]
 
+    if not sidecar_path and current_errors:
+        return _active_issue_dicts(current_errors)
+
     return []
 
 @router.get("/scan", response_model=List[ValidationIssue])
-async def scan_project(project_id: str, force: bool = Query(False)):
+async def scan_project(project_id: str, force: bool = Query(False), sidecar_path: Optional[str] = None):
     """
     Loads cached validation issues by default, or performs a fresh scan when forced.
     """
@@ -497,18 +546,11 @@ async def scan_project(project_id: str, force: bool = Query(False)):
 
     if not force:
         current_errors = ValidationLogger.load_errors(project['source_path'])
-        sidecar_issues = _load_project_sidecar_issues(project)
-        if current_errors and not _should_prefer_translation_sidecar(current_errors, sidecar_issues):
-            logger.info(
-                "[AgentWorkshop] Returning %s cached project-side issues for %s",
-                len(current_errors),
-                project_id,
-            )
-            return _active_issue_dicts(current_errors)
-
+        project_files = await project_manager.get_project_files(project_id)
+        sidecar_issues = _load_project_sidecar_issues(project, project_files, sidecar_path)
         if sidecar_issues:
             logger.info(
-                "[AgentWorkshop] Returning %s translation-sidecar issues for %s",
+                "[AgentWorkshop] Returning %s current translation-sidecar issues for %s",
                 len(sidecar_issues),
                 project_id,
             )
@@ -518,6 +560,14 @@ async def scan_project(project_id: str, force: bool = Query(False)):
             ]
             ValidationLogger.save_errors(project['source_path'], [issue.model_dump() for issue in active_issues])
             return [issue.model_dump() for issue in active_issues]
+
+        if not sidecar_path and current_errors:
+            logger.info(
+                "[AgentWorkshop] Returning %s cached project-side issues for %s",
+                len(current_errors),
+                project_id,
+            )
+            return _active_issue_dicts(current_errors)
 
     logger.info(
         "[AgentWorkshop] Fresh scan started for project %s (%s) at %s",
@@ -537,10 +587,19 @@ async def scan_project(project_id: str, force: bool = Query(False)):
     logger.info("[AgentWorkshop] Project file inventory size: %s", len(files))
     
     json_manager = ProjectJsonManager(project['source_path'])
-    translation_roots = [
+    configured_translation_roots = [
         Path(path)
         for path in (json_manager.get_config().get("translation_dirs", []) or [])
     ]
+    translation_roots = _scoped_translation_roots(
+        project['source_path'],
+        configured_translation_roots,
+        sidecar_path,
+    )
+    logger.info(
+        "[AgentWorkshop] Scan translation roots: %s",
+        [str(root) for root in translation_roots],
+    )
 
     def get_source_rel_path(p):
         return _relative_to_any(Path(p), [source_root], source_root)
@@ -549,7 +608,14 @@ async def scan_project(project_id: str, force: bool = Query(False)):
         return _relative_to_any(Path(p), translation_roots, source_root)
 
     source_files = {get_source_rel_path(f['file_path']): f for f in files if f.get('file_type') == 'source'}
-    translation_files = [f for f in files if f.get('file_type') == 'translation']
+    translation_files = [
+        f for f in files
+        if f.get('file_type') == 'translation'
+        and (
+            not translation_roots
+            or _find_translation_root(Path(f.get('file_path', '')), translation_roots) is not None
+        )
+    ]
     logger.info(
         "[AgentWorkshop] Source files: %s, translation files: %s",
         len(source_files),
@@ -607,6 +673,7 @@ async def scan_project(project_id: str, force: bool = Query(False)):
                     )
                     issues.append(ValidationIssue(
                         file_name=rel_path,
+                        file_id=file_info.get('file_id'),
                         file_path=str(file_path),
                         key=key,
                         source_str=source_entries.get(key, ""),
@@ -622,6 +689,7 @@ async def scan_project(project_id: str, force: bool = Query(False)):
     
     # Cache results
     ValidationLogger.save_errors(project['source_path'], [i.model_dump() for i in issues])
+    _write_fresh_scan_sidecars(project, translation_roots, issues)
     logger.info("[AgentWorkshop] Fresh scan completed with %s issue(s)", len(issues))
                     
     return [i.model_dump() for i in issues]
@@ -844,11 +912,7 @@ async def fix_issue(request: FixRequest):
     return FixResult(**result)
 
 
-@router.post("/fix-batch", response_model=FixBatchResponse)
-async def fix_batch(request: FixBatchRequest):
-    """
-    Initiates the Reflexion Fix Workflow for a batch of issues.
-    """
+async def _run_fix_batch(request: FixBatchRequest) -> FixBatchResponse:
     from scripts.core.api_handler import get_handler
     
     provider_name, model_name = _resolve_workshop_model_config(
@@ -960,3 +1024,193 @@ async def fix_batch(request: FixBatchRequest):
         attempts=attempts,
         max_retries=batch_result.get("max_retries", request.max_retries or 3),
     )
+
+
+@router.post("/fix-batch", response_model=FixBatchResponse)
+async def fix_batch(request: FixBatchRequest):
+    """
+    Initiates the Reflexion Fix Workflow for a batch of issues.
+    """
+    return await _run_fix_batch(request)
+
+
+def _build_fix_run_batches(issues: List[Dict[str, Any]], batch_size_limit: Optional[int]) -> List[List[Dict[str, Any]]]:
+    batch_size = max(1, min(batch_size_limit or 10, 50))
+    return [
+        issues[index:index + batch_size]
+        for index in range(0, len(issues), batch_size)
+    ]
+
+
+async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> None:
+    started_at = time.time()
+    batches = _build_fix_run_batches(request.issues, request.batch_size_limit)
+    total = len(request.issues)
+    total_batches = len(batches)
+    concurrency = max(1, min(request.concurrency_limit or 1, 5))
+    rpm = max(1, request.rpm_limit or 40)
+    interval_seconds = 60 / rpm
+    max_retries = max(1, min(request.max_retries or 3, 5))
+    queue = asyncio.Queue()
+    rate_lock = asyncio.Lock()
+    stats_lock = asyncio.Lock()
+    next_dispatch_at = 0.0
+    completed = 0
+    success_count = 0
+    failed_count = 0
+    all_results: List[Dict[str, Any]] = []
+    all_attempts: List[Dict[str, Any]] = []
+
+    for batch_number, batch in enumerate(batches, start=1):
+        queue.put_nowait((batch_number, batch))
+
+    task_state.init_progress(task_id, {
+        "total": total,
+        "current": 0,
+        "percent": 0,
+        "stage": "Agent Workshop",
+        "current_batch": 0,
+        "total_batches": total_batches,
+    })
+    task_state.update_task(
+        task_id,
+        status="processing",
+        append_log=f"Agent Workshop run started: {total} issue(s), {total_batches} batch(es), concurrency={concurrency}, rpm={rpm}.",
+    )
+
+    async def wait_for_rate_limit() -> None:
+        nonlocal next_dispatch_at
+        async with rate_lock:
+            now = time.monotonic()
+            wait_seconds = max(0.0, next_dispatch_at - now)
+            next_dispatch_at = max(now, next_dispatch_at) + interval_seconds
+        if wait_seconds > 0:
+            await asyncio.sleep(wait_seconds)
+
+    async def worker(worker_id: int) -> None:
+        nonlocal completed, success_count, failed_count
+        while True:
+            try:
+                batch_number, batch = queue.get_nowait()
+            except asyncio.QueueEmpty:
+                return
+
+            await wait_for_rate_limit()
+            task_state.update_progress(
+                task_id,
+                current=completed,
+                total=total,
+                current_batch=batch_number,
+                total_batches=total_batches,
+                stage="Agent Workshop",
+                log_message=f"Worker {worker_id}: fixing batch {batch_number}/{total_batches} ({len(batch)} issue(s)).",
+                push=True,
+            )
+
+            try:
+                response = await _run_fix_batch(FixBatchRequest(
+                    project_id=request.project_id,
+                    api_provider=request.api_provider,
+                    api_model=request.api_model,
+                    max_retries=max_retries,
+                    issues=batch,
+                ))
+                batch_results = [item.model_dump() for item in response.results]
+                batch_attempts = [item.model_dump() for item in response.attempts]
+                batch_success = sum(1 for item in batch_results if item.get("status") == "SUCCESS")
+                batch_failed = len(batch_results) - batch_success
+                async with stats_lock:
+                    all_results.extend(batch_results)
+                    all_attempts.extend([
+                        {"batch_number": batch_number, **attempt}
+                        for attempt in batch_attempts
+                    ])
+                    completed += len(batch)
+                    success_count += batch_success
+                    failed_count += batch_failed
+                    current_completed = completed
+                    current_success = success_count
+                    current_failed = failed_count
+                task_state.update_progress(
+                    task_id,
+                    current=current_completed,
+                    total=total,
+                    current_batch=batch_number,
+                    total_batches=total_batches,
+                    successful_batches=current_success,
+                    failed_batches=current_failed,
+                    stage="Agent Workshop",
+                    log_message=f"Batch {batch_number}/{total_batches} completed: {batch_success}/{len(batch)} fixed.",
+                    push=True,
+                )
+            except Exception as exc:
+                logger.exception("Agent Workshop batch %s failed", batch_number)
+                async with stats_lock:
+                    completed += len(batch)
+                    failed_count += len(batch)
+                    current_completed = completed
+                    current_failed = failed_count
+                task_state.update_progress(
+                    task_id,
+                    current=current_completed,
+                    total=total,
+                    current_batch=batch_number,
+                    total_batches=total_batches,
+                    failed_batches=current_failed,
+                    stage="Agent Workshop",
+                    log_message=f"Batch {batch_number}/{total_batches} failed: {exc}",
+                    push=True,
+                )
+            finally:
+                queue.task_done()
+
+    try:
+        await asyncio.gather(*[
+            worker(index)
+            for index in range(1, min(concurrency, max(total_batches, 1)) + 1)
+        ])
+        summary = {
+            "total": total,
+            "completed": completed,
+            "successCount": success_count,
+            "failedCount": failed_count,
+            "durationMs": int((time.time() - started_at) * 1000),
+            "batchSize": max(1, min(request.batch_size_limit or 10, 50)),
+            "totalBatches": total_batches,
+            "results": all_results,
+            "attempts": all_attempts,
+            "maxRetries": max_retries,
+        }
+        task_state.update_task(
+            task_id,
+            status="completed",
+            progress={"current": total, "total": total, "percent": 100, "stage": "Completed"},
+            summary=summary,
+            fields={"results": all_results, "attempts": all_attempts},
+            append_log="Agent Workshop run completed.",
+        )
+    except Exception as exc:
+        logger.exception("Agent Workshop run failed")
+        task_state.update_task(
+            task_id,
+            status="failed",
+            message=str(exc),
+            append_log=f"Agent Workshop run failed: {exc}",
+        )
+
+
+@router.post("/fix-run", response_model=FixRunResponse)
+async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTasks):
+    """
+    Starts a backend-managed Agent Workshop run.
+
+    The frontend should only trigger this task and subscribe to task status;
+    batching, worker concurrency, RPM throttling, retries, and reflection stay here.
+    """
+    if not request.issues:
+        raise HTTPException(status_code=400, detail="No issues supplied for Agent Workshop run.")
+
+    task_id = str(uuid.uuid4())
+    task_state.create_task(task_id, status="pending", log_message="Agent Workshop run queued.")
+    background_tasks.add_task(_run_agent_workshop_fix_task, task_id, request)
+    return FixRunResponse(task_id=task_id)

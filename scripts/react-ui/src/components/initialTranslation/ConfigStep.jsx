@@ -22,13 +22,11 @@ import {
   IconAdjustments,
   IconAlertCircle,
   IconArrowLeft,
-  IconChevronDown,
-  IconChevronUp,
-  IconClockHour4,
-  IconRobot,
   IconSettings,
 } from '@tabler/icons-react';
 
+import EmbeddedWorkshopSettingsCard from './EmbeddedWorkshopSettingsCard';
+import ResumeSettingsCard from './ResumeSettingsCard';
 import layoutStyles from '../layout/Layout.module.css';
 import { FEATURES } from '../../config/features';
 import { buildModelOptions, findLanguageByCode, resolveGameName } from '../../utils/initialTranslation';
@@ -46,8 +44,6 @@ export default function ConfigStep({
   selectedProjectId,
   t,
 }) {
-  const [showResumeDetails, setShowResumeDetails] = React.useState(false);
-  const [showWorkshopSettings, setShowWorkshopSettings] = React.useState(false);
   const translationBatchOptions = [
     { value: '', label: t('translation_page.translation_limit_auto', { defaultValue: 'Auto (Recommended)' }) },
     { value: '5', label: '5' },
@@ -66,11 +62,6 @@ export default function ConfigStep({
     { value: '16', label: '16' },
   ];
   const translationRpmOptions = ['10', '20', '40', '60', '80', '120'].map((value) => ({ value, label: value }));
-
-  const sectionCardStyle = {
-    background: 'linear-gradient(180deg, rgba(86, 111, 147, 0.16) 0%, rgba(41, 54, 72, 0.12) 100%)',
-    border: '1px solid rgba(151, 177, 210, 0.16)',
-  };
 
   const renderInfoLabel = (title, tooltip) => (
     <Group gap={4} wrap="nowrap">
@@ -114,56 +105,6 @@ export default function ConfigStep({
         }
       }}
     />
-  );
-
-  const renderCollapsibleCard = ({
-    accent,
-    action,
-    children,
-    description,
-    disabled = false,
-    icon,
-    isOpen,
-    onToggle,
-    title,
-  }) => (
-    <Card withBorder p="md" radius="lg" style={sectionCardStyle}>
-      <Stack gap="sm">
-        {action}
-        <Group justify="space-between" align="flex-start" wrap="nowrap">
-          <Group gap="sm" align="flex-start" wrap="nowrap">
-            <ThemeIcon size="lg" radius="md" variant="light" color={accent}>
-              {icon}
-            </ThemeIcon>
-            <Box>
-              <Text size="sm" fw={600} c="var(--text-main)">
-                {title}
-              </Text>
-              <Text size="xs" c="dimmed" mt={2}>
-                {description}
-              </Text>
-            </Box>
-          </Group>
-          <Button
-            variant="subtle"
-            size="xs"
-            color={accent}
-            disabled={disabled}
-            rightSection={isOpen ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
-            onClick={onToggle}
-          >
-            {isOpen
-              ? t('common.collapse', { defaultValue: '收起' })
-              : t('common.expand', { defaultValue: '展开' })}
-          </Button>
-        </Group>
-        {isOpen && (
-          <Box pt="sm" style={{ borderTop: '1px solid rgba(151, 177, 210, 0.14)' }}>
-            {children}
-          </Box>
-        )}
-      </Stack>
-    </Card>
   );
 
   const sourceLanguageCode = selectedProject?.source_language;
@@ -347,7 +288,7 @@ export default function ConfigStep({
                 onChange: (event) => form.setFieldValue('api_provider', event.currentTarget.value),
               })}
 
-              {!['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'gemini_cli', 'hunyuan'].includes(form.values.api_provider) && (
+              {!['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'hunyuan'].includes(form.values.api_provider) && (
                 <Tooltip label={t('tutorial.api_key_warning_tooltip')} multiline w={340} withArrow>
                   <Group gap={4} mt={-6} style={{ width: 'fit-content', cursor: 'help' }}>
                     <IconAlertCircle size={14} color="orange" />
@@ -507,184 +448,21 @@ export default function ConfigStep({
                 </Alert>
               )}
 
-              {renderCollapsibleCard({
-                accent: 'orange',
-                icon: <IconClockHour4 size={18} />,
-                isOpen: showResumeDetails,
-                onToggle: () => setShowResumeDetails((value) => !value),
-                title: t('translation_page.resume_detail_title', { defaultValue: '断点续传详情' }),
-                description: t('translation_page.resume_detail_subtitle', { defaultValue: '默认收起。展开后可查看上次工作进行到什么时间、什么批次。' }),
-                action: (
-                  <Switch
-                    id="use-resume-switch"
-                    label={t('form_label_use_resume')}
-                    description={t('form_desc_use_resume')}
-                    checked={form.values.use_resume}
-                    onChange={(event) => form.setFieldValue('use_resume', event.currentTarget.checked)}
-                  />
-                ),
-                children: checkpointHintInfo ? (
-                  <Stack gap="xs">
-                    {(checkpointHintInfo.targets || []).map((target) => (
-                      <Card key={target.target_lang_code} withBorder p="sm" radius="md" bg="rgba(255,255,255,0.03)">
-                        <Stack gap={4}>
-                          <Text size="sm" fw={600} c="var(--text-main)">{target.target_lang_code}</Text>
-                          <Text size="sm">
-                            {t('translation_page.resume_detail_completed', {
-                              defaultValue: '已完成文件：{{count}}',
-                              count: target.completed_count ?? 0,
-                            })}
-                          </Text>
-                          <Text size="sm">
-                            {t('translation_page.resume_detail_batch', {
-                              defaultValue: '上次批次：{{current}} / {{total}}',
-                              current: target.metadata?.current_batch ?? 0,
-                              total: target.metadata?.total_batches ?? 0,
-                            })}
-                          </Text>
-                          <Text size="sm">
-                            {t('translation_page.resume_detail_time', {
-                              defaultValue: '上次保存：{{time}}',
-                              time: target.last_saved_at || target.metadata?.last_saved_at || '--',
-                            })}
-                          </Text>
-                          <Text size="sm">
-                            {t('translation_page.resume_detail_file', {
-                              defaultValue: '最后完成文件：{{file}}',
-                              file: target.last_completed_file || target.metadata?.last_completed_file || '--',
-                            })}
-                          </Text>
-                        </Stack>
-                      </Card>
-                    ))}
-                    {(!checkpointHintInfo.targets || checkpointHintInfo.targets.length === 0) && (
-                      <Text size="sm" c="dimmed">
-                        {t('translation_page.resume_detail_empty', { defaultValue: '当前没有可展示的断点详情。' })}
-                      </Text>
-                    )}
-                  </Stack>
-                ) : (
-                  <Text size="sm" c="dimmed">
-                    {t('translation_page.resume_detail_none', { defaultValue: '没有未完成的工作。' })}
-                  </Text>
-                ),
-              })}
+              <ResumeSettingsCard
+                checkpointHintInfo={checkpointHintInfo}
+                form={form}
+                t={t}
+              />
 
-              {renderCollapsibleCard({
-                accent: 'blue',
-                icon: <IconRobot size={18} />,
-                isOpen: showWorkshopSettings,
-                onToggle: () => setShowWorkshopSettings((value) => !value),
-                title: t('translation_page.embedded_workshop_settings', { defaultValue: '智能工坊设置' }),
-                description: t('translation_page.embedded_workshop_settings_desc', { defaultValue: '默认收起。展开后可微调校对设置，并可改成和翻译模型不同的组合。' }),
-                action: (
-                  <Switch
-                    id="embedded-workshop-switch"
-                    label={t('translation_page.embedded_workshop_enabled', { defaultValue: '在翻译工作流中嵌入智能工坊格式校对' })}
-                    description={t('translation_page.embedded_workshop_enabled_desc', { defaultValue: '默认开启。翻译完成后会自动执行一轮格式问题修复，再生成最新的校验结果。' })}
-                    checked={form.values.embedded_workshop_enabled}
-                    onChange={(event) => form.setFieldValue('embedded_workshop_enabled', event.currentTarget.checked)}
-                  />
-                ),
-                disabled: !form.values.embedded_workshop_enabled,
-                children: (
-                  <Stack gap="sm">
-                    <Alert variant="light" color="blue" radius="md">
-                      <Text size="sm">
-                        {form.values.embedded_workshop_follow_primary_settings
-                          ? t('translation_page.embedded_workshop_following_summary', {
-                            defaultValue: '当前将跟随主翻译配置：{{provider}} / {{model}}',
-                            provider: form.values.api_provider || '--',
-                            model: form.values.model_name || '--',
-                          })
-                          : t('translation_page.embedded_workshop_custom_summary', {
-                            defaultValue: '当前使用独立校对配置：{{provider}} / {{model}}',
-                            provider: form.values.embedded_workshop_api_provider || '--',
-                            model: form.values.embedded_workshop_api_model || '--',
-                          })}
-                      </Text>
-                    </Alert>
-
-                    <Switch
-                      label={t('translation_page.embedded_workshop_follow', { defaultValue: '默认跟随当前翻译 API 与模型' })}
-                      description={t('translation_page.embedded_workshop_follow_desc', { defaultValue: '关闭后可单独指定校对模型，例如大模型翻译、小模型校对。' })}
-                      checked={form.values.embedded_workshop_follow_primary_settings}
-                      onChange={(event) => {
-                        const checked = event.currentTarget.checked;
-                        form.setFieldValue('embedded_workshop_follow_primary_settings', checked);
-                        if (!checked && !form.values.embedded_workshop_api_provider) {
-                          form.setFieldValue('embedded_workshop_api_provider', form.values.api_provider);
-                          form.setFieldValue('embedded_workshop_api_model', form.values.model_name || '');
-                        }
-                      }}
-                    />
-
-                    {!form.values.embedded_workshop_follow_primary_settings && (
-                      <>
-                        <Group grow align="flex-start">
-                          <Box style={{ flex: 1 }}>
-                            {renderNativeSelect({
-                              label: t('translation_page.embedded_workshop_provider', { defaultValue: '校对 API' }),
-                              value: form.values.embedded_workshop_api_provider,
-                              options: providerOptions,
-                              onChange: (event) => {
-                                const providerValue = event.currentTarget.value;
-                                const models = buildModelOptions(providerValue, config.api_providers);
-                                form.setFieldValue('embedded_workshop_api_provider', providerValue);
-                                form.setFieldValue('embedded_workshop_api_model', models[0]?.value || '');
-                              },
-                            })}
-                          </Box>
-                          <Box style={{ flex: 1 }}>
-                            {renderNativeSelect({
-                              label: t('translation_page.embedded_workshop_model', { defaultValue: '校对模型' }),
-                              value: form.values.embedded_workshop_api_model,
-                              options: embeddedWorkshopModelOptions,
-                              onChange: (event) => form.setFieldValue('embedded_workshop_api_model', event.currentTarget.value),
-                            })}
-                          </Box>
-                        </Group>
-
-                        <Group grow align="flex-start">
-                          <Box style={{ flex: 1 }}>
-                            {renderNativeSelect({
-                              label: renderInfoLabel(
-                                t('translation_page.embedded_workshop_batch_size', { defaultValue: '每批修复条数' }),
-                                t('translation_page.embedded_workshop_batch_size_tooltip', { defaultValue: '控制每次交给智能工坊修复的条目数量。只对本次翻译生效。' }),
-                              ),
-                              value: form.values.embedded_workshop_batch_size_limit,
-                              options: ['3', '5', '10', '15', '20'].map((value) => ({ value, label: value })),
-                              onChange: (event) => form.setFieldValue('embedded_workshop_batch_size_limit', event.currentTarget.value),
-                            })}
-                          </Box>
-                          <Box style={{ flex: 1 }}>
-                            {renderNativeSelect({
-                              label: renderInfoLabel(
-                                t('translation_page.embedded_workshop_concurrency', { defaultValue: '校对并发' }),
-                                t('translation_page.embedded_workshop_concurrency_tooltip', { defaultValue: '控制智能工坊同时修复多少个批次。只对本次翻译生效。' }),
-                              ),
-                              value: form.values.embedded_workshop_concurrency_limit,
-                              options: ['1', '2', '3', '5'].map((value) => ({ value, label: value })),
-                              onChange: (event) => form.setFieldValue('embedded_workshop_concurrency_limit', event.currentTarget.value),
-                            })}
-                          </Box>
-                          <Box style={{ flex: 1 }}>
-                            {renderNativeSelect({
-                              label: renderInfoLabel(
-                                t('translation_page.embedded_workshop_rpm', { defaultValue: '校对 RPM' }),
-                                t('translation_page.embedded_workshop_rpm_tooltip', { defaultValue: '限制智能工坊每分钟请求数。只对本次翻译生效。' }),
-                              ),
-                              value: form.values.embedded_workshop_rpm_limit,
-                              options: ['5', '10', '20', '40', '60', '100'].map((value) => ({ value, label: value })),
-                              onChange: (event) => form.setFieldValue('embedded_workshop_rpm_limit', event.currentTarget.value),
-                            })}
-                          </Box>
-                        </Group>
-                      </>
-                    )}
-                  </Stack>
-                ),
-              })}
+              <EmbeddedWorkshopSettingsCard
+                config={config}
+                embeddedWorkshopModelOptions={embeddedWorkshopModelOptions}
+                form={form}
+                providerOptions={providerOptions}
+                renderInfoLabel={renderInfoLabel}
+                renderNativeSelect={renderNativeSelect}
+                t={t}
+              />
 
               <Card withBorder p="md" radius="md" bg="var(--mantine-color-body)">
                 <Stack gap="xs">

@@ -58,8 +58,8 @@ def run(mod_name: str,
     logging.info(i18n.t("log_selected_provider", provider=selected_provider))
 
     # ───────────── 2. 初始化客户端 ─────────────
-    gemini_cli_model = resolve_provider_model(selected_provider, model_name)
-    handler = create_translation_handler(selected_provider, gemini_cli_model)
+    resolved_model_name = resolve_provider_model(selected_provider, model_name)
+    handler = create_translation_handler(selected_provider, resolved_model_name)
     if not handler:
         return
 
@@ -124,7 +124,7 @@ def run(mod_name: str,
             output_folder_name=output_folder_name,
             output_dir_path=output_dir_path,
             selected_provider=selected_provider,
-            model_name=gemini_cli_model,
+            model_name=resolved_model_name,
             all_files_content=all_files_content,
             total_batches=total_batches,
             effective_chunk_size=effective_chunk_size,
@@ -151,7 +151,7 @@ def run(mod_name: str,
         game_profile,
         output_dir_path,
         selected_provider,
-        gemini_cli_model,
+        resolved_model_name,
         target_languages,
         project_id,
     )

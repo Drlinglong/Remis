@@ -21,7 +21,7 @@ class IncrementalArchiveService:
         archive_files_data: List[Dict[str, Any]],
         archive_results: Dict[str, List[str]],
     ) -> Optional[int]:
-        mod_id = self.archive_manager.get_or_create_mod_entry(project_name, remote_file_id=project_id)
+        mod_id = self.archive_manager.resolve_mod_entry(project_name, remote_file_id=project_id)
         if not mod_id:
             return None
 

@@ -3,6 +3,7 @@ import { Badge, Button, Group, Paper, Tabs, Text, Title, Tooltip } from '@mantin
 import { IconArrowLeft } from '@tabler/icons-react';
 
 import { FEATURES } from '../../config/features';
+import ProjectGlossaryPanel from '../project/ProjectGlossaryPanel';
 import ProjectHistory from '../project/ProjectHistory';
 import ProjectValidation from '../project/ProjectValidation';
 import KanbanBoard from '../tools/KanbanBoard';
@@ -72,6 +73,7 @@ export function ProjectDashboardView({
       }}>
         <Tabs.List style={{ paddingLeft: '1rem', paddingTop: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
           <Tabs.Tab value="overview">{t('project_management.tabs_overview')}</Tabs.Tab>
+          <Tabs.Tab value="project_glossary">{t('project_management.tabs_project_glossary')}</Tabs.Tab>
           <Tabs.Tab value="taskboard" id="kanban-tab-control">{t('project_management.tabs_kanban')}</Tabs.Tab>
           <Tabs.Tab value="validation" id="validation-tab-control">{t('project_management.tabs_validation')}</Tabs.Tab>
           {FEATURES.ENABLE_PROJECT_HISTORY && <Tabs.Tab value="history" id="history-tab-control">{t('project_management.tabs_history', 'Project History')}</Tabs.Tab>}
@@ -97,6 +99,10 @@ export function ProjectDashboardView({
 
         <Tabs.Panel value="taskboard" style={{ flex: 1, overflow: 'auto', position: 'relative', minHeight: 0 }}>
           <KanbanBoard projectId={selectedProject.project_id} key={selectedProject.project_id + (projectDetails?.refreshKey || '')} />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="project_glossary" style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
+          <ProjectGlossaryPanel project={selectedProject} t={t} />
         </Tabs.Panel>
 
         <Tabs.Panel value="validation" style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>

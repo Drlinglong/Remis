@@ -9,7 +9,6 @@ import sys
 import json
 import logging
 import re
-import subprocess
 import importlib.util
 from typing import Optional, Dict, List
 
@@ -75,19 +74,6 @@ def preflight_checks():
             available_libraries.append(i18n.t(lib_key))
         except ImportError:
             pass
-
-    # 检查Gemini CLI
-    try:
-        result = subprocess.run(
-            ["powershell", "-Command", "Set-ExecutionPolicy RemoteSigned -Scope Process -Force; gemini --version"],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        if result.returncode == 0:
-            available_libraries.append(i18n.t("api_lib_gemini_cli"))
-    except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
-        pass
 
     if not available_libraries:
         error_messages.append(i18n.t("preflight_error_no_api_libs"))

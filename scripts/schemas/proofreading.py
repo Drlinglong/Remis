@@ -1,12 +1,26 @@
-from typing import List, Dict, Any
-from pydantic import BaseModel, field_validator
+from typing import List, Optional
+from pydantic import BaseModel, Field, field_validator
 from scripts.schemas.common import LanguageCode
+
+class ProofreadingEntry(BaseModel):
+    key: str
+    translation: str
+
+
+class StructurePatch(BaseModel):
+    entry_id: str
+    line_start: int
+    line_end: int
+    content: str = ""
+
 
 class SaveProofreadingRequest(BaseModel):
     project_id: str
     file_id: str
-    entries: List[Dict[str, Any]]
-    content: str = "" # Legacy support
+    entries: List[ProofreadingEntry]
+    structure_patches: List[StructurePatch] = Field(default_factory=list)
+    base_revision: Optional[str] = None
+    content: str = ""  # Legacy support
     target_language: LanguageCode = LanguageCode.ZH_CN
 
     @field_validator('target_language', mode='before')
@@ -15,4 +29,3 @@ class SaveProofreadingRequest(BaseModel):
         if isinstance(v, str):
             return LanguageCode.from_str(v)
         return v
-

@@ -202,6 +202,8 @@ class BaseGameValidator:
             if source_text:
                 source_start_tags_count = len(re.findall(start_tag_pattern, source_text))
                 source_end_tags_count = source_text.count(end_tag_string)
+                if source_start_tags_count != source_end_tags_count:
+                    return results
                 if (
                     start_tags_count == source_start_tags_count
                     and end_tags_count == source_end_tags_count
@@ -250,6 +252,9 @@ class BaseGameValidator:
 
         source_end_count = sum(source_text.count(marker) for marker in end_tag_strings)
         target_end_count = sum(text.count(marker) for marker in end_tag_strings)
+
+        if source_start_count != source_end_count:
+            return []
 
         if (
             source_start_count == target_start_count

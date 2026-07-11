@@ -1,0 +1,175 @@
+.root {
+    --proofreading-grid: 190px minmax(220px, 1fr) minmax(220px, 1fr) minmax(260px, 1.15fr);
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid var(--mantine-color-dark-4);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--mantine-color-dark-8) 84%, transparent);
+}
+
+.toolbar {
+    flex: 0 0 auto;
+    min-height: 54px;
+    border-bottom: 1px solid var(--mantine-color-dark-4);
+}
+
+.search {
+    flex: 1;
+    min-width: 240px;
+    max-width: 520px;
+}
+
+.scrollArea {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    scrollbar-gutter: stable;
+}
+
+.virtualCanvas {
+    position: relative;
+    min-width: 960px;
+}
+
+.virtualRow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    min-width: 960px;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: var(--proofreading-grid);
+    align-items: stretch;
+    gap: 10px;
+    min-width: 960px;
+    border-bottom: 1px solid var(--mantine-color-dark-5);
+}
+
+.headerRow {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    min-height: 42px;
+    background: var(--mantine-color-dark-7);
+    border-bottom-color: var(--mantine-color-dark-3);
+}
+
+.headerCell,
+.cell,
+.keyCell {
+    min-width: 0;
+    padding: 10px 8px;
+}
+
+.headerCell {
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.headerHelp {
+    flex: 0 0 auto;
+    color: var(--mantine-color-dimmed);
+    cursor: help;
+    outline-offset: 3px;
+}
+
+.headerHelp:hover,
+.headerHelp:focus-visible {
+    color: var(--mantine-primary-color-filled);
+}
+
+.keyCell {
+    padding-left: 12px;
+}
+
+.keyIcon {
+    flex: 0 0 auto;
+    margin-top: 3px;
+    color: var(--mantine-color-dimmed);
+}
+
+.keyDetails {
+    min-width: 0;
+}
+
+.keyText {
+    overflow-wrap: anywhere;
+    line-height: 1.45;
+}
+
+.readonlyText,
+.commentText {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--mantine-color-gray-2);
+}
+
+.commentText {
+    color: var(--mantine-color-teal-3);
+    font-family: var(--mantine-font-family-monospace);
+}
+
+.finalInput,
+.commentInput {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.commentInput {
+    font-family: var(--mantine-font-family-monospace);
+    color: var(--mantine-color-teal-2);
+}
+
+.structureRow {
+    background: color-mix(in srgb, var(--mantine-color-dark-8) 74%, var(--mantine-color-teal-9));
+}
+
+.structureContent {
+    grid-column: 2 / 5;
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+}
+
+.mutedCell {
+    display: flex;
+    align-items: center;
+}
+
+.changedRow {
+    background: color-mix(in srgb, var(--mantine-color-blue-9) 18%, transparent);
+}
+
+.highlightedRow {
+    z-index: 2;
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: -2px;
+    background: color-mix(in srgb, var(--mantine-primary-color-filled) 16%, transparent);
+    transition: background 180ms ease;
+}
+
+@media (min-width: 1800px) {
+    .root {
+        --proofreading-grid: 220px minmax(280px, 1fr) minmax(280px, 1fr) minmax(320px, 1.15fr);
+    }
+
+    .readonlyText,
+    .commentText,
+    .finalInput,
+    .commentInput {
+        font-size: 15px;
+    }
+
+    .headerCell {
+        font-size: 14px;
+    }
+}

@@ -50,3 +50,98 @@ def test_reset_db_endpoint_rebuilds_main_database(monkeypatch):
     assert fake_archive_manager._conn is None
     assert fake_engine.disposed is True
     assert not hasattr(db_manager, "_async_engine")
+
+
+def test_save_and_read_file_are_limited_to_remis_roots(monkeypatch, tmp_path):
+    project_root = tmp_path / "repo"
+    app_data_root = tmp_path / "appdata"
+    outside_root = tmp_path / "outside"
+    project_root.mkdir()
+    app_data_root.mkdir()
+    outside_root.mkdir()
+
+    monkeypatch.setattr(system_router, "PROJECT_ROOT", str(project_root))
+    monkeypatch.setattr(system_router, "APP_DATA_DIR", str(app_data_root))
+
+    allowed_file = project_root / "notes" / "safe.txt"
+    save_response = client.post(
+        "/api/system/save_file",
+        json={"file_path": str(allowed_file), "content": "hello"},
+    )
+
+    assert save_response.status_code == 200
+    assert allowed_file.read_text(encoding="utf-8-sig") == "hello"
+
+    read_response = client.post(
+        "/api/system/read_file",
+        json={"file_path": str(allowed_file)},
+    )
+
+    assert read_response.status_code == 200
+    assert read_response.json()["content"] == "hello"
+
+    blocked_response = client.post(
+        "/api/system/save_file",
+        json={"file_path": str(outside_root / "blocked.txt"), "content": "nope"},
+    )
+
+    assert blocked_response.status_code == 403
+    assert not (outside_root / "blocked.txt").exists()
+
+
+def test_relative_system_file_paths_resolve_under_project_root(monkeypatch, tmp_path):
+    project_root = tmp_path / "repo"
+    app_data_root = tmp_path / "appdata"
+    project_root.mkdir()
+    app_data_root.mkdir()
+
+    monkeypatch.setattr(system_router, "PROJECT_ROOT", str(project_root))
+    monkeypatch.setattr(system_router, "APP_DATA_DIR", str(app_data_root))
+
+    response = client.post(
+        "/api/system/save_file",
+        json={"file_path": "relative/safe.txt", "content": "relative ok"},
+    )
+
+    assert response.status_code == 200
+    assert (project_root / "relative" / "safe.txt").read_text(encoding="utf-8-sig") == "relative ok"
+
+
+def test_patch_file_is_limited_to_remis_roots(monkeypatch, tmp_path):
+    project_root = tmp_path / "repo"
+    app_data_root = tmp_path / "appdata"
+    outside_root = tmp_path / "outside"
+    project_root.mkdir()
+    app_data_root.mkdir()
+    outside_root.mkdir()
+
+    monkeypatch.setattr(system_router, "PROJECT_ROOT", str(project_root))
+    monkeypatch.setattr(system_router, "APP_DATA_DIR", str(app_data_root))
+
+    loc_file = project_root / "localization" / "english" / "demo_l_english.yml"
+    loc_file.parent.mkdir(parents=True)
+    loc_file.write_text(' key:0 "Old"\n', encoding="utf-8-sig")
+
+    response = client.post(
+        "/api/system/patch_file",
+        json={
+            "file_path": str(loc_file),
+            "entries": [{"key": "key", "value": "New", "line_number": 1}],
+        },
+    )
+
+    assert response.status_code == 200
+    assert 'key:0 "New"' in loc_file.read_text(encoding="utf-8-sig")
+
+    outside_file = outside_root / "demo_l_english.yml"
+    outside_file.write_text(' key:0 "Old"\n', encoding="utf-8-sig")
+    blocked_response = client.post(
+        "/api/system/patch_file",
+        json={
+            "file_path": str(outside_file),
+            "entries": [{"key": "key", "value": "Blocked", "line_number": 1}],
+        },
+    )
+
+    assert blocked_response.status_code == 403
+    assert "Blocked" not in outside_file.read_text(encoding="utf-8-sig")

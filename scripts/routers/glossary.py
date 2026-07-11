@@ -55,6 +55,10 @@ def _transform_entry_to_storage_format(entry: Dict) -> Dict:
 async def get_game_glossaries(game_id: str):
     return await glossary_manager.get_available_glossaries(game_id)
 
+@router.get("/api/glossaries")
+async def get_all_glossaries():
+    return await glossary_manager.get_all_glossaries()
+
 @router.get("/api/glossary/tree")
 async def get_glossary_tree():
     return await glossary_manager.get_glossary_tree_data()

@@ -34,9 +34,6 @@ def build_run_plan(mod_name: str, target_languages: List[dict]) -> InitialTransl
 
 
 def resolve_provider_model(selected_provider: str, model_name: Optional[str]) -> Optional[str]:
-    if selected_provider == "gemini_cli" and not model_name:
-        logging.warning("No model specified for Gemini CLI. Defaulting to 'gemini-1.5-flash'.")
-        return "gemini-1.5-flash"
     return model_name
 
 

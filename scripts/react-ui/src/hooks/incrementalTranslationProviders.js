@@ -41,3 +41,32 @@ export const buildProviderSelection = ({
     selectedProvider,
   };
 };
+
+export const buildEmbeddedWorkshopSelection = ({
+  providers = [],
+  currentProvider = '',
+  currentModel = '',
+  followPrimary = true,
+} = {}) => {
+  if (followPrimary) {
+    return null;
+  }
+
+  if (!currentProvider && providers.length > 0) {
+    const selectedProvider = providers[0]?.value || '';
+    return {
+      selectedProvider,
+      selectedModel: resolveProviderModels(providers, selectedProvider)[0] || '',
+    };
+  }
+
+  const models = resolveProviderModels(providers, currentProvider);
+  if (models.length > 0 && !models.includes(currentModel)) {
+    return {
+      selectedProvider: currentProvider,
+      selectedModel: models[0],
+    };
+  }
+
+  return null;
+};

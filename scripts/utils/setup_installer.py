@@ -105,23 +105,6 @@ Ollama 是一个本地化运行大语言模型的框架，它不需要API Key。
 
 3. 确保Ollama程序在后台持续运行，本工具才能连接到它。
 """
-            },
-            "9": {
-                "name": "Gemini CLI (谷歌官方CLI)",
-                "url": "https://github.com/google/gemini-cli",
-                "description": "setup_desc_gemini_cli",
-                "type": "info_only",
-                "info": """
-Gemini CLI 是谷歌官方的命令行工具，它通过Google账户认证，无需API Key。
-您需要自行安装它。
-
-1. 访问Gemini CLI的GitHub页面获取安装指南:
-   https://github.com/google/gemini-cli
-
-2. 安装通常需要Node.js环境，然后通过 `npm install -g @google/gemini-cli` 命令安装。
-
-3. 首次使用时，根据提示运行 `gemini auth` 并登录您的Google账户完成认证。
-"""
             }
         }
     

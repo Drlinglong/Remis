@@ -9,7 +9,11 @@ export const workshopService = {
      * @param {string} projectId Project ID
      * @returns {Promise} Axios response promise
      */
-    scanProject: (projectId) => api.get(`/api/agent-workshop/scan?project_id=${projectId}`),
+    scanProject: (projectId, sidecarPath = null) => {
+        const params = new URLSearchParams({ project_id: projectId });
+        if (sidecarPath) params.set('sidecar_path', sidecarPath);
+        return api.get(`/api/agent-workshop/scan?${params.toString()}`);
+    },
 
     /**
      * Request a targeted fix for a single localized issue.
@@ -24,6 +28,13 @@ export const workshopService = {
      * @returns {Promise} Axios response promise
      */
     fixBatch: (payload) => api.post('/api/agent-workshop/fix-batch', payload),
+
+    /**
+     * Start a backend-managed run for multiple localized issues.
+     * @param {Object} payload Payload containing project_id, provider/model, limits, and issues
+     * @returns {Promise} Axios response promise containing a task_id
+     */
+    startFixRun: (payload) => api.post('/api/agent-workshop/fix-run', payload),
 };
 
 export default workshopService;

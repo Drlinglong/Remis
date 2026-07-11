@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import { groupFiles as performGrouping } from '../utils/fileGrouping';
 import { usePersistentState } from './usePersistentState';
+import { readProofreadingSession } from './proofreadingSession';
 
 /**
  * Hook for managing project and file navigation in the Proofreading page.
@@ -20,6 +21,8 @@ export const useFileNavigation = () => {
     const [targetFilesMap, setTargetFilesMap] = useState({});
     const [currentSourceFile, setCurrentSourceFile] = useState(null);
     const [currentTargetFile, setCurrentTargetFile] = useState(null);
+    const projectFilesRequestRef = useRef(0);
+    const restoredSessionRef = useRef(readProofreadingSession());
 
     // ==================== Actions ====================
     const fetchProjects = useCallback(async () => {
@@ -39,19 +42,27 @@ export const useFileNavigation = () => {
     }, []);
 
     const fetchProjectFiles = useCallback(async (projectId, project) => {
+        const requestId = ++projectFilesRequestRef.current;
         try {
             const res = await api.get(`/api/project/${projectId}/files`);
-            if (res.data) {
+            if (requestId === projectFilesRequestRef.current && res.data) {
                 groupFiles(res.data, project);
             }
         } catch (error) {
-            console.error("Failed to load project files", error);
+            if (requestId === projectFilesRequestRef.current) {
+                console.error("Failed to load project files", error);
+            }
         }
     }, [groupFiles]);
 
     const handleProjectSelect = useCallback((val) => {
         const proj = projects.find(p => p.project_id === val);
         if (proj) {
+            projectFilesRequestRef.current += 1;
+            setSourceFiles([]);
+            setTargetFilesMap({});
+            setCurrentSourceFile(null);
+            setCurrentTargetFile(null);
             setSelectedProject(proj);
             setSearchParams({ projectId: proj.project_id });
         }
@@ -90,16 +101,28 @@ export const useFileNavigation = () => {
 
     // URL Sync - Project
     useEffect(() => {
-        const pId = searchParams.get('projectId');
+        const pId = searchParams.get('projectId') || restoredSessionRef.current?.projectId;
         if (pId && projects.length > 0 && !selectedProject) {
             const proj = projects.find(p => p.project_id === pId);
-            if (proj) setSelectedProject(proj);
+            if (proj) {
+                setSelectedProject(proj);
+                if (!searchParams.get('projectId')) {
+                    setSearchParams({
+                        projectId: proj.project_id,
+                        ...(restoredSessionRef.current?.fileId ? { fileId: restoredSessionRef.current.fileId } : {}),
+                    }, { replace: true });
+                }
+            }
         }
-    }, [searchParams, projects, selectedProject]);
+    }, [searchParams, projects, selectedProject, setSearchParams]);
 
     // Fetch files when project changes
     useEffect(() => {
         if (selectedProject) {
+            setSourceFiles([]);
+            setTargetFilesMap({});
+            setCurrentSourceFile(null);
+            setCurrentTargetFile(null);
             fetchProjectFiles(selectedProject.project_id, selectedProject);
         }
     }, [selectedProject, fetchProjectFiles]);
@@ -107,7 +130,7 @@ export const useFileNavigation = () => {
     // URL Sync - File (Enforce URL source of truth)
     useEffect(() => {
         if (sourceFiles.length > 0 && selectedProject) {
-            const urlFileId = searchParams.get('fileId');
+            const urlFileId = searchParams.get('fileId') || restoredSessionRef.current?.fileId;
 
             let resolvedSource = null;
             let resolvedTarget = null;
@@ -174,4 +197,3 @@ export const useFileNavigation = () => {
         setSearchParams
     };
 };
-

@@ -1,5 +1,6 @@
 import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import useGlossaryActions from './useGlossaryActions';
@@ -81,8 +82,19 @@ describe('useGlossaryActions', () => {
     });
   });
 
+  const renderGlossaryHook = (initialEntries = ['/glossary']) => renderHook(
+    () => useGlossaryActions(),
+    {
+      wrapper: ({ children }) => React.createElement(
+        MemoryRouter,
+        { initialEntries },
+        children
+      ),
+    }
+  );
+
   it('loads initial tree/config data and picks default game plus target language', async () => {
-    const { result } = renderHook(() => useGlossaryActions());
+    const { result } = renderGlossaryHook();
 
     await waitFor(() => {
       expect(result.current.isLoadingTree).toBe(false);
@@ -95,7 +107,7 @@ describe('useGlossaryActions', () => {
   });
 
   it('selects a leaf node and resets glossary browsing state', async () => {
-    const { result } = renderHook(() => useGlossaryActions());
+    const { result } = renderGlossaryHook();
 
     await waitFor(() => {
       expect(result.current.selectedGame).toBe('vic3');
@@ -128,7 +140,7 @@ describe('useGlossaryActions', () => {
   it('creates a glossary file and refreshes the tree', async () => {
     api.post.mockResolvedValue({ data: { ok: true } });
 
-    const { result } = renderHook(() => useGlossaryActions());
+    const { result } = renderGlossaryHook();
 
     await waitFor(() => {
       expect(result.current.selectedGame).toBe('vic3');
@@ -148,5 +160,23 @@ describe('useGlossaryActions', () => {
     expect(notifications.show).toHaveBeenCalledWith(
       expect.objectContaining({ color: 'green' })
     );
+  });
+
+  it('applies glossary deep links after the tree loads', async () => {
+    const { result } = renderGlossaryHook(['/glossary?game_id=vic3&glossary_id=7']);
+
+    await waitFor(() => {
+      expect(result.current.selectedFile).toEqual({
+        key: 'vic3|7|units.json',
+        title: 'units.json',
+        gameId: 'vic3',
+        glossaryId: 7,
+      });
+    });
+
+    expect(result.current.selectedGame).toBe('vic3');
+    expect(result.current.searchScope).toBe('file');
+    expect(result.current.filtering).toBe('');
+    expect(result.current.pagination).toEqual({ pageIndex: 0, pageSize: 25 });
   });
 });

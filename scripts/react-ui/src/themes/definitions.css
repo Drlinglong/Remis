@@ -184,3 +184,73 @@
   /* Fallback to Cinzel or local MedievalSharp if available */
   --font-body: "Times New Roman", serif;
 }
+
+/* Mantine mounts dropdowns in a portal under body, outside page components. */
+html[data-theme] :is(.mantine-Select-input, .mantine-MultiSelect-input) {
+  background: var(--menu-bg) !important;
+  border-color: var(--menu-border) !important;
+  color: var(--menu-text) !important;
+}
+
+html[data-theme] :is(.mantine-Select-input, .mantine-MultiSelect-input)::placeholder {
+  color: var(--menu-muted) !important;
+  opacity: 1;
+}
+
+html[data-theme] :is(.mantine-Select-section, .mantine-MultiSelect-section) {
+  color: var(--menu-text);
+}
+
+html[data-theme] :is(
+  .mantine-Combobox-dropdown,
+  .mantine-Select-dropdown,
+  .mantine-MultiSelect-dropdown,
+  .mantine-Autocomplete-dropdown,
+  .mantine-TagsInput-dropdown
+) {
+  background: var(--menu-bg) !important;
+  border-color: var(--menu-border) !important;
+  color: var(--menu-text) !important;
+}
+
+html[data-theme] :is(
+  .mantine-Combobox-option,
+  .mantine-Select-option,
+  .mantine-MultiSelect-option,
+  .mantine-Autocomplete-option,
+  .mantine-TagsInput-option
+) {
+  color: var(--menu-text) !important;
+}
+
+html[data-theme] :is(
+  .mantine-Combobox-option,
+  .mantine-Select-option,
+  .mantine-MultiSelect-option,
+  .mantine-Autocomplete-option,
+  .mantine-TagsInput-option
+):is(:hover, [data-combobox-active]) {
+  background: var(--menu-hover-bg) !important;
+  color: var(--menu-text) !important;
+}
+
+html[data-theme] :is(
+  .mantine-Combobox-option,
+  .mantine-Select-option,
+  .mantine-MultiSelect-option,
+  .mantine-Autocomplete-option,
+  .mantine-TagsInput-option
+):is([data-combobox-selected], [data-checked]) {
+  background: var(--menu-selected-bg) !important;
+  color: var(--menu-selected-text) !important;
+}
+
+html[data-theme] :is(
+  .mantine-Combobox-empty,
+  .mantine-Select-empty,
+  .mantine-MultiSelect-empty,
+  .mantine-Autocomplete-empty,
+  .mantine-TagsInput-empty
+) {
+  color: var(--menu-muted) !important;
+}

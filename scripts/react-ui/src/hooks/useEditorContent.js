@@ -1,230 +1,210 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { notifications } from '@mantine/notifications';
 import api from '../utils/api';
-import { usePersistentState } from './usePersistentState';
+import { isProofreadingRowChanged } from '../components/proofreading/proofreadingEntryState';
+import {
+    clearProofreadingSession,
+    readProofreadingSession,
+    restoreProofreadingRows,
+} from './proofreadingSession';
 
 /**
- * Hook for managing Monaco editor content and file data loading.
+ * Canonical proofreading document state.
+ * Entry rows are the only editable source of truth; the legacy raw Monaco path is gone.
  */
 export const useEditorContent = () => {
-    const [entries, setEntries] = useState([]);
-    const [originalContentStr, setOriginalContentStr] = useState('');
-    const [aiContentStr, setAiContentStr] = useState('');
-    const [finalContentStr, setFinalContentStr] = useState('');
+    const { t } = useTranslation();
+    const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(false);
     const [fileInfo, setFileInfo] = useState(null);
-    const [keyChangeWarning, setKeyChangeWarning] = useState(false);
+    const [documentRevision, setDocumentRevision] = useState(null);
+    const [draftRestoreStatus, setDraftRestoreStatus] = useState('clean');
+    const [draftConflict, setDraftConflict] = useState(null);
+    const [externalChangeDetected, setExternalChangeDetected] = useState(null);
+    const loadRequestRef = useRef(0);
+    const revisionRequestRef = useRef(0);
 
-    // Draft cache
-    const [draftCache, setDraftCache] = usePersistentState('remis_draft_cache', null);
+    const getRowsAsSaveEntries = useCallback(() => rows
+        .filter(row => row.row_type === 'translation' && row.key)
+        .map(row => ({ key: row.key, value: row.final_value || '' })), [rows]);
 
-    // Use ref to access latest draftCache in loadEditorData without adding it as dependency
-    const draftCacheRef = useRef(draftCache);
-    useEffect(() => {
-        draftCacheRef.current = draftCache;
-    }, [draftCache]);
+    const getStructurePatches = useCallback(() => rows
+        .filter(row => (
+            row.row_type === 'structure'
+            && row.editable
+            && row.final_value !== row.baseline_value
+        ))
+        .map(row => ({
+            entry_id: row.entry_id,
+            line_start: row.line_start,
+            line_end: row.line_end,
+            content: row.final_value || '',
+        })), [rows]);
 
-    // Refs for editors and scroll sync
-    const originalEditorRef = useRef(null);
-    const aiEditorRef = useRef(null);
-    const finalEditorRef = useRef(null);
-    const isScrolling = useRef(false);
+    const translationChangeCount = useMemo(() => rows.filter(row => (
+        row.row_type === 'translation' && isProofreadingRowChanged(row)
+    )).length, [rows]);
+    const commentChangeCount = useMemo(() => getStructurePatches().length, [getStructurePatches]);
+    const isDirty = translationChangeCount > 0 || commentChangeCount > 0;
 
-    const alignEntries = useCallback((entries) => {
-        let originalStr = "";
-        let aiStr = "";
-        let finalStr = "";
+    const updateRowFinalValue = useCallback((entryId, value) => {
+        setRows(currentRows => currentRows.map(row => (
+            row.entry_id === entryId ? { ...row, final_value: value } : row
+        )));
+    }, []);
 
-        entries.forEach(e => {
-            const origText = e.original || "";
-            const aiText = e.translation || "";
-            const finalText = e.translation || "";
+    const settleSavedRows = useCallback((newRevision, keepStructureChanges = true) => {
+        setRows(currentRows => currentRows.map(row => {
+            if (!row.editable) return row;
+            const finalValue = row.row_type === 'structure' && !keepStructureChanges
+                ? row.baseline_value
+                : row.final_value;
+            return { ...row, final_value: finalValue, baseline_value: finalValue };
+        }));
+        setDocumentRevision(newRevision || documentRevision);
+        setDraftRestoreStatus('clean');
+        setDraftConflict(null);
+        setExternalChangeDetected(null);
+        clearProofreadingSession();
+    }, [documentRevision]);
 
-            const WRAP_WIDTH = 60;
-            const calcLines = (text) => {
-                if (!text) return 1;
-                let len = 0;
-                for (let i = 0; i < text.length; i++) {
-                    len += text.charCodeAt(i) > 255 ? 2 : 1;
-                }
-                return Math.max(1, Math.ceil(len / WRAP_WIDTH));
-            };
+    const discardCurrentDraft = useCallback(() => {
+        setRows(currentRows => currentRows.map(row => (
+            row.editable ? { ...row, final_value: row.baseline_value } : row
+        )));
+        setDraftRestoreStatus('clean');
+        setDraftConflict(null);
+        clearProofreadingSession();
+    }, []);
 
-            const maxL = Math.max(calcLines(origText), calcLines(aiText));
-            const pad1 = Math.max(0, maxL - calcLines(origText));
-            const pad2 = Math.max(0, maxL - calcLines(aiText));
+    const dismissDraftConflict = useCallback(() => {
+        setDraftConflict(null);
+        setDraftRestoreStatus('clean');
+        clearProofreadingSession();
+    }, []);
 
-            originalStr += `${e.key}:0 "${origText}"` + "\n".repeat(pad1) + "\n";
-            aiStr += `${e.key}:0 "${aiText}"` + "\n".repeat(pad2) + "\n";
-            finalStr += `${e.key}:0 "${finalText}"\n`;
+    const getProofreadingLoadErrorMessage = useCallback((detail) => {
+        const fallback = typeof detail === 'string' && detail ? detail : 'Failed to load file data.';
+        if (!detail || typeof detail !== 'object' || !detail.code) return fallback;
+        const defaults = {
+            project_not_found: 'Cannot load proofreading data because the project no longer exists.',
+            file_not_indexed: 'Cannot load proofreading data because this file is not in the current project file index.',
+            file_path_missing: 'Cannot load proofreading data because this project file has no recorded localization path.',
+            file_path_not_found: detail.message || 'Cannot load proofreading data because the indexed file no longer exists.',
+            data_preparation_failed: 'Cannot prepare proofreading data for this file.',
+        };
+        return t(`proofreading.errors.${detail.code}`, {
+            defaultValue: detail.message || defaults[detail.code] || fallback,
         });
+    }, [t]);
 
-        return { originalStr, aiStr, finalStr };
-    }, []);
-
-    const parseEditorContentToEntries = useCallback((content) => {
-        const entries = [];
-        const regex = /^\s*([\w.-]+)\s*:\s*(\d*)\s*"((?:[^"\\]|\\.)*)"/gm;
-        let match;
-        const headers = ["l_english", "l_simp_chinese", "l_french", "l_german", "l_spanish", "l_russian", "l_polish", "l_japanese", "l_korean", "l_turkish", "l_braz_por"];
-
-        while ((match = regex.exec(content)) !== null) {
-            const keyBase = match[1].trim();
-            const version = match[2].trim();
-            if (headers.some(h => keyBase.startsWith(h))) continue;
-            const fullKey = version ? `${keyBase}:${version}` : keyBase;
-            entries.push({ key: fullKey, value: match[3] });
-        }
-        return entries;
-    }, []);
-
-    const loadEditorData = useCallback(async (pId, sourceFilePath, targetId) => {
+    const loadEditorData = useCallback(async (projectId, fileId) => {
+        const requestId = ++loadRequestRef.current;
+        revisionRequestRef.current += 1;
         setLoading(true);
+        setDraftConflict(null);
+        setDraftRestoreStatus('clean');
+        setExternalChangeDetected(null);
         try {
-            if (sourceFilePath && sourceFilePath.trim() !== '') {
-                try {
-                    const readRes = await api.post('/api/system/read_file', { file_path: sourceFilePath });
-                    setOriginalContentStr(readRes.data.content || "");
-                } catch (readError) {
-                    console.error("Failed to read source file:", readError);
-                    setOriginalContentStr("");
-                }
-            } else {
-                setOriginalContentStr("");
-            }
+            const response = await api.get(`/api/proofread/${projectId}/${fileId}`);
+            if (requestId !== loadRequestRef.current) return;
 
-            if (targetId) {
-                const resTarget = await api.get(`/api/proofread/${pId}/${targetId}`);
-                const data = resTarget.data;
-                setFileInfo({ path: data.file_path, project_id: pId, file_id: targetId });
-                setEntries(data.entries || []);
+            const data = response.data;
+            const revision = data.document_revision || null;
+            const baselineRows = (data.rows || []).map(row => ({
+                ...row,
+                baseline_value: row.final_value,
+            }));
+            const snapshot = readProofreadingSession();
+            const matchingSnapshot = snapshot
+                && snapshot.projectId === projectId
+                && snapshot.fileId === fileId
+                ? snapshot
+                : null;
+            const restored = restoreProofreadingRows({
+                rows: baselineRows,
+                documentRevision: revision,
+                snapshot: matchingSnapshot,
+            });
 
-                let contentToSet = "";
-                if (data.ai_content) {
-                    contentToSet = data.final_content || data.ai_content;
-                    setAiContentStr(data.ai_content);
-                } else if (data.file_content) {
-                    contentToSet = data.file_content;
-                    setAiContentStr(data.file_content);
-                } else {
-                    const { aiStr, finalStr } = alignEntries(data.entries || []);
-                    setAiContentStr(aiStr);
-                    contentToSet = finalStr;
-                }
-
-                // [DISABLED] Auto-restore causes confusion if disk file updates. User requested to clear this cache behavior.
-                // const cache = draftCacheRef.current;
-                // if (cache && cache.projectId === pId && cache.fileId === targetId) {
-                //     contentToSet = cache.content;
-                //     notifications.show({ title: 'Draft Restored', message: 'Restored unsaved changes.', color: 'blue' });
-                // }
-
-                setFinalContentStr(contentToSet);
-            } else {
-                setAiContentStr("");
-                setFinalContentStr("");
-                setEntries([]);
-                setFileInfo(null);
+            setFileInfo({ path: data.file_path, project_id: projectId, file_id: fileId });
+            setDocumentRevision(revision);
+            setRows(restored.rows);
+            setDraftRestoreStatus(restored.status);
+            if (restored.status === 'conflict') {
+                setDraftConflict(matchingSnapshot);
             }
         } catch (error) {
-            console.error("Failed to load editor data", error);
-            notifications.show({ title: 'Error', message: "Failed to load file data.", color: 'red' });
+            if (requestId !== loadRequestRef.current) return;
+            console.error('Failed to load proofreading data', error);
+            const detail = error.response?.data?.detail;
+            notifications.show({
+                title: t('proofreading.notifications.error'),
+                message: getProofreadingLoadErrorMessage(detail),
+                color: 'red',
+            });
         } finally {
-            setLoading(false);
+            if (requestId === loadRequestRef.current) setLoading(false);
         }
-    }, [alignEntries]); // draftCache removed from deps
+    }, [getProofreadingLoadErrorMessage, t]);
 
-    // Auto-save draft
-    useEffect(() => {
-        if (fileInfo && finalContentStr !== undefined) {
-            const timer = setTimeout(() => {
-                setDraftCache({
-                    projectId: fileInfo.project_id,
-                    fileId: fileInfo.file_id,
-                    content: finalContentStr,
-                    timestamp: Date.now()
+    const checkExternalRevision = useCallback(async () => {
+        if (!fileInfo || !documentRevision) return false;
+        const requestId = ++revisionRequestRef.current;
+        const checkedFile = fileInfo;
+        try {
+            const response = await api.get(
+                `/api/proofread/${checkedFile.project_id}/${checkedFile.file_id}/revision`
+            );
+            if (requestId !== revisionRequestRef.current) return false;
+            const diskRevision = response.data?.document_revision || null;
+            if (diskRevision && diskRevision !== documentRevision) {
+                setExternalChangeDetected({
+                    loadedRevision: documentRevision,
+                    diskRevision,
                 });
-            }, 500);
-            return () => clearTimeout(timer);
-        }
-    }, [finalContentStr, fileInfo, setDraftCache]);
-
-    // Key change detection
-    useEffect(() => {
-        if (!entries.length || !finalContentStr) {
-            setKeyChangeWarning(false);
-            return;
-        }
-
-        const currentKeys = new Set();
-        const regex = /^\s*([\w.-]+)\s*:\s*(\d*)\s*"/gm;
-        let match;
-        const headers = ["l_english", "l_simp_chinese", "l_french", "l_german", "l_spanish", "l_russian", "l_polish", "l_japanese", "l_korean", "l_turkish", "l_braz_por"];
-
-        while ((match = regex.exec(finalContentStr)) !== null) {
-            const keyBase = match[1].trim();
-            const version = match[2].trim();
-            if (headers.some(h => keyBase.startsWith(h))) continue;
-            const fullKey = version ? `${keyBase}:${version}` : keyBase;
-            currentKeys.add(fullKey);
-        }
-
-        const originalKeys = new Set(entries.map(e => e.key));
-        let hasChanges = currentKeys.size !== originalKeys.size;
-        if (!hasChanges) {
-            for (let k of currentKeys) {
-                if (!originalKeys.has(k)) {
-                    hasChanges = true;
-                    break;
-                }
+                return true;
             }
+            setExternalChangeDetected(null);
+            return false;
+        } catch (error) {
+            console.warn('Failed to check proofreading file revision', error);
+            return false;
         }
-        setKeyChangeWarning(hasChanges);
-    }, [finalContentStr, entries]);
+    }, [documentRevision, fileInfo]);
 
-    // Sync scroll
-    useEffect(() => {
-        const editors = [originalEditorRef, aiEditorRef, finalEditorRef];
-        const disposables = [];
-
-        const syncScroll = (sourceEditor, e) => {
-            if (isScrolling.current) return;
-            isScrolling.current = true;
-            const { scrollTop, scrollLeft } = e;
-            editors.forEach(ref => {
-                if (ref.current && ref.current !== sourceEditor) {
-                    ref.current.setScrollPosition({ scrollTop, scrollLeft });
-                }
-            });
-            setTimeout(() => { isScrolling.current = false; }, 50);
-        };
-
-        const attachListeners = () => {
-            editors.forEach(ref => {
-                if (ref.current) {
-                    const disposable = ref.current.onDidScrollChange((e) => syncScroll(ref.current, e));
-                    disposables.push(disposable);
-                }
-            });
-        };
-
-        const timer = setTimeout(attachListeners, 500);
-        return () => { clearTimeout(timer); disposables.forEach(d => d && d.dispose()); };
-    }, [originalContentStr, aiContentStr, finalContentStr]);
+    const clearEditorData = useCallback(() => {
+        loadRequestRef.current += 1;
+        revisionRequestRef.current += 1;
+        setRows([]);
+        setFileInfo(null);
+        setDocumentRevision(null);
+        setDraftRestoreStatus('clean');
+        setDraftConflict(null);
+        setExternalChangeDetected(null);
+        setLoading(false);
+    }, []);
 
     return {
-        entries,
-        originalContentStr,
-        aiContentStr,
-        finalContentStr,
-        setFinalContentStr,
+        rows,
         loading,
         fileInfo,
-        keyChangeWarning,
+        documentRevision,
+        draftRestoreStatus,
+        draftConflict,
+        externalChangeDetected,
+        translationChangeCount,
+        commentChangeCount,
+        isDirty,
+        updateRowFinalValue,
+        getRowsAsSaveEntries,
+        getStructurePatches,
+        settleSavedRows,
+        discardCurrentDraft,
+        dismissDraftConflict,
         loadEditorData,
-        parseEditorContentToEntries,
-        originalEditorRef,
-        aiEditorRef,
-        finalEditorRef
+        checkExternalRevision,
+        clearEditorData,
     };
 };

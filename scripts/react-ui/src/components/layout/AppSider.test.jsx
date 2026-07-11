@@ -62,14 +62,15 @@ describe('AppSider', () => {
     expect(startTourMock).toHaveBeenCalledOnce();
   });
 
-  it('shows project tracking and hides unfinished neologism entries in the main navigation', () => {
+  it('shows project tracking and the neologism review entry in the main navigation', () => {
     renderWithProvider(<AppSider />);
 
     const sidebar = document.getElementById('sidebar-nav');
     fireEvent.mouseEnter(sidebar);
 
     expect(screen.getByText('page_title_project_tracking')).toBeInTheDocument();
-    expect(screen.queryByText('neologism_review.title')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('neologism_review.title'));
+    expect(navigateMock).toHaveBeenCalledWith('/neologism-review');
   });
 
   it('localizes the sidebar pin toggle tooltip', () => {
