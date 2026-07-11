@@ -4,6 +4,15 @@
 
 ## Highlights
 
+This release has two major changes:
+
+- **Gemini CLI support has ended.** Remis no longer offers Gemini CLI as a translation provider. If you still want to use Gemini models, the Google Gemini API provider remains available with a `GEMINI_API_KEY`.
+- **The Proofreading page has been rebuilt.** The new entry-by-entry layout is cleaner, easier to scan, and more reliable for long files. It protects unsaved work, restores session drafts, warns about external file changes, and links validation issues directly to the affected entry. The old Raw Monaco editor has been removed from Proofreading, leaving one clear and dependable editing workflow.
+
+In short: proofreading is simpler and safer, while the discontinued Gemini CLI path has been removed.
+
+## Technical Details
+
 - Closed the remaining tail of GitHub issue #138, the long-running frontend/control-state cleanup tracker. `ConfigStep.jsx` is no longer a single large settings surface: resume settings, embedded workshop settings, and collapsible settings framing now live in focused components.
 - Kept the conservative Mantine workaround path intact while adding interaction coverage for the two riskiest Initial Translation state edges: selected project source language filtering and embedded workshop independent-mode defaults.
 - Moved Agent Workshop run orchestration further backend-side, tightened validation scope handling, and preserved resume/polling behavior around backend run tasks.
@@ -43,7 +52,16 @@
 
 ## 中文
 
-## 重点更新
+## 重点
+
+本次版本有两项最重要的变化：
+
+- **停止支持 Gemini CLI。** Remis 不再提供 Gemini CLI 翻译供应商。如果仍希望使用 Gemini 模型，可以继续使用 Google Gemini API 供应商并配置 `GEMINI_API_KEY`。
+- **校对页面全面重构。** 新的逐条目编辑布局更加简洁工整，更容易浏览，在处理长文件时也更可靠；同时加入了未保存内容保护、会话草稿恢复、外部文件变更提醒，以及从格式校对问题直达对应条目的能力。旧的 Raw Monaco 编辑器已从校对流程移除，现在只保留一套清晰可靠的编辑方式。
+
+简单来说：校对页面变得更好用、更安全，已经停止维护的 Gemini CLI 路径则被移除。
+
+## 技术细节
 
 - 收尾关闭 GitHub issue #138，也就是长期追踪的前端状态 / 控件技术债。`ConfigStep.jsx` 不再是一个巨大的配置面板：断点续传设置、嵌入式智能工坊设置、可折叠设置卡片已经拆到更清晰的组件边界中。
 - 保留目前更稳的 Mantine 绕行方案，同时补了两个最高风险的 Initial Translation 交互测试：项目源语言不会出现在目标语言选择中，以及嵌入式智能工坊独立模式会正确继承主翻译 provider/model 默认值。
