@@ -367,7 +367,7 @@ class GlossaryManager:
         return False
 
     async def load_selected_glossaries(self, selected_glossary_ids: List[int]) -> bool:
-        """Async: Load selected glossaries into memory."""
+        """Async: Load glossaries from low to high priority into memory."""
         if not selected_glossary_ids:
             with self._lock:
                 self.in_memory_glossary = {'entries': []}
@@ -379,8 +379,15 @@ class GlossaryManager:
                 results = await session.execute(stmt)
                 entries = results.scalars().all()
                 
-                # Convert to dicts
-                entries_data = [e.model_dump() for e in entries]
+                priority_by_id = {
+                    glossary_id: priority
+                    for priority, glossary_id in enumerate(selected_glossary_ids)
+                }
+                entries_data = []
+                for entry in entries:
+                    entry_data = entry.model_dump()
+                    entry_data["_glossary_priority"] = priority_by_id.get(entry.glossary_id, -1)
+                    entries_data.append(entry_data)
                 
                 with self._lock:
                     self.in_memory_glossary = {'entries': entries_data}
@@ -587,7 +594,8 @@ class GlossaryManager:
             'metadata': entry.get('raw_metadata', {}),
             'variants': entry.get('variants', {}),
             'match_type': mtype,
-            'confidence': conf
+            'confidence': conf,
+            '_glossary_priority': entry.get('_glossary_priority', -1),
         }
 
     def create_dynamic_glossary_prompt(self, relevant_terms: List[Dict], source_lang: str, target_lang: str) -> str:
@@ -711,7 +719,22 @@ class GlossaryManager:
             match_id = match['id']
             if match_id not in unique_matches or match['confidence'] > unique_matches[match_id]['confidence']:
                 unique_matches[match_id] = match
-        return list(unique_matches.values())
+
+        # The caller loads glossaries from low to high priority. A project glossary
+        # therefore overrides a selected/game glossary, which overrides the main
+        # glossary, for the same normalized source term.
+        by_source = {}
+        for match in unique_matches.values():
+            source_key = " ".join((match.get('source_term') or '').casefold().split())
+            current = by_source.get(source_key)
+            candidate_rank = (match.get('_glossary_priority', -1), match.get('confidence', 0.0))
+            current_rank = (
+                current.get('_glossary_priority', -1),
+                current.get('confidence', 0.0),
+            ) if current else (-1, -1.0)
+            if current is None or candidate_rank > current_rank:
+                by_source[source_key] = match
+        return list(by_source.values())
         
     async def get_glossary_stats(self) -> Dict[str, Any]:
         """Async: Get glossary statistics for dashboard (term counts per game)."""

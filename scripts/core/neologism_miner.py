@@ -1,138 +1,186 @@
 import json
 import logging
-from typing import List, Any
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Literal
+
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
+
+
+class NeologismMiningError(RuntimeError):
+    """Raised when a mining model call cannot produce trustworthy structured output."""
+
 
 class NeologismTerm(BaseModel):
-    original: str
-    suggestion: str
-    reasoning: str
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    original: str = Field(min_length=1, max_length=200)
+    category: Literal["person", "place", "faction", "concept", "technology", "other"] = "other"
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+
+
+class NeologismReview(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    original: str = Field(min_length=1, max_length=200)
+    suggestion: str = Field(min_length=1, max_length=500)
+    reasoning: str = Field(min_length=1, max_length=2000)
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+
+
+TERM_LIST_ADAPTER = TypeAdapter(List[NeologismTerm])
+REVIEW_LIST_ADAPTER = TypeAdapter(List[NeologismReview])
+
 
 class NeologismMiner:
-    """
-    Neologism Miner
-    Extracts potential neologisms and proper nouns from source text.
-    """
+    """LLM boundary for grounded extraction and context-aware terminology review."""
 
-    SYSTEM_PROMPT_TEMPLATE = """
-# Role: Senior Paradox Interactive Localization Expert / Terminology Analyst
+    EXTRACTION_SYSTEM_PROMPT = """
+# Role
+You are a terminology analyst for game localization.
 
-# Goal
-Your task is to read the provided game mod source text and extract all **potential, undefined proper nouns or neologisms**.
-For each extracted term, you must also provide a translation suggestion and a brief reasoning based on the context.
+# Task
+Extract potential proper nouns or author-created concepts from the supplied localization text.
+Return candidates only. Do not translate them in this stage.
 
-# Game Context
-You are currently working on a mod for the game: **{game_name}**.
-Please ensure your analysis and translation suggestions align with the specific lore, style, and terminology of this game.
+# Game
+{game_name}
 
-# Target Language
-You should provide translation suggestions in: **{target_lang}** (Language Code: {target_lang_code})
+# Rules
+- Every `original` value MUST occur verbatim in the user text.
+- Include names, places, factions, fictional concepts, technologies, and coined phrases.
+- Exclude localization keys, variables, commands, formatting codes, generic words, and punctuation.
+- Prefer a complete phrase over overlapping fragments.
+- Confidence is a number from 0 to 1.
 
-# Extraction Rules
+# Output
+Output only a JSON array with this schema:
+[
+  {{"original": "Aetherophasic Engine", "category": "technology", "confidence": 0.95}}
+]
+"""
 
-Please filter terms based on the following criteria:
+    REVIEW_SYSTEM_PROMPT = """
+# Role
+You are a senior game localization terminology reviewer.
 
-1.  **✅ Targets**:
-    *   **Proper Nouns**: Names of people, places, nations, factions (e.g., "Azura", "Gondor", "United Nations of Earth").
-    *   **Fictional Concepts**: Terms coined by the author or phrases with specific meanings (e.g., "Plasteel", "Warp Drive", "Mind-Fire").
-    *   **Capitalized Terms**: Non-generic words appearing in the middle of sentences with capitalized first letters.
+# Task
+For every supplied candidate, propose one canonical translation from {source_lang} to {target_lang}.
+Use all supplied context snippets, frequency, category, and the game context.
 
-2.  **❌ Exclusions**:
-    *   **Script Code**: NEVER extract variables or commands inside `[]`, `{{}}`, `$`, `@` (e.g., `[Root.GetName]`, `$COUNTRY$`, `scope:actor`).
-    *   **Color Codes**: Ignore formatting codes like `§R`, `§!`.
-    *   **Generic Words**: Do not extract common English words (e.g., "Empire", "Soldier", "Technology") unless they form a specific proper noun phrase.
-    *   **Numbers & Symbols**: Pure numbers or punctuation, unless they have a strong, unique meaning (e.g., "42").
+# Game
+{game_name}
 
-# Output Format
+# Rules
+- Return exactly one review for each input candidate.
+- Keep `original` exactly equal to the input value.
+- The suggestion must be non-empty and suitable for consistent glossary use.
+- Reasoning must be concise and grounded in the supplied contexts.
+- Confidence is a number from 0 to 1.
 
-*   **Output ONLY a raw JSON string**.
-*   Format: A list of objects.
-*   Example:
-    [
-        {{
-            "original": "Aetherophasic Engine",
-            "suggestion": "以太相引擎",
-            "reasoning": "Aetherophasic is a compound of Aether and Phasic. Engine translates to 引擎. This term refers to a specific Stellaris crisis megastructure."
-        }},
-        {{
-            "original": "Blorg Commonality",
-            "suggestion": "布洛格公社",
-            "reasoning": "Blorg is a species name, transliterated as 布洛格. Commonality implies a shared or communal government, translated as 公社 or 共联. '布洛格公社' sounds like a standard sci-fi faction name."
-        }}
-    ]
-*   Do NOT include markdown formatting (like ```json), and do NOT include any explanatory text.
+# Output
+Output only a JSON array with this schema:
+[
+  {{
+    "original": "Aetherophasic Engine",
+    "suggestion": "以太相引擎",
+    "reasoning": "A named Stellaris crisis megastructure.",
+    "confidence": 0.92
+  }}
+]
 """
 
     def __init__(self, client: Any):
-        """
-        :param client: Instance of BaseApiHandler (e.g. GeminiHandler, OpenAIHandler)
-        """
         self.client = client
         self.logger = logging.getLogger(__name__)
 
-    def extract_terms(self, text_chunk: str, target_lang: str = "Chinese", target_lang_code: str = "zh-CN", game_name: str = "Paradox Game") -> List[NeologismTerm]:
-        """
-        Call LLM to extract neologisms from text.
-        Returns a list of NeologismTerm objects.
-        """
+    def _generate(self, messages: List[Dict[str, str]]) -> str:
         try:
-            # Inject target language and game context into system prompt
-            system_prompt = self.SYSTEM_PROMPT_TEMPLATE.format(
-                target_lang=target_lang,
-                target_lang_code=target_lang_code,
-                game_name=game_name
-            )
+            response = self.client.generate_with_messages(messages, temperature=0.1)
+        except Exception as exc:
+            raise NeologismMiningError(f"LLM request failed: {exc}") from exc
+        if not response or not response.strip():
+            raise NeologismMiningError("LLM returned an empty response")
+        return response.strip()
 
-            # Construct Prompt
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": text_chunk}
+    @staticmethod
+    def _strip_code_fence(response: str) -> str:
+        cleaned = response.strip()
+        if cleaned.startswith("```"):
+            first_newline = cleaned.find("\n")
+            cleaned = cleaned[first_newline + 1:] if first_newline >= 0 else ""
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        return cleaned.strip()
+
+    def _parse_with_repair(self, messages: List[Dict[str, str]], adapter: TypeAdapter, stage: str):
+        response = self._generate(messages)
+        try:
+            return adapter.validate_python(json.loads(self._strip_code_fence(response)))
+        except (json.JSONDecodeError, ValidationError, TypeError) as first_error:
+            repair_messages = messages + [
+                {"role": "assistant", "content": response},
+                {
+                    "role": "user",
+                    "content": (
+                        "The previous response did not satisfy the required JSON schema. "
+                        "Return the corrected raw JSON array only. Do not add markdown or commentary."
+                    ),
+                },
             ]
+            repaired = self._generate(repair_messages)
+            try:
+                return adapter.validate_python(json.loads(self._strip_code_fence(repaired)))
+            except (json.JSONDecodeError, ValidationError, TypeError) as second_error:
+                self.logger.error("Structured %s output failed validation after one repair", stage)
+                raise NeologismMiningError(
+                    f"LLM returned invalid structured {stage} output after one repair"
+                ) from second_error
 
-            # Call LLM
-            response_text = ""
-            if hasattr(self.client, "generate_with_messages"):
-                 response_text = self.client.generate_with_messages(messages, temperature=0.1)
-            else:
-                 # Fallback for clients without generate_with_messages
-                 full_prompt = f"{system_prompt}\n\nInput:\n{text_chunk}\n\nOutput:"
-                 if hasattr(self.client, "generate_content"):
-                    response_text = self.client.generate_content(full_prompt)
-                 else:
-                    self.logger.error(f"Client {type(self.client)} does not support generation methods.")
-                    return []
+    def extract_terms(
+        self,
+        text_chunk: str,
+        target_lang: str = "Chinese",
+        target_lang_code: str = "zh-CN",
+        game_name: str = "Paradox Game",
+    ) -> List[NeologismTerm]:
+        del target_lang, target_lang_code
+        system_prompt = self.EXTRACTION_SYSTEM_PROMPT.format(game_name=game_name)
+        terms = self._parse_with_repair(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": text_chunk},
+            ],
+            TERM_LIST_ADAPTER,
+            "extraction",
+        )
+        if len(terms) > 100:
+            raise NeologismMiningError("LLM extraction exceeded the 100-candidate safety limit for one chunk")
+        return terms
 
-            # Parse JSON
-            cleaned_response = response_text.strip()
-            if cleaned_response.startswith("```json"):
-                cleaned_response = cleaned_response[7:]
-            if cleaned_response.endswith("```"):
-                cleaned_response = cleaned_response[:-3]
-            
-            # Handle potential non-JSON output or empty response
-            if not cleaned_response:
-                return []
-
-            # Load JSON and validate with Pydantic
-            terms_data = json.loads(cleaned_response)
-
-            if not isinstance(terms_data, list):
-                self.logger.warning(f"Unexpected JSON format from Neologism Miner: {terms_data}")
-                return []
-
-            valid_terms = []
-            for item in terms_data:
-                try:
-                    term = NeologismTerm(**item)
-                    valid_terms.append(term)
-                except Exception as e:
-                    self.logger.warning(f"Skipping invalid term: {item} - {e}")
-
-            return valid_terms
-
-        except json.JSONDecodeError:
-            self.logger.error(f"Failed to parse JSON from Neologism Miner response: {response_text}")
-            return []
-        except Exception as e:
-            self.logger.error(f"Error in Neologism Miner: {e}")
-            return []
+    def review_terms(
+        self,
+        candidates: List[Dict[str, Any]],
+        *,
+        source_lang: str,
+        target_lang: str,
+        game_name: str,
+    ) -> Dict[str, NeologismReview]:
+        if not candidates:
+            return {}
+        system_prompt = self.REVIEW_SYSTEM_PROMPT.format(
+            source_lang=source_lang,
+            target_lang=target_lang,
+            game_name=game_name,
+        )
+        reviews = self._parse_with_repair(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": json.dumps(candidates, ensure_ascii=False)},
+            ],
+            REVIEW_LIST_ADAPTER,
+            "review",
+        )
+        expected = {candidate["original"] for candidate in candidates}
+        received = {review.original for review in reviews}
+        if received != expected or len(reviews) != len(candidates):
+            raise NeologismMiningError("LLM review output did not match the requested candidate set")
+        return {review.original: review for review in reviews}

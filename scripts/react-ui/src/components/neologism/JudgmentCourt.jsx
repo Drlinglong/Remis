@@ -20,15 +20,15 @@ const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  * 新词审核法庭组件
  * 负责审核和批准 AI 挖掘的新词候选
  */
-const JudgmentCourt = () => {
+const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken = 0 }) => {
     const { t } = useTranslation();
     const [projects, setProjects] = useState([]);
-    const [selectedProject, setSelectedProject] = useState(null);
     const [candidates, setCandidates] = useState([]);
     const [selectedId, setSelectedId] = useState(null);
     const [loading, setLoading] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [editSuggestion, setEditSuggestion] = useState("");
+    const [resolution, setResolution] = useState('approve_project');
     const [projectGlossary, setProjectGlossary] = useState(null);
 
     useEffect(() => {
@@ -36,6 +36,7 @@ const JudgmentCourt = () => {
             const candidate = candidates.find(c => c.id === selectedId);
             if (candidate) {
                 setEditSuggestion(candidate.suggestion || "");
+                setResolution((candidate.duplicate_matches || []).length > 0 ? 'duplicate' : 'approve_project');
             }
         }
     }, [selectedId, candidates]);
@@ -44,20 +45,20 @@ const JudgmentCourt = () => {
         try {
             const response = await api.get(`${API_BASE_URL}/projects`);
             setProjects(response.data);
-            if (response.data.length > 0) {
-                setSelectedProject(response.data[0].project_id);
+            if (!selectedProject && response.data.length > 0) {
+                onSelectedProjectChange(response.data[0].project_id);
             }
         } catch (error) {
             console.error("Failed to fetch projects", error);
         }
-    }, []);
+    }, [onSelectedProjectChange, selectedProject]);
 
     const fetchCandidates = useCallback(async (projectId) => {
         setLoading(true);
         try {
-            const response = await api.get(`${API_BASE_URL}/neologisms?project_id=${projectId}`);
+            const response = await api.get(`${API_BASE_URL}/neologisms?project_id=${encodeURIComponent(projectId)}`);
             setCandidates(response.data);
-            setSelectedId(prev => prev || response.data[0]?.id || null);
+            setSelectedId(response.data[0]?.id || null);
         } catch {
             notifications.show({ title: 'Error', message: 'Failed to load candidates', color: 'red' });
         } finally {
@@ -96,7 +97,7 @@ const JudgmentCourt = () => {
             setCandidates([]);
             setProjectGlossary(null);
         }
-    }, [fetchCandidates, fetchProjectGlossary, selectedProject]);
+    }, [fetchCandidates, fetchProjectGlossary, refreshToken, selectedProject]);
 
     const handleApprove = async () => {
         if (!selectedId || !selectedProject) return;
@@ -107,6 +108,7 @@ const JudgmentCourt = () => {
         try {
             await api.post(`${API_BASE_URL}/neologisms/${selectedId}/approve`, {
                 project_id: selectedProject,
+                resolution,
                 final_translation: editSuggestion,
                 glossary_id: projectGlossary?.glossary_id || null,
                 source_lang: candidate.source_lang || currentProject?.source_language || 'en',
@@ -196,7 +198,7 @@ const JudgmentCourt = () => {
                         <Select
                             data={projects.map(p => ({ value: p.project_id, label: p.name }))}
                             value={selectedProject}
-                            onChange={setSelectedProject}
+                            onChange={onSelectedProjectChange}
                             placeholder={t('neologism_review.court.select_project')}
                             size="md"
                             mt="xs"
@@ -273,7 +275,7 @@ const JudgmentCourt = () => {
                                         </Title>
                                     </Box>
                                     <Badge size="lg" variant="outline" color="gray">
-                                        {selectedCandidate.source_file.split('\\').pop()}
+                                            {(selectedCandidate.source_file || selectedCandidate.source_files?.[0] || '').split(/[\\/]/).pop() || t('neologism_review.court.unknown_source')}
                                     </Badge>
                                 </Group>
                             </Paper>
@@ -312,6 +314,19 @@ const JudgmentCourt = () => {
                                         </Paper>
 
                                         <Box mt="auto">
+                                            {(selectedCandidate.duplicate_matches || []).length > 0 && (
+                                                <Select
+                                                    mb="md"
+                                                    label={t('neologism_review.court.duplicate_resolution')}
+                                                    data={[
+                                                        { value: 'duplicate', label: t('neologism_review.court.resolution_duplicate') },
+                                                        { value: 'approve_project', label: t('neologism_review.court.resolution_override') },
+                                                        { value: 'new_meaning', label: t('neologism_review.court.resolution_new_meaning') },
+                                                    ]}
+                                                    value={resolution}
+                                                    onChange={setResolution}
+                                                />
+                                            )}
                                             <TextInput
                                                 label={t('neologism_review.court.final_translation')}
                                                 description={t('neologism_review.court.final_translation_desc')}
@@ -341,7 +356,7 @@ const JudgmentCourt = () => {
                                                     gradient={{ from: 'teal', to: 'lime', deg: 105 }}
                                                     leftSection={<IconGavel />}
                                                     onClick={handleApprove}
-                                                    disabled={!selectedProject}
+                                                    disabled={!selectedProject || (resolution !== 'duplicate' && !editSuggestion.trim())}
                                                 >
                                                     {t('neologism_review.court.approve')}
                                                 </Button>

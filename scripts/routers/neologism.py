@@ -1,6 +1,6 @@
-import os
 import logging
 import uuid
+from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 
@@ -13,22 +13,36 @@ from scripts.schemas.neologism import (
     UpdateNeologismRequest,
     MineNeologismsRequest,
 )
-from scripts.app_settings import GAME_PROFILES_BY_ID
+from scripts.app_settings import API_PROVIDERS, GAME_PROFILES_BY_ID
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+SUPPORTED_MINING_SUFFIXES = {".txt", ".yml", ".yaml", ".csv", ".json"}
 
 def _normalize_term(term: str) -> str:
     return " ".join((term or "").casefold().split())
 
-async def _build_main_glossary_duplicate_index(game_id: str, source_lang: str) -> dict:
-    glossaries = await glossary_manager.get_available_glossaries(game_id)
-    main_glossary = next((g for g in glossaries if g.get("is_main")), None)
-    if not main_glossary or not main_glossary.get("glossary_id"):
+async def _build_glossary_duplicate_index(
+    game_id: str,
+    source_lang: str,
+    project_id: str,
+    project_name: Optional[str],
+) -> dict:
+    all_glossaries = await glossary_manager.get_all_glossaries()
+    relevant = [glossary for glossary in all_glossaries if glossary.get("game_id") == game_id]
+    project_glossary = await glossary_manager.get_project_glossary(game_id, project_id, project_name)
+    if project_glossary and all(
+        glossary.get("glossary_id") != project_glossary.get("glossary_id")
+        for glossary in relevant
+    ):
+        relevant.append(project_glossary)
+    glossary_ids = [glossary["glossary_id"] for glossary in relevant if glossary.get("glossary_id")]
+    if not glossary_ids:
         return {}
 
-    entries = await glossary_manager.get_entries_for_glossary_ids([main_glossary["glossary_id"]])
+    glossary_by_id = {glossary["glossary_id"]: glossary for glossary in relevant}
+    entries = await glossary_manager.get_entries_for_glossary_ids(glossary_ids)
     duplicate_index = {}
     for entry in entries:
         translations = entry.get("translations") or {}
@@ -36,20 +50,80 @@ async def _build_main_glossary_duplicate_index(game_id: str, source_lang: str) -
         if not source_term:
             continue
         key = _normalize_term(source_term)
+        glossary = glossary_by_id.get(entry.get("glossary_id"), {})
         duplicate_index.setdefault(key, []).append({
             "entry_id": entry.get("entry_id"),
             "glossary_id": entry.get("glossary_id"),
-            "glossary_name": main_glossary.get("name"),
+            "glossary_name": glossary.get("name"),
+            "scope": (
+                "project"
+                if project_glossary and entry.get("glossary_id") == project_glossary.get("glossary_id")
+                else ("main" if glossary.get("is_main") else "game")
+            ),
             "source_term": source_term,
             "translations": translations,
         })
     return duplicate_index
 
+
+def _resolve_path_within_root(raw_path: str, source_root: Path) -> Path:
+    candidate = Path(raw_path)
+    if not candidate.is_absolute():
+        candidate = source_root / candidate
+    try:
+        resolved = candidate.resolve(strict=True)
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail=f"Selected file does not exist: {raw_path}") from exc
+    if not resolved.is_file() or not resolved.is_relative_to(source_root):
+        raise HTTPException(status_code=400, detail="Selected files must stay inside the project source directory")
+    if resolved.suffix.lower() not in SUPPORTED_MINING_SUFFIXES:
+        raise HTTPException(status_code=400, detail=f"Unsupported mining file type: {resolved.suffix}")
+    return resolved
+
+
+async def _resolve_project_mining_files(project: dict, requested_paths: Optional[list[str]]) -> list[str]:
+    try:
+        source_root = Path(project["source_path"]).resolve(strict=True)
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail="Project source directory does not exist") from exc
+
+    tracked_files = await project_manager.get_project_files(project["project_id"])
+    allowed: dict[Path, str] = {}
+    for tracked in tracked_files:
+        raw_path = tracked.get("file_path") or tracked.get("path")
+        if not raw_path:
+            continue
+        try:
+            resolved = _resolve_path_within_root(raw_path, source_root)
+        except HTTPException:
+            continue
+        allowed[resolved] = str(resolved)
+
+    if requested_paths:
+        selected: list[str] = []
+        for raw_path in requested_paths:
+            resolved = _resolve_path_within_root(raw_path, source_root)
+            if resolved not in allowed:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Selected file is not indexed for this project: {raw_path}",
+                )
+            selected.append(allowed[resolved])
+        files = list(dict.fromkeys(selected))
+    else:
+        files = sorted(allowed.values())
+
+    if not files:
+        raise HTTPException(status_code=400, detail="No supported indexed project files are available for mining")
+    return files
+
 @router.get("/api/neologisms")
-def list_neologisms(project_id: Optional[str] = None):
+async def list_neologisms(project_id: Optional[str] = None):
     """List neologism candidates, optionally filtered by project."""
     if not project_id:
         raise HTTPException(status_code=400, detail="project_id query parameter is required")
+    if not await project_manager.get_project(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
     return neologism_manager.get_pending_candidates(project_id)
 
 @router.post("/api/neologisms/{candidate_id}/approve")
@@ -58,40 +132,47 @@ async def approve_neologism(candidate_id: str, payload: ApproveNeologismRequest)
     project = await project_manager.get_project(payload.project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    project_glossary = await glossary_manager.get_or_create_project_glossary(
-        project["game_id"],
-        payload.project_id,
-        project.get("name"),
-    )
-    if not project_glossary or not project_glossary.get("glossary_id"):
-        raise HTTPException(status_code=500, detail="Failed to prepare project glossary")
+    project_glossary = None
+    if payload.resolution != "duplicate":
+        project_glossary = await glossary_manager.get_or_create_project_glossary(
+            project["game_id"],
+            payload.project_id,
+            project.get("name"),
+        )
+        if not project_glossary or not project_glossary.get("glossary_id"):
+            raise HTTPException(status_code=500, detail="Failed to prepare project glossary")
 
     if await neologism_manager.approve_candidate(
         payload.project_id,
         candidate_id,
         payload.final_translation,
-        project_glossary["glossary_id"],
+        project_glossary["glossary_id"] if project_glossary else None,
         source_lang=payload.source_lang,
         target_lang=payload.target_lang,
+        resolution=payload.resolution,
     ):
         logger.info(f"Approved neologism candidate {candidate_id} for project {payload.project_id}")
         return {"status": "success", "glossary": project_glossary}
     raise HTTPException(status_code=404, detail="Candidate not found or failed to approve")
 
 @router.post("/api/neologisms/{candidate_id}/reject")
-def reject_neologism(candidate_id: str, payload: dict):
+async def reject_neologism(candidate_id: str, payload: dict):
     """Reject a neologism candidate."""
     project_id = payload.get('project_id')
     if not project_id:
         raise HTTPException(status_code=400, detail="project_id is required")
+    if not await project_manager.get_project(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
     if neologism_manager.reject_candidate(project_id, candidate_id):
         logger.info(f"Rejected neologism candidate {candidate_id} for project {project_id}")
         return {"status": "success"}
     raise HTTPException(status_code=404, detail="Candidate not found")
 
 @router.patch("/api/neologisms/{candidate_id}")
-def update_neologism_suggestion(candidate_id: str, payload: UpdateNeologismRequest):
+async def update_neologism_suggestion(candidate_id: str, payload: UpdateNeologismRequest):
     """Update a candidate's suggestion."""
+    if not await project_manager.get_project(payload.project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
     if neologism_manager.update_candidate_suggestion(payload.project_id, candidate_id, payload.suggestion):
         logger.info(f"Updated neologism candidate {candidate_id} suggestion for project {payload.project_id}")
         return {"status": "success"}
@@ -103,17 +184,9 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
     project = await project_manager.get_project(payload.project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
-    # Get all text files in project
-    if payload.file_paths:
-        files = payload.file_paths
-    else:
-        # Get all text files in project
-        files = []
-        for root, _, filenames in os.walk(project['source_path']):
-            for filename in filenames:
-                if filename.endswith(('.txt', '.yml', '.yaml', '.csv')):
-                    files.append(os.path.join(root, filename))
+    if payload.api_provider not in API_PROVIDERS:
+        raise HTTPException(status_code=400, detail=f"Unknown API provider: {payload.api_provider}")
+    files = await _resolve_project_mining_files(project, payload.file_paths)
     
     logger.info(f"Triggering neologism mining for project {payload.project_id} with {len(files)} files.")
     game_profile = GAME_PROFILES_BY_ID.get(project.get("game_id") or "")
@@ -126,7 +199,16 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
     if not project_glossary or not project_glossary.get("glossary_id"):
         raise HTTPException(status_code=500, detail="Failed to prepare project glossary")
 
+    duplicate_index = await _build_glossary_duplicate_index(
+        project["game_id"],
+        project.get("source_language") or "en",
+        payload.project_id,
+        project.get("name"),
+    )
+
     task_id = str(uuid.uuid4())
+    if not neologism_manager.reserve_mining(payload.project_id, task_id, len(files)):
+        raise HTTPException(status_code=409, detail="A neologism mining run is already active for this project")
     task_state.create_task(task_id, status="pending", log_message="Neologism mining queued.")
     task_state.init_progress(task_id, {
         "total": len(files),
@@ -148,11 +230,6 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
         fields={"kind": "neologism_mining"},
         push=True,
     )
-    duplicate_index = await _build_main_glossary_duplicate_index(
-        project["game_id"],
-        project.get("source_language") or "en",
-    )
-    
     background_tasks.add_task(
         neologism_manager.run_mining_workflow,
         payload.project_id,
@@ -163,6 +240,7 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
         game_name,
         task_id,
         duplicate_index,
+        payload.model_name,
     )
     return {"task_id": task_id, "status": "started", "message": "Mining started in background"}
 

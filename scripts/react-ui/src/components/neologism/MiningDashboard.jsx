@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Container, Grid, Paper, Title, Text, Stack, Group, Button,
@@ -19,49 +19,83 @@ const getProjectFileLabel = (file) => file.relative_path || file.rel_path || fil
  * 新词挖掘仪表板组件
  * 负责配置和启动 AI 新词扫描
  */
-const MiningDashboard = () => {
+const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningComplete }) => {
     const { t } = useTranslation();
     const [projects, setProjects] = useState([]);
-    const [selectedProject, setSelectedProject] = useState(null);
     const [files, setFiles] = useState([]);
     const [selectedFiles, setSelectedFiles] = useState([]);
+    const [providers, setProviders] = useState([]);
     const [apiProvider, setApiProvider] = useState('gemini');
+    const [modelName, setModelName] = useState(null);
     const [targetLang, setTargetLang] = useState('zh-CN');
     const [scanning, setScanning] = useState(false);
     const [miningStatus, setMiningStatus] = useState(null);
     const wsRef = useRef(null);
+    const pollRef = useRef(null);
+    const terminalHandledRef = useRef(false);
 
     useEffect(() => {
-        fetchProjects();
-    }, []);
+        const provider = providers.find((item) => item.value === apiProvider);
+        setModelName(provider?.selected_model || provider?.default_model || provider?.available_models?.[0] || null);
+    }, [apiProvider, providers]);
 
-    useEffect(() => {
-        if (selectedProject) {
-            fetchFiles(selectedProject);
-            closeMiningSocket();
-        } else {
-            setFiles([]);
-            setSelectedFiles([]);
-            setMiningStatus(null);
-            closeMiningSocket();
-        }
-    }, [selectedProject]);
-
-    useEffect(() => {
-        return () => closeMiningSocket();
-    }, []);
-
-    const closeMiningSocket = () => {
+    const closeMiningSocket = useCallback(() => {
         if (wsRef.current) {
+            wsRef.current.onclose = null;
+            wsRef.current.onerror = null;
             wsRef.current.close();
             wsRef.current = null;
         }
-    };
+    }, []);
+
+    const stopPolling = useCallback(() => {
+        if (pollRef.current) {
+            clearInterval(pollRef.current);
+            pollRef.current = null;
+        }
+    }, []);
+
+    const handleTerminalStatus = useCallback((status) => {
+        if (!['completed', 'failed'].includes(status) || terminalHandledRef.current) return;
+        terminalHandledRef.current = true;
+        stopPolling();
+        closeMiningSocket();
+        if (status === 'completed') onMiningComplete?.();
+    }, [closeMiningSocket, onMiningComplete, stopPolling]);
+
+    const applyProjectStatus = useCallback((status) => {
+        setMiningStatus(status);
+        handleTerminalStatus(status?.status);
+    }, [handleTerminalStatus]);
+
+    const startPolling = useCallback((projectId) => {
+        stopPolling();
+        pollRef.current = window.setInterval(async () => {
+            try {
+                const response = await api.get(`${API_BASE_URL}/neologisms/status/${encodeURIComponent(projectId)}`);
+                applyProjectStatus(response.data);
+            } catch (error) {
+                console.error('Failed to poll mining status', error);
+            }
+        }, 1500);
+    }, [applyProjectStatus, stopPolling]);
+
+    const fetchMiningStatus = useCallback(async (projectId) => {
+        try {
+            const response = await api.get(`${API_BASE_URL}/neologisms/status/${encodeURIComponent(projectId)}`);
+            if (response.data?.status && response.data.status !== 'idle') {
+                applyProjectStatus(response.data);
+                if (['starting', 'running'].includes(response.data.status)) startPolling(projectId);
+            }
+        } catch (error) {
+            console.error('Failed to restore mining status', error);
+        }
+    }, [applyProjectStatus, startPolling]);
 
     const updateMiningStatusFromTask = (taskData) => {
         const progress = taskData.progress || {};
         const summary = taskData.summary || {};
-        setMiningStatus({
+        const status = {
             status: taskData.status === 'processing' ? 'running' : taskData.status,
             processed_files: progress.current || 0,
             total_files: progress.total || 0,
@@ -69,7 +103,8 @@ const MiningDashboard = () => {
             duplicate_terms: summary.duplicate_terms || 0,
             current_file: progress.current_file || null,
             error: summary.error || taskData.error || null,
-        });
+        };
+        applyProjectStatus(status);
     };
 
     const connectMiningSocket = (taskId) => {
@@ -81,45 +116,93 @@ const MiningDashboard = () => {
         ws.onmessage = (event) => {
             const taskData = JSON.parse(event.data);
             updateMiningStatusFromTask(taskData);
-            if (['completed', 'failed'].includes(taskData.status)) {
-                closeMiningSocket();
-            }
         };
         ws.onerror = () => {
             setMiningStatus((current) => ({
                 ...(current || {}),
-                status: 'failed',
+                status: current?.status || 'running',
                 error: t('neologism_review.mining.websocket_failed'),
             }));
             closeMiningSocket();
+            startPolling(selectedProject);
+        };
+        ws.onclose = () => {
+            if (!terminalHandledRef.current) startPolling(selectedProject);
         };
     };
 
-    const fetchProjects = async () => {
+    const fetchProjects = useCallback(async () => {
         try {
             const response = await api.get(`${API_BASE_URL}/projects`);
             setProjects(response.data.map(p => ({ value: p.project_id, label: p.name })));
+            if (!selectedProject && response.data.length > 0) {
+                onSelectedProjectChange(response.data[0].project_id);
+            }
         } catch (error) {
             console.error("Failed to fetch projects", error);
         }
-    };
+    }, [onSelectedProjectChange, selectedProject]);
 
-    const fetchFiles = async (projectId) => {
+    const fetchConfig = useCallback(async () => {
+        try {
+            const response = await api.get(`${API_BASE_URL}/config`);
+            const configuredProviders = response.data?.api_providers || [];
+            setProviders(configuredProviders);
+            if (configuredProviders.length > 0 && !configuredProviders.some((item) => item.value === apiProvider)) {
+                setApiProvider(configuredProviders[0].value);
+            }
+        } catch (error) {
+            console.error('Failed to fetch provider configuration', error);
+        }
+    }, [apiProvider]);
+
+    const fetchFiles = useCallback(async (projectId) => {
         try {
             const response = await api.get(`${API_BASE_URL}/project/${encodeURIComponent(projectId)}/files`);
             setFiles(response.data);
         } catch (error) {
             console.error("Failed to fetch files", error);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchProjects();
+        fetchConfig();
+    }, [fetchConfig, fetchProjects]);
+
+    useEffect(() => {
+        if (selectedProject) {
+            terminalHandledRef.current = false;
+            setMiningStatus(null);
+            setSelectedFiles([]);
+            fetchFiles(selectedProject);
+            closeMiningSocket();
+            stopPolling();
+            fetchMiningStatus(selectedProject);
+        } else {
+            setFiles([]);
+            setSelectedFiles([]);
+            setMiningStatus(null);
+            closeMiningSocket();
+            stopPolling();
+        }
+    }, [closeMiningSocket, fetchFiles, fetchMiningStatus, selectedProject, stopPolling]);
+
+    useEffect(() => () => {
+        closeMiningSocket();
+        stopPolling();
+    }, [closeMiningSocket, stopPolling]);
 
     const handleScan = async () => {
         if (!selectedProject) return;
         setScanning(true);
+        terminalHandledRef.current = false;
+        stopPolling();
         try {
             const response = await api.post(`${API_BASE_URL}/neologisms/mine`, {
                 project_id: selectedProject,
                 api_provider: apiProvider,
+                model_name: modelName,
                 target_lang: targetLang,
                 file_paths: selectedFiles.length > 0 ? selectedFiles : null
             });
@@ -166,7 +249,7 @@ const MiningDashboard = () => {
                             placeholder={t('neologism_review.mining.select_project_placeholder')}
                             data={projects}
                             value={selectedProject}
-                            onChange={setSelectedProject}
+                            onChange={onSelectedProjectChange}
                             size="md"
                         />
 
@@ -193,21 +276,22 @@ const MiningDashboard = () => {
 
                         <Select
                             label={t('neologism_review.mining.select_provider')}
-                            data={[
-                                { value: 'gemini', label: 'Google Gemini (Recommended)' },
-                                { value: 'openai', label: 'OpenAI GPT-4' },
-                                { value: 'qwen', label: 'Qwen (Tongyi Qianwen)' },
-                                { value: 'deepseek', label: 'DeepSeek' },
-                                { value: 'grok', label: 'Grok (xAI)' },
-                                { value: 'ollama', label: 'Ollama (Local)' },
-                                { value: 'modelscope', label: 'ModelScope' },
-                                { value: 'siliconflow', label: 'SiliconFlow' },
-                                { value: 'your_favourite_api', label: 'Custom API' }
-                            ]}
+                            data={providers}
                             value={apiProvider}
                             onChange={setApiProvider}
                             size="md"
                         />
+
+                        {providers.find((item) => item.value === apiProvider)?.available_models?.length > 0 && (
+                            <Select
+                                label={t('form_label_model')}
+                                data={providers.find((item) => item.value === apiProvider).available_models}
+                                value={modelName}
+                                onChange={setModelName}
+                                searchable
+                                size="md"
+                            />
+                        )}
 
                         <Button
                             size="xl"
@@ -215,7 +299,7 @@ const MiningDashboard = () => {
                             leftSection={<IconRadar2 />}
                             onClick={handleScan}
                             loading={scanning}
-                            disabled={!selectedProject}
+                            disabled={!selectedProject || ['starting', 'running'].includes(miningStatus?.status)}
                             variant="gradient"
                             gradient={{ from: 'blue', to: 'cyan', deg: 90 }}
                         >

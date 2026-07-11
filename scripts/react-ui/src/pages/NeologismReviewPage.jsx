@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Tabs } from '@mantine/core';
 import { IconCpu, IconGavel } from '@tabler/icons-react';
@@ -11,10 +11,18 @@ import JudgmentCourt from '../components/neologism/JudgmentCourt';
  */
 const NeologismReviewPage = () => {
     const { t } = useTranslation();
+    const [activeTab, setActiveTab] = useState('dashboard');
+    const [selectedProject, setSelectedProject] = useState(null);
+    const [courtRefreshToken, setCourtRefreshToken] = useState(0);
+
+    const handleMiningComplete = () => {
+        setCourtRefreshToken((value) => value + 1);
+        setActiveTab('court');
+    };
 
     return (
         <Box h="100%" style={{ overflow: 'hidden' }}>
-            <Tabs defaultValue="dashboard" h="100%" variant="pills" radius="md">
+            <Tabs value={activeTab} onChange={setActiveTab} h="100%" variant="pills" radius="md">
                 <Box p="md" pb={0}>
                     <Tabs.List>
                         <Tabs.Tab value="dashboard" leftSection={<IconCpu size={16} />}>
@@ -27,11 +35,19 @@ const NeologismReviewPage = () => {
                 </Box>
 
                 <Tabs.Panel value="dashboard" h="calc(100% - 60px)">
-                    <MiningDashboard />
+                    <MiningDashboard
+                        selectedProject={selectedProject}
+                        onSelectedProjectChange={setSelectedProject}
+                        onMiningComplete={handleMiningComplete}
+                    />
                 </Tabs.Panel>
 
                 <Tabs.Panel value="court" h="calc(100% - 60px)">
-                    <JudgmentCourt />
+                    <JudgmentCourt
+                        selectedProject={selectedProject}
+                        onSelectedProjectChange={setSelectedProject}
+                        refreshToken={courtRefreshToken}
+                    />
                 </Tabs.Panel>
             </Tabs>
         </Box>
