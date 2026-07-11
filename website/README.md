@@ -34,6 +34,39 @@ The site is a true multi-page Vite build. Each public route has its own HTML ent
 
 GitHub Actions deploys `website/dist` when site changes land on `main`.
 
+## Internationalization
+
+The product site supports the same 11 languages as the Remis desktop app:
+
+- English
+- 简体中文
+- Русский
+- 日本語
+- Deutsch
+- Français
+- Español
+- 한국어
+- Polski
+- Português (Brasil)
+- Türkçe
+
+Language selection follows this order:
+
+1. A valid `?lang=` URL override;
+2. The visitor's manual choice stored in `localStorage`;
+3. The first supported entry in `navigator.languages`;
+4. English fallback.
+
+Visitors can change language from the header on every page. Manual choices persist,
+update `<html lang>`, and refresh each page's title, description, and Open Graph copy.
+Non-English catalogs are loaded on demand so the default bundle does not contain all
+ten additional translations.
+
+`src/i18n/source-messages.json` is the canonical message contract. Every translation
+array must have the same number of non-empty entries, which is enforced by unit tests.
+Product and technology names such as Remis, RAG, LLM, Ollama, OpenAI, PydanticAI, and
+LlamaIndex are also protected from accidental translation.
+
 ## Engineering diagrams
 
 The Engineering page republishes the repository's existing animated workflow SVGs:

@@ -212,6 +212,25 @@ export const guideSteps = [
   },
 ]
 
+export const guideQuestions = [
+  {
+    question: 'Do I need to know Python?',
+    answer: 'No. Use the Windows installer and the guided desktop interface. The source code is there for contributors, not as an installation requirement.',
+  },
+  {
+    question: 'Do I need an AI API key?',
+    answer: 'Usually, yes. You can use a supported cloud provider or a compatible local model. Remis stores provider configuration locally.',
+  },
+  {
+    question: 'Why does my translation not appear in game?',
+    answer: 'The most common cause is fake localization in the original mod or the wrong launcher load order. The translated mod should load after the original mod.',
+  },
+  {
+    question: 'Will Remis replace my existing translation?',
+    answer: 'Incremental workflows are designed to preserve existing work and process new text. Always review the selected mode before starting a run.',
+  },
+]
+
 export const roadmapPhases = [
   {
     status: 'Shipped',
