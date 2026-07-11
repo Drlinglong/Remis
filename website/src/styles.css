@@ -43,6 +43,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.language-loader {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  background: var(--ink);
+  color: var(--text-on-ink);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.3em;
+}
+
 button,
 a {
   font: inherit;
@@ -91,6 +102,17 @@ img {
 
 .skip-link:focus {
   top: 1rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .site-header {
@@ -169,6 +191,30 @@ img {
   font-size: 0.82rem;
   font-weight: 600;
   text-decoration: none;
+}
+
+.language-selector {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.language-selector select {
+  min-height: 38px;
+  max-width: 150px;
+  padding: 0.45rem 1.8rem 0.45rem 0.65rem;
+  background: var(--ink);
+  border: 1px solid var(--line-dark);
+  border-radius: 0;
+  color: var(--text-on-ink);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.site--paper .language-selector select {
+  background: var(--paper);
+  border-color: var(--line-light);
+  color: var(--ink);
 }
 
 .desktop-nav a::after {
@@ -1793,6 +1839,14 @@ img {
     display: none;
   }
 
+  .language-selector {
+    margin-left: auto;
+  }
+
+  .language-selector select {
+    max-width: 126px;
+  }
+
   .mobile-nav {
     display: block;
   }
@@ -1926,6 +1980,11 @@ img {
 
   .nav-row {
     min-height: 66px;
+  }
+
+  .language-selector select {
+    max-width: 112px;
+    min-height: 36px;
   }
 
   .display-heading {
