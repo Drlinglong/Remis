@@ -49,6 +49,8 @@ Return candidates only. Do not translate them in this stage.
 - Include names, places, factions, fictional concepts, technologies, and coined phrases.
 - Exclude localization keys, variables, commands, formatting codes, generic words, and punctuation.
 - Prefer a complete phrase over overlapping fragments.
+- `category` MUST be exactly one of: "person", "place", "faction", "concept", "technology", or "other".
+- Map characters and named individuals to "person"; map events, units, and unmatched kinds to "other".
 - Confidence is a number from 0 to 1.
 
 # Output
@@ -122,6 +124,8 @@ Output only a JSON array with this schema:
                     "role": "user",
                     "content": (
                         "The previous response did not satisfy the required JSON schema. "
+                        f"Validation error: {first_error}. "
+                        "Correct the previous response without changing valid candidate text. "
                         "Return the corrected raw JSON array only. Do not add markdown or commentary."
                     ),
                 },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Tabs } from '@mantine/core';
 import { IconCpu, IconGavel } from '@tabler/icons-react';
@@ -15,10 +15,10 @@ const NeologismReviewPage = () => {
     const [selectedProject, setSelectedProject] = useState(null);
     const [courtRefreshToken, setCourtRefreshToken] = useState(0);
 
-    const handleMiningComplete = () => {
+    const handleMiningComplete = useCallback(() => {
         setCourtRefreshToken((value) => value + 1);
         setActiveTab('court');
-    };
+    }, []);
 
     return (
         <Box h="100%" style={{ overflow: 'hidden' }}>

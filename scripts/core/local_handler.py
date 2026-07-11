@@ -116,6 +116,75 @@ class LocalLLMHandler(BaseApiHandler):
         else:
             return self._call_openai_compatible(client, prompt)
 
+    @staticmethod
+    def _extract_chat_content(response: Any, model_name: str, base_url: str) -> str:
+        choices = getattr(response, "choices", None)
+        if not choices:
+            raise ValueError(
+                "Local OpenAI-compatible API returned no chat choices. "
+                "Check that the base URL is an OpenAI chat base such as "
+                f"http://localhost:1234/v1; current base URL: {base_url}"
+            )
+
+        message = getattr(choices[0], "message", None)
+        content = getattr(message, "content", None)
+        finish_reason = getattr(choices[0], "finish_reason", None)
+        reasoning_content = (getattr(message, "reasoning_content", None) or "").strip()
+        tool_calls = getattr(message, "tool_calls", None) or []
+
+        if not content and tool_calls:
+            raise ValueError(
+                "Local OpenAI-compatible model returned tool calls instead of translation text. "
+                "Disable tool/function calling for this local model or choose a plain chat/translation model."
+            )
+        if not content and reasoning_content:
+            if finish_reason == "length":
+                raise ValueError(
+                    "Local OpenAI-compatible model returned reasoning-only output and hit the context/output limit. "
+                    f"Model '{model_name}' produced reasoning_content but no final chat content. "
+                    "Disable thinking/reasoning for this model, increase LM Studio context/output limits, or reduce batch size."
+                )
+            raise ValueError(
+                "Local OpenAI-compatible model returned reasoning_content but no final chat content. "
+                "Disable thinking/reasoning for this model or use a model that writes translations to message.content."
+            )
+        if not content:
+            raise ValueError(
+                "Local OpenAI-compatible API returned an empty chat message. "
+                f"Model '{model_name}' may not be loaded, or the endpoint at {base_url} is not serving chat completions."
+            )
+        return content.strip()
+
+    def generate_with_messages(self, messages: list[dict], temperature: float = 0.7) -> str:
+        """Preserve the complete conversation so structured repair prompts can see prior output."""
+        if self.protocol == "ollama":
+            conversation = "\n\n".join(
+                f"{message.get('role', 'user').upper()}:\n{message.get('content', '')}"
+                for message in messages
+            )
+            return self._call_ollama_native(conversation)
+
+        provider_config = self.get_provider_config()
+        model_name = provider_config.get("default_model", "local-model")
+        prepared_messages = [dict(message) for message in messages]
+        suffix = provider_config.get("system_prompt_suffix")
+        if suffix:
+            for message in prepared_messages:
+                if message.get("role") == "system":
+                    message["content"] = _append_system_suffix(message.get("content", ""), provider_config)
+                    break
+        try:
+            response = self.client.chat.completions.create(
+                model=model_name,
+                messages=prepared_messages,
+                temperature=temperature,
+            )
+            return self._extract_chat_content(response, model_name, self.base_url)
+        except APIConnectionError as exc:
+            message = self._connection_error_message()
+            self.logger.error(message)
+            raise ConnectionError(message) from exc
+
     def _call_ollama_native(self, prompt: str) -> str:
         provider_config = self.get_provider_config()
         model_name = provider_config.get("default_model", "llama2")
@@ -180,44 +249,7 @@ class LocalLLMHandler(BaseApiHandler):
                 # presence_penalty=0.0,
                 # frequency_penalty=0.0
             )
-            choices = getattr(response, "choices", None)
-            if not choices:
-                raise ValueError(
-                    "Local OpenAI-compatible API returned no chat choices. "
-                    "Check that the base URL is an OpenAI chat base such as "
-                    f"http://localhost:1234/v1; current base URL: {self.base_url}"
-                )
-
-            message = getattr(choices[0], "message", None)
-            content = getattr(message, "content", None)
-            finish_reason = getattr(choices[0], "finish_reason", None)
-            reasoning_content = (getattr(message, "reasoning_content", None) or "").strip()
-            tool_calls = getattr(message, "tool_calls", None) or []
-
-            if not content and tool_calls:
-                raise ValueError(
-                    "Local OpenAI-compatible model returned tool calls instead of translation text. "
-                    "Disable tool/function calling for this local model or choose a plain chat/translation model."
-                )
-
-            if not content and reasoning_content:
-                if finish_reason == "length":
-                    raise ValueError(
-                        "Local OpenAI-compatible model returned reasoning-only output and hit the context/output limit. "
-                        f"Model '{model_name}' produced reasoning_content but no final chat content. "
-                        "Disable thinking/reasoning for this model, increase LM Studio context/output limits, or reduce batch size."
-                    )
-                raise ValueError(
-                    "Local OpenAI-compatible model returned reasoning_content but no final chat content. "
-                    "Disable thinking/reasoning for this model or use a model that writes translations to message.content."
-                )
-
-            if not content:
-                raise ValueError(
-                    "Local OpenAI-compatible API returned an empty chat message. "
-                    f"Model '{model_name}' may not be loaded, or the endpoint at {self.base_url} is not serving chat completions."
-                )
-            return content.strip()
+            return self._extract_chat_content(response, model_name, self.base_url)
         except APIConnectionError as e:
             message = self._connection_error_message()
             self.logger.error(message)

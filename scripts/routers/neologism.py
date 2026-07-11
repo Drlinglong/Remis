@@ -20,6 +20,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 SUPPORTED_MINING_SUFFIXES = {".txt", ".yml", ".yaml", ".csv", ".json"}
 
+
+def _is_supported_mining_path(path: Path) -> bool:
+    name = path.name.casefold()
+    if name == ".remis_project.json" or name.startswith(".remis_checkpoint"):
+        return False
+    return path.suffix.lower() in SUPPORTED_MINING_SUFFIXES
+
 def _normalize_term(term: str) -> str:
     return " ".join((term or "").casefold().split())
 
@@ -76,7 +83,7 @@ def _resolve_path_within_root(raw_path: str, source_root: Path) -> Path:
         raise HTTPException(status_code=400, detail=f"Selected file does not exist: {raw_path}") from exc
     if not resolved.is_file() or not resolved.is_relative_to(source_root):
         raise HTTPException(status_code=400, detail="Selected files must stay inside the project source directory")
-    if resolved.suffix.lower() not in SUPPORTED_MINING_SUFFIXES:
+    if not _is_supported_mining_path(resolved):
         raise HTTPException(status_code=400, detail=f"Unsupported mining file type: {resolved.suffix}")
     return resolved
 
@@ -116,6 +123,23 @@ async def _resolve_project_mining_files(project: dict, requested_paths: Optional
     if not files:
         raise HTTPException(status_code=400, detail="No supported indexed project files are available for mining")
     return files
+
+
+@router.get("/api/neologisms/mining-files/{project_id}")
+async def list_mining_files(project_id: str):
+    """List the exact source files eligible for neologism mining."""
+    project = await project_manager.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    source_root = Path(project["source_path"]).resolve(strict=True)
+    files = await _resolve_project_mining_files(project, None)
+    return [
+        {
+            "file_path": file_path,
+            "relative_path": str(Path(file_path).relative_to(source_root)),
+        }
+        for file_path in files
+    ]
 
 @router.get("/api/neologisms")
 async def list_neologisms(project_id: Optional[str] = None):
@@ -242,7 +266,12 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
         duplicate_index,
         payload.model_name,
     )
-    return {"task_id": task_id, "status": "started", "message": "Mining started in background"}
+    return {
+        "task_id": task_id,
+        "status": "started",
+        "total_files": len(files),
+        "message": "Mining started in background",
+    }
 
 @router.get("/api/neologisms/project-glossary/{project_id}")
 async def get_project_neologism_glossary(project_id: str):

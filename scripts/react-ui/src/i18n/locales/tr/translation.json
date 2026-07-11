@@ -513,6 +513,7 @@
       "select_project": "1. Proje Seçin",
       "select_project_placeholder": "Bir proje kaynağı seçin",
       "select_provider": "3. API Sağlayıcısı",
+      "model": "Yapay zekâ modeli",
       "target_language": "Hedef dil",
       "target_language_desc": "Yapay zeka önerilerini bu dilde sunar",
       "start_mining": "Madenciliği Başlat",

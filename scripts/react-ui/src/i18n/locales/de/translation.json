@@ -513,6 +513,7 @@
       "select_project": "1. Projekt auswählen",
       "select_project_placeholder": "Projektquelle auswählen",
       "select_provider": "3. API-Anbieter",
+      "model": "Modell",
       "target_language": "Zielsprache",
       "target_language_desc": "Die KI erstellt Vorschläge in dieser Sprache",
       "start_mining": "Mining starten",

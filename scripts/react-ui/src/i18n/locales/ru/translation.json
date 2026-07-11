@@ -579,6 +579,7 @@
       "select_project": "1. Выберите проект",
       "select_project_placeholder": "Выберите источник проекта",
       "select_provider": "3. API Провайдер",
+      "model": "Модель",
       "target_language": "Целевой язык",
       "target_language_desc": "ИИ предложит варианты на этом языке",
       "start_mining": "Начать добычу",

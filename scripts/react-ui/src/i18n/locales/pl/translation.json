@@ -513,6 +513,7 @@
       "select_project": "1. Wybierz projekt",
       "select_project_placeholder": "Wybierz źródło projektu",
       "select_provider": "3. Dostawca API",
+      "model": "Model AI",
       "target_language": "Język docelowy",
       "target_language_desc": "AI przygotuje propozycje w tym języku",
       "start_mining": "Rozpocznij wydobywanie",

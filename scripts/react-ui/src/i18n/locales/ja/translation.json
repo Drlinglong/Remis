@@ -513,6 +513,7 @@
       "select_project": "1. プロジェクトを選択",
       "select_project_placeholder": "プロジェクトソースを選択",
       "select_provider": "3. APIプロバイダー",
+      "model": "モデル",
       "target_language": "ターゲット言語",
       "target_language_desc": "AI はこの言語で候補訳を提案します",
       "start_mining": "マイニング開始",

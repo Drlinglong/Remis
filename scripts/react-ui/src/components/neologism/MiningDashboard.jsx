@@ -31,7 +31,8 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
     const [scanning, setScanning] = useState(false);
     const [miningStatus, setMiningStatus] = useState(null);
     const wsRef = useRef(null);
-    const pollRef = useRef(null);
+    const reconnectTimerRef = useRef(null);
+    const connectSocketRef = useRef(null);
     const terminalHandledRef = useRef(false);
 
     useEffect(() => {
@@ -40,6 +41,10 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
     }, [apiProvider, providers]);
 
     const closeMiningSocket = useCallback(() => {
+        if (reconnectTimerRef.current) {
+            clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+        }
         if (wsRef.current) {
             wsRef.current.onclose = null;
             wsRef.current.onerror = null;
@@ -48,51 +53,19 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
         }
     }, []);
 
-    const stopPolling = useCallback(() => {
-        if (pollRef.current) {
-            clearInterval(pollRef.current);
-            pollRef.current = null;
-        }
-    }, []);
-
     const handleTerminalStatus = useCallback((status) => {
         if (!['completed', 'failed'].includes(status) || terminalHandledRef.current) return;
         terminalHandledRef.current = true;
-        stopPolling();
         closeMiningSocket();
         if (status === 'completed') onMiningComplete?.();
-    }, [closeMiningSocket, onMiningComplete, stopPolling]);
+    }, [closeMiningSocket, onMiningComplete]);
 
     const applyProjectStatus = useCallback((status) => {
         setMiningStatus(status);
         handleTerminalStatus(status?.status);
     }, [handleTerminalStatus]);
 
-    const startPolling = useCallback((projectId) => {
-        stopPolling();
-        pollRef.current = window.setInterval(async () => {
-            try {
-                const response = await api.get(`${API_BASE_URL}/neologisms/status/${encodeURIComponent(projectId)}`);
-                applyProjectStatus(response.data);
-            } catch (error) {
-                console.error('Failed to poll mining status', error);
-            }
-        }, 1500);
-    }, [applyProjectStatus, stopPolling]);
-
-    const fetchMiningStatus = useCallback(async (projectId) => {
-        try {
-            const response = await api.get(`${API_BASE_URL}/neologisms/status/${encodeURIComponent(projectId)}`);
-            if (response.data?.status && response.data.status !== 'idle') {
-                applyProjectStatus(response.data);
-                if (['starting', 'running'].includes(response.data.status)) startPolling(projectId);
-            }
-        } catch (error) {
-            console.error('Failed to restore mining status', error);
-        }
-    }, [applyProjectStatus, startPolling]);
-
-    const updateMiningStatusFromTask = (taskData) => {
+    const updateMiningStatusFromTask = useCallback((taskData) => {
         const progress = taskData.progress || {};
         const summary = taskData.summary || {};
         const status = {
@@ -105,17 +78,21 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
             error: summary.error || taskData.error || null,
         };
         applyProjectStatus(status);
-    };
+    }, [applyProjectStatus]);
 
-    const connectMiningSocket = (taskId) => {
+    const connectMiningSocket = useCallback((taskId, projectId, attempt = 0) => {
         closeMiningSocket();
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const ws = new WebSocket(`${protocol}//${window.location.host}/api/ws/status/${taskId}`);
         wsRef.current = ws;
 
         ws.onmessage = (event) => {
-            const taskData = JSON.parse(event.data);
-            updateMiningStatusFromTask(taskData);
+            try {
+                updateMiningStatusFromTask(JSON.parse(event.data));
+            } catch (error) {
+                console.error('Failed to parse neologism mining WebSocket message', error);
+                ws.close();
+            }
         };
         ws.onerror = () => {
             setMiningStatus((current) => ({
@@ -123,13 +100,36 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
                 status: current?.status || 'running',
                 error: t('neologism_review.mining.websocket_failed'),
             }));
-            closeMiningSocket();
-            startPolling(selectedProject);
+            ws.close();
         };
         ws.onclose = () => {
-            if (!terminalHandledRef.current) startPolling(selectedProject);
+            if (wsRef.current === ws) wsRef.current = null;
+            if (terminalHandledRef.current) return;
+            const nextAttempt = attempt + 1;
+            const delay = Math.min(1000 * (2 ** attempt), 5000);
+            reconnectTimerRef.current = window.setTimeout(() => {
+                connectSocketRef.current?.(taskId, projectId, nextAttempt);
+            }, delay);
         };
-    };
+    }, [closeMiningSocket, t, updateMiningStatusFromTask]);
+
+    useEffect(() => {
+        connectSocketRef.current = connectMiningSocket;
+    }, [connectMiningSocket]);
+
+    const fetchMiningStatus = useCallback(async (projectId) => {
+        try {
+            const response = await api.get(`${API_BASE_URL}/neologisms/status/${encodeURIComponent(projectId)}`);
+            if (response.data?.status && response.data.status !== 'idle') {
+                applyProjectStatus(response.data);
+                if (['starting', 'running'].includes(response.data.status) && response.data.task_id) {
+                    connectSocketRef.current?.(response.data.task_id, projectId);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to restore mining status', error);
+        }
+    }, [applyProjectStatus]);
 
     const fetchProjects = useCallback(async () => {
         try {
@@ -158,7 +158,7 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
 
     const fetchFiles = useCallback(async (projectId) => {
         try {
-            const response = await api.get(`${API_BASE_URL}/project/${encodeURIComponent(projectId)}/files`);
+            const response = await api.get(`${API_BASE_URL}/neologisms/mining-files/${encodeURIComponent(projectId)}`);
             setFiles(response.data);
         } catch (error) {
             console.error("Failed to fetch files", error);
@@ -177,27 +177,23 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
             setSelectedFiles([]);
             fetchFiles(selectedProject);
             closeMiningSocket();
-            stopPolling();
             fetchMiningStatus(selectedProject);
         } else {
             setFiles([]);
             setSelectedFiles([]);
             setMiningStatus(null);
             closeMiningSocket();
-            stopPolling();
         }
-    }, [closeMiningSocket, fetchFiles, fetchMiningStatus, selectedProject, stopPolling]);
+    }, [closeMiningSocket, fetchFiles, fetchMiningStatus, selectedProject]);
 
     useEffect(() => () => {
         closeMiningSocket();
-        stopPolling();
-    }, [closeMiningSocket, stopPolling]);
+    }, [closeMiningSocket]);
 
     const handleScan = async () => {
         if (!selectedProject) return;
         setScanning(true);
         terminalHandledRef.current = false;
-        stopPolling();
         try {
             const response = await api.post(`${API_BASE_URL}/neologisms/mine`, {
                 project_id: selectedProject,
@@ -209,13 +205,13 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
             setMiningStatus({
                 status: 'running',
                 processed_files: 0,
-                total_files: selectedFiles.length || files.length,
+                total_files: response.data?.total_files || selectedFiles.length || files.length,
                 new_terms: 0,
                 current_file: null,
                 error: null,
             });
             if (response.data?.task_id) {
-                connectMiningSocket(response.data.task_id);
+                connectMiningSocket(response.data.task_id, selectedProject);
             }
             notifications.show({
                 title: t('neologism_review.mining.start_mining'),
@@ -284,7 +280,7 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
 
                         {providers.find((item) => item.value === apiProvider)?.available_models?.length > 0 && (
                             <Select
-                                label={t('form_label_model')}
+                            label={t('neologism_review.mining.model')}
                                 data={providers.find((item) => item.value === apiProvider).available_models}
                                 value={modelName}
                                 onChange={setModelName}

@@ -41,6 +41,16 @@ def test_invalid_json_gets_one_bounded_repair_attempt():
     assert [term.original for term in terms] == ["Pax Remisia"]
     assert len(client.calls) == 2
     assert "corrected raw JSON array" in client.calls[1][0][-1]["content"]
+    assert "validation error" in client.calls[1][0][-1]["content"].lower()
+
+
+def test_extraction_prompt_lists_every_allowed_category():
+    client = FakeClient(["[]"])
+
+    NeologismMiner(client).extract_terms("Pax Remisia endures.")
+
+    system_prompt = client.calls[0][0][0]["content"]
+    assert '"person", "place", "faction", "concept", "technology", or "other"' in system_prompt
 
 
 def test_empty_provider_response_is_a_real_failure():
