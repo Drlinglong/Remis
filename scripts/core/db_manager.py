@@ -7,6 +7,13 @@ from scripts.app_settings import PROJECTS_DB_PATH
 
 logger = logging.getLogger(__name__)
 
+
+def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record=None):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
 class DatabaseConnectionManager:
     """
     Singleton Manager for SQLite connections.
@@ -55,6 +62,7 @@ class DatabaseConnectionManager:
             check_same_thread=False
         )
         conn.row_factory = sqlite3.Row
+        _enable_sqlite_foreign_keys(conn)
         return conn
 
     # --- Async Support (SQLModel) ---
@@ -75,6 +83,8 @@ class DatabaseConnectionManager:
                 echo=False,
                 future=True
             )
+            from sqlalchemy import event
+            event.listen(self._async_engine.sync_engine, "connect", _enable_sqlite_foreign_keys)
         return self._async_engine
 
     async def get_async_session(self):
@@ -118,4 +128,3 @@ class DatabaseConnectionManager:
 
 # Singleton Instance
 db_manager = DatabaseConnectionManager()
-

@@ -492,6 +492,7 @@ class GlossaryManager:
                 # Delete entries first (cascade manual if not set in DB)
                 from sqlalchemy import delete as sa_delete
                 await session.execute(sa_delete(GlossaryEntry).where(GlossaryEntry.glossary_id == glossary_id))
+                await session.execute(sa_delete(ProjectGlossaryBinding).where(ProjectGlossaryBinding.glossary_id == glossary_id))
                 await session.execute(sa_delete(Glossary).where(Glossary.glossary_id == glossary_id))
                 await session.commit()
                 return True
