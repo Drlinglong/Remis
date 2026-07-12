@@ -1625,68 +1625,139 @@ img {
   font-size: 0.53rem;
 }
 
-.system-map__canvas {
-  position: relative;
-  min-height: 500px;
+.system-map__visual {
+  display: block;
+  width: 100%;
+  height: auto;
   overflow: hidden;
-  background-image:
-    linear-gradient(rgba(111, 143, 134, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(111, 143, 134, 0.08) 1px, transparent 1px);
-  background-size: 44px 44px;
 }
 
-.system-node {
-  position: absolute;
-  z-index: 2;
-  width: 195px;
-  padding: 0.9rem;
-  border: 1px solid #4b625b;
-  background: #15231f;
+.system-map__backdrop {
+  fill: #101c19;
+}
+
+.system-map__grid {
+  fill: url('#system-map-grid');
+}
+
+.system-map__grid-line {
+  fill: none;
+  stroke: rgba(111, 143, 134, 0.18);
+  stroke-width: 1;
+}
+
+.system-map__boundary {
+  fill: rgba(7, 15, 14, 0.48);
+  stroke: #49635b;
+  stroke-dasharray: 8 10;
+  stroke-width: 1.5;
+}
+
+.system-map__boundary-label {
+  fill: #76978d;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.system-map__flow {
+  fill: none;
+  stroke: #67d8c6;
+  stroke-dasharray: 10 14;
+  stroke-linecap: round;
+  stroke-width: 2;
+  marker-end: url('#system-map-arrow');
+  animation: system-map-flow 2.8s linear infinite;
+}
+
+.system-map__flow--two { animation-delay: -0.7s; }
+.system-map__flow--three { animation-delay: -1.4s; }
+.system-map__flow--four {
+  stroke: var(--gold);
+  marker-end: url('#system-map-arrow-gold');
+  animation-delay: -2.1s;
+}
+
+#system-map-arrow path {
+  fill: #67d8c6;
+}
+
+#system-map-arrow-gold path {
+  fill: var(--gold);
+}
+
+.system-map__node rect {
+  fill: #15231f;
+  stroke: #4b625b;
+  stroke-width: 2;
+}
+
+.system-map__node--control rect {
+  fill: #111d1a;
+  stroke: var(--gold);
+  stroke-width: 2.5;
+  animation: system-map-control 3.2s ease-in-out infinite;
+}
+
+.system-map__node-card {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: center;
   color: var(--text-on-ink);
   font-family: var(--font-mono);
 }
 
-.system-node b,
-.system-node span {
-  display: block;
-}
-
-.system-node b {
+.system-map__node-card b {
   color: var(--signal);
-  font-size: 0.65rem;
+  font-size: 16px;
+  line-height: 1.2;
 }
 
-.system-node span {
-  margin-top: 0.35rem;
+.system-map__node-card span {
+  margin-top: 9px;
   color: #a4b3ae;
-  font-size: 0.56rem;
-  line-height: 1.55;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
-.system-node--source { top: 12%; left: 7%; }
-.system-node--context { top: 14%; right: 6%; }
-.system-node--model { bottom: 11%; left: 8%; }
-.system-node--control {
-  top: 41%;
-  left: 50%;
-  width: 215px;
-  border-color: var(--gold);
-  transform: translateX(-50%);
-}
-.system-node--review { right: 7%; bottom: 10%; }
-
-.system-map__line {
-  position: absolute;
-  z-index: 1;
-  height: 1px;
-  background: #58756c;
-  transform-origin: left center;
+.system-map__node-card--control {
+  text-align: center;
 }
 
-.system-map__line--one { top: 28%; left: 27%; width: 33%; transform: rotate(24deg); }
-.system-map__line--two { top: 30%; left: 60%; width: 26%; transform: rotate(155deg); }
-.system-map__line--three { top: 61%; left: 46%; width: 31%; transform: rotate(145deg); }
-.system-map__line--four { top: 60%; left: 53%; width: 31%; transform: rotate(34deg); }
+.system-map__node-card--control b {
+  color: var(--gold);
+  font-size: 19px;
+}
+
+.system-map__pulse {
+  fill: var(--signal);
+  filter: url('#system-map-glow');
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: system-map-pulse 2.4s ease-in-out infinite;
+}
+
+.system-map__pulse--two { animation-delay: -0.6s; }
+.system-map__pulse--three { animation-delay: -1.2s; }
+.system-map__pulse--four {
+  fill: var(--gold);
+  animation-delay: -1.8s;
+}
+
+@keyframes system-map-flow {
+  to { stroke-dashoffset: -48; }
+}
+
+@keyframes system-map-control {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(207, 163, 91, 0)); }
+  50% { filter: drop-shadow(0 0 12px rgba(207, 163, 91, 0.52)); }
+}
+
+@keyframes system-map-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.75); }
+  50% { opacity: 1; transform: scale(1.35); }
+}
 
 .system-map > p {
   margin: 0;
@@ -2117,25 +2188,12 @@ img {
     transform: rotate(90deg);
   }
 
-  .system-map__canvas {
-    display: grid;
-    min-height: auto;
-    gap: 0.8rem;
-    padding: 1rem;
+  .system-map__node-card b {
+    font-size: 19px;
   }
 
-  .system-node {
-    position: static;
-    width: 100%;
-  }
-
-  .system-node--control {
-    width: 100%;
-    transform: none;
-  }
-
-  .system-map__line {
-    display: none;
+  .system-map__node-card span {
+    font-size: 15px;
   }
 
   .workflow-chapter__heading {
@@ -2292,6 +2350,12 @@ img {
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .system-map__flow,
+  .system-map__node--control rect,
+  .system-map__pulse {
+    animation: none;
   }
 
   .workflow-visual img {

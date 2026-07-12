@@ -18,17 +18,86 @@ function SystemMap() {
         <span>{t('CONTEXT GRAPH / PRODUCT RUNTIME')}</span>
         <span>{t('READ · PROPOSE · VALIDATE · REVIEW')}</span>
       </div>
-      <div className="system-map__canvas">
-        <span className="system-map__line system-map__line--one" aria-hidden="true"></span>
-        <span className="system-map__line system-map__line--two" aria-hidden="true"></span>
-        <span className="system-map__line system-map__line--three" aria-hidden="true"></span>
-        <span className="system-map__line system-map__line--four" aria-hidden="true"></span>
-        <div className="system-node system-node--source"><b>{t('GAME FILES')}</b><span>{t('keys · structure · source text')}</span></div>
-        <div className="system-node system-node--context"><b>{t('PROJECT CONTEXT')}</b><span>{t('glossary · history · parent entries')}</span></div>
-        <div className="system-node system-node--model"><b>{t('MODEL PROVIDER')}</b><span>{t('cloud API · Ollama · compatible endpoint')}</span></div>
-        <div className="system-node system-node--control"><b>{t('REMIS CONTROL PLANE')}</b><span>{t('schemas · validators · native handlers')}</span></div>
-        <div className="system-node system-node--review"><b>{t('HUMAN REVIEW')}</b><span>{t('compare · approve · deploy')}</span></div>
-      </div>
+      <svg
+        className="system-map__visual"
+        viewBox="0 0 1200 720"
+        role="img"
+        aria-labelledby="system-map-title system-map-description"
+      >
+        <title id="system-map-title">{t('Remis localization intelligence system map')}</title>
+        <desc id="system-map-description">{t('Model output crosses a validation boundary before it can become product state.')}</desc>
+        <defs>
+          <pattern id="system-map-grid" width="44" height="44" patternUnits="userSpaceOnUse">
+            <path d="M 44 0 L 0 0 0 44" className="system-map__grid-line" />
+          </pattern>
+          <marker id="system-map-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" />
+          </marker>
+          <marker id="system-map-arrow-gold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" />
+          </marker>
+          <filter id="system-map-glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+
+        <rect className="system-map__backdrop" width="1200" height="720" />
+        <rect className="system-map__grid" width="1200" height="720" />
+        <rect className="system-map__boundary" x="350" y="278" width="500" height="388" rx="12" />
+        <text className="system-map__boundary-label" x="374" y="308">{t('REMIS VALIDATES')}</text>
+
+        <path className="system-map__flow system-map__flow--one" d="M 340 155 C 405 155 423 349 480 365" />
+        <path className="system-map__flow system-map__flow--two" d="M 600 180 L 600 320" />
+        <path className="system-map__flow system-map__flow--three" d="M 860 155 C 795 155 777 349 720 365" />
+        <path className="system-map__flow system-map__flow--four" d="M 600 470 L 600 565" />
+
+        <g className="system-map__node system-map__node--source">
+          <rect x="70" y="95" width="270" height="120" rx="8" />
+          <foreignObject x="90" y="115" width="230" height="80">
+            <div xmlns="http://www.w3.org/1999/xhtml" className="system-map__node-card">
+              <b>{t('GAME FILES')}</b><span>{t('keys · structure · source text')}</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g className="system-map__node system-map__node--context">
+          <rect x="465" y="60" width="270" height="120" rx="8" />
+          <foreignObject x="485" y="80" width="230" height="80">
+            <div xmlns="http://www.w3.org/1999/xhtml" className="system-map__node-card">
+              <b>{t('PROJECT CONTEXT')}</b><span>{t('glossary · history · parent entries')}</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g className="system-map__node system-map__node--model">
+          <rect x="860" y="95" width="270" height="120" rx="8" />
+          <foreignObject x="880" y="115" width="230" height="80">
+            <div xmlns="http://www.w3.org/1999/xhtml" className="system-map__node-card">
+              <b>{t('MODEL PROVIDER')}</b><span>{t('cloud API · Ollama · compatible endpoint')}</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g className="system-map__node system-map__node--control">
+          <rect x="390" y="320" width="420" height="150" rx="10" />
+          <foreignObject x="420" y="350" width="360" height="92">
+            <div xmlns="http://www.w3.org/1999/xhtml" className="system-map__node-card system-map__node-card--control">
+              <b>{t('REMIS CONTROL PLANE')}</b><span>{t('schemas · validators · native handlers')}</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g className="system-map__node system-map__node--review">
+          <rect x="465" y="565" width="270" height="100" rx="8" />
+          <foreignObject x="485" y="582" width="230" height="66">
+            <div xmlns="http://www.w3.org/1999/xhtml" className="system-map__node-card">
+              <b>{t('HUMAN REVIEW')}</b><span>{t('compare · approve · deploy')}</span>
+            </div>
+          </foreignObject>
+        </g>
+
+        <circle className="system-map__pulse system-map__pulse--one" cx="340" cy="155" r="5" />
+        <circle className="system-map__pulse system-map__pulse--two" cx="600" cy="180" r="5" />
+        <circle className="system-map__pulse system-map__pulse--three" cx="860" cy="155" r="5" />
+        <circle className="system-map__pulse system-map__pulse--four" cx="600" cy="565" r="6" />
+      </svg>
       <p>{t('Model output crosses a validation boundary before it can become product state.')}</p>
     </div>
   )
