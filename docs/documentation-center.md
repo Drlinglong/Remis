@@ -20,6 +20,7 @@
 
 - [文档状态说明](docs_status.md) - 哪些文档更适合作为当前入口，哪些更适合作为历史记录
 - [归档文档](archive/README.md) - 已退出主入口的历史文档
+- [产品 Copilot 设计草案](zh/copilot/README.md) - Issue #132 地基（用户 RAG 边界 + Agent 操作说明）
 
 ## 项目概述 / Project Overview
 
@@ -42,9 +43,11 @@ V3 Mod Localization Factory 是一个强大的游戏模组本地化工具，支�
 ## 快速开始 / Quick Start
 
 1. 选择语言索引 / Choose a language index
-2. 阅读用户指南中的 `how_the_factory_works` 与 `faq`
-3. 开发相关内容优先阅读 `development-setup`、`ci-setup`、`refactor_decision_guide`
-4. 修改实现时，以当前代码为准
+2. 中文用户首读：`docs/zh/user-guides/getting-started.md`（项目管理建项 → 初次翻译 → 部署）
+3. 再按需：`faq`、`provider-setup-index`、增量/上载、一键部署、校对、智能工坊、假本地化、日志与错误目录
+4. 原理向可读 `how_the_factory_works`（非操作手册）
+5. 开发相关内容优先阅读 `development-setup`、`ci-setup`、`refactor_decision_guide`
+6. 修改实现时，以当前代码为准
 
 ## 支持 / Support
 

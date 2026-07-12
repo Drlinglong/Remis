@@ -119,3 +119,4 @@ migrate_projects_db.py
 # Environment files with secrets
 .env
 .config/
+.gstack/

@@ -1,5 +1,10 @@
 # 使用 ModelScope (魔搭) 和 SiliconFlow (硅基流动)
 
+> **发布版客户端（推荐）**  
+> 在 **设置 → API** 中找到魔搭 / 硅基流动（或同类国内供应商），填写 Token 与 **模型 ID**，保存后在翻译任务中选用。  
+> 总入口：[Provider 配置速查](provider-setup-index.md)。  
+> 下文 `setup.bat` / 修改 `app_settings.py` 面向开发或历史流程；**打包客户端以设置页为准。**
+
 本文档将指导您如何配置并使用 ModelScope (魔搭) 和 SiliconFlow (硅基流动) 这两个与 OpenAI API 兼容的服务商。
 
 ## 核心优势：自由选择模型

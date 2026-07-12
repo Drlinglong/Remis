@@ -1,6 +1,13 @@
 # 使用 Ollama 进行本地化翻译
 
-本文档将指导您如何设置并在“Paradox Mod 本地化工厂”中使用 [Ollama](https://ollama.com/) 来运行本地大语言模型（LLM）进行翻译。
+> **发布版客户端（推荐）**  
+> 1. 本机安装 Ollama 并 `pull` 合适模型。  
+> 2. 在 Remis **设置 → API** 中选择 Ollama，填写模型名与服务地址（常见 `http://localhost:11434`），保存。  
+> 3. 在初次翻译 / 增量翻译任务中选用 Ollama。  
+> 总入口：[Provider 配置速查](provider-setup-index.md)。  
+> 下文中修改 `scripts/app_settings.py` 的步骤面向 **开发/源码运行**；打包客户端一般 **不需要** 改源码。
+
+本文档将指导您如何设置并在 Project Remis 中使用 [Ollama](https://ollama.com/) 来运行本地大语言模型（LLM）进行翻译。
 
 ## 为什么选择 Ollama？
 
