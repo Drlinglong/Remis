@@ -20,6 +20,7 @@ import {
     IconRadar,
     IconPin,
     IconPinFilled,
+    IconMessageChatbot,
 } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +39,7 @@ const navItems = [
     { icon: IconChecklist, label: 'page_title_proofreading', path: '/proofreading' },
     ...(FEATURES.ENABLE_AGENT_WORKSHOP ? [{ icon: IconRobot, label: 'page_title_agent_workshop', path: '/agent-workshop' }] : []),
     ...(FEATURES.ENABLE_NEOLOGISM_TRIBUNAL ? [{ icon: IconSparkles, label: 'neologism_review.title', path: '/neologism-review' }] : []),
+    ...(FEATURES.ENABLE_REMIS_COPILOT ? [{ icon: IconMessageChatbot, label: 'page_title_copilot', path: '/copilot', id: 'nav-copilot' }] : []),
     { icon: IconTools, label: 'page_title_tools', path: '/tools', id: 'nav-tools' },
     ...(FEATURES.ENABLE_DOCS ? [{ icon: IconBook, label: 'page_title_docs', path: '/docs' }] : []),
     { icon: IconSettings, label: 'page_title_settings', path: '/settings', id: 'nav-settings' },

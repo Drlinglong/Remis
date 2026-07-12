@@ -16,6 +16,9 @@ export const FEATURES = {
     // Mature workflow pages
     ENABLE_NEOLOGISM_TRIBUNAL: true,
 
+    // Phase 1 Help Copilot (assistant-ui + LM Studio for testing)
+    ENABLE_REMIS_COPILOT: true,
+
     // Developer-only pages and tools
     ENABLE_DOCS: ENABLE_EXPERIMENTAL_FEATURES,
     ENABLE_WORKSHOP_GENERATOR: ENABLE_EXPERIMENTAL_FEATURES,

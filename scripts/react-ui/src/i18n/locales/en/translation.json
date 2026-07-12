@@ -1779,5 +1779,30 @@
   "project_management.project_glossary.create_success_title": "Project glossary ready",
   "project_management.project_glossary.create_success_message": "A project glossary has been created and bound.",
   "project_management.project_glossary.create_failed_title": "Create failed",
-  "project_management.project_glossary.create_failed_message": "Could not create the project glossary."
+  "project_management.project_glossary.create_failed_message": "Could not create the project glossary.",
+  "page_title_copilot": "Remis Helper",
+  "copilot": {
+    "page_subtitle": "Help answers plus safe clickable navigation suggestions. Testing defaults to local LM Studio.",
+    "provider_label": "Provider",
+    "picker_later": "Model picker: coming later",
+    "phase1_notice": "Sessions stay in this browser so leaving the page will not wipe the chat. Uncovered topics are forced to low confidence. On ~32k local models, older messages are dropped instead of hard-failing.",
+    "status_error": "Failed to load copilot status",
+    "empty_title": "Remis Helper",
+    "empty_desc": "Ask how to use Remis. Testing uses local LM Studio. I explain workflows and offer clickable page jumps.",
+    "suggestion_first_run": "How do I start my first localization?",
+    "suggestion_api": "How do I configure LM Studio / API?",
+    "suggestion_deploy": "How do I deploy into the game?",
+    "suggestion_logs": "Something failed — where are the logs?",
+    "input_placeholder": "Ask how to use Remis…",
+    "send": "Send",
+    "confidence": "Confidence",
+    "empty_reply": "(No reply)",
+    "sessions_title": "Chats",
+    "new_chat": "New chat",
+    "delete_chat": "Delete chat",
+    "untitled_chat": "New conversation",
+    "context_trimmed": "Trimmed {{count}} older messages to fit the local context window",
+    "context_budget_badge": "Context budget",
+    "grounding": "Doc grounding"
+  }
 }

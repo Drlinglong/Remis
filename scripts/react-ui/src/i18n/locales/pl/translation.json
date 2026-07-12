@@ -1561,13 +1561,50 @@
     "edit_final": "Edytuj końcowe tłumaczenie {{key}}",
     "blank_lines": "{{count}} pustych wierszy",
     "no_entries": "Brak wpisów pasujących do bieżącego filtra.",
-    "tabs": { "entries": "Wpisy", "raw": "Plik surowy" },
-    "columns": { "key": "Klucz", "source": "Źródło", "ai_draft": "Wersja AI", "final": "Wersja końcowa" },
-    "filter": { "all": "Wszystkie", "changed": "Zmienione", "issues": "Problemy" },
-    "structure": { "comment": "Komentarz", "blank": "Puste wiersze", "header": "Nagłówek", "raw": "Inna struktura" },
-    "hint": { "key": "Klucz lokalizacji tylko do odczytu identyfikujący ten wpis.", "original_source": "Oryginalny plik źródłowy używany jako odniesienie do tłumaczenia.", "ai_source": "Wersja AI wczytana z archiwum projektu lub pliku tłumaczenia.", "final_source": "Końcowa treść zostanie zapisana w wybranym pliku tłumaczenia." },
-    "tooltips": { "errors": "Błędy", "warnings": "Ostrzeżenia" },
-    "notifications": { "error": "Błąd", "perfect": "Brak problemów", "perfect_message": "Nie znaleziono problemów walidacji.", "issues_found": "Znaleziono problemy", "issues_found_message": "Znaleziono {{errors}} błędów i {{warnings}} ostrzeżeń.", "validation_failed": "Walidacja nie powiodła się.", "saved": "Zapisano", "saved_message": "Plik zapisano pomyślnie.", "save_failed": "Nie udało się zapisać pliku.", "folder_opened": "Otwarto folder", "folder_failed": "Nie udało się otworzyć folderu" },
+    "tabs": {
+      "entries": "Wpisy",
+      "raw": "Plik surowy"
+    },
+    "columns": {
+      "key": "Klucz",
+      "source": "Źródło",
+      "ai_draft": "Wersja AI",
+      "final": "Wersja końcowa"
+    },
+    "filter": {
+      "all": "Wszystkie",
+      "changed": "Zmienione",
+      "issues": "Problemy"
+    },
+    "structure": {
+      "comment": "Komentarz",
+      "blank": "Puste wiersze",
+      "header": "Nagłówek",
+      "raw": "Inna struktura"
+    },
+    "hint": {
+      "key": "Klucz lokalizacji tylko do odczytu identyfikujący ten wpis.",
+      "original_source": "Oryginalny plik źródłowy używany jako odniesienie do tłumaczenia.",
+      "ai_source": "Wersja AI wczytana z archiwum projektu lub pliku tłumaczenia.",
+      "final_source": "Końcowa treść zostanie zapisana w wybranym pliku tłumaczenia."
+    },
+    "tooltips": {
+      "errors": "Błędy",
+      "warnings": "Ostrzeżenia"
+    },
+    "notifications": {
+      "error": "Błąd",
+      "perfect": "Brak problemów",
+      "perfect_message": "Nie znaleziono problemów walidacji.",
+      "issues_found": "Znaleziono problemy",
+      "issues_found_message": "Znaleziono {{errors}} błędów i {{warnings}} ostrzeżeń.",
+      "validation_failed": "Walidacja nie powiodła się.",
+      "saved": "Zapisano",
+      "saved_message": "Plik zapisano pomyślnie.",
+      "save_failed": "Nie udało się zapisać pliku.",
+      "folder_opened": "Otwarto folder",
+      "folder_failed": "Nie udało się otworzyć folderu"
+    },
     "errors": {
       "project_not_found": "Nie można załadować danych korekty, ponieważ ten projekt już nie istnieje.",
       "file_not_indexed": "Nie można załadować danych korekty, ponieważ tego pliku nie ma w bieżącym indeksie plików projektu. Odśwież pliki projektu i spróbuj ponownie.",
@@ -1724,5 +1761,30 @@
   "project_management.project_glossary.create_success_title": "Glosariusz projektu gotowy",
   "project_management.project_glossary.create_success_message": "Glosariusz projektu zostal utworzony i powiazany.",
   "project_management.project_glossary.create_failed_title": "Tworzenie nie powiodlo sie",
-  "project_management.project_glossary.create_failed_message": "Nie mozna utworzyc glosariusza projektu."
+  "project_management.project_glossary.create_failed_message": "Nie mozna utworzyc glosariusza projektu.",
+  "page_title_copilot": "Asystent Remis",
+  "copilot": {
+    "page_subtitle": "Odpowiedzi pomocy i bezpieczne sugestie nawigacji. Testy domyślnie używają lokalnego LM Studio.",
+    "provider_label": "Dostawca",
+    "picker_later": "Wybór modelu: wkrótce",
+    "phase1_notice": "Sesje zostają w przeglądarce. Bez pokrycia w dokumentacji wymuszana jest niska pewność. Przy lokalnych modelach ~32k starsze wiadomości są usuwane zamiast błędu.",
+    "status_error": "Nie udało się wczytać statusu asystenta",
+    "empty_title": "Asystent Remis",
+    "empty_desc": "Zapytaj, jak używać Remis. Testy korzystają z lokalnego LM Studio. Wyjaśniam przepływy i proponuję klikalne przejścia stron.",
+    "suggestion_first_run": "Jak zacząć pierwszą lokalizację?",
+    "suggestion_api": "Jak skonfigurować LM Studio / API?",
+    "suggestion_deploy": "Jak wdrożyć do gry?",
+    "suggestion_logs": "Coś poszło nie tak — gdzie są logi?",
+    "input_placeholder": "Zapytaj, jak używać Remis…",
+    "send": "Wyślij",
+    "confidence": "Pewność",
+    "empty_reply": "(Brak odpowiedzi)",
+    "sessions_title": "Czaty",
+    "new_chat": "Nowy czat",
+    "delete_chat": "Usuń czat",
+    "untitled_chat": "Nowa rozmowa",
+    "context_trimmed": "Pominięto {{count}} starszych wiadomości pod lokalne okno kontekstu",
+    "context_budget_badge": "Budżet kontekstu",
+    "grounding": "Podstawa w docs"
+  }
 }

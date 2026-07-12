@@ -1606,13 +1606,50 @@
     "edit_final": "Изменить итоговый перевод {{key}}",
     "blank_lines": "Пустых строк: {{count}}",
     "no_entries": "Нет записей, соответствующих текущему фильтру.",
-    "tabs": { "entries": "Записи", "raw": "Исходный файл" },
-    "columns": { "key": "Ключ", "source": "Источник", "ai_draft": "Черновик ИИ", "final": "Итог" },
-    "filter": { "all": "Все", "changed": "Изменённые", "issues": "Проблемы" },
-    "structure": { "comment": "Комментарий", "blank": "Пустые строки", "header": "Заголовок", "raw": "Другая структура" },
-    "hint": { "key": "Ключ локализации только для чтения, идентифицирующий эту запись.", "original_source": "Исходный файл, используемый как ориентир для перевода.", "ai_source": "Черновик ИИ, загруженный из архива проекта или файла перевода.", "final_source": "Итоговый текст будет сохранён в выбранный файл перевода." },
-    "tooltips": { "errors": "Ошибки", "warnings": "Предупреждения" },
-    "notifications": { "error": "Ошибка", "perfect": "Проблем нет", "perfect_message": "Проблем проверки не найдено.", "issues_found": "Найдены проблемы", "issues_found_message": "Найдено ошибок: {{errors}}, предупреждений: {{warnings}}.", "validation_failed": "Проверка не выполнена.", "saved": "Сохранено", "saved_message": "Файл успешно сохранён.", "save_failed": "Не удалось сохранить файл.", "folder_opened": "Папка открыта", "folder_failed": "Не удалось открыть папку" },
+    "tabs": {
+      "entries": "Записи",
+      "raw": "Исходный файл"
+    },
+    "columns": {
+      "key": "Ключ",
+      "source": "Источник",
+      "ai_draft": "Черновик ИИ",
+      "final": "Итог"
+    },
+    "filter": {
+      "all": "Все",
+      "changed": "Изменённые",
+      "issues": "Проблемы"
+    },
+    "structure": {
+      "comment": "Комментарий",
+      "blank": "Пустые строки",
+      "header": "Заголовок",
+      "raw": "Другая структура"
+    },
+    "hint": {
+      "key": "Ключ локализации только для чтения, идентифицирующий эту запись.",
+      "original_source": "Исходный файл, используемый как ориентир для перевода.",
+      "ai_source": "Черновик ИИ, загруженный из архива проекта или файла перевода.",
+      "final_source": "Итоговый текст будет сохранён в выбранный файл перевода."
+    },
+    "tooltips": {
+      "errors": "Ошибки",
+      "warnings": "Предупреждения"
+    },
+    "notifications": {
+      "error": "Ошибка",
+      "perfect": "Проблем нет",
+      "perfect_message": "Проблем проверки не найдено.",
+      "issues_found": "Найдены проблемы",
+      "issues_found_message": "Найдено ошибок: {{errors}}, предупреждений: {{warnings}}.",
+      "validation_failed": "Проверка не выполнена.",
+      "saved": "Сохранено",
+      "saved_message": "Файл успешно сохранён.",
+      "save_failed": "Не удалось сохранить файл.",
+      "folder_opened": "Папка открыта",
+      "folder_failed": "Не удалось открыть папку"
+    },
     "errors": {
       "project_not_found": "Не удалось загрузить данные корректуры, потому что этот проект больше не существует.",
       "file_not_indexed": "Не удалось загрузить данные корректуры, потому что этого файла нет в текущем индексе файлов проекта. Обновите файлы проекта и повторите попытку.",
@@ -1747,5 +1784,30 @@
   "project_management.project_glossary.create_success_title": "Глоссарий проекта готов",
   "project_management.project_glossary.create_success_message": "Глоссарий проекта создан и привязан.",
   "project_management.project_glossary.create_failed_title": "Не удалось создать",
-  "project_management.project_glossary.create_failed_message": "Не удалось создать глоссарий проекта."
+  "project_management.project_glossary.create_failed_message": "Не удалось создать глоссарий проекта.",
+  "page_title_copilot": "Помощник Remis",
+  "copilot": {
+    "page_subtitle": "Ответы-подсказки и безопасные кликабельные переходы. На тестах по умолчанию локальный LM Studio.",
+    "provider_label": "Провайдер",
+    "picker_later": "Выбор модели: позже",
+    "phase1_notice": "Сессии хранятся в этом браузере. Без покрытия в документации — низкая уверенность. Для локальных ~32k старые сообщения отбрасываются, а не вызывают сбой.",
+    "status_error": "Не удалось загрузить статус помощника",
+    "empty_title": "Помощник Remis",
+    "empty_desc": "Спросите, как пользоваться Remis. Тесты идут через локальный LM Studio. Я объясняю процессы и предлагаю кликабельные переходы.",
+    "suggestion_first_run": "Как начать первую локализацию?",
+    "suggestion_api": "Как настроить LM Studio / API?",
+    "suggestion_deploy": "Как развернуть в игру?",
+    "suggestion_logs": "Что-то сломалось — где логи?",
+    "input_placeholder": "Спросите, как пользоваться Remis…",
+    "send": "Отправить",
+    "confidence": "Уверенность",
+    "empty_reply": "(Нет ответа)",
+    "sessions_title": "Чаты",
+    "new_chat": "Новый чат",
+    "delete_chat": "Удалить чат",
+    "untitled_chat": "Новый разговор",
+    "context_trimmed": "Для локального окна контекста опущено {{count}} старых сообщений",
+    "context_budget_badge": "Бюджет контекста",
+    "grounding": "Опора на docs"
+  }
 }

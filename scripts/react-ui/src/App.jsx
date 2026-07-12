@@ -36,6 +36,7 @@ const InConceptionPage = lazy(() => import('./pages/InConceptionPage'));
 const ArchivesPage = lazy(() => import('./pages/ArchivesPage'));
 const NeologismReviewPage = lazy(() => import('./pages/NeologismReviewPage'));
 const AgentWorkshopPage = lazy(() => import('./pages/AgentWorkshopPage'));
+const CopilotPage = lazy(() => import('./pages/CopilotPage'));
 
 const RouteFallback = () => (
     <Center h="50vh">
@@ -57,6 +58,7 @@ const appRouteConfig = [
     ...(FEATURES.ENABLE_NEOLOGISM_TRIBUNAL ? [{ path: '/neologism-review', element: <NeologismReviewPage /> }] : []),
     { path: '/archives', element: <ArchivesPage /> },
     { path: '/agent-workshop', element: <AgentWorkshopPage /> },
+    ...(FEATURES.ENABLE_REMIS_COPILOT ? [{ path: '/copilot', element: <CopilotPage /> }] : []),
     { path: '/cicd', element: <CICDPage /> },
     { path: '/tools', element: <ToolsPage /> },
     { path: '/settings', element: <SettingsPage /> },
