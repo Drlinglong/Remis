@@ -1,5 +1,5 @@
-import { layout, prepare } from '@chenglou/pretext'
 import { useLayoutEffect, useRef, useState } from 'react'
+import { observeMeasuredText } from './observeMeasuredText'
 
 export function MeasuredText({ as: Tag = 'h1', children, className = '' }) {
   const ref = useRef(null)
@@ -9,21 +9,12 @@ export function MeasuredText({ as: Tag = 'h1', children, className = '' }) {
     const element = ref.current
     if (!element || typeof children !== 'string') return undefined
 
-    let prepared
-
-    const measure = () => {
-      const styles = window.getComputedStyle(element)
-      const lineHeight = Number.parseFloat(styles.lineHeight)
-      prepared ??= prepare(children, styles.font)
-      const result = layout(prepared, element.clientWidth, lineHeight)
-      setHeight(Math.ceil(result.height + 2))
-    }
-
-    document.fonts.ready.then(measure)
-    const observer = new ResizeObserver(measure)
-    observer.observe(element)
-
-    return () => observer.disconnect()
+    return observeMeasuredText({
+      element,
+      text: children,
+      fontsReady: document.fonts.ready,
+      onHeight: setHeight,
+    })
   }, [children])
 
   return (
