@@ -46,6 +46,7 @@
    - [假本地化](../user-guides/fake-localization.md)
    - [校对](../user-guides/proofreading.md)
    - [智能工坊](../user-guides/agent-workshop.md)
+   - [词典与词汇表](../user-guides/glossary.md)
    - [日志与诊断](../user-guides/logs-and-diagnostics.md)
    - [错误目录](../user-guides/error-catalog.md)
    - 以及 FAQ 与各 Provider 补充专文

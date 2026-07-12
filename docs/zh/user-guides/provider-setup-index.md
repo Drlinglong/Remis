@@ -1,10 +1,7 @@
 # AI 服务商 / 本地模型配置速查
 
-> 打包客户端用户：**密钥与模型优先在应用内配置**。  
-> 路径：**设置 → API**（或设置页中的 API 页签）。  
-> **不要**为了改模型去改 Remis 源码；也 **不要** 把完整 API Key 发到公开 Issue 或聊天。
-
-旧文档里若仍写 `setup.bat`、环境变量、`scripts/app_settings.py`，那是 **开发者 / 历史** 路径，仅作补充参考。
+> 打包客户端用户：在 **设置 → API** 配置密钥与模型。  
+> **不要** 把完整 API Key 发到公开 Issue 或聊天。
 
 ---
 
@@ -53,7 +50,7 @@
 
 | 方向 | 你需要准备 | 详细文档 |
 |------|------------|----------|
-| 硅基流动 SiliconFlow | 平台 Token + 模型 ID | [ModelScope 与 SiliconFlow](using_modelscope_and_siliconflow.md)（**配置方式以设置页为准**，文中改 py 文件为旧述） |
+| 硅基流动 SiliconFlow | 平台 Token + 模型 ID | [ModelScope 与 SiliconFlow](using_modelscope_and_siliconflow.md) |
 | 魔搭 ModelScope | AccessToken + 模型 ID | 同上 |
 | 通义 / DeepSeek / Kimi 等 | 各平台 Key 与模型名 | 设置页填写；无单独专文时以官方文档 + 本速查通用步骤为准 |
 
@@ -61,9 +58,9 @@
 
 | 方向 | 你需要准备 | 详细文档 |
 |------|------------|----------|
-| **Ollama** | 本机安装 Ollama、pull 模型；URL 常见 `http://localhost:11434` | [使用 Ollama](using_ollama.md)（优先设置页选 Ollama 与模型名；**勿依赖改源码**） |
-| LM Studio / vLLM / 其它本地 OpenAI 兼容 | 服务已启动；Base URL 常见形如 `http://localhost:1234/v1`；模型名与服务端一致 | 设置页填 URL + 模型；可参考 [自定义 OpenAI API](using_custom_openai_api.md) 的概念说明 |
-| 自定义中转 / 任意 OAI 兼容 | Key + Base URL + 模型名 | [自定义 OpenAI 兼容 API](using_custom_openai_api.md)（**客户端用设置页**，不必设系统环境变量，除非你在开发模式） |
+| **Ollama** | 本机安装 Ollama、pull 模型；URL 常见 `http://localhost:11434` | [使用 Ollama](using_ollama.md) |
+| LM Studio / vLLM / 其它本地 OpenAI 兼容 | 服务已启动；Base URL 常见形如 `http://localhost:1234/v1`；模型名与服务端一致 | 设置页填 URL + 模型；概念见 [自定义 OpenAI API](using_custom_openai_api.md) |
+| 自定义中转 / 任意 OAI 兼容 | Key + Base URL + 模型名 | [自定义 OpenAI 兼容 API](using_custom_openai_api.md) |
 
 ### 3.4 填写时注意
 
@@ -110,5 +107,3 @@
 - [自定义 OpenAI 兼容 API](using_custom_openai_api.md)  
 - [ModelScope 与 SiliconFlow](using_modelscope_and_siliconflow.md)  
 - [日志与诊断](logs-and-diagnostics.md)  
-
-> 下方三篇旧专文可能仍含 `setup.bat` / 改配置文件步骤；**发布版客户端请始终以「设置 → API」为准**，专文仅补充概念与平台链接。  

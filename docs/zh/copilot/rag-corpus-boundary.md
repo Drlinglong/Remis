@@ -38,11 +38,12 @@ Micro-RAG 服务于 **终端用户**（汉化者、玩家、非开发者），�
 | 从零开始 | `docs/zh/user-guides/getting-started.md` | 「怎么开始汉化？」「要不要先点初次翻译？」；强调 **先项目管理建项** |
 | 增量翻译 | `docs/zh/user-guides/incremental-update.md` | 「Mod 更新了」「只翻新的」；需归档基线 |
 | 翻译上载 / 半成品 | `docs/zh/user-guides/import-existing-translations.md` | 「别人的汉化怎么导入」 |
-| Provider 速查 | `docs/zh/user-guides/provider-setup-index.md` | 「API 填哪里」「Ollama 怎么配」；**设置页优先**，旧 py/bat 不作为主答案 |
+| Provider 速查 | `docs/zh/user-guides/provider-setup-index.md` | 「API 填哪里」「Ollama 怎么配」→ **设置 → API** |
 | 一键部署 | `docs/zh/user-guides/one-click-deploy.md` | 「怎么装进游戏」「部署点哪里」 |
 | 假本地化 | `docs/zh/user-guides/fake-localization.md` | 「假中文是什么」；**优先内置清理**，手动备用 |
 | 校对 | `docs/zh/user-guides/proofreading.md` | 「怎么手改译文」「补丁模式」 |
 | 智能工坊 | `docs/zh/user-guides/agent-workshop.md` | 「扫描修复格式」「变量批量修」 |
+| 词典 / 词汇表 | `docs/zh/user-guides/glossary.md` | 「术语不统一」「主词典怎么开」；UI 向，非 developer glossary 工具链 |
 | 日志与诊断 | `docs/zh/user-guides/logs-and-diagnostics.md` | 「日志在哪？」「闪退看什么？」 |
 | 错误目录 | `docs/zh/user-guides/error-catalog.md` | 「变量被翻译是什么意思？」「格式标签怎么修？」 |
 

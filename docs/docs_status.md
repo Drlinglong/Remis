@@ -35,11 +35,12 @@
 - `docs/zh/user-guides/getting-started.md`（项目制入门，先建项目再翻译）
 - `docs/zh/user-guides/incremental-update.md`
 - `docs/zh/user-guides/import-existing-translations.md`
-- `docs/zh/user-guides/provider-setup-index.md`（设置页优先；旧 bat/py 专文仅补充）
+- `docs/zh/user-guides/provider-setup-index.md`
 - `docs/zh/user-guides/one-click-deploy.md`
 - `docs/zh/user-guides/fake-localization.md`
 - `docs/zh/user-guides/proofreading.md`
 - `docs/zh/user-guides/agent-workshop.md`
+- `docs/zh/user-guides/glossary.md`
 - `docs/zh/user-guides/logs-and-diagnostics.md`
 - `docs/zh/user-guides/error-catalog.md`
 - `docs/zh/user-guides/faq.md`（已按客户端工作流修订）

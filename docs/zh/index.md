@@ -17,6 +17,7 @@
 - [假本地化说明](user-guides/fake-localization.md) - 假中文原理；优先内置清理，手动为备用
 - [校对](user-guides/proofreading.md) - 三栏编辑器、补丁模式、保存与验证
 - [智能工坊](user-guides/agent-workshop.md) - 扫描格式问题并用 AI 修复
+- [词典与词汇表](user-guides/glossary.md) - 主词典 / 额外词典 / 项目词典与翻译启用
 - [常见问题解答 (FAQ)](user-guides/faq.md) - 常见问题和解决方案
 - [工厂工作原理](user-guides/how_the_factory_works.md) - 原理向流水线说明
 - [日志与诊断](user-guides/logs-and-diagnostics.md) - 日志在哪、怎么看、如何反馈
@@ -49,10 +50,11 @@
 - [Workshop 描述生成器指南](developer/workshop_description_generator_guide.md) - 工具说明
 
 ## 词典系统
-- [词典系统概览](glossary/overview.md) - 词典系统完整介绍
-- [词典工具使用](glossary/tools-guide.md) - 如何使用parser.py和validator.py
+- [词典与词汇表（用户向）](user-guides/glossary.md) - **客户端怎么用**：主词典 / 额外词典 / 项目词典
+- [词典系统概览](glossary/overview.md) - 机制与文件结构（偏开发/进阶）
+- [词典工具使用](glossary/tools-guide.md) - parser.py / validator.py（开发向）
 - [系统机制说明](glossary/system-mechanism.md) - 技术实现详解
-- [碧蓝档案词典](glossary/blue-archive-guide.md) - 特定主题词典使用
+- [碧蓝档案词典](glossary/blue-archive-guide.md) - 特定主题词典
 
 ## 导航
 - [English Documentation](../en/index.md) - English documentation index

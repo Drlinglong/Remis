@@ -44,7 +44,7 @@ V3 Mod Localization Factory 是一个强大的游戏模组本地化工具，支�
 
 1. 选择语言索引 / Choose a language index
 2. 中文用户首读：`docs/zh/user-guides/getting-started.md`（项目管理建项 → 初次翻译 → 部署）
-3. 再按需：`faq`、`provider-setup-index`、增量/上载、一键部署、校对、智能工坊、假本地化、日志与错误目录
+3. 再按需：`faq`、`provider-setup-index`、增量/上载、一键部署、校对、智能工坊、词典、假本地化、日志与错误目录
 4. 原理向可读 `how_the_factory_works`（非操作手册）
 5. 开发相关内容优先阅读 `development-setup`、`ci-setup`、`refactor_decision_guide`
 6. 修改实现时，以当前代码为准

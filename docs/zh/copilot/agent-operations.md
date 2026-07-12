@@ -110,6 +110,7 @@
 | `open_initial_translation` | 已有项目，引导去初次翻译选项目 | `safe_ui_navigation` | 否 |
 | `open_proofreading` | 手改译文 | `safe_ui_navigation` | 否 |
 | `open_agent_workshop` | 格式扫描与修复 | `safe_ui_navigation` | 否 |
+| `open_glossary_manager` | 维护术语词条 | `safe_ui_navigation` | 否 |
 
 `open_github_issues` 应对应：`https://github.com/Drlinglong/Remis/issues`  
 `open_github_issue_132` 可对应：`https://github.com/Drlinglong/Remis/issues/132`  
@@ -214,12 +215,13 @@ explanation: string            # 用用户语言解释将要做什么
 | 「初次翻译是空的 / 没有项目」 | 说明必须先建项目；打开项目管理创建，不要反复只刷新翻译页 |
 | 「Mod 更新了 / 只翻新的」 | 引导 **增量翻译**；无归档则初次翻译或 **翻译上载**；见 incremental-update |
 | 「别人的汉化 / 半成品怎么导入」 | **项目管理 → 历史 → 翻译上载**；见 import-existing-translations；再增量 |
-| 「Gemini / Ollama 怎么配？」 | **设置 → API**（provider-setup-index）；`open_api_settings`；勿让用户改源码或 setup.bat |
+| 「Gemini / Ollama 怎么配？」 | **设置 → API**（provider-setup-index）；`open_api_settings` |
 | 「连不上 API」 | 检查常见填错项 + `run_connection_test` + `open_log_folder`；语料见日志/Provider 文档 |
 | 「汉化进游戏不显示」 | **先**引导 **一键部署** + 对话框内 **删除假本地化**（`open_deploy_dialog` / `deploy_mod` / `clean_fake_localization`）；再查启动器加载顺序；内置仍失败才给手动备用步骤 |
 | 「怎么部署 / 装进游戏」 | 引导 one-click-deploy；优先内置，勿先教手拷 Documents |
 | 「怎么手改译文 / 校对」 | 侧栏 **校对** → 改最终定稿 → 保存；勿改 Key；见 proofreading |
 | 「变量/格式一堆错 / 智能工坊」 | 引导 agent-workshop 扫描→修复→复扫；搞不定转校对；见 error-catalog |
+| 「术语不统一 / 词典 / 词汇表」 | 词汇表管理补词条；翻译开主词典/额外词典；Mod 专名用项目词典；见 glossary |
 | 「日志在哪？」 | 说明 `%APPDATA%\RemisModFactory\logs` + `open_log_folder`；见 logs-and-diagnostics |
 | 「只翻新增的，旧的别动」 | `CommandIntent`: translate + only_new + preserve_existing；**确认后执行** |
 | 「帮我改一下 Remis 让它支持 XXX」 | **GitHub Issues**；可说明当前版本有无变通 |
