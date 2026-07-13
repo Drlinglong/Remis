@@ -84,7 +84,7 @@ export default function CopilotFloatingWidget() {
         </Paper>
       )}
       {!opened && (
-        <Tooltip label={tooltip} position="right" withArrow>
+        <Tooltip label={tooltip} position="left" withArrow>
           <Indicator disabled={!hasReminder} color="red" size={12} offset={5} processing>
             <ActionIcon className={styles.button} size={52} radius="xl" onClick={handleOpen} aria-label={tooltip}>
               <IconMessageChatbot size={27} />
