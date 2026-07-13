@@ -204,6 +204,7 @@ export default function RemisCopilotThread({
   provider = 'lm_studio',
   model = null,
   locale = 'zh',
+  pageContext = null,
 }) {
   const { t } = useTranslation();
   const { runAction } = useCopilotActions();
@@ -219,6 +220,7 @@ export default function RemisCopilotThread({
           provider,
           model,
           locale,
+          pageContext,
           signal: abortSignal,
         });
 
@@ -249,7 +251,7 @@ export default function RemisCopilotThread({
         };
       },
     }),
-    [locale, model, provider, t],
+    [locale, model, pageContext, provider, t],
   );
 
   const runtime = useLocalRuntime(chatModel, {

@@ -55,6 +55,7 @@ def copilot_chat(request: CopilotChatRequest):
             "provider": request.provider,
             "model": request.model,
             "locale": request.locale,
+            "page_context": request.page_context,
         }
         if request.context_budget_tokens:
             kwargs["context_budget_tokens"] = request.context_budget_tokens

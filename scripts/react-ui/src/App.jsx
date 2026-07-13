@@ -16,6 +16,8 @@ import SplashScreen from './components/SplashScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProjectWatchScheduler from './components/ProjectWatchScheduler';
 import { FEATURES } from './config/features';
+import { CopilotContextProvider } from './context/CopilotContext';
+import CopilotFloatingWidget from './components/copilot/CopilotFloatingWidget';
 
 import './App.css';
 
@@ -69,12 +71,15 @@ const appRouteConfig = [
 
 const AppRouterLayout = () => (
     <TutorialProvider>
-        <MainLayout>
-            <ProjectWatchScheduler />
-            <Suspense fallback={<RouteFallback />}>
-                <Outlet />
-            </Suspense>
-        </MainLayout>
+        <CopilotContextProvider>
+            <MainLayout>
+                <ProjectWatchScheduler />
+                <Suspense fallback={<RouteFallback />}>
+                    <Outlet />
+                </Suspense>
+                {FEATURES.ENABLE_REMIS_COPILOT && <CopilotFloatingWidget />}
+            </MainLayout>
+        </CopilotContextProvider>
     </TutorialProvider>
 );
 

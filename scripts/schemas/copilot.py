@@ -20,6 +20,8 @@ class CopilotChatRequest(BaseModel):
     locale: str = Field(default="zh")
     # Optional override; default targets ~32k local models with output headroom.
     context_budget_tokens: Optional[int] = Field(default=None, ge=2000, le=200000)
+    # Sanitized UI snapshot supplied by Remis, never arbitrary application state.
+    page_context: Optional[dict[str, Any]] = Field(default=None)
 
 
 class SuggestedAction(BaseModel):

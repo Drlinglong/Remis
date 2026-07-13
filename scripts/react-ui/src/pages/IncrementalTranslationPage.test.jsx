@@ -11,6 +11,10 @@ const { setPageContextMock } = vi.hoisted(() => ({
   setPageContextMock: vi.fn(),
 }));
 
+vi.mock('../context/CopilotContext', () => ({
+  useRemisCopilotContext: () => ({ registerPageContext: vi.fn() }),
+}));
+
 vi.mock('../hooks/useIncrementalTranslation', () => ({
   default: vi.fn(),
 }));

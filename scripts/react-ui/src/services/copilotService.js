@@ -10,6 +10,7 @@ export async function sendCopilotChat({
   provider = 'lm_studio',
   model = null,
   locale = 'zh',
+  pageContext = null,
   signal,
 } = {}) {
   const payload = {
@@ -17,6 +18,7 @@ export async function sendCopilotChat({
     provider,
     locale,
   };
+  if (pageContext) payload.page_context = pageContext;
   if (model) {
     payload.model = model;
   }

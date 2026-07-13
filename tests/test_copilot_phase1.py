@@ -101,6 +101,16 @@ def test_build_system_prompt_includes_json_contract_for_api():
     assert score > 0
 
 
+def test_build_system_prompt_includes_read_only_page_context():
+    system, _, _, _ = build_system_prompt(
+        ["getting_started"],
+        page_context={"pageId": "incremental-translation", "stepIndex": 2},
+    )
+    assert '"pageId": "incremental-translation"' in system
+    assert '"stepIndex": 2' in system
+    assert "不得声称已经替用户执行操作" in system
+
+
 def test_router_prompt_receives_recent_conversation_for_followups():
     history = [
         {"role": "user", "content": "Ollama 连接失败怎么办？"},

@@ -343,6 +343,7 @@ def read_help_skills(skill_ids: list[str]) -> list[dict[str, str]]:
 def build_system_prompt(
     selected_skill_ids: list[str],
     locale: str = "zh",
+    page_context: dict | None = None,
 ) -> tuple[str, list[dict[str, str]], GroundingLevel, int]:
     excerpts = read_help_skills(selected_skill_ids)
     sources = [{"title": e["title"], "path": e["path"]} for e in excerpts]
@@ -361,10 +362,15 @@ def build_system_prompt(
             "禁止猜测 Remis 功能，明确说明当前帮助技能未覆盖。"
         )
 
+    page_context_section = json.dumps(page_context, ensure_ascii=False, indent=2) if page_context else "（未提供）"
     system = f"""你是 Remis（Paradox Mod 本地化工厂）的产品帮助助手。
 用通俗中文回答（若用户用英文提问可用英文）。面向新手，少用内部模块名。
 
 {AGENT_OPS_SUMMARY}
+
+## 当前 Remis 页面上下文
+这是 Remis 生成的只读状态快照。可以用它解释用户当前所在步骤和下一步，但不得声称已经替用户执行操作。
+{page_context_section}
 
 ## Grounding 规则
 {grounding_rules}

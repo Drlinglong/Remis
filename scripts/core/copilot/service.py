@@ -141,6 +141,7 @@ def run_copilot_chat(
     model: Optional[str] = None,
     locale: str = "zh",
     context_budget_tokens: int = DEFAULT_INPUT_TOKEN_BUDGET,
+    page_context: Optional[dict[str, Any]] = None,
 ) -> CopilotChatResponse:
     if not messages:
         return CopilotChatResponse(
@@ -220,7 +221,7 @@ def run_copilot_chat(
         routing_ms = round((time.perf_counter() - route_started) * 1000)
 
         system_prompt, default_sources, grounding, grounding_score = build_system_prompt(
-            selected_skill_ids, locale=locale
+            selected_skill_ids, locale=locale, page_context=page_context
         )
         budgeted = apply_context_budget(
             system_prompt,
