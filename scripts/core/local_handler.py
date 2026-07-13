@@ -185,6 +185,46 @@ class LocalLLMHandler(BaseApiHandler):
             self.logger.error(message)
             raise ConnectionError(message) from exc
 
+    def select_tools_with_responses(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+        *,
+        tool_choice: str = "auto",
+        temperature: float = 0.0,
+    ) -> list[dict[str, Any]]:
+        """Return native Responses API function calls from a compatible local server."""
+        if self.protocol != "openai":
+            raise NotImplementedError("Responses API tools require an OpenAI-compatible provider")
+        provider_config = self.get_provider_config()
+        payload = {
+            "model": provider_config.get("default_model", "local-model"),
+            "input": messages,
+            "tools": tools,
+            "tool_choice": tool_choice,
+            "temperature": temperature,
+            "max_output_tokens": 256,
+        }
+        try:
+            response = requests.post(
+                f"{self.base_url}/responses",
+                json=payload,
+                timeout=300,
+            )
+            response.raise_for_status()
+            output = response.json().get("output", [])
+            calls = [item for item in output if item.get("type") == "function_call"]
+            if not calls:
+                output_types = [str(item.get("type")) for item in output if isinstance(item, dict)]
+                raise ValueError(
+                    "Responses API returned no native function_call despite required tool choice; "
+                    f"received output types: {output_types or ['none']}"
+                )
+            return calls
+        except requests.ConnectionError as exc:
+            message = self._connection_error_message()
+            raise ConnectionError(message) from exc
+
     def _call_ollama_native(self, prompt: str) -> str:
         provider_config = self.get_provider_config()
         model_name = provider_config.get("default_model", "llama2")

@@ -16,6 +16,7 @@ pyinstaller --clean --onefile --name web_server ^
   --add-data "%PROJECT_ROOT%\data\seed_data_main.sql;data" ^
   --add-data "%PROJECT_ROOT%\data\seed_data_projects.sql;data" ^
   --add-data "%PROJECT_ROOT%\data\lang;data/lang" ^
+  --add-data "%PROJECT_ROOT%\docs\zh\user-guides;docs/zh/user-guides" ^
   --add-data "%PROJECT_ROOT%\assets\skeleton.sqlite;assets" ^
   --add-data "%PROJECT_ROOT%\assets\mods_cache_skeleton.sqlite;assets" ^
   "%PROJECT_ROOT%\scripts\web_server.py"

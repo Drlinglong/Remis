@@ -46,6 +46,10 @@ Micro-RAG 服务于 **终端用户**（汉化者、玩家、非开发者），�
 | 词典 / 词汇表 | `docs/zh/user-guides/glossary.md` | 「术语不统一」「主词典怎么开」；UI 向，非 developer glossary 工具链 |
 | 日志与诊断 | `docs/zh/user-guides/logs-and-diagnostics.md` | 「日志在哪？」「闪退看什么？」 |
 | 错误目录 | `docs/zh/user-guides/error-catalog.md` | 「变量被翻译是什么意思？」「格式标签怎么修？」 |
+| 项目追踪 | `docs/zh/user-guides/project-tracking.md` | 「项目追踪是干什么的？」「怎么监控创意工坊更新？」 |
+| 新词审判庭 | `docs/zh/user-guides/neologism-tribunal.md` | 「怎么挖新词？」「审判庭怎么批词？」 |
+| 封面图生成器 | `docs/zh/user-guides/tools-thumbnail-generator.md` | 「工具里能做什么？」「怎么做工坊封面？」 |
+| 设置 | `docs/zh/user-guides/settings.md` | 「设置里有什么？」「RPM / 重置数据库是什么？」 |
 
 ### 2.3 仍建议后续补强的用户文档
 

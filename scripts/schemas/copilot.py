@@ -43,6 +43,11 @@ class CopilotContextInfo(BaseModel):
     strategy: str = "keep_recent"
     warnings: list[str] = Field(default_factory=list)
     history_message_count: int = 0
+    routing_mode: str = "not_run"
+    routing_ms: int = 0
+    answer_ms: int = 0
+    selected_skill_ids: list[str] = Field(default_factory=list)
+    loaded_source_count: int = 0
 
 
 class CopilotChatResponse(BaseModel):

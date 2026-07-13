@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from typing import Any, Optional
 
 from scripts.core.api_handler import get_handler
@@ -13,7 +14,14 @@ from scripts.core.copilot.context_budget import (
     DEFAULT_INPUT_TOKEN_BUDGET,
     apply_context_budget,
 )
-from scripts.core.copilot.help_pack import build_system_prompt
+from scripts.core.copilot.help_pack import (
+    build_skill_router_prompt,
+    build_system_prompt,
+    build_native_tool_schema,
+    build_native_skill_router_prompt,
+    parse_native_tool_calls,
+    parse_skill_tool_calls,
+)
 from scripts.core.copilot.intents import build_capability_reply, detect_capability_intent
 from scripts.schemas.copilot import (
     CopilotChatMessage,
@@ -172,29 +180,68 @@ def run_copilot_chat(
             ),
         )
 
-    system_prompt, default_sources, grounding, grounding_score = build_system_prompt(
-        user_query, locale=locale
-    )
-
     history = _history_for_model(messages)
-    budgeted = apply_context_budget(
-        system_prompt,
-        history,
-        budget_tokens=context_budget_tokens or DEFAULT_INPUT_TOKEN_BUDGET,
-    )
-    context_info = CopilotContextInfo(**budgeted.as_dict())
-
-    llm_messages: list[dict[str, str]] = [
-        {"role": "system", "content": budgeted.system_prompt},
-        *budgeted.history,
-    ]
-
     provider_name = (provider or "lm_studio").strip() or "lm_studio"
     model_name = (model or "").strip() or None
+    grounding = "none"
+    grounding_score = 0
+    context_info = CopilotContextInfo(
+        budget_tokens=context_budget_tokens or DEFAULT_INPUT_TOKEN_BUDGET,
+        strategy="agent_skill_routing",
+        history_message_count=len(history),
+    )
+    budgeted = None
 
     try:
         handler = get_handler(provider_name, model_name=model_name)
+        route_started = time.perf_counter()
+        native_selector = getattr(handler, "select_tools_with_responses", None)
+        if provider_name == "lm_studio" and callable(native_selector):
+            router_messages: list[dict[str, str]] = [
+                {"role": "system", "content": build_native_skill_router_prompt(locale)},
+                *history[-8:],
+            ]
+            native_calls = native_selector(
+                router_messages,
+                build_native_tool_schema(),
+                tool_choice="required",
+                temperature=0.0,
+            )
+            selected_skill_ids = parse_native_tool_calls(native_calls)
+            routing_mode = "native_responses_tools"
+        else:
+            router_messages = [
+                {"role": "system", "content": build_skill_router_prompt(history, locale)},
+                *history[-8:],
+            ]
+            router_raw = handler.generate_with_messages(router_messages, temperature=0.0)
+            selected_skill_ids = parse_skill_tool_calls(router_raw or "")
+            routing_mode = "compatibility_json"
+        routing_ms = round((time.perf_counter() - route_started) * 1000)
+
+        system_prompt, default_sources, grounding, grounding_score = build_system_prompt(
+            selected_skill_ids, locale=locale
+        )
+        budgeted = apply_context_budget(
+            system_prompt,
+            history,
+            budget_tokens=context_budget_tokens or DEFAULT_INPUT_TOKEN_BUDGET,
+        )
+        context_info = CopilotContextInfo(**budgeted.as_dict())
+        context_info.routing_mode = routing_mode
+        context_info.routing_ms = routing_ms
+        context_info.selected_skill_ids = selected_skill_ids
+        context_info.loaded_source_count = len(default_sources)
+        if not selected_skill_ids:
+            context_info.warnings.append("agent_selected_no_help_skills")
+
+        llm_messages: list[dict[str, str]] = [
+            {"role": "system", "content": budgeted.system_prompt},
+            *budgeted.history,
+        ]
+        answer_started = time.perf_counter()
         raw = handler.generate_with_messages(llm_messages, temperature=0.2)
+        context_info.answer_ms = round((time.perf_counter() - answer_started) * 1000)
     except ConnectionError as exc:
         logger.error("Copilot LLM connection failed: %s", exc)
         return CopilotChatResponse(
@@ -330,7 +377,7 @@ def run_copilot_chat(
                 }
             ]
 
-    if budgeted.dropped_message_count > 0:
+    if budgeted is not None and budgeted.dropped_message_count > 0:
         # Non-intrusive note for long threads (32k safety).
         note = (
             f"\n\n---\n_（上下文预算：已省略较早的 {budgeted.dropped_message_count} 条消息，"

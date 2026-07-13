@@ -47,6 +47,10 @@
    - [校对](../user-guides/proofreading.md)
    - [智能工坊](../user-guides/agent-workshop.md)
    - [词典与词汇表](../user-guides/glossary.md)
+   - [项目追踪](../user-guides/project-tracking.md)
+   - [新词审判庭](../user-guides/neologism-tribunal.md)
+   - [工具：封面图生成器](../user-guides/tools-thumbnail-generator.md)
+   - [设置](../user-guides/settings.md)
    - [日志与诊断](../user-guides/logs-and-diagnostics.md)
    - [错误目录](../user-guides/error-catalog.md)
    - 以及 FAQ 与各 Provider 补充专文
