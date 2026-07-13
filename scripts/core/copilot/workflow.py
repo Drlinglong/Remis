@@ -80,6 +80,15 @@ def create_localization_plan(
     game_id: str,
     source_language: str,
     import_mode: str,
+    target_language: str = "zh-CN",
+    api_provider: str = "lm_studio",
+    model: str = "google/gemma-4-31b-qat",
+    batch_size_limit: int | None = 10,
+    concurrency_limit: int | None = 1,
+    rpm_limit: int | None = 40,
+    use_resume: bool = True,
+    use_main_glossary: bool = True,
+    embedded_workshop_enabled: bool = True,
 ) -> dict[str, Any]:
     inspection = inspect_mod_folder(folder_path)
     name = project_name.strip()
@@ -87,6 +96,12 @@ def create_localization_plan(
         raise ValueError("Project name is required")
     if import_mode not in {"copy", "reference"}:
         raise ValueError("Import mode must be copy or reference")
+    if target_language == source_language:
+        raise ValueError("Target language must differ from the source language")
+    if api_provider not in API_PROVIDERS:
+        raise ValueError(f"Unknown API provider: {api_provider}")
+    if not model.strip():
+        raise ValueError("Model is required")
 
     plan_id = str(uuid.uuid4())
     payload = {
@@ -94,7 +109,7 @@ def create_localization_plan(
         "workflow_type": "localize_mod_v1",
         "status": "awaiting_approval",
         "title": f"创建汉化项目：{name}",
-        "summary": "只读检查已完成。批准后由 Remis 创建项目；本计划不会立即启动翻译。",
+        "summary": "只读检查已完成。批准后由 Remis 创建项目，并按已确认参数立即启动初次翻译。",
         "inspection": inspection,
         "steps": [
             {
@@ -111,9 +126,9 @@ def create_localization_plan(
             },
             {
                 "id": "open_initial_translation",
-                "label": "进入初次翻译配置",
-                "status": "after_execution",
-                "effect": "safe_ui_navigation",
+                "label": f"启动 {source_language} → {target_language} 初次翻译",
+                "status": "pending_approval",
+                "effect": "writes_translation_output_and_may_use_paid_api",
             },
         ],
         "execution_args": {
@@ -122,6 +137,17 @@ def create_localization_plan(
             "game_id": game_id,
             "source_language": source_language,
             "import_mode": import_mode,
+        },
+        "translation_args": {
+            "target_lang_codes": [target_language],
+            "api_provider": api_provider,
+            "model": model.strip(),
+            "batch_size_limit": batch_size_limit,
+            "concurrency_limit": concurrency_limit,
+            "rpm_limit": rpm_limit,
+            "use_resume": use_resume,
+            "use_main_glossary": use_main_glossary,
+            "embedded_workshop_enabled": embedded_workshop_enabled,
         },
         "requires_approval": True,
         "expires_in_seconds": PLAN_TTL_SECONDS,
@@ -272,3 +298,14 @@ def release_plan_reservation(plan_id: str) -> None:
         stored = _plans.get(plan_id)
         if stored:
             stored.executed = False
+
+
+def get_localization_translation_args(plan_id: str) -> dict[str, Any]:
+    """Return the server-owned translation parameters attached to an approved plan."""
+    with _plans_lock:
+        stored = _plans.get(plan_id)
+        if not stored:
+            raise KeyError("Workflow plan was not found or the app restarted")
+        if stored.payload.get("workflow_type") != "localize_mod_v1":
+            raise ValueError("Workflow plan is not a localization plan")
+        return dict(stored.payload.get("translation_args") or {})

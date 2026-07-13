@@ -16,7 +16,7 @@ import { sendCopilotChat } from '../../services/copilotService';
 import { serializeThreadMessages } from '../../services/copilotSessionStore';
 import { useCopilotActions } from '../../hooks/useCopilotActions';
 import styles from './RemisCopilotThread.module.css';
-import LocalizationWorkflowModal from './LocalizationWorkflowModal';
+import InlineLocalizationWorkflow from './InlineLocalizationWorkflow';
 
 function extractTextFromParts(parts) {
   if (!Array.isArray(parts)) {
@@ -211,7 +211,7 @@ export default function RemisCopilotThread({
   const { runAction } = useCopilotActions();
   const [actionError, setActionError] = useState('');
   const [contextNote, setContextNote] = useState('');
-  const [workflowOpened, setWorkflowOpened] = useState(false);
+  const [workflowArgs, setWorkflowArgs] = useState(null);
 
   const chatModel = useMemo(
     () => ({
@@ -265,7 +265,7 @@ export default function RemisCopilotThread({
       setActionError('');
       try {
         if (item.action === 'start_localization_workflow') {
-          setWorkflowOpened(true);
+          setWorkflowArgs(item.args || {});
           return;
         }
         await runAction(item.action, item.args || {});
@@ -287,11 +287,6 @@ export default function RemisCopilotThread({
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <MessagePersister sessionId={sessionId} onMessagesChange={onMessagesChange} />
-      <LocalizationWorkflowModal
-        opened={workflowOpened}
-        onClose={() => setWorkflowOpened(false)}
-        onNavigate={(item) => runAction(item.action, item.args || {})}
-      />
       <div className={styles.threadShell}>
         <ThreadPrimitive.Root className={styles.threadRoot}>
           <ThreadPrimitive.Viewport className={styles.viewport}>
@@ -305,6 +300,14 @@ export default function RemisCopilotThread({
               }}
             />
           </ThreadPrimitive.Viewport>
+
+          {workflowArgs && (
+            <InlineLocalizationWorkflow
+              initialArgs={workflowArgs}
+              onClose={() => setWorkflowArgs(null)}
+              onNavigate={(item) => runAction(item.action, item.args || {})}
+            />
+          )}
 
           {contextNote && (
             <Text c="dimmed" size="xs" px="md" py={2}>

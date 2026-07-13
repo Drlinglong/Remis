@@ -96,6 +96,15 @@ class CopilotWorkflowPlanRequest(BaseModel):
     game_id: str = Field(..., min_length=1)
     source_language: str = Field(default="en", min_length=1)
     import_mode: Literal["copy", "reference"] = "copy"
+    target_language: str = Field(default="zh-CN", min_length=1)
+    api_provider: str = Field(default="lm_studio", min_length=1)
+    model: str = Field(default="google/gemma-4-31b-qat", min_length=1)
+    batch_size_limit: Optional[int] = Field(default=10, ge=1, le=1000)
+    concurrency_limit: Optional[int] = Field(default=1, ge=1, le=100)
+    rpm_limit: Optional[int] = Field(default=40, ge=1, le=100000)
+    use_resume: bool = True
+    use_main_glossary: bool = True
+    embedded_workshop_enabled: bool = True
 
 
 class CopilotWorkflowApprovalRequest(BaseModel):

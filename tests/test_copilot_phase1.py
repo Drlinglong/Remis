@@ -73,6 +73,32 @@ def test_action_registry_owns_security_metadata_and_validates_args():
     }]
 
 
+def test_localization_action_accepts_only_conversation_workflow_hints():
+    cleaned = filter_suggested_actions([{
+        "action": "start_localization_workflow",
+        "args": {
+            "folder_path": r"C:\\Mods\\Victoria",
+            "game_id": "vic3",
+            "source_language": "en",
+            "target_language": "zh-CN",
+            "api_key": "must-not-pass",
+        },
+    }])
+    assert cleaned[0]["args"] == {}
+
+    cleaned = filter_suggested_actions([{
+        "action": "start_localization_workflow",
+        "args": {
+            "folder_path": r"C:\\Mods\\Victoria",
+            "game_id": "vic3",
+            "source_language": "en",
+            "target_language": "zh-CN",
+        },
+    }])
+    assert cleaned[0]["args"]["game_id"] == "vic3"
+    assert "api_key" not in cleaned[0]["args"]
+
+
 def test_extract_json_object_handles_fence_and_noise():
     fenced = """Here you go:
 ```json

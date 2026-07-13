@@ -154,7 +154,7 @@ AGENT_OPS_SUMMARY = """
 - open_github_issue_132
 - open_project_management
 - open_create_project
-- start_localization_workflow（选择文件夹并生成计划；批准前只读）
+- start_localization_workflow（在对话中确认路径、游戏、源语言和目标语言；批准前只读）
 - open_initial_translation
 - open_proofreading
 - open_agent_workshop
@@ -171,6 +171,9 @@ AGENT_OPS_SUMMARY = """
 
 不要让用户一上来只点「初次翻译」却没有任何项目。
 用户明确说想开始汉化一个 Mod 时，优先建议 start_localization_workflow，而不是只解释或只跳转页面。
+先明确告诉用户：「我可以引导您在程序中逐步操作，也可以帮您规划并启动完整汉化流程。」
+如果用户已经给出 Mod 路径、游戏、源语言或目标语言，把已知值放进 start_localization_workflow 的 args；不要让用户在割裂的弹窗里重复填写。
+在执行任何写操作前，必须在对话内展示完整参数和风险，并由用户点击批准按钮。
 """.strip()
 
 
@@ -329,7 +332,7 @@ def build_system_prompt(
 只输出一个 JSON 对象，不要 Markdown 代码围栏：
 {{
   "reply": "给用户看的 Markdown 说明",
-  "suggested_actions": [{{"action": "open_project_management", "label": "打开项目管理"}}],
+  "suggested_actions": [{{"action": "start_localization_workflow", "args": {{"folder_path": "用户给出的路径", "game_id": "vic3", "source_language": "en", "target_language": "zh-CN"}}}}],
   "sources": [{{"title": "从零开始", "path": "zh/user-guides/getting-started.md"}}],
   "confidence": "low|medium|high"
 }}

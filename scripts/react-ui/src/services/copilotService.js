@@ -51,6 +51,11 @@ export async function executeCopilotWorkflow(planId) {
   return response.data;
 }
 
+export async function executeGuidedLocalizationWorkflow(planId) {
+  const response = await api.post('/api/copilot/workflows/localize-mod/execute', { plan_id: planId });
+  return response.data;
+}
+
 export async function planInitialTranslationWorkflow(payload) {
   const response = await api.post('/api/copilot/workflows/initial-translation/plan', payload);
   return response.data;

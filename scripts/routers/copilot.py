@@ -23,6 +23,7 @@ from scripts.core.copilot.workflow import (
     approve_and_execute_plan,
     create_localization_plan,
     create_translation_plan,
+    get_localization_translation_args,
     release_plan_reservation,
     reserve_translation_plan,
 )
@@ -95,6 +96,40 @@ async def execute_workflow(request: CopilotWorkflowApprovalRequest):
     """Execute only the server-side plan previously shown to the user."""
     try:
         return await approve_and_execute_plan(request.plan_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except TimeoutError as exc:
+        raise HTTPException(status_code=410, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/workflows/localize-mod/execute")
+async def execute_guided_localization(
+    request: CopilotWorkflowApprovalRequest,
+    background_tasks: BackgroundTasks,
+):
+    """Execute the exact project + translation parameters shown in chat."""
+    try:
+        project_result = await approve_and_execute_plan(request.plan_id)
+        project_id = project_result["project"]["project_id"]
+        translation_args = get_localization_translation_args(request.plan_id)
+        translation_plan = await create_translation_plan(project_id=project_id, **translation_args)
+        args = reserve_translation_plan(translation_plan["plan_id"])
+        try:
+            response = await start_translation_project(InitialTranslationRequest(**args), background_tasks)
+        except Exception:
+            release_plan_reservation(translation_plan["plan_id"])
+            raise
+        return {
+            "plan_id": request.plan_id,
+            "translation_plan_id": translation_plan["plan_id"],
+            "workflow_status": "started",
+            "project": project_result["project"],
+            **response,
+        }
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except TimeoutError as exc:

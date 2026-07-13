@@ -1,9 +1,12 @@
 from pathlib import Path
 
 import pytest
+from fastapi import BackgroundTasks
 
 from scripts.core.copilot import workflow
 from scripts.core.copilot import agent_planner, read_tools
+from scripts.routers import copilot as copilot_router
+from scripts.schemas.copilot import CopilotWorkflowApprovalRequest
 
 
 def _make_mod(tmp_path: Path) -> Path:
@@ -55,6 +58,8 @@ async def test_plan_requires_approval_and_executes_exactly_once(tmp_path, monkey
     assert calls == []
     assert plan["status"] == "awaiting_approval"
     assert plan["requires_approval"] is True
+    assert plan["translation_args"]["target_lang_codes"] == ["zh-CN"]
+    assert plan["translation_args"]["api_provider"] == "lm_studio"
 
     result = await workflow.approve_and_execute_plan(plan["plan_id"])
     assert result["status"] == "completed"
@@ -129,6 +134,49 @@ async def test_translation_plan_rejects_source_as_target(monkeypatch):
             api_provider="lm_studio",
             model="local-model",
         )
+
+
+@pytest.mark.asyncio
+async def test_guided_approval_starts_exact_server_owned_translation(monkeypatch):
+    async def fake_approve(plan_id):
+        assert plan_id == "plan-1"
+        return {"project": {"project_id": "project-1", "name": "Demo"}}
+
+    async def fake_create_translation_plan(**kwargs):
+        assert kwargs == {
+            "project_id": "project-1",
+            "target_lang_codes": ["zh-CN"],
+            "api_provider": "lm_studio",
+            "model": "local-model",
+        }
+        return {"plan_id": "translation-plan-1"}
+
+    async def fake_start(request, background_tasks):
+        assert request.project_id == "project-1"
+        assert isinstance(background_tasks, BackgroundTasks)
+        return {"task_id": "task-1"}
+
+    monkeypatch.setattr(copilot_router, "approve_and_execute_plan", fake_approve)
+    monkeypatch.setattr(copilot_router, "get_localization_translation_args", lambda plan_id: {
+        "target_lang_codes": ["zh-CN"],
+        "api_provider": "lm_studio",
+        "model": "local-model",
+    })
+    monkeypatch.setattr(copilot_router, "create_translation_plan", fake_create_translation_plan)
+    monkeypatch.setattr(copilot_router, "reserve_translation_plan", lambda plan_id: {
+        "project_id": "project-1",
+        "source_lang_code": "en",
+        "target_lang_codes": ["zh-CN"],
+        "api_provider": "lm_studio",
+        "model": "local-model",
+    })
+    monkeypatch.setattr(copilot_router, "start_translation_project", fake_start)
+
+    result = await copilot_router.execute_guided_localization(
+        CopilotWorkflowApprovalRequest(plan_id="plan-1"), BackgroundTasks()
+    )
+    assert result["workflow_status"] == "started"
+    assert result["task_id"] == "task-1"
 
 
 @pytest.mark.asyncio

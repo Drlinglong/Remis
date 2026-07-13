@@ -16,7 +16,19 @@ class _ProjectNavigationArgs(BaseModel):
     task_id: str | None = None
 
 
+class _LocalizationWorkflowArgs(BaseModel):
+    """Conversation-derived hints only; the user still approves the server plan."""
+
+    model_config = ConfigDict(extra="forbid")
+    folder_path: str | None = None
+    project_name: str | None = None
+    game_id: str | None = None
+    source_language: str | None = None
+    target_language: str | None = None
+
+
 ACTION_ARG_MODELS: dict[str, type[BaseModel]] = {
+    "start_localization_workflow": _LocalizationWorkflowArgs,
     "open_initial_translation": _ProjectNavigationArgs,
     "open_proofreading": _ProjectNavigationArgs,
     "open_agent_workshop": _ProjectNavigationArgs,
@@ -90,8 +102,8 @@ ACTION_REGISTRY: dict[str, dict[str, Any]] = {
         "path": "/project-management",
     },
     "start_localization_workflow": {
-        "label": "规划汉化工作流",
-        "description": "选择 Mod 文件夹，只读检查并生成待批准的建项目计划",
+        "label": "帮我规划并开始汉化",
+        "description": "在对话中确认 Mod、语言和技术参数，生成待批准的完整汉化计划",
         "risk": "read_only_until_approval",
         "requires_confirmation": False,
         "phase": 2,
