@@ -7,10 +7,7 @@ from scripts.core.copilot.context_budget import apply_context_budget, estimate_t
 from scripts.core.copilot.help_pack import (
     build_skill_router_prompt,
     build_system_prompt,
-    build_native_tool_schema,
-    build_native_skill_router_prompt,
     parse_skill_tool_calls,
-    parse_native_tool_calls,
     read_help_skills,
     validate_help_skill_manifest,
 )
@@ -18,6 +15,7 @@ from scripts.core.copilot.intents import build_capability_reply, detect_capabili
 from scripts.core.copilot import service as copilot_service
 from scripts.core.copilot.service import _clamp_confidence, _extract_json_object, run_copilot_chat
 from scripts.schemas.copilot import CopilotChatMessage
+from scripts.routers.copilot import copilot_actions, copilot_status
 
 
 def test_list_actions_excludes_none_and_is_phase1():
@@ -28,6 +26,15 @@ def test_list_actions_excludes_none_and_is_phase1():
     assert "open_api_settings" in ids
     assert "deploy_mod" not in ids
     assert "translate" not in ids
+    assert "start_localization_workflow" not in ids
+
+
+def test_workflow_action_is_available_in_phase2_and_requires_server_plan():
+    actions = list_actions(phase=2)
+    item = next(action for action in actions if action["action"] == "start_localization_workflow")
+    assert item["risk"] == "read_only_until_approval"
+    assert copilot_status().phase == 2
+    assert any(item.action == "start_localization_workflow" for item in copilot_actions())
 
 
 def test_filter_suggested_actions_whitelist_and_dedupe():
@@ -44,7 +51,26 @@ def test_filter_suggested_actions_whitelist_and_dedupe():
         "open_project_management",
         "open_log_folder",
     ]
-    assert cleaned[0]["label"] == "项目管理"
+    assert cleaned[0]["label"] == "打开项目管理"
+
+
+def test_action_registry_owns_security_metadata_and_validates_args():
+    cleaned = filter_suggested_actions([
+        {
+            "action": "open_initial_translation",
+            "label": "删除全部文件",
+            "requires_confirmation": False,
+            "risk": "harmless",
+            "args": {"project_id": "project-1", "arbitrary_path": "../../secrets"},
+        }
+    ])
+    assert cleaned == [{
+        "action": "open_initial_translation",
+        "label": "打开初次翻译",
+        "args": {},
+        "requires_confirmation": False,
+        "risk": "safe_ui_navigation",
+    }]
 
 
 def test_extract_json_object_handles_fence_and_noise():
@@ -155,30 +181,55 @@ def test_chat_uses_agent_selected_skill_for_ambiguous_followup(monkeypatch):
             CopilotChatMessage(role="user", content="Ollama 连接失败怎么办？"),
             CopilotChatMessage(role="assistant", content="我们继续排查。"),
             CopilotChatMessage(role="user", content="那具体怎么操作？"),
-        ]
+        ],
+        provider="ollama",
     )
     assert len(fake.calls) == 2
     assert result.grounding == "strong"
-    assert any(source.path.endswith("using_ollama.md") for source in result.sources)
-    assert result.context.routing_mode == "native_responses_tools"
+    assert any(source.path.endswith("provider-setup-index.md") for source in result.sources)
+    assert result.context.routing_mode == "compatibility_json"
 
 
-def test_native_tool_schema_and_parser_are_allowlisted():
-    schema = build_native_tool_schema()[0]
-    assert "ollama_setup" in schema["parameters"]["properties"]["skill_id"]["enum"]
-    calls = [
-        {"name": "read_help_skill", "arguments": '{"skill_id":"settings"}'},
-        {"name": "read_help_skill", "arguments": '{"skill_id":"not_allowed"}'},
-    ]
-    assert parse_native_tool_calls(calls) == ["settings"]
-    assert build_native_tool_schema()[1]["name"] == "report_no_help_skill"
+def test_lm_studio_help_chat_uses_pydantic_agent_and_canonical_actions(monkeypatch):
+    from types import SimpleNamespace
+
+    fake_answer = SimpleNamespace(
+        reply="请先创建项目。",
+        suggested_actions=[SimpleNamespace(model_dump=lambda: {
+            "action": "open_create_project", "args": {}, "label": "evil"
+        })],
+        confidence="high",
+    )
+    monkeypatch.setattr(copilot_service, "run_pydantic_help_agent", lambda *args, **kwargs: {
+        "answer": fake_answer,
+        "selected_skill_ids": ["getting_started"],
+        "excerpts": [{"title": "从零开始", "path": "zh/user-guides/getting-started.md", "content": "x"}],
+        "no_match_reason": None,
+        "usage": {},
+    })
+    result = run_copilot_chat(
+        [CopilotChatMessage(role="user", content="我要汉化一个 Mod")],
+        provider="lm_studio",
+    )
+    assert result.context.strategy == "pydantic_ai_help_agent"
+    assert result.suggested_actions[0].label == "去创建新项目"
+    assert result.sources[0].path == "zh/user-guides/getting-started.md"
 
 
-def test_native_router_prompt_does_not_request_json_text():
-    prompt = build_native_skill_router_prompt()
-    assert "不要输出 JSON" in prompt
-    assert '"tool_calls"' not in prompt
-    assert "必须使用提供的函数工具" in prompt
+def test_lm_studio_help_agent_failure_is_visible_and_recoverable(monkeypatch):
+    monkeypatch.setattr(
+        copilot_service,
+        "run_pydantic_help_agent",
+        lambda *args, **kwargs: (_ for _ in ()).throw(TimeoutError("planner timed out")),
+    )
+    result = run_copilot_chat(
+        [CopilotChatMessage(role="user", content="怎么创建项目？")],
+        provider="lm_studio",
+    )
+    assert result.confidence == "low"
+    assert result.parse_mode == "fallback_text"
+    assert "TimeoutError" in result.context.warnings
+    assert "暂时无法" in result.reply
 
 
 def test_every_packaged_user_guide_is_agent_selectable():
@@ -192,6 +243,10 @@ def test_release_and_debug_builds_bundle_help_skill_resources():
     assert '"docs", "zh", "user-guides"' in pipeline
     assert "docs/zh/user-guides" in pipeline
     assert "docs\\zh\\user-guides;docs/zh/user-guides" in debug_build
+    assert "--collect-submodules pydantic_ai" in pipeline
+    assert "--collect-submodules pydantic_ai" in debug_build
+    requirements = (root / "requirements.txt").read_text(encoding="utf-8")
+    assert "pydantic-ai-slim[openai]==2.9.0" in requirements
 
 
 def test_clamp_confidence_none_and_weak():

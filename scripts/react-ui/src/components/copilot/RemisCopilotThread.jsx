@@ -16,6 +16,7 @@ import { sendCopilotChat } from '../../services/copilotService';
 import { serializeThreadMessages } from '../../services/copilotSessionStore';
 import { useCopilotActions } from '../../hooks/useCopilotActions';
 import styles from './RemisCopilotThread.module.css';
+import LocalizationWorkflowModal from './LocalizationWorkflowModal';
 
 function extractTextFromParts(parts) {
   if (!Array.isArray(parts)) {
@@ -210,6 +211,7 @@ export default function RemisCopilotThread({
   const { runAction } = useCopilotActions();
   const [actionError, setActionError] = useState('');
   const [contextNote, setContextNote] = useState('');
+  const [workflowOpened, setWorkflowOpened] = useState(false);
 
   const chatModel = useMemo(
     () => ({
@@ -262,6 +264,10 @@ export default function RemisCopilotThread({
     async (item) => {
       setActionError('');
       try {
+        if (item.action === 'start_localization_workflow') {
+          setWorkflowOpened(true);
+          return;
+        }
         await runAction(item.action, item.args || {});
       } catch (err) {
         console.error(err);
@@ -281,6 +287,11 @@ export default function RemisCopilotThread({
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <MessagePersister sessionId={sessionId} onMessagesChange={onMessagesChange} />
+      <LocalizationWorkflowModal
+        opened={workflowOpened}
+        onClose={() => setWorkflowOpened(false)}
+        onNavigate={(item) => runAction(item.action, item.args || {})}
+      />
       <div className={styles.threadShell}>
         <ThreadPrimitive.Root className={styles.threadRoot}>
           <ThreadPrimitive.Viewport className={styles.viewport}>

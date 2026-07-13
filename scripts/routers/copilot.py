@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from scripts.core.copilot import list_actions, run_copilot_chat
 from scripts.core.copilot.actions import get_client_handler
@@ -13,7 +13,21 @@ from scripts.schemas.copilot import (
     CopilotChatRequest,
     CopilotChatResponse,
     CopilotStatusResponse,
+    CopilotWorkflowApprovalRequest,
+    CopilotWorkflowPlanRequest,
+    CopilotTranslationPlanRequest,
+    CopilotAgentRecommendationRequest,
 )
+from scripts.core.copilot.agent_planner import recommend_initial_translation
+from scripts.core.copilot.workflow import (
+    approve_and_execute_plan,
+    create_localization_plan,
+    create_translation_plan,
+    release_plan_reservation,
+    reserve_translation_plan,
+)
+from scripts.routers.translation import start_translation_project
+from scripts.schemas.translation import InitialTranslationRequest
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +38,12 @@ router = APIRouter(prefix="/api/copilot", tags=["Copilot"])
 def copilot_status():
     from scripts.core.copilot.context_budget import DEFAULT_INPUT_TOKEN_BUDGET
 
-    return CopilotStatusResponse(context_budget_tokens=DEFAULT_INPUT_TOKEN_BUDGET)
+    return CopilotStatusResponse(phase=2, context_budget_tokens=DEFAULT_INPUT_TOKEN_BUDGET)
 
 
 @router.get("/actions", response_model=list[CopilotActionDescriptor])
 def copilot_actions():
-    return [CopilotActionDescriptor(**item) for item in list_actions(phase=1)]
+    return [CopilotActionDescriptor(**item) for item in list_actions(phase=2)]
 
 
 @router.get("/actions/{action_id}")
@@ -65,3 +79,74 @@ def copilot_chat(request: CopilotChatRequest):
     except Exception as exc:
         logger.exception("Copilot chat endpoint failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/workflows/localize-mod/plan")
+def plan_localize_mod(request: CopilotWorkflowPlanRequest):
+    """Read-only inspection plus an immutable, approval-gated project plan."""
+    try:
+        return create_localization_plan(**request.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/workflows/execute")
+async def execute_workflow(request: CopilotWorkflowApprovalRequest):
+    """Execute only the server-side plan previously shown to the user."""
+    try:
+        return await approve_and_execute_plan(request.plan_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except TimeoutError as exc:
+        raise HTTPException(status_code=410, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/workflows/initial-translation/plan")
+async def plan_initial_translation(request: CopilotTranslationPlanRequest):
+    try:
+        return await create_translation_plan(**request.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/workflows/initial-translation/recommend")
+async def recommend_translation(request: CopilotAgentRecommendationRequest):
+    try:
+        return await recommend_initial_translation(
+            project_id=request.project_id,
+            target_lang_codes=request.target_lang_codes,
+            preferred_provider=request.preferred_provider,
+            provider=request.planner_provider,
+            model=request.planner_model,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/workflows/initial-translation/execute")
+async def execute_initial_translation(
+    request: CopilotWorkflowApprovalRequest,
+    background_tasks: BackgroundTasks,
+):
+    try:
+        args = reserve_translation_plan(request.plan_id)
+        response = await start_translation_project(
+            InitialTranslationRequest(**args), background_tasks
+        )
+        return {"plan_id": request.plan_id, "workflow_status": "started", **response}
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except TimeoutError as exc:
+        raise HTTPException(status_code=410, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (ValueError, HTTPException):
+        release_plan_reservation(request.plan_id)
+        raise
+    except Exception:
+        release_plan_reservation(request.plan_id)
+        raise

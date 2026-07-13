@@ -119,50 +119,6 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
 }
 
 
-def build_native_tool_schema() -> list[dict[str, Any]]:
-    """Responses API schema; enum keeps the model inside the help-pack allowlist."""
-    return [{
-        "type": "function",
-        "name": "read_help_skill",
-        "description": "Read one packaged Remis user-help skill relevant to the conversation.",
-        "parameters": {
-            "type": "object",
-            "properties": {"skill_id": {"type": "string", "enum": list(HELP_SKILLS)}},
-            "required": ["skill_id"],
-            "additionalProperties": False,
-        },
-    }, {
-        "type": "function",
-        "name": "report_no_help_skill",
-        "description": "Use only when none of the packaged help skills can ground the answer.",
-        "parameters": {
-            "type": "object",
-            "properties": {"reason": {"type": "string"}},
-            "required": ["reason"],
-            "additionalProperties": False,
-        },
-    }]
-
-
-def parse_native_tool_calls(calls: list[dict[str, Any]]) -> list[str]:
-    selected: list[str] = []
-    for call in calls:
-        if call.get("name") != "read_help_skill":
-            continue
-        arguments = call.get("arguments", {})
-        if isinstance(arguments, str):
-            try:
-                arguments = json.loads(arguments)
-            except json.JSONDecodeError:
-                continue
-        skill_id = arguments.get("skill_id") if isinstance(arguments, dict) else None
-        if skill_id in HELP_SKILLS and skill_id not in selected:
-            selected.append(skill_id)
-        if len(selected) >= MAX_SELECTED_SKILLS:
-            break
-    return selected
-
-
 def validate_help_skill_manifest() -> list[str]:
     """Report packaged guide files that cannot be selected by the agent."""
     registered = {path for meta in HELP_SKILLS.values() for path in meta["resources"]}
@@ -184,20 +140,21 @@ AGENT_OPS_SUMMARY = """
 - 不要声称已经改好了客户端、已经改好了文件或已经删除了文件
 - 不要要求用户把完整 API Key 粘贴到聊天里
 - 不要发明白名单以外的 action
-- 写操作（部署、清理假本地化、翻译落盘）在 Phase 1 只可文字说明，不可在聊天中直接执行
+- 写操作（部署、清理假本地化、翻译落盘）不能由聊天直接执行；工作流必须先展示固定计划并由用户明确批准
 - **禁止在文档未覆盖时用「通常 / 一般 / 应该是 / 根据逻辑推断」编造功能说明**
 - 能力边界问题依据本说明书回答，不要套「文档未覆盖」话术
 
 ## 遇到要改软件本身时
 引导用户到 GitHub：https://github.com/Drlinglong/Remis/issues
 
-## Phase 1 可提议的 action（仅这些）
+## 可提议的 action（仅这些）
 - open_api_settings
 - open_log_folder
 - open_github_issues
 - open_github_issue_132
 - open_project_management
 - open_create_project
+- start_localization_workflow（选择文件夹并生成计划；批准前只读）
 - open_initial_translation
 - open_proofreading
 - open_agent_workshop
@@ -213,6 +170,7 @@ AGENT_OPS_SUMMARY = """
 5. 校对 / 智能工坊 / 词典（可选）
 
 不要让用户一上来只点「初次翻译」却没有任何项目。
+用户明确说想开始汉化一个 Mod 时，优先建议 start_localization_workflow，而不是只解释或只跳转页面。
 """.strip()
 
 
@@ -263,19 +221,8 @@ Help Skills：
 {{"tool_calls":[{{"name":"read_help_skill","arguments":{{"skill_id":"provider_setup"}}}}]}}
 
 规则：最多调用 {MAX_SELECTED_SKILLS} 个；只允许上面的 ID；无需文档时返回空数组；本轮不要回答用户。
-原生工具模式下必须调用 read_help_skill，确实无覆盖时调用 report_no_help_skill；不要直接回答。
 当前界面语言：{locale}
 """.strip()
-
-
-def build_native_skill_router_prompt(locale: str = "zh") -> str:
-    """Small native-tools prompt with no competing JSON-output instructions."""
-    return f"""你是 Remis Help Copilot 的资料选择 Agent。
-结合完整对话语境，选择回答当前问题前必须读取的用户帮助技能。
-必须使用提供的函数工具；不要直接回答用户，也不要输出 JSON 或普通文本。
-可调用 read_help_skill 一至 {MAX_SELECTED_SKILLS} 次。确实没有任何相关技能时，调用 report_no_help_skill。
-优先选择最具体的技能，避免同时读取内容重叠的总览文档。
-当前界面语言：{locale}""".strip()
 
 
 def parse_skill_tool_calls(raw: str) -> list[str]:

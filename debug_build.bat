@@ -9,6 +9,9 @@ pyinstaller --clean --onefile --name web_server ^
   --hidden-import uvicorn ^
   --hidden-import fastapi ^
   --hidden-import pydantic ^
+  --collect-submodules pydantic_ai ^
+  --collect-submodules pydantic_graph ^
+  --collect-data genai_prices ^
   --hidden-import psutil ^
   --hidden-import scripts.hooks ^
   --hidden-import scripts.hooks.file_parser_hook ^

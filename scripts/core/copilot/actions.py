@@ -1,11 +1,30 @@
-"""Action whitelist for Remis Help Copilot (Phase 1 navigation-first)."""
+"""Server-owned action registry for Help Copilot and approved workflows."""
 
 from __future__ import annotations
 
 from typing import Any
+from pydantic import BaseModel, ConfigDict, ValidationError
 
-# Only Phase-1 safe_ui_navigation / read-only helpers.
-# Write actions (deploy, translate, clean fake loc) stay documented but not enabled yet.
+
+class _NoActionArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class _ProjectNavigationArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    project_id: str | None = None
+    task_id: str | None = None
+
+
+ACTION_ARG_MODELS: dict[str, type[BaseModel]] = {
+    "open_initial_translation": _ProjectNavigationArgs,
+    "open_proofreading": _ProjectNavigationArgs,
+    "open_agent_workshop": _ProjectNavigationArgs,
+    "open_deploy_dialog": _ProjectNavigationArgs,
+}
+
+# Models may choose an action ID and validated args only. Labels, risk, and
+# confirmation requirements are server-owned and never copied from model output.
 ACTION_REGISTRY: dict[str, dict[str, Any]] = {
     "none": {
         "label": "无需操作",
@@ -69,6 +88,15 @@ ACTION_REGISTRY: dict[str, dict[str, Any]] = {
         "phase": 1,
         "client_kind": "navigate",
         "path": "/project-management",
+    },
+    "start_localization_workflow": {
+        "label": "规划汉化工作流",
+        "description": "选择 Mod 文件夹，只读检查并生成待批准的建项目计划",
+        "risk": "read_only_until_approval",
+        "requires_confirmation": False,
+        "phase": 2,
+        "client_kind": "workflow",
+        "workflow": "localize_mod_v1",
     },
     "open_initial_translation": {
         "label": "打开初次翻译",
@@ -168,16 +196,18 @@ def filter_suggested_actions(raw_actions: list[Any] | None) -> list[dict[str, An
         seen.add(action_id)
 
         meta = ACTION_REGISTRY[action_id]
-        label = str(item.get("label") or meta["label"]).strip() or meta["label"]
-        args = item.get("args") if isinstance(item.get("args"), dict) else {}
+        raw_args = item.get("args") if isinstance(item.get("args"), dict) else {}
+        args_model = ACTION_ARG_MODELS.get(action_id, _NoActionArgs)
+        try:
+            args = args_model.model_validate(raw_args).model_dump(exclude_none=True)
+        except ValidationError:
+            args = {}
         cleaned.append(
             {
                 "action": action_id,
-                "label": label,
+                "label": meta["label"],
                 "args": args,
-                "requires_confirmation": bool(
-                    item.get("requires_confirmation", meta.get("requires_confirmation", False))
-                ),
+                "requires_confirmation": bool(meta.get("requires_confirmation", False)),
                 "risk": meta.get("risk", "safe_ui_navigation"),
             }
         )
@@ -199,4 +229,5 @@ def get_client_handler(action_id: str) -> dict[str, Any] | None:
         "url": meta.get("url"),
         "hash_hint": meta.get("hash_hint"),
         "label": meta.get("label"),
+        "workflow": meta.get("workflow"),
     }

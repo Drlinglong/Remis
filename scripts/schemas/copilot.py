@@ -76,7 +76,7 @@ class CopilotActionDescriptor(BaseModel):
 
 class CopilotStatusResponse(BaseModel):
     enabled: bool = True
-    phase: int = 1
+    phase: int = 2
     default_provider: str = "lm_studio"
     context_budget_tokens: int = 24000
     context_policy: str = (
@@ -88,3 +88,36 @@ class CopilotStatusResponse(BaseModel):
         "Chats persist in the browser (localStorage). "
         "Provider/model picker will be added on the helper page later."
     )
+
+
+class CopilotWorkflowPlanRequest(BaseModel):
+    folder_path: str = Field(..., min_length=1)
+    project_name: str = Field(..., min_length=1, max_length=160)
+    game_id: str = Field(..., min_length=1)
+    source_language: str = Field(default="en", min_length=1)
+    import_mode: Literal["copy", "reference"] = "copy"
+
+
+class CopilotWorkflowApprovalRequest(BaseModel):
+    plan_id: str = Field(..., min_length=1)
+
+
+class CopilotTranslationPlanRequest(BaseModel):
+    project_id: str = Field(..., min_length=1)
+    target_lang_codes: list[str] = Field(default_factory=lambda: ["zh-CN"], min_length=1)
+    api_provider: str = Field(default="lm_studio", min_length=1)
+    model: str = Field(..., min_length=1)
+    batch_size_limit: Optional[int] = Field(default=10, ge=1, le=1000)
+    concurrency_limit: Optional[int] = Field(default=1, ge=1, le=100)
+    rpm_limit: Optional[int] = Field(default=40, ge=1, le=100000)
+    use_resume: bool = True
+    use_main_glossary: bool = True
+    embedded_workshop_enabled: bool = True
+
+
+class CopilotAgentRecommendationRequest(BaseModel):
+    project_id: str = Field(..., min_length=1)
+    target_lang_codes: list[str] = Field(default_factory=lambda: ["zh-CN"], min_length=1)
+    preferred_provider: str = Field(default="lm_studio", min_length=1)
+    planner_provider: str = Field(default="lm_studio", min_length=1)
+    planner_model: Optional[str] = None

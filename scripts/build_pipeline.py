@@ -268,6 +268,8 @@ def main():
         f'--hidden-import scripts.config.prompts '
         # AI SDKs
         f'--hidden-import google.genai --hidden-import openai '
+        f'--collect-submodules pydantic_ai --collect-submodules pydantic_graph '
+        f'--collect-data genai_prices '
         # Phonetics libraries used inside functions (PyInstaller can't detect these statically)
         f'--hidden-import pypinyin --hidden-import pypinyin.seg --hidden-import pypinyin.style '
         f'--hidden-import pykakasi --hidden-import jaconv '

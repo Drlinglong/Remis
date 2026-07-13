@@ -17,12 +17,10 @@ from scripts.core.copilot.context_budget import (
 from scripts.core.copilot.help_pack import (
     build_skill_router_prompt,
     build_system_prompt,
-    build_native_tool_schema,
-    build_native_skill_router_prompt,
-    parse_native_tool_calls,
     parse_skill_tool_calls,
 )
 from scripts.core.copilot.intents import build_capability_reply, detect_capability_intent
+from scripts.core.copilot.help_agent import run_pydantic_help_agent
 from scripts.schemas.copilot import (
     CopilotChatMessage,
     CopilotChatResponse,
@@ -193,31 +191,74 @@ def run_copilot_chat(
     )
     budgeted = None
 
+    if provider_name == "lm_studio":
+        try:
+            started = time.perf_counter()
+            agent_result = run_pydantic_help_agent(
+                history, model_name=model_name, page_context=page_context
+            )
+            answer = agent_result["answer"]
+            excerpts = agent_result["excerpts"]
+            selected_skill_ids = agent_result["selected_skill_ids"]
+            default_sources = [{"title": item["title"], "path": item["path"]} for item in excerpts]
+            grounding = "strong" if excerpts else "none"
+            grounding_score = 100 if excerpts else 0
+            actions = filter_suggested_actions(
+                [item.model_dump() for item in answer.suggested_actions]
+            )
+            sources = [CopilotSource(**item) for item in default_sources]
+            confidence = _clamp_confidence(
+                answer.confidence, grounding=grounding, reply=answer.reply, sources=sources
+            )
+            reply = answer.reply
+            if grounding == "none" and not reply.startswith("【文档未覆盖】"):
+                reply = "【文档未覆盖】" + reply
+            return CopilotChatResponse(
+                reply=reply,
+                suggested_actions=[SuggestedAction(**item) for item in actions],
+                sources=sources,
+                confidence=confidence,  # type: ignore[arg-type]
+                provider=provider_name,
+                model=model_name,
+                parse_mode="structured",
+                grounding=grounding,  # type: ignore[arg-type]
+                grounding_score=grounding_score,
+                context=CopilotContextInfo(
+                    budget_tokens=context_budget_tokens or DEFAULT_INPUT_TOKEN_BUDGET,
+                    strategy="pydantic_ai_help_agent",
+                    history_message_count=len(history),
+                    routing_mode="pydantic_ai_tools",
+                    routing_ms=round((time.perf_counter() - started) * 1000),
+                    selected_skill_ids=selected_skill_ids,
+                    loaded_source_count=len(sources),
+                ),
+            )
+        except Exception as exc:
+            logger.exception("PydanticAI Help Copilot failed")
+            return CopilotChatResponse(
+                reply=f"小助手暂时无法完成这次回答：{exc}",
+                confidence="low",
+                provider=provider_name,
+                model=model_name,
+                parse_mode="fallback_text",
+                grounding="none",
+                context=CopilotContextInfo(
+                    strategy="pydantic_ai_help_agent_failed",
+                    warnings=[type(exc).__name__],
+                    history_message_count=len(history),
+                ),
+            )
+
     try:
         handler = get_handler(provider_name, model_name=model_name)
         route_started = time.perf_counter()
-        native_selector = getattr(handler, "select_tools_with_responses", None)
-        if provider_name == "lm_studio" and callable(native_selector):
-            router_messages: list[dict[str, str]] = [
-                {"role": "system", "content": build_native_skill_router_prompt(locale)},
-                *history[-8:],
-            ]
-            native_calls = native_selector(
-                router_messages,
-                build_native_tool_schema(),
-                tool_choice="required",
-                temperature=0.0,
-            )
-            selected_skill_ids = parse_native_tool_calls(native_calls)
-            routing_mode = "native_responses_tools"
-        else:
-            router_messages = [
-                {"role": "system", "content": build_skill_router_prompt(history, locale)},
-                *history[-8:],
-            ]
-            router_raw = handler.generate_with_messages(router_messages, temperature=0.0)
-            selected_skill_ids = parse_skill_tool_calls(router_raw or "")
-            routing_mode = "compatibility_json"
+        router_messages = [
+            {"role": "system", "content": build_skill_router_prompt(history, locale)},
+            *history[-8:],
+        ]
+        router_raw = handler.generate_with_messages(router_messages, temperature=0.0)
+        selected_skill_ids = parse_skill_tool_calls(router_raw or "")
+        routing_mode = "compatibility_json"
         routing_ms = round((time.perf_counter() - route_started) * 1000)
 
         system_prompt, default_sources, grounding, grounding_score = build_system_prompt(
