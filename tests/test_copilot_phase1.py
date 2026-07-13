@@ -156,9 +156,10 @@ def test_build_system_prompt_includes_json_contract_for_api():
 def test_build_system_prompt_includes_read_only_page_context():
     system, _, _, _ = build_system_prompt(
         ["getting_started"],
-        page_context={"pageId": "incremental-translation", "stepIndex": 2},
+        page_context={"pageId": "incremental-translation", "helpSkillId": "incremental_translation", "stepIndex": 2},
     )
     assert '"pageId": "incremental-translation"' in system
+    assert '"helpSkillId": "incremental_translation"' in system
     assert '"stepIndex": 2' in system
     assert "不得声称已经替用户执行操作" in system
 
