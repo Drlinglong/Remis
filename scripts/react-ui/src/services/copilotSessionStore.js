@@ -195,3 +195,43 @@ export function toInitialMessages(storedMessages) {
         : {}),
     }));
 }
+
+export function buildWorkflowCompletionMessage(workflow) {
+  const projectName = workflow.projectName || '未命名项目';
+  const targetLanguage = workflow.targetLanguage || '未指定';
+  const sourceLanguage = workflow.sourceLanguage || '未指定';
+  const enhancements = [
+    workflow.useResume && '断点续传',
+    workflow.useMainGlossary && '主词典',
+    workflow.workshopEnabled && '智能工坊',
+  ].filter(Boolean);
+  const text = [
+    '### 已批准并启动翻译',
+    '',
+    `- **项目：** ${projectName}`,
+    `- **项目 ID：** \`${workflow.projectId}\``,
+    `- **任务 ID：** \`${workflow.taskId}\``,
+    `- **游戏：** ${workflow.gameId}`,
+    `- **语言：** ${sourceLanguage} → ${targetLanguage}`,
+    `- **Provider / 模型：** ${workflow.provider} / ${workflow.model}`,
+    `- **限流：** Batch ${workflow.batchSize}，并发 ${workflow.concurrency}，RPM ${workflow.rpm}`,
+    `- **增强：** ${enhancements.join('、') || '无'}`,
+    '',
+    '我已经保存了这次操作记录，并会在后续对话中把它作为上下文。你可以随时查看翻译进度。',
+  ].join('\n');
+
+  return {
+    role: 'assistant',
+    content: [{ type: 'text', text }],
+    metadata: {
+      custom: {
+        workflow,
+        suggested_actions: [{
+          action: 'open_initial_translation',
+          label: '查看翻译进度',
+          args: { task_id: workflow.taskId, project_id: workflow.projectId },
+        }],
+      },
+    },
+  };
+}

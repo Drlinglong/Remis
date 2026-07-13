@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   Alert, Badge, Button, Group, NumberInput, Select, Stack, Switch, Text, TextInput,
 } from '@mantine/core';
-import { IconCheck, IconFolder, IconPlayerPlay, IconScan } from '@tabler/icons-react';
+import { IconFolder, IconPlayerPlay, IconScan } from '@tabler/icons-react';
 import { open } from '@tauri-apps/plugin-dialog';
 import {
   executeGuidedLocalizationWorkflow,
@@ -25,7 +25,7 @@ const languages = [
   { value: 'ko', label: '한국어' },
 ];
 
-export default function InlineLocalizationWorkflow({ initialArgs = {}, onNavigate, onClose }) {
+export default function InlineLocalizationWorkflow({ initialArgs = {}, onStarted, onClose }) {
   const [folderPath, setFolderPath] = useState(initialArgs.folder_path || '');
   const [projectName, setProjectName] = useState(initialArgs.project_name || '');
   const [gameId, setGameId] = useState(initialArgs.game_id || 'vic3');
@@ -40,7 +40,6 @@ export default function InlineLocalizationWorkflow({ initialArgs = {}, onNavigat
   const [useMainGlossary, setUseMainGlossary] = useState(true);
   const [workshopEnabled, setWorkshopEnabled] = useState(true);
   const [plan, setPlan] = useState(null);
-  const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -91,26 +90,30 @@ export default function InlineLocalizationWorkflow({ initialArgs = {}, onNavigat
     setBusy(true);
     setError('');
     try {
-      setResult(await executeGuidedLocalizationWorkflow(plan.plan_id));
+      const result = await executeGuidedLocalizationWorkflow(plan.plan_id);
+      onStarted({
+        taskId: result.task_id,
+        projectId: result.project?.project_id,
+        projectName: result.project?.name || projectName || inferredName,
+        gameId,
+        sourceLanguage,
+        targetLanguage,
+        provider,
+        model,
+        batchSize,
+        concurrency,
+        rpm,
+        useResume,
+        useMainGlossary,
+        workshopEnabled,
+        startedAt: new Date().toISOString(),
+      });
     } catch (err) {
       setError(err?.response?.data?.detail || err?.message || String(err));
     } finally {
       setBusy(false);
     }
   };
-
-  if (result) {
-    return (
-      <div className={styles.card}>
-        <Alert color="green" icon={<IconCheck size={18} />} title="翻译任务已启动">
-          项目“{result.project?.name}”已创建，Task ID：{result.task_id}。
-        </Alert>
-        <Button mt="sm" onClick={() => onNavigate({ action: 'open_initial_translation', args: { task_id: result.task_id, project_id: result.project?.project_id } })}>
-          查看翻译进度
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className={styles.card}>

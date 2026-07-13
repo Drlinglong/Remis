@@ -8,6 +8,7 @@ import {
   setActiveSessionInState,
   toInitialMessages,
   upsertSessionMessages,
+  buildWorkflowCompletionMessage,
 } from './copilotSessionStore';
 
 describe('copilotSessionStore', () => {
@@ -62,5 +63,33 @@ describe('copilotSessionStore', () => {
     const a = createEmptySession();
     const b = createEmptySession();
     expect(a.id).not.toBe(b.id);
+  });
+
+  it('builds a persistent workflow completion message with task metadata', () => {
+    const message = buildWorkflowCompletionMessage({
+      taskId: 'task-1',
+      projectId: 'project-1',
+      projectName: 'Victoria Demo',
+      gameId: 'vic3',
+      sourceLanguage: 'en',
+      targetLanguage: 'zh-CN',
+      provider: 'lm_studio',
+      model: 'local-model',
+      batchSize: 10,
+      concurrency: 1,
+      rpm: 40,
+      useResume: true,
+      useMainGlossary: true,
+      workshopEnabled: true,
+    });
+
+    expect(message.role).toBe('assistant');
+    expect(message.content[0].text).toContain('Victoria Demo');
+    expect(message.content[0].text).toContain('task-1');
+    expect(message.metadata.custom.workflow.projectId).toBe('project-1');
+    expect(message.metadata.custom.suggested_actions[0]).toEqual(expect.objectContaining({
+      action: 'open_initial_translation',
+      args: { task_id: 'task-1', project_id: 'project-1' },
+    }));
   });
 });

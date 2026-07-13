@@ -13,8 +13,9 @@ import { IconSend, IconSparkles } from '@tabler/icons-react';
 import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
 import { sendCopilotChat } from '../../services/copilotService';
-import { serializeThreadMessages } from '../../services/copilotSessionStore';
+import { buildWorkflowCompletionMessage, serializeThreadMessages } from '../../services/copilotSessionStore';
 import { useCopilotActions } from '../../hooks/useCopilotActions';
+import { useTranslationContext } from '../../context/TranslationContextCore';
 import styles from './RemisCopilotThread.module.css';
 import InlineLocalizationWorkflow from './InlineLocalizationWorkflow';
 
@@ -209,6 +210,13 @@ export default function RemisCopilotThread({
 }) {
   const { t } = useTranslation();
   const { runAction } = useCopilotActions();
+  const {
+    setActiveStep,
+    setIsProcessing,
+    setSelectedProjectId,
+    setTaskId,
+    setTranslationDetails,
+  } = useTranslationContext();
   const [actionError, setActionError] = useState('');
   const [contextNote, setContextNote] = useState('');
   const [workflowArgs, setWorkflowArgs] = useState(null);
@@ -284,6 +292,24 @@ export default function RemisCopilotThread({
     [runtime],
   );
 
+  const handleWorkflowStarted = useCallback((workflow) => {
+    setTaskId(workflow.taskId);
+    setSelectedProjectId(workflow.projectId);
+    setTranslationDetails({
+      projectId: workflow.projectId,
+      modName: workflow.projectName,
+      provider: workflow.provider,
+      model: workflow.model,
+      sourceLang: workflow.sourceLanguage,
+      targetLangs: [workflow.targetLanguage],
+      gameId: workflow.gameId,
+    });
+    setIsProcessing(true);
+    setActiveStep(2);
+    runtime.thread.append(buildWorkflowCompletionMessage(workflow));
+    setWorkflowArgs(null);
+  }, [runtime, setActiveStep, setIsProcessing, setSelectedProjectId, setTaskId, setTranslationDetails]);
+
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <MessagePersister sessionId={sessionId} onMessagesChange={onMessagesChange} />
@@ -305,7 +331,7 @@ export default function RemisCopilotThread({
             <InlineLocalizationWorkflow
               initialArgs={workflowArgs}
               onClose={() => setWorkflowArgs(null)}
-              onNavigate={(item) => runAction(item.action, item.args || {})}
+              onStarted={handleWorkflowStarted}
             />
           )}
 
