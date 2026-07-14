@@ -53,6 +53,7 @@ data/*.db
 mods.sqlite
 data/seed_data_*.sql
 logs/
+benchmark_results/
 temp/
 *.tmp
 *.db

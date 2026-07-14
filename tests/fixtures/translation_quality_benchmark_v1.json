@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "name": "Remis 冻结 demo 翻译质量基准 v1",
+  "translation_cases": [
+    {
+      "id": "stellaris_proclamation_style",
+      "game_id": "stellaris",
+      "source_lang": "en",
+      "target_lang": "zh-CN",
+      "source_file": "archive/remis_demo_events_l_english.yml",
+      "keys": ["remis_crisis.1.desc_text:0"],
+      "focus": ["长篇政治叙事", "术语一致性", "颜色标签", "作用域变量", "引号与换行"],
+      "mod_context": "Project Remis Stellaris demo：一个披着和平外衣的威权银河帝国诞生。"
+    },
+    {
+      "id": "stellaris_purge_dialogue",
+      "game_id": "stellaris",
+      "source_lang": "en",
+      "target_lang": "zh-CN",
+      "source_file": "archive/remis_demo_events_l_english.yml",
+      "keys": ["remis_crisis.2.desc_text:0"],
+      "focus": ["对白", "黑色幽默", "叙事节奏", "嵌套引号", "颜色标签"],
+      "mod_context": "Project Remis Stellaris demo：政敌在新秩序下逐渐消失。"
+    },
+    {
+      "id": "victoria3_unexpected_talent",
+      "game_id": "victoria3",
+      "source_lang": "zh-CN",
+      "target_lang": "en",
+      "source_file": "source_mod/Test_Project_Remis_Vic3_Incremental_Frozen/localization/simp_chinese/remis_demo_l_simp_chinese.yml",
+      "keys": ["remis_event.2.f:0"],
+      "focus": ["人物叙事", "作用域变量", "彩色标签", "对白", "英文自然度"],
+      "mod_context": "Project Remis Victoria 3 demo：一名自称来自古罗马的少女在十九世纪政坛展露才能。"
+    },
+    {
+      "id": "victoria3_daughter_of_wolf",
+      "game_id": "victoria3",
+      "source_lang": "zh-CN",
+      "target_lang": "en",
+      "source_file": "source_mod/Test_Project_Remis_Vic3_Incremental_Frozen/localization/simp_chinese/remis_demo_l_simp_chinese.yml",
+      "keys": ["remis_event.4.f:0"],
+      "focus": ["人物声音", "历史氛围", "作用域变量", "彩色标签", "戏剧张力"],
+      "mod_context": "Project Remis Victoria 3 demo：罗马少女揭示身份，并把目光投向君士坦丁堡。"
+    },
+    {
+      "id": "victoria3_contextual_glossary",
+      "game_id": "victoria3",
+      "source_lang": "en",
+      "target_lang": "zh-CN",
+      "source_file": "tests/fixtures/translation_quality_glossary_l_english.yml",
+      "keys": ["remis_benchmark_glossary.1.f:0", "remis_benchmark_glossary.2.f:0"],
+      "focus": ["词典注入", "官方地名", "多义词消歧", "上下文优先", "Victoria 3 事件语气"],
+      "mod_context": "Project Remis Victoria 3 glossary benchmark：蕾姆丝与叙述者在法国乡间度假，随后计划前往美国得克萨斯。",
+      "glossary_entries": [
+        {
+          "entry_id": "benchmark-france",
+          "translations": {"en": "France", "zh-CN": "法兰西"},
+          "raw_metadata": {"remarks": "Victoria 3 官方简体中文地名；不要译为‘法国’。"}
+        },
+        {
+          "entry_id": "benchmark-texas",
+          "translations": {"en": "Texas", "zh-CN": "得克萨斯"},
+          "raw_metadata": {"remarks": "Victoria 3 官方简体中文地名；不要译为‘德克萨斯’。"}
+        },
+        {
+          "entry_id": "benchmark-silo-military",
+          "translations": {"en": "silo", "zh-CN": "发射井"},
+          "raw_metadata": {"remarks": "仅用于军事领域，指储存和发射导弹的导弹发射井。"}
+        },
+        {
+          "entry_id": "benchmark-prestige-goods",
+          "translations": {"en": "prestige goods", "zh-CN": "名贵商品"},
+          "raw_metadata": {"remarks": "Victoria 3 经济概念；作为完整复合术语翻译，不应拆分或译为‘威望良好’。"}
+        }
+      ],
+      "glossary_expectations": [
+        {
+          "source_term": "France",
+          "injected_target": "法兰西",
+          "expected_target": "法兰西",
+          "forbidden_targets": ["法国"],
+          "policy": "follow_glossary",
+          "output_index": 0
+        },
+        {
+          "source_term": "Texas",
+          "injected_target": "得克萨斯",
+          "expected_target": "得克萨斯",
+          "forbidden_targets": ["德克萨斯"],
+          "policy": "follow_glossary",
+          "output_index": 0
+        },
+        {
+          "source_term": "prestige goods",
+          "injected_target": "名贵商品",
+          "expected_target": "名贵商品",
+          "forbidden_targets": ["威望良好"],
+          "policy": "follow_glossary",
+          "output_index": 0,
+          "reason": "这是 Victoria 3 的完整经济概念，而不是 prestige 与 goods 的逐词组合。"
+        },
+        {
+          "source_term": "silo",
+          "injected_target": "发射井",
+          "expected_target": "筒仓",
+          "forbidden_targets": ["发射井"],
+          "policy": "contextual_override",
+          "output_index": 0,
+          "reason": "原文明确是农场中装满麦子的筒仓，并明确排除军事和导弹语境。"
+        },
+        {
+          "source_term": "missile silo",
+          "injected_target": "发射井",
+          "expected_target": "发射井",
+          "forbidden_targets": ["筒仓"],
+          "policy": "follow_glossary",
+          "output_index": 1,
+          "reason": "对照文本明确描述储存并发射洲际弹道导弹的军事设施。"
+        }
+      ]
+    }
+  ],
+  "repair_cases": [
+    {
+      "id": "stellaris_missing_color_tags",
+      "game_id": "stellaris",
+      "source_lang": "en",
+      "target_lang": "zh-CN",
+      "source_file": "archive/remis_demo_events_l_english.yml",
+      "keys": ["remis_crisis.1.b:0", "remis_crisis.1.a:0"],
+      "clean_translation": ["向女皇致敬！（加入§Y永恒守望者§!）", "所以，自由就是这样死去的……"],
+      "broken_translation": ["向女皇致敬！（加入永恒守望者）", "所以，自由就是这样死去的……"],
+      "must_remain_unchanged_indexes": [1],
+      "injected_errors": ["删除 §Y...§! 颜色标签"],
+      "mod_context": "Project Remis Stellaris demo 格式修复样本。"
+    },
+    {
+      "id": "victoria3_damaged_scope_and_tag",
+      "game_id": "victoria3",
+      "source_lang": "zh-CN",
+      "target_lang": "en",
+      "source_file": "source_mod/Test_Project_Remis_Vic3_Incremental_Frozen/localization/simp_chinese/remis_demo_l_simp_chinese.yml",
+      "keys": ["remis_event.2.f:0", "remis_event.2.a:0"],
+      "clean_translation": ["The girl we call ‘Remis’ recovered quickly.\\n\\nShe even corrected a Latin grammatical error in a draft declaration of war sent to [SCOPE.sCountry('rival_country').GetName], pointing to the line and saying: ‘My lord #Y [Root.GetCharacter.GetFullName]#!, this phrasing is not merely rude; it makes us appear uncultured.’\\n\\nThe room fell silent.", "Who exactly is she?"],
+      "broken_translation": ["The girl we call ‘Remis’ recovered quickly.\\n\\nShe even corrected a Latin grammatical error in a draft declaration of war sent to the rival country, pointing to the line and saying: ‘My lord [Root.GetCharacter.GetFullName], this phrasing is not merely rude; it makes us appear uncultured.’\\n\\nThe room fell silent.", "Who exactly is she?"],
+      "must_remain_unchanged_indexes": [1],
+      "injected_errors": ["删除 SCOPE 变量", "删除 #Y...#! 彩色标签"],
+      "mod_context": "Project Remis Victoria 3 demo 格式修复样本。"
+    }
+  ],
+  "manual_review_rubric": {
+    "dimensions": ["语言风格", "语义忠实度", "人物声音与语气", "术语一致性", "可读性"],
+    "method": "匿名成对比较；judge 输出偏好、置信度、逐项理由和无法判断之处。",
+    "warning": "LLM judge 是参考意见，不是人类金标。"
+  }
+}

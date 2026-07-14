@@ -1,0 +1,10 @@
+﻿l_english:
+ # Remis translation-quality benchmark: contextual glossary use.
+ remis_benchmark_glossary.1.t:0 "A Pastoral Interlude"
+ remis_benchmark_glossary.1.d:0 "Remis and I take a quiet holiday abroad before choosing our next destination."
+ remis_benchmark_glossary.1.f:0 "After weeks of ceremonies and paperwork, Remis and I accepted an invitation to travel incognito through #Y France#!. Far from the salons of Paris, we found a farm where cattle grazed beside sleepy sheep, hens scratched beneath the hedgerows, and a tall silo stood filled to the brim with newly harvested wheat. There were no fortifications here, no general staff, and certainly no missiles—only the warm smell of bread and the rustle of grain.\n\nRemis let a handful of wheat run through her fingers and smiled. “This wheat is of remarkable quality. The prestige goods of the France Agricultural Company truly live up to their reputation.”\n\nWe spent several happy days helping with the harvest, sharing country meals, and enjoying a rare stretch of leisure. On our final evening, Remis unfolded a map across the farmhouse table and tapped a place across the Atlantic with a smile.\n\n“Next,” she said, “we shall see #Y Texas#!.”"
+ remis_benchmark_glossary.1.a:0 "For once, history can wait."
+
+ # Contrast control: the same term in its explicitly military sense.
+ remis_benchmark_glossary.2.t:0 "The Buried Deterrent"
+ remis_benchmark_glossary.2.f:0 "Military inspectors confirmed that the reinforced underground structure was a #R missile silo#! built to house and launch an intercontinental ballistic missile."
