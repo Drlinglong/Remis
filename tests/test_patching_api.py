@@ -14,8 +14,12 @@ from scripts.web_server import app
 client = TestClient(app)
 
 @pytest.fixture
-def temp_loc_file(tmp_path):
+def temp_loc_file(tmp_path, monkeypatch):
     """Creates a temporary localization file for testing."""
+    monkeypatch.setattr(
+        "scripts.routers.system._allowed_file_roots",
+        lambda: [str(tmp_path)],
+    )
     file_path = tmp_path / "test_patching.yml"
     content = """l_english:
  # This is a comment
