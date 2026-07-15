@@ -65,6 +65,9 @@ python -m flake8 scripts tests --count --select=E9,F63,F7,F82 --show-source --st
 python -m pytest --tb=short
 ```
 
+默认测试不会访问真实模型 API。需要手工运行 Gemini 并发 smoke test 时，先显式设置
+`REMIS_RUN_LIVE_MODEL_TESTS=1`；该测试可能产生外部 API 费用，不属于 CI 门禁。
+
 ### Frontend
 
 ```powershell
