@@ -43,6 +43,18 @@ Rust job 会创建一个不进入 Git 的空 sidecar 占位文件。它只用于
 
 Dependabot 只负责提出变更。CI 负责验证，ruleset 负责阻止不合格合并，维护者保留最终批准权。
 
+## 仓库安全自动化
+
+GitHub 仓库设置已启用：
+
+- Dependabot alerts、dependency graph 和 automated security updates；
+- secret scanning 与 push protection；
+- private vulnerability reporting；
+- CodeQL default setup，每周扫描 Python、JavaScript/TypeScript 和 Rust。
+
+CodeQL 会显示在 pull request checks 中，但在跑出更长时间的稳定基线前不作为 required check。
+Dependabot 安全更新只创建 PR，不会自动合并；仍需通过 CI 并由维护者决定是否合并。
+
 ## Main ruleset
 
 `main` 应至少要求：
@@ -99,4 +111,4 @@ cargo check --locked --manifest-path scripts/react-ui/src-tauri/Cargo.toml
 
 ## 后续演进
 
-后续可以逐步加入 CodeQL、secret scanning、private vulnerability reporting、release provenance 和更严格的依赖锁定。新增门禁必须先在非阻塞状态跑出稳定基线，再加入 required status checks，避免用不稳定检查锁死 `main`。
+后续可以逐步加入 release provenance、更严格的依赖锁定，并在 CodeQL 跑出稳定基线后评估是否将其设为 required check。新增门禁必须先在非阻塞状态运行，避免用不稳定检查锁死 `main`。
