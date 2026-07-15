@@ -11,6 +11,7 @@ import {
     IconGavel, IconSparkles, IconAlertTriangle
 } from '@tabler/icons-react';
 import api from '../../utils/api';
+import { normalizeArrayPayload } from '../../utils/payload';
 
 const API_BASE_URL = '/api';
 
@@ -44,9 +45,10 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
     const fetchProjects = useCallback(async () => {
         try {
             const response = await api.get(`${API_BASE_URL}/projects`);
-            setProjects(response.data);
-            if (!selectedProject && response.data.length > 0) {
-                onSelectedProjectChange(response.data[0].project_id);
+            const projectList = normalizeArrayPayload(response.data, ['projects', 'items', 'data', 'results']);
+            setProjects(projectList);
+            if (!selectedProject && projectList.length > 0) {
+                onSelectedProjectChange(projectList[0].project_id);
             }
         } catch (error) {
             console.error("Failed to fetch projects", error);
@@ -57,8 +59,12 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
         setLoading(true);
         try {
             const response = await api.get(`${API_BASE_URL}/neologisms?project_id=${encodeURIComponent(projectId)}`);
-            setCandidates(response.data);
-            setSelectedId(response.data[0]?.id || null);
+            const candidateList = normalizeArrayPayload(
+                response.data,
+                ['candidates', 'neologisms', 'items', 'data', 'results'],
+            );
+            setCandidates(candidateList);
+            setSelectedId(candidateList[0]?.id || null);
         } catch {
             notifications.show({ title: 'Error', message: 'Failed to load candidates', color: 'red' });
         } finally {

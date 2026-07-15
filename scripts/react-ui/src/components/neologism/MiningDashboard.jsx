@@ -9,6 +9,7 @@ import {
     IconRadar2, IconCpu, IconFileText, IconSparkles, IconInfoCircle
 } from '@tabler/icons-react';
 import api from '../../utils/api';
+import { normalizeArrayPayload } from '../../utils/payload';
 
 const API_BASE_URL = '/api';
 
@@ -134,9 +135,10 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
     const fetchProjects = useCallback(async () => {
         try {
             const response = await api.get(`${API_BASE_URL}/projects`);
-            setProjects(response.data.map(p => ({ value: p.project_id, label: p.name })));
-            if (!selectedProject && response.data.length > 0) {
-                onSelectedProjectChange(response.data[0].project_id);
+            const projectList = normalizeArrayPayload(response.data, ['projects', 'items', 'data', 'results']);
+            setProjects(projectList.map(p => ({ value: p.project_id, label: p.name })));
+            if (!selectedProject && projectList.length > 0) {
+                onSelectedProjectChange(projectList[0].project_id);
             }
         } catch (error) {
             console.error("Failed to fetch projects", error);
@@ -146,7 +148,10 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
     const fetchConfig = useCallback(async () => {
         try {
             const response = await api.get(`${API_BASE_URL}/config`);
-            const configuredProviders = response.data?.api_providers || [];
+            const configuredProviders = normalizeArrayPayload(
+                response.data,
+                ['api_providers', 'providers', 'items', 'data', 'results'],
+            );
             setProviders(configuredProviders);
             if (configuredProviders.length > 0 && !configuredProviders.some((item) => item.value === apiProvider)) {
                 setApiProvider(configuredProviders[0].value);
@@ -159,7 +164,7 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
     const fetchFiles = useCallback(async (projectId) => {
         try {
             const response = await api.get(`${API_BASE_URL}/neologisms/mining-files/${encodeURIComponent(projectId)}`);
-            setFiles(response.data);
+            setFiles(normalizeArrayPayload(response.data, ['files', 'items', 'data', 'results']));
         } catch (error) {
             console.error("Failed to fetch files", error);
         }
