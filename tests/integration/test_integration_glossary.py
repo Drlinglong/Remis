@@ -10,7 +10,6 @@ from scripts import app_settings
 from scripts.workflows import initial_translate
 from scripts.core.glossary_manager import glossary_manager
 from scripts.utils import i18n
-from scripts.core.api_handler import get_handler
 from scripts.core.base_handler import BaseApiHandler
 from scripts.core.parallel_types import BatchTask
 
@@ -31,7 +30,7 @@ class SimpleMockHandler(BaseApiHandler):
         task.translated_texts = ["Translation" for _ in task.texts]
         return task
 
-def test_integration():
+def test_integration(monkeypatch):
     # 1. Setup minimal requirements for initial_translate.run
     game_profile = {
         "id": "eu5",
@@ -52,9 +51,14 @@ def test_integration():
     # Path to the EU5 demo mod
     override_path = os.path.join(os.path.abspath('.'), "source_mod", "Test_Project_Remis_EU5")
     
-    # Mock the handler factory by patching the module function
+    # Use pytest's monkeypatch so the global handler factory is restored after
+    # this test. A direct assignment leaked into every later test in the suite.
     import scripts.core.api_handler
-    scripts.core.api_handler.get_handler = lambda provider_name, model_name=None: SimpleMockHandler(provider_name)
+    monkeypatch.setattr(
+        scripts.core.api_handler,
+        "get_handler",
+        lambda provider_name, model_name=None: SimpleMockHandler(provider_name),
+    )
 
     print("\n--- STARTING INTEGRATION TEST ---\n")
     try:

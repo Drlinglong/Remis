@@ -1,7 +1,17 @@
 import os
 import concurrent.futures
+
+import pytest
+
 from scripts.app_settings import load_api_keys_to_env
 from scripts.core.gemini_handler import GeminiHandler
+
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("REMIS_RUN_LIVE_MODEL_TESTS") != "1",
+    reason="live Gemini smoke tests are opt-in",
+)
+
 
 def test_parallel_calls():
     load_api_keys_to_env()
