@@ -14,6 +14,7 @@ Run the checks relevant to your change from the repository root.
 
 ```powershell
 python -m pip install -r requirements.txt
+python -m compileall -q scripts tests
 python -m flake8 scripts tests --count --select=E9,F63,F7,F82 --show-source --statistics
 python -m pytest --tb=short
 ```
