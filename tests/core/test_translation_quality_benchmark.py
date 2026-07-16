@@ -1,3 +1,5 @@
+import json
+import sys
 from pathlib import Path
 
 from scripts.app_settings import PROJECT_ROOT
@@ -7,6 +9,7 @@ from scripts.developer_tools.evaluate_translation_quality import (
     discover_single_model,
     extract_protected_tokens,
     make_task,
+    main,
     read_fixture,
     resolve_case,
     run_repair_case,
@@ -249,3 +252,53 @@ def test_summary_separates_api_failures_from_structured_output_failures():
     assert summary["execution_failure_count"] == 1
     assert summary["structured_output_failure_count"] == 2
     assert summary["elapsed_seconds"] == 1.25
+
+
+def test_dry_run_filters_cases_without_initializing_model_or_writing_results(
+    monkeypatch, capsys, tmp_path
+):
+    fixture = load_fixture()
+    repair_case = next(
+        case
+        for case in fixture["repair_cases"]
+        if case["id"] == "stellaris_missing_color_tags"
+    )
+    output_dir = tmp_path / "benchmark-results"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "evaluate_translation_quality.py",
+            "--dry-run",
+            "--track",
+            "repair",
+            "--case",
+            "stellaris_missing_color_tags",
+            "--output-dir",
+            str(output_dir),
+        ],
+    )
+    monkeypatch.setattr(
+        "scripts.developer_tools.evaluate_translation_quality.get_handler",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("dry-run must not initialize a model handler")
+        ),
+    )
+
+    assert main() == 0
+
+    plan = json.loads(capsys.readouterr().out)
+    assert plan["case_count"] == 1
+    assert plan["cases"] == [
+        {
+            "id": repair_case["id"],
+            "track": "repair",
+            "game_id": repair_case["game_id"],
+            "direction": (
+                f"{repair_case['source_lang']} -> {repair_case['target_lang']}"
+            ),
+            "source_file": repair_case["source_file"],
+            "keys": repair_case["keys"],
+        }
+    ]
+    assert not output_dir.exists()
