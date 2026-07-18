@@ -3900,83 +3900,113 @@ img {
 
 .codex-hero {
   position: relative;
+  isolation: isolate;
+  overflow: hidden;
   background: var(--ink);
+  --codex-glow: rgba(102, 215, 194, 0.16);
 }
 
-.codex-hero__grid {
+.codex-hero__backdrop {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 35%, var(--codex-glow), transparent 25%),
+    radial-gradient(circle at 84% 24%, rgba(102, 215, 194, 0.1), transparent 24%),
+    linear-gradient(rgba(102, 215, 194, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(102, 215, 194, 0.035) 1px, transparent 1px);
+  background-size: auto, auto, 64px 64px, 64px 64px;
+  mask-image: linear-gradient(to bottom, black 0%, black 78%, transparent 100%);
+}
+
+.codex-hero__backdrop::before,
+.codex-hero__backdrop::after {
+  position: absolute;
+  width: 42vw;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--signal), transparent);
+  content: '';
+  opacity: 0.45;
+  transform: rotate(-8deg);
+}
+
+.codex-hero__backdrop::before {
+  top: 31%;
+  left: -5%;
+}
+
+.codex-hero__backdrop::after {
+  right: -4%;
+  bottom: 26%;
+  transform: rotate(9deg);
+}
+
+.codex-hero__stage {
+  position: relative;
   display: grid;
   min-width: 0;
-  min-height: 760px;
-  grid-template-columns: minmax(0, 1.05fr) minmax(410px, 0.95fr);
-  align-items: center;
-  gap: clamp(3rem, 7vw, 7rem);
-  padding-block: clamp(5rem, 9vw, 8rem);
+  min-height: clamp(760px, calc(100svh - 124px), 980px);
+  align-content: start;
+  justify-items: center;
+  gap: clamp(1.7rem, 3.2vh, 2.6rem);
+  padding-block: clamp(2.8rem, 5vh, 4.8rem);
 }
 
 .codex-hero__copy {
+  display: grid;
   min-width: 0;
+  justify-items: center;
+  text-align: center;
+}
+
+.codex-hero__copy .eyebrow {
+  color: #8da09f;
 }
 
 .codex-display {
-  max-width: 820px;
-  margin: 1.2rem 0 1.7rem;
+  margin: 0.7rem 0 0;
   color: var(--text-on-ink);
   font-family: var(--font-sans);
-  font-size: clamp(3.4rem, 6.4vw, 6.8rem);
+  font-size: clamp(3.7rem, 7.2vw, 6rem);
   font-weight: 650;
-  letter-spacing: -0.068em;
-  line-height: 0.94;
+  letter-spacing: -0.075em;
+  line-height: 0.92;
 }
 
 .codex-lead {
-  margin: 0 0 0.8rem;
+  margin: 0.9rem 0 0;
   color: var(--signal);
-  font-family: var(--font-mono);
-  font-size: clamp(0.82rem, 1.4vw, 1rem);
-  letter-spacing: 0.035em;
+  font-size: clamp(1.05rem, 2vw, 1.55rem);
+  font-weight: 650;
+  letter-spacing: 0.025em;
+}
+
+.codex-contract {
+  margin: 1.15rem 0 0;
+  color: #edf5f4;
+  font-size: clamp(1rem, 1.55vw, 1.22rem);
+  font-weight: 550;
 }
 
 .codex-body {
-  max-width: 680px;
-  margin: 0;
-  color: var(--text-muted-dark);
-  font-size: 1rem;
-  line-height: 1.8;
-}
-
-.agent-chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem;
-  margin-top: 2.4rem;
-}
-
-.agent-chips > span {
-  width: 100%;
-  color: #718083;
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.agent-chips b {
-  padding: 0.38rem 0.7rem;
-  border: 1px solid var(--line-dark);
-  color: #c9d2d3;
-  font-family: var(--font-mono);
-  font-size: 0.67rem;
-  font-weight: 400;
+  max-width: 780px;
+  margin: 0.7rem 0 0;
+  color: #9cacab;
+  font-size: 0.91rem;
+  line-height: 1.65;
 }
 
 .install-console {
   position: relative;
+  display: grid;
+  width: min(100%, 940px);
   min-width: 0;
-  padding: 1.2rem;
-  background: #10191d;
-  border: 1px solid #355056;
-  box-shadow: 18px 18px 0 rgba(102, 215, 194, 0.08);
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 0.34fr);
+  padding: 1rem;
+  background: rgba(16, 25, 29, 0.9);
+  border: 1px solid #3e595d;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
 }
 
 .install-console::before {
@@ -3991,9 +4021,10 @@ img {
 
 .install-console__head {
   display: flex;
+  grid-column: 1 / -1;
   justify-content: space-between;
   gap: 1rem;
-  padding-bottom: 0.9rem;
+  padding: 0 0.2rem 0.85rem;
   border-bottom: 1px solid var(--line-dark);
   color: var(--signal);
   font-family: var(--font-mono);
@@ -4006,33 +4037,32 @@ img {
   font-style: normal;
 }
 
-.install-console > p {
-  margin: 1.2rem 0 0.8rem;
-  color: #d9e1e1;
-  font-size: 1rem;
-  font-weight: 650;
+.install-console__instruction {
+  grid-row: span 2;
+  padding: 1.1rem 1.25rem 0.2rem 0.2rem;
 }
 
-.install-console pre {
-  max-height: 330px;
+.install-console__instruction p {
+  margin: 0 0 0.75rem;
+  color: #d9e1e1;
+  font-size: 0.94rem;
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+.install-console__instruction code {
+  display: block;
   margin: 0;
-  padding: 1rem;
-  overflow: auto;
-  background: #080d0f;
-  border: 1px solid rgba(102, 215, 194, 0.18);
-  color: #b9c7c8;
+  color: #819290;
   font-family: var(--font-mono);
-  font-size: 0.69rem;
-  line-height: 1.65;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  font-size: 0.7rem;
+  line-height: 1.6;
 }
 
 .install-console > button {
   display: flex;
   width: 100%;
-  min-height: 58px;
+  min-height: 62px;
   margin-top: 1rem;
   padding: 0 1.1rem;
   align-items: center;
@@ -4052,13 +4082,72 @@ img {
 
 .install-console > button.copy-only {
   min-height: auto;
-  margin-top: 0.7rem;
+  margin-top: 0.35rem;
   padding: 0.55rem;
   justify-content: center;
   background: transparent;
   border-color: transparent;
   color: #849295;
   font-size: 0.67rem;
+}
+
+.agent-rail {
+  display: grid;
+  justify-items: center;
+  align-self: end;
+  gap: 0.75rem;
+}
+
+.agent-rail > p {
+  margin: 0;
+  color: #dfe8e7;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.agent-rail__tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+.agent-rail__tools > span {
+  display: flex;
+  min-height: 48px;
+  padding: 0 1rem;
+  align-items: center;
+  gap: 0.62rem;
+  background: rgba(15, 23, 27, 0.72);
+  border: 1px solid #35474a;
+  color: #cbd6d5;
+}
+
+.agent-rail__tools > span.is-featured {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: var(--ink);
+}
+
+.agent-rail__tools i {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-style: normal;
+}
+
+.agent-rail__tools b {
+  font-size: 0.76rem;
+  font-weight: 550;
+}
+
+.agent-rail > small {
+  max-width: 680px;
+  color: #667674;
+  font-size: 0.67rem;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .codex-section {
@@ -4184,6 +4273,50 @@ img {
   background: #102226;
 }
 
+.control-surfaces {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  margin-bottom: 2.4rem;
+}
+
+.control-surfaces article {
+  min-height: 210px;
+  padding: 1.5rem;
+  background: rgba(7, 16, 19, 0.3);
+  border: 1px solid var(--line-dark);
+}
+
+.control-surfaces > i {
+  display: grid;
+  width: 70px;
+  place-items: center;
+  color: var(--signal);
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-style: normal;
+}
+
+.control-surfaces article > span {
+  color: var(--signal);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+}
+
+.control-surfaces h3 {
+  margin: 2.4rem 0 0.75rem;
+  font-size: 1.3rem;
+}
+
+.control-surfaces p {
+  max-width: 520px;
+  margin: 0;
+  color: var(--text-muted-dark);
+  font-size: 0.84rem;
+  line-height: 1.7;
+}
+
 .control-plane {
   border-top: 1px solid var(--line-dark);
 }
@@ -4306,17 +4439,8 @@ img {
 }
 
 @media (max-width: 1080px) {
-  .codex-hero__grid,
   .developer-callout {
     grid-template-columns: 1fr;
-  }
-
-  .codex-hero__grid {
-    min-height: auto;
-  }
-
-  .install-console {
-    width: min(100%, 760px);
   }
 
   .capability-map {
@@ -4339,6 +4463,19 @@ img {
     font-size: clamp(3.1rem, 15vw, 5rem);
   }
 
+  .codex-hero__stage {
+    min-height: auto;
+  }
+
+  .install-console {
+    grid-template-columns: 1fr;
+  }
+
+  .install-console__instruction {
+    grid-row: auto;
+    padding-right: 0.2rem;
+  }
+
   .conversation-grid,
   .capability-map,
   .safety-cards,
@@ -4350,6 +4487,15 @@ img {
   .capability-map article,
   .safety-cards article {
     min-height: auto;
+  }
+
+  .control-surfaces {
+    grid-template-columns: 1fr;
+  }
+
+  .control-surfaces > i {
+    width: 100%;
+    height: 52px;
   }
 
   .control-plane > div {
@@ -4376,18 +4522,40 @@ img {
   }
 
   .codex-display {
-    font-size: clamp(2.8rem, 13.5vw, 3.2rem);
+    font-size: clamp(2.65rem, 13vw, 3.35rem);
     overflow-wrap: anywhere;
     word-break: break-word;
   }
 
+  .codex-hero__stage {
+    gap: 1.6rem;
+    padding-block: 2.7rem;
+  }
+
+  .codex-lead {
+    font-size: 0.95rem;
+  }
+
+  .codex-contract {
+    font-size: 0.92rem;
+  }
+
+  .codex-body {
+    font-size: 0.8rem;
+  }
+
   .install-console {
     padding: 0.75rem;
-    box-shadow: 8px 8px 0 rgba(102, 215, 194, 0.08);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
   }
 
   .install-console__head {
     display: grid;
+  }
+
+  .agent-rail__tools > span {
+    min-height: 44px;
+    padding-inline: 0.75rem;
   }
 
   .conversation-card > div {

@@ -7,22 +7,31 @@ import { copyText, installPrompt } from './codexPrompt'
 
 const copy = {
   en: {
-    eyebrow: 'REMIS FOR CODEX · LOCAL-FIRST AGENT OPERATIONS',
-    title: 'Turn Codex into a production game-localization operator.',
-    lead: 'Translate mods · preserve game syntax · validate every output',
-    body: 'Remis combines AI translation, terminology control, format validation, repair workflows, persistence, and human review in one local application. Codex gives you a natural-language way to operate it.',
-    install: 'Install once. Localize with any AI agent.',
-    promptLabel: 'COPY THIS TO CODEX',
+    eyebrow: 'REMIS AGENT HUB · CODEX EDITION',
+    title: 'Remis for Codex',
+    lead: 'Install · diagnose · orchestrate',
+    contract: 'Codex handles the workspace. Remis validates and delivers.',
+    body: 'Not a second in-app assistant. This is the control surface that can reach Remis before launch, across tools, and between long-running jobs.',
+    install: 'Copy one instruction. Codex installs Remis, completes first-run provider setup, and connects this workspace.',
+    promptLabel: 'SEND ONE INSTRUCTION TO CODEX',
+    promptPreview: 'Install Remis, complete first-run provider setup, and connect this workspace.',
     copyButton: 'Copy and open Codex',
-    copied: 'Prompt copied. Opening Codex…',
-    copyOnly: 'Copy prompt',
-    agents: 'Works as an operator guide for',
-    capabilityEyebrow: 'CODEX CAN MAKE REMIS DO',
-    capabilityTitle: 'A complete workflow, explained as real conversations.',
+    copied: 'Copied. Opening Codex…',
+    copyOnly: 'Copy without opening',
+    agents: 'SUPPORTED AI TOOLS',
+    agentNote: 'Codex is the featured Build Week path. The same local contract stays open to other capable Agents.',
+    capabilityEyebrow: 'WHY AN EXTERNAL AGENT?',
+    capabilityTitle: 'Useful where an in-app assistant cannot reach.',
     mapEyebrow: 'CAPABILITY MAP',
     mapTitle: 'The cards are product capabilities. The Skill is the connector.',
     architectureEyebrow: 'EXECUTION ARCHITECTURE',
-    architectureTitle: 'Natural-language planning above a deterministic workflow.',
+    architectureTitle: 'Two control surfaces. One reliable execution plane.',
+    insideLabel: 'INSIDE REMIS',
+    insideTitle: 'Embedded Remis Assistant',
+    insideBody: 'Explains the current page, answers product questions, and guides the next in-app action.',
+    outsideLabel: 'ACROSS THE WORKSPACE',
+    outsideTitle: 'Codex and external Agents',
+    outsideBody: 'Installs, updates, diagnoses, coordinates files and tools, and reconnects to durable Remis jobs.',
     safetyEyebrow: 'DESIGNED FOR STRONG AGENTS',
     safetyTitle: 'Powerful automation needs visible boundaries.',
     developerEyebrow: 'BUILD ON THE SAME CONTRACT',
@@ -35,22 +44,31 @@ const copy = {
     api: 'Inspect local OpenAPI',
   },
   zh: {
-    eyebrow: 'REMIS FOR CODEX · 本地优先的 AGENT 操作层',
-    title: '把 Codex 变成真正能交付的游戏汉化操作员。',
-    lead: '汉化 Mod · 保留游戏语法 · 校验每一份输出',
-    body: 'Remis 把 AI 翻译、术语控制、格式校验、修复工作流、持久状态和人工复核放进同一个本地程序。Codex 则让你用自然语言操作这套完整能力。',
-    install: '安装一次，就能让任何 AI Agent 操作 Remis。',
-    promptLabel: '把这段话复制给 CODEX',
+    eyebrow: 'REMIS AGENT HUB · CODEX EDITION',
+    title: 'Remis for Codex',
+    lead: '安装 · 诊断 · 编排',
+    contract: 'Codex 负责工作区与工具链，Remis 负责校验与交付。',
+    body: '它不是第二个内置助手，而是能在启动 Remis 之前、跨越多个工具、以及长任务之间持续工作的外部控制入口。',
+    install: '复制一句话。Codex 会安装 Remis、完成首次 Provider 配置，并连接当前工作区。',
+    promptLabel: '把一句指令发送给 CODEX',
+    promptPreview: '安装 Remis，完成首次 Provider 配置，并连接当前工作区。',
     copyButton: '复制并打开 Codex',
     copied: '已复制，正在打开 Codex…',
-    copyOnly: '只复制提示词',
-    agents: '可作为以下 Agent 的操作说明',
-    capabilityEyebrow: 'CODEX 能让 REMIS 做什么',
-    capabilityTitle: '用真实对话理解完整工作流。',
+    copyOnly: '仅复制，不打开',
+    agents: '支持以下 AI 工具',
+    agentNote: 'Codex 是 Build Week 的主入口；同一套本机合同也向其他可靠 Agent 开放。',
+    capabilityEyebrow: '为什么还需要外部 AGENT？',
+    capabilityTitle: '它能到达内置助手够不到的地方。',
     mapEyebrow: '能力地图',
     mapTitle: '卡片代表 Remis 的产品能力，Skill 只是连接器。',
     architectureEyebrow: '执行架构',
-    architectureTitle: '自然语言负责计划，确定性工作流负责交付。',
+    architectureTitle: '两个控制入口，共用一个可靠执行层。',
+    insideLabel: 'REMIS 内部',
+    insideTitle: '内置 Remis 小助手',
+    insideBody: '理解当前页面、回答产品问题，并引导用户完成下一步应用内操作。',
+    outsideLabel: '跨越整个工作区',
+    outsideTitle: 'Codex 与外部 Agent',
+    outsideBody: '负责安装、更新、故障诊断、文件与工具协调，并重新连接可恢复的 Remis 长任务。',
     safetyEyebrow: '为强大的 AGENT 而设计',
     safetyTitle: '自动化越强，边界越要清楚。',
     developerEyebrow: '基于同一套合同继续构建',
@@ -67,46 +85,46 @@ const copy = {
 const conversations = {
   en: [
     {
-      tag: '01 · INSTALL',
-      user: 'Install Remis and check whether it is ready.',
-      agent: 'Remis is running locally. API health: OK. A newer official Release was checked. No provider key is configured yet—open Remis API Settings first. I can explain what an API key is. Never paste it here.',
+      tag: '01 · INSTALL & UPDATE',
+      user: 'Set up Remis in this workspace and make sure I can actually translate.',
+      agent: 'The latest stable Remis is installed and healthy. Translation still needs a model provider. I opened API Settings so you can enter the key inside Remis. If “API key” is unfamiliar, I can explain it first.',
     },
     {
-      tag: '02 · LOCALIZE',
-      user: 'Translate this Victoria 3 mod to Simplified Chinese. Use the glossary and preserve every variable.',
-      agent: 'Detected 24 localization files and 3,842 entries. A translation plan is ready. It may use paid model credits—approve before I start?',
+      tag: '02 · DIAGNOSE',
+      user: 'Remis stopped halfway through yesterday. Find out what happened.',
+      agent: 'The desktop app is closed, but the durable job record remains. I found a provider timeout after file 16 of 24. I can verify the connection, restart Remis, and resume from the saved checkpoint.',
     },
     {
-      tag: '03 · REPAIR',
-      user: 'Check failed entries and repair anything safe to fix.',
-      agent: '12 entries failed validation. 9 are safe repair candidates. 3 remain for human review because the source is ambiguous. Approve model-backed repair?',
+      tag: '03 · ORCHESTRATE',
+      user: 'Only localize the files changed in this branch, then prepare them for review.',
+      agent: 'Git reports 6 changed localization files. I matched them to the Remis project, prepared an incremental plan, and will return the validated diff here. Paid model work still waits for your approval.',
     },
     {
-      tag: '04 · EXPORT',
-      user: 'Validate everything and prepare the final mod.',
-      agent: 'Errors: 0 · Warnings: 3 · Untranslated: 0 · Variables: passed. Export would overwrite an existing folder. Approve this exact target?',
+      tag: '04 · VALIDATE & SHIP',
+      user: 'Finish the release candidate and tell me what still needs a human.',
+      agent: 'Remis validation passed with 0 errors and 3 wording warnings. I can prepare the installable package, update the release notes, and show the exact overwrite target before asking for approval.',
     },
   ],
   zh: [
     {
-      tag: '01 · 安装',
-      user: '安装 Remis，检查它是否已经可以使用。',
-      agent: 'Remis 已在本机运行，API 健康检查正常，并已检查官方最新 Release。目前还没有配置 Provider 密钥，请先打开 Remis API 设置。如果你不清楚什么是 API key，我可以解释；不要把密钥贴进对话。',
+      tag: '01 · 安装与更新',
+      user: '在这个工作区配置好 Remis，确保我真的可以开始翻译。',
+      agent: '最新版稳定版 Remis 已安装并通过健康检查。翻译仍需要模型 Provider；我已打开 API 设置，请把密钥直接填在 Remis 里。如果你不清楚什么是 API key，我可以先解释。',
     },
     {
-      tag: '02 · 汉化',
-      user: '把这个 Victoria 3 Mod 汉化成简体中文，使用已有术语库，并保留所有变量。',
-      agent: '检测到 24 个本地化文件、3,842 个条目。翻译计划已准备好，可能产生模型费用。是否批准开始？',
+      tag: '02 · 故障诊断',
+      user: 'Remis 昨天跑到一半停了，帮我查清楚发生了什么。',
+      agent: '桌面应用已经关闭，但持久任务记录还在。第 16/24 个文件后出现 Provider 超时。我可以检查连接、重启 Remis，并从保存点继续。',
     },
     {
-      tag: '03 · 修复',
-      user: '检查失败条目，把能安全修复的内容修好。',
-      agent: '12 个条目未通过校验，其中 9 个可以安全尝试修复；3 个因原文有歧义而保留给人工复核。是否批准模型修复？',
+      tag: '03 · 跨工具编排',
+      user: '只汉化这个分支里改过的文件，然后准备好让我审阅。',
+      agent: 'Git 显示 6 个本地化文件发生变化。我已把它们关联到 Remis 项目并生成增量计划，完成后会把校验过的 diff 带回这里。付费模型调用仍需你批准。',
     },
     {
-      tag: '04 · 导出',
-      user: '完成校验并准备最终 Mod。',
-      agent: '错误：0 · 警告：3 · 未翻译：0 · 变量校验：通过。导出会覆盖已有目录，是否批准这个确切目标？',
+      tag: '04 · 校验与交付',
+      user: '完成这个发布候选，并告诉我还有哪些内容必须人工处理。',
+      agent: 'Remis 校验为 0 个错误、3 个措辞警告。我可以准备可安装包、更新发布说明，并在请求批准前展示确切覆盖目标。',
     },
   ],
 }
@@ -127,11 +145,17 @@ const capabilityGroups = {
 }
 
 const architecture = [
-  ['Codex', 'Natural-language planning and interaction', '自然语言计划与交互'],
-  ['Remis Skill', 'Operational rules, safety boundaries, and API guidance', '操作规则、安全边界与 API 指南'],
+  ['Shared Agent Contract', 'Capabilities, operational rules, and safety boundaries', '能力发现、操作规则与安全边界'],
   ['Remis Local API', 'Stable structured interface', '稳定的结构化接口'],
   ['Remis Workflow Engine', 'Translation · validation · repair · persistence · review', '翻译 · 校验 · 修复 · 持久状态 · 复核'],
   ['Localized Mod', 'Installable, validated output', '可安装、已校验的输出'],
+]
+
+const agentTools = [
+  ['Codex', '⌁'],
+  ['Claude Code', '✦'],
+  ['OpenClaw', '◌'],
+  ['Cursor', '‹›'],
 ]
 
 const safety = {
@@ -185,25 +209,25 @@ export function CodexPage() {
       </div>
 
       <section className="codex-hero">
-        <div className="container codex-hero__grid">
-          <div className="codex-hero__copy">
+        <div className="codex-hero__backdrop" aria-hidden="true" />
+        <div className="container codex-hero__stage">
+          <header className="codex-hero__copy">
             <p className="eyebrow">{text.eyebrow}</p>
-            <MeasuredText as="h1" className="codex-display">{text.title}</MeasuredText>
+            <h1 className="codex-display">{text.title}</h1>
             <p className="codex-lead">{text.lead}</p>
+            <p className="codex-contract">{text.contract}</p>
             <p className="codex-body">{text.body}</p>
-            <div className="agent-chips" aria-label={text.agents}>
-              <span>{text.agents}</span>
-              <b>Codex</b><b>Claude Code</b><b>OpenClaw</b>
-            </div>
-          </div>
+          </header>
 
           <div className="install-console">
             <div className="install-console__head">
               <span>{text.promptLabel}</span>
-              <i>localhost:1453</i>
+              <i>01 / 01</i>
             </div>
-            <p>{text.install}</p>
-            <pre><code>{installPrompt}</code></pre>
+            <div className="install-console__instruction">
+              <p>{text.install}</p>
+              <code>{text.promptPreview}</code>
+            </div>
             <button type="button" onClick={() => handleCopy(true)}>
               {copyState === 'copied' ? text.copied : text.copyButton}
               <span aria-hidden="true">↗</span>
@@ -211,6 +235,23 @@ export function CodexPage() {
             <button className="copy-only" type="button" onClick={() => handleCopy(false)}>
               {copyState === 'error' ? 'Clipboard unavailable' : text.copyOnly}
             </button>
+          </div>
+
+          <div className="agent-rail" aria-label={text.agents}>
+            <p>{text.agents}</p>
+            <div className="agent-rail__tools">
+              {agentTools.map(([name, mark], index) => (
+                <span className={index === 0 ? 'is-featured' : ''} key={name}>
+                  <i aria-hidden="true">{mark}</i>
+                  <b>{name}</b>
+                </span>
+              ))}
+              <span className="agent-rail__more">
+                <i aria-hidden="true">＋</i>
+                <b>{language === 'zh' ? '更多 Agent' : 'More agents'}</b>
+              </span>
+            </div>
+            <small>{text.agentNote}</small>
           </div>
         </div>
       </section>
@@ -251,6 +292,19 @@ export function CodexPage() {
         <div className="container">
           <p className="eyebrow">{text.architectureEyebrow}</p>
           <MeasuredText as="h2" className="codex-section-title">{text.architectureTitle}</MeasuredText>
+          <div className="control-surfaces">
+            <article>
+              <span>{text.insideLabel}</span>
+              <h3>{text.insideTitle}</h3>
+              <p>{text.insideBody}</p>
+            </article>
+            <i aria-hidden="true">＋</i>
+            <article>
+              <span>{text.outsideLabel}</span>
+              <h3>{text.outsideTitle}</h3>
+              <p>{text.outsideBody}</p>
+            </article>
+          </div>
           <div className="control-plane">
             {architecture.map(([name, english, chinese], index) => (
               <div key={name}>
