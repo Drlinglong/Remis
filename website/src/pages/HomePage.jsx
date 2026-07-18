@@ -76,10 +76,6 @@ export function HomePage() {
       <section className="hero hero--home">
         <div className="container hero-grid">
           <div className="hero-copy">
-            <div className="runtime-status" role="status">
-              <span aria-hidden="true"></span>
-              {t('OPEN SOURCE · WINDOWS DESKTOP · CLOUD OR LOCAL MODELS')}
-            </div>
             <MeasuredText className="display-heading display-heading--product">
               {t('The operating system for AI localization.')}
             </MeasuredText>
