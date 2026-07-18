@@ -75,26 +75,9 @@ Remis treats localization as a stateful AI engineering problem, not a single mod
 
 ### System architecture
 
-```mermaid
-flowchart LR
-    A["Paradox mod files"] --> B["Parser + project state"]
-    T["Glossaries<br/>translation memory<br/>review history"] --> C["Context engine"]
-    B --> C
-
-    K["Copilot + PydanticAI planner"] --> R["Allowlisted read tools"]
-    R --> K
-    K --> G["Human approval gate"]
-    G --> W["Remis domain workflows"]
-    W --> C
-
-    D["Micro-RAG knowledge layer<br/>versioned user corpus"] -. "retrieval adapter" .-> C
-    C --> P["Provider orchestration<br/>cloud or local models"]
-    P --> S["Typed model output"]
-    S --> V["Deterministic validators"]
-    V -->|"pass"| H["Human review + deploy"]
-    V -->|"diagnostics"| F["Bounded repair agent"]
-    F --> V
-```
+<p align="center">
+  <img src="gfx/remis-ai-system-architecture.png" width="100%" alt="Remis AI system architecture: approval-gated Copilot, local project state, Micro-RAG knowledge layer, provider orchestration, typed model output, deterministic validation, bounded repair, human review, deployment, evaluation, and observability">
+</p>
 
 The trust boundary is deliberate: models may propose, translate, classify, and repair, but Remis owns file access, argument validation, workflow execution, and every write.
 
