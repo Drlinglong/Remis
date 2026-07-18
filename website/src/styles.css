@@ -3871,33 +3871,6 @@ img {
 
 /* Remis for Codex ------------------------------------------------------- */
 
-.codex-subnav {
-  background: #0f171b;
-  border-bottom: 1px solid var(--line-dark);
-}
-
-.codex-subnav .container {
-  display: flex;
-  min-height: 48px;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 1.6rem;
-}
-
-.codex-subnav a {
-  color: #8f9b9e;
-  font-family: var(--font-mono);
-  font-size: 0.69rem;
-  letter-spacing: 0.06em;
-  text-decoration: none;
-  text-transform: uppercase;
-}
-
-.codex-subnav a:hover,
-.codex-subnav a.is-active {
-  color: var(--signal);
-}
-
 .codex-hero {
   position: relative;
   isolation: isolate;
@@ -3945,7 +3918,7 @@ img {
   position: relative;
   display: grid;
   min-width: 0;
-  min-height: clamp(760px, calc(100svh - 124px), 980px);
+  min-height: clamp(760px, calc(100svh - 76px), 980px);
   align-content: start;
   justify-items: center;
   gap: clamp(1.7rem, 3.2vh, 2.6rem);
@@ -3959,12 +3932,8 @@ img {
   text-align: center;
 }
 
-.codex-hero__copy .eyebrow {
-  color: #8da09f;
-}
-
 .codex-display {
-  margin: 0.7rem 0 0;
+  margin: 0;
   color: var(--text-on-ink);
   font-family: var(--font-sans);
   font-size: clamp(3.7rem, 7.2vw, 6rem);
@@ -3976,24 +3945,18 @@ img {
 .codex-lead {
   margin: 0.9rem 0 0;
   color: var(--signal);
-  font-size: clamp(1.05rem, 2vw, 1.55rem);
+  font-size: clamp(1.35rem, 2.2vw, 1.75rem);
   font-weight: 650;
   letter-spacing: 0.025em;
 }
 
 .codex-contract {
+  max-width: 880px;
   margin: 1.15rem 0 0;
   color: #edf5f4;
-  font-size: clamp(1rem, 1.55vw, 1.22rem);
+  font-size: clamp(1.14rem, 1.65vw, 1.35rem);
   font-weight: 550;
-}
-
-.codex-body {
-  max-width: 780px;
-  margin: 0.7rem 0 0;
-  color: #9cacab;
-  font-size: 0.91rem;
-  line-height: 1.65;
+  line-height: 1.55;
 }
 
 .install-console {
@@ -4028,12 +3991,22 @@ img {
   border-bottom: 1px solid var(--line-dark);
   color: var(--signal);
   font-family: var(--font-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.install-console__head span {
+  color: #e9f4f2;
+  font-family: var(--font-sans);
+  font-size: clamp(1.05rem, 1.5vw, 1.28rem);
+  font-weight: 700;
+  letter-spacing: 0.015em;
 }
 
 .install-console__head i {
   color: #68777a;
+  font-size: 0.7rem;
   font-style: normal;
 }
 
@@ -4042,21 +4015,19 @@ img {
   padding: 1.1rem 1.25rem 0.2rem 0.2rem;
 }
 
-.install-console__instruction p {
-  margin: 0 0 0.75rem;
-  color: #d9e1e1;
-  font-size: 0.94rem;
-  font-weight: 650;
-  line-height: 1.55;
+.install-console__instruction pre {
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 .install-console__instruction code {
   display: block;
   margin: 0;
-  color: #819290;
+  color: #c9d5d3;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  line-height: 1.6;
+  font-size: 0.94rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
 }
 
 .install-console > button {
@@ -4071,24 +4042,13 @@ img {
   border: 1px solid var(--signal);
   color: var(--ink);
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   font-weight: 650;
   cursor: pointer;
 }
 
 .install-console > button:hover {
   background: #8ae6d5;
-}
-
-.install-console > button.copy-only {
-  min-height: auto;
-  margin-top: 0.35rem;
-  padding: 0.55rem;
-  justify-content: center;
-  background: transparent;
-  border-color: transparent;
-  color: #849295;
-  font-size: 0.67rem;
 }
 
 .agent-rail {
@@ -4102,7 +4062,8 @@ img {
   margin: 0;
   color: #dfe8e7;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 1rem;
+  font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -4116,8 +4077,8 @@ img {
 
 .agent-rail__tools > span {
   display: flex;
-  min-height: 48px;
-  padding: 0 1rem;
+  min-height: 56px;
+  padding: 0 1.05rem;
   align-items: center;
   gap: 0.62rem;
   background: rgba(15, 23, 27, 0.72);
@@ -4131,22 +4092,23 @@ img {
   color: var(--ink);
 }
 
-.agent-rail__tools i {
-  font-family: var(--font-mono);
-  font-size: 1rem;
-  font-style: normal;
+.agent-rail__tools img {
+  width: 25px;
+  height: 25px;
+  flex: 0 0 25px;
+  object-fit: contain;
 }
 
 .agent-rail__tools b {
-  font-size: 0.76rem;
-  font-weight: 550;
+  font-size: 0.9rem;
+  font-weight: 650;
 }
 
 .agent-rail > small {
-  max-width: 680px;
-  color: #667674;
-  font-size: 0.67rem;
-  line-height: 1.5;
+  max-width: 760px;
+  color: #899896;
+  font-size: 0.9rem;
+  line-height: 1.55;
   text-align: center;
 }
 
@@ -4271,50 +4233,6 @@ img {
 
 .codex-architecture {
   background: #102226;
-}
-
-.control-surfaces {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: stretch;
-  margin-bottom: 2.4rem;
-}
-
-.control-surfaces article {
-  min-height: 210px;
-  padding: 1.5rem;
-  background: rgba(7, 16, 19, 0.3);
-  border: 1px solid var(--line-dark);
-}
-
-.control-surfaces > i {
-  display: grid;
-  width: 70px;
-  place-items: center;
-  color: var(--signal);
-  font-family: var(--font-mono);
-  font-size: 1.5rem;
-  font-style: normal;
-}
-
-.control-surfaces article > span {
-  color: var(--signal);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-}
-
-.control-surfaces h3 {
-  margin: 2.4rem 0 0.75rem;
-  font-size: 1.3rem;
-}
-
-.control-surfaces p {
-  max-width: 520px;
-  margin: 0;
-  color: var(--text-muted-dark);
-  font-size: 0.84rem;
-  line-height: 1.7;
 }
 
 .control-plane {
@@ -4449,16 +4367,6 @@ img {
 }
 
 @media (max-width: 760px) {
-  .codex-subnav .container {
-    justify-content: flex-start;
-    gap: 1rem;
-    overflow-x: auto;
-  }
-
-  .codex-subnav a {
-    white-space: nowrap;
-  }
-
   .codex-display {
     font-size: clamp(3.1rem, 15vw, 5rem);
   }
@@ -4487,15 +4395,6 @@ img {
   .capability-map article,
   .safety-cards article {
     min-height: auto;
-  }
-
-  .control-surfaces {
-    grid-template-columns: 1fr;
-  }
-
-  .control-surfaces > i {
-    width: 100%;
-    height: 52px;
   }
 
   .control-plane > div {

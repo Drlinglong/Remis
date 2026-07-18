@@ -7,75 +7,47 @@ import { copyText, installPrompt } from './codexPrompt'
 
 const copy = {
   en: {
-    eyebrow: 'REMIS AGENT HUB · CODEX EDITION',
     title: 'Remis for Codex',
     lead: 'Install · diagnose · orchestrate',
-    contract: 'Codex handles the workspace. Remis validates and delivers.',
-    body: 'Not a second in-app assistant. This is the control surface that can reach Remis before launch, across tools, and between long-running jobs.',
-    install: 'Copy one instruction. Codex installs Remis, completes first-run provider setup, and connects this workspace.',
-    promptLabel: 'SEND ONE INSTRUCTION TO CODEX',
-    promptPreview: 'Install Remis, complete first-run provider setup, and connect this workspace.',
-    copyButton: 'Copy and open Codex',
-    copied: 'Copied. Opening Codex…',
-    copyOnly: 'Copy without opening',
+    contract: 'Talk to your Agent naturally. Let it operate Remis and complete the localization workflow for you.',
+    promptLabel: 'COPY THIS PROMPT TO ANY AI ASSISTANT TO GET STARTED',
+    copyButton: 'Copy prompt',
+    copied: 'Prompt copied',
     agents: 'SUPPORTED AI TOOLS',
-    agentNote: 'Codex is the featured Build Week path. The same local contract stays open to other capable Agents.',
+    agentNote: 'The same prompt and local contract work with the AI assistant you choose.',
     capabilityEyebrow: 'WHY AN EXTERNAL AGENT?',
-    capabilityTitle: 'Useful where an in-app assistant cannot reach.',
+    capabilityTitle: 'One conversation coordinates the work from setup to delivery.',
     mapEyebrow: 'CAPABILITY MAP',
     mapTitle: 'The cards are product capabilities. The Skill is the connector.',
     architectureEyebrow: 'EXECUTION ARCHITECTURE',
-    architectureTitle: 'Two control surfaces. One reliable execution plane.',
-    insideLabel: 'INSIDE REMIS',
-    insideTitle: 'Embedded Remis Assistant',
-    insideBody: 'Explains the current page, answers product questions, and guides the next in-app action.',
-    outsideLabel: 'ACROSS THE WORKSPACE',
-    outsideTitle: 'Codex and external Agents',
-    outsideBody: 'Installs, updates, diagnoses, coordinates files and tools, and reconnects to durable Remis jobs.',
+    architectureTitle: 'Natural-language control above a reliable execution plane.',
     safetyEyebrow: 'DESIGNED FOR STRONG AGENTS',
     safetyTitle: 'Powerful automation needs visible boundaries.',
     developerEyebrow: 'BUILD ON THE SAME CONTRACT',
     developerTitle: 'One local API for Codex, other Agents, and developers.',
-    download: 'Download Remis',
-    use: 'Use with Codex',
-    developers: 'Developers',
     skill: 'Read the Agent Skill',
     quickstart: 'Open API quickstart',
     api: 'Inspect local OpenAPI',
   },
   zh: {
-    eyebrow: 'REMIS AGENT HUB · CODEX EDITION',
     title: 'Remis for Codex',
     lead: '安装 · 诊断 · 编排',
-    contract: 'Codex 负责工作区与工具链，Remis 负责校验与交付。',
-    body: '它不是第二个内置助手，而是能在启动 Remis 之前、跨越多个工具、以及长任务之间持续工作的外部控制入口。',
-    install: '复制一句话。Codex 会安装 Remis、完成首次 Provider 配置，并连接当前工作区。',
-    promptLabel: '把一句指令发送给 CODEX',
-    promptPreview: '安装 Remis，完成首次 Provider 配置，并连接当前工作区。',
-    copyButton: '复制并打开 Codex',
-    copied: '已复制，正在打开 Codex…',
-    copyOnly: '仅复制，不打开',
+    contract: '用自然语言和 Agent 轻松交流，让它操作 Remis，帮你完成整个本地化流程。',
+    promptLabel: '复制 Prompt 并发送给任何 AI 助手，即可开始使用',
+    copyButton: '复制 Prompt',
+    copied: 'Prompt 已复制',
     agents: '支持以下 AI 工具',
-    agentNote: 'Codex 是 Build Week 的主入口；同一套本机合同也向其他可靠 Agent 开放。',
+    agentNote: '同一个 Prompt 与本机合同，可以交给你选择的 AI 助手使用。',
     capabilityEyebrow: '为什么还需要外部 AGENT？',
-    capabilityTitle: '它能到达内置助手够不到的地方。',
+    capabilityTitle: '从安装到交付，用一段对话协调整个流程。',
     mapEyebrow: '能力地图',
     mapTitle: '卡片代表 Remis 的产品能力，Skill 只是连接器。',
     architectureEyebrow: '执行架构',
-    architectureTitle: '两个控制入口，共用一个可靠执行层。',
-    insideLabel: 'REMIS 内部',
-    insideTitle: '内置 Remis 小助手',
-    insideBody: '理解当前页面、回答产品问题，并引导用户完成下一步应用内操作。',
-    outsideLabel: '跨越整个工作区',
-    outsideTitle: 'Codex 与外部 Agent',
-    outsideBody: '负责安装、更新、故障诊断、文件与工具协调，并重新连接可恢复的 Remis 长任务。',
+    architectureTitle: '自然语言负责控制，可靠执行层负责交付。',
     safetyEyebrow: '为强大的 AGENT 而设计',
     safetyTitle: '自动化越强，边界越要清楚。',
     developerEyebrow: '基于同一套合同继续构建',
     developerTitle: 'Codex、其他 Agent 和开发者共用一个本机 API。',
-    download: '下载 Remis',
-    use: '与 Codex 一起使用',
-    developers: '开发者',
     skill: '查看 Agent Skill',
     quickstart: '打开 API 快速开始',
     api: '查看本机 OpenAPI',
@@ -152,10 +124,12 @@ const architecture = [
 ]
 
 const agentTools = [
-  ['Codex', '⌁'],
-  ['Claude Code', '✦'],
-  ['OpenClaw', '◌'],
-  ['Cursor', '‹›'],
+  ['Codex', sitePath('assets/vendors/openai.png')],
+  ['Claude Code', sitePath('assets/vendors/anthropic.svg')],
+  ['OpenClaw', sitePath('assets/vendors/openclaw.svg')],
+  ['Cursor', sitePath('assets/vendors/cursor.svg')],
+  ['Hermes', sitePath('assets/vendors/hermes-agent.png')],
+  ['Antigravity', sitePath('assets/vendors/google.png')],
 ]
 
 const safety = {
@@ -185,13 +159,9 @@ export function CodexPage() {
   const text = copy[language]
   const [copyState, setCopyState] = useState('idle')
 
-  async function handleCopy(openCodex) {
-    const copyOperation = copyText(installPrompt)
-    if (openCodex) {
-      window.open(links.codex, '_blank', 'noopener,noreferrer')
-    }
+  async function handleCopy() {
     try {
-      await copyOperation
+      await copyText(installPrompt)
       setCopyState('copied')
     } catch {
       setCopyState('error')
@@ -200,23 +170,13 @@ export function CodexPage() {
 
   return (
     <SiteShell activePage="codex">
-      <div className="codex-subnav" aria-label={text.use}>
-        <div className="container">
-          <a href={links.releases}>{text.download}</a>
-          <a className="is-active" href={sitePath('codex/')}>{text.use}</a>
-          <a href="#developers">{text.developers}</a>
-        </div>
-      </div>
-
       <section className="codex-hero">
         <div className="codex-hero__backdrop" aria-hidden="true" />
         <div className="container codex-hero__stage">
           <header className="codex-hero__copy">
-            <p className="eyebrow">{text.eyebrow}</p>
             <h1 className="codex-display">{text.title}</h1>
             <p className="codex-lead">{text.lead}</p>
             <p className="codex-contract">{text.contract}</p>
-            <p className="codex-body">{text.body}</p>
           </header>
 
           <div className="install-console">
@@ -225,31 +185,23 @@ export function CodexPage() {
               <i>01 / 01</i>
             </div>
             <div className="install-console__instruction">
-              <p>{text.install}</p>
-              <code>{text.promptPreview}</code>
+              <pre><code>{installPrompt}</code></pre>
             </div>
-            <button type="button" onClick={() => handleCopy(true)}>
-              {copyState === 'copied' ? text.copied : text.copyButton}
-              <span aria-hidden="true">↗</span>
-            </button>
-            <button className="copy-only" type="button" onClick={() => handleCopy(false)}>
-              {copyState === 'error' ? 'Clipboard unavailable' : text.copyOnly}
+            <button type="button" onClick={handleCopy}>
+              {copyState === 'error' ? 'Clipboard unavailable' : copyState === 'copied' ? text.copied : text.copyButton}
+              <span aria-hidden="true">⧉</span>
             </button>
           </div>
 
           <div className="agent-rail" aria-label={text.agents}>
             <p>{text.agents}</p>
             <div className="agent-rail__tools">
-              {agentTools.map(([name, mark], index) => (
+              {agentTools.map(([name, icon], index) => (
                 <span className={index === 0 ? 'is-featured' : ''} key={name}>
-                  <i aria-hidden="true">{mark}</i>
+                  <img src={icon} alt="" aria-hidden="true" />
                   <b>{name}</b>
                 </span>
               ))}
-              <span className="agent-rail__more">
-                <i aria-hidden="true">＋</i>
-                <b>{language === 'zh' ? '更多 Agent' : 'More agents'}</b>
-              </span>
             </div>
             <small>{text.agentNote}</small>
           </div>
@@ -292,19 +244,6 @@ export function CodexPage() {
         <div className="container">
           <p className="eyebrow">{text.architectureEyebrow}</p>
           <MeasuredText as="h2" className="codex-section-title">{text.architectureTitle}</MeasuredText>
-          <div className="control-surfaces">
-            <article>
-              <span>{text.insideLabel}</span>
-              <h3>{text.insideTitle}</h3>
-              <p>{text.insideBody}</p>
-            </article>
-            <i aria-hidden="true">＋</i>
-            <article>
-              <span>{text.outsideLabel}</span>
-              <h3>{text.outsideTitle}</h3>
-              <p>{text.outsideBody}</p>
-            </article>
-          </div>
           <div className="control-plane">
             {architecture.map(([name, english, chinese], index) => (
               <div key={name}>
