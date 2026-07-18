@@ -2250,6 +2250,620 @@ img {
   border-block: 1px solid var(--line-dark);
 }
 
+/* Aventine benchmark ---------------------------------------------------- */
+
+.aventine-benchmark {
+  --benchmark-surface: #070c0f;
+  --benchmark-panel: #0b1216;
+  --benchmark-panel-raised: #10191e;
+  --benchmark-line: #213039;
+  --benchmark-muted: #82919a;
+  --benchmark-text: #edf4f5;
+  background: var(--benchmark-surface);
+  color: var(--benchmark-text);
+}
+
+.benchmark-hero {
+  position: relative;
+  min-height: calc(100vh - 76px);
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    radial-gradient(circle at 76% -15%, rgba(32, 215, 181, 0.14), transparent 36%),
+    var(--benchmark-surface);
+  background-size: 72px 72px, 72px 72px, auto, auto;
+  border-bottom: 1px solid var(--benchmark-line);
+}
+
+.benchmark-hero__inner {
+  padding-block: clamp(2.4rem, 5vh, 4.5rem) clamp(2.4rem, 5vh, 4rem);
+}
+
+.benchmark-title {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3rem;
+  align-items: end;
+  margin-bottom: clamp(2rem, 4vh, 3.4rem);
+}
+
+.benchmark-title p,
+.benchmark-section-title small {
+  margin: 0 0 0.75rem;
+  color: #20d7b5;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.benchmark-title h1 {
+  max-width: 820px;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(2.7rem, 5.1vw, 5.4rem);
+  font-weight: 650;
+  letter-spacing: -0.065em;
+  line-height: 0.96;
+}
+
+.benchmark-title > div:first-child > span,
+.benchmark-section-title > div > span {
+  display: block;
+  max-width: 760px;
+  margin-top: 1rem;
+  color: var(--benchmark-muted);
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+.benchmark-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(78px, 1fr));
+  border-top: 1px solid var(--benchmark-line);
+  border-left: 1px solid var(--benchmark-line);
+}
+
+.benchmark-facts div {
+  min-width: 96px;
+  padding: 0.85rem 1rem;
+  border-right: 1px solid var(--benchmark-line);
+  border-bottom: 1px solid var(--benchmark-line);
+}
+
+.benchmark-facts strong {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.benchmark-facts span {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--benchmark-muted);
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  letter-spacing: 0.08em;
+}
+
+.benchmark-board {
+  border: 1px solid var(--benchmark-line);
+  background: rgba(7, 13, 16, 0.9);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.24);
+}
+
+.benchmark-board__head,
+.benchmark-board__legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 0.85rem 1.2rem;
+  border-bottom: 1px solid var(--benchmark-line);
+}
+
+.benchmark-board__head > div {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.benchmark-board__head strong {
+  font-size: 0.82rem;
+}
+
+.benchmark-board__head span,
+.benchmark-board__legend {
+  color: var(--benchmark-muted);
+  font-family: var(--font-mono);
+  font-size: 0.57rem;
+}
+
+.benchmark-axis {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin: 0.8rem 100px 0 292px;
+  color: #5f6d75;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+}
+
+.benchmark-axis span:last-child {
+  text-align: right;
+}
+
+.benchmark-bars {
+  padding: 0.35rem 0.8rem 0.8rem;
+}
+
+.benchmark-bar {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 42px 230px minmax(180px, 1fr) 72px 54px;
+  gap: 0.8rem;
+  align-items: center;
+  min-height: 64px;
+  padding: 0.48rem 0.65rem;
+  border: 0;
+  border-bottom: 1px solid rgba(33, 48, 57, 0.72);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 150ms ease;
+}
+
+.benchmark-bar:last-child {
+  border-bottom: 0;
+}
+
+.benchmark-bar:hover,
+.benchmark-bar.is-selected {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.benchmark-bar.is-selected {
+  box-shadow: inset 2px 0 #edf4f5;
+}
+
+.benchmark-bar__rank,
+.benchmark-bar__record {
+  color: #64727a;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+}
+
+.benchmark-bar__identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.benchmark-brand {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 750;
+}
+
+.benchmark-brand--qwen {
+  background: #5e42d6;
+  border-color: #9f90f4;
+}
+
+.benchmark-brand--gemma,
+.benchmark-brand--translate-gemma {
+  background: conic-gradient(from 30deg, #4d8dff, #20d7b5, #f1aa28, #ef5b78, #4d8dff);
+  border-color: transparent;
+}
+
+.benchmark-brand--nemotron {
+  background: #76b900;
+  border-color: #a4e43f;
+  color: #071005;
+}
+
+.benchmark-bar__identity strong {
+  display: block;
+  overflow: hidden;
+  font-size: 0.77rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.benchmark-bar__identity small {
+  display: block;
+  margin-top: 0.18rem;
+  overflow: hidden;
+  color: var(--benchmark-muted);
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.benchmark-bar__track,
+.recipe-metric__track {
+  position: relative;
+  display: block;
+  height: 22px;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(90deg, transparent 0, transparent calc(25% - 1px), rgba(255, 255, 255, 0.07) 25%);
+}
+
+.benchmark-bar__track::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: #34444d;
+  content: '';
+}
+
+.benchmark-bar__track > span {
+  position: absolute;
+  z-index: 1;
+  top: 4px;
+  bottom: 1px;
+  left: 0;
+  width: var(--score);
+  background: var(--bar-color);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--bar-color), transparent 55%);
+  transform-origin: left;
+  animation: benchmark-grow 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes benchmark-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.benchmark-bar__score {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  text-align: right;
+}
+
+.benchmark-board__legend {
+  justify-content: flex-start;
+  border-top: 1px solid var(--benchmark-line);
+  border-bottom: 0;
+}
+
+.benchmark-board__legend b {
+  color: var(--benchmark-text);
+  font-weight: 500;
+}
+
+.benchmark-detail,
+.judge-benchmark {
+  padding-block: clamp(5rem, 9vw, 8rem);
+  border-bottom: 1px solid var(--benchmark-line);
+}
+
+.benchmark-detail {
+  background: #0a1014;
+}
+
+.benchmark-section-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2.5rem;
+  margin-bottom: 2rem;
+}
+
+.benchmark-section-title p {
+  margin: 0;
+  font-size: clamp(1.8rem, 3.2vw, 3rem);
+  font-weight: 620;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+}
+
+.recipe-tabs {
+  display: flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.recipe-tabs button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--benchmark-line);
+  background: transparent;
+  color: var(--benchmark-muted);
+  cursor: pointer;
+  font-size: 0.64rem;
+}
+
+.recipe-tabs button:hover,
+.recipe-tabs button.is-active {
+  background: var(--benchmark-panel-raised);
+  border-color: #4b5d67;
+  color: var(--benchmark-text);
+}
+
+.recipe-tabs .benchmark-brand {
+  width: 21px;
+  height: 21px;
+  font-size: 0.52rem;
+}
+
+.recipe-dashboard {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.72fr) minmax(300px, 1fr) minmax(340px, 1.15fr);
+  border-top: 1px solid var(--benchmark-line);
+  border-left: 1px solid var(--benchmark-line);
+}
+
+.recipe-dashboard > div {
+  min-height: 390px;
+  padding: clamp(1.5rem, 3vw, 2.3rem);
+  border-right: 1px solid var(--benchmark-line);
+  border-bottom: 1px solid var(--benchmark-line);
+}
+
+.recipe-summary > span,
+.recipe-parameters h3 {
+  color: var(--benchmark-muted);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.recipe-summary__name {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 1.4rem;
+}
+
+.recipe-summary__name .benchmark-brand {
+  width: 40px;
+  height: 40px;
+}
+
+.recipe-summary h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  letter-spacing: -0.035em;
+}
+
+.recipe-summary__name p {
+  margin: 0.25rem 0 0;
+  color: var(--benchmark-muted);
+  font-family: var(--font-mono);
+  font-size: 0.57rem;
+}
+
+.recipe-score {
+  margin-top: 2.4rem;
+}
+
+.recipe-score strong {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: clamp(3.6rem, 6vw, 5.7rem);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
+}
+
+.recipe-score span {
+  display: block;
+  margin-top: 0.7rem;
+  color: var(--benchmark-muted);
+  font-size: 0.66rem;
+}
+
+.recipe-summary dl {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 2.1rem 0 0;
+  border-top: 1px solid var(--benchmark-line);
+  border-left: 1px solid var(--benchmark-line);
+}
+
+.recipe-summary dl div {
+  padding: 0.65rem;
+  border-right: 1px solid var(--benchmark-line);
+  border-bottom: 1px solid var(--benchmark-line);
+}
+
+.recipe-summary dt {
+  color: var(--benchmark-muted);
+  font-size: 0.5rem;
+}
+
+.recipe-summary dd {
+  margin: 0.3rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.recipe-performance {
+  display: grid;
+  align-content: center;
+  gap: 2.4rem;
+}
+
+.recipe-metric > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.68rem;
+}
+
+.recipe-metric strong {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.recipe-metric__track {
+  height: 8px;
+  background: #182329;
+}
+
+.recipe-metric__track span {
+  display: block;
+  width: var(--metric);
+  height: 100%;
+  background: var(--metric-color);
+  transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.recipe-parameters dl {
+  margin: 1.2rem 0 0;
+}
+
+.recipe-parameters dl div {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 1rem;
+  padding: 0.88rem 0;
+  border-bottom: 1px solid var(--benchmark-line);
+}
+
+.recipe-parameters dt {
+  color: var(--benchmark-muted);
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+}
+
+.recipe-parameters dd {
+  margin: 0;
+  font-size: 0.69rem;
+  text-align: right;
+}
+
+.judge-benchmark {
+  background: var(--benchmark-surface);
+}
+
+.judge-chart {
+  border-top: 1px solid var(--benchmark-line);
+  border-left: 1px solid var(--benchmark-line);
+}
+
+.judge-chart__head,
+.judge-chart__row {
+  display: grid;
+  grid-template-columns: minmax(170px, 1.25fr) repeat(3, minmax(150px, 1fr)) 100px;
+}
+
+.judge-chart__head > *,
+.judge-chart__row > * {
+  min-height: 80px;
+  padding: 1rem;
+  border-right: 1px solid var(--benchmark-line);
+  border-bottom: 1px solid var(--benchmark-line);
+}
+
+.judge-chart__head > * {
+  display: flex;
+  min-height: 52px;
+  flex-direction: column;
+  justify-content: center;
+  color: var(--benchmark-muted);
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 400;
+}
+
+.judge-chart__head small {
+  margin-top: 0.2rem;
+  color: #55646d;
+  font-size: 0.45rem;
+}
+
+.judge-chart__row strong {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.7rem;
+}
+
+.judge-chart__row strong i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.judge-chart__row span {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  justify-content: flex-end;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.judge-chart__row span b {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--judge-value);
+  height: 4px;
+  background: var(--judge-color);
+}
+
+.benchmark-method {
+  padding-block: clamp(3.5rem, 7vw, 5.5rem);
+  background: #0f181c;
+}
+
+.benchmark-method__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3rem;
+}
+
+.benchmark-method h2 {
+  margin: 0;
+  font-size: clamp(1.7rem, 3vw, 2.7rem);
+  letter-spacing: -0.045em;
+}
+
+.benchmark-method p {
+  max-width: 780px;
+  margin: 0.8rem 0 0;
+  color: var(--benchmark-muted);
+  font-size: 0.78rem;
+}
+
+.benchmark-method__links {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 1.3rem;
+}
+
 .site-footer {
   padding: 4rem 0 1.4rem;
   background: #080b0d;
@@ -2481,6 +3095,46 @@ img {
 
   .builder-note {
     grid-column: 2 / 4;
+  }
+
+  .benchmark-hero {
+    min-height: auto;
+  }
+
+  .benchmark-title {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .benchmark-facts {
+    width: min(100%, 560px);
+  }
+
+  .recipe-dashboard {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .recipe-parameters {
+    grid-column: 1 / 3;
+  }
+
+  .recipe-dashboard > .recipe-parameters {
+    min-height: auto;
+  }
+
+  .recipe-parameters dl {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 2rem;
+  }
+
+  .judge-chart {
+    overflow-x: auto;
+  }
+
+  .judge-chart__head,
+  .judge-chart__row {
+    min-width: 900px;
   }
 }
 
@@ -2744,6 +3398,99 @@ img {
   .builder-note {
     grid-column: 1 / 3;
   }
+
+  .benchmark-hero__inner {
+    padding-block: 2.6rem;
+  }
+
+  .benchmark-title {
+    gap: 1.8rem;
+  }
+
+  .benchmark-title h1 {
+    font-size: clamp(2.65rem, 13vw, 4.4rem);
+  }
+
+  .benchmark-facts {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .benchmark-facts div {
+    min-width: 0;
+  }
+
+  .benchmark-board__head {
+    align-items: flex-start;
+  }
+
+  .benchmark-board__head > div {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .benchmark-axis {
+    margin-right: 72px;
+    margin-left: 0.65rem;
+  }
+
+  .benchmark-axis span:first-child,
+  .benchmark-axis span:nth-child(2) {
+    visibility: hidden;
+  }
+
+  .benchmark-bar {
+    grid-template-columns: minmax(145px, 0.9fr) minmax(90px, 1fr) 58px;
+    gap: 0.55rem;
+    min-height: 72px;
+  }
+
+  .benchmark-bar__rank,
+  .benchmark-bar__record {
+    display: none;
+  }
+
+  .benchmark-bar__identity strong {
+    font-size: 0.7rem;
+  }
+
+  .benchmark-board__legend {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .benchmark-section-title,
+  .benchmark-method__inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .recipe-tabs {
+    justify-content: flex-start;
+  }
+
+  .recipe-dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .recipe-parameters {
+    grid-column: auto;
+  }
+
+  .recipe-dashboard > div {
+    min-height: auto;
+  }
+
+  .recipe-performance {
+    min-height: 320px !important;
+  }
+
+  .recipe-parameters dl {
+    display: block;
+  }
+
+  .benchmark-method__links {
+    flex-wrap: wrap;
+  }
 }
 
 @media (max-width: 480px) {
@@ -2813,6 +3560,84 @@ img {
   .footer-grid > div:first-child,
   .builder-note {
     grid-column: auto;
+  }
+
+  .benchmark-title h1 {
+    max-width: 100%;
+    font-size: 2.15rem;
+    letter-spacing: -0.055em;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .benchmark-title > div:first-child > span {
+    font-size: 0.76rem;
+  }
+
+  .benchmark-board__head > span {
+    display: none;
+  }
+
+  .benchmark-board__head {
+    padding-inline: 0.8rem;
+  }
+
+  .benchmark-board__head strong,
+  .benchmark-board__head span {
+    overflow-wrap: anywhere;
+  }
+
+  .benchmark-axis {
+    display: none;
+  }
+
+  .benchmark-bars {
+    padding-top: 0.8rem;
+  }
+
+  .benchmark-bar {
+    grid-template-columns: minmax(118px, 1fr) minmax(64px, 0.62fr) 42px;
+    padding-inline: 0.4rem;
+  }
+
+  .benchmark-bar__identity {
+    gap: 0.5rem;
+  }
+
+  .benchmark-bar__identity small {
+    max-width: 94px;
+  }
+
+  .benchmark-bar__track {
+    height: 16px;
+  }
+
+  .benchmark-bar__score {
+    font-size: 0.72rem;
+  }
+
+  .recipe-tabs {
+    display: grid;
+    width: 100%;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .recipe-tabs button {
+    min-width: 0;
+  }
+
+  .recipe-summary dl {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .recipe-parameters dl div {
+    grid-template-columns: 92px 1fr;
+  }
+
+  .benchmark-method__links {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 
