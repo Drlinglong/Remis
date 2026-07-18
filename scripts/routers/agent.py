@@ -299,6 +299,7 @@ def _normalize_status(raw_status: Optional[str], *, recovered: bool = False) -> 
     return {
         "pending": "queued",
         "queued": "queued",
+        "starting": "queued",
         "running": "running",
         "processing": "running",
         "completed": "completed",
@@ -910,7 +911,13 @@ def _export_candidate(
     metadata: Dict[str, Any],
     requested_name: Optional[str],
 ) -> tuple[str, Path]:
-    output_paths = [Path(item).resolve() for item in task.get("output_dirs", [])]
+    persisted_snapshot = metadata.get("last_snapshot") or {}
+    raw_output_paths = (
+        task.get("output_dirs")
+        or persisted_snapshot.get("output_dirs")
+        or []
+    )
+    output_paths = [Path(item).resolve() for item in raw_output_paths]
     destination_root = Path(DEST_DIR).resolve()
     candidates = {
         item.name: item for item in output_paths if item.parent == destination_root

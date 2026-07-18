@@ -85,6 +85,7 @@ describe('MiningDashboard', () => {
     expect(screen.getByText('0 / 3')).toBeInTheDocument();
 
     const socket = FakeWebSocket.instances[0];
+    expect(socket.url).toBe('ws://127.0.0.1:1453/api/ws/status/task-1');
     act(() => {
       socket.onmessage({
         data: JSON.stringify({

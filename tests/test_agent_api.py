@@ -284,6 +284,19 @@ def test_validation_items_are_split_into_error_warning_and_human_review():
     ]
 
 
+def test_starting_job_is_pollable():
+    status = agent_router._normalize_status("starting")
+    actions = agent_router._job_allowed_actions(
+        status,
+        agent_router.AgentValidationSummary(),
+        [],
+        kind="translation",
+    )
+
+    assert status == "queued"
+    assert actions == ["poll"]
+
+
 def test_project_import_path_rejects_home_directory():
     with pytest.raises(HTTPException) as exc_info:
         agent_router._validate_agent_import_path(str(Path.home()))
@@ -355,6 +368,25 @@ def test_export_candidate_rejects_path_traversal(tmp_path, monkeypatch):
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail["code"] == "invalid_output_folder"
+
+
+def test_export_candidate_uses_persisted_snapshot(tmp_path, monkeypatch):
+    destination = tmp_path / "translations"
+    output = destination / "zh-CN-demo"
+    output.mkdir(parents=True)
+    monkeypatch.setattr(agent_router, "DEST_DIR", str(destination))
+
+    folder_name, source_path = agent_router._export_candidate(
+        {},
+        {
+            "project_id": "project-1",
+            "last_snapshot": {"output_dirs": [str(output)]},
+        },
+        None,
+    )
+
+    assert folder_name == "zh-CN-demo"
+    assert source_path == output.resolve()
 
 
 def test_agent_export_rejects_target_outside_detected_mod_root(

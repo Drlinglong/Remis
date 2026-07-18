@@ -12,6 +12,7 @@ import api from '../../utils/api';
 import { normalizeArrayPayload } from '../../utils/payload';
 
 const API_BASE_URL = '/api';
+const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '1453';
 
 const getProjectFilePath = (file) => file.file_path || file.path || '';
 const getProjectFileLabel = (file) => file.relative_path || file.rel_path || file.file_path || file.path || '';
@@ -84,7 +85,8 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
     const connectMiningSocket = useCallback((taskId, projectId, attempt = 0) => {
         closeMiningSocket();
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${protocol}//${window.location.host}/api/ws/status/${taskId}`);
+        const backendHost = `127.0.0.1:${BACKEND_PORT}`;
+        const ws = new WebSocket(`${protocol}//${backendHost}/api/ws/status/${taskId}`);
         wsRef.current = ws;
 
         ws.onmessage = (event) => {
