@@ -2,6 +2,9 @@ export const SITE_BASE = '/Remis/'
 
 export const links = {
   github: 'https://github.com/Drlinglong/Remis',
+  aventine: 'https://github.com/Drlinglong/remis-aventine',
+  aventineTournament: 'https://github.com/Drlinglong/remis-aventine/blob/main/docs/zh/developer/first_remis_tournament_2026-07-16.md',
+  aventineJudgeComparison: 'https://github.com/Drlinglong/remis-aventine/blob/main/docs/zh/developer/judge_provider_comparison_2026-07-15.md',
   releases: 'https://github.com/Drlinglong/Remis/releases/latest',
   issue132: 'https://github.com/Drlinglong/Remis/issues/132',
   discussions: 'https://github.com/Drlinglong/Remis/discussions',
@@ -12,12 +15,13 @@ export const links = {
 export const pages = [
   { key: 'home', label: 'Product', path: '' },
   { key: 'engineering', label: 'AI Engineering', path: 'engineering/' },
+  { key: 'aventine', label: 'Aventine', path: 'aventine/' },
   { key: 'guide', label: 'Beginner Guide', path: 'guide/' },
   { key: 'roadmap', label: 'Roadmap', path: 'roadmap/' },
 ]
 
 export function sitePath(path = '') {
-  return `${import.meta.env.BASE_URL}${path}`
+  return `${import.meta.env?.BASE_URL ?? SITE_BASE}${path}`
 }
 
 export function assetPath(fileName) {
@@ -32,6 +36,7 @@ export function pageFromPath(pathname, base = SITE_BASE) {
   const segment = relative.split('/').filter(Boolean)[0] ?? ''
 
   if (segment === 'engineering') return 'engineering'
+  if (segment === 'aventine') return 'aventine'
   if (segment === 'guide') return 'guide'
   if (segment === 'roadmap') return 'roadmap'
   if (segment === '404.html') return 'notFound'
@@ -66,18 +71,18 @@ export const productLayers = [
   {
     index: '02',
     eyebrow: 'KNOWLEDGE LAYER',
-    status: 'Planned',
-    title: 'Project memory with explicit retrieval boundaries',
-    body: 'Glossaries and prior decisions supply relevant context. The planned Micro-RAG extends that pattern to product help and project-aware retrieval.',
-    code: 'retrieve → rank → cite → assemble',
+    status: 'In development',
+    title: 'A contextual Copilot that knows where you are',
+    body: 'The 3.0.7 branch adds session memory, route-aware help, agent-selected read tools, and persistent task handoff across the Remis interface.',
+    code: 'observe → retrieve → explain → hand off',
   },
   {
     index: '03',
     eyebrow: 'AUTOMATION LAYER',
-    status: 'Planned',
-    title: 'Bounded agents over native Remis workflows',
-    body: 'Specialized agents may diagnose, propose, and coordinate, while schemas, validators, native handlers, and human confirmation retain authority.',
-    code: 'propose → validate → confirm → execute',
+    status: 'In development',
+    title: 'Approval-gated agents over native workflows',
+    body: 'PydanticAI plans typed localization work, Remis validates every tool and argument, and the user approves the workflow inline before execution.',
+    code: 'plan → preview → approve → execute',
   },
 ]
 
@@ -147,21 +152,109 @@ export const shippedCapabilities = [
 export const copilotLayers = [
   {
     eyebrow: 'READ-ONLY KNOWLEDGE LAYER',
-    name: 'LlamaIndex Micro-RAG',
-    status: 'Planned',
-    description: 'Retrieves provider setup, troubleshooting, validation explanations, and product documentation. It does not index API keys or arbitrary user mods by default.',
+    name: 'Contextual help and read tools',
+    status: 'In development',
+    description: 'The 3.0.7 branch grounds answers in the current route, packaged product guides, session history, and agent-selected read-only skills.',
   },
   {
     eyebrow: 'SCHEMA-BOUND REASONING LAYER',
     name: 'PydanticAI Copilot',
-    status: 'Planned',
-    description: 'Returns typed answers, confidence, sources, risk classifications, and whitelisted action suggestions. Free-form executable behaviour is rejected.',
+    status: 'In development',
+    description: 'PydanticAI produces typed help responses and localization workflow proposals. Unknown tools, invalid arguments, and free-form executable behaviour are rejected.',
   },
   {
     eyebrow: 'DETERMINISTIC EXECUTION LAYER',
     name: 'Remis workflow engine',
     status: 'Foundation shipped',
     description: 'Owns validation, UI previews, confirmation gates, native handlers, logging, and every write to project or game directories.',
+  },
+]
+
+export const agentMilestones = [
+  {
+    index: '01',
+    title: 'A persistent Copilot surface',
+    body: 'Sessions, a dedicated thread view, and a floating assistant make help continuous instead of resetting at every page.',
+    evidence: 'sessions · floating widget · context budget',
+  },
+  {
+    index: '02',
+    title: 'Grounded in the live product',
+    body: 'The assistant receives the current route and page context, then chooses bounded read tools for product-specific answers.',
+    evidence: 'route context · read tools · packaged guides',
+  },
+  {
+    index: '03',
+    title: 'Structured work, approved inline',
+    body: 'Translation requests become typed plans with visible steps. The user approves inside the conversation before Remis hands work to the native workflow.',
+    evidence: 'PydanticAI · schema validation · approval gate',
+  },
+  {
+    index: '04',
+    title: 'Handoff that survives navigation',
+    body: 'Workflow context and translation task state persist across the handoff, so the assistant can guide work without pretending it executed hidden actions.',
+    evidence: 'session store · task handoff · regression tests',
+  },
+]
+
+export const aventineProofPoints = [
+  { value: '4', label: 'Real recipes', note: 'production-backed Remis artifacts in the first tournament' },
+  { value: '7', label: 'Frozen cases', note: 'five translation cases and two repair cases under one contract' },
+  { value: '42', label: 'Head-to-head matchups', note: 'hard-veto and position-consistent judge decisions' },
+  { value: '48', label: 'Calibration cases', note: 'MQM, ACES, and Remis evidence across three judge providers' },
+]
+
+export const aventineRecipeStages = [
+  {
+    index: '01',
+    eyebrow: 'RECIPE CONTRACT',
+    title: 'The whole translation system enters the arena.',
+    body: 'Provider, model revision, prompt, decoding, context, glossary, post-processing, repair, and validators are versioned as one recipe.',
+    code: 'model + prompt + context + glossary + repair',
+  },
+  {
+    index: '02',
+    eyebrow: 'HARD VETO',
+    title: 'Unsafe output cannot win on style points.',
+    body: 'Execution, schema, and deterministic validator failures are resolved before an LLM judge sees eligible soft-quality comparisons.',
+    code: 'execute → validate → veto',
+  },
+  {
+    index: '03',
+    eyebrow: 'CALIBRATED EVIDENCE',
+    title: 'Human gold, metrics, and judges meet in one report.',
+    body: 'MQM anchors, ACES contrastive cases, automatic metrics, and structured judges expose agreement, disagreement, and unresolved evidence.',
+    code: 'gold ↔ metric ↔ judge',
+  },
+]
+
+export const aventineRanking = [
+  { rank: '01', recipe: 'Qwen 3.6 27B Q4_K_M', hardPass: '7/7', record: '15–1–2', unresolved: '3', result: 'Champion' },
+  { rank: '02', recipe: 'Gemma 4 31B QAT Q4_0', hardPass: '7/7', record: '11–4–2', unresolved: '4', result: 'Runner-up' },
+  { rank: '03', recipe: 'TranslateGemma 27B Instruct Q6_K', hardPass: '5/7', record: '4–7–2', unresolved: '6', result: 'Third' },
+  { rank: '04', recipe: 'Nemotron Cascade 2 30B A3B Q4_K_M', hardPass: '1/7', record: '0–18–0', unresolved: '1', result: 'Fourth' },
+]
+
+export const aventineEvidence = [
+  {
+    index: '01',
+    title: 'Hard validators keep authority.',
+    body: 'The judge scores soft quality only. It cannot rescue structurally unsafe output.',
+  },
+  {
+    index: '02',
+    title: 'Position bias is measured, not ignored.',
+    body: 'Eligible comparisons run in both A/B orders. Inconsistent judgments remain unresolved.',
+  },
+  {
+    index: '03',
+    title: 'Repair restraint is a first-class metric.',
+    body: 'A recipe earns credit for fixing the error without rewriting text that was already correct.',
+  },
+  {
+    index: '04',
+    title: 'Infrastructure failures stay visible.',
+    body: 'Malformed JSON, retry starvation, and request-budget exhaustion remain benchmark failures, not contestant losses.',
   },
 ]
 
@@ -239,22 +332,28 @@ export const roadmapPhases = [
     summary: 'Project management, glossary-aware translation, validation, incremental reuse, proofreading, deployment, and Windows packaging.',
   },
   {
-    status: 'In development',
+    status: 'Shipped',
     title: 'Deeper quality and context systems',
     version: 'v3.0.6',
     summary: 'Project glossary binding, validation sidecars, stronger proofreading boundaries, neologism workflows, and safer recovery paths.',
   },
   {
-    status: 'Planned',
-    title: 'Help Copilot with Micro-RAG',
-    version: 'Copilot v1',
-    summary: 'Read-only product support for provider setup, logs, fake localization, validation errors, and troubleshooting.',
+    status: 'In development',
+    title: 'Contextual, session-based Help Copilot',
+    version: 'v3.0.7',
+    summary: 'Route-aware help, packaged product knowledge, persistent sessions, agent-selected read tools, and a floating assistant across the app.',
   },
   {
-    status: 'Planned',
-    title: 'Safe suggested actions',
-    version: 'Copilot v2',
-    summary: 'Typed action suggestions such as opening settings or running a connection test. Remis still decides whether and how to execute.',
+    status: 'In development',
+    title: 'Approval-gated localization workflows',
+    version: 'v3.0.7',
+    summary: 'PydanticAI turns user intent into typed workflow plans. Remis validates, previews, and waits for inline approval before handing off work.',
+  },
+  {
+    status: 'Shipped',
+    title: 'Translation recipe benchmark foundation',
+    version: 'Aventine V0',
+    summary: 'Frozen fixtures, hard vetoes, pairwise judging, metric alignment, and a recorded four-recipe Remis tournament.',
   },
   {
     status: 'Research track',

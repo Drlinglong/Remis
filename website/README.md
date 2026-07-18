@@ -6,6 +6,9 @@ The public positioning is a mature open-source desktop AI product, not a commerc
 SaaS. The homepage uses `The operating system for AI localization.` as the category
 statement, then distinguishes local project control from cloud-or-local model
 inference. Future RAG and agent claims must retain visible delivery status.
+The Engineering page now records the working 3.0.7 Copilot surface, and the
+standalone Aventine page presents the first reproducible translation-recipe
+tournament and judge-calibration results.
 
 ## Local development
 
@@ -29,6 +32,7 @@ The site is a true multi-page Vite build. Each public route has its own HTML ent
 
 - `/Remis/`
 - `/Remis/engineering/`
+- `/Remis/aventine/`
 - `/Remis/guide/`
 - `/Remis/roadmap/`
 
@@ -65,7 +69,7 @@ ten additional translations.
 `src/i18n/source-messages.json` is the canonical message contract. Every translation
 array must have the same number of non-empty entries, which is enforced by unit tests.
 Product and technology names such as Remis, RAG, LLM, Ollama, OpenAI, PydanticAI, and
-LlamaIndex are also protected from accidental translation.
+LlamaIndex, and Aventine are also protected from accidental translation.
 
 ## Engineering diagrams
 

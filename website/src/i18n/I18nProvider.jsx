@@ -12,6 +12,10 @@ const pageMetadata = {
     title: 'AI Engineering · Remis',
     description: 'Explore Remis AI engineering through animated workflows, provider-flexible inference, context retrieval, validation boundaries, repair loops, and human review.',
   },
+  aventine: {
+    title: 'Aventine · Translation quality as evidence',
+    description: 'Aventine is a reproducible evaluation ground for complete translation recipes, born from Remis.',
+  },
   guide: {
     title: 'Beginner Guide · Remis',
     description: 'A beginner-friendly guide to installing Remis, configuring an AI provider, translating a Paradox mod, proofreading it, and enabling it in the launcher.',

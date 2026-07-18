@@ -3,6 +3,7 @@ import { ButtonLink, SiteShell, StatusPill, TextLink } from '../components/SiteS
 import { translateDeep, useI18n } from '../i18n/context'
 import {
   assetPath,
+  agentMilestones,
   benchmarkMetrics,
   copilotLayers,
   links,
@@ -137,6 +138,7 @@ export function EngineeringPage() {
   const { t } = useI18n()
   const localizedWorkflows = translateDeep(workflowDiagrams, t)
   const localizedCopilotLayers = translateDeep(copilotLayers, t)
+  const localizedAgentMilestones = translateDeep(agentMilestones, t)
   const localizedBenchmarkMetrics = benchmarkMetrics.map(([metric, question]) => [metric, t(question)])
   return (
     <SiteShell activePage="engineering">
@@ -213,6 +215,36 @@ export function EngineeringPage() {
             <span>{t('REMIS VALIDATES')}</span>
             <span>{t('UI EXPLAINS')}</span>
             <span>{t('HUMAN CONFIRMS')}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="section section--ink agent-delivery-section" id="agent-delivery">
+        <div className="container">
+          <div className="section-heading section-heading--split">
+            <div>
+              <p className="eyebrow">{t('3.0.7 AGENT DELIVERY')}</p>
+              <MeasuredText as="h2" className="section-title">
+                {t('The Copilot moved from architecture note to working product surface.')}
+              </MeasuredText>
+            </div>
+            <p>
+              {t('The current 3.0.7 branch delivers the smallest complete agent loop: observe the live page, retrieve bounded context, propose typed work, wait for approval, and preserve the handoff into Remis workflows.')}
+            </p>
+          </div>
+          <div className="agent-milestone-grid">
+            {localizedAgentMilestones.map((milestone) => (
+              <article key={milestone.title}>
+                <span>{milestone.index}</span>
+                <h3>{milestone.title}</h3>
+                <p>{milestone.body}</p>
+                <code>{milestone.evidence}</code>
+              </article>
+            ))}
+          </div>
+          <div className="agent-delivery-links">
+            <TextLink href={links.issue132} external>Read the product vision</TextLink>
+            <TextLink href={sitePath('aventine/')}>See how the evaluation system tests recipes</TextLink>
           </div>
         </div>
       </section>

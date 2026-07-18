@@ -218,15 +218,16 @@ export function HomePage() {
           <div>
             <p className="eyebrow">{t('WHAT COMES NEXT')}</p>
             <MeasuredText as="h2" className="section-title">
-              {t('A safe Copilot for the people who need the most help.')}
+              {t('The Copilot is no longer a slide.')}
             </MeasuredText>
           </div>
           <div>
             <p>
-              {t('The planned Micro-RAG and PydanticAI layers target real beginner pain: provider setup, logs, fake localization, validation errors, and safe suggested actions. Remis remains the execution engine.')}
+              {t('The 3.0.7 branch now carries a contextual, session-based assistant with agent-selected read tools and approval-gated PydanticAI workflows. Remis still owns validation, execution, and every write.')}
             </p>
             <div className="inline-links">
-              <TextLink href={sitePath('roadmap/')}>Read the roadmap</TextLink>
+              <TextLink href={sitePath('engineering/')}>Inspect the Copilot architecture</TextLink>
+              <TextLink href={sitePath('aventine/')}>See Aventine results</TextLink>
               <TextLink href={links.issue132} external>Follow issue #132</TextLink>
             </div>
           </div>
