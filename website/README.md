@@ -6,9 +6,9 @@ The public positioning is a mature open-source desktop AI product, not a commerc
 SaaS. The homepage uses `The operating system for AI localization.` as the category
 statement, then distinguishes local project control from cloud-or-local model
 inference. Future RAG and agent claims must retain visible delivery status.
-The Engineering page now records the working 3.0.7 Copilot surface, and the
-standalone Aventine page presents the first reproducible translation-recipe
-tournament and judge-calibration results.
+The in-app Copilot remains an in-development roadmap item and is not presented
+as shipped in v3.0.7. The standalone Aventine page presents the first
+reproducible translation-recipe tournament and judge-calibration results.
 
 ## Local development
 

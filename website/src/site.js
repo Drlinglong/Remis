@@ -346,13 +346,13 @@ export const roadmapPhases = [
   {
     status: 'In development',
     title: 'Contextual, session-based Help Copilot',
-    version: 'v3.0.7',
+    version: 'v3.0.8',
     summary: 'Route-aware help, packaged product knowledge, persistent sessions, agent-selected read tools, and a floating assistant across the app.',
   },
   {
     status: 'In development',
     title: 'Approval-gated localization workflows',
-    version: 'v3.0.7',
+    version: 'v3.0.8',
     summary: 'PydanticAI turns user intent into typed workflow plans. Remis validates, previews, and waits for inline approval before handing off work.',
   },
   {

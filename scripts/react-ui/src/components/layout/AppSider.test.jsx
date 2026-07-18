@@ -73,6 +73,15 @@ describe('AppSider', () => {
     expect(navigateMock).toHaveBeenCalledWith('/neologism-review');
   });
 
+  it('keeps the in-development Remis Copilot entry hidden', () => {
+    renderWithProvider(<AppSider />);
+
+    const sidebar = document.getElementById('sidebar-nav');
+    fireEvent.mouseEnter(sidebar);
+
+    expect(screen.queryByText('page_title_copilot')).not.toBeInTheDocument();
+  });
+
   it('localizes the sidebar pin toggle tooltip', () => {
     renderWithProvider(<AppSider />);
 
