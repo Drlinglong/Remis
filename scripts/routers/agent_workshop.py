@@ -50,6 +50,7 @@ def _resolve_workshop_model_config(
 
 class ValidationIssue(BaseModel):
     file_name: str
+    file_id: Optional[str] = None
     file_path: Optional[str] = None
     source_file: Optional[str] = None
     key: str
@@ -289,14 +290,22 @@ def _write_fix_report(
     return str(report_path)
 
 
-def _load_project_sidecar_issues(project: Dict[str, Any], selected_sidecar_path: Optional[str] = None) -> List[ValidationIssue]:
+def _load_project_sidecar_issues(
+    project: Dict[str, Any],
+    project_files: List[Dict[str, Any]],
+    selected_sidecar_path: Optional[str] = None,
+) -> List[ValidationIssue]:
     source_path = project.get("source_path")
     if not source_path:
         return []
 
+    raw_issues = validation_sidecars.attach_project_file_ids(
+        validation_sidecars.current_translation_issues(source_path, selected_sidecar_path),
+        project_files,
+    )
     issues = [
         ValidationIssue(**_normalize_issue_dict(item))
-        for item in validation_sidecars.current_translation_issues(source_path, selected_sidecar_path)
+        for item in raw_issues
     ]
     issues.sort(key=lambda item: (
         str(item.target_lang or ""),
@@ -503,7 +512,8 @@ async def load_cached_errors(project_id: str, sidecar_path: Optional[str] = None
         raise HTTPException(status_code=404, detail="Project not found")
 
     current_errors = ValidationLogger.load_errors(project['source_path'])
-    sidecar_issues = _load_project_sidecar_issues(project, sidecar_path)
+    project_files = await project_manager.get_project_files(project_id)
+    sidecar_issues = _load_project_sidecar_issues(project, project_files, sidecar_path)
     if sidecar_issues:
         active_issues = [
             issue for issue in sidecar_issues
@@ -536,7 +546,8 @@ async def scan_project(project_id: str, force: bool = Query(False), sidecar_path
 
     if not force:
         current_errors = ValidationLogger.load_errors(project['source_path'])
-        sidecar_issues = _load_project_sidecar_issues(project, sidecar_path)
+        project_files = await project_manager.get_project_files(project_id)
+        sidecar_issues = _load_project_sidecar_issues(project, project_files, sidecar_path)
         if sidecar_issues:
             logger.info(
                 "[AgentWorkshop] Returning %s current translation-sidecar issues for %s",
@@ -662,6 +673,7 @@ async def scan_project(project_id: str, force: bool = Query(False), sidecar_path
                     )
                     issues.append(ValidationIssue(
                         file_name=rel_path,
+                        file_id=file_info.get('file_id'),
                         file_path=str(file_path),
                         key=key,
                         source_str=source_entries.get(key, ""),

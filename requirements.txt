@@ -4,8 +4,8 @@ PyYAML
 
 # AI API Dependencies
 # Users can choose OpenAI-compatible or Google Gemini APIs.
-openai>=1.0.0
-google-genai>=1.68.0,<2
+openai>=2.45.0
+google-genai>=2.11.0,<3
 
 # Development Dependencies
 # These are used for testing and development

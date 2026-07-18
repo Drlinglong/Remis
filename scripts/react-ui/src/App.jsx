@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useState } from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { createHashRouter, Outlet, RouterProvider } from 'react-router-dom';
 import { Center, Loader } from '@mantine/core';
 
 // import { MantineProvider } from '@mantine/core'; // Removed unused import
@@ -65,6 +65,24 @@ const appRouteConfig = [
     { path: '/in-conception', element: <InConceptionPage /> },
 ];
 
+const AppRouterLayout = () => (
+    <TutorialProvider>
+        <MainLayout>
+            <ProjectWatchScheduler />
+            <Suspense fallback={<RouteFallback />}>
+                <Outlet />
+            </Suspense>
+        </MainLayout>
+    </TutorialProvider>
+);
+
+const appRouter = createHashRouter([
+    {
+        element: <AppRouterLayout />,
+        children: appRouteConfig,
+    },
+]);
+
 const App = () => {
     const [isReady, setIsReady] = useState(false);
 
@@ -78,20 +96,7 @@ const App = () => {
                     ) : (
                         <SidebarProvider>
                             <TranslationProvider>
-                                <Router>
-                                    <TutorialProvider>
-                                        <MainLayout>
-                                            <ProjectWatchScheduler />
-                                            <Suspense fallback={<RouteFallback />}>
-                                                <Routes>
-                                                    {appRouteConfig.map(route => (
-                                                        <Route key={route.path} path={route.path} element={route.element} />
-                                                    ))}
-                                                </Routes>
-                                            </Suspense>
-                                        </MainLayout>
-                                    </TutorialProvider>
-                                </Router>
+                                <RouterProvider router={appRouter} fallbackElement={<RouteFallback />} />
                             </TranslationProvider>
                         </SidebarProvider>
                     )}

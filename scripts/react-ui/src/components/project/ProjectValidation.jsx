@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Badge, Button, Card, Group, Loader, Paper, Select, SimpleGrid, Stack, Text, Title } from '@mantine/core';
-import { IconInfoCircle, IconRefresh, IconRobot } from '@tabler/icons-react';
+import { Alert, Badge, Button, Card, Group, Loader, Paper, ScrollArea, Select, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { IconEdit, IconInfoCircle, IconRefresh, IconRobot } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
+import { buildProofreadingUrl } from '../../utils/proofreadingLinks';
 
 const ProjectValidation = ({ projectId }) => {
   const { t } = useTranslation();
@@ -99,6 +100,7 @@ const ProjectValidation = ({ projectId }) => {
     })),
     [status]
   );
+  const issues = status?.issues || [];
 
   if (loading) {
     return (
@@ -206,6 +208,43 @@ const ProjectValidation = ({ projectId }) => {
           </Stack>
         )}
       </Paper>
+
+      {issues.length > 0 && (
+        <Paper withBorder p="md" radius="md">
+          <Title order={5} mb="md">
+            {t('proofreading.issue_details', { defaultValue: 'Issue details' })}
+          </Title>
+          <ScrollArea.Autosize mah={360}>
+            <Stack gap="xs">
+              {issues.map((issue, index) => (
+                <Card key={`${issue.file_name}:${issue.key}:${index}`} withBorder p="sm" radius="md">
+                  <Group justify="space-between" align="flex-start" wrap="nowrap">
+                    <Stack gap={3} style={{ minWidth: 0 }}>
+                      <Text size="xs" c="dimmed" truncate>{issue.file_name || issue.file_path}</Text>
+                      <Text size="sm" fw={700} ff="monospace">{issue.key}</Text>
+                      <Text size="xs">{localizeIssueLabel(issue.error_code || issue.error_type)}</Text>
+                    </Stack>
+                    <Button
+                      size="xs"
+                      variant="light"
+                      leftSection={<IconEdit size={14} />}
+                      disabled={!issue.file_id || !issue.key}
+                      onClick={() => navigate(buildProofreadingUrl({
+                        projectId,
+                        fileId: issue.file_id,
+                        entryKey: issue.key,
+                        lineHint: issue.line_number,
+                      }))}
+                    >
+                      {t('proofreading.open_entry', { defaultValue: 'Manual proofreading' })}
+                    </Button>
+                  </Group>
+                </Card>
+              ))}
+            </Stack>
+          </ScrollArea.Autosize>
+        </Paper>
+      )}
     </Stack>
   );
 };

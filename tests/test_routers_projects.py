@@ -15,6 +15,7 @@ def mock_project_manager():
         # Configure methods to be async
         mock.get_projects = AsyncMock()
         mock.get_project = AsyncMock()
+        mock.get_project_files = AsyncMock(return_value=[])
         mock.create_project = AsyncMock()
         mock.refresh_project_files = AsyncMock()
         mock.repair_project_metadata = AsyncMock()

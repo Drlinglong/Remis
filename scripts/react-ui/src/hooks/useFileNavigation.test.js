@@ -53,6 +53,7 @@ vi.mock('../utils/fileGrouping', () => ({
 describe('useFileNavigation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     persistentStateStore.clear();
     searchParamsValue = new URLSearchParams('projectId=proj-1&fileId=target-1');
     api.get.mockImplementation((url) => {

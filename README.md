@@ -7,6 +7,7 @@
 
   <p>
     <a href="https://github.com/Drlinglong/Remis/releases/latest"><img src="https://img.shields.io/github/v/release/Drlinglong/Remis?style=for-the-badge&logo=github&label=Release&labelColor=1a1a2e&color=4ecdc4" alt="Release Version"></a>
+    <a href="https://github.com/Drlinglong/Remis/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Drlinglong/Remis/ci.yml?branch=main&style=for-the-badge&label=CI&labelColor=1a1a2e" alt="CI Status"></a>
     <img src="https://img.shields.io/badge/Platform-Windows-blue?style=for-the-badge&logo=windows&labelColor=1a1a2e" alt="Platform">
     <img src="https://img.shields.io/github/license/Drlinglong/Remis?style=for-the-badge&label=License&labelColor=1a1a2e&color=lightgrey" alt="License">
   </p>
@@ -45,7 +46,7 @@ Project Remis is a production-grade showcase of modern full-stack development, s
 
 ### 🧪 4. High-Standard Quality Control & Local Database
 - **Challenge:** Ensuring project configurations, translation progress, and glossary changes are persisted safely without external infrastructure.
-- **Solution:** Modeled data schemas using **SQLite + SQLAlchemy**, backed by a comprehensive automated test suite (Pytest + ESLint checks) executed via customized pre-commit check scripts (`check_before_commit.bat`).
+- **Solution:** Modeled data schemas using **SQLite + SQLAlchemy**, backed by repository-enforced GitHub Actions for Pytest, ESLint, Vitest, frontend builds, Rust checks, and dependency review.
 
 ---
 

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import { groupFiles as performGrouping } from '../utils/fileGrouping';
 import { usePersistentState } from './usePersistentState';
+import { readProofreadingSession } from './proofreadingSession';
 
 /**
  * Hook for managing project and file navigation in the Proofreading page.
@@ -21,6 +22,7 @@ export const useFileNavigation = () => {
     const [currentSourceFile, setCurrentSourceFile] = useState(null);
     const [currentTargetFile, setCurrentTargetFile] = useState(null);
     const projectFilesRequestRef = useRef(0);
+    const restoredSessionRef = useRef(readProofreadingSession());
 
     // ==================== Actions ====================
     const fetchProjects = useCallback(async () => {
@@ -99,12 +101,20 @@ export const useFileNavigation = () => {
 
     // URL Sync - Project
     useEffect(() => {
-        const pId = searchParams.get('projectId');
+        const pId = searchParams.get('projectId') || restoredSessionRef.current?.projectId;
         if (pId && projects.length > 0 && !selectedProject) {
             const proj = projects.find(p => p.project_id === pId);
-            if (proj) setSelectedProject(proj);
+            if (proj) {
+                setSelectedProject(proj);
+                if (!searchParams.get('projectId')) {
+                    setSearchParams({
+                        projectId: proj.project_id,
+                        ...(restoredSessionRef.current?.fileId ? { fileId: restoredSessionRef.current.fileId } : {}),
+                    }, { replace: true });
+                }
+            }
         }
-    }, [searchParams, projects, selectedProject]);
+    }, [searchParams, projects, selectedProject, setSearchParams]);
 
     // Fetch files when project changes
     useEffect(() => {
@@ -120,7 +130,7 @@ export const useFileNavigation = () => {
     // URL Sync - File (Enforce URL source of truth)
     useEffect(() => {
         if (sourceFiles.length > 0 && selectedProject) {
-            const urlFileId = searchParams.get('fileId');
+            const urlFileId = searchParams.get('fileId') || restoredSessionRef.current?.fileId;
 
             let resolvedSource = null;
             let resolvedTarget = null;

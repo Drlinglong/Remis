@@ -71,6 +71,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
     assert migrations == [
         (1, "establish_managed_main_schema"),
         (2, "add_project_watches"),
+        (3, "add_project_glossary_bindings"),
     ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
@@ -157,10 +158,13 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     assert {"source_language", "last_modified", "last_activity_type", "last_activity_desc", "notes", "target_path"}.issubset(project_columns)
 
     cursor.execute("SELECT version FROM schema_migrations")
-    assert cursor.fetchall() == [(1,), (2,)]
+    assert cursor.fetchall() == [(1,), (2,), (3,)]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")
     assert cursor.fetchone() == ("project_watches",)
+
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_glossary_bindings'")
+    assert cursor.fetchone() == ("project_glossary_bindings",)
 
     cursor.execute("SELECT name FROM glossaries WHERE glossary_id = 1")
     assert cursor.fetchone()[0] == "Legacy"

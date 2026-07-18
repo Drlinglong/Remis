@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field, field_validator
 from scripts.schemas.common import LanguageCode
 
@@ -19,6 +19,7 @@ class SaveProofreadingRequest(BaseModel):
     file_id: str
     entries: List[ProofreadingEntry]
     structure_patches: List[StructurePatch] = Field(default_factory=list)
+    base_revision: Optional[str] = None
     content: str = ""  # Legacy support
     target_language: LanguageCode = LanguageCode.ZH_CN
 
