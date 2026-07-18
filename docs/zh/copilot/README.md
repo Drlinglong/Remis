@@ -1,6 +1,6 @@
 # Remis Copilot 文档
 
-> **Status:** Design draft（#132 地基）  
+> **Status:** Design draft（#132 地基）
 > **Related:** [Issue #132](https://github.com/Drlinglong/Remis/issues/132)
 
 本目录存放 **Remis 产品 Copilot** 相关说明，与「开发者如何改代码」无关。

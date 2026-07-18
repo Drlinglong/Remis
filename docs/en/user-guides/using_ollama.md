@@ -1,6 +1,6 @@
 # Using Ollama for Localization
 
-How to run local models with [Ollama](https://ollama.com/) inside the **Remis desktop client**.  
+How to run local models with [Ollama](https://ollama.com/) inside the **Remis desktop client**.
 See also the Chinese [Provider setup index](../../zh/user-guides/provider-setup-index.md) if you use the ZH UI.
 
 ## Why Ollama?
@@ -28,10 +28,10 @@ Prefer larger instruct-style variants (e.g. `7b` over `1b`/`4b`). Check names wi
 
 ### 3. Configure in Remis
 
-1. Open **Settings → API**.  
-2. Select **Ollama** (local providers group).  
-3. Set **model name** (exact match to `ollama list`) and **URL** (default often `http://localhost:11434`).  
-4. API key is usually not required.  
+1. Open **Settings → API**.
+2. Select **Ollama** (local providers group).
+3. Set **model name** (exact match to `ollama list`) and **URL** (default often `http://localhost:11434`).
+4. API key is usually not required.
 5. **Save**, then pick Ollama in **Initial translation** or **Incremental translation** jobs.
 
 ### 4. Remote Ollama (optional)
@@ -40,11 +40,11 @@ If Ollama runs on another machine, put the full URL (e.g. `http://192.168.1.100:
 
 ## Troubleshooting
 
-- **Connection / 404**: service running? URL correct? model name exact?  
-- **Invalid JSON / parse errors**: use a stronger model; lower concurrency/RPM for local runs.  
+- **Connection / 404**: service running? URL correct? model name exact?
+- **Invalid JSON / parse errors**: use a stronger model; lower concurrency/RPM for local runs.
 - Logs: `%APPDATA%\RemisModFactory\logs\` on Windows packaged builds (`remis_backend.log`).
 
 ## Related
 
-- [Getting started (ZH)](../../zh/user-guides/getting-started.md)  
-- [FAQ (this folder)](faq.md)  
+- [Getting started (ZH)](../../zh/user-guides/getting-started.md)
+- [FAQ (this folder)](faq.md)

@@ -1,18 +1,18 @@
 # 连接自定义 OpenAI 兼容 API
 
-适用于：中转站、自建网关、列表里没有单独卡片但 **兼容 OpenAI API** 的服务。  
+适用于：中转站、自建网关、列表里没有单独卡片但 **兼容 OpenAI API** 的服务。
 总入口：[Provider 配置速查](provider-setup-index.md)。
 
 ## 在客户端配置（唯一推荐路径）
 
-1. 从服务商控制台拿到：  
-   - **API Key**  
-   - **Base URL**（例如 `https://api.example.com/v1`）  
-   - **模型名称**（与控制台完全一致）  
-2. 打开 Remis → **设置 → API**。  
-3. 选择 **自定义 / OpenAI 兼容** 类供应商（界面名称以你版本为准，常见为可编辑 URL 的通用接口）。  
-4. 填写 Key、Base URL、模型名 → **保存**。  
-5. 在 **初次翻译 / 增量翻译** 任务中选用该供应商与模型。  
+1. 从服务商控制台拿到：
+   - **API Key**
+   - **Base URL**（例如 `https://api.example.com/v1`）
+   - **模型名称**（与控制台完全一致）
+2. 打开 Remis → **设置 → API**。
+3. 选择 **自定义 / OpenAI 兼容** 类供应商（界面名称以你版本为准，常见为可编辑 URL 的通用接口）。
+4. 填写 Key、Base URL、模型名 → **保存**。
+5. 在 **初次翻译 / 增量翻译** 任务中选用该供应商与模型。
 
 不要把完整 API Key 发到公开 Issue 或聊天。
 
@@ -37,6 +37,6 @@
 
 ## 相关文档
 
-- [Provider 配置速查](provider-setup-index.md)  
-- [使用 Ollama](using_ollama.md)（本地同类场景）  
-- [FAQ](faq.md)  
+- [Provider 配置速查](provider-setup-index.md)
+- [使用 Ollama](using_ollama.md)（本地同类场景）
+- [FAQ](faq.md)

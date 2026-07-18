@@ -1,21 +1,21 @@
 # AI 服务商 / 本地模型配置速查
 
-> 打包客户端用户：在 **设置 → API** 配置密钥与模型。  
+> 打包客户端用户：在 **设置 → API** 配置密钥与模型。
 > **不要** 把完整 API Key 发到公开 Issue 或聊天。
 
 ---
 
 ## 1. 通用步骤（所有供应商）
 
-1. 打开 Remis → 左侧 **「设置」**。  
-2. 进入 **API** 配置区。  
-3. 按地区/类型找到供应商卡片（界面常分组为海外、国内、本地等）。  
-4. 填写：  
-   - **API Key**（本地无 Key 的方案可留空或按说明）  
-   - **模型** 名称  
-   - **Base URL**（本地与自定义 OpenAI 兼容接口通常必填）  
-5. **保存**。  
-6. 回到 **初次翻译 / 增量翻译**，在任务配置里选择同一供应商与模型。  
+1. 打开 Remis → 左侧 **「设置」**。
+2. 进入 **API** 配置区。
+3. 按地区/类型找到供应商卡片（界面常分组为海外、国内、本地等）。
+4. 填写：
+   - **API Key**（本地无 Key 的方案可留空或按说明）
+   - **模型** 名称
+   - **Base URL**（本地与自定义 OpenAI 兼容接口通常必填）
+5. **保存**。
+6. 回到 **初次翻译 / 增量翻译**，在任务配置里选择同一供应商与模型。
 7. 失败时看 [日志与诊断](logs-and-diagnostics.md)，搜索 `401`、`403`、`429`、`timeout`。
 
 翻译任务里的供应商列表，取决于你在设置中已配置/启用的项。
@@ -64,10 +64,10 @@
 
 ### 3.4 填写时注意
 
-- **模型名** 必须与服务商控制台 / `ollama list` 一致，多一个空格都会失败。  
-- **本地小模型** 容易无法遵守 JSON/批量格式 → 翻译报错；宁可选更大、指令遵循更好的模型（见 Ollama 文档中的警告）。  
-- **Base URL** 不要多抄或少抄路径（有的要到 `/v1`，有的只要根地址，以该服务文档为准）。  
-- **密钥**：只保存在本机设置中；反馈 Bug 时打码。  
+- **模型名** 必须与服务商控制台 / `ollama list` 一致，多一个空格都会失败。
+- **本地小模型** 容易无法遵守 JSON/批量格式 → 翻译报错；宁可选更大、指令遵循更好的模型（见 Ollama 文档中的警告）。
+- **Base URL** 不要多抄或少抄路径（有的要到 `/v1`，有的只要根地址，以该服务文档为准）。
+- **密钥**：只保存在本机设置中；反馈 Bug 时打码。
 
 ---
 
@@ -101,9 +101,9 @@
 
 ## 6. 相关文档
 
-- [从零开始](getting-started.md)  
-- [FAQ](faq.md)  
-- [使用 Ollama](using_ollama.md)  
-- [自定义 OpenAI 兼容 API](using_custom_openai_api.md)  
-- [ModelScope 与 SiliconFlow](using_modelscope_and_siliconflow.md)  
-- [日志与诊断](logs-and-diagnostics.md)  
+- [从零开始](getting-started.md)
+- [FAQ](faq.md)
+- [使用 Ollama](using_ollama.md)
+- [自定义 OpenAI 兼容 API](using_custom_openai_api.md)
+- [ModelScope 与 SiliconFlow](using_modelscope_and_siliconflow.md)
+- [日志与诊断](logs-and-diagnostics.md)

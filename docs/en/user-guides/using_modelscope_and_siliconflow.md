@@ -17,21 +17,21 @@ Browse [ModelScope models](https://modelscope.cn/models) or SiliconFlow’s mode
 
 ### 3. Configure in Remis
 
-1. **Settings → API**  
-2. Open **ModelScope** or **SiliconFlow**  
-3. Paste token and model ID → **Save**  
+1. **Settings → API**
+2. Open **ModelScope** or **SiliconFlow**
+3. Paste token and model ID → **Save**
 4. Select them in **Initial translation** / **Incremental translation**
 
 ## Troubleshooting
 
-- **Auth errors**: re-check token in Settings and save again  
-- **404 model**: spelling / model still listed on the platform  
-- **Rate limits**: lower concurrency/RPM in the job settings  
-- **Parse errors**: try a stronger instruct model  
+- **Auth errors**: re-check token in Settings and save again
+- **404 model**: spelling / model still listed on the platform
+- **Rate limits**: lower concurrency/RPM in the job settings
+- **Parse errors**: try a stronger instruct model
 
 Logs (Windows package): `%APPDATA%\RemisModFactory\logs\remis_backend.log`.
 
 ## Related
 
-- [Provider index (ZH)](../../zh/user-guides/provider-setup-index.md)  
-- [FAQ](faq.md)  
+- [Provider index (ZH)](../../zh/user-guides/provider-setup-index.md)
+- [FAQ](faq.md)

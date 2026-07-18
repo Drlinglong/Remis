@@ -1,12 +1,12 @@
 # 使用 ModelScope（魔搭）与 SiliconFlow（硅基流动）
 
-二者均提供大量可选开源模型，适合在国内网络环境下按预算与效果「点菜」。  
+二者均提供大量可选开源模型，适合在国内网络环境下按预算与效果「点菜」。
 总入口：[Provider 配置速查](provider-setup-index.md)。
 
 ## 核心优势
 
-- 模型选择多，可换不同规模与价位  
-- 在 Remis 里与其它供应商一样：在 **设置 → API** 填 Key 与模型即可  
+- 模型选择多，可换不同规模与价位
+- 在 Remis 里与其它供应商一样：在 **设置 → API** 填 Key 与模型即可
 
 ## 设置步骤
 
@@ -19,16 +19,16 @@
 
 ### 2. 选择模型 ID
 
-1. 在 [ModelScope 模型库](https://modelscope.cn/models) 或 SiliconFlow 模型/价目页浏览。  
-2. 选择支持对话 / 指令的模型，**复制完整模型 ID 或名称**。  
+1. 在 [ModelScope 模型库](https://modelscope.cn/models) 或 SiliconFlow 模型/价目页浏览。
+2. 选择支持对话 / 指令的模型，**复制完整模型 ID 或名称**。
 
 ### 3. 在 Remis 中填写
 
-1. 打开 **设置 → API**。  
-2. 找到 **ModelScope** 或 **SiliconFlow**（国内供应商分组内）。  
-3. 粘贴 **Token / API Key** 与 **模型 ID**。  
-4. **保存**。  
-5. 在 **初次翻译 / 增量翻译** 中选用对应供应商与模型。  
+1. 打开 **设置 → API**。
+2. 找到 **ModelScope** 或 **SiliconFlow**（国内供应商分组内）。
+3. 粘贴 **Token / API Key** 与 **模型 ID**。
+4. **保存**。
+5. 在 **初次翻译 / 增量翻译** 中选用对应供应商与模型。
 
 ## 故障排除
 
@@ -43,5 +43,5 @@
 
 ## 相关文档
 
-- [Provider 配置速查](provider-setup-index.md)  
-- [从零开始](getting-started.md)  
+- [Provider 配置速查](provider-setup-index.md)
+- [从零开始](getting-started.md)

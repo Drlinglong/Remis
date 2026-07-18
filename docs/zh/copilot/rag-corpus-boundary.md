@@ -1,8 +1,8 @@
 # 用户 Micro-RAG 语料边界
 
-> **Status:** Design draft（#132）  
-> **Audience:** 实现者 / 维护者  
-> **Purpose:** 规定 Help Copilot 的检索语料 **白名单与黑名单**。  
+> **Status:** Design draft（#132）
+> **Audience:** 实现者 / 维护者
+> **Purpose:** 规定 Help Copilot 的检索语料 **白名单与黑名单**。
 > **Note:** 本文档本身 **不要** 编入用户 RAG 索引。
 
 ## 1. 定位

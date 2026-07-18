@@ -4,10 +4,10 @@ Use this when your endpoint speaks the **OpenAI-compatible** API (gateways, prox
 
 ## Configure in the client (recommended)
 
-1. Collect **API key**, **Base URL** (e.g. `https://api.example.com/v1`), and **model name**.  
-2. Open Remis → **Settings → API**.  
-3. Choose the **custom / OpenAI-compatible** provider (label may vary by version).  
-4. Fill key, base URL, and model → **Save**.  
+1. Collect **API key**, **Base URL** (e.g. `https://api.example.com/v1`), and **model name**.
+2. Open Remis → **Settings → API**.
+3. Choose the **custom / OpenAI-compatible** provider (label may vary by version).
+4. Fill key, base URL, and model → **Save**.
 5. Select that provider in **Initial translation** or **Incremental translation**.
 
 Do not paste full API keys into public issues or chat.
@@ -33,6 +33,6 @@ Windows packaged logs: `%APPDATA%\RemisModFactory\logs\remis_backend.log`.
 
 ## Related
 
-- [Provider index (ZH)](../../zh/user-guides/provider-setup-index.md)  
-- [Using Ollama](using_ollama.md)  
-- [FAQ](faq.md)  
+- [Provider index (ZH)](../../zh/user-guides/provider-setup-index.md)
+- [Using Ollama](using_ollama.md)
+- [FAQ](faq.md)
