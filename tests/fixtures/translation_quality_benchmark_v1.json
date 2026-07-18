@@ -141,10 +141,10 @@
       "target_lang": "en",
       "source_file": "source_mod/Test_Project_Remis_Vic3_Incremental_Frozen/localization/simp_chinese/remis_demo_l_simp_chinese.yml",
       "keys": ["remis_event.2.f:0", "remis_event.2.a:0"],
-      "clean_translation": ["The girl we call ‘Remis’ recovered quickly.\\n\\nShe even corrected a Latin grammatical error in a draft declaration of war sent to [SCOPE.sCountry('rival_country').GetName], pointing to the line and saying: ‘My lord #Y [Root.GetCharacter.GetFullName]#!, this phrasing is not merely rude; it makes us appear uncultured.’\\n\\nThe room fell silent.", "Who exactly is she?"],
+      "clean_translation": ["The girl we call ‘Remis’ recovered quickly.\\n\\nShe even corrected a Latin grammatical error in a draft declaration of war sent to [SCOPE.sCountry('rival_country').GetName], pointing to the line and saying: ‘My lord #r [Root.GetCharacter.GetFullName]#!, this phrasing is not merely rude; it makes us appear uncultured.’\\n\\nThe room fell silent.", "Who exactly is she?"],
       "broken_translation": ["The girl we call ‘Remis’ recovered quickly.\\n\\nShe even corrected a Latin grammatical error in a draft declaration of war sent to the rival country, pointing to the line and saying: ‘My lord [Root.GetCharacter.GetFullName], this phrasing is not merely rude; it makes us appear uncultured.’\\n\\nThe room fell silent.", "Who exactly is she?"],
       "must_remain_unchanged_indexes": [1],
-      "injected_errors": ["删除 SCOPE 变量", "删除 #Y...#! 彩色标签"],
+      "injected_errors": ["删除 SCOPE 变量", "删除 #r...#! 彩色标签"],
       "mod_context": "Project Remis Victoria 3 demo 格式修复样本。"
     }
   ],
