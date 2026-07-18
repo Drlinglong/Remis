@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import uuid
 from datetime import datetime, timezone
@@ -46,6 +47,7 @@ from scripts.utils.system_utils import sanitize_for_json
 
 router = APIRouter(prefix="/api/agent", tags=["Agent API"])
 validation_sidecars = ValidationSidecarService()
+logger = logging.getLogger(__name__)
 
 LOCAL_PROVIDER_IDS = {
     "ollama",
@@ -162,6 +164,7 @@ def _release_check() -> Dict[str, Any]:
             "source": LATEST_RELEASE_URL,
         }
     except (requests.RequestException, ValueError) as exc:
+        logger.warning("Agent release check failed: %s", exc)
         return {
             "checked": False,
             "checked_at": checked_at,
@@ -169,7 +172,7 @@ def _release_check() -> Dict[str, Any]:
             "latest_version": None,
             "update_available": None,
             "release_url": "https://github.com/Drlinglong/Remis/releases/latest",
-            "error": str(exc),
+            "error": "The release check is currently unavailable.",
             "source": LATEST_RELEASE_URL,
         }
 
@@ -183,22 +186,31 @@ def _public_game(profile: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _validate_agent_import_path(folder_path: str) -> Dict[str, Any]:
-    try:
-        root = Path(folder_path).expanduser().resolve(strict=True)
-    except (OSError, RuntimeError) as exc:
-        raise _error(404, "import_path_not_found", f"Import path not found: {exc}") from exc
+    normalized = os.path.realpath(os.path.expanduser(folder_path))
+    root = Path(normalized)
+
+    # This endpoint intentionally inspects a user-selected local mod directory.
+    # The backend is localhost-only; the checks below reject roots/system paths
+    # and require recognizable Paradox mod contents before returning metadata.
+    # codeql[py/path-injection]
+    if not root.exists():
+        raise _error(404, "import_path_not_found", "Import path not found")
     if not root.is_dir():
         raise _error(400, "import_path_not_directory", "Import path must be a directory")
 
-    protected_roots = {
-        Path.home().resolve(),
+    home_root = Path.home().resolve()
+    system_roots = {
         Path(os.environ.get("WINDIR", "C:/Windows")).resolve(),
     }
     for name in ("ProgramFiles", "ProgramFiles(x86)", "APPDATA"):
         value = os.environ.get(name)
         if value:
-            protected_roots.add(Path(value).resolve())
-    if root in protected_roots or root.parent == root:
+            system_roots.add(Path(value).resolve())
+    inside_system_root = any(
+        root == protected or root.is_relative_to(protected)
+        for protected in system_roots
+    )
+    if root == home_root or root.parent == root or inside_system_root:
         raise _error(
             403,
             "import_path_not_allowed",
@@ -208,7 +220,12 @@ def _validate_agent_import_path(folder_path: str) -> Dict[str, Any]:
     try:
         inspection = inspect_mod_folder(str(root))
     except ValueError as exc:
-        raise _error(400, "invalid_mod_folder", str(exc)) from exc
+        logger.info("Agent rejected unsupported import folder: %s", exc)
+        raise _error(
+            400,
+            "invalid_mod_folder",
+            "The selected folder is not a supported Paradox mod",
+        ) from exc
     if (
         inspection.get("localization_file_count", 0) == 0
         and not inspection.get("metadata_files")
@@ -908,18 +925,22 @@ def _export_candidate(
 ) -> tuple[str, Path]:
     output_paths = [Path(item).resolve() for item in task.get("output_dirs", [])]
     destination_root = Path(DEST_DIR).resolve()
-    candidates = [
-        item for item in output_paths if item.parent == destination_root
-    ]
+    candidates = {
+        item.name: item for item in output_paths if item.parent == destination_root
+    }
     if requested_name:
-        if Path(requested_name).name != requested_name:
+        if (
+            requested_name in {".", ".."}
+            or "/" in requested_name
+            or "\\" in requested_name
+        ):
             raise _error(
                 400,
                 "invalid_output_folder",
                 "output_folder_name must be a single folder name",
             )
-        requested = (destination_root / requested_name).resolve()
-        if requested not in candidates:
+        requested = candidates.get(requested_name)
+        if requested is None:
             raise _error(
                 400,
                 "unknown_output_folder",
@@ -932,7 +953,8 @@ def _export_candidate(
             "output_selection_required",
             "Select one output folder from the job before export",
         )
-    return candidates[0].name, candidates[0]
+    candidate = next(iter(candidates.values()))
+    return candidate.name, candidate
 
 
 def _validate_deploy_target(
@@ -940,26 +962,20 @@ def _validate_deploy_target(
     output_folder_name: str,
     target_deploy_path: Optional[str],
 ) -> Path:
-    default_root = deploy_manager.mod_deployer.get_paradox_mod_dir(game_id)
-    if not default_root:
-        raise _error(
-            400,
-            "deploy_root_unavailable",
-            f"Remis could not determine the local mod directory for {game_id}",
+    try:
+        _, target = deploy_manager.mod_deployer.resolve_deploy_target(
+            output_folder_name,
+            game_id,
+            target_deploy_path,
         )
-    allowed_root = Path(default_root).expanduser().resolve()
-    target = (
-        Path(target_deploy_path).expanduser().resolve()
-        if target_deploy_path
-        else (allowed_root / output_folder_name).resolve()
-    )
-    if target.parent != allowed_root:
+        return target
+    except ValueError as exc:
+        logger.info("Agent rejected deployment target: %s", exc)
         raise _error(
             403,
             "export_path_not_allowed",
             "Agent exports are restricted to the detected game mod directory",
-        )
-    return target
+        ) from exc
 
 
 @router.get("/jobs/{job_id}/export-preview")
@@ -1032,7 +1048,13 @@ async def approve_agent_export(job_id: str, request: AgentExportRequest):
         clean_fake_loc=False,
     )
     if result.get("status") == "error":
-        raise _error(500, "export_failed", str(result.get("message")), retryable=True)
+        logger.error("Agent export failed: %s", result.get("message"))
+        raise _error(
+            500,
+            "export_failed",
+            "Export failed. Check Remis logs for details.",
+            retryable=True,
+        )
     await project_manager.log_history_event(
         metadata["project_id"],
         "agent_export_approved",
@@ -1048,9 +1070,11 @@ async def approve_agent_export(job_id: str, request: AgentExportRequest):
     return {
         "job_id": job_id,
         "status": "completed",
-        "target_path": result.get("target_path") or str(target),
+        "target_path": str(target),
         "warnings": (
-            [result.get("message")] if result.get("status") == "warning" else []
+            ["Deployment completed, but the launcher descriptor may need review."]
+            if result.get("status") == "warning"
+            else []
         ),
         "allowed_actions": [],
     }

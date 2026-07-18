@@ -259,6 +259,50 @@ class ModDeployer:
 
         return resolved_root, loc_dirs, None
 
+    def _resolve_output_source(self, output_folder_name: str) -> Path:
+        """Resolve an existing translation output without constructing a path from input."""
+        destination_root = Path(DEST_DIR).resolve()
+        if not destination_root.is_dir():
+            raise ValueError("Translation output directory is unavailable")
+
+        for child in destination_root.iterdir():
+            if child.name != output_folder_name or not child.is_dir():
+                continue
+            resolved = child.resolve()
+            if resolved.parent != destination_root:
+                break
+            return resolved
+        raise ValueError("Translation output folder was not produced by Remis")
+
+    def resolve_deploy_target(
+        self,
+        output_folder_name: str,
+        game_id: str,
+        target_deploy_path: Optional[str] = None,
+    ) -> tuple[Path, Path]:
+        """Return the trusted Paradox mod root and the single allowed target folder."""
+        trusted_output_name = self._resolve_output_source(output_folder_name).name
+        target_mod_root = self.get_paradox_mod_dir(game_id)
+        if not target_mod_root:
+            raise ValueError("Could not determine the Paradox mod folder")
+
+        trusted_root = target_mod_root.resolve()
+        trusted_target = (trusted_root / trusted_output_name).resolve()
+        if trusted_target.parent != trusted_root:
+            raise ValueError("Deployment target must stay inside the Paradox mod folder")
+
+        if target_deploy_path:
+            requested = os.path.normcase(
+                os.path.realpath(os.path.expanduser(target_deploy_path))
+            )
+            expected = os.path.normcase(str(trusted_target))
+            if requested != expected:
+                raise ValueError(
+                    "Custom deployment targets are restricted to the detected "
+                    "Paradox mod folder"
+                )
+        return trusted_root, trusted_target
+
     def clean_fake_localization(self, original_mod_path: str, source_lang: str = "english") -> dict:
         """
         Cleans up the 'Fake Localization' files/directories inside the original mod folder.
@@ -349,19 +393,15 @@ class ModDeployer:
         Deploys the mod from DEST_DIR to the Paradox mod folder or a custom target path.
         Optionally cleans fake localization in the workshop_path.
         """
-        source_mod_dir = Path(DEST_DIR) / output_folder_name
-        if not source_mod_dir.exists():
-            return {"status": "error", "message": f"Source directory not found: {source_mod_dir}"}
-
-        # Determine target mod deployment path
-        if target_deploy_path:
-            target_mod_path = Path(target_deploy_path)
-            target_mod_root = target_mod_path.parent
-        else:
-            target_mod_root = self.get_paradox_mod_dir(game_id)
-            if not target_mod_root:
-                return {"status": "error", "message": f"Could not determine Paradox mod folder for game: {game_id}"}
-            target_mod_path = target_mod_root / output_folder_name
+        try:
+            source_mod_dir = self._resolve_output_source(output_folder_name)
+            target_mod_root, target_mod_path = self.resolve_deploy_target(
+                source_mod_dir.name,
+                game_id,
+                target_deploy_path,
+            )
+        except ValueError as exc:
+            return {"status": "error", "message": str(exc)}
 
         clean_result = None
         if clean_fake_loc and workshop_path:
@@ -426,9 +466,12 @@ class ModDeployer:
                 "clean_result": clean_result
             }
 
-        except Exception as e:
-            logger.error(f"Deployment failed: {e}")
-            return {"status": "error", "message": str(e)}
+        except Exception:
+            logger.exception("Deployment failed")
+            return {
+                "status": "error",
+                "message": "Deployment failed. Check Remis logs for details.",
+            }
 
 # Singleton instance
 mod_deployer = ModDeployer()

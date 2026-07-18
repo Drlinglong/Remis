@@ -85,6 +85,10 @@ def test_preflight_allows_deliberately_selected_keyless_local_provider(monkeypat
     assert payload["provider_setup"]["selected_provider_ready"] is True
     assert payload["provider_setup"]["setup_required"] is False
     assert payload["release_check"]["checked"] is False
+    assert payload["release_check"]["error"] == (
+        "The release check is currently unavailable."
+    )
+    assert "offline" not in payload["release_check"]["error"]
     assert "report_release_check_unavailable" in payload["allowed_actions"]
 
 
@@ -351,6 +355,36 @@ def test_export_candidate_rejects_path_traversal(tmp_path, monkeypatch):
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail["code"] == "invalid_output_folder"
+
+
+def test_agent_export_rejects_target_outside_detected_mod_root(
+    tmp_path,
+    monkeypatch,
+):
+    destination = tmp_path / "translations"
+    (destination / "zh-CN-demo").mkdir(parents=True)
+    mod_root = tmp_path / "Paradox" / "mod"
+    mod_root.mkdir(parents=True)
+    monkeypatch.setattr(
+        agent_router.deploy_manager,
+        "DEST_DIR",
+        str(destination),
+    )
+    monkeypatch.setattr(
+        agent_router.deploy_manager.mod_deployer,
+        "get_paradox_mod_dir",
+        lambda _game_id: mod_root,
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        agent_router._validate_deploy_target(
+            "victoria3",
+            "zh-CN-demo",
+            str(tmp_path / "outside" / "zh-CN-demo"),
+        )
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail["code"] == "export_path_not_allowed"
 
 
 def test_agent_registry_recovers_non_secret_job_metadata(tmp_path):

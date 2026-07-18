@@ -1,4 +1,5 @@
 import logging
+import os
 import uuid
 from pathlib import Path
 from typing import Optional
@@ -74,17 +75,28 @@ async def _build_glossary_duplicate_index(
 
 
 def _resolve_path_within_root(raw_path: str, source_root: Path) -> Path:
-    candidate = Path(raw_path)
-    if not candidate.is_absolute():
-        candidate = source_root / candidate
     try:
-        resolved = candidate.resolve(strict=True)
-    except OSError as exc:
-        raise HTTPException(status_code=400, detail=f"Selected file does not exist: {raw_path}") from exc
-    if not resolved.is_file() or not resolved.is_relative_to(source_root):
-        raise HTTPException(status_code=400, detail="Selected files must stay inside the project source directory")
+        root_text = os.path.realpath(str(source_root))
+        candidate_text = os.path.expanduser(raw_path)
+        if not os.path.isabs(candidate_text):
+            candidate_text = os.path.join(root_text, candidate_text)
+        normalized = os.path.realpath(candidate_text)
+        if os.path.commonpath([root_text, normalized]) != root_text:
+            raise HTTPException(
+                status_code=400,
+                detail="Selected files must stay inside the project source directory",
+            )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Selected file path is invalid",
+        ) from exc
+
+    resolved = Path(normalized)
+    if not resolved.is_file():
+        raise HTTPException(status_code=400, detail="Selected file does not exist")
     if not _is_supported_mining_path(resolved):
-        raise HTTPException(status_code=400, detail=f"Unsupported mining file type: {resolved.suffix}")
+        raise HTTPException(status_code=400, detail="Unsupported mining file type")
     return resolved
 
 

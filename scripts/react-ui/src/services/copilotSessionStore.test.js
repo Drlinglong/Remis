@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createEmptySession,
   createSessionInState,
@@ -14,6 +14,10 @@ import {
 describe('copilotSessionStore', () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('loads a default empty session when storage is empty', () => {
@@ -63,6 +67,17 @@ describe('copilotSessionStore', () => {
     const a = createEmptySession();
     const b = createEmptySession();
     expect(a.id).not.toBe(b.id);
+  });
+
+  it('uses cryptographic random bytes when randomUUID is unavailable', () => {
+    vi.stubGlobal('crypto', {
+      getRandomValues(buffer) {
+        buffer.fill(0xab);
+        return buffer;
+      },
+    });
+
+    expect(createEmptySession().id).toBe(`sess_${'ab'.repeat(16)}`);
   });
 
   it('builds a persistent workflow completion message with task metadata', () => {

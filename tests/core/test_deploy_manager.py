@@ -1,3 +1,4 @@
+from scripts.core import deploy_manager as deploy_module
 from scripts.core.deploy_manager import ModDeployer
 
 
@@ -76,3 +77,101 @@ def test_detect_steam_workshop_path_prefers_project_source_inside_workshop(tmp_p
     result = deployer.detect_steam_workshop_path("victoria3", str(mod_root))
 
     assert result == str(workshop_root)
+
+
+def test_deploy_rejects_output_path_traversal(tmp_path, monkeypatch):
+    destination = tmp_path / "translations"
+    destination.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    marker = outside / "keep.txt"
+    marker.write_text("keep", encoding="utf-8")
+    monkeypatch.setattr(deploy_module, "DEST_DIR", str(destination))
+    deployer = ModDeployer()
+
+    result = deployer.deploy_mod("../outside", "victoria3")
+
+    assert result["status"] == "error"
+    assert "produced by Remis" in result["message"]
+    assert marker.read_text(encoding="utf-8") == "keep"
+
+
+def test_deploy_rejects_custom_target_outside_detected_mod_root(
+    tmp_path,
+    monkeypatch,
+):
+    destination = tmp_path / "translations"
+    source = destination / "zh-CN-demo"
+    source.mkdir(parents=True)
+    (source / "localization.yml").write_text("demo", encoding="utf-8")
+    mod_root = tmp_path / "Paradox" / "mod"
+    mod_root.mkdir(parents=True)
+    outside_target = tmp_path / "outside" / "zh-CN-demo"
+    monkeypatch.setattr(deploy_module, "DEST_DIR", str(destination))
+    deployer = ModDeployer()
+    monkeypatch.setattr(
+        deployer,
+        "get_paradox_mod_dir",
+        lambda _game_id: mod_root,
+    )
+
+    result = deployer.deploy_mod(
+        "zh-CN-demo",
+        "victoria3",
+        target_deploy_path=str(outside_target),
+    )
+
+    assert result["status"] == "error"
+    assert "restricted" in result["message"]
+    assert not outside_target.exists()
+
+
+def test_deploy_copies_known_output_to_detected_mod_root(tmp_path, monkeypatch):
+    destination = tmp_path / "translations"
+    source = destination / "zh-CN-demo"
+    source.mkdir(parents=True)
+    (source / "localization.yml").write_text("demo", encoding="utf-8")
+    mod_root = tmp_path / "Paradox" / "mod"
+    mod_root.mkdir(parents=True)
+    monkeypatch.setattr(deploy_module, "DEST_DIR", str(destination))
+    deployer = ModDeployer()
+    monkeypatch.setattr(
+        deployer,
+        "get_paradox_mod_dir",
+        lambda _game_id: mod_root,
+    )
+
+    result = deployer.deploy_mod("zh-CN-demo", "victoria3")
+
+    deployed = mod_root / "zh-CN-demo" / "localization.yml"
+    assert result["status"] == "success"
+    assert deployed.read_text(encoding="utf-8") == "demo"
+
+
+def test_deploy_does_not_return_internal_exception_details(tmp_path, monkeypatch):
+    destination = tmp_path / "translations"
+    source = destination / "zh-CN-demo"
+    source.mkdir(parents=True)
+    mod_root = tmp_path / "Paradox" / "mod"
+    mod_root.mkdir(parents=True)
+    monkeypatch.setattr(deploy_module, "DEST_DIR", str(destination))
+    monkeypatch.setattr(
+        deploy_module.shutil,
+        "copytree",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            OSError(r"C:\Users\private\secret.txt")
+        ),
+    )
+    deployer = ModDeployer()
+    monkeypatch.setattr(
+        deployer,
+        "get_paradox_mod_dir",
+        lambda _game_id: mod_root,
+    )
+
+    result = deployer.deploy_mod("zh-CN-demo", "victoria3")
+
+    assert result == {
+        "status": "error",
+        "message": "Deployment failed. Check Remis logs for details.",
+    }

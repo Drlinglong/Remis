@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from scripts.core import neologism_manager as neologism_module
@@ -114,6 +116,21 @@ def test_candidate_store_rejects_path_like_project_ids(tmp_path, monkeypatch):
 
     with pytest.raises(neologism_module.CandidateStoreError, match="Invalid project_id"):
         manager.load_candidates("../outside")
+
+
+def test_candidate_store_hashes_project_ids_before_building_cache_paths(
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.setattr(neologism_module, "CACHE_DIR", str(tmp_path))
+    manager = NeologismManager()
+
+    cache_file = Path(manager._get_cache_file("project-1"))
+
+    assert cache_file.parent == tmp_path
+    assert cache_file.name != "project-1.json"
+    assert len(cache_file.stem) == 64
+    assert set(cache_file.stem) <= set("0123456789abcdef")
 
 
 class FakeMiner:

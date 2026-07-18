@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import json
 import logging
 import os
@@ -148,8 +149,10 @@ class NeologismManager:
     def _get_cache_file(self, project_id: str) -> str:
         if not SAFE_PROJECT_ID.fullmatch(project_id or ""):
             raise CandidateStoreError("Invalid project_id for candidate storage")
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        return os.path.join(CACHE_DIR, f"{project_id}.json")
+        cache_root = Path(CACHE_DIR)
+        cache_root.mkdir(parents=True, exist_ok=True)
+        cache_key = hashlib.sha256(project_id.encode("utf-8")).hexdigest()
+        return str(cache_root / f"{cache_key}.json")
 
     def _load_candidates_unlocked(self, project_id: str) -> List[Candidate]:
         cache_file = self._get_cache_file(project_id)
@@ -160,7 +163,11 @@ class NeologismManager:
                 data = json.load(file_handle)
             return [Candidate(**item) for item in data]
         except Exception as exc:
-            raise CandidateStoreError(f"Failed to load candidates for {project_id}: {exc}") from exc
+            self.logger.exception(
+                "Failed to load neologism candidates for project %s",
+                project_id,
+            )
+            raise CandidateStoreError("Failed to load candidate storage") from exc
 
     def load_candidates(self, project_id: str) -> List[Candidate]:
         with self._candidate_lock(project_id):
@@ -175,7 +182,7 @@ class NeologismManager:
                 delete=False,
                 encoding="utf-8",
                 dir=os.path.dirname(cache_file),
-                prefix=f".{project_id}.",
+                prefix=f".{Path(cache_file).stem}.",
                 suffix=".tmp",
             ) as temp_file:
                 temp_path = temp_file.name
@@ -189,7 +196,11 @@ class NeologismManager:
                     os.remove(temp_path)
                 except OSError:
                     pass
-            raise CandidateStoreError(f"Failed to save candidates for {project_id}: {exc}") from exc
+            self.logger.exception(
+                "Failed to save neologism candidates for project %s",
+                project_id,
+            )
+            raise CandidateStoreError("Failed to save candidate storage") from exc
 
     def save_candidates(self, project_id: str, candidates: List[Candidate]) -> None:
         with self._candidate_lock(project_id):
