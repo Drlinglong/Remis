@@ -14,12 +14,9 @@ From a clone of the official repository, ask Codex:
 
 > Install the latest stable Remis from the official repository, read the
 > official Remis Agent Skill, start Remis locally, and verify that its health
-> endpoint is ready. After the first launch, tell me that Remis needs a
-> configured model provider before it can translate. Guide me to Remis Settings
-> → API Settings to choose a provider and enter its API key inside Remis. If I
-> do not know what an API key is, offer to explain it. Never ask me to paste the
-> key into chat. Once setup is complete, connect Remis to the mod in this
-> workspace and show me what I can do next.
+> endpoint is ready. After the first launch, briefly explain what an API key is
+> used for, then guide me through configuring a model provider and API key in
+> Remis Settings → API Settings.
 
 Codex discovers the repository Skill at:
 
