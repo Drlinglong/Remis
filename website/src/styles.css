@@ -2293,7 +2293,7 @@ img {
   margin: 0 0 0.75rem;
   color: #20d7b5;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   letter-spacing: 0.13em;
   text-transform: uppercase;
 }
@@ -2314,7 +2314,7 @@ img {
   max-width: 760px;
   margin-top: 1rem;
   color: var(--benchmark-muted);
-  font-size: 0.88rem;
+  font-size: 1.05rem;
   line-height: 1.65;
 }
 
@@ -2335,7 +2335,7 @@ img {
 .benchmark-facts strong {
   display: block;
   font-family: var(--font-mono);
-  font-size: 1.3rem;
+  font-size: 1.55rem;
   font-weight: 500;
   line-height: 1;
 }
@@ -2345,7 +2345,7 @@ img {
   margin-top: 0.45rem;
   color: var(--benchmark-muted);
   font-family: var(--font-mono);
-  font-size: 0.54rem;
+  font-size: 0.75rem;
   letter-spacing: 0.08em;
 }
 
@@ -2372,14 +2372,14 @@ img {
 }
 
 .benchmark-board__head strong {
-  font-size: 0.82rem;
+  font-size: 1rem;
 }
 
 .benchmark-board__head span,
 .benchmark-board__legend {
   color: var(--benchmark-muted);
   font-family: var(--font-mono);
-  font-size: 0.57rem;
+  font-size: 0.75rem;
 }
 
 .benchmark-axis {
@@ -2388,7 +2388,7 @@ img {
   margin: 0.8rem 100px 0 292px;
   color: #5f6d75;
   font-family: var(--font-mono);
-  font-size: 0.5rem;
+  font-size: 0.75rem;
 }
 
 .benchmark-axis span:last-child {
@@ -2433,7 +2433,7 @@ img {
 .benchmark-bar__record {
   color: #64727a;
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.76rem;
 }
 
 .benchmark-bar__identity {
@@ -2478,7 +2478,7 @@ img {
 .benchmark-bar__identity strong {
   display: block;
   overflow: hidden;
-  font-size: 0.77rem;
+  font-size: 0.92rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2489,7 +2489,7 @@ img {
   overflow: hidden;
   color: var(--benchmark-muted);
   font-family: var(--font-mono);
-  font-size: 0.52rem;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2534,7 +2534,7 @@ img {
 
 .benchmark-bar__score {
   font-family: var(--font-mono);
-  font-size: 0.88rem;
+  font-size: 1.02rem;
   text-align: right;
 }
 
@@ -2553,6 +2553,77 @@ img {
 .judge-benchmark {
   padding-block: clamp(5rem, 9vw, 8rem);
   border-bottom: 1px solid var(--benchmark-line);
+}
+
+.benchmark-positioning {
+  padding-block: clamp(5rem, 9vw, 8rem);
+  background: #edf1ed;
+  color: #0a1114;
+  border-bottom: 1px solid #bdc7c3;
+}
+
+.benchmark-positioning__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.88fr) minmax(520px, 1.12fr);
+  gap: clamp(4rem, 8vw, 8rem);
+  align-items: start;
+}
+
+.benchmark-positioning__grid > div:first-child > p {
+  margin: 0 0 1rem;
+  color: #087e6c;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+}
+
+.benchmark-positioning h2 {
+  max-width: 600px;
+  margin: 0;
+  font-size: clamp(2.6rem, 4.7vw, 4.7rem);
+  font-weight: 640;
+  letter-spacing: -0.06em;
+  line-height: 0.98;
+}
+
+.benchmark-positioning__grid > div:first-child > span {
+  display: block;
+  max-width: 650px;
+  margin-top: 1.6rem;
+  color: #3e4c4c;
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+.benchmark-principles {
+  border-top: 1px solid #9eaaa6;
+}
+
+.benchmark-principles article {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 1rem;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid #9eaaa6;
+}
+
+.benchmark-principles small {
+  color: #087e6c;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.benchmark-principles strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.benchmark-principles span {
+  display: block;
+  margin-top: 0.3rem;
+  color: #4f5d5b;
+  font-size: 0.94rem;
+  line-height: 1.65;
 }
 
 .benchmark-detail {
@@ -2593,7 +2664,7 @@ img {
   background: transparent;
   color: var(--benchmark-muted);
   cursor: pointer;
-  font-size: 0.64rem;
+  font-size: 0.84rem;
 }
 
 .recipe-tabs button:hover,
@@ -2627,7 +2698,7 @@ img {
 .recipe-parameters h3 {
   color: var(--benchmark-muted);
   font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-size: 0.76rem;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2647,7 +2718,7 @@ img {
 
 .recipe-summary h2 {
   margin: 0;
-  font-size: 1.3rem;
+  font-size: 1.55rem;
   letter-spacing: -0.035em;
 }
 
@@ -2655,7 +2726,7 @@ img {
   margin: 0.25rem 0 0;
   color: var(--benchmark-muted);
   font-family: var(--font-mono);
-  font-size: 0.57rem;
+  font-size: 0.75rem;
 }
 
 .recipe-score {
@@ -2675,7 +2746,7 @@ img {
   display: block;
   margin-top: 0.7rem;
   color: var(--benchmark-muted);
-  font-size: 0.66rem;
+  font-size: 0.82rem;
 }
 
 .recipe-summary dl {
@@ -2694,19 +2765,19 @@ img {
 
 .recipe-summary dt {
   color: var(--benchmark-muted);
-  font-size: 0.5rem;
+  font-size: 0.75rem;
 }
 
 .recipe-summary dd {
   margin: 0.3rem 0 0;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.95rem;
 }
 
 .recipe-performance {
   display: grid;
   align-content: center;
-  gap: 2.4rem;
+  gap: 1.65rem;
 }
 
 .recipe-metric > div {
@@ -2714,7 +2785,7 @@ img {
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 0.55rem;
-  font-size: 0.68rem;
+  font-size: 0.82rem;
 }
 
 .recipe-metric strong {
@@ -2750,13 +2821,92 @@ img {
 .recipe-parameters dt {
   color: var(--benchmark-muted);
   font-family: var(--font-mono);
-  font-size: 0.55rem;
+  font-size: 0.75rem;
 }
 
 .recipe-parameters dd {
   margin: 0;
-  font-size: 0.69rem;
+  font-size: 0.88rem;
   text-align: right;
+}
+
+.recipe-diagnostics {
+  grid-column: 1 / -1;
+  min-height: 0 !important;
+  padding: 0 !important;
+}
+
+.recipe-diagnostics__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid var(--benchmark-line);
+}
+
+.recipe-diagnostics__head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.recipe-diagnostics__head span {
+  color: #f1aa28;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+}
+
+.recipe-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.recipe-kpis > div {
+  padding: 1.25rem 1.35rem;
+  border-right: 1px solid var(--benchmark-line);
+  border-bottom: 1px solid var(--benchmark-line);
+}
+
+.recipe-kpis > div:last-child {
+  border-right: 0;
+}
+
+.recipe-kpis span {
+  display: block;
+  color: var(--benchmark-muted);
+  font-size: 0.78rem;
+}
+
+.recipe-kpis strong {
+  display: block;
+  margin-top: 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.recipe-voice {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 2rem;
+  padding: 1.5rem 1.4rem 1.65rem;
+  align-items: start;
+}
+
+.recipe-voice > span {
+  color: #20d7b5;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+}
+
+.recipe-voice p {
+  max-width: 900px;
+  margin: 0;
+  color: #c7d1d4;
+  font-size: 1rem;
+  line-height: 1.75;
 }
 
 .judge-benchmark {
@@ -2789,21 +2939,21 @@ img {
   justify-content: center;
   color: var(--benchmark-muted);
   font-family: var(--font-mono);
-  font-size: 0.52rem;
+  font-size: 0.75rem;
   font-weight: 400;
 }
 
 .judge-chart__head small {
   margin-top: 0.2rem;
   color: #55646d;
-  font-size: 0.45rem;
+  font-size: 0.7rem;
 }
 
 .judge-chart__row strong {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  font-size: 0.7rem;
+  font-size: 0.85rem;
 }
 
 .judge-chart__row strong i {
@@ -2819,7 +2969,7 @@ img {
   align-items: center;
   justify-content: flex-end;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.82rem;
 }
 
 .judge-chart__row span b {
@@ -2854,7 +3004,7 @@ img {
   max-width: 780px;
   margin: 0.8rem 0 0;
   color: var(--benchmark-muted);
-  font-size: 0.78rem;
+  font-size: 0.95rem;
 }
 
 .benchmark-method__links {
@@ -2862,6 +3012,10 @@ img {
   flex: 0 0 auto;
   align-items: center;
   gap: 1.3rem;
+}
+
+.aventine-benchmark .text-link {
+  font-size: 0.84rem;
 }
 
 .site-footer {
@@ -3106,6 +3260,11 @@ img {
     align-items: start;
   }
 
+  .benchmark-positioning__grid {
+    grid-template-columns: 1fr;
+    gap: 3.5rem;
+  }
+
   .benchmark-facts {
     width: min(100%, 560px);
   }
@@ -3126,6 +3285,14 @@ img {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0 2rem;
+  }
+
+  .recipe-kpis {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .recipe-kpis > div:nth-child(3) {
+    border-right: 0;
   }
 
   .judge-chart {
@@ -3411,6 +3578,14 @@ img {
     font-size: clamp(2.65rem, 13vw, 4.4rem);
   }
 
+  .benchmark-positioning h2 {
+    font-size: clamp(2.4rem, 11vw, 3.8rem);
+  }
+
+  .benchmark-positioning__grid > div:first-child > span {
+    font-size: 0.98rem;
+  }
+
   .benchmark-facts {
     grid-template-columns: 1fr 1fr;
   }
@@ -3486,6 +3661,17 @@ img {
 
   .recipe-parameters dl {
     display: block;
+  }
+
+  .recipe-diagnostics__head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .recipe-voice {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   .benchmark-method__links {
@@ -3628,6 +3814,22 @@ img {
 
   .recipe-summary dl {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .recipe-kpis {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .recipe-kpis > div:nth-child(odd) {
+    border-right: 1px solid var(--benchmark-line);
+  }
+
+  .recipe-kpis > div:nth-child(even) {
+    border-right: 0;
+  }
+
+  .recipe-kpis strong {
+    font-size: 1.05rem;
   }
 
   .recipe-parameters dl div {
