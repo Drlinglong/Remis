@@ -1,8 +1,8 @@
-export const installPrompt = `Install Remis from the official repository at https://github.com/Drlinglong/Remis, start its local service, read the Remis Codex Skill, verify the health endpoint, check the latest official GitHub Release, and guide me through localizing the mod in this workspace.
+export const installPrompt = `Install the latest stable Remis from the official repository at https://github.com/Drlinglong/Remis, read the official Remis Agent Skill, start Remis locally, and verify that its health endpoint is ready.
 
-Before every workflow, check GitHub for a newer Remis Release and tell me the result. If no model provider is configured after first install, stop immediately, guide me to Remis Settings > API Settings, and offer to explain what an API key is. Keep keys inside Remis—never ask me to paste one into chat.
+After the first launch, tell me that Remis needs a configured model provider before it can translate. Guide me to Remis Settings > API Settings to choose a provider and enter its API key inside Remis. If I do not know what an API key is, offer to explain it. Never ask me to paste the key into chat.
 
-Keep the API on localhost. Never read, display, or transmit model API keys. Inspect the mod and show me a dry-run plan first. Preserve every game key, variable, tag, encoding rule, and folder boundary. Before any paid translation, model-backed repair, export, deployment, or overwrite, show the exact plan and wait for my explicit approval. Report progress and validation from Remis instead of guessing.`
+Once setup is complete, connect Remis to the mod in this workspace and show me what I can do next.`
 
 export async function copyText(text, clipboard = globalThis.navigator?.clipboard) {
   if (clipboard?.writeText) {

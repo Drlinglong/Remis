@@ -2,13 +2,15 @@ import { describe, expect, it, vi } from 'vitest'
 import { copyText, installPrompt } from './codexPrompt'
 
 describe('Remis for Codex install prompt', () => {
-  it('includes the mandatory setup, release, secret, and approval boundaries', () => {
-    expect(installPrompt).toContain('check the latest official GitHub Release')
+  it('stays focused on installation and first-run provider setup', () => {
+    expect(installPrompt).toContain('Install the latest stable Remis')
+    expect(installPrompt).toContain('read the official Remis Agent Skill')
+    expect(installPrompt).toContain('verify that its health endpoint is ready')
     expect(installPrompt).toContain('Remis Settings > API Settings')
-    expect(installPrompt).toContain('offer to explain what an API key is')
-    expect(installPrompt).toContain('never ask me to paste one into chat')
-    expect(installPrompt).toContain('wait for my explicit approval')
-    expect(installPrompt).toContain('Keep the API on localhost')
+    expect(installPrompt).toContain('If I do not know what an API key is, offer to explain it')
+    expect(installPrompt).toContain('Never ask me to paste the key into chat')
+    expect(installPrompt).not.toContain('Before every workflow')
+    expect(installPrompt).not.toContain('explicit approval')
   })
 
   it('copies the complete prompt through the browser clipboard contract', async () => {

@@ -12,14 +12,14 @@ project store, and review/export interface.
 
 From a clone of the official repository, ask Codex:
 
-> Install Remis from the official repository, start its local service, read the
-> Remis Codex Skill, verify the health endpoint, check the latest official
-> GitHub Release, and guide me through localizing
-> the mod in this workspace. Keep the API on localhost. Never read or display
-> model API keys. If no provider is configured, stop immediately, guide me to
-> Remis API Settings, and offer to explain what an API key is. Show me every
-> paid translation, repair, export, or overwrite
-> plan and wait for my explicit approval.
+> Install the latest stable Remis from the official repository, read the
+> official Remis Agent Skill, start Remis locally, and verify that its health
+> endpoint is ready. After the first launch, tell me that Remis needs a
+> configured model provider before it can translate. Guide me to Remis Settings
+> → API Settings to choose a provider and enter its API key inside Remis. If I
+> do not know what an API key is, offer to explain it. Never ask me to paste the
+> key into chat. Once setup is complete, connect Remis to the mod in this
+> workspace and show me what I can do next.
 
 Codex discovers the repository Skill at:
 
