@@ -10,6 +10,7 @@ import {
   roadmapPhases,
   SITE_BASE,
   workflowDiagrams,
+  pages,
 } from './site'
 
 describe('pageFromPath', () => {
@@ -18,11 +19,22 @@ describe('pageFromPath', () => {
     ['/Remis/index.html', 'home'],
     ['/Remis/engineering/', 'engineering'],
     ['/Remis/aventine/', 'aventine'],
+    ['/Remis/codex/', 'codex'],
     ['/Remis/guide/', 'guide'],
     ['/Remis/roadmap/', 'roadmap'],
     ['/Remis/not-a-page/', 'notFound'],
   ])('maps %s to %s', (path, page) => {
     expect(pageFromPath(path, SITE_BASE)).toBe(page)
+  })
+})
+
+describe('Codex product entry', () => {
+  it('publishes a dedicated product route without replacing the main product identity', () => {
+    expect(pages.find((page) => page.key === 'codex')).toMatchObject({
+      label: 'Use with Codex',
+      path: 'codex/',
+    })
+    expect(pages[0].key).toBe('home')
   })
 })
 

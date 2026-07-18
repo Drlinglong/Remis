@@ -150,6 +150,29 @@ The app includes an **interactive guided tutorial** that walks you through:
 
 ---
 
+## 🤖 Use Remis with Codex
+
+Remis is the localization product; the repository Skill teaches Codex how to
+operate it safely through a localhost Agent API.
+
+1. Start Remis and open the [Remis for Codex page](https://drlinglong.github.io/Remis/codex/).
+2. Copy the install prompt into Codex.
+3. Codex checks the latest official GitHub Release and verifies provider setup
+   before every workflow.
+4. Configure cloud API keys only in **Remis Settings > API Settings**. Never
+   paste a key into Agent chat. A deliberately selected local provider may be
+   keyless.
+5. Remis requires explicit approval before paid translation, model-backed
+   repair, export, deployment, or overwrite.
+
+Developer entry points:
+
+- [Agent API quickstart](docs/en/developer/agent-api-quickstart.md)
+- [Remis Agent Skill](.agents/skills/remis-agent/SKILL.md)
+- Local OpenAPI: `http://127.0.0.1:1453/docs`
+
+---
+
 ## 🎮 Enable Mod in Game
 
 After translation, you need to enable the localization mod in-game:

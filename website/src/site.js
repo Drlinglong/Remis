@@ -10,10 +10,15 @@ export const links = {
   discussions: 'https://github.com/Drlinglong/Remis/discussions',
   documentation: 'https://github.com/Drlinglong/Remis/tree/main/docs',
   architecture: 'https://github.com/Drlinglong/Remis/blob/main/docs/en/developer/architecture.md',
+  agentQuickstart: 'https://github.com/Drlinglong/Remis/blob/codex/build-week-remis-for-codex/docs/en/developer/agent-api-quickstart.md',
+  agentSkill: 'https://github.com/Drlinglong/Remis/tree/codex/build-week-remis-for-codex/.agents/skills/remis-agent',
+  agentApi: 'http://127.0.0.1:1453/docs',
+  codex: 'https://chatgpt.com/codex',
 }
 
 export const pages = [
   { key: 'home', label: 'Product', path: '' },
+  { key: 'codex', label: 'Use with Codex', path: 'codex/' },
   { key: 'engineering', label: 'AI Engineering', path: 'engineering/' },
   { key: 'aventine', label: 'Aventine', path: 'aventine/' },
   { key: 'guide', label: 'Beginner Guide', path: 'guide/' },
@@ -37,6 +42,7 @@ export function pageFromPath(pathname, base = SITE_BASE) {
 
   if (segment === 'engineering') return 'engineering'
   if (segment === 'aventine') return 'aventine'
+  if (segment === 'codex') return 'codex'
   if (segment === 'guide') return 'guide'
   if (segment === 'roadmap') return 'roadmap'
   if (segment === '404.html') return 'notFound'

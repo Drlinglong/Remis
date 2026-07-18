@@ -123,6 +123,24 @@ Project Remis 围绕三个核心产品工作流构建：项目管理、增量更
 
 ---
 
+## 🤖 与 Codex 一起使用 Remis
+
+Remis 是真正执行汉化的完整产品；仓库中的 Skill 负责教 Codex 如何通过本机 Agent API 安全地操作它。
+
+1. 启动 Remis，打开 [Remis for Codex 页面](https://drlinglong.github.io/Remis/codex/)。
+2. 把页面上的安装提示词复制给 Codex。
+3. 每次开始工作流前，Codex 都会检查官方 GitHub 的最新 Release，并确认 Provider 设置。
+4. 云端 API key 只能填入 **Remis 设置 > API 设置**，不要贴到 Agent 对话。明确选择的本地 Provider 可以不使用密钥。
+5. 付费翻译、模型修复、导出、部署或覆盖之前，Remis 都要求用户明确批准。
+
+开发者入口：
+
+- [Agent API 快速开始](docs/zh/developer/agent-api-quickstart.md)
+- [Remis Agent Skill](.agents/skills/remis-agent/SKILL.md)
+- 本机 OpenAPI：`http://127.0.0.1:1453/docs`
+
+---
+
 ## 🎮 在游戏中启用 Mod
 
 完成翻译后，你需要在游戏中启用本地化 Mod：

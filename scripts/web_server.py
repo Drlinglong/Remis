@@ -137,7 +137,8 @@ def setup_app_routers():
     panic_log("Including routers...")
     from scripts.routers import (
         projects, project_watches, translation, glossary, proofreading, docs, tools,
-        neologism, validation, config, system, prompts, agent_workshop, copilot
+        neologism, validation, config, system, prompts, agent_workshop, copilot,
+        agent,
     )
     
     app.include_router(projects.router)
@@ -154,6 +155,7 @@ def setup_app_routers():
     app.include_router(system.router)
     app.include_router(prompts.router)
     app.include_router(copilot.router)
+    app.include_router(agent.router)
     panic_log("Routers included.")
 
 @app.middleware("http")
@@ -186,10 +188,15 @@ async def log_requests(request: Request, call_next):
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
+    allow_origins=[
+        "tauri://localhost",
+        "http://tauri.localhost",
+        "https://tauri.localhost",
+    ],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Accept", "Content-Type", "Authorization"],
 )
 
 

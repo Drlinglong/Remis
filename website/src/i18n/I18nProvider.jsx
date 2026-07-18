@@ -16,6 +16,10 @@ const pageMetadata = {
     title: 'Aventine · Translation quality as evidence',
     description: 'Aventine is a reproducible evaluation ground for complete translation recipes, born from Remis.',
   },
+  codex: {
+    title: 'Remis for Codex · Production game localization by natural language',
+    description: 'Install once, then let Codex operate the complete local Remis localization workflow with validation, repair, review, and approval gates.',
+  },
   guide: {
     title: 'Beginner Guide · Remis',
     description: 'A beginner-friendly guide to installing Remis, configuring an AI provider, translating a Paradox mod, proofreading it, and enabling it in the launcher.',
