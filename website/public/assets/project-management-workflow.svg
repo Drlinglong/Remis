@@ -1,0 +1,180 @@
+<svg viewBox="0 0 900 550" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow-blue" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    <filter id="glow-purple" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    <filter id="glow-orange" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+
+    <linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#090c10" />
+      <stop offset="100%" stop-color="#161b22" />
+    </linearGradient>
+
+    <style>
+      /* 核心呼吸灯 */
+      @keyframes core-pulse {
+        0%   { stroke: #58a6ff; filter: drop-shadow(0 0 5px #58a6ff); }
+        50%  { stroke: #79c0ff; filter: drop-shadow(0 0 15px #79c0ff); }
+        100% { stroke: #58a6ff; filter: drop-shadow(0 0 5px #58a6ff); }
+      }
+
+      /* 左到中：源数据注入 */
+      @keyframes flow-in {
+        0%   { transform: translate(180px, 275px); opacity: 0; }
+        10%  { opacity: 1; }
+        90%  { transform: translate(320px, 275px); opacity: 1; }
+        100% { transform: translate(330px, 275px); opacity: 0; }
+      }
+
+      /* 中到右：打包输出 */
+      @keyframes flow-out {
+        0%   { transform: translate(570px, 275px); opacity: 0; }
+        10%  { opacity: 1; }
+        90%  { transform: translate(710px, 275px); opacity: 1; }
+        100% { transform: translate(720px, 275px); opacity: 0; }
+      }
+
+      /* 垂直双向数据交互：术语库 (上) */
+      @keyframes flow-up-asset {
+        0%   { transform: translate(400px, 210px); opacity: 0; }
+        10%  { opacity: 1; }
+        90%  { transform: translate(400px, 130px); opacity: 1; }
+        100% { transform: translate(400px, 120px); opacity: 0; }
+      }
+      @keyframes flow-down-asset {
+        0%   { transform: translate(460px, 120px); opacity: 0; }
+        10%  { opacity: 1; }
+        90%  { transform: translate(460px, 200px); opacity: 1; }
+        100% { transform: translate(460px, 210px); opacity: 0; }
+      }
+
+      /* 垂直双向数据交互：AI处理 (下) */
+      @keyframes flow-down-ai {
+        0%   { transform: translate(400px, 340px); opacity: 0; }
+        10%  { opacity: 1; }
+        90%  { transform: translate(400px, 420px); opacity: 1; }
+        100% { transform: translate(400px, 430px); opacity: 0; }
+      }
+      @keyframes flow-up-ai {
+        0%   { transform: translate(460px, 430px); opacity: 0; }
+        10%  { opacity: 1; }
+        90%  { transform: translate(460px, 350px); opacity: 1; }
+        100% { transform: translate(460px, 340px); opacity: 0; }
+      }
+
+      /* 圆圈旋转特效 */
+      @keyframes spin { 100% { transform: rotate(360deg); } }
+      @keyframes spin-reverse { 100% { transform: rotate(-360deg); } }
+
+      .pulse-hub { animation: core-pulse 3s infinite ease-in-out; }
+      .data-in { animation: flow-in 2s infinite linear; }
+      .data-out { animation: flow-out 2.5s infinite linear; animation-delay: 1s; }
+
+      .data-up-asset { animation: flow-up-asset 1.5s infinite linear; }
+      .data-down-asset { animation: flow-down-asset 1.5s infinite linear; animation-delay: 0.75s; }
+
+      .data-down-ai { animation: flow-down-ai 2s infinite linear; }
+      .data-up-ai { animation: flow-up-ai 2s infinite linear; animation-delay: 1s; }
+
+      .ring-1 { animation: spin 10s infinite linear; transform-origin: 450px 275px; }
+      .ring-2 { animation: spin-reverse 15s infinite linear; transform-origin: 450px 275px; }
+
+      .text-code { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; fill: #8b949e; }
+      .text-title { font-family: 'Segoe UI', sans-serif; font-size: 16px; font-weight: bold; fill: #c9d1d9; }
+      .text-center-title { font-family: 'Segoe UI', sans-serif; font-size: 20px; font-weight: 800; fill: #ffffff; }
+
+      .color-src { stroke: #8b949e; }
+      .color-hub { stroke: #58a6ff; }
+      .color-asset { stroke: #a371f7; }
+      .color-ai { stroke: #d29922; }
+      .color-out { stroke: #3fb950; }
+    </style>
+  </defs>
+
+  <rect width="100%" height="100%" fill="url(#bg-grad)" rx="12" />
+
+  <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+    <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#21262d" stroke-width="0.5"/>
+  </pattern>
+  <rect width="100%" height="100%" fill="url(#grid)" />
+
+  <path d="M 180 275 L 330 275" stroke="#30363d" stroke-width="6" stroke-linecap="round" />
+  <path d="M 570 275 L 720 275" stroke="#30363d" stroke-width="6" stroke-linecap="round" />
+
+  <path d="M 400 120 L 400 210 M 460 120 L 460 210" stroke="#30363d" stroke-width="4" stroke-linecap="round" />
+  <path d="M 400 340 L 400 430 M 460 340 L 460 430" stroke="#30363d" stroke-width="4" stroke-linecap="round" />
+
+  <rect x="40" y="235" width="140" height="80" rx="8" fill="#161b22" class="color-src" stroke-width="2" />
+  <text x="110" y="270" class="text-title" text-anchor="middle">Source Mod</text>
+  <text x="110" y="290" class="text-code" text-anchor="middle">Raw Files &amp; Updates</text>
+
+  <rect x="720" y="235" width="140" height="80" rx="8" fill="#161b22" class="color-out" stroke-width="2" />
+  <text x="790" y="270" class="text-title" fill="#3fb950" text-anchor="middle">Release Target</text>
+  <text x="790" y="290" class="text-code" text-anchor="middle">Compiled &amp; Workshop</text>
+
+  <rect x="330" y="40" width="240" height="80" rx="8" fill="#0d1117" class="color-asset" stroke-width="2" filter="url(#glow-purple)" />
+  <text x="450" y="75" class="text-title" fill="#a371f7" text-anchor="middle">Global Assets &amp; Cache</text>
+  <text x="450" y="95" class="text-code" fill="#d2a8ff" text-anchor="middle">Glossary | Translation Memory</text>
+
+  <rect x="330" y="430" width="240" height="80" rx="8" fill="#0d1117" class="color-ai" stroke-width="2" filter="url(#glow-orange)" />
+  <text x="450" y="465" class="text-title" fill="#d29922" text-anchor="middle">AI Pipeline</text>
+  <text x="450" y="485" class="text-code" fill="#e3b341" text-anchor="middle">Translation Engine | Agents</text>
+
+  <g>
+    <circle cx="450" cy="275" r="95" fill="none" stroke="#21262d" stroke-width="2" class="ring-1" stroke-dasharray="20 10 5 10" />
+    <circle cx="450" cy="275" r="105" fill="none" stroke="#30363d" stroke-width="1" class="ring-2" stroke-dasharray="15 15" />
+
+    <rect x="330" y="210" width="240" height="130" rx="12" fill="#090c10" class="color-hub pulse-hub" stroke-width="3" filter="url(#glow-blue)" />
+
+    <text x="450" y="250" class="text-center-title" text-anchor="middle">REMIS PROJECT</text>
+    <text x="450" y="275" class="text-code" fill="#79c0ff" text-anchor="middle">.remis_project.json</text>
+
+    <rect x="345" y="295" width="60" height="20" rx="4" fill="#1f2428" stroke="#30363d" />
+    <text x="375" y="309" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">Game ID</text>
+
+    <rect x="420" y="295" width="60" height="20" rx="4" fill="#1f2428" stroke="#30363d" />
+    <text x="450" y="309" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">File Tree</text>
+
+    <rect x="495" y="295" width="60" height="20" rx="4" fill="#1f2428" stroke="#30363d" />
+    <text x="525" y="309" font-family="sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">I18N Lang</text>
+  </g>
+
+  <g class="data-in">
+    <rect x="-15" y="-6" width="30" height="12" rx="6" fill="#8b949e" />
+  </g>
+  <g class="data-out">
+    <rect x="-15" y="-6" width="30" height="12" rx="6" fill="#3fb950" filter="url(#glow-blue)" />
+  </g>
+
+  <g class="data-up-asset">
+    <circle cx="0" cy="0" r="4" fill="#a371f7" />
+  </g>
+  <g class="data-down-asset">
+    <circle cx="0" cy="0" r="4" fill="#d2a8ff" filter="url(#glow-purple)" />
+  </g>
+
+  <g class="data-down-ai">
+    <rect x="-4" y="-8" width="8" height="16" rx="2" fill="#d29922" />
+  </g>
+  <g class="data-up-ai">
+    <rect x="-4" y="-8" width="8" height="16" rx="2" fill="#e3b341" filter="url(#glow-orange)" />
+  </g>
+
+  <text x="255" y="260" class="text-code" text-anchor="middle">Scan &amp; Parse</text>
+  <text x="645" y="260" class="text-code" text-anchor="middle">Build &amp; Diff</text>
+
+  <text x="390" y="170" class="text-code" text-anchor="end" fill="#a371f7">Context Query</text>
+  <text x="470" y="170" class="text-code" text-anchor="start" fill="#a371f7">Rule Bindings</text>
+
+  <text x="390" y="390" class="text-code" text-anchor="end" fill="#d29922">Prompts &amp; Tasks</text>
+  <text x="470" y="390" class="text-code" text-anchor="start" fill="#d29922">Fixed Targets</text>
+
+</svg>

@@ -4,6 +4,17 @@
 
 ## Highlights
 
+- **Remis for Codex adds a governed Agent operation layer.** Codex can inspect
+  or import mods, plan localization, monitor durable jobs, read validation
+  results, request bounded repair, and preview export through a stable
+  localhost API while Remis remains the execution plane.
+- **Every Agent workflow starts with a preflight.** Remis checks the latest
+  official GitHub Release and reports Provider setup. First-time users are
+  guided to API Settings and offered a safe explanation of API keys without
+  exposing secrets in chat.
+- **Approval gates protect every consequential action.** Paid translation,
+  model-backed repair, export, deployment, and overwrite require explicit,
+  plan-specific approval.
 - **Remis Copilot is now available as an in-app help chat.** Ask how to start a localization project, configure a model provider, proofread translations, deploy a Mod, diagnose errors, or use other Remis features without leaving the application.
 - **Answers are grounded in the help documents shipped with Remis.** The model decides which relevant help skills to open for each conversation instead of relying on keyword matching or loading every document at once.
 - **Local-first operation.** LM Studio can use its native Responses API function-calling protocol to select help material. Other configured providers retain a compatibility path.
@@ -29,6 +40,12 @@ This release completes the conversational help foundation. Copilot can explain a
 
 ## Technical Details
 
+- Added the `/api/agent` contract with capability discovery, mandatory
+  release/provider preflight, project import planning, translation plans,
+  normalized progress, persisted recovery snapshots, validation categories,
+  repair gates, export preview, and overwrite confirmation.
+- Added a repository-discoverable Codex Skill, `AGENTS.md`, bilingual Agent API
+  quickstarts, Build Week demo materials, and a bilingual `/codex` product page.
 - Replaced keyword-based document routing with an allowlisted, model-controlled `read_help_skill` selection stage.
 - Added native `/v1/responses` function calling for LM Studio, including required tool selection, a no-match tool, low-temperature routing, output limits, and validation that the provider returned a real `function_call`.
 - Kept the JSON selection protocol only as a compatibility path for providers without native function calling.
@@ -59,6 +76,9 @@ This release completes the conversational help foundation. Copilot can explain a
 
 ## 重点
 
+- **Remis for Codex 新增受控的 Agent 操作层。** Codex 现在可以通过稳定的本机 API 检查和导入 Mod、规划汉化、追踪持久任务、读取校验结果、申请有界修复并预览导出；真正执行工作的仍然是 Remis。
+- **每个 Agent 工作流都从 preflight 开始。** Remis 会检查官方 GitHub 的最新 Release，并报告 Provider 设置状态。首次使用者会被引导到 API 设置，并可获得不暴露密钥的 API key 解释。
+- **所有重要动作都有审批门槛。** 付费翻译、模型修复、导出、部署和覆盖都需要针对当前计划的明确批准。
 - **Remis 小助手现已提供应用内聊天帮助。** 无需离开 Remis，就可以询问如何开始汉化项目、配置模型供应商、校对译文、部署 Mod、诊断错误，以及使用其他 Remis 功能。
 - **回答基于安装包随附的帮助文档。** 模型会结合对话自行决定打开哪些帮助技能，不再依赖关键词匹配，也不会每次把全部文档一起塞进上下文。
 - **本地优先。** 使用 LM Studio 时，小助手可以通过原生 Responses API 工具调用选择帮助资料；其他已配置供应商继续保留兼容路径。
@@ -84,6 +104,8 @@ This release completes the conversational help foundation. Copilot can explain a
 
 ## 技术细节
 
+- 新增 `/api/agent` 合同：能力发现、强制 Release/Provider preflight、项目导入计划、翻译计划、统一进度、持久恢复快照、校验分类、修复门槛、导出预览和覆盖确认。
+- 新增仓库可发现的 Codex Skill、`AGENTS.md`、中英文 Agent API 快速开始、Build Week 演示材料，以及双语 `/codex` 产品页面。
 - 用白名单约束、由模型自主控制的 `read_help_skill` 选材阶段替代关键词文档路由。
 - 为 LM Studio 接入原生 `/v1/responses` function calling，包括强制工具选择、无匹配工具、低温路由、输出上限，以及真实 `function_call` 返回校验。
 - 仅对不支持原生工具调用的供应商保留 JSON 兼容选材协议。
