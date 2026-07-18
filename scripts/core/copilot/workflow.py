@@ -29,7 +29,7 @@ _plans: dict[str, StoredPlan] = {}
 _plans_lock = threading.Lock()
 
 
-def _normalize_allowed_mod_folder(folder_path: str) -> Path:
+def _resolve_allowed_mod_folder(folder_path: str) -> Path:
     normalized = os.path.normcase(
         os.path.realpath(os.path.expanduser(folder_path))
     )
@@ -57,13 +57,13 @@ def _normalize_allowed_mod_folder(folder_path: str) -> Path:
                 )
             )
 
-    allowed = False
-    for allowed_root in allowed_roots:
+    matched_root: str | None = None
+    for allowed_root in sorted(allowed_roots, key=len, reverse=True):
         allowed_prefix = allowed_root.rstrip("\\/") + os.sep
         if normalized == allowed_root or normalized.startswith(allowed_prefix):
-            allowed = True
+            matched_root = allowed_root
             break
-    if not allowed:
+    if matched_root is None:
         raise ValueError(
             "Mod folder is outside the allowed local import roots"
         )
@@ -82,17 +82,42 @@ def _normalize_allowed_mod_folder(folder_path: str) -> Path:
         if normalized == protected_root or normalized.startswith(protected_prefix):
             raise ValueError("Mod folder is inside a protected system root")
 
-    home_root = os.path.normcase(os.path.realpath(str(Path.home())))
-    if normalized == home_root or os.path.dirname(normalized) == normalized:
+    if normalized == matched_root or os.path.dirname(normalized) == normalized:
         raise ValueError("Select a specific mod folder")
-    return Path(normalized)
+
+    relative_parts = Path(os.path.relpath(normalized, matched_root)).parts
+    current = Path(matched_root)
+    for component in relative_parts:
+        if (
+            component in {"", ".", ".."}
+            or os.path.basename(component) != component
+        ):
+            raise ValueError("Mod folder path is invalid")
+        try:
+            with os.scandir(current) as entries:
+                match = next(
+                    (
+                        entry
+                        for entry in entries
+                        if os.path.normcase(entry.name)
+                        == os.path.normcase(component)
+                    ),
+                    None,
+                )
+        except OSError as exc:
+            raise ValueError("Mod folder does not exist") from exc
+        if match is None:
+            raise ValueError("Mod folder does not exist")
+        current = Path(match.path)
+
+    if not current.is_dir():
+        raise ValueError("Mod folder does not exist")
+    return current
 
 
 def inspect_mod_folder(folder_path: str) -> dict[str, Any]:
     """Read only names and basic metadata under an allowed local mod folder."""
-    root = _normalize_allowed_mod_folder(folder_path)
-    if not root.exists() or not root.is_dir():
-        raise ValueError("Mod folder does not exist")
+    root = _resolve_allowed_mod_folder(folder_path)
 
     total_files = 0
     localization_files = 0

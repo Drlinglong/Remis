@@ -74,7 +74,7 @@ async def _build_glossary_duplicate_index(
     return duplicate_index
 
 
-def _resolve_path_within_root(raw_path: str, source_root: Path) -> Path:
+def _normalize_path_within_root(raw_path: str, source_root: Path) -> str:
     try:
         root_text = os.path.realpath(str(source_root))
         candidate_text = os.path.expanduser(raw_path)
@@ -92,8 +92,11 @@ def _resolve_path_within_root(raw_path: str, source_root: Path) -> Path:
             status_code=400,
             detail="Selected file path is invalid",
         ) from exc
+    return normalized
 
-    resolved = Path(normalized)
+
+def _resolve_tracked_path_within_root(raw_path: str, source_root: Path) -> Path:
+    resolved = Path(_normalize_path_within_root(raw_path, source_root))
     if not resolved.is_file():
         raise HTTPException(status_code=400, detail="Selected file does not exist")
     if not _is_supported_mining_path(resolved):
@@ -108,27 +111,28 @@ async def _resolve_project_mining_files(project: dict, requested_paths: Optional
         raise HTTPException(status_code=400, detail="Project source directory does not exist") from exc
 
     tracked_files = await project_manager.get_project_files(project["project_id"])
-    allowed: dict[Path, str] = {}
+    allowed: dict[str, str] = {}
     for tracked in tracked_files:
         raw_path = tracked.get("file_path") or tracked.get("path")
         if not raw_path:
             continue
         try:
-            resolved = _resolve_path_within_root(raw_path, source_root)
+            resolved = _resolve_tracked_path_within_root(raw_path, source_root)
         except HTTPException:
             continue
-        allowed[resolved] = str(resolved)
+        allowed[os.path.normcase(str(resolved))] = str(resolved)
 
     if requested_paths:
         selected: list[str] = []
         for raw_path in requested_paths:
-            resolved = _resolve_path_within_root(raw_path, source_root)
-            if resolved not in allowed:
+            normalized = _normalize_path_within_root(raw_path, source_root)
+            normalized_key = os.path.normcase(normalized)
+            if normalized_key not in allowed:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Selected file is not indexed for this project: {raw_path}",
+                    detail="Selected file is not indexed for this project",
                 )
-            selected.append(allowed[resolved])
+            selected.append(allowed[normalized_key])
         files = list(dict.fromkeys(selected))
     else:
         files = sorted(allowed.values())

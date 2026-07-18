@@ -30,6 +30,23 @@ def test_inspection_is_read_only_and_scoped_to_selected_folder(tmp_path):
     assert before == after
 
 
+def test_inspection_rejects_an_allowed_root_itself(tmp_path, monkeypatch):
+    monkeypatch.setenv("REMIS_AGENT_IMPORT_ROOTS", str(tmp_path))
+
+    with pytest.raises(ValueError, match="specific mod folder"):
+        workflow.inspect_mod_folder(str(tmp_path))
+
+
+def test_inspection_resolves_only_server_enumerated_children(tmp_path, monkeypatch):
+    allowed_root = tmp_path / "imports"
+    mod = _make_mod(allowed_root)
+    monkeypatch.setenv("REMIS_AGENT_IMPORT_ROOTS", str(allowed_root))
+
+    result = workflow.inspect_mod_folder(str(mod))
+
+    assert Path(result["folder_path"]).resolve() == mod.resolve()
+
+
 def test_async_read_tools_do_not_use_blocking_requests():
     source = Path(read_tools.__file__).read_text(encoding="utf-8")
     assert "requests.get" not in source
