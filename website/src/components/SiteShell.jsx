@@ -122,6 +122,7 @@ function Footer() {
         <div>
           <span className="footer-label">{t('Explore')}</span>
           <a href={sitePath('engineering/')}>{t('AI Engineering')}</a>
+          <a href={sitePath('aventine/')}>{t('Aventine')}</a>
           <a href={sitePath('guide/')}>{t('Beginner Guide')}</a>
           <a href={sitePath('roadmap/')}>{t('Roadmap')}</a>
         </div>

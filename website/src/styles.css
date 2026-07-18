@@ -1861,6 +1861,395 @@ img {
   line-height: 1.7;
 }
 
+/* Agent delivery --------------------------------------------------------- */
+
+.agent-delivery-section {
+  border-block: 1px solid var(--line-dark);
+}
+
+.agent-milestone-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--line-dark);
+  border-left: 1px solid var(--line-dark);
+}
+
+.agent-milestone-grid article {
+  display: flex;
+  min-height: 330px;
+  flex-direction: column;
+  padding: 1.5rem;
+  border-right: 1px solid var(--line-dark);
+  border-bottom: 1px solid var(--line-dark);
+}
+
+.agent-milestone-grid article > span {
+  color: var(--signal);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+}
+
+.agent-milestone-grid h3 {
+  margin: 2.8rem 0 0.8rem;
+  font-size: 1.28rem;
+  line-height: 1.2;
+}
+
+.agent-milestone-grid p {
+  margin: 0;
+  color: var(--text-muted-dark);
+  font-size: 0.82rem;
+  line-height: 1.75;
+}
+
+.agent-milestone-grid code {
+  margin-top: auto;
+  padding-top: 1.6rem;
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1.6;
+}
+
+.agent-delivery-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+/* Aventine evidence page ------------------------------------------------- */
+
+.page-hero--aventine {
+  position: relative;
+  background:
+    linear-gradient(rgba(102, 215, 194, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(102, 215, 194, 0.055) 1px, transparent 1px),
+    radial-gradient(circle at 78% 28%, rgba(102, 215, 194, 0.12), transparent 34%),
+    var(--ink);
+  background-size: 58px 58px, 58px 58px, auto, auto;
+}
+
+.aventine-hero-grid {
+  display: grid;
+  min-height: 760px;
+  grid-template-columns: minmax(0, 0.92fr) minmax(500px, 1.08fr);
+  gap: clamp(3rem, 7vw, 7rem);
+  align-items: center;
+  padding-block: clamp(5rem, 9vw, 8rem);
+}
+
+.display-heading--aventine {
+  max-width: 740px;
+  font-size: clamp(4rem, 6.5vw, 6.8rem);
+}
+
+.aventine-hero__copy .hero-lead {
+  max-width: 720px;
+}
+
+.aventine-instrument {
+  border: 1px solid #3b5752;
+  background: rgba(7, 15, 16, 0.88);
+  box-shadow: 22px 22px 0 rgba(214, 171, 98, 0.1);
+}
+
+.aventine-instrument__header {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #304742;
+  color: #8aa39c;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+}
+
+.aventine-instrument__winner {
+  padding: clamp(2rem, 5vw, 4.5rem) clamp(1.5rem, 4vw, 3.5rem);
+}
+
+.aventine-instrument__winner span {
+  color: var(--signal);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+}
+
+.aventine-instrument__winner strong {
+  display: block;
+  margin-top: 1rem;
+  color: var(--text-on-ink);
+  font-family: var(--font-serif);
+  font-size: clamp(4.5rem, 8vw, 8.5rem);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 0.8;
+}
+
+.aventine-instrument__winner p {
+  margin: 1.6rem 0 0;
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+}
+
+.aventine-instrument__trace {
+  display: grid;
+  grid-template-columns: repeat(7, auto);
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-block: 1px solid #304742;
+  color: #91aaa4;
+  font-family: var(--font-mono);
+  font-size: 0.61rem;
+}
+
+.aventine-instrument__trace b {
+  color: var(--signal);
+  font-weight: 400;
+}
+
+.aventine-instrument dl {
+  margin: 0;
+}
+
+.aventine-instrument dl > div {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #263936;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+}
+
+.aventine-instrument dt {
+  color: #78928c;
+}
+
+.aventine-instrument dd {
+  margin: 0;
+  color: var(--text-on-ink);
+  text-align: right;
+}
+
+.proof-strip--aventine {
+  background: #0d1719;
+  color: var(--text-on-ink);
+}
+
+.proof-strip--aventine .proof-item {
+  border-color: var(--line-dark);
+}
+
+.proof-strip--aventine .proof-item:first-child {
+  border-left-color: var(--line-dark);
+}
+
+.proof-strip--aventine .proof-item strong {
+  color: var(--signal);
+}
+
+.proof-strip--aventine .proof-item p {
+  color: var(--text-muted-dark);
+}
+
+.aventine-contract {
+  border-top: 1px solid var(--line-light);
+}
+
+.aventine-contract__stage {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) minmax(240px, 0.5fr);
+  gap: clamp(1.5rem, 4vw, 4rem);
+  align-items: center;
+  padding: 2rem 0;
+  border-bottom: 1px solid var(--line-light);
+}
+
+.aventine-contract__identity {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  color: var(--signal-dark);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+}
+
+.aventine-contract__identity p {
+  margin: 0;
+}
+
+.aventine-contract h3 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.6vw, 2.3rem);
+  line-height: 1.15;
+}
+
+.aventine-contract__stage > div:nth-child(2) > p {
+  max-width: 720px;
+  margin: 0.7rem 0 0;
+  color: var(--text-muted-light);
+  font-size: 0.86rem;
+}
+
+.aventine-contract code {
+  color: var(--signal-dark);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  line-height: 1.7;
+}
+
+.tournament-section {
+  border-block: 1px solid var(--line-dark);
+}
+
+.tournament-table {
+  border-top: 1px solid var(--line-dark);
+  border-left: 1px solid var(--line-dark);
+}
+
+.tournament-table__row {
+  display: grid;
+  grid-template-columns: 70px minmax(300px, 1.8fr) repeat(4, minmax(90px, 0.6fr));
+}
+
+.tournament-table__row > * {
+  display: flex;
+  min-height: 78px;
+  align-items: center;
+  padding: 1rem;
+  border-right: 1px solid var(--line-dark);
+  border-bottom: 1px solid var(--line-dark);
+  color: var(--text-muted-dark);
+  font-size: 0.76rem;
+}
+
+.tournament-table__header > * {
+  min-height: 48px;
+  color: #81948f;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tournament-table__row strong {
+  color: var(--text-on-ink);
+  font-size: 0.88rem;
+}
+
+.tournament-table__row.is-champion {
+  background: rgba(102, 215, 194, 0.075);
+}
+
+.tournament-table__row.is-champion > *:first-child,
+.tournament-table__row.is-champion > *:last-child {
+  color: var(--signal);
+  font-family: var(--font-mono);
+}
+
+.tournament-note {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 2rem;
+  margin-top: 2rem;
+  padding: 1.2rem 0;
+  border-block: 1px solid var(--line-dark);
+}
+
+.tournament-note span {
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+}
+
+.tournament-note p {
+  max-width: 900px;
+  margin: 0;
+  color: var(--text-muted-dark);
+  font-size: 0.8rem;
+}
+
+.aventine-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid rgba(11, 16, 19, 0.35);
+  border-left: 1px solid rgba(11, 16, 19, 0.35);
+}
+
+.aventine-evidence-grid article {
+  min-height: 285px;
+  padding: 1.5rem;
+  border-right: 1px solid rgba(11, 16, 19, 0.35);
+  border-bottom: 1px solid rgba(11, 16, 19, 0.35);
+}
+
+.aventine-evidence-grid article > span {
+  color: var(--signal-dark);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+}
+
+.aventine-evidence-grid h3 {
+  margin: 3rem 0 0.9rem;
+  font-size: 1.22rem;
+  line-height: 1.25;
+}
+
+.aventine-evidence-grid p {
+  margin: 0;
+  color: #28443d;
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+
+.judge-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(520px, 1.2fr);
+  gap: clamp(3rem, 7vw, 7rem);
+  align-items: center;
+}
+
+.judge-ledger {
+  border-top: 1px solid var(--line-light);
+  border-left: 1px solid var(--line-light);
+}
+
+.judge-ledger__row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.1fr) repeat(3, minmax(100px, 0.8fr));
+}
+
+.judge-ledger__row > * {
+  display: flex;
+  min-height: 82px;
+  align-items: center;
+  padding: 0.9rem;
+  border-right: 1px solid var(--line-light);
+  border-bottom: 1px solid var(--line-light);
+  font-size: 0.78rem;
+}
+
+.judge-ledger__header > * {
+  min-height: 54px;
+  color: var(--signal-dark);
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+}
+
+.judge-ledger strong {
+  color: var(--ink);
+}
+
+.aventine-bridge {
+  border-block: 1px solid var(--line-dark);
+}
+
 .site-footer {
   padding: 4rem 0 1.4rem;
   background: #080b0d;
@@ -1947,13 +2336,15 @@ img {
   .hero-grid,
   .page-hero__grid,
   .engineering-hero-grid,
+  .aventine-hero-grid,
   .inference-boundary,
   .guide-hero-grid,
   .qa-grid,
   .benchmark-grid,
   .safety-grid,
   .faq-grid,
-  .launcher-grid {
+  .launcher-grid,
+  .judge-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1981,6 +2372,33 @@ img {
   .system-map {
     width: min(100%, 850px);
     margin-left: auto;
+  }
+
+  .aventine-instrument,
+  .judge-ledger {
+    width: min(100%, 850px);
+    margin-left: auto;
+  }
+
+  .agent-milestone-grid,
+  .aventine-evidence-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .aventine-contract__stage {
+    grid-template-columns: 150px minmax(0, 1fr);
+  }
+
+  .aventine-contract code {
+    grid-column: 2;
+  }
+
+  .tournament-table {
+    overflow-x: auto;
+  }
+
+  .tournament-table__row {
+    min-width: 980px;
   }
 
   .workflow-chapter__body {
@@ -2085,7 +2503,8 @@ img {
   }
 
   .display-heading--product,
-  .display-heading--engineering {
+  .display-heading--engineering,
+  .display-heading--aventine {
     font-size: clamp(3.25rem, 14vw, 5rem);
   }
 
@@ -2207,6 +2626,59 @@ img {
 
   .workflow-questions {
     grid-template-columns: 1fr;
+  }
+
+  .agent-milestone-grid,
+  .aventine-evidence-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-milestone-grid article,
+  .aventine-evidence-grid article {
+    min-height: auto;
+  }
+
+  .agent-milestone-grid code {
+    margin-top: 2rem;
+  }
+
+  .aventine-instrument {
+    box-shadow: 10px 10px 0 rgba(214, 171, 98, 0.1);
+  }
+
+  .aventine-instrument__winner strong {
+    font-size: clamp(4rem, 19vw, 7rem);
+  }
+
+  .aventine-instrument__trace {
+    grid-template-columns: 1fr auto;
+    gap: 0.6rem 1rem;
+    justify-content: stretch;
+  }
+
+  .aventine-instrument__trace b {
+    display: none;
+  }
+
+  .aventine-contract__stage {
+    grid-template-columns: 1fr;
+  }
+
+  .aventine-contract code {
+    grid-column: auto;
+  }
+
+  .tournament-note {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+
+  .judge-ledger {
+    overflow-x: auto;
+  }
+
+  .judge-ledger__row {
+    min-width: 680px;
   }
 
   .workflow-questions > div:nth-child(odd),

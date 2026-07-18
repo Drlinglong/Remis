@@ -3,6 +3,11 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
+  agentMilestones,
+  aventineEvidence,
+  aventineProofPoints,
+  aventineRanking,
+  aventineRecipeStages,
   benchmarkMetrics,
   copilotLayers,
   guideQuestions,
@@ -25,6 +30,12 @@ const nonTranslatableFields = new Set([
   'key',
   'number',
   'path',
+  'rank',
+  'recipe',
+  'hardPass',
+  'record',
+  'unresolved',
+  'evidence',
   'value',
   'version',
 ])
@@ -83,6 +94,11 @@ describe('catalog usage', () => {
       guideSteps,
       guideQuestions,
       roadmapPhases,
+      agentMilestones,
+      aventineEvidence,
+      aventineProofPoints,
+      aventineRanking,
+      aventineRecipeStages,
     ].forEach((value) => collectDataMessages(value, usedMessages))
     benchmarkMetrics.forEach(([, question]) => usedMessages.add(question))
 

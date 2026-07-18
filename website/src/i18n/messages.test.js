@@ -18,6 +18,7 @@ const protectedProductTerms = [
   'Paradox',
   'Copilot',
   'Micro-RAG',
+  'Aventine',
 ]
 
 describe('translation catalogs', () => {

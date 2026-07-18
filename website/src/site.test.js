@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  agentMilestones,
+  aventineEvidence,
+  aventineProofPoints,
+  aventineRanking,
+  aventineRecipeStages,
   pageFromPath,
   productLayers,
   roadmapPhases,
@@ -12,6 +17,7 @@ describe('pageFromPath', () => {
     ['/Remis/', 'home'],
     ['/Remis/index.html', 'home'],
     ['/Remis/engineering/', 'engineering'],
+    ['/Remis/aventine/', 'aventine'],
     ['/Remis/guide/', 'guide'],
     ['/Remis/roadmap/', 'roadmap'],
     ['/Remis/not-a-page/', 'notFound'],
@@ -30,8 +36,8 @@ describe('product positioning content', () => {
   it('labels every product layer with a delivery status', () => {
     expect(productLayers.map((layer) => layer.status)).toEqual([
       'Shipped',
-      'Planned',
-      'Planned',
+      'In development',
+      'In development',
     ])
   })
 
@@ -44,5 +50,16 @@ describe('product positioning content', () => {
       && workflow.model
       && workflow.recovery
     ))).toBe(true)
+  })
+
+  it('publishes the Agent delivery and Aventine evidence contracts', () => {
+    expect(agentMilestones).toHaveLength(4)
+    expect(aventineProofPoints).toHaveLength(4)
+    expect(aventineRecipeStages).toHaveLength(3)
+    expect(aventineRanking[0]).toMatchObject({
+      recipe: 'Qwen 3.6 27B Q4_K_M',
+      result: 'Champion',
+    })
+    expect(aventineEvidence).toHaveLength(4)
   })
 })
