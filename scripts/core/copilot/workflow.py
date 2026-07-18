@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.shared.services import project_manager
-from scripts.app_settings import API_PROVIDERS
+from scripts.app_settings import API_PROVIDERS, PROJECT_ROOT
 
 PLAN_TTL_SECONDS = 30 * 60
 MAX_SCAN_FILES = 5000
@@ -29,14 +29,69 @@ _plans: dict[str, StoredPlan] = {}
 _plans_lock = threading.Lock()
 
 
-def inspect_mod_folder(folder_path: str) -> dict[str, Any]:
-    """Read only names and basic metadata under a user-selected folder."""
-    # Callers must validate the localhost user's selected folder and protected
-    # system roots before this bounded, read-only metadata scan.
+def _normalize_allowed_mod_folder(folder_path: str) -> Path:
+    normalized = os.path.normcase(
+        os.path.realpath(os.path.expanduser(folder_path))
+    )
+    allowed_roots = {
+        os.path.normcase(os.path.realpath(str(Path.home()))),
+        os.path.normcase(os.path.realpath(str(PROJECT_ROOT))),
+    }
+    configured_roots = os.environ.get("REMIS_AGENT_IMPORT_ROOTS", "")
+    for configured in configured_roots.split(os.pathsep):
+        if configured.strip():
+            allowed_roots.add(
+                os.path.normcase(
+                    os.path.realpath(os.path.expanduser(configured.strip()))
+                )
+            )
+    for drive_letter in "CDEFGHIJKLMNOPQRSTUVWXYZ":
+        for relative_root in (
+            r"SteamLibrary\steamapps\workshop\content",
+            r"Steam\steamapps\workshop\content",
+            r"Program Files (x86)\Steam\steamapps\workshop\content",
+        ):
+            allowed_roots.add(
+                os.path.normcase(
+                    os.path.realpath(f"{drive_letter}:\\{relative_root}")
+                )
+            )
 
-    # codeql[py/path-injection]
-    root = Path(folder_path).expanduser().resolve()
-    if not root.is_dir():
+    allowed = False
+    for allowed_root in allowed_roots:
+        allowed_prefix = allowed_root.rstrip("\\/") + os.sep
+        if normalized == allowed_root or normalized.startswith(allowed_prefix):
+            allowed = True
+            break
+    if not allowed:
+        raise ValueError(
+            "Mod folder is outside the allowed local import roots"
+        )
+
+    protected_roots = {
+        os.path.normcase(
+            os.path.realpath(os.environ.get("WINDIR", "C:/Windows"))
+        ),
+    }
+    for name in ("ProgramFiles", "ProgramFiles(x86)", "APPDATA"):
+        value = os.environ.get(name)
+        if value:
+            protected_roots.add(os.path.normcase(os.path.realpath(value)))
+    for protected_root in protected_roots:
+        protected_prefix = protected_root.rstrip("\\/") + os.sep
+        if normalized == protected_root or normalized.startswith(protected_prefix):
+            raise ValueError("Mod folder is inside a protected system root")
+
+    home_root = os.path.normcase(os.path.realpath(str(Path.home())))
+    if normalized == home_root or os.path.dirname(normalized) == normalized:
+        raise ValueError("Select a specific mod folder")
+    return Path(normalized)
+
+
+def inspect_mod_folder(folder_path: str) -> dict[str, Any]:
+    """Read only names and basic metadata under an allowed local mod folder."""
+    root = _normalize_allowed_mod_folder(folder_path)
+    if not root.exists() or not root.is_dir():
         raise ValueError("Mod folder does not exist")
 
     total_files = 0
@@ -54,7 +109,8 @@ def inspect_mod_folder(folder_path: str) -> dict[str, Any]:
             if lower_name in {"descriptor.mod", "metadata.json"}:
                 metadata_files.append(rel)
             if path.suffix.lower() in LOCALIZATION_SUFFIXES and any(
-                part.lower() in {"localisation", "localization"} for part in path.parts
+                part.lower() in {"localisation", "localization"}
+                for part in path.parts
             ):
                 localization_files += 1
                 if len(sample_paths) < 8:

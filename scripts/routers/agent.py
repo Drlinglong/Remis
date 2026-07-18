@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -186,44 +185,29 @@ def _public_game(profile: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _validate_agent_import_path(folder_path: str) -> Dict[str, Any]:
-    normalized = os.path.realpath(os.path.expanduser(folder_path))
-    root = Path(normalized)
-
-    # This endpoint intentionally inspects a user-selected local mod directory.
-    # The backend is localhost-only; the checks below reject roots/system paths
-    # and require recognizable Paradox mod contents before returning metadata.
-
-    # codeql[py/path-injection]
-    if not root.exists():
-        raise _error(404, "import_path_not_found", "Import path not found")
-
-    # codeql[py/path-injection]
-    if not root.is_dir():
-        raise _error(400, "import_path_not_directory", "Import path must be a directory")
-
-    home_root = Path.home().resolve()
-    system_roots = {
-        Path(os.environ.get("WINDIR", "C:/Windows")).resolve(),
-    }
-    for name in ("ProgramFiles", "ProgramFiles(x86)", "APPDATA"):
-        value = os.environ.get(name)
-        if value:
-            system_roots.add(Path(value).resolve())
-    inside_system_root = any(
-        root == protected or root.is_relative_to(protected)
-        for protected in system_roots
-    )
-    if root == home_root or root.parent == root or inside_system_root:
-        raise _error(
-            403,
-            "import_path_not_allowed",
-            "Select a specific mod folder, not a home, system, or filesystem root",
-        )
-
     try:
-        inspection = inspect_mod_folder(str(root))
+        inspection = inspect_mod_folder(folder_path)
     except ValueError as exc:
-        logger.info("Agent rejected unsupported import folder: %s", exc)
+        reason = str(exc)
+        if reason in {
+            "Mod folder is outside the allowed local import roots",
+            "Mod folder is inside a protected system root",
+            "Select a specific mod folder",
+        }:
+            raise _error(
+                403,
+                "import_path_not_allowed",
+                (
+                    "Agent imports are restricted to the user profile, standard "
+                    "Steam Workshop roots, or REMIS_AGENT_IMPORT_ROOTS"
+                ),
+            ) from exc
+        if reason == "Mod folder does not exist":
+            raise _error(
+                404,
+                "import_path_not_found",
+                "Import path not found",
+            ) from exc
         raise _error(
             400,
             "invalid_mod_folder",

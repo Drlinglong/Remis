@@ -81,7 +81,8 @@ def _resolve_path_within_root(raw_path: str, source_root: Path) -> Path:
         if not os.path.isabs(candidate_text):
             candidate_text = os.path.join(root_text, candidate_text)
         normalized = os.path.realpath(candidate_text)
-        if os.path.commonpath([root_text, normalized]) != root_text:
+        root_prefix = root_text.rstrip("\\/") + os.sep
+        if normalized != root_text and not normalized.startswith(root_prefix):
             raise HTTPException(
                 status_code=400,
                 detail="Selected files must stay inside the project source directory",
@@ -93,9 +94,6 @@ def _resolve_path_within_root(raw_path: str, source_root: Path) -> Path:
         ) from exc
 
     resolved = Path(normalized)
-    # realpath plus commonpath above rejects traversal and symlink escapes.
-
-    # codeql[py/path-injection]
     if not resolved.is_file():
         raise HTTPException(status_code=400, detail="Selected file does not exist")
     if not _is_supported_mining_path(resolved):
