@@ -1,8 +1,11 @@
 import json
+import logging
 import sys
 from pathlib import Path
 
-from scripts.app_settings import PROJECT_ROOT
+from scripts.app_settings import PROJECT_ROOT, config_manager
+from scripts.core.hunyuan_handler import HunyuanHandler
+from scripts.core.prompt_manager import prompt_manager
 from scripts.developer_tools.evaluate_translation_quality import (
     DEFAULT_FIXTURE,
     build_translation_prompt,
@@ -174,10 +177,73 @@ def test_contextual_glossary_case_uses_production_injection_and_restores_state()
         assert "'prestige goods' → '名贵商品'" in prompt
         assert "仅用于军事领域" in prompt
         assert "不应拆分或译为‘威望良好’" in prompt
-        assert "must be translated strictly according to the glossary" in prompt
+        assert "Remarks define when a glossary translation applies" in prompt
+        assert "only when the source context matches those Remarks" in prompt
+        assert "must be translated strictly according to the glossary" not in prompt
         assert glossary_manager.in_memory_glossary is previous
     finally:
         glossary_manager.in_memory_glossary = original
+
+
+def test_custom_global_prompt_reaches_production_prompt_without_replacing_task_context(
+    monkeypatch,
+):
+    raw_case = load_fixture()["translation_cases"][0]
+    case = resolve_case(raw_case)
+    handler = get_handler("lm_studio", model_name="benchmark-test-model")
+    task = make_task(case, "lm_studio")
+    task.file_task.mod_context = "ISSUE_161_TASK_CONTEXT"
+    stored_settings = {}
+    monkeypatch.setattr(
+        config_manager,
+        "get_value",
+        lambda key, default=None: stored_settings.get(key, default),
+    )
+    monkeypatch.setattr(
+        config_manager,
+        "set_value",
+        lambda key, value: stored_settings.__setitem__(key, value),
+    )
+    prompt_manager.save_custom_global_prompt("ISSUE_161_GLOBAL_PROMPT")
+
+    prompt = handler._build_prompt(task)
+
+    assert "ISSUE_161_TASK_CONTEXT" in prompt
+    assert "ISSUE_161_GLOBAL_PROMPT" in prompt
+
+    task.file_task.mod_context = "ISSUE_161_GLOBAL_PROMPT"
+    deduplicated_prompt = handler._build_prompt(task)
+
+    assert deduplicated_prompt.count("ISSUE_161_GLOBAL_PROMPT") == 1
+
+
+def test_hunyuan_prompt_keeps_context_global_prompt_and_contextual_glossary(
+    monkeypatch,
+):
+    raw_case = next(
+        case
+        for case in load_fixture()["translation_cases"]
+        if case["id"] == "victoria3_contextual_glossary"
+    )
+    case = resolve_case(raw_case)
+    task = make_task(case, "hunyuan")
+    task.file_task.mod_context = "ISSUE_161_HUNYUAN_CONTEXT"
+    handler = object.__new__(HunyuanHandler)
+    handler.provider_name = "hunyuan"
+    handler.model_id = "issue-161-test-model"
+    handler.logger = logging.getLogger("issue-161-hunyuan-test")
+    monkeypatch.setattr(
+        prompt_manager,
+        "get_custom_global_prompt",
+        lambda: "ISSUE_161_HUNYUAN_GLOBAL_PROMPT",
+    )
+
+    prompt = build_translation_prompt(case, handler, task)
+
+    assert "ISSUE_161_HUNYUAN_CONTEXT" in prompt
+    assert "ISSUE_161_HUNYUAN_GLOBAL_PROMPT" in prompt
+    assert "'silo' → '发射井'" in prompt
+    assert "only when the source context matches those Remarks" in prompt
 
 
 def test_contextual_glossary_scoring_rewards_following_and_disambiguation():

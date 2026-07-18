@@ -603,8 +603,9 @@ class GlossaryManager:
         if not relevant_terms:
             return ""
         prompt_lines = [
-            "🔍 CRITICAL GLOSSARY INSTRUCTIONS - HIGH PRIORITY 🔍",
-            f"The following terms must be translated strictly according to the glossary to maintain consistency:",
+            "🔍 CONTEXT-AWARE GLOSSARY INSTRUCTIONS - HIGH PRIORITY 🔍",
+            "The following entries are terminology candidates for this batch.",
+            "Remarks define when a glossary translation applies; they are applicability conditions, not optional notes.",
             "",
             "Glossary Reference:"
         ]
@@ -627,13 +628,18 @@ class GlossaryManager:
                 prompt_lines.append(f"  Variants: {variant_list}")
             if remarks:
                  prompt_lines.append(f"  Remarks: {remarks}")
-                 
+                 prompt_lines.append(
+                     "  Scope: use the target translation only when the source context matches these Remarks."
+                 )
+
         prompt_lines.extend([
             "",
             "Translation Requirements:",
-            "1. The above terms must be translated strictly according to the glossary.",
-            "2. For phonetic matches, use the glossary term as reference.",
-            "3. Maintain consistency."
+            "1. When an entry has Remarks, use its target translation only when the source context matches those Remarks.",
+            "2. If the context conflicts with the Remarks, choose the contextually correct translation instead of forcing the glossary target.",
+            "3. When Remarks are absent, use exact unambiguous matches consistently; for polysemy or ambiguity, prefer the surrounding source context.",
+            "4. Treat phonetic or fuzzy matches as references, not mandatory replacements.",
+            "5. Do not add explanations to the translation output; preserve the required response format."
         ])
         return "\n".join(prompt_lines)
 
