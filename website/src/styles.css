@@ -2454,30 +2454,23 @@ img {
   height: 30px;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid currentColor;
+  overflow: hidden;
+  padding: 4px;
+  border: 1px solid #42515a;
   border-radius: 50%;
-  color: #fff;
+  background: #f4f5f2;
+  color: #111719;
   font-family: var(--font-sans);
   font-size: 0.72rem;
   font-style: normal;
   font-weight: 750;
 }
 
-.benchmark-brand--qwen {
-  background: #5e42d6;
-  border-color: #9f90f4;
-}
-
-.benchmark-brand--gemma,
-.benchmark-brand--translate-gemma {
-  background: conic-gradient(from 30deg, #4d8dff, #20d7b5, #f1aa28, #ef5b78, #4d8dff);
-  border-color: transparent;
-}
-
-.benchmark-brand--nemotron {
-  background: #76b900;
-  border-color: #a4e43f;
-  color: #071005;
+.benchmark-brand img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .benchmark-bar__identity strong {
@@ -2682,6 +2675,7 @@ img {
 .recipe-tabs .benchmark-brand {
   width: 21px;
   height: 21px;
+  padding: 3px;
   font-size: 0.52rem;
 }
 

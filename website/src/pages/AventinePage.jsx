@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ButtonLink, SiteShell, TextLink } from '../components/SiteShell'
 import { useI18n } from '../i18n/context'
 import { links } from '../site'
+import { getVendorLogo } from '../vendorLogos'
 
 // PREVIEW TELEMETRY:
 // compositeScore, elapsed, cost, throughput, outputTokens, termDiscovery, errorRate,
@@ -12,6 +13,7 @@ const recipes = [
     id: 'qwen',
     rank: 1,
     vendor: 'Alibaba',
+    vendorId: 'alibaba',
     vendorMark: 'Q',
     model: 'Qwen 3.6',
     spec: '27B · Q4_K_M',
@@ -37,6 +39,7 @@ const recipes = [
     id: 'gemma',
     rank: 2,
     vendor: 'Google',
+    vendorId: 'google',
     vendorMark: 'G',
     model: 'Gemma 4',
     spec: '31B · QAT Q4_0',
@@ -62,6 +65,7 @@ const recipes = [
     id: 'translate-gemma',
     rank: 3,
     vendor: 'Google',
+    vendorId: 'google',
     vendorMark: 'G',
     model: 'TranslateGemma',
     spec: '27B Instruct · Q6_K',
@@ -87,6 +91,7 @@ const recipes = [
     id: 'nemotron',
     rank: 4,
     vendor: 'NVIDIA',
+    vendorId: 'nvidia',
     vendorMark: 'N',
     model: 'Nemotron Cascade 2',
     spec: '30B A3B · Q4_K_M',
@@ -266,9 +271,13 @@ const copy = {
 }
 
 function BrandMark({ recipe }) {
+  const logo = getVendorLogo(recipe.vendorId)
+
   return (
     <span className={`benchmark-brand benchmark-brand--${recipe.id}`} aria-label={recipe.vendor}>
-      {recipe.vendorMark}
+      {logo
+        ? <img alt="" aria-hidden="true" src={logo.src} />
+        : recipe.vendorMark}
     </span>
   )
 }
