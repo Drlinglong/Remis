@@ -353,29 +353,6 @@ export function AventinePage() {
           </div>
         </section>
 
-        <section className="benchmark-positioning">
-          <div className="container benchmark-positioning__grid">
-            <div>
-              <p>WHY AVENTINE</p>
-              <h2>{labels.whyTitle}</h2>
-              <span>{labels.whyBody}</span>
-            </div>
-            <div className="benchmark-principles">
-              {[
-                [labels.principleProduction, labels.principleProductionBody],
-                [labels.principleComparable, labels.principleComparableBody],
-                [labels.principleOperational, labels.principleOperationalBody],
-                [labels.principleRelease, labels.principleReleaseBody],
-              ].map(([title, body], index) => (
-                <article key={title}>
-                  <small>0{index + 1}</small>
-                  <div><strong>{title}</strong><span>{body}</span></div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
         <section className="benchmark-detail">
           <div className="container">
             <div className="benchmark-section-title">
@@ -491,6 +468,29 @@ export function AventinePage() {
                   <span role="cell"><b style={{ '--judge-value': `${judge.falseGood}%`, '--judge-color': judge.color }} />{judge.falseGood}%</span>
                   <span role="cell">{judge.cost}</span>
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="benchmark-positioning">
+          <div className="container benchmark-positioning__grid">
+            <div>
+              <p>WHY AVENTINE</p>
+              <h2>{labels.whyTitle}</h2>
+              <span>{labels.whyBody}</span>
+            </div>
+            <div className="benchmark-principles">
+              {[
+                [labels.principleProduction, labels.principleProductionBody],
+                [labels.principleComparable, labels.principleComparableBody],
+                [labels.principleOperational, labels.principleOperationalBody],
+                [labels.principleRelease, labels.principleReleaseBody],
+              ].map(([title, body], index) => (
+                <article key={title}>
+                  <small>0{index + 1}</small>
+                  <div><strong>{title}</strong><span>{body}</span></div>
+                </article>
               ))}
             </div>
           </div>
