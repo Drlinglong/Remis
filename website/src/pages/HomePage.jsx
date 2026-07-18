@@ -88,6 +88,7 @@ export function HomePage() {
             </p>
             <div className="hero-actions">
               <ButtonLink href={links.releases} tone="accent" external>Download for Windows</ButtonLink>
+              <ButtonLink href={sitePath('codex/')} tone="agent">Use with an AI Agent</ButtonLink>
               <ButtonLink href={sitePath('engineering/')} tone="dark">Explore AI Engineering</ButtonLink>
             </div>
             <div className="system-signals" aria-label={t('System principles')}>

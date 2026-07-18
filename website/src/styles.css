@@ -385,6 +385,18 @@ img {
   margin-top: 2.3rem;
 }
 
+.hero--home .hero-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.hero--home .hero-actions .button-link {
+  min-width: 0;
+  gap: 0.55rem;
+  padding-inline: 0.9rem;
+  font-size: 0.74rem;
+}
+
 .button-link {
   display: inline-flex;
   min-height: 50px;
@@ -413,6 +425,17 @@ img {
   background: transparent;
   border-color: rgba(246, 242, 232, 0.5);
   color: var(--text-on-ink);
+}
+
+.button-link--agent {
+  background: rgba(102, 215, 194, 0.08);
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.button-link--agent:hover {
+  background: var(--signal);
+  color: var(--ink);
 }
 
 .button-link--dark:hover {
@@ -4367,6 +4390,14 @@ img {
 }
 
 @media (max-width: 760px) {
+  .hero--home .hero-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .hero--home .hero-actions .button-link {
+    font-size: 0.82rem;
+  }
+
   .codex-display {
     font-size: clamp(3.1rem, 15vw, 5rem);
   }

@@ -414,5 +414,6 @@
   "MQM anchors, ACES contrastive cases, automatic metrics, and structured judges expose agreement, disagreement, and unresolved evidence.",
   "Aventine · Translation quality as evidence",
   "Aventine is a reproducible evaluation ground for complete translation recipes, born from Remis.",
-  "Use with Codex"
+  "Use with Codex",
+  "Use with an AI Agent"
 ]
