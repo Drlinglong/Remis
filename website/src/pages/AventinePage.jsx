@@ -3,6 +3,10 @@ import { ButtonLink, SiteShell, TextLink } from '../components/SiteShell'
 import { useI18n } from '../i18n/context'
 import { links } from '../site'
 
+// PREVIEW TELEMETRY:
+// compositeScore, elapsed, cost, throughput, outputTokens, termDiscovery, errorRate,
+// and style are presentation fixtures until the Remis workflow exports these fields.
+// Tournament rank, wins/losses/ties, unresolved counts, and hard-pass counts are recorded results.
 const recipes = [
   {
     id: 'qwen',
@@ -18,6 +22,16 @@ const recipes = [
     ties: 2,
     unresolved: 3,
     hardPass: 7,
+    elapsed: '02:41',
+    cost: '¥0.38',
+    throughput: '31.8 tok/s',
+    outputTokens: '18.4k',
+    termDiscovery: 94,
+    errorRate: 1.8,
+    style: {
+      en: 'Restrained, natural, and terminologically stable. Dialogue preserves character identity; long sentences are split with care. Closest to release-ready Simplified Chinese.',
+      zh: '克制、自然、术语稳定。对白保留人物身份感，长句会谨慎拆分，整体最接近可直接发布的简体中文。',
+    },
   },
   {
     id: 'gemma',
@@ -33,6 +47,16 @@ const recipes = [
     ties: 2,
     unresolved: 4,
     hardPass: 7,
+    elapsed: '02:18',
+    cost: '¥0.44',
+    throughput: '28.6 tok/s',
+    outputTokens: '19.1k',
+    termDiscovery: 91,
+    errorRate: 2.6,
+    style: {
+      en: 'Fluent and slightly literary, with more expressive phrasing. Strong for narrative text, though occasional proactive polishing can expand the original meaning.',
+      zh: '流畅而略偏文学化，措辞更有表现力。适合叙事文本，但偶尔会主动润色，需要留意对原意的扩写。',
+    },
   },
   {
     id: 'translate-gemma',
@@ -48,6 +72,16 @@ const recipes = [
     ties: 2,
     unresolved: 6,
     hardPass: 5,
+    elapsed: '01:56',
+    cost: '¥0.31',
+    throughput: '34.1 tok/s',
+    outputTokens: '17.7k',
+    termDiscovery: 88,
+    errorRate: 5.4,
+    style: {
+      en: 'Faithful and direct, often retaining the source sentence structure. Terminology is consistent, but long passages can feel rigid and need rhythm-focused editing.',
+      zh: '忠实、直接，倾向保留原句结构。术语一致性良好，但长文本略显生硬，局部需要人工调整行文节奏。',
+    },
   },
   {
     id: 'nemotron',
@@ -63,6 +97,16 @@ const recipes = [
     ties: 0,
     unresolved: 1,
     hardPass: 1,
+    elapsed: '01:34',
+    cost: '¥0.27',
+    throughput: '38.7 tok/s',
+    outputTokens: '16.9k',
+    termDiscovery: 72,
+    errorRate: 18.9,
+    style: {
+      en: 'Neutral and mechanical. Short lines remain readable, but complex formatting and long context weaken constraint retention and voice consistency.',
+      zh: '语气中性但较机械，短句尚可；复杂格式与长上下文中容易丢失约束，整体风格一致性较弱。',
+    },
   },
 ].map((recipe) => ({
   ...recipe,
@@ -98,12 +142,33 @@ const copy = {
     unresolved: 'UNRESOLVED',
     explore: 'Explore every result',
     exploreIntro: 'Select a recipe to inspect the signals behind its rank.',
+    whyTitle: 'A benchmark for the system that ships the translation.',
+    whyBody: 'Model names alone do not explain production quality. Prompt design, terminology context, decoding, validation, and repair can change the result as much as the base model. Aventine compares those complete recipes under one frozen workload.',
+    principleProduction: 'Production-grounded',
+    principleProductionBody: 'Recipes come from the real Remis workflow, not isolated chat prompts.',
+    principleComparable: 'Directly comparable',
+    principleComparableBody: 'Every recipe receives the same translation and repair cases.',
+    principleOperational: 'Operationally measurable',
+    principleOperationalBody: 'Quality is read alongside time, cost, throughput, terminology, and errors.',
+    principleRelease: 'Release-oriented',
+    principleReleaseBody: 'Structural safety and voice matter alongside linguistic preference.',
     selected: 'SELECTED RECIPE',
     resolved: 'Resolved coverage',
+    termDiscovery: 'Terminology discovery · PREVIEW',
+    errorControl: 'Error-free rate · PREVIEW',
     wins: 'Wins',
     losses: 'Losses',
     ties: 'Ties',
     parameters: 'Recipe parameters',
+    runSignals: 'Workflow telemetry',
+    previewSignals: 'PREVIEW DATA · awaiting workflow instrumentation',
+    elapsed: 'Total elapsed',
+    estimatedCost: 'Estimated cost',
+    throughput: 'Throughput',
+    outputTokens: 'Output tokens',
+    termDiscoveryShort: 'Terms found',
+    errorRate: 'Error rate',
+    voice: 'Translation style / voice',
     parameterModel: 'Model',
     parameterQuant: 'Quantization',
     parameterFixture: 'Fixture',
@@ -147,12 +212,33 @@ const copy = {
     unresolved: '未裁决',
     explore: '查看每个模型的测评结果',
     exploreIntro: '选择一个翻译方案，查看排名背后的性能信号。',
+    whyTitle: '评估真正交付译文的完整系统。',
+    whyBody: '只看模型名称，无法解释生产质量。提示词、术语上下文、解码参数、校验与修复流程，都可能像基础模型一样改变最终结果。Aventine 让这些完整 translation recipe 在同一份冻结任务中直接竞争。',
+    principleProduction: '来自真实生产',
+    principleProductionBody: '参赛方案源于 Remis 实际工作流，而不是孤立的聊天提示词。',
+    principleComparable: '可以直接比较',
+    principleComparableBody: '每套方案面对完全相同的翻译与修复案例。',
+    principleOperational: '记录运行表现',
+    principleOperationalBody: '质量与耗时、成本、吞吐量、术语发现和错误率同时呈现。',
+    principleRelease: '面向真实发布',
+    principleReleaseBody: '除了语言偏好，也测试结构安全、术语稳定与翻译语气。',
     selected: '当前模型',
     resolved: '有效裁决覆盖率',
+    termDiscovery: '术语发现率 · PREVIEW',
+    errorControl: '无错误率 · PREVIEW',
     wins: '胜',
     losses: '负',
     ties: '平',
     parameters: '测试参数',
+    runSignals: '工作流运行记录',
+    previewSignals: 'PREVIEW DATA · 等待工作流埋点接入',
+    elapsed: '总耗时',
+    estimatedCost: '估算成本',
+    throughput: '生成速度',
+    outputTokens: '输出 Tokens',
+    termDiscoveryShort: '发现术语',
+    errorRate: '错误率',
+    voice: '翻译风格 / 语气',
     parameterModel: '模型',
     parameterQuant: '量化',
     parameterFixture: '测试集',
@@ -267,6 +353,29 @@ export function AventinePage() {
           </div>
         </section>
 
+        <section className="benchmark-positioning">
+          <div className="container benchmark-positioning__grid">
+            <div>
+              <p>WHY AVENTINE</p>
+              <h2>{labels.whyTitle}</h2>
+              <span>{labels.whyBody}</span>
+            </div>
+            <div className="benchmark-principles">
+              {[
+                [labels.principleProduction, labels.principleProductionBody],
+                [labels.principleComparable, labels.principleComparableBody],
+                [labels.principleOperational, labels.principleOperationalBody],
+                [labels.principleRelease, labels.principleReleaseBody],
+              ].map(([title, body], index) => (
+                <article key={title}>
+                  <small>0{index + 1}</small>
+                  <div><strong>{title}</strong><span>{body}</span></div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="benchmark-detail">
           <div className="container">
             <div className="benchmark-section-title">
@@ -314,6 +423,8 @@ export function AventinePage() {
                 <MetricBar label={labels.winRate} value={selected.winRate} color={selected.color} />
                 <MetricBar label={labels.hardPass} value={selected.hardPassRate} color={selected.color} />
                 <MetricBar label={labels.resolved} value={selected.resolvedRate} color={selected.color} />
+                <MetricBar label={labels.termDiscovery} value={selected.termDiscovery} color={selected.color} />
+                <MetricBar label={labels.errorControl} value={100 - selected.errorRate} color={selected.color} />
               </div>
 
               <div className="recipe-parameters">
@@ -326,6 +437,29 @@ export function AventinePage() {
                   <div><dt>{labels.parameterJudge}</dt><dd>{labels.judge}</dd></div>
                   <div><dt>{labels.parameterContract}</dt><dd>{labels.contract}</dd></div>
                 </dl>
+              </div>
+
+              <div className="recipe-diagnostics">
+                <div className="recipe-diagnostics__head">
+                  <h3>{labels.runSignals}</h3>
+                  <span>{labels.previewSignals}</span>
+                </div>
+                <div className="recipe-kpis">
+                  {[
+                    [labels.elapsed, selected.elapsed],
+                    [labels.estimatedCost, selected.cost],
+                    [labels.throughput, selected.throughput],
+                    [labels.outputTokens, selected.outputTokens],
+                    [labels.termDiscoveryShort, `${selected.termDiscovery}%`],
+                    [labels.errorRate, `${selected.errorRate}%`],
+                  ].map(([label, value]) => (
+                    <div key={label}><span>{label}</span><strong>{value}</strong></div>
+                  ))}
+                </div>
+                <div className="recipe-voice">
+                  <span>{labels.voice}</span>
+                  <p>{selected.style[locale] ?? selected.style.en}</p>
+                </div>
               </div>
             </div>
           </div>
