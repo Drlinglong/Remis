@@ -227,8 +227,8 @@ class ModDeployer:
         path = Path(original_mod_path).expanduser()
         try:
             resolved_root = path.resolve()
-        except OSError as exc:
-            return None, [], f"Failed to resolve original mod path: {exc}"
+        except OSError:
+            return None, [], "Failed to resolve the selected original mod path"
 
         if not resolved_root.exists():
             return None, [], f"Original mod path does not exist: {original_mod_path}"
@@ -242,8 +242,8 @@ class ModDeployer:
                 continue
             try:
                 resolved_candidate = candidate.resolve()
-            except OSError as exc:
-                return None, [], f"Failed to resolve localization directory {candidate}: {exc}"
+            except OSError:
+                return None, [], "Failed to resolve a localization directory"
             if not resolved_candidate.is_relative_to(resolved_root):
                 return None, [], (
                     "Safety check failed: localization directory resolves outside "
@@ -357,8 +357,13 @@ class ModDeployer:
                             try:
                                 shutil.rmtree(item)
                                 removed_folders.append(str(item.relative_to(path)).replace("\\", "/"))
-                            except Exception as e:
-                                errors.append(f"Failed to delete folder {item.name}: {e}")
+                            except Exception:
+                                logger.warning(
+                                    "Failed to delete a non-source localization folder"
+                                )
+                                errors.append(
+                                    f"Failed to delete folder {item.name}"
+                                )
                     # 2. Handle File
                     elif item.is_file():
                         # If file contains '_l_' and is not matching preserve_lang (e.g. some_l_simp_chinese.yml)
@@ -367,10 +372,14 @@ class ModDeployer:
                             try:
                                 item.unlink()
                                 removed_files.append(str(item.relative_to(path)).replace("\\", "/"))
-                            except Exception as e:
-                                errors.append(f"Failed to delete file {item.name}: {e}")
-            except Exception as e:
-                errors.append(f"Error accessing directory {loc_dir}: {e}")
+                            except Exception:
+                                logger.warning(
+                                    "Failed to delete a non-source localization file"
+                                )
+                                errors.append(f"Failed to delete file {item.name}")
+            except Exception:
+                logger.warning("Failed to inspect a localization directory")
+                errors.append("Failed to access a localization directory")
 
         if errors:
             return {
@@ -400,8 +409,11 @@ class ModDeployer:
                 game_id,
                 target_deploy_path,
             )
-        except ValueError as exc:
-            return {"status": "error", "message": str(exc)}
+        except ValueError:
+            return {
+                "status": "error",
+                "message": "Deployment request was rejected by safety checks.",
+            }
 
         clean_result = None
         if clean_fake_loc and workshop_path:
@@ -416,7 +428,7 @@ class ModDeployer:
             os.makedirs(target_mod_path.parent, exist_ok=True)
             
             shutil.copytree(source_mod_dir, target_mod_path)
-            logger.info(f"Copied mod folder to: {target_mod_path}")
+            logger.info("Copied Remis output into the detected Paradox mod directory")
 
             # 2. Handle descriptor.mod / .mod file
             # For Stellaris/HOI4/CK3/EU4, we need a .mod file in the root mod folder
@@ -457,7 +469,7 @@ class ModDeployer:
             with open(launcher_mod_file, 'w', encoding='utf-8') as f:
                 f.write(content)
             
-            logger.info(f"Created launcher .mod file: {launcher_mod_file}")
+            logger.info("Created the launcher descriptor for the deployed mod")
 
             return {
                 "status": "success", 

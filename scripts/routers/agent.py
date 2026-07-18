@@ -192,9 +192,12 @@ def _validate_agent_import_path(folder_path: str) -> Dict[str, Any]:
     # This endpoint intentionally inspects a user-selected local mod directory.
     # The backend is localhost-only; the checks below reject roots/system paths
     # and require recognizable Paradox mod contents before returning metadata.
+
     # codeql[py/path-injection]
     if not root.exists():
         raise _error(404, "import_path_not_found", "Import path not found")
+
+    # codeql[py/path-injection]
     if not root.is_dir():
         raise _error(400, "import_path_not_directory", "Import path must be a directory")
 
@@ -1048,7 +1051,7 @@ async def approve_agent_export(job_id: str, request: AgentExportRequest):
         clean_fake_loc=False,
     )
     if result.get("status") == "error":
-        logger.error("Agent export failed: %s", result.get("message"))
+        logger.error("Agent export failed")
         raise _error(
             500,
             "export_failed",

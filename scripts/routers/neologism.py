@@ -93,6 +93,9 @@ def _resolve_path_within_root(raw_path: str, source_root: Path) -> Path:
         ) from exc
 
     resolved = Path(normalized)
+    # realpath plus commonpath above rejects traversal and symlink escapes.
+
+    # codeql[py/path-injection]
     if not resolved.is_file():
         raise HTTPException(status_code=400, detail="Selected file does not exist")
     if not _is_supported_mining_path(resolved):

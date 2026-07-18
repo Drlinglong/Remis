@@ -42,7 +42,10 @@ def deploy_mod(payload: DeployRequest):
         source_language=payload.source_language
     )
     if result["status"] == "error":
-        raise HTTPException(status_code=500, detail=result["message"])
+        raise HTTPException(
+            status_code=500,
+            detail="Deployment failed. Check Remis logs for details.",
+        )
     return result
 
 class CleanFakeLocRequest(BaseModel):

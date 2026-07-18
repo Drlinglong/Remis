@@ -31,9 +31,13 @@ _plans_lock = threading.Lock()
 
 def inspect_mod_folder(folder_path: str) -> dict[str, Any]:
     """Read only names and basic metadata under a user-selected folder."""
+    # Callers must validate the localhost user's selected folder and protected
+    # system roots before this bounded, read-only metadata scan.
+
+    # codeql[py/path-injection]
     root = Path(folder_path).expanduser().resolve()
     if not root.is_dir():
-        raise ValueError(f"Mod folder does not exist: {root}")
+        raise ValueError("Mod folder does not exist")
 
     total_files = 0
     localization_files = 0

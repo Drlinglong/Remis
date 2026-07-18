@@ -91,8 +91,10 @@ def test_deploy_rejects_output_path_traversal(tmp_path, monkeypatch):
 
     result = deployer.deploy_mod("../outside", "victoria3")
 
-    assert result["status"] == "error"
-    assert "produced by Remis" in result["message"]
+    assert result == {
+        "status": "error",
+        "message": "Deployment request was rejected by safety checks.",
+    }
     assert marker.read_text(encoding="utf-8") == "keep"
 
 
@@ -121,8 +123,10 @@ def test_deploy_rejects_custom_target_outside_detected_mod_root(
         target_deploy_path=str(outside_target),
     )
 
-    assert result["status"] == "error"
-    assert "restricted" in result["message"]
+    assert result == {
+        "status": "error",
+        "message": "Deployment request was rejected by safety checks.",
+    }
     assert not outside_target.exists()
 
 
