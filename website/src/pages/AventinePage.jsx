@@ -333,7 +333,7 @@ export function AventinePage() {
 
   return (
     <SiteShell activePage="aventine">
-      <main className="aventine-benchmark">
+      <div className="aventine-benchmark">
         <section className="benchmark-hero">
           <div className="container benchmark-hero__inner">
             <header className="benchmark-title">
@@ -508,7 +508,7 @@ export function AventinePage() {
             </div>
           </div>
         </section>
-      </main>
+      </div>
     </SiteShell>
   )
 }
