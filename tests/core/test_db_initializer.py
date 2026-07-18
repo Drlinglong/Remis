@@ -168,6 +168,9 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")
     assert cursor.fetchone() == ("project_watches",)
 
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_glossary_bindings'")
+    assert cursor.fetchone() == ("project_glossary_bindings",)
+
     cursor.execute("SELECT glossary_id FROM project_glossary_bindings WHERE project_id = 'p1'")
     assert cursor.fetchone() == (1,)
     cursor.execute("SELECT COUNT(*) FROM project_glossary_bindings WHERE project_id = 'missing-project'")

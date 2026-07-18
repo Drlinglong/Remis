@@ -29,7 +29,7 @@
 
 ## 安装与配置
 - [开发环境搭建指南](developer/development-setup.md) - 仓库开发环境说明
-- [轻量级本地 CI 使用说明](developer/ci-setup.md) - 提交前最小检查流程
+- [CI、依赖维护与仓库门禁](developer/ci-setup.md) - GitHub Actions、Dependabot 与本地等价命令
 
 ## 产品 Copilot（设计草案，#132）
 - [Copilot 文档入口](copilot/README.md) - 用户 RAG / Agent 操作说明 / 与开发者文档的边界

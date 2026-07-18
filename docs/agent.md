@@ -11,5 +11,5 @@
 推荐继续阅读：
 
 - [重构决策指南](zh/developer/refactor_decision_guide.md)
-- [轻量级本地 CI 使用说明](zh/developer/ci-setup.md)
+- [CI、依赖维护与仓库门禁](zh/developer/ci-setup.md)
 - [文档状态说明](docs_status.md)

@@ -77,6 +77,7 @@ tests_tmp/
 sandbox_test_tmp/
 tmp/
 .pytest_cache/
+.pytest-basetemp/
 
 # Do NOT ignore these folders
 !/source_mod/.gitkeep

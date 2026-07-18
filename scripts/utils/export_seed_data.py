@@ -172,7 +172,9 @@ def main():
                 values = []
                 for val in row_list:
                     if val is None: values.append("NULL")
-                    elif isinstance(val, str): values.append(f"'{val.replace("'", "''")}'")
+                    elif isinstance(val, str):
+                        escaped_val = val.replace("'", "''")
+                        values.append(f"'{escaped_val}'")
                     else: values.append(str(val))
                 
                 f.write(f"INSERT INTO projects ({', '.join(col_names)}) VALUES ({', '.join(values)});\n")
@@ -199,7 +201,9 @@ def main():
                         f_values = []
                         for val in f_list:
                             if val is None: f_values.append("NULL")
-                            elif isinstance(val, str): f_values.append(f"'{val.replace("'", "''")}'")
+                            elif isinstance(val, str):
+                                escaped_val = val.replace("'", "''")
+                                f_values.append(f"'{escaped_val}'")
                             else: f_values.append(str(val))
                         
                         f.write(f"INSERT INTO project_files ({', '.join(file_cols)}) VALUES ({', '.join(f_values)});\n")
