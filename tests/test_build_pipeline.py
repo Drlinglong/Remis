@@ -67,8 +67,34 @@ def test_verify_frozen_backend_accepts_healthy_packaged_process():
 
     with patch("scripts.build_pipeline.subprocess.Popen", return_value=process), patch(
         "scripts.build_pipeline.urllib.request.urlopen", return_value=response
-    ):
+    ), patch("scripts.build_pipeline.subprocess.run") as run:
         build_pipeline.verify_frozen_backend("C:/release/web_server.exe", timeout_seconds=1)
 
-    process.terminate.assert_called_once()
-    process.wait.assert_called_once()
+    run.assert_called_once_with(
+        ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
+@pytest.mark.parametrize(
+    ("target_triple", "expected_arch"),
+    [
+        ("x86_64-pc-windows-msvc", "x64"),
+        ("aarch64-pc-windows-msvc", "arm64"),
+        ("i686-pc-windows-msvc", "x86"),
+    ],
+)
+def test_resolve_nsis_artifact_name_uses_current_tauri_version(
+    tmp_path, target_triple, expected_arch
+):
+    config_path = tmp_path / "tauri.conf.json"
+    config_path.write_text(
+        '{"productName":"remis-mod-factory","version":"3.0.7"}',
+        encoding="utf-8",
+    )
+
+    assert build_pipeline.resolve_nsis_artifact_name(config_path, target_triple) == (
+        f"remis-mod-factory_3.0.7_{expected_arch}-setup.exe"
+    )
