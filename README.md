@@ -68,7 +68,7 @@ Remis treats localization as a stateful AI engineering problem, not a single mod
 | **LLM orchestration** | Provider abstraction across hosted APIs and local OpenAI-compatible runtimes, with configurable batching, concurrency, RPM limits, retries, and resumable execution |
 | **Context engineering** | Project metadata, mod description, global and game glossaries, translation memory, parent context, validator diagnostics, and task state are assembled at the point of use |
 | **Structured generation** | Typed Pydantic/PydanticAI contracts, schema validation, native function calling, constrained tool selection, provider response parsing, and explicit failure propagation |
-| **Agentic AI workflows** | Context-aware Copilot, model-selected read tools, typed workflow planning, approval-gated execution, persistent sessions, and task handoff |
+| **Agentic AI workflows** | A localhost Agent API for Codex plus an in-development Copilot architecture with model-selected read tools, typed workflow planning, approval-gated execution, persistent sessions, and task handoff |
 | **Reliability layer** | Deterministic Paradox-format validators, repair loops, checkpoint recovery, incremental reuse, WebSocket task recovery, and human review |
 | **LLMOps, evaluation & observability** | Frozen translation and repair fixtures exercise production prompts, glossary injection, parsers, validators, latency, structured-output failures, and over-editing behavior |
 | **Desktop product engineering** | Tauri 2 + React 19 + FastAPI + SQLite, packaged as a real Windows application rather than a notebook or hosted demo |
@@ -83,16 +83,29 @@ The trust boundary is deliberate: models may propose, translate, classify, and r
 
 ## Approval-gated Agent System
 
-The current 3.0.7 development line moves Remis Copilot from a help-chat concept into a working agent surface.
+Remis 3.0.7 ships a localhost Agent API and a repository-local operator Skill so Codex can inspect, plan, validate, and monitor localization through Remis instead of bypassing the product with direct filesystem edits.
 
-1. **Observe** — the assistant receives the active route, selected project, persistent conversation state, and a bounded context budget.
-2. **Retrieve** — the model selects allowlisted help packs and read-only project tools instead of receiving the entire repository or user workspace.
-3. **Plan** — PydanticAI produces a typed localization recommendation after inspecting the real project, available providers, models, files, glossaries, and checkpoints.
-4. **Validate** — Remis rejects unknown tools, invalid arguments, unavailable models, unsafe paths, and plans that skip mandatory inspection.
-5. **Approve** — the user sees the plan and its side effects inside the conversation before any workflow begins.
-6. **Execute and hand off** — approved plans enter the existing Remis project and translation services; task context survives navigation and reconnects to progress monitoring.
+1. **Preflight** — the Agent checks the running Remis version, provider readiness, and the latest official GitHub Release before starting a workflow.
+2. **Inspect and plan** — read-only endpoints return bounded project state, validation summaries, persisted job state, and explicit `allowed_actions`.
+3. **Approve** — paid translation, model-backed repair, export, deployment, and overwrite remain blocked until the user approves the exact action.
+4. **Execute and verify** — Remis owns file access and workflow execution; the Agent reports completion only from persisted state, validation evidence, and output paths.
 
 This is bounded agency, not invisible autonomy. Read operations are allowlisted. Write operations remain server-owned, explicit, expiring, and approval-gated.
+
+The in-product Remis Copilot and its PydanticAI planner are an engineering preview. Their UI and packaged API route are intentionally hidden in 3.0.7 while startup hardening and end-to-end validation continue; they are planned for the next release.
+
+### Use Remis with Codex
+
+1. Start Remis and open the [Remis for Codex page](https://drlinglong.github.io/Remis/codex/).
+2. Copy the install prompt into Codex.
+3. Configure cloud credentials only in **Remis Settings > API Settings**. Never paste an API key into Agent chat. A selected local provider may be keyless.
+4. Follow the approval-gated workflow exposed by Remis at `http://127.0.0.1:1453/api/agent`.
+
+Developer entry points:
+
+- [Agent API quickstart](docs/en/developer/agent-api-quickstart.md)
+- [Remis Agent Skill](.agents/skills/remis-agent/SKILL.md)
+- [OpenAI Build Week](https://openai.com/zh-Hans-CN/build-week/)
 
 ## Retrieval-Augmented Generation & Context Engineering
 
@@ -102,14 +115,14 @@ Remis has a defined **Micro-RAG** architecture for product help and localization
 - **Agent operation contract** — tool descriptions, allowed actions, approval rules, and refusal boundaries.
 - **Project context** — the user's selected mod, files, language pair, terminology, checkpoints, and task state.
 
-The shipped Copilot already performs model-directed retrieval over allowlisted help packs, attaches source metadata, and combines it with route and session context. The next retrieval adapter adds vector search over the curated user corpus without turning source code, secrets, developer notes, or arbitrary user files into an undifferentiated knowledge base.
+The hidden Copilot preview already performs model-directed retrieval over allowlisted help packs, attaches source metadata, and combines it with route and session context. The next retrieval adapter adds vector search over the curated user corpus without turning source code, secrets, developer notes, or arbitrary user files into an undifferentiated knowledge base.
 
 That boundary matters more than bolting a vector database onto the product. Remis is designed so retrieval improves grounding while deterministic validators and human approval remain authoritative.
 
 | Knowledge layer | Status |
 |---|---|
-| Model-selected help packs and source-aware answers | **Implemented** |
-| Route context, session memory, and bounded project read tools | **Implemented** |
+| Model-selected help packs and source-aware answers | **Engineering preview; hidden in 3.0.7** |
+| Route context, session memory, and bounded project read tools | **Engineering preview; hidden in 3.0.7** |
 | Curated Micro-RAG corpus contract and indexing boundaries | **Architecture complete** |
 | Vector retrieval and retrieval evaluation over the user corpus | **Next adapter** |
 | Autonomous write access to arbitrary user files | **Explicitly out of scope** |
@@ -222,7 +235,7 @@ If the original mod ships duplicated "fake localization" folders, use Remis depl
 Tauri 2 / Rust
 └── React 19 + Mantine desktop interface
     └── FastAPI application services
-        ├── Copilot + PydanticAI workflows
+        ├── Agent API + hidden Copilot/PydanticAI preview
         ├── Provider abstraction and prompt/context assembly
         ├── Translation, proofreading, incremental update, and repair workflows
         ├── Paradox parsers, builders, and deterministic validators
@@ -233,7 +246,7 @@ Useful entry points:
 
 - [`scripts/core/copilot/`](scripts/core/copilot/) — agent planning, context budgets, tools, sessions, actions, and workflow gates
 - [`scripts/core/`](scripts/core/) — model handlers, parsing, glossaries, project state, repair, and translation services
-- [`scripts/react-ui/src/`](scripts/react-ui/src/) — React desktop product and Copilot surfaces
+- [`scripts/react-ui/src/`](scripts/react-ui/src/) — React desktop product and hidden Copilot preview surfaces
 - [`scripts/developer_tools/evaluate_translation_quality.py`](scripts/developer_tools/evaluate_translation_quality.py) — reproducible translation/repair benchmark runner
 - [`tests/`](tests/) — backend, workflow, regression, benchmark, and provider contract tests
 - [`docs/`](docs/) — user guides, engineering notes, release evidence, and architecture decisions
