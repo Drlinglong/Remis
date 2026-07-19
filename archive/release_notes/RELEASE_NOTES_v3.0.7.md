@@ -1,6 +1,6 @@
 # Project Remis v3.0.7
 
-Release candidate prepared on 2026-07-19. The Windows installer is awaiting final local smoke testing before the GitHub Release is published.
+Release candidate refreshed on 2026-07-20 after installed-app smoke testing exposed two production-only startup failures. The replacement Windows installer is awaiting one final local install smoke test before the GitHub Release is published.
 
 ## English
 
@@ -38,6 +38,10 @@ Release candidate prepared on 2026-07-19. The Windows installer is awaiting fina
 
 ## Reliability And Compatibility
 
+- Fixed an installed-app white screen caused by a circular production chunk between React and Mantine. These UI dependencies now ship in one ordered chunk, and future circular-chunk warnings fail the production build.
+- Fixed a packaged-backend startup crash caused by missing `genai_prices` package metadata. The hidden Copilot no longer loads as a normal packaged startup dependency, while Remis for Codex remains available through `/api/agent`.
+- The release pipeline now starts the frozen `web_server.exe` on an isolated local port and requires a real `/api/health` response before Tauri packaging can continue.
+- Frozen-backend smoke processes are cleaned up as a Windows process tree, and only the current-version NSIS installer is copied into the release output.
 - Translation prompts now consistently honor persistent global instructions and project glossary context, including the Hunyuan provider path.
 - SQLite foreign keys are enforced for managed connections, with migration coverage for project glossary bindings, stale metadata, indexes, and legacy databases.
 - Local LLM connection diagnostics now distinguish host availability and provider errors more clearly.
@@ -52,12 +56,14 @@ Release candidate prepared on 2026-07-19. The Windows installer is awaiting fina
 ## Release Candidate Validation
 
 - Branch integration, version synchronization, and the final build dependency alignment are merged into `main`.
-- Backend: 433 tests passed and 1 was skipped locally; the Python 3.10 CI suite passed.
+- Backend: 440 tests passed and 1 was skipped locally; Python compilation and the focused Agent/startup/build-pipeline suites passed.
 - Desktop frontend: 149 tests passed; lint and the production build passed.
 - Website: 54 tests passed; lint, production build, GitHub Pages deployment, and live Home, Engineering, and Remis for Codex route checks passed.
 - Rust/Tauri: formatting, locked dependency checks, release compilation, MSI packaging, and NSIS packaging passed.
+- Fresh release executable: the frozen backend returned healthy, the WebView mounted the splash UI, and a reload produced no runtime exceptions or console errors.
 - Security gates: CodeQL passed for Actions, JavaScript/TypeScript, Python, and Rust with all 26 release-review findings resolved. Dependency Review passed.
-- Windows installer candidate: `remis-mod-factory_3.0.7_x64-setup.exe`, 41,841,748 bytes (39.90 MiB), SHA-256 `7045C82656517567D62C545E5AEAFCAB3499614D3CD80212E41DEE2B2FAC5807`.
+- Windows installer candidate: `remis-mod-factory_3.0.7_x64-setup.exe` (`41,847,090` bytes / `39.91 MiB`).
+- SHA-256: `E13FE7A9EFDF4DD9B57991222147C827208BD4A3773393040BA17E526D434D0A`.
 - The installer has version resources `3.0.7` and is not Authenticode-signed, so Windows may display an unknown-publisher warning.
 - Final acceptance still requires the local installed-app smoke test before publishing the GitHub Release.
 
@@ -97,6 +103,10 @@ Release candidate prepared on 2026-07-19. The Windows installer is awaiting fina
 
 ## 稳定性与兼容性
 
+- 修复安装版白屏：生产构建曾把 React 与 Mantine 拆成相互依赖的循环 chunk，导致页面在 React 挂载前崩溃。现在两者会进入同一个有序 chunk，未来只要再次出现循环 chunk，production build 会直接失败。
+- 修复打包后端启动崩溃：PyInstaller 曾漏打包 `genai_prices` 的包 metadata。隐藏中的 Copilot 不再作为普通安装包启动时的硬依赖，而 Remis for Codex 继续通过 `/api/agent` 提供。
+- 发布流水线现在会在隔离的本机端口实际启动冻结后的 `web_server.exe`，只有 `/api/health` 返回成功后才允许继续 Tauri 打包。
+- 冻结后端冒烟进程会按 Windows 进程树完整清理；release 输出也只复制当前版本的 NSIS 安装包。
 - 翻译 Prompt 现在会一致应用持久全局指令与项目词典上下文，包括 Hunyuan Provider 路径。
 - 受管 SQLite 连接会强制启用外键，并覆盖项目词典绑定、陈旧 metadata、索引和旧数据库迁移场景。
 - 本地 LLM 连接诊断能更清楚地区分宿主服务状态与 Provider 错误。
@@ -111,11 +121,13 @@ Release candidate prepared on 2026-07-19. The Windows installer is awaiting fina
 ## 发布候选版验证
 
 - 分支整合、版本同步与最终构建依赖对齐均已合入 `main`。
-- 后端：本地 433 项测试通过、1 项跳过；Python 3.10 CI 测试通过。
+- 后端：本地 440 项测试通过、1 项跳过；Python 编译以及聚焦的 Agent、启动与构建流水线测试通过。
 - 桌面前端：149 项测试通过；lint 与 production build 通过。
 - 网站：54 项测试通过；lint、production build、GitHub Pages 部署，以及线上首页、工程页和 Remis for Codex 路由检查均通过。
 - Rust/Tauri：格式检查、锁定依赖检查、release 编译、MSI 打包与 NSIS 打包均通过。
+- 全新 release 可执行文件：冻结后端健康检查通过，WebView 成功挂载启动界面，重载后没有运行时异常或控制台错误。
 - 安全门槛：Actions、JavaScript/TypeScript、Python 与 Rust 的 CodeQL 均通过，发布审查中发现的 26 项告警已全部解决；Dependency Review 通过。
-- Windows 安装候选包：`remis-mod-factory_3.0.7_x64-setup.exe`，41,841,748 字节（39.90 MiB），SHA-256 为 `7045C82656517567D62C545E5AEAFCAB3499614D3CD80212E41DEE2B2FAC5807`。
+- Windows 安装候选包：`remis-mod-factory_3.0.7_x64-setup.exe`（`41,847,090` 字节 / `39.91 MiB`）。
+- SHA-256：`E13FE7A9EFDF4DD9B57991222147C827208BD4A3773393040BA17E526D434D0A`。
 - 安装包版本资源为 `3.0.7`，目前未进行 Authenticode 签名，因此 Windows 可能显示未知发布者提示。
 - 正式发布 GitHub Release 前，仍需完成本地安装后的应用冒烟测试。

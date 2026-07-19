@@ -1,8 +1,13 @@
+import json
 import os
 import shutil
+import socket
 import subprocess
 import platform
 import sys
+import time
+import urllib.error
+import urllib.request
 
 MIN_GOOGLE_GENAI_VERSION = (1, 68, 0)
 
@@ -59,6 +64,85 @@ def ensure_min_google_genai(env_python):
         sys.exit(1)
 
     print(f"[INFO] google-genai version OK: {version}")
+
+
+def verify_frozen_backend(executable, timeout_seconds=90):
+    """Fail the release build if the packaged backend cannot serve its health API."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+
+    env = os.environ.copy()
+    env["REMIS_BACKEND_PORT"] = str(port)
+    creationflags = (
+        subprocess.CREATE_NO_WINDOW
+        if platform.system().lower() == "windows"
+        else 0
+    )
+    process = subprocess.Popen(
+        [executable],
+        cwd=os.path.dirname(executable),
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        creationflags=creationflags,
+    )
+    deadline = time.monotonic() + timeout_seconds
+    health_url = f"http://127.0.0.1:{port}/api/health"
+
+    try:
+        while time.monotonic() < deadline:
+            exit_code = process.poll()
+            if exit_code is not None:
+                stdout, stderr = process.communicate()
+                print(stdout)
+                print(stderr)
+                raise RuntimeError(
+                    f"Packaged backend exited before health check (code {exit_code})."
+                )
+
+            try:
+                with urllib.request.urlopen(health_url, timeout=1) as response:
+                    if response.status == 200:
+                        print(f"[SUCCESS] Packaged backend health check passed on port {port}.")
+                        return
+            except (urllib.error.URLError, TimeoutError, OSError):
+                time.sleep(0.5)
+
+        raise RuntimeError(
+            f"Packaged backend did not become healthy within {timeout_seconds} seconds."
+        )
+    finally:
+        if process.poll() is None:
+            if platform.system().lower() == "windows":
+                subprocess.run(
+                    ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+            else:
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=10)
+
+
+def resolve_nsis_artifact_name(tauri_config_path, target_triple):
+    with open(tauri_config_path, "r", encoding="utf-8") as handle:
+        config = json.load(handle)
+
+    if target_triple.startswith("x86_64-"):
+        arch = "x64"
+    elif target_triple.startswith("aarch64-"):
+        arch = "arm64"
+    else:
+        arch = "x86"
+
+    return f"{config['productName']}_{config['version']}_{arch}-setup.exe"
 
 # The conda environment to use for building. Must match the project's dedicated env.
 CONDA_ENV_NAME = "local_factory"
@@ -269,7 +353,7 @@ def main():
         # AI SDKs
         f'--hidden-import google.genai --hidden-import openai '
         f'--collect-submodules pydantic_ai --collect-submodules pydantic_graph '
-        f'--collect-data genai_prices '
+        f'--collect-data genai_prices --copy-metadata genai_prices '
         # Phonetics libraries used inside functions (PyInstaller can't detect these statically)
         f'--hidden-import pypinyin --hidden-import pypinyin.seg --hidden-import pypinyin.style '
         f'--hidden-import pykakasi --hidden-import jaconv '
@@ -322,6 +406,13 @@ def main():
     print(f"[COPY] {target_path} -> {root_target_path}")
     shutil.copy2(target_path, root_target_path)
 
+    print_step("Step 3.5: Smoke Test Frozen Backend")
+    try:
+        verify_frozen_backend(target_path)
+    except RuntimeError as exc:
+        print(f"[ERROR] {exc}")
+        sys.exit(1)
+
     # Step 4: Frontend Build & Tauri Build
     print_step("Step 4: Frontend Build & Tauri Build")
     
@@ -346,38 +437,38 @@ def main():
     # output is in src-tauri/target/release/bundle/nsis/
     nsis_dir = os.path.join(src_tauri_dir, "target", "release", "bundle", "nsis")
     
-    if os.path.exists(nsis_dir):
-        found_exe = False
-        for file in os.listdir(nsis_dir):
-            if file.endswith(".exe"):
-                src_file = os.path.join(nsis_dir, file)
-                dst_file = os.path.join(release_dir, file)
-                
-                # [ROBUSTNESS] Remove existing file to ensure clean copy
-                if os.path.exists(dst_file):
-                    print(f"[CLEAN] Removing old artifact: {dst_file}")
-                    os.remove(dst_file)
-                
-                print(f"[COPY] {src_file} -> {dst_file}")
-                try:
-                    shutil.copy2(src_file, dst_file)
-                    
-                    # [VERIFY] Check if copy succeeded
-                    if os.path.exists(dst_file) and os.path.getsize(dst_file) == os.path.getsize(src_file):
-                        print(f"[SUCCESS] Artifact copied and verified: {dst_file} ({os.path.getsize(dst_file)/1024/1024:.2f} MB)")
-                    else:
-                        print(f"[ERROR] Copy verification failed for {dst_file}")
-                        sys.exit(1)
-                        
-                    found_exe = True
-                except Exception as e:
-                    print(f"[ERROR] Failed to copy artifact: {e}")
-                    sys.exit(1)
-        
-        if not found_exe:
-            print("[WARNING] No .exe files found in NSIS directory.")
-    else:
+    if not os.path.exists(nsis_dir):
         print(f"[WARNING] NSIS directory not found at {nsis_dir}")
+        sys.exit(1)
+
+    tauri_config = os.path.join(src_tauri_dir, "tauri.conf.json")
+    installer_name = resolve_nsis_artifact_name(tauri_config, target_triple)
+    src_file = os.path.join(nsis_dir, installer_name)
+    dst_file = os.path.join(release_dir, installer_name)
+
+    if not os.path.exists(src_file):
+        print(f"[ERROR] Expected NSIS artifact not found: {src_file}")
+        sys.exit(1)
+
+    if os.path.exists(dst_file):
+        print(f"[CLEAN] Removing old artifact: {dst_file}")
+        os.remove(dst_file)
+
+    print(f"[COPY] {src_file} -> {dst_file}")
+    try:
+        shutil.copy2(src_file, dst_file)
+    except Exception as exc:
+        print(f"[ERROR] Failed to copy artifact: {exc}")
+        sys.exit(1)
+
+    if os.path.getsize(dst_file) != os.path.getsize(src_file):
+        print(f"[ERROR] Copy verification failed for {dst_file}")
+        sys.exit(1)
+
+    print(
+        f"[SUCCESS] Artifact copied and verified: {dst_file} "
+        f"({os.path.getsize(dst_file)/1024/1024:.2f} MB)"
+    )
 
     print_step("Build Pipeline Completed Successfully!")
 

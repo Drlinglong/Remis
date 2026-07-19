@@ -1,306 +1,284 @@
 <div align="center">
 
-  <img src="gfx/Project Remis.png" width="150" alt="Project Remis Logo">
+  <img src="gfx/Project Remis.png" width="150" alt="Project Remis logo">
 
   <h1>Project Remis</h1>
-  <strong>Paradox Mod Localization Factory</strong>
+  <h3>The operating system for AI localization.</h3>
 
   <p>
-    <a href="https://github.com/Drlinglong/Remis/releases/latest"><img src="https://img.shields.io/github/v/release/Drlinglong/Remis?style=for-the-badge&logo=github&label=Release&labelColor=1a1a2e&color=4ecdc4" alt="Release Version"></a>
-    <a href="https://github.com/Drlinglong/Remis/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Drlinglong/Remis/ci.yml?branch=main&style=for-the-badge&label=CI&labelColor=1a1a2e" alt="CI Status"></a>
-    <img src="https://img.shields.io/badge/Platform-Windows-blue?style=for-the-badge&logo=windows&labelColor=1a1a2e" alt="Platform">
-    <img src="https://img.shields.io/github/license/Drlinglong/Remis?style=for-the-badge&label=License&labelColor=1a1a2e&color=lightgrey" alt="License">
+    An open-source, AI-native desktop system that turns Paradox mod files into
+    glossary-aware, validated, reviewable localization.
   </p>
 
   <p>
-    <a href="README_ZH.md"><img src="https://img.shields.io/badge/阅读文档-简体中文-blue.svg?style=flat-square"></a>
-    <a href="README.md"><img src="https://img.shields.io/badge/Read_Docs-English-green.svg?style=flat-square"></a>
-    <a href="README_RU.md"><img src="https://img.shields.io/badge/Документация-Русский-red.svg?style=flat-square"></a>
+    <a href="https://github.com/Drlinglong/Remis/releases/latest"><img src="https://img.shields.io/github/v/release/Drlinglong/Remis?style=for-the-badge&logo=github&label=Release&labelColor=1a1a2e&color=4ecdc4" alt="Latest release"></a>
+    <a href="https://github.com/Drlinglong/Remis/releases"><img src="https://img.shields.io/github/downloads/Drlinglong/Remis/total?style=for-the-badge&logo=github&label=Downloads&labelColor=1a1a2e&color=7d8cff" alt="Total downloads"></a>
+    <a href="https://github.com/Drlinglong/Remis/stargazers"><img src="https://img.shields.io/github/stars/Drlinglong/Remis?style=for-the-badge&logo=github&label=Stars&labelColor=1a1a2e&color=f4c95d" alt="GitHub stars"></a>
+    <img src="https://img.shields.io/badge/Platform-Windows-0078D4?style=for-the-badge&logo=windows&labelColor=1a1a2e" alt="Windows">
+  </p>
+
+  <p>
+    <img src="https://img.shields.io/badge/Tauri-2-24C8DB?style=flat-square&logo=tauri" alt="Tauri 2">
+    <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=111827" alt="React 19">
+    <img src="https://img.shields.io/badge/FastAPI-Python-009688?style=flat-square&logo=fastapi" alt="FastAPI">
+    <img src="https://img.shields.io/badge/PydanticAI-Agent_Workflows-E92063?style=flat-square&logo=pydantic&logoColor=white" alt="PydanticAI agent workflows">
+    <img src="https://img.shields.io/badge/License-AGPL--3.0-lightgrey?style=flat-square" alt="AGPL-3.0 license">
+  </p>
+
+  <p>
+    <a href="#ai-engineering"><strong>AI Engineering</strong></a> ·
+    <a href="#approval-gated-agent-system"><strong>Agent System</strong></a> ·
+    <a href="#retrieval-augmented-generation--context-engineering"><strong>RAG & Context</strong></a> ·
+    <a href="https://github.com/Drlinglong/Remis/releases/latest"><strong>Download</strong></a> ·
+    <a href="docs/documentation-center.md"><strong>Documentation</strong></a>
+  </p>
+
+  <p>
+    <a href="README_ZH.md">简体中文</a> ·
+    <a href="README.md">English</a> ·
+    <a href="README_RU.md">Русский</a>
   </p>
 
 </div>
 
-> **Say goodbye to copy-pasting, embrace automation.** An AI-powered desktop application for localizing Paradox game mods — making translation accessible to everyone.
-
-## Portfolio Summary
-
-Project Remis is a production desktop application that turns Paradox mod localization into a structured, auditable workflow. It combines a Tauri desktop shell, a React/Mantine interface, and a Python FastAPI backend to parse game localization files, run glossary-aware LLM translation, preserve translation history, support proofreading, and deploy generated localization mods.
-
 ---
 
-## 🛠️ Technical Highlights & Engineering Challenges
+Remis is not a thin prompt wrapper. It is a full localization control plane for parsing game files, assembling project and terminology context, orchestrating cloud or local models, validating untrusted model output, repairing failures, preserving translation memory, and keeping a human in authority before deployment.
 
-Project Remis is a production-grade showcase of modern full-stack development, solving complex localization, AI orchestrations, and desktop native integration challenges.
-
-### 🧩 1. Robust Paradox YML Parsing & Encoding Integrity
-- **Challenge:** Paradox localization files (.yml) use specialized formatting, strict structure requirements, and are highly prone to encoding corruption (e.g., Mix of UTF-8-BOM and Mojibake issues).
-- **Solution:** Designed a custom parser (`file_parser.py` and `file_builder.py`) with strict dual-validation pipelines (`JSON.parse` and regex sanity checks) that run on automated test hooks to completely prevent translation text pollution.
-
-### 🤖 2. Context-Aware Glossary & AI Orchestration
-- **Challenge:** Standard AI translation often hallucinates game-specific jargon (e.g., translating `convoy` literally instead of "船队").
-- **Solution:** Architected a modular AI service factory supporting multiple providers (Gemini, DeepSeek, OpenAI, etc.). Engineered a high-performance local glossary system utilizing phonetic search and fuzzy matching to dynamically inject context into translation prompts.
-
-### 💻 3. Cross-Platform Desktop Packaging & Dev Server
-- **Challenge:** Providing a seamless desktop experience while leveraging a powerful Python localization engine.
-- **Solution:** Implemented a hybrid architecture utilizing **Tauri (Rust)** for a lightweight desktop shell, **React + Mantine UI** for a sleek UX, and a localized **FastAPI backend** running fully offline. Optimized the build process with native executable packaging.
-
-### 🧪 4. High-Standard Quality Control & Local Database
-- **Challenge:** Ensuring project configurations, translation progress, and glossary changes are persisted safely without external infrastructure.
-- **Solution:** Modeled data schemas using **SQLite + SQLAlchemy**, backed by repository-enforced GitHub Actions for Pytest, ESLint, Vitest, frontend builds, Rust checks, and dependency review.
-
----
-
-
-## Core Workflows
-
-Project Remis is built around three product workflows: project management, incremental translation reuse, and agentic smart repair for broken localization entries.
-
-### Project Management Workflow
+Project files, glossaries, checkpoints, translation history, and review state are managed on the user's machine. Inference is provider-flexible: Remis can use commercial APIs, Ollama, LM Studio, vLLM, or other OpenAI-compatible endpoints.
 
 <p align="center">
-  <img src="project_management.svg" width="90%" alt="Project management workflow diagram">
-</p>
-
-### Incremental Update Workflow
-
-<p align="center">
-  <img src="Incremental_%20Update.svg" width="90%" alt="Incremental update workflow diagram">
-</p>
-
-### Agentic Smart Repair Workflow
-
-The smart repair flow is the project's agentic workflow: it collects broken entries, builds a context pack, asks the repair agent to diagnose and patch the issue, then loops through verification before producing a review-ready fix.
-
-<p align="center">
-  <img src="agentic_repair_workflow.svg" width="90%" alt="Agentic smart repair workflow diagram">
+  <a href="https://github.com/Drlinglong/Remis/releases/latest"><strong>Download for Windows</strong></a>
+  &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="docs/zh/user-guides/getting-started.md"><strong>Beginner Guide</strong></a>
+  &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="https://github.com/Drlinglong/Remis/issues/132"><strong>Agent Roadmap</strong></a>
 </p>
 
 <p align="center">
-  <img src="gfx/screenshot_en1.jpg" width="80%" alt="Main Interface Preview">
+  <img src="gfx/screenshot_en1.jpg" width="88%" alt="Remis desktop localization workspace">
 </p>
 
----
+## AI Engineering
 
-## ✨ Feature Highlights
+Remis treats localization as a stateful AI engineering problem, not a single model call.
 
-### 🏗️ Project-Centric Workflow
-Say goodbye to the CLI era! The new desktop app adopts a **project management** approach — create a project, import your mod, translate with one click, and track all progress automatically.
+| System capability | Engineering evidence |
+|---|---|
+| **LLM orchestration** | Provider abstraction across hosted APIs and local OpenAI-compatible runtimes, with configurable batching, concurrency, RPM limits, retries, and resumable execution |
+| **Context engineering** | Project metadata, mod description, global and game glossaries, translation memory, parent context, validator diagnostics, and task state are assembled at the point of use |
+| **Structured generation** | Typed Pydantic/PydanticAI contracts, schema validation, native function calling, constrained tool selection, provider response parsing, and explicit failure propagation |
+| **Agentic AI workflows** | A localhost Agent API for Codex plus an in-development Copilot architecture with model-selected read tools, typed workflow planning, approval-gated execution, persistent sessions, and task handoff |
+| **Reliability layer** | Deterministic Paradox-format validators, repair loops, checkpoint recovery, incremental reuse, WebSocket task recovery, and human review |
+| **LLMOps, evaluation & observability** | Frozen translation and repair fixtures exercise production prompts, glossary injection, parsers, validators, latency, structured-output failures, and over-editing behavior |
+| **Desktop product engineering** | Tauri 2 + React 19 + FastAPI + SQLite, packaged as a real Windows application rather than a notebook or hosted demo |
+
+### System architecture
 
 <p align="center">
-  <img src="gfx/screenshot_en2.jpg" width="80%" alt="Project Status Overview">
+  <img src="gfx/remis-ai-system-architecture.png" width="100%" alt="Remis AI system architecture: approval-gated Copilot, local project state, Micro-RAG knowledge layer, provider orchestration, typed model output, deterministic validation, bounded repair, human review, deployment, evaluation, and observability">
 </p>
 
-### 📚 Powerful Glossary Management
-Built-in intelligent glossary system ensures AI translates game terminology like a veteran player. Supports **phonetic search, fuzzy matching, and abbreviation recognition**, with cross-game glossary management.
+The trust boundary is deliberate: models may propose, translate, classify, and repair, but Remis owns file access, argument validation, workflow execution, and every write.
 
-<p align="center">
-  <img src="gfx/screenshot_en3.jpg" width="80%" alt="Glossary Manager">
-</p>
+## Approval-gated Agent System
 
-### ✏️ Professional Proofreading Workspace
-After translation, enter a **side-by-side comparison** proofreading mode. AI drafts are automatically archived for easy review and refinement.
+Remis 3.0.7 ships a localhost Agent API and a repository-local operator Skill so Codex can inspect, plan, validate, and monitor localization through Remis instead of bypassing the product with direct filesystem edits.
 
-<p align="center">
-  <img src="gfx/screenshot_en4.jpg" width="80%" alt="Proofreading Workspace">
-</p>
+1. **Preflight** — the Agent checks the running Remis version, provider readiness, and the latest official GitHub Release before starting a workflow.
+2. **Inspect and plan** — read-only endpoints return bounded project state, validation summaries, persisted job state, and explicit `allowed_actions`.
+3. **Approve** — paid translation, model-backed repair, export, deployment, and overwrite remain blocked until the user approves the exact action.
+4. **Execute and verify** — Remis owns file access and workflow execution; the Agent reports completion only from persisted state, validation evidence, and output paths.
 
-### 🛠️ Utility Toolbox
-Built-in tools like **Cover Image Maker**, with more features coming soon!
+This is bounded agency, not invisible autonomy. Read operations are allowlisted. Write operations remain server-owned, explicit, expiring, and approval-gated.
 
-<p align="center">
-  <img src="gfx/screenshot_en5.jpg" width="80%" alt="Toolbox">
-</p>
+The in-product Remis Copilot and its PydanticAI planner are an engineering preview. Their UI and packaged API route are intentionally hidden in 3.0.7 while startup hardening and end-to-end validation continue; they are planned for the next release.
 
-### ⚙️ Flexible Translation Configuration
-Supports multiple AI providers: **Gemini, OpenAI, DeepSeek, Grok, Ollama, NVIDIA NIM, OpenRouter**, and more. Choose from 5 beautiful themes.
-
-<p align="center">
-  <img src="gfx/screenshot_en6.jpg" width="80%" alt="Translation Configuration">
-</p>
-
----
-
-## 📥 Download & Install
-
-Thanks to the new **Tauri** packaging technology, installation is simpler than ever:
-
-1. 📦 Download the latest **installer** (`.exe`) from the [Releases page](https://github.com/Drlinglong/Remis/releases/latest)
-2. 🖱️ Double-click to run and follow the installation wizard
-3. 🚀 Launch the app and follow the **built-in tutorial** to configure your API
-
-> **💡 Quick Note**
->
-> This tool is an "AI translation porter" — you'll need your own API key.
-> On first launch, the app will guide you to select an AI service (e.g., Gemini, OpenAI) and enter your API key.
->
-> **⚠️ API usage may incur costs. Keep your key safe!**
-
----
-
-## 🚀 Quick Start
-
-The app includes an **interactive guided tutorial** that walks you through:
-
-1. **Configure AI Service** — Select your translation engine and enter API key
-2. **Create Translation Project** — Import mod folder, select game type
-3. **Start Translation** — Configure source and target languages, click start
-4. **Proofread & Refine** — Review and polish translations in the proofreading workspace
-5. **One-Click Deploy** — Deploy translations to your game directory
-
-> The app includes **3 demo mods** (Stellaris, Victoria 3, EU5) — try the complete translation workflow immediately!
-
----
-
-## 🤖 Use Remis with Codex
-
-Remis is the localization product; the repository Skill teaches Codex how to
-operate it safely through a localhost Agent API.
+### Use Remis with Codex
 
 1. Start Remis and open the [Remis for Codex page](https://drlinglong.github.io/Remis/codex/).
 2. Copy the install prompt into Codex.
-3. Codex checks the latest official GitHub Release and verifies provider setup
-   before every workflow.
-4. Configure cloud API keys only in **Remis Settings > API Settings**. Never
-   paste a key into Agent chat. A deliberately selected local provider may be
-   keyless.
-5. Remis requires explicit approval before paid translation, model-backed
-   repair, export, deployment, or overwrite.
+3. Configure cloud credentials only in **Remis Settings > API Settings**. Never paste an API key into Agent chat. A selected local provider may be keyless.
+4. Follow the approval-gated workflow exposed by Remis at `http://127.0.0.1:1453/api/agent`.
 
 Developer entry points:
 
 - [Agent API quickstart](docs/en/developer/agent-api-quickstart.md)
 - [Remis Agent Skill](.agents/skills/remis-agent/SKILL.md)
-- Local OpenAPI: `http://127.0.0.1:1453/docs`
+- [OpenAI Build Week](https://openai.com/zh-Hans-CN/build-week/)
 
----
+## Retrieval-Augmented Generation & Context Engineering
 
-## 🎮 Enable Mod in Game
+Remis has a defined **Micro-RAG** architecture for product help and localization support. The knowledge boundary separates three different context domains:
 
-After translation, you need to enable the localization mod in-game:
+- **User knowledge corpus** — versioned guides, troubleshooting, provider setup, deployment, glossary, proofreading, and error documentation.
+- **Agent operation contract** — tool descriptions, allowed actions, approval rules, and refusal boundaries.
+- **Project context** — the user's selected mod, files, language pair, terminology, checkpoints, and task state.
 
-1. Open the `my_translation` folder and locate the generated localization package (e.g., `zh-CN-YourModName`)
-2. Copy this folder to your game's `mod` directory:
-   - **Victoria 3**: `C:\Users\YourUsername\Documents\Paradox Interactive\Victoria 3\mod`
-   - **Stellaris**: `C:\Users\YourUsername\Documents\Paradox Interactive\Stellaris\mod`
-   - **Hearts of Iron IV**: `C:\Users\YourUsername\Documents\Paradox Interactive\Hearts of Iron IV\mod`
-   - **Crusader Kings III**: `C:\Users\YourUsername\Documents\Paradox Interactive\Crusader Kings III\mod`
-3. In the game launcher's "Playsets," enable both the **original mod** and the **localization mod**
-4. **Crucial step**: Ensure the **localization mod** loads **after** the original mod
+The hidden Copilot preview already performs model-directed retrieval over allowlisted help packs, attaches source metadata, and combines it with route and session context. The next retrieval adapter adds vector search over the curated user corpus without turning source code, secrets, developer notes, or arbitrary user files into an undifferentiated knowledge base.
 
-> 💡 The app also provides a **one-click deploy** feature that automates these steps.
+That boundary matters more than bolting a vector database onto the product. Remis is designed so retrieval improves grounding while deterministic validators and human approval remain authoritative.
 
----
+| Knowledge layer | Status |
+|---|---|
+| Model-selected help packs and source-aware answers | **Engineering preview; hidden in 3.0.7** |
+| Route context, session memory, and bounded project read tools | **Engineering preview; hidden in 3.0.7** |
+| Curated Micro-RAG corpus contract and indexing boundaries | **Architecture complete** |
+| Vector retrieval and retrieval evaluation over the user corpus | **Next adapter** |
+| Autonomous write access to arbitrary user files | **Explicitly out of scope** |
 
-## ❓ Troubleshooting
+## Evaluation-first AI
 
-| Issue | Solution |
-|-------|----------|
-| **Translation not working** | Ensure localization mod loads **after** the original mod |
-| **Original mod has fake localization** | Delete all language folders except the original language in the mod's `localization` directory |
-| **API errors** | Verify your API key and check account balance |
-| **Poor translation quality** | Add specialized terms in the Glossary Manager, or provide mod theme description |
+Model quality claims are tested against a reproducible translation-quality benchmark, not inferred from a few attractive screenshots.
 
-For more help, see [Frequently Asked Questions (FAQ)](docs/en/user-guides/faq.md).
+The benchmark runs Remis production prompt construction, glossary injection, structured parsing, repair prompts, marker recovery, and game-specific validators against frozen translation and repair cases. It records:
 
-> [!IMPORTANT]
-> **🛑 About "Fake Localization" & Translation Failure**
->
-> If the translation doesn't work after loading the mod, the most common reason is "Fake Localization Files" in the original mod.
->
-> **What is Fake Localization?**
-> Many mod authors duplicate their English localization files into folders like `simp_chinese` or `french` to prevent missing key errors for players in other languages. As a result, the game prioritizes these "fake" files from the original mod over your translation mod.
->
-> **How to Fix?**
-> 1. Open the original mod directory: `SteamLibrary\steamapps\workshop\content\[GameID]\[ModID]\localization`
-> 2. **Delete all folders except the original language (e.g., english)**.
-> 3. *Alternatively: Use this tool's "One-Click Deploy" in overwrite mode to automatically replace these files.*
+- structural-output failures separately from API failures;
+- terminology and contextual disambiguation;
+- placeholder, variable, color-tag, quote, and line-break integrity;
+- repair success and validator clear rate;
+- whether a repair model damages text that was already correct;
+- generation latency and model/runtime configuration.
 
----
+The first local-model study evaluated four models on seven frozen cases and exposed meaningful differences between language quality, formatting stability, latency, contextual glossary use, and repair restraint. See the [benchmark design](docs/zh/developer/translation_quality_benchmark.md) and [first engineering report](docs/zh/developer/translation_quality_benchmark_report_2026-07-15.md).
 
-## 📖 Glossary System
+## Core Workflows
 
-### How It Works
-The glossary is a "game terminology reference sheet." Before translation, we provide this reference to the AI, ensuring specific terms are translated consistently.
+### Project lifecycle
 
-**Example:**
-- ❌ Without glossary: AI might translate `convoy` as "escort," "motorcade," or "guard"
-- ✅ With glossary: AI consistently translates it as "fleet"
+Projects make localization state explicit: source assets, language pairs, glossaries, checkpoints, generated files, review state, and deployment history belong to one auditable workspace.
 
-### Glossary Locations
-You can edit directly in the **Glossary Manager**, or manually modify:
-- **Victoria 3**: `data/glossary/victoria3/glossary.json`
-- **Stellaris**: `data/glossary/stellaris/glossary.json`
+<p align="center">
+  <img src="project_management.svg" width="92%" alt="Animated project management workflow">
+</p>
 
-### Glossary Credits
-- **Victoria 3**: Victoria 3 Localization V1.2, Morgenröte Chinese, Better Politics Mod CN, Milk Localization
-- **Stellaris**: Pigeon Group Glossary, Shrouded Regions Glossary, L-Network Stellaris Mod Collection
+### Incremental translation and memory reuse
 
----
+When a mod updates, Remis compares source state, reuses approved translations, preserves translation memory, and sends only changed or missing work back through the model pipeline.
 
-## 🏛️ Project Architecture
+<p align="center">
+  <img src="Incremental_%20Update.svg" width="92%" alt="Animated incremental translation workflow">
+</p>
 
-Built with **Tauri + React + Python**, combining a desktop-class user experience with a powerful AI translation engine.
+### Agentic validation and repair
 
+Broken entries become diagnostic context. The repair agent receives the source, current translation, glossary and validator report, proposes a bounded patch, and loops through verification before a human reviews the result.
+
+<p align="center">
+  <img src="agentic_repair_workflow.svg" width="92%" alt="Animated agentic repair and validation workflow">
+</p>
+
+## Product Capabilities
+
+| Capability | What the user gets |
+|---|---|
+| **Project-centric localization** | Import a mod, create a project, translate, review, track updates, and deploy from one desktop workspace |
+| **Provider-flexible inference** | Use Gemini, OpenAI, Anthropic, DeepSeek, Grok, Qwen, NVIDIA NIM, Ollama, LM Studio, vLLM, and other compatible endpoints |
+| **Terminology control** | Global, game, and project glossaries with fuzzy search, phonetic search, abbreviation recognition, and explicit precedence |
+| **Professional proofreading** | Side-by-side source/translation review, patch-based editing, history, diagnostics, and human approval |
+| **Neologism Tribunal** | Mine source-grounded terminology candidates, review duplicates and meanings, then promote approved terms into project glossaries |
+| **Agent Workshop** | Scan localization structure, diagnose format failures, and run bounded repair workflows |
+| **Incremental updates** | Detect source changes, reuse approved work, resume interrupted tasks, and avoid retranslating unchanged entries |
+| **One-click deployment** | Build and install a localization mod with the load-order rules Paradox games require |
+| **International interface** | 11 UI languages across the desktop application |
+
+<table>
+  <tr>
+    <td width="50%"><img src="gfx/screenshot_en2.jpg" alt="Project status and localization progress"></td>
+    <td width="50%"><img src="gfx/screenshot_en3.jpg" alt="Glossary management interface"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Project state and progress</strong></td>
+    <td align="center"><strong>Context and terminology control</strong></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="gfx/screenshot_en4.jpg" alt="Side-by-side proofreading workspace"></td>
+    <td width="50%"><img src="gfx/screenshot_en6.jpg" alt="Model provider configuration"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Human-in-the-loop review</strong></td>
+    <td align="center"><strong>Cloud or local model inference</strong></td>
+  </tr>
+</table>
+
+## Download and Quick Start
+
+1. Download the latest Windows installer from [GitHub Releases](https://github.com/Drlinglong/Remis/releases/latest).
+2. Launch Remis and configure a cloud API or local model endpoint.
+3. Create a project and import the source mod folder.
+4. Choose the source language, target language, model, glossary, and execution limits.
+5. Run translation, review validator findings, proofread the output, and deploy.
+
+Remis includes demo mods for Stellaris, Victoria 3, and Europa Universalis V so the complete workflow can be explored without preparing a project first.
+
+New to mod localization? Start with the [Chinese beginner guide](docs/zh/user-guides/getting-started.md), the [documentation center](docs/documentation-center.md), or the [FAQ](docs/en/user-guides/faq.md).
+
+<details>
+<summary><strong>Paradox Launcher load order</strong></summary>
+
+After deployment, enable both the original mod and the generated localization mod in the launcher. The localization mod must load **after** the original mod.
+
+Common mod directories:
+
+- Victoria 3: `Documents\Paradox Interactive\Victoria 3\mod`
+- Stellaris: `Documents\Paradox Interactive\Stellaris\mod`
+- Hearts of Iron IV: `Documents\Paradox Interactive\Hearts of Iron IV\mod`
+- Crusader Kings III: `Documents\Paradox Interactive\Crusader Kings III\mod`
+
+If the original mod ships duplicated "fake localization" folders, use Remis deployment cleanup or follow the [fake-localization guide](docs/zh/user-guides/fake-localization.md).
+
+</details>
+
+## Engineering Stack
+
+```text
+Tauri 2 / Rust
+└── React 19 + Mantine desktop interface
+    └── FastAPI application services
+        ├── Agent API + hidden Copilot/PydanticAI preview
+        ├── Provider abstraction and prompt/context assembly
+        ├── Translation, proofreading, incremental update, and repair workflows
+        ├── Paradox parsers, builders, and deterministic validators
+        └── SQLite + SQLAlchemy repositories, checkpoints, and task state
 ```
-remis-mod-factory/
-├── src-tauri/                     # [Desktop Shell] Tauri/Rust desktop framework
-│
-├── scripts/
-│   ├── react-ui/                  # [Frontend] React + Mantine UI
-│   │   ├── src/
-│   │   │   ├── pages/             # Page components (Projects/Glossary/Proofread/Tools...)
-│   │   │   ├── components/        # Reusable UI components
-│   │   │   └── hooks/             # Custom React hooks
-│   │   └── ...
-│   │
-│   ├── web_server.py              # [Backend] FastAPI web server
-│   ├── routers/                   # API routing layer
-│   ├── services/                  # Business service layer
-│   │
-│   ├── core/                      # [Core Engine] Reusable underlying modules
-│   │   ├── api_handler.py         # AI API handler factory
-│   │   ├── gemini_handler.py      # Google Gemini interface
-│   │   ├── openai_handler.py      # OpenAI interface
-│   │   ├── glossary_manager.py    # Glossary manager
-│   │   ├── file_parser.py         # Paradox YML file parser
-│   │   └── ...
-│   │
-│   └── workflows/                 # [Workflows] Translation business processes
-│       └── initial_translate.py   # Initial translation workflow
-│
-└── data/                          # [Data] Glossaries, config, cache
-    ├── glossary/                  # Game glossaries
-    └── remis.sqlite               # Local database
-```
 
-> Want to dive deeper? Check out the [Developer Documentation](docs/documentation-center.md).
+Useful entry points:
 
----
+- [`scripts/core/copilot/`](scripts/core/copilot/) — agent planning, context budgets, tools, sessions, actions, and workflow gates
+- [`scripts/core/`](scripts/core/) — model handlers, parsing, glossaries, project state, repair, and translation services
+- [`scripts/react-ui/src/`](scripts/react-ui/src/) — React desktop product and hidden Copilot preview surfaces
+- [`scripts/developer_tools/evaluate_translation_quality.py`](scripts/developer_tools/evaluate_translation_quality.py) — reproducible translation/repair benchmark runner
+- [`tests/`](tests/) — backend, workflow, regression, benchmark, and provider contract tests
+- [`docs/`](docs/) — user guides, engineering notes, release evidence, and architecture decisions
 
-## 🤝 Contributing
+## Design Principles
 
-This is an open-source project that grows with community feedback. Issues, PRs, and suggestions are always welcome!
+- **Model output is untrusted input.** Parse it, validate it, diagnose it, then decide whether it can proceed.
+- **Agents propose; the product authorizes.** Tool boundaries, side effects, and approval belong to Remis.
+- **Context is a system, not a longer prompt.** Retrieve only the project state, terminology, history, and documentation required for the current decision.
+- **Local project control and model location are separate choices.** User state remains managed locally while inference may be cloud-hosted or local.
+- **Human review is part of the architecture.** Quality-sensitive localization ends with an accountable reviewer, not a confidence score.
+- **Evaluation must be reproducible.** Model, provider, prompt, context, glossary, decoding, validators, repair policy, cost, and latency form one versioned recipe.
 
----
+## Contributing
 
-## 📜 License
+Issues, pull requests, evaluation cases, provider integrations, glossary improvements, and documentation contributions are welcome. Start with the [documentation center](docs/documentation-center.md) and open an [issue](https://github.com/Drlinglong/Remis/issues) before proposing a large workflow change.
 
-This project uses a **dual-license model**:
+## License
 
-1. **Code** (`.py`, `.jsx`, `.rs`, etc.)
-   Licensed under **[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html)**
+Remis uses a dual-license model:
 
-2. **Data & Documentation** (glossaries, `.md` files, etc.)
-   Licensed under **[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)**
+1. Source code (`.py`, `.jsx`, `.rs`, and related files): [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html)
+2. Data and documentation (glossaries, Markdown, and related assets): [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
-### ❤️ Credits
+Glossaries include community knowledge from Victoria 3 Localization, Morgenröte Chinese, Better Politics Mod CN, Milk Localization, Pigeon Group, Shrouded Regions, and the L-Network Stellaris Mod Collection.
 
-If you use this tool to create mod localizations and upload to the Workshop, we'd appreciate a mention with a link to the repository:
-
-**`https://github.com/Drlinglong/Remis`**
+If Remis helps you publish a localization on the Steam Workshop, a mention and link back to `https://github.com/Drlinglong/Remis` are appreciated.
 
 ---
 
 <div align="center">
+  <strong>Built for translators who want control, and for AI systems that need constraints.</strong>
+  <br>
   <i>Roma Invicta!</i> 🦅
 </div>

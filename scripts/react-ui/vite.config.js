@@ -33,6 +33,12 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 2800,
     rollupOptions: {
+      onLog(level, log, handler) {
+        if (log.code === 'CIRCULAR_CHUNK') {
+          throw new Error(`Production bundle contains a circular chunk: ${log.message}`);
+        }
+        handler(level, log);
+      },
       output: {
         manualChunks(id) {
           const normalized = id.replace(/\\/g, '/');
@@ -43,16 +49,14 @@ export default defineConfig({
           if (normalized.includes('/monaco-editor/')) {
             return 'vendor-monaco';
           }
-          if (normalized.includes('/@mantine/')) {
-            return 'vendor-mantine';
-          }
           if (
+            normalized.includes('/@mantine/') ||
             normalized.includes('/react/') ||
             normalized.includes('/react-dom/') ||
             normalized.includes('/react-router') ||
             normalized.includes('/scheduler/')
           ) {
-            return 'vendor-react';
+            return 'vendor-react-ui';
           }
           if (normalized.includes('/@tabler/icons-react/')) {
             return 'vendor-icons';
