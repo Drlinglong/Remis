@@ -263,11 +263,18 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
                                 {candidates.map(c => (
                                     <Paper
                                         key={c.id}
+                                        component="button"
+                                        type="button"
                                         p="md"
                                         radius="md"
                                         onClick={() => setSelectedId(c.id)}
+                                        aria-pressed={selectedId === c.id}
                                         style={{
                                             cursor: 'pointer',
+                                            width: '100%',
+                                            textAlign: 'left',
+                                            color: 'inherit',
+                                            font: 'inherit',
                                             backgroundColor: selectedId === c.id ? 'var(--mantine-color-blue-light)' : 'var(--glass-bg)',
                                             border: selectedId === c.id ? '1px solid var(--mantine-color-blue-filled)' : '1px solid transparent',
                                             transition: 'all 0.2s ease'
