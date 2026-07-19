@@ -8,7 +8,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import {
     IconCheck, IconX, IconBulb, IconQuote,
-    IconGavel, IconSparkles, IconAlertTriangle
+    IconGavel, IconSparkles, IconAlertTriangle, IconBook2, IconExternalLink
 } from '@tabler/icons-react';
 import api from '../../utils/api';
 import { normalizeArrayPayload } from '../../utils/payload';
@@ -25,7 +25,8 @@ const JudgmentCourt = ({
     selectedProject,
     onSelectedProjectChange,
     refreshToken = 0,
-    onOpenMining
+    onOpenMining,
+    onOpenGlossary
 }) => {
     const { t } = useTranslation();
     const [projects, setProjects] = useState([]);
@@ -116,7 +117,7 @@ const JudgmentCourt = ({
 
         setProcessing(true);
         try {
-            await api.post(`${API_BASE_URL}/neologisms/${selectedId}/approve`, {
+            const response = await api.post(`${API_BASE_URL}/neologisms/${selectedId}/approve`, {
                 project_id: selectedProject,
                 resolution,
                 final_translation: editSuggestion,
@@ -124,10 +125,29 @@ const JudgmentCourt = ({
                 source_lang: candidate.source_lang || currentProject?.source_language || 'en',
                 target_lang: candidate.target_lang || 'zh-CN'
             });
+            const confirmedGlossary = response.data?.glossary || projectGlossary;
+            if (response.data?.glossary) {
+                setProjectGlossary(response.data.glossary);
+            }
             notifications.show({
-                title: t('neologism_review.court.approved_title'),
-                message: t('neologism_review.court.approved_message'),
-                color: 'green'
+                title: t(
+                    resolution === 'duplicate'
+                        ? 'neologism_review.court.duplicate_confirmed_title'
+                        : 'neologism_review.court.approved_title'
+                ),
+                message: t(
+                    resolution === 'duplicate'
+                        ? 'neologism_review.court.duplicate_confirmed_message'
+                        : 'neologism_review.court.approved_message',
+                    {
+                        term: candidate.original,
+                        glossary: confirmedGlossary?.name || t('neologism_review.court.project_glossary'),
+                    }
+                ),
+                color: resolution === 'duplicate' ? 'blue' : 'green',
+                icon: <IconCheck size={18} />,
+                withBorder: true,
+                autoClose: 3200,
             });
             removeCandidate(selectedId);
         } catch {
@@ -143,6 +163,8 @@ const JudgmentCourt = ({
 
     const handleReject = async () => {
         if (!selectedId || !selectedProject) return;
+        const candidate = candidates.find(c => c.id === selectedId);
+        if (!candidate) return;
         setProcessing(true);
         try {
             await api.post(`${API_BASE_URL}/neologisms/${selectedId}/reject`, {
@@ -150,8 +172,13 @@ const JudgmentCourt = ({
             });
             notifications.show({
                 title: t('neologism_review.court.rejected_title'),
-                message: t('neologism_review.court.rejected_message'),
-                color: 'gray'
+                message: t('neologism_review.court.rejected_message', {
+                    term: candidate.original,
+                }),
+                color: 'gray',
+                icon: <IconX size={18} />,
+                withBorder: true,
+                autoClose: 3200,
             });
             removeCandidate(selectedId);
         } catch {
@@ -203,6 +230,14 @@ const JudgmentCourt = ({
         }));
     };
 
+    const handleOpenProjectGlossary = () => {
+        if (!projectGlossary?.glossary_id || !onOpenGlossary) return;
+        onOpenGlossary({
+            glossaryId: projectGlossary.glossary_id,
+            gameId: projectGlossary.game_id || currentProject?.game_id,
+        });
+    };
+
     const HighlightedText = ({ text, term }) => {
         if (!text || !term) return <Text>{text}</Text>;
         const parts = text.split(new RegExp(`(${escapeRegExp(term)})`, 'gi'));
@@ -227,42 +262,86 @@ const JudgmentCourt = ({
         <Box h="100%" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             {/* Project Context Header */}
             <Paper
-                p="md"
+                p="lg"
                 mb="md"
+                radius="md"
+                withBorder
                 style={{
                     background: 'var(--glass-bg)',
-                    borderBottom: '1px solid var(--glass-border)',
                     flexShrink: 0
                 }}
             >
-                <Group justify="space-between" align="center">
-                    <Box style={{ flex: 1 }}>
-                        <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>{t('neologism_review.court.current_project')}</Text>
-                        <Select
-                            data={projects.map(p => ({ value: p.project_id, label: p.name }))}
-                            value={selectedProject}
-                            onChange={onSelectedProjectChange}
-                            placeholder={t('neologism_review.court.select_project')}
-                            size="md"
-                            mt="xs"
-                        />
-                        <Text size="xs" c="dimmed" mt="sm">{t('neologism_review.court.project_glossary')}</Text>
-                        <Badge variant="light" color={projectGlossary?.pending_creation ? 'blue' : 'teal'} size="lg">
-                            {projectGlossary?.name || t('neologism_review.court.project_glossary_pending')}
-                        </Badge>
-                    </Box>
-                    {currentProject && (
-                        <Badge size="lg" variant="light" color="blue">
-                            {t('neologism_review.court.pending_terms', { count: candidates.length })}
-                        </Badge>
-                    )}
-                </Group>
+                <Grid gutter="lg" align="stretch">
+                    <Grid.Col span={{ base: 12, md: 7 }}>
+                        <Stack gap="xs">
+                            <Group justify="space-between" align="center">
+                                <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>
+                                    {t('neologism_review.court.current_project')}
+                                </Text>
+                                {currentProject && (
+                                    <Badge size="lg" variant="light" color="blue">
+                                        {t('neologism_review.court.pending_terms', { count: candidates.length })}
+                                    </Badge>
+                                )}
+                            </Group>
+                            {currentProject && (
+                                <Title order={2} lineClamp={1}>
+                                    {currentProject.name}
+                                </Title>
+                            )}
+                            <Select
+                                data={projects.map(p => ({ value: p.project_id, label: p.name }))}
+                                value={selectedProject}
+                                onChange={onSelectedProjectChange}
+                                placeholder={t('neologism_review.court.select_project')}
+                                size="md"
+                            />
+                        </Stack>
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, md: 5 }}>
+                        <Paper
+                            p="md"
+                            radius="md"
+                            h="100%"
+                            withBorder
+                            style={{
+                                borderColor: 'var(--mantine-color-teal-6)',
+                                background: 'var(--mantine-color-teal-light)',
+                            }}
+                        >
+                            <Stack gap="sm" justify="space-between" h="100%">
+                                <Group gap="sm" wrap="nowrap">
+                                    <ThemeIcon color="teal" variant="filled" size="lg">
+                                        <IconBook2 size={20} />
+                                    </ThemeIcon>
+                                    <Box style={{ minWidth: 0 }}>
+                                        <Text size="xs" tt="uppercase" fw={800} c="teal">
+                                            {t('neologism_review.court.project_glossary')}
+                                        </Text>
+                                        <Text fw={700} truncate>
+                                            {projectGlossary?.name || t('neologism_review.court.project_glossary_pending')}
+                                        </Text>
+                                    </Box>
+                                </Group>
+                                <Button
+                                    variant="filled"
+                                    color="teal"
+                                    leftSection={<IconExternalLink size={16} />}
+                                    onClick={handleOpenProjectGlossary}
+                                    disabled={!projectGlossary?.glossary_id || !onOpenGlossary}
+                                    fullWidth
+                                >
+                                    {t('neologism_review.court.inspect_project_glossary')}
+                                </Button>
+                            </Stack>
+                        </Paper>
+                    </Grid.Col>
+                </Grid>
             </Paper>
 
             <Grid
-                h="100%"
                 gutter={0}
-                style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}
+                style={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden' }}
                 styles={{ inner: { height: '100%', minHeight: 0 } }}
             >
                 {/* Sidebar List */}

@@ -43,7 +43,7 @@ describe('JudgmentCourt candidate accessibility regression', () => {
     api.get.mockImplementation((url) => {
       if (url === '/api/projects') {
         return Promise.resolve({
-          data: { projects: [{ project_id: 'project-1', name: 'Stellaris Demo' }] },
+          data: { projects: [{ project_id: 'project-1', name: 'Stellaris Demo', game_id: 'stellaris' }] },
         });
       }
       if (url === '/api/neologisms?project_id=project-1') {
@@ -79,5 +79,28 @@ describe('JudgmentCourt candidate accessibility regression', () => {
 
     expect(secondCase).toHaveAttribute('aria-pressed', 'true');
     expect(firstCase).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('opens the bound project glossary from the prominent context card', async () => {
+    const onOpenGlossary = vi.fn();
+    render(
+      <MantineProvider>
+        <JudgmentCourt
+          selectedProject="project-1"
+          onSelectedProjectChange={vi.fn()}
+          onOpenGlossary={onOpenGlossary}
+        />
+      </MantineProvider>,
+    );
+
+    const openButton = await screen.findByRole('button', {
+      name: 'neologism_review.court.inspect_project_glossary',
+    });
+    fireEvent.click(openButton);
+
+    expect(onOpenGlossary).toHaveBeenCalledWith({
+      glossaryId: 3,
+      gameId: 'stellaris',
+    });
   });
 });

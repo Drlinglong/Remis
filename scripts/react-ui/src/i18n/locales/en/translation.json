@@ -521,7 +521,8 @@
     "error_translation_required": "Translation is required"
   },
   "neologism_review": {
-    "title": "Neologism Review",
+    "title": "Neologism Tribunal",
+    "subtitle": "Mine, judge, and write terms to the project glossary with clear project context",
     "common": {
       "error": "Error"
     },
@@ -563,6 +564,7 @@
       "main_glossary": "Main",
       "project_glossary": "Project glossary",
       "project_glossary_pending": "Preparing project glossary...",
+      "inspect_project_glossary": "Open and inspect this glossary",
       "duplicate_badge": "Duplicate",
       "duplicate_warning_title": "Already exists in a relevant glossary",
       "duplicate_warning_body": "This candidate matches an existing glossary term. Choose whether to reuse it or create a project-specific meaning.",
@@ -573,11 +575,13 @@
       "unknown_source": "Unknown source",
       "pending_terms": "{{count}} Pending Terms",
       "glossary_load_failed": "Failed to load glossaries",
-      "approved_title": "Approved",
-      "approved_message": "Term added to glossary",
+      "approved_title": "Approved and saved",
+      "approved_message": "“{{term}}” was written to project glossary “{{glossary}}”.",
+      "duplicate_confirmed_title": "Existing translation retained",
+      "duplicate_confirmed_message": "“{{term}}” was resolved without creating a duplicate entry.",
       "approve_failed": "Failed to approve",
       "rejected_title": "Rejected",
-      "rejected_message": "Term ignored",
+      "rejected_message": "“{{term}}” was rejected and will not be written to the project glossary.",
       "reject_failed": "Failed to reject",
       "ignore": "Ignore",
       "approve": "Approve Term",

@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import NeologismReviewPage from '../NeologismReviewPage';
@@ -34,9 +35,11 @@ vi.mock('../../components/neologism/JudgmentCourt', () => ({
 describe('NeologismReviewPage', () => {
   it('carries project context from mining into the refreshed judgment court', () => {
     render(
-      <MantineProvider>
-        <NeologismReviewPage />
-      </MantineProvider>,
+      <MemoryRouter>
+        <MantineProvider>
+          <NeologismReviewPage />
+        </MantineProvider>
+      </MemoryRouter>,
     );
 
     fireEvent.click(screen.getByText('select demo'));

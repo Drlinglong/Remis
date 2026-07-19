@@ -66,10 +66,38 @@ async def test_approve_candidate_is_idempotent_and_preserves_languages(tmp_path,
         "en": "Aetherophasic Engine",
         "zh-CN": "以太相引擎",
     }
+    assert entry["metadata"]["source_text"] == "Aetherophasic Engine"
+    assert entry["metadata"]["project_id"] == "project-1"
     assert entry["metadata"]["source_files"] == ["events/test.yml"]
     assert entry["metadata"]["frequency"] == 2
     assert entry["metadata"]["category"] == "technology"
     assert manager.load_candidates("project-1")[0].status == "approved"
+
+
+@pytest.mark.asyncio
+async def test_approve_candidate_preserves_source_when_languages_are_the_same(tmp_path, monkeypatch):
+    monkeypatch.setattr(neologism_module, "CACHE_DIR", str(tmp_path))
+    fake_glossary = FakeGlossaryManager()
+    monkeypatch.setattr(neologism_module, "glossary_manager", fake_glossary)
+    manager = NeologismManager()
+    manager.save_candidates(
+        "project-1",
+        [make_candidate(original="泰尔紫 (Tyrian Purple)", source_lang="zh-CN")],
+    )
+
+    approved = await manager.approve_candidate(
+        "project-1",
+        "candidate-1",
+        "泰尔紫",
+        glossary_id=42,
+        source_lang="zh-CN",
+        target_lang="zh-CN",
+    )
+
+    assert approved is True
+    entry = fake_glossary.calls[0][1]
+    assert entry["translations"] == {"zh-CN": "泰尔紫"}
+    assert entry["metadata"]["source_text"] == "泰尔紫 (Tyrian Purple)"
 
 
 @pytest.mark.asyncio

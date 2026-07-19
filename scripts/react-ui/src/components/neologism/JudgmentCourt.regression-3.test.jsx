@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { notifications } from '@mantine/notifications';
 
 import api from '../../utils/api';
 import JudgmentCourt from './JudgmentCourt';
@@ -94,8 +95,40 @@ describe('JudgmentCourt next-case regression', () => {
       expect(api.post).toHaveBeenCalledWith('/api/neologisms/2/approve', expect.any(Object));
       expect(screen.queryByRole('button', { name: /Quantum Anchor/ })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Void Beacon/ })).toHaveAttribute('aria-pressed', 'true');
+      expect(notifications.show).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'neologism_review.court.approved_title',
+        color: 'green',
+        withBorder: true,
+        autoClose: 3200,
+      }));
     });
 
     expect(screen.getByRole('button', { name: /Hyperlane Relay/ })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('shows explicit transient confirmation after rejecting a term', async () => {
+    render(
+      <MantineProvider>
+        <JudgmentCourt
+          selectedProject="project-1"
+          onSelectedProjectChange={vi.fn()}
+        />
+      </MantineProvider>,
+    );
+
+    await screen.findByRole('button', { name: /Hyperlane Relay/ });
+    fireEvent.click(screen.getByRole('button', { name: /neologism_review.court.ignore/ }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/api/neologisms/1/reject', {
+        project_id: 'project-1',
+      });
+      expect(notifications.show).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'neologism_review.court.rejected_title',
+        color: 'gray',
+        withBorder: true,
+        autoClose: 3200,
+      }));
+    });
   });
 });
