@@ -161,6 +161,7 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
     };
 
     const removeCandidate = (id) => {
+        const currentIndex = candidates.findIndex(c => c.id === id);
         const newList = candidates.filter(c => c.id !== id);
         const draftKey = `${selectedProject || ''}:${id}`;
         setDraftSuggestions((current) => {
@@ -170,7 +171,10 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
         });
         setCandidates(newList);
         if (newList.length > 0) {
-            setSelectedId(newList[0].id);
+            const nextIndex = currentIndex >= 0
+                ? Math.min(currentIndex, newList.length - 1)
+                : 0;
+            setSelectedId(newList[nextIndex].id);
         } else {
             setSelectedId(null);
         }
