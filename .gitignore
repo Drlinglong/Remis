@@ -53,6 +53,7 @@ data/*.db
 mods.sqlite
 data/seed_data_*.sql
 logs/
+benchmark_results/
 temp/
 *.tmp
 *.db
@@ -120,3 +121,4 @@ migrate_projects_db.py
 # Environment files with secrets
 .env
 .config/
+.gstack/

@@ -4,9 +4,20 @@ import pytest_asyncio
 import os
 import shutil
 from datetime import datetime
+from sqlmodel import select
 from scripts.core.repositories.project_repository import ProjectRepository
-from scripts.core.db_models import Project, ProjectFile
-from scripts.core.db_manager import DatabaseConnectionManager
+from scripts.core.glossary_manager import GlossaryManager
+from scripts.core.db_models import (
+    ActivityLog,
+    Glossary,
+    Project,
+    ProjectFile,
+    ProjectGlossaryBinding,
+    ProjectHistory,
+    ProjectWatch,
+    ProjectWatchFileSnapshot,
+)
+from scripts.core.db_manager import DatabaseConnectionManager, db_manager
 
 # Setup a temporary DB for testing
 import uuid
@@ -110,6 +121,100 @@ async def test_create_project_does_not_mutate_input_model(repo):
     assert created is not new_project
     assert new_project.source_path == source_path
     assert new_project.target_path == target_path
+
+
+@pytest.mark.asyncio
+async def test_delete_project_removes_foreign_key_dependents(repo):
+    project_id = "project-with-dependents"
+    await repo.create_project(Project(
+        project_id=project_id,
+        name="Delete Me",
+        game_id="eu5",
+        source_path="/tmp/delete-me",
+        source_language="english",
+    ))
+
+    async for session in db_manager.get_async_session():
+        glossary = Glossary(game_id="eu5", name="Bound Glossary")
+        session.add(glossary)
+        await session.flush()
+        session.add_all([
+            ProjectFile(file_id="delete-file", project_id=project_id, file_path="a.yml"),
+            ProjectHistory(
+                history_id="delete-history",
+                project_id=project_id,
+                timestamp=datetime.now().isoformat(),
+                action_type="import",
+            ),
+            ActivityLog(
+                log_id="delete-activity",
+                project_id=project_id,
+                type="import",
+                description="Imported",
+                timestamp=datetime.now().isoformat(),
+            ),
+            ProjectGlossaryBinding(project_id=project_id, glossary_id=glossary.glossary_id),
+            ProjectWatch(watch_id="delete-watch", name="Delete Watch", path="/tmp", project_id=project_id),
+        ])
+        session.add(ProjectWatchFileSnapshot(
+            snapshot_id="delete-snapshot",
+            watch_id="delete-watch",
+            relative_path="a.yml",
+            sha256="hash",
+            size=1,
+            mtime_ns=1,
+            last_seen_at=datetime.now().isoformat(),
+        ))
+        await session.commit()
+        break
+
+    await repo.delete_project(project_id)
+
+    async for session in db_manager.get_async_session():
+        for model in (
+            Project,
+            ProjectFile,
+            ProjectHistory,
+            ActivityLog,
+            ProjectGlossaryBinding,
+            ProjectWatch,
+            ProjectWatchFileSnapshot,
+        ):
+            result = await session.execute(select(model))
+            assert result.scalars().all() == []
+        break
+
+
+@pytest.mark.asyncio
+async def test_delete_glossary_removes_project_binding(repo):
+    project_id = "project-with-bound-glossary"
+    await repo.create_project(Project(
+        project_id=project_id,
+        name="Keep Project",
+        game_id="eu5",
+        source_path="/tmp/keep-project",
+        source_language="english",
+    ))
+
+    async for session in db_manager.get_async_session():
+        glossary = Glossary(game_id="eu5", name="Delete Bound Glossary")
+        session.add(glossary)
+        await session.flush()
+        glossary_id = glossary.glossary_id
+        session.add(ProjectGlossaryBinding(project_id=project_id, glossary_id=glossary_id))
+        await session.commit()
+        break
+
+    assert await GlossaryManager().delete_glossary(glossary_id) is True
+
+    async for session in db_manager.get_async_session():
+        binding_result = await session.execute(select(ProjectGlossaryBinding))
+        glossary_result = await session.execute(select(Glossary))
+        project_result = await session.execute(select(Project))
+        assert binding_result.scalars().all() == []
+        assert glossary_result.scalars().all() == []
+        assert [project.project_id for project in project_result.scalars().all()] == [project_id]
+        break
 
 @pytest.mark.asyncio
 async def test_batch_upsert_files_does_not_mutate_input_payload(repo):

@@ -5,7 +5,15 @@ from contextlib import asynccontextmanager
 from sqlmodel import select, col
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import selectinload
-from scripts.core.db_models import Project, ProjectFile, ProjectHistory
+from scripts.core.db_models import (
+    ActivityLog,
+    Project,
+    ProjectFile,
+    ProjectGlossaryBinding,
+    ProjectHistory,
+    ProjectWatch,
+    ProjectWatchFileSnapshot,
+)
 from scripts.app_settings import PROJECTS_DB_PATH, relativize_path, resolve_path
 import uuid
 
@@ -243,14 +251,23 @@ class ProjectRepository:
     async def delete_project(self, project_id: str, session: Optional[AsyncSession] = None):
         async with self._use_session(session) as session:
             try:
-                # 1. Delete Files
-                statement_files = select(ProjectFile).where(ProjectFile.project_id == project_id)
-                results_files = await session.execute(statement_files)
-                files = results_files.scalars().all()
-                for f in files:
-                    await session.delete(f)
-                
-                # 2. Delete Project
+                from sqlalchemy import delete
+
+                watch_ids = select(ProjectWatch.watch_id).where(ProjectWatch.project_id == project_id)
+                await session.execute(
+                    delete(ProjectWatchFileSnapshot).where(
+                        col(ProjectWatchFileSnapshot.watch_id).in_(watch_ids)
+                    )
+                )
+                for model in (
+                    ProjectWatch,
+                    ProjectGlossaryBinding,
+                    ProjectFile,
+                    ProjectHistory,
+                    ActivityLog,
+                ):
+                    await session.execute(delete(model).where(model.project_id == project_id))
+
                 statement_project = select(Project).where(Project.project_id == project_id)
                 results_project = await session.execute(statement_project)
                 project = results_project.scalar_one_or_none()

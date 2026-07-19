@@ -1,6 +1,7 @@
 import logging
 from scripts.core.parallel_types import BatchTask
 from scripts.core.openai_handler import OpenAIHandler
+from scripts.core.glossary_manager import glossary_manager
 from scripts.utils import i18n
 # from scripts.utils.text_clean import mask_special_tokens, restore_special_tokens # REMOVED
 
@@ -47,6 +48,8 @@ class HunyuanHandler(OpenAIHandler):
         chunk = task.texts
         source_lang_code = task.file_task.source_lang["code"]
         target_lang_name = task.file_task.target_lang["name"]
+        target_lang_code = task.file_task.target_lang["code"]
+        mod_context = task.file_task.mod_context
         
         # [MODIFIED] Direct input without masking to preserve variable context (e.g. [Root.GetName])
         # The user explicitly requested to trust the LLM with raw Paradox variables 
@@ -76,8 +79,37 @@ class HunyuanHandler(OpenAIHandler):
             target_language=target_lang_name,
             source_text=source_text
         )
-        
-        return prompt
+
+        context_prompt_part = (
+            f"TASK-SPECIFIC CONTEXT AND INSTRUCTIONS:\n{mod_context}\n\n"
+            if mod_context
+            else ""
+        )
+        custom_global_prompt_part = self._build_custom_global_prompt_part(mod_context)
+        glossary_prompt_part = ""
+        if glossary_manager.get_glossary_for_translation():
+            relevant_terms = glossary_manager.extract_relevant_terms(
+                chunk,
+                source_lang_code,
+                target_lang_code,
+            )
+            if relevant_terms:
+                glossary_prompt_part = (
+                    glossary_manager.create_dynamic_glossary_prompt(
+                        relevant_terms,
+                        source_lang_code,
+                        target_lang_code,
+                    )
+                    + "\n\n"
+                )
+
+        prompt = (
+            context_prompt_part
+            + custom_global_prompt_part
+            + glossary_prompt_part
+            + prompt
+        )
+        return self._apply_model_prompt_adapter(prompt)
 
     def _parse_response(self, response: str, original_texts: list[str], target_lang_code: str) -> list[str] | None:
         """

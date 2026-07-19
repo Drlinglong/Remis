@@ -513,6 +513,7 @@
       "select_project": "1. Seleccionar proyecto",
       "select_project_placeholder": "Elegir un origen de proyecto",
       "select_provider": "3. Proveedor de API",
+      "model": "Modelo",
       "target_language": "Idioma de destino",
       "target_language_desc": "La IA propondrá sugerencias en este idioma",
       "start_mining": "Empezar minería",
@@ -547,6 +548,11 @@
       "duplicate_badge": "Duplicado",
       "duplicate_warning_title": "Ya existe en el glosario principal",
       "duplicate_warning_body": "Este candidato coincide con un termino del glosario principal. Revisalo con cuidado antes de aprobarlo o ignoralo.",
+      "duplicate_resolution": "¿Como debe resolverse este conflicto de terminos?",
+      "resolution_duplicate": "Usar la traduccion existente del glosario",
+      "resolution_override": "Crear una traduccion especifica del proyecto",
+      "resolution_new_meaning": "Tratarlo como un significado nuevo en este proyecto",
+      "unknown_source": "Fuente desconocida",
       "pending_terms": "{{count}} términos pendientes",
       "glossary_load_failed": "No se pudieron cargar los glosarios",
       "approved_title": "Aprobado",
@@ -595,6 +601,9 @@
   "prompt_reset_success": "Prompt restablecido a los valores predeterminados",
   "prompt_reset_error": "Error al restablecer el prompt",
   "api_settings_saved": "Ajustes guardados correctamente",
+  "api_test_connection": "Probar conexión",
+  "api_connection_success": "Conexión correcta. El servicio LLM local está disponible.",
+  "api_connection_failed": "Error de conexión",
   "prompt_settings_warning_title": "Advertencia: Configuración avanzada",
   "prompt_settings_warning_desc": "A menos que comprendas totalmente cómo funciona la ingeniería de prompts, desaconsejamos encarecidamente modificar estos prompts del sistema. Los cambios incorrectos pueden provocar fallos en la traducción o una degradación de la calidad.",
   "prompt_formatting_rules": "Reglas de formato (Estructura JSON)",
@@ -1553,13 +1562,50 @@
     "edit_final": "Editar traducción final de {{key}}",
     "blank_lines": "{{count}} línea(s) vacía(s)",
     "no_entries": "Ninguna entrada coincide con el filtro actual.",
-    "tabs": { "entries": "Entradas", "raw": "Archivo original" },
-    "columns": { "key": "Clave", "source": "Fuente", "ai_draft": "Borrador IA", "final": "Final" },
-    "filter": { "all": "Todo", "changed": "Modificado", "issues": "Problemas" },
-    "structure": { "comment": "Comentario", "blank": "Líneas vacías", "header": "Cabecera", "raw": "Otra estructura" },
-    "hint": { "key": "La clave de localización de solo lectura que identifica esta entrada.", "original_source": "El archivo fuente original usado como referencia de traducción.", "ai_source": "El borrador de IA cargado desde el archivo del proyecto o el archivo de traducción.", "final_source": "El contenido final se guardará en el archivo de traducción seleccionado." },
-    "tooltips": { "errors": "Errores", "warnings": "Advertencias" },
-    "notifications": { "error": "Error", "perfect": "Sin problemas", "perfect_message": "No se encontraron problemas de validación.", "issues_found": "Problemas encontrados", "issues_found_message": "Se encontraron {{errors}} errores y {{warnings}} advertencias.", "validation_failed": "La validación falló.", "saved": "Guardado", "saved_message": "Archivo guardado correctamente.", "save_failed": "No se pudo guardar el archivo.", "folder_opened": "Carpeta abierta", "folder_failed": "No se pudo abrir la carpeta" },
+    "tabs": {
+      "entries": "Entradas",
+      "raw": "Archivo original"
+    },
+    "columns": {
+      "key": "Clave",
+      "source": "Fuente",
+      "ai_draft": "Borrador IA",
+      "final": "Final"
+    },
+    "filter": {
+      "all": "Todo",
+      "changed": "Modificado",
+      "issues": "Problemas"
+    },
+    "structure": {
+      "comment": "Comentario",
+      "blank": "Líneas vacías",
+      "header": "Cabecera",
+      "raw": "Otra estructura"
+    },
+    "hint": {
+      "key": "La clave de localización de solo lectura que identifica esta entrada.",
+      "original_source": "El archivo fuente original usado como referencia de traducción.",
+      "ai_source": "El borrador de IA cargado desde el archivo del proyecto o el archivo de traducción.",
+      "final_source": "El contenido final se guardará en el archivo de traducción seleccionado."
+    },
+    "tooltips": {
+      "errors": "Errores",
+      "warnings": "Advertencias"
+    },
+    "notifications": {
+      "error": "Error",
+      "perfect": "Sin problemas",
+      "perfect_message": "No se encontraron problemas de validación.",
+      "issues_found": "Problemas encontrados",
+      "issues_found_message": "Se encontraron {{errors}} errores y {{warnings}} advertencias.",
+      "validation_failed": "La validación falló.",
+      "saved": "Guardado",
+      "saved_message": "Archivo guardado correctamente.",
+      "save_failed": "No se pudo guardar el archivo.",
+      "folder_opened": "Carpeta abierta",
+      "folder_failed": "No se pudo abrir la carpeta"
+    },
     "errors": {
       "project_not_found": "No se pueden cargar los datos de revisión porque el proyecto ya no existe.",
       "file_not_indexed": "No se pueden cargar los datos de revisión porque este archivo no está en el índice actual del proyecto. Actualiza los archivos del proyecto e inténtalo de nuevo.",
@@ -1716,5 +1762,30 @@
   "project_management.project_glossary.create_success_title": "Glosario del proyecto listo",
   "project_management.project_glossary.create_success_message": "Se ha creado y vinculado un glosario del proyecto.",
   "project_management.project_glossary.create_failed_title": "Error al crear",
-  "project_management.project_glossary.create_failed_message": "No se pudo crear el glosario del proyecto."
+  "project_management.project_glossary.create_failed_message": "No se pudo crear el glosario del proyecto.",
+  "page_title_copilot": "Asistente Remis",
+  "copilot": {
+    "page_subtitle": "Respuestas de ayuda y sugerencias de navegación seguras. En pruebas usa LM Studio local por defecto.",
+    "provider_label": "Proveedor",
+    "picker_later": "Selector de modelo: próximamente",
+    "phase1_notice": "Las sesiones permanecen en el navegador. Sin cobertura documental la confianza es baja. En modelos locales ~32k se omiten mensajes antiguos en lugar de fallar.",
+    "status_error": "No se pudo cargar el estado del asistente",
+    "empty_title": "Asistente Remis",
+    "empty_desc": "Pregunte cómo usar Remis. Las pruebas usan LM Studio local. Explico flujos y ofrezco saltos de página clicables.",
+    "suggestion_first_run": "¿Cómo empiezo mi primera localización?",
+    "suggestion_api": "¿Cómo configuro LM Studio / API?",
+    "suggestion_deploy": "¿Cómo despliego al juego?",
+    "suggestion_logs": "Algo falló: ¿dónde están los registros?",
+    "input_placeholder": "Pregunte cómo usar Remis…",
+    "send": "Enviar",
+    "confidence": "Confianza",
+    "empty_reply": "(Sin respuesta)",
+    "sessions_title": "Lista de chats",
+    "new_chat": "Chat nuevo",
+    "delete_chat": "Eliminar chat",
+    "untitled_chat": "Conversación nueva",
+    "context_trimmed": "Se omitieron {{count}} mensajes antiguos para el contexto local",
+    "context_budget_badge": "Presupuesto de contexto",
+    "grounding": "Base documental"
+  }
 }

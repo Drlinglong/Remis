@@ -513,6 +513,7 @@
       "select_project": "1. Proje Seçin",
       "select_project_placeholder": "Bir proje kaynağı seçin",
       "select_provider": "3. API Sağlayıcısı",
+      "model": "Yapay zekâ modeli",
       "target_language": "Hedef dil",
       "target_language_desc": "Yapay zeka önerilerini bu dilde sunar",
       "start_mining": "Madenciliği Başlat",
@@ -547,6 +548,11 @@
       "duplicate_badge": "Yinelenen",
       "duplicate_warning_title": "Ana sozlukte zaten var",
       "duplicate_warning_body": "Bu aday ana sozlukteki bir terimle eslesiyor. Onaylamadan once dikkatle inceleyin veya yok sayin.",
+      "duplicate_resolution": "Bu terim cakismasi nasil cozulmeli?",
+      "resolution_duplicate": "Mevcut sozluk cevirisini kullan",
+      "resolution_override": "Projeye ozel bir ceviri olustur",
+      "resolution_new_meaning": "Bu projede yeni bir anlam olarak ele al",
+      "unknown_source": "Bilinmeyen kaynak",
       "pending_terms": "{{count}} bekleyen terim",
       "glossary_load_failed": "Sözlükler yüklenemedi",
       "approved_title": "Onaylandı",
@@ -595,6 +601,9 @@
   "prompt_reset_success": "Komut varsayılana sıfırlandı",
   "prompt_reset_error": "Komut sıfırlanamadı",
   "api_settings_saved": "Ayarlar başarıyla kaydedildi",
+  "api_test_connection": "Bağlantıyı test et",
+  "api_connection_success": "Bağlantı başarılı. Yerel LLM hizmetine erişilebilir.",
+  "api_connection_failed": "Bağlantı başarısız",
   "prompt_settings_warning_title": "Uyarı: Gelişmiş Yapılandırma",
   "prompt_settings_warning_desc": "Komut mühendisliğinin (prompt engineering) nasıl çalıştığını tam olarak anlamadığınız sürece, bu sistem komutlarını değiştirmenizi kesinlikle önermiyoruz. Hatalı değişiklikler çeviri hatalarına veya kalite düşüklüğüne yol açabilir.",
   "prompt_formatting_rules": "Biçimlendirme Kuralları (JSON Yapısı)",
@@ -1552,13 +1561,50 @@
     "edit_final": "{{key}} son çevirisini düzenle",
     "blank_lines": "{{count}} boş satır",
     "no_entries": "Geçerli filtreyle eşleşen kayıt yok.",
-    "tabs": { "entries": "Kayıtlar", "raw": "Ham dosya" },
-    "columns": { "key": "Anahtar", "source": "Kaynak", "ai_draft": "Yapay zeka taslağı", "final": "Son" },
-    "filter": { "all": "Tümü", "changed": "Değiştirilen", "issues": "Sorunlar" },
-    "structure": { "comment": "Yorum", "blank": "Boş satırlar", "header": "Başlık", "raw": "Diğer yapı" },
-    "hint": { "key": "Bu girdiyi tanımlayan salt okunur yerelleştirme anahtarı.", "original_source": "Çeviri referansı olarak kullanılan özgün kaynak dosya.", "ai_source": "Proje arşivinden veya çeviri dosyasından yüklenen yapay zeka taslağı.", "final_source": "Son içerik seçili çeviri dosyasına kaydedilir." },
-    "tooltips": { "errors": "Hatalar", "warnings": "Uyarılar" },
-    "notifications": { "error": "Hata", "perfect": "Sorun yok", "perfect_message": "Doğrulama sorunu bulunamadı.", "issues_found": "Sorunlar bulundu", "issues_found_message": "{{errors}} hata ve {{warnings}} uyarı bulundu.", "validation_failed": "Doğrulama başarısız.", "saved": "Kaydedildi", "saved_message": "Dosya başarıyla kaydedildi.", "save_failed": "Dosya kaydedilemedi.", "folder_opened": "Klasör açıldı", "folder_failed": "Klasör açılamadı" },
+    "tabs": {
+      "entries": "Kayıtlar",
+      "raw": "Ham dosya"
+    },
+    "columns": {
+      "key": "Anahtar",
+      "source": "Kaynak",
+      "ai_draft": "Yapay zeka taslağı",
+      "final": "Son"
+    },
+    "filter": {
+      "all": "Tümü",
+      "changed": "Değiştirilen",
+      "issues": "Sorunlar"
+    },
+    "structure": {
+      "comment": "Yorum",
+      "blank": "Boş satırlar",
+      "header": "Başlık",
+      "raw": "Diğer yapı"
+    },
+    "hint": {
+      "key": "Bu girdiyi tanımlayan salt okunur yerelleştirme anahtarı.",
+      "original_source": "Çeviri referansı olarak kullanılan özgün kaynak dosya.",
+      "ai_source": "Proje arşivinden veya çeviri dosyasından yüklenen yapay zeka taslağı.",
+      "final_source": "Son içerik seçili çeviri dosyasına kaydedilir."
+    },
+    "tooltips": {
+      "errors": "Hatalar",
+      "warnings": "Uyarılar"
+    },
+    "notifications": {
+      "error": "Hata",
+      "perfect": "Sorun yok",
+      "perfect_message": "Doğrulama sorunu bulunamadı.",
+      "issues_found": "Sorunlar bulundu",
+      "issues_found_message": "{{errors}} hata ve {{warnings}} uyarı bulundu.",
+      "validation_failed": "Doğrulama başarısız.",
+      "saved": "Kaydedildi",
+      "saved_message": "Dosya başarıyla kaydedildi.",
+      "save_failed": "Dosya kaydedilemedi.",
+      "folder_opened": "Klasör açıldı",
+      "folder_failed": "Klasör açılamadı"
+    },
     "errors": {
       "project_not_found": "Bu proje artık mevcut olmadığı için düzeltme verileri yüklenemiyor.",
       "file_not_indexed": "Bu dosya mevcut proje dosya dizininde olmadığı için düzeltme verileri yüklenemiyor. Proje dosyalarını yenileyip tekrar deneyin.",
@@ -1715,5 +1761,30 @@
   "project_management.project_glossary.create_success_title": "Proje sozlugu hazir",
   "project_management.project_glossary.create_success_message": "Bir proje sozlugu olusturuldu ve baglandi.",
   "project_management.project_glossary.create_failed_title": "Olusturma basarisiz",
-  "project_management.project_glossary.create_failed_message": "Proje sozlugu olusturulamadi."
+  "project_management.project_glossary.create_failed_message": "Proje sozlugu olusturulamadi.",
+  "page_title_copilot": "Remis Asistan",
+  "copilot": {
+    "page_subtitle": "Yardım yanıtları ve güvenli tıklanabilir gezinme önerileri. Testlerde varsayılan yerel LM Studio’dur.",
+    "provider_label": "Sağlayıcı",
+    "picker_later": "Model seçici: sonra eklenecek",
+    "phase1_notice": "Oturumlar bu tarayıcıda saklanır. Belgelerde yoksa güven düşük zorlanır. ~32k yerel modellerde eski iletiler hata yerine atılır.",
+    "status_error": "Asistan durumu yüklenemedi",
+    "empty_title": "Remis Asistan",
+    "empty_desc": "Remis’i nasıl kullanacağınızı sorun. Testler yerel LM Studio kullanır. İş akışlarını anlatır ve tıklanabilir sayfa atlamaları öneririm.",
+    "suggestion_first_run": "İlk yerelleştirmeme nasıl başlarım?",
+    "suggestion_api": "LM Studio / API’yi nasıl yapılandırırım?",
+    "suggestion_deploy": "Oyuna nasıl dağıtırım?",
+    "suggestion_logs": "Bir şey bozuldu — günlükler nerede?",
+    "input_placeholder": "Remis’i nasıl kullanacağınızı sorun…",
+    "send": "Gönder",
+    "confidence": "Güven",
+    "empty_reply": "(Yanıt yok)",
+    "sessions_title": "Sohbetler",
+    "new_chat": "Yeni sohbet",
+    "delete_chat": "Sohbeti sil",
+    "untitled_chat": "Yeni konuşma",
+    "context_trimmed": "Yerel bağlam için {{count}} eski ileti atlandı",
+    "context_budget_badge": "Bağlam bütçesi",
+    "grounding": "Belge dayanağı"
+  }
 }

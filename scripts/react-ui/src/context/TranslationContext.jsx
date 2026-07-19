@@ -5,10 +5,10 @@ import { TranslationContext } from './TranslationContextCore';
 
 export const TranslationProvider = ({ children }) => {
     const [activeStep, setActiveStep] = usePersistentState('trans_active_step', 0);
-    const [taskId, setTaskId] = useState(null);
+    const [taskId, setTaskId] = usePersistentState('trans_task_id', null);
     const [taskStatus, setTaskStatus] = useState(null);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [translationDetails, setTranslationDetails] = useState(null);
+    const [isProcessing, setIsProcessing] = usePersistentState('trans_is_processing', false);
+    const [translationDetails, setTranslationDetails] = usePersistentState('trans_translation_details', null);
     const [selectedProjectId, setSelectedProjectId] = usePersistentState('trans_selected_project_id', null);
 
     // Reset translation state
@@ -18,7 +18,7 @@ export const TranslationProvider = ({ children }) => {
         setIsProcessing(false);
         setActiveStep(0);
         setTranslationDetails(null);
-    }, [setActiveStep]);
+    }, [setActiveStep, setIsProcessing, setTaskId, setTranslationDetails]);
 
     const applyTaskUpdate = useCallback((data) => {
         setTaskStatus(data);
@@ -28,7 +28,7 @@ export const TranslationProvider = ({ children }) => {
                 setActiveStep(3);
             }
         }
-    }, [setActiveStep]);
+    }, [setActiveStep, setIsProcessing]);
 
     // WebSocket for real-time status updates
     useEffect(() => {

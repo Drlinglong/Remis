@@ -72,6 +72,19 @@ class BaseApiHandler(ABC):
             
         return base_config
 
+    def _build_custom_global_prompt_part(self, existing_context: str = "") -> str:
+        """Build persistent user instructions once, without duplicating UI defaults."""
+        custom_prompt = (prompt_manager.get_custom_global_prompt() or "").strip()
+        if not custom_prompt or custom_prompt in (existing_context or ""):
+            return ""
+
+        return (
+            "\nPERSISTENT CUSTOM TRANSLATION INSTRUCTIONS:\n"
+            f"{custom_prompt}\n"
+            "Apply these instructions to translation choices, but never let them "
+            "override required output formatting or protected-token rules.\n"
+        )
+
     @abstractmethod
     def initialize_client(self):
         """【必须由子类实现】初始化并返回特定于该Provider的API客户端。"""
@@ -121,6 +134,7 @@ class BaseApiHandler(ABC):
             f"CRITICAL CONTEXT: The mod you are translating is '{mod_context}'. "
             "Use this information to ensure all translations are thematically appropriate.\n"
         )
+        custom_global_prompt_part = self._build_custom_global_prompt_part(mod_context)
 
         glossary_prompt_part = ""
         # [DEBUG] Check glossary state before extraction
@@ -173,7 +187,15 @@ class BaseApiHandler(ABC):
                 "- Ensure the JSON format is strictly followed.\n"
             )
 
-        prompt = base_prompt + context_prompt_part + glossary_prompt_part + format_prompt_part + punctuation_prompt_part + final_warning
+        prompt = (
+            base_prompt
+            + context_prompt_part
+            + custom_global_prompt_part
+            + glossary_prompt_part
+            + format_prompt_part
+            + punctuation_prompt_part
+            + final_warning
+        )
         return self._apply_model_prompt_adapter(prompt)
 
     def _parse_response(self, response: str, original_texts: list[str], target_lang_code: str) -> list[str] | None:
@@ -289,6 +311,7 @@ class BaseApiHandler(ABC):
         prompt = (
             base_prompt
             + f"CRITICAL CONTEXT: The mod's theme is '{mod_context}'. Use this to ensure accuracy.\n"
+            + self._build_custom_global_prompt_part(mod_context)
             + glossary_prompt_part
             + "CRITICAL FORMATTING: Your response MUST ONLY contain the translated text. "
             "DO NOT include explanations, pinyin, or any other text.\n"

@@ -5,6 +5,7 @@ import { notifications } from '@mantine/notifications';
 import { IconBook2, IconExternalLink, IconInfoCircle, IconLink, IconPlus, IconUnlink } from '@tabler/icons-react';
 
 import api from '../../utils/api';
+import { normalizeArrayPayload } from '../../utils/payload';
 
 const API_BASE_URL = '/api';
 const ALL_GAMES_FILTER = '__all__';
@@ -26,7 +27,10 @@ export default function ProjectGlossaryPanel({ project, t }) {
         api.get(`${API_BASE_URL}/glossaries`),
         api.get(`${API_BASE_URL}/neologisms/project-glossary/${encodeURIComponent(project.project_id)}`),
       ]);
-      const available = glossariesResponse.data || [];
+      const available = normalizeArrayPayload(
+        glossariesResponse.data,
+        ['glossaries', 'items', 'data', 'results'],
+      );
       const current = projectGlossaryResponse.data || null;
       setGlossaries(available);
       setProjectGlossary(current);

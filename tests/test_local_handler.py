@@ -3,6 +3,8 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
+import httpx
+from openai import APIConnectionError
 
 from scripts.core.local_handler import LocalLLMHandler
 
@@ -154,3 +156,50 @@ def test_openai_compatible_call_appends_system_prompt_suffix():
     messages = client.chat.completions.create.call_args.kwargs["messages"]
     assert messages[0]["content"] == "You are a professional translator. /no_think"
     assert messages[1]["content"] == "translate this"
+
+
+def test_generate_with_messages_preserves_assistant_history_for_repairs():
+    handler = object.__new__(LocalLLMHandler)
+    handler.provider_name = "lm_studio"
+    handler.protocol = "openai"
+    handler.base_url = "http://localhost:1234/v1"
+    handler.logger = logging.getLogger("test_local_handler")
+    handler.model_id = "local-model"
+    handler.get_provider_config = lambda: {"default_model": "local-model"}
+    handler.client = MagicMock()
+    handler.client.chat.completions.create.return_value = SimpleNamespace(
+        choices=[SimpleNamespace(message=SimpleNamespace(content='[]'))]
+    )
+    messages = [
+        {"role": "system", "content": "Return JSON."},
+        {"role": "user", "content": "Input text"},
+        {"role": "assistant", "content": '[{"category":"character"}]'},
+        {"role": "user", "content": "Repair it"},
+    ]
+
+    assert handler.generate_with_messages(messages, temperature=0.1) == "[]"
+
+    call = handler.client.chat.completions.create.call_args.kwargs
+    assert call["messages"] == messages
+    assert call["temperature"] == 0.1
+
+
+def test_openai_compatible_call_reports_provider_and_url_on_connection_failure():
+    handler = object.__new__(LocalLLMHandler)
+    handler.provider_name = "lm_studio"
+    handler.base_url = "http://127.0.0.1:1234/v1"
+    handler.logger = logging.getLogger("test_local_handler")
+    handler.get_provider_config = lambda: {"default_model": "local-model"}
+
+    client = MagicMock()
+    client.chat.completions.create.side_effect = APIConnectionError(
+        request=httpx.Request("POST", "http://127.0.0.1:1234/v1/chat/completions")
+    )
+
+    with pytest.raises(ConnectionError) as exc_info:
+        handler._call_openai_compatible(client, "translate this")
+
+    message = str(exc_info.value)
+    assert "LM Studio" in message
+    assert "http://127.0.0.1:1234/v1" in message
+    assert "请检查本地服务是否已启动，并确认端口设置正确" in message

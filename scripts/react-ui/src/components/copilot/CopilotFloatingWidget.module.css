@@ -1,0 +1,14 @@
+.root { position: fixed; right: 18px; bottom: 18px; z-index: 400; }
+.button {
+  color: var(--mantine-color-blue-1, #d0ebff);
+  background: color-mix(in srgb, var(--mantine-color-body, #1a1b1e) 82%, var(--mantine-color-blue-8, #1971c2));
+  border: 1px solid color-mix(in srgb, var(--mantine-color-blue-5, #339af0) 58%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+  transition: transform 140ms ease-out, background-color 140ms ease-out, box-shadow 140ms ease-out;
+}
+.button:hover { transform: translateY(-1px); background: var(--mantine-color-blue-8, #1971c2); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3); }
+.panel { width: min(430px, calc(100vw - 36px)); height: min(620px, calc(100vh - 92px)); display: flex; flex-direction: column; overflow: hidden; background: color-mix(in srgb, var(--mantine-color-body) 94%, transparent); backdrop-filter: blur(18px); }
+.header { min-height: 64px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--glass-border, rgba(255,255,255,.1)); }
+.localPrompt { margin: 10px 12px 0; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--mantine-color-blue-filled) 12%, transparent); border: 1px solid color-mix(in srgb, var(--mantine-color-blue-filled) 24%, transparent); }
+.thread { flex: 1; min-height: 0; padding: 10px; }
+@media (max-width: 560px) { .root { right: 10px; bottom: 10px; } .panel { width: calc(100vw - 20px); height: calc(100vh - 74px); } }

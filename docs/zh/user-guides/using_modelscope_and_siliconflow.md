@@ -1,73 +1,47 @@
-# 使用 ModelScope (魔搭) 和 SiliconFlow (硅基流动)
+# 使用 ModelScope（魔搭）与 SiliconFlow（硅基流动）
 
-本文档将指导您如何配置并使用 ModelScope (魔搭) 和 SiliconFlow (硅基流动) 这两个与 OpenAI API 兼容的服务商。
+二者均提供大量可选开源模型，适合在国内网络环境下按预算与效果「点菜」。
+总入口：[Provider 配置速查](provider-setup-index.md)。
 
-## 核心优势：自由选择模型
+## 核心优势
 
-与调用官方API的服务商不同，ModelScope 和 SiliconFlow 的最大优势在于它们提供了海量的、不同规模和特性的开源大语言模型。您可以像“点菜”一样，自由选择最适合您需求和预算的模型进行翻译。
+- 模型选择多，可换不同规模与价位
+- 在 Remis 里与其它供应商一样：在 **设置 → API** 填 Key 与模型即可
 
----
+## 设置步骤
 
-## 设置流程
+### 1. 获取密钥
 
-### 第一步：设置 API 密钥
+| 平台 | 密钥位置（以官网为准） |
+|------|------------------------|
+| **ModelScope（魔搭）** | 个人中心 [AccessToken](https://modelscope.cn/my/my-accesstoken) 等页面 |
+| **SiliconFlow（硅基流动）** | 账户 / API 密钥相关页面，见 [siliconflow.cn](https://siliconflow.cn/) |
 
-这是使用一切功能的前提。您可以通过运行 `setup.bat` 来方便地设置环境变量。
+### 2. 选择模型 ID
 
-1.  运行项目根目录下的 `setup.bat` 文件。
-2.  根据菜单提示，选择 `ModelScope (魔搭)` 或 `SiliconFlow (硅基流动)`。
-3.  根据指引，粘贴您从相应平台获取的 API 密钥或 Token。
-    - **ModelScope (魔搭)**: 密钥在个人中心的 [AccessKey 管理](https://modelscope.cn/my/my-accesstoken) 页面。
-    - **SiliconFlow (硅基流动)**: 密钥在您的 [账户信息](https://siliconflow.cn/) 中。
+1. 在 [ModelScope 模型库](https://modelscope.cn/models) 或 SiliconFlow 模型/价目页浏览。
+2. 选择支持对话 / 指令的模型，**复制完整模型 ID 或名称**。
 
-`setup.bat` 会为您自动创建和设置所需的环境变量 (`MODELSCOPE_API_KEY` 或 `SILICONFLOW_API_KEY`)。
+### 3. 在 Remis 中填写
 
-### 第二步：选择并配置模型 (关键！)
-
-这是发挥这两个平台优势最重要的一步。您需要手动指定您想使用的模型。
-
-1.  **浏览并选择模型**:
-    - 访问 [ModelScope 模型库](https://modelscope.cn/models) 或 [SiliconFlow 模型列表](https://siliconflow.cn/pricing)。
-    - 寻找一个您喜欢的、支持对话或指令遵循的模型（通常名字里带 `Instruct` 或 `Chat`）。复制它的模型ID/名称。
-
-2.  **修改配置文件**:
-    - 打开文件: `scripts/app_settings.py`。
-    - 找到 `API_PROVIDERS` 字典中的 `modelscope` 或 `siliconflow` 条目。
-    - 将您刚刚复制的模型ID，粘贴到 `default_model` 字段的值中。
-
-#### ModelScope 示例 (修改为您选择的模型)
-```python
-# scripts/app_settings.py
-"modelscope": {
-    "api_key_env": "MODELSCOPE_API_KEY",
-    "base_url": "https://api-inference.modelscope.cn/v1/",
-    "default_model": "deepseek-ai/DeepSeek-V3.2-Exp",  # <-- 修改这里为你选择的模型ID
-    "description": "通过魔搭（ModelScope）调用AI模型"
-},
-```
-
-#### SiliconFlow 示例 (修改为您选择的模型)
-```python
-# scripts/app_settings.py
-"siliconflow": {
-    "api_key_env": "SILICONFLOW_API_KEY",
-    "base_url": "https://api.siliconflow.cn/v1",
-    "default_model": "DeepSeek-R1", # <-- 修改这里为你选择的模型名称
-    "description": "通过硅基流动（SiliconFlow）调用AI模型"
-},
-```
-
-### 第三步：启动程序
-
-完成以上所有配置后，现在您可以启动翻译流程了。
-
-1.  运行 `run.bat`。
-2.  在选择AI服务商时，选择您刚刚配置好的 `ModelScope` 或 `SiliconFlow`。
-3.  之后按正常流程操作即可。程序将会使用您指定的模型进行翻译。
-
----
+1. 打开 **设置 → API**。
+2. 找到 **ModelScope** 或 **SiliconFlow**（国内供应商分组内）。
+3. 粘贴 **Token / API Key** 与 **模型 ID**。
+4. **保存**。
+5. 在 **初次翻译 / 增量翻译** 中选用对应供应商与模型。
 
 ## 故障排除
 
-- **认证失败 (Authentication Error)**: 您的API密钥有误。请重新运行 `setup.bat` 设置正确的密钥。
-- **404 Not Found (模型未找到)**: 您在 `app_settings.py` 中填写的 `default_model` 名称有误或在平台上不可用。请仔细检查拼写。
+| 现象 | 处理 |
+|------|------|
+| 认证失败 | 回设置页检查 Token 是否完整、是否保存；是否过期 |
+| 404 模型未找到 | 模型 ID 拼写；该平台上是否仍提供该模型 |
+| 限流 / 配额 | 控制台额度；翻译任务中降低并发与 RPM |
+| 解析失败 | 换指令遵循更好的模型 |
+
+详见 [日志与诊断](logs-and-diagnostics.md)、[FAQ](faq.md)。
+
+## 相关文档
+
+- [Provider 配置速查](provider-setup-index.md)
+- [从零开始](getting-started.md)

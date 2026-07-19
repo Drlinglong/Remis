@@ -513,6 +513,7 @@
       "select_project": "1. Sélectionner le projet",
       "select_project_placeholder": "Choisir une source de projet",
       "select_provider": "3. Fournisseur d'API",
+      "model": "Modèle",
       "target_language": "Langue cible",
       "target_language_desc": "L'IA proposera des suggestions dans cette langue",
       "start_mining": "Commencer l'extraction",
@@ -547,6 +548,11 @@
       "duplicate_badge": "Doublon",
       "duplicate_warning_title": "Deja present dans le glossaire principal",
       "duplicate_warning_body": "Ce candidat correspond a un terme du glossaire principal. Verifiez-le soigneusement avant de l approuver ou ignorez-le.",
+      "duplicate_resolution": "Comment resoudre ce conflit de terminologie ?",
+      "resolution_duplicate": "Utiliser la traduction existante du glossaire",
+      "resolution_override": "Creer une traduction propre au projet",
+      "resolution_new_meaning": "Traiter comme un nouveau sens dans ce projet",
+      "unknown_source": "Source inconnue",
       "pending_terms": "{{count}} termes en attente",
       "glossary_load_failed": "Impossible de charger les glossaires",
       "approved_title": "Approuvé",
@@ -595,6 +601,9 @@
   "prompt_reset_success": "Prompt réinitialisé par défaut",
   "prompt_reset_error": "Échec de la réinitialisation du prompt",
   "api_settings_saved": "Paramètres enregistrés avec succès",
+  "api_test_connection": "Tester la connexion",
+  "api_connection_success": "Connexion réussie. Le service LLM local est accessible.",
+  "api_connection_failed": "Échec de la connexion",
   "prompt_settings_warning_title": "Avertissement : Configuration avancée",
   "prompt_settings_warning_desc": "À moins de comprendre parfaitement le fonctionnement de l'ingénierie de prompt, nous vous déconseillons fortement de modifier ces prompts système. Des modifications incorrectes peuvent entraîner des échecs de traduction ou une dégradation de la qualité.",
   "prompt_formatting_rules": "Règles de formatage (structure JSON)",
@@ -1552,13 +1561,50 @@
     "edit_final": "Modifier la traduction finale de {{key}}",
     "blank_lines": "{{count}} ligne(s) vide(s)",
     "no_entries": "Aucune entrée ne correspond au filtre actuel.",
-    "tabs": { "entries": "Entrées", "raw": "Fichier brut" },
-    "columns": { "key": "Clé", "source": "Source", "ai_draft": "Brouillon IA", "final": "Final" },
-    "filter": { "all": "Tout", "changed": "Modifié", "issues": "Problèmes" },
-    "structure": { "comment": "Commentaire", "blank": "Lignes vides", "header": "En-tête", "raw": "Autre structure" },
-    "hint": { "key": "La clé de localisation en lecture seule qui identifie cette entrée.", "original_source": "Le fichier source original utilisé comme référence de traduction.", "ai_source": "Le brouillon IA chargé depuis l’archive du projet ou le fichier de traduction.", "final_source": "Le contenu final sera enregistré dans le fichier de traduction sélectionné." },
-    "tooltips": { "errors": "Erreurs", "warnings": "Avertissements" },
-    "notifications": { "error": "Erreur", "perfect": "Aucun problème", "perfect_message": "Aucun problème de validation trouvé.", "issues_found": "Problèmes trouvés", "issues_found_message": "{{errors}} erreurs et {{warnings}} avertissements trouvés.", "validation_failed": "La validation a échoué.", "saved": "Enregistré", "saved_message": "Fichier enregistré.", "save_failed": "Impossible d'enregistrer le fichier.", "folder_opened": "Dossier ouvert", "folder_failed": "Impossible d'ouvrir le dossier" },
+    "tabs": {
+      "entries": "Entrées",
+      "raw": "Fichier brut"
+    },
+    "columns": {
+      "key": "Clé",
+      "source": "Source",
+      "ai_draft": "Brouillon IA",
+      "final": "Final"
+    },
+    "filter": {
+      "all": "Tout",
+      "changed": "Modifié",
+      "issues": "Problèmes"
+    },
+    "structure": {
+      "comment": "Commentaire",
+      "blank": "Lignes vides",
+      "header": "En-tête",
+      "raw": "Autre structure"
+    },
+    "hint": {
+      "key": "La clé de localisation en lecture seule qui identifie cette entrée.",
+      "original_source": "Le fichier source original utilisé comme référence de traduction.",
+      "ai_source": "Le brouillon IA chargé depuis l’archive du projet ou le fichier de traduction.",
+      "final_source": "Le contenu final sera enregistré dans le fichier de traduction sélectionné."
+    },
+    "tooltips": {
+      "errors": "Erreurs",
+      "warnings": "Avertissements"
+    },
+    "notifications": {
+      "error": "Erreur",
+      "perfect": "Aucun problème",
+      "perfect_message": "Aucun problème de validation trouvé.",
+      "issues_found": "Problèmes trouvés",
+      "issues_found_message": "{{errors}} erreurs et {{warnings}} avertissements trouvés.",
+      "validation_failed": "La validation a échoué.",
+      "saved": "Enregistré",
+      "saved_message": "Fichier enregistré.",
+      "save_failed": "Impossible d'enregistrer le fichier.",
+      "folder_opened": "Dossier ouvert",
+      "folder_failed": "Impossible d'ouvrir le dossier"
+    },
     "errors": {
       "project_not_found": "Impossible de charger les données de relecture, car ce projet n'existe plus.",
       "file_not_indexed": "Impossible de charger les données de relecture, car ce fichier n'est pas dans l'index actuel du projet. Actualisez les fichiers du projet puis réessayez.",
@@ -1715,5 +1761,30 @@
   "project_management.project_glossary.create_success_title": "Glossaire du projet pret",
   "project_management.project_glossary.create_success_message": "Un glossaire de projet a ete cree et lie.",
   "project_management.project_glossary.create_failed_title": "Creation echouee",
-  "project_management.project_glossary.create_failed_message": "Impossible de creer le glossaire du projet."
+  "project_management.project_glossary.create_failed_message": "Impossible de creer le glossaire du projet.",
+  "page_title_copilot": "Assistant Remis",
+  "copilot": {
+    "page_subtitle": "Réponses d’aide et suggestions de navigation sûres. Les tests utilisent LM Studio local par défaut.",
+    "provider_label": "Fournisseur",
+    "picker_later": "Sélecteur de modèle : à venir",
+    "phase1_notice": "Les sessions restent dans le navigateur. Sans couverture documentaire, confiance basse. Sur modèles locaux ~32k, les anciens messages sont écartés au lieu d’échouer.",
+    "status_error": "Impossible de charger l’état de l’assistant",
+    "empty_title": "Assistant Remis",
+    "empty_desc": "Demandez comment utiliser Remis. Les tests passent par LM Studio local. J’explique les flux et propose des sauts de page cliquables.",
+    "suggestion_first_run": "Comment démarrer ma première localisation ?",
+    "suggestion_api": "Comment configurer LM Studio / l’API ?",
+    "suggestion_deploy": "Comment déployer dans le jeu ?",
+    "suggestion_logs": "Une erreur est survenue — où sont les journaux ?",
+    "input_placeholder": "Demandez comment utiliser Remis…",
+    "send": "Envoyer",
+    "confidence": "Confiance",
+    "empty_reply": "(Pas de réponse)",
+    "sessions_title": "Discussions",
+    "new_chat": "Nouvelle discussion",
+    "delete_chat": "Supprimer la discussion",
+    "untitled_chat": "Nouvelle conversation",
+    "context_trimmed": "{{count}} anciens messages omis pour la fenêtre de contexte locale",
+    "context_budget_badge": "Budget de contexte",
+    "grounding": "Ancrage doc"
+  }
 }

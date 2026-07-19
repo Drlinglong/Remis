@@ -108,6 +108,16 @@ class ParallelProcessor:
         if any(task.failed for task in batch_results.values()):
             failed_count = sum(1 for task in batch_results.values() if task.failed)
             self.logger.error(f"{failed_count}/{len(batch_tasks)} translation batches failed.")
+            api_error = next(
+                (
+                    warning.get("message")
+                    for warning in reversed(all_warnings)
+                    if warning.get("type") == "api_error" and warning.get("message")
+                ),
+                None,
+            )
+            if api_error:
+                raise RuntimeError(api_error)
             raise RuntimeError("One or more translation batches failed. Halting workflow.")
 
         fallback_count = sum(1 for task in batch_results.values() if task.fell_back_to_source)

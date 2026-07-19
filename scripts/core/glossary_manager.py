@@ -367,7 +367,7 @@ class GlossaryManager:
         return False
 
     async def load_selected_glossaries(self, selected_glossary_ids: List[int]) -> bool:
-        """Async: Load selected glossaries into memory."""
+        """Async: Load glossaries from low to high priority into memory."""
         if not selected_glossary_ids:
             with self._lock:
                 self.in_memory_glossary = {'entries': []}
@@ -379,8 +379,15 @@ class GlossaryManager:
                 results = await session.execute(stmt)
                 entries = results.scalars().all()
                 
-                # Convert to dicts
-                entries_data = [e.model_dump() for e in entries]
+                priority_by_id = {
+                    glossary_id: priority
+                    for priority, glossary_id in enumerate(selected_glossary_ids)
+                }
+                entries_data = []
+                for entry in entries:
+                    entry_data = entry.model_dump()
+                    entry_data["_glossary_priority"] = priority_by_id.get(entry.glossary_id, -1)
+                    entries_data.append(entry_data)
                 
                 with self._lock:
                     self.in_memory_glossary = {'entries': entries_data}
@@ -485,6 +492,7 @@ class GlossaryManager:
                 # Delete entries first (cascade manual if not set in DB)
                 from sqlalchemy import delete as sa_delete
                 await session.execute(sa_delete(GlossaryEntry).where(GlossaryEntry.glossary_id == glossary_id))
+                await session.execute(sa_delete(ProjectGlossaryBinding).where(ProjectGlossaryBinding.glossary_id == glossary_id))
                 await session.execute(sa_delete(Glossary).where(Glossary.glossary_id == glossary_id))
                 await session.commit()
                 return True
@@ -587,15 +595,17 @@ class GlossaryManager:
             'metadata': entry.get('raw_metadata', {}),
             'variants': entry.get('variants', {}),
             'match_type': mtype,
-            'confidence': conf
+            'confidence': conf,
+            '_glossary_priority': entry.get('_glossary_priority', -1),
         }
 
     def create_dynamic_glossary_prompt(self, relevant_terms: List[Dict], source_lang: str, target_lang: str) -> str:
         if not relevant_terms:
             return ""
         prompt_lines = [
-            "🔍 CRITICAL GLOSSARY INSTRUCTIONS - HIGH PRIORITY 🔍",
-            f"The following terms must be translated strictly according to the glossary to maintain consistency:",
+            "🔍 CONTEXT-AWARE GLOSSARY INSTRUCTIONS - HIGH PRIORITY 🔍",
+            "The following entries are terminology candidates for this batch.",
+            "Remarks define when a glossary translation applies; they are applicability conditions, not optional notes.",
             "",
             "Glossary Reference:"
         ]
@@ -618,13 +628,18 @@ class GlossaryManager:
                 prompt_lines.append(f"  Variants: {variant_list}")
             if remarks:
                  prompt_lines.append(f"  Remarks: {remarks}")
-                 
+                 prompt_lines.append(
+                     "  Scope: use the target translation only when the source context matches these Remarks."
+                 )
+
         prompt_lines.extend([
             "",
             "Translation Requirements:",
-            "1. The above terms must be translated strictly according to the glossary.",
-            "2. For phonetic matches, use the glossary term as reference.",
-            "3. Maintain consistency."
+            "1. When an entry has Remarks, use its target translation only when the source context matches those Remarks.",
+            "2. If the context conflicts with the Remarks, choose the contextually correct translation instead of forcing the glossary target.",
+            "3. When Remarks are absent, use exact unambiguous matches consistently; for polysemy or ambiguity, prefer the surrounding source context.",
+            "4. Treat phonetic or fuzzy matches as references, not mandatory replacements.",
+            "5. Do not add explanations to the translation output; preserve the required response format."
         ])
         return "\n".join(prompt_lines)
 
@@ -711,7 +726,22 @@ class GlossaryManager:
             match_id = match['id']
             if match_id not in unique_matches or match['confidence'] > unique_matches[match_id]['confidence']:
                 unique_matches[match_id] = match
-        return list(unique_matches.values())
+
+        # The caller loads glossaries from low to high priority. A project glossary
+        # therefore overrides a selected/game glossary, which overrides the main
+        # glossary, for the same normalized source term.
+        by_source = {}
+        for match in unique_matches.values():
+            source_key = " ".join((match.get('source_term') or '').casefold().split())
+            current = by_source.get(source_key)
+            candidate_rank = (match.get('_glossary_priority', -1), match.get('confidence', 0.0))
+            current_rank = (
+                current.get('_glossary_priority', -1),
+                current.get('confidence', 0.0),
+            ) if current else (-1, -1.0)
+            if current is None or candidate_rank > current_rank:
+                by_source[source_key] = match
+        return list(by_source.values())
         
     async def get_glossary_stats(self) -> Dict[str, Any]:
         """Async: Get glossary statistics for dashboard (term counts per game)."""

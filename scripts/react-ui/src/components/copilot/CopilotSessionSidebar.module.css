@@ -1,0 +1,51 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 200px;
+  width: 240px;
+  padding: 0.75rem 0.65rem;
+  border-right: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  background: color-mix(in srgb, var(--mantine-color-body, #1a1b1e) 70%, transparent);
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding-right: 2px;
+}
+
+.item:hover {
+  background: color-mix(in srgb, var(--mantine-color-default-hover, #2e2e2e) 70%, transparent);
+}
+
+.itemActive {
+  border-color: color-mix(in srgb, var(--mantine-color-blue-filled, #228be6) 45%, transparent);
+  background: color-mix(in srgb, var(--mantine-color-blue-filled, #228be6) 14%, transparent);
+}
+
+.itemButton {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+}
+
+.deleteBtn {
+  opacity: 0.55;
+}
+
+.item:hover .deleteBtn,
+.itemActive .deleteBtn {
+  opacity: 1;
+}

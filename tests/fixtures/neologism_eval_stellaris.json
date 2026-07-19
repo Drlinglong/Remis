@@ -1,0 +1,15 @@
+{
+  "name": "Project Remis - Demo Mod - Stellaris",
+  "source_file": "archive/remis_demo_events_l_english.yml",
+  "game_name": "Stellaris",
+  "source_lang": "en",
+  "target_lang": "zh-CN",
+  "expected_terms": [
+    "The Curia Caelestis",
+    "Sublimation Protocol",
+    "Pax Remisia",
+    "Vigilantes Aeturni"
+  ],
+  "minimum_recall": 0.75,
+  "minimum_grounding_rate": 1.0
+}

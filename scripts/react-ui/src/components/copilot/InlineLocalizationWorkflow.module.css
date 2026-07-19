@@ -1,0 +1,21 @@
+.card {
+  margin: 0.25rem 1rem 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.12));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--mantine-color-body) 92%, var(--mantine-color-blue-9) 8%);
+}
+
+.grow { flex: 1; }
+
+.parameters {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--mantine-color-body) 82%, transparent);
+}
+
+@media (max-width: 640px) {
+  .card { margin-inline: 0.5rem; padding: 0.75rem; }
+}

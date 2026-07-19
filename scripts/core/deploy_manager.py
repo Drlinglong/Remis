@@ -227,8 +227,8 @@ class ModDeployer:
         path = Path(original_mod_path).expanduser()
         try:
             resolved_root = path.resolve()
-        except OSError as exc:
-            return None, [], f"Failed to resolve original mod path: {exc}"
+        except OSError:
+            return None, [], "Failed to resolve the selected original mod path"
 
         if not resolved_root.exists():
             return None, [], f"Original mod path does not exist: {original_mod_path}"
@@ -242,8 +242,8 @@ class ModDeployer:
                 continue
             try:
                 resolved_candidate = candidate.resolve()
-            except OSError as exc:
-                return None, [], f"Failed to resolve localization directory {candidate}: {exc}"
+            except OSError:
+                return None, [], "Failed to resolve a localization directory"
             if not resolved_candidate.is_relative_to(resolved_root):
                 return None, [], (
                     "Safety check failed: localization directory resolves outside "
@@ -258,6 +258,50 @@ class ModDeployer:
             )
 
         return resolved_root, loc_dirs, None
+
+    def _resolve_output_source(self, output_folder_name: str) -> Path:
+        """Resolve an existing translation output without constructing a path from input."""
+        destination_root = Path(DEST_DIR).resolve()
+        if not destination_root.is_dir():
+            raise ValueError("Translation output directory is unavailable")
+
+        for child in destination_root.iterdir():
+            if child.name != output_folder_name or not child.is_dir():
+                continue
+            resolved = child.resolve()
+            if resolved.parent != destination_root:
+                break
+            return resolved
+        raise ValueError("Translation output folder was not produced by Remis")
+
+    def resolve_deploy_target(
+        self,
+        output_folder_name: str,
+        game_id: str,
+        target_deploy_path: Optional[str] = None,
+    ) -> tuple[Path, Path]:
+        """Return the trusted Paradox mod root and the single allowed target folder."""
+        trusted_output_name = self._resolve_output_source(output_folder_name).name
+        target_mod_root = self.get_paradox_mod_dir(game_id)
+        if not target_mod_root:
+            raise ValueError("Could not determine the Paradox mod folder")
+
+        trusted_root = target_mod_root.resolve()
+        trusted_target = (trusted_root / trusted_output_name).resolve()
+        if trusted_target.parent != trusted_root:
+            raise ValueError("Deployment target must stay inside the Paradox mod folder")
+
+        if target_deploy_path:
+            requested = os.path.normcase(
+                os.path.realpath(os.path.expanduser(target_deploy_path))
+            )
+            expected = os.path.normcase(str(trusted_target))
+            if requested != expected:
+                raise ValueError(
+                    "Custom deployment targets are restricted to the detected "
+                    "Paradox mod folder"
+                )
+        return trusted_root, trusted_target
 
     def clean_fake_localization(self, original_mod_path: str, source_lang: str = "english") -> dict:
         """
@@ -313,8 +357,13 @@ class ModDeployer:
                             try:
                                 shutil.rmtree(item)
                                 removed_folders.append(str(item.relative_to(path)).replace("\\", "/"))
-                            except Exception as e:
-                                errors.append(f"Failed to delete folder {item.name}: {e}")
+                            except Exception:
+                                logger.warning(
+                                    "Failed to delete a non-source localization folder"
+                                )
+                                errors.append(
+                                    f"Failed to delete folder {item.name}"
+                                )
                     # 2. Handle File
                     elif item.is_file():
                         # If file contains '_l_' and is not matching preserve_lang (e.g. some_l_simp_chinese.yml)
@@ -323,10 +372,14 @@ class ModDeployer:
                             try:
                                 item.unlink()
                                 removed_files.append(str(item.relative_to(path)).replace("\\", "/"))
-                            except Exception as e:
-                                errors.append(f"Failed to delete file {item.name}: {e}")
-            except Exception as e:
-                errors.append(f"Error accessing directory {loc_dir}: {e}")
+                            except Exception:
+                                logger.warning(
+                                    "Failed to delete a non-source localization file"
+                                )
+                                errors.append(f"Failed to delete file {item.name}")
+            except Exception:
+                logger.warning("Failed to inspect a localization directory")
+                errors.append("Failed to access a localization directory")
 
         if errors:
             return {
@@ -349,19 +402,18 @@ class ModDeployer:
         Deploys the mod from DEST_DIR to the Paradox mod folder or a custom target path.
         Optionally cleans fake localization in the workshop_path.
         """
-        source_mod_dir = Path(DEST_DIR) / output_folder_name
-        if not source_mod_dir.exists():
-            return {"status": "error", "message": f"Source directory not found: {source_mod_dir}"}
-
-        # Determine target mod deployment path
-        if target_deploy_path:
-            target_mod_path = Path(target_deploy_path)
-            target_mod_root = target_mod_path.parent
-        else:
-            target_mod_root = self.get_paradox_mod_dir(game_id)
-            if not target_mod_root:
-                return {"status": "error", "message": f"Could not determine Paradox mod folder for game: {game_id}"}
-            target_mod_path = target_mod_root / output_folder_name
+        try:
+            source_mod_dir = self._resolve_output_source(output_folder_name)
+            target_mod_root, target_mod_path = self.resolve_deploy_target(
+                source_mod_dir.name,
+                game_id,
+                target_deploy_path,
+            )
+        except ValueError:
+            return {
+                "status": "error",
+                "message": "Deployment request was rejected by safety checks.",
+            }
 
         clean_result = None
         if clean_fake_loc and workshop_path:
@@ -376,7 +428,7 @@ class ModDeployer:
             os.makedirs(target_mod_path.parent, exist_ok=True)
             
             shutil.copytree(source_mod_dir, target_mod_path)
-            logger.info(f"Copied mod folder to: {target_mod_path}")
+            logger.info("Copied Remis output into the detected Paradox mod directory")
 
             # 2. Handle descriptor.mod / .mod file
             # For Stellaris/HOI4/CK3/EU4, we need a .mod file in the root mod folder
@@ -417,7 +469,7 @@ class ModDeployer:
             with open(launcher_mod_file, 'w', encoding='utf-8') as f:
                 f.write(content)
             
-            logger.info(f"Created launcher .mod file: {launcher_mod_file}")
+            logger.info("Created the launcher descriptor for the deployed mod")
 
             return {
                 "status": "success", 
@@ -426,9 +478,12 @@ class ModDeployer:
                 "clean_result": clean_result
             }
 
-        except Exception as e:
-            logger.error(f"Deployment failed: {e}")
-            return {"status": "error", "message": str(e)}
+        except Exception:
+            logger.exception("Deployment failed")
+            return {
+                "status": "error",
+                "message": "Deployment failed. Check Remis logs for details.",
+            }
 
 # Singleton instance
 mod_deployer = ModDeployer()

@@ -513,6 +513,7 @@
       "select_project": "1. Projekt auswählen",
       "select_project_placeholder": "Projektquelle auswählen",
       "select_provider": "3. API-Anbieter",
+      "model": "Modell",
       "target_language": "Zielsprache",
       "target_language_desc": "Die KI erstellt Vorschläge in dieser Sprache",
       "start_mining": "Mining starten",
@@ -547,6 +548,11 @@
       "duplicate_badge": "Duplikat",
       "duplicate_warning_title": "Bereits im Hauptglossar vorhanden",
       "duplicate_warning_body": "Dieser Kandidat entspricht einem Begriff im Hauptglossar. Bitte vor dem Freigeben genau pruefen oder ignorieren.",
+      "duplicate_resolution": "Wie soll dieser Begriffskonflikt geloest werden?",
+      "resolution_duplicate": "Vorhandene Glossaruebersetzung verwenden",
+      "resolution_override": "Projektspezifische Uebersetzung anlegen",
+      "resolution_new_meaning": "Als neue Bedeutung in diesem Projekt behandeln",
+      "unknown_source": "Unbekannte Quelle",
       "pending_terms": "{{count}} ausstehende Begriffe",
       "glossary_load_failed": "Glossare konnten nicht geladen werden",
       "approved_title": "Freigegeben",
@@ -595,6 +601,9 @@
   "prompt_reset_success": "Prompt auf Standard zuruckgesetzt",
   "prompt_reset_error": "Prompt konnte nicht zuruckgesetzt werden",
   "api_settings_saved": "Einstellungen erfolgreich gespeichert",
+  "api_test_connection": "Verbindung testen",
+  "api_connection_success": "Verbindung erfolgreich. Der lokale LLM-Dienst ist erreichbar.",
+  "api_connection_failed": "Verbindung fehlgeschlagen",
   "prompt_settings_warning_title": "Warnung: Erweiterte Konfiguration",
   "prompt_settings_warning_desc": "Wenn du Prompt Engineering nicht vollstandig verstehst, raten wir dringend davon ab, diese System-Prompts zu andern. Falsche Anderungen konnen zu Ubersetzungsfehlern oder Qualitatsverlust fuhren.",
   "prompt_formatting_rules": "Formatierungsregeln (JSON-Struktur)",
@@ -1552,13 +1561,50 @@
     "edit_final": "Endübersetzung für {{key}} bearbeiten",
     "blank_lines": "{{count}} Leerzeile(n)",
     "no_entries": "Keine Einträge entsprechen dem aktuellen Filter.",
-    "tabs": { "entries": "Einträge", "raw": "Rohdatei" },
-    "columns": { "key": "Schlüssel", "source": "Quelle", "ai_draft": "KI-Entwurf", "final": "Endfassung" },
-    "filter": { "all": "Alle", "changed": "Geändert", "issues": "Probleme" },
-    "structure": { "comment": "Kommentar", "blank": "Leerzeilen", "header": "Kopfzeile", "raw": "Andere Struktur" },
-    "hint": { "key": "Der schreibgeschützte Lokalisierungsschlüssel für diesen Eintrag.", "original_source": "Die ursprüngliche Quelldatei als Übersetzungsreferenz.", "ai_source": "Der aus dem Projektarchiv oder der Übersetzungsdatei geladene KI-Entwurf.", "final_source": "Der endgültige Inhalt wird in der ausgewählten Übersetzungsdatei gespeichert." },
-    "tooltips": { "errors": "Fehler", "warnings": "Warnungen" },
-    "notifications": { "error": "Fehler", "perfect": "Keine Probleme", "perfect_message": "Keine Validierungsprobleme gefunden.", "issues_found": "Probleme gefunden", "issues_found_message": "{{errors}} Fehler und {{warnings}} Warnungen gefunden.", "validation_failed": "Validierung fehlgeschlagen.", "saved": "Gespeichert", "saved_message": "Datei erfolgreich gespeichert.", "save_failed": "Datei konnte nicht gespeichert werden.", "folder_opened": "Ordner geöffnet", "folder_failed": "Ordner konnte nicht geöffnet werden" },
+    "tabs": {
+      "entries": "Einträge",
+      "raw": "Rohdatei"
+    },
+    "columns": {
+      "key": "Schlüssel",
+      "source": "Quelle",
+      "ai_draft": "KI-Entwurf",
+      "final": "Endfassung"
+    },
+    "filter": {
+      "all": "Alle",
+      "changed": "Geändert",
+      "issues": "Probleme"
+    },
+    "structure": {
+      "comment": "Kommentar",
+      "blank": "Leerzeilen",
+      "header": "Kopfzeile",
+      "raw": "Andere Struktur"
+    },
+    "hint": {
+      "key": "Der schreibgeschützte Lokalisierungsschlüssel für diesen Eintrag.",
+      "original_source": "Die ursprüngliche Quelldatei als Übersetzungsreferenz.",
+      "ai_source": "Der aus dem Projektarchiv oder der Übersetzungsdatei geladene KI-Entwurf.",
+      "final_source": "Der endgültige Inhalt wird in der ausgewählten Übersetzungsdatei gespeichert."
+    },
+    "tooltips": {
+      "errors": "Fehler",
+      "warnings": "Warnungen"
+    },
+    "notifications": {
+      "error": "Fehler",
+      "perfect": "Keine Probleme",
+      "perfect_message": "Keine Validierungsprobleme gefunden.",
+      "issues_found": "Probleme gefunden",
+      "issues_found_message": "{{errors}} Fehler und {{warnings}} Warnungen gefunden.",
+      "validation_failed": "Validierung fehlgeschlagen.",
+      "saved": "Gespeichert",
+      "saved_message": "Datei erfolgreich gespeichert.",
+      "save_failed": "Datei konnte nicht gespeichert werden.",
+      "folder_opened": "Ordner geöffnet",
+      "folder_failed": "Ordner konnte nicht geöffnet werden"
+    },
     "errors": {
       "project_not_found": "Korrekturdaten können nicht geladen werden, weil das Projekt nicht mehr existiert.",
       "file_not_indexed": "Korrekturdaten können nicht geladen werden, weil diese Datei nicht im aktuellen Projektindex enthalten ist. Aktualisieren Sie die Projektdateien und versuchen Sie es erneut.",
@@ -1715,5 +1761,30 @@
   "project_management.project_glossary.create_success_title": "Projektglossar bereit",
   "project_management.project_glossary.create_success_message": "Ein Projektglossar wurde erstellt und gebunden.",
   "project_management.project_glossary.create_failed_title": "Erstellen fehlgeschlagen",
-  "project_management.project_glossary.create_failed_message": "Das Projektglossar konnte nicht erstellt werden."
+  "project_management.project_glossary.create_failed_message": "Das Projektglossar konnte nicht erstellt werden.",
+  "page_title_copilot": "Remis-Assistent",
+  "copilot": {
+    "page_subtitle": "Hilfeantworten plus sichere klickbare Navigationsvorschläge. Tests nutzen standardmäßig lokales LM Studio.",
+    "provider_label": "Anbieter",
+    "picker_later": "Modellauswahl: kommt später",
+    "phase1_notice": "Chats bleiben im Browser erhalten. Ohne Dokumentgrundlage gilt niedrige Konfidenz. Bei ~32k lokalen Modellen werden ältere Nachrichten verworfen statt abzubrechen.",
+    "status_error": "Assistentenstatus konnte nicht geladen werden",
+    "empty_title": "Remis-Assistent",
+    "empty_desc": "Fragen Sie, wie Remis funktioniert. Tests nutzen lokales LM Studio. Ich erkläre Abläufe und biete klickbare Seitensprünge.",
+    "suggestion_first_run": "Wie starte ich meine erste Lokalisierung?",
+    "suggestion_api": "Wie konfiguriere ich LM Studio / API?",
+    "suggestion_deploy": "Wie deploye ich ins Spiel?",
+    "suggestion_logs": "Etwas ist fehlgeschlagen — wo sind die Logs?",
+    "input_placeholder": "Fragen Sie, wie Remis funktioniert…",
+    "send": "Senden",
+    "confidence": "Konfidenz",
+    "empty_reply": "(Keine Antwort)",
+    "sessions_title": "Chat-Liste",
+    "new_chat": "Neuer Chat",
+    "delete_chat": "Chat löschen",
+    "untitled_chat": "Neues Gespräch",
+    "context_trimmed": "{{count}} ältere Nachrichten für das lokale Kontextfenster entfernt",
+    "context_budget_badge": "Kontextbudget",
+    "grounding": "Dokumentbasis"
+  }
 }

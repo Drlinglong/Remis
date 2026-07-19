@@ -156,6 +156,15 @@ def main():
     # --add-data: Include seed data and demos
     
     add_data_args = f'--add-data "{seed_main};data" --add-data "{seed_projects};data"'
+
+    # Help Copilot skills are runtime resources, not repository reads. Bundle the
+    # allowlisted user guides so RESOURCE_DIR/docs is available in frozen builds.
+    help_skills_dir = os.path.join(project_root, "docs", "zh", "user-guides")
+    if os.path.exists(help_skills_dir):
+        add_data_args += f' --add-data "{help_skills_dir};docs/zh/user-guides"'
+    else:
+        print(f"[ERROR] Help Copilot resources not found at {help_skills_dir}")
+        sys.exit(1)
     
     # [NEW] Add Language Files
     # Use absolute paths for source to be extremely safe
@@ -259,6 +268,8 @@ def main():
         f'--hidden-import scripts.config.prompts '
         # AI SDKs
         f'--hidden-import google.genai --hidden-import openai '
+        f'--collect-submodules pydantic_ai --collect-submodules pydantic_graph '
+        f'--collect-data genai_prices '
         # Phonetics libraries used inside functions (PyInstaller can't detect these statically)
         f'--hidden-import pypinyin --hidden-import pypinyin.seg --hidden-import pypinyin.style '
         f'--hidden-import pykakasi --hidden-import jaconv '

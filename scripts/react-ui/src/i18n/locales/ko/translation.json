@@ -513,6 +513,7 @@
       "select_project": "1. 프로젝트 선택",
       "select_project_placeholder": "프로젝트 소스 선택",
       "select_provider": "3. API 제공자",
+      "model": "모델",
       "target_language": "대상 언어",
       "target_language_desc": "AI가 이 언어로 제안 번역을 제공합니다",
       "start_mining": "마이닝 시작",
@@ -547,6 +548,11 @@
       "duplicate_badge": "중복",
       "duplicate_warning_title": "기본 용어집에 이미 있음",
       "duplicate_warning_body": "이 후보는 기본 용어집 항목과 일치합니다. 승인 전에 주의 깊게 검토하거나 무시하세요.",
+      "duplicate_resolution": "이 용어 충돌을 어떻게 해결할까요?",
+      "resolution_duplicate": "기존 용어집 번역 사용",
+      "resolution_override": "이 프로젝트 전용 번역 만들기",
+      "resolution_new_meaning": "이 프로젝트의 새로운 의미로 처리",
+      "unknown_source": "알 수 없는 출처",
       "pending_terms": "대기 중인 용어 {{count}}개",
       "glossary_load_failed": "용어집을 불러오지 못했습니다",
       "approved_title": "승인됨",
@@ -595,6 +601,9 @@
   "prompt_reset_success": "프롬프트가 기본값으로 재설정되었습니다.",
   "prompt_reset_error": "프롬프트 재설정에 실패했습니다.",
   "api_settings_saved": "설정이 저장되었습니다.",
+  "api_test_connection": "연결 테스트",
+  "api_connection_success": "연결되었습니다. 로컬 LLM 서비스에 접근할 수 있습니다.",
+  "api_connection_failed": "연결 실패",
   "prompt_settings_warning_title": "경고: 고급 설정",
   "prompt_settings_warning_desc": "프롬프트 엔지니어링의 작동 원리를 완전히 이해하지 못했다면 이 시스템 프롬프트를 수정하지 않는 것이 좋습니다. 잘못된 수정은 번역 실패나 품질 저하로 이어질 수 있습니다.",
   "prompt_formatting_rules": "포맷 규칙 (JSON 구조)",
@@ -1552,13 +1561,50 @@
     "edit_final": "{{key}} 최종 번역 편집",
     "blank_lines": "빈 줄 {{count}}개",
     "no_entries": "현재 필터와 일치하는 항목이 없습니다.",
-    "tabs": { "entries": "항목", "raw": "원시 파일" },
-    "columns": { "key": "키", "source": "원문", "ai_draft": "AI 초안", "final": "최종본" },
-    "filter": { "all": "전체", "changed": "변경됨", "issues": "문제" },
-    "structure": { "comment": "주석", "blank": "빈 줄", "header": "헤더", "raw": "기타 구조" },
-    "hint": { "key": "이 항목을 식별하는 읽기 전용 현지화 키입니다.", "original_source": "번역 참조로 사용하는 원본 소스 파일입니다.", "ai_source": "프로젝트 보관본 또는 번역 파일에서 불러온 AI 초안입니다.", "final_source": "최종 내용은 현재 선택한 번역 파일에 저장됩니다." },
-    "tooltips": { "errors": "오류", "warnings": "경고" },
-    "notifications": { "error": "오류", "perfect": "문제 없음", "perfect_message": "검증 문제가 없습니다.", "issues_found": "문제 발견", "issues_found_message": "오류 {{errors}}개와 경고 {{warnings}}개를 찾았습니다.", "validation_failed": "검증에 실패했습니다.", "saved": "저장됨", "saved_message": "파일을 저장했습니다.", "save_failed": "파일을 저장하지 못했습니다.", "folder_opened": "폴더를 열었습니다", "folder_failed": "폴더를 열지 못했습니다" },
+    "tabs": {
+      "entries": "항목",
+      "raw": "원시 파일"
+    },
+    "columns": {
+      "key": "키",
+      "source": "원문",
+      "ai_draft": "AI 초안",
+      "final": "최종본"
+    },
+    "filter": {
+      "all": "전체",
+      "changed": "변경됨",
+      "issues": "문제"
+    },
+    "structure": {
+      "comment": "주석",
+      "blank": "빈 줄",
+      "header": "헤더",
+      "raw": "기타 구조"
+    },
+    "hint": {
+      "key": "이 항목을 식별하는 읽기 전용 현지화 키입니다.",
+      "original_source": "번역 참조로 사용하는 원본 소스 파일입니다.",
+      "ai_source": "프로젝트 보관본 또는 번역 파일에서 불러온 AI 초안입니다.",
+      "final_source": "최종 내용은 현재 선택한 번역 파일에 저장됩니다."
+    },
+    "tooltips": {
+      "errors": "오류",
+      "warnings": "경고"
+    },
+    "notifications": {
+      "error": "오류",
+      "perfect": "문제 없음",
+      "perfect_message": "검증 문제가 없습니다.",
+      "issues_found": "문제 발견",
+      "issues_found_message": "오류 {{errors}}개와 경고 {{warnings}}개를 찾았습니다.",
+      "validation_failed": "검증에 실패했습니다.",
+      "saved": "저장됨",
+      "saved_message": "파일을 저장했습니다.",
+      "save_failed": "파일을 저장하지 못했습니다.",
+      "folder_opened": "폴더를 열었습니다",
+      "folder_failed": "폴더를 열지 못했습니다"
+    },
     "errors": {
       "project_not_found": "프로젝트가 더 이상 존재하지 않아 교정 데이터를 불러올 수 없습니다.",
       "file_not_indexed": "이 파일이 현재 프로젝트 파일 색인에 없어 교정 데이터를 불러올 수 없습니다. 프로젝트 파일을 새로 고친 뒤 다시 시도하세요.",
@@ -1715,5 +1761,30 @@
   "project_management.project_glossary.create_success_title": "프로젝트 용어집 준비됨",
   "project_management.project_glossary.create_success_message": "프로젝트 용어집을 생성하고 연결했습니다.",
   "project_management.project_glossary.create_failed_title": "생성 실패",
-  "project_management.project_glossary.create_failed_message": "프로젝트 용어집을 생성할 수 없습니다."
+  "project_management.project_glossary.create_failed_message": "프로젝트 용어집을 생성할 수 없습니다.",
+  "page_title_copilot": "Remis 도우미",
+  "copilot": {
+    "page_subtitle": "도움말 답변과 안전한 클릭 탐색 제안입니다. 테스트 단계에서는 기본으로 로컬 LM Studio를 사용합니다.",
+    "provider_label": "공급자",
+    "picker_later": "모델 선택기: 추후 제공",
+    "phase1_notice": "세션은 이 브라우저에 저장됩니다. 문서에 없는 주제는 낮은 신뢰도로 고정됩니다. 약 32k 로컬 모델에서는 오래된 메시지를 버려 오류를 피합니다.",
+    "status_error": "도우미 상태를 불러오지 못했습니다",
+    "empty_title": "Remis 도우미",
+    "empty_desc": "Remis 사용 방법을 물어보세요. 테스트는 로컬 LM Studio를 사용합니다. 워크플로를 설명하고 클릭 가능한 페이지 이동을 제안합니다.",
+    "suggestion_first_run": "첫 로컬라이즈는 어떻게 시작하나요?",
+    "suggestion_api": "LM Studio / API는 어떻게 설정하나요?",
+    "suggestion_deploy": "게임에는 어떻게 배포하나요?",
+    "suggestion_logs": "실패했어요. 로그는 어디에 있나요?",
+    "input_placeholder": "Remis 사용법을 물어보세요…",
+    "send": "보내기",
+    "confidence": "신뢰도",
+    "empty_reply": "(응답 없음)",
+    "sessions_title": "채팅 목록",
+    "new_chat": "새 채팅",
+    "delete_chat": "채팅 삭제",
+    "untitled_chat": "새 대화",
+    "context_trimmed": "로컬 컨텍스트에 맞추려 이전 메시지 {{count}}개를 생략했습니다",
+    "context_budget_badge": "컨텍스트 예산",
+    "grounding": "문서 근거"
+  }
 }

@@ -97,6 +97,9 @@ def test_run_translation_workflow_v2_logs_project_history_through_async_bridge(m
     project_manager.log_history_event = AsyncMock()
     project_manager.get_project = AsyncMock(return_value={"source_path": str(tmp_path)})
     monkeypatch.setattr(translation, "project_manager", project_manager)
+    glossary_manager = MagicMock()
+    glossary_manager.get_project_glossary = AsyncMock(return_value=None)
+    monkeypatch.setattr(translation, "glossary_manager", glossary_manager)
 
     translation.run_translation_workflow_v2(
         "task-project",
@@ -115,3 +118,4 @@ def test_run_translation_workflow_v2_logs_project_history_through_async_bridge(m
     assert tasks["task-project"]["status"] == "completed"
     assert project_manager.log_history_event.await_count == 2
     project_manager.get_project.assert_awaited_once_with("project-1")
+    glossary_manager.get_project_glossary.assert_awaited_once()

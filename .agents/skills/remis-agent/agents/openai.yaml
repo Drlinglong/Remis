@@ -1,0 +1,4 @@
+interface:
+  display_name: "Remis Agent Operator"
+  short_description: "Operate Remis localization through its localhost API"
+  default_prompt: "Use $remis-agent to inspect this mod, plan localization, and stop for approval before paid work or export."

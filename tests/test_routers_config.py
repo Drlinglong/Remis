@@ -123,3 +123,52 @@ class TestPostProviderConfig:
         assert saved_config["lm_studio"]["api_url"] == "http://localhost:1234/v1"
         assert saved_config["lm_studio"]["prompt_prefix"] == "/no_think"
         assert saved_config["lm_studio"]["system_prompt_suffix"] == "/no_think"
+
+
+class TestLocalProviderConnection:
+    def test_openai_compatible_provider_checks_models_endpoint(self, mock_config_env):
+        client = TestClient(app)
+
+        with patch("scripts.routers.config.requests.get") as mock_get:
+            mock_get.return_value.status_code = 200
+            response = client.post("/api/providers/test-connection", json={
+                "provider_id": "lm_studio",
+                "api_url": "http://127.0.0.1:6640/v1",
+            })
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "success"
+        mock_get.assert_called_once_with(
+            "http://127.0.0.1:6640/v1/models",
+            timeout=5,
+        )
+
+    def test_ollama_provider_checks_version_endpoint(self, mock_config_env):
+        client = TestClient(app)
+
+        with patch("scripts.routers.config.requests.get") as mock_get:
+            mock_get.return_value.status_code = 200
+            response = client.post("/api/providers/test-connection", json={
+                "provider_id": "ollama",
+                "api_url": "http://127.0.0.1:11434",
+            })
+
+        assert response.status_code == 200
+        mock_get.assert_called_once_with(
+            "http://127.0.0.1:11434/api/version",
+            timeout=5,
+        )
+
+    def test_connection_failure_returns_provider_and_url(self, mock_config_env):
+        client = TestClient(app)
+
+        with patch("scripts.routers.config.requests.get", side_effect=OSError("refused")):
+            response = client.post("/api/providers/test-connection", json={
+                "provider_id": "lm_studio",
+                "api_url": "http://127.0.0.1:1234/v1",
+            })
+
+        assert response.status_code == 502
+        detail = response.json()["detail"]
+        assert "LM Studio" in detail
+        assert "http://127.0.0.1:1234/v1" in detail

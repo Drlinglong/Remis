@@ -20,6 +20,31 @@
 - `docs/zh/developer/build-release-script-guide.md`
 - `docs/zh/developer/feature_flags.md`
 
+### 产品 Copilot 设计（#132，未实现）
+
+面向「用户帮助 + 结构化操作建议」，**不是**开发者编码助手。普通用户使用 Tauri 打包客户端，Copilot 不能改 Remis 源码。
+
+- `docs/zh/copilot/README.md` — 入口与三类材料划分
+- `docs/zh/copilot/rag-corpus-boundary.md` — 用户 Micro-RAG 白名单/黑名单（开发者文档默认不进索引）
+- `docs/zh/copilot/agent-operations.md` — Agent 可提议的操作、禁止项、GitHub 反馈引导
+
+注意：`docs/zh/copilot/` 与 `docs/zh/developer/**` **默认不作为用户 RAG 语料**；用户答疑语料以 `docs/zh/user-guides/**` 为主。
+
+与 #132 Help 语料直接相关的用户短文（优先索引）：
+
+- `docs/zh/user-guides/getting-started.md`（项目制入门，先建项目再翻译）
+- `docs/zh/user-guides/incremental-update.md`
+- `docs/zh/user-guides/import-existing-translations.md`
+- `docs/zh/user-guides/provider-setup-index.md`
+- `docs/zh/user-guides/one-click-deploy.md`
+- `docs/zh/user-guides/fake-localization.md`
+- `docs/zh/user-guides/proofreading.md`
+- `docs/zh/user-guides/agent-workshop.md`
+- `docs/zh/user-guides/glossary.md`
+- `docs/zh/user-guides/logs-and-diagnostics.md`
+- `docs/zh/user-guides/error-catalog.md`
+- `docs/zh/user-guides/faq.md`（已按客户端工作流修订）
+
 ## 作为专题参考阅读
 
 这类文档通常有价值，但更适合在修改对应模块时按需查阅：

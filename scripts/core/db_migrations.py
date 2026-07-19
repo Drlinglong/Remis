@@ -26,6 +26,7 @@ MAIN_DB_TARGET_VERSION = 3
 def _connect(db_path: str) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys=ON")
     return conn
 
 
@@ -192,6 +193,12 @@ def _migration_003_add_project_glossary_bindings(db_path: str) -> None:
                 continue
             project_id = metadata.get("project_id")
             if not project_id:
+                continue
+            project_exists = conn.execute(
+                "SELECT 1 FROM projects WHERE project_id = ?",
+                (project_id,),
+            ).fetchone()
+            if not project_exists:
                 continue
             conn.execute(
                 """

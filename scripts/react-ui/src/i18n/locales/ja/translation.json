@@ -513,6 +513,7 @@
       "select_project": "1. プロジェクトを選択",
       "select_project_placeholder": "プロジェクトソースを選択",
       "select_provider": "3. APIプロバイダー",
+      "model": "モデル",
       "target_language": "ターゲット言語",
       "target_language_desc": "AI はこの言語で候補訳を提案します",
       "start_mining": "マイニング開始",
@@ -547,6 +548,11 @@
       "duplicate_badge": "重複",
       "duplicate_warning_title": "メイン用語集に既に存在します",
       "duplicate_warning_body": "この候補はメイン用語集の項目と一致します。承認前に注意して確認するか、無視してください。",
+      "duplicate_resolution": "この用語の競合をどのように解決しますか？",
+      "resolution_duplicate": "既存の用語集翻訳を使用する",
+      "resolution_override": "このプロジェクト専用の訳語を作成する",
+      "resolution_new_meaning": "このプロジェクトでの新しい意味として扱う",
+      "unknown_source": "不明な出典",
       "pending_terms": "{{count}} 件の保留中用語",
       "glossary_load_failed": "用語集を読み込めませんでした",
       "approved_title": "承認済み",
@@ -595,6 +601,9 @@
   "prompt_reset_success": "プロンプトをデフォルトにリセットしました",
   "prompt_reset_error": "プロンプトのリセットに失敗しました",
   "api_settings_saved": "設定を保存しました",
+  "api_test_connection": "接続をテスト",
+  "api_connection_success": "接続に成功しました。ローカル LLM サービスにアクセスできます。",
+  "api_connection_failed": "接続に失敗しました",
   "prompt_settings_warning_title": "警告：高度な設定",
   "prompt_settings_warning_desc": "プロンプトエンジニアリングの仕組みを完全に理解していない限り、これらのシステムプロンプトを変更しないことを強くお勧めします。不適切な変更は、翻訳の失敗や品質の低下を招く可能性があります。",
   "prompt_formatting_rules": "フォーマット規則（JSON構造）",
@@ -1552,13 +1561,50 @@
     "edit_final": "{{key}} の最終翻訳を編集",
     "blank_lines": "空行 {{count}} 行",
     "no_entries": "現在のフィルターに一致する項目はありません。",
-    "tabs": { "entries": "項目", "raw": "生ファイル" },
-    "columns": { "key": "キー", "source": "原文", "ai_draft": "AI 下書き", "final": "最終訳" },
-    "filter": { "all": "すべて", "changed": "変更済み", "issues": "問題あり" },
-    "structure": { "comment": "コメント", "blank": "空行", "header": "ヘッダー", "raw": "その他の構造" },
-    "hint": { "key": "この項目を識別する読み取り専用のローカライズキーです。", "original_source": "翻訳の参照として使用する元のソースファイルです。", "ai_source": "プロジェクトのアーカイブまたは翻訳ファイルから読み込んだ AI 下書きです。", "final_source": "最終内容は選択中の翻訳ファイルに保存されます。" },
-    "tooltips": { "errors": "エラー", "warnings": "警告" },
-    "notifications": { "error": "エラー", "perfect": "問題なし", "perfect_message": "検証の問題は見つかりませんでした。", "issues_found": "問題が見つかりました", "issues_found_message": "エラー {{errors}} 件、警告 {{warnings}} 件。", "validation_failed": "検証に失敗しました。", "saved": "保存済み", "saved_message": "ファイルを保存しました。", "save_failed": "ファイルを保存できませんでした。", "folder_opened": "フォルダーを開きました", "folder_failed": "フォルダーを開けませんでした" },
+    "tabs": {
+      "entries": "項目",
+      "raw": "生ファイル"
+    },
+    "columns": {
+      "key": "キー",
+      "source": "原文",
+      "ai_draft": "AI 下書き",
+      "final": "最終訳"
+    },
+    "filter": {
+      "all": "すべて",
+      "changed": "変更済み",
+      "issues": "問題あり"
+    },
+    "structure": {
+      "comment": "コメント",
+      "blank": "空行",
+      "header": "ヘッダー",
+      "raw": "その他の構造"
+    },
+    "hint": {
+      "key": "この項目を識別する読み取り専用のローカライズキーです。",
+      "original_source": "翻訳の参照として使用する元のソースファイルです。",
+      "ai_source": "プロジェクトのアーカイブまたは翻訳ファイルから読み込んだ AI 下書きです。",
+      "final_source": "最終内容は選択中の翻訳ファイルに保存されます。"
+    },
+    "tooltips": {
+      "errors": "エラー",
+      "warnings": "警告"
+    },
+    "notifications": {
+      "error": "エラー",
+      "perfect": "問題なし",
+      "perfect_message": "検証の問題は見つかりませんでした。",
+      "issues_found": "問題が見つかりました",
+      "issues_found_message": "エラー {{errors}} 件、警告 {{warnings}} 件。",
+      "validation_failed": "検証に失敗しました。",
+      "saved": "保存済み",
+      "saved_message": "ファイルを保存しました。",
+      "save_failed": "ファイルを保存できませんでした。",
+      "folder_opened": "フォルダーを開きました",
+      "folder_failed": "フォルダーを開けませんでした"
+    },
     "errors": {
       "project_not_found": "プロジェクトが存在しないため、校正データを読み込めません。",
       "file_not_indexed": "このファイルは現在のプロジェクトファイル索引に含まれていないため、校正データを読み込めません。プロジェクトファイルを更新してから再試行してください。",
@@ -1715,5 +1761,30 @@
   "project_management.project_glossary.create_success_title": "プロジェクト用語集の準備完了",
   "project_management.project_glossary.create_success_message": "プロジェクト用語集を作成して紐付けました。",
   "project_management.project_glossary.create_failed_title": "作成に失敗",
-  "project_management.project_glossary.create_failed_message": "プロジェクト用語集を作成できませんでした。"
+  "project_management.project_glossary.create_failed_message": "プロジェクト用語集を作成できませんでした。",
+  "page_title_copilot": "Remis ヘルパー",
+  "copilot": {
+    "page_subtitle": "ヘルプ回答と安全なクリック可能な案内です。テスト段階では既定でローカル LM Studio を使います。",
+    "provider_label": "プロバイダー",
+    "picker_later": "モデル選択: 後日追加",
+    "phase1_notice": "会話はこのブラウザに保存されます。ドキュメント未掲載の話題は低信頼度に固定します。約32kのローカルモデルでは古いメッセージを捨ててエラーを避けます。",
+    "status_error": "ヘルパー状態を読み込めませんでした",
+    "empty_title": "Remis ヘルパー",
+    "empty_desc": "Remis の使い方を質問してください。テストではローカル LM Studio を使います。手順を説明し、クリックでページへ移動できます。",
+    "suggestion_first_run": "初めてのローカライズはどう進めますか？",
+    "suggestion_api": "LM Studio / API の設定方法は？",
+    "suggestion_deploy": "ゲームへどうデプロイしますか？",
+    "suggestion_logs": "失敗しました。ログはどこ？",
+    "input_placeholder": "Remis の使い方を聞く…",
+    "send": "送信",
+    "confidence": "信頼度",
+    "empty_reply": "（返信なし）",
+    "sessions_title": "チャット一覧",
+    "new_chat": "新規チャット",
+    "delete_chat": "チャット削除",
+    "untitled_chat": "新しい会話",
+    "context_trimmed": "ローカル文脈に合わせ古いメッセージを {{count}} 件省略しました",
+    "context_budget_badge": "コンテキスト予算",
+    "grounding": "文書根拠"
+  }
 }

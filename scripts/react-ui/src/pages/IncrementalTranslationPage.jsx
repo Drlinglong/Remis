@@ -11,6 +11,9 @@ import ConfigStep from '../components/incrementalTranslation/ConfigStep';
 import PreScanResultsStep from '../components/incrementalTranslation/PreScanResultsStep';
 import ExecutionStep from '../components/incrementalTranslation/ExecutionStep';
 import styles from './Translation.module.css';
+import { useRemisCopilotContext } from '../context/CopilotContext';
+import { useCopilotStallReminder } from '../hooks/useCopilotStallReminder';
+import { sanitizeCopilotLogLine } from '../services/copilotPageContext';
 
 const EMPTY_ARRAY = [];
 
@@ -22,6 +25,7 @@ export const IncrementalTranslationPage = () => {
     // Notification & Tutorial context
     const { notificationStyle } = useNotification();
     const { setPageContext, startTour } = useTutorial();
+    const { registerPageContext } = useRemisCopilotContext();
 
     // Refs for running logs viewport
     const logViewportRef = useRef(null);
@@ -38,6 +42,63 @@ export const IncrementalTranslationPage = () => {
         handleSelectProject,
         selectedProject,
     } = state;
+
+    const contextSignature = JSON.stringify({
+        active,
+        projectId: selectedProject?.project_id || null,
+        provider: state.selectedProvider,
+        model: state.selectedModel,
+        langs: safeSelectedLangs,
+        loading: state.loading,
+        executing: state.executing,
+        progress: state.progress,
+        scanReady: Boolean(state.scanResults),
+        completed: Boolean(state.finalSummary),
+    });
+    const reminder = useCopilotStallReminder({
+        enabled: !state.loading && !state.executing && !state.finalSummary,
+        meaningfulState: contextSignature,
+        error: state.error || state.errorKey,
+        blocked: active > 0 && !selectedProject,
+        openingMessage: t(
+            'copilot.incremental_local_prompt',
+            '看起来你在增量更新流程中遇到了一些问题。你可以问我“下一步该做什么”，我会结合当前步骤说明。',
+        ),
+    });
+
+    useEffect(() => {
+        const stepNames = ['select_project', 'configure', 'review_scan', 'execution'];
+        registerPageContext({
+            pageId: 'incremental-translation',
+            pageTitle: t('incremental_translation.title'),
+            stepId: stepNames[active] || 'execution',
+            stepIndex: active,
+            stepCount: 4,
+            project: selectedProject ? {
+                id: selectedProject.project_id,
+                name: selectedProject.name || selectedProject.project_name || '',
+                gameId: selectedProject.game_id || '',
+            } : null,
+            status: {
+                loading: state.loading,
+                executing: state.executing,
+                progress: state.progress,
+                hasScanResults: Boolean(state.scanResults),
+                completed: Boolean(state.finalSummary),
+                error: state.errorKey || (state.error ? String(state.error) : null),
+            },
+            configuration: {
+                provider: state.selectedProvider || null,
+                model: state.selectedModel || null,
+                targetLanguages: safeSelectedLangs,
+            },
+            recentLogs: (state.logs || []).slice(-12).map((line) => sanitizeCopilotLogLine(line)),
+            reminder,
+        });
+        return () => registerPageContext(null);
+    }, [active, registerPageContext, reminder, safeSelectedLangs, selectedProject, state.error, state.errorKey,
+        state.executing, state.finalSummary, state.loading, state.logs, state.progress, state.scanResults,
+        state.selectedModel, state.selectedProvider, t]);
 
     // Sync Page Context for Tutorial Tour
     useEffect(() => {

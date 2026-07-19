@@ -579,6 +579,7 @@
       "select_project": "1. Выберите проект",
       "select_project_placeholder": "Выберите источник проекта",
       "select_provider": "3. API Провайдер",
+      "model": "Модель",
       "target_language": "Целевой язык",
       "target_language_desc": "ИИ предложит варианты на этом языке",
       "start_mining": "Начать добычу",
@@ -613,6 +614,11 @@
       "duplicate_badge": "Дубликат",
       "duplicate_warning_title": "Уже есть в основном глоссарии",
       "duplicate_warning_body": "Этот кандидат совпадает с термином из основного глоссария. Проверьте его перед утверждением или отклоните.",
+      "duplicate_resolution": "Как разрешить этот конфликт терминов?",
+      "resolution_duplicate": "Использовать существующий перевод из глоссария",
+      "resolution_override": "Создать перевод только для этого проекта",
+      "resolution_new_meaning": "Считать новым значением в этом проекте",
+      "unknown_source": "Неизвестный источник",
       "pending_terms": "Ожидающих терминов: {{count}}",
       "glossary_load_failed": "Не удалось загрузить глоссарии",
       "approved_title": "Одобрено",
@@ -661,6 +667,9 @@
   "prompt_reset_success": "Промпт сброшен на значения по умолчанию",
   "prompt_reset_error": "Не удалось сбросить промпт",
   "api_settings_saved": "Настройки успешно сохранены",
+  "api_test_connection": "Проверить подключение",
+  "api_connection_success": "Подключение успешно. Локальный сервис LLM доступен.",
+  "api_connection_failed": "Ошибка подключения",
   "prompt_settings_warning_title": "Предупреждение: Расширенная конфигурация",
   "prompt_settings_warning_desc": "Без полного понимания принципов промпт-инжиниринга крайне не рекомендуется изменять системные промпты.",
   "prompt_formatting_rules": "Правила форматирования (структура JSON)",
@@ -1597,13 +1606,50 @@
     "edit_final": "Изменить итоговый перевод {{key}}",
     "blank_lines": "Пустых строк: {{count}}",
     "no_entries": "Нет записей, соответствующих текущему фильтру.",
-    "tabs": { "entries": "Записи", "raw": "Исходный файл" },
-    "columns": { "key": "Ключ", "source": "Источник", "ai_draft": "Черновик ИИ", "final": "Итог" },
-    "filter": { "all": "Все", "changed": "Изменённые", "issues": "Проблемы" },
-    "structure": { "comment": "Комментарий", "blank": "Пустые строки", "header": "Заголовок", "raw": "Другая структура" },
-    "hint": { "key": "Ключ локализации только для чтения, идентифицирующий эту запись.", "original_source": "Исходный файл, используемый как ориентир для перевода.", "ai_source": "Черновик ИИ, загруженный из архива проекта или файла перевода.", "final_source": "Итоговый текст будет сохранён в выбранный файл перевода." },
-    "tooltips": { "errors": "Ошибки", "warnings": "Предупреждения" },
-    "notifications": { "error": "Ошибка", "perfect": "Проблем нет", "perfect_message": "Проблем проверки не найдено.", "issues_found": "Найдены проблемы", "issues_found_message": "Найдено ошибок: {{errors}}, предупреждений: {{warnings}}.", "validation_failed": "Проверка не выполнена.", "saved": "Сохранено", "saved_message": "Файл успешно сохранён.", "save_failed": "Не удалось сохранить файл.", "folder_opened": "Папка открыта", "folder_failed": "Не удалось открыть папку" },
+    "tabs": {
+      "entries": "Записи",
+      "raw": "Исходный файл"
+    },
+    "columns": {
+      "key": "Ключ",
+      "source": "Источник",
+      "ai_draft": "Черновик ИИ",
+      "final": "Итог"
+    },
+    "filter": {
+      "all": "Все",
+      "changed": "Изменённые",
+      "issues": "Проблемы"
+    },
+    "structure": {
+      "comment": "Комментарий",
+      "blank": "Пустые строки",
+      "header": "Заголовок",
+      "raw": "Другая структура"
+    },
+    "hint": {
+      "key": "Ключ локализации только для чтения, идентифицирующий эту запись.",
+      "original_source": "Исходный файл, используемый как ориентир для перевода.",
+      "ai_source": "Черновик ИИ, загруженный из архива проекта или файла перевода.",
+      "final_source": "Итоговый текст будет сохранён в выбранный файл перевода."
+    },
+    "tooltips": {
+      "errors": "Ошибки",
+      "warnings": "Предупреждения"
+    },
+    "notifications": {
+      "error": "Ошибка",
+      "perfect": "Проблем нет",
+      "perfect_message": "Проблем проверки не найдено.",
+      "issues_found": "Найдены проблемы",
+      "issues_found_message": "Найдено ошибок: {{errors}}, предупреждений: {{warnings}}.",
+      "validation_failed": "Проверка не выполнена.",
+      "saved": "Сохранено",
+      "saved_message": "Файл успешно сохранён.",
+      "save_failed": "Не удалось сохранить файл.",
+      "folder_opened": "Папка открыта",
+      "folder_failed": "Не удалось открыть папку"
+    },
     "errors": {
       "project_not_found": "Не удалось загрузить данные корректуры, потому что этот проект больше не существует.",
       "file_not_indexed": "Не удалось загрузить данные корректуры, потому что этого файла нет в текущем индексе файлов проекта. Обновите файлы проекта и повторите попытку.",
@@ -1738,5 +1784,30 @@
   "project_management.project_glossary.create_success_title": "Глоссарий проекта готов",
   "project_management.project_glossary.create_success_message": "Глоссарий проекта создан и привязан.",
   "project_management.project_glossary.create_failed_title": "Не удалось создать",
-  "project_management.project_glossary.create_failed_message": "Не удалось создать глоссарий проекта."
+  "project_management.project_glossary.create_failed_message": "Не удалось создать глоссарий проекта.",
+  "page_title_copilot": "Помощник Remis",
+  "copilot": {
+    "page_subtitle": "Ответы-подсказки и безопасные кликабельные переходы. На тестах по умолчанию локальный LM Studio.",
+    "provider_label": "Провайдер",
+    "picker_later": "Выбор модели: позже",
+    "phase1_notice": "Сессии хранятся в этом браузере. Без покрытия в документации — низкая уверенность. Для локальных ~32k старые сообщения отбрасываются, а не вызывают сбой.",
+    "status_error": "Не удалось загрузить статус помощника",
+    "empty_title": "Помощник Remis",
+    "empty_desc": "Спросите, как пользоваться Remis. Тесты идут через локальный LM Studio. Я объясняю процессы и предлагаю кликабельные переходы.",
+    "suggestion_first_run": "Как начать первую локализацию?",
+    "suggestion_api": "Как настроить LM Studio / API?",
+    "suggestion_deploy": "Как развернуть в игру?",
+    "suggestion_logs": "Что-то сломалось — где логи?",
+    "input_placeholder": "Спросите, как пользоваться Remis…",
+    "send": "Отправить",
+    "confidence": "Уверенность",
+    "empty_reply": "(Нет ответа)",
+    "sessions_title": "Чаты",
+    "new_chat": "Новый чат",
+    "delete_chat": "Удалить чат",
+    "untitled_chat": "Новый разговор",
+    "context_trimmed": "Для локального окна контекста опущено {{count}} старых сообщений",
+    "context_budget_badge": "Бюджет контекста",
+    "grounding": "Опора на docs"
+  }
 }
