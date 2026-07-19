@@ -20,6 +20,10 @@ const NeologismReviewPage = () => {
         setActiveTab('court');
     }, []);
 
+    const handleOpenMining = useCallback(() => {
+        setActiveTab('dashboard');
+    }, []);
+
     return (
         <Box h="100%" style={{ overflow: 'hidden' }}>
             <Tabs
@@ -60,6 +64,7 @@ const NeologismReviewPage = () => {
                         selectedProject={selectedProject}
                         onSelectedProjectChange={setSelectedProject}
                         refreshToken={courtRefreshToken}
+                        onOpenMining={handleOpenMining}
                     />
                 </Tabs.Panel>
             </Tabs>

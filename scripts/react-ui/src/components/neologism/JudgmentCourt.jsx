@@ -21,7 +21,12 @@ const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  * 新词审核法庭组件
  * 负责审核和批准 AI 挖掘的新词候选
  */
-const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken = 0 }) => {
+const JudgmentCourt = ({
+    selectedProject,
+    onSelectedProjectChange,
+    refreshToken = 0,
+    onOpenMining
+}) => {
     const { t } = useTranslation();
     const [projects, setProjects] = useState([]);
     const [candidates, setCandidates] = useState([]);
@@ -471,6 +476,16 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
                                     </Button>
                                 </Group>
                             </Paper>
+                        </Stack>
+                    ) : selectedProject && candidates.length === 0 && !loading ? (
+                        <Stack align="center" justify="center" h="100%" c="dimmed">
+                            <IconCheck size={64} style={{ opacity: 0.35 }} />
+                            <Text size="xl">{t('neologism_review.court.caught_up')}</Text>
+                            {onOpenMining && (
+                                <Button variant="light" onClick={onOpenMining}>
+                                    {t('neologism_review.tab_mining')}
+                                </Button>
+                            )}
                         </Stack>
                     ) : (
                         <Stack align="center" justify="center" h="100%" c="dimmed">
