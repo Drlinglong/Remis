@@ -28,7 +28,7 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
     const [selectedId, setSelectedId] = useState(null);
     const [loading, setLoading] = useState(false);
     const [processing, setProcessing] = useState(false);
-    const [editSuggestion, setEditSuggestion] = useState("");
+    const [draftSuggestions, setDraftSuggestions] = useState({});
     const [resolution, setResolution] = useState('approve_project');
     const [projectGlossary, setProjectGlossary] = useState(null);
 
@@ -36,7 +36,6 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
         if (selectedId) {
             const candidate = candidates.find(c => c.id === selectedId);
             if (candidate) {
-                setEditSuggestion(candidate.suggestion || "");
                 setResolution((candidate.duplicate_matches || []).length > 0 ? 'duplicate' : 'approve_project');
             }
         }
@@ -163,6 +162,12 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
 
     const removeCandidate = (id) => {
         const newList = candidates.filter(c => c.id !== id);
+        const draftKey = `${selectedProject || ''}:${id}`;
+        setDraftSuggestions((current) => {
+            const next = { ...current };
+            delete next[draftKey];
+            return next;
+        });
         setCandidates(newList);
         if (newList.length > 0) {
             setSelectedId(newList[0].id);
@@ -173,6 +178,21 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
 
     const selectedCandidate = candidates.find(c => c.id === selectedId);
     const currentProject = projects.find(p => p.project_id === selectedProject);
+    const selectedDraftKey = selectedCandidate
+        ? `${selectedProject || ''}:${selectedCandidate.id}`
+        : null;
+    const editSuggestion = selectedCandidate
+        ? (Object.prototype.hasOwnProperty.call(draftSuggestions, selectedDraftKey)
+            ? draftSuggestions[selectedDraftKey]
+            : selectedCandidate.suggestion || "")
+        : "";
+    const updateEditSuggestion = (value) => {
+        if (!selectedDraftKey) return;
+        setDraftSuggestions((current) => ({
+            ...current,
+            [selectedDraftKey]: value
+        }));
+    };
 
     const HighlightedText = ({ text, term }) => {
         if (!text || !term) return <Text>{text}</Text>;
@@ -418,9 +438,9 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
                                     size="xl"
                                     radius="md"
                                     value={editSuggestion}
-                                    onChange={(e) => setEditSuggestion(e.currentTarget.value)}
+                                    onChange={(e) => updateEditSuggestion(e.currentTarget.value)}
                                     rightSection={
-                                        <ActionIcon variant="subtle" onClick={() => setEditSuggestion(selectedCandidate.suggestion)}>
+                                        <ActionIcon variant="subtle" onClick={() => updateEditSuggestion(selectedCandidate.suggestion)}>
                                             <IconSparkles size={18} />
                                         </ActionIcon>
                                     }
