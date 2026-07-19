@@ -264,6 +264,7 @@ const JudgmentCourt = ({
             <Paper
                 p="lg"
                 mb="md"
+                mx="md"
                 radius="md"
                 withBorder
                 style={{
@@ -272,8 +273,8 @@ const JudgmentCourt = ({
                 }}
             >
                 <Grid gutter="lg" align="stretch">
-                    <Grid.Col span={{ base: 12, md: 7 }}>
-                        <Stack gap="xs">
+                    <Grid.Col span={{ base: 12, md: 7 }} style={{ minWidth: 0 }}>
+                        <Stack gap="xs" style={{ minWidth: 0 }}>
                             <Group justify="space-between" align="center">
                                 <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>
                                     {t('neologism_review.court.current_project')}
@@ -285,7 +286,11 @@ const JudgmentCourt = ({
                                 )}
                             </Group>
                             {currentProject && (
-                                <Title order={2} lineClamp={1}>
+                                <Title
+                                    order={2}
+                                    lineClamp={1}
+                                    style={{ fontSize: 'clamp(1.25rem, 2.4vw, 2rem)' }}
+                                >
                                     {currentProject.name}
                                 </Title>
                             )}

@@ -14,12 +14,28 @@ from scripts.schemas.neologism import (
     UpdateNeologismRequest,
     MineNeologismsRequest,
 )
+from scripts.schemas.common import LanguageCode
 from scripts.app_settings import API_PROVIDERS, GAME_PROFILES_BY_ID
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 SUPPORTED_MINING_SUFFIXES = {".txt", ".yml", ".yaml", ".csv", ".json"}
+
+
+def _normalize_language_code(value: str) -> str:
+    try:
+        return LanguageCode.from_str(value).value
+    except ValueError:
+        return (value or "").strip().replace("_", "-").casefold()
+
+
+def _reject_source_language_target(source_language: str, target_language: str) -> None:
+    if _normalize_language_code(source_language) == _normalize_language_code(target_language):
+        raise HTTPException(
+            status_code=400,
+            detail="Target language must be different from the project source language.",
+        )
 
 
 def _is_supported_mining_path(path: Path) -> bool:
@@ -225,6 +241,10 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
     project = await project_manager.get_project(payload.project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    _reject_source_language_target(
+        project.get("source_language") or "en",
+        payload.target_lang,
+    )
     if payload.api_provider not in API_PROVIDERS:
         raise HTTPException(status_code=400, detail=f"Unknown API provider: {payload.api_provider}")
     files = await _resolve_project_mining_files(project, payload.file_paths)

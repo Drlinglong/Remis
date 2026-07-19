@@ -592,7 +592,7 @@
       "select_provider": "3. API 供应商",
       "model": "模型",
       "target_language": "目标语言",
-      "target_language_desc": "AI 将使用该语言给出建议译名",
+      "target_language_desc": "项目源语言会自动排除；AI 将使用所选语言给出建议译名",
       "start_mining": "开始挖掘",
       "started_message": "AI 已在后台开始挖掘新词。",
       "start_failed": "启动扫描失败",

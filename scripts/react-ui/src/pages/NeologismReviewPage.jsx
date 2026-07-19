@@ -35,13 +35,19 @@ const NeologismReviewPage = () => {
 
     return (
         <Box h="100%" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <Group px="md" pt="md" gap="sm" align="center" style={{ flexShrink: 0 }}>
+            <Group px="md" pt="md" gap="sm" align="center" wrap="nowrap" style={{ flexShrink: 0 }}>
                 <ThemeIcon size="xl" radius="md" variant="light" color="blue">
                     <IconGavel size={24} />
                 </ThemeIcon>
-                <Stack gap={0}>
-                    <Title order={1}>{t('neologism_review.title')}</Title>
-                    <Text size="sm" c="dimmed">{t('neologism_review.subtitle')}</Text>
+                <Stack gap={0} style={{ minWidth: 0, flex: 1 }}>
+                    <Title
+                        order={1}
+                        lineClamp={1}
+                        style={{ fontSize: 'clamp(2rem, 4vw, 3.25rem)' }}
+                    >
+                        {t('neologism_review.title')}
+                    </Title>
+                    <Text size="sm" c="dimmed" lineClamp={1}>{t('neologism_review.subtitle')}</Text>
                 </Stack>
             </Group>
             <Tabs
