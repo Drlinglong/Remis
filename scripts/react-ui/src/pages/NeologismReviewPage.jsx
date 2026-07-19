@@ -22,8 +22,15 @@ const NeologismReviewPage = () => {
 
     return (
         <Box h="100%" style={{ overflow: 'hidden' }}>
-            <Tabs value={activeTab} onChange={setActiveTab} h="100%" variant="pills" radius="md">
-                <Box p="md" pb={0}>
+            <Tabs
+                value={activeTab}
+                onChange={setActiveTab}
+                h="100%"
+                variant="pills"
+                radius="md"
+                style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}
+            >
+                <Box p="md" pb={0} style={{ flexShrink: 0 }}>
                     <Tabs.List>
                         <Tabs.Tab value="dashboard" leftSection={<IconCpu size={16} />}>
                             {t('neologism_review.tab_mining')}
@@ -34,7 +41,10 @@ const NeologismReviewPage = () => {
                     </Tabs.List>
                 </Box>
 
-                <Tabs.Panel value="dashboard" h="calc(100% - 60px)">
+                <Tabs.Panel
+                    value="dashboard"
+                    style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
+                >
                     <MiningDashboard
                         selectedProject={selectedProject}
                         onSelectedProjectChange={setSelectedProject}
@@ -42,7 +52,10 @@ const NeologismReviewPage = () => {
                     />
                 </Tabs.Panel>
 
-                <Tabs.Panel value="court" h="calc(100% - 60px)">
+                <Tabs.Panel
+                    value="court"
+                    style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}
+                >
                     <JudgmentCourt
                         selectedProject={selectedProject}
                         onSelectedProjectChange={setSelectedProject}
