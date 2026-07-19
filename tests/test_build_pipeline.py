@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -45,3 +45,30 @@ def test_ensure_min_google_genai_accepts_supported_version(capsys):
 
     captured = capsys.readouterr()
     assert "version OK: 1.68.0" in captured.out
+
+
+def test_verify_frozen_backend_fails_when_packaged_process_exits():
+    process = MagicMock()
+    process.poll.return_value = 1
+    process.communicate.return_value = ("", "missing package metadata")
+
+    with patch("scripts.build_pipeline.subprocess.Popen", return_value=process), pytest.raises(
+        RuntimeError, match="exited before health check"
+    ):
+        build_pipeline.verify_frozen_backend("C:/release/web_server.exe", timeout_seconds=1)
+
+
+def test_verify_frozen_backend_accepts_healthy_packaged_process():
+    process = MagicMock()
+    process.poll.side_effect = [None, None]
+    response = MagicMock()
+    response.status = 200
+    response.__enter__.return_value = response
+
+    with patch("scripts.build_pipeline.subprocess.Popen", return_value=process), patch(
+        "scripts.build_pipeline.urllib.request.urlopen", return_value=response
+    ):
+        build_pipeline.verify_frozen_backend("C:/release/web_server.exe", timeout_seconds=1)
+
+    process.terminate.assert_called_once()
+    process.wait.assert_called_once()

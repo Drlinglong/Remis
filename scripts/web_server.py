@@ -137,8 +137,7 @@ def setup_app_routers():
     panic_log("Including routers...")
     from scripts.routers import (
         projects, project_watches, translation, glossary, proofreading, docs, tools,
-        neologism, validation, config, system, prompts, agent_workshop, copilot,
-        agent,
+        neologism, validation, config, system, prompts, agent_workshop, agent,
     )
     
     app.include_router(projects.router)
@@ -154,9 +153,20 @@ def setup_app_routers():
     app.include_router(config.router)
     app.include_router(system.router)
     app.include_router(prompts.router)
-    app.include_router(copilot.router)
     app.include_router(agent.router)
+    if copilot_router_enabled():
+        from scripts.routers import copilot
+
+        app.include_router(copilot.router)
     panic_log("Routers included.")
+
+
+def copilot_router_enabled():
+    """Keep the in-development Remis Copilot API out of normal packaged builds."""
+    configured = os.getenv("REMIS_ENABLE_COPILOT")
+    if configured is not None:
+        return configured.strip().lower() in {"1", "true", "yes", "on"}
+    return not getattr(sys, "frozen", False)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):

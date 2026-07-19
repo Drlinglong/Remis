@@ -1,4 +1,5 @@
 import pytest
+import sys
 from fastapi.testclient import TestClient
 import scripts.web_server as web_server
 from scripts.web_server import app
@@ -27,3 +28,17 @@ def test_port_preflight_exit_is_explicit_startup_behavior(monkeypatch):
         web_server.run_port_preflight()
 
     assert exc_info.value.code == 0
+
+
+def test_packaged_build_hides_copilot_router_by_default(monkeypatch):
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.delenv("REMIS_ENABLE_COPILOT", raising=False)
+
+    assert web_server.copilot_router_enabled() is False
+
+
+def test_copilot_router_can_be_explicitly_enabled(monkeypatch):
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setenv("REMIS_ENABLE_COPILOT", "true")
+
+    assert web_server.copilot_router_enabled() is True

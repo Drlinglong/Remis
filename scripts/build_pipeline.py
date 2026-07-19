@@ -1,8 +1,12 @@
 import os
 import shutil
+import socket
 import subprocess
 import platform
 import sys
+import time
+import urllib.error
+import urllib.request
 
 MIN_GOOGLE_GENAI_VERSION = (1, 68, 0)
 
@@ -59,6 +63,63 @@ def ensure_min_google_genai(env_python):
         sys.exit(1)
 
     print(f"[INFO] google-genai version OK: {version}")
+
+
+def verify_frozen_backend(executable, timeout_seconds=90):
+    """Fail the release build if the packaged backend cannot serve its health API."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+
+    env = os.environ.copy()
+    env["REMIS_BACKEND_PORT"] = str(port)
+    creationflags = (
+        subprocess.CREATE_NO_WINDOW
+        if platform.system().lower() == "windows"
+        else 0
+    )
+    process = subprocess.Popen(
+        [executable],
+        cwd=os.path.dirname(executable),
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        creationflags=creationflags,
+    )
+    deadline = time.monotonic() + timeout_seconds
+    health_url = f"http://127.0.0.1:{port}/api/health"
+
+    try:
+        while time.monotonic() < deadline:
+            exit_code = process.poll()
+            if exit_code is not None:
+                stdout, stderr = process.communicate()
+                print(stdout)
+                print(stderr)
+                raise RuntimeError(
+                    f"Packaged backend exited before health check (code {exit_code})."
+                )
+
+            try:
+                with urllib.request.urlopen(health_url, timeout=1) as response:
+                    if response.status == 200:
+                        print(f"[SUCCESS] Packaged backend health check passed on port {port}.")
+                        return
+            except (urllib.error.URLError, TimeoutError, OSError):
+                time.sleep(0.5)
+
+        raise RuntimeError(
+            f"Packaged backend did not become healthy within {timeout_seconds} seconds."
+        )
+    finally:
+        if process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=10)
 
 # The conda environment to use for building. Must match the project's dedicated env.
 CONDA_ENV_NAME = "local_factory"
@@ -269,7 +330,7 @@ def main():
         # AI SDKs
         f'--hidden-import google.genai --hidden-import openai '
         f'--collect-submodules pydantic_ai --collect-submodules pydantic_graph '
-        f'--collect-data genai_prices '
+        f'--collect-data genai_prices --copy-metadata genai_prices '
         # Phonetics libraries used inside functions (PyInstaller can't detect these statically)
         f'--hidden-import pypinyin --hidden-import pypinyin.seg --hidden-import pypinyin.style '
         f'--hidden-import pykakasi --hidden-import jaconv '
@@ -321,6 +382,13 @@ def main():
     root_target_path = os.path.join(src_tauri_dir, new_exe_name)
     print(f"[COPY] {target_path} -> {root_target_path}")
     shutil.copy2(target_path, root_target_path)
+
+    print_step("Step 3.5: Smoke Test Frozen Backend")
+    try:
+        verify_frozen_backend(target_path)
+    except RuntimeError as exc:
+        print(f"[ERROR] {exc}")
+        sys.exit(1)
 
     # Step 4: Frontend Build & Tauri Build
     print_step("Step 4: Frontend Build & Tauri Build")
