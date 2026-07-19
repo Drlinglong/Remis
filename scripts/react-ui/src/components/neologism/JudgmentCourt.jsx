@@ -284,6 +284,7 @@ const JudgmentCourt = ({
                         </Group>
                         <ScrollArea
                             type="always"
+                            scrollbars="y"
                             scrollbarSize={8}
                             style={{ flex: 1, minHeight: 0, margin: '0 -16px' }}
                             p="md"
@@ -341,6 +342,7 @@ const JudgmentCourt = ({
 
                             <ScrollArea
                                 type="always"
+                                scrollbars="y"
                                 scrollbarSize={8}
                                 style={{ flex: 1, minHeight: 0 }}
                             >
