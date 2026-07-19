@@ -51,9 +51,15 @@ Release candidate prepared on 2026-07-19. The Windows installer is awaiting fina
 
 ## Release Candidate Validation
 
-- Branch integration and version synchronization completed.
-- Fresh backend, desktop frontend, website, Rust, and installer build results will be recorded here after the release candidate verification finishes.
-- Final acceptance requires a local installed-app smoke test before publishing the GitHub Release.
+- Branch integration, version synchronization, and the final build dependency alignment are merged into `main`.
+- Backend: 433 tests passed and 1 was skipped locally; the Python 3.10 CI suite passed.
+- Desktop frontend: 149 tests passed; lint and the production build passed.
+- Website: 54 tests passed; lint, production build, GitHub Pages deployment, and live Home, Engineering, and Remis for Codex route checks passed.
+- Rust/Tauri: formatting, locked dependency checks, release compilation, MSI packaging, and NSIS packaging passed.
+- Security gates: CodeQL passed for Actions, JavaScript/TypeScript, Python, and Rust with all 26 release-review findings resolved. Dependency Review passed.
+- Windows installer candidate: `remis-mod-factory_3.0.7_x64-setup.exe`, 41,841,748 bytes (39.90 MiB), SHA-256 `7045C82656517567D62C545E5AEAFCAB3499614D3CD80212E41DEE2B2FAC5807`.
+- The installer has version resources `3.0.7` and is not Authenticode-signed, so Windows may display an unknown-publisher warning.
+- Final acceptance still requires the local installed-app smoke test before publishing the GitHub Release.
 
 ## 中文
 
@@ -104,6 +110,12 @@ Release candidate prepared on 2026-07-19. The Windows installer is awaiting fina
 
 ## 发布候选版验证
 
-- 分支整合与版本同步已完成。
-- 后端、桌面前端、网站、Rust 与安装包构建的最新验证结果，会在本次候选版验证完成后补充到这里。
-- 正式发布 GitHub Release 前，必须先通过本地安装后的应用冒烟测试。
+- 分支整合、版本同步与最终构建依赖对齐均已合入 `main`。
+- 后端：本地 433 项测试通过、1 项跳过；Python 3.10 CI 测试通过。
+- 桌面前端：149 项测试通过；lint 与 production build 通过。
+- 网站：54 项测试通过；lint、production build、GitHub Pages 部署，以及线上首页、工程页和 Remis for Codex 路由检查均通过。
+- Rust/Tauri：格式检查、锁定依赖检查、release 编译、MSI 打包与 NSIS 打包均通过。
+- 安全门槛：Actions、JavaScript/TypeScript、Python 与 Rust 的 CodeQL 均通过，发布审查中发现的 26 项告警已全部解决；Dependency Review 通过。
+- Windows 安装候选包：`remis-mod-factory_3.0.7_x64-setup.exe`，41,841,748 字节（39.90 MiB），SHA-256 为 `7045C82656517567D62C545E5AEAFCAB3499614D3CD80212E41DEE2B2FAC5807`。
+- 安装包版本资源为 `3.0.7`，目前未进行 Authenticode 签名，因此 Windows 可能显示未知发布者提示。
+- 正式发布 GitHub Release 前，仍需完成本地安装后的应用冒烟测试。
