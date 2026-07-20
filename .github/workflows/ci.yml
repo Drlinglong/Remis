@@ -89,8 +89,9 @@ jobs:
 
       - name: Install Rust toolchain
         run: |
-          rustup toolchain install stable --profile minimal --component rustfmt
-          rustup default stable
+          rustup toolchain install 1.88.0 --profile minimal --component rustfmt
+          rustup toolchain install stable --profile minimal
+          rustup default 1.88.0
 
       - name: Cache Cargo registry
         uses: actions/cache@v4
@@ -111,3 +112,6 @@ jobs:
 
       - name: Check Tauri crate
         run: cargo check --locked --manifest-path scripts/react-ui/src-tauri/Cargo.toml
+
+      - name: Check Tauri crate on latest stable
+        run: cargo +stable check --locked --manifest-path scripts/react-ui/src-tauri/Cargo.toml
