@@ -1,0 +1,83 @@
+.targetLanguageSection {
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--text-highlight) 38%, var(--glass-border));
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--text-highlight) 9%, var(--glass-bg)),
+      color-mix(in srgb, var(--mantine-color-cyan-7) 5%, var(--glass-bg))
+    );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 5%, transparent);
+}
+
+.languageChip {
+  min-height: 34px;
+  text-transform: none !important;
+  border-color: color-mix(in srgb, var(--glass-border) 78%, transparent);
+  background: color-mix(in srgb, var(--glass-bg) 88%, transparent);
+}
+
+.languageChip[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--text-highlight) 72%, transparent);
+  background: color-mix(in srgb, var(--text-highlight) 17%, var(--glass-bg));
+}
+
+.actionBar {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 350;
+  padding: 14px max(96px, var(--mantine-spacing-xl)) 14px var(--mantine-spacing-xl);
+  border-top: 1px solid color-mix(in srgb, var(--text-highlight) 34%, var(--glass-border));
+  background: color-mix(in srgb, var(--mantine-color-dark-9) 92%, var(--glass-bg));
+  box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.actionBarInner {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+}
+
+.summaryLine {
+  min-width: 0;
+}
+
+.summaryItem {
+  white-space: nowrap;
+}
+
+.actionButtons {
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 980px) {
+  .actionBar {
+    padding-right: 88px;
+  }
+
+  .actionBarInner {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .actionButtons {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 620px) {
+  .actionBar {
+    padding: 12px 72px 12px 14px;
+  }
+
+  .actionButtons {
+    justify-content: space-between;
+  }
+}

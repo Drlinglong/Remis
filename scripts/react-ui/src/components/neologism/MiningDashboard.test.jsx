@@ -29,6 +29,8 @@ class FakeWebSocket {
   }
 }
 
+let projectSourceLanguage;
+
 const renderDashboard = () => render(
   <MantineProvider>
     <MiningDashboard
@@ -42,10 +44,18 @@ const renderDashboard = () => render(
 describe('MiningDashboard', () => {
   beforeEach(() => {
     FakeWebSocket.instances = [];
+    projectSourceLanguage = 'en';
     global.WebSocket = FakeWebSocket;
+    Element.prototype.scrollIntoView = vi.fn();
     api.get.mockImplementation((url) => {
       if (url === '/api/projects') {
-        return Promise.resolve({ data: [{ project_id: 'project-1', name: 'Stellaris Demo' }] });
+        return Promise.resolve({
+          data: [{
+            project_id: 'project-1',
+            name: 'Stellaris Demo',
+            source_language: projectSourceLanguage,
+          }],
+        });
       }
       if (url === '/api/config') {
         return Promise.resolve({
@@ -107,5 +117,32 @@ describe('MiningDashboard', () => {
 
     expect(await screen.findByText('neologism_review.mining.model')).toBeInTheDocument();
     expect(screen.queryByText('form_label_model')).not.toBeInTheDocument();
+  });
+
+  it('excludes the project source language and corrects an invalid default target', async () => {
+    projectSourceLanguage = 'zh-CN';
+    renderDashboard();
+
+    const targetLanguage = await screen.findByRole('textbox', {
+      name: 'neologism_review.mining.target_language',
+    });
+    await waitFor(() => {
+      expect(targetLanguage).toHaveValue('Traditional Chinese (繁體中文)');
+    });
+
+    fireEvent.click(targetLanguage);
+    expect(screen.queryByRole('option', {
+      name: 'Simplified Chinese (简体中文)',
+    })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', {
+      name: 'neologism_review.mining.start_mining',
+    }));
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/api/neologisms/mine', expect.objectContaining({
+        project_id: 'project-1',
+        target_lang: 'zh-TW',
+      }));
+    });
   });
 });

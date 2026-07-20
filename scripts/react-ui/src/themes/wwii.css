@@ -105,6 +105,12 @@ html.wwii .mantine-Card-root {
     font-family: "Courier New", monospace;
 }
 
+html.wwii .mantine-Input-input::placeholder,
+html.wwii .mantine-Select-input::placeholder {
+    color: #56563D;
+    opacity: 1;
+}
+
 html.wwii .mantine-Input-input:focus {
     border-style: solid;
     background-color: #fff;

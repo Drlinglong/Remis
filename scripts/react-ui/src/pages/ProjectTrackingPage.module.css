@@ -1,0 +1,32 @@
+.pageSubtitle {
+  color: var(--canvas-text-muted) !important;
+}
+
+.trackingSurface {
+  background: var(--paper-bg) !important;
+  color: var(--paper-text-main);
+  --mantine-color-text: var(--paper-text-main) !important;
+  --mantine-color-dimmed: var(--paper-text-muted) !important;
+}
+
+.trackingTable :global(.mantine-Table-th) {
+  background-color: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg));
+  color: var(--paper-text-main) !important;
+  font-weight: 700;
+}
+
+.trackingTable :global(.mantine-Table-td) {
+  color: var(--paper-text-main);
+}
+
+.trackingTable :global(.mantine-Table-tbody .mantine-Table-tr) {
+  background-color: transparent !important;
+}
+
+.trackingTable :global(.mantine-Table-tbody .mantine-Table-tr:nth-of-type(odd) .mantine-Table-td) {
+  background-color: color-mix(in srgb, var(--paper-text-main) 6%, var(--paper-bg)) !important;
+}
+
+.trackingTable :global(.mantine-Table-tbody .mantine-Table-tr:nth-of-type(even) .mantine-Table-td) {
+  background-color: var(--paper-bg) !important;
+}

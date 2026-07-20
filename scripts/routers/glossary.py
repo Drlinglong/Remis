@@ -21,11 +21,21 @@ def _transform_storage_to_frontend_format(entry: Dict) -> Dict:
     if 'entry_id' in new_entry:
         new_entry['id'] = new_entry['entry_id']
     
-    # Extract 'en' translation as the source term
-    new_entry['source'] = new_entry.get('translations', {}).get('en', '')
+    translations = new_entry.get('translations', {})
+    metadata = new_entry.get('raw_metadata', {})
+    source_lang = metadata.get('source_lang')
+
+    # Source and target can use the same language code, so source text must not
+    # rely on a translations entry that the final translation can overwrite.
+    new_entry['source'] = (
+        metadata.get('source_text')
+        or (translations.get(source_lang) if source_lang else None)
+        or translations.get('en')
+        or next((value for value in translations.values() if value), '')
+    )
 
     # Extract notes from remarks inside raw_metadata
-    new_entry['notes'] = new_entry.get('raw_metadata', {}).get('remarks', '')
+    new_entry['notes'] = metadata.get('remarks', '')
 
     # Pass the full raw_metadata object to the frontend as 'metadata'
     new_entry['metadata'] = new_entry.get('raw_metadata', {})
@@ -39,10 +49,15 @@ def _transform_storage_to_frontend_format(entry: Dict) -> Dict:
 def _transform_entry_to_storage_format(entry: Dict) -> Dict:
     entry = entry.copy()
     if 'translations' not in entry: entry['translations'] = {}
-    if entry.get('source'):
-        entry['translations']['en'] = entry['source']
+    if 'metadata' not in entry: entry['metadata'] = {}
+    source_text = entry.get('source', '')
+    source_lang = entry['metadata'].get('source_lang', 'en')
+    target_lang = entry['metadata'].get('target_lang')
+    if source_text:
+        entry['metadata']['source_text'] = source_text
+        if source_lang != target_lang:
+            entry['translations'][source_lang] = source_text
     if 'notes' in entry:
-        if 'metadata' not in entry: entry['metadata'] = {}
         entry['metadata']['remarks'] = entry['notes']
         del entry['notes']
     if 'source' in entry: del entry['source']

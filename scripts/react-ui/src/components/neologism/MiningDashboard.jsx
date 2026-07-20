@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Container, Grid, Paper, Title, Text, Stack, Group, Button,
@@ -16,6 +16,36 @@ const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '1453';
 
 const getProjectFilePath = (file) => file.file_path || file.path || '';
 const getProjectFileLabel = (file) => file.relative_path || file.rel_path || file.file_path || file.path || '';
+const TARGET_LANGUAGE_OPTIONS = [
+    { value: 'zh-CN', label: 'Simplified Chinese (简体中文)' },
+    { value: 'zh-TW', label: 'Traditional Chinese (繁體中文)' },
+    { value: 'en', label: 'English' },
+    { value: 'ja', label: 'Japanese (日本語)' },
+    { value: 'ko', label: 'Korean (한국어)' },
+    { value: 'fr', label: 'French (Français)' },
+    { value: 'de', label: 'German (Deutsch)' },
+    { value: 'ru', label: 'Russian (Русский)' },
+    { value: 'es', label: 'Spanish (Español)' },
+    { value: 'pt', label: 'Portuguese (Português)' },
+    { value: 'pl', label: 'Polish (Polski)' }
+];
+const LANGUAGE_ALIASES = {
+    english: 'en',
+    l_english: 'en',
+    chinese: 'zh-CN',
+    simp_chinese: 'zh-CN',
+    l_simp_chinese: 'zh-CN',
+    zh: 'zh-CN',
+    'zh-cn': 'zh-CN',
+    'zh_cn': 'zh-CN',
+    pt: 'pt-BR',
+    'pt-br': 'pt-BR',
+    pt_br: 'pt-BR',
+};
+const normalizeLanguageCode = (value) => {
+    const normalized = (value || '').trim().toLowerCase();
+    return LANGUAGE_ALIASES[normalized] || normalized;
+};
 
 /**
  * 新词挖掘仪表板组件
@@ -138,7 +168,11 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
         try {
             const response = await api.get(`${API_BASE_URL}/projects`);
             const projectList = normalizeArrayPayload(response.data, ['projects', 'items', 'data', 'results']);
-            setProjects(projectList.map(p => ({ value: p.project_id, label: p.name })));
+            setProjects(projectList.map(p => ({
+                value: p.project_id,
+                label: p.name,
+                sourceLanguage: normalizeLanguageCode(p.source_language || 'en'),
+            })));
             if (!selectedProject && projectList.length > 0) {
                 onSelectedProjectChange(projectList[0].project_id);
             }
@@ -197,8 +231,29 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
         closeMiningSocket();
     }, [closeMiningSocket]);
 
+    const currentProject = projects.find((project) => project.value === selectedProject);
+    const availableTargetLanguages = useMemo(
+        () => TARGET_LANGUAGE_OPTIONS.filter(
+            (language) => normalizeLanguageCode(language.value) !== currentProject?.sourceLanguage
+        ),
+        [currentProject?.sourceLanguage],
+    );
+
+    useEffect(() => {
+        if (
+            availableTargetLanguages.length > 0
+            && !availableTargetLanguages.some((language) => language.value === targetLang)
+        ) {
+            setTargetLang(availableTargetLanguages[0].value);
+        }
+    }, [availableTargetLanguages, targetLang]);
+
     const handleScan = async () => {
-        if (!selectedProject) return;
+        if (
+            !selectedProject
+            || !targetLang
+            || normalizeLanguageCode(targetLang) === currentProject?.sourceLanguage
+        ) return;
         setScanning(true);
         terminalHandledRef.current = false;
         try {
@@ -259,19 +314,7 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
                         <Select
                             label={t('neologism_review.mining.target_language')}
                             description={t('neologism_review.mining.target_language_desc')}
-                            data={[
-                                { value: 'zh-CN', label: 'Simplified Chinese (简体中文)' },
-                                { value: 'zh-TW', label: 'Traditional Chinese (繁體中文)' },
-                                { value: 'en', label: 'English' },
-                                { value: 'ja', label: 'Japanese (日本語)' },
-                                { value: 'ko', label: 'Korean (한국어)' },
-                                { value: 'fr', label: 'French (Français)' },
-                                { value: 'de', label: 'German (Deutsch)' },
-                                { value: 'ru', label: 'Russian (Русский)' },
-                                { value: 'es', label: 'Spanish (Español)' },
-                                { value: 'pt', label: 'Portuguese (Português)' },
-                                { value: 'pl', label: 'Polish (Polski)' }
-                            ]}
+                            data={availableTargetLanguages}
                             value={targetLang}
                             onChange={setTargetLang}
                             size="md"
@@ -302,7 +345,12 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
                             leftSection={<IconRadar2 />}
                             onClick={handleScan}
                             loading={scanning}
-                            disabled={!selectedProject || ['starting', 'running'].includes(miningStatus?.status)}
+                            disabled={
+                                !selectedProject
+                                || !targetLang
+                                || normalizeLanguageCode(targetLang) === currentProject?.sourceLanguage
+                                || ['starting', 'running'].includes(miningStatus?.status)
+                            }
                             variant="gradient"
                             gradient={{ from: 'blue', to: 'cyan', deg: 90 }}
                         >

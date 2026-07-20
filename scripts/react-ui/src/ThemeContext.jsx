@@ -46,7 +46,12 @@ export const ThemeProvider = ({ children }) => {
   return (
     <ThemeContext.Provider value={value}>
       <MantineProvider theme={customTheme} defaultColorScheme="dark">
-        <Notifications />
+        <Notifications
+          position="top-center"
+          autoClose={3200}
+          limit={3}
+          zIndex={10000}
+        />
         {children}
       </MantineProvider>
     </ThemeContext.Provider>

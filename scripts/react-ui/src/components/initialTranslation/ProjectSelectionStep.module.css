@@ -1,0 +1,26 @@
+.gameFilterSelect {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--text-highlight);
+  border-radius: 8px;
+  background: var(--glass-bg);
+  color: var(--text-main);
+  font: inherit;
+  outline: none;
+}
+
+.gameFilterSelect:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-highlight) 48%, transparent);
+}
+
+.projectTableHeader {
+  background: var(--glass-bg) !important;
+  border-color: var(--text-highlight) !important;
+  --mantine-color-text: var(--text-main) !important;
+  --mantine-color-dimmed: var(--text-muted) !important;
+}
+
+.projectTableHeaderText {
+  color: var(--text-main) !important;
+}

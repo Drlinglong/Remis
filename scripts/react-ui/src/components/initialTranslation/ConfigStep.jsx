@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   Card,
-  Checkbox,
   Grid,
   Group,
   SimpleGrid,
@@ -21,13 +20,15 @@ import {
 import {
   IconAdjustments,
   IconAlertCircle,
-  IconArrowLeft,
+  IconCheck,
+  IconLanguage,
   IconSettings,
 } from '@tabler/icons-react';
 
 import EmbeddedWorkshopSettingsCard from './EmbeddedWorkshopSettingsCard';
 import ResumeSettingsCard from './ResumeSettingsCard';
 import layoutStyles from '../layout/Layout.module.css';
+import controlsStyles from './InitialTranslationControls.module.css';
 import { FEATURES } from '../../config/features';
 import { buildModelOptions, findLanguageByCode, resolveGameName } from '../../utils/initialTranslation';
 
@@ -38,7 +39,6 @@ export default function ConfigStep({
   config,
   embeddedWorkshopModels,
   form,
-  onBack,
   onSubmit,
   selectedProject,
   selectedProjectId,
@@ -163,65 +163,21 @@ export default function ConfigStep({
       form.setFieldValue(field, currentValues.filter((value) => value !== itemValue));
       return;
     }
+    form.clearFieldError(field);
     form.setFieldValue(field, [...currentValues, itemValue]);
   };
 
-  const renderCheckboxCardGroup = ({ description, field, label, options }) => (
-    <Box>
-      <Text size="sm" mb={6} c="var(--text-main)">
-        {label}
-      </Text>
-      {description && (
-        <Text size="xs" c="dimmed" mb="sm">
-          {description}
-        </Text>
-      )}
-      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-        {options.map((option) => {
-          const checked = (form.values[field] || []).includes(option.value);
-          return (
-            <Box
-              key={option.value}
-              onClick={() => toggleSelection(field, option.value)}
-              style={{
-                cursor: 'pointer',
-                padding: '12px 14px',
-                borderRadius: 12,
-                border: checked ? '1px solid var(--text-highlight)' : '1px solid var(--glass-border)',
-                background: checked ? 'rgba(120, 170, 220, 0.18)' : 'var(--glass-bg)',
-                boxShadow: 'var(--shadow-elevation)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                transition: 'all 160ms ease',
-              }}
-            >
-              <Group justify="space-between" wrap="nowrap">
-                <Box>
-                  <Text fw={600} c="var(--text-main)">
-                    {option.label}
-                  </Text>
-                  {option.subLabel && (
-                    <Text size="xs" c="dimmed" mt={2}>
-                      {option.subLabel}
-                    </Text>
-                  )}
-                </Box>
-                <Checkbox
-                  checked={checked}
-                  onChange={() => toggleSelection(field, option.value)}
-                  onClick={(event) => event.stopPropagation()}
-                  color="blue"
-                />
-              </Group>
-            </Box>
-          );
-        })}
-      </SimpleGrid>
-    </Box>
-  );
+  const selectedTargetCount = form.values.target_lang_codes.length;
+  const selectAllTargets = () => {
+    form.clearFieldError('target_lang_codes');
+    form.setFieldValue('target_lang_codes', languageOptions.map((language) => language.value));
+  };
+  const clearTargetSelection = () => {
+    form.setFieldValue('target_lang_codes', []);
+  };
 
   return (
-    <form onSubmit={form.onSubmit(onSubmit)}>
+    <form id="initial-translation-config-form" onSubmit={form.onSubmit(onSubmit)}>
       <Grid gutter="xl">
         <Grid.Col span={{ base: 12, md: 5 }}>
           <Card id="translation-config-card" withBorder padding="xl" radius="md" className={layoutStyles.glassCard} h="100%">
@@ -271,15 +227,77 @@ export default function ConfigStep({
                 </Grid>
               )}
 
-              {!form.values.english_disguise && renderCheckboxCardGroup({
-                label: t('form_label_target_languages'),
-                field: 'target_lang_codes',
-                description: t('form_placeholder_target_languages'),
-                options: languageOptions.map((language) => ({
-                  ...language,
-                  subLabel: config.languages[language.value]?.key,
-                })),
-              })}
+              {!form.values.english_disguise && (
+                <Box className={controlsStyles.targetLanguageSection}>
+                  <Group justify="space-between" align="flex-start" gap="sm">
+                    <Group gap="sm" align="flex-start">
+                      <ThemeIcon variant="light" color="cyan" radius="md">
+                        <IconLanguage size={18} />
+                      </ThemeIcon>
+                      <Box>
+                        <Text fw={700} c="var(--text-main)">
+                          {t('initial_translation_target_section_title')}
+                        </Text>
+                        <Text
+                          size="sm"
+                          c={selectedTargetCount > 0 ? 'cyan' : 'orange'}
+                          fw={600}
+                        >
+                          {selectedTargetCount > 0
+                            ? t('initial_translation_target_selected_count', { count: selectedTargetCount })
+                            : t('initial_translation_target_none')}
+                        </Text>
+                      </Box>
+                    </Group>
+                    <Group gap={4}>
+                      <Button
+                        size="compact-xs"
+                        variant="subtle"
+                        onClick={selectAllTargets}
+                        disabled={selectedTargetCount === languageOptions.length}
+                      >
+                        {t('initial_translation_select_all')}
+                      </Button>
+                      <Button
+                        size="compact-xs"
+                        variant="subtle"
+                        color="gray"
+                        onClick={clearTargetSelection}
+                        disabled={selectedTargetCount === 0}
+                      >
+                        {t('initial_translation_clear_all')}
+                      </Button>
+                    </Group>
+                  </Group>
+
+                  <Group gap="xs" mt="md">
+                    {languageOptions.map((language) => {
+                      const checked = form.values.target_lang_codes.includes(language.value);
+                      return (
+                        <Button
+                          key={language.value}
+                          type="button"
+                          size="compact-sm"
+                          variant={checked ? 'light' : 'default'}
+                          color={checked ? 'cyan' : 'gray'}
+                          rightSection={checked ? <IconCheck size={14} /> : null}
+                          aria-pressed={checked}
+                          className={controlsStyles.languageChip}
+                          onClick={() => toggleSelection('target_lang_codes', language.value)}
+                        >
+                          {language.label}
+                        </Button>
+                      );
+                    })}
+                  </Group>
+
+                  {selectedTargetCount === 0 && (
+                    <Text size="xs" c="orange" mt="sm" role="alert">
+                      {t('initial_translation_target_required')}
+                    </Text>
+                  )}
+                </Box>
+              )}
 
               {renderNativeSelect({
                 label: t('form_label_api_provider'),
@@ -522,12 +540,6 @@ export default function ConfigStep({
         </Grid.Col>
       </Grid>
 
-      <Group justify="flex-end" mt="xl">
-        <Button onClick={onBack} leftSection={<IconArrowLeft size={14} />} variant="default">
-          {t('button_back')}
-        </Button>
-        <Button id="translation-start-btn" type="submit" size="lg">{t('button_start_translation')}</Button>
-      </Group>
     </form>
   );
 }

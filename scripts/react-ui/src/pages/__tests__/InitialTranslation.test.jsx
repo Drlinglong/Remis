@@ -219,13 +219,6 @@ describe('InitialTranslation', () => {
       expect(screen.getByText('Extra Terms')).toBeInTheDocument();
     });
 
-    await waitFor(() => {
-      expect(apiPostMock).toHaveBeenCalledWith('/api/translation/checkpoint-status', {
-        mod_name: 'Test Project',
-        target_lang_codes: ['zh-CN'],
-      });
-    });
-
     fireEvent.click(screen.getByText('Russian'));
 
     await waitFor(() => {
@@ -234,7 +227,7 @@ describe('InitialTranslation', () => {
         '/api/translation/checkpoint-status',
         {
           mod_name: 'Test Project',
-          target_lang_codes: ['zh-CN', 'ru'],
+          target_lang_codes: ['ru'],
         },
       ]);
     });
@@ -266,6 +259,11 @@ describe('InitialTranslation', () => {
 
     expect(screen.getByDisplayValue('English')).toBeInTheDocument();
     expect(screen.queryByText('English')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Chinese' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Russian' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', {
+      name: 'initial_translation_start_choose_target',
+    })).toBeDisabled();
   });
 
   it('renders checkpoint status alert and resume details card when checkpoints exist', async () => {
@@ -302,6 +300,11 @@ describe('InitialTranslation', () => {
 
     try {
       renderPage(['/?projectId=proj-1']);
+
+      await waitFor(() => {
+        expect(screen.getByText('Chinese')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText('Chinese'));
 
       await waitFor(() => {
         expect(screen.getByText('检测到可用断点')).toBeInTheDocument();

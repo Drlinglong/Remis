@@ -257,16 +257,19 @@ class NeologismManager:
 
         resolved_source_lang = source_lang or candidate.source_lang or "en"
         resolved_target_lang = target_lang or candidate.target_lang or "zh-CN"
+        translations = {
+            resolved_source_lang: candidate.original,
+        }
+        translations[resolved_target_lang] = final_translation
         storage_entry = {
             "id": candidate.id,
-            "translations": {
-                resolved_source_lang: candidate.original,
-                resolved_target_lang: final_translation,
-            },
+            "translations": translations,
             "metadata": {
                 "remarks": f"Auto-mined. Reasoning: {candidate.reasoning}",
+                "source_text": candidate.original,
                 "source_file": candidate.source_file,
                 "source_files": candidate.source_files,
+                "project_id": project_id,
                 "source_lang": resolved_source_lang,
                 "target_lang": resolved_target_lang,
                 "neologism_resolution": resolution,

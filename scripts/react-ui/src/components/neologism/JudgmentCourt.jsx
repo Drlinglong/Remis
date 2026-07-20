@@ -8,7 +8,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import {
     IconCheck, IconX, IconBulb, IconQuote,
-    IconGavel, IconSparkles, IconAlertTriangle
+    IconGavel, IconSparkles, IconAlertTriangle, IconBook2, IconExternalLink
 } from '@tabler/icons-react';
 import api from '../../utils/api';
 import { normalizeArrayPayload } from '../../utils/payload';
@@ -21,14 +21,20 @@ const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  * 新词审核法庭组件
  * 负责审核和批准 AI 挖掘的新词候选
  */
-const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken = 0 }) => {
+const JudgmentCourt = ({
+    selectedProject,
+    onSelectedProjectChange,
+    refreshToken = 0,
+    onOpenMining,
+    onOpenGlossary
+}) => {
     const { t } = useTranslation();
     const [projects, setProjects] = useState([]);
     const [candidates, setCandidates] = useState([]);
     const [selectedId, setSelectedId] = useState(null);
     const [loading, setLoading] = useState(false);
     const [processing, setProcessing] = useState(false);
-    const [editSuggestion, setEditSuggestion] = useState("");
+    const [draftSuggestions, setDraftSuggestions] = useState({});
     const [resolution, setResolution] = useState('approve_project');
     const [projectGlossary, setProjectGlossary] = useState(null);
 
@@ -36,7 +42,6 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
         if (selectedId) {
             const candidate = candidates.find(c => c.id === selectedId);
             if (candidate) {
-                setEditSuggestion(candidate.suggestion || "");
                 setResolution((candidate.duplicate_matches || []).length > 0 ? 'duplicate' : 'approve_project');
             }
         }
@@ -112,7 +117,7 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
 
         setProcessing(true);
         try {
-            await api.post(`${API_BASE_URL}/neologisms/${selectedId}/approve`, {
+            const response = await api.post(`${API_BASE_URL}/neologisms/${selectedId}/approve`, {
                 project_id: selectedProject,
                 resolution,
                 final_translation: editSuggestion,
@@ -120,10 +125,29 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
                 source_lang: candidate.source_lang || currentProject?.source_language || 'en',
                 target_lang: candidate.target_lang || 'zh-CN'
             });
+            const confirmedGlossary = response.data?.glossary || projectGlossary;
+            if (response.data?.glossary) {
+                setProjectGlossary(response.data.glossary);
+            }
             notifications.show({
-                title: t('neologism_review.court.approved_title'),
-                message: t('neologism_review.court.approved_message'),
-                color: 'green'
+                title: t(
+                    resolution === 'duplicate'
+                        ? 'neologism_review.court.duplicate_confirmed_title'
+                        : 'neologism_review.court.approved_title'
+                ),
+                message: t(
+                    resolution === 'duplicate'
+                        ? 'neologism_review.court.duplicate_confirmed_message'
+                        : 'neologism_review.court.approved_message',
+                    {
+                        term: candidate.original,
+                        glossary: confirmedGlossary?.name || t('neologism_review.court.project_glossary'),
+                    }
+                ),
+                color: resolution === 'duplicate' ? 'blue' : 'green',
+                icon: <IconCheck size={18} />,
+                withBorder: true,
+                autoClose: 3200,
             });
             removeCandidate(selectedId);
         } catch {
@@ -139,6 +163,8 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
 
     const handleReject = async () => {
         if (!selectedId || !selectedProject) return;
+        const candidate = candidates.find(c => c.id === selectedId);
+        if (!candidate) return;
         setProcessing(true);
         try {
             await api.post(`${API_BASE_URL}/neologisms/${selectedId}/reject`, {
@@ -146,8 +172,13 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
             });
             notifications.show({
                 title: t('neologism_review.court.rejected_title'),
-                message: t('neologism_review.court.rejected_message'),
-                color: 'gray'
+                message: t('neologism_review.court.rejected_message', {
+                    term: candidate.original,
+                }),
+                color: 'gray',
+                icon: <IconX size={18} />,
+                withBorder: true,
+                autoClose: 3200,
             });
             removeCandidate(selectedId);
         } catch {
@@ -162,10 +193,20 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
     };
 
     const removeCandidate = (id) => {
+        const currentIndex = candidates.findIndex(c => c.id === id);
         const newList = candidates.filter(c => c.id !== id);
+        const draftKey = `${selectedProject || ''}:${id}`;
+        setDraftSuggestions((current) => {
+            const next = { ...current };
+            delete next[draftKey];
+            return next;
+        });
         setCandidates(newList);
         if (newList.length > 0) {
-            setSelectedId(newList[0].id);
+            const nextIndex = currentIndex >= 0
+                ? Math.min(currentIndex, newList.length - 1)
+                : 0;
+            setSelectedId(newList[nextIndex].id);
         } else {
             setSelectedId(null);
         }
@@ -173,6 +214,29 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
 
     const selectedCandidate = candidates.find(c => c.id === selectedId);
     const currentProject = projects.find(p => p.project_id === selectedProject);
+    const selectedDraftKey = selectedCandidate
+        ? `${selectedProject || ''}:${selectedCandidate.id}`
+        : null;
+    const editSuggestion = selectedCandidate
+        ? (Object.prototype.hasOwnProperty.call(draftSuggestions, selectedDraftKey)
+            ? draftSuggestions[selectedDraftKey]
+            : selectedCandidate.suggestion || "")
+        : "";
+    const updateEditSuggestion = (value) => {
+        if (!selectedDraftKey) return;
+        setDraftSuggestions((current) => ({
+            ...current,
+            [selectedDraftKey]: value
+        }));
+    };
+
+    const handleOpenProjectGlossary = () => {
+        if (!projectGlossary?.glossary_id || !onOpenGlossary) return;
+        onOpenGlossary({
+            glossaryId: projectGlossary.glossary_id,
+            gameId: projectGlossary.game_id || currentProject?.game_id,
+        });
+    };
 
     const HighlightedText = ({ text, term }) => {
         if (!text || !term) return <Text>{text}</Text>;
@@ -195,51 +259,136 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
     };
 
     return (
-        <Box h="100%" style={{ display: 'flex', flexDirection: 'column' }}>
+        <Box h="100%" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             {/* Project Context Header */}
-            <Paper p="md" mb="md" style={{ background: 'var(--glass-bg)', borderBottom: '1px solid var(--glass-border)' }}>
-                <Group justify="space-between" align="center">
-                    <Box style={{ flex: 1 }}>
-                        <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>{t('neologism_review.court.current_project')}</Text>
-                        <Select
-                            data={projects.map(p => ({ value: p.project_id, label: p.name }))}
-                            value={selectedProject}
-                            onChange={onSelectedProjectChange}
-                            placeholder={t('neologism_review.court.select_project')}
-                            size="md"
-                            mt="xs"
-                        />
-                        <Text size="xs" c="dimmed" mt="sm">{t('neologism_review.court.project_glossary')}</Text>
-                        <Badge variant="light" color={projectGlossary?.pending_creation ? 'blue' : 'teal'} size="lg">
-                            {projectGlossary?.name || t('neologism_review.court.project_glossary_pending')}
-                        </Badge>
-                    </Box>
-                    {currentProject && (
-                        <Badge size="lg" variant="light" color="blue">
-                            {t('neologism_review.court.pending_terms', { count: candidates.length })}
-                        </Badge>
-                    )}
-                </Group>
+            <Paper
+                p="lg"
+                mb="md"
+                mx="md"
+                radius="md"
+                withBorder
+                style={{
+                    background: 'var(--glass-bg)',
+                    flexShrink: 0
+                }}
+            >
+                <Grid gutter="lg" align="stretch">
+                    <Grid.Col span={{ base: 12, md: 7 }} style={{ minWidth: 0 }}>
+                        <Stack gap="xs" style={{ minWidth: 0 }}>
+                            <Group justify="space-between" align="center">
+                                <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>
+                                    {t('neologism_review.court.current_project')}
+                                </Text>
+                                {currentProject && (
+                                    <Badge size="lg" variant="light" color="blue">
+                                        {t('neologism_review.court.pending_terms', { count: candidates.length })}
+                                    </Badge>
+                                )}
+                            </Group>
+                            {currentProject && (
+                                <Title
+                                    order={2}
+                                    lineClamp={1}
+                                    style={{ fontSize: 'clamp(1.25rem, 2.4vw, 2rem)' }}
+                                >
+                                    {currentProject.name}
+                                </Title>
+                            )}
+                            <Select
+                                data={projects.map(p => ({ value: p.project_id, label: p.name }))}
+                                value={selectedProject}
+                                onChange={onSelectedProjectChange}
+                                placeholder={t('neologism_review.court.select_project')}
+                                size="md"
+                            />
+                        </Stack>
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, md: 5 }}>
+                        <Paper
+                            p="md"
+                            radius="md"
+                            h="100%"
+                            withBorder
+                            style={{
+                                borderColor: 'var(--mantine-color-teal-6)',
+                                background: 'var(--mantine-color-teal-light)',
+                            }}
+                        >
+                            <Stack gap="sm" justify="space-between" h="100%">
+                                <Group gap="sm" wrap="nowrap">
+                                    <ThemeIcon color="teal" variant="filled" size="lg">
+                                        <IconBook2 size={20} />
+                                    </ThemeIcon>
+                                    <Box style={{ minWidth: 0 }}>
+                                        <Text size="xs" tt="uppercase" fw={800} c="teal">
+                                            {t('neologism_review.court.project_glossary')}
+                                        </Text>
+                                        <Text fw={700} truncate>
+                                            {projectGlossary?.name || t('neologism_review.court.project_glossary_pending')}
+                                        </Text>
+                                    </Box>
+                                </Group>
+                                <Button
+                                    variant="filled"
+                                    color="teal"
+                                    leftSection={<IconExternalLink size={16} />}
+                                    onClick={handleOpenProjectGlossary}
+                                    disabled={!projectGlossary?.glossary_id || !onOpenGlossary}
+                                    fullWidth
+                                >
+                                    {t('neologism_review.court.inspect_project_glossary')}
+                                </Button>
+                            </Stack>
+                        </Paper>
+                    </Grid.Col>
+                </Grid>
             </Paper>
 
-            <Grid h="100%" gutter={0} style={{ flex: 1, overflow: 'hidden' }}>
+            <Grid
+                gutter={0}
+                style={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden' }}
+                styles={{ inner: { height: '100%', minHeight: 0 } }}
+            >
                 {/* Sidebar List */}
-                <Grid.Col span={3} h="100%" style={{ borderRight: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column' }}>
-                    <Stack p="md" h="100%">
+                <Grid.Col
+                    span={3}
+                    h="100%"
+                    style={{
+                        borderRight: '1px solid var(--glass-border)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minHeight: 0,
+                        overflow: 'hidden'
+                    }}
+                >
+                    <Stack p="md" h="100%" style={{ minHeight: 0 }}>
                         <Group justify="space-between">
                             <Title order={4} c="dimmed">{t('neologism_review.court.docket')}</Title>
                             <Badge variant="dot" size="lg">{candidates.length}</Badge>
                         </Group>
-                        <ScrollArea style={{ flex: 1, margin: '0 -16px' }} p="md">
+                        <ScrollArea
+                            type="always"
+                            scrollbars="y"
+                            scrollbarSize={8}
+                            style={{ flex: 1, minHeight: 0, margin: '0 -16px' }}
+                            p="md"
+                        >
                             <Stack gap="xs">
                                 {candidates.map(c => (
                                     <Paper
                                         key={c.id}
+                                        component="button"
+                                        type="button"
                                         p="md"
                                         radius="md"
                                         onClick={() => setSelectedId(c.id)}
+                                        aria-pressed={selectedId === c.id}
                                         style={{
                                             cursor: 'pointer',
+                                            width: '100%',
+                                            textAlign: 'left',
+                                            color: 'inherit',
+                                            font: 'inherit',
                                             backgroundColor: selectedId === c.id ? 'var(--mantine-color-blue-light)' : 'var(--glass-bg)',
                                             border: selectedId === c.id ? '1px solid var(--mantine-color-blue-filled)' : '1px solid transparent',
                                             transition: 'all 0.2s ease'
@@ -266,130 +415,163 @@ const JudgmentCourt = ({ selectedProject, onSelectedProjectChange, refreshToken 
                 </Grid.Col>
 
                 {/* Main Review Area */}
-                <Grid.Col span={9} h="100%" style={{ position: 'relative' }}>
+                <Grid.Col
+                    span={9}
+                    h="100%"
+                    style={{ position: 'relative', minHeight: 0, overflow: 'hidden' }}
+                >
                     {selectedCandidate ? (
-                        <Stack h="100%" p="xl" gap="xl">
+                        <Stack h="100%" p="xl" gap="lg" style={{ minHeight: 0 }}>
                             <LoadingOverlay visible={processing} />
 
-                            {/* Header Section */}
-                            <Paper p="xl" radius="lg" style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(10px)' }}>
-                                <Group align="flex-start" justify="space-between">
-                                    <Box>
-                                        <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>{t('neologism_review.court.candidate_term')}</Text>
-                                        <Title order={1} style={{ fontSize: '2.5rem', color: 'var(--mantine-color-blue-3)' }}>
-                                            {selectedCandidate.original}
-                                        </Title>
-                                    </Box>
-                                    <Badge size="lg" variant="outline" color="gray">
-                                            {(selectedCandidate.source_file || selectedCandidate.source_files?.[0] || '').split(/[\\/]/).pop() || t('neologism_review.court.unknown_source')}
-                                    </Badge>
-                                </Group>
-                            </Paper>
+                            <ScrollArea
+                                type="always"
+                                scrollbars="y"
+                                scrollbarSize={8}
+                                style={{ flex: 1, minHeight: 0 }}
+                            >
+                                <Stack gap="lg" pr="sm">
+                                    {/* Header Section */}
+                                    <Paper
+                                        p="xl"
+                                        radius="lg"
+                                        style={{
+                                            background: 'var(--glass-bg)',
+                                            backdropFilter: 'blur(10px)'
+                                        }}
+                                    >
+                                        <Group align="flex-start" justify="space-between">
+                                            <Box>
+                                                <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>{t('neologism_review.court.candidate_term')}</Text>
+                                                <Title order={1} style={{ fontSize: '2.5rem', color: 'var(--mantine-color-blue-3)' }}>
+                                                    {selectedCandidate.original}
+                                                </Title>
+                                            </Box>
+                                            <Badge size="lg" variant="outline" color="gray">
+                                                {(selectedCandidate.source_file || selectedCandidate.source_files?.[0] || '').split(/[\\/]/).pop() || t('neologism_review.court.unknown_source')}
+                                            </Badge>
+                                        </Group>
+                                    </Paper>
 
-                            <Grid gutter="xl" style={{ flex: 1 }}>
-                                {/* Left Column: Analysis & Action */}
-                                <Grid.Col span={7}>
-                                    <Stack gap="lg" h="100%">
-                                        {(selectedCandidate.duplicate_matches || []).length > 0 && (
-                                            <Alert
-                                                icon={<IconAlertTriangle size={18} />}
-                                                color="orange"
-                                                variant="light"
-                                                title={t('neologism_review.court.duplicate_warning_title')}
-                                            >
-                                                <Stack gap={4}>
-                                                    <Text size="sm">
-                                                        {t('neologism_review.court.duplicate_warning_body')}
-                                                    </Text>
-                                                    {(selectedCandidate.duplicate_matches || []).slice(0, 3).map((match) => (
-                                                        <Text key={match.entry_id || match.source_term} size="xs" c="dimmed">
-                                                            {match.source_term} - {match.glossary_name}
+                                    <Grid gutter="xl">
+                                        {/* Left Column: Analysis */}
+                                        <Grid.Col span={7}>
+                                            <Stack gap="lg">
+                                            {(selectedCandidate.duplicate_matches || []).length > 0 && (
+                                                <Alert
+                                                    icon={<IconAlertTriangle size={18} />}
+                                                    color="orange"
+                                                    variant="light"
+                                                    title={t('neologism_review.court.duplicate_warning_title')}
+                                                >
+                                                    <Stack gap={4}>
+                                                        <Text size="sm">
+                                                            {t('neologism_review.court.duplicate_warning_body')}
                                                         </Text>
+                                                        {(selectedCandidate.duplicate_matches || []).slice(0, 3).map((match) => (
+                                                            <Text key={match.entry_id || match.source_term} size="xs" c="dimmed">
+                                                                {match.source_term} - {match.glossary_name}
+                                                            </Text>
+                                                        ))}
+                                                    </Stack>
+                                                </Alert>
+                                            )}
+                                            <Paper p="lg" radius="md" style={{ background: 'rgba(0,0,0,0.2)' }} withBorder>
+                                                <Group mb="sm">
+                                                    <ThemeIcon color="yellow" variant="light" size="lg"><IconBulb size={20} /></ThemeIcon>
+                                                    <Text fw={700}>{t('neologism_review.court.ai_analysis')}</Text>
+                                                </Group>
+                                                <Text size="sm" style={{ lineHeight: 1.6 }}>
+                                                    {selectedCandidate.reasoning}
+                                                    </Text>
+                                                </Paper>
+                                            </Stack>
+                                        </Grid.Col>
+
+                                        {/* Right Column: Evidence */}
+                                        <Grid.Col span={5}>
+                                            <Stack>
+                                                <Text fw={700} c="dimmed" tt="uppercase" size="xs">{t('neologism_review.court.context_evidence')}</Text>
+                                                <Stack gap="sm">
+                                                    {selectedCandidate.context_snippets.map((snippet, idx) => (
+                                                        <Paper key={idx} p="md" radius="md" style={{ background: 'rgba(0,0,0,0.3)' }}>
+                                                            <Group align="flex-start" gap="xs" wrap="nowrap">
+                                                                <IconQuote size={16} style={{ opacity: 0.5, marginTop: 4 }} />
+                                                                <HighlightedText text={snippet} term={selectedCandidate.original} />
+                                                            </Group>
+                                                        </Paper>
                                                     ))}
                                                 </Stack>
-                                            </Alert>
-                                        )}
-                                        <Paper p="lg" radius="md" style={{ background: 'rgba(0,0,0,0.2)' }} withBorder>
-                                            <Group mb="sm">
-                                                <ThemeIcon color="yellow" variant="light" size="lg"><IconBulb size={20} /></ThemeIcon>
-                                                <Text fw={700}>{t('neologism_review.court.ai_analysis')}</Text>
-                                            </Group>
-                                            <Text size="sm" style={{ lineHeight: 1.6 }}>
-                                                {selectedCandidate.reasoning}
-                                            </Text>
-                                        </Paper>
-
-                                        <Box mt="auto">
-                                            {(selectedCandidate.duplicate_matches || []).length > 0 && (
-                                                <Select
-                                                    mb="md"
-                                                    label={t('neologism_review.court.duplicate_resolution')}
-                                                    data={[
-                                                        { value: 'duplicate', label: t('neologism_review.court.resolution_duplicate') },
-                                                        { value: 'approve_project', label: t('neologism_review.court.resolution_override') },
-                                                        { value: 'new_meaning', label: t('neologism_review.court.resolution_new_meaning') },
-                                                    ]}
-                                                    value={resolution}
-                                                    onChange={setResolution}
-                                                />
-                                            )}
-                                            <TextInput
-                                                label={t('neologism_review.court.final_translation')}
-                                                description={t('neologism_review.court.final_translation_desc')}
-                                                size="xl"
-                                                radius="md"
-                                                value={editSuggestion}
-                                                onChange={(e) => setEditSuggestion(e.currentTarget.value)}
-                                                rightSection={
-                                                    <ActionIcon variant="subtle" onClick={() => setEditSuggestion(selectedCandidate.suggestion)}>
-                                                        <IconSparkles size={18} />
-                                                    </ActionIcon>
-                                                }
-                                            />
-                                            <Group mt="lg" grow>
-                                                <Button
-                                                    size="lg"
-                                                    variant="default"
-                                                    color="gray"
-                                                    leftSection={<IconX />}
-                                                    onClick={handleReject}
-                                                >
-                                                    {t('neologism_review.court.ignore')}
-                                                </Button>
-                                                <Button
-                                                    size="lg"
-                                                    variant="gradient"
-                                                    gradient={{ from: 'teal', to: 'lime', deg: 105 }}
-                                                    leftSection={<IconGavel />}
-                                                    onClick={handleApprove}
-                                                    disabled={!selectedProject || (resolution !== 'duplicate' && !editSuggestion.trim())}
-                                                >
-                                                    {t('neologism_review.court.approve')}
-                                                </Button>
-                                            </Group>
-                                        </Box>
-                                    </Stack>
-                                </Grid.Col>
-
-                                {/* Right Column: Evidence */}
-                                <Grid.Col span={5}>
-                                    <Stack h="100%">
-                                        <Text fw={700} c="dimmed" tt="uppercase" size="xs">{t('neologism_review.court.context_evidence')}</Text>
-                                        <ScrollArea style={{ flex: 1 }} type="auto">
-                                            <Stack gap="sm">
-                                                {selectedCandidate.context_snippets.map((snippet, idx) => (
-                                                    <Paper key={idx} p="md" radius="md" style={{ background: 'rgba(0,0,0,0.3)' }}>
-                                                        <Group align="flex-start" gap="xs" wrap="nowrap">
-                                                            <IconQuote size={16} style={{ opacity: 0.5, marginTop: 4 }} />
-                                                            <HighlightedText text={snippet} term={selectedCandidate.original} />
-                                                        </Group>
-                                                    </Paper>
-                                                ))}
                                             </Stack>
-                                        </ScrollArea>
-                                    </Stack>
-                                </Grid.Col>
-                            </Grid>
+                                        </Grid.Col>
+                                    </Grid>
+                                </Stack>
+                            </ScrollArea>
+
+                            <Paper
+                                p="md"
+                                radius="md"
+                                withBorder
+                                style={{ background: 'var(--glass-bg)', flexShrink: 0 }}
+                            >
+                                {(selectedCandidate.duplicate_matches || []).length > 0 && (
+                                    <Select
+                                        mb="md"
+                                        label={t('neologism_review.court.duplicate_resolution')}
+                                        data={[
+                                            { value: 'duplicate', label: t('neologism_review.court.resolution_duplicate') },
+                                            { value: 'approve_project', label: t('neologism_review.court.resolution_override') },
+                                            { value: 'new_meaning', label: t('neologism_review.court.resolution_new_meaning') },
+                                        ]}
+                                        value={resolution}
+                                        onChange={setResolution}
+                                    />
+                                )}
+                                <TextInput
+                                    label={t('neologism_review.court.final_translation')}
+                                    description={t('neologism_review.court.final_translation_desc')}
+                                    size="xl"
+                                    radius="md"
+                                    value={editSuggestion}
+                                    onChange={(e) => updateEditSuggestion(e.currentTarget.value)}
+                                    rightSection={
+                                        <ActionIcon variant="subtle" onClick={() => updateEditSuggestion(selectedCandidate.suggestion)}>
+                                            <IconSparkles size={18} />
+                                        </ActionIcon>
+                                    }
+                                />
+                                <Group mt="md" grow>
+                                    <Button
+                                        size="lg"
+                                        variant="default"
+                                        color="gray"
+                                        leftSection={<IconX />}
+                                        onClick={handleReject}
+                                    >
+                                        {t('neologism_review.court.ignore')}
+                                    </Button>
+                                    <Button
+                                        size="lg"
+                                        variant="gradient"
+                                        gradient={{ from: 'teal', to: 'lime', deg: 105 }}
+                                        leftSection={<IconGavel />}
+                                        onClick={handleApprove}
+                                        disabled={!selectedProject || (resolution !== 'duplicate' && !editSuggestion.trim())}
+                                    >
+                                        {t('neologism_review.court.approve')}
+                                    </Button>
+                                </Group>
+                            </Paper>
+                        </Stack>
+                    ) : selectedProject && candidates.length === 0 && !loading ? (
+                        <Stack align="center" justify="center" h="100%" c="dimmed">
+                            <IconCheck size={64} style={{ opacity: 0.35 }} />
+                            <Text size="xl">{t('neologism_review.court.caught_up')}</Text>
+                            {onOpenMining && (
+                                <Button variant="light" onClick={onOpenMining}>
+                                    {t('neologism_review.tab_mining')}
+                                </Button>
+                            )}
                         </Stack>
                     ) : (
                         <Stack align="center" justify="center" h="100%" c="dimmed">
