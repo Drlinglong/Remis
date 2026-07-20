@@ -2,8 +2,7 @@
 chcp 65001 >nul
 setlocal
 
-set "PROJECT_ROOT=%~dp0"
-if "%PROJECT_ROOT:~-1%"=="\" set "PROJECT_ROOT=%PROJECT_ROOT:~0,-1%"
+for %%I in ("%~dp0\..\..\..") do set "PROJECT_ROOT=%%~fI"
 
 pyinstaller --clean --onefile --name web_server ^
   --hidden-import uvicorn ^

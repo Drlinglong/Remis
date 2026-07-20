@@ -46,7 +46,7 @@ npm install
 Use the one-click launcher script:
 
 ```bash
-./run-dev.bat
+./scripts/developer_tools/windows/run-dev.bat
 ```
 
 This will start both:

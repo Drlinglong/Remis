@@ -2,18 +2,24 @@
 
 Base URL: `http://127.0.0.1:1453/api/agent`
 
-The API returns structured JSON and never returns provider API keys. Error
-responses use:
+The API returns structured JSON and never returns provider API keys. Agent
+errors are raised through FastAPI's `HTTPException`, so the HTTP response wraps
+the structured error payload in `detail`:
 
 ```json
 {
-  "error": {
+  "detail": {
     "code": "approval_required",
     "message": "Explicit approval is required before starting this job.",
-    "details": {}
+    "retryable": false
   }
 }
 ```
+
+Agent clients should inspect `response.detail.code`, display
+`response.detail.message`, and only retry automatically when
+`response.detail.retryable` is `true`. Do not expect an `error` envelope or a
+`details` object.
 
 ## Discover the runtime
 

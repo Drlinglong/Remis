@@ -59,7 +59,7 @@ const conversations = {
     {
       tag: '01 · INSTALL & UPDATE',
       user: 'Set up Remis in this workspace and make sure I can actually translate.',
-      agent: 'The latest stable Remis is installed and healthy. Translation still needs a model provider. I opened API Settings so you can enter the key inside Remis. If “API key” is unfamiliar, I can explain it first.',
+      agent: 'The Remis development checkout is running and healthy. Translation still needs a model provider: I can help you connect a keyless local option such as LM Studio or Ollama, or explain how to enter a cloud-provider key safely inside Remis.',
     },
     {
       tag: '02 · DIAGNOSE',
@@ -81,7 +81,7 @@ const conversations = {
     {
       tag: '01 · 安装与更新',
       user: '在这个工作区配置好 Remis，确保我真的可以开始翻译。',
-      agent: '最新版稳定版 Remis 已安装并通过健康检查。翻译仍需要模型 Provider；我已打开 API 设置，请把密钥直接填在 Remis 里。如果你不清楚什么是 API key，我可以先解释。',
+      agent: 'Remis 开发版已启动并通过健康检查。翻译仍需要模型 Provider：我可以帮你连接 LM Studio、Ollama 等无需密钥的本地方案，或说明如何在 Remis 内安全填写云端 Provider 密钥。',
     },
     {
       tag: '02 · 故障诊断',

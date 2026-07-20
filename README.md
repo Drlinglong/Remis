@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="gfx/Project Remis.png" width="150" alt="Project Remis logo">
+  <img src="website/public/assets/remis-logo.png" width="150" alt="Project Remis logo">
 
   <h1>Project Remis</h1>
   <h3>The operating system for AI localization.</h3>
@@ -34,9 +34,9 @@
   </p>
 
   <p>
-    <a href="README_ZH.md">简体中文</a> ·
+    <a href="docs/README_ZH.md">简体中文</a> ·
     <a href="README.md">English</a> ·
-    <a href="README_RU.md">Русский</a>
+    <a href="docs/README_RU.md">Русский</a>
   </p>
 
 </div>
@@ -53,10 +53,54 @@ Project files, glossaries, checkpoints, translation history, and review state ar
   <a href="docs/zh/user-guides/getting-started.md"><strong>Beginner Guide</strong></a>
   &nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="https://github.com/Drlinglong/Remis/issues/132"><strong>Agent Roadmap</strong></a>
+  &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="https://drlinglong.github.io/Remis/"><strong>Use with an AI Agent</strong></a>
 </p>
 
 <p align="center">
-  <img src="gfx/screenshot_en1.jpg" width="88%" alt="Remis desktop localization workspace">
+  <a href="https://drlinglong.github.io/Remis/" title="Use Remis with Codex"><img src="website/public/assets/vendors/openai.png" height="28" alt="Codex"></a>
+  &nbsp;&nbsp;
+  <a href="https://drlinglong.github.io/Remis/" title="Use Remis with Claude Code"><img src="website/public/assets/vendors/anthropic.svg" height="28" alt="Claude Code"></a>
+  &nbsp;&nbsp;
+  <a href="https://drlinglong.github.io/Remis/" title="Use Remis with OpenClaw"><img src="website/public/assets/vendors/openclaw.svg" height="28" alt="OpenClaw"></a>
+  &nbsp;&nbsp;
+  <a href="https://drlinglong.github.io/Remis/" title="Use Remis with Cursor"><img src="website/public/assets/vendors/cursor.svg" height="28" alt="Cursor"></a>
+  &nbsp;&nbsp;
+  <a href="https://drlinglong.github.io/Remis/" title="Use Remis with Hermes Agent"><img src="website/public/assets/vendors/hermes-agent.png" height="28" alt="Hermes Agent"></a>
+  &nbsp;&nbsp;
+  <a href="https://drlinglong.github.io/Remis/" title="Use Remis with Google Antigravity"><img src="website/public/assets/vendors/google.png" height="28" alt="Google Antigravity"></a>
+</p>
+
+<p align="center">
+  <img src="docs/assets/readme/screenshot_en1.webp" width="88%" alt="Remis desktop localization workspace">
+</p>
+
+## See the Workflow
+
+The product story is visible in three loops: organize project state, reuse approved work when a mod changes, and repair model failures without surrendering control.
+
+### Project lifecycle
+
+Projects make localization state explicit: source assets, language pairs, glossaries, checkpoints, generated files, review state, and deployment history belong to one auditable workspace.
+
+<p align="center">
+  <img src="website/public/assets/project-management-workflow.svg" width="92%" alt="Animated project management workflow">
+</p>
+
+### Incremental translation and memory reuse
+
+When a mod updates, Remis compares source state, reuses approved translations, preserves translation memory, and sends only changed or missing work back through the model pipeline.
+
+<p align="center">
+  <img src="website/public/assets/incremental-update-workflow.svg" width="92%" alt="Animated incremental translation workflow">
+</p>
+
+### Agentic validation and repair
+
+Broken entries become diagnostic context. The repair agent receives the source, current translation, glossary and validator report, proposes a bounded patch, and loops through verification before a human reviews the result.
+
+<p align="center">
+  <img src="website/public/assets/agentic-repair-workflow.svg" width="92%" alt="Animated agentic repair and validation workflow">
 </p>
 
 ## AI Engineering
@@ -72,14 +116,6 @@ Remis treats localization as a stateful AI engineering problem, not a single mod
 | **Reliability layer** | Deterministic Paradox-format validators, repair loops, checkpoint recovery, incremental reuse, WebSocket task recovery, and human review |
 | **LLMOps, evaluation & observability** | Frozen translation and repair fixtures exercise production prompts, glossary injection, parsers, validators, latency, structured-output failures, and over-editing behavior |
 | **Desktop product engineering** | Tauri 2 + React 19 + FastAPI + SQLite, packaged as a real Windows application rather than a notebook or hosted demo |
-
-### System architecture
-
-<p align="center">
-  <img src="gfx/remis-ai-system-architecture.png" width="100%" alt="Remis AI system architecture: approval-gated Copilot, local project state, Micro-RAG knowledge layer, provider orchestration, typed model output, deterministic validation, bounded repair, human review, deployment, evaluation, and observability">
-</p>
-
-The trust boundary is deliberate: models may propose, translate, classify, and repair, but Remis owns file access, argument validation, workflow execution, and every write.
 
 ## Approval-gated Agent System
 
@@ -142,31 +178,13 @@ The benchmark runs Remis production prompt construction, glossary injection, str
 
 The first local-model study evaluated four models on seven frozen cases and exposed meaningful differences between language quality, formatting stability, latency, contextual glossary use, and repair restraint. See the [benchmark design](docs/zh/developer/translation_quality_benchmark.md) and [first engineering report](docs/zh/developer/translation_quality_benchmark_report_2026-07-15.md).
 
-## Core Workflows
-
-### Project lifecycle
-
-Projects make localization state explicit: source assets, language pairs, glossaries, checkpoints, generated files, review state, and deployment history belong to one auditable workspace.
+## System Architecture
 
 <p align="center">
-  <img src="project_management.svg" width="92%" alt="Animated project management workflow">
+  <img src="docs/assets/readme/remis-ai-system-architecture.webp" width="100%" alt="Remis AI system architecture: approval-gated Copilot, local project state, Micro-RAG knowledge layer, provider orchestration, typed model output, deterministic validation, bounded repair, human review, deployment, evaluation, and observability">
 </p>
 
-### Incremental translation and memory reuse
-
-When a mod updates, Remis compares source state, reuses approved translations, preserves translation memory, and sends only changed or missing work back through the model pipeline.
-
-<p align="center">
-  <img src="Incremental_%20Update.svg" width="92%" alt="Animated incremental translation workflow">
-</p>
-
-### Agentic validation and repair
-
-Broken entries become diagnostic context. The repair agent receives the source, current translation, glossary and validator report, proposes a bounded patch, and loops through verification before a human reviews the result.
-
-<p align="center">
-  <img src="agentic_repair_workflow.svg" width="92%" alt="Animated agentic repair and validation workflow">
-</p>
+The trust boundary is deliberate: models may propose, translate, classify, and repair, but Remis owns file access, argument validation, workflow execution, and every write.
 
 ## Product Capabilities
 
@@ -184,16 +202,16 @@ Broken entries become diagnostic context. The repair agent receives the source, 
 
 <table>
   <tr>
-    <td width="50%"><img src="gfx/screenshot_en2.jpg" alt="Project status and localization progress"></td>
-    <td width="50%"><img src="gfx/screenshot_en3.jpg" alt="Glossary management interface"></td>
+    <td width="50%"><img src="docs/assets/readme/screenshot_en2.webp" alt="Project status and localization progress"></td>
+    <td width="50%"><img src="docs/assets/readme/screenshot_en3.webp" alt="Glossary management interface"></td>
   </tr>
   <tr>
     <td align="center"><strong>Project state and progress</strong></td>
     <td align="center"><strong>Context and terminology control</strong></td>
   </tr>
   <tr>
-    <td width="50%"><img src="gfx/screenshot_en4.jpg" alt="Side-by-side proofreading workspace"></td>
-    <td width="50%"><img src="gfx/screenshot_en6.jpg" alt="Model provider configuration"></td>
+    <td width="50%"><img src="docs/assets/readme/screenshot_en4.webp" alt="Side-by-side proofreading workspace"></td>
+    <td width="50%"><img src="docs/assets/readme/screenshot_en6.webp" alt="Model provider configuration"></td>
   </tr>
   <tr>
     <td align="center"><strong>Human-in-the-loop review</strong></td>

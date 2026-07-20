@@ -12,7 +12,8 @@ localization state changes.
 ## Establish the local boundary
 
 1. Work only with the official repository or an installed Remis application.
-2. Start the installed application, or use `run-dev.bat` from a development
+2. Start the installed application, or run
+   `scripts\developer_tools\windows\run-dev.bat` from the root of a development
    checkout. Respect the Python/Conda environment chosen by that launcher.
 3. Verify `GET http://127.0.0.1:1453/api/health`.
 4. Before every workflow, call

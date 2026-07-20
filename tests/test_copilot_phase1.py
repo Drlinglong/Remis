@@ -266,7 +266,9 @@ def test_every_packaged_user_guide_is_agent_selectable():
 def test_release_and_debug_builds_bundle_help_skill_resources():
     root = Path(__file__).resolve().parents[1]
     pipeline = (root / "scripts" / "build_pipeline.py").read_text(encoding="utf-8")
-    debug_build = (root / "debug_build.bat").read_text(encoding="utf-8")
+    debug_build = (
+        root / "scripts" / "developer_tools" / "windows" / "debug_build.bat"
+    ).read_text(encoding="utf-8")
     assert '"docs", "zh", "user-guides"' in pipeline
     assert "docs/zh/user-guides" in pipeline
     assert "docs\\zh\\user-guides;docs/zh/user-guides" in debug_build

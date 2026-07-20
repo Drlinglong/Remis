@@ -46,7 +46,7 @@ npm install
 使用一键启动脚本：
 
 ```bash
-./run-dev.bat
+./scripts/developer_tools/windows/run-dev.bat
 ```
 
 这将同时启动：

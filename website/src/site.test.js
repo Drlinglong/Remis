@@ -5,6 +5,7 @@ import {
   aventineProofPoints,
   aventineRanking,
   aventineRecipeStages,
+  links,
   pageFromPath,
   productLayers,
   roadmapPhases,
@@ -35,6 +36,15 @@ describe('Codex product entry', () => {
       path: 'codex/',
     })
     expect(pages[0].key).toBe('home')
+  })
+
+  it('links developer resources to the durable main branch', () => {
+    expect(links.agentQuickstart).toBe(
+      'https://github.com/Drlinglong/Remis/blob/main/docs/en/developer/agent-api-quickstart.md',
+    )
+    expect(links.agentSkill).toBe(
+      'https://github.com/Drlinglong/Remis/tree/main/.agents/skills/remis-agent',
+    )
   })
 })
 

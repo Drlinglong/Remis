@@ -14,7 +14,7 @@ The project uses a "one-click" launcher script to simplify the setup process.
 1.  **Install Node.js:** Navigate to the `scripts/react-ui` directory and run `nvm install`. This will automatically read the `.nvmrc` file and install the correct Node.js version (`v20.12.2`).
 2.  **Run the Launcher:** From the project root, simply execute the main development launcher:
     ```bash
-    run-dev.bat
+    scripts\developer_tools\windows\run-dev.bat
     ```
 
 This script will automatically perform the following steps:
