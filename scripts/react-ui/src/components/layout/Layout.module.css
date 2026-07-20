@@ -70,15 +70,17 @@
 
 /* --- Global Glass Utilities --- */
 .glassCard {
-    background: var(--glass-bg) !important;
-    --mantine-color-text: var(--text-main) !important;
-    --mantine-color-dimmed: var(--text-muted) !important;
-    border: 1px solid var(--glass-border) !important;
+    --mantine-color-text: var(--surface-text-main) !important;
+    --mantine-color-dimmed: var(--surface-text-muted) !important;
+    --text-main: var(--surface-text-main);
+    --text-muted: var(--surface-text-muted);
+    background: var(--surface-bg, var(--glass-bg)) !important;
+    border: 1px solid var(--surface-border, var(--glass-border)) !important;
     border-radius: var(--card-radius) !important;
     box-shadow: var(--shadow-elevation) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    color: var(--text-main) !important;
+    color: var(--surface-text-main) !important;
 }
 
 .glassPanel {
@@ -125,4 +127,15 @@
 .tutorialButton:hover {
     background: rgba(255, 193, 7, 0.2) !important;
     animation: none; /* Stop pulsing on hover */
+}
+
+@media (max-width: 700px) {
+    .sidebarLeft {
+        width: 64px !important;
+        padding: 12px 8px !important;
+    }
+
+    .navLink {
+        min-height: 44px;
+    }
 }

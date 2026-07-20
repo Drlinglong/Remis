@@ -8,6 +8,20 @@
   --font-header: system-ui, sans-serif;
   --font-body: system-ui, sans-serif;
   --card-radius: 4px;
+  --canvas-bg-solid: #050810;
+  --canvas-text-main: #E0F7FA;
+  --canvas-text-muted: #91B7C4;
+  --surface-bg-solid: #0A141E;
+  --surface-bg: var(--surface-bg-solid);
+  --surface-text-main: #E0F7FA;
+  --surface-text-muted: #91B7C4;
+  --surface-border: #0099CC;
+  --elevated-bg: #050810;
+  --elevated-text-main: #E0F7FA;
+  --elevated-text-muted: #91B7C4;
+  --interactive-accent: #00D9FF;
+  --interactive-accent-text: #050810;
+  --focus-ring: #00FFCC;
 }
 
 /* =========================================
@@ -32,6 +46,18 @@
   --paper-bg: #FFF8E1;
   --paper-text-main: #3E2723;
   --paper-text-muted: #616161;
+  --canvas-bg-solid: #2E1A47;
+  --surface-bg-solid: #36001B;
+  --surface-bg: var(--glass-bg);
+  --surface-text-main: #FFFDD0;
+  --surface-text-muted: #D8C3C7;
+  --surface-border: #D4AF37;
+  --elevated-bg: #210012;
+  --elevated-text-main: #FFFDD0;
+  --elevated-text-muted: #D8C3C7;
+  --interactive-accent: #FFD700;
+  --interactive-accent-text: #2E1A47;
+  --focus-ring: #FFD700;
 
   /* Materials */
   --glass-bg: linear-gradient(135deg, rgba(40, 0, 20, 0.9), rgba(60, 0, 30, 0.85));
@@ -72,6 +98,18 @@
   --paper-bg: #2A1810;
   --paper-text-main: #FFFFF0;
   --paper-text-muted: #D8C8A8;
+  --canvas-bg-solid: #3B1F10;
+  --surface-bg-solid: #141E19;
+  --surface-bg: var(--glass-bg);
+  --surface-text-main: #FFFFF0;
+  --surface-text-muted: #D8C8A8;
+  --surface-border: #B8860B;
+  --elevated-bg: #0F1713;
+  --elevated-text-main: #FFFFF0;
+  --elevated-text-muted: #D8C8A8;
+  --interactive-accent: #DAA520;
+  --interactive-accent-text: #1A0F08;
+  --focus-ring: #FFD54F;
 
   /* Materials */
   --glass-bg: rgba(20, 30, 25, 0.95);
@@ -109,6 +147,18 @@
   --paper-bg: #050810;
   --paper-text-main: #E0F7FA;
   --paper-text-muted: #91B7C4;
+  --canvas-bg-solid: #050508;
+  --surface-bg-solid: #0A141E;
+  --surface-bg: var(--glass-bg);
+  --surface-text-main: #E0F7FA;
+  --surface-text-muted: #91B7C4;
+  --surface-border: #0099CC;
+  --elevated-bg: #050810;
+  --elevated-text-main: #E0F7FA;
+  --elevated-text-muted: #91B7C4;
+  --interactive-accent: #00D9FF;
+  --interactive-accent-text: #050810;
+  --focus-ring: #00FFCC;
 
   /* Materials */
   --glass-bg: rgba(10, 20, 30, 0.85);
@@ -148,6 +198,18 @@
   --paper-bg: #FCF5E5;
   --paper-text-main: #2A2A1E;
   --paper-text-muted: #56563D;
+  --canvas-bg-solid: #4B501B;
+  --surface-bg-solid: #2A2A1E;
+  --surface-bg: var(--glass-bg);
+  --surface-text-main: #F5E6D3;
+  --surface-text-muted: #C9C2AC;
+  --surface-border: #8B7355;
+  --elevated-bg: #171712;
+  --elevated-text-main: #F5E6D3;
+  --elevated-text-muted: #C9C2AC;
+  --interactive-accent: #DCD0C0;
+  --interactive-accent-text: #2A2A1E;
+  --focus-ring: #CD5C5C;
 
   /* Materials */
   --glass-bg: rgba(42, 42, 30, 0.95);
@@ -185,6 +247,18 @@
   --paper-bg: #F5E6D3;
   --paper-text-main: #2E2416;
   --paper-text-muted: #5B472E;
+  --canvas-bg-solid: #E5D9C0;
+  --surface-bg-solid: #1E140A;
+  --surface-bg: var(--glass-bg);
+  --surface-text-main: #F5E6D3;
+  --surface-text-muted: #CDB98F;
+  --surface-border: #B8860B;
+  --elevated-bg: #120C06;
+  --elevated-text-main: #F5E6D3;
+  --elevated-text-muted: #CDB98F;
+  --interactive-accent: #8B0000;
+  --interactive-accent-text: #F5E6D3;
+  --focus-ring: #DAA520;
 
   /* Materials */
   --glass-bg: rgba(30, 20, 10, 0.92);
@@ -211,6 +285,27 @@ html[data-theme] {
   --mantine-color-text: var(--canvas-text-main) !important;
   --mantine-color-dimmed: var(--canvas-text-muted) !important;
   color: var(--canvas-text-main);
+}
+
+/*
+ * Component surfaces opt into one of these contracts instead of guessing from
+ * the active theme name. This keeps canvas, card, and overlay text independent.
+ */
+html[data-theme] [data-remis-surface='surface'] {
+  --mantine-color-text: var(--surface-text-main) !important;
+  --mantine-color-dimmed: var(--surface-text-muted) !important;
+  color: var(--surface-text-main);
+}
+
+html[data-theme] [data-remis-surface='elevated'] {
+  --mantine-color-text: var(--elevated-text-main) !important;
+  --mantine-color-dimmed: var(--elevated-text-muted) !important;
+  color: var(--elevated-text-main);
+}
+
+html[data-theme] :is(button, a, input, select, textarea, [role='button']):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 /* Mantine mounts dropdowns in a portal under body, outside page components. */
