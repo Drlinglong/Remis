@@ -32,7 +32,7 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 2800,
-    rollupOptions: {
+    rolldownOptions: {
       onLog(level, log, handler) {
         if (log.code === 'CIRCULAR_CHUNK') {
           throw new Error(`Production bundle contains a circular chunk: ${log.message}`);
@@ -40,60 +40,64 @@ export default defineConfig({
         handler(level, log);
       },
       output: {
-        manualChunks(id) {
-          const normalized = id.replace(/\\/g, '/');
-          if (!normalized.includes('/node_modules/')) return undefined;
-          if (normalized.includes('/@monaco-editor/')) {
-            return 'vendor-monaco';
-          }
-          if (normalized.includes('/monaco-editor/')) {
-            return 'vendor-monaco';
-          }
-          if (
-            normalized.includes('/@mantine/') ||
-            normalized.includes('/react/') ||
-            normalized.includes('/react-dom/') ||
-            normalized.includes('/react-router') ||
-            normalized.includes('/scheduler/')
-          ) {
-            return 'vendor-react-ui';
-          }
-          if (normalized.includes('/@tabler/icons-react/')) {
-            return 'vendor-icons';
-          }
-          if (normalized.includes('/recharts/') || normalized.includes('/d3-')) {
-            return 'vendor-charts';
-          }
-          if (
-            normalized.includes('/konva/') ||
-            normalized.includes('/react-konva/')
-          ) {
-            return 'vendor-konva';
-          }
-          if (normalized.includes('/html2canvas/')) {
-            return 'vendor-html2canvas';
-          }
-          if (
-            normalized.includes('/react-markdown/') ||
-            normalized.includes('/remark-') ||
-            normalized.includes('/rehype-') ||
-            normalized.includes('/micromark') ||
-            normalized.includes('/mdast-') ||
-            normalized.includes('/hast-') ||
-            normalized.includes('/unist-')
-          ) {
-            return 'vendor-markdown';
-          }
-          if (normalized.includes('/@tauri-apps/')) {
-            return 'vendor-tauri';
-          }
-          if (normalized.includes('/@dnd-kit/')) {
-            return 'vendor-dnd';
-          }
-          if (normalized.includes('/i18next') || normalized.includes('/react-i18next/')) {
-            return 'vendor-i18n';
-          }
-          return undefined;
+        codeSplitting: {
+          groups: [{
+            name(id) {
+              const normalized = id.replace(/\\/g, '/');
+              if (!normalized.includes('/node_modules/')) return null;
+              if (normalized.includes('/@monaco-editor/')) {
+                return 'vendor-monaco';
+              }
+              if (normalized.includes('/monaco-editor/')) {
+                return 'vendor-monaco';
+              }
+              if (
+                normalized.includes('/@mantine/') ||
+                normalized.includes('/react/') ||
+                normalized.includes('/react-dom/') ||
+                normalized.includes('/react-router') ||
+                normalized.includes('/scheduler/')
+              ) {
+                return 'vendor-react-ui';
+              }
+              if (normalized.includes('/@tabler/icons-react/')) {
+                return 'vendor-icons';
+              }
+              if (normalized.includes('/recharts/') || normalized.includes('/d3-')) {
+                return 'vendor-charts';
+              }
+              if (
+                normalized.includes('/konva/') ||
+                normalized.includes('/react-konva/')
+              ) {
+                return 'vendor-konva';
+              }
+              if (normalized.includes('/html2canvas/')) {
+                return 'vendor-html2canvas';
+              }
+              if (
+                normalized.includes('/react-markdown/') ||
+                normalized.includes('/remark-') ||
+                normalized.includes('/rehype-') ||
+                normalized.includes('/micromark') ||
+                normalized.includes('/mdast-') ||
+                normalized.includes('/hast-') ||
+                normalized.includes('/unist-')
+              ) {
+                return 'vendor-markdown';
+              }
+              if (normalized.includes('/@tauri-apps/')) {
+                return 'vendor-tauri';
+              }
+              if (normalized.includes('/@dnd-kit/')) {
+                return 'vendor-dnd';
+              }
+              if (normalized.includes('/i18next') || normalized.includes('/react-i18next/')) {
+                return 'vendor-i18n';
+              }
+              return null;
+            },
+          }],
         },
       },
     },
