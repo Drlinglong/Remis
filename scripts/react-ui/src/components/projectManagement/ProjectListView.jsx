@@ -13,10 +13,13 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { IconArrowLeft, IconSearch } from '@tabler/icons-react';
+import {
+  IconArchive,
+  IconArrowLeft,
+  IconPlus,
+  IconSearch,
+} from '@tabler/icons-react';
 
-import cardNewProject from '../../assets/card_new_project.png';
-import cardOpenProject from '../../assets/card_open_project.png';
 import heroBg from '../../assets/project_hero_bg.png';
 import styles from '../../pages/ProjectManagement.module.css';
 
@@ -37,7 +40,7 @@ export function ProjectListView({
 
   return (
     <div id="project-list-container" style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box style={{ height: '300px', position: 'relative', flexShrink: 0 }}>
+      <Box className={styles.heroSection}>
         <BackgroundImage src={heroBg} radius="md" style={{ height: '100%' }}>
           <Overlay color="#000" opacity={0.6} zIndex={1} radius="md" />
           <Center p="md" style={{ height: '100%', position: 'relative', zIndex: 2, flexDirection: 'column' }}>
@@ -48,7 +51,7 @@ export function ProjectListView({
               {viewMode === 'active' ? t('project_management.hero_desc') : t('project_management.actions.archives_desc')}
             </Text>
 
-            <Group mt="xl">
+            <Group mt="lg" className={styles.heroControls}>
               {viewMode === 'archives' && (
                 <Button variant="outline" color="gray" leftSection={<IconArrowLeft />} onClick={() => setViewMode('active')}>
                   {t('button_back')}
@@ -56,62 +59,49 @@ export function ProjectListView({
               )}
               <Input
                 icon={<IconSearch size={16} />}
-                placeholder="Search projects..."
+                placeholder={t('translation_page.search_placeholder')}
                 radius="xl"
                 size="md"
-                style={{ width: '400px' }}
+                className={styles.heroSearch}
+                classNames={{ input: styles.heroSearchInput }}
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.currentTarget.value)}
-                styles={{ input: { background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' } }}
               />
             </Group>
           </Center>
         </BackgroundImage>
       </Box>
 
-      <Box style={{ flex: 1, padding: '20px' }}>
+      <Box className={styles.projectContent}>
         {viewMode === 'active' && (
-          <>
-            <Title order={3} mb="md">Actions</Title>
-            <SimpleGrid cols={3} gap="lg" breakpoints={[{ maxWidth: 'sm', cols: 1 }]}>
-              <Card
+          <Box className={styles.actionsSection} data-remis-surface="surface">
+            <Box>
+              <Title order={3}>
+                {t('project_management.file_list.table.actions')}
+              </Title>
+              <Text size="sm" c="dimmed" mt={4}>
+                {t('project_management.actions.create_new_desc')}
+              </Text>
+            </Box>
+            <Group className={styles.actionToolbar}>
+              <Button
                 id="create-project-btn"
-                padding="lg"
-                radius="md"
-                className={styles.actionCard}
+                leftSection={<IconPlus size={18} />}
                 onClick={() => setIsCreateModalOpen(true)}
               >
-                <Card.Section>
-                  <BackgroundImage src={cardNewProject} style={{ height: 140 }} />
-                </Card.Section>
-                <Group justify="space-between" mt="md" mb="xs">
-                  <Text fw={500}>{t('project_management.actions.create_new')}</Text>
-                  <Badge color="pink" variant="light">New</Badge>
-                </Group>
-                <Text size="sm" color="dimmed">
-                  {t('project_management.actions.create_new_desc')}
-                </Text>
-              </Card>
+                {t('project_management.actions.create_new')}
+              </Button>
 
-              <Card
-                padding="lg"
-                radius="md"
-                className={styles.actionCard}
+              <Button
+                variant="subtle"
+                color="gray"
+                leftSection={<IconArchive size={18} />}
                 onClick={() => setViewMode('archives')}
               >
-                <Card.Section>
-                  <BackgroundImage src={cardOpenProject} style={{ height: 140 }} />
-                </Card.Section>
-                <Group justify="space-between" mt="md" mb="xs">
-                  <Text fw={500}>{t('project_management.actions.archives')}</Text>
-                  <Badge color="gray" variant="light">View</Badge>
-                </Group>
-                <Text size="sm" color="dimmed">
-                  {t('project_management.actions.archives_desc')}
-                </Text>
-              </Card>
-            </SimpleGrid>
-          </>
+                {t('project_management.actions.archives')}
+              </Button>
+            </Group>
+          </Box>
         )}
 
         <Title order={3} mt="xl" mb="md">
@@ -121,7 +111,7 @@ export function ProjectListView({
           </Badge>
         </Title>
 
-        <SimpleGrid cols={3} gap="lg" breakpoints={[{ maxWidth: 'sm', cols: 1 }]}>
+        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} gap="lg">
           {filteredProjects.map((project) => (
             <Card
               key={project.project_id}
@@ -129,6 +119,7 @@ export function ProjectListView({
               radius="md"
               onClick={() => setSelectedProjectId(project.project_id)}
               className={styles.projectCard}
+              data-remis-surface="surface"
             >
               <Group justify="space-between" mb="xs">
                 <Text fw={500} className={styles.projectTitle}>{project.name}</Text>
