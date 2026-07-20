@@ -54,21 +54,21 @@ Project files, glossaries, checkpoints, translation history, and review state ar
   &nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="https://github.com/Drlinglong/Remis/issues/132"><strong>Agent Roadmap</strong></a>
   &nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="https://drlinglong.github.io/Remis/"><strong>Use with an AI Agent</strong></a>
+  <a href="https://drlinglong.github.io/Remis/codex/"><strong>Use with an AI Agent</strong></a>
 </p>
 
 <p align="center">
-  <a href="https://drlinglong.github.io/Remis/" title="Use Remis with Codex"><img src="website/public/assets/vendors/openai.png" height="28" alt="Codex"></a>
+  <a href="https://drlinglong.github.io/Remis/codex/" title="Use Remis with Codex"><img src="docs/assets/readme/chatgpt-mark-light.png" height="28" alt="ChatGPT / Codex"></a>
   &nbsp;&nbsp;
-  <a href="https://drlinglong.github.io/Remis/" title="Use Remis with Claude Code"><img src="website/public/assets/vendors/anthropic.svg" height="28" alt="Claude Code"></a>
+  <a href="https://drlinglong.github.io/Remis/codex/" title="Use Remis with Claude Code"><img src="website/public/assets/vendors/anthropic.svg" height="28" alt="Claude Code"></a>
   &nbsp;&nbsp;
-  <a href="https://drlinglong.github.io/Remis/" title="Use Remis with OpenClaw"><img src="website/public/assets/vendors/openclaw.svg" height="28" alt="OpenClaw"></a>
+  <a href="https://drlinglong.github.io/Remis/codex/" title="Use Remis with OpenClaw"><img src="website/public/assets/vendors/openclaw.svg" height="28" alt="OpenClaw"></a>
   &nbsp;&nbsp;
-  <a href="https://drlinglong.github.io/Remis/" title="Use Remis with Cursor"><img src="website/public/assets/vendors/cursor.svg" height="28" alt="Cursor"></a>
+  <a href="https://drlinglong.github.io/Remis/codex/" title="Use Remis with Cursor"><img src="website/public/assets/vendors/cursor.svg" height="28" alt="Cursor"></a>
   &nbsp;&nbsp;
-  <a href="https://drlinglong.github.io/Remis/" title="Use Remis with Hermes Agent"><img src="website/public/assets/vendors/hermes-agent.png" height="28" alt="Hermes Agent"></a>
+  <a href="https://drlinglong.github.io/Remis/codex/" title="Use Remis with Hermes Agent"><img src="website/public/assets/vendors/hermes-agent.png" height="28" alt="Hermes Agent"></a>
   &nbsp;&nbsp;
-  <a href="https://drlinglong.github.io/Remis/" title="Use Remis with Google Antigravity"><img src="website/public/assets/vendors/google.png" height="28" alt="Google Antigravity"></a>
+  <a href="https://drlinglong.github.io/Remis/codex/" title="Use Remis with Google Antigravity"><img src="website/public/assets/vendors/google.png" height="28" alt="Google Antigravity"></a>
 </p>
 
 <p align="center">

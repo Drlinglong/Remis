@@ -10,19 +10,15 @@ project store, and review/export interface.
 
 ## Install the operator Skill
 
-Ask Codex to use a development checkout rather than the packaged Windows
-installer:
+Give this prompt to your Agent:
 
-> Clone the Remis development checkout from the official `main` branch. Use
-> the source checkout rather than the packaged Windows installer so you can
-> read the repository's official Remis Agent Skill. Follow the development
-> setup, start Remis locally, and verify its health endpoint. Then ask which
-> model Provider I want. For an online Provider such as OpenAI or Google
-> Gemini, explain that its API key is a secret used for authentication and
-> possible billing, and guide me to enter it inside Remis Settings → API
-> Settings—never in chat. For a keyless local Provider such as LM Studio or
-> Ollama, explain that no API key is required and help me configure and test
-> the local connection instead.
+> Clone and install Remis from https://github.com/Drlinglong/Remis, read the
+> bundled Agent Skill, start it locally, and verify that it is ready to use.
+> When installation succeeds, confirm that Remis is ready. Then briefly explain
+> that external providers such as OpenAI or Google require an API key to access
+> their services. An API key is a private credential that may be linked to
+> billing; enter it only in Remis Settings → API Settings, never in chat. Local
+> providers such as LM Studio or Ollama do not need one.
 
 Codex discovers the repository Skill at:
 
