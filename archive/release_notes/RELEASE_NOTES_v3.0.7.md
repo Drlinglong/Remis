@@ -1,6 +1,6 @@
 # Project Remis v3.0.7
 
-Release candidate refreshed on 2026-07-20 after hands-on smoke testing exposed workflow clarity, terminology review, theme contrast, and production-only startup problems. The replacement Windows installer is awaiting one final local install smoke test before the GitHub Release is published.
+Released on 2026-07-20 after hands-on smoke testing exposed and verified fixes for workflow clarity, terminology review, theme contrast, and production-only startup problems. The final Windows installer passed installed-app startup and UI smoke testing before publication.
 
 ## English
 
@@ -79,7 +79,7 @@ Release candidate refreshed on 2026-07-20 after hands-on smoke testing exposed w
 - Windows installer candidate: `remis-mod-factory_3.0.7_x64-setup.exe` (`41,859,855` bytes / `39.92 MiB`).
 - SHA-256: `78B2B98EF76EECA42FDBC5CB7B6FDB689233FA27A19977F882C15C6E97E28A1B`.
 - The installer has version resources `3.0.7` and is not Authenticode-signed, so Windows may display an unknown-publisher warning.
-- Final acceptance still requires the local installed-app smoke test before publishing the GitHub Release.
+- Final installed-app acceptance passed: the release owner confirmed that startup and the updated UI workflows behaved as expected.
 
 ## 中文
 
@@ -158,4 +158,4 @@ Release candidate refreshed on 2026-07-20 after hands-on smoke testing exposed w
 - Windows 安装候选包：`remis-mod-factory_3.0.7_x64-setup.exe`（`41,859,855` 字节 / `39.92 MiB`）。
 - SHA-256：`78B2B98EF76EECA42FDBC5CB7B6FDB689233FA27A19977F882C15C6E97E28A1B`。
 - 安装包版本资源为 `3.0.7`，目前未进行 Authenticode 签名，因此 Windows 可能显示未知发布者提示。
-- 正式发布 GitHub Release 前，仍需完成本地安装后的应用冒烟测试。
+- 最终安装版验收已通过：Release 负责人确认程序可以正常启动，更新后的 UI 工作流符合预期。
