@@ -22,6 +22,7 @@
   --interactive-accent: #00D9FF;
   --interactive-accent-text: #050810;
   --focus-ring: #00FFCC;
+  --menu-surface-bg: #050810;
 }
 
 /* =========================================
@@ -58,6 +59,7 @@
   --interactive-accent: #FFD700;
   --interactive-accent-text: #2E1A47;
   --focus-ring: #FFD700;
+  --menu-surface-bg: #FFF8E1;
 
   /* Materials */
   --glass-bg: linear-gradient(135deg, rgba(40, 0, 20, 0.9), rgba(60, 0, 30, 0.85));
@@ -110,6 +112,7 @@
   --interactive-accent: #DAA520;
   --interactive-accent-text: #1A0F08;
   --focus-ring: #FFD54F;
+  --menu-surface-bg: #2A1810;
 
   /* Materials */
   --glass-bg: rgba(20, 30, 25, 0.95);
@@ -159,6 +162,7 @@
   --interactive-accent: #00D9FF;
   --interactive-accent-text: #050810;
   --focus-ring: #00FFCC;
+  --menu-surface-bg: #050810;
 
   /* Materials */
   --glass-bg: rgba(10, 20, 30, 0.85);
@@ -210,6 +214,7 @@
   --interactive-accent: #DCD0C0;
   --interactive-accent-text: #2A2A1E;
   --focus-ring: #CD5C5C;
+  --menu-surface-bg: #FCF5E5;
 
   /* Materials */
   --glass-bg: rgba(42, 42, 30, 0.95);
@@ -259,6 +264,7 @@
   --interactive-accent: #8B0000;
   --interactive-accent-text: #F5E6D3;
   --focus-ring: #DAA520;
+  --menu-surface-bg: #1F1810;
 
   /* Materials */
   --glass-bg: rgba(30, 20, 10, 0.92);
@@ -331,9 +337,15 @@ html[data-theme] :is(
   .mantine-Autocomplete-dropdown,
   .mantine-TagsInput-dropdown
 ) {
-  background: var(--menu-bg) !important;
+  background: var(--menu-surface-bg, var(--menu-bg)) !important;
+  background-image: none !important;
   border-color: var(--menu-border) !important;
   color: var(--menu-text) !important;
+  opacity: 1;
+  isolation: isolate;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
 }
 
 html[data-theme] :is(
