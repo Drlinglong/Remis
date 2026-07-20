@@ -58,6 +58,7 @@ Release candidate refreshed on 2026-07-20 after hands-on smoke testing exposed w
 - Translation prompts now consistently honor persistent global instructions and project glossary context, including the Hunyuan provider path.
 - SQLite foreign keys are enforced for managed connections, with migration coverage for project glossary bindings, stale metadata, indexes, and legacy databases.
 - Local LLM connection diagnostics now distinguish host availability and provider errors more clearly.
+- Patched the packaged frontend dependency tree to remove the current `form-data` and DOMPurify production advisories; the production dependency audit now reports zero known vulnerabilities.
 - Updated supported Python and frontend dependency families and kept CI compatible with Python 3.10.
 
 ## Feature Availability
@@ -75,8 +76,8 @@ Release candidate refreshed on 2026-07-20 after hands-on smoke testing exposed w
 - Rust/Tauri: formatting, locked dependency checks, release compilation, MSI packaging, and NSIS packaging passed.
 - Fresh release executable: the frozen backend returned healthy, the WebView mounted the splash UI, and a reload produced no runtime exceptions or console errors.
 - Security gates: CodeQL passed for Actions, JavaScript/TypeScript, Python, and Rust with all 26 release-review findings resolved. Dependency Review passed.
-- Windows installer candidate: `remis-mod-factory_3.0.7_x64-setup.exe` (`41,856,107` bytes / `39.92 MiB`).
-- SHA-256: `6E54329C0C4F37418D4FDB8D6A96497040ADC1A8C7FA219E1B0D340294A42BEC`.
+- Windows installer candidate: `remis-mod-factory_3.0.7_x64-setup.exe` (`41,859,855` bytes / `39.92 MiB`).
+- SHA-256: `78B2B98EF76EECA42FDBC5CB7B6FDB689233FA27A19977F882C15C6E97E28A1B`.
 - The installer has version resources `3.0.7` and is not Authenticode-signed, so Windows may display an unknown-publisher warning.
 - Final acceptance still requires the local installed-app smoke test before publishing the GitHub Release.
 
@@ -136,6 +137,7 @@ Release candidate refreshed on 2026-07-20 after hands-on smoke testing exposed w
 - 翻译 Prompt 现在会一致应用持久全局指令与项目词典上下文，包括 Hunyuan Provider 路径。
 - 受管 SQLite 连接会强制启用外键，并覆盖项目词典绑定、陈旧 metadata、索引和旧数据库迁移场景。
 - 本地 LLM 连接诊断能更清楚地区分宿主服务状态与 Provider 错误。
+- 已修补安装包前端依赖树中的 `form-data` 与 DOMPurify 生产环境安全公告；当前生产依赖审计为零已知漏洞。
 - 更新受支持的 Python 与前端依赖家族，并保持 Python 3.10 CI 兼容性。
 
 ## 功能可用性
@@ -153,7 +155,7 @@ Release candidate refreshed on 2026-07-20 after hands-on smoke testing exposed w
 - Rust/Tauri：格式检查、锁定依赖检查、release 编译、MSI 打包与 NSIS 打包均通过。
 - 全新 release 可执行文件：冻结后端健康检查通过，WebView 成功挂载启动界面，重载后没有运行时异常或控制台错误。
 - 安全门槛：Actions、JavaScript/TypeScript、Python 与 Rust 的 CodeQL 均通过，发布审查中发现的 26 项告警已全部解决；Dependency Review 通过。
-- Windows 安装候选包：`remis-mod-factory_3.0.7_x64-setup.exe`（`41,856,107` 字节 / `39.92 MiB`）。
-- SHA-256：`6E54329C0C4F37418D4FDB8D6A96497040ADC1A8C7FA219E1B0D340294A42BEC`。
+- Windows 安装候选包：`remis-mod-factory_3.0.7_x64-setup.exe`（`41,859,855` 字节 / `39.92 MiB`）。
+- SHA-256：`78B2B98EF76EECA42FDBC5CB7B6FDB689233FA27A19977F882C15C6E97E28A1B`。
 - 安装包版本资源为 `3.0.7`，目前未进行 Authenticode 签名，因此 Windows 可能显示未知发布者提示。
 - 正式发布 GitHub Release 前，仍需完成本地安装后的应用冒烟测试。
