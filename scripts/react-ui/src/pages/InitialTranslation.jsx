@@ -92,7 +92,7 @@ const TranslationActionBar = ({
   }
 
   return (
-    <Box className={controlsStyles.actionBar}>
+    <Box className={controlsStyles.actionBar} data-remis-surface="elevated">
       <Box className={controlsStyles.actionBarInner}>
         <Box className={controlsStyles.summaryLine}>
           <Text fw={700} c="var(--text-main)">

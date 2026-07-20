@@ -27,6 +27,7 @@ import {
 
 import EmbeddedWorkshopSettingsCard from './EmbeddedWorkshopSettingsCard';
 import ResumeSettingsCard from './ResumeSettingsCard';
+import CollapsibleSettingsCard from './CollapsibleSettingsCard';
 import layoutStyles from '../layout/Layout.module.css';
 import controlsStyles from './InitialTranslationControls.module.css';
 import { FEATURES } from '../../config/features';
@@ -168,6 +169,7 @@ export default function ConfigStep({
   };
 
   const selectedTargetCount = form.values.target_lang_codes.length;
+  const [showAdvancedOptions, setShowAdvancedOptions] = React.useState(false);
   const selectAllTargets = () => {
     form.clearFieldError('target_lang_codes');
     form.setFieldValue('target_lang_codes', languageOptions.map((language) => language.value));
@@ -179,8 +181,16 @@ export default function ConfigStep({
   return (
     <form id="initial-translation-config-form" onSubmit={form.onSubmit(onSubmit)}>
       <Grid gutter="xl">
-        <Grid.Col span={{ base: 12, md: 5 }}>
-          <Card id="translation-config-card" withBorder padding="xl" radius="md" className={layoutStyles.glassCard} h="100%">
+        <Grid.Col span={{ base: 12, md: showAdvancedOptions ? 5 : 8 }}>
+          <Card
+            id="translation-config-card"
+            withBorder
+            padding="xl"
+            radius="md"
+            className={layoutStyles.glassCard}
+            data-remis-surface="surface"
+            h="100%"
+          >
             <Stack gap="md">
               <Group>
                 <ThemeIcon size="lg" radius="md" variant="light" color="blue">
@@ -342,16 +352,19 @@ export default function ConfigStep({
           </Card>
         </Grid.Col>
 
-        <Grid.Col span={{ base: 12, md: 7 }}>
-          <Card withBorder padding="xl" radius="md" className={layoutStyles.glassCard} h="100%">
+        <Grid.Col span={{ base: 12, md: showAdvancedOptions ? 7 : 4 }}>
+          <CollapsibleSettingsCard
+            accent="orange"
+            icon={<IconAdjustments size={20} />}
+            isOpen={showAdvancedOptions}
+            keepMounted
+            onToggle={() => setShowAdvancedOptions((value) => !value)}
+            t={t}
+            title={t('advanced_options', 'Advanced Options')}
+            toggleAriaLabel={t('advanced_options', 'Advanced Options')}
+            description={t('translation_page.translation_limit_auto', { defaultValue: 'Auto (Recommended)' })}
+          >
             <Stack gap="md">
-              <Group>
-                <ThemeIcon size="lg" radius="md" variant="light" color="orange">
-                  <IconAdjustments size={20} />
-                </ThemeIcon>
-                <Text size="lg" fw={500}>{t('advanced_options', 'Advanced Options')}</Text>
-              </Group>
-
               <Textarea
                 label={t('form_label_additional_prompt')}
                 placeholder={t('form_placeholder_additional_prompt')}
@@ -536,7 +549,7 @@ export default function ConfigStep({
                 </Stack>
               </Card>
             </Stack>
-          </Card>
+          </CollapsibleSettingsCard>
         </Grid.Col>
       </Grid>
 

@@ -24,12 +24,17 @@
 }
 
 .actionBar {
+  --mantine-color-text: var(--elevated-text-main) !important;
+  --mantine-color-dimmed: var(--elevated-text-muted) !important;
+  --text-main: var(--elevated-text-main);
+  --text-muted: var(--elevated-text-muted);
   flex-shrink: 0;
   position: relative;
   z-index: 350;
   padding: 14px max(96px, var(--mantine-spacing-xl)) 14px var(--mantine-spacing-xl);
-  border-top: 1px solid color-mix(in srgb, var(--text-highlight) 34%, var(--glass-border));
-  background: color-mix(in srgb, var(--mantine-color-dark-9) 92%, var(--glass-bg));
+  border-top: 1px solid var(--surface-border);
+  background: var(--elevated-bg);
+  color: var(--elevated-text-main);
   box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.24);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
@@ -74,10 +79,24 @@
 
 @media (max-width: 620px) {
   .actionBar {
-    padding: 12px 72px 12px 14px;
+    padding: 12px;
   }
 
   .actionButtons {
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 6px !important;
+    width: 100%;
+  }
+
+  .actionButtons > :first-child {
+    padding-inline: 10px;
+  }
+
+  .actionButtons > :last-child {
+    min-width: 0;
+    width: 100%;
+    padding-inline: 8px;
+    font-size: var(--mantine-font-size-xs);
   }
 }

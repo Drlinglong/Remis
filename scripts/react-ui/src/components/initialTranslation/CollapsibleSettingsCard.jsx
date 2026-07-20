@@ -3,8 +3,13 @@ import { Box, Button, Card, Group, Stack, Text, ThemeIcon } from '@mantine/core'
 import { IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 
 const sectionCardStyle = {
-  background: 'linear-gradient(180deg, rgba(86, 111, 147, 0.16) 0%, rgba(41, 54, 72, 0.12) 100%)',
-  border: '1px solid rgba(151, 177, 210, 0.16)',
+  background: 'var(--surface-bg)',
+  border: '1px solid var(--surface-border)',
+  color: 'var(--surface-text-main)',
+  '--mantine-color-text': 'var(--surface-text-main)',
+  '--mantine-color-dimmed': 'var(--surface-text-muted)',
+  '--text-main': 'var(--surface-text-main)',
+  '--text-muted': 'var(--surface-text-muted)',
 };
 
 export default function CollapsibleSettingsCard({
@@ -15,12 +20,14 @@ export default function CollapsibleSettingsCard({
   disabled = false,
   icon,
   isOpen,
+  keepMounted = false,
   onToggle,
   t,
   title,
+  toggleAriaLabel,
 }) {
   return (
-    <Card withBorder p="md" radius="lg" style={sectionCardStyle}>
+    <Card withBorder p="md" radius="lg" style={sectionCardStyle} data-remis-surface="surface">
       <Stack gap="sm">
         {action}
         <Group justify="space-between" align="flex-start" wrap="nowrap">
@@ -42,6 +49,7 @@ export default function CollapsibleSettingsCard({
             size="xs"
             color={accent}
             disabled={disabled}
+            aria-label={toggleAriaLabel}
             rightSection={isOpen ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
             onClick={onToggle}
           >
@@ -50,8 +58,20 @@ export default function CollapsibleSettingsCard({
               : t('common.expand', { defaultValue: '展开' })}
           </Button>
         </Group>
-        {isOpen && (
-          <Box pt="sm" style={{ borderTop: '1px solid rgba(151, 177, 210, 0.14)' }}>
+        {(isOpen || keepMounted) && (
+          <Box
+            pt="sm"
+            data-collapsed={!isOpen || undefined}
+            style={{
+              borderTop: isOpen ? '1px solid var(--surface-border)' : 0,
+              contentVisibility: isOpen ? 'visible' : 'hidden',
+              maxHeight: isOpen ? 'none' : 0,
+              opacity: isOpen ? 1 : 0,
+              overflow: 'hidden',
+              paddingTop: isOpen ? undefined : 0,
+              pointerEvents: isOpen ? undefined : 'none',
+            }}
+          >
             {children}
           </Box>
         )}
