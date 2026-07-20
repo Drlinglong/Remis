@@ -58,6 +58,8 @@ temp/
 *.tmp
 *.db
 test_*.db
+*.db-shm
+*.db-wal
 sandbox_*/
 tmp_*_check.py
 failure.log
@@ -77,6 +79,7 @@ tests_tmp/
 sandbox_test_tmp/
 tmp/
 .pytest_cache/
+.pytest_tmp*/
 .pytest-basetemp/
 
 # Do NOT ignore these folders
@@ -122,3 +125,8 @@ migrate_projects_db.py
 .env
 .config/
 .gstack/
+
+# Machine-local Windows launchers
+/run-dev.bat
+/run.bat
+/stop-dev.bat

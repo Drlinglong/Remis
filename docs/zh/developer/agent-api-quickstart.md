@@ -6,9 +6,9 @@ Skill 只是 Agent 的操作说明书。真正完成工作的仍然是 Remis 桌
 
 ## 安装操作 Skill
 
-在官方仓库的 clone 中，把下面这段话交给 Codex：
+把下面这段话交给 Codex，让它使用开发版 checkout，而不是封装好的 Windows 安装器：
 
-> 从官方仓库安装 Remis，启动它的本地服务，阅读 Remis Codex Skill，验证健康检查，检查官方 GitHub 上是否有新 Release，并引导我汉化当前工作区中的 Mod。API 只能监听 localhost。不要读取或显示模型 API key。如果还没有配置 Provider，立刻停下来引导我前往 Remis API 设置，并主动提出可以解释什么是 API key。任何可能产生费用的翻译、模型修复、导出或覆盖，都先展示计划并等待我明确批准。
+> 从官方仓库的 `main` 分支 clone Remis 开发版。这个 Codex 操作流程需要读取仓库内的官方 Remis Agent Skill，因此使用源码 checkout，不要下载封装好的 Windows 安装器。按照开发说明启动 Remis 并验证健康检查，然后询问我想使用哪个模型 Provider。如果我选择 OpenAI、Google Gemini 等在线 Provider，说明 API key 是用于身份认证并可能关联计费的秘密凭据，引导我只在 Remis 设置 → API 设置中填写，绝不要求我贴进对话。如果我选择 LM Studio、Ollama 等无需密钥的本地 Provider，说明不需要 API key，并帮我配置和测试本地连接。检查官方 GitHub 是否有新 Release；任何可能产生费用的翻译、模型修复、导出或覆盖，都先展示计划并等待我明确批准。
 
 Codex 会从下面的位置发现仓库 Skill：
 
@@ -18,8 +18,9 @@ Codex 会从下面的位置发现仓库 Skill：
 
 ## 检查本地服务
 
-启动已安装的桌面应用，或者在仓库中运行 `run-dev.bat`。默认端口为
-`1453`；如果启动器通过 `REMIS_BACKEND_PORT` 打印了其他端口，以实际端口为准。然后检查：
+启动已安装的桌面应用，或者从仓库根目录运行
+`scripts\developer_tools\windows\run-dev.bat`。默认端口为 `1453`；如果启动器通过
+`REMIS_BACKEND_PORT` 打印了其他端口，以实际端口为准。然后检查：
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:1453/api/health

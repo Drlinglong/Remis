@@ -10,13 +10,19 @@ project store, and review/export interface.
 
 ## Install the operator Skill
 
-From a clone of the official repository, ask Codex:
+Ask Codex to use a development checkout rather than the packaged Windows
+installer:
 
-> Install the latest stable Remis from the official repository, read the
-> official Remis Agent Skill, start Remis locally, and verify that its health
-> endpoint is ready. After the first launch, briefly explain what an API key is
-> used for, then guide me through configuring a model provider and API key in
-> Remis Settings → API Settings.
+> Clone the Remis development checkout from the official `main` branch. Use
+> the source checkout rather than the packaged Windows installer so you can
+> read the repository's official Remis Agent Skill. Follow the development
+> setup, start Remis locally, and verify its health endpoint. Then ask which
+> model Provider I want. For an online Provider such as OpenAI or Google
+> Gemini, explain that its API key is a secret used for authentication and
+> possible billing, and guide me to enter it inside Remis Settings → API
+> Settings—never in chat. For a keyless local Provider such as LM Studio or
+> Ollama, explain that no API key is required and help me configure and test
+> the local connection instead.
 
 Codex discovers the repository Skill at:
 
@@ -26,9 +32,10 @@ Codex discovers the repository Skill at:
 
 ## Verify the local service
 
-Start the installed desktop application or run `run-dev.bat` from the
-repository. The default port is `1453`; respect `REMIS_BACKEND_PORT` if the
-launcher reports an override. Then check:
+Start the installed desktop application or run
+`scripts\developer_tools\windows\run-dev.bat` from the repository root. The
+default port is `1453`; respect `REMIS_BACKEND_PORT` if the launcher reports an
+override. Then check:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:1453/api/health

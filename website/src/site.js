@@ -10,8 +10,8 @@ export const links = {
   discussions: 'https://github.com/Drlinglong/Remis/discussions',
   documentation: 'https://github.com/Drlinglong/Remis/tree/main/docs',
   architecture: 'https://github.com/Drlinglong/Remis/blob/main/docs/en/developer/architecture.md',
-  agentQuickstart: 'https://github.com/Drlinglong/Remis/blob/codex/build-week-remis-for-codex/docs/en/developer/agent-api-quickstart.md',
-  agentSkill: 'https://github.com/Drlinglong/Remis/tree/codex/build-week-remis-for-codex/.agents/skills/remis-agent',
+  agentQuickstart: 'https://github.com/Drlinglong/Remis/blob/main/docs/en/developer/agent-api-quickstart.md',
+  agentSkill: 'https://github.com/Drlinglong/Remis/tree/main/.agents/skills/remis-agent',
   agentApi: 'http://127.0.0.1:1453/docs',
   codex: 'https://chatgpt.com/codex',
 }
@@ -51,8 +51,8 @@ export function pageFromPath(pathname, base = SITE_BASE) {
 
 export const proofPoints = [
   { value: '8,000+', label: 'Workshop reach', note: 'users and subscribers reached by released localization work' },
-  { value: '27', label: 'Public releases', note: 'a maintained Windows desktop product, not a one-off demo' },
-  { value: '300+', label: 'Installer downloads', note: 'public GitHub release downloads across shipped versions' },
+  { value: '29', label: 'Public releases', note: 'a maintained Windows desktop product, not a one-off demo' },
+  { value: '500+', label: 'Installer downloads', note: 'public GitHub release downloads across shipped versions' },
   { value: '120+', label: 'Tracked test files', note: 'backend, workflow, validation, and frontend regression coverage' },
 ]
 

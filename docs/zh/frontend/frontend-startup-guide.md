@@ -14,7 +14,7 @@
 1.  **安装 Node.js**: 首先，进入 `scripts/react-ui` 目录，然后运行 `nvm install`。该命令会自动读取 `.nvmrc` 文件并安装我们项目所需的 Node.js 版本 (`v20.12.2`)。
 2.  **运行启动器**: 在项目根目录，直接执行主开发环境启动器：
     ```bash
-    run-dev.bat
+    scripts\developer_tools\windows\run-dev.bat
     ```
 
 该脚本会自动完成以下操作：

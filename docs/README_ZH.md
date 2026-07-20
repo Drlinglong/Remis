@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="gfx/Project Remis.png" width="150" alt="Project Remis Logo">
+  <img src="../website/public/assets/remis-logo.png" width="150" alt="Project Remis Logo">
 
   <h1>Project Remis</h1>
   <strong>P社Mod本地化工厂 (Paradox Mod Localization Factory)</strong>
@@ -13,7 +13,7 @@
 
   <p>
     <a href="README_ZH.md"><img src="https://img.shields.io/badge/阅读文档-简体中文-blue.svg?style=flat-square"></a>
-    <a href="README.md"><img src="https://img.shields.io/badge/Read_Docs-English-green.svg?style=flat-square"></a>
+    <a href="../README.md"><img src="https://img.shields.io/badge/Read_Docs-English-green.svg?style=flat-square"></a>
     <a href="README_RU.md"><img src="https://img.shields.io/badge/Документация-Русский-red.svg?style=flat-square"></a>
   </p>
 
@@ -22,7 +22,7 @@
 > **告别复制粘贴，拥抱自动化。** 一款为 P社游戏 Mod 打造的 AI 驱动本地化桌面应用，让翻译不再成为门槛。
 
 <p align="center">
-  <img src="gfx/screenshot_cn1.jpg" width="80%" alt="主界面预览">
+  <img src="assets/readme/screenshot_cn1.webp" width="80%" alt="主界面预览">
 </p>
 
 ---
@@ -34,13 +34,13 @@ Project Remis 围绕三个核心产品工作流构建：项目管理、增量更
 ### 项目管理工作流
 
 <p align="center">
-  <img src="project_management.svg" width="90%" alt="项目管理工作流示意图">
+  <img src="../website/public/assets/project-management-workflow.svg" width="90%" alt="项目管理工作流示意图">
 </p>
 
 ### 增量更新工作流
 
 <p align="center">
-  <img src="Incremental_%20Update.svg" width="90%" alt="增量更新工作流示意图">
+  <img src="../website/public/assets/incremental-update-workflow.svg" width="90%" alt="增量更新工作流示意图">
 </p>
 
 ### 智能修复工作流
@@ -48,7 +48,7 @@ Project Remis 围绕三个核心产品工作流构建：项目管理、增量更
 智能修复是本项目中最典型的 agentic workflow：系统收集损坏条目，构建上下文包，由修复 Agent 诊断并生成补丁，再通过验证环节循环收敛，最后输出可审阅的修复结果。
 
 <p align="center">
-  <img src="agentic_repair_workflow.svg" width="90%" alt="智能修复工作流示意图">
+  <img src="../website/public/assets/agentic-repair-workflow.svg" width="90%" alt="智能修复工作流示意图">
 </p>
 
 ---
@@ -59,35 +59,35 @@ Project Remis 围绕三个核心产品工作流构建：项目管理、增量更
 告别 CLI 时代的繁琐操作！全新的桌面应用采用**项目管理**模式——创建项目、导入 Mod、一键翻译，所有进度自动追踪。
 
 <p align="center">
-  <img src="gfx/screenshot_cn2.jpg" width="80%" alt="项目状态概览">
+  <img src="assets/readme/screenshot_cn2.webp" width="80%" alt="项目状态概览">
 </p>
 
 ### 📚 强大的词典管理系统
 内置智能词典，让 AI 像老玩家一样精准地翻译游戏术语。支持**拼音搜索、模糊匹配、缩写识别**，并可跨游戏管理多套词典。
 
 <p align="center">
-  <img src="gfx/screenshot_cn3.jpg" width="80%" alt="词典管理">
+  <img src="assets/readme/screenshot_cn3.webp" width="80%" alt="词典管理">
 </p>
 
 ### ✏️ 专业的校对工作区
 翻译完成后，进入**并排对照**的校对模式。AI 初稿自动归档，方便你精修润色每一行文本。
 
 <p align="center">
-  <img src="gfx/screenshot_cn4.jpg" width="80%" alt="校对工作区">
+  <img src="assets/readme/screenshot_cn4.webp" width="80%" alt="校对工作区">
 </p>
 
 ### 🛠️ 实用工具箱
 内置**封面图制作器**等实用工具，更多功能持续开发中！
 
 <p align="center">
-  <img src="gfx/screenshot_cn5.jpg" width="80%" alt="工具箱">
+  <img src="assets/readme/screenshot_cn5.webp" width="80%" alt="工具箱">
 </p>
 
 ### ⚙️ 灵活的翻译配置
 支持多款主流 AI 服务：**Gemini、OpenAI、DeepSeek、Grok、Ollama、NVIDIA NIM、OpenRouter** 等。5 款精美主题任你选择。
 
 <p align="center">
-  <img src="gfx/screenshot_cn6.jpg" width="80%" alt="翻译配置">
+  <img src="assets/readme/screenshot_cn6.webp" width="80%" alt="翻译配置">
 </p>
 
 ---
@@ -135,8 +135,8 @@ Remis 是真正执行汉化的完整产品；仓库中的 Skill 负责教 Codex 
 
 开发者入口：
 
-- [Agent API 快速开始](docs/zh/developer/agent-api-quickstart.md)
-- [Remis Agent Skill](.agents/skills/remis-agent/SKILL.md)
+- [Agent API 快速开始](zh/developer/agent-api-quickstart.md)
+- [Remis Agent Skill](../.agents/skills/remis-agent/SKILL.md)
 - 本机 OpenAPI：`http://127.0.0.1:1453/docs`
 
 ---
@@ -167,7 +167,7 @@ Remis 是真正执行汉化的完整产品；仓库中的 Skill 负责教 Codex 
 | **API 报错** | 检查 API Key 是否正确、账户余额是否充足 |
 | **翻译质量不佳** | 尝试在词典管理器中添加专业术语，或在翻译时输入 Mod 主题描述 |
 
-更多问题请参阅 [常见问题 (FAQ)](docs/zh/user-guides/faq.md)。
+更多问题请参阅 [常见问题 (FAQ)](zh/user-guides/faq.md)。
 
 > [!IMPORTANT]
 > **🛑 关于“假本地化”（假中文）与翻译失效**
@@ -262,7 +262,7 @@ remis-mod-factory/
     └── remis.sqlite            # 本地数据库
 ```
 
-> 想深入了解技术细节？请查阅 [开发者文档](docs/documentation-center.md)。
+> 想深入了解技术细节？请查阅 [开发者文档](documentation-center.md)。
 
 ---
 

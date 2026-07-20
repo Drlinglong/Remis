@@ -37,8 +37,9 @@ npm run lint
 npm run build
 ```
 
-For a development checkout, use `run-dev.bat`; do not guess a different Python
-environment or backend port. The default local service is
+For a development checkout, run
+`scripts\developer_tools\windows\run-dev.bat` from the repository root; do not
+guess a different Python environment or backend port. The default local service is
 `http://127.0.0.1:1453`, unless `REMIS_BACKEND_PORT` overrides it.
 
 Do not claim a workflow completed from request acceptance alone. Use persisted

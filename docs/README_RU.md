@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="gfx/Project Remis.png" width="150" alt="Логотип Project Remis">
+  <img src="../website/public/assets/remis-logo.png" width="150" alt="Логотип Project Remis">
 
   <h1>Project Remis</h1>
   <strong>Фабрика локализации модов Paradox (Paradox Mod Localization Factory)</strong>
@@ -13,7 +13,7 @@
 
   <p>
     <a href="README_ZH.md"><img src="https://img.shields.io/badge/阅读文档-简体中文-blue.svg?style=flat-square"></a>
-    <a href="README.md"><img src="https://img.shields.io/badge/Read_Docs-English-green.svg?style=flat-square"></a>
+    <a href="../README.md"><img src="https://img.shields.io/badge/Read_Docs-English-green.svg?style=flat-square"></a>
     <a href="README_RU.md"><img src="https://img.shields.io/badge/Документация-Русский-red.svg?style=flat-square"></a>
   </p>
 
@@ -22,7 +22,7 @@
 > **Попрощайтесь с копированием и вставкой, переходите на автоматизацию.** Настольное приложение на базе ИИ, созданное специально для локализации модов к играм Paradox, снижающее порог входа для перевода.
 
 <p align="center">
-  <img src="gfx/screenshot_cn1.jpg" width="80%" alt="Превью главного интерфейса">
+  <img src="assets/readme/screenshot_cn1.webp" width="80%" alt="Превью главного интерфейса">
 </p>
 
 ---
@@ -33,35 +33,35 @@
 Забудьте о сложных операциях в командной строке! Новое приложение использует **управление проектами**: создавайте проект, импортируйте мод, переводите в один клик с автоматическим отслеживанием прогресса.
 
 <p align="center">
-  <img src="gfx/screenshot_cn2.jpg" width="80%" alt="Обзор статуса проекта">
+  <img src="assets/readme/screenshot_cn2.webp" width="80%" alt="Обзор статуса проекта">
 </p>
 
 ### 📚 Мощная система управления словарями (Глоссариями)
 Встроенный интеллектуальный словарь позволяет ИИ переводить игровые термины так же точно, как это сделали бы опытные игроки. Поддерживает **поиск по транскрипции (пиньинь), нечеткий поиск, распознавание аббревиатур** и может управлять несколькими словарями для разных игр.
 
 <p align="center">
-  <img src="gfx/screenshot_cn3.jpg" width="80%" alt="Управление словарем">
+  <img src="assets/readme/screenshot_cn3.webp" width="80%" alt="Управление словарем">
 </p>
 
 ### ✏️ Профессиональное рабочее пространство для проверки (вычитки)
 После завершения перевода вы переходите в режим вычитки в формате **параллельного сравнения**. Первоначальный черновик ИИ сохраняется, позволяя вам легко доработать и улучшить каждую строку.
 
 <p align="center">
-  <img src="gfx/screenshot_cn4.jpg" width="80%" alt="Рабочее пространство вычитки">
+  <img src="assets/readme/screenshot_cn4.webp" width="80%" alt="Рабочее пространство вычитки">
 </p>
 
 ### 🛠️ Набор полезных инструментов
 Встроенный **создатель обложек** и другие полезные инструменты. Еще больше возможностей в разработке!
 
 <p align="center">
-  <img src="gfx/screenshot_cn5.jpg" width="80%" alt="Инструменты">
+  <img src="assets/readme/screenshot_cn5.webp" width="80%" alt="Инструменты">
 </p>
 
 ### ⚙️ Гибкие настройки перевода
 Поддержка множества популярных ИИ-сервисов: **Gemini, OpenAI, DeepSeek, Grok, Ollama, NVIDIA NIM, OpenRouter** и др. 5 красивых тем интерфейса на выбор.
 
 <p align="center">
-  <img src="gfx/screenshot_cn6.jpg" width="80%" alt="Настройки перевода">
+  <img src="assets/readme/screenshot_cn6.webp" width="80%" alt="Настройки перевода">
 </p>
 
 ---
@@ -123,7 +123,7 @@
 | **Ошибка API** | Проверьте, правильный ли у вас ключ API (API Key) и есть ли у вас квота/баланс. |
 | **Низкое качество перевода** | Попробуйте добавить специальные термины в Менеджер словарей (Glossary) или добавьте описание тематики мода в настройках перевода. |
 
-Больше информации можно найти в [Часто задаваемых вопросах (FAQ)](docs/zh/user-guides/faq.md) (на китайском/английском).
+Больше информации можно найти в [Часто задаваемых вопросах (FAQ)](zh/user-guides/faq.md) (на китайском/английском).
 
 > [!IMPORTANT]
 > **🛑 О проблеме мертвых языков ("Фиктивная локализация") и неработающем переводе**

@@ -265,6 +265,21 @@ async def test_missing_job_returns_machine_readable_error(isolated_registry):
     }
 
 
+def test_http_error_envelope_matches_agent_reference(isolated_registry):
+    from scripts.web_server import app
+
+    response = TestClient(app).get("/api/agent/jobs/missing-contract-job")
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "detail": {
+            "code": "job_not_found",
+            "message": "Agent job not found",
+            "retryable": False,
+        }
+    }
+
+
 def test_validation_items_are_split_into_error_warning_and_human_review():
     items, summary = agent_router._classify_issues(
         [
