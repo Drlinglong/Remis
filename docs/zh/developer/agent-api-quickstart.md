@@ -6,9 +6,9 @@ Skill 只是 Agent 的操作说明书。真正完成工作的仍然是 Remis 桌
 
 ## 安装操作 Skill
 
-把下面这段话交给 Codex，让它使用开发版 checkout，而不是封装好的 Windows 安装器：
+把下面这段话交给你的 Agent：
 
-> 从官方仓库的 `main` 分支 clone Remis 开发版。这个 Codex 操作流程需要读取仓库内的官方 Remis Agent Skill，因此使用源码 checkout，不要下载封装好的 Windows 安装器。按照开发说明启动 Remis 并验证健康检查，然后询问我想使用哪个模型 Provider。如果我选择 OpenAI、Google Gemini 等在线 Provider，说明 API key 是用于身份认证并可能关联计费的秘密凭据，引导我只在 Remis 设置 → API 设置中填写，绝不要求我贴进对话。如果我选择 LM Studio、Ollama 等无需密钥的本地 Provider，说明不需要 API key，并帮我配置和测试本地连接。检查官方 GitHub 是否有新 Release；任何可能产生费用的翻译、模型修复、导出或覆盖，都先展示计划并等待我明确批准。
+> 从 https://github.com/Drlinglong/Remis clone 并安装 Remis，阅读仓库内的 Agent Skill，在本机启动并确认可以使用。安装成功后告诉我 Remis 已就绪。然后简要说明：OpenAI、Google 等外部供应商需要 API key 才能使用其服务；API key 是可能关联计费的私密访问凭据，只能填写在 Remis 设置 → API 设置中，不能贴进对话。LM Studio、Ollama 等本地 Provider 不需要 API key。
 
 Codex 会从下面的位置发现仓库 Skill：
 
