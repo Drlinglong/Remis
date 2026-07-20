@@ -1,13 +1,17 @@
 /* scripts/react-ui/src/pages/SettingsPage.module.css */
 
 .glassCard {
-    background: var(--glass-bg) !important;
-    border: 1px solid var(--glass-border) !important;
+    --mantine-color-text: var(--surface-text-main) !important;
+    --mantine-color-dimmed: var(--surface-text-muted) !important;
+    --text-main: var(--surface-text-main);
+    --text-muted: var(--surface-text-muted);
+    background: var(--surface-bg) !important;
+    border: 1px solid var(--surface-border) !important;
     border-radius: var(--card-radius) !important;
     box-shadow: var(--shadow-elevation) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    color: var(--text-main) !important;
+    color: var(--surface-text-main) !important;
 }
 
 .headerTitle {
