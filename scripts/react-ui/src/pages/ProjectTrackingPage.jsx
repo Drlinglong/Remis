@@ -35,6 +35,7 @@ import { PROJECT_WATCHES_UPDATED_EVENT } from '../components/ProjectWatchSchedul
 import { useTutorial } from '../context/TutorialContextCore';
 import projectService from '../services/projectService';
 import projectWatchService from '../services/projectWatchService';
+import styles from './ProjectTrackingPage.module.css';
 
 const PAGE_REFRESH_INTERVAL_MS = 60 * 1000;
 
@@ -360,7 +361,7 @@ const ProjectTrackingPage = () => {
         <Group justify="space-between" align="flex-start">
           <div>
             <Title order={2}>{text.title}</Title>
-            <Text size="sm" c="dimmed" maw={760}>{text.subtitle}</Text>
+            <Text size="sm" maw={760} className={styles.pageSubtitle}>{text.subtitle}</Text>
           </div>
           <Group>
             <Button variant="light" leftSection={<IconRefresh size={16} />} onClick={loadData} disabled={busy}>
@@ -374,7 +375,7 @@ const ProjectTrackingPage = () => {
 
         {message && <Alert color="orange" icon={<IconAlertTriangle size={16} />}>{message}</Alert>}
 
-        <Paper withBorder radius="md" p="md">
+        <Paper withBorder radius="md" p="md" className={styles.trackingSurface}>
           <Group justify="space-between" mb="md">
             <Group>
               <Checkbox
@@ -398,7 +399,7 @@ const ProjectTrackingPage = () => {
           {watches.length === 0 ? (
             <Text c="dimmed" ta="center" py="xl">{text.empty}</Text>
           ) : (
-            <Table id="project-tracking-table" striped highlightOnHover withTableBorder>
+            <Table id="project-tracking-table" striped highlightOnHover withTableBorder className={styles.trackingTable}>
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th />

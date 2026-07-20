@@ -15,6 +15,7 @@ import {
 import { IconFolderOpen, IconSearch } from '@tabler/icons-react';
 
 import layoutStyles from '../layout/Layout.module.css';
+import styles from './ProjectSelectionStep.module.css';
 import { resolveGameName } from '../../utils/initialTranslation';
 
 export default function ProjectSelectionStep({
@@ -55,16 +56,7 @@ export default function ProjectSelectionStep({
                 <select
                   value={gameFilter}
                   onChange={(event) => setGameFilter(event.currentTarget.value || 'all')}
-                  style={{
-                    width: '100%',
-                    minHeight: 36,
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    border: '1px solid var(--mantine-color-dark-4)',
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    color: 'var(--mantine-color-text)',
-                    outline: 'none',
-                  }}
+                  className={styles.gameFilterSelect}
                 >
                   <option value="all">{t('common.all_games')}</option>
                   {Object.values(config.game_profiles).map((profile) => (
@@ -76,15 +68,15 @@ export default function ProjectSelectionStep({
               </Box>
             </Group>
 
-            <Card p="sm" radius="md" mb="xs" bg="rgba(0, 0, 0, 0.3)" withBorder style={{ borderColor: 'var(--mantine-color-dark-4)' }}>
+            <Card p="sm" radius="md" mb="xs" withBorder className={styles.projectTableHeader}>
               <Group>
-                <Text fw={700} size="sm" c="dimmed" style={{ width: '150px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                <Text fw={700} size="sm" className={styles.projectTableHeaderText} style={{ width: '150px', textTransform: 'uppercase', letterSpacing: '1px' }}>
                   {t('translation_page.table_header.game')}
                 </Text>
-                <Text fw={700} size="sm" c="dimmed" style={{ flex: 1, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                <Text fw={700} size="sm" className={styles.projectTableHeaderText} style={{ flex: 1, textTransform: 'uppercase', letterSpacing: '1px' }}>
                   {t('translation_page.table_header.mod_name')}
                 </Text>
-                <Text fw={700} size="sm" c="dimmed" style={{ width: '80px', textAlign: 'right', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                <Text fw={700} size="sm" className={styles.projectTableHeaderText} style={{ width: '80px', textAlign: 'right', textTransform: 'uppercase', letterSpacing: '1px' }}>
                   {t('translation_page.table_header.action')}
                 </Text>
               </Group>

@@ -90,16 +90,30 @@ html.medieval .mantine-Button-root:hover {
 
 /* Inputs: Illuminated Manuscript */
 html.medieval .mantine-Input-input,
-html.medieval .mantine-Select-input,
-html.medieval .mantine-Paper-root {
-    background-color: rgba(245, 230, 211, 0.1);
+html.medieval .mantine-Select-input {
+    background-color: rgba(245, 230, 211, 0.96);
     border: 2px solid var(--medieval-gold-border);
-    color: var(--medieval-ink);
-    font-style: italic;
+    color: var(--medieval-parchment);
+    --mantine-color-text: var(--medieval-parchment);
+    --mantine-color-dimmed: #6D5536;
+}
+
+html.medieval .mantine-Paper-root:not(.mantine-Card-root) {
+    background-color: rgba(245, 230, 211, 0.94);
+    border: 2px solid var(--medieval-gold-border);
+    color: var(--medieval-parchment);
+    --mantine-color-text: var(--medieval-parchment);
+    --mantine-color-dimmed: #5B472E;
+}
+
+html.medieval .mantine-Input-input::placeholder,
+html.medieval .mantine-Select-input::placeholder {
+    color: #6D5536;
+    opacity: 1;
 }
 
 html.medieval .mantine-Input-input:focus {
-    background-color: rgba(46, 36, 22, 0.8);
+    background-color: #FFF8E8;
     box-shadow: 0 0 10px var(--medieval-gold-leaf);
 }
 

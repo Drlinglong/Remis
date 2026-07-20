@@ -27,6 +27,11 @@
   --text-muted: rgba(255, 253, 208, 0.7);
   --text-highlight: #FFD700;
   /* Gold Highlight */
+  --canvas-text-main: #FFFDD0;
+  --canvas-text-muted: #DED5B8;
+  --paper-bg: #FFF8E1;
+  --paper-text-main: #3E2723;
+  --paper-text-muted: #616161;
 
   /* Materials */
   --glass-bg: linear-gradient(135deg, rgba(40, 0, 20, 0.9), rgba(60, 0, 30, 0.85));
@@ -40,15 +45,7 @@
   --font-header: "Cinzel", serif;
   --font-body: "Lato", sans-serif;
 
-  /* Global Mantine Overrides for this theme */
-  --mantine-color-text: var(--text-main);
-  --mantine-color-dimmed: var(--text-muted);
   --mantine-color-anchor: var(--color-accent);
-}
-
-/* Force inheritance for common elements that might have their own color defaults */
-[data-theme='byzantine'] :is(.mantine-Text-root, .mantine-Title-root, .mantine-Table-thead, .mantine-Table-tbody) {
-  color: var(--text-main);
 }
 
 /* =========================================
@@ -70,6 +67,11 @@
   --text-muted: #80CBC4;
   --text-highlight: #FFD54F;
   /* Amber/Gold */
+  --canvas-text-main: #FFFFF0;
+  --canvas-text-muted: #D8C8A8;
+  --paper-bg: #2A1810;
+  --paper-text-main: #FFFFF0;
+  --paper-text-muted: #D8C8A8;
 
   /* Materials */
   --glass-bg: rgba(20, 30, 25, 0.95);
@@ -102,6 +104,11 @@
   /* Cyan Tinted White */
   --text-muted: #546E7A;
   --text-highlight: #00FFCC;
+  --canvas-text-main: #E0F7FA;
+  --canvas-text-muted: #91B7C4;
+  --paper-bg: #050810;
+  --paper-text-main: #E0F7FA;
+  --paper-text-muted: #91B7C4;
 
   /* Materials */
   --glass-bg: rgba(10, 20, 30, 0.85);
@@ -136,6 +143,11 @@
   --text-muted: #8B8B83;
   --text-highlight: #CD5C5C;
   /* Stamp Red */
+  --canvas-text-main: #F5E6D3;
+  --canvas-text-muted: #DDD1B5;
+  --paper-bg: #FCF5E5;
+  --paper-text-main: #2A2A1E;
+  --paper-text-muted: #56563D;
 
   /* Materials */
   --glass-bg: rgba(42, 42, 30, 0.95);
@@ -168,6 +180,11 @@
   /* Parchment White */
   --text-muted: #C4A875;
   --text-highlight: #FFD700;
+  --canvas-text-main: #2E2416;
+  --canvas-text-muted: #5B472E;
+  --paper-bg: #F5E6D3;
+  --paper-text-main: #2E2416;
+  --paper-text-muted: #5B472E;
 
   /* Materials */
   --glass-bg: rgba(30, 20, 10, 0.92);
@@ -183,6 +200,17 @@
   --font-header: "Cinzel", serif;
   /* Fallback to Cinzel or local MedievalSharp if available */
   --font-body: "Times New Roman", serif;
+}
+
+/*
+ * Canvas text and component-surface text are different roles. Theme cards can
+ * override these Mantine variables locally when their material is lighter or
+ * darker than the page background.
+ */
+html[data-theme] {
+  --mantine-color-text: var(--canvas-text-main) !important;
+  --mantine-color-dimmed: var(--canvas-text-muted) !important;
+  color: var(--canvas-text-main);
 }
 
 /* Mantine mounts dropdowns in a portal under body, outside page components. */
