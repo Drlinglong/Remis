@@ -11,11 +11,15 @@ import {
   Stack,
   Loader,
   Box,
+  Button,
+  Group,
 } from '@mantine/core';
+import { IconArrowLeft, IconPlayerPlay } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTutorial } from '../context/TutorialContextCore';
 import '../App.css';
 import layoutStyles from '../components/layout/Layout.module.css';
+import controlsStyles from '../components/initialTranslation/InitialTranslationControls.module.css';
 
 import ConfigStep from '../components/initialTranslation/ConfigStep';
 import ProjectSelectionStep from '../components/initialTranslation/ProjectSelectionStep';
@@ -32,6 +36,115 @@ import {
   findProjectById,
 } from '../utils/initialTranslation';
 import api from '../utils/api';
+
+const formatModelSummary = (modelName = '') => {
+  const knownModels = {
+    'gemini-3-flash-preview': 'Gemini 3 Flash',
+    'gemini-3-pro-preview': 'Gemini 3 Pro',
+  };
+  return knownModels[modelName] || modelName || '—';
+};
+
+const TranslationActionBar = ({
+  checkpointHintInfo,
+  config,
+  form,
+  onBack,
+  providerStatusLoading = true,
+  providerStatuses = [],
+  selectedProjectId,
+  t,
+}) => {
+  const targetCount = form.values.english_disguise
+    ? 1
+    : form.values.target_lang_codes.length;
+  const selectedProvider = (config.api_providers || []).find(
+    (provider) => provider.value === form.values.api_provider,
+  );
+  const selectedProviderStatus = providerStatuses.find(
+    (provider) => provider.id === form.values.api_provider,
+  );
+  const missingApiKey = Boolean(
+    selectedProviderStatus
+    && !selectedProviderStatus.is_keyless
+    && !selectedProviderStatus.has_key,
+  );
+  const hasModel = Boolean(form.values.model_name);
+  const ready = Boolean(
+    selectedProjectId
+    && targetCount > 0
+    && form.values.api_provider
+    && hasModel
+    && !missingApiKey,
+  );
+
+  let actionLabel = t('button_start_translation');
+  if (form.submitting || providerStatusLoading) {
+    actionLabel = t('initial_translation_start_checking');
+  } else if (targetCount === 0) {
+    actionLabel = t('initial_translation_start_choose_target');
+  } else if (missingApiKey) {
+    actionLabel = t('initial_translation_start_missing_api_key');
+  } else if (!hasModel) {
+    actionLabel = t('initial_translation_start_choose_model');
+  } else if (form.values.use_resume && checkpointHintInfo?.exists) {
+    actionLabel = t('initial_translation_continue');
+  }
+
+  return (
+    <Box className={controlsStyles.actionBar}>
+      <Box className={controlsStyles.actionBarInner}>
+        <Box className={controlsStyles.summaryLine}>
+          <Text fw={700} c="var(--text-main)">
+            {t('initial_translation_ready_title')}
+          </Text>
+          <Group gap={6} mt={2}>
+            <Text size="sm" c={targetCount > 0 ? 'dimmed' : 'orange'} className={controlsStyles.summaryItem}>
+              {t('initial_translation_summary_target_count', { count: targetCount })}
+            </Text>
+            <Text size="sm" c="dimmed">·</Text>
+            <Text size="sm" c="dimmed" className={controlsStyles.summaryItem}>
+              {formatModelSummary(form.values.model_name || selectedProvider?.selected_model)}
+            </Text>
+            <Text size="sm" c="dimmed">·</Text>
+            <Text size="sm" c="dimmed" className={controlsStyles.summaryItem}>
+              {form.values.use_main_glossary
+                ? t('initial_translation_summary_main_glossary_on')
+                : t('initial_translation_summary_main_glossary_off')}
+            </Text>
+            <Text size="sm" c="dimmed">·</Text>
+            <Text size="sm" c="dimmed" className={controlsStyles.summaryItem}>
+              {form.values.embedded_workshop_enabled
+                ? t('initial_translation_summary_workshop_on')
+                : t('initial_translation_summary_workshop_off')}
+            </Text>
+          </Group>
+        </Box>
+
+        <Group gap="sm" className={controlsStyles.actionButtons}>
+          <Button
+            onClick={onBack}
+            leftSection={<IconArrowLeft size={16} />}
+            variant="default"
+          >
+            {t('button_back')}
+          </Button>
+          <Button
+            id="translation-start-btn"
+            type="submit"
+            form="initial-translation-config-form"
+            size="md"
+            leftSection={<IconPlayerPlay size={17} />}
+            disabled={!ready || providerStatusLoading}
+            loading={form.submitting}
+          >
+            {actionLabel}
+          </Button>
+        </Group>
+      </Box>
+    </Box>
+  );
+};
 
 const InitialTranslation = () => {
   const { t } = useTranslation();
@@ -63,7 +176,7 @@ const InitialTranslation = () => {
   const form = useForm({
     initialValues: {
       source_lang_code: 'en',
-      target_lang_codes: ['zh-CN'], // Default to array
+      target_lang_codes: [],
       api_provider: 'gemini',
       model_name: 'gemini-pro',
       mod_context: '',
@@ -97,7 +210,14 @@ const InitialTranslation = () => {
     },
   });
 
-  const { availableGlossaries, availableModels, config, projects } = useInitialTranslationPageData({
+  const {
+    availableGlossaries,
+    availableModels,
+    config,
+    projects,
+    providerStatusLoading,
+    providerStatuses,
+  } = useInitialTranslationPageData({
     form,
     notificationStyle,
     selectedProjectId,
@@ -260,8 +380,8 @@ const InitialTranslation = () => {
   };
 
   return (
-    <Container fluid py="xl" h="100vh" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxWidth: '100%', width: '100%' }}>
-      <Box style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+    <Container fluid pt="xl" px={0} h="100vh" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxWidth: '100%', width: '100%' }}>
+      <Box px="md" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         <Stack gap="xl" pb="xl" w="100%">
           <Box w="100%">
             <Stepper active={active} onStepClick={setActive} allowNextStepsSelect={false}>
@@ -305,7 +425,6 @@ const InitialTranslation = () => {
                   config.api_providers,
                 )}
                 form={form}
-                onBack={handleBack}
                 onSubmit={handleStartClick}
                 selectedProject={selectedProject}
                 selectedProjectId={selectedProjectId}
@@ -350,6 +469,19 @@ const InitialTranslation = () => {
         opened={resumeModalOpen}
         t={t}
       />
+
+      {active === 1 && (
+        <TranslationActionBar
+          checkpointHintInfo={checkpointHintInfo}
+          config={config}
+          form={form}
+          onBack={handleBack}
+          providerStatusLoading={providerStatusLoading}
+          providerStatuses={providerStatuses}
+          selectedProjectId={selectedProjectId}
+          t={t}
+        />
+      )}
     </Container >
   );
 };

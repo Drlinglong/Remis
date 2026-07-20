@@ -28,6 +28,8 @@ export function useInitialTranslationPageData({ form, notificationStyle, selecte
   const [projects, setProjects] = useState([]);
   const [availableModels, setAvailableModels] = useState([]);
   const [availableGlossaries, setAvailableGlossaries] = useState([]);
+  const [providerStatuses, setProviderStatuses] = useState([]);
+  const [providerStatusLoading, setProviderStatusLoading] = useState(true);
   const { values } = form;
   const selectedGlossaryIds = values.selected_glossary_ids;
   const hasLoadedRef = useRef(false);
@@ -45,8 +47,9 @@ export function useInitialTranslationPageData({ form, notificationStyle, selecte
       api.get('/api/config'),
       api.get('/api/projects'),
       api.get('/api/prompts'),
+      api.get('/api/api-keys'),
     ])
-      .then(([configResult, projectsResult, promptsResult]) => {
+      .then(([configResult, projectsResult, promptsResult, providerStatusResult]) => {
         let hasAnySuccess = false;
 
         if (configResult.status === 'fulfilled') {
@@ -72,10 +75,18 @@ export function useInitialTranslationPageData({ form, notificationStyle, selecte
           console.error('Failed to load prompts:', promptsResult.reason);
         }
 
+        if (providerStatusResult.status === 'fulfilled') {
+          setProviderStatuses(providerStatusResult.value.data || []);
+        }
+        setProviderStatusLoading(false);
+
         if (!hasAnySuccess) {
           notificationService.error(t('message_error_load_config'), notificationStyle);
         }
       })
+      .catch(() => {
+        setProviderStatusLoading(false);
+      });
   }, [notificationStyle, t]);
 
   useEffect(() => {
@@ -152,5 +163,7 @@ export function useInitialTranslationPageData({ form, notificationStyle, selecte
     availableModels,
     config,
     projects,
+    providerStatusLoading,
+    providerStatuses,
   };
 }

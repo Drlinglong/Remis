@@ -23,7 +23,7 @@ export function useInitialTranslationFlow({
   const [checkpointInfo, setCheckpointInfo] = useState(null);
   const [pendingFormValues, setPendingFormValues] = useState(null);
 
-  const startTranslation = (values) => {
+  const startTranslation = async (values) => {
     if (!selectedProjectId) {
       notificationService.error('Please select a project first.', notificationStyle);
       return;
@@ -38,26 +38,24 @@ export function useInitialTranslationFlow({
     setActive(2);
     setIsProcessing(true);
 
-    api.post('/api/translate/start', payload)
-      .then((response) => {
-        setTaskId(response.data.task_id);
-        notificationService.success('Translation started!', notificationStyle);
-        setStatus('processing');
-        setIsProcessing(true);
-        setActive(2);
-      })
-      .catch((error) => {
-        notificationService.error('Failed to start translation.', notificationStyle);
-        console.error('Translate API error:', error);
-        setIsProcessing(false);
-        setStatus('failed');
-      });
+    try {
+      const response = await api.post('/api/translate/start', payload);
+      setTaskId(response.data.task_id);
+      notificationService.success('Translation started!', notificationStyle);
+      setStatus('processing');
+      setIsProcessing(true);
+      setActive(2);
+    } catch (error) {
+      notificationService.error('Failed to start translation.', notificationStyle);
+      console.error('Translate API error:', error);
+      setIsProcessing(false);
+      setStatus('failed');
+    }
   };
 
   const handleStartClick = async (values) => {
     if (!values.use_resume) {
-      startTranslation(values);
-      return;
+      return startTranslation(values);
     }
 
     const modName = selectedProject?.label;
@@ -76,18 +74,18 @@ export function useInitialTranslationFlow({
         setPendingFormValues(values);
         setResumeModalOpen(true);
       } else {
-        startTranslation(values);
+        await startTranslation(values);
       }
     } catch (error) {
       console.error('Failed to check checkpoint:', error);
-      startTranslation(values);
+      await startTranslation(values);
     }
   };
 
-  const handleResume = () => {
+  const handleResume = async () => {
     setResumeModalOpen(false);
     if (pendingFormValues) {
-      startTranslation(pendingFormValues);
+      await startTranslation(pendingFormValues);
     }
   };
 
@@ -106,7 +104,7 @@ export function useInitialTranslationFlow({
         },
       });
       notificationService.success('Checkpoint cleared. Starting fresh.', notificationStyle);
-      startTranslation(pendingFormValues);
+      await startTranslation(pendingFormValues);
     } catch (error) {
       notificationService.error('Failed to clear checkpoint.', notificationStyle);
       console.error(error);
