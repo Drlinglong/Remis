@@ -9,6 +9,7 @@ import {
   readAgentWorkshopSnapshot,
   writeAgentWorkshopSnapshot,
 } from './agentWorkshopSession';
+import { pollAgentWorkshopRun } from './agentWorkshopRunMonitor';
 import {
   buildAgentWorkshopModelOptions,
   getAgentWorkshopRunStatus,
@@ -19,8 +20,6 @@ import {
   selectAgentWorkshopProvider,
   startAgentWorkshopFixRun,
 } from '../services/agentWorkshopWorkflowService';
-
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const useAgentWorkshopController = () => {
   const { t } = useTranslation();
@@ -408,26 +407,31 @@ export const useAgentWorkshopController = () => {
     return false;
   }, [addExecutionLog, batchSizeLimit, issues, persistState]);
 
+  const applyRunTaskStatusRef = useRef(applyRunTaskStatus);
+  const addExecutionLogRef = useRef(addExecutionLog);
+
+  useEffect(() => {
+    applyRunTaskStatusRef.current = applyRunTaskStatus;
+    addExecutionLogRef.current = addExecutionLog;
+  }, [addExecutionLog, applyRunTaskStatus]);
+
   useEffect(() => {
     if (!restoredRef.current || runResumeRef.current || !executing || !currentRunTaskId) return;
 
     let cancelled = false;
     runResumeRef.current = true;
 
-    const resumeRun = async () => {
-      let task = null;
-      do {
-        await wait(1000);
-        if (cancelled) return;
-        task = await getAgentWorkshopRunStatus(currentRunTaskId);
-        applyRunTaskStatus(task);
-      } while (task?.status && !['completed', 'failed'].includes(task.status));
-    };
+    const resumeRun = () => pollAgentWorkshopRun({
+      taskId: currentRunTaskId,
+      getStatus: getAgentWorkshopRunStatus,
+      onTask: (task) => applyRunTaskStatusRef.current(task),
+      isCancelled: () => cancelled,
+    });
 
     resumeRun().catch((error) => {
       if (cancelled) return;
       console.error('Failed to resume Agent Workshop run', error);
-      addExecutionLog(error?.response?.data?.detail || error.message || 'Agent Workshop run failed.');
+      addExecutionLogRef.current(error?.response?.data?.detail || error.message || 'Agent Workshop run failed.');
       setExecuting(false);
       setCurrentRunTaskId(null);
     });
@@ -435,7 +439,7 @@ export const useAgentWorkshopController = () => {
     return () => {
       cancelled = true;
     };
-  }, [addExecutionLog, applyRunTaskStatus, currentRunTaskId, executing]);
+  }, [currentRunTaskId, executing]);
 
   const executeFixRun = useCallback(async () => {
     if (!selectedProjectId || !issues.length || !selectedProvider || !selectedModel || executing) return;
@@ -473,12 +477,11 @@ export const useAgentWorkshopController = () => {
         currentRunTaskId: run.task_id,
       }));
 
-      let task = null;
-      do {
-        await wait(1000);
-        task = await getAgentWorkshopRunStatus(run.task_id);
-        applyRunTaskStatus(task, runIssues);
-      } while (task?.status && !['completed', 'failed'].includes(task.status));
+      await pollAgentWorkshopRun({
+        taskId: run.task_id,
+        getStatus: getAgentWorkshopRunStatus,
+        onTask: (task) => applyRunTaskStatus(task, runIssues),
+      });
     } catch (error) {
       console.error('Agent Workshop run failed', error);
       addExecutionLog(error?.response?.data?.detail || error.message || 'Agent Workshop run failed.');

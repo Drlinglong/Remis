@@ -45,12 +45,6 @@ export default defineConfig({
             name(id) {
               const normalized = id.replace(/\\/g, '/');
               if (!normalized.includes('/node_modules/')) return null;
-              if (normalized.includes('/@monaco-editor/')) {
-                return 'vendor-monaco';
-              }
-              if (normalized.includes('/monaco-editor/')) {
-                return 'vendor-monaco';
-              }
               if (
                 normalized.includes('/@mantine/') ||
                 normalized.includes('/react/') ||

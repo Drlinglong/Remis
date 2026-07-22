@@ -21,7 +21,6 @@
     "@mantine/form": "^8.3.4",
     "@mantine/hooks": "^8.3.4",
     "@mantine/notifications": "^8.3.4",
-    "@monaco-editor/react": "^4.7.0",
     "@tabler/icons-react": "^3.44.0",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.14.6",
@@ -67,9 +66,7 @@
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^16.4.0",
     "jsdom": "^27.4.0",
-    "monaco-editor": "^0.55.1",
     "vite": "^8.1.5",
-    "vite-plugin-monaco-editor": "^1.1.0",
     "vitest": "^4.1.10"
   }
 }

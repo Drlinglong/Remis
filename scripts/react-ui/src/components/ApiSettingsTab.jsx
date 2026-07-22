@@ -32,6 +32,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
+import { normalizeArrayPayload } from '../utils/payload';
 import styles from './ApiSettingsTab.module.css';
 
 // Group Definitions
@@ -94,7 +95,7 @@ const ApiSettingsTab = () => {
     const fetchProviders = useCallback(async () => {
         try {
             const response = await api.get('/api/api-keys');
-            setProviders(response.data);
+            setProviders(normalizeArrayPayload(response.data, ['providers', 'items', 'data', 'results']));
         } catch (error) {
             console.error('Error fetching API providers:', error);
             notifications.show({

@@ -6,7 +6,6 @@ import { toParadoxLang } from '../utils/paradoxMapping';
 import { getBracketVariableWarnings } from '../components/proofreading/proofreadingEntryState';
 import { useFileNavigation } from './useFileNavigation';
 import { useEditorContent } from './useEditorContent';
-import { useLinter } from './useLinter';
 import {
     createProofreadingSessionSnapshot,
     readProofreadingSession,
@@ -19,7 +18,6 @@ const useProofreadingState = () => {
     const initialSessionRef = useRef(readProofreadingSession());
     const navigation = useFileNavigation();
     const editor = useEditorContent();
-    const linter = useLinter();
     const { fileInfo, loadEditorData, clearEditorData } = editor;
 
     const [validationResults, setValidationResults] = useState([]);
@@ -279,7 +277,6 @@ const useProofreadingState = () => {
     return {
         ...navigation,
         ...editor,
-        ...linter,
         handleProjectSelect,
         updateRowFinalValue,
         validationResults,

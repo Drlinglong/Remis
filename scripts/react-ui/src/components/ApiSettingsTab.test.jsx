@@ -96,4 +96,29 @@ describe('ApiSettingsTab Stability', () => {
             color: 'green',
         }));
     });
+
+    it('accepts wrapped provider payloads without crashing the settings page', async () => {
+        api.get.mockResolvedValue({
+            data: {
+                providers: [
+                    { id: 'gemini', name: 'Gemini', has_key: false },
+                    { id: 'your_favourite_api', name: 'Custom', has_key: false },
+                ],
+            },
+        });
+
+        renderWithProvider(<ApiSettingsTab />);
+
+        expect(await screen.findByText('api_settings_description')).toBeInTheDocument();
+        expect(screen.getByText('api_group_usa')).toBeInTheDocument();
+    });
+
+    it('falls back to an empty provider list for malformed payloads', async () => {
+        api.get.mockResolvedValue({ data: { unexpected: true } });
+
+        renderWithProvider(<ApiSettingsTab />);
+
+        expect(await screen.findByText('api_settings_description')).toBeInTheDocument();
+        expect(screen.getByText('api_group_local')).toBeInTheDocument();
+    });
 });

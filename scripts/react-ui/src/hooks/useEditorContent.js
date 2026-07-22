@@ -11,7 +11,7 @@ import {
 
 /**
  * Canonical proofreading document state.
- * Entry rows are the only editable source of truth; the legacy raw Monaco path is gone.
+ * Entry rows are the only editable source of truth; the legacy raw-editor path is gone.
  */
 export const useEditorContent = () => {
     const { t } = useTranslation();

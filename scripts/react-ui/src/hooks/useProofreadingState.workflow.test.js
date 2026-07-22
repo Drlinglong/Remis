@@ -41,7 +41,6 @@ vi.mock('./useFileNavigation', () => ({
 }));
 
 vi.mock('./useEditorContent', () => ({ useEditorContent: () => editorState }));
-vi.mock('./useLinter', () => ({ useLinter: () => ({}) }));
 vi.mock('../utils/api', () => ({
   default: { get: vi.fn(), post: vi.fn() },
 }));
