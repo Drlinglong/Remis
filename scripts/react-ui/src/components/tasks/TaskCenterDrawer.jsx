@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Alert, Button, Drawer, Group, Loader, ScrollArea, Stack, Text } from '@mantine/core';
-import { IconAlertTriangle, IconRefresh } from '@tabler/icons-react';
+import { IconAlertTriangle, IconHistory, IconRefresh } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import { useTaskCenter } from '../../context/TaskCenterContextCore';
+import api from '../../utils/api';
 import { taskDetailRoute } from '../../utils/taskRoutes';
 import { TaskSummaryCard } from './TaskSummaryCard';
 
@@ -19,10 +20,34 @@ export function TaskCenterDrawer() {
     refreshTasks,
     tasks,
   } = useTaskCenter();
+  const [handlingTaskId, setHandlingTaskId] = useState('');
+  const [handleError, setHandleError] = useState('');
+  const visibleTasks = useMemo(
+    () => tasks.filter((task) => ['queued', 'running', 'awaiting_approval', 'failed', 'interrupted'].includes(task.status)),
+    [tasks],
+  );
 
   const openTask = (task) => {
     closeTaskCenter();
     navigate(taskDetailRoute(task.task_id));
+  };
+
+  const openTaskHistory = () => {
+    closeTaskCenter();
+    navigate('/task-history');
+  };
+
+  const markHandled = async (task) => {
+    setHandlingTaskId(task.task_id);
+    setHandleError('');
+    try {
+      await api.post(`/api/tasks/${encodeURIComponent(task.task_id)}/archive`);
+      await refreshTasks({ quiet: true });
+    } catch (error) {
+      setHandleError(error.response?.data?.detail || error.message || t('task_center.handle_error'));
+    } finally {
+      setHandlingTaskId('');
+    }
   };
 
   return (
@@ -38,15 +63,26 @@ export function TaskCenterDrawer() {
       <Stack h="calc(100vh - 90px)" gap="md" data-remis-surface="elevated">
         <Group justify="space-between">
           <Text size="sm" c="dimmed">{t('task_center.subtitle')}</Text>
-          <Button
-            variant="subtle"
-            size="compact-sm"
-            leftSection={<IconRefresh size={15} />}
-            onClick={() => refreshTasks()}
-          >
-            {t('button_refresh')}
-          </Button>
+          <Group gap={4} wrap="nowrap">
+            <Button
+              variant="subtle"
+              size="compact-sm"
+              leftSection={<IconHistory size={15} />}
+              onClick={openTaskHistory}
+            >
+              {t('task_center.view_history')}
+            </Button>
+            <Button
+              variant="subtle"
+              size="compact-sm"
+              leftSection={<IconRefresh size={15} />}
+              onClick={() => refreshTasks()}
+            >
+              {t('button_refresh')}
+            </Button>
+          </Group>
         </Group>
+        {handleError && <Alert color="red">{handleError}</Alert>}
         {attentionCount > 0 && (
           <Alert color="orange" icon={<IconAlertTriangle size={18} />}>
             {t('task_center.attention_summary', { count: attentionCount })}
@@ -55,10 +91,16 @@ export function TaskCenterDrawer() {
         <ScrollArea style={{ flex: 1 }} type="auto">
           {loading ? (
             <Group justify="center" py="xl"><Loader size="sm" /></Group>
-          ) : tasks.length > 0 ? (
+          ) : visibleTasks.length > 0 ? (
             <Stack gap="sm" pr="xs">
-              {tasks.map((task) => (
-                <TaskSummaryCard key={task.task_id} task={task} onOpen={openTask} />
+              {visibleTasks.map((task) => (
+                <TaskSummaryCard
+                  key={task.task_id}
+                  task={task}
+                  handling={handlingTaskId === task.task_id}
+                  onHandle={markHandled}
+                  onOpen={openTask}
+                />
               ))}
             </Stack>
           ) : (

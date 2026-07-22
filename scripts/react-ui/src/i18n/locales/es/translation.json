@@ -44,6 +44,13 @@
     "task_info": "Detalles de la tarea", "task_id": "ID de tarea", "project": "Proyecto", "started_at": "Iniciada", "finished_at": "Finalizada",
     "result": "Resultado", "output_paths": "Rutas de salida", "child_tasks": "Tareas secundarias", "back_to_workflow": "Volver al flujo de trabajo"
   },
+  "task_history": {
+    "eyebrow": "Archivo de tareas", "title": "Registros de tareas", "subtitle": "Revisa por día todas las ejecuciones en segundo plano, incluidas las tareas atendidas.",
+    "previous_day": "Día anterior", "next_day": "Día siguiente", "select_day": "Seleccionar un día", "today": "Hoy",
+    "day_heading": "Registros del {{date}}", "task_count": "{{count}} tareas", "load_error": "No se pudieron cargar los registros de tareas",
+    "empty_title": "No hay tareas este día", "empty_description": "Elige otra fecha o inicia una nueva tarea en segundo plano.",
+    "handled": "Atendida", "load_more": "Cargar más"
+  },
   "app_title": "Fábrica de Localización de Mods de Paradox",
   "footer_text": "Paradox Mod Localization Factory ©2025 Creado por Linglong",
   "common.all_games": "Todos los juegos",
@@ -1836,6 +1843,9 @@
     "progress": "Progreso de la tarea",
     "created_by": "Iniciada por: {{creator}}",
     "blocking": "Bloquea acciones posteriores",
+    "mark_handled": "Marcar como atendida",
+    "handle_error": "No se pudo marcar la tarea como atendida",
+    "view_history": "Todos los registros",
     "active_summary": "{{count}} tareas activas o pendientes",
     "attention_summary": "{{count}} tareas requieren tu atención",
     "creator": {

@@ -44,6 +44,13 @@
     "task_info": "Aufgabendetails", "task_id": "Aufgaben-ID", "project": "Projekt", "started_at": "Gestartet", "finished_at": "Beendet",
     "result": "Ergebnis", "output_paths": "Ausgabepfade", "child_tasks": "Unteraufgaben", "back_to_workflow": "Zurück zum Arbeitsablauf"
   },
+  "task_history": {
+    "eyebrow": "Aufgabenarchiv", "title": "Aufgabenprotokolle", "subtitle": "Alle Hintergrundläufe nach Tag prüfen, einschließlich erledigter Aufgaben.",
+    "previous_day": "Vorheriger Tag", "next_day": "Nächster Tag", "select_day": "Tag auswählen", "today": "Heute",
+    "day_heading": "Protokolle für {{date}}", "task_count": "{{count}} Aufgaben", "load_error": "Aufgabenprotokolle konnten nicht geladen werden",
+    "empty_title": "Keine Aufgaben an diesem Tag", "empty_description": "Wählen Sie ein anderes Datum oder starten Sie eine neue Hintergrundaufgabe.",
+    "handled": "Bearbeitet", "load_more": "Mehr laden"
+  },
   "app_title": "Paradox Mod Localization Factory",
   "footer_text": "Paradox Mod Localization Factory ©2025 Erstellt von Linglong",
   "common.all_games": "Alle Spiele",
@@ -1835,6 +1842,9 @@
     "progress": "Aufgabenfortschritt",
     "created_by": "Gestartet von: {{creator}}",
     "blocking": "Blockiert nachfolgende Aktionen",
+    "mark_handled": "Als bearbeitet markieren",
+    "handle_error": "Die Aufgabe konnte nicht als bearbeitet markiert werden",
+    "view_history": "Alle Protokolle",
     "active_summary": "{{count}} aktive oder wartende Aufgaben",
     "attention_summary": "{{count}} Aufgaben benötigen Ihre Aufmerksamkeit",
     "creator": {

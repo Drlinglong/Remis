@@ -44,6 +44,13 @@
     "task_info": "Detalhes da tarefa", "task_id": "ID da tarefa", "project": "Projeto", "started_at": "Começou em", "finished_at": "Concluída em",
     "result": "Resultado da tarefa", "output_paths": "Caminhos de saída", "child_tasks": "Tarefas filhas", "back_to_workflow": "Voltar ao fluxo de trabalho"
   },
+  "task_history": {
+    "eyebrow": "Arquivo de tarefas", "title": "Logs de tarefas", "subtitle": "Revise por dia todas as execuções em segundo plano, inclusive tarefas tratadas.",
+    "previous_day": "Dia anterior", "next_day": "Próximo dia", "select_day": "Selecionar data", "today": "Hoje",
+    "day_heading": "Logs de {{date}}", "task_count": "Total de tarefas: {{count}}", "load_error": "Não foi possível carregar os logs de tarefas",
+    "empty_title": "Nenhuma tarefa nesta data", "empty_description": "Escolha outra data ou inicie uma nova tarefa em segundo plano.",
+    "handled": "Tratada", "load_more": "Carregar mais"
+  },
   "app_title": "Paradox Mod Localization Factory",
   "footer_text": "Paradox Mod Localization Factory ©2025 Criado por Linglong",
   "common.all_games": "Todos os Jogos",
@@ -1836,6 +1843,9 @@
     "progress": "Andamento da tarefa",
     "created_by": "Criada por: {{creator}}",
     "blocking": "Impede ações posteriores",
+    "mark_handled": "Marcar como tratada",
+    "handle_error": "Não foi possível marcar a tarefa como tratada",
+    "view_history": "Todos os logs",
     "active_summary": "{{count}} tarefas ativas ou aguardando",
     "attention_summary": "{{count}} tarefas precisam de atenção",
     "creator": {

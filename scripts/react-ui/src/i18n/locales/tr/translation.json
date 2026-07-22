@@ -44,6 +44,13 @@
     "task_info": "Görev ayrıntıları", "task_id": "Görev kimliği", "project": "Proje", "started_at": "Başlangıç", "finished_at": "Bitiş",
     "result": "Sonuç", "output_paths": "Çıktı yolları", "child_tasks": "Alt görevler", "back_to_workflow": "İş akışına dön"
   },
+  "task_history": {
+    "eyebrow": "Görev arşivi", "title": "Görev günlükleri", "subtitle": "İşlenmiş görevler dahil tüm arka plan çalıştırmalarını güne göre inceleyin.",
+    "previous_day": "Önceki gün", "next_day": "Sonraki gün", "select_day": "Gün seç", "today": "Bugün",
+    "day_heading": "{{date}} günlükleri", "task_count": "{{count}} görev", "load_error": "Görev günlükleri yüklenemedi",
+    "empty_title": "Bu günde görev yok", "empty_description": "Başka bir tarih seçin veya yeni bir arka plan görevi başlatın.",
+    "handled": "İşlendi", "load_more": "Daha fazla yükle"
+  },
   "app_title": "Paradox Mod Yerelleştirme Fabrikası",
   "footer_text": "Paradox Mod Yerelleştirme Fabrikası ©2025 Linglong tarafından oluşturuldu",
   "common.all_games": "Tüm Oyunlar",
@@ -1835,6 +1842,9 @@
     "progress": "Görev ilerlemesi",
     "created_by": "Başlatan: {{creator}}",
     "blocking": "Sonraki işlemleri engelliyor",
+    "mark_handled": "İşlendi olarak işaretle",
+    "handle_error": "Görev işlendi olarak işaretlenemedi",
+    "view_history": "Tüm günlükler",
     "active_summary": "{{count}} etkin veya bekleyen görev",
     "attention_summary": "{{count}} görev ilgilenmenizi bekliyor",
     "creator": {

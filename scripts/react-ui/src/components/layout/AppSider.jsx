@@ -132,11 +132,14 @@ export function AppSider() {
     const navigate = useNavigate();
     const location = useLocation();
     const { startTour } = useTutorial();
-    const { activeCount, attentionCount, openTaskCenter, opened: taskCenterOpened } = useTaskCenter();
+    const { openTaskCenter, opened: taskCenterOpened, tasks = [] } = useTaskCenter();
     const [isPinned, setIsPinned] = useState(() => localStorage.getItem('sidebar_pinned') === 'true');
     const [hovered, setHovered] = useState(false);
     const expanded = isPinned || hovered;
     const { t } = useTranslation();
+    const taskQueueCount = tasks.filter((task) => (
+        ['queued', 'running', 'awaiting_approval', 'failed', 'interrupted'].includes(task.status)
+    )).length;
 
     const primaryLinks = primaryNavItems.map((link) => (
         <NavbarLink
@@ -246,10 +249,10 @@ export function AppSider() {
                 <NavbarLink
                     icon={IconActivity}
                     label="task_center.title"
-                    active={taskCenterOpened}
+                    active={taskCenterOpened || location.pathname === '/task-history' || location.pathname.startsWith('/tasks/')}
                     onClick={openTaskCenter}
                     expanded={expanded}
-                    badge={activeCount + attentionCount}
+                    badge={taskQueueCount}
                 />
                 <NavbarMenu
                     active={moreNavItems.some((item) => location.pathname === item.path)}

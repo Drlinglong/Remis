@@ -44,6 +44,13 @@
     "task_info": "작업 상세 정보", "task_id": "작업 ID", "project": "프로젝트", "started_at": "시작 시간", "finished_at": "완료 시간",
     "result": "결과", "output_paths": "출력 경로", "child_tasks": "하위 작업", "back_to_workflow": "워크플로로 돌아가기"
   },
+  "task_history": {
+    "eyebrow": "작업 보관함", "title": "작업 로그", "subtitle": "완료 및 처리된 작업을 포함한 모든 백그라운드 실행을 날짜별로 확인합니다.",
+    "previous_day": "이전 날짜", "next_day": "다음 날짜", "select_day": "날짜 선택", "today": "오늘",
+    "day_heading": "{{date}} 로그", "task_count": "작업 {{count}}개", "load_error": "작업 로그를 불러올 수 없습니다",
+    "empty_title": "이 날짜에는 작업이 없습니다", "empty_description": "다른 날짜를 선택하거나 새 백그라운드 작업을 시작하세요.",
+    "handled": "처리됨", "load_more": "더 불러오기"
+  },
   "app_title": "패러독스 모드 현지화 팩토리",
   "footer_text": "패러독스 모드 현지화 팩토리 ©2025 Created by Linglong",
   "common.all_games": "모든 게임",
@@ -1835,6 +1842,9 @@
     "progress": "작업 진행률",
     "created_by": "시작 주체: {{creator}}",
     "blocking": "후속 작업 차단 중",
+    "mark_handled": "처리됨으로 표시",
+    "handle_error": "작업을 처리됨으로 표시할 수 없습니다",
+    "view_history": "모든 로그",
     "active_summary": "활성 또는 대기 작업 {{count}}개",
     "attention_summary": "확인이 필요한 작업 {{count}}개",
     "creator": {

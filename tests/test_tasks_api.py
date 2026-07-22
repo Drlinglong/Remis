@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
 from fastapi import HTTPException
 
@@ -166,3 +168,36 @@ async def test_terminal_task_can_be_archived_and_restored_but_active_task_cannot
     with pytest.raises(HTTPException) as exc_info:
         await tasks_router.archive_task("active")
     assert exc_info.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_task_history_filters_by_time_range_and_reports_total_before_pagination():
+    task_state.create_task(
+        "day-one",
+        status="completed",
+        fields={"created_at": "2026-07-21T23:30:00Z", "title": "Previous local day"},
+    )
+    task_state.create_task(
+        "day-two-a",
+        status="failed",
+        fields={"created_at": "2026-07-22T00:30:00Z", "title": "First selected-day task"},
+    )
+    task_state.create_task(
+        "day-two-b",
+        status="completed",
+        fields={"created_at": "2026-07-22T08:30:00Z", "title": "Second selected-day task"},
+    )
+    await tasks_router.archive_task("day-two-a")
+
+    payload = await tasks_router.list_task_summaries(
+        include_archived=True,
+        from_time=datetime(2026, 7, 22, 0, 0, tzinfo=timezone.utc),
+        to_time=datetime(2026, 7, 23, 0, 0, tzinfo=timezone.utc),
+        offset=1,
+        limit=1,
+    )
+
+    assert payload.total_count == 2
+    assert len(payload.tasks) == 1
+    assert payload.tasks[0].task_id == "day-two-a"
+    assert payload.tasks[0].archived_at is not None

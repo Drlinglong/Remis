@@ -44,6 +44,13 @@
     "task_info": "Szczegóły zadania", "task_id": "Identyfikator zadania", "project": "Powiązany projekt", "started_at": "Rozpoczęto", "finished_at": "Zakończono",
     "result": "Wynik", "output_paths": "Ścieżki wyjściowe", "child_tasks": "Zadania podrzędne", "back_to_workflow": "Wróć do przepływu pracy"
   },
+  "task_history": {
+    "eyebrow": "Archiwum zadań", "title": "Dzienniki zadań", "subtitle": "Przeglądaj wszystkie uruchomienia w tle według dnia, także zadania obsłużone.",
+    "previous_day": "Poprzedni dzień", "next_day": "Następny dzień", "select_day": "Wybierz dzień", "today": "Dzisiaj",
+    "day_heading": "Dzienniki z {{date}}", "task_count": "Liczba zadań: {{count}}", "load_error": "Nie udało się wczytać dzienników zadań",
+    "empty_title": "Brak zadań tego dnia", "empty_description": "Wybierz inną datę lub uruchom nowe zadanie w tle.",
+    "handled": "Obsłużone", "load_more": "Wczytaj więcej"
+  },
   "app_title": "Paradox Mod Localization Factory",
   "footer_text": "Paradox Mod Localization Factory ©2025 Stworzone przez Linglong",
   "common.all_games": "Wszystkie gry",
@@ -1835,6 +1842,9 @@
     "progress": "Postęp zadania",
     "created_by": "Uruchomione przez: {{creator}}",
     "blocking": "Blokuje dalsze działania",
+    "mark_handled": "Oznacz jako obsłużone",
+    "handle_error": "Nie udało się oznaczyć zadania jako obsłużone",
+    "view_history": "Wszystkie dzienniki",
     "active_summary": "{{count}} aktywnych lub oczekujących zadań",
     "attention_summary": "{{count}} zadań wymaga uwagi",
     "creator": {

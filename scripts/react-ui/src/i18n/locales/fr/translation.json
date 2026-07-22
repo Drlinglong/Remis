@@ -44,6 +44,13 @@
     "task_info": "Détails de la tâche", "task_id": "ID de tâche", "project": "Projet", "started_at": "Démarrée", "finished_at": "Terminée",
     "result": "Résultat", "output_paths": "Chemins de sortie", "child_tasks": "Sous-tâches", "back_to_workflow": "Retour au flux de travail"
   },
+  "task_history": {
+    "eyebrow": "Archives des tâches", "title": "Journaux des tâches", "subtitle": "Consultez chaque exécution en arrière-plan par jour, y compris les tâches traitées.",
+    "previous_day": "Jour précédent", "next_day": "Jour suivant", "select_day": "Sélectionner un jour", "today": "Aujourd’hui",
+    "day_heading": "Journaux du {{date}}", "task_count": "{{count}} tâches", "load_error": "Impossible de charger les journaux des tâches",
+    "empty_title": "Aucune tâche ce jour-là", "empty_description": "Choisissez une autre date ou démarrez une nouvelle tâche en arrière-plan.",
+    "handled": "Traitée", "load_more": "Afficher plus"
+  },
   "app_title": "Usine de localisation de mods Paradox",
   "footer_text": "Paradox Mod Localization Factory ©2025 Créé par Linglong",
   "common.all_games": "Tous les jeux",
@@ -1835,6 +1842,9 @@
     "progress": "Progression de la tâche",
     "created_by": "Lancée par : {{creator}}",
     "blocking": "Bloque les actions suivantes",
+    "mark_handled": "Marquer comme traitée",
+    "handle_error": "Impossible de marquer cette tâche comme traitée",
+    "view_history": "Tous les journaux",
     "active_summary": "{{count}} tâches actives ou en attente",
     "attention_summary": "{{count}} tâches demandent votre attention",
     "creator": {

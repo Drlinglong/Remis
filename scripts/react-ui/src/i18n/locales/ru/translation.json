@@ -91,6 +91,13 @@
     "task_info": "Сведения о задаче", "task_id": "ID задачи", "project": "Проект", "started_at": "Начало", "finished_at": "Завершение",
     "result": "Результат", "output_paths": "Пути вывода", "child_tasks": "Дочерние задачи", "back_to_workflow": "Вернуться к процессу"
   },
+  "task_history": {
+    "eyebrow": "Архив задач", "title": "Журналы задач", "subtitle": "Просматривайте все фоновые запуски по дням, включая обработанные задачи.",
+    "previous_day": "Предыдущий день", "next_day": "Следующий день", "select_day": "Выбрать день", "today": "Сегодня",
+    "day_heading": "Журналы за {{date}}", "task_count": "Задач: {{count}}", "load_error": "Не удалось загрузить журналы задач",
+    "empty_title": "В этот день задач не было", "empty_description": "Выберите другую дату или запустите новую фоновую задачу.",
+    "handled": "Обработана", "load_more": "Загрузить ещё"
+  },
   "app_title": "Paradox Mod Localization Factory",
   "footer_text": "Paradox Mod Localization Factory ©2025 Создано Linglong",
   "common.all_games": "Все игры",
@@ -1858,6 +1865,9 @@
     "progress": "Ход выполнения",
     "created_by": "Запущено: {{creator}}",
     "blocking": "Блокирует следующие действия",
+    "mark_handled": "Отметить обработанной",
+    "handle_error": "Не удалось отметить задачу обработанной",
+    "view_history": "Все журналы",
     "active_summary": "Активных или ожидающих задач: {{count}}",
     "attention_summary": "Требуют внимания: {{count}}",
     "creator": {

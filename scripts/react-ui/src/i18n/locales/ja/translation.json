@@ -44,6 +44,13 @@
     "task_info": "タスクの詳細", "task_id": "タスク ID", "project": "プロジェクト", "started_at": "開始日時", "finished_at": "終了日時",
     "result": "結果", "output_paths": "出力パス", "child_tasks": "子タスク", "back_to_workflow": "ワークフローに戻る"
   },
+  "task_history": {
+    "eyebrow": "タスクアーカイブ", "title": "タスクログ", "subtitle": "完了済み・対応済みを含むバックグラウンド実行を日付別に確認します。",
+    "previous_day": "前日", "next_day": "翌日", "select_day": "日付を選択", "today": "今日",
+    "day_heading": "{{date}} のログ", "task_count": "{{count}} 件のタスク", "load_error": "タスクログを読み込めませんでした",
+    "empty_title": "この日のタスクはありません", "empty_description": "別の日付を選ぶか、新しいバックグラウンドタスクを開始してください。",
+    "handled": "対応済み", "load_more": "さらに読み込む"
+  },
   "app_title": "Paradox Mod 翻訳工場",
   "footer_text": "Paradox Mod 翻訳工場 ©2025 Created by Linglong",
   "common.all_games": "すべてのゲーム",
@@ -1835,6 +1842,9 @@
     "progress": "作業の進捗",
     "created_by": "開始元：{{creator}}",
     "blocking": "後続操作をブロック中",
+    "mark_handled": "対応済みにする",
+    "handle_error": "タスクを対応済みにできませんでした",
+    "view_history": "すべてのログ",
     "active_summary": "実行中または待機中：{{count}} 件",
     "attention_summary": "確認が必要：{{count}} 件",
     "creator": {

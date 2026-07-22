@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -173,10 +174,25 @@ def _collect_task_summaries(*, include_archived: bool = False) -> list[TaskSumma
     return summaries
 
 
+def _parse_task_time(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 @router.get("", response_model=TaskSummaryList)
 async def list_task_summaries(
     active_only: Annotated[bool, Query()] = False,
     include_archived: Annotated[bool, Query()] = False,
+    from_time: Annotated[Optional[datetime], Query()] = None,
+    to_time: Annotated[Optional[datetime], Query()] = None,
+    offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ):
     summaries = _collect_task_summaries(include_archived=include_archived)
@@ -184,11 +200,26 @@ async def list_task_summaries(
     attention_count = sum(item.status in ATTENTION_STATUSES for item in summaries)
     if active_only:
         summaries = [item for item in summaries if item.status in ACTIVE_STATUSES or item.status in ATTENTION_STATUSES]
-    summaries = summaries[:limit]
+    normalized_from = _parse_task_time(from_time.isoformat()) if from_time else None
+    normalized_to = _parse_task_time(to_time.isoformat()) if to_time else None
+    if normalized_from or normalized_to:
+        summaries = [
+            item
+            for item in summaries
+            if (
+                (task_time := _parse_task_time(item.created_at or item.started_at)) is not None
+                and (normalized_from is None or task_time >= normalized_from)
+                and (normalized_to is None or task_time < normalized_to)
+            )
+        ]
+        summaries.sort(key=lambda item: item.created_at or item.started_at or "", reverse=True)
+    total_count = len(summaries)
+    summaries = summaries[offset:offset + limit]
     return TaskSummaryList(
         tasks=summaries,
         active_count=active_count,
         attention_count=attention_count,
+        total_count=total_count,
     )
 
 

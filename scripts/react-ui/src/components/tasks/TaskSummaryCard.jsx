@@ -16,7 +16,7 @@ const STATUS_COLORS = {
   unknown: 'gray',
 };
 
-export function TaskSummaryCard({ compact = false, onOpen, task }) {
+export function TaskSummaryCard({ compact = false, handling = false, onHandle, onOpen, task }) {
   const { t } = useTranslation();
   const active = ACTIVE_TASK_STATUSES.has(task.status);
   const [now, setNow] = useState(Date.now());
@@ -68,14 +68,27 @@ export function TaskSummaryCard({ compact = false, onOpen, task }) {
             </Text>
             {showProgress && <Text size="xs">· {task.progress || 0}%</Text>}
           </Group>
-          <Button
-            variant="subtle"
-            size="compact-sm"
-            rightSection={<IconArrowRight size={14} />}
-            onClick={() => onOpen(task)}
-          >
-            {t('task_center.view_task')}
-          </Button>
+          <Group gap={4}>
+            {onHandle && task.allowed_actions?.includes('archive_task') && (
+              <Button
+                variant="subtle"
+                color="gray"
+                size="compact-sm"
+                loading={handling}
+                onClick={() => onHandle(task)}
+              >
+                {t('task_center.mark_handled')}
+              </Button>
+            )}
+            <Button
+              variant="subtle"
+              size="compact-sm"
+              rightSection={<IconArrowRight size={14} />}
+              onClick={() => onOpen(task)}
+            >
+              {t('task_center.view_task')}
+            </Button>
+          </Group>
         </Group>
       </Stack>
     </Paper>

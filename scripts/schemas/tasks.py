@@ -64,6 +64,7 @@ class TaskSummaryList(BaseModel):
     tasks: List[TaskSummary] = Field(default_factory=list)
     active_count: int = 0
     attention_count: int = 0
+    total_count: int = 0
 
 
 class TaskEvent(BaseModel):
