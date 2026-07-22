@@ -73,6 +73,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (1, "establish_managed_main_schema"),
         (2, "add_project_watches"),
         (3, "add_project_glossary_bindings"),
+        (4, "add_background_task_ledger"),
     ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
@@ -163,13 +164,18 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     assert {"source_language", "last_modified", "last_activity_type", "last_activity_desc", "notes", "target_path"}.issubset(project_columns)
 
     cursor.execute("SELECT version FROM schema_migrations")
-    assert cursor.fetchall() == [(1,), (2,), (3,)]
+    assert cursor.fetchall() == [(1,), (2,), (3,), (4,)]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")
     assert cursor.fetchone() == ("project_watches",)
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_glossary_bindings'")
     assert cursor.fetchone() == ("project_glossary_bindings",)
+
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='background_tasks'")
+    assert cursor.fetchone() == ("background_tasks",)
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='task_events'")
+    assert cursor.fetchone() == ("task_events",)
 
     cursor.execute("SELECT glossary_id FROM project_glossary_bindings WHERE project_id = 'p1'")
     assert cursor.fetchone() == (1,)
@@ -184,9 +190,9 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     assert cursor.fetchone()[0] == "Legacy"
     conn.close()
 
-    assert migrate_main_database(str(db_path)) == 3
+    assert migrate_main_database(str(db_path)) == 4
     conn = sqlite3.connect(db_path)
-    assert conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0] == 3
+    assert conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0] == 4
     assert conn.execute("SELECT COUNT(*) FROM project_glossary_bindings").fetchone()[0] == 1
     conn.close()
 

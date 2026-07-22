@@ -45,7 +45,10 @@ class TaskSummary(BaseModel):
     stage: str = ""
     progress: int = Field(default=0, ge=0, le=100)
     created_at: Optional[str] = None
+    started_at: Optional[str] = None
     updated_at: Optional[str] = None
+    finished_at: Optional[str] = None
+    archived_at: Optional[str] = None
     message: Optional[str] = None
     attention_reason: Optional[str] = None
     checkpoint: TaskCheckpoint = Field(default_factory=TaskCheckpoint)
@@ -61,3 +64,19 @@ class TaskSummaryList(BaseModel):
     tasks: List[TaskSummary] = Field(default_factory=list)
     active_count: int = 0
     attention_count: int = 0
+
+
+class TaskEvent(BaseModel):
+    event_id: str
+    task_id: str
+    sequence: int
+    timestamp: Optional[str] = None
+    level: Literal["debug", "info", "warning", "error", "success"] = "info"
+    event_type: str = "log"
+    message: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class TaskDetail(TaskSummary):
+    events: List[TaskEvent] = Field(default_factory=list)
+    children: List[TaskSummary] = Field(default_factory=list)

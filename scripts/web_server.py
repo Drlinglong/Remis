@@ -110,6 +110,11 @@ i18n.load_language() # Load default language
 try:
     from scripts.core.db_initializer import initialize_database
     initialize_database()
+    from scripts.app_settings import REMIS_DB_PATH
+    from scripts.core.repositories.task_repository import TaskRepository
+    from scripts.shared import task_state
+
+    task_state.configure_repository(TaskRepository(REMIS_DB_PATH), hydrate=True)
 except Exception as e:
     panic_log(f"INIT CRASH: {e}")
 

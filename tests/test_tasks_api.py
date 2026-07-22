@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from fastapi import HTTPException
 
 from scripts.routers import tasks as tasks_router
 from scripts.shared import task_state
@@ -9,6 +10,12 @@ from scripts.shared import task_state
 class EmptyRegistry:
     def list_jobs(self):
         return []
+
+    def get_job(self, _job_id):
+        return None
+
+    def update_snapshot(self, _job_id, _snapshot):
+        return None
 
 
 @pytest.fixture(autouse=True)
@@ -112,3 +119,50 @@ async def test_task_counts_are_global_and_non_mutating_agent_work_does_not_block
     assert len(payload.tasks) == 1
     assert payload.active_count == 3
     assert payload.tasks[0].blocking is False
+
+
+@pytest.mark.asyncio
+async def test_task_detail_is_bound_to_task_id_and_exposes_its_own_log():
+    task_state.create_task(
+        "failed-task",
+        status="failed",
+        log_message="Translation failed for old run",
+        fields={"kind": "initial_translation", "title": "Old translation"},
+    )
+    task_state.create_task(
+        "successful-task",
+        status="completed",
+        log_message="Translation completed for new run",
+        fields={"kind": "initial_translation", "title": "New translation"},
+    )
+
+    failed = await tasks_router.get_task_detail("failed-task")
+    successful = await tasks_router.get_task_detail("successful-task")
+
+    assert failed.task_id == "failed-task"
+    assert failed.status == "failed"
+    assert [event.message for event in failed.events] == ["Translation failed for old run"]
+    assert successful.task_id == "successful-task"
+    assert successful.status == "completed"
+    assert [event.message for event in successful.events] == ["Translation completed for new run"]
+
+
+@pytest.mark.asyncio
+async def test_terminal_task_can_be_archived_and_restored_but_active_task_cannot():
+    task_state.create_task("finished", status="failed", log_message="Failed")
+    task_state.create_task("active", status="running", log_message="Running")
+
+    archived = await tasks_router.archive_task("finished")
+    assert archived["archived_at"]
+    visible = await tasks_router.list_task_summaries()
+    assert [task.task_id for task in visible.tasks] == ["active"]
+
+    detail = await tasks_router.get_task_detail("finished")
+    assert detail.archived_at
+    await tasks_router.restore_task("finished")
+    restored = await tasks_router.list_task_summaries()
+    assert {task.task_id for task in restored.tasks} == {"active", "finished"}
+
+    with pytest.raises(HTTPException) as exc_info:
+        await tasks_router.archive_task("active")
+    assert exc_info.value.status_code == 409

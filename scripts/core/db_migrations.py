@@ -20,7 +20,7 @@ from scripts.core.db_models import (
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 3
+MAIN_DB_TARGET_VERSION = 4
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -211,10 +211,66 @@ def _migration_003_add_project_glossary_bindings(db_path: str) -> None:
         conn.commit()
 
 
+def _migration_004_add_background_task_ledger(db_path: str) -> None:
+    with _connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS background_tasks (
+                task_id TEXT PRIMARY KEY,
+                kind TEXT NOT NULL DEFAULT 'task',
+                project_id TEXT,
+                parent_task_id TEXT,
+                created_by JSON NOT NULL DEFAULT '{}',
+                title TEXT NOT NULL DEFAULT 'Background task',
+                status TEXT NOT NULL,
+                stage TEXT NOT NULL DEFAULT '',
+                progress JSON NOT NULL DEFAULT '{}',
+                created_at TEXT,
+                started_at TEXT,
+                updated_at TEXT,
+                finished_at TEXT,
+                message TEXT,
+                attention_reason TEXT,
+                checkpoint JSON NOT NULL DEFAULT '{}',
+                result JSON NOT NULL DEFAULT '{}',
+                blocking BOOLEAN NOT NULL DEFAULT 0,
+                dedupe_key TEXT,
+                idempotency_key TEXT,
+                source_route TEXT NOT NULL DEFAULT '/',
+                archived_at TEXT,
+                payload JSON NOT NULL DEFAULT '{}'
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS task_events (
+                event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id TEXT NOT NULL,
+                sequence INTEGER NOT NULL,
+                timestamp TEXT NOT NULL,
+                level TEXT NOT NULL DEFAULT 'info',
+                event_type TEXT NOT NULL DEFAULT 'log',
+                message TEXT NOT NULL,
+                metadata JSON NOT NULL DEFAULT '{}',
+                FOREIGN KEY(task_id) REFERENCES background_tasks(task_id) ON DELETE CASCADE,
+                UNIQUE(task_id, sequence)
+            )
+            """
+        )
+        _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_background_tasks_status ON background_tasks (status)")
+        _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_background_tasks_project_id ON background_tasks (project_id)")
+        _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_background_tasks_parent_task_id ON background_tasks (parent_task_id)")
+        _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_background_tasks_archived_at ON background_tasks (archived_at)")
+        _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_task_events_task_id_sequence ON task_events (task_id, sequence)")
+        conn.commit()
+
+
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
     (3, "add_project_glossary_bindings", _migration_003_add_project_glossary_bindings),
+    (4, "add_background_task_ledger", _migration_004_add_background_task_ledger),
 ]
 
 

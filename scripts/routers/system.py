@@ -140,6 +140,14 @@ async def reset_database():
 
         _remove_sqlite_family(REMIS_DB_PATH)
         initialize_database()
+        from scripts.core.repositories.task_repository import TaskRepository
+        from scripts.shared import task_state
+
+        task_state.configure_repository(
+            TaskRepository(REMIS_DB_PATH),
+            hydrate=True,
+            replace=True,
+        )
 
         return {
             "status": "success",
