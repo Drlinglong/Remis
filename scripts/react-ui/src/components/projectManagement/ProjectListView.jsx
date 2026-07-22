@@ -23,6 +23,19 @@ import {
 import heroBg from '../../assets/project_hero_bg.png';
 import styles from '../../pages/ProjectManagement.module.css';
 
+const GAME_BADGE_COLORS = {
+  victoria3: 'blue',
+  hoi4: 'olive',
+  stellaris: 'grape',
+  eu4: 'cyan',
+  eu5: 'orange',
+  ck3: 'red',
+};
+
+const getGameBadgeColor = (gameId) => (
+  GAME_BADGE_COLORS[String(gameId || '').toLowerCase()] || 'gray'
+);
+
 export function ProjectListView({
   projects,
   searchQuery,
@@ -123,7 +136,13 @@ export function ProjectListView({
             >
               <Group justify="space-between" mb="xs">
                 <Text fw={500} className={styles.projectTitle}>{project.name}</Text>
-                <Badge color={project.status === 'active' ? 'blue' : 'gray'}>{project.game_id}</Badge>
+                <Badge
+                  color={getGameBadgeColor(project.game_id)}
+                  data-game-color={getGameBadgeColor(project.game_id)}
+                  variant="filled"
+                >
+                  {project.game_id}
+                </Badge>
               </Group>
               <Text size="sm" color="dimmed" lineClamp={2}>
                 {project.notes || t('project_management.no_notes', 'No notes')}

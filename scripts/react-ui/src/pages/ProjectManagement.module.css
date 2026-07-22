@@ -234,11 +234,12 @@
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-    padding: 16px 18px;
-    background: var(--surface-bg);
-    border: 1px solid var(--surface-border);
-    border-radius: var(--card-radius);
-    box-shadow: var(--shadow-elevation);
+    padding: 4px 0 18px;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--surface-border);
+    border-radius: 0;
+    box-shadow: none;
 }
 
 .actionToolbar {
