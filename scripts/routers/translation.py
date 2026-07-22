@@ -351,6 +351,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
             fields={
                 "kind": "initial_translation",
                 "project_id": request.project_id,
+                "project_context": {"name": project["name"], "game_id": project.get("game_id")},
                 "title": f"Translate {project['name']}",
                 "source_route": "/translation",
                 "created_by": {"type": "user"},

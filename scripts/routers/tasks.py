@@ -4,8 +4,9 @@ from typing import Annotated, Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Query
 
 from scripts.core.agent_service import agent_registry
-from scripts.schemas.tasks import TaskCheckpoint, TaskCreator, TaskDetail, TaskEvent, TaskResult, TaskSummary, TaskSummaryList
+from scripts.schemas.tasks import TaskCheckpoint, TaskCreator, TaskDetail, TaskEvent, TaskProjectContext, TaskResult, TaskSummary, TaskSummaryList
 from scripts.shared import task_state
+from scripts.shared.services import project_manager
 
 
 router = APIRouter(prefix="/api/tasks", tags=["Tasks"])
@@ -121,6 +122,7 @@ def _from_live_task(task: Dict[str, Any], agent_job: Optional[Dict[str, Any]]) -
         task_id=str(task.get("task_id") or (agent_job or {}).get("job_id")),
         kind=kind,
         project_id=project_id,
+        project_context=(TaskProjectContext.model_validate(task["project_context"]) if task.get("project_context") else None),
         parent_task_id=task.get("parent_task_id"),
         created_by=TaskCreator.model_validate(creator),
         title=str(task.get("title") or TITLE_BY_KIND.get(kind, "Background task")),
@@ -136,7 +138,7 @@ def _from_live_task(task: Dict[str, Any], agent_job: Optional[Dict[str, Any]]) -
         attention_reason=task.get("attention_reason") or (task.get("message") if status in ATTENTION_STATUSES else None),
         checkpoint=TaskCheckpoint.model_validate(checkpoint),
         result=TaskResult.model_validate(result),
-        blocking=bool(task.get("blocking", status in ACTIVE_STATUSES and kind in BLOCKING_KINDS)),
+        blocking=(status in ACTIVE_STATUSES and bool(task.get("blocking", kind in BLOCKING_KINDS))),
         dedupe_key=task.get("dedupe_key"),
         idempotency_key=task.get("idempotency_key"),
         source_route=str(task.get("source_route") or ROUTE_BY_KIND.get(kind, "/")),
@@ -174,6 +176,32 @@ def _collect_task_summaries(*, include_archived: bool = False) -> list[TaskSumma
     return summaries
 
 
+async def _enrich_project_context(summaries: list[TaskSummary]) -> None:
+    unresolved_ids = {
+        item.project_id
+        for item in summaries
+        if item.project_id and item.project_context is None
+    }
+    if not unresolved_ids:
+        return
+    try:
+        projects = await project_manager.get_projects()
+    except Exception:
+        return
+    projects_by_id = {
+        str(project.get("project_id")): project
+        for project in projects
+        if project.get("project_id")
+    }
+    for item in summaries:
+        project = projects_by_id.get(str(item.project_id))
+        if project and project.get("name"):
+            item.project_context = TaskProjectContext(
+                name=str(project["name"]),
+                game_id=project.get("game_id"),
+            )
+
+
 def _parse_task_time(value: Optional[str]) -> Optional[datetime]:
     if not value:
         return None
@@ -196,6 +224,7 @@ async def list_task_summaries(
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ):
     summaries = _collect_task_summaries(include_archived=include_archived)
+    await _enrich_project_context(summaries)
     active_count = sum(item.status in ACTIVE_STATUSES for item in summaries)
     attention_count = sum(item.status in ATTENTION_STATUSES for item in summaries)
     if active_only:
@@ -239,6 +268,7 @@ async def get_task_detail(task_id: str):
         raise HTTPException(status_code=404, detail="Task not found")
 
     summary = _from_live_task(task, job)
+    await _enrich_project_context([summary])
     events = task_state.get_task_events(task_id)
     if not events:
         events = [

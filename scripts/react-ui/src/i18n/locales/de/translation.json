@@ -41,7 +41,7 @@
     "restore": "Im Aufgabencenter wiederherstellen", "archive": "Im Aufgabencenter ausblenden",
     "load_error": "Aufgabe konnte nicht geladen werden", "not_available": "Nicht verfügbar", "run_log": "Ausführungsprotokoll",
     "live_updates": "Live-Aktualisierung", "event_count": "{{count}} Ereignisse", "no_events": "Keine Ausführungsereignisse aufgezeichnet",
-    "task_info": "Aufgabendetails", "task_id": "Aufgaben-ID", "project": "Projekt", "started_at": "Gestartet", "finished_at": "Beendet",
+    "task_info": "Aufgabendetails", "task_id": "Aufgaben-ID", "project": "Projekt", "project_name": "Projektname", "project_id": "Projekt-ID", "task_flow": "Aufgabenablauf", "technical_info": "Technische IDs", "blocking_description": "Diese Aufgabe ändert gerade Projektdateien. Remis verhindert vorübergehend konkurrierende Schreibvorgänge; nach Ende der Ausführung wird die Sperre aufgehoben.", "started_at": "Gestartet", "finished_at": "Beendet",
     "result": "Ergebnis", "output_paths": "Ausgabepfade", "child_tasks": "Unteraufgaben", "back_to_workflow": "Zurück zum Arbeitsablauf"
   },
   "task_history": {
@@ -1841,7 +1841,7 @@
     "view_task": "Aufgabe öffnen",
     "progress": "Aufgabenfortschritt",
     "created_by": "Gestartet von: {{creator}}",
-    "blocking": "Blockiert nachfolgende Aktionen",
+    "blocking": "Projekt wird verwendet",
     "mark_handled": "Als bearbeitet markieren",
     "handle_error": "Die Aufgabe konnte nicht als bearbeitet markiert werden",
     "view_history": "Alle Protokolle",

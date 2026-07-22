@@ -75,6 +75,24 @@
   overflow-wrap: anywhere;
 }
 
+.blockingBadge {
+  width: fit-content;
+  cursor: help;
+}
+
+.technicalDetails {
+  padding-top: 8px;
+  border-top: 1px solid var(--surface-border);
+  color: var(--surface-text-muted);
+}
+
+.technicalDetails summary {
+  width: fit-content;
+  cursor: pointer;
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+}
+
 @media (max-width: 700px) {
   .content {
     padding: 14px;

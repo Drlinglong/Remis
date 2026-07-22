@@ -25,10 +25,16 @@ class TaskResult(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
+class TaskProjectContext(BaseModel):
+    name: str
+    game_id: Optional[str] = None
+
+
 class TaskSummary(BaseModel):
     task_id: str
     kind: str = "task"
     project_id: Optional[str] = None
+    project_context: Optional[TaskProjectContext] = None
     parent_task_id: Optional[str] = None
     created_by: TaskCreator = Field(default_factory=TaskCreator)
     title: str

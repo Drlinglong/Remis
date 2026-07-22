@@ -165,6 +165,11 @@ export default function TaskHistoryPage() {
             {tasks.map((task) => {
               const kindLabel = t(`task_center.kind.${task.kind}`, { defaultValue: task.title });
               const creatorLabel = task.created_by?.label || t(`task_center.creator.${task.created_by?.type || 'system'}`);
+              const projectGameId = task.project_context?.game_id;
+              const projectGameName = projectGameId
+                ? t(`game_name_${String(projectGameId).toLowerCase()}`, { defaultValue: projectGameId })
+                : '';
+              const projectLabel = [task.project_context?.name, projectGameName].filter(Boolean).join(' — ');
               return (
                 <Card key={task.task_id} withBorder radius="md" p="md" data-remis-surface="surface" className={styles.taskRow}>
                   <Group justify="space-between" align="center" wrap="nowrap">
@@ -176,7 +181,7 @@ export default function TaskHistoryPage() {
                         <UnstyledButton onClick={() => navigate(taskDetailRoute(task.task_id))} className={styles.taskTitle}>
                           <Text fw={700}>{kindLabel}</Text>
                         </UnstyledButton>
-                        <Text size="sm" c="dimmed" lineClamp={1}>{task.title}</Text>
+                        <Text size="sm" c="dimmed" lineClamp={1}>{projectLabel || task.title}</Text>
                       </div>
                     </Group>
                     <Group gap="sm" wrap="nowrap">

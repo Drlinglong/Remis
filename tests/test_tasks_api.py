@@ -20,11 +20,20 @@ class EmptyRegistry:
         return None
 
 
+class ProjectManagerStub:
+    def __init__(self, projects=None):
+        self.projects = projects or []
+
+    async def get_projects(self):
+        return self.projects
+
+
 @pytest.fixture(autouse=True)
 def isolated_tasks(monkeypatch):
     previous = dict(task_state.tasks)
     task_state.tasks.clear()
     monkeypatch.setattr(tasks_router, "agent_registry", EmptyRegistry())
+    monkeypatch.setattr(tasks_router, "project_manager", ProjectManagerStub())
     yield
     task_state.tasks.clear()
     task_state.tasks.update(previous)
@@ -151,7 +160,7 @@ async def test_task_detail_is_bound_to_task_id_and_exposes_its_own_log():
 
 @pytest.mark.asyncio
 async def test_terminal_task_can_be_archived_and_restored_but_active_task_cannot():
-    task_state.create_task("finished", status="failed", log_message="Failed")
+    task_state.create_task("finished", status="failed", log_message="Failed", fields={"blocking": True})
     task_state.create_task("active", status="running", log_message="Running")
 
     archived = await tasks_router.archive_task("finished")
@@ -161,6 +170,7 @@ async def test_terminal_task_can_be_archived_and_restored_but_active_task_cannot
 
     detail = await tasks_router.get_task_detail("finished")
     assert detail.archived_at
+    assert detail.blocking is False
     await tasks_router.restore_task("finished")
     restored = await tasks_router.list_task_summaries()
     assert {task.task_id for task in restored.tasks} == {"active", "finished"}
@@ -201,3 +211,32 @@ async def test_task_history_filters_by_time_range_and_reports_total_before_pagin
     assert len(payload.tasks) == 1
     assert payload.tasks[0].task_id == "day-two-a"
     assert payload.tasks[0].archived_at is not None
+
+
+@pytest.mark.asyncio
+async def test_task_summary_resolves_human_project_context(monkeypatch):
+    monkeypatch.setattr(
+        tasks_router,
+        "project_manager",
+        ProjectManagerStub([{
+            "project_id": "project-readable",
+            "name": "Remis Plan - Demo Mod",
+            "game_id": "victoria3",
+        }]),
+    )
+    task_state.create_task(
+        "task-with-project",
+        status="running",
+        fields={
+            "kind": "initial_translation",
+            "project_id": "project-readable",
+            "blocking": True,
+        },
+    )
+
+    detail = await tasks_router.get_task_detail("task-with-project")
+
+    assert detail.project_context is not None
+    assert detail.project_context.name == "Remis Plan - Demo Mod"
+    assert detail.project_context.game_id == "victoria3"
+    assert detail.blocking is True

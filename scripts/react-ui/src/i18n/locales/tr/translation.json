@@ -41,7 +41,7 @@
     "restore": "Görev merkezine geri yükle", "archive": "Görev merkezinde gizle",
     "load_error": "Görev yüklenemedi", "not_available": "Kullanılamıyor", "run_log": "Çalıştırma günlüğü",
     "live_updates": "Canlı güncelleniyor", "event_count": "{{count}} olay", "no_events": "Kaydedilmiş çalıştırma olayı yok",
-    "task_info": "Görev ayrıntıları", "task_id": "Görev kimliği", "project": "Proje", "started_at": "Başlangıç", "finished_at": "Bitiş",
+    "task_info": "Görev ayrıntıları", "task_id": "Görev kimliği", "project": "Proje", "project_name": "Proje adı", "project_id": "Proje kimliği", "task_flow": "Görev akışı", "technical_info": "Teknik kimlikler", "blocking_description": "Bu görev proje dosyalarını değiştiriyor. Remis aynı projeye eşzamanlı yazan çakışan görevleri geçici olarak engeller; çalışma bitince kısıtlama kalkar.", "started_at": "Başlangıç", "finished_at": "Bitiş",
     "result": "Sonuç", "output_paths": "Çıktı yolları", "child_tasks": "Alt görevler", "back_to_workflow": "İş akışına dön"
   },
   "task_history": {
@@ -1841,7 +1841,7 @@
     "view_task": "Görevi aç",
     "progress": "Görev ilerlemesi",
     "created_by": "Başlatan: {{creator}}",
-    "blocking": "Sonraki işlemleri engelliyor",
+    "blocking": "Proje kullanımda",
     "mark_handled": "İşlendi olarak işaretle",
     "handle_error": "Görev işlendi olarak işaretlenemedi",
     "view_history": "Tüm günlükler",

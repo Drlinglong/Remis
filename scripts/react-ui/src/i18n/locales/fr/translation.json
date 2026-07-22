@@ -41,7 +41,7 @@
     "restore": "Restaurer dans le centre des tâches", "archive": "Masquer du centre des tâches",
     "load_error": "Impossible de charger la tâche", "not_available": "Non disponible", "run_log": "Journal d’exécution",
     "live_updates": "Mise à jour en direct", "event_count": "{{count}} événements", "no_events": "Aucun événement d’exécution enregistré",
-    "task_info": "Détails de la tâche", "task_id": "ID de tâche", "project": "Projet", "started_at": "Démarrée", "finished_at": "Terminée",
+    "task_info": "Détails de la tâche", "task_id": "ID de tâche", "project": "Projet", "project_name": "Nom du projet", "project_id": "ID du projet", "task_flow": "Flux de la tâche", "technical_info": "Identifiants techniques", "blocking_description": "Cette tâche modifie actuellement les fichiers du projet. Remis empêche temporairement les écritures concurrentes sur ce projet ; la restriction disparaît à la fin de l’exécution.", "started_at": "Démarrée", "finished_at": "Terminée",
     "result": "Résultat", "output_paths": "Chemins de sortie", "child_tasks": "Sous-tâches", "back_to_workflow": "Retour au flux de travail"
   },
   "task_history": {
@@ -1841,7 +1841,7 @@
     "view_task": "Ouvrir la tâche",
     "progress": "Progression de la tâche",
     "created_by": "Lancée par : {{creator}}",
-    "blocking": "Bloque les actions suivantes",
+    "blocking": "Projet en cours d’utilisation",
     "mark_handled": "Marquer comme traitée",
     "handle_error": "Impossible de marquer cette tâche comme traitée",
     "view_history": "Tous les journaux",

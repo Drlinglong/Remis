@@ -41,7 +41,7 @@
     "restore": "Restaurar en el centro de tareas", "archive": "Ocultar del centro de tareas",
     "load_error": "No se pudo cargar la tarea", "not_available": "No disponible", "run_log": "Registro de ejecución",
     "live_updates": "Actualización en directo", "event_count": "{{count}} eventos", "no_events": "No hay eventos de ejecución registrados",
-    "task_info": "Detalles de la tarea", "task_id": "ID de tarea", "project": "Proyecto", "started_at": "Iniciada", "finished_at": "Finalizada",
+    "task_info": "Detalles de la tarea", "task_id": "ID de tarea", "project": "Proyecto", "project_name": "Nombre del proyecto", "project_id": "ID del proyecto", "task_flow": "Flujo de la tarea", "technical_info": "Identificadores técnicos", "blocking_description": "Esta tarea está modificando archivos del proyecto. Remis evita temporalmente escrituras simultáneas en el mismo proyecto; la restricción termina al finalizar la ejecución.", "started_at": "Iniciada", "finished_at": "Finalizada",
     "result": "Resultado", "output_paths": "Rutas de salida", "child_tasks": "Tareas secundarias", "back_to_workflow": "Volver al flujo de trabajo"
   },
   "task_history": {
@@ -1842,7 +1842,7 @@
     "view_task": "Ver la tarea",
     "progress": "Progreso de la tarea",
     "created_by": "Iniciada por: {{creator}}",
-    "blocking": "Bloquea acciones posteriores",
+    "blocking": "Proyecto en uso",
     "mark_handled": "Marcar como atendida",
     "handle_error": "No se pudo marcar la tarea como atendida",
     "view_history": "Todos los registros",

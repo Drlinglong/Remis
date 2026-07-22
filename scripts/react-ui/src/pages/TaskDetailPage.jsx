@@ -16,6 +16,7 @@ import {
   Stack,
   Text,
   Title,
+  Tooltip,
 } from '@mantine/core';
 import {
   IconAlertTriangle,
@@ -24,6 +25,7 @@ import {
   IconClock,
   IconDots,
   IconHistory,
+  IconInfoCircle,
   IconPlayerPlay,
   IconRefresh,
   IconRestore,
@@ -144,6 +146,10 @@ export default function TaskDetailPage() {
   const kindLabel = task ? t(`task_center.kind.${task.kind}`, { defaultValue: task.title }) : '';
   const statusLabel = task ? t(`task_center.status.${task.status}`, { defaultValue: task.status }) : '';
   const creatorLabel = task?.created_by?.label || t(`task_center.creator.${task?.created_by?.type || 'system'}`);
+  const projectName = task?.project_context?.name;
+  const gameId = task?.project_context?.game_id;
+  const gameName = gameId ? t(`game_name_${String(gameId).toLowerCase()}`, { defaultValue: gameId }) : '';
+  const projectDisplayName = [projectName, gameName].filter(Boolean).join(' — ');
 
   const mutateArchive = async (action) => {
     setMutating(true);
@@ -270,13 +276,38 @@ export default function TaskDetailPage() {
               <Card withBorder radius="md" p="lg" data-remis-surface="surface">
                 <Title order={3} mb="md">{t('task_detail.task_info')}</Title>
                 <Stack gap="sm">
-                  <Box><Text size="xs" c="dimmed">{t('task_detail.task_id')}</Text><Code className={styles.taskId}>{task.task_id}</Code></Box>
-                  <Box><Text size="xs" c="dimmed">{t('task_detail.project')}</Text><Text size="sm">{task.project_id || t('task_detail.not_available')}</Text></Box>
+                  <Box>
+                    <Text size="xs" c="dimmed">{t('task_detail.project_name')}</Text>
+                    {task.project_id && projectName ? (
+                      <Button variant="transparent" px={0} h="auto" onClick={() => navigate(`/project-management/${encodeURIComponent(task.project_id)}`)}>
+                        <Text size="sm" fw={700} ta="left">{projectDisplayName}</Text>
+                      </Button>
+                    ) : (
+                      <Text size="sm">{projectDisplayName || t('task_detail.not_available')}</Text>
+                    )}
+                  </Box>
+                  <Box>
+                    <Text size="xs" c="dimmed">{t('task_detail.task_flow')}</Text>
+                    <Text size="sm" fw={700}>{kindLabel}</Text>
+                  </Box>
                   <Box><Text size="xs" c="dimmed">{t('task_center.created_by', { creator: creatorLabel })}</Text></Box>
                   <Divider />
                   <Group justify="space-between"><Text size="sm" c="dimmed">{t('task_detail.started_at')}</Text><Text size="sm">{formatTimestamp(task.started_at || task.created_at, i18n.language)}</Text></Group>
                   <Group justify="space-between"><Text size="sm" c="dimmed">{t('task_detail.finished_at')}</Text><Text size="sm">{formatTimestamp(task.finished_at, i18n.language)}</Text></Group>
-                  {task.blocking && <Badge color="orange" variant="outline">{t('task_center.blocking')}</Badge>}
+                  {task.blocking && active && (
+                    <Tooltip label={t('task_detail.blocking_description')} multiline maw={320} withArrow>
+                      <Badge color="orange" variant="outline" leftSection={<IconInfoCircle size={13} />} className={styles.blockingBadge}>
+                        {t('task_center.blocking')}
+                      </Badge>
+                    </Tooltip>
+                  )}
+                  <details className={styles.technicalDetails}>
+                    <summary>{t('task_detail.technical_info')}</summary>
+                    <Stack gap="xs" mt="xs">
+                      <Box><Text size="xs" c="dimmed">{t('task_detail.task_id')}</Text><Code className={styles.taskId}>{task.task_id}</Code></Box>
+                      <Box><Text size="xs" c="dimmed">{t('task_detail.project_id')}</Text><Code className={styles.taskId}>{task.project_id || t('task_detail.not_available')}</Code></Box>
+                    </Stack>
+                  </details>
                 </Stack>
               </Card>
 

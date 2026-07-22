@@ -9,6 +9,7 @@ import { taskDayBounds } from '../utils/taskDates';
 const navigateMock = vi.fn();
 const translateMock = (key, options) => {
   if (key === 'task_center.kind.initial_translation') return 'Initial translation';
+  if (key === 'game_name_victoria3') return 'Victoria 3';
   return options?.defaultValue || key;
 };
 
@@ -43,6 +44,7 @@ describe('TaskHistoryPage', () => {
           created_at: '2026-07-22T01:00:00Z',
           finished_at: '2026-07-22T01:00:08Z',
           created_by: { type: 'user', label: 'User' },
+          project_context: { name: 'Remis Plan - Demo Mod', game_id: 'victoria3' },
           archived_at: '2026-07-22T02:00:00Z',
         }],
       },
@@ -74,5 +76,6 @@ describe('TaskHistoryPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Initial translation' }));
     expect(navigateMock).toHaveBeenCalledWith('/tasks/historical-task');
     expect(screen.getByText('task_history.handled')).toBeInTheDocument();
+    expect(screen.getByText('Remis Plan - Demo Mod — Victoria 3')).toBeInTheDocument();
   });
 });
