@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Badge, Button, Group, Paper, Tabs, Text, Title, Tooltip } from '@mantine/core';
-import { IconArrowLeft } from '@tabler/icons-react';
+import { Badge, Button, Group, Menu, Paper, Tabs, Text, Title } from '@mantine/core';
+import { IconArrowLeft, IconChevronDown, IconLayoutKanban, IconVocabulary } from '@tabler/icons-react';
 
 import { FEATURES } from '../../config/features';
 import ProjectGlossaryPanel from '../project/ProjectGlossaryPanel';
@@ -57,12 +57,7 @@ export function ProjectDashboardView({
               {t(`project_management.status.${selectedProject.status}`)}
             </Badge>
           </Group>
-          <Group>
-            <Tooltip label={t('project_management.tooltip_refresh')}>
-              <Button variant="light" size="xs" onClick={handleRefreshFiles}>{t('project_management.refresh_files')}</Button>
-            </Tooltip>
-            <Badge size="lg">{selectedProject.game_id}</Badge>
-          </Group>
+          <Badge size="lg">{selectedProject.game_id}</Badge>
         </Group>
       </Paper>
 
@@ -73,10 +68,28 @@ export function ProjectDashboardView({
       }}>
         <Tabs.List style={{ paddingLeft: '1rem', paddingTop: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
           <Tabs.Tab value="overview">{t('project_management.tabs_overview')}</Tabs.Tab>
-          <Tabs.Tab value="project_glossary">{t('project_management.tabs_project_glossary')}</Tabs.Tab>
-          <Tabs.Tab value="taskboard" id="kanban-tab-control">{t('project_management.tabs_kanban')}</Tabs.Tab>
           <Tabs.Tab value="validation" id="validation-tab-control">{t('project_management.tabs_validation')}</Tabs.Tab>
           {FEATURES.ENABLE_PROJECT_HISTORY && <Tabs.Tab value="history" id="history-tab-control">{t('project_management.tabs_history', 'Project History')}</Tabs.Tab>}
+          <Menu position="bottom-start" withinPortal shadow="md">
+            <Menu.Target>
+              <Button
+                variant={['project_glossary', 'taskboard'].includes(activeTab) ? 'light' : 'subtle'}
+                size="compact-sm"
+                rightSection={<IconChevronDown size={14} />}
+                ml="xs"
+              >
+                {t('project_management.more_views')}
+              </Button>
+            </Menu.Target>
+            <Menu.Dropdown data-remis-surface="elevated" className={styles.projectMenuDropdown}>
+              <Menu.Item leftSection={<IconVocabulary size={16} />} onClick={() => setActiveTab('project_glossary')}>
+                {t('project_management.tabs_project_glossary')}
+              </Menu.Item>
+              <Menu.Item leftSection={<IconLayoutKanban size={16} />} onClick={() => setActiveTab('taskboard')}>
+                {t('project_management.tabs_kanban')}
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </Tabs.List>
 
         <Tabs.Panel value="overview" style={{ flex: 1, overflow: 'auto', padding: '1rem', minHeight: 0 }}>

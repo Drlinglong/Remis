@@ -25,6 +25,15 @@ vi.mock('../../context/TutorialContextCore', () => ({
   }),
 }));
 
+vi.mock('../../context/TaskCenterContextCore', () => ({
+  useTaskCenter: () => ({
+    activeCount: 0,
+    attentionCount: 0,
+    openTaskCenter: vi.fn(),
+    opened: false,
+  }),
+}));
+
 vi.mock('../../ThemeContext', async () => {
   const ReactModule = await vi.importActual('react');
   return {
@@ -62,14 +71,15 @@ describe('AppSider', () => {
     expect(startTourMock).toHaveBeenCalledOnce();
   });
 
-  it('shows project tracking and the neologism review entry in the main navigation', () => {
+  it('groups project tracking and neologism review under more features', async () => {
     renderWithProvider(<AppSider />);
 
     const sidebar = document.getElementById('sidebar-nav');
     fireEvent.mouseEnter(sidebar);
 
-    expect(screen.getByText('page_title_project_tracking')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('neologism_review.title'));
+    fireEvent.click(screen.getByText('nav_more'));
+    expect(await screen.findByText('nav_mod_monitor')).toBeInTheDocument();
+    fireEvent.click(await screen.findByText('neologism_review.title'));
     expect(navigateMock).toHaveBeenCalledWith('/neologism-review');
   });
 

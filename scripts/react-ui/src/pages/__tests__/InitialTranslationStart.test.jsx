@@ -61,6 +61,10 @@ vi.mock('../../context/NotificationContextCore', () => ({
   useNotification: () => ({ notificationStyle: 'minimal' }),
 }));
 
+vi.mock('../../context/TaskCenterContextCore', () => ({
+  useTaskCenter: () => ({ openTaskCenter: vi.fn() }),
+}));
+
 vi.mock('../../context/TutorialContextCore', () => ({
   useTutorial: () => ({
     setPageContext: vi.fn(),
@@ -83,6 +87,7 @@ vi.mock('../../context/TranslationContextCore', () => ({
       setIsProcessing: vi.fn(),
       setSelectedProjectId,
       setTaskId: vi.fn(),
+      taskId: null,
       setTranslationDetails: vi.fn(),
       taskStatus: null,
       translationDetails: null,

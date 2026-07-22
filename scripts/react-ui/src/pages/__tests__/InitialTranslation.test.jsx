@@ -132,6 +132,10 @@ vi.mock('../../context/NotificationContextCore', () => ({
   }),
 }));
 
+vi.mock('../../context/TaskCenterContextCore', () => ({
+  useTaskCenter: () => ({ openTaskCenter: vi.fn() }),
+}));
+
 vi.mock('../../context/TutorialContextCore', () => ({
   useTutorial: () => ({
     setPageContext: setPageContextMock,
@@ -149,7 +153,9 @@ vi.mock('../../context/TranslationContextCore', () => ({
       activeStep,
       setActiveStep,
       setTaskId: vi.fn(),
+      taskId: null,
       taskStatus: null,
+      isProcessing: false,
       setIsProcessing: vi.fn(),
       translationDetails: null,
       setTranslationDetails: vi.fn(),

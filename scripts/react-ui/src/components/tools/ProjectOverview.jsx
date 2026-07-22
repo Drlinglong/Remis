@@ -18,7 +18,7 @@ const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, 
     const [refreshSidebarTrigger, setRefreshSidebarTrigger] = useState(0);
 
     // Sidebar Context
-    const { setSidebarContent, setSidebarWidth, sidebarWidth, setSidebarCollapsed } = useSidebar();
+    const { setSidebarContent, setSidebarWidth, sidebarWidth, sidebarCollapsed, setSidebarCollapsed } = useSidebar();
 
     // Cleanup sidebar on unmount
     useEffect(() => {
@@ -59,10 +59,10 @@ const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, 
 
     // Refresh sidebar when trigger changes
     useEffect(() => {
-        if (sidebarWidth > 0) { // Only if sidebar is likely open/active
+        if (!sidebarCollapsed) {
             handleViewNotesHistory();
         }
-    }, [handleViewNotesHistory, refreshSidebarTrigger, sidebarWidth]);
+    }, [handleViewNotesHistory, refreshSidebarTrigger, sidebarCollapsed]);
 
 
     const onSaveNote = async () => {

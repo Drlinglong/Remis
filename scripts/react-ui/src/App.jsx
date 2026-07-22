@@ -10,6 +10,7 @@ import GlobalStyles from './components/GlobalStyles';
 import { NotificationProvider } from './context/NotificationContext';
 import { SidebarProvider } from './context/SidebarContext';
 import { TranslationProvider } from './context/TranslationContext';
+import { TaskCenterProvider } from './context/TaskCenterContext';
 import { TutorialProvider } from './context/TutorialContext';
 import { MainLayout } from './components/layout/MainLayout';
 import SplashScreen from './components/SplashScreen';
@@ -103,7 +104,9 @@ const App = () => {
                     ) : (
                         <SidebarProvider>
                             <TranslationProvider>
-                                <RouterProvider router={appRouter} fallbackElement={<RouteFallback />} />
+                                <TaskCenterProvider>
+                                    <RouterProvider router={appRouter} fallbackElement={<RouteFallback />} />
+                                </TaskCenterProvider>
                             </TranslationProvider>
                         </SidebarProvider>
                     )}

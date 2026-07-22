@@ -8,6 +8,8 @@ import api from '../utils/api';
 const navigateMock = vi.fn();
 const startTourMock = vi.fn();
 const setPageContextMock = vi.fn();
+const openTaskCenterMock = vi.fn();
+let taskCenterState;
 
 vi.mock('@mantine/core', async () => {
   const actual = await vi.importActual('@mantine/core');
@@ -42,6 +44,10 @@ vi.mock('../context/TutorialContextCore', () => ({
     setPageContext: setPageContextMock,
   }),
   getTutorialKey: (page = 'general') => `remis_tutorial_${page}_v1`,
+}));
+
+vi.mock('../context/TaskCenterContextCore', () => ({
+  useTaskCenter: () => taskCenterState,
 }));
 
 vi.mock('react-i18next', () => ({
@@ -94,6 +100,10 @@ vi.mock('../components/ActionCard', () => ({
   default: () => <div />,
 }));
 
+vi.mock('../components/tasks/TaskSummaryCard', () => ({
+  TaskSummaryCard: ({ task }) => <div>{task.title}</div>,
+}));
+
 const renderWithProvider = (ui) =>
   render(<MantineProvider>{ui}</MantineProvider>);
 
@@ -101,12 +111,20 @@ describe('HomePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    taskCenterState = {
+      activeCount: 0,
+      attentionCount: 0,
+      loading: false,
+      openTaskCenter: openTaskCenterMock,
+      tasks: [],
+    };
     api.get.mockResolvedValue({
       data: {
         stats: {
           total_projects: 3,
           words_translated: 1200,
           active_tasks: 2,
+          active_projects: 2,
           completion_rate: 50,
         },
         charts: {
@@ -119,36 +137,38 @@ describe('HomePage', () => {
     });
   });
 
-  it('loads dashboard data, sets page context, and navigates from the hero CTA', async () => {
+  it('loads dashboard data, sets page context, and navigates from the state-driven CTA', async () => {
     renderWithProvider(<HomePage />);
 
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith('/api/system/stats');
     });
-    await screen.findByText('homepage_quick_links');
+    await screen.findByText('homepage_live_work_title');
 
     expect(setPageContextMock).toHaveBeenCalledWith(expect.any(Function));
     expect(setPageContextMock.mock.calls[0][0]('other')).toBe('home');
     expect(screen.queryByText('tutorial.auto_start_prompt.title')).not.toBeInTheDocument();
-    expect(screen.getByText('homepage_action_card_new_project')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'homepage_action_continue_project' })[0]).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'homepage_action_card_new_project' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'homepage_action_continue_project' })[0]);
     expect(navigateMock).toHaveBeenCalledWith('/project-management');
     expect(startTourMock).not.toHaveBeenCalled();
   });
 
-  it('hides tutorial prompt after being acknowledged and navigates from quick links', async () => {
-    localStorage.setItem('remis_tutorial_prompt_seen_v1', 'true');
+  it('foregrounds the task center when work is already running', async () => {
+    taskCenterState = {
+      ...taskCenterState,
+      activeCount: 1,
+      tasks: [{ task_id: 'task-1', title: 'Translation', status: 'running' }],
+    };
 
     renderWithProvider(<HomePage />);
 
     await waitFor(() => {
-      expect(screen.getByText('homepage_quick_links')).toBeInTheDocument();
+      expect(screen.getByText('homepage_action_view_tasks')).toBeInTheDocument();
     });
 
-    expect(screen.queryByText('tutorial.auto_start_prompt.title')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'homepage_quick_link_toolbox' }));
-    expect(navigateMock).toHaveBeenCalledWith('/tools');
+    fireEvent.click(screen.getByRole('button', { name: 'homepage_action_view_tasks' }));
+    expect(openTaskCenterMock).toHaveBeenCalledOnce();
   });
 });

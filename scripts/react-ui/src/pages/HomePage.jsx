@@ -1,51 +1,55 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Box, Button, Card, Grid, Group, Stack, Text, Title } from '@mantine/core';
+import { IconAlertTriangle, IconArrowRight, IconBriefcase, IconChecklist, IconPlayerPlay } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Grid, Card, Title, Text, ThemeIcon, Group, Stack, Box, Button, BackgroundImage, Overlay, ActionIcon } from '@mantine/core';
-import { IconRocket, IconRefresh, IconChartBar, IconVocabulary, IconChecklist, IconActivity, IconTools } from '@tabler/icons-react';
-import ActionCard from '../components/ActionCard';
-import ProjectStatusPieChart from '../components/ProjectStatusPieChart';
-import ProjectDistributionPieChart from '../components/ProjectDistributionPieChart';
-import GlossaryAnalysisBarChart from '../components/GlossaryAnalysisBarChart';
-import StatCard from '../components/StatCard';
-import RecentActivityList from '../components/RecentActivityList';
 
+import ProjectDistributionPieChart from '../components/ProjectDistributionPieChart';
+import ProjectStatusPieChart from '../components/ProjectStatusPieChart';
+import RecentActivityList from '../components/RecentActivityList';
+import StatCard from '../components/StatCard';
+import { TaskSummaryCard } from '../components/tasks/TaskSummaryCard';
+import { useTaskCenter } from '../context/TaskCenterContextCore';
+import { useTutorial } from '../context/TutorialContextCore';
 import api from '../utils/api';
 import styles from './HomePage.module.css';
-import { useTutorial } from '../context/TutorialContextCore';
 
 const HomePage = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { setPageContext } = useTutorial();
-
-  useEffect(() => {
-    setPageContext((prev) => (prev === 'home' ? prev : 'home'));
-  }, [setPageContext]);
-  const [slogan, setSlogan] = useState('');
+  const {
+    activeCount,
+    attentionCount,
+    loading: tasksLoading,
+    openTaskCenter,
+    tasks,
+  } = useTaskCenter();
   const [greeting, setGreeting] = useState('');
   const [stats, setStats] = useState({
     total_projects: 0,
     words_translated: 0,
-    active_tasks: 0,
-    completion_rate: 0
+    active_projects: 0,
+    completion_rate: 0,
   });
-  const [charts, setCharts] = useState({
-    project_status: [],
-    glossary_analysis: [],
-    project_distribution: []
-  });
+  const [charts, setCharts] = useState({ project_status: [], project_distribution: [] });
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setPageContext((prev) => (prev === 'home' ? prev : 'home'));
+  }, [setPageContext]);
 
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/system/stats');
-      const data = response.data;
-      setStats(data.stats);
-      setCharts(data.charts);
-      setRecentActivity(data.recent_activity);
+      const { data } = await api.get('/api/system/stats');
+      setStats({
+        ...data.stats,
+        active_projects: data.stats?.active_projects ?? data.stats?.active_tasks ?? 0,
+      });
+      setCharts(data.charts || {});
+      setRecentActivity(data.recent_activity || []);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
     } finally {
@@ -54,211 +58,135 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
-    const slogans = t('homepage_slogans', { returnObjects: true });
-    if (Array.isArray(slogans) && slogans.length > 0) {
-      const randomIndex = Math.floor(Math.random() * slogans.length);
-      setSlogan(slogans[randomIndex]);
-    }
-
     const hour = new Date().getHours();
-    let timeKey = 'morning';
-    if (hour >= 12 && hour < 18) timeKey = 'afternoon';
-    else if (hour >= 18 || hour < 5) timeKey = 'evening';
-
-    const timeGreetings = t('homepage_greetings', { returnObjects: true })?.[timeKey];
-    if (Array.isArray(timeGreetings) && timeGreetings.length > 0) {
-      const randomGreetingIndex = Math.floor(Math.random() * timeGreetings.length);
-      setGreeting(timeGreetings[randomGreetingIndex]);
-    } else {
-      // Fallback
-      if (hour < 12) setGreeting('Good Morning');
-      else if (hour < 18) setGreeting('Good Afternoon');
-      else setGreeting('Good Evening');
-    }
-
+    const timeKey = hour >= 18 || hour < 5 ? 'evening' : hour >= 12 ? 'afternoon' : 'morning';
+    const options = t('homepage_greetings', { returnObjects: true })?.[timeKey];
+    setGreeting(Array.isArray(options) && options.length > 0 ? options[0] : t('homepage_workspace_title'));
     fetchDashboardData();
   }, [fetchDashboardData, i18n.language, t]);
 
+  const visibleTasks = useMemo(
+    () => tasks.filter((task) => ['queued', 'running', 'awaiting_approval', 'failed', 'interrupted'].includes(task.status)).slice(0, 3),
+    [tasks],
+  );
+
+  const nextAction = useMemo(() => {
+    if (attentionCount > 0) {
+      return { label: t('homepage_action_review_tasks'), onClick: openTaskCenter, icon: IconAlertTriangle };
+    }
+    if (activeCount > 0) {
+      return { label: t('homepage_action_view_tasks'), onClick: openTaskCenter, icon: IconChecklist };
+    }
+    if (stats.total_projects === 0) {
+      return { label: t('homepage_action_card_new_project'), onClick: () => navigate('/project-management'), icon: IconBriefcase };
+    }
+    return { label: t('homepage_action_continue_project'), onClick: () => navigate('/project-management'), icon: IconPlayerPlay };
+  }, [activeCount, attentionCount, navigate, openTaskCenter, stats.total_projects, t]);
+  const NextIcon = nextAction.icon;
+
+  const openTask = (task) => navigate(task.source_route || '/');
+
   return (
-    <Box h="100vh" style={{ overflow: 'hidden' }}>
-      <Box style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
-        <Box p="md">
-          {/* Welcome Banner */}
-          <Box
-            id="welcome-banner"
-            mb="xl"
-            className={styles.welcomeBanner}
-            p={40}
-          >
-            <Stack style={{ position: 'relative', zIndex: 2 }}>
-              <Title order={1} className={styles.cardTitle} style={{ fontSize: '2.4rem', fontWeight: 800 }}>
-                {greeting}
-              </Title>
-              <Text size="lg" style={{ opacity: 0.9, maxWidth: '600px', color: 'var(--text-main)' }}>
-                "{slogan}"
-              </Text>
-              <Group mt="lg">
-                <Button
-                  size="md"
-                  radius="md"
-                  leftSection={<IconRocket size={20} />}
-                  className={styles.actionButton}
-                  onClick={() => navigate('/project-management')}
-                >
-                  {t('homepage_action_card_new_project')}
+    <Box h="100vh" className={styles.pageScroll}>
+      <Box p={{ base: 'md', lg: 'xl' }} maw={1500} mx="auto">
+        <Group justify="space-between" align="flex-start" mb="lg" gap="md">
+          <div>
+            <Text size="sm" fw={700} c="dimmed" tt="uppercase">{t('homepage_workspace_eyebrow')}</Text>
+            <Title order={1} className={styles.pageTitle}>{greeting}</Title>
+            <Text c="dimmed" maw={680}>{t('homepage_workspace_subtitle')}</Text>
+          </div>
+          <Button size="md" leftSection={<NextIcon size={18} />} onClick={nextAction.onClick}>
+            {nextAction.label}
+          </Button>
+        </Group>
+
+        {attentionCount > 0 && (
+          <Alert mb="md" color="orange" icon={<IconAlertTriangle size={19} />}>
+            {t('task_center.attention_summary', { count: attentionCount })}
+          </Alert>
+        )}
+
+        <Grid gutter="md" mb="md">
+          <Grid.Col span={{ base: 12, lg: 8 }}>
+            <Card withBorder radius="md" p="lg" className={styles.glassCard} h="100%">
+              <Group justify="space-between" mb="md">
+                <div>
+                  <Title order={3}>{t('homepage_live_work_title')}</Title>
+                  <Text size="sm" c="dimmed">{t('homepage_live_work_subtitle')}</Text>
+                </div>
+                <Button variant="subtle" rightSection={<IconArrowRight size={15} />} onClick={openTaskCenter}>
+                  {t('task_center.title')}
                 </Button>
-                {/* <Button size="md" radius="md" leftSection={<IconRefresh size={20} />} className={styles.actionButton}>
-                  {t('homepage_action_card_update_project')}
-                </Button> */}
               </Group>
-            </Stack>
-
-            {/* Decorative Background Elements */}
-            <IconRocket
-              size={300}
-              className={styles.floatingIcon}
-              style={{
-                position: 'absolute',
-                right: -50,
-                bottom: -50,
-                opacity: 0.08,
-                color: 'var(--text-highlight)',
-                pointerEvents: 'none'
-              }}
-            />
-          </Box>
-
-          {/* Key Metrics Row */}
-          <Grid id="stat-cards" gutter="md" mb="xl">
-            <Grid.Col span={{ xs: 12, sm: 6, lg: 3 }}>
+              {visibleTasks.length > 0 ? (
+                <Stack gap="sm">
+                  {visibleTasks.map((task) => (
+                    <TaskSummaryCard compact key={task.task_id} task={task} onOpen={openTask} />
+                  ))}
+                </Stack>
+              ) : (
+                <Stack align="center" justify="center" mih={180} gap="xs">
+                  <Text fw={700}>{tasksLoading ? t('loading') : t('task_center.empty_title')}</Text>
+                  <Text size="sm" c="dimmed" ta="center">{t('homepage_live_work_empty')}</Text>
+                  <Button variant="light" onClick={() => navigate('/project-management')}>
+                    {t('homepage_action_continue_project')}
+                  </Button>
+                </Stack>
+              )}
+            </Card>
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, lg: 4 }}>
+            <Stack gap="md" h="100%">
               <StatCard
                 title={t('homepage_stat_total_projects')}
                 value={stats.total_projects.toString()}
-                icon={<IconChecklist size={24} />}
+                icon={<IconBriefcase size={22} />}
                 color="blue"
                 progress={100}
                 trend={0}
                 className={styles.glassCard}
               />
-            </Grid.Col>
-            <Grid.Col span={{ xs: 12, sm: 6, lg: 3 }}>
               <StatCard
-                title={t('homepage_stat_words_translated')}
-                value={stats.words_translated.toLocaleString()}
-                icon={<IconVocabulary size={24} />}
+                title={t('homepage_stat_active_projects')}
+                value={stats.active_projects.toString()}
+                icon={<IconPlayerPlay size={22} />}
                 color="teal"
-                progress={stats.completion_rate}
+                progress={Math.min(100, (stats.active_projects / (stats.total_projects || 1)) * 100)}
                 trend={0}
                 className={styles.glassCard}
               />
-            </Grid.Col>
-            <Grid.Col span={{ xs: 12, sm: 6, lg: 3 }}>
-              <StatCard
-                title={t('homepage_stat_active_tasks')}
-                value={stats.active_tasks.toString()}
-                icon={<IconActivity size={24} />}
-                color="orange"
-                progress={Math.min(100, (stats.active_tasks / (stats.total_projects || 1)) * 100)}
-                trend={0}
-                className={styles.glassCard}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ xs: 12, sm: 6, lg: 3 }}>
               <StatCard
                 title={t('homepage_stat_completion_rate')}
                 value={`${stats.completion_rate}%`}
-                icon={<IconChartBar size={24} />}
+                icon={<IconChecklist size={22} />}
                 color="grape"
                 progress={stats.completion_rate}
                 trend={0}
                 className={styles.glassCard}
               />
-            </Grid.Col>
-          </Grid>
+            </Stack>
+          </Grid.Col>
+        </Grid>
 
-          {/* Main Dashboard Content */}
-          <Grid gutter="md">
-            {/* Left Column: Charts */}
-            <Grid.Col span={{ xs: 12, lg: 8 }}>
-              <Stack gap="md">
-                <Card shadow="sm" padding="lg" radius="md" withBorder className={styles.glassCard}>
-                  <Group justify="space-between" mb="md">
-                    <Title order={4} className={styles.cardTitle}>{t('homepage_chart_pie_title')}</Title>
-                    <ActionIcon variant="subtle" color="gray" onClick={fetchDashboardData} loading={loading}><IconRefresh size={16} /></ActionIcon>
-                  </Group>
-                  <Grid>
-                    <Grid.Col span={{ base: 12, md: 6 }}>
-                      <Text ta="center" size="sm" c="dimmed" mb="xs">{t('homepage_pie_chart_status_title', 'By Status')}</Text>
-                      <ProjectStatusPieChart data={charts.project_status} />
-                    </Grid.Col>
-                    <Grid.Col span={{ base: 12, md: 6 }}>
-                      <Text ta="center" size="sm" c="dimmed" mb="xs">{t('homepage_pie_chart_distribution_title', 'By Game')}</Text>
-                      <ProjectDistributionPieChart data={charts.project_distribution} />
-                    </Grid.Col>
-                  </Grid>
-                </Card>
-                <Card shadow="sm" padding="lg" radius="md" withBorder className={styles.glassCard}>
-                  <Group justify="space-between" mb="md">
-                    <Title order={4} className={styles.cardTitle}>{t('homepage_chart_bar_title')}</Title>
-                    <ActionIcon variant="subtle" color="gray" onClick={fetchDashboardData} loading={loading}><IconRefresh size={16} /></ActionIcon>
-                  </Group>
-                  <GlossaryAnalysisBarChart data={charts.glossary_analysis} />
-                </Card>
-              </Stack>
-            </Grid.Col>
-
-            {/* Right Column: Recent Activity & Quick Actions */}
-            <Grid.Col span={{ xs: 12, lg: 4 }}>
-              <Stack gap="md">
-                <RecentActivityList
-                  id="recent-activity"
-                  className={styles.glassCard}
-                  activities={recentActivity}
-                  loading={loading}
-                />
-
-                <Card id="quick-links" shadow="sm" padding="lg" radius="md" withBorder className={styles.glassCard}>
-                  <Title order={4} mb="md" className={styles.cardTitle}>{t('homepage_quick_links')}</Title>
-                  <Stack gap="xs">
-                    <Button
-                      variant="light"
-                      color="blue"
-                      fullWidth
-                      justify="flex-start"
-                      leftSection={<IconTools size={16} />}
-                      className={styles.actionButton}
-                      onClick={() => navigate('/tools')}
-                    >
-                      {t('homepage_quick_link_toolbox')}
-                    </Button>
-                    <Button
-                      variant="light"
-                      color="teal"
-                      fullWidth
-                      justify="flex-start"
-                      leftSection={<IconRefresh size={16} />}
-                      className={styles.actionButton}
-                      onClick={() => navigate('/glossary-manager')}
-                    >
-                      {t('homepage_quick_link_glossary')}
-                    </Button>
-                    <Button
-                      variant="light"
-                      color="orange"
-                      fullWidth
-                      justify="flex-start"
-                      leftSection={<IconChecklist size={16} />}
-                      className={styles.actionButton}
-                      onClick={() => navigate('/proofreading')}
-                    >
-                      {t('homepage_quick_link_proofreading')}
-                    </Button>
-                  </Stack>
-                </Card>
-              </Stack>
-            </Grid.Col>
-          </Grid>
-        </Box>
+        <Grid gutter="md">
+          <Grid.Col span={{ base: 12, lg: 8 }}>
+            <Card withBorder radius="md" p="lg" className={styles.glassCard}>
+              <Title order={3} mb="md">{t('homepage_project_portfolio')}</Title>
+              <Grid>
+                <Grid.Col span={{ base: 12, sm: 6 }}><ProjectStatusPieChart data={charts.project_status || []} /></Grid.Col>
+                <Grid.Col span={{ base: 12, sm: 6 }}><ProjectDistributionPieChart data={charts.project_distribution || []} /></Grid.Col>
+              </Grid>
+            </Card>
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, lg: 4 }}>
+            <RecentActivityList
+              id="recent-activity"
+              className={styles.glassCard}
+              activities={recentActivity}
+              loading={loading}
+            />
+          </Grid.Col>
+        </Grid>
       </Box>
     </Box>
   );

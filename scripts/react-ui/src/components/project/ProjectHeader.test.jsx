@@ -27,7 +27,7 @@ const baseProjectDetails = {
     totalFiles: 12,
     totalLines: 340,
     translated: 65,
-    toBeProofread: 20,
+    toBeProofread: 0,
   },
 };
 
@@ -36,7 +36,7 @@ describe('ProjectHeader', () => {
     vi.clearAllMocks();
   });
 
-  it('shows active project actions and navigates to translation', () => {
+  it('shows active project actions and navigates to translation', async () => {
     const handleStatusChange = vi.fn();
     const onDeleteForever = vi.fn();
     const onManageProject = vi.fn();
@@ -50,16 +50,16 @@ describe('ProjectHeader', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'project_management.archive_project' }));
-    fireEvent.click(screen.getByRole('button', { name: 'project_management.manage_project' }));
-    fireEvent.click(screen.getByRole('button', { name: 'button_start_translation' }));
+    fireEvent.click(screen.getByRole('button', { name: 'project_management.project_menu' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'project_management.archive_project' }));
+    fireEvent.click(screen.getByRole('button', { name: 'project_management.primary_continue_translation' }));
 
     expect(handleStatusChange).toHaveBeenCalledWith('archived');
-    expect(onManageProject).toHaveBeenCalledOnce();
+    expect(onManageProject).not.toHaveBeenCalled();
     expect(navigateMock).toHaveBeenCalledWith('/translation?projectId=proj-42');
   });
 
-  it('shows archived project actions for restore and soft delete', () => {
+  it('shows archived project actions for restore and soft delete', async () => {
     const handleStatusChange = vi.fn();
 
     renderWithProvider(
@@ -72,13 +72,14 @@ describe('ProjectHeader', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'project_management.restore_project' }));
-    fireEvent.click(screen.getByRole('button', { name: 'project_management.delete_project' }));
+    fireEvent.click(screen.getByRole('button', { name: 'project_management.project_menu' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'project_management.delete_project' }));
 
     expect(handleStatusChange).toHaveBeenNthCalledWith(1, 'active');
     expect(handleStatusChange).toHaveBeenNthCalledWith(2, 'deleted');
   });
 
-  it('shows deleted project actions for restore and permanent delete', () => {
+  it('shows deleted project actions for restore and permanent delete', async () => {
     const handleStatusChange = vi.fn();
     const onDeleteForever = vi.fn();
 
@@ -92,7 +93,8 @@ describe('ProjectHeader', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'project_management.restore_project' }));
-    fireEvent.click(screen.getByRole('button', { name: 'project_management.delete_forever' }));
+    fireEvent.click(screen.getByRole('button', { name: 'project_management.project_menu' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'project_management.delete_forever' }));
 
     expect(handleStatusChange).toHaveBeenCalledWith('active');
     expect(onDeleteForever).toHaveBeenCalledOnce();

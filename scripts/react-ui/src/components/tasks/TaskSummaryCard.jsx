@@ -1,0 +1,68 @@
+import React from 'react';
+import { Badge, Button, Group, Paper, Progress, Stack, Text } from '@mantine/core';
+import { IconArrowRight } from '@tabler/icons-react';
+import { useTranslation } from 'react-i18next';
+
+const STATUS_COLORS = {
+  queued: 'gray',
+  running: 'blue',
+  awaiting_approval: 'yellow',
+  completed: 'green',
+  failed: 'red',
+  interrupted: 'orange',
+  cancelled: 'gray',
+  unknown: 'gray',
+};
+
+export function TaskSummaryCard({ compact = false, onOpen, task }) {
+  const { t } = useTranslation();
+  const kindLabel = t(`task_center.kind.${task.kind}`, { defaultValue: task.title });
+  const statusLabel = t(`task_center.status.${task.status}`, { defaultValue: task.status });
+  const creatorLabel = task.created_by?.label || t(`task_center.creator.${task.created_by?.type || 'system'}`);
+  const showProgress = ['queued', 'running'].includes(task.status);
+
+  return (
+    <Paper withBorder radius="md" p={compact ? 'sm' : 'md'} data-remis-surface="surface">
+      <Stack gap={compact ? 6 : 'sm'}>
+        <Group justify="space-between" align="flex-start" wrap="nowrap">
+          <div style={{ minWidth: 0 }}>
+            <Text fw={700} lineClamp={1}>{kindLabel}</Text>
+            {(task.stage || task.message) && (
+              <Text size="sm" c="dimmed" lineClamp={compact ? 1 : 2}>
+                {task.stage || task.message}
+              </Text>
+            )}
+          </div>
+          <Badge color={STATUS_COLORS[task.status] || 'gray'} variant="light">
+            {statusLabel}
+          </Badge>
+        </Group>
+        {showProgress && (
+          <Progress value={task.progress || 0} size="sm" radius="xl" aria-label={t('task_center.progress')} />
+        )}
+        {task.attention_reason && (
+          <Text size="sm" c="orange">{task.attention_reason}</Text>
+        )}
+        <Group gap="xs">
+          <Text size="xs" c="dimmed">{t('task_center.created_by', { creator: creatorLabel })}</Text>
+          {task.blocking && ['queued', 'running', 'awaiting_approval'].includes(task.status) && (
+            <Badge size="xs" color="orange" variant="outline">{t('task_center.blocking')}</Badge>
+          )}
+        </Group>
+        <Group justify="space-between">
+          <Text size="xs" c="dimmed">
+            {task.progress || 0}%
+          </Text>
+          <Button
+            variant="subtle"
+            size="compact-sm"
+            rightSection={<IconArrowRight size={14} />}
+            onClick={() => onOpen(task)}
+          >
+            {t('task_center.view_task')}
+          </Button>
+        </Group>
+      </Stack>
+    </Paper>
+  );
+}

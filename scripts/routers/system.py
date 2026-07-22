@@ -104,6 +104,7 @@ async def get_system_stats():
                 "total_projects": dashboard_stats["total_projects"],
                 "words_translated": dashboard_stats["translated_files"], 
                 "active_tasks": dashboard_stats["active_projects"],
+                "active_projects": dashboard_stats["active_projects"],
                 "completion_rate": dashboard_stats["completion_rate"]
             },
             "charts": {

@@ -16,6 +16,7 @@ vi.mock('../services/projectService', () => ({
     checkArchive: vi.fn(),
     getProjectConfig: vi.fn(),
     getProjectFiles: vi.fn(),
+    getProjectValidationStatus: vi.fn(),
     getProjectsByStatus: vi.fn(),
   },
 }));
@@ -51,6 +52,9 @@ describe('useProjectManagementData', () => {
         source_entry_count: 20,
       },
     });
+    projectService.getProjectValidationStatus.mockResolvedValue({
+      data: { issues_count: 2, last_updated_at: '2026-07-22T00:00:00Z' },
+    });
   });
 
   it('normalizes wrapped project list payloads', async () => {
@@ -77,6 +81,7 @@ describe('useProjectManagementData', () => {
     await waitFor(() => {
       expect(result.current.projectDetails).toMatchObject({
         project_id: 'project-1',
+        validation: { issues_count: 2 },
         overview: {
           totalFiles: 1,
           totalLines: 20,
