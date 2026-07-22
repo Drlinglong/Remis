@@ -36,6 +36,14 @@
   "page_title_cicd": "CI/CD",
   "page_title_project_management": "Projektmanagement",
   "page_title_settings": "Einstellungen",
+  "task_detail": {
+    "eyebrow": "Aufgabenverlauf", "archived": "Archiviert", "elapsed": "Laufzeit", "more_actions": "Weitere Aktionen",
+    "restore": "Im Aufgabencenter wiederherstellen", "archive": "Im Aufgabencenter ausblenden",
+    "load_error": "Aufgabe konnte nicht geladen werden", "not_available": "Nicht verfügbar", "run_log": "Ausführungsprotokoll",
+    "live_updates": "Live-Aktualisierung", "event_count": "{{count}} Ereignisse", "no_events": "Keine Ausführungsereignisse aufgezeichnet",
+    "task_info": "Aufgabendetails", "task_id": "Aufgaben-ID", "project": "Projekt", "started_at": "Gestartet", "finished_at": "Beendet",
+    "result": "Ergebnis", "output_paths": "Ausgabepfade", "child_tasks": "Unteraufgaben", "back_to_workflow": "Zurück zum Arbeitsablauf"
+  },
   "app_title": "Paradox Mod Localization Factory",
   "footer_text": "Paradox Mod Localization Factory ©2025 Erstellt von Linglong",
   "common.all_games": "Alle Spiele",

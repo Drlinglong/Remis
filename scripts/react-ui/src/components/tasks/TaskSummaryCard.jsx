@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Badge, Button, Group, Paper, Progress, Stack, Text } from '@mantine/core';
-import { IconArrowRight } from '@tabler/icons-react';
+import { IconArrowRight, IconClock } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+
+import { ACTIVE_TASK_STATUSES, formatTaskDuration, taskDurationMs } from '../../utils/taskTime';
 
 const STATUS_COLORS = {
   queued: 'gray',
@@ -16,6 +18,15 @@ const STATUS_COLORS = {
 
 export function TaskSummaryCard({ compact = false, onOpen, task }) {
   const { t } = useTranslation();
+  const active = ACTIVE_TASK_STATUSES.has(task.status);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!active) return undefined;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [active]);
+
   const kindLabel = t(`task_center.kind.${task.kind}`, { defaultValue: task.title });
   const statusLabel = t(`task_center.status.${task.status}`, { defaultValue: task.status });
   const creatorLabel = task.created_by?.label || t(`task_center.creator.${task.created_by?.type || 'system'}`);
@@ -50,9 +61,13 @@ export function TaskSummaryCard({ compact = false, onOpen, task }) {
           )}
         </Group>
         <Group justify="space-between">
-          <Text size="xs" c="dimmed">
-            {task.progress || 0}%
-          </Text>
+          <Group gap={6} c="dimmed" title={t('task_detail.elapsed')}>
+            <IconClock size={14} />
+            <Text size="xs" ff="monospace">
+              {formatTaskDuration(taskDurationMs(task, now))}
+            </Text>
+            {showProgress && <Text size="xs">· {task.progress || 0}%</Text>}
+          </Group>
           <Button
             variant="subtle"
             size="compact-sm"

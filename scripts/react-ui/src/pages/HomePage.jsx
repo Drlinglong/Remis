@@ -12,6 +12,7 @@ import { TaskSummaryCard } from '../components/tasks/TaskSummaryCard';
 import { useTaskCenter } from '../context/TaskCenterContextCore';
 import { useTutorial } from '../context/TutorialContextCore';
 import api from '../utils/api';
+import { taskDetailRoute } from '../utils/taskRoutes';
 import styles from './HomePage.module.css';
 
 const HomePage = () => {
@@ -65,10 +66,14 @@ const HomePage = () => {
     fetchDashboardData();
   }, [fetchDashboardData, i18n.language, t]);
 
-  const visibleTasks = useMemo(
-    () => tasks.filter((task) => ['queued', 'running', 'awaiting_approval', 'failed', 'interrupted'].includes(task.status)).slice(0, 3),
-    [tasks],
-  );
+  const visibleTasks = useMemo(() => {
+    const actionableTasks = tasks.filter((task) => (
+      ['queued', 'running', 'awaiting_approval', 'failed', 'interrupted'].includes(task.status)
+    ));
+    const latestCompletedTask = tasks.find((task) => task.status === 'completed');
+    if (!latestCompletedTask) return actionableTasks.slice(0, 3);
+    return [...actionableTasks.slice(0, 2), latestCompletedTask];
+  }, [tasks]);
 
   const nextAction = useMemo(() => {
     if (attentionCount > 0) {
@@ -84,7 +89,7 @@ const HomePage = () => {
   }, [activeCount, attentionCount, navigate, openTaskCenter, stats.total_projects, t]);
   const NextIcon = nextAction.icon;
 
-  const openTask = (task) => navigate(task.source_route || '/');
+  const openTask = (task) => navigate(taskDetailRoute(task.task_id));
 
   return (
     <Box h="100vh" className={styles.pageScroll}>

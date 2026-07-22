@@ -36,6 +36,14 @@
   "page_title_cicd": "CI/CD",
   "page_title_project_management": "Gestion de projet",
   "page_title_settings": "Paramètres",
+  "task_detail": {
+    "eyebrow": "Historique des tâches", "archived": "Archivée", "elapsed": "Temps écoulé", "more_actions": "Plus d’actions",
+    "restore": "Restaurer dans le centre des tâches", "archive": "Masquer du centre des tâches",
+    "load_error": "Impossible de charger la tâche", "not_available": "Non disponible", "run_log": "Journal d’exécution",
+    "live_updates": "Mise à jour en direct", "event_count": "{{count}} événements", "no_events": "Aucun événement d’exécution enregistré",
+    "task_info": "Détails de la tâche", "task_id": "ID de tâche", "project": "Projet", "started_at": "Démarrée", "finished_at": "Terminée",
+    "result": "Résultat", "output_paths": "Chemins de sortie", "child_tasks": "Sous-tâches", "back_to_workflow": "Retour au flux de travail"
+  },
   "app_title": "Usine de localisation de mods Paradox",
   "footer_text": "Paradox Mod Localization Factory ©2025 Créé par Linglong",
   "common.all_games": "Tous les jeux",

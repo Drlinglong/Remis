@@ -40,6 +40,7 @@ const ArchivesPage = lazy(() => import('./pages/ArchivesPage'));
 const NeologismReviewPage = lazy(() => import('./pages/NeologismReviewPage'));
 const AgentWorkshopPage = lazy(() => import('./pages/AgentWorkshopPage'));
 const CopilotPage = lazy(() => import('./pages/CopilotPage'));
+const TaskDetailPage = lazy(() => import('./pages/TaskDetailPage'));
 
 const RouteFallback = () => (
     <Center h="50vh">
@@ -56,6 +57,7 @@ const appRouteConfig = [
     { path: '/proofreading', element: <ProofreadingPage /> },
     { path: '/project-management', element: <ProjectManagementPage /> },
     { path: '/project-management/:projectId', element: <ProjectManagementPage /> },
+    { path: '/tasks/:taskId', element: <TaskDetailPage /> },
     { path: '/project-tracking', element: <ProjectTrackingPage /> },
     { path: '/incremental-translation', element: <IncrementalTranslationPage /> },
     ...(FEATURES.ENABLE_NEOLOGISM_TRIBUNAL ? [{ path: '/neologism-review', element: <NeologismReviewPage /> }] : []),

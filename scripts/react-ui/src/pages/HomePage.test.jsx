@@ -101,7 +101,7 @@ vi.mock('../components/ActionCard', () => ({
 }));
 
 vi.mock('../components/tasks/TaskSummaryCard', () => ({
-  TaskSummaryCard: ({ task }) => <div>{task.title}</div>,
+  TaskSummaryCard: ({ task, onOpen }) => <button type="button" onClick={() => onOpen(task)}>{task.title}</button>,
 }));
 
 const renderWithProvider = (ui) =>
@@ -170,5 +170,22 @@ describe('HomePage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'homepage_action_view_tasks' }));
     expect(openTaskCenterMock).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the latest completed task visible and opens its exact task record', async () => {
+    taskCenterState = {
+      ...taskCenterState,
+      tasks: [
+        { task_id: 'task-running', title: 'Running translation', status: 'running' },
+        { task_id: 'task-completed', title: 'Completed translation', status: 'completed' },
+      ],
+    };
+
+    renderWithProvider(<HomePage />);
+
+    const completedTask = await screen.findByRole('button', { name: 'Completed translation' });
+    fireEvent.click(completedTask);
+
+    expect(navigateMock).toHaveBeenCalledWith('/tasks/task-completed');
   });
 });

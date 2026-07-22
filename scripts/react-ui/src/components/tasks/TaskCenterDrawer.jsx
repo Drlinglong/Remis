@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import { useTaskCenter } from '../../context/TaskCenterContextCore';
+import { taskDetailRoute } from '../../utils/taskRoutes';
 import { TaskSummaryCard } from './TaskSummaryCard';
 
 export function TaskCenterDrawer() {
@@ -21,7 +22,7 @@ export function TaskCenterDrawer() {
 
   const openTask = (task) => {
     closeTaskCenter();
-    navigate(task.source_route || '/');
+    navigate(taskDetailRoute(task.task_id));
   };
 
   return (

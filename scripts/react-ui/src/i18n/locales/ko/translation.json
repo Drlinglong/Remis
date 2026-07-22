@@ -36,6 +36,14 @@
   "page_title_cicd": "CI/CD",
   "page_title_project_management": "프로젝트 관리",
   "page_title_settings": "설정",
+  "task_detail": {
+    "eyebrow": "작업 기록", "archived": "보관됨", "elapsed": "경과 시간", "more_actions": "추가 작업",
+    "restore": "작업 센터에 복원", "archive": "작업 센터에서 숨기기",
+    "load_error": "작업을 불러올 수 없습니다", "not_available": "사용할 수 없음", "run_log": "실행 로그",
+    "live_updates": "실시간 업데이트 중", "event_count": "이벤트 {{count}}개", "no_events": "기록된 실행 이벤트가 없습니다",
+    "task_info": "작업 상세 정보", "task_id": "작업 ID", "project": "프로젝트", "started_at": "시작 시간", "finished_at": "완료 시간",
+    "result": "결과", "output_paths": "출력 경로", "child_tasks": "하위 작업", "back_to_workflow": "워크플로로 돌아가기"
+  },
   "app_title": "패러독스 모드 현지화 팩토리",
   "footer_text": "패러독스 모드 현지화 팩토리 ©2025 Created by Linglong",
   "common.all_games": "모든 게임",

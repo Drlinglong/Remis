@@ -36,6 +36,14 @@
   "page_title_cicd": "CI/CD",
   "page_title_project_management": "プロジェクト管理",
   "page_title_settings": "設定",
+  "task_detail": {
+    "eyebrow": "タスク履歴", "archived": "アーカイブ済み", "elapsed": "経過時間", "more_actions": "その他の操作",
+    "restore": "タスクセンターに戻す", "archive": "タスクセンターから非表示",
+    "load_error": "タスクを読み込めませんでした", "not_available": "利用できません", "run_log": "実行ログ",
+    "live_updates": "リアルタイム更新中", "event_count": "{{count}} 件のイベント", "no_events": "実行イベントは記録されていません",
+    "task_info": "タスクの詳細", "task_id": "タスク ID", "project": "プロジェクト", "started_at": "開始日時", "finished_at": "終了日時",
+    "result": "結果", "output_paths": "出力パス", "child_tasks": "子タスク", "back_to_workflow": "ワークフローに戻る"
+  },
   "app_title": "Paradox Mod 翻訳工場",
   "footer_text": "Paradox Mod 翻訳工場 ©2025 Created by Linglong",
   "common.all_games": "すべてのゲーム",

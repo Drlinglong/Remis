@@ -36,6 +36,14 @@
   "page_title_cicd": "CI/CD",
   "page_title_project_management": "Proje Yönetimi",
   "page_title_settings": "Ayarlar",
+  "task_detail": {
+    "eyebrow": "Görev geçmişi", "archived": "Arşivlendi", "elapsed": "Geçen süre", "more_actions": "Diğer işlemler",
+    "restore": "Görev merkezine geri yükle", "archive": "Görev merkezinde gizle",
+    "load_error": "Görev yüklenemedi", "not_available": "Kullanılamıyor", "run_log": "Çalıştırma günlüğü",
+    "live_updates": "Canlı güncelleniyor", "event_count": "{{count}} olay", "no_events": "Kaydedilmiş çalıştırma olayı yok",
+    "task_info": "Görev ayrıntıları", "task_id": "Görev kimliği", "project": "Proje", "started_at": "Başlangıç", "finished_at": "Bitiş",
+    "result": "Sonuç", "output_paths": "Çıktı yolları", "child_tasks": "Alt görevler", "back_to_workflow": "İş akışına dön"
+  },
   "app_title": "Paradox Mod Yerelleştirme Fabrikası",
   "footer_text": "Paradox Mod Yerelleştirme Fabrikası ©2025 Linglong tarafından oluşturuldu",
   "common.all_games": "Tüm Oyunlar",
