@@ -84,11 +84,15 @@ describe('TaskDetailPage', () => {
     });
     expect((await screen.findAllByText('Failed translation attempt')).length).toBeGreaterThan(0);
     expect(screen.getByText('The selected request failed')).toBeInTheDocument();
-    expect(screen.getByText('Remis Plan - Demo Mod — Victoria 3')).toBeInTheDocument();
+    expect(screen.getByText('Remis Plan - Demo Mod')).toBeInTheDocument();
+    expect(screen.getByText('Victoria 3').closest('[data-game-color]')).toHaveAttribute('data-game-color', 'blue');
     expect(screen.getAllByText('Initial translation').length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByText('task_center.blocking')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'task_detail.back_to_workflow' }));
     expect(navigateMock).toHaveBeenCalledWith('/translation');
+
+    fireEvent.click(screen.getByRole('button', { name: 'context_sidebar.project_details: Remis Plan - Demo Mod' }));
+    expect(navigateMock).toHaveBeenCalledWith('/project-management/project-demo');
   });
 });

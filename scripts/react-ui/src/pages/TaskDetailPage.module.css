@@ -75,6 +75,17 @@
   overflow-wrap: anywhere;
 }
 
+.projectIdentityCopy {
+  min-width: 0;
+}
+
+.projectName {
+  margin-top: 2px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
 .blockingBadge {
   width: fit-content;
   cursor: help;

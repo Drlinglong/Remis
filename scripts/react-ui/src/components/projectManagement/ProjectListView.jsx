@@ -22,19 +22,7 @@ import {
 
 import heroBg from '../../assets/project_hero_bg.png';
 import styles from '../../pages/ProjectManagement.module.css';
-
-const GAME_BADGE_COLORS = {
-  victoria3: 'blue',
-  hoi4: 'olive',
-  stellaris: 'grape',
-  eu4: 'cyan',
-  eu5: 'orange',
-  ck3: 'red',
-};
-
-const getGameBadgeColor = (gameId) => (
-  GAME_BADGE_COLORS[String(gameId || '').toLowerCase()] || 'gray'
-);
+import { getGameBadgeColor } from '../../utils/gamePresentation';
 
 export function ProjectListView({
   projects,

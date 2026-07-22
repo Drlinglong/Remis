@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ActionIcon,
   Alert,
   Badge,
   Box,
@@ -21,6 +22,7 @@ import {
 import {
   IconAlertTriangle,
   IconArchive,
+  IconArrowUpRight,
   IconArrowBackUp,
   IconClock,
   IconDots,
@@ -35,6 +37,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { useTaskCenter } from '../context/TaskCenterContextCore';
 import api from '../utils/api';
+import { getGameBadgeColor } from '../utils/gamePresentation';
 import { ACTIVE_TASK_STATUSES, formatTaskDuration, taskDurationMs } from '../utils/taskTime';
 import { taskDetailRoute } from '../utils/taskRoutes';
 import styles from './TaskDetailPage.module.css';
@@ -149,7 +152,6 @@ export default function TaskDetailPage() {
   const projectName = task?.project_context?.name;
   const gameId = task?.project_context?.game_id;
   const gameName = gameId ? t(`game_name_${String(gameId).toLowerCase()}`, { defaultValue: gameId }) : '';
-  const projectDisplayName = [projectName, gameName].filter(Boolean).join(' — ');
 
   const mutateArchive = async (action) => {
     setMutating(true);
@@ -277,13 +279,38 @@ export default function TaskDetailPage() {
                 <Title order={3} mb="md">{t('task_detail.task_info')}</Title>
                 <Stack gap="sm">
                   <Box>
-                    <Text size="xs" c="dimmed">{t('task_detail.project_name')}</Text>
-                    {task.project_id && projectName ? (
-                      <Button variant="transparent" px={0} h="auto" onClick={() => navigate(`/project-management/${encodeURIComponent(task.project_id)}`)}>
-                        <Text size="sm" fw={700} ta="left">{projectDisplayName}</Text>
-                      </Button>
-                    ) : (
-                      <Text size="sm">{projectDisplayName || t('task_detail.not_available')}</Text>
+                    <Group justify="space-between" align="flex-start" gap="sm" wrap="nowrap">
+                      <Box className={styles.projectIdentityCopy}>
+                        <Text size="xs" c="dimmed">{t('task_detail.project_name')}</Text>
+                        <Text size="sm" fw={700} className={styles.projectName}>
+                          {projectName || t('task_detail.not_available')}
+                        </Text>
+                      </Box>
+                      {task.project_id && (
+                        <Tooltip label={t('context_sidebar.project_details')} withArrow>
+                          <ActionIcon
+                            variant="subtle"
+                            size="lg"
+                            aria-label={`${t('context_sidebar.project_details')}: ${projectName || task.project_id}`}
+                            onClick={() => navigate(`/project-management/${encodeURIComponent(task.project_id)}`)}
+                          >
+                            <IconArrowUpRight size={18} />
+                          </ActionIcon>
+                        </Tooltip>
+                      )}
+                    </Group>
+                    {gameName && (
+                      <Group gap="xs" mt="xs">
+                        <Text size="xs" c="dimmed">{t('glossary_game')}</Text>
+                        <Badge
+                          color={getGameBadgeColor(gameId)}
+                          data-game-color={getGameBadgeColor(gameId)}
+                          variant="light"
+                          size="sm"
+                        >
+                          {gameName}
+                        </Badge>
+                      </Group>
                     )}
                   </Box>
                   <Box>
