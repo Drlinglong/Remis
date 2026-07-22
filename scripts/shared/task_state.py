@@ -1,6 +1,7 @@
 import logging
 import threading
 from copy import deepcopy
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from scripts.shared.state import tasks
@@ -9,6 +10,13 @@ from scripts.shared.ws_manager import ws_manager
 _LOCK = threading.RLock()
 MAX_STORED_LOG_LINES = 1000
 MAX_PAYLOAD_LOG_LINES = 100
+ACTIVE_TASK_STATUSES = {"pending", "starting", "queued", "running", "processing", "awaiting_approval"}
+
+
+class DuplicateTaskError(RuntimeError):
+    def __init__(self, existing_task: Dict[str, Any]):
+        self.existing_task = deepcopy(existing_task)
+        super().__init__(f"Task {existing_task.get('task_id')} already owns this operation")
 
 DEFAULT_PROGRESS = {
     "total": 0,
@@ -26,6 +34,10 @@ DEFAULT_PROGRESS = {
     "format_repair": None,
     "workshop_progress": None,
 }
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _merge_dict(target: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str, Any]:
@@ -52,9 +64,35 @@ def _append_log(task: Dict[str, Any], message: Optional[str]) -> None:
         task["log"] = task["log"][-500:]
 
 
-def create_task(task_id: str, *, status: str = "pending", log_message: Optional[str] = None) -> Dict[str, Any]:
+def create_task(
+    task_id: str,
+    *,
+    status: str = "pending",
+    log_message: Optional[str] = None,
+    fields: Optional[Dict[str, Any]] = None,
+    dedupe_key: Optional[str] = None,
+    reject_duplicate: bool = False,
+) -> Dict[str, Any]:
     with _LOCK:
-        tasks[task_id] = {"task_id": task_id, "status": status, "log": []}
+        if dedupe_key and reject_duplicate:
+            for existing in tasks.values():
+                if (
+                    existing.get("dedupe_key") == dedupe_key
+                    and str(existing.get("status") or "").lower() in ACTIVE_TASK_STATUSES
+                ):
+                    raise DuplicateTaskError(existing)
+        now = _utc_now_iso()
+        tasks[task_id] = {
+            "task_id": task_id,
+            "status": status,
+            "log": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+        if fields:
+            _merge_dict(tasks[task_id], deepcopy(fields))
+        if dedupe_key:
+            tasks[task_id]["dedupe_key"] = dedupe_key
         _append_log(tasks[task_id], log_message)
         return deepcopy(tasks[task_id])
 
@@ -99,6 +137,7 @@ def update_task(
             task.pop("result_path", None)
         elif result_path is not None:
             task["result_path"] = result_path
+        task["updated_at"] = _utc_now_iso()
         _append_log(task, append_log)
         snapshot = deepcopy(task)
     if push:
@@ -163,6 +202,12 @@ def get_task(task_id: str) -> Optional[Dict[str, Any]]:
     with _LOCK:
         task = tasks.get(task_id)
         return deepcopy(task) if task is not None else None
+
+
+def list_tasks() -> list[Dict[str, Any]]:
+    """Return safe snapshots for the global task center."""
+    with _LOCK:
+        return [deepcopy(task) for task in tasks.values()]
 
 
 def get_task_payload(task_id: str) -> Optional[Dict[str, Any]]:

@@ -137,7 +137,7 @@ def setup_app_routers():
     panic_log("Including routers...")
     from scripts.routers import (
         projects, project_watches, translation, glossary, proofreading, docs, tools,
-        neologism, validation, config, system, prompts, agent_workshop, agent,
+        neologism, validation, config, system, prompts, agent_workshop, agent, tasks,
     )
     
     app.include_router(projects.router)
@@ -154,6 +154,7 @@ def setup_app_routers():
     app.include_router(system.router)
     app.include_router(prompts.router)
     app.include_router(agent.router)
+    app.include_router(tasks.router)
     if copilot_router_enabled():
         from scripts.routers import copilot
 

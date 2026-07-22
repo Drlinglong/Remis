@@ -183,6 +183,11 @@ class AgentRegistry:
             record = self._payload["jobs"].get(job_id)
             return deepcopy(record) if record else None
 
+    def list_jobs(self) -> list[Dict[str, Any]]:
+        """Return persisted, non-secret job metadata for task aggregation."""
+        with self._lock:
+            return [deepcopy(record) for record in self._payload["jobs"].values()]
+
     def update_snapshot(self, job_id: str, snapshot: Dict[str, Any]) -> None:
         with self._lock:
             record = self._payload["jobs"].get(job_id)

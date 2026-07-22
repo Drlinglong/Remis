@@ -270,7 +270,21 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
     task_id = str(uuid.uuid4())
     if not neologism_manager.reserve_mining(payload.project_id, task_id, len(files)):
         raise HTTPException(status_code=409, detail="A neologism mining run is already active for this project")
-    task_state.create_task(task_id, status="pending", log_message="Neologism mining queued.")
+    task_state.create_task(
+        task_id,
+        status="pending",
+        log_message="Neologism mining queued.",
+        fields={
+            "kind": "neologism_mining",
+            "project_id": payload.project_id,
+            "title": f"Mine neologisms for {project.get('name') or payload.project_id}",
+            "source_route": "/neologism-review",
+            "created_by": {"type": "user"},
+            "blocking": True,
+        },
+        dedupe_key=f"neologism_mining:{payload.project_id}",
+        reject_duplicate=True,
+    )
     task_state.init_progress(task_id, {
         "total": len(files),
         "current": 0,

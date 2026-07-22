@@ -702,6 +702,12 @@ async def start_agent_job(
             job_id,
             status="completed",
             log_message="Agent dry-run readiness check completed.",
+            fields={
+                "kind": "dry_run",
+                "project_id": plan["project_id"],
+                "created_by": {"type": "remis_agent", "label": "Remis Agent"},
+                "idempotency_key": request.plan_id,
+            },
         )
         task_state.init_progress(
             job_id,
@@ -749,6 +755,8 @@ async def start_agent_job(
         fields={
             "project_id": plan["project_id"],
             "agent_job_kind": "translation",
+            "created_by": {"type": "remis_agent", "label": "Remis Agent"},
+            "idempotency_key": request.plan_id,
         },
     )
     agent_registry.record_job(
@@ -887,7 +895,9 @@ async def repair_agent_job(
         fields={
             "project_id": metadata["project_id"],
             "parent_job_id": job_id,
+            "parent_task_id": job_id,
             "agent_job_kind": "repair",
+            "created_by": {"type": "remis_agent", "label": "Remis Agent"},
         },
     )
     agent_registry.record_job(

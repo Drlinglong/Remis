@@ -481,7 +481,31 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
     import uuid
     
     task_id = str(uuid.uuid4())
-    task_state.create_task(task_id, status="pending", log_message="Queuing incremental update...")
+    try:
+        task_state.create_task(
+            task_id,
+            status="pending",
+            log_message="Queuing incremental update...",
+            fields={
+                "kind": "incremental_translation",
+                "project_id": project_id,
+                "title": "Incremental translation",
+                "source_route": "/incremental-translation",
+                "created_by": {"type": "user"},
+                "blocking": True,
+            },
+            dedupe_key=f"project_translation_write:{project_id}",
+            reject_duplicate=True,
+        )
+    except task_state.DuplicateTaskError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "duplicate_task",
+                "message": "This project already has a translation task in progress.",
+                "existing_task_id": exc.existing_task.get("task_id"),
+            },
+        ) from exc
     
     if request.project_id != project_id:
         request.project_id = project_id

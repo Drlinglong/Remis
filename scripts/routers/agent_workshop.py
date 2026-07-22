@@ -1211,6 +1211,30 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
         raise HTTPException(status_code=400, detail="No issues supplied for Agent Workshop run.")
 
     task_id = str(uuid.uuid4())
-    task_state.create_task(task_id, status="pending", log_message="Agent Workshop run queued.")
+    try:
+        task_state.create_task(
+            task_id,
+            status="pending",
+            log_message="Agent Workshop run queued.",
+            fields={
+                "kind": "agent_workshop",
+                "project_id": request.project_id,
+                "title": "Agent Workshop repair",
+                "source_route": "/agent-workshop",
+                "created_by": {"type": "user"},
+                "blocking": True,
+            },
+            dedupe_key=f"agent_workshop:{request.project_id}",
+            reject_duplicate=True,
+        )
+    except task_state.DuplicateTaskError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "duplicate_task",
+                "message": "This project already has an Agent Workshop task in progress.",
+                "existing_task_id": exc.existing_task.get("task_id"),
+            },
+        ) from exc
     background_tasks.add_task(_run_agent_workshop_fix_task, task_id, request)
     return FixRunResponse(task_id=task_id)

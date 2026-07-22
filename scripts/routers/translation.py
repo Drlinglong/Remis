@@ -344,7 +344,30 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         raise HTTPException(status_code=404, detail="Project not found")
 
     task_id = str(uuid.uuid4())
-    task_state.create_task(task_id, status="pending")
+    try:
+        task_state.create_task(
+            task_id,
+            status="pending",
+            fields={
+                "kind": "initial_translation",
+                "project_id": request.project_id,
+                "title": f"Translate {project['name']}",
+                "source_route": "/translation",
+                "created_by": {"type": "user"},
+                "blocking": True,
+            },
+            dedupe_key=f"project_translation_write:{request.project_id}",
+            reject_duplicate=True,
+        )
+    except task_state.DuplicateTaskError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "duplicate_task",
+                "message": "This project already has a translation task in progress.",
+                "existing_task_id": exc.existing_task.get("task_id"),
+            },
+        ) from exc
 
     # Prepare arguments for the workflow
     # Use the actual folder name from source_path to ensure it matches the directory on disk
@@ -408,7 +431,11 @@ async def start_translation(
     mod_context: str = Form("")
 ):
     task_id = str(uuid.uuid4())
-    task_state.create_task(task_id, status="pending")
+    task_state.create_task(
+        task_id,
+        status="pending",
+        fields={"kind": "initial_translation", "title": "Uploaded Mod translation", "source_route": "/translation"},
+    )
     try:
         mod_name = file.filename.replace(".zip", "")
         source_path = os.path.join(SOURCE_DIR, mod_name)
@@ -465,7 +492,11 @@ async def start_translation_v2(
     payload: TranslationRequestV2
 ):
     task_id = str(uuid.uuid4())
-    task_state.create_task(task_id, status="pending")
+    task_state.create_task(
+        task_id,
+        status="pending",
+        fields={"kind": "initial_translation", "title": "Mod translation", "source_route": "/translation"},
+    )
 
     if not os.path.exists(payload.project_path) or not os.path.isdir(payload.project_path):
         raise HTTPException(status_code=400, detail="Invalid project path.")
