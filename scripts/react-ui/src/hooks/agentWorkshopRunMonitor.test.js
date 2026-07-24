@@ -43,4 +43,20 @@ describe('pollAgentWorkshopRun', () => {
       waitForNext: vi.fn().mockResolvedValue(undefined),
     })).rejects.toThrow('missing status');
   });
+
+  it('treats partial failure as a terminal result that needs review', async () => {
+    const onTask = vi.fn();
+
+    await expect(pollAgentWorkshopRun({
+      taskId: 'task-partial',
+      getStatus: vi.fn().mockResolvedValue({
+        status: 'partial_failed',
+        progress: { percent: 100 },
+      }),
+      onTask,
+      waitForNext: vi.fn().mockResolvedValue(undefined),
+    })).resolves.toMatchObject({ status: 'partial_failed' });
+
+    expect(onTask).toHaveBeenCalledTimes(1);
+  });
 });

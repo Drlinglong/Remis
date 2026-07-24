@@ -72,6 +72,12 @@ class AgentRepairRequest(BaseModel):
     concurrency_limit: Optional[int] = 1
     rpm_limit: Optional[int] = 40
     max_retries: Optional[int] = 3
+    idempotency_key: Optional[str] = Field(
+        default=None,
+        min_length=8,
+        max_length=128,
+        description="Caller-stable key for safely retrying the same approved repair request.",
+    )
 
 
 class AgentExportRequest(BaseModel):

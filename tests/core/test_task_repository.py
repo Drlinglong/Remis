@@ -141,6 +141,50 @@ def test_task_events_default_to_user_audience_and_can_include_diagnostics(tmp_pa
         task_state.tasks.update(previous_tasks)
 
 
+def test_hydration_interrupts_only_explicitly_non_resumable_workshop_tasks(tmp_path):
+    db_path = tmp_path / "task-recovery.sqlite"
+    migrate_main_database(str(db_path))
+    repository = TaskRepository(str(db_path))
+    previous_tasks = dict(task_state.tasks)
+    try:
+        task_state.tasks.clear()
+        repository.save_task({
+            "task_id": "workshop-running",
+            "kind": "agent_workshop",
+            "title": "Agent Workshop repair",
+            "status": "processing",
+            "created_at": "2026-07-24T00:00:00Z",
+            "updated_at": "2026-07-24T00:01:00Z",
+            "checkpoint": {
+                "available": False,
+                "resume_supported": False,
+                "stage": "repairing",
+            },
+        })
+        repository.save_task({
+            "task_id": "translation-running",
+            "kind": "translation",
+            "title": "Translation",
+            "status": "processing",
+            "created_at": "2026-07-24T00:00:00Z",
+            "updated_at": "2026-07-24T00:01:00Z",
+        })
+
+        task_state.configure_repository(repository, hydrate=True, replace=True)
+
+        workshop = task_state.get_task("workshop-running")
+        translation = task_state.get_task("translation-running")
+        assert workshop["status"] == "interrupted"
+        assert workshop["checkpoint"]["stage"] == "interrupted"
+        assert workshop["finished_at"]
+        assert translation["status"] == "processing"
+        assert task_state.get_task_events("workshop-running")[0]["event_type"] == "recovery_interrupted"
+    finally:
+        task_state.configure_repository(None)
+        task_state.tasks.clear()
+        task_state.tasks.update(previous_tasks)
+
+
 def test_retention_prunes_only_old_or_excess_terminal_tasks_and_cascades_events(tmp_path):
     db_path = tmp_path / "task-retention.sqlite"
     migrate_main_database(str(db_path))

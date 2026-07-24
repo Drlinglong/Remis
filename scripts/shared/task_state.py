@@ -129,6 +129,42 @@ def configure_repository(
             task_id = str(task.get("task_id") or "")
             if not task_id:
                 continue
+            checkpoint = task.get("checkpoint") or {}
+            if (
+                task.get("kind") in {"agent_workshop", "agent_workshop_batch"}
+                and checkpoint.get("resume_supported") is False
+            ):
+                now = _utc_now_iso()
+                task["status"] = "interrupted"
+                task["updated_at"] = now
+                task["finished_at"] = now
+                task["message"] = "The app restarted before this repair task finished."
+                task["attention_reason"] = (
+                    "This Agent Workshop task cannot resume automatically. "
+                    "Return to the workflow and review current validation results before retrying."
+                )
+                task.setdefault("progress", {})["stage"] = "Interrupted"
+                checkpoint["available"] = False
+                checkpoint["stage"] = "interrupted"
+                checkpoint["updated_at"] = now
+                task["checkpoint"] = checkpoint
+                try:
+                    repository.save_task(
+                        task,
+                        event={
+                            "timestamp": now,
+                            "level": "warning",
+                            "event_type": "recovery_interrupted",
+                            "audience": "user",
+                            "message": task["attention_reason"],
+                        },
+                    )
+                except (OSError, sqlite3.Error, ValueError, KeyError) as exc:
+                    logging.error(
+                        "Failed to mark non-resumable Agent Workshop task %s interrupted: %s",
+                        task_id,
+                        exc,
+                    )
             current = tasks.get(task_id)
             if current is None or str(task.get("updated_at") or "") >= str(current.get("updated_at") or ""):
                 tasks[task_id] = task

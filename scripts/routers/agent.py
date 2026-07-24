@@ -876,16 +876,31 @@ async def repair_agent_job(
     if not issues:
         raise _error(409, "no_repair_items", "No active validation items need repair")
     args = metadata.get("execution_args") or {}
+    api_provider = request.api_provider or args.get("api_provider") or "lm_studio"
+    api_model = request.api_model or args.get("model") or "local-model"
+    repair_scope = (
+        f"{job_id}:{metadata['project_id']}:{api_provider}:{api_model}:"
+        f"{[(item.get('file_name'), item.get('key'), item.get('status')) for item in issues]}"
+    )
+    idempotency_key = request.idempotency_key or f"agent-repair:{uuid.uuid5(uuid.NAMESPACE_URL, repair_scope)}"
     response = await start_fix_run(
         FixRunRequest(
             project_id=metadata["project_id"],
-            api_provider=request.api_provider or args.get("api_provider"),
-            api_model=request.api_model or args.get("model"),
+            api_provider=api_provider,
+            api_model=api_model,
             batch_size_limit=request.batch_size_limit,
             concurrency_limit=request.concurrency_limit,
             rpm_limit=request.rpm_limit,
             max_retries=request.max_retries,
             issues=issues,
+            approval={
+                "approved": request.approved,
+                "issue_count": len(issues),
+                "api_provider": api_provider,
+                "api_model": api_model,
+            },
+            idempotency_key=idempotency_key,
+            created_by={"type": "remis_agent", "label": "Remis Agent"},
         ),
         background_tasks,
     )

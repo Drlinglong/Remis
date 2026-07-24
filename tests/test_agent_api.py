@@ -14,6 +14,7 @@ from scripts.schemas.agent import (
     AgentProjectCreateRequest,
     AgentProjectPlanRequest,
     AgentRepairRequest,
+    AgentValidationSummary,
 )
 from scripts.shared import task_state
 
@@ -364,6 +365,70 @@ async def test_repair_requires_approval_before_loading_issues(isolated_registry)
 
     assert exc_info.value.status_code == 409
     assert exc_info.value.detail["code"] == "approval_required"
+
+
+@pytest.mark.asyncio
+async def test_approved_agent_repair_forwards_governed_workshop_contract(
+    isolated_registry,
+    monkeypatch,
+):
+    task_state.tasks.clear()
+    plan = isolated_registry.create_plan(
+        project_id="project-1",
+        execution_args={
+            "project_id": "project-1",
+            "api_provider": "lm_studio",
+            "model": "local-model",
+        },
+        dry_run=False,
+        summary="Repair fixture",
+    )
+    isolated_registry.consume_plan(plan["plan_id"], approved=True)
+    isolated_registry.record_job(
+        job_id="job-parent",
+        project_id="project-1",
+        plan_id=plan["plan_id"],
+        kind="translation",
+        execution_args=plan["execution_args"],
+    )
+
+    async def fake_validation(_project_id, include_items=False):
+        return {
+            "summary": AgentValidationSummary(),
+            "items": [],
+            "_raw_items": [{
+                "file_name": "events.yml",
+                "key": "entry",
+                "status": "detected",
+            }],
+        }
+
+    captured = {}
+
+    async def fake_start_fix_run(request, _background_tasks):
+        captured["request"] = request
+
+        class Response:
+            task_id = "repair-child"
+
+        return Response()
+
+    monkeypatch.setattr(agent_router, "_validation_payload", fake_validation)
+    monkeypatch.setattr(agent_router, "start_fix_run", fake_start_fix_run)
+
+    response = await agent_router.repair_agent_job(
+        "job-parent",
+        AgentRepairRequest(approved=True),
+        BackgroundTasks(),
+    )
+
+    forwarded = captured["request"]
+    assert forwarded.approval.approved is True
+    assert forwarded.approval.issue_count == 1
+    assert forwarded.created_by.type == "remis_agent"
+    assert forwarded.idempotency_key.startswith("agent-repair:")
+    assert response.job_id == "repair-child"
+    assert task_state.tasks["repair-child"]["parent_task_id"] == "job-parent"
 
 
 def test_export_candidate_rejects_path_traversal(tmp_path, monkeypatch):

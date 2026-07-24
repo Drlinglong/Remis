@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  createAgentWorkshopIdempotencyKey,
   getAgentWorkshopRunStatus,
   loadAgentWorkshopBootstrap,
+  requestAgentWorkshopIssueFix,
   scanAgentWorkshopProject,
   selectAgentWorkshopProvider,
   startAgentWorkshopFixRun,
@@ -27,6 +29,7 @@ vi.mock('./projectService', () => ({
 vi.mock('./workshopService', () => ({
   default: {
     fixBatch: vi.fn(),
+    fixIssue: vi.fn(),
     scanProject: vi.fn(),
     startFixRun: vi.fn(),
   },
@@ -96,6 +99,7 @@ describe('agentWorkshopWorkflowService', () => {
       rpmLimit: '60',
       selectedModel: 'gemini-pro',
       selectedProvider: 'gemini',
+      idempotencyKey: 'agent-workshop:project-1:test',
     })).resolves.toEqual({ task_id: 'task-1', status: 'started' });
 
     expect(workshopService.startFixRun).toHaveBeenCalledWith(expect.objectContaining({
@@ -105,8 +109,43 @@ describe('agentWorkshopWorkflowService', () => {
       concurrency_limit: 1,
       project_id: 'project-1',
       rpm_limit: 60,
+      approval: {
+        approved: true,
+        issue_count: 1,
+        api_provider: 'gemini',
+        api_model: 'gemini-pro',
+      },
+      idempotency_key: 'agent-workshop:project-1:test',
+      created_by: { type: 'user' },
     }));
     expect(workshopService.fixBatch).not.toHaveBeenCalled();
+  });
+
+  it('binds single-issue model repair to the selected approval scope', async () => {
+    workshopService.fixIssue.mockResolvedValue({
+      data: { status: 'SUCCESS', suggested_fix: 'fixed' },
+    });
+
+    await requestAgentWorkshopIssueFix({
+      issue: { file_name: 'a.yml', key: 'k1' },
+      projectId: 'project-1',
+      selectedModel: 'gemini-pro',
+      selectedProvider: 'gemini',
+    });
+
+    expect(workshopService.fixIssue).toHaveBeenCalledWith(expect.objectContaining({
+      project_id: 'project-1',
+      approval: {
+        approved: true,
+        issue_count: 1,
+        api_provider: 'gemini',
+        api_model: 'gemini-pro',
+      },
+    }));
+  });
+
+  it('creates project-scoped idempotency keys for safe retries', () => {
+    expect(createAgentWorkshopIdempotencyKey('project-1')).toMatch(/^agent-workshop:project-1:/);
   });
 
   it('reads backend task status for Agent Workshop runs', async () => {

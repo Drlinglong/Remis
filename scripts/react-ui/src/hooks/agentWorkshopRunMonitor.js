@@ -1,4 +1,10 @@
-const TERMINAL_RUN_STATUSES = new Set(['completed', 'failed']);
+const TERMINAL_RUN_STATUSES = new Set([
+  'completed',
+  'partial_failed',
+  'failed',
+  'cancelled',
+  'interrupted',
+]);
 
 const defaultWaitForNext = (delayMs) =>
   new Promise((resolve) => setTimeout(resolve, delayMs));
