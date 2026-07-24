@@ -236,6 +236,31 @@ def _validate_repair_approval(
         )
 
 
+async def _require_repairable_project(project_id: str) -> Dict[str, Any]:
+    project = await project_manager.get_project(project_id)
+    if not project:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "project_not_found",
+                "message": "The selected Agent Workshop project no longer exists.",
+                "project_id": project_id,
+            },
+        )
+    status = str(project.get("status") or "active").lower()
+    if status != "active":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "project_not_active",
+                "message": "Restore this project before running Agent Workshop repairs.",
+                "project_id": project_id,
+                "project_status": status,
+            },
+        )
+    return project
+
+
 def _normalize_issue_dict(issue: Dict[str, Any]) -> Dict[str, Any]:
     normalized = dict(issue)
     normalized.setdefault("file_name", "")
@@ -931,10 +956,9 @@ async def fix_issue(request: FixRequest):
         api_model=model_name or request.api_model,
     )
     
+    project = await _require_repairable_project(request.project_id)
     handler = get_handler(provider_name, model_name=model_name)
-    
-    project = await project_manager.get_project(request.project_id)
-    game_id = project.get('game_id', 'vic3') if project else 'vic3'
+    game_id = project.get('game_id', 'vic3')
     
     agent = ReflexionFixAgent(handler)
     result = await agent.fix_issue_loop(
@@ -959,7 +983,7 @@ async def fix_issue(request: FixRequest):
     result["reflection"] = concise_reflection
     result["report_path"] = None
 
-    if result.get('status') == 'SUCCESS' and project:
+    if result.get('status') == 'SUCCESS':
         target_lang = _infer_target_lang_from_issue(request.file_name)
         applied, failure_reason, apply_message = _apply_fix_with_confirmation(
             project=project,
@@ -1019,10 +1043,9 @@ async def _run_fix_batch(request: FixBatchRequest) -> FixBatchResponse:
         requested_model=request.api_model,
     )
     
+    project = await _require_repairable_project(request.project_id)
     handler = get_handler(provider_name, model_name=model_name)
-    
-    project = await project_manager.get_project(request.project_id)
-    game_id = project.get('game_id', 'vic3') if project else 'vic3'
+    game_id = project.get('game_id', 'vic3')
     
     agent = ReflexionFixAgent(handler)
     first_issue = request.issues[0] if request.issues else {}
@@ -1187,6 +1210,13 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
                 "source_route": f"/tasks/{task_id}",
                 "created_by": request.created_by.model_dump(),
                 "blocking": False,
+                "workflow_context": {
+                    "mode": "repair_batch",
+                    "project_id": request.project_id,
+                    "parent_task_id": task_id,
+                    "batch_number": batch_number,
+                    "issue_count": len(batch),
+                },
                 "checkpoint": {
                     "available": False,
                     "resume_supported": False,
@@ -1479,9 +1509,27 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
         api_provider=request.api_provider,
         api_model=request.api_model,
     )
-
-    task_id = str(uuid.uuid4())
     operation_fingerprint = _fix_run_fingerprint(request)
+    existing = task_state.find_task_by_idempotency_key(request.idempotency_key)
+    if existing is not None:
+        if existing.get("operation_fingerprint") != operation_fingerprint:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "idempotency_conflict",
+                    "message": "This idempotency key is already bound to a different Agent Workshop scope.",
+                    "retryable": False,
+                    "existing_task_id": existing.get("task_id"),
+                },
+            )
+        return FixRunResponse(
+            task_id=str(existing.get("task_id")),
+            status=str(existing.get("status") or "queued"),
+            reused=True,
+        )
+
+    await _require_repairable_project(request.project_id)
+    task_id = str(uuid.uuid4())
     try:
         task_state.create_task(
             task_id,
@@ -1497,6 +1545,13 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
                 "blocking_reason": "Agent Workshop is repairing project files. Conflicting writes are blocked until it finishes.",
                 "idempotency_key": request.idempotency_key,
                 "operation_fingerprint": operation_fingerprint,
+                "workflow_context": {
+                    "mode": "repair",
+                    "project_id": request.project_id,
+                    "issue_count": len(request.issues),
+                    "api_provider": request.api_provider,
+                    "api_model": request.api_model,
+                },
                 "checkpoint": {
                     "available": False,
                     "resume_supported": False,
@@ -1508,7 +1563,7 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
                     },
                 },
             },
-            dedupe_key=f"agent_workshop:{request.project_id}",
+            dedupe_key=f"project_translation_write:{request.project_id}",
             reject_duplicate=True,
         )
     except task_state.DuplicateTaskError as exc:

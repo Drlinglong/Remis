@@ -8,6 +8,7 @@ from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.routers.agent_workshop import apply_translation_fix_to_file
 from scripts.routers.agent_workshop import _resolve_source_entries_for_translation
 from scripts.routers.agent_workshop import BatchResultItem, FixBatchResponse
+from scripts.shared import task_state
 from scripts.shared.state import tasks
 from scripts.utils.validation_logger import ValidationLogger
 from scripts.web_server import app
@@ -868,7 +869,14 @@ def test_fix_run_creates_backend_managed_task():
             max_retries=3,
         )
 
-    with patch("scripts.routers.agent_workshop._run_fix_batch", side_effect=fake_run_batch) as mock_run_batch:
+    with (
+        patch(
+            "scripts.routers.agent_workshop._require_repairable_project",
+            new_callable=AsyncMock,
+            return_value={"project_id": "p-run", "status": "active"},
+        ),
+        patch("scripts.routers.agent_workshop._run_fix_batch", side_effect=fake_run_batch) as mock_run_batch,
+    ):
         response = client.post("/api/agent-workshop/fix-run", json={
             "project_id": "p-run",
             "api_provider": "gemini",
@@ -903,34 +911,49 @@ def test_fix_run_creates_backend_managed_task():
     assert tasks[task_id]["summary"]["successCount"] == 1
     assert tasks[task_id]["summary"]["failedCount"] == 0
     assert tasks[task_id]["summary"]["results"][0]["suggested_fix"] == "修复"
+    assert tasks[task_id]["dedupe_key"] == "project_translation_write:p-run"
+    assert tasks[task_id]["workflow_context"] == {
+        "mode": "repair",
+        "project_id": "p-run",
+        "issue_count": 1,
+        "api_provider": "gemini",
+        "api_model": "gemini-3-flash-preview",
+    }
     child = tasks[f"{task_id}:batch:1"]
     assert child["parent_task_id"] == task_id
     assert child["status"] == "completed"
+    assert child["workflow_context"]["parent_task_id"] == task_id
+    assert child["workflow_context"]["batch_number"] == 1
     assert tasks[task_id]["result"]["metadata"]["batch_task_ids"] == [child["task_id"]]
 
 
 def test_fix_run_requires_approval_for_exact_scope():
     tasks.clear()
-    response = client.post("/api/agent-workshop/fix-run", json={
-        "project_id": "p-run",
-        "api_provider": "gemini",
-        "api_model": "gemini-3-flash-preview",
-        "approval": {
-            "approved": True,
-            "issue_count": 2,
+    with patch(
+        "scripts.routers.agent_workshop._require_repairable_project",
+        new_callable=AsyncMock,
+        return_value={"project_id": "p-run", "status": "active"},
+    ):
+        response = client.post("/api/agent-workshop/fix-run", json={
+            "project_id": "p-run",
             "api_provider": "gemini",
             "api_model": "gemini-3-flash-preview",
-        },
-        "idempotency_key": "workshop-run-approval",
-        "issues": [{
-            "file_name": "events/test_l_simp_chinese.yml",
-            "key": "demo.one:0",
-            "source_str": "Hello",
-            "target_str": "坏译文",
-            "error_type": "validation_error",
-            "details": "broken",
-        }],
-    })
+            "approval": {
+                "approved": True,
+                "issue_count": 2,
+                "api_provider": "gemini",
+                "api_model": "gemini-3-flash-preview",
+            },
+            "idempotency_key": "workshop-run-approval",
+            "issues": [{
+                "file_name": "events/test_l_simp_chinese.yml",
+                "key": "demo.one:0",
+                "source_str": "Hello",
+                "target_str": "坏译文",
+                "error_type": "validation_error",
+                "details": "broken",
+            }],
+        })
 
     assert response.status_code == 409
     detail = response.json()["detail"]
@@ -938,6 +961,47 @@ def test_fix_run_requires_approval_for_exact_scope():
     assert detail["approval_scope"]["issue_count"] == 1
     assert detail["approval_scope"]["writes_project_files"] is True
     assert tasks == {}
+
+
+def test_fix_run_shares_project_write_lock_with_translation_and_deployment():
+    tasks.clear()
+    task_state.create_task(
+        "existing-project-write",
+        status="running",
+        fields={"kind": "incremental_translation", "project_id": "p-run"},
+        dedupe_key="project_translation_write:p-run",
+        reject_duplicate=True,
+    )
+
+    with patch(
+        "scripts.routers.agent_workshop._require_repairable_project",
+        new_callable=AsyncMock,
+        return_value={"project_id": "p-run", "status": "active"},
+    ):
+        response = client.post("/api/agent-workshop/fix-run", json={
+            "project_id": "p-run",
+            "api_provider": "gemini",
+            "api_model": "gemini-3-flash-preview",
+            "approval": {
+                "approved": True,
+                "issue_count": 1,
+                "api_provider": "gemini",
+                "api_model": "gemini-3-flash-preview",
+            },
+            "idempotency_key": "workshop-run-conflict",
+            "issues": [{
+                "file_name": "events/test_l_simp_chinese.yml",
+                "key": "demo.one:0",
+                "source_str": "Hello",
+                "target_str": "坏译文",
+                "error_type": "validation_error",
+                "details": "broken",
+            }],
+        })
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "duplicate_task"
+    assert response.json()["detail"]["existing_task_id"] == "existing-project-write"
 
 
 def test_fix_run_reuses_matching_idempotent_request():
@@ -977,7 +1041,14 @@ def test_fix_run_reuses_matching_idempotent_request():
         }],
     }
 
-    with patch("scripts.routers.agent_workshop._run_fix_batch", side_effect=fake_run_batch) as mock_run_batch:
+    with (
+        patch(
+            "scripts.routers.agent_workshop._require_repairable_project",
+            new_callable=AsyncMock,
+            return_value={"project_id": "p-run-idempotent", "status": "active"},
+        ),
+        patch("scripts.routers.agent_workshop._run_fix_batch", side_effect=fake_run_batch) as mock_run_batch,
+    ):
         first = client.post("/api/agent-workshop/fix-run", json=payload)
         second = client.post("/api/agent-workshop/fix-run", json=payload)
 
@@ -1008,7 +1079,14 @@ def test_fix_run_marks_partial_results_for_review():
             ],
         )
 
-    with patch("scripts.routers.agent_workshop._run_fix_batch", side_effect=fake_run_batch):
+    with (
+        patch(
+            "scripts.routers.agent_workshop._require_repairable_project",
+            new_callable=AsyncMock,
+            return_value={"project_id": "p-run-partial", "status": "active"},
+        ),
+        patch("scripts.routers.agent_workshop._run_fix_batch", side_effect=fake_run_batch),
+    ):
         response = client.post("/api/agent-workshop/fix-run", json={
             "project_id": "p-run-partial",
             "api_provider": "gemini",

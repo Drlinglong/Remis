@@ -174,6 +174,44 @@ def get_repository() -> Optional[TaskRepository]:
     return _repository
 
 
+def find_active_task_by_dedupe_key(dedupe_key: str) -> Optional[Dict[str, Any]]:
+    """Return the exact active task currently holding a shared operation key."""
+    with _LOCK:
+        existing = next(
+            (
+                item
+                for item in tasks.values()
+                if (
+                    item.get("dedupe_key") == dedupe_key
+                    and str(item.get("status") or "").lower() in ACTIVE_TASK_STATUSES
+                )
+            ),
+            None,
+        )
+        if existing is None and _repository is not None:
+            existing = _repository.find_active_by_dedupe_key(
+                dedupe_key,
+                active_statuses=ACTIVE_TASK_STATUSES,
+            )
+        return deepcopy(existing) if existing is not None else None
+
+
+def find_task_by_idempotency_key(idempotency_key: str) -> Optional[Dict[str, Any]]:
+    """Return the exact task already bound to a caller-stable operation key."""
+    with _LOCK:
+        existing = next(
+            (
+                item
+                for item in tasks.values()
+                if item.get("idempotency_key") == idempotency_key
+            ),
+            None,
+        )
+        if existing is None and _repository is not None:
+            existing = _repository.find_by_idempotency_key(idempotency_key)
+        return deepcopy(existing) if existing is not None else None
+
+
 def _event_level(status: Optional[str], message: Optional[str]) -> str:
     normalized = str(status or "").lower()
     lowered_message = str(message or "").lower()

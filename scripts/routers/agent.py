@@ -304,7 +304,9 @@ def _normalize_status(raw_status: Optional[str], *, recovered: bool = False) -> 
         "processing": "running",
         "completed": "completed",
         "failed": "failed",
+        "partial_failed": "failed",
         "cancelled": "cancelled",
+        "interrupted": "interrupted",
     }.get(str(raw_status or "").lower(), "unknown")
 
 
@@ -325,7 +327,11 @@ def _job_allowed_actions(
             actions.append("repair")
         if kind == "dry_run":
             actions.append("create_translation_plan")
-        elif output_paths and validation.errors == 0:
+        elif (
+            kind in {"translation", "initial_translation", "incremental_translation"}
+            and output_paths
+            and validation.errors == 0
+        ):
             actions.append("approve_export")
     return actions
 
@@ -355,12 +361,23 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
         for path in live_task.get("output_dirs", [])
         if path
     ]
+    result = live_task.get("result") or {}
+    for path in result.get("output_paths") or []:
+        if path and str(path) not in output_paths:
+            output_paths.append(str(path))
     if live_task.get("result_path") and live_task["result_path"] not in output_paths:
         output_paths.append(str(live_task["result_path"]))
     status = _normalize_status(live_task.get("status"), recovered=recovered)
+    checkpoint = live_task.get("checkpoint") or {}
+    resume_supported = checkpoint.get("resume_supported")
+    if resume_supported is None:
+        resume_supported = bool(
+            (metadata or {}).get("execution_args", {}).get("use_resume", False)
+        )
     response = AgentJobResponse(
         job_id=job_id,
         project_id=project_id,
+        parent_task_id=live_task.get("parent_task_id"),
         status=status,
         kind=kind,
         progress={
@@ -377,17 +394,21 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
             status, validation, output_paths, kind=kind
         ),
         output_paths=output_paths,
+        result=result,
+        workflow_context=dict(live_task.get("workflow_context") or {}),
         message=live_task.get("message"),
         recovery={
             "source": "persisted_snapshot" if recovered else "live_task_state",
-            "checkpoint_resume_supported": bool(
-                (metadata or {}).get("execution_args", {}).get("use_resume", False)
-            ),
+            "checkpoint_resume_supported": bool(resume_supported),
         },
         links={
             "self": f"/api/agent/jobs/{job_id}",
             "validation": f"/api/agent/jobs/{job_id}/validation",
-            "export_preview": f"/api/agent/jobs/{job_id}/export-preview",
+            **(
+                {"export_preview": f"/api/agent/jobs/{job_id}/export-preview"}
+                if kind in {"translation", "initial_translation", "incremental_translation"}
+                else {}
+            ),
         },
     )
     agent_registry.update_snapshot(
@@ -399,6 +420,8 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
             "agent_job_kind": kind,
             "output_dirs": output_paths,
             "result_path": live_task.get("result_path"),
+            "result": result,
+            "checkpoint": live_task.get("checkpoint") or {},
             "message": live_task.get("message"),
         },
     )
@@ -913,6 +936,14 @@ async def repair_agent_job(
             "parent_task_id": job_id,
             "agent_job_kind": "repair",
             "created_by": {"type": "remis_agent", "label": "Remis Agent"},
+            "workflow_context": {
+                "mode": "repair",
+                "project_id": metadata["project_id"],
+                "source_task_id": job_id,
+                "issue_count": len(issues),
+                "api_provider": api_provider,
+                "api_model": api_model,
+            },
         },
     )
     agent_registry.record_job(

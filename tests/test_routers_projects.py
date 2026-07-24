@@ -200,6 +200,7 @@ def test_update_project_status_rejects_unknown_status(mock_project_manager):
 
 
 def test_update_project_status_returns_watch_lifecycle_counts(mock_project_manager):
+    tasks.clear()
     mock_project_manager.update_project_status.return_value = {
         "project_id": "proj-1",
         "previous_status": "active",
@@ -217,6 +218,30 @@ def test_update_project_status_returns_watch_lifecycle_counts(mock_project_manag
         "proj-1",
         "archived",
     )
+
+
+def test_archive_project_returns_exact_blocking_task(mock_project_manager):
+    tasks.clear()
+    projects_router.task_state.create_task(
+        "workshop-task-1",
+        status="running",
+        fields={"kind": "agent_workshop", "project_id": "proj-1"},
+        dedupe_key="project_translation_write:proj-1",
+        reject_duplicate=True,
+    )
+    client = TestClient(app)
+
+    response = client.post("/api/project/proj-1/status", json={"status": "archived"})
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == {
+        "code": "project_busy",
+        "message": "Wait for the active project operation before archiving.",
+        "project_id": "proj-1",
+        "blocking_task_id": "workshop-task-1",
+        "allowed_actions": ["view_task"],
+    }
+    mock_project_manager.update_project_status.assert_not_awaited()
 
 
 def test_update_file_status_rejects_unknown_status(mock_project_manager):

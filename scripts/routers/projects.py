@@ -7,6 +7,7 @@ from typing import Optional, Dict, Any, Callable, List
 from datetime import datetime, timezone
 
 from scripts.shared.services import project_manager
+from scripts.shared import task_state
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.schemas.project import (
     CreateProjectRequest, 
@@ -96,6 +97,21 @@ async def list_project_files(project_id: str):
 @router.post("/api/project/{project_id}/status")
 async def update_project_status(project_id: str, request: UpdateProjectStatusRequest):
     """Updates a project's status."""
+    if request.status == "archived":
+        blocker = task_state.find_active_task_by_dedupe_key(
+            f"project_translation_write:{project_id}"
+        )
+        if blocker is not None:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "project_busy",
+                    "message": "Wait for the active project operation before archiving.",
+                    "project_id": project_id,
+                    "blocking_task_id": blocker.get("task_id"),
+                    "allowed_actions": ["view_task"],
+                },
+            )
     try:
         lifecycle = await project_manager.update_project_status(project_id, request.status)
         return {
@@ -520,7 +536,6 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
 @router.post("/api/project/{project_id}/incremental-update")
 async def run_incremental_update(project_id: str, request: IncrementalUpdateRequest, background_tasks: BackgroundTasks):
     """Triggers the incremental update workflow in background."""
-    from scripts.shared import task_state
     import uuid
     
     task_id = str(uuid.uuid4())

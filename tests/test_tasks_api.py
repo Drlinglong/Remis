@@ -162,6 +162,37 @@ def test_terminal_task_releases_dedupe_key():
     assert created["task_id"] == "task-next"
 
 
+def test_active_task_lookup_returns_exact_shared_operation_holder():
+    task_state.create_task(
+        "task-holder",
+        status="running",
+        fields={"project_id": "project-1"},
+        dedupe_key="project_translation_write:project-1",
+    )
+
+    blocker = task_state.find_active_task_by_dedupe_key(
+        "project_translation_write:project-1"
+    )
+
+    assert blocker["task_id"] == "task-holder"
+    blocker["status"] = "failed"
+    assert task_state.tasks["task-holder"]["status"] == "running"
+
+
+def test_idempotency_lookup_returns_exact_task_copy():
+    task_state.create_task(
+        "task-idempotent",
+        status="completed",
+        fields={"idempotency_key": "approved-operation-1"},
+    )
+
+    existing = task_state.find_task_by_idempotency_key("approved-operation-1")
+
+    assert existing["task_id"] == "task-idempotent"
+    existing["status"] = "failed"
+    assert task_state.tasks["task-idempotent"]["status"] == "completed"
+
+
 def test_idempotency_key_reuses_persisted_operation_even_after_memory_reset(tmp_path):
     db_path = tmp_path / "task-idempotency.sqlite"
     migrate_main_database(str(db_path))

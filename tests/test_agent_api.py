@@ -367,6 +367,19 @@ async def test_repair_requires_approval_before_loading_issues(isolated_registry)
     assert exc_info.value.detail["code"] == "approval_required"
 
 
+def test_agent_repair_status_and_actions_preserve_workshop_governance():
+    validation = AgentValidationSummary(available=True)
+
+    assert agent_router._normalize_status("partial_failed") == "failed"
+    assert agent_router._normalize_status("interrupted") == "interrupted"
+    assert agent_router._job_allowed_actions(
+        "completed",
+        validation,
+        ["reports/repair.json"],
+        kind="repair",
+    ) == ["inspect_validation"]
+
+
 @pytest.mark.asyncio
 async def test_approved_agent_repair_forwards_governed_workshop_contract(
     isolated_registry,
@@ -407,6 +420,23 @@ async def test_approved_agent_repair_forwards_governed_workshop_contract(
 
     async def fake_start_fix_run(request, _background_tasks):
         captured["request"] = request
+        task_state.create_task(
+            "repair-child",
+            status="partial_failed",
+            fields={
+                "kind": "agent_workshop",
+                "project_id": "project-1",
+                "result": {
+                    "types": ["workshop_repairs", "repair_reports"],
+                    "output_paths": ["reports/repair-child.json"],
+                    "summary": "One repair still needs review.",
+                },
+                "checkpoint": {
+                    "available": False,
+                    "resume_supported": False,
+                },
+            },
+        )
 
         class Response:
             task_id = "repair-child"
@@ -428,6 +458,14 @@ async def test_approved_agent_repair_forwards_governed_workshop_contract(
     assert forwarded.created_by.type == "remis_agent"
     assert forwarded.idempotency_key.startswith("agent-repair:")
     assert response.job_id == "repair-child"
+    assert response.status == "failed"
+    assert response.parent_task_id == "job-parent"
+    assert response.output_paths == ["reports/repair-child.json"]
+    assert response.result.summary == "One repair still needs review."
+    assert response.workflow_context["source_task_id"] == "job-parent"
+    assert response.recovery["checkpoint_resume_supported"] is False
+    assert response.allowed_actions == ["retry"]
+    assert "export_preview" not in response.links
     assert task_state.tasks["repair-child"]["parent_task_id"] == "job-parent"
 
 
@@ -547,6 +585,10 @@ def test_openapi_exposes_agent_contract():
     assert "/api/agent/jobs/plan" in schema["paths"]
     assert "/api/agent/jobs/{job_id}/approve-export" in schema["paths"]
     assert "AgentJobResponse" in schema["components"]["schemas"]
+    job_properties = schema["components"]["schemas"]["AgentJobResponse"]["properties"]
+    assert "parent_task_id" in job_properties
+    assert "result" in job_properties
+    assert "workflow_context" in job_properties
 
 
 def test_agent_api_cors_allows_localhost_and_rejects_remote_origins():
