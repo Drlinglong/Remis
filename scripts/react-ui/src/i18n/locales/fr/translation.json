@@ -758,7 +758,19 @@
       "reject_failed": "Échec du rejet",
       "ignore": "Ignorer",
       "approve": "Approuver le terme",
-      "context_evidence": "Preuve contextuelle"
+      "context_evidence": "Preuve contextuelle",
+      "select_all": "Tout sélectionner",
+      "select_candidate": "Sélectionner « {{term}} » pour le traitement par lot",
+      "batch_reject": "Rejeter la sélection ({{count}})",
+      "batch_reject_confirm_title": "Rejeter les termes sélectionnés ?",
+      "batch_reject_confirm_message": "{{count}} termes candidats vont être rejetés.",
+      "batch_reject_confirm_note": "Chaque terme est envoyé séparément. Les échecs restent sélectionnés afin de pouvoir être réessayés.",
+      "batch_cancel": "Annuler",
+      "batch_reject_confirm": "Confirmer le rejet par lot",
+      "batch_rejected_title": "Rejet par lot terminé",
+      "batch_rejected_message": "{{count}} termes ont été rejetés et non ajoutés au glossaire du projet.",
+      "batch_partial_title": "Lot partiellement terminé",
+      "batch_partial_message": "{{succeeded}} rejetés ; {{failed}} termes en échec restent sélectionnés."
     }
   },
   "settings_prompts": "Paramètres du prompt",

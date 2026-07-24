@@ -758,7 +758,19 @@
       "reject_failed": "却下に失敗しました",
       "ignore": "無視",
       "approve": "用語を承認",
-      "context_evidence": "文脈上の根拠"
+      "context_evidence": "文脈上の根拠",
+      "select_all": "すべて選択",
+      "select_candidate": "「{{term}}」を一括処理の対象にする",
+      "batch_reject": "選択項目を却下（{{count}}）",
+      "batch_reject_confirm_title": "選択した用語を却下しますか？",
+      "batch_reject_confirm_message": "{{count}} 件の候補用語を却下します。",
+      "batch_reject_confirm_note": "各用語は個別に送信されます。失敗した項目は選択されたまま残り、再試行できます。",
+      "batch_cancel": "キャンセル",
+      "batch_reject_confirm": "一括却下を確定",
+      "batch_rejected_title": "一括却下が完了しました",
+      "batch_rejected_message": "{{count}} 件を却下し、プロジェクト用語集には追加しませんでした。",
+      "batch_partial_title": "一括処理が一部完了しました",
+      "batch_partial_message": "{{succeeded}} 件を却下しました。失敗した {{failed}} 件は選択されたままです。"
     }
   },
   "settings_prompts": "プロンプト設定",

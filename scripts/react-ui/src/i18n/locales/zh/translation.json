@@ -940,7 +940,19 @@
       "reject_failed": "驳回失败",
       "ignore": "驳回 / 忽略",
       "approve": "批准术语",
-      "context_evidence": "上下文证据"
+      "context_evidence": "上下文证据",
+      "select_all": "全选",
+      "select_candidate": "选择“{{term}}”进行批量处理",
+      "batch_reject": "驳回所选（{{count}}）",
+      "batch_reject_confirm_title": "批量驳回所选术语？",
+      "batch_reject_confirm_message": "即将驳回 {{count}} 个候选术语。",
+      "batch_reject_confirm_note": "每个术语会单独提交。若部分请求失败，失败项会留在案卷中并保持选中，便于重试。",
+      "batch_cancel": "取消",
+      "batch_reject_confirm": "确认批量驳回",
+      "batch_rejected_title": "批量驳回完成",
+      "batch_rejected_message": "已驳回 {{count}} 个术语；它们不会写入项目词典。",
+      "batch_partial_title": "批量处理部分完成",
+      "batch_partial_message": "已驳回 {{succeeded}} 个；{{failed}} 个失败项仍在案卷中并保持选中。"
     }
   },
   "settings_prompts": "Prompt 设置",

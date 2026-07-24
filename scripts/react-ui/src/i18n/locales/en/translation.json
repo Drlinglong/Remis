@@ -882,7 +882,19 @@
       "reject_failed": "Failed to reject",
       "ignore": "Ignore",
       "approve": "Approve Term",
-      "context_evidence": "Contextual Evidence"
+      "context_evidence": "Contextual Evidence",
+      "select_all": "Select all",
+      "select_candidate": "Select “{{term}}” for batch processing",
+      "batch_reject": "Reject selected ({{count}})",
+      "batch_reject_confirm_title": "Reject the selected terms?",
+      "batch_reject_confirm_message": "You are about to reject {{count}} candidate terms.",
+      "batch_reject_confirm_note": "Each term is submitted separately. If some requests fail, those terms stay selected in the docket so you can retry them.",
+      "batch_cancel": "Cancel",
+      "batch_reject_confirm": "Confirm batch rejection",
+      "batch_rejected_title": "Batch rejection complete",
+      "batch_rejected_message": "Rejected {{count}} terms; they were not written to the project glossary.",
+      "batch_partial_title": "Batch partially completed",
+      "batch_partial_message": "Rejected {{succeeded}}; {{failed}} failed terms remain selected in the docket."
     }
   },
   "settings_prompts": "Prompt Settings",

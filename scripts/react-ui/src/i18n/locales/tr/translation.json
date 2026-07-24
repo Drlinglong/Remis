@@ -758,7 +758,19 @@
       "reject_failed": "Reddetme başarısız oldu",
       "ignore": "Yoksay",
       "approve": "Terimi Onayla",
-      "context_evidence": "Bağlamsal Kanıt"
+      "context_evidence": "Bağlamsal Kanıt",
+      "select_all": "Tümünü seç",
+      "select_candidate": "“{{term}}” terimini toplu işlem için seç",
+      "batch_reject": "Seçilenleri reddet ({{count}})",
+      "batch_reject_confirm_title": "Seçilen terimler reddedilsin mi?",
+      "batch_reject_confirm_message": "{{count}} aday terim reddedilecek.",
+      "batch_reject_confirm_note": "Her terim ayrı ayrı gönderilir. Başarısız öğeler yeniden denenebilmesi için seçili kalır.",
+      "batch_cancel": "İptal",
+      "batch_reject_confirm": "Toplu reddi onayla",
+      "batch_rejected_title": "Toplu ret tamamlandı",
+      "batch_rejected_message": "{{count}} terim reddedildi ve proje sözlüğüne yazılmadı.",
+      "batch_partial_title": "Toplu işlem kısmen tamamlandı",
+      "batch_partial_message": "{{succeeded}} terim reddedildi; başarısız {{failed}} terim seçili kalır."
     }
   },
   "settings_prompts": "İstem Ayarları",

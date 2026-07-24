@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
     Grid, Paper, Title, Text, Stack, Group, Button,
     TextInput, ScrollArea, Badge, ActionIcon, LoadingOverlay, Box,
-    ThemeIcon, Select, Alert
+    ThemeIcon, Select, Alert, Checkbox, Modal
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
@@ -37,6 +37,9 @@ const JudgmentCourt = ({
     const [draftSuggestions, setDraftSuggestions] = useState({});
     const [resolution, setResolution] = useState('approve_project');
     const [projectGlossary, setProjectGlossary] = useState(null);
+    const [batchSelectedIds, setBatchSelectedIds] = useState([]);
+    const [batchConfirmOpen, setBatchConfirmOpen] = useState(false);
+    const [batchProcessing, setBatchProcessing] = useState(false);
 
     useEffect(() => {
         if (selectedId) {
@@ -70,6 +73,9 @@ const JudgmentCourt = ({
             );
             setCandidates(candidateList);
             setSelectedId(candidateList[0]?.id || null);
+            setBatchSelectedIds((current) => current.filter(
+                (candidateId) => candidateList.some((candidate) => candidate.id === candidateId),
+            ));
         } catch {
             notifications.show({ title: 'Error', message: 'Failed to load candidates', color: 'red' });
         } finally {
@@ -109,6 +115,11 @@ const JudgmentCourt = ({
             setProjectGlossary(null);
         }
     }, [fetchCandidates, fetchProjectGlossary, refreshToken, selectedProject]);
+
+    useEffect(() => {
+        setBatchSelectedIds([]);
+        setBatchConfirmOpen(false);
+    }, [selectedProject]);
 
     const handleApprove = async () => {
         if (!selectedId || !selectedProject) return;
@@ -192,16 +203,22 @@ const JudgmentCourt = ({
         }
     };
 
-    const removeCandidate = (id) => {
-        const currentIndex = candidates.findIndex(c => c.id === id);
-        const newList = candidates.filter(c => c.id !== id);
-        const draftKey = `${selectedProject || ''}:${id}`;
+    const removeCandidates = (ids) => {
+        const removedIds = new Set(ids);
+        const currentIndex = candidates.findIndex(c => c.id === selectedId);
+        const newList = candidates.filter(c => !removedIds.has(c.id));
         setDraftSuggestions((current) => {
             const next = { ...current };
-            delete next[draftKey];
+            removedIds.forEach((id) => {
+                delete next[`${selectedProject || ''}:${id}`];
+            });
             return next;
         });
+        setBatchSelectedIds((current) => current.filter((id) => !removedIds.has(id)));
         setCandidates(newList);
+        if (selectedId && !removedIds.has(selectedId)) {
+            return;
+        }
         if (newList.length > 0) {
             const nextIndex = currentIndex >= 0
                 ? Math.min(currentIndex, newList.length - 1)
@@ -209,6 +226,85 @@ const JudgmentCourt = ({
             setSelectedId(newList[nextIndex].id);
         } else {
             setSelectedId(null);
+        }
+    };
+
+    const removeCandidate = (id) => removeCandidates([id]);
+
+    const toggleBatchCandidate = (candidateId) => {
+        setBatchSelectedIds((current) => (
+            current.includes(candidateId)
+                ? current.filter((id) => id !== candidateId)
+                : [...current, candidateId]
+        ));
+    };
+
+    const toggleAllCandidates = () => {
+        setBatchSelectedIds((current) => (
+            current.length === candidates.length
+                ? []
+                : candidates.map((candidate) => candidate.id)
+        ));
+    };
+
+    const handleBatchReject = async () => {
+        if (!selectedProject || batchSelectedIds.length === 0) return;
+
+        const selectedIds = candidates
+            .filter((candidate) => batchSelectedIds.includes(candidate.id))
+            .map((candidate) => candidate.id);
+        if (selectedIds.length === 0) {
+            setBatchConfirmOpen(false);
+            return;
+        }
+
+        setBatchProcessing(true);
+        const results = await Promise.allSettled(
+            selectedIds.map((candidateId) => api.post(
+                `${API_BASE_URL}/neologisms/${candidateId}/reject`,
+                { project_id: selectedProject },
+            )),
+        );
+        const succeededIds = [];
+        const failedIds = [];
+        results.forEach((result, index) => {
+            if (result.status === 'fulfilled') {
+                succeededIds.push(selectedIds[index]);
+            } else {
+                failedIds.push(selectedIds[index]);
+            }
+        });
+
+        if (succeededIds.length > 0) {
+            removeCandidates(succeededIds);
+        }
+        setBatchSelectedIds(failedIds);
+        setBatchConfirmOpen(false);
+        setBatchProcessing(false);
+
+        if (failedIds.length === 0) {
+            notifications.show({
+                title: t('neologism_review.court.batch_rejected_title'),
+                message: t('neologism_review.court.batch_rejected_message', {
+                    count: succeededIds.length,
+                }),
+                color: 'gray',
+                icon: <IconX size={18} />,
+                withBorder: true,
+                autoClose: 4000,
+            });
+        } else {
+            notifications.show({
+                title: t('neologism_review.court.batch_partial_title'),
+                message: t('neologism_review.court.batch_partial_message', {
+                    succeeded: succeededIds.length,
+                    failed: failedIds.length,
+                }),
+                color: succeededIds.length > 0 ? 'orange' : 'red',
+                icon: <IconAlertTriangle size={18} />,
+                withBorder: true,
+                autoClose: 6000,
+            });
         }
     };
 
@@ -260,6 +356,45 @@ const JudgmentCourt = ({
 
     return (
         <Box h="100%" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Modal
+                opened={batchConfirmOpen}
+                onClose={() => {
+                    if (!batchProcessing) setBatchConfirmOpen(false);
+                }}
+                title={t('neologism_review.court.batch_reject_confirm_title')}
+                centered
+                closeOnClickOutside={!batchProcessing}
+                closeOnEscape={!batchProcessing}
+                withCloseButton={!batchProcessing}
+            >
+                <Stack>
+                    <Text>
+                        {t('neologism_review.court.batch_reject_confirm_message', {
+                            count: batchSelectedIds.length,
+                        })}
+                    </Text>
+                    <Alert color="orange" variant="light" icon={<IconAlertTriangle size={18} />}>
+                        {t('neologism_review.court.batch_reject_confirm_note')}
+                    </Alert>
+                    <Group justify="flex-end">
+                        <Button
+                            variant="default"
+                            onClick={() => setBatchConfirmOpen(false)}
+                            disabled={batchProcessing}
+                        >
+                            {t('neologism_review.court.batch_cancel')}
+                        </Button>
+                        <Button
+                            color="red"
+                            leftSection={<IconX size={18} />}
+                            onClick={handleBatchReject}
+                            loading={batchProcessing}
+                        >
+                            {t('neologism_review.court.batch_reject_confirm')}
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
             {/* Project Context Header */}
             <Paper
                 p="lg"
@@ -366,6 +501,34 @@ const JudgmentCourt = ({
                             <Title order={4} c="dimmed">{t('neologism_review.court.docket')}</Title>
                             <Badge variant="dot" size="lg">{candidates.length}</Badge>
                         </Group>
+                        {candidates.length > 0 && (
+                            <Group justify="space-between" gap="xs" wrap="nowrap">
+                                <Checkbox
+                                    size="xs"
+                                    label={t('neologism_review.court.select_all')}
+                                    checked={batchSelectedIds.length === candidates.length}
+                                    indeterminate={
+                                        batchSelectedIds.length > 0
+                                        && batchSelectedIds.length < candidates.length
+                                    }
+                                    onChange={toggleAllCandidates}
+                                    disabled={processing || batchProcessing}
+                                />
+                                {batchSelectedIds.length > 0 && (
+                                    <Button
+                                        size="compact-xs"
+                                        variant="light"
+                                        color="red"
+                                        onClick={() => setBatchConfirmOpen(true)}
+                                        disabled={processing || batchProcessing}
+                                    >
+                                        {t('neologism_review.court.batch_reject', {
+                                            count: batchSelectedIds.length,
+                                        })}
+                                    </Button>
+                                )}
+                            </Group>
+                        )}
                         <ScrollArea
                             type="always"
                             scrollbars="y"
@@ -375,33 +538,44 @@ const JudgmentCourt = ({
                         >
                             <Stack gap="xs">
                                 {candidates.map(c => (
-                                    <Paper
-                                        key={c.id}
-                                        component="button"
-                                        type="button"
-                                        p="md"
-                                        radius="md"
-                                        onClick={() => setSelectedId(c.id)}
-                                        aria-pressed={selectedId === c.id}
-                                        style={{
-                                            cursor: 'pointer',
-                                            width: '100%',
-                                            textAlign: 'left',
-                                            color: 'inherit',
-                                            font: 'inherit',
-                                            backgroundColor: selectedId === c.id ? 'var(--mantine-color-blue-light)' : 'var(--glass-bg)',
-                                            border: selectedId === c.id ? '1px solid var(--mantine-color-blue-filled)' : '1px solid transparent',
-                                            transition: 'all 0.2s ease'
-                                        }}
-                                    >
-                                        <Text fw={600} lineClamp={1}>{c.original}</Text>
-                                        {(c.duplicate_matches || []).length > 0 && (
-                                            <Badge color="orange" variant="light" size="xs">
-                                                {t('neologism_review.court.duplicate_badge')}
-                                            </Badge>
-                                        )}
-                                        <Text size="xs" c="dimmed" truncate>{c.suggestion}</Text>
-                                    </Paper>
+                                    <Group key={c.id} gap="xs" wrap="nowrap" align="center">
+                                        <Checkbox
+                                            size="xs"
+                                            checked={batchSelectedIds.includes(c.id)}
+                                            onChange={() => toggleBatchCandidate(c.id)}
+                                            aria-label={t('neologism_review.court.select_candidate', {
+                                                term: c.original,
+                                            })}
+                                            disabled={processing || batchProcessing}
+                                        />
+                                        <Paper
+                                            component="button"
+                                            type="button"
+                                            p="md"
+                                            radius="md"
+                                            onClick={() => setSelectedId(c.id)}
+                                            aria-pressed={selectedId === c.id}
+                                            style={{
+                                                cursor: 'pointer',
+                                                width: '100%',
+                                                minWidth: 0,
+                                                textAlign: 'left',
+                                                color: 'inherit',
+                                                font: 'inherit',
+                                                backgroundColor: selectedId === c.id ? 'var(--mantine-color-blue-light)' : 'var(--glass-bg)',
+                                                border: selectedId === c.id ? '1px solid var(--mantine-color-blue-filled)' : '1px solid transparent',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            <Text fw={600} lineClamp={1}>{c.original}</Text>
+                                            {(c.duplicate_matches || []).length > 0 && (
+                                                <Badge color="orange" variant="light" size="xs">
+                                                    {t('neologism_review.court.duplicate_badge')}
+                                                </Badge>
+                                            )}
+                                            <Text size="xs" c="dimmed" truncate>{c.suggestion}</Text>
+                                        </Paper>
+                                    </Group>
                                 ))}
                                 {candidates.length === 0 && !loading && (
                                     <Stack align="center" mt="xl" c="dimmed">
@@ -547,6 +721,7 @@ const JudgmentCourt = ({
                                         color="gray"
                                         leftSection={<IconX />}
                                         onClick={handleReject}
+                                        disabled={batchProcessing}
                                     >
                                         {t('neologism_review.court.ignore')}
                                     </Button>
@@ -556,7 +731,11 @@ const JudgmentCourt = ({
                                         gradient={{ from: 'teal', to: 'lime', deg: 105 }}
                                         leftSection={<IconGavel />}
                                         onClick={handleApprove}
-                                        disabled={!selectedProject || (resolution !== 'duplicate' && !editSuggestion.trim())}
+                                        disabled={
+                                            batchProcessing
+                                            || !selectedProject
+                                            || (resolution !== 'duplicate' && !editSuggestion.trim())
+                                        }
                                     >
                                         {t('neologism_review.court.approve')}
                                     </Button>

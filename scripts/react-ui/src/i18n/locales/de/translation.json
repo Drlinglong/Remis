@@ -758,7 +758,19 @@
       "reject_failed": "Ablehnen fehlgeschlagen",
       "ignore": "Ignorieren",
       "approve": "Begriff freigeben",
-      "context_evidence": "Kontextbelege"
+      "context_evidence": "Kontextbelege",
+      "select_all": "Alle auswählen",
+      "select_candidate": "„{{term}}“ für die Stapelverarbeitung auswählen",
+      "batch_reject": "Auswahl ablehnen ({{count}})",
+      "batch_reject_confirm_title": "Ausgewählte Begriffe ablehnen?",
+      "batch_reject_confirm_message": "{{count}} Begriffe werden abgelehnt.",
+      "batch_reject_confirm_note": "Jeder Begriff wird einzeln übermittelt. Fehlgeschlagene Begriffe bleiben ausgewählt, damit sie erneut versucht werden können.",
+      "batch_cancel": "Abbrechen",
+      "batch_reject_confirm": "Stapelablehnung bestätigen",
+      "batch_rejected_title": "Stapelablehnung abgeschlossen",
+      "batch_rejected_message": "{{count}} Begriffe wurden abgelehnt und nicht ins Projektglossar geschrieben.",
+      "batch_partial_title": "Stapel teilweise abgeschlossen",
+      "batch_partial_message": "{{succeeded}} abgelehnt; {{failed}} fehlgeschlagene Begriffe bleiben ausgewählt."
     }
   },
   "settings_prompts": "Prompt-Einstellungen",

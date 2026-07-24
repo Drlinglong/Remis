@@ -758,7 +758,19 @@
       "reject_failed": "거부하지 못했습니다",
       "ignore": "무시",
       "approve": "용어 승인",
-      "context_evidence": "문맥적 증거"
+      "context_evidence": "문맥적 증거",
+      "select_all": "모두 선택",
+      "select_candidate": "일괄 처리할 “{{term}}” 선택",
+      "batch_reject": "선택 항목 거부 ({{count}})",
+      "batch_reject_confirm_title": "선택한 용어를 거부할까요?",
+      "batch_reject_confirm_message": "후보 용어 {{count}}개를 거부합니다.",
+      "batch_reject_confirm_note": "각 용어는 개별 전송됩니다. 실패한 항목은 다시 시도할 수 있도록 선택된 상태로 남습니다.",
+      "batch_cancel": "취소",
+      "batch_reject_confirm": "일괄 거부 확인",
+      "batch_rejected_title": "일괄 거부 완료",
+      "batch_rejected_message": "용어 {{count}}개를 거부했으며 프로젝트 용어집에 추가하지 않았습니다.",
+      "batch_partial_title": "일괄 처리 일부 완료",
+      "batch_partial_message": "{{succeeded}}개를 거부했습니다. 실패한 {{failed}}개는 선택된 상태로 남습니다."
     }
   },
   "settings_prompts": "프롬프트 설정",

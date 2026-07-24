@@ -758,7 +758,19 @@
       "reject_failed": "Nie udało się odrzucić",
       "ignore": "Ignoruj",
       "approve": "Zatwierdź termin",
-      "context_evidence": "Dowody kontekstowe"
+      "context_evidence": "Dowody kontekstowe",
+      "select_all": "Zaznacz wszystkie",
+      "select_candidate": "Wybierz „{{term}}” do przetwarzania zbiorczego",
+      "batch_reject": "Odrzuć zaznaczone ({{count}})",
+      "batch_reject_confirm_title": "Odrzucić zaznaczone terminy?",
+      "batch_reject_confirm_message": "Zostanie odrzuconych {{count}} terminów kandydujących.",
+      "batch_reject_confirm_note": "Każdy termin jest wysyłany osobno. Nieudane pozycje pozostaną zaznaczone, aby można było ponowić próbę.",
+      "batch_cancel": "Anuluj",
+      "batch_reject_confirm": "Potwierdź odrzucenie zbiorcze",
+      "batch_rejected_title": "Odrzucenie zbiorcze zakończone",
+      "batch_rejected_message": "Odrzucono {{count}} terminów; nie dodano ich do glosariusza projektu.",
+      "batch_partial_title": "Przetwarzanie częściowo zakończone",
+      "batch_partial_message": "Odrzucono {{succeeded}}; {{failed}} nieudanych terminów pozostaje zaznaczonych."
     }
   },
   "settings_prompts": "Ustawienia promptów",

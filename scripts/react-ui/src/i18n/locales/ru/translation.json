@@ -824,7 +824,19 @@
       "reject_failed": "Не удалось отклонить",
       "ignore": "Игнорировать",
       "approve": "Одобрить термин",
-      "context_evidence": "Контекстные доказательства"
+      "context_evidence": "Контекстные доказательства",
+      "select_all": "Выбрать все",
+      "select_candidate": "Выбрать «{{term}}» для пакетной обработки",
+      "batch_reject": "Отклонить выбранные ({{count}})",
+      "batch_reject_confirm_title": "Отклонить выбранные термины?",
+      "batch_reject_confirm_message": "Будет отклонено {{count}} терминов-кандидатов.",
+      "batch_reject_confirm_note": "Каждый термин отправляется отдельно. Неудачные элементы останутся выбранными, чтобы их можно было повторить.",
+      "batch_cancel": "Отмена",
+      "batch_reject_confirm": "Подтвердить пакетное отклонение",
+      "batch_rejected_title": "Пакетное отклонение завершено",
+      "batch_rejected_message": "Отклонено {{count}} терминов; они не добавлены в глоссарий проекта.",
+      "batch_partial_title": "Пакет обработан частично",
+      "batch_partial_message": "Отклонено {{succeeded}}; {{failed}} неудачных терминов остаются выбранными."
     }
   },
   "settings_prompts": "Настройки промптов",
