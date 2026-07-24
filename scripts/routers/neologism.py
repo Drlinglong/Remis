@@ -11,6 +11,7 @@ from scripts.shared import task_state
 from scripts.schemas.neologism import (
     ApproveNeologismRequest,
     ProjectGlossaryBindingRequest,
+    RestoreNeologismRequest,
     UpdateNeologismRequest,
     MineNeologismsRequest,
 )
@@ -175,13 +176,15 @@ async def list_mining_files(project_id: str):
     ]
 
 @router.get("/api/neologisms")
-async def list_neologisms(project_id: Optional[str] = None):
+async def list_neologisms(project_id: Optional[str] = None, view: str = "pending"):
     """List neologism candidates, optionally filtered by project."""
     if not project_id:
         raise HTTPException(status_code=400, detail="project_id query parameter is required")
     if not await project_manager.get_project(project_id):
         raise HTTPException(status_code=404, detail="Project not found")
-    return neologism_manager.get_pending_candidates(project_id)
+    if view not in {"pending", "processed", "all"}:
+        raise HTTPException(status_code=400, detail="view must be pending, processed, or all")
+    return neologism_manager.get_candidates(project_id, view=view)
 
 @router.post("/api/neologisms/{candidate_id}/approve")
 async def approve_neologism(candidate_id: str, payload: ApproveNeologismRequest):
@@ -220,10 +223,17 @@ async def reject_neologism(candidate_id: str, payload: dict):
         raise HTTPException(status_code=400, detail="project_id is required")
     if not await project_manager.get_project(project_id):
         raise HTTPException(status_code=404, detail="Project not found")
-    if neologism_manager.reject_candidate(project_id, candidate_id):
+    previous_status = neologism_manager.reject_candidate(project_id, candidate_id)
+    if previous_status is None:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    if previous_status not in {"pending", "ignored"}:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Candidate is already {previous_status}; restore it before rejecting",
+        )
+    if previous_status in {"pending", "ignored"}:
         logger.info(f"Rejected neologism candidate {candidate_id} for project {project_id}")
-        return {"status": "success"}
-    raise HTTPException(status_code=404, detail="Candidate not found")
+        return {"status": "success", "previous_status": previous_status}
 
 @router.patch("/api/neologisms/{candidate_id}")
 async def update_neologism_suggestion(candidate_id: str, payload: UpdateNeologismRequest):
@@ -234,6 +244,26 @@ async def update_neologism_suggestion(candidate_id: str, payload: UpdateNeologis
         logger.info(f"Updated neologism candidate {candidate_id} suggestion for project {payload.project_id}")
         return {"status": "success"}
     raise HTTPException(status_code=404, detail="Candidate not found")
+
+@router.post("/api/neologisms/{candidate_id}/restore")
+async def restore_neologism(candidate_id: str, payload: RestoreNeologismRequest):
+    """Return a processed candidate to the pending docket without mutating glossary entries."""
+    if not await project_manager.get_project(payload.project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+    previous_status = neologism_manager.restore_candidate(payload.project_id, candidate_id)
+    if previous_status is None:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    logger.info(
+        "Restored neologism candidate %s for project %s from %s",
+        candidate_id,
+        payload.project_id,
+        previous_status,
+    )
+    return {
+        "status": "success",
+        "previous_status": previous_status,
+        "glossary_entry_preserved": previous_status in {"approved", "new_meaning"},
+    }
 
 @router.post("/api/neologisms/mine")
 async def trigger_mining(payload: MineNeologismsRequest, background_tasks: BackgroundTasks):
@@ -316,6 +346,7 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
         task_id,
         duplicate_index,
         payload.model_name,
+        payload.review_language,
     )
     return {
         "task_id": task_id,

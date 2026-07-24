@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next';
 import {
     Grid, Paper, Title, Text, Stack, Group, Button,
     TextInput, ScrollArea, Badge, ActionIcon, LoadingOverlay, Box,
-    ThemeIcon, Select, Alert, Checkbox, Modal
+    ThemeIcon, Select, Alert, Checkbox, Modal, SegmentedControl
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
     IconCheck, IconX, IconBulb, IconQuote,
-    IconGavel, IconSparkles, IconAlertTriangle, IconBook2, IconExternalLink
+    IconGavel, IconSparkles, IconAlertTriangle, IconBook2, IconExternalLink,
+    IconRestore
 } from '@tabler/icons-react';
 import api from '../../utils/api';
 import { normalizeArrayPayload } from '../../utils/payload';
@@ -16,6 +17,32 @@ import { normalizeArrayPayload } from '../../utils/payload';
 const API_BASE_URL = '/api';
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const settleWithConcurrency = async (items, operation, concurrency = 4) => {
+    const results = new Array(items.length);
+    let nextIndex = 0;
+    const worker = async () => {
+        while (nextIndex < items.length) {
+            const index = nextIndex;
+            nextIndex += 1;
+            try {
+                results[index] = {
+                    status: 'fulfilled',
+                    value: await operation(items[index], index),
+                };
+            } catch (reason) {
+                results[index] = { status: 'rejected', reason };
+            }
+        }
+    };
+    await Promise.all(
+        Array.from(
+            { length: Math.min(concurrency, items.length) },
+            () => worker(),
+        ),
+    );
+    return results;
+};
 
 /**
  * 新词审核法庭组件
@@ -38,8 +65,9 @@ const JudgmentCourt = ({
     const [resolution, setResolution] = useState('approve_project');
     const [projectGlossary, setProjectGlossary] = useState(null);
     const [batchSelectedIds, setBatchSelectedIds] = useState([]);
-    const [batchConfirmOpen, setBatchConfirmOpen] = useState(false);
+    const [batchConfirmOpen, setBatchConfirmOpen] = useState(null);
     const [batchProcessing, setBatchProcessing] = useState(false);
+    const [docketView, setDocketView] = useState('pending');
 
     useEffect(() => {
         if (selectedId) {
@@ -63,10 +91,15 @@ const JudgmentCourt = ({
         }
     }, [onSelectedProjectChange, selectedProject]);
 
-    const fetchCandidates = useCallback(async (projectId) => {
+    const fetchCandidates = useCallback(async (projectId, view = 'pending') => {
         setLoading(true);
         try {
-            const response = await api.get(`${API_BASE_URL}/neologisms?project_id=${encodeURIComponent(projectId)}`);
+            const viewQuery = view === 'pending'
+                ? ''
+                : `&view=${encodeURIComponent(view)}`;
+            const response = await api.get(
+                `${API_BASE_URL}/neologisms?project_id=${encodeURIComponent(projectId)}${viewQuery}`,
+            );
             const candidateList = normalizeArrayPayload(
                 response.data,
                 ['candidates', 'neologisms', 'items', 'data', 'results'],
@@ -108,18 +141,18 @@ const JudgmentCourt = ({
 
     useEffect(() => {
         if (selectedProject) {
-            fetchCandidates(selectedProject);
+            fetchCandidates(selectedProject, docketView);
             fetchProjectGlossary(selectedProject);
         } else {
             setCandidates([]);
             setProjectGlossary(null);
         }
-    }, [fetchCandidates, fetchProjectGlossary, refreshToken, selectedProject]);
+    }, [docketView, fetchCandidates, fetchProjectGlossary, refreshToken, selectedProject]);
 
     useEffect(() => {
         setBatchSelectedIds([]);
-        setBatchConfirmOpen(false);
-    }, [selectedProject]);
+        setBatchConfirmOpen(null);
+    }, [docketView, selectedProject]);
 
     const handleApprove = async () => {
         if (!selectedId || !selectedProject) return;
@@ -203,6 +236,40 @@ const JudgmentCourt = ({
         }
     };
 
+    const handleRestore = async () => {
+        if (!selectedId || !selectedProject) return;
+        const candidate = candidates.find(c => c.id === selectedId);
+        if (!candidate) return;
+        setProcessing(true);
+        try {
+            const response = await api.post(`${API_BASE_URL}/neologisms/${selectedId}/restore`, {
+                project_id: selectedProject,
+            });
+            notifications.show({
+                title: t('neologism_review.court.restored_title'),
+                message: t(
+                    response.data?.glossary_entry_preserved
+                        ? 'neologism_review.court.restored_glossary_preserved'
+                        : 'neologism_review.court.restored_message',
+                    { term: candidate.original },
+                ),
+                color: 'blue',
+                icon: <IconRestore size={18} />,
+                withBorder: true,
+                autoClose: 4200,
+            });
+            removeCandidate(selectedId);
+        } catch {
+            notifications.show({
+                title: t('neologism_review.common.error'),
+                message: t('neologism_review.court.restore_failed'),
+                color: 'red',
+            });
+        } finally {
+            setProcessing(false);
+        }
+    };
+
     const removeCandidates = (ids) => {
         const removedIds = new Set(ids);
         const currentIndex = candidates.findIndex(c => c.id === selectedId);
@@ -254,7 +321,7 @@ const JudgmentCourt = ({
             .filter((candidate) => batchSelectedIds.includes(candidate.id))
             .map((candidate) => candidate.id);
         if (selectedIds.length === 0) {
-            setBatchConfirmOpen(false);
+            setBatchConfirmOpen(null);
             return;
         }
 
@@ -279,7 +346,7 @@ const JudgmentCourt = ({
             removeCandidates(succeededIds);
         }
         setBatchSelectedIds(failedIds);
-        setBatchConfirmOpen(false);
+        setBatchConfirmOpen(null);
         setBatchProcessing(false);
 
         if (failedIds.length === 0) {
@@ -308,6 +375,117 @@ const JudgmentCourt = ({
         }
     };
 
+    const candidateDraft = (candidate) => {
+        const key = `${selectedProject || ''}:${candidate.id}`;
+        return Object.prototype.hasOwnProperty.call(draftSuggestions, key)
+            ? draftSuggestions[key]
+            : candidate.suggestion || '';
+    };
+
+    const handleBatchApprove = async () => {
+        if (!selectedProject || batchSelectedIds.length === 0) return;
+        const selectedCandidates = candidates.filter(
+            (candidate) => batchSelectedIds.includes(candidate.id),
+        );
+        if (selectedCandidates.length === 0) {
+            setBatchConfirmOpen(null);
+            return;
+        }
+
+        setBatchProcessing(true);
+        const results = await settleWithConcurrency(selectedCandidates, (candidate) => {
+            const duplicate = (candidate.duplicate_matches || []).length > 0;
+            const finalTranslation = candidateDraft(candidate).trim();
+            if (!duplicate && !finalTranslation) {
+                throw new Error('Candidate has no suggested translation');
+            }
+            return api.post(`${API_BASE_URL}/neologisms/${candidate.id}/approve`, {
+                project_id: selectedProject,
+                resolution: duplicate ? 'duplicate' : 'approve_project',
+                final_translation: finalTranslation,
+                glossary_id: projectGlossary?.glossary_id || null,
+                source_lang: candidate.source_lang || currentProject?.source_language || 'en',
+                target_lang: candidate.target_lang || 'zh-CN',
+            });
+        });
+        const succeededIds = [];
+        const failedIds = [];
+        results.forEach((result, index) => {
+            const candidateId = selectedCandidates[index].id;
+            if (result.status === 'fulfilled') {
+                succeededIds.push(candidateId);
+                if (result.value.data?.glossary) setProjectGlossary(result.value.data.glossary);
+            } else {
+                failedIds.push(candidateId);
+            }
+        });
+
+        if (succeededIds.length > 0) removeCandidates(succeededIds);
+        setBatchSelectedIds(failedIds);
+        setBatchConfirmOpen(null);
+        setBatchProcessing(false);
+        notifications.show({
+            title: t(
+                failedIds.length > 0
+                    ? 'neologism_review.court.batch_partial_title'
+                    : 'neologism_review.court.batch_approved_title',
+            ),
+            message: t(
+                failedIds.length > 0
+                    ? 'neologism_review.court.batch_partial_message'
+                    : 'neologism_review.court.batch_approved_message',
+                { succeeded: succeededIds.length, failed: failedIds.length, count: succeededIds.length },
+            ),
+            color: failedIds.length > 0 ? (succeededIds.length > 0 ? 'orange' : 'red') : 'green',
+            icon: failedIds.length > 0
+                ? <IconAlertTriangle size={18} />
+                : <IconCheck size={18} />,
+            withBorder: true,
+            autoClose: failedIds.length > 0 ? 6000 : 4000,
+        });
+    };
+
+    const handleBatchRestore = async () => {
+        if (!selectedProject || batchSelectedIds.length === 0) return;
+        const selectedIds = candidates
+            .filter((candidate) => batchSelectedIds.includes(candidate.id))
+            .map((candidate) => candidate.id);
+        setBatchProcessing(true);
+        const results = await Promise.allSettled(selectedIds.map(
+            (candidateId) => api.post(`${API_BASE_URL}/neologisms/${candidateId}/restore`, {
+                project_id: selectedProject,
+            }),
+        ));
+        const succeededIds = [];
+        const failedIds = [];
+        results.forEach((result, index) => {
+            (result.status === 'fulfilled' ? succeededIds : failedIds).push(selectedIds[index]);
+        });
+        if (succeededIds.length > 0) removeCandidates(succeededIds);
+        setBatchSelectedIds(failedIds);
+        setBatchConfirmOpen(null);
+        setBatchProcessing(false);
+        notifications.show({
+            title: t(
+                failedIds.length > 0
+                    ? 'neologism_review.court.batch_partial_title'
+                    : 'neologism_review.court.batch_restored_title',
+            ),
+            message: t(
+                failedIds.length > 0
+                    ? 'neologism_review.court.batch_partial_message'
+                    : 'neologism_review.court.batch_restored_message',
+                { succeeded: succeededIds.length, failed: failedIds.length, count: succeededIds.length },
+            ),
+            color: failedIds.length > 0 ? (succeededIds.length > 0 ? 'orange' : 'red') : 'blue',
+            icon: failedIds.length > 0
+                ? <IconAlertTriangle size={18} />
+                : <IconRestore size={18} />,
+            withBorder: true,
+            autoClose: failedIds.length > 0 ? 6000 : 4000,
+        });
+    };
+
     const selectedCandidate = candidates.find(c => c.id === selectedId);
     const currentProject = projects.find(p => p.project_id === selectedProject);
     const selectedDraftKey = selectedCandidate
@@ -318,6 +496,17 @@ const JudgmentCourt = ({
             ? draftSuggestions[selectedDraftKey]
             : selectedCandidate.suggestion || "")
         : "";
+    const selectedEvidence = selectedCandidate
+        ? (
+            (selectedCandidate.context_evidence || []).length > 0
+                ? selectedCandidate.context_evidence
+                : (selectedCandidate.context_snippets || []).map((snippet) => ({
+                    snippet,
+                    source_file: null,
+                    legacy: true,
+                }))
+        )
+        : [];
     const updateEditSuggestion = (value) => {
         if (!selectedDraftKey) return;
         setDraftSuggestions((current) => ({
@@ -357,9 +546,9 @@ const JudgmentCourt = ({
     return (
         <Box h="100%" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <Modal
-                opened={batchConfirmOpen}
+                opened={batchConfirmOpen === 'reject'}
                 onClose={() => {
-                    if (!batchProcessing) setBatchConfirmOpen(false);
+                    if (!batchProcessing) setBatchConfirmOpen(null);
                 }}
                 title={t('neologism_review.court.batch_reject_confirm_title')}
                 centered
@@ -379,7 +568,7 @@ const JudgmentCourt = ({
                     <Group justify="flex-end">
                         <Button
                             variant="default"
-                            onClick={() => setBatchConfirmOpen(false)}
+                            onClick={() => setBatchConfirmOpen(null)}
                             disabled={batchProcessing}
                         >
                             {t('neologism_review.court.batch_cancel')}
@@ -391,6 +580,84 @@ const JudgmentCourt = ({
                             loading={batchProcessing}
                         >
                             {t('neologism_review.court.batch_reject_confirm')}
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
+            <Modal
+                opened={batchConfirmOpen === 'approve'}
+                onClose={() => {
+                    if (!batchProcessing) setBatchConfirmOpen(null);
+                }}
+                title={t('neologism_review.court.batch_approve_confirm_title')}
+                centered
+                closeOnClickOutside={!batchProcessing}
+                closeOnEscape={!batchProcessing}
+                withCloseButton={!batchProcessing}
+            >
+                <Stack>
+                    <Text>
+                        {t('neologism_review.court.batch_approve_confirm_message', {
+                            count: batchSelectedIds.length,
+                        })}
+                    </Text>
+                    <Alert color="blue" variant="light" icon={<IconAlertTriangle size={18} />}>
+                        {t('neologism_review.court.batch_approve_confirm_note')}
+                    </Alert>
+                    <Group justify="flex-end">
+                        <Button
+                            variant="default"
+                            onClick={() => setBatchConfirmOpen(null)}
+                            disabled={batchProcessing}
+                        >
+                            {t('neologism_review.court.batch_cancel')}
+                        </Button>
+                        <Button
+                            color="green"
+                            leftSection={<IconCheck size={18} />}
+                            onClick={handleBatchApprove}
+                            loading={batchProcessing}
+                        >
+                            {t('neologism_review.court.batch_approve_confirm')}
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
+            <Modal
+                opened={batchConfirmOpen === 'restore'}
+                onClose={() => {
+                    if (!batchProcessing) setBatchConfirmOpen(null);
+                }}
+                title={t('neologism_review.court.batch_restore_confirm_title')}
+                centered
+                closeOnClickOutside={!batchProcessing}
+                closeOnEscape={!batchProcessing}
+                withCloseButton={!batchProcessing}
+            >
+                <Stack>
+                    <Text>
+                        {t('neologism_review.court.batch_restore_confirm_message', {
+                            count: batchSelectedIds.length,
+                        })}
+                    </Text>
+                    <Alert color="blue" variant="light" icon={<IconRestore size={18} />}>
+                        {t('neologism_review.court.batch_restore_confirm_note')}
+                    </Alert>
+                    <Group justify="flex-end">
+                        <Button
+                            variant="default"
+                            onClick={() => setBatchConfirmOpen(null)}
+                            disabled={batchProcessing}
+                        >
+                            {t('neologism_review.court.batch_cancel')}
+                        </Button>
+                        <Button
+                            color="blue"
+                            leftSection={<IconRestore size={18} />}
+                            onClick={handleBatchRestore}
+                            loading={batchProcessing}
+                        >
+                            {t('neologism_review.court.batch_restore_confirm')}
                         </Button>
                     </Group>
                 </Stack>
@@ -416,7 +683,12 @@ const JudgmentCourt = ({
                                 </Text>
                                 {currentProject && (
                                     <Badge size="lg" variant="light" color="blue">
-                                        {t('neologism_review.court.pending_terms', { count: candidates.length })}
+                                        {t(
+                                            docketView === 'pending'
+                                                ? 'neologism_review.court.pending_terms'
+                                                : 'neologism_review.court.processed_terms',
+                                            { count: candidates.length },
+                                        )}
                                     </Badge>
                                 )}
                             </Group>
@@ -501,8 +773,24 @@ const JudgmentCourt = ({
                             <Title order={4} c="dimmed">{t('neologism_review.court.docket')}</Title>
                             <Badge variant="dot" size="lg">{candidates.length}</Badge>
                         </Group>
+                        <SegmentedControl
+                            fullWidth
+                            size="xs"
+                            value={docketView}
+                            onChange={setDocketView}
+                            data={[
+                                {
+                                    value: 'pending',
+                                    label: t('neologism_review.court.pending_docket'),
+                                },
+                                {
+                                    value: 'processed',
+                                    label: t('neologism_review.court.processed_docket'),
+                                },
+                            ]}
+                        />
                         {candidates.length > 0 && (
-                            <Group justify="space-between" gap="xs" wrap="nowrap">
+                            <Stack gap="xs">
                                 <Checkbox
                                     size="xs"
                                     label={t('neologism_review.court.select_all')}
@@ -515,19 +803,48 @@ const JudgmentCourt = ({
                                     disabled={processing || batchProcessing}
                                 />
                                 {batchSelectedIds.length > 0 && (
-                                    <Button
-                                        size="compact-xs"
-                                        variant="light"
-                                        color="red"
-                                        onClick={() => setBatchConfirmOpen(true)}
-                                        disabled={processing || batchProcessing}
-                                    >
-                                        {t('neologism_review.court.batch_reject', {
-                                            count: batchSelectedIds.length,
-                                        })}
-                                    </Button>
+                                    <Group grow gap="xs">
+                                        {docketView === 'pending' ? (
+                                            <>
+                                                <Button
+                                                    size="compact-xs"
+                                                    variant="light"
+                                                    color="green"
+                                                    onClick={() => setBatchConfirmOpen('approve')}
+                                                    disabled={processing || batchProcessing}
+                                                >
+                                                    {t('neologism_review.court.batch_approve', {
+                                                        count: batchSelectedIds.length,
+                                                    })}
+                                                </Button>
+                                                <Button
+                                                    size="compact-xs"
+                                                    variant="light"
+                                                    color="red"
+                                                    onClick={() => setBatchConfirmOpen('reject')}
+                                                    disabled={processing || batchProcessing}
+                                                >
+                                                    {t('neologism_review.court.batch_reject', {
+                                                        count: batchSelectedIds.length,
+                                                    })}
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <Button
+                                                size="compact-xs"
+                                                variant="light"
+                                                color="blue"
+                                                onClick={() => setBatchConfirmOpen('restore')}
+                                                disabled={processing || batchProcessing}
+                                            >
+                                                {t('neologism_review.court.batch_restore', {
+                                                    count: batchSelectedIds.length,
+                                                })}
+                                            </Button>
+                                        )}
+                                    </Group>
                                 )}
-                            </Group>
+                            </Stack>
                         )}
                         <ScrollArea
                             type="always"
@@ -573,6 +890,11 @@ const JudgmentCourt = ({
                                                     {t('neologism_review.court.duplicate_badge')}
                                                 </Badge>
                                             )}
+                                            {docketView === 'processed' && (
+                                                <Badge color="blue" variant="light" size="xs">
+                                                    {t(`neologism_review.court.status_${c.status}`)}
+                                                </Badge>
+                                            )}
                                             <Text size="xs" c="dimmed" truncate>{c.suggestion}</Text>
                                         </Paper>
                                     </Group>
@@ -580,7 +902,13 @@ const JudgmentCourt = ({
                                 {candidates.length === 0 && !loading && (
                                     <Stack align="center" mt="xl" c="dimmed">
                                         <IconCheck size={32} />
-                                        <Text>{t('neologism_review.court.caught_up')}</Text>
+                                        <Text>
+                                            {t(
+                                                docketView === 'pending'
+                                                    ? 'neologism_review.court.caught_up'
+                                                    : 'neologism_review.court.no_processed_cases',
+                                            )}
+                                        </Text>
                                     </Stack>
                                 )}
                             </Stack>
@@ -658,6 +986,13 @@ const JudgmentCourt = ({
                                                 <Text size="sm" style={{ lineHeight: 1.6 }}>
                                                     {selectedCandidate.reasoning}
                                                     </Text>
+                                                    {selectedCandidate.review_language && (
+                                                        <Badge mt="sm" variant="light" color="yellow">
+                                                            {t('neologism_review.court.review_language_badge', {
+                                                                language: selectedCandidate.review_language,
+                                                            })}
+                                                        </Badge>
+                                                    )}
                                                 </Paper>
                                             </Stack>
                                         </Grid.Col>
@@ -667,12 +1002,27 @@ const JudgmentCourt = ({
                                             <Stack>
                                                 <Text fw={700} c="dimmed" tt="uppercase" size="xs">{t('neologism_review.court.context_evidence')}</Text>
                                                 <Stack gap="sm">
-                                                    {selectedCandidate.context_snippets.map((snippet, idx) => (
-                                                        <Paper key={idx} p="md" radius="md" style={{ background: 'rgba(0,0,0,0.3)' }}>
-                                                            <Group align="flex-start" gap="xs" wrap="nowrap">
-                                                                <IconQuote size={16} style={{ opacity: 0.5, marginTop: 4 }} />
-                                                                <HighlightedText text={snippet} term={selectedCandidate.original} />
-                                                            </Group>
+                                                    {selectedEvidence.map((evidence, idx) => (
+                                                        <Paper
+                                                            key={`${evidence.source_file || 'legacy'}:${idx}`}
+                                                            p="md"
+                                                            radius="md"
+                                                            style={{ background: 'rgba(0,0,0,0.3)' }}
+                                                        >
+                                                            <Stack gap="xs">
+                                                                <Group align="flex-start" gap="xs" wrap="nowrap">
+                                                                    <IconQuote size={16} style={{ opacity: 0.5, marginTop: 4 }} />
+                                                                    <HighlightedText
+                                                                        text={evidence.snippet}
+                                                                        term={selectedCandidate.original}
+                                                                    />
+                                                                </Group>
+                                                                <Text size="xs" c="dimmed">
+                                                                    {evidence.source_file
+                                                                        ? `${evidence.source_file}${evidence.line ? `:${evidence.line}` : ''}`
+                                                                        : t('neologism_review.court.legacy_source_unlinked')}
+                                                                </Text>
+                                                            </Stack>
                                                         </Paper>
                                                     ))}
                                                 </Stack>
@@ -682,71 +1032,110 @@ const JudgmentCourt = ({
                                 </Stack>
                             </ScrollArea>
 
-                            <Paper
-                                p="md"
-                                radius="md"
-                                withBorder
-                                style={{ background: 'var(--glass-bg)', flexShrink: 0 }}
-                            >
-                                {(selectedCandidate.duplicate_matches || []).length > 0 && (
-                                    <Select
-                                        mb="md"
-                                        label={t('neologism_review.court.duplicate_resolution')}
-                                        data={[
-                                            { value: 'duplicate', label: t('neologism_review.court.resolution_duplicate') },
-                                            { value: 'approve_project', label: t('neologism_review.court.resolution_override') },
-                                            { value: 'new_meaning', label: t('neologism_review.court.resolution_new_meaning') },
-                                        ]}
-                                        value={resolution}
-                                        onChange={setResolution}
-                                    />
-                                )}
-                                <TextInput
-                                    label={t('neologism_review.court.final_translation')}
-                                    description={t('neologism_review.court.final_translation_desc')}
-                                    size="xl"
+                            {docketView === 'pending' ? (
+                                <Paper
+                                    p="md"
                                     radius="md"
-                                    value={editSuggestion}
-                                    onChange={(e) => updateEditSuggestion(e.currentTarget.value)}
-                                    rightSection={
-                                        <ActionIcon variant="subtle" onClick={() => updateEditSuggestion(selectedCandidate.suggestion)}>
-                                            <IconSparkles size={18} />
-                                        </ActionIcon>
-                                    }
-                                />
-                                <Group mt="md" grow>
-                                    <Button
-                                        size="lg"
-                                        variant="default"
-                                        color="gray"
-                                        leftSection={<IconX />}
-                                        onClick={handleReject}
-                                        disabled={batchProcessing}
-                                    >
-                                        {t('neologism_review.court.ignore')}
-                                    </Button>
-                                    <Button
-                                        size="lg"
-                                        variant="gradient"
-                                        gradient={{ from: 'teal', to: 'lime', deg: 105 }}
-                                        leftSection={<IconGavel />}
-                                        onClick={handleApprove}
-                                        disabled={
-                                            batchProcessing
-                                            || !selectedProject
-                                            || (resolution !== 'duplicate' && !editSuggestion.trim())
+                                    withBorder
+                                    style={{ background: 'var(--glass-bg)', flexShrink: 0 }}
+                                >
+                                    {(selectedCandidate.duplicate_matches || []).length > 0 && (
+                                        <Select
+                                            mb="md"
+                                            label={t('neologism_review.court.duplicate_resolution')}
+                                            data={[
+                                                { value: 'duplicate', label: t('neologism_review.court.resolution_duplicate') },
+                                                { value: 'approve_project', label: t('neologism_review.court.resolution_override') },
+                                                { value: 'new_meaning', label: t('neologism_review.court.resolution_new_meaning') },
+                                            ]}
+                                            value={resolution}
+                                            onChange={setResolution}
+                                        />
+                                    )}
+                                    <TextInput
+                                        label={t('neologism_review.court.final_translation')}
+                                        description={t('neologism_review.court.final_translation_desc')}
+                                        size="xl"
+                                        radius="md"
+                                        value={editSuggestion}
+                                        onChange={(e) => updateEditSuggestion(e.currentTarget.value)}
+                                        rightSection={
+                                            <ActionIcon variant="subtle" onClick={() => updateEditSuggestion(selectedCandidate.suggestion)}>
+                                                <IconSparkles size={18} />
+                                            </ActionIcon>
                                         }
-                                    >
-                                        {t('neologism_review.court.approve')}
-                                    </Button>
-                                </Group>
-                            </Paper>
+                                    />
+                                    <Group mt="md" grow>
+                                        <Button
+                                            size="lg"
+                                            variant="default"
+                                            color="gray"
+                                            leftSection={<IconX />}
+                                            onClick={handleReject}
+                                            disabled={batchProcessing}
+                                        >
+                                            {t('neologism_review.court.ignore')}
+                                        </Button>
+                                        <Button
+                                            size="lg"
+                                            variant="gradient"
+                                            gradient={{ from: 'teal', to: 'lime', deg: 105 }}
+                                            leftSection={<IconGavel />}
+                                            onClick={handleApprove}
+                                            disabled={
+                                                batchProcessing
+                                                || !selectedProject
+                                                || (resolution !== 'duplicate' && !editSuggestion.trim())
+                                            }
+                                        >
+                                            {t('neologism_review.court.approve')}
+                                        </Button>
+                                    </Group>
+                                </Paper>
+                            ) : (
+                                <Paper
+                                    p="md"
+                                    radius="md"
+                                    withBorder
+                                    style={{ background: 'var(--glass-bg)', flexShrink: 0 }}
+                                >
+                                    <Group justify="space-between" align="center">
+                                        <Box>
+                                            <Text fw={700}>
+                                                {t(`neologism_review.court.status_${selectedCandidate.status}`)}
+                                            </Text>
+                                            <Text size="sm" c="dimmed">
+                                                {t(
+                                                    ['approved', 'new_meaning'].includes(selectedCandidate.status)
+                                                        ? 'neologism_review.court.restore_preserves_glossary_note'
+                                                        : 'neologism_review.court.restore_note',
+                                                )}
+                                            </Text>
+                                        </Box>
+                                        <Button
+                                            color="blue"
+                                            variant="light"
+                                            leftSection={<IconRestore size={18} />}
+                                            onClick={handleRestore}
+                                            disabled={batchProcessing}
+                                        >
+                                            {t('neologism_review.court.restore_candidate')}
+                                        </Button>
+                                    </Group>
+                                </Paper>
+                            )}
                         </Stack>
                     ) : selectedProject && candidates.length === 0 && !loading ? (
                         <Stack align="center" justify="center" h="100%" c="dimmed">
                             <IconCheck size={64} style={{ opacity: 0.35 }} />
-                            <Text size="xl">{t('neologism_review.court.caught_up')}</Text>
-                            {onOpenMining && (
+                            <Text size="xl">
+                                {t(
+                                    docketView === 'pending'
+                                        ? 'neologism_review.court.caught_up'
+                                        : 'neologism_review.court.no_processed_cases',
+                                )}
+                            </Text>
+                            {docketView === 'pending' && onOpenMining && (
                                 <Button variant="light" onClick={onOpenMining}>
                                     {t('neologism_review.tab_mining')}
                                 </Button>

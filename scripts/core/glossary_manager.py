@@ -32,6 +32,7 @@ class GlossaryManager:
     
     def __init__(self):
         self._lock = threading.Lock()
+        self._project_glossary_locks: Dict[str, asyncio.Lock] = {}
         self.current_game_id: Optional[str] = None
         self.in_memory_glossary: Dict[str, Any] = {'entries': []}
         self.fuzzy_matching_mode: str = 'loose'
@@ -390,39 +391,41 @@ class GlossaryManager:
 
     async def get_or_create_project_glossary(self, game_id: str, project_id: str, project_name: Optional[str] = None) -> Optional[Dict]:
         """Async: Ensure the dedicated glossary for a project exists and return it."""
-        existing = await self.get_project_glossary(game_id, project_id, project_name)
-        if existing:
-            return existing
+        lock = self._project_glossary_locks.setdefault(project_id, asyncio.Lock())
+        async with lock:
+            existing = await self.get_project_glossary(game_id, project_id, project_name)
+            if existing:
+                return existing
 
-        try:
-            async for session in self.db_manager.get_async_session():
-                glossary = Glossary(
-                    game_id=game_id,
-                    name=self.get_project_glossary_name(project_id, project_name),
-                    description=f"Auto-mined project glossary for {project_name or project_id}",
-                    is_main=False,
-                    raw_metadata={
-                        "kind": "project_neologism_glossary",
-                        "owner_project_id": project_id,
-                        "project_name": project_name,
-                    },
-                )
-                session.add(glossary)
-                await session.commit()
-                await session.refresh(glossary)
-                now = datetime.now().isoformat()
-                session.add(ProjectGlossaryBinding(
-                    project_id=project_id,
-                    glossary_id=glossary.glossary_id,
-                    created_at=now,
-                    updated_at=now,
-                ))
-                await session.commit()
-                return glossary.model_dump()
-        except Exception as e:
-            logger.error(f"Failed to create project glossary for {project_id}: {e}")
+            try:
+                async for session in self.db_manager.get_async_session():
+                    glossary = Glossary(
+                        game_id=game_id,
+                        name=self.get_project_glossary_name(project_id, project_name),
+                        description=f"Auto-mined project glossary for {project_name or project_id}",
+                        is_main=False,
+                        raw_metadata={
+                            "kind": "project_neologism_glossary",
+                            "owner_project_id": project_id,
+                            "project_name": project_name,
+                        },
+                    )
+                    session.add(glossary)
+                    await session.commit()
+                    await session.refresh(glossary)
+                    now = datetime.now().isoformat()
+                    session.add(ProjectGlossaryBinding(
+                        project_id=project_id,
+                        glossary_id=glossary.glossary_id,
+                        created_at=now,
+                        updated_at=now,
+                    ))
+                    await session.commit()
+                    return glossary.model_dump()
+            except Exception as e:
+                logger.error(f"Failed to create project glossary for {project_id}: {e}")
+                return None
             return None
-        return None
 
     async def get_entries_for_glossary_ids(self, glossary_ids: List[int]) -> List[Dict]:
         """Async: Return all entries from a small set of glossaries."""

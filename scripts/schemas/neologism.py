@@ -34,7 +34,16 @@ class MineNeologismsRequest(BaseModel):
     api_provider: str = Field(min_length=1)
     model_name: Optional[str] = None
     target_lang: str = Field(default="zh-CN", min_length=1)
+    review_language: str = Field(
+        default="en",
+        min_length=2,
+        max_length=16,
+        pattern=r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?$",
+    )
     file_paths: Optional[List[str]] = None
+
+class RestoreNeologismRequest(BaseModel):
+    project_id: str = Field(min_length=1)
 
 class ProjectGlossaryBindingRequest(BaseModel):
     glossary_id: int

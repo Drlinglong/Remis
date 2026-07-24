@@ -8,7 +8,10 @@ import MiningDashboard from './MiningDashboard';
 
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key, fallback) => fallback || key }),
+  useTranslation: () => ({
+    t: (key, fallback) => fallback || key,
+    i18n: { language: 'zh-CN', resolvedLanguage: 'zh-CN' },
+  }),
 }));
 
 vi.mock('@mantine/notifications', () => ({
@@ -142,6 +145,7 @@ describe('MiningDashboard', () => {
       expect(api.post).toHaveBeenCalledWith('/api/neologisms/mine', expect.objectContaining({
         project_id: 'project-1',
         target_lang: 'zh-TW',
+        review_language: 'zh-CN',
       }));
     });
   });

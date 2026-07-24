@@ -32,6 +32,12 @@ class CandidateStoreError(RuntimeError):
     """Raised when durable candidate state cannot be read or written safely."""
 
 
+class ContextEvidence(BaseModel):
+    snippet: str
+    source_file: str
+    line: Optional[int] = None
+
+
 class Candidate(BaseModel):
     id: str
     project_id: str
@@ -42,8 +48,10 @@ class Candidate(BaseModel):
     status: Literal["pending", "approved", "ignored", "duplicate", "new_meaning"] = "pending"
     source_file: Optional[str] = None
     source_files: List[str] = Field(default_factory=list)
+    context_evidence: List[ContextEvidence] = Field(default_factory=list)
     source_lang: str = "en"
     target_lang: str = "zh-CN"
+    review_language: str = "en"
     duplicate_matches: List[Dict[str, Any]] = Field(default_factory=list)
     frequency: int = 0
     category: str = "other"
@@ -207,10 +215,19 @@ class NeologismManager:
             self._save_candidates_unlocked(project_id, candidates)
 
     def get_pending_candidates(self, project_id: str) -> List[Dict[str, Any]]:
+        return self.get_candidates(project_id, view="pending")
+
+    def get_candidates(self, project_id: str, *, view: str = "pending") -> List[Dict[str, Any]]:
+        if view not in {"pending", "processed", "all"}:
+            raise ValueError(f"Unsupported candidate view: {view}")
         return [
             candidate.model_dump()
             for candidate in self.load_candidates(project_id)
-            if candidate.status == "pending"
+            if (
+                view == "all"
+                or (view == "pending" and candidate.status == "pending")
+                or (view == "processed" and candidate.status != "pending")
+            )
         ]
 
     async def approve_candidate(
@@ -297,15 +314,33 @@ class NeologismManager:
         self.logger.info("Approved candidate %s for project %s", candidate_id, project_id)
         return True
 
-    def reject_candidate(self, project_id: str, candidate_id: str) -> bool:
+    def reject_candidate(self, project_id: str, candidate_id: str) -> Optional[str]:
+        """Reject a pending candidate and return its status before the request."""
         with self._candidate_lock(project_id):
             candidates = self._load_candidates_unlocked(project_id)
             candidate = next((item for item in candidates if item.id == candidate_id), None)
             if not candidate:
-                return False
+                return None
+            previous_status = candidate.status
+            if candidate.status == "ignored":
+                return previous_status
+            if candidate.status != "pending":
+                return previous_status
             candidate.status = "ignored"
             self._save_candidates_unlocked(project_id, candidates)
-        return True
+        return previous_status
+
+    def restore_candidate(self, project_id: str, candidate_id: str) -> Optional[str]:
+        with self._candidate_lock(project_id):
+            candidates = self._load_candidates_unlocked(project_id)
+            candidate = next((item for item in candidates if item.id == candidate_id), None)
+            if not candidate:
+                return None
+            previous_status = candidate.status
+            if candidate.status != "pending":
+                candidate.status = "pending"
+                self._save_candidates_unlocked(project_id, candidates)
+        return previous_status
 
     def update_candidate_suggestion(self, project_id: str, candidate_id: str, suggestion: str) -> bool:
         with self._candidate_lock(project_id):
@@ -358,6 +393,7 @@ class NeologismManager:
         needle = original.casefold()
         snippets: List[str] = []
         source_files: List[str] = []
+        context_evidence: List[Dict[str, Any]] = []
         frequency = 0
         for file_path, texts in file_texts.items():
             file_matched = False
@@ -367,13 +403,27 @@ class NeologismManager:
                     continue
                 frequency += count
                 file_matched = True
-                if len(snippets) < max_snippets and text not in snippets:
-                    snippets.append(text.strip())
+                normalized_text = text.strip()
+                if (
+                    len(context_evidence) < max_snippets
+                    and not any(
+                        item["snippet"] == normalized_text and item["source_file"] == file_path
+                        for item in context_evidence
+                    )
+                ):
+                    context_evidence.append({
+                        "snippet": normalized_text,
+                        "source_file": file_path,
+                        "line": None,
+                    })
+                if len(snippets) < max_snippets and normalized_text not in snippets:
+                    snippets.append(normalized_text)
             if file_matched:
                 source_files.append(file_path)
         return {
             "context_snippets": snippets,
             "source_files": source_files,
+            "context_evidence": context_evidence,
             "frequency": frequency,
         }
 
@@ -416,6 +466,7 @@ class NeologismManager:
         task_id: Optional[str] = None,
         duplicate_index: Optional[Dict[str, List[Dict[str, Any]]]] = None,
         model_name: Optional[str] = None,
+        review_language: str = "en",
     ) -> int:
         total_files = len(file_paths)
         processed_files = 0
@@ -527,6 +578,7 @@ class NeologismManager:
                     source_lang=source_lang,
                     target_lang=target_lang,
                     game_name=game_name,
+                    review_language=review_language,
                 ))
 
             new_candidates: List[Candidate] = []
@@ -550,8 +602,10 @@ class NeologismManager:
                     reasoning=reasoning,
                     source_file=item["source_files"][0] if item["source_files"] else None,
                     source_files=item["source_files"],
+                    context_evidence=item["context_evidence"],
                     source_lang=source_lang,
                     target_lang=target_lang,
+                    review_language=review_language,
                     duplicate_matches=item["duplicate_matches"],
                     frequency=item["frequency"],
                     category=item["category"],

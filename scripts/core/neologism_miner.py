@@ -67,6 +67,7 @@ You are a senior game localization terminology reviewer.
 # Task
 For every supplied candidate, propose one canonical translation from {source_lang} to {target_lang}.
 Use all supplied context snippets, frequency, category, and the game context.
+Write every `reasoning` value in {review_language}, regardless of the source or target language.
 
 # Game
 {game_name}
@@ -76,6 +77,9 @@ Use all supplied context snippets, frequency, category, and the game context.
 - Keep `original` exactly equal to the input value.
 - The suggestion must be non-empty and suitable for consistent glossary use.
 - Reasoning must be concise and grounded in the supplied contexts.
+- In the reasoning, name the translation strategy (transliteration, semantic translation, or mixed),
+  mention any supplied glossary precedent, and state material uncertainty.
+- Do not translate the suggestion into the review language. The suggestion must remain in {target_lang}.
 - Confidence is a number from 0 to 1.
 
 # Output
@@ -167,6 +171,7 @@ Output only a JSON array with this schema:
         source_lang: str,
         target_lang: str,
         game_name: str,
+        review_language: str = "en",
     ) -> Dict[str, NeologismReview]:
         if not candidates:
             return {}
@@ -174,6 +179,7 @@ Output only a JSON array with this schema:
             source_lang=source_lang,
             target_lang=target_lang,
             game_name=game_name,
+            review_language=review_language,
         )
         reviews = self._parse_with_repair(
             [
