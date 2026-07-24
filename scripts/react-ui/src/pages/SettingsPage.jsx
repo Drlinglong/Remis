@@ -162,16 +162,31 @@ const SettingsPage = () => {
 
                                 <Divider my="xl" label={t('settings_system_maintenance')} labelPosition="center" />
 
-                                <Group justify="space-between">
+                                <Group justify="space-between" align="flex-start">
                                     <Box>
                                         <Text fw={500} c="red">{t('settings_reset_db_title')}</Text>
-                                        <Text size="sm" c="dimmed">
+                                        <Text size="sm" c="dimmed" maw={720}>
                                             {t('settings_reset_db_desc')}
                                         </Text>
                                     </Box>
-                                    <Button color="red" variant="light" onClick={() => setResetModalOpen(true)}>
-                                        {t('btn_reset_db')}
-                                    </Button>
+                                    <Group gap="xs" wrap="nowrap">
+                                        <Button
+                                            variant="default"
+                                            onClick={async () => {
+                                                try {
+                                                    await api.post('/api/system/open-database-folder');
+                                                } catch (e) {
+                                                    const detail = e?.response?.data?.detail || e?.message || '';
+                                                    alert(`${t('error_cannot_open_folder')}: ${detail}`);
+                                                }
+                                            }}
+                                        >
+                                            {t('button_open_folder')}
+                                        </Button>
+                                        <Button color="red" variant="light" onClick={() => setResetModalOpen(true)}>
+                                            {t('btn_reset_db')}
+                                        </Button>
+                                    </Group>
                                 </Group>
                             </Stack>
                         </Tabs.Panel>
