@@ -60,6 +60,7 @@ class ProjectWatchRepository:
                     path=relativize_path(data["path"]),
                     project_id=data.get("project_id") or None,
                     enabled=bool(data.get("enabled", True)),
+                    paused_by_project_archive=False,
                     scan_interval_minutes=data.get("scan_interval_minutes"),
                     status="never_scanned",
                     last_scan_summary={},
@@ -83,6 +84,8 @@ class ProjectWatchRepository:
                 for key in ["name", "project_id", "enabled", "scan_interval_minutes"]:
                     if key in data:
                         setattr(watch, key, data[key])
+                if "enabled" in data:
+                    watch.paused_by_project_archive = False
                 if "path" in data:
                     watch.path = relativize_path(data["path"])
                 session.add(watch)

@@ -82,6 +82,7 @@ class ProjectWatch(SQLModel, table=True):
     path: str
     project_id: Optional[str] = Field(default=None, foreign_key="projects.project_id", index=True)
     enabled: bool = Field(default=True)
+    paused_by_project_archive: bool = Field(default=False)
     scan_interval_minutes: Optional[int] = None
     last_scan_at: Optional[str] = None
     last_change_at: Optional[str] = None

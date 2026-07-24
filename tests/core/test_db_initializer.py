@@ -77,6 +77,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (5, "make_glossary_bindings_many_to_many"),
         (6, "index_task_summary_queries"),
         (7, "govern_task_events_and_retention"),
+        (8, "pause_archived_project_watches"),
     ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
@@ -167,10 +168,13 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     assert {"source_language", "last_modified", "last_activity_type", "last_activity_desc", "notes", "target_path"}.issubset(project_columns)
 
     cursor.execute("SELECT version FROM schema_migrations")
-    assert cursor.fetchall() == [(1,), (2,), (3,), (4,), (5,), (6,), (7,)]
+    assert cursor.fetchall() == [(1,), (2,), (3,), (4,), (5,), (6,), (7,), (8,)]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")
     assert cursor.fetchone() == ("project_watches",)
+    cursor.execute("PRAGMA table_info(project_watches)")
+    watch_columns = {row[1] for row in cursor.fetchall()}
+    assert "paused_by_project_archive" in watch_columns
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_glossary_bindings'")
     assert cursor.fetchone() == ("project_glossary_bindings",)
@@ -217,9 +221,9 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     assert cursor.fetchone()[0] == "Legacy"
     conn.close()
 
-    assert migrate_main_database(str(db_path)) == 7
+    assert migrate_main_database(str(db_path)) == 8
     conn = sqlite3.connect(db_path)
-    assert conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0] == 7
+    assert conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0] == 8
     assert conn.execute("SELECT COUNT(*) FROM project_glossary_bindings").fetchone()[0] == 1
     conn.close()
 

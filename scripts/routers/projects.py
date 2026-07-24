@@ -97,8 +97,14 @@ async def list_project_files(project_id: str):
 async def update_project_status(project_id: str, request: UpdateProjectStatusRequest):
     """Updates a project's status."""
     try:
-        await project_manager.update_project_status(project_id, request.status)
-        return {"status": "success", "message": f"Project status updated to {request.status}"}
+        lifecycle = await project_manager.update_project_status(project_id, request.status)
+        return {
+            "status": "success",
+            "message": f"Project status updated to {request.status}",
+            "lifecycle": lifecycle,
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as e:
         logging.error(f"Error updating project status: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -20,7 +20,7 @@ from scripts.core.db_models import (
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 7
+MAIN_DB_TARGET_VERSION = 8
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -135,6 +135,7 @@ def _migration_002_add_project_watches(db_path: str) -> None:
                 path TEXT NOT NULL,
                 project_id TEXT,
                 enabled BOOLEAN NOT NULL DEFAULT 1,
+                paused_by_project_archive BOOLEAN NOT NULL DEFAULT 0,
                 scan_interval_minutes INTEGER,
                 last_scan_at TEXT,
                 last_change_at TEXT,
@@ -355,6 +356,18 @@ def _migration_007_govern_task_events_and_retention(db_path: str) -> None:
         conn.commit()
 
 
+def _migration_008_pause_archived_project_watches(db_path: str) -> None:
+    """Remember which scheduled watches were paused by project archiving."""
+    with _connect(db_path) as conn:
+        _ensure_column(
+            conn,
+            "project_watches",
+            "paused_by_project_archive",
+            "paused_by_project_archive BOOLEAN NOT NULL DEFAULT 0",
+        )
+        conn.commit()
+
+
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
@@ -363,6 +376,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (5, "make_glossary_bindings_many_to_many", _migration_005_make_glossary_bindings_many_to_many),
     (6, "index_task_summary_queries", _migration_006_index_task_summary_queries),
     (7, "govern_task_events_and_retention", _migration_007_govern_task_events_and_retention),
+    (8, "pause_archived_project_watches", _migration_008_pause_archived_project_watches),
 ]
 
 

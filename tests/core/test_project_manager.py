@@ -21,6 +21,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         self.mock_repo.list_projects = AsyncMock()
         self.mock_repo.get_project_files = AsyncMock()
         self.mock_repo.update_project_status = AsyncMock()
+        self.mock_repo.update_project_lifecycle_status = AsyncMock()
         self.mock_repo.update_project_notes = AsyncMock()
         self.mock_repo.add_history_entry = AsyncMock()
         self.mock_repo.touch_project = AsyncMock()
@@ -35,6 +36,22 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
             project_repository=self.mock_repo,
             kanban_service=self.mock_kanban,
             db_path=":memory:" 
+        )
+
+    async def test_update_project_status_uses_atomic_lifecycle_transition(self):
+        lifecycle = {
+            "status": "archived",
+            "paused_watch_count": 2,
+            "restored_watch_count": 0,
+        }
+        self.mock_repo.update_project_lifecycle_status.return_value = lifecycle
+
+        result = await self.pm.update_project_status("project-1", "archived")
+
+        self.assertEqual(result, lifecycle)
+        self.mock_repo.update_project_lifecycle_status.assert_awaited_once_with(
+            "project-1",
+            "archived",
         )
 
     @patch("scripts.core.project_manager.ProjectJsonManager")

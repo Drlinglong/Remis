@@ -439,6 +439,7 @@ class ModDeployer:
                         "status": "success", 
                         "message": "Successfully deployed mod folder (Victoria 3)",
                         "target_path": str(target_mod_path),
+                        "output_paths": [str(target_mod_path)],
                         "clean_result": clean_result
                     }
                 
@@ -450,6 +451,7 @@ class ModDeployer:
                         "status": "warning", 
                         "message": "Mod folder copied, but no descriptor.mod found. Launcher might not detect it.",
                         "target_path": str(target_mod_path),
+                        "output_paths": [str(target_mod_path)],
                         "clean_result": clean_result
                     }
 
@@ -475,6 +477,10 @@ class ModDeployer:
                 "status": "success", 
                 "message": f"Successfully deployed to {target_mod_root}",
                 "target_path": str(target_mod_path),
+                "output_paths": [
+                    str(target_mod_path),
+                    str(launcher_mod_file),
+                ],
                 "clean_result": clean_result
             }
 

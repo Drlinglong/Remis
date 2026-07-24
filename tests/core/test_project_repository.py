@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 from sqlmodel import select
 from scripts.core.repositories.project_repository import ProjectRepository
+from scripts.core.repositories.project_watch_repository import ProjectWatchRepository
 from scripts.core.glossary_manager import GlossaryManager
 from scripts.core.db_models import (
     ActivityLog,
@@ -79,6 +80,66 @@ async def test_create_and_get_project(repo):
     assert fetched.project_id == project_id
     assert fetched.name == "Test Project 1"
     assert fetched.source_language == "english"
+
+
+@pytest.mark.asyncio
+async def test_archive_pauses_enabled_watches_and_restore_preserves_manual_choices(repo):
+    project_id = "archive-watch-project"
+    await repo.create_project(
+        Project(
+            project_id=project_id,
+            name="Long-term Shelf Project",
+            game_id="victoria3",
+            source_path="/tmp/archive-watch-project",
+            source_language="english",
+            status="active",
+        )
+    )
+    watch_repo = ProjectWatchRepository(repo.db_path)
+    for watch_id, enabled in [
+        ("enabled-watch-1", True),
+        ("enabled-watch-2", True),
+        ("already-disabled-watch", False),
+    ]:
+        await watch_repo.create_watch(
+            {
+                "watch_id": watch_id,
+                "name": watch_id,
+                "path": f"/tmp/{watch_id}",
+                "project_id": project_id,
+                "enabled": enabled,
+                "scan_interval_minutes": 60,
+            }
+        )
+    await watch_repo.create_watch(
+        {
+            "watch_id": "unrelated-watch",
+            "name": "unrelated-watch",
+            "path": "/tmp/unrelated-watch",
+            "enabled": True,
+            "scan_interval_minutes": 60,
+        }
+    )
+
+    archived = await repo.update_project_lifecycle_status(project_id, "archived")
+
+    assert archived["paused_watch_count"] == 2
+    assert (await watch_repo.get_watch("enabled-watch-1")).enabled is False
+    assert (await watch_repo.get_watch("enabled-watch-1")).paused_by_project_archive is True
+    assert (await watch_repo.get_watch("enabled-watch-2")).paused_by_project_archive is True
+    assert (await watch_repo.get_watch("already-disabled-watch")).paused_by_project_archive is False
+    assert (await watch_repo.get_watch("unrelated-watch")).enabled is True
+
+    # A manual choice made while archived takes precedence over automatic restore.
+    await watch_repo.update_watch("enabled-watch-2", {"enabled": False})
+    await repo.update_project_lifecycle_status(project_id, "deleted")
+    restored = await repo.update_project_lifecycle_status(project_id, "active")
+
+    assert restored["restored_watch_count"] == 1
+    assert (await watch_repo.get_watch("enabled-watch-1")).enabled is True
+    assert (await watch_repo.get_watch("enabled-watch-1")).paused_by_project_archive is False
+    assert (await watch_repo.get_watch("enabled-watch-2")).enabled is False
+    assert (await watch_repo.get_watch("already-disabled-watch")).enabled is False
 
 @pytest.mark.asyncio
 async def test_create_project_does_not_mutate_input_model(repo):

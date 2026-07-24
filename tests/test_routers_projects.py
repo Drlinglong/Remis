@@ -175,6 +175,26 @@ def test_update_project_status_rejects_unknown_status(mock_project_manager):
     mock_project_manager.update_project_status.assert_not_awaited()
 
 
+def test_update_project_status_returns_watch_lifecycle_counts(mock_project_manager):
+    mock_project_manager.update_project_status.return_value = {
+        "project_id": "proj-1",
+        "previous_status": "active",
+        "status": "archived",
+        "paused_watch_count": 2,
+        "restored_watch_count": 0,
+    }
+    client = TestClient(app)
+
+    response = client.post("/api/project/proj-1/status", json={"status": "archived"})
+
+    assert response.status_code == 200
+    assert response.json()["lifecycle"]["paused_watch_count"] == 2
+    mock_project_manager.update_project_status.assert_awaited_once_with(
+        "proj-1",
+        "archived",
+    )
+
+
 def test_update_file_status_rejects_unknown_status(mock_project_manager):
     client = TestClient(app)
 

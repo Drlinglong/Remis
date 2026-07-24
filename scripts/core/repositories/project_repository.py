@@ -198,6 +198,71 @@ class ProjectRepository:
                 session.add(project)
                 await self._commit_if_owner(session)
 
+    async def update_project_lifecycle_status(
+        self,
+        project_id: str,
+        status: str,
+        session: Optional[AsyncSession] = None,
+    ) -> Dict[str, Any]:
+        """Atomically update project visibility and its archive-paused watches."""
+        async with self._use_session(session) as session:
+            try:
+                result = await session.execute(
+                    select(Project).where(Project.project_id == project_id)
+                )
+                project = result.scalar_one_or_none()
+                if not project:
+                    raise ValueError(f"Project not found: {project_id}")
+
+                previous_status = project.status
+                project.status = status
+                project.last_modified = datetime.datetime.now().isoformat()
+                session.add(project)
+
+                watch_result = await session.execute(
+                    select(ProjectWatch).where(ProjectWatch.project_id == project_id)
+                )
+                watches = list(watch_result.scalars().all())
+                paused_count = 0
+                restored_count = 0
+                if status == "archived":
+                    for watch in watches:
+                        if watch.enabled:
+                            watch.enabled = False
+                            watch.paused_by_project_archive = True
+                            session.add(watch)
+                            paused_count += 1
+                elif status == "active":
+                    for watch in watches:
+                        if watch.paused_by_project_archive:
+                            watch.enabled = True
+                            watch.paused_by_project_archive = False
+                            session.add(watch)
+                            restored_count += 1
+
+                await self.add_history_entry(
+                    project_id=project_id,
+                    action_type="status_change",
+                    description=f"Status updated to: {status}",
+                    extra_metadata={
+                        "previous_status": previous_status,
+                        "paused_watch_count": paused_count,
+                        "restored_watch_count": restored_count,
+                    },
+                    session=session,
+                )
+                await self._commit_if_owner(session)
+                return {
+                    "project_id": project_id,
+                    "previous_status": previous_status,
+                    "status": status,
+                    "paused_watch_count": paused_count,
+                    "restored_watch_count": restored_count,
+                }
+            except Exception:
+                await self._rollback_if_owner(session)
+                raise
+
     async def update_project_notes(self, project_id: str, notes: str, session: Optional[AsyncSession] = None):
         """Persists project notes to the database and updates last_modified."""
         async with self._use_session(session) as session:

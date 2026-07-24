@@ -27,6 +27,8 @@ export function useDeployActions({ getOutputFolderName, projectId, gameId, onDep
     const [deployPath, setDeployPath] = useState('');
     const [workshopPath, setWorkshopPath] = useState('');
     const [sourceLanguage, setSourceLanguage] = useState('english');
+    const [deployPreview, setDeployPreview] = useState(null);
+    const [confirmOverwrite, setConfirmOverwrite] = useState(false);
 
     // Loading state
     const [loading, setLoading] = useState(false);
@@ -62,9 +64,35 @@ export function useDeployActions({ getOutputFolderName, projectId, gameId, onDep
         }
     };
 
+    const fetchDeployPreview = async () => {
+        setInfoLoading(true);
+        setDeployPreview(null);
+        setConfirmOverwrite(false);
+        try {
+            const response = await api.post('/api/tools/deploy_preview', {
+                project_id: projectId || null,
+                game_id: gameId || '',
+                output_folder_name: getOutputFolderName()
+            });
+            setDeployPreview(response.data);
+            setDeployPath(response.data.target_path || '');
+            return response.data;
+        } catch (error) {
+            console.error("Failed to load deploy preview:", error);
+            notifications.show({
+                title: t('deploy_failed_title'),
+                message: error.response?.data?.detail?.message || t('deploy_error_load_info'),
+                color: 'red'
+            });
+            return null;
+        } finally {
+            setInfoLoading(false);
+        }
+    };
+
     const handleOpenDeployModal = () => {
         setDeployModalOpen(true);
-        fetchDeployInfo();
+        fetchDeployPreview();
     };
 
     const handleOpenCleanModal = () => {
@@ -73,7 +101,12 @@ export function useDeployActions({ getOutputFolderName, projectId, gameId, onDep
     };
 
     const getErrorMessage = (error) => {
-        const detail = error.response?.data?.detail || error.message || '';
+        const rawDetail = error.response?.data?.detail;
+        const detail = (
+            typeof rawDetail === 'object'
+                ? rawDetail.message
+                : rawDetail
+        ) || error.message || '';
         if (detail.includes("Source directory not found")) {
             return t('deploy_error_source_not_found');
         }
@@ -117,6 +150,14 @@ export function useDeployActions({ getOutputFolderName, projectId, gameId, onDep
     };
 
     const handleExecuteDeploy = async () => {
+        if (!deployPreview) {
+            notifications.show({
+                title: t('deploy_failed_title'),
+                message: t('deploy_error_load_info'),
+                color: 'red'
+            });
+            return;
+        }
         setLoading(true);
         try {
             const folderName = getOutputFolderName();
@@ -126,12 +167,23 @@ export function useDeployActions({ getOutputFolderName, projectId, gameId, onDep
                 game_id: gameId,
                 target_deploy_path: deployPath,
                 clean_fake_loc: false,
-                source_language: sourceLanguage
+                source_language: sourceLanguage,
+                preview_id: deployPreview.preview_id,
+                approved: true,
+                confirm_overwrite: Boolean(deployPreview.target_exists && confirmOverwrite)
             });
 
-            if (response.data.status === 'success') {
-                notifications.show({ title: t('deploy_success_title'), message: t('deploy_success_message'), color: 'green' });
+            if (['success', 'warning'].includes(response.data.status)) {
+                notifications.show({
+                    title: t('deploy_success_title'),
+                    message: response.data.status === 'warning'
+                        ? response.data.message
+                        : t('deploy_success_message'),
+                    color: response.data.status === 'warning' ? 'orange' : 'green'
+                });
                 setDeployModalOpen(false);
+                setDeployPreview(null);
+                setConfirmOverwrite(false);
                 onDeploySuccess?.();
             } else {
                 notifications.show({ title: t('deploy_failed_title'), message: response.data.message || 'Deployment failed', color: 'red' });
@@ -190,6 +242,8 @@ export function useDeployActions({ getOutputFolderName, projectId, gameId, onDep
         // Path state
         deployPath, setDeployPath,
         workshopPath, setWorkshopPath,
+        deployPreview,
+        confirmOverwrite, setConfirmOverwrite,
         // Loading state
         loading, infoLoading,
         // Actions

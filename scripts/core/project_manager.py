@@ -630,14 +630,9 @@ class ProjectManager:
         )
 
     async def update_project_status(self, project_id: str, status: str):
-        # We use the unified add_history_entry which also updates the project status/last_modified indirectly?
-        # No, update_project_status specifically sets 'status'. 
-        # add_history_entry only sets 'last_activity_*' and 'last_modified'.
-        await self.repository.update_project_status(project_id, status)
-        await self.repository.add_history_entry(
-            project_id=project_id,
-            action_type='status_change',
-            description=f"Status updated to: {status}"
+        return await self.repository.update_project_lifecycle_status(
+            project_id,
+            status,
         )
 
     async def update_project_notes(self, project_id: str, notes: str):

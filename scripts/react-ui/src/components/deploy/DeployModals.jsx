@@ -8,6 +8,7 @@ import {
     TextInput,
     Group,
     Button,
+    Checkbox,
     Code
 } from '@mantine/core';
 import {
@@ -32,6 +33,8 @@ export function DeployModals({ deployActions }) {
         confirmDeleteOpen, setConfirmDeleteOpen,
         deployPath, setDeployPath,
         workshopPath, setWorkshopPath,
+        deployPreview,
+        confirmOverwrite, setConfirmOverwrite,
         loading, infoLoading,
         handleExecuteDeploy,
         handleDetectWorkshopPath,
@@ -68,13 +71,49 @@ export function DeployModals({ deployActions }) {
                                 description={t('deploy_target_path_desc')}
                                 value={deployPath}
                                 onChange={(e) => setDeployPath(e.currentTarget.value)}
+                                readOnly
                             />
+
+                            {deployPreview && (
+                                <Stack gap="xs">
+                                    <Text size="xs" c="dimmed">{t('deploy_preview_source')}</Text>
+                                    <Code block>{deployPreview.source_path}</Code>
+                                    {deployPreview.validation_error_count > 0 && (
+                                        <Alert color="red" icon={<IconAlertCircle size={18} />}>
+                                            {t('deploy_preview_validation_blocked', {
+                                                count: deployPreview.validation_error_count,
+                                            })}
+                                        </Alert>
+                                    )}
+                                    {deployPreview.target_exists && (
+                                        <Alert color="orange" icon={<IconAlertCircle size={18} />}>
+                                            <Stack gap="xs">
+                                                <Text>{t('deploy_preview_overwrite_warning')}</Text>
+                                                <Checkbox
+                                                    checked={confirmOverwrite}
+                                                    onChange={(event) => setConfirmOverwrite(event.currentTarget.checked)}
+                                                    label={t('deploy_preview_overwrite_confirm')}
+                                                />
+                                            </Stack>
+                                        </Alert>
+                                    )}
+                                </Stack>
+                            )}
 
                             <Group justify="flex-end" mt="lg">
                                 <Button variant="default" onClick={() => setDeployModalOpen(false)} disabled={loading}>
                                     {t('cancel')}
                                 </Button>
-                                <Button color="blue" onClick={handleExecuteDeploy} loading={loading}>
+                                <Button
+                                    color="blue"
+                                    onClick={handleExecuteDeploy}
+                                    loading={loading}
+                                    disabled={
+                                        !deployPreview
+                                        || deployPreview.validation_error_count > 0
+                                        || (deployPreview.target_exists && !confirmOverwrite)
+                                    }
+                                >
                                     {t('deploy_btn_direct_deploy')}
                                 </Button>
                             </Group>
