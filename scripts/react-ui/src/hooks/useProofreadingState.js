@@ -223,7 +223,11 @@ const useProofreadingState = () => {
     }, [clearValidation, editor, navigation.selectedProject, t]);
 
     const requestSave = useCallback((afterSave = null) => {
-        if (!editor.fileInfo || !editor.isDirty) return;
+        if (!editor.fileInfo) return;
+        if (!editor.isDirty) {
+            afterSave?.();
+            return;
+        }
         pendingAfterSaveRef.current = afterSave;
         const warnings = getBracketVariableWarnings(editor.rows);
         setVariableWarnings(warnings);
@@ -233,6 +237,31 @@ const useProofreadingState = () => {
             confirmSave(true);
         }
     }, [confirmSave, editor.commentChangeCount, editor.fileInfo, editor.isDirty, editor.rows]);
+
+    const markCurrentFileDone = useCallback(async () => {
+        if (!editor.fileInfo?.project_id || !editor.fileInfo?.file_id) return false;
+        try {
+            await api.put(
+                `/api/project/${editor.fileInfo.project_id}/file/${editor.fileInfo.file_id}/status`,
+                { status: 'done' },
+            );
+            await navigation.refreshProjectFiles?.();
+            notifications.show({
+                title: t('proofreading.notifications.saved'),
+                message: t('proofreading.notifications.saved_message'),
+                color: 'teal',
+            });
+            return true;
+        } catch (error) {
+            console.error('Failed to update proofreading file status', error);
+            notifications.show({
+                title: t('proofreading.notifications.error'),
+                message: t('proofreading.notifications.save_failed'),
+                color: 'red',
+            });
+            return false;
+        }
+    }, [editor.fileInfo, navigation, t]);
 
     const cancelSave = useCallback(() => {
         pendingAfterSaveRef.current = null;
@@ -286,6 +315,7 @@ const useProofreadingState = () => {
         variableWarnings,
         handleValidate,
         requestSave,
+        markCurrentFileDone,
         confirmSave,
         cancelSave,
         discardCurrentDraft,

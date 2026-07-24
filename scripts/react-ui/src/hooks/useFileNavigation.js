@@ -193,6 +193,11 @@ export const useFileNavigation = () => {
         handleProjectSelect,
         handleSourceFileChange,
         handleTargetFileChange,
+        refreshProjectFiles: () => (
+            selectedProject
+                ? fetchProjectFiles(selectedProject.project_id, selectedProject)
+                : Promise.resolve()
+        ),
         searchParams,
         setSearchParams
     };

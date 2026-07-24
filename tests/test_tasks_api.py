@@ -64,6 +64,10 @@ async def test_task_summary_exposes_actor_tree_recovery_and_result_contract():
             },
             "blocking": True,
             "idempotency_key": "plan-1",
+            "workflow_context": {
+                "mode": "execution",
+                "project_id": "project-1",
+            },
         },
         dedupe_key="project_translation_write:project-1",
     )
@@ -79,6 +83,10 @@ async def test_task_summary_exposes_actor_tree_recovery_and_result_contract():
     assert task.blocking is True
     assert task.dedupe_key == "project_translation_write:project-1"
     assert task.idempotency_key == "plan-1"
+    assert task.workflow_context == {
+        "mode": "execution",
+        "project_id": "project-1",
+    }
     assert task.blocking_reason
 
 

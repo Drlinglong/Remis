@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Container, Stepper, Title, Modal, Stack, Text, Group, Button } from '@mantine/core';
 import { IconRocket, IconSearch, IconSettings, IconChartBar } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../context/NotificationContextCore';
 import { getTutorialKey, useTutorial } from '../context/TutorialContextCore';
 import useIncrementalTranslation from '../hooks/useIncrementalTranslation';
@@ -14,13 +14,14 @@ import styles from './Translation.module.css';
 import { useRemisCopilotContext } from '../context/CopilotContext';
 import { useCopilotStallReminder } from '../hooks/useCopilotStallReminder';
 import { sanitizeCopilotLogLine } from '../services/copilotPageContext';
+import { buildProofreadingUrl } from '../utils/proofreadingLinks';
+import { taskDetailRoute } from '../utils/taskRoutes';
 
 const EMPTY_ARRAY = [];
 
 export const IncrementalTranslationPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const location = useLocation();
     
     // Notification & Tutorial context
     const { notificationStyle } = useNotification();
@@ -39,7 +40,6 @@ export const IncrementalTranslationPage = () => {
     const safeSelectedLangs = Array.isArray(state.selectedLangs) ? state.selectedLangs : EMPTY_ARRAY;
     const {
         active,
-        handleSelectProject,
         selectedProject,
     } = state;
 
@@ -107,17 +107,6 @@ export const IncrementalTranslationPage = () => {
             return prev === nextContext ? prev : nextContext;
         });
     }, [active, setPageContext]);
-
-    // Handle prefilled project from React Router Navigation state
-    useEffect(() => {
-        const routedProjectId = location.state?.projectId;
-        if (routedProjectId && safeProjects.length > 0 && !selectedProject) {
-            const matchedProject = safeProjects.find((project) => project.project_id === routedProjectId);
-            if (matchedProject) {
-                handleSelectProject(matchedProject);
-            }
-        }
-    }, [handleSelectProject, location.state, safeProjects, selectedProject]);
 
     const handleFinish = () => {
         state.resetPersistedState();
@@ -252,6 +241,14 @@ export const IncrementalTranslationPage = () => {
                         openOutputFolder={state.openOutputFolder}
                         handleFinish={handleFinish}
                         completionSource={state.completionSource}
+                        onViewTask={state.currentTaskId
+                            ? () => navigate(taskDetailRoute(state.currentTaskId))
+                            : null}
+                        onStartProofreading={state.selectedProject?.project_id
+                            ? () => navigate(buildProofreadingUrl({
+                                projectId: state.selectedProject.project_id,
+                            }))
+                            : null}
                     />
                 </Stepper.Completed>
             </Stepper>

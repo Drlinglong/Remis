@@ -25,6 +25,7 @@ import {
   IconArchive,
   IconArrowUpRight,
   IconArrowBackUp,
+  IconCheck,
   IconClock,
   IconDots,
   IconDownload,
@@ -43,8 +44,9 @@ import { useTaskCenter } from '../context/TaskCenterContextCore';
 import GlossaryHealthPenaltyBreakdown from '../components/glossary/GlossaryHealthPenaltyBreakdown';
 import api from '../utils/api';
 import { getGameBadgeColor } from '../utils/gamePresentation';
+import { buildProofreadingUrl } from '../utils/proofreadingLinks';
 import { ACTIVE_TASK_STATUSES, formatTaskDuration, taskDurationMs } from '../utils/taskTime';
-import { glossaryHealthReviewRoute, taskDetailRoute } from '../utils/taskRoutes';
+import { glossaryHealthReviewRoute, taskDetailRoute, taskWorkflowTarget } from '../utils/taskRoutes';
 import styles from './TaskDetailPage.module.css';
 
 const STATUS_COLORS = {
@@ -65,10 +67,6 @@ const EVENT_COLORS = {
   info: 'blue',
   debug: 'gray',
 };
-
-const workflowRoute = (sourceRoute) => (
-  sourceRoute === '/glossary' ? '/glossary-manager' : (sourceRoute || '/')
-);
 
 const formatTimestamp = (value, locale) => {
   if (!value) return '--';
@@ -563,6 +561,16 @@ export default function TaskDetailPage() {
                       ))}
                     </Stack>
                   )}
+                  {task.kind === 'incremental_translation' && task.status === 'completed' && task.project_id && (
+                    <Button
+                      mt="sm"
+                      variant="light"
+                      leftSection={<IconCheck size={17} />}
+                      onClick={() => navigate(buildProofreadingUrl({ projectId: task.project_id }))}
+                    >
+                      {t('project_management.primary_continue_proofreading')}
+                    </Button>
+                  )}
                 </Card>
               )}
 
@@ -622,7 +630,10 @@ export default function TaskDetailPage() {
               <Button
                 variant="light"
                 leftSection={active ? <IconPlayerPlay size={17} /> : <IconArrowBackUp size={17} />}
-                onClick={() => navigate(workflowRoute(task.source_route))}
+                onClick={() => {
+                  const target = taskWorkflowTarget(task);
+                  navigate(target.pathname, { state: target.state });
+                }}
               >
                 {t('task_detail.back_to_workflow')}
               </Button>

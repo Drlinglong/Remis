@@ -42,7 +42,7 @@ vi.mock('./useFileNavigation', () => ({
 
 vi.mock('./useEditorContent', () => ({ useEditorContent: () => editorState }));
 vi.mock('../utils/api', () => ({
-  default: { get: vi.fn(), post: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn(), put: vi.fn() },
 }));
 vi.mock('@mantine/notifications', () => ({ notifications: { show: vi.fn() } }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: key => key }) }));
@@ -51,6 +51,7 @@ describe('useProofreadingState workflow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    editorState.isDirty = true;
   });
 
   it('shows variable changes as an advisory warning, then saves with the loaded revision', async () => {
@@ -80,5 +81,32 @@ describe('useProofreadingState workflow', () => {
     await act(async () => result.current.handleValidate());
     await waitFor(() => expect(result.current.validationResults).toHaveLength(1));
     expect(result.current.validationResults[0].key).toBe('demo.key:0');
+  });
+
+  it('marks the exact loaded project file as reviewed', async () => {
+    api.put.mockResolvedValue({ data: { status: 'success' } });
+    const { result } = renderHook(() => useProofreadingState());
+
+    let updated;
+    await act(async () => {
+      updated = await result.current.markCurrentFileDone();
+    });
+
+    expect(updated).toBe(true);
+    expect(api.put).toHaveBeenCalledWith(
+      '/api/project/project-1/file/file-1/status',
+      { status: 'done' },
+    );
+  });
+
+  it('continues a workflow action when the current file has no unsaved edits', () => {
+    editorState.isDirty = false;
+    const afterSave = vi.fn();
+    const { result } = renderHook(() => useProofreadingState());
+
+    act(() => result.current.requestSave(afterSave));
+
+    expect(afterSave).toHaveBeenCalledOnce();
+    expect(api.post).not.toHaveBeenCalled();
   });
 });

@@ -110,7 +110,12 @@ describe('TaskDetailPage', () => {
     expect(screen.queryByText('task_center.blocking')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'task_detail.back_to_workflow' }));
-    expect(navigateMock).toHaveBeenCalledWith('/translation');
+    expect(navigateMock).toHaveBeenCalledWith('/translation', {
+      state: {
+        projectId: 'project-demo',
+        taskId: 'failed-task',
+      },
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'context_sidebar.project_details: Remis Plan - Demo Mod' }));
     expect(navigateMock).toHaveBeenCalledWith('/project-management/project-demo');
@@ -257,7 +262,36 @@ describe('TaskDetailPage', () => {
     expect(navigateMock).toHaveBeenCalledWith('/tasks/health-task/glossary-health');
 
     fireEvent.click(screen.getByRole('button', { name: 'task_detail.back_to_workflow' }));
-    expect(navigateMock).toHaveBeenCalledWith('/glossary-manager');
+    expect(navigateMock).toHaveBeenCalledWith('/glossary-manager', {
+      state: {
+        projectId: 'project-demo',
+        taskId: 'health-task',
+      },
+    });
+  });
+
+  it('returns an incremental run to the exact project and task mode', async () => {
+    taskIdParam = 'incremental-task';
+    api.get.mockResolvedValue({
+      data: {
+        ...failedTask,
+        task_id: 'incremental-task',
+        kind: 'incremental_translation',
+        source_route: '/incremental-translation',
+        workflow_context: { mode: 'pre_scan', project_id: 'project-demo' },
+      },
+    });
+
+    render(<MantineProvider><TaskDetailPage /></MantineProvider>);
+    fireEvent.click(await screen.findByRole('button', { name: 'task_detail.back_to_workflow' }));
+
+    expect(navigateMock).toHaveBeenCalledWith('/incremental-translation', {
+      state: {
+        projectId: 'project-demo',
+        taskId: 'incremental-task',
+        taskMode: 'pre_scan',
+      },
+    });
   });
 
   it('keeps partial glossary results actionable and hides provider payload by default', async () => {

@@ -31,6 +31,8 @@ export const ExecutionStep = ({
     openOutputFolder,
     handleFinish,
     completionSource,
+    onViewTask,
+    onStartProofreading,
 }) => {
     const { t } = useTranslation();
 
@@ -285,6 +287,16 @@ export const ExecutionStep = ({
                         </Alert>
                         <TelemetrySummary telemetry={finalSummary.telemetry} />
                         <Group>
+                            {onViewTask && (
+                                <Button size="lg" variant="default" onClick={onViewTask}>
+                                    {t('task_center.view_task')}
+                                </Button>
+                            )}
+                            {onStartProofreading && (
+                                <Button size="lg" variant="light" color="teal" onClick={onStartProofreading}>
+                                    {t('project_management.primary_continue_proofreading')}
+                                </Button>
+                            )}
                             <Button size="lg" variant="light" onClick={openOutputFolder}>
                                 {t('button_open_folder')}
                             </Button>

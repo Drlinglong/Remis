@@ -488,6 +488,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
                             f"{fields['warning_count']} runtime warning(s)."
                         ),
                         "metadata": {
+                            "project_id": project_id,
                             "workflow_log_paths": workflow_log_paths,
                             "warning_count": fields["warning_count"],
                         },
@@ -535,6 +536,10 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
                 "source_route": "/incremental-translation",
                 "created_by": {"type": "user"},
                 "blocking": True,
+                "workflow_context": {
+                    "mode": "pre_scan" if request.dry_run else "execution",
+                    "project_id": project_id,
+                },
             },
             dedupe_key=f"project_translation_write:{project_id}",
             reject_duplicate=True,

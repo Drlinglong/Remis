@@ -166,6 +166,7 @@ def _from_live_task(task: Dict[str, Any], agent_job: Optional[Dict[str, Any]]) -
         dedupe_key=task.get("dedupe_key"),
         idempotency_key=task.get("idempotency_key"),
         source_route=str(task.get("source_route") or ROUTE_BY_KIND.get(kind, "/")),
+        workflow_context=dict(task.get("workflow_context") or {}),
         allowed_actions=_allowed_actions(status, task.get("archived_at")),
     )
 

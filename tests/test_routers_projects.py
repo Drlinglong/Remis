@@ -140,12 +140,36 @@ def test_run_incremental_update_background_marks_task_completed(monkeypatch, tmp
     assert tasks[task_id]["result"]["types"] == ["files", "change_summary", "workflow_log"]
     assert workflow_log_path in tasks[task_id]["result"]["output_paths"]
     assert tasks[task_id]["result"]["metadata"]["workflow_log_paths"] == [workflow_log_path]
+    assert tasks[task_id]["result"]["metadata"]["project_id"] == project_id
     write_logs.assert_called_once_with(
         [str(tmp_path / "zh-CN-demo")],
         tasks[task_id]["log"],
         {"languages": [{"target_lang": "zh-CN", "written": 1}]},
     )
     assert ws_push.call_count >= 2
+
+
+def test_incremental_task_records_exact_workflow_context(mock_project_manager, monkeypatch):
+    client = TestClient(app)
+    tasks.clear()
+    monkeypatch.setattr(projects_router, "run_incremental_update_background", MagicMock())
+
+    response = client.post(
+        "/api/project/project-1/incremental-update",
+        json={
+            "project_id": "project-1",
+            "target_lang_codes": ["zh-CN"],
+            "dry_run": True,
+        },
+    )
+
+    assert response.status_code == 200
+    task = tasks[response.json()["task_id"]]
+    assert task["project_id"] == "project-1"
+    assert task["workflow_context"] == {
+        "mode": "pre_scan",
+        "project_id": "project-1",
+    }
 
 
 def test_write_incremental_logs_returns_explicit_artifact_paths(tmp_path):

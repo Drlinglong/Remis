@@ -72,6 +72,7 @@ class TaskSummary(BaseModel):
     dedupe_key: Optional[str] = None
     idempotency_key: Optional[str] = None
     source_route: str = "/"
+    workflow_context: Dict[str, Any] = Field(default_factory=dict)
     allowed_actions: List[str] = Field(default_factory=list)
 
 

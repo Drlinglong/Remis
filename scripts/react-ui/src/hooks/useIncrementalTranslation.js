@@ -418,7 +418,24 @@ export const useIncrementalTranslation = (notificationStyle) => {
                 routeSelectionAppliedRef.current = true;
                 restorationAppliedRef.current = true;
                 resetPersistedState();
-                handleSelectProject(routeProject, routeState.customSourcePath || routeProject.source_path);
+                void handleSelectProject(
+                    routeProject,
+                    routeState.customSourcePath || routeProject.source_path,
+                ).then(() => {
+                    if (!routeState.taskId) return;
+                    const taskMode = routeState.taskMode === 'pre_scan' ? 'pre_scan' : 'execution';
+                    statusResyncRef.current = false;
+                    setCurrentTaskId(routeState.taskId);
+                    setCurrentTaskMode(taskMode);
+                    if (taskMode === 'pre_scan') {
+                        preScanInFlightRef.current = true;
+                        setLoading(true);
+                    } else {
+                        executionInFlightRef.current = true;
+                        setExecuting(true);
+                        setActive(3);
+                    }
+                });
                 return;
             }
         }
@@ -594,7 +611,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         concurrencyLimit, setConcurrencyLimit,
         rpmLimit, setRpmLimit,
         archiveInfo, scanResults, error, errorKey,setErrorKey,
-        executing, progress, progressInfo, logs, finalSummary,
+        executing, progress, progressInfo, logs, finalSummary, currentTaskId,
         checkpointFound, checkpointInfo, useResume, setUseResume,
         showResumeDetails, setShowResumeDetails,
         embeddedWorkshopEnabled, setEmbeddedWorkshopEnabled,

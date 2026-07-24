@@ -2,18 +2,20 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
+  Badge,
   Box,
   Button,
   Group,
   Modal,
   Paper,
+  Progress,
   Select,
   Stack,
   Text,
   Title,
 } from '@mantine/core';
-import { IconFolder } from '@tabler/icons-react';
-import { useBeforeUnload, useBlocker } from 'react-router-dom';
+import { IconArrowRight, IconCheck, IconFolder } from '@tabler/icons-react';
+import { useBeforeUnload, useBlocker, useNavigate } from 'react-router-dom';
 import { isTauri } from '@tauri-apps/api/core';
 import layoutStyles from '../components/layout/Layout.module.css';
 import { useTutorial } from '../context/TutorialContextCore';
@@ -25,6 +27,7 @@ import ProofreadingWorkspace from '../components/proofreading/ProofreadingWorksp
 
 const ProofreadingPage = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { setPageContext } = useTutorial();
   const state = useProofreadingState();
   const { checkExternalRevision, fileInfo } = state;
@@ -33,6 +36,15 @@ const ProofreadingPage = () => {
   const [closeRequested, setCloseRequested] = useState(false);
   const tauriWindowRef = useRef(null);
   const allowTauriCloseRef = useRef(false);
+  const targetFiles = Object.values(state.targetFilesMap || {}).flat();
+  const reviewedCount = targetFiles.filter((file) => file.status === 'done').length;
+  const pendingFiles = targetFiles.filter((file) => file.status !== 'done');
+  const nextPendingFile = pendingFiles.find(
+    (file) => String(file.file_id) !== String(state.currentTargetFile?.file_id || ''),
+  );
+  const reviewProgress = targetFiles.length
+    ? Math.round((reviewedCount / targetFiles.length) * 100)
+    : 0;
 
   useEffect(() => {
     setPageContext('proofreading');
@@ -117,6 +129,19 @@ const ProofreadingPage = () => {
     if (state.isDirty) setPendingAction(() => action);
     else action();
   }, [state.isDirty]);
+
+  const completeCurrentAndContinue = useCallback(() => {
+    state.requestSave(async () => {
+      const updated = await state.markCurrentFileDone();
+      if (!updated) return;
+      if (nextPendingFile && state.selectedProject?.project_id) {
+        state.setSearchParams({
+          projectId: state.selectedProject.project_id,
+          fileId: nextPendingFile.file_id,
+        });
+      }
+    });
+  }, [nextPendingFile, state]);
 
   const completePendingLeave = useCallback(() => {
     const action = pendingAction;
@@ -206,6 +231,51 @@ const ProofreadingPage = () => {
             </Button>
           </Group>
         </Group>
+
+        {state.selectedProject && targetFiles.length > 0 && (
+          <Paper withBorder p="xs" mb="sm" radius="md" data-testid="proofreading-progress">
+            <Group justify="space-between" align="center" wrap="wrap">
+              <Box style={{ flex: 1, minWidth: 220 }}>
+                <Group justify="space-between" gap="sm" mb={4}>
+                  <Text size="sm" fw={700}>
+                    {t('project_management.file_list.table.progress')}
+                  </Text>
+                  <Badge color={pendingFiles.length ? 'blue' : 'teal'} variant="light">
+                    {reviewedCount}/{targetFiles.length}
+                  </Badge>
+                </Group>
+                <Progress value={reviewProgress} size="sm" radius="xl" />
+              </Box>
+              {pendingFiles.length > 0 ? (
+                <Button
+                  size="sm"
+                  color="teal"
+                  leftSection={<IconCheck size={16} />}
+                  rightSection={nextPendingFile ? <IconArrowRight size={16} /> : null}
+                  onClick={completeCurrentAndContinue}
+                  loading={state.saving}
+                  disabled={!state.currentTargetFile}
+                >
+                  {nextPendingFile
+                    ? t('glossary_health_save_and_next')
+                    : t('project_management.file_status.done')}
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="light"
+                  color="teal"
+                  rightSection={<IconArrowRight size={16} />}
+                  onClick={() => navigate(
+                    `/project-management/${encodeURIComponent(state.selectedProject.project_id)}`,
+                  )}
+                >
+                  {t('page_title_project_management')}
+                </Button>
+              )}
+            </Group>
+          </Paper>
+        )}
 
         <div id="proofreading-main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', zoom: zoomLevel }}>
           <ProofreadingWorkspace
