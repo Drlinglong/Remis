@@ -295,15 +295,21 @@ const ProjectTrackingPage = () => {
     try {
       const response = await projectWatchService.scanWatches(watchIds);
       const results = Array.isArray(response.data) ? response.data : [];
+      const blockedOrFailed = results.find((result) => ['blocked', 'failed'].includes(result.status));
+      if (blockedOrFailed?.message) {
+        setMessage(blockedOrFailed.message);
+      }
       if (results.length === 1) {
         const result = results[0];
-        const changedCount = result.changed_count ?? 0;
-        setMessage(t('project_tracking.scan_message', {
-          status: text[result.status] || result.status,
-          scanned: result.scanned_file_count ?? 0,
-          changes: changedCount,
-          path: result.root_path || '',
-        }));
+        if (!blockedOrFailed) {
+          const changedCount = result.changed_count ?? 0;
+          setMessage(t('project_tracking.scan_message', {
+            status: text[result.status] || result.status,
+            scanned: result.scanned_file_count ?? 0,
+            changes: changedCount,
+            path: result.root_path || '',
+          }));
+        }
       }
       await loadData();
     } catch (error) {

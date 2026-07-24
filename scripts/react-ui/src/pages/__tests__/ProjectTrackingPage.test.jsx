@@ -181,6 +181,28 @@ describe('ProjectTrackingPage', () => {
     });
   });
 
+  it('surfaces a manual scan conflict returned by the unified task workflow', async () => {
+    projectWatchService.scanWatches.mockResolvedValueOnce({
+      data: [{
+        watch_id: 'w1',
+        status: 'blocked',
+        task_id: 'blocked-scan',
+        conflicting_task_id: 'manual-write',
+        changed_count: 0,
+        message: 'Manual scan was blocked because another task is writing this project.',
+      }],
+    });
+    renderWithProvider(<ProjectTrackingPage />);
+
+    await screen.findByText('Steam Vic3');
+    fireEvent.click(screen.getAllByRole('checkbox')[1]);
+    fireEvent.click(screen.getByRole('button', { name: '扫描选中项' }));
+
+    expect(await screen.findByText(
+      'Manual scan was blocked because another task is writing this project.',
+    )).toBeInTheDocument();
+  });
+
   it('keeps the add-watch form stable while typing text fields', async () => {
     renderWithProvider(<ProjectTrackingPage />);
 

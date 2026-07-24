@@ -210,6 +210,34 @@ async def test_due_project_watch_creates_automation_task_with_persisted_result(
 
 
 @pytest.mark.asyncio
+async def test_manual_project_watch_creates_user_task_with_exact_result_link(
+    watch_service,
+    tmp_path,
+):
+    mod_root = tmp_path / "manual-mod"
+    write_loc(
+        mod_root / "localization" / "english" / "demo_l_english.yml",
+        'l_english:\n key:0 "Same"\n',
+    )
+    watch = await watch_service.create_watch({
+        "name": "Manual Mod",
+        "path": str(mod_root),
+    })
+
+    result = await watch_service.scan_watch(watch["watch_id"])
+
+    task = task_state.get_task(result["task_id"])
+    assert task["status"] == "completed"
+    assert task["kind"] == "project_watch_scan"
+    assert task["created_by"] == {"type": "user"}
+    assert task["title"] == "Scan updates for Manual Mod"
+    assert task["result"]["metadata"]["watch_id"] == watch["watch_id"]
+
+    persisted_watch = (await watch_service.list_watches())[0]
+    assert persisted_watch["last_scan_summary"]["task_id"] == task["task_id"]
+
+
+@pytest.mark.asyncio
 async def test_due_project_watch_records_conflict_with_active_project_write(
     watch_service,
     tmp_path,
@@ -245,13 +273,12 @@ async def test_due_project_watch_records_conflict_with_active_project_write(
 
     results = await watch_service.scan_due_watches()
 
-    assert results == [{
-        "watch_id": watch["watch_id"],
-        "status": "blocked",
-        "task_id": results[0]["task_id"],
-        "conflicting_task_id": "manual-write",
-        "changed_count": 0,
-    }]
+    assert len(results) == 1
+    assert results[0]["watch_id"] == watch["watch_id"]
+    assert results[0]["status"] == "blocked"
+    assert results[0]["conflicting_task_id"] == "manual-write"
+    assert results[0]["changed_count"] == 0
+    assert "blocked" in results[0]["message"].lower()
     blocked_task = task_state.get_task(results[0]["task_id"])
     assert blocked_task["status"] == "failed"
     assert blocked_task["created_by"]["type"] == "automation"
