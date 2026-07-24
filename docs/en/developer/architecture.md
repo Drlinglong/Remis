@@ -2,7 +2,7 @@
 
 > System Design Description and Technical Architecture Details
 >
-> Status note: this document mixes earlier CLI-era architecture and later capability notes. Treat it as background context, not as an exact mirror of the current codebase. Prefer root `GEMINI.md` and the actual repository structure for current-state decisions.
+> Status note: this document mixes earlier CLI-era architecture and later capability notes. Treat it as background context, not as an exact mirror of the current codebase. Use code and tests for implementation facts, and root `AGENTS.md` for repository collaboration and safety rules.
 
 ## 🎯 Design Principles
 

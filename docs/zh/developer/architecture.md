@@ -2,7 +2,7 @@
 
 > 系统设计说明和技术架构详解
 >
-> 状态说明：这份文档包含较早阶段的 CLI/分层架构描述与后续能力扩展说明，适合作为背景阅读，不应默认视为当前代码的精确镜像。当前项目级上下文请优先参考根目录 `GEMINI.md` 与实际代码结构。
+> 状态说明：这份文档包含较早阶段的 CLI/分层架构描述与后续能力扩展说明，适合作为背景阅读，不应默认视为当前代码的精确镜像。当前实现事实以代码和测试为准；仓库协作与安全规则见根目录 `AGENTS.md`。
 
 ## 🏛️ 系统架构图
 
@@ -74,7 +74,6 @@
 *   **闭源/商用 API**：`gemini_handler.py`, `openai_handler.py`, `deepseek_handler.py`, `grok_handler.py`, `qwen_handler.py`, `hunyuan_handler.py`。
 *   **代理与中转**：`modelscope_handler.py`, `siliconflow_handler.py`, `nvidia_handler.py`。
 *   **本地算力**：`local_handler.py`，支持无缝桥接本地的 Ollama/vLLM 推理端。
-*   **无需 Key 的 Gemini CLI**：`gemini_cli_handler.py`，支持基于 OAuth 认证的快速试用。
 
 ### 5. Paradox 解析与并行处理
 *   **高保真解析/生成 (`file_parser.py` / `file_builder.py` / `loc_parser.py`)**：针对 Paradox 游戏本地化文件独特的编码（UTF-8-BOM）和键值结构（如 `key:0 "value"`）提供严格解析，完美还原注释、缩进和特殊控制符。

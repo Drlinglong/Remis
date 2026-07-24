@@ -4,9 +4,9 @@
 
 > 说明 / Note
 > 
-> 本仓库文档已经积累了较多历史内容。阅读时请优先使用语言索引、根目录 `GEMINI.md` 与当前代码实现，不要默认把所有旧文档都视为当前事实。
+> 本仓库文档已经积累了较多历史内容。阅读时请优先使用语言索引与当前代码实现；仓库协作和安全规则以根目录 `AGENTS.md` 为准。不要默认把所有旧文档都视为当前事实。
 > 
-> This repository contains a mix of current docs and historical notes. Prefer the language indexes, root `GEMINI.md`, and the current codebase over older narrative docs.
+> This repository contains a mix of current docs and historical notes. Prefer the language indexes and current codebase for implementation facts; use root `AGENTS.md` for repository collaboration and safety rules. Do not treat older narrative docs as current by default.
 
 ## 选择语言 / Choose Language
 
