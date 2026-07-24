@@ -20,7 +20,7 @@ from scripts.core.db_models import (
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 6
+MAIN_DB_TARGET_VERSION = 7
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -328,6 +328,33 @@ def _migration_006_index_task_summary_queries(db_path: str) -> None:
         conn.commit()
 
 
+def _migration_007_govern_task_events_and_retention(db_path: str) -> None:
+    """Add event visibility and indexes used by diagnostic and retention queries."""
+    with _connect(db_path) as conn:
+        _ensure_column(
+            conn,
+            "task_events",
+            "audience",
+            "audience TEXT NOT NULL DEFAULT 'user'",
+        )
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_task_events_task_audience_sequence "
+            "ON task_events (task_id, audience, sequence)",
+        )
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_background_tasks_status_finished "
+            "ON background_tasks (status, finished_at DESC)",
+        )
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_background_tasks_idempotency_key "
+            "ON background_tasks (idempotency_key)",
+        )
+        conn.commit()
+
+
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
@@ -335,6 +362,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (4, "add_background_task_ledger", _migration_004_add_background_task_ledger),
     (5, "make_glossary_bindings_many_to_many", _migration_005_make_glossary_bindings_many_to_many),
     (6, "index_task_summary_queries", _migration_006_index_task_summary_queries),
+    (7, "govern_task_events_and_retention", _migration_007_govern_task_events_and_retention),
 ]
 
 

@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
+import re
 from typing import Annotated, Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import PlainTextResponse
 
 from scripts.core.agent_service import agent_registry
-from scripts.schemas.tasks import TaskCheckpoint, TaskCreator, TaskDetail, TaskEvent, TaskProjectContext, TaskResult, TaskSummary, TaskSummaryList
+from scripts.schemas.tasks import TaskCheckpoint, TaskChildAggregate, TaskCreator, TaskDetail, TaskEvent, TaskProjectContext, TaskResult, TaskSummary, TaskSummaryList
 from scripts.shared import task_state
 from scripts.shared.services import project_manager
 
@@ -90,7 +92,10 @@ def _allowed_actions(status: str, archived_at: Optional[str] = None) -> list[str
     if status in ACTIVE_STATUSES:
         return ["view_task"]
     if status in {"failed", "interrupted"}:
-        return ["view_task", "retry", "archive_task"]
+        # Remis workflows have different retry inputs and approval boundaries.
+        # Route users back to the owning workflow instead of advertising a
+        # generic restart or cancellation operation that cannot be honored.
+        return ["view_task", "return_to_workflow", "archive_task"]
     if status == "completed":
         return ["view_task", "archive_task"]
     if status == "cancelled":
@@ -128,6 +133,7 @@ def _from_live_task(task: Dict[str, Any], agent_job: Optional[Dict[str, Any]]) -
             "types": ["glossary_entries"],
             "summary": f"{int(summary.get('new_terms') or 0)} new term(s)",
         }
+    blocking = status in ACTIVE_STATUSES and bool(task.get("blocking", kind in BLOCKING_KINDS))
     return TaskSummary(
         task_id=str(task.get("task_id") or (agent_job or {}).get("job_id")),
         kind=kind,
@@ -148,7 +154,15 @@ def _from_live_task(task: Dict[str, Any], agent_job: Optional[Dict[str, Any]]) -
         attention_reason=task.get("attention_reason") or (task.get("message") if status in ATTENTION_STATUSES else None),
         checkpoint=TaskCheckpoint.model_validate(checkpoint),
         result=TaskResult.model_validate(result),
-        blocking=(status in ACTIVE_STATUSES and bool(task.get("blocking", kind in BLOCKING_KINDS))),
+        blocking=blocking,
+        blocking_reason=(
+            task.get("blocking_reason")
+            or (
+                "This task is changing project files. Conflicting writes are blocked until it finishes."
+                if blocking
+                else None
+            )
+        ),
         dedupe_key=task.get("dedupe_key"),
         idempotency_key=task.get("idempotency_key"),
         source_route=str(task.get("source_route") or ROUTE_BY_KIND.get(kind, "/")),
@@ -396,14 +410,20 @@ def _raw_task_and_job(task_id: str) -> tuple[Optional[Dict[str, Any]], Optional[
 
 
 @router.get("/{task_id}", response_model=TaskDetail)
-async def get_task_detail(task_id: str):
+async def get_task_detail(
+    task_id: str,
+    include_diagnostics: Annotated[bool, Query()] = False,
+):
     task, job = _raw_task_and_job(task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
 
     summary = _from_live_task(task, job)
     await _enrich_project_context([summary])
-    events = task_state.get_task_events(task_id)
+    events = task_state.get_task_events(
+        task_id,
+        include_diagnostics=include_diagnostics,
+    )
     if not events:
         events = [
             {
@@ -413,6 +433,7 @@ async def get_task_detail(task_id: str):
                 "timestamp": None,
                 "level": "error" if summary.status in {"failed", "interrupted"} else "info",
                 "event_type": "legacy_log",
+                "audience": "user",
                 "message": message,
                 "metadata": {},
             }
@@ -423,10 +444,62 @@ async def get_task_detail(task_id: str):
         for item in _collect_task_summaries(include_archived=True)
         if item.parent_task_id == task_id
     ]
+    child_aggregate = TaskChildAggregate(
+        total=len(children),
+        active=sum(item.status in ACTIVE_STATUSES for item in children),
+        attention=sum(item.status in ATTENTION_STATUSES for item in children),
+        completed=sum(item.status == "completed" for item in children),
+        progress=(
+            round(sum(item.progress for item in children) / len(children))
+            if children
+            else 0
+        ),
+    )
     return TaskDetail(
         **summary.model_dump(),
         events=[TaskEvent.model_validate(event) for event in events],
         children=children,
+        child_aggregate=child_aggregate,
+    )
+
+
+@router.get("/{task_id}/events/export", response_class=PlainTextResponse)
+async def export_task_events(
+    task_id: str,
+    include_diagnostics: Annotated[bool, Query()] = False,
+):
+    task, _job = _raw_task_and_job(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    events = task_state.get_task_events(
+        task_id,
+        limit=5000,
+        include_diagnostics=include_diagnostics,
+    )
+    lines = [
+        "# Remis task event export",
+        f"# Task ID: {task_id}",
+        f"# Diagnostics included: {'yes' if include_diagnostics else 'no'}",
+        "",
+    ]
+    lines.extend(
+        (
+            f"[{event.get('timestamp') or '--'}] "
+            f"[{event.get('level', 'info')}] "
+            f"[{event.get('audience', 'user')}] "
+            f"[{event.get('event_type', 'log')}] "
+            f"{event.get('message', '')}"
+        )
+        for event in events
+    )
+    safe_task_id = re.sub(r"[^A-Za-z0-9._-]+", "_", task_id).strip("._") or "task"
+    return PlainTextResponse(
+        "\n".join(lines),
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="remis-task-{safe_task_id}-events.txt"'
+            ),
+        },
     )
 
 

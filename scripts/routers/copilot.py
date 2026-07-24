@@ -120,7 +120,12 @@ async def execute_guided_localization(
         translation_plan = await create_translation_plan(project_id=project_id, **translation_args)
         args = reserve_translation_plan(translation_plan["plan_id"])
         try:
-            response = await start_translation_project(InitialTranslationRequest(**args), background_tasks)
+            response = await start_translation_project(
+                InitialTranslationRequest(
+                    **{**args, "idempotency_key": translation_plan["plan_id"]}
+                ),
+                background_tasks,
+            )
         except Exception:
             release_plan_reservation(translation_plan["plan_id"])
             raise
@@ -178,7 +183,8 @@ async def execute_initial_translation(
     try:
         args = reserve_translation_plan(request.plan_id)
         response = await start_translation_project(
-            InitialTranslationRequest(**args), background_tasks
+            InitialTranslationRequest(**{**args, "idempotency_key": request.plan_id}),
+            background_tasks,
         )
         task_state.update_task(
             response["task_id"],

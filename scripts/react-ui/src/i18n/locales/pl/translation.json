@@ -40,6 +40,7 @@
     "eyebrow": "Historia zadań", "archived": "Zarchiwizowane", "elapsed": "Czas trwania", "more_actions": "Więcej działań",
     "restore": "Przywróć w centrum zadań", "archive": "Ukryj w centrum zadań",
     "load_error": "Nie udało się wczytać zadania", "not_available": "Niedostępne", "run_log": "Dziennik wykonania",
+    "show_diagnostics": "Pokaż diagnostykę", "diagnostic": "Diagnostyka", "export_log": "Eksportuj dziennik",
     "live_updates": "Aktualizacja na żywo", "event_count": "Liczba zdarzeń: {{count}}", "no_events": "Brak zapisanych zdarzeń wykonania",
     "task_info": "Szczegóły zadania", "task_id": "Identyfikator zadania", "project": "Powiązany projekt", "project_name": "Nazwa projektu", "project_id": "Identyfikator projektu", "task_flow": "Przebieg zadania", "technical_info": "Dane techniczne", "blocking_description": "To zadanie modyfikuje pliki projektu. Remis tymczasowo blokuje równoczesny zapis do tego samego projektu; ograniczenie znika po zakończeniu uruchomienia.", "started_at": "Rozpoczęto", "finished_at": "Zakończono",
     "result": "Wynik", "output_paths": "Ścieżki wyjściowe", "child_tasks": "Zadania podrzędne", "back_to_workflow": "Wróć do przepływu pracy"

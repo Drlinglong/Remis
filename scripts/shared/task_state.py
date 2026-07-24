@@ -12,7 +12,19 @@ from scripts.shared.ws_manager import ws_manager
 _LOCK = threading.RLock()
 MAX_STORED_LOG_LINES = 1000
 MAX_PAYLOAD_LOG_LINES = 100
-ACTIVE_TASK_STATUSES = {"pending", "starting", "queued", "running", "processing", "awaiting_approval"}
+TASK_RETENTION_DAYS = 365
+MAX_TERMINAL_TASKS = 5000
+MIN_TERMINAL_TASKS = 1000
+ACTIVE_TASK_STATUSES = {
+    "pending",
+    "starting",
+    "queued",
+    "running",
+    "processing",
+    "in_progress",
+    "awaiting_approval",
+    "waiting_approval",
+}
 TERMINAL_TASK_STATUSES = {"completed", "complete", "success", "failed", "partial_failed", "cancelled", "canceled", "interrupted"}
 _repository: Optional[TaskRepository] = None
 
@@ -96,6 +108,14 @@ def configure_repository(
         _repository = repository
         if not hydrate or repository is None:
             return
+        try:
+            repository.prune_terminal_tasks(
+                retention_days=TASK_RETENTION_DAYS,
+                max_terminal_tasks=MAX_TERMINAL_TASKS,
+                min_terminal_tasks=MIN_TERMINAL_TASKS,
+            )
+        except (OSError, sqlite3.Error, ValueError) as exc:
+            logging.error("Failed to apply task retention policy: %s", exc)
         # Only active work needs an in-memory mirror for live updates and
         # duplicate-write protection. Historical tasks remain queryable from
         # SQLite by exact ID and through the paginated task API.
@@ -135,6 +155,8 @@ def _persist_task(
     *,
     event_message: Optional[str] = None,
     event_type: str = "log",
+    event_audience: str = "user",
+    event_level: Optional[str] = None,
 ) -> None:
     if _repository is None:
         return
@@ -143,8 +165,9 @@ def _persist_task(
         if event_message:
             event = {
                 "timestamp": task.get("updated_at") or _utc_now_iso(),
-                "level": _event_level(task.get("status"), event_message),
+                "level": event_level or _event_level(task.get("status"), event_message),
                 "event_type": event_type,
+                "audience": event_audience,
                 "message": event_message,
             }
         _repository.save_task(task, event=event)
@@ -160,15 +183,42 @@ def create_task(
     fields: Optional[Dict[str, Any]] = None,
     dedupe_key: Optional[str] = None,
     reject_duplicate: bool = False,
+    event_audience: str = "user",
 ) -> Dict[str, Any]:
     with _LOCK:
+        idempotency_key = str((fields or {}).get("idempotency_key") or "").strip() or None
+        if idempotency_key:
+            existing = next(
+                (
+                    item
+                    for item in tasks.values()
+                    if item.get("idempotency_key") == idempotency_key
+                ),
+                None,
+            )
+            if existing is None and _repository is not None:
+                existing = _repository.find_by_idempotency_key(idempotency_key)
+            if existing is not None:
+                raise DuplicateTaskError(existing)
         if dedupe_key and reject_duplicate:
-            for existing in tasks.values():
-                if (
-                    existing.get("dedupe_key") == dedupe_key
-                    and str(existing.get("status") or "").lower() in ACTIVE_TASK_STATUSES
-                ):
-                    raise DuplicateTaskError(existing)
+            existing = next(
+                (
+                    item
+                    for item in tasks.values()
+                    if (
+                        item.get("dedupe_key") == dedupe_key
+                        and str(item.get("status") or "").lower() in ACTIVE_TASK_STATUSES
+                    )
+                ),
+                None,
+            )
+            if existing is None and _repository is not None:
+                existing = _repository.find_active_by_dedupe_key(
+                    dedupe_key,
+                    active_statuses=ACTIVE_TASK_STATUSES,
+                )
+            if existing is not None:
+                raise DuplicateTaskError(existing)
         now = _utc_now_iso()
         tasks[task_id] = {
             "task_id": task_id,
@@ -191,6 +241,7 @@ def create_task(
             tasks[task_id],
             event_message=log_message,
             event_type="task_created",
+            event_audience=event_audience,
         )
         return deepcopy(tasks[task_id])
 
@@ -218,6 +269,7 @@ def update_task(
     result_path: Optional[str] = None,
     clear_result_path: bool = False,
     push: bool = True,
+    event_audience: str = "user",
 ) -> Dict[str, Any]:
     with _LOCK:
         task = _ensure_task(task_id)
@@ -244,11 +296,13 @@ def update_task(
         if normalized_status in TERMINAL_TASK_STATUSES:
             task.setdefault("finished_at", now)
         task["updated_at"] = now
-        _append_log(task, append_log)
+        if event_audience == "user":
+            _append_log(task, append_log)
         _persist_task(
             task,
             event_message=append_log or message,
             event_type="status_changed" if status is not None else "log",
+            event_audience=event_audience,
         )
         snapshot = deepcopy(task)
     if push:
@@ -274,6 +328,8 @@ def update_progress(
     workshop_progress: Optional[Dict[str, Any]] = None,
     log_message: Optional[str] = None,
     push: bool = False,
+    event_audience: str = "user",
+    fields: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     progress_updates: Dict[str, Any] = {}
     if current is not None:
@@ -306,7 +362,52 @@ def update_progress(
     if total and current is not None:
         progress_updates["percent"] = int((current / total) * 100)
 
-    return update_task(task_id, progress=progress_updates, append_log=log_message, push=push)
+    return update_task(
+        task_id,
+        progress=progress_updates,
+        append_log=log_message,
+        push=push,
+        event_audience=event_audience,
+        fields=fields,
+    )
+
+
+def append_task_event(
+    task_id: str,
+    message: str,
+    *,
+    audience: str = "diagnostic",
+    level: str = "debug",
+    event_type: str = "diagnostic",
+    metadata: Optional[Dict[str, Any]] = None,
+    push: bool = False,
+) -> Dict[str, Any]:
+    if audience not in {"user", "diagnostic"}:
+        raise ValueError("Task event audience must be user or diagnostic")
+    with _LOCK:
+        task = _ensure_task(task_id)
+        task["updated_at"] = _utc_now_iso()
+        if audience == "user":
+            _append_log(task, message)
+        if _repository is not None:
+            try:
+                _repository.save_task(
+                    task,
+                    event={
+                        "timestamp": task["updated_at"],
+                        "level": level,
+                        "event_type": event_type,
+                        "audience": audience,
+                        "message": message,
+                        "metadata": metadata or {},
+                    },
+                )
+            except (OSError, sqlite3.Error, ValueError, KeyError) as exc:
+                logging.error("Failed to append task event %s: %s", task_id, exc)
+        snapshot = deepcopy(task)
+    if push:
+        push_task_update(task_id)
+    return snapshot
 
 
 def get_task(task_id: str) -> Optional[Dict[str, Any]]:
@@ -329,10 +430,19 @@ def list_tasks() -> list[Dict[str, Any]]:
         return [deepcopy(task) for task in tasks.values()]
 
 
-def get_task_events(task_id: str, *, limit: int = 500) -> list[Dict[str, Any]]:
+def get_task_events(
+    task_id: str,
+    *,
+    limit: int = 500,
+    include_diagnostics: bool = False,
+) -> list[Dict[str, Any]]:
     if _repository is not None:
         try:
-            return _repository.list_events(task_id, limit=limit)
+            return _repository.list_events(
+                task_id,
+                limit=limit,
+                audience=None if include_diagnostics else "user",
+            )
         except (OSError, sqlite3.Error) as exc:
             logging.error("Failed to load task events for %s: %s", task_id, exc)
     task = get_task(task_id) or {}
@@ -344,6 +454,7 @@ def get_task_events(task_id: str, *, limit: int = 500) -> list[Dict[str, Any]]:
             "timestamp": None,
             "level": _event_level(task.get("status"), message),
             "event_type": "legacy_log",
+            "audience": "user",
             "message": message,
             "metadata": {},
         }

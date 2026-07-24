@@ -40,6 +40,7 @@
     "eyebrow": "Historique des tâches", "archived": "Archivée", "elapsed": "Temps écoulé", "more_actions": "Plus d’actions",
     "restore": "Restaurer dans le centre des tâches", "archive": "Masquer du centre des tâches",
     "load_error": "Impossible de charger la tâche", "not_available": "Non disponible", "run_log": "Journal d’exécution",
+    "show_diagnostics": "Afficher les diagnostics", "diagnostic": "Données de diagnostic", "export_log": "Exporter le journal",
     "live_updates": "Mise à jour en direct", "event_count": "{{count}} événements", "no_events": "Aucun événement d’exécution enregistré",
     "task_info": "Détails de la tâche", "task_id": "ID de tâche", "project": "Projet", "project_name": "Nom du projet", "project_id": "ID du projet", "task_flow": "Flux de la tâche", "technical_info": "Identifiants techniques", "blocking_description": "Cette tâche modifie actuellement les fichiers du projet. Remis empêche temporairement les écritures concurrentes sur ce projet ; la restriction disparaît à la fin de l’exécution.", "started_at": "Démarrée", "finished_at": "Terminée",
     "result": "Résultat", "output_paths": "Chemins de sortie", "child_tasks": "Sous-tâches", "back_to_workflow": "Retour au flux de travail"

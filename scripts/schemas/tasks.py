@@ -30,6 +30,14 @@ class TaskProjectContext(BaseModel):
     game_id: Optional[str] = None
 
 
+class TaskChildAggregate(BaseModel):
+    total: int = 0
+    active: int = 0
+    attention: int = 0
+    completed: int = 0
+    progress: int = Field(default=0, ge=0, le=100)
+
+
 class TaskSummary(BaseModel):
     task_id: str
     kind: str = "task"
@@ -60,6 +68,7 @@ class TaskSummary(BaseModel):
     checkpoint: TaskCheckpoint = Field(default_factory=TaskCheckpoint)
     result: TaskResult = Field(default_factory=TaskResult)
     blocking: bool = False
+    blocking_reason: Optional[str] = None
     dedupe_key: Optional[str] = None
     idempotency_key: Optional[str] = None
     source_route: str = "/"
@@ -80,6 +89,7 @@ class TaskEvent(BaseModel):
     timestamp: Optional[str] = None
     level: Literal["debug", "info", "warning", "error", "success"] = "info"
     event_type: str = "log"
+    audience: Literal["user", "diagnostic"] = "user"
     message: str
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
@@ -87,3 +97,4 @@ class TaskEvent(BaseModel):
 class TaskDetail(TaskSummary):
     events: List[TaskEvent] = Field(default_factory=list)
     children: List[TaskSummary] = Field(default_factory=list)
+    child_aggregate: TaskChildAggregate = Field(default_factory=TaskChildAggregate)

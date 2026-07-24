@@ -113,7 +113,8 @@ def test_run_incremental_update_background_marks_task_completed(monkeypatch, tmp
             ],
         }
 
-    write_logs = MagicMock()
+    workflow_log_path = str(tmp_path / "zh-CN-demo" / "incremental_update.log")
+    write_logs = MagicMock(return_value=[workflow_log_path])
     ws_push = MagicMock()
     monkeypatch.setattr(
         projects_router.project_manager,
@@ -136,12 +137,33 @@ def test_run_incremental_update_background_marks_task_completed(monkeypatch, tmp
     assert "Runtime translation warnings: 1." in tasks[task_id]["log"]
     assert any("Post-build validation issues: 2." in line for line in tasks[task_id]["log"])
     assert any("Workshop issue sidecar generated:" in line for line in tasks[task_id]["log"])
+    assert tasks[task_id]["result"]["types"] == ["files", "change_summary", "workflow_log"]
+    assert workflow_log_path in tasks[task_id]["result"]["output_paths"]
+    assert tasks[task_id]["result"]["metadata"]["workflow_log_paths"] == [workflow_log_path]
     write_logs.assert_called_once_with(
         [str(tmp_path / "zh-CN-demo")],
         tasks[task_id]["log"],
         {"languages": [{"target_lang": "zh-CN", "written": 1}]},
     )
     assert ws_push.call_count >= 2
+
+
+def test_write_incremental_logs_returns_explicit_artifact_paths(tmp_path):
+    first_output = tmp_path / "first"
+    second_output = tmp_path / "second"
+
+    written = projects_router._write_incremental_logs(
+        [str(first_output), str(second_output)],
+        ["Queued", "Completed"],
+        {"warning_count": 0},
+    )
+
+    assert written == [
+        str(first_output / "incremental_update.log"),
+        str(second_output / "incremental_update.log"),
+    ]
+    assert "# Incremental Update Log" in (first_output / "incremental_update.log").read_text(encoding="utf-8")
+    assert "Completed" in (second_output / "incremental_update.log").read_text(encoding="utf-8")
 
 
 def test_update_project_status_rejects_unknown_status(mock_project_manager):

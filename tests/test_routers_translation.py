@@ -86,6 +86,46 @@ def test_run_translation_workflow_v2_failure_sets_failed_terminal_state(monkeypa
     assert task["status"] == "failed"
     assert task["progress"]["stage"] == "Failed"
     assert any("boom" in line for line in task["log"])
+    assert all("Traceback (most recent call last)" not in line for line in task["log"])
+
+
+def test_run_translation_workflow_v2_tracks_recovery_checkpoint(monkeypatch):
+    task_state.create_task("task-checkpoint", status="pending")
+    monkeypatch.setattr(translation.i18n, "load_language", MagicMock())
+
+    def run_with_progress(**kwargs):
+        kwargs["progress_callback"](
+            2,
+            5,
+            "localisation/events.yml",
+            stage="Translating",
+            current_batch=1,
+            total_batches=3,
+        )
+        raise RuntimeError("interrupted after checkpoint")
+
+    monkeypatch.setattr(translation.initial_translate, "run", run_with_progress)
+
+    translation.run_translation_workflow_v2(
+        "task-checkpoint",
+        "Example Mod",
+        "stellaris",
+        "en",
+        ["zh-CN"],
+        "gemini",
+        "",
+        [],
+        None,
+        False,
+        use_resume=True,
+    )
+
+    checkpoint = tasks["task-checkpoint"]["checkpoint"]
+    assert checkpoint["available"] is True
+    assert checkpoint["resume_supported"] is True
+    assert checkpoint["cursor"] == "localisation/events.yml"
+    assert checkpoint["metadata"]["completed"] == 2
+    assert checkpoint["metadata"]["total"] == 5
 
 
 def test_run_translation_workflow_v2_logs_project_history_through_async_bridge(monkeypatch, tmp_path):

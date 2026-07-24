@@ -79,6 +79,42 @@ async def test_task_summary_exposes_actor_tree_recovery_and_result_contract():
     assert task.blocking is True
     assert task.dedupe_key == "project_translation_write:project-1"
     assert task.idempotency_key == "plan-1"
+    assert task.blocking_reason
+
+
+@pytest.mark.asyncio
+async def test_task_detail_aggregates_child_progress_and_attention():
+    task_state.create_task(
+        "parent",
+        status="running",
+        fields={"kind": "agent_workshop", "title": "Parent task"},
+    )
+    task_state.create_task(
+        "child-running",
+        status="running",
+        fields={"parent_task_id": "parent", "title": "Running child"},
+    )
+    task_state.init_progress("child-running", {"percent": 40})
+    task_state.create_task(
+        "child-complete",
+        status="completed",
+        fields={"parent_task_id": "parent", "title": "Completed child"},
+    )
+    task_state.init_progress("child-complete", {"percent": 100})
+    task_state.create_task(
+        "child-failed",
+        status="failed",
+        fields={"parent_task_id": "parent", "title": "Failed child"},
+    )
+    task_state.init_progress("child-failed", {"percent": 20})
+
+    detail = await tasks_router.get_task_detail("parent")
+
+    assert detail.child_aggregate.total == 3
+    assert detail.child_aggregate.active == 1
+    assert detail.child_aggregate.attention == 1
+    assert detail.child_aggregate.completed == 1
+    assert detail.child_aggregate.progress == 53
 
 
 def test_duplicate_write_task_returns_existing_task_atomically():
@@ -116,6 +152,32 @@ def test_terminal_task_releases_dedupe_key():
     )
 
     assert created["task_id"] == "task-next"
+
+
+def test_idempotency_key_reuses_persisted_operation_even_after_memory_reset(tmp_path):
+    db_path = tmp_path / "task-idempotency.sqlite"
+    migrate_main_database(str(db_path))
+    repository = TaskRepository(str(db_path))
+    task_state.configure_repository(repository)
+    try:
+        task_state.create_task(
+            "task-original",
+            status="completed",
+            fields={"idempotency_key": "approved-plan-1"},
+        )
+        task_state.tasks.clear()
+
+        with pytest.raises(task_state.DuplicateTaskError) as exc_info:
+            task_state.create_task(
+                "task-replayed",
+                status="pending",
+                fields={"idempotency_key": "approved-plan-1"},
+            )
+
+        assert exc_info.value.existing_task["task_id"] == "task-original"
+        assert "task-replayed" not in task_state.tasks
+    finally:
+        task_state.configure_repository(None)
 
 
 @pytest.mark.asyncio
@@ -202,6 +264,51 @@ async def test_task_detail_is_bound_to_task_id_and_exposes_its_own_log():
     assert successful.task_id == "successful-task"
     assert successful.status == "completed"
     assert [event.message for event in successful.events] == ["Translation completed for new run"]
+
+
+@pytest.mark.asyncio
+async def test_task_detail_hides_diagnostics_by_default_and_exports_them_explicitly(tmp_path):
+    db_path = tmp_path / "task-diagnostics.sqlite"
+    migrate_main_database(str(db_path))
+    repository = TaskRepository(str(db_path))
+    task_state.configure_repository(repository)
+    try:
+        task_state.create_task(
+            "diagnostic-task",
+            status="running",
+            log_message="Translation started.",
+        )
+        task_state.append_task_event(
+            "diagnostic-task",
+            "Traceback: provider request timed out",
+            audience="diagnostic",
+            level="error",
+            event_type="traceback",
+        )
+
+        default_detail = await tasks_router.get_task_detail("diagnostic-task")
+        diagnostic_detail = await tasks_router.get_task_detail(
+            "diagnostic-task",
+            include_diagnostics=True,
+        )
+        default_export = await tasks_router.export_task_events("diagnostic-task")
+        diagnostic_export = await tasks_router.export_task_events(
+            "diagnostic-task",
+            include_diagnostics=True,
+        )
+
+        assert [event.message for event in default_detail.events] == [
+            "Translation started.",
+        ]
+        assert [event.audience for event in diagnostic_detail.events] == [
+            "user",
+            "diagnostic",
+        ]
+        assert b"Traceback: provider request timed out" not in default_export.body
+        assert b"Traceback: provider request timed out" in diagnostic_export.body
+        assert "attachment;" in diagnostic_export.headers["content-disposition"]
+    finally:
+        task_state.configure_repository(None)
 
 
 @pytest.mark.asyncio

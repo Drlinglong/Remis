@@ -15,6 +15,7 @@ import {
   Progress,
   ScrollArea,
   Stack,
+  Switch,
   Text,
   Title,
   Tooltip,
@@ -26,6 +27,8 @@ import {
   IconArrowBackUp,
   IconClock,
   IconDots,
+  IconDownload,
+  IconFolderOpen,
   IconHistory,
   IconInfoCircle,
   IconPlayerPlay,
@@ -93,11 +96,15 @@ export default function TaskDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [mutating, setMutating] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   const loadTask = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
     try {
-      const response = await api.get(`/api/tasks/${encodeURIComponent(decodedTaskId)}`);
+      const response = await api.get(`/api/tasks/${encodeURIComponent(decodedTaskId)}`, {
+        params: { include_diagnostics: showDiagnostics },
+      });
       setTask(response.data);
       setError('');
     } catch (loadError) {
@@ -105,7 +112,7 @@ export default function TaskDetailPage() {
     } finally {
       if (!quiet) setLoading(false);
     }
-  }, [decodedTaskId, t]);
+  }, [decodedTaskId, showDiagnostics, t]);
 
   useEffect(() => {
     loadTask();
@@ -191,6 +198,19 @@ export default function TaskDetailPage() {
     }
   };
 
+  const openOutputPath = async (outputPath) => {
+    try {
+      setActionError('');
+      await api.post('/api/system/open_folder', { path: outputPath });
+    } catch (openError) {
+      setActionError(
+        openError.response?.data?.detail
+        || openError.message
+        || t('error_cannot_open_folder'),
+      );
+    }
+  };
+
   if (loading) {
     return <Group justify="center" h="100%"><Loader /></Group>;
   }
@@ -261,6 +281,16 @@ export default function TaskDetailPage() {
             {task.attention_reason || task.message || t('task_center.status.failed')}
           </Alert>
         )}
+        {actionError && (
+          <Alert color="red" icon={<IconAlertTriangle size={18} />} mb="md" withCloseButton onClose={() => setActionError('')}>
+            {actionError}
+          </Alert>
+        )}
+        {task.blocking && active && (
+          <Alert color="orange" icon={<IconInfoCircle size={18} />} mb="md">
+            {task.blocking_reason || t('task_detail.blocking_description')}
+          </Alert>
+        )}
 
         <Progress value={task.progress || 0} size="sm" radius="xl" mb="md" aria-label={t('task_center.progress')} />
 
@@ -274,9 +304,28 @@ export default function TaskDetailPage() {
                     {active ? t('task_detail.live_updates') : t('task_detail.event_count', { count: task.events?.length || 0 })}
                   </Text>
                 </div>
-                <Button variant="subtle" size="compact-sm" leftSection={<IconRefresh size={15} />} onClick={() => loadTask({ quiet: true })}>
-                  {t('button_refresh')}
-                </Button>
+                <Group gap="xs">
+                  <Switch
+                    size="sm"
+                    checked={showDiagnostics}
+                    onChange={(event) => setShowDiagnostics(event.currentTarget.checked)}
+                    label={t('task_detail.show_diagnostics')}
+                    aria-label={t('task_detail.show_diagnostics')}
+                  />
+                  <Button
+                    component="a"
+                    href={`/api/tasks/${encodeURIComponent(decodedTaskId)}/events/export?include_diagnostics=${showDiagnostics}`}
+                    download
+                    variant="subtle"
+                    size="compact-sm"
+                    leftSection={<IconDownload size={15} />}
+                  >
+                    {t('task_detail.export_log')}
+                  </Button>
+                  <Button variant="subtle" size="compact-sm" leftSection={<IconRefresh size={15} />} onClick={() => loadTask({ quiet: true })}>
+                    {t('button_refresh')}
+                  </Button>
+                </Group>
               </Group>
               <ScrollArea h="min(58vh, 620px)" type="auto" offsetScrollbars>
                 {task.events?.length ? (
@@ -287,7 +336,14 @@ export default function TaskDetailPage() {
                           {formatTimestamp(event.timestamp, i18n.language)}
                         </Text>
                         <Box className={styles.eventMarker} data-color={EVENT_COLORS[event.level] || 'gray'} />
-                        <Text size="sm" className={styles.eventMessage}>{event.message}</Text>
+                        <Group gap="xs" wrap="nowrap">
+                          {event.audience === 'diagnostic' && (
+                            <Badge size="xs" color="gray" variant="outline">
+                              {t('task_detail.diagnostic')}
+                            </Badge>
+                          )}
+                          <Text size="sm" className={styles.eventMessage}>{event.message}</Text>
+                        </Group>
                       </Box>
                     ))}
                   </Stack>
@@ -441,15 +497,65 @@ export default function TaskDetailPage() {
                   {task.result.output_paths?.length > 0 && (
                     <Stack gap={6}>
                       <Text size="xs" c="dimmed">{t('task_detail.output_paths')}</Text>
-                      {task.result.output_paths.map((outputPath) => <Code key={outputPath}>{outputPath}</Code>)}
+                      {task.result.output_paths.map((outputPath) => (
+                        <Group key={outputPath} gap="xs" wrap="nowrap">
+                          <Code style={{ flex: 1, overflowWrap: 'anywhere' }}>{outputPath}</Code>
+                          <ActionIcon
+                            variant="light"
+                            aria-label={`${t('button_open_folder')}: ${outputPath}`}
+                            onClick={() => openOutputPath(outputPath)}
+                          >
+                            <IconFolderOpen size={17} />
+                          </ActionIcon>
+                        </Group>
+                      ))}
                     </Stack>
+                  )}
+                </Card>
+              )}
+
+              {task.checkpoint?.available && (
+                <Card withBorder radius="md" p="lg" data-remis-surface="surface">
+                  <Group justify="space-between" mb="xs">
+                    <Title order={3}>
+                      {t('incremental_translation.checkpoint_found_label', { defaultValue: 'Recovery checkpoint' })}
+                    </Title>
+                    <Badge color={task.checkpoint.resume_supported ? 'teal' : 'gray'} variant="light">
+                      {task.checkpoint.resume_supported
+                        ? t('incremental_translation.resume_enabled', { defaultValue: 'Resume available' })
+                        : t('task_detail.not_available')}
+                    </Badge>
+                  </Group>
+                  <Text size="sm" fw={700}>{task.checkpoint.stage || task.stage}</Text>
+                  {task.checkpoint.updated_at && (
+                    <Text size="xs" c="dimmed">
+                      {formatTimestamp(task.checkpoint.updated_at, i18n.language)}
+                    </Text>
                   )}
                 </Card>
               )}
 
               {task.children?.length > 0 && (
                 <Card withBorder radius="md" p="lg" data-remis-surface="surface">
-                  <Title order={3} mb="sm">{t('task_detail.child_tasks')}</Title>
+                  <Group justify="space-between" mb="xs">
+                    <Title order={3}>{t('task_detail.child_tasks')}</Title>
+                    <Badge variant="light">
+                      {task.child_aggregate?.completed || 0}/{task.child_aggregate?.total || task.children.length}
+                    </Badge>
+                  </Group>
+                  <Progress value={task.child_aggregate?.progress || 0} size="xs" mb="sm" />
+                  <Group gap="xs" mb="sm">
+                    {task.child_aggregate?.active > 0 && (
+                      <Badge color="blue" variant="outline">
+                        {t('task_center.status.running')} {task.child_aggregate.active}
+                      </Badge>
+                    )}
+                    {task.child_aggregate?.attention > 0 && (
+                      <Badge color="orange" variant="outline">
+                        {t('task_center.attention_summary', { count: task.child_aggregate.attention })}
+                      </Badge>
+                    )}
+                  </Group>
                   <Stack gap="xs">
                     {task.children.map((child) => (
                       <Button key={child.task_id} variant="subtle" justify="space-between" onClick={() => navigate(taskDetailRoute(child.task_id))}>

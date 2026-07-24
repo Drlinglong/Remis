@@ -65,16 +65,18 @@ const failedTask = {
   source_route: '/translation',
   project_id: 'project-demo',
   project_context: { name: 'Remis Plan - Demo Mod', game_id: 'victoria3' },
-  allowed_actions: ['view_task', 'retry', 'archive_task'],
+  allowed_actions: ['view_task', 'return_to_workflow', 'archive_task'],
   checkpoint: {},
   result: {},
   events: [{
     event_id: 'event-failed',
     timestamp: '2026-07-22T00:00:09Z',
     level: 'error',
+    audience: 'user',
     message: 'The selected request failed',
   }],
   children: [],
+  child_aggregate: { total: 0, active: 0, attention: 0, completed: 0, progress: 0 },
 };
 
 describe('TaskDetailPage', () => {
@@ -88,7 +90,9 @@ describe('TaskDetailPage', () => {
     render(<MantineProvider><TaskDetailPage /></MantineProvider>);
 
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/api/tasks/failed-task');
+      expect(api.get).toHaveBeenCalledWith('/api/tasks/failed-task', {
+        params: { include_diagnostics: false },
+      });
     });
     expect((await screen.findAllByText('Failed translation attempt')).length).toBeGreaterThan(0);
     expect(screen.getByText('The selected request failed')).toBeInTheDocument();
@@ -102,6 +106,85 @@ describe('TaskDetailPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'context_sidebar.project_details: Remis Plan - Demo Mod' }));
     expect(navigateMock).toHaveBeenCalledWith('/project-management/project-demo');
+  });
+
+  it('loads diagnostics only when requested and exposes an explicit export', async () => {
+    api.get.mockImplementation((_url, { params }) => Promise.resolve({
+      data: {
+        ...failedTask,
+        events: params.include_diagnostics
+          ? [
+            ...failedTask.events,
+            {
+              event_id: 'event-diagnostic',
+              timestamp: '2026-07-22T00:00:09Z',
+              level: 'debug',
+              audience: 'diagnostic',
+              message: 'worker=2 batch=4',
+            },
+          ]
+          : failedTask.events,
+      },
+    }));
+
+    render(<MantineProvider><TaskDetailPage /></MantineProvider>);
+
+    expect(await screen.findByText('The selected request failed')).toBeInTheDocument();
+    expect(screen.queryByText('worker=2 batch=4')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'task_detail.show_diagnostics' }));
+
+    expect(await screen.findByText('worker=2 batch=4')).toBeInTheDocument();
+    expect(screen.getByText('task_detail.diagnostic')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'task_detail.export_log' })).toHaveAttribute(
+      'href',
+      '/api/tasks/failed-task/events/export?include_diagnostics=true',
+    );
+  });
+
+  it('shows recovery context, child rollup, and opens a result path', async () => {
+    api.get.mockResolvedValue({
+      data: {
+        ...failedTask,
+        status: 'interrupted',
+        checkpoint: {
+          available: true,
+          resume_supported: true,
+          stage: 'batch-4',
+          updated_at: '2026-07-22T00:00:08Z',
+        },
+        result: {
+          types: ['files', 'workflow_log'],
+          output_paths: ['C:/Remis/output/incremental_update.log'],
+          summary: '3 files processed',
+        },
+        child_aggregate: {
+          total: 2,
+          active: 1,
+          attention: 0,
+          completed: 1,
+          progress: 70,
+        },
+        children: [
+          { task_id: 'child-1', kind: 'repair', title: 'Repair', status: 'running' },
+          { task_id: 'child-2', kind: 'repair', title: 'Repair', status: 'completed' },
+        ],
+      },
+    });
+    api.post.mockResolvedValue({ data: { status: 'success' } });
+
+    render(<MantineProvider><TaskDetailPage /></MantineProvider>);
+
+    expect(await screen.findByText('batch-4')).toBeInTheDocument();
+    expect(screen.getByText('1/2')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {
+      name: 'button_open_folder: C:/Remis/output/incremental_update.log',
+    }));
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/api/system/open_folder', {
+        path: 'C:/Remis/output/incremental_update.log',
+      });
+    });
   });
 
   it('restores the detailed glossary health report and advisory result', async () => {

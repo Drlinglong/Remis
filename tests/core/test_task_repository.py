@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from scripts.core.db_migrations import migrate_main_database
 from scripts.core.repositories.task_repository import TaskRepository
 from scripts.shared import task_state
@@ -101,3 +103,96 @@ def test_task_page_filters_counts_and_paginates_without_loading_events(tmp_path,
     history_page = repository.query_task_page(offset=200, limit=10)
     assert history_page["total_count"] == 206
     assert len(history_page["tasks"]) == 6
+
+
+def test_task_events_default_to_user_audience_and_can_include_diagnostics(tmp_path):
+    db_path = tmp_path / "task-events.sqlite"
+    migrate_main_database(str(db_path))
+    repository = TaskRepository(str(db_path))
+    previous_tasks = dict(task_state.tasks)
+    try:
+        task_state.tasks.clear()
+        task_state.configure_repository(repository)
+        task_state.create_task(
+            "task-with-diagnostics",
+            status="running",
+            log_message="Translation started.",
+        )
+        task_state.append_task_event(
+            "task-with-diagnostics",
+            "worker=2 batch=4 response_time_ms=850",
+            audience="diagnostic",
+            level="debug",
+            metadata={"worker": 2, "batch": 4},
+        )
+
+        user_events = task_state.get_task_events("task-with-diagnostics")
+        all_events = task_state.get_task_events(
+            "task-with-diagnostics",
+            include_diagnostics=True,
+        )
+
+        assert [event["message"] for event in user_events] == ["Translation started."]
+        assert [event["audience"] for event in all_events] == ["user", "diagnostic"]
+        assert all_events[1]["metadata"] == {"worker": 2, "batch": 4}
+    finally:
+        task_state.configure_repository(None)
+        task_state.tasks.clear()
+        task_state.tasks.update(previous_tasks)
+
+
+def test_retention_prunes_only_old_or_excess_terminal_tasks_and_cascades_events(tmp_path):
+    db_path = tmp_path / "task-retention.sqlite"
+    migrate_main_database(str(db_path))
+    repository = TaskRepository(str(db_path))
+    now = datetime(2026, 7, 24, tzinfo=timezone.utc)
+
+    for index in range(2):
+        timestamp = (now - timedelta(days=index)).isoformat()
+        repository.save_task({
+            "task_id": f"recent-{index}",
+            "status": "completed",
+            "title": "Recent task",
+            "created_at": timestamp,
+            "updated_at": timestamp,
+            "finished_at": timestamp,
+        }, event={"timestamp": timestamp, "message": "recent"})
+    for index in range(4):
+        timestamp = (now - timedelta(days=400 + index)).isoformat()
+        repository.save_task({
+            "task_id": f"old-{index}",
+            "status": "failed",
+            "title": "Old task",
+            "created_at": timestamp,
+            "updated_at": timestamp,
+            "finished_at": timestamp,
+        }, event={"timestamp": timestamp, "message": "old"})
+    active_timestamp = (now - timedelta(days=500)).isoformat()
+    repository.save_task({
+        "task_id": "active-old",
+        "status": "running",
+        "title": "Active task",
+        "created_at": active_timestamp,
+        "updated_at": active_timestamp,
+    }, event={"timestamp": active_timestamp, "message": "active"})
+
+    result = repository.prune_terminal_tasks(
+        retention_days=30,
+        max_terminal_tasks=3,
+        min_terminal_tasks=1,
+        now=now,
+    )
+
+    assert result == {
+        "terminal_tasks_before": 6,
+        "tasks_deleted": 4,
+        "terminal_tasks_after": 2,
+    }
+    assert repository.get_task("recent-0") is not None
+    assert repository.get_task("recent-1") is not None
+    assert repository.get_task("old-0") is None
+    assert repository.get_task("active-old") is not None
+    with repository._connect() as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM task_events WHERE task_id LIKE 'old-%'"
+        ).fetchone()[0] == 0

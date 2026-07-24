@@ -40,6 +40,7 @@
     "eyebrow": "タスク履歴", "archived": "アーカイブ済み", "elapsed": "経過時間", "more_actions": "その他の操作",
     "restore": "タスクセンターに戻す", "archive": "タスクセンターから非表示",
     "load_error": "タスクを読み込めませんでした", "not_available": "利用できません", "run_log": "実行ログ",
+    "show_diagnostics": "診断ログを表示", "diagnostic": "診断", "export_log": "ログをエクスポート",
     "live_updates": "リアルタイム更新中", "event_count": "{{count}} 件のイベント", "no_events": "実行イベントは記録されていません",
     "task_info": "タスクの詳細", "task_id": "タスク ID", "project": "プロジェクト", "project_name": "プロジェクト名", "project_id": "プロジェクト ID", "task_flow": "タスク工程", "technical_info": "技術情報", "blocking_description": "このタスクはプロジェクトファイルを変更中です。同じプロジェクトへの同時書き込みを防ぐため、Remis は競合操作を一時的に制限します。実行終了時に解除されます。", "started_at": "開始日時", "finished_at": "終了日時",
     "result": "結果", "output_paths": "出力パス", "child_tasks": "子タスク", "back_to_workflow": "ワークフローに戻る"

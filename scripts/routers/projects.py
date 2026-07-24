@@ -26,8 +26,9 @@ validation_sidecars = ValidationSidecarService()
 
 
 def _write_incremental_logs(output_dirs: list[str], log_lines: list[str], telemetry: Optional[Dict[str, Any]] = None):
+    written_paths: list[str] = []
     if not output_dirs:
-        return
+        return written_paths
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     telemetry_lines = []
@@ -54,8 +55,10 @@ def _write_incremental_logs(output_dirs: list[str], log_lines: list[str], teleme
             log_path = os.path.join(output_dir, "incremental_update.log")
             with open(log_path, "w", encoding="utf-8") as handle:
                 handle.write(content)
+            written_paths.append(log_path)
         except Exception as exc:
             logging.error(f"Failed to write incremental log file to {output_dir}: {exc}")
+    return written_paths
 
 
 @router.get("/api/projects")
@@ -459,7 +462,33 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
                         push=False,
                     )
             task = task_state.get_task(task_id) or task
-            _write_incremental_logs(fields["output_dirs"], task.get("log", []), fields["telemetry"])
+            workflow_log_paths = _write_incremental_logs(
+                fields["output_dirs"],
+                task.get("log", []),
+                fields["telemetry"],
+            )
+            output_paths = [
+                *[str(path) for path in fields["output_dirs"] if path],
+                *[str(path) for path in workflow_log_paths if path],
+            ]
+            task_state.update_task(
+                task_id,
+                fields={
+                    "result": {
+                        "types": ["files", "change_summary", "workflow_log"],
+                        "output_paths": list(dict.fromkeys(output_paths)),
+                        "summary": (
+                            f"{len(fields['file_summaries'])} file(s) processed; "
+                            f"{fields['warning_count']} runtime warning(s)."
+                        ),
+                        "metadata": {
+                            "workflow_log_paths": workflow_log_paths,
+                            "warning_count": fields["warning_count"],
+                        },
+                    },
+                },
+                push=False,
+            )
             logging.info(f"Incremental task {task_id} completed successfully.")
 
     except Exception as e:
@@ -468,8 +497,15 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
         task_state.update_task(
             task_id,
             status="failed",
-            append_log=f"Critical Failure: {str(e)}\n{traceback.format_exc()}",
+            append_log=f"Incremental update failed: {str(e)}",
             push=True,
+        )
+        task_state.append_task_event(
+            task_id,
+            traceback.format_exc(),
+            audience="diagnostic",
+            level="error",
+            event_type="traceback",
         )
     finally:
         task_state.push_task_update(task_id)

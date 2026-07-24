@@ -40,6 +40,7 @@
     "eyebrow": "Histórico de tarefas", "archived": "Arquivada", "elapsed": "Tempo decorrido", "more_actions": "Mais ações",
     "restore": "Restaurar na central de tarefas", "archive": "Ocultar da central de tarefas",
     "load_error": "Não foi possível carregar a tarefa", "not_available": "Indisponível", "run_log": "Registro de execução",
+    "show_diagnostics": "Exibir informações de diagnóstico", "diagnostic": "Informação de diagnóstico", "export_log": "Baixar registro",
     "live_updates": "Atualização ao vivo", "event_count": "{{count}} ocorrências", "no_events": "Nenhum evento de execução registrado",
     "task_info": "Detalhes da tarefa", "task_id": "ID da tarefa", "project": "Projeto", "project_name": "Nome do projeto", "project_id": "ID do projeto", "task_flow": "Fluxo da tarefa", "technical_info": "Dados técnicos", "blocking_description": "Esta tarefa está alterando arquivos do projeto. O Remis impede temporariamente gravações concorrentes no mesmo projeto; a restrição termina quando a execução acaba.", "started_at": "Começou em", "finished_at": "Concluída em",
     "result": "Resultado da tarefa", "output_paths": "Caminhos de saída", "child_tasks": "Tarefas filhas", "back_to_workflow": "Voltar ao fluxo de trabalho"

@@ -1104,6 +1104,7 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
                 total_batches=total_batches,
                 stage="Agent Workshop",
                 log_message=f"Worker {worker_id}: fixing batch {batch_number}/{total_batches} ({len(batch)} issue(s)).",
+                event_audience="diagnostic",
                 push=True,
             )
 
@@ -1141,6 +1142,7 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
                     failed_batches=current_failed,
                     stage="Agent Workshop",
                     log_message=f"Batch {batch_number}/{total_batches} completed: {batch_success}/{len(batch)} fixed.",
+                    event_audience="diagnostic",
                     push=True,
                 )
             except Exception as exc:
@@ -1159,6 +1161,7 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
                     failed_batches=current_failed,
                     stage="Agent Workshop",
                     log_message=f"Batch {batch_number}/{total_batches} failed: {exc}",
+                    event_audience="diagnostic",
                     push=True,
                 )
             finally:

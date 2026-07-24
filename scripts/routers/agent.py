@@ -743,7 +743,7 @@ async def start_agent_job(
 
     try:
         response = await start_translation_project(
-            InitialTranslationRequest(**args),
+            InitialTranslationRequest(**{**args, "idempotency_key": request.plan_id}),
             background_tasks,
         )
     except Exception:

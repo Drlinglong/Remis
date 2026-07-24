@@ -4,6 +4,7 @@ import json
 import sqlite3
 import threading
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
@@ -116,8 +117,8 @@ class TaskRepository:
                 connection.execute(
                     """
                     INSERT INTO task_events (
-                        task_id, sequence, timestamp, level, event_type, message, metadata
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        task_id, sequence, timestamp, level, event_type, audience, message, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         str(snapshot["task_id"]),
@@ -125,6 +126,7 @@ class TaskRepository:
                         event.get("timestamp"),
                         str(event.get("level") or "info"),
                         str(event.get("event_type") or "log"),
+                        str(event.get("audience") or "user"),
                         str(event["message"]),
                         self._json(event.get("metadata") or {}),
                     ),
@@ -159,7 +161,10 @@ class TaskRepository:
             task["source_route"] = task.get("source_route") or row["source_route"]
         task["archived_at"] = row["archived_at"]
         if include_events:
-            task["log"] = [event["message"] for event in self.list_events(row["task_id"])]
+            task["log"] = [
+                event["message"]
+                for event in self.list_events(row["task_id"], audience="user")
+            ]
         else:
             task.pop("log", None)
         return task
@@ -203,6 +208,42 @@ class TaskRepository:
                 parameters,
             ).fetchall()
         return [self._row_to_task(row, include_events=include_events) for row in rows]
+
+    def find_by_idempotency_key(self, idempotency_key: str) -> Optional[Dict[str, Any]]:
+        with self._lock, self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT *
+                FROM background_tasks
+                WHERE idempotency_key = ?
+                ORDER BY updated_at DESC, created_at DESC
+                LIMIT 1
+                """,
+                (idempotency_key,),
+            ).fetchone()
+        return self._row_to_task(row) if row else None
+
+    def find_active_by_dedupe_key(
+        self,
+        dedupe_key: str,
+        *,
+        active_statuses: Iterable[str],
+    ) -> Optional[Dict[str, Any]]:
+        placeholders, normalized = self._in_clause(active_statuses)
+        if not normalized:
+            return None
+        with self._lock, self._connect() as connection:
+            row = connection.execute(
+                f"""
+                SELECT *
+                FROM background_tasks
+                WHERE dedupe_key = ? AND status IN ({placeholders})
+                ORDER BY updated_at DESC, created_at DESC
+                LIMIT 1
+                """,
+                (dedupe_key, *normalized),
+            ).fetchone()
+        return self._row_to_task(row) if row else None
 
     def query_task_page(
         self,
@@ -288,17 +329,30 @@ class TaskRepository:
             "attention_count": int(count_row["attention_count"]),
         }
 
-    def list_events(self, task_id: str, *, limit: int = 500) -> list[Dict[str, Any]]:
+    def list_events(
+        self,
+        task_id: str,
+        *,
+        limit: int = 500,
+        audience: Optional[str] = None,
+    ) -> list[Dict[str, Any]]:
+        audience_clause = " AND audience = ?" if audience else ""
+        parameters: list[Any] = [task_id]
+        if audience:
+            parameters.append(audience)
+        parameters.append(limit)
         with self._lock, self._connect() as connection:
             rows = connection.execute(
-                """
-                SELECT event_id, task_id, sequence, timestamp, level, event_type, message, metadata
+                f"""
+                SELECT event_id, task_id, sequence, timestamp, level, event_type,
+                       audience, message, metadata
                 FROM task_events
                 WHERE task_id = ?
+                {audience_clause}
                 ORDER BY sequence DESC
                 LIMIT ?
                 """,
-                (task_id, limit),
+                parameters,
             ).fetchall()
         events = [
             {
@@ -308,6 +362,7 @@ class TaskRepository:
                 "timestamp": row["timestamp"],
                 "level": row["level"],
                 "event_type": row["event_type"],
+                "audience": row["audience"],
                 "message": row["message"],
                 "metadata": self._decode(row["metadata"], {}),
             }
@@ -315,3 +370,60 @@ class TaskRepository:
         ]
         events.reverse()
         return events
+
+    def prune_terminal_tasks(
+        self,
+        *,
+        retention_days: int = 365,
+        max_terminal_tasks: int = 5000,
+        min_terminal_tasks: int = 1000,
+        now: Optional[datetime] = None,
+    ) -> Dict[str, int]:
+        """Delete only old/excess terminal tasks while preserving recent history."""
+        if retention_days < 1 or max_terminal_tasks < 1 or min_terminal_tasks < 0:
+            raise ValueError("Invalid task retention policy")
+        min_terminal_tasks = min(min_terminal_tasks, max_terminal_tasks)
+        reference = now or datetime.now(timezone.utc)
+        cutoff = (reference - timedelta(days=retention_days)).isoformat()
+        terminal_statuses = (
+            "completed",
+            "complete",
+            "success",
+            "failed",
+            "partial_failed",
+            "cancelled",
+            "canceled",
+            "interrupted",
+        )
+        placeholders = ", ".join("?" for _ in terminal_statuses)
+        with self._lock, self._connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT task_id,
+                       julianday(COALESCE(finished_at, updated_at, created_at)) < julianday(?)
+                           AS older_than_cutoff
+                FROM background_tasks
+                WHERE status IN ({placeholders})
+                ORDER BY julianday(COALESCE(finished_at, updated_at, created_at)) DESC
+                """,
+                (cutoff, *terminal_statuses),
+            ).fetchall()
+            delete_ids = [
+                row["task_id"]
+                for index, row in enumerate(rows)
+                if index >= max_terminal_tasks
+                or (index >= min_terminal_tasks and bool(row["older_than_cutoff"]))
+            ]
+            for start in range(0, len(delete_ids), 500):
+                batch = delete_ids[start:start + 500]
+                batch_placeholders = ", ".join("?" for _ in batch)
+                connection.execute(
+                    f"DELETE FROM background_tasks WHERE task_id IN ({batch_placeholders})",
+                    batch,
+                )
+            connection.commit()
+        return {
+            "terminal_tasks_before": len(rows),
+            "tasks_deleted": len(delete_ids),
+            "terminal_tasks_after": len(rows) - len(delete_ids),
+        }
