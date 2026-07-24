@@ -98,3 +98,37 @@ def test_resolve_nsis_artifact_name_uses_current_tauri_version(
     assert build_pipeline.resolve_nsis_artifact_name(config_path, target_triple) == (
         f"remis-mod-factory_3.0.7_{expected_arch}-setup.exe"
     )
+
+
+def test_resolve_conda_env_path_prefers_explicit_override(monkeypatch):
+    monkeypatch.setenv("REMIS_CONDA_ENV_PATH", "D:/build-envs/remis")
+    monkeypatch.setenv("CONDA_PREFIX", "C:/miniconda3/envs/local_factory")
+    monkeypatch.setenv("CONDA_EXE", "C:/miniconda3/Scripts/conda.exe")
+
+    assert build_pipeline.resolve_conda_env_path("local_factory") == "D:/build-envs/remis"
+
+
+def test_resolve_conda_env_path_reuses_matching_active_environment(monkeypatch):
+    monkeypatch.delenv("REMIS_CONDA_ENV_PATH", raising=False)
+    monkeypatch.setenv("CONDA_PREFIX", "C:/miniconda3/envs/LOCAL_FACTORY")
+    monkeypatch.setenv("CONDA_EXE", "D:/other-conda/Scripts/conda.exe")
+
+    assert (
+        build_pipeline.resolve_conda_env_path("local_factory")
+        == "C:/miniconda3/envs/LOCAL_FACTORY"
+    )
+
+
+def test_resolve_conda_env_path_uses_conda_install_when_active_env_differs(monkeypatch):
+    monkeypatch.delenv("REMIS_CONDA_ENV_PATH", raising=False)
+    monkeypatch.setenv("CONDA_PREFIX", "C:/miniconda3/envs/base")
+    monkeypatch.setenv("CONDA_EXE", "C:/miniconda3/Scripts/conda.exe")
+    monkeypatch.setenv("MINICONDA_ROOT", "D:/fallback-miniconda")
+
+    assert build_pipeline.resolve_conda_env_path(
+        "local_factory"
+    ) == build_pipeline.os.path.join(
+        "C:/miniconda3",
+        "envs",
+        "local_factory",
+    )
