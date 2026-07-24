@@ -65,9 +65,63 @@
     background: var(--surface-bg-solid, var(--mantine-color-body)) !important;
 }
 
+.inventoryTable {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.nameCell {
+    width: 22%;
+    min-width: 180px;
+}
+
+.gameCell {
+    width: 8%;
+    min-width: 76px;
+}
+
 .typeCell {
-    min-width: 150px;
+    width: 11%;
+    min-width: 128px;
     white-space: nowrap;
+}
+
+.termCell {
+    width: 6%;
+    min-width: 64px;
+    white-space: nowrap;
+}
+
+.projectCell {
+    width: 14%;
+    min-width: 130px;
+}
+
+.updatedCell {
+    width: 10%;
+    min-width: 96px;
+    white-space: nowrap;
+}
+
+.actionCell {
+    width: 17%;
+    min-width: 232px;
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    background: var(--surface-bg-solid, var(--mantine-color-body)) !important;
+}
+
+.actionCell button {
+    min-height: 36px;
+}
+
+.inventoryTable tbody tr:nth-of-type(odd) .actionCell {
+    background: color-mix(
+        in srgb,
+        var(--surface-bg-solid, var(--mantine-color-body)) 94%,
+        var(--surface-text-main, var(--text-main)) 6%
+    ) !important;
 }
 
 .typeBadge {
@@ -99,5 +153,51 @@
 
     .statCard {
         padding: var(--mantine-spacing-sm) !important;
+    }
+}
+
+@media (max-width: 1100px) {
+    .projectCell,
+    .updatedCell {
+        display: none;
+    }
+
+    .nameCell {
+        width: 30%;
+    }
+
+    .actionCell {
+        width: 240px;
+    }
+}
+
+@media (max-width: 760px) {
+    .overview {
+        gap: var(--mantine-spacing-sm);
+    }
+
+    .overviewHeader {
+        gap: var(--mantine-spacing-sm) !important;
+    }
+
+    .typeCell {
+        display: none;
+    }
+
+    .nameCell {
+        width: auto;
+        min-width: 160px;
+    }
+
+    .gameCell {
+        width: 82px;
+    }
+
+    .termCell {
+        width: 64px;
+    }
+
+    .actionCell {
+        width: 232px;
     }
 }

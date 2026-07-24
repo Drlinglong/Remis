@@ -669,13 +669,13 @@ class GlossaryManager:
             logger.error(f"Failed to delete entry {entry_id}: {e}")
             return False
 
-    async def create_glossary_file(self, game_id: str, file_name: str) -> bool:
-        """Async: Create new glossary."""
+    async def create_glossary(self, game_id: str, name: str) -> bool:
+        """Create a named glossary asset in SQLite."""
         try:
             async for session in self.db_manager.get_async_session():
                 glossary = Glossary(
                     game_id=game_id,
-                    name=file_name,
+                    name=name,
                     description=f"User created glossary for {game_id}",
                     is_main=False
                 )
@@ -683,7 +683,7 @@ class GlossaryManager:
                 await session.commit()
                 return True
         except Exception as e:
-            logger.error(f"Failed to create glossary file: {e}")
+            logger.error(f"Failed to create glossary: {e}")
         return False
 
     async def update_glossary_metadata(

@@ -40,6 +40,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { useTaskCenter } from '../context/TaskCenterContextCore';
+import GlossaryHealthPenaltyBreakdown from '../components/glossary/GlossaryHealthPenaltyBreakdown';
 import api from '../utils/api';
 import { getGameBadgeColor } from '../utils/gamePresentation';
 import { ACTIVE_TASK_STATUSES, formatTaskDuration, taskDurationMs } from '../utils/taskTime';
@@ -74,6 +75,33 @@ const formatTimestamp = (value, locale) => {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleString(locale);
+};
+
+const localizeGlossaryHealthEvent = (event, t, isPartial) => {
+  if (isPartial && event.level === 'error') {
+    return t('glossary_health_ai_unavailable_event');
+  }
+
+  const message = String(event.message || '');
+  if (message === 'Glossary health check queued.') {
+    return t('glossary_health_event_queued');
+  }
+  if (message === 'Deterministic glossary checks started.') {
+    return t('glossary_health_event_deterministic_started');
+  }
+  const findingsMatch = message.match(/^Deterministic checks found (\d+) issue\(s\)\.$/);
+  if (findingsMatch) {
+    return t('glossary_health_event_deterministic_found', {
+      count: Number(findingsMatch[1]),
+    });
+  }
+  if (message === 'Explicitly approved advisory model review started.') {
+    return t('glossary_health_event_ai_started');
+  }
+  if (message === 'Health report completed without changing glossary data.') {
+    return t('glossary_health_completed_title');
+  }
+  return message;
 };
 
 function useLiveClock(active) {
@@ -169,6 +197,17 @@ export default function TaskDetailPage() {
   const resultTypes = new Set(task?.result?.types || []);
   const isGlossaryHealthResult = resultTypes.has('glossary_health_report');
   const isGlossaryMergeResult = resultTypes.has('glossary_merge');
+  const isPartialGlossaryHealth = (
+    task?.kind === 'glossary_health_check'
+    && isGlossaryHealthResult
+    && resultMetadata.ai_review_status === 'failed'
+  );
+  const displayStatusLabel = isPartialGlossaryHealth
+    ? t('glossary_health_partial_status')
+    : statusLabel;
+  const displayStatusColor = isPartialGlossaryHealth
+    ? 'orange'
+    : (STATUS_COLORS[task?.status] || 'gray');
   const localizedTaskTitle = task?.kind === 'glossary_health_check'
     ? t('glossary_health_task_title', {
       count: healthMetadata.glossary_count || 1,
@@ -238,8 +277,8 @@ export default function TaskDetailPage() {
             <Text size="sm" fw={700} c="dimmed" tt="uppercase">{t('task_detail.eyebrow')}</Text>
             <Group gap="sm" align="center">
               <Title order={1}>{kindLabel}</Title>
-              <Badge color={STATUS_COLORS[task.status] || 'gray'} variant="light" size="lg">
-                {statusLabel}
+              <Badge color={displayStatusColor} variant="light" size="lg">
+                {displayStatusLabel}
               </Badge>
               {task.archived_at && <Badge color="gray" variant="outline">{t('task_detail.archived')}</Badge>}
             </Group>
@@ -276,7 +315,7 @@ export default function TaskDetailPage() {
           </Group>
         </Group>
 
-        {(task.attention_reason || ['failed', 'interrupted'].includes(task.status)) && (
+        {!isPartialGlossaryHealth && (task.attention_reason || ['failed', 'interrupted'].includes(task.status)) && (
           <Alert color="red" icon={<IconAlertTriangle size={18} />} mb="md">
             {task.attention_reason || task.message || t('task_center.status.failed')}
           </Alert>
@@ -342,7 +381,11 @@ export default function TaskDetailPage() {
                               {t('task_detail.diagnostic')}
                             </Badge>
                           )}
-                          <Text size="sm" className={styles.eventMessage}>{event.message}</Text>
+                          <Text size="sm" className={styles.eventMessage}>
+                            {task.kind === 'glossary_health_check'
+                              ? localizeGlossaryHealthEvent(event, t, isPartialGlossaryHealth)
+                              : event.message}
+                          </Text>
                         </Group>
                       </Box>
                     ))}
@@ -441,6 +484,7 @@ export default function TaskDetailPage() {
                           </Badge>
                         )}
                       </Group>
+                      <GlossaryHealthPenaltyBreakdown issues={resultMetadata.issues} />
                       {(resultMetadata.issues || []).map((issue) => (
                         <Box key={issue.code}>
                           <Group justify="space-between" gap="xs" wrap="nowrap">
@@ -467,7 +511,15 @@ export default function TaskDetailPage() {
                       )}
                       {resultMetadata.ai_review_status === 'failed' && (
                         <Alert color="orange" icon={<IconAlertTriangle size={16} />}>
-                          {resultMetadata.ai_review_error || task.message}
+                          <Stack gap="xs">
+                            <Text size="sm">{t('glossary_health_partial_message')}</Text>
+                            <details className={styles.technicalDetails}>
+                              <summary>{t('task_detail.technical_info')}</summary>
+                              <Code block mt="xs">
+                                {resultMetadata.ai_review_error || task.message || t('task_detail.not_available')}
+                              </Code>
+                            </details>
+                          </Stack>
                         </Alert>
                       )}
                     </Stack>

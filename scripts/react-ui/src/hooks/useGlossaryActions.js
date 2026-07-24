@@ -57,6 +57,7 @@ const useGlossaryActions = () => {
     const [filtering, setFiltering] = usePersistentState('glossary_filtering', '');
     const [pagination, setPagination] = usePersistentState('glossary_pagination', { pageIndex: 0, pageSize: 25 });
     const [rowCount, setRowCount] = useState(0);
+    const [focusedEntry, setFocusedEntry] = useState(null);
 
     const [isLoadingTree, setIsLoadingTree] = useState(true);
     const [isLoadingOverview, setIsLoadingOverview] = useState(true);
@@ -150,11 +151,40 @@ const useGlossaryActions = () => {
             glossaryId: parseInt(parsedGlossaryId, 10),
         });
         setSearchScope('file');
-        setFiltering(focusEntryId || '');
+        setFiltering('');
         if (targetLang) setSelectedTargetLangRef.current(targetLang);
         setPagination({ pageIndex: 0, pageSize: 25 });
         setViewMode('editor');
         appliedDeepLinkRef.current = location.search;
+
+        setFocusedEntry(null);
+        if (focusEntryId) {
+            let active = true;
+            api.post('/api/glossary/search', {
+                scope: 'file',
+                query: focusEntryId,
+                page: 1,
+                pageSize: 25,
+                game_id: null,
+                file_name: glossaryNode.key,
+            }).then((response) => {
+                if (!active) return;
+                const entry = (response.data?.entries || [])
+                    .find((candidate) => candidate.id === focusEntryId);
+                setFocusedEntry(entry || null);
+            }).catch(() => {
+                if (!active) return;
+                notifications.show({
+                    title: translate('neologism_review.common.error', { defaultValue: 'Error' }),
+                    message: translate(
+                        'glossary_health_entry_load_failed',
+                        { defaultValue: 'Could not load the requested glossary entry.' }
+                    ),
+                    color: 'red',
+                });
+            });
+            return () => { active = false; };
+        }
     }, [
         location.search,
         setFiltering,
@@ -162,6 +192,7 @@ const useGlossaryActions = () => {
         setSearchScope,
         setSelectedGame,
         setSelectedFile,
+        translate,
         treeData,
     ]);
 
@@ -346,6 +377,7 @@ const useGlossaryActions = () => {
             setFiltering('');
             setPagination({ pageIndex: 0, pageSize: 25 });
             setViewMode('editor');
+            setFocusedEntry(null);
         } else {
             setSelectedGame(key);
         }
@@ -363,6 +395,7 @@ const useGlossaryActions = () => {
         setFiltering('');
         setPagination({ pageIndex: 0, pageSize: 25 });
         setViewMode('editor');
+        setFocusedEntry(null);
     };
 
     const showOverview = () => setViewMode('overview');
@@ -438,19 +471,19 @@ const useGlossaryActions = () => {
         }
     };
 
-    const handleCreateFile = async (fileName) => {
+    const handleCreateGlossary = async (name) => {
         if (!selectedGame) return false;
 
         setIsSaving(true);
         try {
-            await api.post('/api/glossary/file', {
+            await api.post('/api/glossary', {
                 game_id: selectedGame,
-                file_name: fileName
+                name
             });
 
             notifications.show({
-                title: 'Success',
-                message: 'File created successfully!',
+                title: translate('neologism_review.common.success', { defaultValue: 'Success' }),
+                message: translate('glossary_create_success'),
                 color: 'green'
             });
 
@@ -459,8 +492,8 @@ const useGlossaryActions = () => {
             return true;
         } catch {
             notifications.show({
-                title: 'Error',
-                message: 'Failed to create file.',
+                title: translate('neologism_review.common.error', { defaultValue: 'Error' }),
+                message: translate('glossary_create_failed'),
                 color: 'red'
             });
             return false;
@@ -796,6 +829,7 @@ const useGlossaryActions = () => {
         pagination,
         setPagination,
         rowCount,
+        focusedEntry,
 
         // 加载状态
         isLoadingTree,
@@ -809,7 +843,7 @@ const useGlossaryActions = () => {
         showOverview,
         handleSave,
         handleDelete,
-        handleCreateFile,
+        handleCreateGlossary,
         handleDuplicateGlossary,
         handleUpdateGlossaryMetadata,
         previewGlossaryBatchDelete,

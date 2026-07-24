@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import GlossaryHealthWorkbench from '../components/glossary/GlossaryHealthWorkbench';
+import GlossaryHealthPenaltyBreakdown from '../components/glossary/GlossaryHealthPenaltyBreakdown';
 import api from '../utils/api';
 import { taskDetailRoute } from '../utils/taskRoutes';
 import styles from './GlossaryHealthReviewPage.module.css';
@@ -101,6 +102,7 @@ const GlossaryHealthReviewPage = () => {
           <Badge variant="light">
             {report.issue_count || 0} {t('glossary_health_issues', 'issues')}
           </Badge>
+          <GlossaryHealthPenaltyBreakdown issues={report.issues} />
         </Group>
       </Box>
 

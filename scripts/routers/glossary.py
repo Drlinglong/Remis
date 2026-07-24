@@ -14,7 +14,7 @@ from scripts.schemas.glossary import (
     SearchGlossaryRequest,
     GlossaryEntryCreate,
     GlossaryEntryIn,
-    CreateGlossaryFileRequest,
+    CreateGlossaryRequest,
     DuplicateGlossaryRequest,
     UpdateGlossaryMetadataRequest,
     GlossaryBatchSelectionRequest,
@@ -98,37 +98,68 @@ async def _run_glossary_health_task(task_id: str, payload: Dict) -> None:
                 append_log="Explicitly approved advisory model review started.",
                 progress={"stage": "AI advice"},
             )
-            handler = get_handler(payload["api_provider"], model_name=payload.get("model_name"))
-            reviewer = GlossaryHealthReviewer(handler)
-            report["ai_review_plan"] = reviewer.plan(report)
-            report["ai_advice"] = await asyncio.to_thread(
-                reviewer.review,
-                report,
-                concurrency_limit=payload.get("concurrency_limit", 1),
-            )
-            report["ai_review_status"] = "completed"
             report["ai_provider"] = payload["api_provider"]
             report["ai_model"] = payload.get("model_name")
             report["ai_concurrency_limit"] = payload.get("concurrency_limit", 1)
+            try:
+                handler = get_handler(payload["api_provider"], model_name=payload.get("model_name"))
+                reviewer = GlossaryHealthReviewer(handler)
+                report["ai_review_plan"] = reviewer.plan(report)
+                report["ai_advice"] = await asyncio.to_thread(
+                    reviewer.review,
+                    report,
+                    concurrency_limit=payload.get("concurrency_limit", 1),
+                )
+                report["ai_review_status"] = "completed"
+            except Exception as exc:
+                error_type = type(exc).__name__
+                logger.warning(
+                    "Advisory model review failed for glossary health task %s (%s)",
+                    task_id,
+                    error_type,
+                )
+                report["ai_review_status"] = "failed"
+                report["ai_review_error"] = error_type
+                report["completion_outcome"] = "partial_success"
 
         summary = (
             f"Glossary health score {report['score']}/100 with "
             f"{report['issue_count']} deterministic issue(s)."
         )
+        ai_review_failed = report["ai_review_status"] == "failed"
         task_state.update_task(
             task_id,
             status="completed",
-            message="Glossary health check completed.",
-            append_log="Health report completed without changing glossary data.",
-            progress={"current": 3, "total": 3, "percent": 100, "stage": "Completed"},
+            message=(
+                "Glossary inspection completed; AI advice was unavailable."
+                if ai_review_failed
+                else "Glossary health check completed."
+            ),
+            append_log=(
+                "Deterministic health report completed; optional AI advice was unavailable."
+                if ai_review_failed
+                else "Health report completed without changing glossary data."
+            ),
+            progress={
+                "current": 3,
+                "total": 3,
+                "percent": 100,
+                "stage": "Completed",
+                "error_count": 0,
+                "warning_count": 1 if ai_review_failed else 0,
+            },
             fields={
                 "result": {
                     "types": (
                         ["glossary_health_report", "advisory_review"]
-                        if payload.get("include_ai_advice")
+                        if report["ai_review_status"] == "completed"
                         else ["glossary_health_report"]
                     ),
-                    "summary": summary,
+                    "summary": (
+                        f"{summary} Optional AI advice was unavailable."
+                        if ai_review_failed
+                        else summary
+                    ),
                     "metadata": report,
                 },
             },
@@ -301,14 +332,18 @@ async def delete_glossary_entry(entry_id: str):
     logger.info(f"Deleted glossary entry {entry_id}")
     return {"message": "Entry deleted successfully"}
 
-@router.post("/api/glossary/file", status_code=201)
-async def create_glossary_file(payload: CreateGlossaryFileRequest):
-    if not await glossary_manager.create_glossary_file(payload.game_id, payload.file_name):
-        logger.error(f"Failed to create glossary file {payload.file_name} for game {payload.game_id}")
-        raise HTTPException(status_code=500, detail="Failed to create glossary file.")
-    
-    logger.info(f"Created new glossary file {payload.file_name} for game {payload.game_id}")
-    return {"message": "File created successfully", "file_name": payload.file_name}
+@router.post("/api/glossary", status_code=201)
+@router.post("/api/glossary/file", status_code=201, include_in_schema=False)
+async def create_glossary(payload: CreateGlossaryRequest):
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="Glossary name is required.")
+    if not await glossary_manager.create_glossary(payload.game_id, name):
+        logger.error("Failed to create glossary %s for game %s", name, payload.game_id)
+        raise HTTPException(status_code=500, detail="Failed to create glossary.")
+
+    logger.info("Created glossary %s for game %s", name, payload.game_id)
+    return {"message": "Glossary created successfully", "name": name}
 
 @router.post("/api/glossary/file/{glossary_id}/duplicate", status_code=201)
 async def duplicate_glossary_file(glossary_id: int, payload: DuplicateGlossaryRequest):

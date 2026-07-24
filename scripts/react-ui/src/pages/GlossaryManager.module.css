@@ -30,6 +30,10 @@
     overflow: hidden;
 }
 
+.overviewLayout {
+    gap: 0;
+}
+
 /* Left Sidebar Panel */
 .leftPanel {
     width: 300px;

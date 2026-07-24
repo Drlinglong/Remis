@@ -31,6 +31,15 @@ describe('Glossary Manager responsive layout contract', () => {
         expect(overviewCss).toMatch(
             /\.inventoryTable thead th\s*{[^}]*background:\s*var\(--surface-bg-solid/s
         );
-        expect(overviewCss).toMatch(/\.typeCell\s*{[^}]*min-width:\s*150px/s);
+        expect(overviewCss).toMatch(/\.inventoryTable\s*{[^}]*table-layout:\s*fixed/s);
+        expect(overviewCss).toMatch(
+            /\.actionCell\s*{[^}]*position:\s*sticky[^}]*right:\s*0/s
+        );
+        expect(overviewCss).toMatch(
+            /@media \(max-width: 1100px\)[\s\S]*\.projectCell,[\s\S]*\.updatedCell\s*{[^}]*display:\s*none/s
+        );
+        expect(overviewCss).toMatch(
+            /@media \(max-width: 760px\)[\s\S]*\.typeCell\s*{[^}]*display:\s*none/s
+        );
     });
 });

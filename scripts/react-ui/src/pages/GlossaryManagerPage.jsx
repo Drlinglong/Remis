@@ -17,7 +17,8 @@ import { useTutorial } from '../context/TutorialContextCore';
 import useGlossaryActions from '../hooks/useGlossaryActions';
 import FileTree from '../components/glossary/FileTree';
 import GlossaryOverview from '../components/glossary/GlossaryOverview';
-import NewFileModal from '../components/glossary/NewFileModal';
+import GlossaryOperations from '../components/glossary/GlossaryOperations';
+import NewGlossaryModal from '../components/glossary/NewGlossaryModal';
 import EditTermForm from '../components/glossary/EditTermForm';
 import styles from './GlossaryManager.module.css';
 
@@ -40,10 +41,18 @@ const GlossaryManagerPage = () => {
     // 本地 UI 状态
     const [selectedTerm, setSelectedTerm] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
-    const [isFileCreateModalVisible, setIsFileCreateModalVisible] = useState(false);
+    const [isGlossaryCreateModalVisible, setIsGlossaryCreateModalVisible] = useState(false);
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
     const [deletingItemId, setDeletingItemId] = useState(null);
     const [isDeleteGlossaryModalVisible, setIsDeleteGlossaryModalVisible] = useState(false);
+
+    useEffect(() => {
+        if (!glossary.focusedEntry) return;
+        setIsCreating(false);
+        setSelectedTerm(glossary.focusedEntry);
+        setSidebarWidth(450);
+        setSidebarCollapsed(false);
+    }, [glossary.focusedEntry, setSidebarCollapsed, setSidebarWidth]);
 
     // 行点击处理
     const handleRowClick = (entry) => {
@@ -66,6 +75,13 @@ const GlossaryManagerPage = () => {
         setSelectedTerm(null);
         setIsCreating(false);
         setSidebarWidth(300);
+    };
+
+    const handleShowOverview = () => {
+        setSelectedTerm(null);
+        setIsCreating(false);
+        setSidebarWidth(300);
+        glossary.showOverview();
     };
 
     // 删除词条确认
@@ -150,8 +166,14 @@ const GlossaryManagerPage = () => {
         <div className={styles.pageContainer}>
             <LoadingOverlay visible={glossary.isSaving} />
 
-            <div className={styles.columnsWrapper} data-testid="glossary-layout">
+            <div
+                className={`${styles.columnsWrapper} ${
+                    glossary.viewMode === 'overview' ? styles.overviewLayout : ''
+                }`}
+                data-testid="glossary-layout"
+            >
                 {/* Left Panel: File Tree */}
+                {glossary.viewMode !== 'overview' && (
                 <div id="glossary-file-list" className={styles.leftPanel} data-testid="glossary-sidebar">
                     <Paper p="md" className={styles.sidebarCard}>
                         <LoadingOverlay visible={glossary.isLoadingTree} />
@@ -162,7 +184,7 @@ const GlossaryManagerPage = () => {
                             fullWidth
                             variant={glossary.viewMode === 'overview' ? 'filled' : 'light'}
                             leftSection={<IconLayoutDashboard size={16} />}
-                            onClick={glossary.showOverview}
+                            onClick={handleShowOverview}
                         >
                             {t('glossary_overview_nav', 'Glossary overview')}
                         </Button>
@@ -184,14 +206,15 @@ const GlossaryManagerPage = () => {
 
                         <Group justify="space-between" mb="xs">
                             <Text size="sm" fw={500}>{t('glossary_files')}</Text>
-                            <Tooltip label={t('glossary_create_new_file')}>
+                            <Tooltip label={t('glossary_create_new')}>
                                 <Button
                                     size="xs"
                                     variant="light"
-                                    onClick={() => setIsFileCreateModalVisible(true)}
+                                    leftSection={<IconPlus size={14} />}
+                                    onClick={() => setIsGlossaryCreateModalVisible(true)}
                                     disabled={!glossary.selectedGame}
                                 >
-                                    <IconPlus size={14} />
+                                    {t('glossary_create_new')}
                                 </Button>
                             </Tooltip>
                         </Group>
@@ -207,6 +230,7 @@ const GlossaryManagerPage = () => {
                         </ScrollArea>
                     </Paper>
                 </div>
+                )}
 
                 {/* Main Panel: Table */}
                 <div className={styles.mainPanel} data-testid="glossary-main">
@@ -242,9 +266,25 @@ const GlossaryManagerPage = () => {
                             <Title order={4}>
                                 {glossary.selectedFile.key
                                     ? glossary.selectedFile.title
-                                    : t('glossary_select_file_prompt')}
+                                    : t('glossary_select_prompt')}
                             </Title>
                             <Group gap="xs">
+                                <GlossaryOperations
+                                    selectedIds={glossary.selectedFile.glossaryId
+                                        ? [glossary.selectedFile.glossaryId]
+                                        : []}
+                                    glossaries={glossary.overview?.glossaries || []}
+                                    targetLanguages={glossary.targetLanguages}
+                                    apiProviders={glossary.apiProviders}
+                                    operation={glossary.glossaryOperation}
+                                    isMutating={glossary.isSaving}
+                                    onPreviewMerge={glossary.previewGlossaryMerge}
+                                    onStartMerge={glossary.startGlossaryMerge}
+                                    onStartHealthCheck={glossary.startGlossaryHealthCheck}
+                                    onLoadHealthHistory={glossary.loadGlossaryHealthHistory}
+                                    toolbarMode="health-only"
+                                    defaultIncludeAiAdvice
+                                />
                                 <Button
                                     leftSection={<IconPlus size={16} />}
                                     onClick={handleCreateClick}
@@ -373,11 +413,11 @@ const GlossaryManagerPage = () => {
                 </div>
             </div>
 
-            {/* New File Modal */}
-            <NewFileModal
-                opened={isFileCreateModalVisible}
-                onClose={() => setIsFileCreateModalVisible(false)}
-                onSubmit={glossary.handleCreateFile}
+            {/* New SQLite glossary asset modal */}
+            <NewGlossaryModal
+                opened={isGlossaryCreateModalVisible}
+                onClose={() => setIsGlossaryCreateModalVisible(false)}
+                onSubmit={glossary.handleCreateGlossary}
                 isLoading={glossary.isSaving}
             />
 

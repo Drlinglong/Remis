@@ -25,10 +25,12 @@ import {
     IconCopy,
     IconEdit,
     IconExternalLink,
+    IconInfoCircle,
     IconSearch,
     IconTrash,
 } from '@tabler/icons-react';
 
+import { usePersistentState } from '../../hooks/usePersistentState';
 import styles from './GlossaryOverview.module.css';
 import GlossaryOperations from './GlossaryOperations';
 
@@ -42,7 +44,7 @@ const formatUpdatedAt = (value, fallback) => {
     if (!value) return fallback;
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return fallback;
-    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date);
+    return new Intl.DateTimeFormat(undefined, { dateStyle: 'short' }).format(date);
 };
 
 const GlossaryOverview = ({
@@ -64,8 +66,8 @@ const GlossaryOverview = ({
     onLoadHealthHistory,
 }) => {
     const { t } = useTranslation();
-    const [query, setQuery] = useState('');
-    const [kind, setKind] = useState('all');
+    const [query, setQuery] = usePersistentState('glossary_overview_query', '');
+    const [kind, setKind] = usePersistentState('glossary_overview_kind', 'all');
     const [duplicateTarget, setDuplicateTarget] = useState(null);
     const [duplicateName, setDuplicateName] = useState('');
     const [duplicateNameError, setDuplicateNameError] = useState('');
@@ -263,6 +265,16 @@ const GlossaryOverview = ({
                 <Group gap="xs" align="center">
                     <IconBook2 size={24} aria-hidden="true" />
                     <Title order={3}>{t('glossary_overview_title', 'Glossary overview')}</Title>
+                    <Badge
+                        variant="light"
+                        color="blue"
+                        leftSection={<IconInfoCircle size={13} aria-hidden="true" />}
+                    >
+                        {t(
+                            'glossary_overview_global_scope',
+                            'All games · All languages'
+                        )}
+                    </Badge>
                 </Group>
                 <Text c="dimmed" mt={6}>
                     {t('glossary_overview_summary', {
@@ -283,14 +295,30 @@ const GlossaryOverview = ({
                 ))}
             </SimpleGrid>
 
-            <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="md">
-                <TextInput
-                    label={t('glossary_overview_search_label', 'Find a glossary')}
-                    placeholder={t('glossary_overview_search_placeholder', 'Search by glossary, game, or project')}
-                    leftSection={<IconSearch size={16} aria-hidden="true" />}
-                    value={query}
-                    onChange={(event) => setQuery(event.currentTarget.value)}
-                />
+            <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="md" align="end">
+                <Stack gap={4}>
+                    <TextInput
+                        label={t('glossary_overview_search_label', 'Find a glossary')}
+                        placeholder={t('glossary_overview_search_placeholder', 'Search by glossary, game, or project')}
+                        leftSection={<IconSearch size={16} aria-hidden="true" />}
+                        value={query}
+                        onChange={(event) => setQuery(event.currentTarget.value)}
+                    />
+                    <Text
+                        size="xs"
+                        c="dimmed"
+                        aria-live="polite"
+                        data-testid="glossary-result-count"
+                        data-visible={filteredGlossaries.length}
+                        data-total={overview?.glossaries?.length || 0}
+                    >
+                        {t('glossary_overview_result_count', {
+                            visible: filteredGlossaries.length,
+                            total: overview?.glossaries?.length || 0,
+                            defaultValue: '{{visible}} / {{total}} glossaries',
+                        })}
+                    </Text>
+                </Stack>
                 <Select
                     label={t('glossary_overview_type_filter', 'Glossary type')}
                     value={kind}
@@ -370,7 +398,7 @@ const GlossaryOverview = ({
                         highlightOnHover
                         stickyHeader
                         verticalSpacing="sm"
-                        miw={980}
+                        miw={0}
                     >
                         <Table.Thead>
                             <Table.Tr>
@@ -382,13 +410,13 @@ const GlossaryOverview = ({
                                         onChange={(event) => toggleAllVisible(event.currentTarget.checked)}
                                     />
                                 </Table.Th>
-                                <Table.Th>{t('glossary_overview_name', 'Glossary')}</Table.Th>
-                                <Table.Th>{t('glossary_game', 'Game')}</Table.Th>
+                                <Table.Th className={styles.nameCell}>{t('glossary_overview_name', 'Glossary')}</Table.Th>
+                                <Table.Th className={styles.gameCell}>{t('glossary_game', 'Game')}</Table.Th>
                                 <Table.Th className={styles.typeCell}>{t('glossary_overview_type', 'Type')}</Table.Th>
-                                <Table.Th>{t('glossary_overview_term_count', 'Terms')}</Table.Th>
-                                <Table.Th>{t('glossary_overview_projects', 'Bound projects')}</Table.Th>
-                                <Table.Th>{t('glossary_overview_updated', 'Last updated')}</Table.Th>
-                                <Table.Th>{t('glossary_actions', 'Actions')}</Table.Th>
+                                <Table.Th className={styles.termCell}>{t('glossary_overview_term_count', 'Terms')}</Table.Th>
+                                <Table.Th className={styles.projectCell}>{t('glossary_overview_projects', 'Bound projects')}</Table.Th>
+                                <Table.Th className={styles.updatedCell}>{t('glossary_overview_updated', 'Last updated')}</Table.Th>
+                                <Table.Th className={styles.actionCell}>{t('glossary_actions', 'Actions')}</Table.Th>
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
@@ -409,13 +437,13 @@ const GlossaryOverview = ({
                                                 )}
                                             />
                                         </Table.Td>
-                                        <Table.Td>
+                                        <Table.Td className={styles.nameCell}>
                                             <Text fw={700}>{glossary.name}</Text>
                                             {glossary.description && (
                                                 <Text size="xs" c="dimmed" lineClamp={1}>{glossary.description}</Text>
                                             )}
                                         </Table.Td>
-                                        <Table.Td><Text size="sm">{glossary.game_id}</Text></Table.Td>
+                                        <Table.Td className={styles.gameCell}><Text size="sm">{glossary.game_id}</Text></Table.Td>
                                         <Table.Td className={styles.typeCell}>
                                             <Badge
                                                 className={styles.typeBadge}
@@ -425,8 +453,8 @@ const GlossaryOverview = ({
                                                 {kindLabel(glossary.kind)}
                                             </Badge>
                                         </Table.Td>
-                                        <Table.Td><Text fw={700}>{glossary.entry_count || 0}</Text></Table.Td>
-                                        <Table.Td>
+                                        <Table.Td className={styles.termCell}><Text fw={700}>{glossary.entry_count || 0}</Text></Table.Td>
+                                        <Table.Td className={styles.projectCell}>
                                             {projects.length > 0 ? (
                                                 <Stack gap={2}>
                                                     {projects.slice(0, 2).map((project) => (
@@ -445,7 +473,7 @@ const GlossaryOverview = ({
                                                 <Text size="sm" c="dimmed">{t('glossary_overview_unbound', 'Not bound')}</Text>
                                             )}
                                         </Table.Td>
-                                        <Table.Td>
+                                        <Table.Td className={styles.updatedCell}>
                                             <Text size="sm">
                                                 {formatUpdatedAt(
                                                     glossary.updated_at,
@@ -453,7 +481,7 @@ const GlossaryOverview = ({
                                                 )}
                                             </Text>
                                         </Table.Td>
-                                        <Table.Td>
+                                        <Table.Td className={styles.actionCell}>
                                             <Group gap="xs" wrap="nowrap">
                                                 <Button
                                                     size="xs"

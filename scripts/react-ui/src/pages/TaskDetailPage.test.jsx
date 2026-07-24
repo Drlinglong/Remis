@@ -19,6 +19,14 @@ const translateMock = (key, options) => {
   if (key === 'glossary_health_issue_placeholder_mismatch') {
     return 'Localized placeholder mismatch';
   }
+  if (key === 'glossary_health_partial_status') return 'Partially completed';
+  if (key === 'glossary_health_partial_message') return 'Deterministic report available; AI advice unavailable.';
+  if (key === 'glossary_health_ai_unavailable_event') return 'AI advice unavailable event';
+  if (key === 'glossary_health_event_queued') return 'Localized inspection queued';
+  if (key === 'glossary_health_event_deterministic_started') return 'Localized deterministic checks started';
+  if (key === 'glossary_health_event_deterministic_found') return `Localized ${options.count} findings`;
+  if (key === 'glossary_health_event_ai_started') return 'Localized AI advice started';
+  if (key === 'glossary_health_completed_title') return 'Localized inspection completed';
   return options?.defaultValue || key;
 };
 
@@ -238,6 +246,7 @@ describe('TaskDetailPage', () => {
     expect(screen.getByText('glossary_health_score 81/100')).toBeInTheDocument();
     expect(screen.getByText('Localized health summary 81/100, 2 issues')).toBeInTheDocument();
     expect(screen.getByText('Localized placeholder mismatch')).toBeInTheDocument();
+    expect(screen.getByText('glossary_health_penalty_error')).toBeInTheDocument();
     expect(screen.queryByText('Glossary health score 81/100.')).not.toBeInTheDocument();
     expect(screen.queryByText('Source and translation placeholders differ')).not.toBeInTheDocument();
     expect(screen.getByText('glossary_health_read_only')).toBeInTheDocument();
@@ -249,5 +258,88 @@ describe('TaskDetailPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'task_detail.back_to_workflow' }));
     expect(navigateMock).toHaveBeenCalledWith('/glossary-manager');
+  });
+
+  it('keeps partial glossary results actionable and hides provider payload by default', async () => {
+    taskIdParam = 'partial-health-task';
+    api.get.mockResolvedValue({
+      data: {
+        ...failedTask,
+        task_id: 'partial-health-task',
+        kind: 'glossary_health_check',
+        status: 'failed',
+        message: 'provider payload: {"error":"No models loaded"}',
+        attention_reason: 'provider payload: {"error":"No models loaded"}',
+        source_route: '/glossary',
+        result: {
+          types: ['glossary_health_report'],
+          summary: 'Deterministic checks completed, but advisory model review failed.',
+          metadata: {
+            score: 94,
+            issue_count: 1,
+            mutations_applied: false,
+            ai_review_status: 'failed',
+            ai_review_error: 'provider payload: {"error":"No models loaded"}',
+            issues: [{
+              code: 'placeholder_mismatch',
+              severity: 'error',
+              count: 1,
+              items: [{ entry_id: 'token-a', glossary_id: 7 }],
+            }],
+          },
+          },
+        events: [{
+          event_id: 'event-provider-error',
+          level: 'error',
+          message: 'provider payload: {"error":"No models loaded"}',
+        }],
+      },
+    });
+
+    render(<MantineProvider><TaskDetailPage /></MantineProvider>);
+
+    expect(await screen.findByText('Partially completed')).toBeInTheDocument();
+    expect(screen.getByText('Deterministic report available; AI advice unavailable.')).toBeInTheDocument();
+    expect(screen.getByText('AI advice unavailable event')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Review and fix issues' })).toBeInTheDocument();
+    expect(screen.getByText(/provider payload/i)).not.toBeVisible();
+
+    fireEvent.click(screen.getAllByText('task_detail.technical_info').at(-1));
+    expect(screen.getByText(/provider payload/i)).toBeVisible();
+  });
+
+  it('localizes known legacy glossary inspection events and preserves unknown events', async () => {
+    taskIdParam = 'legacy-health-task';
+    api.get.mockResolvedValue({
+      data: {
+        ...failedTask,
+        task_id: 'legacy-health-task',
+        kind: 'glossary_health_check',
+        status: 'completed',
+        attention_reason: null,
+        result: {
+          types: ['glossary_health_report'],
+          metadata: { score: 97, issue_count: 1, issues: [] },
+        },
+        events: [
+          { event_id: 'queued', level: 'info', message: 'Glossary health check queued.' },
+          { event_id: 'started', level: 'info', message: 'Deterministic glossary checks started.' },
+          { event_id: 'found', level: 'info', message: 'Deterministic checks found 1 issue(s).' },
+          { event_id: 'ai', level: 'info', message: 'Explicitly approved advisory model review started.' },
+          { event_id: 'completed', level: 'info', message: 'Health report completed without changing glossary data.' },
+          { event_id: 'unknown', level: 'info', message: 'Custom diagnostic event.' },
+        ],
+      },
+    });
+
+    render(<MantineProvider><TaskDetailPage /></MantineProvider>);
+
+    expect(await screen.findByText('Localized inspection queued')).toBeInTheDocument();
+    expect(screen.getByText('Localized deterministic checks started')).toBeInTheDocument();
+    expect(screen.getByText('Localized 1 findings')).toBeInTheDocument();
+    expect(screen.getByText('Localized AI advice started')).toBeInTheDocument();
+    expect(screen.getByText('Localized inspection completed')).toBeInTheDocument();
+    expect(screen.getByText('Custom diagnostic event.')).toBeInTheDocument();
+    expect(screen.queryByText('Glossary health check queued.')).not.toBeInTheDocument();
   });
 });

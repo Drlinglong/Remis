@@ -63,6 +63,7 @@ const GlossaryHealthWorkbench = ({ report }) => {
   const [draftSource, setDraftSource] = useState('');
   const [draftTranslation, setDraftTranslation] = useState('');
   const [draftNotes, setDraftNotes] = useState('');
+  const [aiDraftApplied, setAiDraftApplied] = useState(false);
   const [loadingEntry, setLoadingEntry] = useState(false);
   const [saving, setSaving] = useState(false);
   const [handledEntries, setHandledEntries] = useState(() => new Set());
@@ -74,6 +75,10 @@ const GlossaryHealthWorkbench = ({ report }) => {
       || adviceByCase.get(selectedCase.issueCode)
     )
     : null;
+  const hasApplicableAiDraft = Boolean(
+    selectedAdvice?.case_id
+    && (selectedAdvice.suggested_source || selectedAdvice.suggested_translation),
+  );
   const targetLang = report.target_lang || currentEntry?.metadata?.target_lang || '';
 
   useEffect(() => {
@@ -98,33 +103,12 @@ const GlossaryHealthWorkbench = ({ report }) => {
         if (!active) return;
         setCurrentEntry(entry || null);
         const existingSource = entry?.source || selectedCase.source || '';
-        setDraftSource(selectedAdvice?.suggested_source || existingSource);
+        setDraftSource(existingSource);
         const language = report.target_lang || entry?.metadata?.target_lang || '';
         const existingTranslation = language ? (entry?.translations?.[language] || '') : '';
-        setDraftTranslation(selectedAdvice?.suggested_translation || existingTranslation);
-
-        const existingNotes = (entry?.notes || '').trim();
-        if (selectedAdvice?.case_id) {
-          const recommendationPrefix = t(
-            'glossary_health_ai_note_prefix',
-            { defaultValue: 'AI review suggestion' },
-          );
-          const rationalePrefix = t(
-            'glossary_health_ai_reason_prefix',
-            { defaultValue: 'Rationale' },
-          );
-          const adviceNote = [
-            `${recommendationPrefix}: ${selectedAdvice.recommendation}`,
-            `${rationalePrefix}: ${selectedAdvice.rationale}`,
-          ].join('\n');
-          setDraftNotes(
-            existingNotes.includes(adviceNote)
-              ? existingNotes
-              : [existingNotes, adviceNote].filter(Boolean).join('\n\n'),
-          );
-        } else {
-          setDraftNotes(existingNotes);
-        }
+        setDraftTranslation(existingTranslation);
+        setDraftNotes((entry?.notes || '').trim());
+        setAiDraftApplied(false);
       } catch {
         if (!active) return;
         setCurrentEntry(null);
@@ -158,6 +142,17 @@ const GlossaryHealthWorkbench = ({ report }) => {
   const moveToNextCase = (entryId) => {
     const next = cases.find((item) => item.entry_id !== entryId && !handledEntries.has(item.entry_id));
     if (next) setSelectedKey(caseKey(next));
+  };
+
+  const applyAiSuggestion = () => {
+    if (!hasApplicableAiDraft) return;
+    if (selectedAdvice.suggested_source) {
+      setDraftSource(selectedAdvice.suggested_source);
+    }
+    if (selectedAdvice.suggested_translation) {
+      setDraftTranslation(selectedAdvice.suggested_translation);
+    }
+    setAiDraftApplied(true);
   };
 
   const saveEntry = async () => {
@@ -262,27 +257,88 @@ const GlossaryHealthWorkbench = ({ report }) => {
                 {selectedCase.detail}
               </Alert>
 
-              {selectedAdvice?.case_id ? (
-                <Alert color="teal">
-                  {t(
-                    'glossary_health_ai_draft_applied',
-                    { defaultValue: 'The AI draft and rationale are in the editable fields below. Review them before saving.' },
-                  )}
-                </Alert>
-              ) : selectedAdvice && (
-                <Box className={styles.advice}>
+              {selectedAdvice && (
+                <Paper withBorder radius="md" className={styles.advice}>
                   <Group gap="xs" mb={6}>
                     <IconSparkles size={16} />
                     <Text fw={700}>{t('glossary_health_ai_advice', { defaultValue: 'AI advice' })}</Text>
+                    <Badge variant="light" color="teal">
+                      {t('glossary_health_ai_suggestion_badge', { defaultValue: 'Suggestion — review required' })}
+                    </Badge>
                   </Group>
+                  {(report.ai_provider || report.ai_model) && (
+                    <Text size="xs" c="dimmed" mb={8}>
+                      {[
+                        report.ai_provider
+                          ? `${t('glossary_health_provider', { defaultValue: 'Provider' })}: ${report.ai_provider}`
+                          : null,
+                        report.ai_model
+                          ? `${t('glossary_health_model', { defaultValue: 'Model' })}: ${report.ai_model}`
+                          : null,
+                      ].filter(Boolean).join(' · ')}
+                    </Text>
+                  )}
+                  <Text size="xs" c="dimmed" fw={700} tt="uppercase">
+                    {t('glossary_health_ai_note_prefix', { defaultValue: 'AI review suggestion' })}
+                  </Text>
                   <Text size="sm">{selectedAdvice.recommendation}</Text>
-                  <Text size="xs" c="dimmed" mt={6}>{selectedAdvice.rationale}</Text>
-                </Box>
+
+                  {hasApplicableAiDraft && (
+                    <>
+                      <Box className={styles.suggestionValues}>
+                        {selectedAdvice.suggested_source && (
+                          <Box>
+                            <Text size="xs" c="dimmed" fw={700}>
+                              {t('glossary_source_text')}
+                            </Text>
+                            <Text size="sm">{selectedAdvice.suggested_source}</Text>
+                          </Box>
+                        )}
+                        {selectedAdvice.suggested_translation && (
+                          <Box>
+                            <Text size="xs" c="dimmed" fw={700}>
+                              {t('glossary_translation')} {targetLang ? `(${targetLang})` : ''}
+                            </Text>
+                            <Text size="sm">{selectedAdvice.suggested_translation}</Text>
+                          </Box>
+                        )}
+                      </Box>
+                      <Button
+                        size="xs"
+                        variant={aiDraftApplied ? 'light' : 'filled'}
+                        color="teal"
+                        onClick={applyAiSuggestion}
+                      >
+                        {aiDraftApplied
+                          ? t('glossary_health_ai_suggestion_applied', { defaultValue: 'Applied to editable draft' })
+                          : t('glossary_health_apply_ai_suggestion', { defaultValue: 'Apply suggestion to editable draft' })}
+                      </Button>
+                    </>
+                  )}
+
+                  <Box className={styles.rationale}>
+                    <Text size="xs" c="dimmed" fw={700} tt="uppercase">
+                      {t('glossary_health_ai_reason_prefix', { defaultValue: 'Rationale' })}
+                    </Text>
+                    <Text size="sm">{selectedAdvice.rationale}</Text>
+                  </Box>
+                </Paper>
               )}
 
               {currentEntry ? (
                 <Box className={styles.editor}>
                   <Stack gap="md">
+                    <Box>
+                      <Text fw={700}>
+                        {t('glossary_health_editable_values', { defaultValue: 'Editable glossary values' })}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {t(
+                          'glossary_health_editable_values_help',
+                          { defaultValue: 'Only the values in this section are saved. AI rationale is not added to notes automatically.' },
+                        )}
+                      </Text>
+                    </Box>
                     <TextInput
                       label={t('glossary_source_text')}
                       value={draftSource}

@@ -37,6 +37,37 @@ def test_get_glossary_overview_route_is_not_captured_as_game_id(monkeypatch):
     assert response.json() == expected
 
 
+@pytest.mark.parametrize(
+    ("route", "payload"),
+    [
+        ("/api/glossary", {"game_id": "vic3", "name": "Core terminology"}),
+        (
+            "/api/glossary/file",
+            {"game_id": "vic3", "file_name": "Core terminology"},
+        ),
+    ],
+)
+def test_create_glossary_uses_asset_name_and_keeps_legacy_payload_compatible(
+    monkeypatch,
+    route,
+    payload,
+):
+    async def fake_create(game_id, name):
+        assert game_id == "vic3"
+        assert name == "Core terminology"
+        return True
+
+    monkeypatch.setattr(glossary_manager, "create_glossary", fake_create)
+
+    response = client.post(route, json=payload)
+
+    assert response.status_code == 201
+    assert response.json() == {
+        "message": "Glossary created successfully",
+        "name": "Core terminology",
+    }
+
+
 def test_duplicate_glossary_route_returns_created_copy(monkeypatch):
     expected = {
         "glossary_id": 12,
@@ -358,6 +389,78 @@ def test_health_check_ai_uses_dynamic_batches_and_persists_entry_advice(monkeypa
         "term-1",
         "term-2",
     ]
+
+
+def test_health_check_preserves_deterministic_report_when_optional_ai_fails(monkeypatch):
+    report = {
+        "score": 94,
+        "entry_count": 1,
+        "issue_count": 1,
+        "target_lang": "en",
+        "issues": [{
+            "code": "missing_translation",
+            "severity": "warning",
+            "count": 1,
+            "message": "Entries with missing translations",
+            "items": [{
+                "entry_id": "term-1",
+                "glossary_id": 7,
+                "glossary_name": "Test",
+                "game_id": "vic3",
+                "source": "泰尔紫",
+                "current_translation": None,
+                "detail": "Missing translation for en.",
+            }],
+        }],
+        "mutations_applied": False,
+    }
+    updated_tasks = []
+
+    async def fake_health(_glossary_ids, *, target_lang=None):
+        assert target_lang == "en"
+        return report
+
+    class FailingHandler:
+        def generate_with_messages(self, *_args, **_kwargs):
+            raise RuntimeError('provider payload: {"error":"No models loaded"}')
+
+    monkeypatch.setattr(glossary_manager, "check_glossary_health", fake_health)
+    monkeypatch.setattr(glossary_router, "get_handler", lambda *_args, **_kwargs: FailingHandler())
+    monkeypatch.setattr(task_state, "create_task", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(task_state, "init_progress", lambda *_args, **_kwargs: {})
+    monkeypatch.setattr(
+        task_state,
+        "update_task",
+        lambda task_id, **kwargs: updated_tasks.append((task_id, kwargs)),
+    )
+
+    response = client.post("/api/glossaries/health-check", json={
+        "glossary_ids": [7],
+        "target_lang": "en",
+        "include_ai_advice": True,
+        "confirm_model_usage": True,
+        "api_provider": "openai",
+        "model_name": "test-model",
+    })
+
+    assert response.status_code == 200
+    completed = next(
+        update[1]
+        for update in updated_tasks
+        if update[1].get("status") == "completed"
+    )
+    assert "provider payload" not in completed["message"]
+    assert "provider payload" not in completed["append_log"]
+    assert completed["progress"]["warning_count"] == 1
+    assert completed["progress"]["error_count"] == 0
+    result = completed["fields"]["result"]
+    assert result["types"] == ["glossary_health_report"]
+    assert result["metadata"]["score"] == 94
+    assert result["metadata"]["ai_review_status"] == "failed"
+    assert result["metadata"]["completion_outcome"] == "partial_success"
+    assert result["metadata"]["ai_review_error"] == "GlossaryHealthReviewError"
+    assert "No models loaded" not in str(result)
+
 
 def test_search_glossary():
     response = client.post("/api/glossary/search", json={

@@ -20,6 +20,11 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
   const { t } = useTranslation();
   const active = ACTIVE_TASK_STATUSES.has(task.status);
   const [now, setNow] = useState(Date.now());
+  const isPartialGlossaryHealth = (
+    task.kind === 'glossary_health_check'
+    && task.result?.types?.includes('glossary_health_report')
+    && task.result?.metadata?.ai_review_status === 'failed'
+  );
 
   useEffect(() => {
     if (!active) return undefined;
@@ -28,11 +33,15 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
   }, [active]);
 
   const kindLabel = t(`task_center.kind.${task.kind}`, { defaultValue: task.title });
-  const statusLabel = t(`task_center.status.${task.status}`, { defaultValue: task.status });
+  const statusLabel = isPartialGlossaryHealth
+    ? t('glossary_health_partial_status')
+    : t(`task_center.status.${task.status}`, { defaultValue: task.status });
   const creatorLabel = task.created_by?.label || t(`task_center.creator.${task.created_by?.type || 'system'}`);
   const showProgress = ['queued', 'running'].includes(task.status);
   const rawDetail = task.stage || task.message;
-  const localizedDetail = ['glossary_health_check', 'glossary_merge'].includes(task.kind)
+  const localizedDetail = isPartialGlossaryHealth
+    ? t('glossary_health_partial_message')
+    : ['glossary_health_check', 'glossary_merge'].includes(task.kind)
     ? (
       task.kind === 'glossary_health_check' && task.status === 'failed'
         ? (
@@ -56,14 +65,14 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
               </Text>
             )}
           </div>
-          <Badge color={STATUS_COLORS[task.status] || 'gray'} variant="light">
+          <Badge color={isPartialGlossaryHealth ? 'orange' : (STATUS_COLORS[task.status] || 'gray')} variant="light">
             {statusLabel}
           </Badge>
         </Group>
         {showProgress && (
           <Progress value={task.progress || 0} size="sm" radius="xl" aria-label={t('task_center.progress')} />
         )}
-        {task.attention_reason && (
+        {task.attention_reason && !isPartialGlossaryHealth && (
           <Text size="sm" c="orange">{task.attention_reason}</Text>
         )}
         <Group gap="xs">

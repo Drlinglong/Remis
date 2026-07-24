@@ -99,9 +99,11 @@ describe('GlossaryHealthReviewPage', () => {
       expect(api.get).toHaveBeenCalledWith('/api/tasks/health-task');
     });
     expect(await screen.findByTestId('glossary-health-workbench')).toBeInTheDocument();
+    expect(screen.getByText('glossary_health_penalty_error')).toBeInTheDocument();
     expect(screen.getAllByText('Army $COUNT$').length).toBeGreaterThan(0);
+    expect(screen.getByText('Suggestion — review required')).toBeInTheDocument();
     expect(screen.getByText(
-      'The AI draft and rationale are in the editable fields below. Review them before saving.',
+      'Only the values in this section are saved. AI rationale is not added to notes automatically.',
     )).toBeInTheDocument();
 
     await waitFor(() => {
@@ -109,19 +111,20 @@ describe('GlossaryHealthReviewPage', () => {
         query: 'token-a',
       }));
     });
-    expect(await screen.findByDisplayValue('陆军 $COUNT$')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('陆军')).toBeInTheDocument();
     const notes = screen.getByLabelText('glossary_notes');
-    expect(notes.value).toContain('Existing note.');
-    expect(notes.value).toContain(
-      'AI review suggestion: Preserve the source placeholder in the Chinese translation.',
-    );
-    expect(notes.value).toContain('Rationale: The $COUNT$ token is required at runtime.');
+    expect(notes.value).toBe('Existing note.');
+    expect(screen.getByText('Preserve the source placeholder in the Chinese translation.')).toBeInTheDocument();
+    expect(screen.getByText('The $COUNT$ token is required at runtime.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Apply suggestion to editable draft' }));
+    expect(await screen.findByDisplayValue('陆军 $COUNT$')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Save and review next' }));
 
     await waitFor(() => {
       expect(api.put).toHaveBeenCalledWith('/api/glossary/entry/token-a', expect.objectContaining({
         translations: expect.objectContaining({ 'zh-CN': '陆军 $COUNT$' }),
-        notes: expect.stringContaining('Rationale: The $COUNT$ token is required at runtime.'),
+        notes: 'Existing note.',
       }));
     });
 

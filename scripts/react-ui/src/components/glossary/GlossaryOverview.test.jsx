@@ -99,6 +99,7 @@ const renderOverview = (
 describe('GlossaryOverview', () => {
     beforeEach(() => {
         navigateMock.mockReset();
+        sessionStorage.clear();
     });
 
     it('shows aggregate inventory and opens the exact glossary', () => {
@@ -124,12 +125,33 @@ describe('GlossaryOverview', () => {
     it('filters the inventory by glossary, game, or project text', () => {
         renderOverview();
 
+        expect(screen.getByTestId('glossary-result-count')).toHaveAttribute('data-visible', '2');
+        expect(screen.getByTestId('glossary-result-count')).toHaveAttribute('data-total', '2');
+        expect(screen.getByText('All games · All languages')).toBeInTheDocument();
+
         fireEvent.change(screen.getByLabelText('Find a glossary'), {
             target: { value: 'Community Translation' },
         });
 
         expect(screen.queryByText('Victoria 3 Main')).not.toBeInTheDocument();
         expect(screen.getByText('Community Project Terms')).toBeInTheDocument();
+        expect(screen.getByTestId('glossary-result-count')).toHaveAttribute('data-visible', '1');
+        expect(screen.getByTestId('glossary-result-count')).toHaveAttribute('data-total', '2');
+    });
+
+    it('restores inventory filters after leaving and returning to the overview', () => {
+        const firstRender = renderOverview();
+
+        fireEvent.change(screen.getByLabelText('Find a glossary'), {
+            target: { value: 'stellaris' },
+        });
+        expect(screen.getByTestId('glossary-result-count')).toHaveAttribute('data-visible', '1');
+
+        firstRender.unmount();
+        renderOverview();
+
+        expect(screen.getByLabelText('Find a glossary')).toHaveValue('stellaris');
+        expect(screen.getByTestId('glossary-result-count')).toHaveAttribute('data-visible', '1');
     });
 
     it('keeps selection operations visible and enables them from the current selection', () => {
@@ -425,6 +447,31 @@ describe('GlossaryOverview', () => {
         expect(await screen.findByText('Score 94/100')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'View task details' }));
         expect(navigateMock).toHaveBeenCalledWith('/tasks/previous-health-task');
+    });
+
+    it('starts the first health check directly from an empty history state', async () => {
+        const onLoadHealthHistory = vi.fn().mockResolvedValue([]);
+        renderOverview(
+            vi.fn(),
+            vi.fn(),
+            vi.fn(),
+            vi.fn(),
+            vi.fn(),
+            vi.fn(),
+            vi.fn(),
+            vi.fn(),
+            onLoadHealthHistory,
+        );
+
+        fireEvent.click(within(screen.getByText('Victoria 3 Main').closest('tr')).getByRole('checkbox'));
+        fireEvent.click(screen.getByRole('button', { name: 'Check history' }));
+
+        expect(await screen.findByText(
+            'The basic check uses local rules and has no API cost. AI advice is optional.'
+        )).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Start first health check' }));
+
+        expect(await screen.findByText('How the check works')).toBeInTheDocument();
     });
 
     it('defaults AI review to the configured local model and exposes concurrency', async () => {

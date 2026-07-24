@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import NewFileModal from './NewFileModal';
+import NewGlossaryModal from './NewGlossaryModal';
 
 vi.mock('@mantine/core', async () => {
   const actual = await vi.importActual('@mantine/core');
@@ -25,7 +25,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-describe('NewFileModal', () => {
+describe('NewGlossaryModal', () => {
   const renderWithProvider = (ui) =>
     render(<MantineProvider>{ui}</MantineProvider>);
 
@@ -33,34 +33,34 @@ describe('NewFileModal', () => {
     vi.clearAllMocks();
   });
 
-  it('shows validation error for an invalid glossary filename', async () => {
+  it('requires a glossary name without imposing a file extension', async () => {
     renderWithProvider(
-      <NewFileModal opened onClose={vi.fn()} onSubmit={vi.fn()} isLoading={false} />
+      <NewGlossaryModal opened onClose={vi.fn()} onSubmit={vi.fn()} isLoading={false} />
     );
 
     fireEvent.change(screen.getByRole('textbox'), {
-      target: { value: 'bad name.txt' },
+      target: { value: '   ' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'button_create' }));
 
-    expect(await screen.findByText('glossary_filename_invalid')).toBeInTheDocument();
+    expect(await screen.findByText('glossary_name_required')).toBeInTheDocument();
   });
 
-  it('submits a valid filename and closes after success', async () => {
+  it('submits a trimmed human-readable name and closes after success', async () => {
     const onSubmit = vi.fn().mockResolvedValue(true);
     const onClose = vi.fn();
 
     renderWithProvider(
-      <NewFileModal opened onClose={onClose} onSubmit={onSubmit} isLoading={false} />
+      <NewGlossaryModal opened onClose={onClose} onSubmit={onSubmit} isLoading={false} />
     );
 
     fireEvent.change(screen.getByRole('textbox'), {
-      target: { value: 'units.json' },
+      target: { value: '  Core terminology  ' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'button_create' }));
 
     await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledWith('units.json');
+      expect(onSubmit).toHaveBeenCalledWith('Core terminology');
     });
 
     expect(onClose).toHaveBeenCalledOnce();

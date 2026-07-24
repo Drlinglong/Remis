@@ -1,5 +1,5 @@
 from typing import Dict, List, Literal, Optional
-from pydantic import BaseModel, Field, model_validator
+from pydantic import AliasChoices, BaseModel, Field, model_validator
 
 class GlossaryEntryIn(BaseModel):
     id: str
@@ -18,9 +18,14 @@ class SearchGlossaryRequest(BaseModel):
     page: int = 1
     pageSize: int = 25
 
-class CreateGlossaryFileRequest(BaseModel):
+class CreateGlossaryRequest(BaseModel):
     game_id: str
-    file_name: str
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+        validation_alias=AliasChoices("name", "file_name"),
+    )
 
 class DuplicateGlossaryRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)

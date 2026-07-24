@@ -103,8 +103,23 @@
 }
 
 .advice {
-  padding: 14px 16px;
-  border-block: 1px solid var(--surface-border);
+  padding: 16px;
+  background: color-mix(in srgb, var(--mantine-color-teal-9) 8%, transparent);
+}
+
+.suggestionValues {
+  display: grid;
+  gap: 10px;
+  margin-block: 12px;
+  padding: 12px;
+  border-left: 3px solid var(--mantine-color-teal-6);
+  background: color-mix(in srgb, var(--surface-bg) 90%, transparent);
+}
+
+.rationale {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--surface-border);
 }
 
 .editor {

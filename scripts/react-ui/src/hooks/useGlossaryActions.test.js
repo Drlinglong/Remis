@@ -219,7 +219,7 @@ describe('useGlossaryActions', () => {
     });
   });
 
-  it('creates a glossary file and refreshes the tree', async () => {
+  it('creates a named glossary asset and refreshes the tree', async () => {
     api.post.mockResolvedValue({ data: { ok: true } });
 
     const { result } = renderGlossaryHook();
@@ -230,13 +230,13 @@ describe('useGlossaryActions', () => {
 
     let success;
     await act(async () => {
-      success = await result.current.handleCreateFile('new_terms.json');
+      success = await result.current.handleCreateGlossary('Core terminology');
     });
 
     expect(success).toBe(true);
-    expect(api.post).toHaveBeenCalledWith('/api/glossary/file', {
+    expect(api.post).toHaveBeenCalledWith('/api/glossary', {
       game_id: 'vic3',
-      file_name: 'new_terms.json',
+      name: 'Core terminology',
     });
     expect(api.get).toHaveBeenCalledWith('/api/glossary/tree');
     expect(notifications.show).toHaveBeenCalledWith(
@@ -256,7 +256,7 @@ describe('useGlossaryActions', () => {
 
     let success;
     await act(async () => {
-      success = await result.current.handleCreateFile('new_terms.json');
+      success = await result.current.handleCreateGlossary('Core terminology');
     });
 
     expect(success).toBe(true);
@@ -613,7 +613,17 @@ describe('useGlossaryActions', () => {
   });
 
   it('focuses a reported entry even when a historical task lacks the game id', async () => {
-    api.post.mockResolvedValue({ data: { entries: [], totalCount: 0 } });
+    api.post.mockResolvedValue({
+      data: {
+        entries: [{
+          id: 'term-42',
+          source: 'Army',
+          translations: { en: 'Army' },
+          notes: '',
+        }],
+        totalCount: 1,
+      },
+    });
     const { result } = renderGlossaryHook([
       '/glossary-manager?glossary_id=7&focus_entry_id=term-42&target_lang=en',
     ]);
@@ -623,13 +633,19 @@ describe('useGlossaryActions', () => {
     });
 
     expect(result.current.selectedGame).toBe('vic3');
-    expect(result.current.filtering).toBe('term-42');
+    expect(result.current.filtering).toBe('');
     expect(result.current.selectedTargetLang).toBe('en');
     expect(result.current.viewMode).toBe('editor');
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/api/glossary/search', expect.objectContaining({
         scope: 'file',
         query: 'term-42',
+      }));
+    });
+    await waitFor(() => {
+      expect(result.current.focusedEntry).toEqual(expect.objectContaining({
+        id: 'term-42',
+        source: 'Army',
       }));
     });
   });

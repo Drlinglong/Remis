@@ -23,6 +23,7 @@ import {
     IconAlertTriangle,
     IconHelpCircle,
     IconHistory,
+    IconSparkles,
 } from '@tabler/icons-react';
 
 import PerformanceControlPanel from '../shared/PerformanceControlPanel';
@@ -48,6 +49,8 @@ const GlossaryOperations = ({
     onStartMerge,
     onStartHealthCheck,
     onLoadHealthHistory,
+    toolbarMode = 'full',
+    defaultIncludeAiAdvice = false,
 }) => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
@@ -150,7 +153,7 @@ const GlossaryOperations = ({
         setConcurrencyLimit(
             String(Math.min(6, Math.max(1, Number(selection.concurrencyLimit) || 1)))
         );
-        setIncludeAiAdvice(false);
+        setIncludeAiAdvice(defaultIncludeAiAdvice);
         setConfirmModelUsage(false);
         setHealthTaskId(null);
         setHealthPreview(null);
@@ -204,32 +207,41 @@ const GlossaryOperations = ({
     return (
         <>
             <Group gap="xs" wrap="wrap">
+                {toolbarMode === 'full' && (
+                    <Button
+                        size="xs"
+                        variant="light"
+                        disabled={selectedIds.length < 2}
+                        onClick={openMerge}
+                    >
+                        {t('glossary_merge_action', 'Merge selected')}
+                    </Button>
+                )}
                 <Button
-                    size="xs"
-                    variant="light"
-                    disabled={selectedIds.length < 2}
-                    onClick={openMerge}
-                >
-                    {t('glossary_merge_action', 'Merge selected')}
-                </Button>
-                <Button
-                    size="xs"
+                    size={toolbarMode === 'health-only' ? 'sm' : 'xs'}
                     variant="light"
                     color="teal"
+                    leftSection={toolbarMode === 'health-only'
+                        ? <IconSparkles size={16} aria-hidden="true" />
+                        : null}
                     disabled={selectedIds.length < 1}
                     onClick={openHealth}
                 >
-                    {t('glossary_health_action', 'Check health')}
+                    {toolbarMode === 'health-only'
+                        ? t('glossary_ai_inspection_action', 'AI inspection')
+                        : t('glossary_health_action', 'Check health')}
                 </Button>
-                <Button
-                    size="xs"
-                    variant="subtle"
-                    leftSection={<IconHistory size={15} aria-hidden="true" />}
-                    disabled={selectedGlossaries.length !== 1}
-                    onClick={openHealthHistory}
-                >
-                    {t('glossary_health_history_action', 'Check history')}
-                </Button>
+                {toolbarMode === 'full' && (
+                    <Button
+                        size="xs"
+                        variant="subtle"
+                        leftSection={<IconHistory size={15} aria-hidden="true" />}
+                        disabled={selectedGlossaries.length !== 1}
+                        onClick={openHealthHistory}
+                    >
+                        {t('glossary_health_history_action', 'Check history')}
+                    </Button>
+                )}
             </Group>
 
             <Modal
@@ -600,9 +612,29 @@ const GlossaryOperations = ({
                         {historyError}
                     </Alert>
                 ) : healthHistory.length === 0 ? (
-                    <Text c="dimmed">
-                        {t('glossary_health_history_empty', 'No health checks have been run for this glossary.')}
-                    </Text>
+                    <Stack align="flex-start" gap="sm">
+                        <Text c="dimmed">
+                            {t('glossary_health_history_empty', 'No health checks have been run for this glossary.')}
+                        </Text>
+                        <Text size="sm" c="dimmed">
+                            {t(
+                                'glossary_health_history_empty_hint',
+                                'The basic check uses local rules and has no API cost. AI advice is optional.'
+                            )}
+                        </Text>
+                        <Button
+                            color="teal"
+                            onClick={() => {
+                                setHistoryOpened(false);
+                                openHealth();
+                            }}
+                        >
+                            {t(
+                                'glossary_health_history_start_first',
+                                'Start first health check'
+                            )}
+                        </Button>
+                    </Stack>
                 ) : (
                     <Stack gap="sm">
                         {healthHistory.map((task) => {
