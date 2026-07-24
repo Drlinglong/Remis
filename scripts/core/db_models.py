@@ -31,7 +31,7 @@ class ProjectGlossaryBinding(SQLModel, table=True):
     __tablename__ = "project_glossary_bindings"
 
     project_id: str = Field(foreign_key="projects.project_id", primary_key=True)
-    glossary_id: int = Field(foreign_key="glossaries.glossary_id", index=True)
+    glossary_id: int = Field(foreign_key="glossaries.glossary_id", primary_key=True)
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 

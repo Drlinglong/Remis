@@ -1,0 +1,64 @@
+.page {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--surface-border);
+  background: color-mix(in srgb, var(--surface-bg) 94%, transparent);
+}
+
+.heading {
+  min-width: 0;
+}
+
+.heading h1 {
+  font-size: clamp(1.5rem, 2.4vw, 2.1rem);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.summary {
+  justify-content: flex-end;
+}
+
+.workbench {
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 18px 24px 24px;
+}
+
+.error {
+  width: min(680px, calc(100% - 32px));
+  margin: 32px auto;
+}
+
+@media (max-width: 760px) {
+  .header {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px 12px;
+    padding: 14px 16px;
+  }
+
+  .backButton {
+    align-self: start;
+  }
+
+  .summary {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+
+  .workbench {
+    padding: 12px 16px 16px;
+  }
+}

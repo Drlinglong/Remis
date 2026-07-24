@@ -56,16 +56,18 @@
 /* --- Panels / Cards --- */
 .sidebarCard,
 .contentCard {
+    --mantine-color-text: var(--surface-text-main) !important;
+    --mantine-color-dimmed: var(--surface-text-muted) !important;
     height: 100%;
-    background: var(--glass-bg) !important;
-    border: var(--glass-border) !important;
+    background: var(--surface-bg, var(--glass-bg)) !important;
+    border: 1px solid var(--surface-border, var(--glass-border)) !important;
     border-radius: var(--card-radius) !important;
     box-shadow: var(--shadow-elevation) !important;
     backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
-    color: var(--text-main) !important;
+    color: var(--surface-text-main, var(--text-main)) !important;
     overflow: hidden;
     flex: 1;
     /* Ensure they fill the parent panel */
@@ -194,4 +196,53 @@
 .modalTitle {
     font-family: var(--font-header) !important;
     color: var(--text-highlight) !important;
+}
+
+@media (max-width: 1100px) {
+    .columnsWrapper {
+        gap: 12px;
+        padding: 12px;
+    }
+
+    .leftPanel {
+        width: clamp(240px, 31vw, 280px);
+    }
+}
+
+@media (max-width: 760px) {
+    .columnsWrapper {
+        flex-direction: column;
+        align-items: stretch;
+        overflow: hidden;
+    }
+
+    .leftPanel {
+        width: 100%;
+        height: clamp(220px, 34vh, 300px);
+        min-height: 220px;
+        flex: 0 0 auto;
+    }
+
+    .mainPanel {
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        flex: 1 1 0;
+    }
+
+    .sidebarCard,
+    .contentCard {
+        min-height: 0;
+    }
+}
+
+@media (max-width: 520px) {
+    .columnsWrapper {
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .leftPanel {
+        height: 220px;
+    }
 }

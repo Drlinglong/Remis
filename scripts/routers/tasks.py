@@ -214,10 +214,23 @@ def _parse_task_time(value: Optional[str]) -> Optional[datetime]:
     return parsed.astimezone(timezone.utc)
 
 
+def _task_matches_glossary(summary: TaskSummary, glossary_id: int) -> bool:
+    metadata = summary.result.metadata or {}
+    report = metadata.get("preview") if isinstance(metadata.get("preview"), dict) else metadata
+    glossary_ids = report.get("glossary_ids") if isinstance(report, dict) else []
+    return glossary_id in {
+        int(item)
+        for item in (glossary_ids or [])
+        if str(item).isdigit()
+    }
+
+
 @router.get("", response_model=TaskSummaryList)
 async def list_task_summaries(
     active_only: Annotated[bool, Query()] = False,
     include_archived: Annotated[bool, Query()] = False,
+    kind: Annotated[Optional[str], Query()] = None,
+    glossary_id: Annotated[Optional[int], Query(ge=1)] = None,
     from_time: Annotated[Optional[datetime], Query()] = None,
     to_time: Annotated[Optional[datetime], Query()] = None,
     offset: Annotated[int, Query(ge=0)] = 0,
@@ -229,6 +242,10 @@ async def list_task_summaries(
     attention_count = sum(item.status in ATTENTION_STATUSES for item in summaries)
     if active_only:
         summaries = [item for item in summaries if item.status in ACTIVE_STATUSES or item.status in ATTENTION_STATUSES]
+    if kind:
+        summaries = [item for item in summaries if item.kind == kind]
+    if glossary_id is not None:
+        summaries = [item for item in summaries if _task_matches_glossary(item, glossary_id)]
     normalized_from = _parse_task_time(from_time.isoformat()) if from_time else None
     normalized_to = _parse_task_time(to_time.isoformat()) if to_time else None
     if normalized_from or normalized_to:

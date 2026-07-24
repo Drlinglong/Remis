@@ -214,6 +214,51 @@ async def test_task_history_filters_by_time_range_and_reports_total_before_pagin
 
 
 @pytest.mark.asyncio
+async def test_task_history_filters_glossary_health_checks_by_glossary_id():
+    task_state.create_task(
+        "health-preview",
+        status="running",
+        fields={
+            "kind": "glossary_health_check",
+            "title": "Check glossary",
+            "result": {
+                "types": ["glossary_health_preview"],
+                "metadata": {"preview": {"glossary_ids": [12], "score": 94}},
+            },
+        },
+    )
+    task_state.create_task(
+        "health-report",
+        status="completed",
+        fields={
+            "kind": "glossary_health_check",
+            "title": "Check another glossary",
+            "result": {
+                "types": ["glossary_health_report"],
+                "metadata": {"glossary_ids": [99], "score": 100},
+            },
+        },
+    )
+    task_state.create_task(
+        "unrelated",
+        status="completed",
+        fields={
+            "kind": "glossary_merge",
+            "title": "Merge glossary",
+            "result": {"metadata": {"glossary_ids": [12]}},
+        },
+    )
+
+    payload = await tasks_router.list_task_summaries(
+        kind="glossary_health_check",
+        glossary_id=12,
+    )
+
+    assert payload.total_count == 1
+    assert [task.task_id for task in payload.tasks] == ["health-preview"]
+
+
+@pytest.mark.asyncio
 async def test_task_summary_resolves_human_project_context(monkeypatch):
     monkeypatch.setattr(
         tasks_router,

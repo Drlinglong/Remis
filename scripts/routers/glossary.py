@@ -1,14 +1,157 @@
+import asyncio
+import json
 import uuid
 import logging
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from typing import Dict, List
 
+from scripts.app_settings import API_PROVIDERS
+from scripts.core.api_handler import get_handler
+from scripts.core.glossary_health_reviewer import GlossaryHealthReviewer
+from scripts.shared import task_state
 from scripts.shared.services import glossary_manager
-from scripts.schemas.glossary import SearchGlossaryRequest, GlossaryEntryCreate, GlossaryEntryIn, CreateGlossaryFileRequest
+from scripts.schemas.glossary import (
+    SearchGlossaryRequest,
+    GlossaryEntryCreate,
+    GlossaryEntryIn,
+    CreateGlossaryFileRequest,
+    DuplicateGlossaryRequest,
+    UpdateGlossaryMetadataRequest,
+    GlossaryBatchSelectionRequest,
+    BatchDeleteGlossariesRequest,
+    GlossaryHealthCheckRequest,
+    GlossaryMergeRequest,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+async def _run_glossary_merge_task(task_id: str, payload: Dict) -> None:
+    task_state.update_task(
+        task_id,
+        status="running",
+        message="Merging glossary entries.",
+        append_log="Validated sources; merge started.",
+        progress={"current": 1, "total": 2, "percent": 50, "stage": "Merging"},
+    )
+    try:
+        result = await glossary_manager.merge_glossaries(**payload)
+        task_state.update_task(
+            task_id,
+            status="completed",
+            message="Glossary merge completed.",
+            append_log=f"Merged into glossary {result['name']}.",
+            progress={"current": 2, "total": 2, "percent": 100, "stage": "Completed"},
+            fields={
+                "result": {
+                    "types": ["glossary_merge", "change_summary"],
+                    "summary": (
+                        f"Merged {len(result['merged_from'])} glossaries into {result['name']}; "
+                        f"created {result['created_entry_count']} and updated {result['updated_entry_count']} entries."
+                    ),
+                    "metadata": result,
+                },
+                "source_route": (
+                    f"/glossary-manager?game_id={result['game_id']}&glossary_id={result['glossary_id']}"
+                ),
+            },
+        )
+    except Exception as exc:
+        logger.exception("Glossary merge task %s failed", task_id)
+        task_state.update_task(
+            task_id,
+            status="failed",
+            message=str(exc),
+            append_log=f"Glossary merge failed: {exc}",
+            progress={"percent": 100, "stage": "Failed", "error_count": 1},
+        )
+
+
+async def _run_glossary_health_task(task_id: str, payload: Dict) -> None:
+    task_state.update_task(
+        task_id,
+        status="running",
+        message="Running deterministic glossary checks.",
+        append_log="Deterministic glossary checks started.",
+        progress={"current": 1, "total": 3, "percent": 33, "stage": "Deterministic checks"},
+    )
+    report = None
+    try:
+        report = await glossary_manager.check_glossary_health(
+            payload["glossary_ids"],
+            target_lang=payload.get("target_lang"),
+        )
+        report["ai_advice"] = []
+        report["ai_review_status"] = "not_requested"
+        task_state.update_task(
+            task_id,
+            append_log=f"Deterministic checks found {report['issue_count']} issue(s).",
+            progress={"current": 2, "total": 3, "percent": 67, "stage": "Reviewing results"},
+        )
+
+        if payload.get("include_ai_advice"):
+            task_state.update_task(
+                task_id,
+                message="Requesting advisory model review. No glossary data will be changed.",
+                append_log="Explicitly approved advisory model review started.",
+                progress={"stage": "AI advice"},
+            )
+            handler = get_handler(payload["api_provider"], model_name=payload.get("model_name"))
+            reviewer = GlossaryHealthReviewer(handler)
+            report["ai_review_plan"] = reviewer.plan(report)
+            report["ai_advice"] = await asyncio.to_thread(
+                reviewer.review,
+                report,
+                concurrency_limit=payload.get("concurrency_limit", 1),
+            )
+            report["ai_review_status"] = "completed"
+            report["ai_provider"] = payload["api_provider"]
+            report["ai_model"] = payload.get("model_name")
+            report["ai_concurrency_limit"] = payload.get("concurrency_limit", 1)
+
+        summary = (
+            f"Glossary health score {report['score']}/100 with "
+            f"{report['issue_count']} deterministic issue(s)."
+        )
+        task_state.update_task(
+            task_id,
+            status="completed",
+            message="Glossary health check completed.",
+            append_log="Health report completed without changing glossary data.",
+            progress={"current": 3, "total": 3, "percent": 100, "stage": "Completed"},
+            fields={
+                "result": {
+                    "types": (
+                        ["glossary_health_report", "advisory_review"]
+                        if payload.get("include_ai_advice")
+                        else ["glossary_health_report"]
+                    ),
+                    "summary": summary,
+                    "metadata": report,
+                },
+            },
+        )
+    except Exception as exc:
+        logger.exception("Glossary health task %s failed", task_id)
+        result = None
+        if report is not None:
+            report["ai_review_status"] = "failed"
+            report["ai_review_error"] = str(exc)
+            result = {
+                "types": ["glossary_health_report"],
+                "summary": "Deterministic checks completed, but advisory model review failed.",
+                "metadata": report,
+            }
+        task_state.update_task(
+            task_id,
+            status="failed",
+            message=str(exc),
+            append_log=f"Glossary health task failed: {exc}",
+            progress={"percent": 100, "stage": "Failed", "error_count": 1},
+            fields={"result": result} if result else None,
+        )
 
 def _transform_storage_to_frontend_format(entry: Dict) -> Dict:
     """
@@ -66,13 +209,17 @@ def _transform_entry_to_storage_format(entry: Dict) -> Dict:
         entry['entry_id'] = entry['id']
     return entry
 
-@router.get("/api/glossaries/{game_id}")
-async def get_game_glossaries(game_id: str):
-    return await glossary_manager.get_available_glossaries(game_id)
-
 @router.get("/api/glossaries")
 async def get_all_glossaries():
     return await glossary_manager.get_all_glossaries()
+
+@router.get("/api/glossaries/overview")
+async def get_glossary_overview():
+    return await glossary_manager.get_glossary_overview()
+
+@router.get("/api/glossaries/{game_id}")
+async def get_game_glossaries(game_id: str):
+    return await glossary_manager.get_available_glossaries(game_id)
 
 @router.get("/api/glossary/tree")
 async def get_glossary_tree():
@@ -162,6 +309,203 @@ async def create_glossary_file(payload: CreateGlossaryFileRequest):
     
     logger.info(f"Created new glossary file {payload.file_name} for game {payload.game_id}")
     return {"message": "File created successfully", "file_name": payload.file_name}
+
+@router.post("/api/glossary/file/{glossary_id}/duplicate", status_code=201)
+async def duplicate_glossary_file(glossary_id: int, payload: DuplicateGlossaryRequest):
+    target_name = payload.name.strip()
+    if not target_name:
+        raise HTTPException(status_code=422, detail="Glossary name is required.")
+
+    try:
+        duplicated = await glossary_manager.duplicate_glossary(glossary_id, target_name)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    if duplicated is None:
+        raise HTTPException(status_code=404, detail="Source glossary not found.")
+
+    logger.info(
+        "Duplicated glossary %s as %s (%s entries)",
+        glossary_id,
+        duplicated["glossary_id"],
+        duplicated["entry_count"],
+    )
+    return duplicated
+
+@router.put("/api/glossary/file/{glossary_id}")
+async def update_glossary_metadata(glossary_id: int, payload: UpdateGlossaryMetadataRequest):
+    try:
+        updated = await glossary_manager.update_glossary_metadata(
+            glossary_id,
+            name=payload.name,
+            description=payload.description,
+            kind=payload.kind,
+            project_ids=payload.project_ids,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Glossary not found.")
+
+    logger.info("Updated glossary metadata for %s", glossary_id)
+    return updated
+
+@router.post("/api/glossaries/batch-delete/preview")
+async def preview_batch_delete_glossaries(payload: GlossaryBatchSelectionRequest):
+    try:
+        return await glossary_manager.get_batch_delete_impact(payload.glossary_ids)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+@router.post("/api/glossaries/batch-delete")
+async def batch_delete_glossaries(payload: BatchDeleteGlossariesRequest):
+    try:
+        return await glossary_manager.batch_delete_glossaries(
+            payload.glossary_ids,
+            confirm_main_glossaries=payload.confirm_main_glossaries,
+            confirm_project_bindings=payload.confirm_project_bindings,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post("/api/glossaries/merge/preview")
+async def preview_glossary_merge(payload: GlossaryMergeRequest):
+    try:
+        return await glossary_manager.preview_glossary_merge(**payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post("/api/glossaries/merge")
+async def start_glossary_merge(payload: GlossaryMergeRequest, background_tasks: BackgroundTasks):
+    request_data = payload.model_dump()
+    try:
+        preview = await glossary_manager.preview_glossary_merge(**request_data)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    task_id = str(uuid.uuid4())
+    dedupe_payload = json.dumps(request_data, sort_keys=True, ensure_ascii=True)
+    try:
+        task_state.create_task(
+            task_id,
+            status="queued",
+            log_message="Glossary merge queued after a fresh read-only preview.",
+            fields={
+                "kind": "glossary_merge",
+                "title": f"Merge glossaries into {preview['target_name']}",
+                "source_route": "/glossary-manager",
+                "created_by": {"type": "user"},
+                "blocking": True,
+                "result": {
+                    "types": ["glossary_merge_preview"],
+                    "summary": (
+                        f"Preview: {preview['unique_term_count']} unique terms, "
+                        f"{preview['conflict_count']} conflicts."
+                    ),
+                    "metadata": {"preview": preview},
+                },
+            },
+            dedupe_key=f"glossary_merge:{dedupe_payload}",
+            reject_duplicate=True,
+        )
+    except task_state.DuplicateTaskError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "An identical glossary merge is already active.",
+                "task_id": exc.existing_task.get("task_id"),
+            },
+        ) from exc
+    task_state.init_progress(task_id, {
+        "total": 2,
+        "current": 0,
+        "percent": 0,
+        "stage": "Queued",
+    })
+    background_tasks.add_task(_run_glossary_merge_task, task_id, request_data)
+    return {"task_id": task_id, "status": "queued", "preview": preview}
+
+
+@router.post("/api/glossaries/health-check")
+async def start_glossary_health_check(
+    payload: GlossaryHealthCheckRequest,
+    background_tasks: BackgroundTasks,
+):
+    request_data = payload.model_dump()
+    if payload.include_ai_advice and payload.api_provider not in API_PROVIDERS:
+        raise HTTPException(status_code=400, detail=f"Unknown API provider: {payload.api_provider}")
+    try:
+        deterministic_preview = await glossary_manager.check_glossary_health(
+            payload.glossary_ids,
+            target_lang=payload.target_lang,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    task_id = str(uuid.uuid4())
+    dedupe_payload = json.dumps(request_data, sort_keys=True, ensure_ascii=True)
+    try:
+        task_state.create_task(
+            task_id,
+            status="queued",
+            log_message="Glossary health check queued.",
+            fields={
+                "kind": "glossary_health_check",
+                "title": f"Check {len(payload.glossary_ids)} glossary asset(s)",
+                "source_route": "/glossary-manager",
+                "created_by": {"type": "user"},
+                "blocking": False,
+                "result": {
+                    "types": ["glossary_health_preview"],
+                    "summary": (
+                        f"Deterministic preview score {deterministic_preview['score']}/100."
+                    ),
+                    "metadata": {
+                        "preview": deterministic_preview,
+                        "ai_advice_requested": payload.include_ai_advice,
+                        "ai_provider": (
+                            payload.api_provider if payload.include_ai_advice else None
+                        ),
+                        "ai_model": (
+                            payload.model_name if payload.include_ai_advice else None
+                        ),
+                    },
+                },
+            },
+            dedupe_key=f"glossary_health:{dedupe_payload}",
+            reject_duplicate=True,
+        )
+    except task_state.DuplicateTaskError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "An identical glossary health check is already active.",
+                "task_id": exc.existing_task.get("task_id"),
+            },
+        ) from exc
+    task_state.init_progress(task_id, {
+        "total": 3,
+        "current": 0,
+        "percent": 0,
+        "stage": "Queued",
+    })
+    background_tasks.add_task(_run_glossary_health_task, task_id, request_data)
+    ai_review_plan = (
+        GlossaryHealthReviewer.plan(deterministic_preview)
+        if payload.include_ai_advice
+        else None
+    )
+    return {
+        "task_id": task_id,
+        "status": "queued",
+        "deterministic_preview": deterministic_preview,
+        "ai_advice_requested": payload.include_ai_advice,
+        "ai_review_plan": ai_review_plan,
+        "mutations_applied": False,
+    }
 
 @router.delete("/api/glossary/file/{glossary_id}")
 async def delete_glossary_file(glossary_id: int):

@@ -31,6 +31,7 @@ import {
   IconPlayerPlay,
   IconRefresh,
   IconRestore,
+  IconTool,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -39,7 +40,7 @@ import { useTaskCenter } from '../context/TaskCenterContextCore';
 import api from '../utils/api';
 import { getGameBadgeColor } from '../utils/gamePresentation';
 import { ACTIVE_TASK_STATUSES, formatTaskDuration, taskDurationMs } from '../utils/taskTime';
-import { taskDetailRoute } from '../utils/taskRoutes';
+import { glossaryHealthReviewRoute, taskDetailRoute } from '../utils/taskRoutes';
 import styles from './TaskDetailPage.module.css';
 
 const STATUS_COLORS = {
@@ -60,6 +61,10 @@ const EVENT_COLORS = {
   info: 'blue',
   debug: 'gray',
 };
+
+const workflowRoute = (sourceRoute) => (
+  sourceRoute === '/glossary' ? '/glossary-manager' : (sourceRoute || '/')
+);
 
 const formatTimestamp = (value, locale) => {
   if (!value) return '--';
@@ -152,6 +157,29 @@ export default function TaskDetailPage() {
   const projectName = task?.project_context?.name;
   const gameId = task?.project_context?.game_id;
   const gameName = gameId ? t(`game_name_${String(gameId).toLowerCase()}`, { defaultValue: gameId }) : '';
+  const resultMetadata = task?.result?.metadata || {};
+  const healthMetadata = resultMetadata.preview || resultMetadata;
+  const resultTypes = new Set(task?.result?.types || []);
+  const isGlossaryHealthResult = resultTypes.has('glossary_health_report');
+  const isGlossaryMergeResult = resultTypes.has('glossary_merge');
+  const localizedTaskTitle = task?.kind === 'glossary_health_check'
+    ? t('glossary_health_task_title', {
+      count: healthMetadata.glossary_count || 1,
+      defaultValue: task.title,
+    })
+    : task?.title;
+  const localizedResultSummary = (
+    task?.kind === 'glossary_health_check'
+    && Number.isFinite(Number(healthMetadata.score))
+  )
+    ? t('glossary_health_completed_message', {
+      score: healthMetadata.score,
+      count: healthMetadata.issue_count || 0,
+    })
+    : task?.result?.summary;
+  const hasGlossaryHealthCases = (resultMetadata.issues || []).some((issue) => (
+    (issue.items || []).length > 0
+  ));
 
   const mutateArchive = async (action) => {
     setMutating(true);
@@ -195,7 +223,7 @@ export default function TaskDetailPage() {
               </Badge>
               {task.archived_at && <Badge color="gray" variant="outline">{t('task_detail.archived')}</Badge>}
             </Group>
-            <Text c="dimmed">{task.title}</Text>
+            <Text c="dimmed">{localizedTaskTitle}</Text>
           </Stack>
           <Group gap="sm">
             <Group gap={7} className={styles.timer} aria-label={t('task_detail.elapsed')}>
@@ -338,10 +366,78 @@ export default function TaskDetailPage() {
                 </Stack>
               </Card>
 
-              {(task.result?.summary || task.result?.output_paths?.length > 0) && (
+              {(task.result?.summary || task.result?.output_paths?.length > 0 || isGlossaryHealthResult || isGlossaryMergeResult) && (
                 <Card withBorder radius="md" p="lg" data-remis-surface="surface">
                   <Title order={3} mb="sm">{t('task_detail.result')}</Title>
-                  {task.result.summary && <Text size="sm" mb="sm">{task.result.summary}</Text>}
+                  {localizedResultSummary && <Text size="sm" mb="sm">{localizedResultSummary}</Text>}
+                  {isGlossaryHealthResult && (
+                    <Stack gap="sm" mb="sm" data-testid="glossary-health-task-result">
+                      <Group gap="xs">
+                        <Badge color={resultMetadata.score >= 80 ? 'teal' : resultMetadata.score >= 60 ? 'orange' : 'red'}>
+                          {t('glossary_health_score', 'Score')} {resultMetadata.score}/100
+                        </Badge>
+                        <Badge variant="light">
+                          {resultMetadata.issue_count || 0} {t('glossary_health_issues', 'issues')}
+                        </Badge>
+                        {resultMetadata.mutations_applied === false && (
+                          <Badge color="teal" variant="outline">
+                            {t('glossary_health_read_only', 'Read-only')}
+                          </Badge>
+                        )}
+                      </Group>
+                      {(resultMetadata.issues || []).map((issue) => (
+                        <Box key={issue.code}>
+                          <Group justify="space-between" gap="xs" wrap="nowrap">
+                            <Text size="sm" fw={700}>
+                              {t(`glossary_health_issue_${issue.code}`, {
+                                defaultValue: issue.message || issue.code,
+                              })}
+                            </Text>
+                            <Badge color={issue.severity === 'error' ? 'red' : issue.severity === 'warning' ? 'orange' : 'blue'}>
+                              {issue.count}
+                            </Badge>
+                          </Group>
+                        </Box>
+                      ))}
+                      {hasGlossaryHealthCases && (
+                        <Button
+                          color="teal"
+                          variant="light"
+                          leftSection={<IconTool size={17} />}
+                          onClick={() => navigate(glossaryHealthReviewRoute(task.task_id))}
+                        >
+                          {t('glossary_health_workbench', { defaultValue: 'Review and fix issues' })}
+                        </Button>
+                      )}
+                      {resultMetadata.ai_review_status === 'failed' && (
+                        <Alert color="orange" icon={<IconAlertTriangle size={16} />}>
+                          {resultMetadata.ai_review_error || task.message}
+                        </Alert>
+                      )}
+                    </Stack>
+                  )}
+                  {isGlossaryMergeResult && (
+                    <Stack gap="xs" mb="sm" data-testid="glossary-merge-task-result">
+                      <Group gap="xs" wrap="wrap">
+                        <Badge color="gray">
+                          {resultMetadata.duplicate_term_count || 0} {t('glossary_merge_duplicates', 'duplicates')}
+                        </Badge>
+                        <Badge color={resultMetadata.conflict_count ? 'orange' : 'teal'}>
+                          {resultMetadata.conflict_count || 0} {t('glossary_merge_conflicts', 'conflicts')}
+                        </Badge>
+                        {resultMetadata.skipped_conflict_count > 0 && (
+                          <Badge color="orange" variant="outline">
+                            {resultMetadata.skipped_conflict_count} {t('glossary_merge_skip_conflicts', 'skipped conflicts')}
+                          </Badge>
+                        )}
+                      </Group>
+                      {(resultMetadata.merged_from || []).map((source) => (
+                        <Text key={source.glossary_id} size="xs" c="dimmed">
+                          {source.name} · {source.game_id}
+                        </Text>
+                      ))}
+                    </Stack>
+                  )}
                   {task.result.output_paths?.length > 0 && (
                     <Stack gap={6}>
                       <Text size="xs" c="dimmed">{t('task_detail.output_paths')}</Text>
@@ -368,7 +464,7 @@ export default function TaskDetailPage() {
               <Button
                 variant="light"
                 leftSection={active ? <IconPlayerPlay size={17} /> : <IconArrowBackUp size={17} />}
-                onClick={() => navigate(task.source_route || '/')}
+                onClick={() => navigate(workflowRoute(task.source_route))}
               >
                 {t('task_detail.back_to_workflow')}
               </Button>

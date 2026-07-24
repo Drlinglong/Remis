@@ -31,6 +31,18 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
   const statusLabel = t(`task_center.status.${task.status}`, { defaultValue: task.status });
   const creatorLabel = task.created_by?.label || t(`task_center.creator.${task.created_by?.type || 'system'}`);
   const showProgress = ['queued', 'running'].includes(task.status);
+  const rawDetail = task.stage || task.message;
+  const localizedDetail = ['glossary_health_check', 'glossary_merge'].includes(task.kind)
+    ? (
+      task.kind === 'glossary_health_check' && task.status === 'failed'
+        ? (
+          /no models loaded/i.test(task.message || '')
+            ? t('glossary_health_no_model_loaded')
+            : t('glossary_health_model_request_failed')
+        )
+        : statusLabel
+    )
+    : rawDetail;
 
   return (
     <Paper withBorder radius="md" p={compact ? 'sm' : 'md'} data-remis-surface="surface">
@@ -38,9 +50,9 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
         <Group justify="space-between" align="flex-start" wrap="nowrap">
           <div style={{ minWidth: 0 }}>
             <Text fw={700} lineClamp={1}>{kindLabel}</Text>
-            {(task.stage || task.message) && (
+            {localizedDetail && (
               <Text size="sm" c="dimmed" lineClamp={compact ? 1 : 2}>
-                {task.stage || task.message}
+                {localizedDetail}
               </Text>
             )}
           </div>

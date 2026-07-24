@@ -170,6 +170,16 @@ export default function TaskHistoryPage() {
                 ? t(`game_name_${String(projectGameId).toLowerCase()}`, { defaultValue: projectGameId })
                 : '';
               const projectLabel = [task.project_context?.name, projectGameName].filter(Boolean).join(' — ');
+              const resultMetadata = task.result?.metadata || {};
+              const healthMetadata = resultMetadata.preview || resultMetadata;
+              const secondaryLabel = projectLabel || (
+                task.kind === 'glossary_health_check'
+                  ? t('glossary_health_task_title', {
+                    count: healthMetadata.glossary_count || 1,
+                    defaultValue: task.title,
+                  })
+                  : task.title
+              );
               return (
                 <Card key={task.task_id} withBorder radius="md" p="md" data-remis-surface="surface" className={styles.taskRow}>
                   <Group justify="space-between" align="center" wrap="nowrap">
@@ -181,7 +191,7 @@ export default function TaskHistoryPage() {
                         <UnstyledButton onClick={() => navigate(taskDetailRoute(task.task_id))} className={styles.taskTitle}>
                           <Text fw={700}>{kindLabel}</Text>
                         </UnstyledButton>
-                        <Text size="sm" c="dimmed" lineClamp={1}>{projectLabel || task.title}</Text>
+                        <Text size="sm" c="dimmed" lineClamp={1}>{secondaryLabel}</Text>
                       </div>
                     </Group>
                     <Group gap="sm" wrap="nowrap">

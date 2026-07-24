@@ -74,6 +74,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (2, "add_project_watches"),
         (3, "add_project_glossary_bindings"),
         (4, "add_background_task_ledger"),
+        (5, "make_glossary_bindings_many_to_many"),
     ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
@@ -164,7 +165,7 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     assert {"source_language", "last_modified", "last_activity_type", "last_activity_desc", "notes", "target_path"}.issubset(project_columns)
 
     cursor.execute("SELECT version FROM schema_migrations")
-    assert cursor.fetchall() == [(1,), (2,), (3,), (4,)]
+    assert cursor.fetchall() == [(1,), (2,), (3,), (4,), (5,)]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")
     assert cursor.fetchone() == ("project_watches",)
@@ -185,14 +186,23 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     cursor.execute("PRAGMA index_list(project_glossary_bindings)")
     binding_indexes = {row[1] for row in cursor.fetchall()}
     assert "ix_project_glossary_bindings_glossary_id" in binding_indexes
+    assert "ix_project_glossary_bindings_project_id" in binding_indexes
+
+    cursor.execute("PRAGMA table_info(project_glossary_bindings)")
+    binding_primary_key = {
+        row[1]: row[5]
+        for row in cursor.fetchall()
+        if row[5]
+    }
+    assert binding_primary_key == {"project_id": 1, "glossary_id": 2}
 
     cursor.execute("SELECT name FROM glossaries WHERE glossary_id = 1")
     assert cursor.fetchone()[0] == "Legacy"
     conn.close()
 
-    assert migrate_main_database(str(db_path)) == 4
+    assert migrate_main_database(str(db_path)) == 5
     conn = sqlite3.connect(db_path)
-    assert conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0] == 4
+    assert conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0] == 5
     assert conn.execute("SELECT COUNT(*) FROM project_glossary_bindings").fetchone()[0] == 1
     conn.close()
 
@@ -212,6 +222,56 @@ def test_managed_connection_enforces_foreign_keys(tmp_path):
             "INSERT INTO project_glossary_bindings (project_id, glossary_id) VALUES (?, ?)",
             ("missing-project", 999999),
         )
+    conn.close()
+
+
+def test_glossary_binding_schema_allows_many_to_many_relationships(tmp_path):
+    db_path = tmp_path / "many-to-many.sqlite"
+    migrate_main_database(str(db_path))
+
+    conn = sqlite3.connect(db_path)
+    conn.executemany(
+        """
+        INSERT INTO projects
+            (project_id, name, game_id, source_path, source_language, status)
+        VALUES (?, ?, 'vic3', ?, 'english', 'active')
+        """,
+        [
+            ("project-1", "First Mod", "/tmp/project-1"),
+            ("project-2", "Second Mod", "/tmp/project-2"),
+        ],
+    )
+    conn.executemany(
+        """
+        INSERT INTO glossaries
+            (glossary_id, game_id, name, is_main, sources, raw_metadata)
+        VALUES (?, 'vic3', ?, 0, '[]', '{}')
+        """,
+        [
+            (1, "First Terms"),
+            (2, "Second Terms"),
+        ],
+    )
+    conn.executemany(
+        """
+        INSERT INTO project_glossary_bindings (project_id, glossary_id)
+        VALUES (?, ?)
+        """,
+        [
+            ("project-1", 1),
+            ("project-1", 2),
+            ("project-2", 1),
+            ("project-2", 2),
+        ],
+    )
+    conn.commit()
+
+    assert conn.execute(
+        "SELECT COUNT(*) FROM project_glossary_bindings WHERE project_id = 'project-1'"
+    ).fetchone()[0] == 2
+    assert conn.execute(
+        "SELECT COUNT(*) FROM project_glossary_bindings WHERE glossary_id = 1"
+    ).fetchone()[0] == 2
     conn.close()
 
 

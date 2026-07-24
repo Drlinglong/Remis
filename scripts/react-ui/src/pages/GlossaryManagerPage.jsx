@@ -5,7 +5,7 @@ import {
     Tooltip, Text, Paper, ScrollArea, Table, ActionIcon, Stack,
     Modal
 } from '@mantine/core';
-import { IconPlus, IconTrash, IconDots, IconTrashX } from '@tabler/icons-react';
+import { IconPlus, IconTrash, IconDots, IconTrashX, IconLayoutDashboard } from '@tabler/icons-react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -16,6 +16,7 @@ import { useSidebar } from '../context/SidebarContextCore';
 import { useTutorial } from '../context/TutorialContextCore';
 import useGlossaryActions from '../hooks/useGlossaryActions';
 import FileTree from '../components/glossary/FileTree';
+import GlossaryOverview from '../components/glossary/GlossaryOverview';
 import NewFileModal from '../components/glossary/NewFileModal';
 import EditTermForm from '../components/glossary/EditTermForm';
 import styles from './GlossaryManager.module.css';
@@ -149,12 +150,22 @@ const GlossaryManagerPage = () => {
         <div className={styles.pageContainer}>
             <LoadingOverlay visible={glossary.isSaving} />
 
-            <div className={styles.columnsWrapper}>
+            <div className={styles.columnsWrapper} data-testid="glossary-layout">
                 {/* Left Panel: File Tree */}
-                <div id="glossary-file-list" className={styles.leftPanel}>
+                <div id="glossary-file-list" className={styles.leftPanel} data-testid="glossary-sidebar">
                     <Paper p="md" className={styles.sidebarCard}>
                         <LoadingOverlay visible={glossary.isLoadingTree} />
                         <Title order={4}>{t('glossary_manager_title')}</Title>
+
+                        <Button
+                            mt="md"
+                            fullWidth
+                            variant={glossary.viewMode === 'overview' ? 'filled' : 'light'}
+                            leftSection={<IconLayoutDashboard size={16} />}
+                            onClick={glossary.showOverview}
+                        >
+                            {t('glossary_overview_nav', 'Glossary overview')}
+                        </Button>
 
                         <Stack gap="sm" mb="md" mt="md">
                             <Select
@@ -198,10 +209,35 @@ const GlossaryManagerPage = () => {
                 </div>
 
                 {/* Main Panel: Table */}
-                <div className={styles.mainPanel}>
+                <div className={styles.mainPanel} data-testid="glossary-main">
                     <Paper p="md" className={styles.contentCard}>
-                        <LoadingOverlay visible={glossary.isLoadingContent} />
+                        <LoadingOverlay
+                            visible={glossary.viewMode === 'overview'
+                                ? glossary.isLoadingOverview
+                                : glossary.isLoadingContent}
+                        />
 
+                        {glossary.viewMode === 'overview' ? (
+                            <GlossaryOverview
+                                overview={glossary.overview}
+                                isLoading={glossary.isLoadingOverview}
+                                isMutating={glossary.isSaving}
+                                onOpenGlossary={glossary.openGlossary}
+                                onDuplicateGlossary={glossary.handleDuplicateGlossary}
+                                onUpdateGlossaryMetadata={glossary.handleUpdateGlossaryMetadata}
+                                onPreviewBatchDelete={glossary.previewGlossaryBatchDelete}
+                                onBatchDelete={glossary.handleBatchDeleteGlossaries}
+                                targetLanguages={glossary.targetLanguages}
+                                apiProviders={glossary.apiProviders}
+                                projects={glossary.projects}
+                                operation={glossary.glossaryOperation}
+                                onPreviewMerge={glossary.previewGlossaryMerge}
+                                onStartMerge={glossary.startGlossaryMerge}
+                                onStartHealthCheck={glossary.startGlossaryHealthCheck}
+                                onLoadHealthHistory={glossary.loadGlossaryHealthHistory}
+                            />
+                        ) : (
+                            <>
                         <Group justify="space-between" mb="md">
                             <Title order={4}>
                                 {glossary.selectedFile.key
@@ -331,6 +367,8 @@ const GlossaryManagerPage = () => {
                                 </Button>
                             </Button.Group>
                         </Group>
+                            </>
+                        )}
                     </Paper>
                 </div>
             </div>

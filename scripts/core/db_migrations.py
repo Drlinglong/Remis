@@ -20,7 +20,7 @@ from scripts.core.db_models import (
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 4
+MAIN_DB_TARGET_VERSION = 5
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -266,11 +266,53 @@ def _migration_004_add_background_task_ledger(db_path: str) -> None:
         conn.commit()
 
 
+def _migration_005_make_glossary_bindings_many_to_many(db_path: str) -> None:
+    """Allow every project and glossary to participate in multiple bindings."""
+    with _connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE project_glossary_bindings_v2 (
+                project_id TEXT NOT NULL,
+                glossary_id INTEGER NOT NULL,
+                created_at TEXT,
+                updated_at TEXT,
+                PRIMARY KEY(project_id, glossary_id),
+                FOREIGN KEY(project_id) REFERENCES projects(project_id),
+                FOREIGN KEY(glossary_id) REFERENCES glossaries(glossary_id)
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO project_glossary_bindings_v2
+                (project_id, glossary_id, created_at, updated_at)
+            SELECT project_id, glossary_id, created_at, updated_at
+            FROM project_glossary_bindings
+            """
+        )
+        conn.execute("DROP TABLE project_glossary_bindings")
+        conn.execute(
+            "ALTER TABLE project_glossary_bindings_v2 RENAME TO project_glossary_bindings"
+        )
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_project_glossary_bindings_project_id "
+            "ON project_glossary_bindings (project_id)",
+        )
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_project_glossary_bindings_glossary_id "
+            "ON project_glossary_bindings (glossary_id)",
+        )
+        conn.commit()
+
+
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
     (3, "add_project_glossary_bindings", _migration_003_add_project_glossary_bindings),
     (4, "add_background_task_ledger", _migration_004_add_background_task_ledger),
+    (5, "make_glossary_bindings_many_to_many", _migration_005_make_glossary_bindings_many_to_many),
 ]
 
 

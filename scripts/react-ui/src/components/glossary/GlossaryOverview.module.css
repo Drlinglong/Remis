@@ -1,0 +1,103 @@
+.overview {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--mantine-spacing-lg);
+    overflow: hidden;
+    color: var(--surface-text-main, var(--text-main));
+}
+
+.overviewHeader {
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.statCard,
+.inventoryCard,
+.bulkToolbar {
+    --mantine-color-text: var(--surface-text-main) !important;
+    --mantine-color-dimmed: var(--surface-text-muted) !important;
+    color: var(--surface-text-main) !important;
+    background: var(--surface-bg, var(--glass-bg)) !important;
+    border-color: var(--surface-border, var(--glass-border)) !important;
+}
+
+.statValue {
+    color: var(--text-highlight, var(--surface-text-main));
+    font-variant-numeric: tabular-nums;
+}
+
+.bulkToolbar {
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+}
+
+.bulkToolbar > :global(.mantine-Group-root) {
+    width: 100%;
+}
+
+.inventoryCard {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.inventoryScroll {
+    flex: 1 1 0;
+    min-height: 0;
+}
+
+.inventoryScroll :global(.mantine-ScrollArea-viewport) {
+    height: 100%;
+}
+
+.inventoryTable thead[data-sticky] {
+    z-index: 3;
+    box-shadow: 0 1px 0 var(--surface-border, var(--glass-border));
+}
+
+.inventoryTable thead th {
+    background: var(--surface-bg-solid, var(--mantine-color-body)) !important;
+}
+
+.typeCell {
+    min-width: 150px;
+    white-space: nowrap;
+}
+
+.typeBadge {
+    max-width: none;
+    overflow: visible;
+}
+
+.selectionCell {
+    width: 52px;
+    min-width: 52px;
+}
+
+.impactList {
+    max-height: 220px;
+    overflow-y: auto;
+    padding: var(--mantine-spacing-xs);
+    border: 1px solid var(--surface-border, var(--glass-border));
+    border-radius: var(--mantine-radius-sm);
+}
+
+@media (max-height: 760px) {
+    .overview {
+        gap: var(--mantine-spacing-sm);
+    }
+
+    .overviewHeader {
+        gap: var(--mantine-spacing-sm) !important;
+    }
+
+    .statCard {
+        padding: var(--mantine-spacing-sm) !important;
+    }
+}

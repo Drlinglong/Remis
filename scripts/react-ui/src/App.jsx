@@ -42,6 +42,7 @@ const AgentWorkshopPage = lazy(() => import('./pages/AgentWorkshopPage'));
 const CopilotPage = lazy(() => import('./pages/CopilotPage'));
 const TaskDetailPage = lazy(() => import('./pages/TaskDetailPage'));
 const TaskHistoryPage = lazy(() => import('./pages/TaskHistoryPage'));
+const GlossaryHealthReviewPage = lazy(() => import('./pages/GlossaryHealthReviewPage'));
 
 const RouteFallback = () => (
     <Center h="50vh">
@@ -59,6 +60,7 @@ const appRouteConfig = [
     { path: '/project-management', element: <ProjectManagementPage /> },
     { path: '/project-management/:projectId', element: <ProjectManagementPage /> },
     { path: '/tasks/:taskId', element: <TaskDetailPage /> },
+    { path: '/tasks/:taskId/glossary-health', element: <GlossaryHealthReviewPage /> },
     { path: '/task-history', element: <TaskHistoryPage /> },
     { path: '/project-tracking', element: <ProjectTrackingPage /> },
     { path: '/incremental-translation', element: <IncrementalTranslationPage /> },

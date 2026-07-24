@@ -1,0 +1,149 @@
+.root {
+  container-type: inline-size;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(250px, 320px) minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  background: var(--surface-bg);
+}
+
+.queue {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--surface-border);
+  background: color-mix(in srgb, var(--surface-bg) 90%, black);
+}
+
+.queueHeader {
+  flex-shrink: 0;
+  min-height: 52px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.queueScroll,
+.reviewScroll {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.queueList {
+  padding: 12px;
+}
+
+.queueItem {
+  width: 100%;
+  padding: 12px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: background-color 120ms ease-out, border-color 120ms ease-out;
+}
+
+.queueItem:hover {
+  background: color-mix(in srgb, var(--surface-hover, var(--mantine-color-default-hover)) 80%, transparent);
+}
+
+.queueItem:focus-visible {
+  outline: 2px solid var(--mantine-color-teal-5);
+  outline-offset: 2px;
+}
+
+.queueItem[data-selected='true'] {
+  background: color-mix(in srgb, var(--mantine-color-teal-9) 22%, transparent);
+  border-color: var(--mantine-color-teal-6);
+}
+
+.queueTerm {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.review {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.reviewContent {
+  width: min(100%, 920px);
+  min-height: 100%;
+  padding: clamp(18px, 3vw, 32px);
+}
+
+.caseHeading {
+  min-width: 0;
+  max-width: 72ch;
+}
+
+.caseHeading h2 {
+  margin-top: 4px;
+  font-size: clamp(1.55rem, 3vw, 2.25rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.issueCode {
+  max-width: min(100%, 260px);
+}
+
+.issueCode :global(.mantine-Badge-label) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.advice {
+  padding: 14px 16px;
+  border-block: 1px solid var(--surface-border);
+}
+
+.editor {
+  padding-top: 4px;
+}
+
+.actions {
+  padding-top: 4px;
+}
+
+@container (max-width: 760px) {
+  .root {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(150px, 32%) minmax(0, 1fr);
+  }
+
+  .queue {
+    border-right: 0;
+    border-bottom: 1px solid var(--surface-border);
+  }
+
+  .queueList {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(210px, 72%);
+    overflow: visible;
+  }
+}
+
+@container (max-width: 460px) {
+  .reviewContent {
+    padding: 16px;
+  }
+
+  .actions {
+    align-items: stretch;
+  }
+
+  .actions > * {
+    flex: 1 1 100%;
+  }
+}
