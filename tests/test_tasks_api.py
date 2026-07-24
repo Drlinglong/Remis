@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 import pytest
 from fastapi import HTTPException
 
+from scripts.core.db_migrations import migrate_main_database
+from scripts.core.repositories.task_repository import TaskRepository
 from scripts.routers import tasks as tasks_router
 from scripts.shared import task_state
 
@@ -130,6 +132,50 @@ async def test_task_counts_are_global_and_non_mutating_agent_work_does_not_block
     assert len(payload.tasks) == 1
     assert payload.active_count == 3
     assert payload.tasks[0].blocking is False
+
+
+@pytest.mark.asyncio
+async def test_persisted_task_api_keeps_old_actionable_work_visible_and_latest_completion(tmp_path):
+    db_path = tmp_path / "task-api.sqlite"
+    migrate_main_database(str(db_path))
+    repository = TaskRepository(str(db_path))
+    task_state.configure_repository(repository)
+    try:
+        task_state.create_task(
+            "running-before-history",
+            status="running",
+            fields={
+                "kind": "translation",
+                "title": "Still running",
+                "created_at": "2026-07-20T00:00:00Z",
+                "updated_at": "2026-07-20T00:00:00Z",
+            },
+        )
+        for index in range(60):
+            task_state.create_task(
+                f"completed-{index:02d}",
+                status="completed",
+                fields={
+                    "kind": "translation",
+                    "title": f"Completed {index}",
+                    "created_at": f"2026-07-22T00:{index:02d}:00Z",
+                    "updated_at": f"2026-07-22T00:{index:02d}:00Z",
+                },
+            )
+
+        queue = await tasks_router.list_task_summaries(active_only=True, limit=200)
+        latest_completed = await tasks_router.list_task_summaries(
+            status="completed",
+            limit=1,
+        )
+
+        assert queue.total_count == 1
+        assert queue.active_count == 1
+        assert [task.task_id for task in queue.tasks] == ["running-before-history"]
+        assert [task.task_id for task in latest_completed.tasks] == ["completed-59"]
+        assert latest_completed.total_count == 60
+    finally:
+        task_state.configure_repository(None)
 
 
 @pytest.mark.asyncio

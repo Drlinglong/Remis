@@ -20,7 +20,7 @@ from scripts.core.db_models import (
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 5
+MAIN_DB_TARGET_VERSION = 6
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -307,12 +307,34 @@ def _migration_005_make_glossary_bindings_many_to_many(db_path: str) -> None:
         conn.commit()
 
 
+def _migration_006_index_task_summary_queries(db_path: str) -> None:
+    """Keep task-center pagination and queue polling indexed as history grows."""
+    with _connect(db_path) as conn:
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_background_tasks_archived_updated "
+            "ON background_tasks (archived_at, updated_at DESC)",
+        )
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_background_tasks_status_updated "
+            "ON background_tasks (status, updated_at DESC)",
+        )
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_background_tasks_created_at "
+            "ON background_tasks (created_at DESC)",
+        )
+        conn.commit()
+
+
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
     (3, "add_project_glossary_bindings", _migration_003_add_project_glossary_bindings),
     (4, "add_background_task_ledger", _migration_004_add_background_task_ledger),
     (5, "make_glossary_bindings_many_to_many", _migration_005_make_glossary_bindings_many_to_many),
+    (6, "index_task_summary_queries", _migration_006_index_task_summary_queries),
 ]
 
 

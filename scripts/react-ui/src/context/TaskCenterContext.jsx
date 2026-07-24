@@ -15,10 +15,19 @@ export function TaskCenterProvider({ children }) {
   const refreshTasks = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
     try {
-      const response = await api.get('/api/tasks', { params: { limit: 50 } });
-      setTasks(Array.isArray(response.data?.tasks) ? response.data.tasks : []);
-      setActiveCount(Number(response.data?.active_count || 0));
-      setAttentionCount(Number(response.data?.attention_count || 0));
+      const [queueResponse, completedResponse] = await Promise.all([
+        api.get('/api/tasks', { params: { active_only: true, limit: 200 } }),
+        api.get('/api/tasks', { params: { status: 'completed', limit: 1 } }),
+      ]);
+      const queueTasks = Array.isArray(queueResponse.data?.tasks) ? queueResponse.data.tasks : [];
+      const completedTasks = Array.isArray(completedResponse.data?.tasks) ? completedResponse.data.tasks : [];
+      const seen = new Set(queueTasks.map((task) => task.task_id));
+      setTasks([
+        ...queueTasks,
+        ...completedTasks.filter((task) => !seen.has(task.task_id)),
+      ]);
+      setActiveCount(Number(queueResponse.data?.active_count || 0));
+      setAttentionCount(Number(queueResponse.data?.attention_count || 0));
     } catch (error) {
       console.error('Failed to refresh task center:', error);
     } finally {

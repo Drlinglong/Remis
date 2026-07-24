@@ -5,7 +5,7 @@ import sqlite3
 import threading
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterable, Optional
 
 
 class TaskRepository:
@@ -131,7 +131,7 @@ class TaskRepository:
                 )
             connection.commit()
 
-    def _row_to_task(self, row: sqlite3.Row) -> Dict[str, Any]:
+    def _row_to_task(self, row: sqlite3.Row, *, include_events: bool = True) -> Dict[str, Any]:
         task = self._decode(row["payload"], {})
         task["task_id"] = row["task_id"]
         task.setdefault("kind", row["kind"])
@@ -158,7 +158,10 @@ class TaskRepository:
         if task.get("source_route") or row["source_route"] != "/":
             task["source_route"] = task.get("source_route") or row["source_route"]
         task["archived_at"] = row["archived_at"]
-        task["log"] = [event["message"] for event in self.list_events(row["task_id"])]
+        if include_events:
+            task["log"] = [event["message"] for event in self.list_events(row["task_id"])]
+        else:
+            task.pop("log", None)
         return task
 
     def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
@@ -169,12 +172,121 @@ class TaskRepository:
             ).fetchone()
         return self._row_to_task(row) if row else None
 
-    def list_tasks(self) -> list[Dict[str, Any]]:
+    @staticmethod
+    def _in_clause(values: Iterable[str]) -> tuple[str, list[str]]:
+        normalized = sorted({str(value).lower() for value in values if value})
+        return ", ".join("?" for _ in normalized), normalized
+
+    def list_tasks(
+        self,
+        *,
+        statuses: Optional[Iterable[str]] = None,
+        include_events: bool = True,
+    ) -> list[Dict[str, Any]]:
+        clauses: list[str] = []
+        parameters: list[Any] = []
+        if statuses is not None:
+            placeholders, normalized = self._in_clause(statuses)
+            if not normalized:
+                return []
+            clauses.append(f"status IN ({placeholders})")
+            parameters.extend(normalized)
+        where_sql = f" WHERE {' AND '.join(clauses)}" if clauses else ""
         with self._lock, self._connect() as connection:
             rows = connection.execute(
-                "SELECT * FROM background_tasks ORDER BY COALESCE(updated_at, created_at) DESC"
+                f"""
+                SELECT *
+                FROM background_tasks
+                {where_sql}
+                ORDER BY updated_at DESC, created_at DESC
+                """,
+                parameters,
             ).fetchall()
-        return [self._row_to_task(row) for row in rows]
+        return [self._row_to_task(row, include_events=include_events) for row in rows]
+
+    def query_task_page(
+        self,
+        *,
+        include_archived: bool = False,
+        statuses: Optional[Iterable[str]] = None,
+        kind: Optional[str] = None,
+        from_time: Optional[str] = None,
+        to_time: Optional[str] = None,
+        offset: int = 0,
+        limit: int = 50,
+    ) -> Dict[str, Any]:
+        """Return one summary page and global queue counts without loading events."""
+        clauses: list[str] = []
+        parameters: list[Any] = []
+        if not include_archived:
+            clauses.append("archived_at IS NULL")
+        if statuses is not None:
+            placeholders, normalized = self._in_clause(statuses)
+            if not normalized:
+                return {"tasks": [], "total_count": 0, "active_count": 0, "attention_count": 0}
+            clauses.append(f"status IN ({placeholders})")
+            parameters.extend(normalized)
+        if kind:
+            clauses.append("kind = ?")
+            parameters.append(kind)
+        task_time_sql = "COALESCE(created_at, started_at)"
+        if from_time:
+            clauses.append(f"julianday({task_time_sql}) >= julianday(?)")
+            parameters.append(from_time)
+        if to_time:
+            clauses.append(f"julianday({task_time_sql}) < julianday(?)")
+            parameters.append(to_time)
+        where_sql = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        order_sql = (
+            f"julianday({task_time_sql}) DESC"
+            if from_time or to_time
+            else "updated_at DESC, created_at DESC"
+        )
+
+        count_scope = "" if include_archived else "WHERE archived_at IS NULL"
+        with self._lock, self._connect() as connection:
+            count_row = connection.execute(
+                f"""
+                SELECT
+                    COUNT(*) AS total_count,
+                    COALESCE(SUM(
+                        CASE WHEN status IN (
+                            'pending', 'starting', 'queued', 'running',
+                            'processing', 'in_progress', 'awaiting_approval',
+                            'waiting_approval'
+                        ) THEN 1 ELSE 0 END
+                    ), 0) AS active_count,
+                    COALESCE(SUM(
+                        CASE WHEN status IN (
+                            'awaiting_approval', 'waiting_approval', 'failed',
+                            'partial_failed', 'interrupted'
+                        ) THEN 1 ELSE 0 END
+                    ), 0) AS attention_count
+                FROM background_tasks
+                {count_scope}
+                """
+            ).fetchone()
+            total_count = connection.execute(
+                f"SELECT COUNT(*) FROM background_tasks{where_sql}",
+                parameters,
+            ).fetchone()[0]
+            rows = connection.execute(
+                f"""
+                SELECT *
+                FROM background_tasks
+                {where_sql}
+                ORDER BY {order_sql}
+                LIMIT ? OFFSET ?
+                """,
+                [*parameters, limit, offset],
+            ).fetchall()
+
+        return {
+            "tasks": [self._row_to_task(row, include_events=False) for row in rows],
+            "total_count": int(total_count),
+            "active_count": int(count_row["active_count"]),
+            "attention_count": int(count_row["attention_count"]),
+        }
 
     def list_events(self, task_id: str, *, limit: int = 500) -> list[Dict[str, Any]]:
         with self._lock, self._connect() as connection:

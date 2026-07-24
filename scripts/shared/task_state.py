@@ -96,7 +96,13 @@ def configure_repository(
         _repository = repository
         if not hydrate or repository is None:
             return
-        persisted = repository.list_tasks()
+        # Only active work needs an in-memory mirror for live updates and
+        # duplicate-write protection. Historical tasks remain queryable from
+        # SQLite by exact ID and through the paginated task API.
+        persisted = repository.list_tasks(
+            statuses=ACTIVE_TASK_STATUSES,
+            include_events=False,
+        )
         if replace:
             tasks.clear()
         for task in persisted:

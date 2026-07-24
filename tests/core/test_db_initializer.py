@@ -75,6 +75,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (3, "add_project_glossary_bindings"),
         (4, "add_background_task_ledger"),
         (5, "make_glossary_bindings_many_to_many"),
+        (6, "index_task_summary_queries"),
     ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
@@ -165,7 +166,7 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     assert {"source_language", "last_modified", "last_activity_type", "last_activity_desc", "notes", "target_path"}.issubset(project_columns)
 
     cursor.execute("SELECT version FROM schema_migrations")
-    assert cursor.fetchall() == [(1,), (2,), (3,), (4,), (5,)]
+    assert cursor.fetchall() == [(1,), (2,), (3,), (4,), (5,), (6,)]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")
     assert cursor.fetchone() == ("project_watches",)
@@ -177,6 +178,13 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     assert cursor.fetchone() == ("background_tasks",)
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='task_events'")
     assert cursor.fetchone() == ("task_events",)
+    cursor.execute("PRAGMA index_list(background_tasks)")
+    task_indexes = {row[1] for row in cursor.fetchall()}
+    assert {
+        "ix_background_tasks_archived_updated",
+        "ix_background_tasks_status_updated",
+        "ix_background_tasks_created_at",
+    }.issubset(task_indexes)
 
     cursor.execute("SELECT glossary_id FROM project_glossary_bindings WHERE project_id = 'p1'")
     assert cursor.fetchone() == (1,)
@@ -200,9 +208,9 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     assert cursor.fetchone()[0] == "Legacy"
     conn.close()
 
-    assert migrate_main_database(str(db_path)) == 5
+    assert migrate_main_database(str(db_path)) == 6
     conn = sqlite3.connect(db_path)
-    assert conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0] == 5
+    assert conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0] == 6
     assert conn.execute("SELECT COUNT(*) FROM project_glossary_bindings").fetchone()[0] == 1
     conn.close()
 

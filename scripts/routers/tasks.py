@@ -13,6 +13,16 @@ router = APIRouter(prefix="/api/tasks", tags=["Tasks"])
 
 ACTIVE_STATUSES = {"queued", "running", "awaiting_approval"}
 ATTENTION_STATUSES = {"awaiting_approval", "failed", "interrupted"}
+RAW_STATUS_BY_NORMALIZED = {
+    "queued": {"pending", "starting", "queued"},
+    "running": {"running", "processing", "in_progress"},
+    "awaiting_approval": {"awaiting_approval", "waiting_approval"},
+    "completed": {"completed", "complete", "success"},
+    "failed": {"failed", "partial_failed"},
+    "cancelled": {"cancelled", "canceled"},
+    "interrupted": {"interrupted"},
+    "unknown": {"unknown"},
+}
 BLOCKING_KINDS = {
     "initial_translation",
     "translation",
@@ -157,7 +167,26 @@ def _collect_task_summaries(*, include_archived: bool = False) -> list[TaskSumma
     summaries: list[TaskSummary] = []
     seen = set()
 
+    repository = task_state.get_repository()
+    persisted_tasks = (
+        repository.list_tasks(include_events=False)
+        if repository is not None
+        else []
+    )
+    tasks_by_id = {
+        str(task.get("task_id")): task
+        for task in persisted_tasks
+        if task.get("task_id")
+    }
     for task in task_state.list_tasks():
+        task_id = str(task.get("task_id") or "")
+        persisted = tasks_by_id.get(task_id)
+        if task_id and (
+            persisted is None
+            or str(task.get("updated_at") or "") >= str(persisted.get("updated_at") or "")
+        ):
+            tasks_by_id[task_id] = task
+    for task in tasks_by_id.values():
         task_id = str(task.get("task_id") or "")
         if not task_id:
             continue
@@ -174,6 +203,69 @@ def _collect_task_summaries(*, include_archived: bool = False) -> list[TaskSumma
 
     summaries.sort(key=lambda item: item.updated_at or item.created_at or "", reverse=True)
     return summaries
+
+
+def _iso_utc(value: Optional[datetime]) -> Optional[str]:
+    if value is None:
+        return None
+    normalized = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    return normalized.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _persisted_task_page(
+    *,
+    jobs: Dict[str, Dict[str, Any]],
+    include_archived: bool,
+    active_only: bool,
+    status: Optional[str],
+    kind: Optional[str],
+    from_time: Optional[datetime],
+    to_time: Optional[datetime],
+    offset: int,
+    limit: int,
+) -> Optional[TaskSummaryList]:
+    repository = task_state.get_repository()
+    if repository is None:
+        return None
+
+    # Registry-only legacy jobs still need the compatibility merge below.
+    for job_id in jobs:
+        if task_state.get_task(job_id) is None:
+            return None
+
+    normalized_statuses: Optional[set[str]] = None
+    if active_only:
+        normalized_statuses = ACTIVE_STATUSES | ATTENTION_STATUSES
+    if status:
+        normalized_statuses = {status}
+    raw_statuses = (
+        {
+            raw_status
+            for normalized in normalized_statuses
+            for raw_status in RAW_STATUS_BY_NORMALIZED.get(normalized, {normalized})
+        }
+        if normalized_statuses is not None
+        else None
+    )
+    page = repository.query_task_page(
+        include_archived=include_archived,
+        statuses=raw_statuses,
+        kind=kind,
+        from_time=_iso_utc(from_time),
+        to_time=_iso_utc(to_time),
+        offset=offset,
+        limit=limit,
+    )
+    summaries = [
+        _from_live_task(task, jobs.get(str(task.get("task_id") or "")))
+        for task in page["tasks"]
+    ]
+    return TaskSummaryList(
+        tasks=summaries,
+        active_count=page["active_count"],
+        attention_count=page["attention_count"],
+        total_count=page["total_count"],
+    )
 
 
 async def _enrich_project_context(summaries: list[TaskSummary]) -> None:
@@ -229,6 +321,7 @@ def _task_matches_glossary(summary: TaskSummary, glossary_id: int) -> bool:
 async def list_task_summaries(
     active_only: Annotated[bool, Query()] = False,
     include_archived: Annotated[bool, Query()] = False,
+    status: Annotated[Optional[str], Query()] = None,
     kind: Annotated[Optional[str], Query()] = None,
     glossary_id: Annotated[Optional[int], Query(ge=1)] = None,
     from_time: Annotated[Optional[datetime], Query()] = None,
@@ -236,12 +329,36 @@ async def list_task_summaries(
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ):
+    normalized_status = _status(status) if status else None
+    jobs = {
+        str(job.get("job_id")): job
+        for job in agent_registry.list_jobs()
+        if job.get("job_id")
+    }
+    if glossary_id is None:
+        persisted_page = _persisted_task_page(
+            jobs=jobs,
+            include_archived=include_archived,
+            active_only=active_only,
+            status=normalized_status,
+            kind=kind,
+            from_time=from_time,
+            to_time=to_time,
+            offset=offset,
+            limit=limit,
+        )
+        if persisted_page is not None:
+            await _enrich_project_context(persisted_page.tasks)
+            return persisted_page
+
     summaries = _collect_task_summaries(include_archived=include_archived)
     await _enrich_project_context(summaries)
     active_count = sum(item.status in ACTIVE_STATUSES for item in summaries)
     attention_count = sum(item.status in ATTENTION_STATUSES for item in summaries)
     if active_only:
         summaries = [item for item in summaries if item.status in ACTIVE_STATUSES or item.status in ATTENTION_STATUSES]
+    if normalized_status:
+        summaries = [item for item in summaries if item.status == normalized_status]
     if kind:
         summaries = [item for item in summaries if item.kind == kind]
     if glossary_id is not None:
