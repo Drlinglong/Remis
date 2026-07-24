@@ -23,6 +23,7 @@ import {
   IconAlertTriangle,
   IconEdit,
   IconFolder,
+  IconHistory,
   IconPlayerPlay,
   IconPlus,
   IconRefresh,
@@ -35,6 +36,7 @@ import { PROJECT_WATCHES_UPDATED_EVENT } from '../components/ProjectWatchSchedul
 import { useTutorial } from '../context/TutorialContextCore';
 import projectService from '../services/projectService';
 import projectWatchService from '../services/projectWatchService';
+import { taskDetailRoute } from '../utils/taskRoutes';
 import styles from './ProjectTrackingPage.module.css';
 
 const PAGE_REFRESH_INTERVAL_MS = 60 * 1000;
@@ -151,6 +153,7 @@ const ProjectTrackingPage = () => {
       days: t('project_tracking.unit_days'),
     },
     selectProjectFirst: t('project_tracking.select_project_first'),
+    viewScanTask: t('task_center.view_task'),
   }), [t]);
 
   const intervalUnitOptions = useMemo(() => [
@@ -456,6 +459,18 @@ const ProjectTrackingPage = () => {
                               <IconPlayerPlay size={16} />
                             </ActionIcon>
                           </Tooltip>
+                          {watch.last_scan_summary?.task_id && (
+                            <Tooltip label={text.viewScanTask}>
+                              <ActionIcon
+                                aria-label={text.viewScanTask}
+                                variant="subtle"
+                                color="blue"
+                                onClick={() => navigate(taskDetailRoute(watch.last_scan_summary.task_id))}
+                              >
+                                <IconHistory size={16} />
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
                           <Tooltip label={text.edit}>
                             <ActionIcon aria-label={text.edit} variant="subtle" onClick={() => openEditModal(watch)}>
                               <IconEdit size={16} />

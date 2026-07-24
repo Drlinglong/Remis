@@ -135,7 +135,7 @@ describe('ProjectTrackingPage', () => {
         scan_interval_minutes: 30,
         status: 'changed',
         last_scan_at: '2026-06-10T00:00:00+00:00',
-        last_scan_summary: { changed_count: 2 },
+        last_scan_summary: { changed_count: 2, task_id: 'scan-task-1' },
       }],
     });
     projectWatchService.scanWatches.mockResolvedValue({ data: [] });
@@ -158,6 +158,15 @@ describe('ProjectTrackingPage', () => {
         fromProjectWatch: true,
       },
     });
+  });
+
+  it('opens the exact scheduled scan result from the watched project row', async () => {
+    renderWithProvider(<ProjectTrackingPage />);
+
+    await screen.findByText('Steam Vic3');
+    fireEvent.click(screen.getByLabelText('task_center.view_task'));
+
+    expect(navigateMock).toHaveBeenCalledWith('/tasks/scan-task-1');
   });
 
   it('scans selected watches', async () => {
