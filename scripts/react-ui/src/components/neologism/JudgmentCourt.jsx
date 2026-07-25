@@ -19,6 +19,14 @@ const API_BASE_URL = '/api';
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+const batchModalClassNames = {
+    content: styles.batchModalContent,
+    header: styles.batchModalHeader,
+    title: styles.batchModalTitle,
+    body: styles.batchModalBody,
+    close: styles.batchModalClose,
+};
+
 const settleWithConcurrency = async (items, operation, concurrency = 4) => {
     const results = new Array(items.length);
     let nextIndex = 0;
@@ -566,6 +574,7 @@ const JudgmentCourt = ({
                 }}
                 title={t('neologism_review.court.batch_reject_confirm_title')}
                 centered
+                classNames={batchModalClassNames}
                 closeOnClickOutside={!batchProcessing}
                 closeOnEscape={!batchProcessing}
                 withCloseButton={!batchProcessing}
@@ -576,12 +585,18 @@ const JudgmentCourt = ({
                             count: batchSelectedIds.length,
                         })}
                     </Text>
-                    <Alert color="orange" variant="light" icon={<IconAlertTriangle size={18} />}>
+                    <Alert
+                        color="orange"
+                        variant="light"
+                        className={styles.batchModalAlert}
+                        icon={<IconAlertTriangle size={18} />}
+                    >
                         {t('neologism_review.court.batch_reject_confirm_note')}
                     </Alert>
                     <Group justify="flex-end">
                         <Button
                             variant="default"
+                            data-remis-action="paper-secondary"
                             onClick={() => setBatchConfirmOpen(null)}
                             disabled={batchProcessing}
                         >
@@ -589,6 +604,7 @@ const JudgmentCourt = ({
                         </Button>
                         <Button
                             color="red"
+                            data-remis-action="paper-danger"
                             leftSection={<IconX size={18} />}
                             onClick={handleBatchReject}
                             loading={batchProcessing}
@@ -605,6 +621,7 @@ const JudgmentCourt = ({
                 }}
                 title={t('neologism_review.court.batch_approve_confirm_title')}
                 centered
+                classNames={batchModalClassNames}
                 closeOnClickOutside={!batchProcessing}
                 closeOnEscape={!batchProcessing}
                 withCloseButton={!batchProcessing}
@@ -615,12 +632,18 @@ const JudgmentCourt = ({
                             count: batchSelectedIds.length,
                         })}
                     </Text>
-                    <Alert color="blue" variant="light" icon={<IconAlertTriangle size={18} />}>
+                    <Alert
+                        color="blue"
+                        variant="light"
+                        className={styles.batchModalAlert}
+                        icon={<IconAlertTriangle size={18} />}
+                    >
                         {t('neologism_review.court.batch_approve_confirm_note')}
                     </Alert>
                     <Group justify="flex-end">
                         <Button
                             variant="default"
+                            data-remis-action="paper-secondary"
                             onClick={() => setBatchConfirmOpen(null)}
                             disabled={batchProcessing}
                         >
@@ -628,6 +651,7 @@ const JudgmentCourt = ({
                         </Button>
                         <Button
                             color="green"
+                            data-remis-action="paper-primary"
                             leftSection={<IconCheck size={18} />}
                             onClick={handleBatchApprove}
                             loading={batchProcessing}
@@ -644,6 +668,7 @@ const JudgmentCourt = ({
                 }}
                 title={t('neologism_review.court.batch_restore_confirm_title')}
                 centered
+                classNames={batchModalClassNames}
                 closeOnClickOutside={!batchProcessing}
                 closeOnEscape={!batchProcessing}
                 withCloseButton={!batchProcessing}
@@ -654,12 +679,18 @@ const JudgmentCourt = ({
                             count: batchSelectedIds.length,
                         })}
                     </Text>
-                    <Alert color="blue" variant="light" icon={<IconRestore size={18} />}>
+                    <Alert
+                        color="blue"
+                        variant="light"
+                        className={styles.batchModalAlert}
+                        icon={<IconRestore size={18} />}
+                    >
                         {t('neologism_review.court.batch_restore_confirm_note')}
                     </Alert>
                     <Group justify="flex-end">
                         <Button
                             variant="default"
+                            data-remis-action="paper-secondary"
                             onClick={() => setBatchConfirmOpen(null)}
                             disabled={batchProcessing}
                         >
@@ -667,6 +698,7 @@ const JudgmentCourt = ({
                         </Button>
                         <Button
                             color="blue"
+                            data-remis-action="paper-primary"
                             leftSection={<IconRestore size={18} />}
                             onClick={handleBatchRestore}
                             loading={batchProcessing}

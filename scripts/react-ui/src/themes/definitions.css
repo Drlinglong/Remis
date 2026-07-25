@@ -353,6 +353,32 @@ html[data-theme] [data-remis-action='danger-secondary']:is(:hover, :active) {
   box-shadow: inset 3px 0 0 var(--mantine-color-red-6) !important;
 }
 
+html[data-theme] [data-remis-action='paper-primary'] {
+  background: var(--interactive-accent) !important;
+  border-color: var(--paper-text-muted) !important;
+  color: var(--interactive-accent-text) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] [data-remis-action='paper-secondary'] {
+  background: transparent !important;
+  border-color: var(--paper-text-muted) !important;
+  color: var(--paper-text-main) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] [data-remis-action='paper-danger'] {
+  background: var(--mantine-color-red-8) !important;
+  border-color: var(--paper-text-muted) !important;
+  color: var(--mantine-color-white) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] [data-remis-action^='paper-']:is(:hover, :active) {
+  filter: brightness(1.08);
+  box-shadow: none !important;
+}
+
 html[data-theme] :is(button, a, input, select, textarea, [role='button']):focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;

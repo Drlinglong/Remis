@@ -103,6 +103,47 @@
   box-shadow: inset 3px 0 0 var(--mantine-color-red-6) !important;
 }
 
+.batchModalContent,
+.batchModalHeader,
+.batchModalBody {
+  --mantine-color-text: var(--paper-text-main) !important;
+  --mantine-color-dimmed: var(--paper-text-muted) !important;
+  background: var(--paper-bg) !important;
+  color: var(--paper-text-main) !important;
+}
+
+.batchModalContent {
+  border: 1px solid var(--paper-text-muted) !important;
+}
+
+.batchModalTitle {
+  color: var(--paper-text-main) !important;
+}
+
+.batchModalClose {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--paper-text-main) !important;
+}
+
+.batchModalClose:hover {
+  background: color-mix(in srgb, var(--paper-text-main) 9%, var(--paper-bg)) !important;
+  border-color: var(--paper-text-muted) !important;
+}
+
+.batchModalAlert {
+  background: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg)) !important;
+  border: 1px solid var(--paper-text-muted) !important;
+  color: var(--paper-text-main) !important;
+  box-shadow: none !important;
+}
+
+.batchModalAlert :global(.mantine-Alert-icon),
+.batchModalAlert :global(.mantine-Alert-title),
+.batchModalAlert :global(.mantine-Alert-message) {
+  color: var(--paper-text-main) !important;
+}
+
 @media (max-width: 48em) {
   .primaryAction {
     flex: 1 1 100%;
