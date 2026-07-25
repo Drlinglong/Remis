@@ -43,14 +43,14 @@ export function ProjectDashboardView({
   }, [activeTab, fetchProjectFiles, selectedProject.project_id]);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <Paper p="md" shadow="xs" style={{ zIndex: 10 }}>
+    <div data-remis-surface="canvas" className={styles.projectCanvas} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Paper data-remis-surface="paper" p="md" shadow="xs" className={styles.paperPanel} style={{ zIndex: 10 }}>
         <Group justify="space-between">
           <Group>
             <Button variant="subtle" onClick={() => setSelectedProjectId(null)} leftSection={<IconArrowLeft size={16} />}>
               {t('button_back')}
             </Button>
-            <Title order={3} style={{ fontFamily: 'var(--font-header)', color: 'var(--text-highlight)' }}>
+            <Title order={3} className={styles.paperTitle} style={{ fontFamily: 'var(--font-header)' }}>
               {selectedProject.name}
             </Title>
             <Badge color={selectedProject.status === 'active' ? 'blue' : selectedProject.status === 'archived' ? 'orange' : 'red'}>

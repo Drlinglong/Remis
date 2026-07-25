@@ -76,7 +76,7 @@ const ProjectHeader = ({
                 : IconPlayerPlay;
 
     return (
-        <Paper withBorder p={{ base: 'sm', md: 'md' }} radius="md" className={styles.glassCard} mb="md">
+        <Paper data-remis-surface="surface" withBorder p={{ base: 'sm', md: 'md' }} radius="md" className={`${styles.glassCard} ${styles.surfacePanel}`} mb="md">
             <Group justify="space-between" align="flex-start" mb="md" gap="sm">
                 <div>
                     <Text size="xs" fw={700} c="dimmed" tt="uppercase">{t('project_management.current_state')}</Text>
@@ -138,7 +138,7 @@ const ProjectHeader = ({
 
             <Grid gutter="sm" align="stretch">
                 <Grid.Col span={{ base: 12, md: 6 }}>
-                    <Card withBorder h="100%" className={styles.statCard}>
+                    <Card data-remis-surface="surface" withBorder h="100%" className={styles.surfaceInset}>
                         <Group justify="space-between"><Text fw={700}>{t('project_management.overview.translated')}</Text><Text fw={700}>{translated}%</Text></Group>
                         <Progress value={translated} mt="sm" size="lg" radius="xl" />
                         <Group justify="space-between" mt="sm">
@@ -147,10 +147,10 @@ const ProjectHeader = ({
                         </Group>
                     </Card>
                 </Grid.Col>
-                <Grid.Col span={{ base: 6, sm: 3, md: 1.5 }}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('project_management.overview.total_files')}</Text><Title order={3}>{overview.totalFiles || 0}</Title></Card></Grid.Col>
-                <Grid.Col span={{ base: 6, sm: 3, md: 1.5 }}><Card withBorder className={styles.statCard} h="100%"><Text size="xs" c="dimmed">{t('project_management.overview.total_lines')}</Text><Title order={3}>{overview.totalLines || 0}</Title></Card></Grid.Col>
+                <Grid.Col span={{ base: 6, sm: 3, md: 1.5 }}><Card data-remis-surface="surface" withBorder className={styles.surfaceInset} h="100%"><Text size="xs" c="dimmed">{t('project_management.overview.total_files')}</Text><Title order={3}>{overview.totalFiles || 0}</Title></Card></Grid.Col>
+                <Grid.Col span={{ base: 6, sm: 3, md: 1.5 }}><Card data-remis-surface="surface" withBorder className={styles.surfaceInset} h="100%"><Text size="xs" c="dimmed">{t('project_management.overview.total_lines')}</Text><Title order={3}>{overview.totalLines || 0}</Title></Card></Grid.Col>
                 <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                    <Card withBorder className={styles.statCard} h="100%">
+                    <Card data-remis-surface="surface" withBorder className={styles.surfaceInset} h="100%">
                         <Stack gap={4}>
                             <Text size="xs" c="dimmed">{t('incremental_translation.archived_target_languages')}</Text>
                             <Text size="sm" fw={600}>{Array.isArray(projectDetails.archived_languages) && projectDetails.archived_languages.length > 0 ? projectDetails.archived_languages.join(', ') : t('incremental_translation.none_archived')}</Text>
