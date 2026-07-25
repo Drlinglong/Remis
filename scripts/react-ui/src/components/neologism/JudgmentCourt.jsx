@@ -1132,7 +1132,11 @@ const JudgmentCourt = ({
                                             ]}
                                             value={resolution}
                                             onChange={setResolution}
-                                            classNames={{ input: styles.semanticField }}
+                                            classNames={{
+                                                wrapper: styles.semanticFieldWrapper,
+                                                label: styles.semanticFieldLabel,
+                                                input: styles.semanticField,
+                                            }}
                                         />
                                     )}
                                     <TextInput
@@ -1142,7 +1146,12 @@ const JudgmentCourt = ({
                                         radius="md"
                                         value={editSuggestion}
                                         onChange={(e) => updateEditSuggestion(e.currentTarget.value)}
-                                        classNames={{ input: styles.semanticField }}
+                                        classNames={{
+                                            wrapper: styles.semanticFieldWrapper,
+                                            label: styles.semanticFieldLabel,
+                                            description: styles.semanticFieldDescription,
+                                            input: styles.semanticField,
+                                        }}
                                         rightSection={
                                             <ActionIcon
                                                 variant="subtle"

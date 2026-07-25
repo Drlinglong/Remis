@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import api from '../../utils/api';
 import JudgmentCourt from './JudgmentCourt';
+import styles from './JudgmentCourt.module.css';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key) => key }),
@@ -164,5 +165,36 @@ describe('JudgmentCourt semantic surfaces', () => {
       'data-remis-action',
       'danger-secondary',
     );
+  });
+
+  it('keeps medieval decision labels on the surface text contract', async () => {
+    const medieval = parseThemeTokens('medieval');
+
+    render(
+      <MantineProvider>
+        <JudgmentCourt
+          selectedProject="project-1"
+          onSelectedProjectChange={vi.fn()}
+        />
+      </MantineProvider>,
+    );
+
+    await screen.findByRole('button', { name: /Hyperlane Relay/ });
+
+    expect(screen.getByText('neologism_review.court.duplicate_resolution')).toHaveClass(
+      styles.semanticFieldLabel,
+    );
+    expect(screen.getByText('neologism_review.court.final_translation')).toHaveClass(
+      styles.semanticFieldLabel,
+    );
+    expect(screen.getByText('neologism_review.court.final_translation_desc')).toHaveClass(
+      styles.semanticFieldDescription,
+    );
+    expect(
+      contrastRatio(medieval['surface-text-main'], medieval['surface-bg-solid']),
+    ).toBeGreaterThanOrEqual(4.5);
+    expect(
+      contrastRatio(medieval['surface-text-muted'], medieval['surface-bg-solid']),
+    ).toBeGreaterThanOrEqual(4.5);
   });
 });

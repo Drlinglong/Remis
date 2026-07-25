@@ -68,6 +68,19 @@
   opacity: 1;
 }
 
+.semanticFieldWrapper {
+  --mantine-color-text: var(--surface-text-main);
+  --mantine-color-dimmed: var(--surface-text-muted);
+}
+
+.semanticFieldLabel {
+  color: var(--surface-text-main) !important;
+}
+
+.semanticFieldDescription {
+  color: var(--surface-text-muted) !important;
+}
+
 .primaryAction {
   min-width: min(15rem, 100%);
   background: var(--interactive-accent) !important;
