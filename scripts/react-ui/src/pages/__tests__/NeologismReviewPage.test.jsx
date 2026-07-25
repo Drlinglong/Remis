@@ -2,9 +2,10 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import NeologismReviewPage from '../NeologismReviewPage';
+import { resetNeologismReviewSessionForTests } from '../neologismReviewSession';
 
 const recordCompleteHandler = vi.hoisted(() => vi.fn());
 
@@ -33,6 +34,10 @@ vi.mock('../../components/neologism/JudgmentCourt', () => ({
 
 
 describe('NeologismReviewPage', () => {
+  beforeEach(() => {
+    resetNeologismReviewSessionForTests();
+  });
+
   it('carries project context from mining into the refreshed judgment court', () => {
     const { container } = render(
       <MemoryRouter>
@@ -50,5 +55,34 @@ describe('NeologismReviewPage', () => {
     fireEvent.click(screen.getByText('finish mining'));
     expect(screen.getByTestId('court-state')).toHaveTextContent('demo-stellaris:1');
     expect(recordCompleteHandler.mock.calls[0][0]).toBe(recordCompleteHandler.mock.calls.at(-1)[0]);
+  });
+
+  it('restores the selected project and court tab after an in-app remount', () => {
+    const firstVisit = render(
+      <MemoryRouter>
+        <MantineProvider>
+          <NeologismReviewPage />
+        </MantineProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByText('select demo'));
+    fireEvent.click(screen.getByText('neologism_review.tab_court'));
+    expect(screen.getByTestId('court-state')).toHaveTextContent('demo-stellaris:0');
+
+    firstVisit.unmount();
+
+    render(
+      <MemoryRouter>
+        <MantineProvider>
+          <NeologismReviewPage />
+        </MantineProvider>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('court-state')).toHaveTextContent('demo-stellaris:0');
+    expect(screen.getByRole('tab', {
+      name: 'neologism_review.tab_court',
+    })).toHaveAttribute('aria-selected', 'true');
   });
 });

@@ -5,6 +5,10 @@ import { Box, Group, Stack, Tabs, Text, ThemeIcon, Title } from '@mantine/core';
 import { IconCpu, IconGavel } from '@tabler/icons-react';
 import MiningDashboard from '../components/neologism/MiningDashboard';
 import JudgmentCourt from '../components/neologism/JudgmentCourt';
+import {
+    getNeologismReviewSession,
+    updateNeologismReviewSession,
+} from './neologismReviewSession';
 
 /**
  * 新词审核页面
@@ -13,16 +17,33 @@ import JudgmentCourt from '../components/neologism/JudgmentCourt';
 const NeologismReviewPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('dashboard');
-    const [selectedProject, setSelectedProject] = useState(null);
+    const [activeTab, setActiveTab] = useState(
+        () => getNeologismReviewSession().activeTab,
+    );
+    const [selectedProject, setSelectedProject] = useState(
+        () => getNeologismReviewSession().selectedProject,
+    );
     const [courtRefreshToken, setCourtRefreshToken] = useState(0);
+
+    const handleActiveTabChange = useCallback((nextTab) => {
+        const resolvedTab = nextTab || 'dashboard';
+        updateNeologismReviewSession({ activeTab: resolvedTab });
+        setActiveTab(resolvedTab);
+    }, []);
+
+    const handleSelectedProjectChange = useCallback((projectId) => {
+        updateNeologismReviewSession({ selectedProject: projectId });
+        setSelectedProject(projectId);
+    }, []);
 
     const handleMiningComplete = useCallback(() => {
         setCourtRefreshToken((value) => value + 1);
+        updateNeologismReviewSession({ activeTab: 'court' });
         setActiveTab('court');
     }, []);
 
     const handleOpenMining = useCallback(() => {
+        updateNeologismReviewSession({ activeTab: 'dashboard' });
         setActiveTab('dashboard');
     }, []);
 
@@ -57,7 +78,7 @@ const NeologismReviewPage = () => {
             </Group>
             <Tabs
                 value={activeTab}
-                onChange={setActiveTab}
+                onChange={handleActiveTabChange}
                 variant="pills"
                 radius="md"
                 style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: '1 1 0' }}
@@ -79,7 +100,7 @@ const NeologismReviewPage = () => {
                 >
                     <MiningDashboard
                         selectedProject={selectedProject}
-                        onSelectedProjectChange={setSelectedProject}
+                        onSelectedProjectChange={handleSelectedProjectChange}
                         onMiningComplete={handleMiningComplete}
                     />
                 </Tabs.Panel>
@@ -90,7 +111,7 @@ const NeologismReviewPage = () => {
                 >
                     <JudgmentCourt
                         selectedProject={selectedProject}
-                        onSelectedProjectChange={setSelectedProject}
+                        onSelectedProjectChange={handleSelectedProjectChange}
                         refreshToken={courtRefreshToken}
                         onOpenMining={handleOpenMining}
                         onOpenGlossary={handleOpenGlossary}
