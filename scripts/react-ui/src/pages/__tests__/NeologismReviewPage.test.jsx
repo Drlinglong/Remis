@@ -34,7 +34,7 @@ vi.mock('../../components/neologism/JudgmentCourt', () => ({
 
 describe('NeologismReviewPage', () => {
   it('carries project context from mining into the refreshed judgment court', () => {
-    render(
+    const { container } = render(
       <MemoryRouter>
         <MantineProvider>
           <NeologismReviewPage />
@@ -42,6 +42,7 @@ describe('NeologismReviewPage', () => {
       </MemoryRouter>,
     );
 
+    expect(container.querySelector('[data-neologism-layout="compact"]')).toBeInTheDocument();
     fireEvent.click(screen.getByText('select demo'));
     expect(screen.getByTestId('mining-project')).toHaveTextContent('demo-stellaris');
     expect(recordCompleteHandler.mock.calls[0][0]).toBe(recordCompleteHandler.mock.calls.at(-1)[0]);

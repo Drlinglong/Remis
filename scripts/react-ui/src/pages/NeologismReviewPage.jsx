@@ -34,20 +34,24 @@ const NeologismReviewPage = () => {
     }, [navigate]);
 
     return (
-        <Box h="100%" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <Group px="md" pt="md" gap="sm" align="center" wrap="nowrap" style={{ flexShrink: 0 }}>
-                <ThemeIcon size="xl" radius="md" variant="light" color="blue">
-                    <IconGavel size={24} />
+        <Box
+            h="100%"
+            data-neologism-layout="compact"
+            style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}
+        >
+            <Group px="md" pt="sm" gap="xs" align="center" wrap="nowrap" style={{ flexShrink: 0 }}>
+                <ThemeIcon size="md" radius="sm" variant="light" color="blue">
+                    <IconGavel size={18} />
                 </ThemeIcon>
                 <Stack gap={0} style={{ minWidth: 0, flex: 1 }}>
                     <Title
                         order={1}
                         lineClamp={1}
-                        style={{ fontSize: 'clamp(2rem, 4vw, 3.25rem)' }}
+                        style={{ fontSize: 'clamp(1.35rem, 2.2vw, 1.8rem)', lineHeight: 1.15 }}
                     >
                         {t('neologism_review.title')}
                     </Title>
-                    <Text size="sm" c="dimmed" lineClamp={1}>{t('neologism_review.subtitle')}</Text>
+                    <Text size="xs" c="dimmed" lineClamp={1}>{t('neologism_review.subtitle')}</Text>
                 </Stack>
             </Group>
             <Tabs
@@ -57,7 +61,7 @@ const NeologismReviewPage = () => {
                 radius="md"
                 style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: '1 1 0' }}
             >
-                <Box p="md" pb={0} style={{ flexShrink: 0 }}>
+                <Box px="md" pt="xs" style={{ flexShrink: 0 }}>
                     <Tabs.List>
                         <Tabs.Tab value="dashboard" leftSection={<IconCpu size={16} />}>
                             {t('neologism_review.tab_mining')}

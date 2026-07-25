@@ -664,91 +664,66 @@ const JudgmentCourt = ({
             </Modal>
             {/* Project Context Header */}
             <Paper
-                p="lg"
-                mb="md"
+                p="sm"
+                mb="xs"
                 mx="md"
                 radius="md"
                 withBorder
+                data-testid="neologism-project-toolbar"
                 style={{
                     background: 'var(--glass-bg)',
                     flexShrink: 0
                 }}
             >
-                <Grid gutter="lg" align="stretch">
-                    <Grid.Col span={{ base: 12, md: 7 }} style={{ minWidth: 0 }}>
-                        <Stack gap="xs" style={{ minWidth: 0 }}>
-                            <Group justify="space-between" align="center">
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>
-                                    {t('neologism_review.court.current_project')}
-                                </Text>
-                                {currentProject && (
-                                    <Badge size="lg" variant="light" color="blue">
-                                        {t(
-                                            docketView === 'pending'
-                                                ? 'neologism_review.court.pending_terms'
-                                                : 'neologism_review.court.processed_terms',
-                                            { count: candidates.length },
-                                        )}
-                                    </Badge>
+                <Group justify="space-between" gap="sm" wrap="wrap">
+                    <Group gap="xs" style={{ flex: '1 1 420px', minWidth: 0 }}>
+                        <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>
+                            {t('neologism_review.court.current_project')}
+                        </Text>
+                        <Select
+                            aria-label={t('neologism_review.court.current_project')}
+                            data={projects.map(p => ({ value: p.project_id, label: p.name }))}
+                            value={selectedProject}
+                            onChange={onSelectedProjectChange}
+                            placeholder={t('neologism_review.court.select_project')}
+                            size="sm"
+                            style={{ flex: '1 1 220px', maxWidth: 360 }}
+                        />
+                        {currentProject && (
+                            <Badge size="md" variant="light" color="blue">
+                                {t(
+                                    docketView === 'pending'
+                                        ? 'neologism_review.court.pending_terms'
+                                        : 'neologism_review.court.processed_terms',
+                                    { count: candidates.length },
                                 )}
-                            </Group>
-                            {currentProject && (
-                                <Title
-                                    order={2}
-                                    lineClamp={1}
-                                    style={{ fontSize: 'clamp(1.25rem, 2.4vw, 2rem)' }}
-                                >
-                                    {currentProject.name}
-                                </Title>
-                            )}
-                            <Select
-                                data={projects.map(p => ({ value: p.project_id, label: p.name }))}
-                                value={selectedProject}
-                                onChange={onSelectedProjectChange}
-                                placeholder={t('neologism_review.court.select_project')}
-                                size="md"
-                            />
-                        </Stack>
-                    </Grid.Col>
-                    <Grid.Col span={{ base: 12, md: 5 }}>
-                        <Paper
-                            p="md"
-                            radius="md"
-                            h="100%"
-                            withBorder
-                            style={{
-                                borderColor: 'var(--mantine-color-teal-6)',
-                                background: 'var(--mantine-color-teal-light)',
-                            }}
+                            </Badge>
+                        )}
+                    </Group>
+                    <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
+                        <ThemeIcon color="teal" variant="light" size="md">
+                            <IconBook2 size={16} />
+                        </ThemeIcon>
+                        <Box style={{ minWidth: 0, maxWidth: 220 }}>
+                            <Text size="xs" tt="uppercase" fw={700} c="teal">
+                                {t('neologism_review.court.project_glossary')}
+                            </Text>
+                            <Text size="sm" fw={700} truncate>
+                                {projectGlossary?.name || t('neologism_review.court.project_glossary_pending')}
+                            </Text>
+                        </Box>
+                        <Button
+                            variant="light"
+                            color="teal"
+                            size="compact-sm"
+                            leftSection={<IconExternalLink size={14} />}
+                            onClick={handleOpenProjectGlossary}
+                            disabled={!projectGlossary?.glossary_id || !onOpenGlossary}
                         >
-                            <Stack gap="sm" justify="space-between" h="100%">
-                                <Group gap="sm" wrap="nowrap">
-                                    <ThemeIcon color="teal" variant="filled" size="lg">
-                                        <IconBook2 size={20} />
-                                    </ThemeIcon>
-                                    <Box style={{ minWidth: 0 }}>
-                                        <Text size="xs" tt="uppercase" fw={800} c="teal">
-                                            {t('neologism_review.court.project_glossary')}
-                                        </Text>
-                                        <Text fw={700} truncate>
-                                            {projectGlossary?.name || t('neologism_review.court.project_glossary_pending')}
-                                        </Text>
-                                    </Box>
-                                </Group>
-                                <Button
-                                    variant="filled"
-                                    color="teal"
-                                    leftSection={<IconExternalLink size={16} />}
-                                    onClick={handleOpenProjectGlossary}
-                                    disabled={!projectGlossary?.glossary_id || !onOpenGlossary}
-                                    fullWidth
-                                >
-                                    {t('neologism_review.court.inspect_project_glossary')}
-                                </Button>
-                            </Stack>
-                        </Paper>
-                    </Grid.Col>
-                </Grid>
+                            {t('neologism_review.court.inspect_project_glossary')}
+                        </Button>
+                    </Group>
+                </Group>
             </Paper>
 
             <Grid
@@ -768,7 +743,7 @@ const JudgmentCourt = ({
                         overflow: 'hidden'
                     }}
                 >
-                    <Stack p="md" h="100%" style={{ minHeight: 0 }}>
+                    <Stack p="sm" gap="xs" h="100%" style={{ minHeight: 0 }}>
                         <Group justify="space-between">
                             <Title order={4} c="dimmed">{t('neologism_review.court.docket')}</Title>
                             <Badge variant="dot" size="lg">{candidates.length}</Badge>
@@ -850,8 +825,8 @@ const JudgmentCourt = ({
                             type="always"
                             scrollbars="y"
                             scrollbarSize={8}
-                            style={{ flex: 1, minHeight: 0, margin: '0 -16px' }}
-                            p="md"
+                            style={{ flex: 1, minHeight: 0, margin: '0 -8px' }}
+                            p="xs"
                         >
                             <Stack gap="xs">
                                 {candidates.map(c => (
@@ -868,8 +843,8 @@ const JudgmentCourt = ({
                                         <Paper
                                             component="button"
                                             type="button"
-                                            p="md"
-                                            radius="md"
+                                            p="sm"
+                                            radius="sm"
                                             onClick={() => setSelectedId(c.id)}
                                             aria-pressed={selectedId === c.id}
                                             style={{
@@ -884,7 +859,7 @@ const JudgmentCourt = ({
                                                 transition: 'all 0.2s ease'
                                             }}
                                         >
-                                            <Text fw={600} lineClamp={1}>{c.original}</Text>
+                                            <Text size="sm" fw={600} lineClamp={1}>{c.original}</Text>
                                             {(c.duplicate_matches || []).length > 0 && (
                                                 <Badge color="orange" variant="light" size="xs">
                                                     {t('neologism_review.court.duplicate_badge')}
@@ -923,7 +898,13 @@ const JudgmentCourt = ({
                     style={{ position: 'relative', minHeight: 0, overflow: 'hidden' }}
                 >
                     {selectedCandidate ? (
-                        <Stack h="100%" p="xl" gap="lg" style={{ minHeight: 0 }}>
+                        <Stack
+                            h="100%"
+                            p="md"
+                            gap="sm"
+                            data-testid="neologism-review-workspace"
+                            style={{ minHeight: 0 }}
+                        >
                             <LoadingOverlay visible={processing} />
 
                             <ScrollArea
@@ -932,11 +913,11 @@ const JudgmentCourt = ({
                                 scrollbarSize={8}
                                 style={{ flex: 1, minHeight: 0 }}
                             >
-                                <Stack gap="lg" pr="sm">
+                                <Stack gap="md" pr="xs">
                                     {/* Header Section */}
                                     <Paper
-                                        p="xl"
-                                        radius="lg"
+                                        p="md"
+                                        radius="md"
                                         style={{
                                             background: 'var(--glass-bg)',
                                             backdropFilter: 'blur(10px)'
@@ -945,20 +926,20 @@ const JudgmentCourt = ({
                                         <Group align="flex-start" justify="space-between">
                                             <Box>
                                                 <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>{t('neologism_review.court.candidate_term')}</Text>
-                                                <Title order={1} style={{ fontSize: '2.5rem', color: 'var(--mantine-color-blue-3)' }}>
+                                                <Title order={2} style={{ fontSize: '1.75rem', color: 'var(--mantine-color-blue-3)' }}>
                                                     {selectedCandidate.original}
                                                 </Title>
                                             </Box>
-                                            <Badge size="lg" variant="outline" color="gray">
+                                            <Badge size="md" variant="outline" color="gray">
                                                 {(selectedCandidate.source_file || selectedCandidate.source_files?.[0] || '').split(/[\\/]/).pop() || t('neologism_review.court.unknown_source')}
                                             </Badge>
                                         </Group>
                                     </Paper>
 
-                                    <Grid gutter="xl">
+                                    <Grid gutter="md">
                                         {/* Left Column: Analysis */}
                                         <Grid.Col span={7}>
-                                            <Stack gap="lg">
+                                            <Stack gap="sm">
                                             {(selectedCandidate.duplicate_matches || []).length > 0 && (
                                                 <Alert
                                                     icon={<IconAlertTriangle size={18} />}
@@ -978,9 +959,9 @@ const JudgmentCourt = ({
                                                     </Stack>
                                                 </Alert>
                                             )}
-                                            <Paper p="lg" radius="md" style={{ background: 'rgba(0,0,0,0.2)' }} withBorder>
-                                                <Group mb="sm">
-                                                    <ThemeIcon color="yellow" variant="light" size="lg"><IconBulb size={20} /></ThemeIcon>
+                                            <Paper p="md" radius="md" style={{ background: 'rgba(0,0,0,0.2)' }} withBorder>
+                                                <Group mb="xs">
+                                                    <ThemeIcon color="yellow" variant="light" size="md"><IconBulb size={16} /></ThemeIcon>
                                                     <Text fw={700}>{t('neologism_review.court.ai_analysis')}</Text>
                                                 </Group>
                                                 <Text size="sm" style={{ lineHeight: 1.6 }}>
@@ -1001,11 +982,11 @@ const JudgmentCourt = ({
                                         <Grid.Col span={5}>
                                             <Stack>
                                                 <Text fw={700} c="dimmed" tt="uppercase" size="xs">{t('neologism_review.court.context_evidence')}</Text>
-                                                <Stack gap="sm">
+                                                <Stack gap="xs">
                                                     {selectedEvidence.map((evidence, idx) => (
                                                         <Paper
                                                             key={`${evidence.source_file || 'legacy'}:${idx}`}
-                                                            p="md"
+                                                            p="sm"
                                                             radius="md"
                                                             style={{ background: 'rgba(0,0,0,0.3)' }}
                                                         >
@@ -1034,14 +1015,15 @@ const JudgmentCourt = ({
 
                             {docketView === 'pending' ? (
                                 <Paper
-                                    p="md"
+                                    p="sm"
                                     radius="md"
                                     withBorder
+                                    data-testid="neologism-decision-panel"
                                     style={{ background: 'var(--glass-bg)', flexShrink: 0 }}
                                 >
                                     {(selectedCandidate.duplicate_matches || []).length > 0 && (
                                         <Select
-                                            mb="md"
+                                            mb="sm"
                                             label={t('neologism_review.court.duplicate_resolution')}
                                             data={[
                                                 { value: 'duplicate', label: t('neologism_review.court.resolution_duplicate') },
@@ -1055,7 +1037,7 @@ const JudgmentCourt = ({
                                     <TextInput
                                         label={t('neologism_review.court.final_translation')}
                                         description={t('neologism_review.court.final_translation_desc')}
-                                        size="xl"
+                                        size="md"
                                         radius="md"
                                         value={editSuggestion}
                                         onChange={(e) => updateEditSuggestion(e.currentTarget.value)}
@@ -1065,9 +1047,9 @@ const JudgmentCourt = ({
                                             </ActionIcon>
                                         }
                                     />
-                                    <Group mt="md" grow>
+                                    <Group mt="sm" grow>
                                         <Button
-                                            size="lg"
+                                            size="md"
                                             variant="default"
                                             color="gray"
                                             leftSection={<IconX />}
@@ -1077,7 +1059,7 @@ const JudgmentCourt = ({
                                             {t('neologism_review.court.ignore')}
                                         </Button>
                                         <Button
-                                            size="lg"
+                                            size="md"
                                             variant="gradient"
                                             gradient={{ from: 'teal', to: 'lime', deg: 105 }}
                                             leftSection={<IconGavel />}
@@ -1094,7 +1076,7 @@ const JudgmentCourt = ({
                                 </Paper>
                             ) : (
                                 <Paper
-                                    p="md"
+                                    p="sm"
                                     radius="md"
                                     withBorder
                                     style={{ background: 'var(--glass-bg)', flexShrink: 0 }}
