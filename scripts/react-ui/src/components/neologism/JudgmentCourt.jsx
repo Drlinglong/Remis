@@ -507,6 +507,11 @@ const JudgmentCourt = ({
                 }))
         )
         : [];
+    const selectedSourceFile = selectedCandidate
+        ? (selectedCandidate.source_file || selectedCandidate.source_files?.[0] || '')
+        : '';
+    const selectedSourceName = selectedSourceFile.split(/[\\/]/).pop()
+        || t('neologism_review.court.unknown_source');
     const updateEditSuggestion = (value) => {
         if (!selectedDraftKey) return;
         setDraftSuggestions((current) => ({
@@ -527,7 +532,7 @@ const JudgmentCourt = ({
         if (!text || !term) return <Text>{text}</Text>;
         const parts = text.split(new RegExp(`(${escapeRegExp(term)})`, 'gi'));
         return (
-            <Text size="sm" c="dimmed" lh={1.6}>
+            <Text size="sm" c="dimmed" lh={1.6} style={{ minWidth: 0 }}>
                 {parts.map((part, i) =>
                     part.toLowerCase() === term.toLowerCase() ?
                         <span key={i} style={{
@@ -930,8 +935,14 @@ const JudgmentCourt = ({
                                                     {selectedCandidate.original}
                                                 </Title>
                                             </Box>
-                                            <Badge size="md" variant="outline" color="gray">
-                                                {(selectedCandidate.source_file || selectedCandidate.source_files?.[0] || '').split(/[\\/]/).pop() || t('neologism_review.court.unknown_source')}
+                                            <Badge
+                                                size="md"
+                                                variant="outline"
+                                                color="gray"
+                                                title={selectedSourceFile || selectedSourceName}
+                                                style={{ maxWidth: '45%', minWidth: 0 }}
+                                            >
+                                                {selectedSourceName}
                                             </Badge>
                                         </Group>
                                     </Paper>
@@ -979,8 +990,8 @@ const JudgmentCourt = ({
                                         </Grid.Col>
 
                                         {/* Right Column: Evidence */}
-                                        <Grid.Col span={5}>
-                                            <Stack>
+                                        <Grid.Col span={5} style={{ minWidth: 0 }}>
+                                            <Stack style={{ minWidth: 0 }}>
                                                 <Text fw={700} c="dimmed" tt="uppercase" size="xs">{t('neologism_review.court.context_evidence')}</Text>
                                                 <Stack gap="xs">
                                                     {selectedEvidence.map((evidence, idx) => (
@@ -988,17 +999,32 @@ const JudgmentCourt = ({
                                                             key={`${evidence.source_file || 'legacy'}:${idx}`}
                                                             p="sm"
                                                             radius="md"
-                                                            style={{ background: 'rgba(0,0,0,0.3)' }}
+                                                            style={{ background: 'rgba(0,0,0,0.3)', minWidth: 0 }}
                                                         >
-                                                            <Stack gap="xs">
-                                                                <Group align="flex-start" gap="xs" wrap="nowrap">
+                                                            <Stack gap="xs" style={{ minWidth: 0 }}>
+                                                                <Group
+                                                                    align="flex-start"
+                                                                    gap="xs"
+                                                                    wrap="nowrap"
+                                                                    style={{ minWidth: 0 }}
+                                                                >
                                                                     <IconQuote size={16} style={{ opacity: 0.5, marginTop: 4 }} />
                                                                     <HighlightedText
                                                                         text={evidence.snippet}
                                                                         term={selectedCandidate.original}
                                                                     />
                                                                 </Group>
-                                                                <Text size="xs" c="dimmed">
+                                                                <Text
+                                                                    size="xs"
+                                                                    c="dimmed"
+                                                                    data-testid="neologism-evidence-source"
+                                                                    style={{
+                                                                        minWidth: 0,
+                                                                        whiteSpace: 'normal',
+                                                                        overflowWrap: 'anywhere',
+                                                                        wordBreak: 'break-word',
+                                                                    }}
+                                                                >
                                                                     {evidence.source_file
                                                                         ? `${evidence.source_file}${evidence.line ? `:${evidence.line}` : ''}`
                                                                         : t('neologism_review.court.legacy_source_unlinked')}
