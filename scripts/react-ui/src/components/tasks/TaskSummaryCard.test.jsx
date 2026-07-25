@@ -56,6 +56,26 @@ describe('TaskSummaryCard', () => {
     expect(screen.getByText('00:00:06')).toBeInTheDocument();
   });
 
+  it('uses the shared paper surface contrast contract', () => {
+    const { container } = render(
+      <MantineProvider>
+        <TaskSummaryCard
+          task={{
+            task_id: 'paper-surface-task',
+            kind: 'initial_translation',
+            title: 'Paper surface task',
+            status: 'completed',
+            created_by: { type: 'user' },
+          }}
+          onOpen={vi.fn()}
+        />
+      </MantineProvider>,
+    );
+
+    expect(container.querySelector('[data-remis-surface="paper"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-remis-surface="surface"]')).not.toBeInTheDocument();
+  });
+
   it('localizes glossary health task identity and known local-model failures', () => {
     render(
       <MantineProvider>

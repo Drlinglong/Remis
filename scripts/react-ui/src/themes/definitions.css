@@ -303,6 +303,12 @@ html[data-theme] [data-remis-surface='surface'] {
   color: var(--surface-text-main);
 }
 
+html[data-theme] [data-remis-surface='paper'] {
+  --mantine-color-text: var(--paper-text-main) !important;
+  --mantine-color-dimmed: var(--paper-text-muted) !important;
+  color: var(--paper-text-main);
+}
+
 html[data-theme] [data-remis-surface='elevated'] {
   --mantine-color-text: var(--elevated-text-main) !important;
   --mantine-color-dimmed: var(--elevated-text-muted) !important;

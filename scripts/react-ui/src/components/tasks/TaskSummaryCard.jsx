@@ -54,7 +54,7 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
     : rawDetail;
 
   return (
-    <Paper withBorder radius="md" p={compact ? 'sm' : 'md'} data-remis-surface="surface">
+    <Paper withBorder radius="md" p={compact ? 'sm' : 'md'} data-remis-surface="paper">
       <Stack gap={compact ? 6 : 'sm'}>
         <Group justify="space-between" align="flex-start" wrap="nowrap">
           <div style={{ minWidth: 0 }}>

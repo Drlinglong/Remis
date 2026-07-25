@@ -58,6 +58,8 @@ describe.each(themeIds)('%s semantic contrast contract', (themeId) => {
     ['canvas-text-muted', 'canvas-bg-solid'],
     ['surface-text-main', 'surface-bg-solid'],
     ['surface-text-muted', 'surface-bg-solid'],
+    ['paper-text-main', 'paper-bg'],
+    ['paper-text-muted', 'paper-bg'],
     ['elevated-text-main', 'elevated-bg'],
     ['elevated-text-muted', 'elevated-bg'],
     ['interactive-accent-text', 'interactive-accent'],
