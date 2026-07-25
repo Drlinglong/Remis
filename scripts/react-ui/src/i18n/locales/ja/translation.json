@@ -2,6 +2,7 @@
   "settings_system_maintenance": "システムメンテナンス",
   "settings_reset_db_title": "プロジェクトデータベースをリセット",
   "settings_reset_db_desc": "破損または停止したデータベース用の復旧ツールです。デモ Mod を含む既定のスケルトンから Remis 内部データベースを再構築します。プロジェクトフォルダーは変更されません。",
+  "settings_database_file_label": "データベースファイル:",
   "modal_reset_db_title": "⚠️ 危険：プロジェクトデータベースをリセット",
   "modal_reset_db_confirm_text": "本当に内部データベースを消去しますか？",
   "modal_reset_db_impact_title": "この操作により以下のことが行われます：",

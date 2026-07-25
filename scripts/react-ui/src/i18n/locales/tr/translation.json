@@ -2,6 +2,7 @@
   "settings_system_maintenance": "Sistem Bakımı",
   "settings_reset_db_title": "Proje Veritabanını Sıfırla",
   "settings_reset_db_desc": "Hasarlı veya takılmış bir veritabanı için kurtarma aracıdır. Remis'in dahili veritabanını demo modları da içeren varsayılan iskeletten yeniden oluşturur. Proje klasörleriniz değişmeden kalır.",
+  "settings_database_file_label": "Veritabanı dosyası:",
   "modal_reset_db_title": "⚠️ TEHLİKE: Proje Veritabanını Sıfırla",
   "modal_reset_db_confirm_text": "Dahili veritabanını temizlemek istediğinizden emin misiniz?",
   "modal_reset_db_impact_title": "Bu eylem şunları yapacaktır:",

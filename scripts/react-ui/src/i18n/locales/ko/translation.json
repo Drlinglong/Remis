@@ -2,6 +2,7 @@
   "settings_system_maintenance": "시스템 점검",
   "settings_reset_db_title": "프로젝트 데이터베이스 초기화",
   "settings_reset_db_desc": "손상되거나 멈춘 데이터베이스를 위한 복구 도구입니다. 데모 Mod가 포함된 기본 골격에서 Remis 내부 데이터베이스를 다시 만듭니다. 프로젝트 폴더는 변경되지 않습니다.",
+  "settings_database_file_label": "데이터베이스 파일:",
   "modal_reset_db_title": "⚠️ 위험: 프로젝트 데이터베이스 초기화",
   "modal_reset_db_confirm_text": "정말로 내부 데이터베이스를 초기화하시겠습니까?",
   "modal_reset_db_impact_title": "이 작업은 다음과 같은 결과를 초래합니다:",

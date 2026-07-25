@@ -2,6 +2,7 @@
   "settings_system_maintenance": "Konserwacja systemu",
   "settings_reset_db_title": "Resetuj bazę danych projektu",
   "settings_reset_db_desc": "Narzędzie odzyskiwania uszkodzonej lub zawieszonej bazy danych. Odbudowuje wewnętrzną bazę Remis z domyślnego szkieletu, wraz z modami demonstracyjnymi. Foldery projektów pozostają bez zmian.",
+  "settings_database_file_label": "Plik bazy danych:",
   "modal_reset_db_title": "⚠️ NIEBEZPIECZEŃSTWO: Resetuj bazę danych projektu",
   "modal_reset_db_confirm_text": "Czy na pewno chcesz wyczyścić wewnętrzną bazę danych?",
   "modal_reset_db_impact_title": "Ta akcja spowoduje:",

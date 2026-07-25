@@ -2,6 +2,7 @@
   "settings_system_maintenance": "Systemwartung",
   "settings_reset_db_title": "Projektdatenbank zurücksetzen",
   "settings_reset_db_desc": "Wiederherstellungswerkzeug für eine beschädigte oder festgefahrene Datenbank. Baut die interne Remis-Datenbank aus dem Standardskelett einschließlich Demo-Mods neu auf. Ihre Projektordner bleiben unverändert.",
+  "settings_database_file_label": "Datenbankdatei:",
   "modal_reset_db_title": "⚠️ GEFAHR: Projektdatenbank zurücksetzen",
   "modal_reset_db_confirm_text": "Sind Sie sicher, dass Sie die interne Datenbank löschen möchten?",
   "modal_reset_db_impact_title": "Diese Aktion wird:",

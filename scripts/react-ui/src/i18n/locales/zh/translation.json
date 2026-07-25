@@ -2,6 +2,7 @@
   "settings_system_maintenance": "系统维护",
   "settings_reset_db_title": "重置项目数据库",
   "settings_reset_db_desc": "用于数据库损坏或卡死时的恢复工具。它会清空 Remis 内部数据库，并按包含 DEMO Mod 的默认骨架重建；您的项目文件夹不会被删除。",
+  "settings_database_file_label": "数据库文件：",
   "modal_reset_db_title": "⚠️ 危险：重置项目数据库",
   "modal_reset_db_confirm_text": "您确定要清空内部数据库吗？",
   "modal_reset_db_impact_title": "此操作将：",

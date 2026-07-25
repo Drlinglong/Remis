@@ -2,6 +2,7 @@
   "settings_system_maintenance": "Mantenimiento del sistema",
   "settings_reset_db_title": "Restablecer base de datos del proyecto",
   "settings_reset_db_desc": "Herramienta de recuperación para una base de datos dañada o bloqueada. Reconstruye la base interna de Remis desde el esquema predeterminado, incluidos los mods de demostración. Las carpetas de sus proyectos no se modifican.",
+  "settings_database_file_label": "Archivo de base de datos:",
   "modal_reset_db_title": "⚠️ PELIGRO: Restablecer base de datos del proyecto",
   "modal_reset_db_confirm_text": "¿Estás seguro de que quieres borrar la base de datos interna?",
   "modal_reset_db_impact_title": "Esta acción:",

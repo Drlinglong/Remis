@@ -2,6 +2,7 @@
   "settings_system_maintenance": "Maintenance du système",
   "settings_reset_db_title": "Réinitialiser la base de données du projet",
   "settings_reset_db_desc": "Outil de récupération pour une base de données endommagée ou bloquée. Reconstruit la base interne de Remis depuis son squelette par défaut, avec les mods de démonstration. Vos dossiers de projet restent intacts.",
+  "settings_database_file_label": "Fichier de base de données :",
   "modal_reset_db_title": "⚠️ DANGER : Réinitialiser la base de données du projet",
   "modal_reset_db_confirm_text": "Êtes-vous sûr de vouloir effacer la base de données interne ?",
   "modal_reset_db_impact_title": "Cette action va :",

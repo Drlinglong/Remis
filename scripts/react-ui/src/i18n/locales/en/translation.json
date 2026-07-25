@@ -2,6 +2,7 @@
   "settings_system_maintenance": "System Maintenance",
   "settings_reset_db_title": "Reset Project Database",
   "settings_reset_db_desc": "Recovery tool for a damaged or stuck database. Rebuilds the internal Remis database from its default skeleton, including demo mods. Your project folders remain untouched.",
+  "settings_database_file_label": "Database file:",
   "modal_reset_db_title": "⚠️ DANGER: Reset Project Database",
   "modal_reset_db_confirm_text": "Are you sure you want to wipe the internal database?",
   "modal_reset_db_impact_title": "This action will:",

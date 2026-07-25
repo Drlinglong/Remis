@@ -161,12 +161,14 @@ async def reset_database():
 @router.post("/open-database-folder")
 async def open_database_folder():
     """Open the folder containing the main Remis SQLite database."""
-    database_folder = os.path.dirname(os.path.abspath(REMIS_DB_PATH))
+    database_path = os.path.abspath(REMIS_DB_PATH)
+    database_folder = os.path.dirname(database_path)
+    database_file = os.path.basename(database_path)
     if not os.path.isdir(database_folder):
         raise HTTPException(status_code=404, detail="Database folder not found")
     try:
         _open_directory_in_explorer(database_folder)
-        return {"status": "success"}
+        return {"status": "success", "database_file": database_file}
     except Exception as e:
         logger.error("Failed to open database folder %s: %s", database_folder, e)
         raise HTTPException(status_code=500, detail=f"Failed to open database folder: {str(e)}")

@@ -44,7 +44,9 @@ describe('SettingsPage database recovery controls', () => {
     localStorage.clear();
     localStorage.setItem('remis_tutorial_settings_prompt_seen_v1', 'true');
     api.get.mockResolvedValue({ data: { rpm_limit: 40 } });
-    api.post.mockResolvedValue({ data: { status: 'success' } });
+    api.post.mockResolvedValue({
+      data: { status: 'success', database_file: 'remis.sqlite' },
+    });
   });
 
   it('opens the database folder without starting a reset', async () => {
@@ -56,7 +58,9 @@ describe('SettingsPage database recovery controls', () => {
       </MantineProvider>,
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: 'button_open_folder' }));
+    expect(await screen.findByText('settings_database_file_label')).toBeInTheDocument();
+    expect(screen.getByText('remis.sqlite')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'button_open_folder' }));
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/api/system/open-database-folder');

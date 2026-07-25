@@ -76,7 +76,10 @@ def test_open_database_folder_opens_main_database_parent(monkeypatch, tmp_path):
     response = client.post("/api/system/open-database-folder")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "success"}
+    assert response.json() == {
+        "status": "success",
+        "database_file": "remis.sqlite",
+    }
     assert opened_paths == [str(database_folder)]
 
 

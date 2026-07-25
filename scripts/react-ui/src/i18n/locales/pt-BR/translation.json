@@ -2,6 +2,7 @@
   "settings_system_maintenance": "Manutenção do Sistema",
   "settings_reset_db_title": "Redefinir Banco de Dados do Projeto",
   "settings_reset_db_desc": "Ferramenta de recuperação para um banco de dados danificado ou travado. Reconstrói o banco interno do Remis a partir do esqueleto padrão, incluindo mods de demonstração. Suas pastas de projeto permanecem intactas.",
+  "settings_database_file_label": "Arquivo do banco de dados:",
   "modal_reset_db_title": "⚠️ PERIGO: Redefinir Banco de Dados do Projeto",
   "modal_reset_db_confirm_text": "Tem certeza de que deseja apagar o banco de dados interno?",
   "modal_reset_db_impact_title": "Esta ação irá:",
