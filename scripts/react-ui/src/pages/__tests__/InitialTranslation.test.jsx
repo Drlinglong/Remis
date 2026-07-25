@@ -346,7 +346,7 @@ describe('InitialTranslation', () => {
     const { container } = renderPage(['/?projectId=proj-1']);
 
     await waitFor(() => {
-      expect(screen.getByText('智能工坊设置')).toBeInTheDocument();
+      expect(screen.getByText('格式修复台设置')).toBeInTheDocument();
     });
 
     // 重新获取展开按钮以保证渲染稳定性
@@ -379,7 +379,7 @@ describe('InitialTranslation', () => {
     const { container } = renderPage(['/?projectId=proj-1']);
 
     await waitFor(() => {
-      expect(screen.getByText('智能工坊设置')).toBeInTheDocument();
+      expect(screen.getByText('格式修复台设置')).toBeInTheDocument();
     });
 
     const expandButtons = screen.getAllByRole('button', { name: '展开' });

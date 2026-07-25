@@ -968,8 +968,8 @@
         "desc": "Bu sayfa yalnızca değişkenler, etiketler, satır sonları ve yerelleştirme anahtar adları gibi Paradox betiği biçimlendirme sorunlarını kontrol eder. Kelime kalitesini veya stilini değerlendirmez."
       },
       "validation_workshop": {
-        "title": "Agent Atölyesini Aç",
-        "desc": "Atölye, [concept】, $key￥ veya [概念2] gibi hatalı biçimlendirilmiş anahtarları otomatik olarak algılayabilir ve ardından bunları [concept], $key$ ve [concept2] gibi geçerli formlara geri döndürmek için yapay zekayı kullanabilir."
+        "title": "Format Repair'i Aç",
+        "desc": "Format Repair, [concept】, $key￥ veya [概念2] gibi hatalı biçimlendirilmiş anahtarları otomatik olarak algılayabilir ve ardından bunları [concept], $key$ ve [concept2] gibi geçerli formlara geri döndürmek için yapay zekayı kullanabilir."
       },
       "history_overview": {
         "title": "Arşiv ve Versiyon Zaman Çizelgesi",
@@ -1038,7 +1038,7 @@
         "desc": "Bunu, en son kaynak dosyalarını içeren yeni mod klasörüne veya atölye kopyasına yönlendirin."
       },
       "workshop": {
-        "title": "Gömülü Akıllı Atölye",
+        "title": "Gömülü Format Repair",
         "desc": "Çeviri tamamlandıktan sonra bir otomatik doğrulama ve düzeltme aşaması istiyorsanız bunu etkin tutun."
       },
       "prescan": {
@@ -1065,7 +1065,7 @@
     "agent_workshop": {
       "select": {
         "title": "Onarılacak Bir Proje Seçin",
-        "desc": "Akıllı Atölye mevcut bir projeye karşı çalışır. Önce hedef projeyi bulmak için aramayı ve filtreleri kullanın."
+        "desc": "Format Repair mevcut bir projeye karşı çalışır. Önce hedef projeyi bulmak için aramayı ve filtreleri kullanın."
       },
       "project_cards": {
         "title": "Proje Adayları",
@@ -1077,7 +1077,7 @@
       },
       "scan": {
         "title": "Sorunları Tara",
-        "desc": "Bu, Akıllı Atölye taramasını başlatır. Bu projenin zaten kayıtlı bir sorun kaydı varsa, program her şeyi yeniden taramanıza gerek kalmaması için onu doğrudan yükler."
+        "desc": "Bu, Format Repair taramasını başlatır. Bu projenin zaten kayıtlı bir sorun kaydı varsa, program her şeyi yeniden taramanıza gerek kalmaması için onu doğrudan yükler."
       },
       "fix_settings": {
         "title": "Düzeltme Stratejisi",
@@ -1250,9 +1250,9 @@
     "resume_detail_file": "Son Tamamlanan Dosya: {{file}}",
     "resume_detail_empty": "Henüz detaylı kontrol noktası girişi mevcut değil.",
     "resume_detail_none": "Tamamlanmamış iş yok.",
-    "embedded_workshop_enabled": "Akıllı Atölye format düzeltmesini çeviri iş akışına dahil et",
+    "embedded_workshop_enabled": "Format Repair format düzeltmesini çeviri iş akışına dahil et",
     "embedded_workshop_enabled_desc": "Varsayılan olarak etkindir. Çeviri bittikten sonra, iş akışı bir otomatik format düzeltme geçişi çalıştırır ve doğrulama sonucunu yeniler.",
-    "embedded_workshop_settings": "Akıllı Atölye Ayarları",
+    "embedded_workshop_settings": "Format Repair Ayarları",
     "embedded_workshop_settings_desc": "Varsayılan olarak daraltılmıştır. Düzeltme okuması ayarlarını çeviriden ayrı olarak ince ayar yapmak için genişletin.",
     "embedded_workshop_follow": "Varsayılan olarak mevcut çeviri API'sini ve modelini takip et",
     "embedded_workshop_follow_desc": "Çeviri için daha büyük bir model ve düzeltme okuması için daha küçük bir model gibi ayrı düzeltme okuması ayarları istiyorsanız bunu devre dışı bırakın.",
@@ -1271,11 +1271,11 @@
     "translation_concurrency_tooltip": "Aynı anda yapay zekaya kaç çeviri grubunun gönderileceğini kontrol eder. Düşük değerler yerel modeller için daha güvenlidir. Sadece bu çeviri çalışması için geçerlidir. Net bir çeviri darboğazınız yoksa veya ne yaptığınızı gerçekten bilmiyorsanız, Otomatik doğru seçimdir. Otomatik kullanıldığında, yerel modeller otomatik olarak daha düşük eşzamanlılığa geri döner.",
     "translation_rpm_desc": "Sadece bu çeviri çalışması için geçerlidir. Varsayılan, mevcut sistem hızını korur.",
     "translation_rpm_tooltip": "İstek sınırlarını veya yerel hizmet aşırı yüklenmesini azaltmak için bu çalışma için dakika başına istekleri (RPM) sınırlar. Net bir çeviri darboğazınız yoksa veya ne yaptığınızı gerçekten bilmiyorsanız, varsayılan değeri koruyun.",
-    "embedded_workshop_batch_size_tooltip": "Akıllı Atölye'nin her grupta kaç sorunu düzeltmeye çalışacağını kontrol eder. Sadece bu çalışma için geçerlidir. Net bir çeviri darboğazınız yoksa veya ne yaptığınızı gerçekten bilmiyorsanız, varsayılan değeri koruyun.",
+    "embedded_workshop_batch_size_tooltip": "Format Repair'nin her grupta kaç sorunu düzeltmeye çalışacağını kontrol eder. Sadece bu çalışma için geçerlidir. Net bir çeviri darboğazınız yoksa veya ne yaptığınızı gerçekten bilmiyorsanız, varsayılan değeri koruyun.",
     "embedded_workshop_batch_size_desc": "Sadece bu çeviri çalışması için geçerlidir. Sorunlar karmaşık olduğunda küçük gruplar daha kararlıdır.",
-    "embedded_workshop_concurrency_tooltip": "Aynı anda kaç Akıllı Atölye düzeltme grubunun çalışacağını kontrol eder. Sadece bu çalışma için geçerlidir. Net bir çeviri darboğazınız yoksa veya ne yaptığınızı gerçekten bilmiyorsanız, varsayılan değeri koruyun.",
+    "embedded_workshop_concurrency_tooltip": "Aynı anda kaç Format Repair düzeltme grubunun çalışacağını kontrol eder. Sadece bu çalışma için geçerlidir. Net bir çeviri darboğazınız yoksa veya ne yaptığınızı gerçekten bilmiyorsanız, varsayılan değeri koruyun.",
     "embedded_workshop_concurrency_desc": "Sadece bu çeviri çalışması için geçerlidir. Düşük değerler yerel modeller için daha güvenlidir.",
-    "embedded_workshop_rpm_tooltip": "İstek sınırlarından veya yerel hizmet aşırı yüklenmesinden kaçınmak için bu çalışma için Akıllı Atölye dakika başına isteklerini (RPM) sınırlar. Net bir çeviri darboğazınız yoksa veya ne yaptığınızı gerçekten bilmiyorsanız, varsayılan değeri koruyun.",
+    "embedded_workshop_rpm_tooltip": "İstek sınırlarından veya yerel hizmet aşırı yüklenmesinden kaçınmak için bu çalışma için Format Repair dakika başına isteklerini (RPM) sınırlar. Net bir çeviri darboğazınız yoksa veya ne yaptığınızı gerçekten bilmiyorsanız, varsayılan değeri koruyun.",
     "embedded_workshop_rpm_desc": "Sadece bu çeviri çalışması için geçerlidir. Varsayılan, mevcut sistem hızını korur.",
     "translation_limit": "Toplu İşlem Boyut Sınırı",
     "translation_concurrency": "Eşzamanlılık Sınırı"
@@ -1432,10 +1432,10 @@
     "expand": "Genişlet",
     "collapse": "Daralt"
   },
-  "page_title_agent_workshop": "Ajan Atölyesi",
+  "page_title_agent_workshop": "Format Repair",
   "agent_workshop": {
-    "title": "Ajan Atölyesi",
-    "description": "Yerelleştirme sorunlarını taramak ve uygulanmaya hazır düzeltmeler oluşturmak için YZ kullanın.",
+    "title": "Format Repair",
+    "description": "Yerelleştirme dosyalarındaki biçim sorunlarını denetler ve toplu olarak onarır.",
     "select_project": "Proje Seç",
     "scan_btn": "Proje Hatalarını Tara",
     "rescan_btn": "Yeniden Tara",
@@ -1461,7 +1461,7 @@
     "batch_size": "Grup başına sorun sayısı",
     "cached_label": "Son tarama sonuçları",
     "scanned_label": "Mevcut tarama",
-    "scan_help": "Atölye önce kaydedilmiş tarama sonuçlarını kullanacak, ardından doğrudan proje dosyalarını taramaya geri dönecektir.",
+    "scan_help": "Format Repair önce kaydedilmiş tarama sonuçlarını kullanacak, ardından doğrudan proje dosyalarını taramaya geri dönecektir.",
     "issue_validation_generic": "Doğrulama sorunu",
     "issue_vic3_variable_parity": "Victoria 3 değişken sayısı uyuşmazlığı",
     "issue_vic3_color_tags": "Victoria 3 renk etiketi uyuşmazlığı",
@@ -1523,14 +1523,14 @@
   },
   "project_validation": {
     "title": "Format Kontrolü",
-    "subtitle": "Kaydedilen format sorunlarını inceleyin, sonuçları yenileyin veya Ajan Atölyesine geçin.",
+    "subtitle": "Kaydedilen format sorunlarını inceleyin, sonuçları yenileyin veya Format Repairne geçin.",
     "refresh": "Format Sorunlarını Yeniden Kontrol Et",
-    "open_workshop": "Ajan Atölyesini Aç",
+    "open_workshop": "Format Repair'i Aç",
     "issues_count": "Açık Sorunlar",
     "last_updated": "Son Kontrol",
     "report_count": "Düzeltme Raporları",
     "sidecar_path": "Kayıt Dosyası Yolu",
-    "help": "Ajan Atölyesi önce bu projenin kayıtlı format sorunu kaydını okur ve güncellenmiş düzeltme durumunu geri yazar.",
+    "help": "Format Repair önce bu projenin kayıtlı format sorunu kaydını okur ve güncellenmiş düzeltme durumunu geri yazar.",
     "scope_hint": "Bu sayfa yalnızca değişkenler, etiketler, satır sonları ve anahtar adları gibi Paradox betik formatı sorunlarını kontrol eder. Yazım hatalarını, ifade biçimini veya yazım stilini kontrol etmez.",
     "issue_breakdown": "Sorun Dağılımı",
     "no_issues": "Şu anda açık bir doğrulama sorunu yok."
@@ -1632,8 +1632,8 @@
     "runtime_warning_summary_desc": "Bu çalışmada {{count}} çalışma zamanı uyarısı kaydedildi. Önce bağlam taşması, model reddi veya kaynak metne geri dönüş gruplarını inceleyin.",
     "warning_summary_title": "Çalışma zamanı uyarıları algılandı",
     "warning_summary_desc": "Bu çalışmada {{count}} çalışma zamanı uyarısı kaydedildi. Önce bağlam taşması, model reddi veya kaynak metne geri dönüş gruplarını inceleyin.",
-    "validation_issue_summary_title": "Workshop için doğrulama sorunları dışa aktarıldı",
-    "validation_issue_summary_desc": "Oluşturma sonrası doğrulama {{count}} sorun buldu. Bunlar, Akıllı Workshop girişi için workshop_issues.json dosyasına yazıldı.",
+    "validation_issue_summary_title": "Doğrulama sorunları Format Repair için dışa aktarıldı",
+    "validation_issue_summary_desc": "Oluşturma sonrası doğrulama {{count}} sorun buldu. Bunlar, Format Repair girişi için workshop_issues.json dosyasına yazıldı.",
     "validation_issue_export_item": "{{lang}}: {{count}} sorun | {{path}}",
     "warning_fallback_to_source": "Grup {{batch_num}}, denemelerden sonra çevrilemedi ve kaynak metin kullanılarak yazıldı (sağlayıcı: {{provider}}).",
     "warning_context_exceeded": "Grup {{batch_num}}, {{attempt}}. denemede model bağlam penceresini aştı (sağlayıcı: {{provider}}).",
@@ -1659,9 +1659,9 @@
     "resume_detail_batch": "Son Paket: {{current}} / {{total}}",
     "resume_detail_time": "Son Kaydedilme: {{time}}",
     "resume_detail_file": "Son Tamamlanan Dosya: {{file}}",
-    "embedded_workshop_enabled": "Akıllı Atölye format düzeltmesini artımlı iş akışına dahil et",
+    "embedded_workshop_enabled": "Format Repair format düzeltmesini artımlı iş akışına dahil et",
     "embedded_workshop_enabled_desc": "Varsayılan olarak etkindir. Çeviri bittikten sonra, iş akışı bir kez otomatik format düzeltme geçişi yapar ve doğrulama sonucunu yeniler.",
-    "embedded_workshop_settings": "Akıllı Atölye Ayarları",
+    "embedded_workshop_settings": "Format Repair Ayarları",
     "embedded_workshop_settings_desc": "Varsayılan olarak daraltılmıştır. Redaksiyon ayarlarını çeviriden bağımsız olarak ince ayar yapmak için genişletin.",
     "embedded_workshop_follow": "Varsayılan olarak mevcut çeviri API'sini ve modelini takip et",
     "embedded_workshop_follow_desc": "Çeviri için daha büyük bir model ve redaksiyon için daha küçük bir model gibi ayrı redaksiyon ayarları istiyorsanız bunu devre dışı bırakın.",
@@ -1682,8 +1682,8 @@
     "aggregate_total": "Toplu toplam",
     "aggregate_reused": "Toplu yeniden kullanılan",
     "aggregate_new": "Toplu yeni",
-    "telemetry_workshop_export": "Workshop dışa aktarımı",
-    "telemetry_embedded_workshop": "Gömülü Workshop"
+    "telemetry_workshop_export": "Format Repair doğrulaması",
+    "telemetry_embedded_workshop": "Format Repair otomatik düzeltmesi"
   },
   "recent_activity_type_translate": "Artımlı Güncelleme",
   "project_management": {
@@ -1763,8 +1763,8 @@
   "report_glossary_issues": "{{count}} potansiyel sözlük sorunu tespit edildi",
   "report_no_glossary_issues": "Hiçbir sözlük sorunu tespit edilmedi!",
   "report_format_issues": "{{count}} potansiyel biçimlendirme sorunu tespit edildi",
-  "report_format_repair_complete": "{{detected}} potansiyel biçimlendirme sorunu tespit edildi; Akıllı Atölye {{fixed}} tanesini düzeltti.",
-  "report_format_repair_partial": "{{detected}} potansiyel biçimlendirme sorunu tespit edildi; Akıllı Atölye {{fixed}} tanesini düzeltti, {{remaining}} tanesi hâlâ incelenmeli.",
+  "report_format_repair_complete": "{{detected}} potansiyel biçimlendirme sorunu tespit edildi; Format Repair {{fixed}} tanesini düzeltti.",
+  "report_format_repair_partial": "{{detected}} potansiyel biçimlendirme sorunu tespit edildi; Format Repair {{fixed}} tanesini düzeltti, {{remaining}} tanesi hâlâ incelenmeli.",
   "report_no_format_issues": "Hiçbir biçimlendirme sorunu tespit edilmedi!",
   "report_title_errors": "Hatalar",
   "report_title_glossary": "Sözlük Kontrolü",
@@ -1778,7 +1778,7 @@
   "stage_reading_source": "Kaynak dosyalar okunuyor",
   "stage_analyzing_files": "Dosyalar analiz ediliyor",
   "stage_initializing": "Başlatılıyor",
-  "stage_smart_workshop": "Smart Workshop",
+  "stage_smart_workshop": "Format Repair",
   "stage_failed": "Çeviri başarısız",
   "tools_tab_workshop_generator": "Atölye Oluşturucu",
   "game_name_eu5": "Europa Universalis 5",
@@ -2075,8 +2075,9 @@
       "initial_translation": "İlk çeviri",
       "translation": "Çeviri işlemi",
       "incremental_translation": "Artımlı çeviri",
-      "agent_workshop": "Aracı atölyesi",
-      "repair": "Aracı onarımı",
+      "agent_workshop": "Format Repair",
+      "agent_workshop_batch": "Format Repair batch",
+      "repair": "Format repair",
       "neologism_mining": "Yeni sözcük taraması",
       "dry_run": "Aracı deneme çalışması",
       "task": "Arka plan işlemi",

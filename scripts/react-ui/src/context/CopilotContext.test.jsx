@@ -27,6 +27,17 @@ describe('CopilotContext', () => {
     expect(resolveCopilotRouteContext('/project-management/project-1').pageId).toBe('project-management');
   });
 
+  it('names the user tool Format Repair without renaming the internal Remis Agent', () => {
+    const context = resolveCopilotRouteContext('/agent-workshop');
+
+    expect(context).toEqual(expect.objectContaining({
+      pageId: 'agent-workshop',
+      pageName: '格式修复台 / Format Repair',
+      helpSkillId: 'agent_workshop',
+    }));
+    expect(context.pageName).not.toContain('Remis Agent');
+  });
+
   it('always supplies route context to the floating assistant', () => {
     render(
       <MemoryRouter initialEntries={['/project-tracking']}>

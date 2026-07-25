@@ -5,13 +5,19 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TaskSummaryCard } from './TaskSummaryCard';
 
 const translations = {
+  'task_center.kind.agent_workshop': 'Format Repair',
+  'task_center.creator.remis_agent': 'Remis Agent',
+  'task_center.created_by': 'Created by {{creator}}',
   'task_center.kind.glossary_health_check': '词典健康检查',
   'task_center.status.failed': '失败',
   glossary_health_no_model_loaded: '所选本地提供商尚未加载模型。',
   glossary_health_partial_status: '部分完成',
   glossary_health_partial_message: '确定性健康检查已完成；可选 AI 建议暂不可用。',
 };
-const translateMock = (key, options) => translations[key] || options?.defaultValue || key;
+const translateMock = (key, options) => (
+  (translations[key] || options?.defaultValue || key)
+    .replace('{{creator}}', options?.creator || '')
+);
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: translateMock }),
@@ -98,5 +104,26 @@ describe('TaskSummaryCard', () => {
     expect(screen.getByText('部分完成')).toBeInTheDocument();
     expect(screen.getByText('确定性健康检查已完成；可选 AI 建议暂不可用。')).toBeInTheDocument();
     expect(screen.queryByText(/provider payload/i)).not.toBeInTheDocument();
+  });
+
+  it('shows Format Repair as distinct from the internal Remis Agent creator', () => {
+    render(
+      <MantineProvider>
+        <TaskSummaryCard
+          task={{
+            task_id: 'format-repair-task',
+            kind: 'agent_workshop',
+            title: 'Legacy Agent Workshop title',
+            status: 'completed',
+            created_by: { type: 'remis_agent' },
+          }}
+          onOpen={vi.fn()}
+        />
+      </MantineProvider>,
+    );
+
+    expect(screen.getByText('Format Repair')).toBeInTheDocument();
+    expect(screen.getByText('Created by Remis Agent')).toBeInTheDocument();
+    expect(screen.queryByText('Legacy Agent Workshop title')).not.toBeInTheDocument();
   });
 });

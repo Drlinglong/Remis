@@ -28,7 +28,7 @@ export const readAgentWorkshopSnapshot = (storage = sessionStorage) => {
     const rawState = storage.getItem(AGENT_WORKSHOP_STORAGE_KEY);
     return rawState ? JSON.parse(rawState) : {};
   } catch (error) {
-    console.error('Failed to read Agent Workshop session state:', error);
+    console.error('Failed to read Format Repair session state:', error);
     return {};
   }
 };

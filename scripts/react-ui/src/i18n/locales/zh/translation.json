@@ -32,8 +32,8 @@
   "report_glossary_issues": "在术语核对中发现 {{count}} 个潜在的术语问题",
   "report_no_glossary_issues": "未发现术语问题！",
   "report_format_issues": "在校对过程中发现 {{count}} 个潜在的格式问题",
-  "report_format_repair_complete": "已发现 {{detected}} 个潜在格式问题，智能工坊成功修复 {{fixed}} 个。",
-  "report_format_repair_partial": "已发现 {{detected}} 个潜在格式问题，智能工坊成功修复 {{fixed}} 个，仍有 {{remaining}} 个需要人工确认。",
+  "report_format_repair_complete": "已发现 {{detected}} 个潜在格式问题，格式修复台成功修复 {{fixed}} 个。",
+  "report_format_repair_partial": "已发现 {{detected}} 个潜在格式问题，格式修复台成功修复 {{fixed}} 个，仍有 {{remaining}} 个需要人工确认。",
   "report_no_format_issues": "未发现格式问题！",
   "button_translate_another": "翻译其他项目",
   "report_title_errors": "执行错误",
@@ -71,7 +71,7 @@
   "stage_reading_source": "正在读取源文件",
   "stage_analyzing_files": "正在分析文件",
   "stage_initializing": "初始化中",
-  "stage_smart_workshop": "智能工坊",
+  "stage_smart_workshop": "格式修复台",
   "stage_failed": "翻译失败",
   "nav_docs": "文档",
   "nav_translation_workflow": "翻译工作流",
@@ -127,8 +127,9 @@
       "initial_translation": "初次翻译",
       "translation": "翻译任务",
       "incremental_translation": "增量翻译",
-      "agent_workshop": "智能工坊",
-      "repair": "Agent 修复",
+      "agent_workshop": "格式修复台",
+      "agent_workshop_batch": "格式修复批次",
+      "repair": "格式修复",
       "neologism_mining": "新词挖掘",
       "dry_run": "Agent 预演",
       "task": "后台任务",
@@ -1127,7 +1128,7 @@
         "desc": "这里应该指向更新后的 Mod 目录，或者你新拷贝下来的创意工坊文件夹。"
       },
       "workshop": {
-        "title": "内嵌智能工坊修复",
+        "title": "内嵌格式修复台修复",
         "desc": "保持开启时，翻译结束后会自动跑一轮格式检查与修复，适合发布前顺手清理问题。"
       },
       "prescan": {
@@ -1148,13 +1149,13 @@
       },
       "results": {
         "title": "最终结果",
-        "desc": "完成后在这里检查警告、智能工坊问题导出以及输出目录位置。"
+        "desc": "完成后在这里检查警告、格式修复台问题导出以及输出目录位置。"
       }
     },
     "agent_workshop": {
       "select": {
         "title": "选择要修的项目",
-        "desc": "智能工坊是基于现有项目工作的。先通过搜索和筛选找到要修复的项目。"
+        "desc": "格式修复台是基于现有项目工作的。先通过搜索和筛选找到要修复的项目。"
       },
       "project_cards": {
         "title": "候选项目",
@@ -1166,7 +1167,7 @@
       },
       "scan": {
         "title": "扫描问题",
-        "desc": "这里会启动智能工坊扫描；如果这个项目之前已经保存过问题记录，程序会直接读出来，你就不用每次都从头重新扫描。"
+        "desc": "这里会启动格式修复台扫描；如果这个项目之前已经保存过问题记录，程序会直接读出来，你就不用每次都从头重新扫描。"
       },
       "fix_settings": {
         "title": "修复策略设置",
@@ -1305,7 +1306,7 @@
         "desc": "这里仅检查 P 社脚本语言中的格式问题，例如变量、标签、换行和本地化键名等，不负责判断措辞润色或翻译风格。"
       },
       "validation_workshop": {
-        "title": "打开智能工坊",
+        "title": "打开格式修复台",
         "desc": "程序会自动探测例如 [concept】、$key￥、[概念2] 之类的错误，并使用 AI 将其修复还原为 [concept]、$key$、[concept2] 等正常的 key。"
       },
       "history_overview": {
@@ -1496,9 +1497,9 @@
     "resume_detail_batch": "上次批次：{{current}} / {{total}}",
     "resume_detail_time": "上次保存：{{time}}",
     "resume_detail_file": "最后完成文件：{{file}}",
-    "embedded_workshop_enabled": "在翻译工作流中嵌入智能工坊格式校对",
+    "embedded_workshop_enabled": "在翻译工作流中嵌入格式修复台格式校对",
     "embedded_workshop_enabled_desc": "默认开启。翻译完成后会自动执行一轮格式问题修复，再生成最新的校验结果。",
-    "embedded_workshop_settings": "智能工坊设置",
+    "embedded_workshop_settings": "格式修复台设置",
     "embedded_workshop_settings_desc": "默认收起。展开后可微调校对设置，并可改成和翻译模型不同的组合。",
     "embedded_workshop_follow": "默认跟随当前翻译 API 与模型",
     "embedded_workshop_follow_desc": "关闭后可单独指定校对模型，例如大模型翻译、小模型校对。",
@@ -1519,11 +1520,11 @@
     "translation_concurrency_tooltip": "控制同时向 AI 发送多少个翻译批次。本地模型建议设低一些，避免显存或通道压力。仅对本次翻译生效。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则使用 Auto 即可。使用 Auto 时，本地模型仍会自动降低并发。",
     "translation_rpm_desc": "仅对本次翻译生效。默认值会保持当前系统节奏。",
     "translation_rpm_tooltip": "限制本次翻译每分钟的请求数，用来减少接口限流或本地服务过载。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
-    "embedded_workshop_batch_size_tooltip": "控制智能工坊每批尝试修复多少条问题。仅对本次翻译生效。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
+    "embedded_workshop_batch_size_tooltip": "控制格式修复台每批尝试修复多少条问题。仅对本次翻译生效。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
     "embedded_workshop_batch_size_desc": "仅对本次翻译生效。问题较复杂时，较小的批次通常更稳。",
-    "embedded_workshop_concurrency_tooltip": "控制智能工坊同时跑多少个修复批次。仅对本次翻译生效。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
+    "embedded_workshop_concurrency_tooltip": "控制格式修复台同时跑多少个修复批次。仅对本次翻译生效。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
     "embedded_workshop_concurrency_desc": "仅对本次翻译生效。本地模型建议使用较低并发。",
-    "embedded_workshop_rpm_tooltip": "限制智能工坊本次翻译中的每分钟请求数，用来减少接口限流或本地服务过载。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
+    "embedded_workshop_rpm_tooltip": "限制格式修复台本次翻译中的每分钟请求数，用来减少接口限流或本地服务过载。除非遇到明确的翻译瓶颈，或者你真的清楚自己在做什么，否则保持默认值即可。",
     "embedded_workshop_rpm_desc": "仅对本次翻译生效。默认值会保持当前系统节奏。",
     "translation_limit": "每批翻译限制",
     "translation_concurrency": "并发限制"
@@ -1755,8 +1756,8 @@
     "telemetry_prepare": "语义对比",
     "telemetry_translation": "AI 翻译",
     "telemetry_build": "结果重建",
-    "telemetry_workshop_export": "智能工坊校验",
-    "telemetry_embedded_workshop": "智能工坊修复",
+    "telemetry_workshop_export": "格式修复台校验",
+    "telemetry_embedded_workshop": "格式修复台修复",
     "telemetry_archive_write": "写回归档",
     "log_file_hint": "执行日志已默认保存到：{{path}}",
     "transport_status": "任务状态同步来源：{{source}}",
@@ -1775,8 +1776,8 @@
     "runtime_warning_summary_desc": "本次运行记录了 {{count}} 条运行期警告。请优先检查上下文超限、模型拒答或回退到原文的批次。",
     "warning_summary_title": "执行期间发现运行期警告",
     "warning_summary_desc": "本次运行记录了 {{count}} 条运行期警告。请优先检查上下文超限、模型拒答或回退到原文的批次。",
-    "validation_issue_summary_title": "已导出可供智能工坊处理的校验问题",
-    "validation_issue_summary_desc": "后处理校验共发现 {{count}} 条问题，已写入 workshop_issues.json 供智能工坊读取。",
+    "validation_issue_summary_title": "已导出可供格式修复台处理的校验问题",
+    "validation_issue_summary_desc": "后处理校验共发现 {{count}} 条问题，已写入 workshop_issues.json 供格式修复台读取。",
     "validation_issue_export_item": "{{lang}}：{{count}} 条问题 | {{path}}",
     "warning_fallback_to_source": "批次 {{batch_num}} 在多次重试后仍无法完成翻译，已回退为原文写入输出文件（提供商：{{provider}}）。",
     "warning_context_exceeded": "批次 {{batch_num}} 在第 {{attempt}} 次尝试时超过了模型上下文长度限制（提供商：{{provider}}）。",
@@ -1802,9 +1803,9 @@
     "resume_detail_batch": "上次批次：{{current}} / {{total}}",
     "resume_detail_time": "上次保存：{{time}}",
     "resume_detail_file": "上次完成文件：{{file}}",
-    "embedded_workshop_enabled": "在增量翻译流程中嵌入智能工坊格式修复",
+    "embedded_workshop_enabled": "在增量翻译流程中嵌入格式修复台格式修复",
     "embedded_workshop_enabled_desc": "默认开启。翻译完成后，流程会自动执行一轮格式修复，并刷新校验结果。",
-    "embedded_workshop_settings": "智能工坊设置",
+    "embedded_workshop_settings": "格式修复台设置",
     "embedded_workshop_settings_desc": "默认收起。展开后可单独微调校对设置。",
     "embedded_workshop_follow": "默认跟随当前翻译 API 与模型",
     "embedded_workshop_follow_desc": "如果需要单独设置校对模型，请关闭此项，例如翻译用大模型、校对用小模型。",
@@ -1825,10 +1826,10 @@
     "api_model": "AI 模型",
     "select_path_tooltip": "选择新版本 Mod 文件夹"
   },
-  "page_title_agent_workshop": "智能工坊",
+  "page_title_agent_workshop": "格式修复台",
   "agent_workshop": {
-    "title": "智能工坊",
-    "description": "用 AI 扫描本地化问题，并生成可直接应用的修复建议。",
+    "title": "格式修复台",
+    "description": "检查并批量修复本地化文件中的格式问题。",
     "select_project": "选择项目",
     "scan_btn": "扫描项目错误",
     "rescan_btn": "重新扫描",
@@ -1854,7 +1855,7 @@
     "batch_size": "每批修复条数",
     "cached_label": "上次扫描结果",
     "scanned_label": "本次扫描结果",
-    "scan_help": "智能工坊会优先读取上次保存的扫描结果，找不到时再直接扫描项目文件。",
+    "scan_help": "格式修复台会优先读取上次保存的扫描结果，找不到时再直接扫描项目文件。",
     "issue_validation_generic": "格式校验问题",
     "issue_vic3_variable_parity": "Victoria 3 变量数量不匹配",
     "issue_vic3_color_tags": "Victoria 3 颜色标签数量不匹配",
@@ -1916,14 +1917,14 @@
   },
   "project_validation": {
     "title": "格式校对",
-    "subtitle": "查看格式问题记录、手动更新结果，并跳转到智能工坊继续修复。",
+    "subtitle": "查看格式问题记录、手动更新结果，并跳转到格式修复台继续修复。",
     "refresh": "重新检查格式问题",
-    "open_workshop": "打开智能工坊",
+    "open_workshop": "打开格式修复台",
     "issues_count": "待处理问题",
     "last_updated": "上次检查时间",
     "report_count": "修复报告数",
     "sidecar_path": "记录文件路径",
-    "help": "智能工坊会优先读取这个项目自己的格式问题记录，修复状态也会继续回写到这里。",
+    "help": "格式修复台会优先读取这个项目自己的格式问题记录，修复状态也会继续回写到这里。",
     "scope_hint": "这里只检查 P 社脚本语言里的变量、标签、换行、键名等格式问题，不检查错字、病句或文风是否自然。",
     "issue_breakdown": "问题类型分布",
     "no_issues": "当前没有待处理的格式问题。"

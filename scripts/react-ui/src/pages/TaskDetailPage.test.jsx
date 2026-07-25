@@ -11,6 +11,8 @@ const refreshTasksMock = vi.fn();
 let taskIdParam = 'failed-task';
 const translateMock = (key, options) => {
   if (key === 'task_center.kind.initial_translation') return 'Initial translation';
+  if (key === 'task_center.kind.agent_workshop') return 'Format Repair';
+  if (key === 'agent_workshop.description') return 'Check and batch-repair format issues in localization files.';
   if (key === 'game_name_victoria3') return 'Victoria 3';
   if (key === 'glossary_health_task_title') return `Localized health check (${options.count})`;
   if (key === 'glossary_health_completed_message') {
@@ -153,6 +155,24 @@ describe('TaskDetailPage', () => {
       'href',
       '/api/tasks/failed-task/events/export?include_diagnostics=true',
     );
+  });
+
+  it('relabels persisted Agent Workshop tasks as Format Repair', async () => {
+    api.get.mockResolvedValue({
+      data: {
+        ...failedTask,
+        task_id: 'legacy-format-repair',
+        kind: 'agent_workshop',
+        title: 'Agent Workshop repair',
+      },
+    });
+    taskIdParam = 'legacy-format-repair';
+
+    render(<MantineProvider><TaskDetailPage /></MantineProvider>);
+
+    expect((await screen.findAllByText('Format Repair')).length).toBeGreaterThan(0);
+    expect(screen.getByText('Check and batch-repair format issues in localization files.')).toBeInTheDocument();
+    expect(screen.queryByText('Agent Workshop repair')).not.toBeInTheDocument();
   });
 
   it('shows recovery context, child rollup, and opens a result path', async () => {

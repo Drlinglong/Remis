@@ -402,7 +402,7 @@ export const useAgentWorkshopController = () => {
     }
 
     if (['failed', 'cancelled', 'interrupted'].includes(task?.status)) {
-      addExecutionLog(task.message || 'Agent Workshop run failed.');
+      addExecutionLog(task.message || 'Format Repair run failed.');
       setExecuting(false);
       persistState({
         executing: false,
@@ -437,10 +437,10 @@ export const useAgentWorkshopController = () => {
 
     resumeRun().catch((error) => {
       if (cancelled) return;
-      console.error('Failed to resume Agent Workshop run', error);
+      console.error('Failed to resume Format Repair run', error);
       const detail = error?.response?.data?.detail;
-      addExecutionLogRef.current(detail?.message || detail || error.message || 'Agent Workshop run failed.');
-      setWorkflowError(detail?.message || detail || error.message || 'Agent Workshop run failed.');
+      addExecutionLogRef.current(detail?.message || detail || error.message || 'Format Repair run failed.');
+      setWorkflowError(detail?.message || detail || error.message || 'Format Repair run failed.');
       setExecuting(false);
     });
 
@@ -503,9 +503,9 @@ export const useAgentWorkshopController = () => {
         onTask: (task) => applyRunTaskStatus(task, runIssues),
       });
     } catch (error) {
-      console.error('Agent Workshop run failed', error);
+      console.error('Format Repair run failed', error);
       const detail = error?.response?.data?.detail;
-      const message = detail?.message || detail || error.message || 'Agent Workshop run failed.';
+      const message = detail?.message || detail || error.message || 'Format Repair run failed.';
       addExecutionLog(message);
       setWorkflowError(message);
     } finally {

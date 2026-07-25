@@ -206,12 +206,14 @@ export default function TaskDetailPage() {
   const displayStatusColor = isPartialGlossaryHealth
     ? 'orange'
     : (STATUS_COLORS[task?.status] || 'gray');
-  const localizedTaskTitle = task?.kind === 'glossary_health_check'
-    ? t('glossary_health_task_title', {
-      count: healthMetadata.glossary_count || 1,
-      defaultValue: task.title,
-    })
-    : task?.title;
+  const localizedTaskTitle = ['agent_workshop', 'agent_workshop_batch', 'repair'].includes(task?.kind)
+    ? t('agent_workshop.description')
+    : task?.kind === 'glossary_health_check'
+      ? t('glossary_health_task_title', {
+        count: healthMetadata.glossary_count || 1,
+        defaultValue: task.title,
+      })
+      : task?.title;
   const localizedResultSummary = (
     task?.kind === 'glossary_health_check'
     && Number.isFinite(Number(healthMetadata.score))

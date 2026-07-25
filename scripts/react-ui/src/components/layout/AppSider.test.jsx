@@ -15,7 +15,9 @@ vi.mock('react-router-dom', () => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key) => key,
+    t: (key) => ({
+      page_title_agent_workshop: 'Format Repair',
+    }[key] || key),
   }),
 }));
 
@@ -79,6 +81,7 @@ describe('AppSider', () => {
 
     fireEvent.click(screen.getByText('nav_more'));
     expect(await screen.findByText('nav_mod_monitor')).toBeInTheDocument();
+    expect(await screen.findByText('Format Repair')).toBeInTheDocument();
     fireEvent.click(await screen.findByText('neologism_review.title'));
     expect(navigateMock).toHaveBeenCalledWith('/neologism-review');
   });

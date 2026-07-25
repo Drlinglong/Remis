@@ -56,8 +56,9 @@ TITLE_BY_KIND = {
     "initial_translation": "Initial translation",
     "translation": "Translation",
     "incremental_translation": "Incremental translation",
-    "agent_workshop": "Agent Workshop",
-    "repair": "Agent repair",
+    "agent_workshop": "Format Repair",
+    "agent_workshop_batch": "Format Repair batch",
+    "repair": "Format repair",
     "neologism_mining": "Neologism mining",
     "dry_run": "Agent dry run",
 }

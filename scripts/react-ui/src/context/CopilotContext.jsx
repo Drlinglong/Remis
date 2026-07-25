@@ -12,7 +12,7 @@ const ROUTE_CONTEXTS = [
   { pattern: /^\/translation$/, pageId: 'initial-translation', pageName: '初次翻译 / Initial Translation', helpSkillId: 'getting_started' },
   { pattern: /^\/incremental-translation$/, pageId: 'incremental-translation', pageName: '增量翻译 / Incremental Translation', helpSkillId: 'incremental_translation' },
   { pattern: /^\/proofreading$/, pageId: 'proofreading', pageName: '校对 / Proofreading', helpSkillId: 'proofreading' },
-  { pattern: /^\/agent-workshop$/, pageId: 'agent-workshop', pageName: '智能工坊 / Agent Workshop', helpSkillId: 'agent_workshop' },
+  { pattern: /^\/agent-workshop$/, pageId: 'agent-workshop', pageName: '格式修复台 / Format Repair', helpSkillId: 'agent_workshop' },
   { pattern: /^\/glossary-manager$/, pageId: 'glossary-manager', pageName: '词典管理 / Glossary Manager', helpSkillId: 'glossary' },
   { pattern: /^\/neologism-review$/, pageId: 'neologism-review', pageName: '术语法庭 / Neologism Tribunal', helpSkillId: 'neologism_tribunal' },
   { pattern: /^\/archives$/, pageId: 'archives', pageName: '归档 / Archives', helpSkillId: 'project_tracking' },

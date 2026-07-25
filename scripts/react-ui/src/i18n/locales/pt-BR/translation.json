@@ -968,8 +968,8 @@
         "desc": "Esta página verifica apenas problemas de formatação de scripts da Paradox, como variáveis, tags, quebras de linha e nomes de chaves de localização. Ela não julga a qualidade da redação ou o estilo."
       },
       "validation_workshop": {
-        "title": "Abrir Workshop do Agente",
-        "desc": "O workshop pode detectar automaticamente chaves malformadas como [concept】, $key￥ ou [概念2] e usar IA para repará-las em formas válidas como [concept], $key$ e [concept2]."
+        "title": "Abrir o Format Repair",
+        "desc": "Format Repair pode detectar automaticamente chaves malformadas como [concept】, $key￥ ou [概念2] e usar IA para repará-las em formas válidas como [concept], $key$ e [concept2]."
       },
       "history_overview": {
         "title": "Arquivo e Linha do Tempo de Versões",
@@ -1038,7 +1038,7 @@
         "desc": "Aponte para a nova pasta do mod ou cópia do workshop que contém os arquivos de origem mais recentes."
       },
       "workshop": {
-        "title": "Smart Workshop Integrado",
+        "title": "Format Repair Integrado",
         "desc": "Mantenha habilitado se desejar uma etapa automática de validação e correção após a conclusão da tradução."
       },
       "prescan": {
@@ -1065,7 +1065,7 @@
     "agent_workshop": {
       "select": {
         "title": "Selecione um Projeto para Reparar",
-        "desc": "O Smart Workshop funciona com base em um projeto existente. Use a busca e os filtros para encontrar o projeto de destino primeiro."
+        "desc": "O Format Repair funciona com base em um projeto existente. Use a busca e os filtros para encontrar o projeto de destino primeiro."
       },
       "project_cards": {
         "title": "Candidatos a Projeto",
@@ -1077,7 +1077,7 @@
       },
       "scan": {
         "title": "Procurar Problemas",
-        "desc": "Isso inicia a varredura do Smart Workshop. Se este projeto já tiver um registro de problemas salvo, o programa o carregará diretamente para que você não precise verificar tudo novamente."
+        "desc": "Isso inicia a varredura do Format Repair. Se este projeto já tiver um registro de problemas salvo, o programa o carregará diretamente para que você não precise verificar tudo novamente."
       },
       "fix_settings": {
         "title": "Estratégia de Correção",
@@ -1250,9 +1250,9 @@
     "resume_detail_file": "Último Arquivo Concluído: {{file}}",
     "resume_detail_empty": "Nenhuma entrada detalhada de ponto de verificação disponível ainda.",
     "resume_detail_none": "Não há trabalhos inacabados.",
-    "embedded_workshop_enabled": "Integrar correção de formato da Oficina Inteligente no fluxo de tradução",
+    "embedded_workshop_enabled": "Integrar correção de formato da Format Repair no fluxo de tradução",
     "embedded_workshop_enabled_desc": "Ativado por padrão. Após a conclusão da tradução, o fluxo de trabalho executa uma etapa de correção automática de formato e atualiza o resultado da validação.",
-    "embedded_workshop_settings": "Configurações da Oficina Inteligente",
+    "embedded_workshop_settings": "Configurações da Format Repair",
     "embedded_workshop_settings_desc": "Recolhido por padrão. Expanda para ajustar as configurações de revisão separadamente da tradução.",
     "embedded_workshop_follow": "Seguir a API e o modelo de tradução atuais por padrão",
     "embedded_workshop_follow_desc": "Desative isso se desejar configurações de revisão separadas, como um modelo maior para tradução e um menor para revisão.",
@@ -1271,11 +1271,11 @@
     "translation_concurrency_tooltip": "Controla quantos lotes de tradução são enviados para a IA simultaneamente. Valores mais baixos são mais seguros para modelos locais. Aplica-se apenas a esta execução de tradução. A menos que você tenha um gargalo de tradução claro ou saiba exatamente o que está fazendo, o Automático é a escolha certa. Quando o Automático é usado, modelos locais ainda reduzem a simultaneidade automaticamente.",
     "translation_rpm_desc": "Aplica-se apenas a esta execução de tradução. O padrão mantém o ritmo atual do sistema.",
     "translation_rpm_tooltip": "Limita as requisições por minuto nesta execução para reduzir limites de taxa ou sobrecarga do serviço local. A menos que você tenha um gargalo de tradução claro ou saiba exatamente o que está fazendo, mantenha o valor padrão.",
-    "embedded_workshop_batch_size_tooltip": "Controla quantos problemas a Oficina Inteligente tenta corrigir em cada lote. Aplica-se apenas a esta execução. A menos que você tenha um gargalo de tradução claro ou saiba exatamente o que está fazendo, mantenha o valor padrão.",
+    "embedded_workshop_batch_size_tooltip": "Controla quantos problemas a Format Repair tenta corrigir em cada lote. Aplica-se apenas a esta execução. A menos que você tenha um gargalo de tradução claro ou saiba exatamente o que está fazendo, mantenha o valor padrão.",
     "embedded_workshop_batch_size_desc": "Aplica-se apenas a esta execução de tradução. Lotes menores são mais estáveis quando os problemas são complexos.",
-    "embedded_workshop_concurrency_tooltip": "Controla quantos lotes de correção da Oficina Inteligente são executados simultaneamente. Aplica-se apenas a esta execução. A menos que você tenha um gargalo de tradução claro ou saiba exatamente o que está fazendo, mantenha o valor padrão.",
+    "embedded_workshop_concurrency_tooltip": "Controla quantos lotes de correção da Format Repair são executados simultaneamente. Aplica-se apenas a esta execução. A menos que você tenha um gargalo de tradução claro ou saiba exatamente o que está fazendo, mantenha o valor padrão.",
     "embedded_workshop_concurrency_desc": "Aplica-se apenas a esta execução de tradução. Valores mais baixos são mais seguros para modelos locais.",
-    "embedded_workshop_rpm_tooltip": "Limita as requisições por minuto da Oficina Inteligente nesta execução para evitar limites de taxa ou sobrecarga do serviço local. A menos que você tenha um gargalo de tradução claro ou saiba exatamente o que está fazendo, mantenha o valor padrão.",
+    "embedded_workshop_rpm_tooltip": "Limita as requisições por minuto da Format Repair nesta execução para evitar limites de taxa ou sobrecarga do serviço local. A menos que você tenha um gargalo de tradução claro ou saiba exatamente o que está fazendo, mantenha o valor padrão.",
     "embedded_workshop_rpm_desc": "Aplica-se apenas a esta execução de tradução. O padrão mantém o ritmo atual do sistema.",
     "translation_limit": "Limite de tamanho do lote",
     "translation_concurrency": "Limite de simultaneidade"
@@ -1433,10 +1433,10 @@
     "collapse": "Recolher",
     "finish": "Concluir"
   },
-  "page_title_agent_workshop": "Oficina de Agentes",
+  "page_title_agent_workshop": "Format Repair",
   "agent_workshop": {
-    "title": "Oficina de Agentes",
-    "description": "Use IA para escanear problemas de localização e gerar correções prontas para aplicar.",
+    "title": "Format Repair",
+    "description": "Verifica e corrige em lote problemas de formato em arquivos de localização.",
     "select_project": "Selecionar Projeto",
     "scan_btn": "Escanear Erros do Projeto",
     "rescan_btn": "Reescanear",
@@ -1462,7 +1462,7 @@
     "batch_size": "Problemas por lote",
     "cached_label": "Resultados da última varredura",
     "scanned_label": "Varredura atual",
-    "scan_help": "A oficina usará os resultados da varredura salvos primeiro e depois voltará a escanear os arquivos do projeto diretamente.",
+    "scan_help": "Format Repair usará os resultados da varredura salvos primeiro e depois voltará a escanear os arquivos do projeto diretamente.",
     "issue_validation_generic": "Problema de validação",
     "issue_vic3_variable_parity": "Incompatibilidade na contagem de variáveis do Victoria 3",
     "issue_vic3_color_tags": "Incompatibilidade de tag de cor do Victoria 3",
@@ -1524,14 +1524,14 @@
   },
   "project_validation": {
     "title": "Verificação de Formato",
-    "subtitle": "Revise problemas de formato salvos, atualize os resultados ou entre na Oficina de Agentes.",
+    "subtitle": "Revise problemas de formato salvos, atualize os resultados ou entre na Format Repair.",
     "refresh": "Reverificar Problemas de Formato",
-    "open_workshop": "Abrir Oficina de Agentes",
+    "open_workshop": "Abrir o Format Repair",
     "issues_count": "Problemas Abertos",
     "last_updated": "Última Verificação",
     "report_count": "Relatórios de Correção",
     "sidecar_path": "Caminho do Arquivo de Registro",
-    "help": "A Oficina de Agentes lê primeiro o registro de problemas de formato salvos deste projeto e grava o status de correção atualizado nele.",
+    "help": "A Format Repair lê primeiro o registro de problemas de formato salvos deste projeto e grava o status de correção atualizado nele.",
     "scope_hint": "Esta página verifica apenas problemas de formato de script Paradox, como variáveis, tags, quebras de linha e nomes de chaves. Ela não verifica erros de digitação, redação ou estilo de escrita.",
     "issue_breakdown": "Detalhamento de Problemas",
     "no_issues": "Não há problemas de validação abertos no momento."
@@ -1633,8 +1633,8 @@
     "runtime_warning_summary_desc": "Esta execução registrou {{count}} aviso(s) de tempo de execução. Revise estouro de contexto, recusa do modelo ou lotes de fallback de texto original primeiro.",
     "warning_summary_title": "Avisos de tempo de execução detectados",
     "warning_summary_desc": "Esta execução registrou {{count}} aviso(s) de tempo de execução. Revise estouro de contexto, recusa do modelo ou lotes de fallback de texto original primeiro.",
-    "validation_issue_summary_title": "Problemas de validação exportados para Oficina",
-    "validation_issue_summary_desc": "A validação pós-compilação encontrou {{count}} problema(s). Estes foram gravados em workshop_issues.json para entrada no Smart Workshop.",
+    "validation_issue_summary_title": "Problemas de validação exportados para Format Repair",
+    "validation_issue_summary_desc": "A validação pós-compilação encontrou {{count}} problema(s). Estes foram gravados em workshop_issues.json para entrada no Format Repair.",
     "validation_issue_export_item": "{{lang}}: {{count}} problema(s) | {{path}}",
     "warning_fallback_to_source": "O lote {{batch_num}} não pôde ser traduzido após várias tentativas e foi gravado usando o texto de origem (provedor: {{provider}}).",
     "warning_context_exceeded": "O lote {{batch_num}} excedeu a janela de contexto do modelo na tentativa {{attempt}} (provedor: {{provider}}).",
@@ -1660,9 +1660,9 @@
     "resume_detail_batch": "Último Lote: {{current}} / {{total}}",
     "resume_detail_time": "Último Salvamento: {{time}}",
     "resume_detail_file": "Último Arquivo Concluído: {{file}}",
-    "embedded_workshop_enabled": "Incorporar correção de formato do Smart Workshop no fluxo incremental",
+    "embedded_workshop_enabled": "Incorporar correção de formato do Format Repair no fluxo incremental",
     "embedded_workshop_enabled_desc": "Ativado por padrão. Após o término da tradução, o fluxo executa uma passagem automática de correção de formato e atualiza o resultado da validação.",
-    "embedded_workshop_settings": "Configurações do Smart Workshop",
+    "embedded_workshop_settings": "Configurações do Format Repair",
     "embedded_workshop_settings_desc": "Recolhido por padrão. Expanda para ajustar as configurações de revisão separadamente da tradução.",
     "embedded_workshop_follow": "Seguir a API e o modelo de tradução atuais por padrão",
     "embedded_workshop_follow_desc": "Desative isso se desejar configurações de revisão separadas, como um modelo maior para tradução e um menor para revisão.",
@@ -1683,8 +1683,8 @@
     "aggregate_total": "Soma agregada",
     "aggregate_reused": "Reaproveitados agregados",
     "aggregate_new": "Novos agregados",
-    "telemetry_workshop_export": "Exportação do Workshop",
-    "telemetry_embedded_workshop": "Workshop embutido"
+    "telemetry_workshop_export": "Validação do Format Repair",
+    "telemetry_embedded_workshop": "Correção automática do Format Repair"
   },
   "recent_activity_type_translate": "Atualização Incremental",
   "project_management": {
@@ -1764,8 +1764,8 @@
   "report_glossary_issues": "Detectado(s) {{count}} potencial(is) problema(s) de glossário",
   "report_no_glossary_issues": "Nenhum problema de glossário detectado!",
   "report_format_issues": "Detectado(s) {{count}} potencial(is) problema(s) de formatação",
-  "report_format_repair_complete": "Detectado(s) {{detected}} potencial(is) problema(s) de formatação; a Oficina Inteligente corrigiu {{fixed}}.",
-  "report_format_repair_partial": "Detectado(s) {{detected}} potencial(is) problema(s) de formatação; a Oficina Inteligente corrigiu {{fixed}} e {{remaining}} ainda exigem revisão.",
+  "report_format_repair_complete": "Detectado(s) {{detected}} potencial(is) problema(s) de formatação; a Format Repair corrigiu {{fixed}}.",
+  "report_format_repair_partial": "Detectado(s) {{detected}} potencial(is) problema(s) de formatação; a Format Repair corrigiu {{fixed}} e {{remaining}} ainda exigem revisão.",
   "report_no_format_issues": "Nenhum problema de formatação detectado!",
   "report_title_errors": "Erros",
   "report_title_glossary": "Verificação de Glossário",
@@ -1779,7 +1779,7 @@
   "stage_reading_source": "Lendo arquivos de origem",
   "stage_analyzing_files": "Analisando arquivos",
   "stage_initializing": "Inicializando",
-  "stage_smart_workshop": "Smart Workshop",
+  "stage_smart_workshop": "Format Repair",
   "stage_failed": "Tradução falhou",
   "tools_tab_workshop_generator": "Gerador de Workshop",
   "game_name_eu5": "Europa Universalis 5",
@@ -2076,8 +2076,9 @@
       "initial_translation": "Tradução inicial do projeto",
       "translation": "Processo de tradução",
       "incremental_translation": "Tradução incremental",
-      "agent_workshop": "Oficina do agente",
-      "repair": "Reparo pelo agente",
+      "agent_workshop": "Format Repair",
+      "agent_workshop_batch": "Format Repair batch",
+      "repair": "Format repair",
       "neologism_mining": "Mineração de neologismos",
       "dry_run": "Teste do agente",
       "task": "Processo em segundo plano",

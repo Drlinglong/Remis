@@ -332,7 +332,7 @@ export const ConfigStep = ({
                                 <Accordion.Control>
                                     <Group justify="space-between" wrap="nowrap">
                                         <Box>
-                                            <Text fw={600}>{t('translation_page.embedded_workshop_title', { defaultValue: '智能工坊 (校对插件)' })}</Text>
+                                            <Text fw={600}>{t('translation_page.embedded_workshop_title', { defaultValue: '格式修复台（格式修复）' })}</Text>
                                             <Text size="xs" c="dimmed">
                                                 {t('translation_page.embedded_workshop_subtitle', { defaultValue: '在生成翻译后，顺便进行文本智能润饰与格式校对。' })}
                                             </Text>

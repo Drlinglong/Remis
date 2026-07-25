@@ -968,8 +968,8 @@
         "desc": "Diese Seite prüft nur Formatierungsprobleme von Paradox-Skripten wie Variablen, Tags, Zeilenumbrüche und Lokalisierungsschlüsselnamen. Die Qualität der Formulierung oder der Stil werden nicht bewertet."
       },
       "validation_workshop": {
-        "title": "Agenten-Workshop öffnen",
-        "desc": "Der Workshop kann fehlerhafte Schlüssel wie [concept】, $key￥ oder [概念2] automatisch erkennen und mithilfe von KI in gültige Formen wie [concept], $key$ und [concept2] reparieren."
+        "title": "Format Repair öffnen",
+        "desc": "Format Repair kann fehlerhafte Schlüssel wie [concept】, $key￥ oder [概念2] automatisch erkennen und mithilfe von KI in gültige Formen wie [concept], $key$ und [concept2] reparieren."
       },
       "history_overview": {
         "title": "Archiv- und Versions-Zeitstrahl",
@@ -1038,7 +1038,7 @@
         "desc": "Verweisen Sie hiermit auf den neuen Mod-Ordner oder die Workshop-Kopie, die die neuesten Quelldateien enthält."
       },
       "workshop": {
-        "title": "Eingebetteter Smart Workshop",
+        "title": "Eingebetteter Format Repair",
         "desc": "Lassen Sie dies aktiviert, wenn Sie nach Abschluss der Übersetzung einen automatischen Validierungs- und Reparaturdurchlauf wünschen."
       },
       "prescan": {
@@ -1065,7 +1065,7 @@
     "agent_workshop": {
       "select": {
         "title": "Zu reparierendes Projekt auswählen",
-        "desc": "Smart Workshop arbeitet auf Basis eines bestehenden Projekts. Verwenden Sie Suche und Filter, um zuerst das Zielprojekt zu finden."
+        "desc": "Format Repair arbeitet auf Basis eines bestehenden Projekts. Verwenden Sie Suche und Filter, um zuerst das Zielprojekt zu finden."
       },
       "project_cards": {
         "title": "Projektkandidaten",
@@ -1077,7 +1077,7 @@
       },
       "scan": {
         "title": "Nach Problemen suchen",
-        "desc": "Dies startet den Smart Workshop-Scan. Falls dieses Projekt bereits einen gespeicherten Problembericht hat, lädt das Programm diesen direkt, damit Sie nicht alles neu scannen müssen."
+        "desc": "Dies startet den Format Repair-Scan. Falls dieses Projekt bereits einen gespeicherten Problembericht hat, lädt das Programm diesen direkt, damit Sie nicht alles neu scannen müssen."
       },
       "fix_settings": {
         "title": "Reparaturstrategie",
@@ -1250,9 +1250,9 @@
     "resume_detail_file": "Zuletzt abgeschlossene Datei: {{file}}",
     "resume_detail_empty": "Noch keine detaillierten Checkpoint-Einträge verfügbar.",
     "resume_detail_none": "Es gibt keine unfertige Arbeit.",
-    "embedded_workshop_enabled": "Smart Workshop-Formatkorrektur in den Übersetzungsworkflow einbetten",
+    "embedded_workshop_enabled": "Format Repair-Formatkorrektur in den Übersetzungsworkflow einbetten",
     "embedded_workshop_enabled_desc": "Standardmäßig aktiviert. Nach Abschluss der Übersetzung führt der Workflow einen automatischen Durchlauf zur Formatkorrektur durch und aktualisiert das Validierungsergebnis.",
-    "embedded_workshop_settings": "Smart Workshop-Einstellungen",
+    "embedded_workshop_settings": "Format Repair-Einstellungen",
     "embedded_workshop_settings_desc": "Standardmäßig minimiert. Erweitern, um Korrekturlese-Einstellungen separat von der Übersetzung feinabzustimmen.",
     "embedded_workshop_follow": "Standardmäßig der aktuellen Übersetzungs-API und dem Modell folgen",
     "embedded_workshop_follow_desc": "Deaktivieren Sie dies, wenn Sie separate Korrekturlese-Einstellungen wünschen, z. B. ein größeres Modell für die Übersetzung und ein kleineres für das Korrekturlesen.",
@@ -1271,11 +1271,11 @@
     "translation_concurrency_tooltip": "Steuert, wie viele Übersetzungs-Batches gleichzeitig an die KI gesendet werden. Niedrigere Werte sind sicherer für lokale Modelle. Gilt nur für diesen Übersetzungslauf. Sofern Sie keinen eindeutigen Übersetzungs-Engpass haben oder genau wissen, was Sie tun, ist 'Auto' die richtige Wahl. Wenn 'Auto' verwendet wird, fallen lokale Modelle automatisch auf eine niedrigere Parallelität zurück.",
     "translation_rpm_desc": "Gilt nur für diesen Übersetzungslauf. Die Standardeinstellung behält die aktuelle Systemgeschwindigkeit bei.",
     "translation_rpm_tooltip": "Begrenzt die Anfragen pro Minute für diesen Lauf, um Ratenbegrenzungen oder eine Überlastung lokaler Dienste zu reduzieren. Sofern Sie keinen eindeutigen Übersetzungs-Engpass haben oder genau wissen, was Sie tun, behalten Sie den Standardwert bei.",
-    "embedded_workshop_batch_size_tooltip": "Steuert, wie viele Probleme der Smart Workshop in jedem Batch zu beheben versucht. Gilt nur für diesen Lauf. Sofern Sie keinen eindeutigen Übersetzungs-Engpass haben oder genau wissen, was Sie tun, behalten Sie den Standardwert bei.",
+    "embedded_workshop_batch_size_tooltip": "Steuert, wie viele Probleme der Format Repair in jedem Batch zu beheben versucht. Gilt nur für diesen Lauf. Sofern Sie keinen eindeutigen Übersetzungs-Engpass haben oder genau wissen, was Sie tun, behalten Sie den Standardwert bei.",
     "embedded_workshop_batch_size_desc": "Gilt nur für diesen Übersetzungslauf. Kleinere Batches sind stabiler, wenn die Probleme komplex sind.",
-    "embedded_workshop_concurrency_tooltip": "Steuert, wie viele Korrektur-Batches des Smart Workshop gleichzeitig ausgeführt werden. Gilt nur für diesen Lauf. Sofern Sie keinen eindeutigen Übersetzungs-Engpass haben oder genau wissen, was Sie tun, behalten Sie den Standardwert bei.",
+    "embedded_workshop_concurrency_tooltip": "Steuert, wie viele Korrektur-Batches des Format Repair gleichzeitig ausgeführt werden. Gilt nur für diesen Lauf. Sofern Sie keinen eindeutigen Übersetzungs-Engpass haben oder genau wissen, was Sie tun, behalten Sie den Standardwert bei.",
     "embedded_workshop_concurrency_desc": "Gilt nur für diesen Übersetzungslauf. Niedrigere Werte sind sicherer für lokale Modelle.",
-    "embedded_workshop_rpm_tooltip": "Begrenzt die Anfragen des Smart Workshop pro Minute für diesen Lauf, um Ratenbegrenzungen oder eine Überlastung lokaler Dienste zu vermeiden. Sofern Sie keinen eindeutigen Übersetzungs-Engpass haben oder genau wissen, was Sie tun, behalten Sie den Standardwert bei.",
+    "embedded_workshop_rpm_tooltip": "Begrenzt die Anfragen des Format Repair pro Minute für diesen Lauf, um Ratenbegrenzungen oder eine Überlastung lokaler Dienste zu vermeiden. Sofern Sie keinen eindeutigen Übersetzungs-Engpass haben oder genau wissen, was Sie tun, behalten Sie den Standardwert bei.",
     "embedded_workshop_rpm_desc": "Gilt nur für diesen Übersetzungslauf. Die Standardeinstellung behält die aktuelle Systemgeschwindigkeit bei.",
     "translation_limit": "Batch-Größenbegrenzung",
     "translation_concurrency": "Parallelitätsbegrenzung"
@@ -1432,10 +1432,10 @@
     "expand": "Erweitern",
     "collapse": "Einklappen"
   },
-  "page_title_agent_workshop": "Agent-Workshop",
+  "page_title_agent_workshop": "Format Repair",
   "agent_workshop": {
-    "title": "Agent-Workshop",
-    "description": "Nutzen Sie KI, um Lokalisierungsprobleme zu finden und sofort anwendbare Korrekturen zu generieren.",
+    "title": "Format Repair",
+    "description": "Prüft und repariert Formatfehler in Lokalisierungsdateien stapelweise.",
     "select_project": "Projekt auswählen",
     "scan_btn": "Projektfehler scannen",
     "rescan_btn": "Erneut scannen",
@@ -1461,7 +1461,7 @@
     "batch_size": "Probleme pro Batch",
     "cached_label": "Letzte Scan-Ergebnisse",
     "scanned_label": "Aktueller Scan",
-    "scan_help": "Der Workshop verwendet zuerst gespeicherte Scan-Ergebnisse und greift dann auf das direkte Scannen der Projektdateien zurück.",
+    "scan_help": "Format Repair verwendet zuerst gespeicherte Scan-Ergebnisse und greift dann auf das direkte Scannen der Projektdateien zurück.",
     "issue_validation_generic": "Validierungsproblem",
     "issue_vic3_variable_parity": "Victoria 3 Variablenanzahl-Abweichung",
     "issue_vic3_color_tags": "Victoria 3 Farbtag-Abweichung",
@@ -1523,14 +1523,14 @@
   },
   "project_validation": {
     "title": "Formatprüfung",
-    "subtitle": "Gespeicherte Formatfehler überprüfen, Ergebnisse aktualisieren oder zum Agent Workshop wechseln.",
+    "subtitle": "Gespeicherte Formatfehler überprüfen, Ergebnisse aktualisieren oder zum Format Repair wechseln.",
     "refresh": "Formatfehler erneut prüfen",
-    "open_workshop": "Agent Workshop öffnen",
+    "open_workshop": "Format Repair öffnen",
     "issues_count": "Offene Fehler",
     "last_updated": "Zuletzt geprüft",
     "report_count": "Reparaturberichte",
     "sidecar_path": "Pfad der Protokolldatei",
-    "help": "Der Agent Workshop liest zuerst den gespeicherten Formatfehler-Datensatz dieses Projekts und schreibt den aktualisierten Reparaturstatus dorthin zurück.",
+    "help": "Der Format Repair liest zuerst den gespeicherten Formatfehler-Datensatz dieses Projekts und schreibt den aktualisierten Reparaturstatus dorthin zurück.",
     "scope_hint": "Diese Seite prüft nur Paradox-Skriptformatfehler wie Variablen, Tags, Zeilenumbrüche und Schlüsselnamen. Rechtschreibfehler, Wortwahl oder Schreibstil werden nicht geprüft.",
     "issue_breakdown": "Fehleraufschlüsselung",
     "no_issues": "Aktuell liegen keine offenen Validierungsfehler vor."
@@ -1632,8 +1632,8 @@
     "runtime_warning_summary_desc": "Dieser Lauf hat {{count}} Laufzeitwarnung(en) protokolliert. Überprüfen Sie zuerst Batches mit Kontext-Überlauf, Modell-Verweigerung oder Quelltext-Fallback.",
     "warning_summary_title": "Laufzeitwarnungen erkannt",
     "warning_summary_desc": "Dieser Lauf hat {{count}} Laufzeitwarnung(en) protokolliert. Überprüfen Sie zuerst Batches mit Kontext-Überlauf, Modell-Verweigerung oder Quelltext-Fallback.",
-    "validation_issue_summary_title": "Validierungsprobleme für Workshop exportiert",
-    "validation_issue_summary_desc": "Die Validierung nach dem Build hat {{count}} Problem(e) gefunden. Diese wurden für den Smart Workshop Import in workshop_issues.json geschrieben.",
+    "validation_issue_summary_title": "Validierungsprobleme für Format Repair exportiert",
+    "validation_issue_summary_desc": "Die Validierung nach dem Build hat {{count}} Problem(e) gefunden. Diese wurden für den Format Repair Import in workshop_issues.json geschrieben.",
     "validation_issue_export_item": "{{lang}}: {{count}} Problem(e) | {{path}}",
     "warning_fallback_to_source": "Batch {{batch_num}} konnte nach mehreren Versuchen nicht übersetzt werden und wurde mit dem Quelltext geschrieben (Anbieter: {{provider}}).",
     "warning_context_exceeded": "Batch {{batch_num}} hat das Kontextfenster des Modells bei Versuch {{attempt}} überschritten (Anbieter: {{provider}}).",
@@ -1659,9 +1659,9 @@
     "resume_detail_batch": "Letzter Batch: {{current}} / {{total}}",
     "resume_detail_time": "Zuletzt gespeichert: {{time}}",
     "resume_detail_file": "Zuletzt abgeschlossene Datei: {{file}}",
-    "embedded_workshop_enabled": "Smart Workshop Formatkorrektur in den inkrementellen Workflow einbetten",
+    "embedded_workshop_enabled": "Format Repair Formatkorrektur in den inkrementellen Workflow einbetten",
     "embedded_workshop_enabled_desc": "Standardmäßig aktiviert. Nach Abschluss der Übersetzung führt der Workflow einen automatischen Durchlauf zur Formatkorrektur aus und aktualisiert das Validierungsergebnis.",
-    "embedded_workshop_settings": "Smart Workshop Einstellungen",
+    "embedded_workshop_settings": "Format Repair Einstellungen",
     "embedded_workshop_settings_desc": "Standardmäßig minimiert. Erweitern Sie dies, um die Korrekturleseeinstellungen separat von der Übersetzung anzupassen.",
     "embedded_workshop_follow": "Standardmäßig der aktuellen Übersetzungs-API und dem Modell folgen",
     "embedded_workshop_follow_desc": "Deaktivieren Sie dies, wenn Sie separate Korrekturleseeinstellungen wünschen, z. B. ein größeres Modell für die Übersetzung und ein kleineres für das Korrekturlesen.",
@@ -1682,8 +1682,8 @@
     "aggregate_total": "Gesamtsumme",
     "aggregate_reused": "Wiederverwendet gesamt",
     "aggregate_new": "Neu gesamt",
-    "telemetry_workshop_export": "Workshop-Export",
-    "telemetry_embedded_workshop": "Eingebetteter Workshop"
+    "telemetry_workshop_export": "Format Repair-Validierung",
+    "telemetry_embedded_workshop": "Format Repair-Autokorrektur"
   },
   "recent_activity_type_translate": "Inkrementelles Update",
   "project_management": {
@@ -1763,8 +1763,8 @@
   "report_glossary_issues": "{{count}} potenzielle Glossar-Probleme erkannt",
   "report_no_glossary_issues": "Keine Glossar-Probleme erkannt!",
   "report_format_issues": "{{count}} potenzielle Formatierungsprobleme erkannt",
-  "report_format_repair_complete": "{{detected}} potenzielle Formatierungsprobleme erkannt; die Smart Workshop hat {{fixed}} behoben.",
-  "report_format_repair_partial": "{{detected}} potenzielle Formatierungsprobleme erkannt; die Smart Workshop hat {{fixed}} behoben, {{remaining}} müssen noch geprüft werden.",
+  "report_format_repair_complete": "{{detected}} potenzielle Formatierungsprobleme erkannt; die Format Repair hat {{fixed}} behoben.",
+  "report_format_repair_partial": "{{detected}} potenzielle Formatierungsprobleme erkannt; die Format Repair hat {{fixed}} behoben, {{remaining}} müssen noch geprüft werden.",
   "report_no_format_issues": "Keine Formatierungsprobleme erkannt!",
   "report_title_errors": "Fehler",
   "report_title_glossary": "Glossar-Prüfung",
@@ -1778,7 +1778,7 @@
   "stage_reading_source": "Quelldateien werden gelesen",
   "stage_analyzing_files": "Dateien werden analysiert",
   "stage_initializing": "Initialisierung",
-  "stage_smart_workshop": "Smart Workshop",
+  "stage_smart_workshop": "Format Repair",
   "stage_failed": "Übersetzung fehlgeschlagen",
   "tools_tab_workshop_generator": "Workshop-Generator",
   "game_name_eu5": "Europa Universalis 5",
@@ -2075,8 +2075,9 @@
       "initial_translation": "Erstübersetzung",
       "translation": "Übersetzungsauftrag",
       "incremental_translation": "Inkrementelles Update",
-      "agent_workshop": "Agent-Werkstatt",
-      "repair": "Agent-Reparatur",
+      "agent_workshop": "Format Repair",
+      "agent_workshop_batch": "Format Repair batch",
+      "repair": "Format repair",
       "neologism_mining": "Neologismen-Suche",
       "dry_run": "Agent-Probelauf",
       "task": "Hintergrundauftrag",

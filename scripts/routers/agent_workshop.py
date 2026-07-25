@@ -222,7 +222,7 @@ def _validate_repair_approval(
             status_code=409,
             detail={
                 "code": "approval_required",
-                "message": "Explicit approval is required for this exact Agent Workshop repair scope.",
+                "message": "Explicit approval is required for this exact Format Repair scope.",
                 "retryable": False,
                 "approval_scope": {
                     "project_id": project_id,
@@ -243,7 +243,7 @@ async def _require_repairable_project(project_id: str) -> Dict[str, Any]:
             status_code=404,
             detail={
                 "code": "project_not_found",
-                "message": "The selected Agent Workshop project no longer exists.",
+                "message": "The selected Format Repair project no longer exists.",
                 "project_id": project_id,
             },
         )
@@ -253,7 +253,7 @@ async def _require_repairable_project(project_id: str) -> Dict[str, Any]:
             status_code=409,
             detail={
                 "code": "project_not_active",
-                "message": "Restore this project before running Agent Workshop repairs.",
+                "message": "Restore this project before running Format Repair.",
                 "project_id": project_id,
                 "project_status": status,
             },
@@ -370,7 +370,7 @@ def _write_fix_report(
     report_path = reports_dir / report_name
 
     content = "\n".join([
-        "# Agent Workshop Fix Report",
+        "# Format Repair Report",
         "",
         f"- File: `{file_name}`",
         f"- Key: `{key}`",
@@ -1206,7 +1206,7 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
                 "kind": "agent_workshop_batch",
                 "project_id": request.project_id,
                 "parent_task_id": task_id,
-                "title": f"Agent Workshop batch {batch_number}/{total_batches}",
+                "title": f"Format Repair batch {batch_number}/{total_batches}",
                 "source_route": f"/tasks/{task_id}",
                 "created_by": request.created_by.model_dump(),
                 "blocking": False,
@@ -1234,18 +1234,18 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
         "total": total,
         "current": 0,
         "percent": 0,
-        "stage": "Agent Workshop",
+        "stage": "Format Repair",
         "current_batch": 0,
         "total_batches": total_batches,
     })
     task_state.update_task(
         task_id,
         status="processing",
-        append_log=f"Agent Workshop started repairing {total} issue(s) in {total_batches} batch(es).",
+        append_log=f"Format Repair started repairing {total} issue(s) in {total_batches} batch(es).",
     )
     task_state.append_task_event(
         task_id,
-        f"Agent Workshop execution settings: concurrency={concurrency}, rpm={rpm}, max_retries={max_retries}.",
+        f"Format Repair execution settings: concurrency={concurrency}, rpm={rpm}, max_retries={max_retries}.",
         audience="diagnostic",
         level="debug",
         event_type="execution_settings",
@@ -1287,7 +1287,7 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
                 total=total,
                 current_batch=batch_number,
                 total_batches=total_batches,
-                stage="Agent Workshop",
+                stage="Format Repair",
                 log_message=f"Worker {worker_id}: fixing batch {batch_number}/{total_batches} ({len(batch)} issue(s)).",
                 event_audience="diagnostic",
                 push=True,
@@ -1358,7 +1358,7 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
                     total_batches=total_batches,
                     successful_batches=current_success,
                     failed_batches=current_failed,
-                    stage="Agent Workshop",
+                    stage="Format Repair",
                     log_message=f"Batch {batch_number}/{total_batches} completed: {batch_success}/{len(batch)} fixed.",
                     event_audience="diagnostic",
                     push=True,
@@ -1404,7 +1404,7 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
                     current_batch=batch_number,
                     total_batches=total_batches,
                     failed_batches=current_failed,
-                    stage="Agent Workshop",
+                    stage="Format Repair",
                     log_message=f"Batch {batch_number}/{total_batches} failed: {exc}",
                     event_audience="diagnostic",
                     push=True,
@@ -1470,9 +1470,9 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
                 "attention_reason": result_summary if failed_count else None,
             },
             append_log=(
-                "Agent Workshop run completed."
+                "Format Repair run completed."
                 if failed_count == 0
-                else f"Agent Workshop run finished with {failed_count} item(s) requiring review."
+                else f"Format Repair run finished with {failed_count} item(s) requiring review."
             ),
         )
     except Exception as exc:
@@ -1480,8 +1480,8 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
         task_state.update_task(
             task_id,
             status="failed",
-            message="Agent Workshop could not complete this repair run.",
-            append_log="Agent Workshop run failed. Open diagnostics for technical details.",
+            message="Format Repair could not complete this repair run.",
+            append_log="Format Repair run failed. Open diagnostics for technical details.",
         )
         task_state.append_task_event(
             task_id,
@@ -1501,7 +1501,7 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
     batching, worker concurrency, RPM throttling, retries, and reflection stay here.
     """
     if not request.issues:
-        raise HTTPException(status_code=400, detail="No issues supplied for Agent Workshop run.")
+        raise HTTPException(status_code=400, detail="No issues supplied for Format Repair.")
     _validate_repair_approval(
         request.approval,
         project_id=request.project_id,
@@ -1517,7 +1517,7 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
                 status_code=409,
                 detail={
                     "code": "idempotency_conflict",
-                    "message": "This idempotency key is already bound to a different Agent Workshop scope.",
+                    "message": "This idempotency key is already bound to a different Format Repair scope.",
                     "retryable": False,
                     "existing_task_id": existing.get("task_id"),
                 },
@@ -1534,15 +1534,15 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
         task_state.create_task(
             task_id,
             status="pending",
-            log_message="Agent Workshop run queued.",
+            log_message="Format Repair run queued.",
             fields={
                 "kind": "agent_workshop",
                 "project_id": request.project_id,
-                "title": "Agent Workshop repair",
+                "title": "Format Repair",
                 "source_route": "/agent-workshop",
                 "created_by": request.created_by.model_dump(),
                 "blocking": True,
-                "blocking_reason": "Agent Workshop is repairing project files. Conflicting writes are blocked until it finishes.",
+                "blocking_reason": "Format Repair is repairing project files. Conflicting writes are blocked until it finishes.",
                 "idempotency_key": request.idempotency_key,
                 "operation_fingerprint": operation_fingerprint,
                 "workflow_context": {
@@ -1574,7 +1574,7 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
                     status_code=409,
                     detail={
                         "code": "idempotency_conflict",
-                        "message": "This idempotency key is already bound to a different Agent Workshop scope.",
+                        "message": "This idempotency key is already bound to a different Format Repair scope.",
                         "retryable": False,
                         "existing_task_id": existing.get("task_id"),
                     },
@@ -1588,7 +1588,7 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
             status_code=409,
             detail={
                 "code": "duplicate_task",
-                "message": "This project already has an Agent Workshop task in progress.",
+                "message": "This project already has a Format Repair task in progress.",
                 "existing_task_id": exc.existing_task.get("task_id"),
             },
         ) from exc

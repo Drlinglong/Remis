@@ -17,7 +17,7 @@ export const pollAgentWorkshopRun = async ({
   waitForNext = defaultWaitForNext,
   delayMs = 1000,
 }) => {
-  if (!taskId) throw new Error('Agent Workshop run task ID is required.');
+  if (!taskId) throw new Error('Format Repair task ID is required.');
 
   while (!isCancelled()) {
     await waitForNext(delayMs);
@@ -25,7 +25,7 @@ export const pollAgentWorkshopRun = async ({
 
     const task = await getStatus(taskId);
     if (!task?.status) {
-      throw new Error('Agent Workshop run status response is missing status.');
+      throw new Error('Format Repair status response is missing status.');
     }
 
     onTask(task);

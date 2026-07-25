@@ -968,8 +968,8 @@
         "desc": "このページでは、変数、タグ、改行、ローカライズキー名などのParadoxスクリプトのフォーマットの問題のみをチェックします。文言の品質やスタイルを判定するものではありません。"
       },
       "validation_workshop": {
-        "title": "エージェント・ワークショップを開く",
-        "desc": "ワークショップは、[concept】、$key￥、[概念2]などの不正な形式のキーを自動的に検出し、AIを使用して[concept]、$key$、[concept2]のような正しい形式に修復します。"
+        "title": "Format Repairを開く",
+        "desc": "Format Repair は、[concept】、$key￥、[概念2]などの不正な形式のキーを自動的に検出し、AIを使用して[concept]、$key$、[concept2]のような正しい形式に修復します。"
       },
       "history_overview": {
         "title": "アーカイブとバージョンのタイムライン",
@@ -1038,7 +1038,7 @@
         "desc": "最新のソースファイルが含まれている新しいMODフォルダまたはワークショップのコピーを指定してください。"
       },
       "workshop": {
-        "title": "内蔵スマート・ワークショップ",
+        "title": "内蔵Format Repair",
         "desc": "翻訳完了後に自動の検証と修正パスを1回実行したい場合は、これを有効にしたままにしてください。"
       },
       "prescan": {
@@ -1065,7 +1065,7 @@
     "agent_workshop": {
       "select": {
         "title": "修復するプロジェクトを選択",
-        "desc": "スマート・ワークショップは既存のプロジェクトに対して動作します。まず検索とフィルタを使用して対象のプロジェクトを見つけてください。"
+        "desc": "Format Repairは既存のプロジェクトに対して動作します。まず検索とフィルタを使用して対象のプロジェクトを見つけてください。"
       },
       "project_cards": {
         "title": "プロジェクト候補",
@@ -1077,7 +1077,7 @@
       },
       "scan": {
         "title": "問題をスキャン",
-        "desc": "スマート・ワークショップのスキャンを開始します。このプロジェクトに既に保存された問題レコードがある場合、すべてを再スキャンする必要がないようにプログラムが直接ロードします。"
+        "desc": "Format Repairのスキャンを開始します。このプロジェクトに既に保存された問題レコードがある場合、すべてを再スキャンする必要がないようにプログラムが直接ロードします。"
       },
       "fix_settings": {
         "title": "修正戦略",
@@ -1250,9 +1250,9 @@
     "resume_detail_file": "最後に完了したファイル: {{file}}",
     "resume_detail_empty": "詳細なチェックポイントエントリはまだありません。",
     "resume_detail_none": "未完了の作業はありません。",
-    "embedded_workshop_enabled": "翻訳ワークフローにSmart Workshopのフォーマット修正を組み込む",
+    "embedded_workshop_enabled": "翻訳ワークフローにFormat Repairのフォーマット修正を組み込む",
     "embedded_workshop_enabled_desc": "デフォルトで有効です。翻訳終了後、ワークフローは自動フォーマット修正を1回実行し、検証結果を更新します。",
-    "embedded_workshop_settings": "Smart Workshop 設定",
+    "embedded_workshop_settings": "Format Repair 設定",
     "embedded_workshop_settings_desc": "デフォルトでは折りたたまれています。展開して、翻訳とは別に校正設定を微調整してください。",
     "embedded_workshop_follow": "デフォルトで現在の翻訳APIとモデルに従う",
     "embedded_workshop_follow_desc": "翻訳には大きなモデル、校正には小さなモデルを使用するなど、校正設定を個別に指定したい場合は、これを無効にしてください。",
@@ -1271,11 +1271,11 @@
     "translation_concurrency_tooltip": "AIに同時に送信される翻訳バッチの数を制御します。値が小さいほどローカルモデルにとって安全です。この翻訳実行にのみ適用されます。明確な翻訳のボトルネックがある場合や、動作を熟知している場合を除き、「自動」が適切な選択です。「自動」を使用した場合でも、ローカルモデルは自動的に低い並列数にフォールバックします。",
     "translation_rpm_desc": "この翻訳実行にのみ適用されます。デフォルトでは現在のシステムのペースが維持されます。",
     "translation_rpm_tooltip": "レート制限やローカルサービスの過負荷を軽減するために、この実行の1分あたりのリクエスト数（RPM）を制限します。明確な翻訳のボトルネックがある場合や、動作を熟知している場合を除き、デフォルト値のままにしてください。",
-    "embedded_workshop_batch_size_tooltip": "各バッチでSmart Workshopが修正を試みる問題の数を制御します。この実行にのみ適用されます。明確な翻訳のボトルネックがある場合や、動作を熟知している場合を除き、デフォルト値のままにしてください。",
+    "embedded_workshop_batch_size_tooltip": "各バッチでFormat Repairが修正を試みる問題の数を制御します。この実行にのみ適用されます。明確な翻訳のボトルネックがある場合や、動作を熟知している場合を除き、デフォルト値のままにしてください。",
     "embedded_workshop_batch_size_desc": "この翻訳実行にのみ適用されます。問題が複雑な場合は、バッチが小さいほど安定します。",
-    "embedded_workshop_concurrency_tooltip": "同時に実行されるSmart Workshopの修正バッチの数を制御します。この実行にのみ適用されます。明確な翻訳のボトルネックがある場合や、動作を熟知している場合を除き、デフォルト値のままにしてください。",
+    "embedded_workshop_concurrency_tooltip": "同時に実行されるFormat Repairの修正バッチの数を制御します。この実行にのみ適用されます。明確な翻訳のボトルネックがある場合や、動作を熟知している場合を除き、デフォルト値のままにしてください。",
     "embedded_workshop_concurrency_desc": "この翻訳実行にのみ適用されます。値が小さいほどローカルモデルにとって安全です。",
-    "embedded_workshop_rpm_tooltip": "レート制限やローカルサービスの過負荷を避けるために、この実行のSmart Workshopのリクエスト数（RPM）を制限します。明確な翻訳のボトルネックがある場合や、動作を熟知している場合を除き、デフォルト値のままにしてください。",
+    "embedded_workshop_rpm_tooltip": "レート制限やローカルサービスの過負荷を避けるために、この実行のFormat Repairのリクエスト数（RPM）を制限します。明確な翻訳のボトルネックがある場合や、動作を熟知している場合を除き、デフォルト値のままにしてください。",
     "embedded_workshop_rpm_desc": "この翻訳実行にのみ適用されます。デフォルトでは現在のシステムのペースが維持されます。",
     "translation_limit": "バッチサイズ制限",
     "translation_concurrency": "並行処理制限"
@@ -1432,10 +1432,10 @@
     "expand": "展開",
     "collapse": "折りたたむ"
   },
-  "page_title_agent_workshop": "エージェント・ワークショップ",
+  "page_title_agent_workshop": "Format Repair",
   "agent_workshop": {
-    "title": "エージェントワークショップ",
-    "description": "AIを使用して翻訳の問題をスキャンし、すぐに適用可能な修正を生成します。",
+    "title": "Format Repair",
+    "description": "ローカライズファイルの形式上の問題を検査し、一括修復します。",
     "select_project": "プロジェクトを選択",
     "scan_btn": "プロジェクトのエラーをスキャン",
     "rescan_btn": "再スキャン",
@@ -1461,7 +1461,7 @@
     "batch_size": "バッチあたりの問題数",
     "cached_label": "前回のスキャン結果",
     "scanned_label": "今回のスキャン",
-    "scan_help": "ワークショップはまず保存されたスキャン結果を使用し、次にプロジェクトファイルを直接スキャンします。",
+    "scan_help": "Format Repair はまず保存されたスキャン結果を使用し、次にプロジェクトファイルを直接スキャンします。",
     "issue_validation_generic": "バリデーションの問題",
     "issue_vic3_variable_parity": "Victoria 3 変数カウントの不一致",
     "issue_vic3_color_tags": "Victoria 3 カラータグの不一致",
@@ -1523,14 +1523,14 @@
   },
   "project_validation": {
     "title": "形式チェック",
-    "subtitle": "保存された形式の問題を確認、結果を更新、またはエージェントワークショップに移動します。",
+    "subtitle": "保存された形式の問題を確認、結果を更新、またはFormat Repairに移動します。",
     "refresh": "形式の問題を再チェック",
-    "open_workshop": "エージェントワークショップを開く",
+    "open_workshop": "Format Repairを開く",
     "issues_count": "未解決の問題",
     "last_updated": "最終チェック日時",
     "report_count": "修正レポート",
     "sidecar_path": "記録ファイルパス",
-    "help": "エージェントワークショップは、このプロジェクトの保存された形式の問題記録を最初に読み取り、更新された修正ステータスをそこに書き戻します。",
+    "help": "Format Repairは、このプロジェクトの保存された形式の問題記録を最初に読み取り、更新された修正ステータスをそこに書き戻します。",
     "scope_hint": "このページは、変数、タグ、改行、キー名などのParadoxスクリプト形式の問題のみをチェックします。誤字脱字、表現、文章スタイルはチェックしません。",
     "issue_breakdown": "問題の内訳",
     "no_issues": "現在、未解決のバリデーションの問題はありません。"
@@ -1632,8 +1632,8 @@
     "runtime_warning_summary_desc": "この実行で {{count}} 件の実行時警告が記録されました。コンテキストのオーバーフロー、モデルの拒否、またはソーステキストへのフォールバックが発生したバッチをまず確認してください。",
     "warning_summary_title": "実行時警告が検出されました",
     "warning_summary_desc": "この実行で {{count}} 件の実行時警告が記録されました。コンテキストのオーバーフロー、モデルの拒否、またはソーステキストへのフォールバックが発生したバッチをまず確認してください。",
-    "validation_issue_summary_title": "ワークショップ用の検証課題がエクスポートされました",
-    "validation_issue_summary_desc": "ビルド後の検証で {{count}} 件の問題が見つかりました。これらは Smart Workshop の取り込み用に workshop_issues.json に書き込まれました。",
+    "validation_issue_summary_title": "Format Repair 用の検証課題がエクスポートされました",
+    "validation_issue_summary_desc": "ビルド後の検証で {{count}} 件の問題が見つかりました。これらは Format Repair の取り込み用に workshop_issues.json に書き込まれました。",
     "validation_issue_export_item": "{{lang}}: {{count}} 件の問題 | {{path}}",
     "warning_fallback_to_source": "バッチ {{batch_num}} は再試行後も翻訳できなかったため、ソーステキストを使用して書き込まれました (プロバイダー: {{provider}})。",
     "warning_context_exceeded": "バッチ {{batch_num}} は試行 {{attempt}} 回目にモデルのコンテキストウィンドウを超過しました (プロバイダー: {{provider}})。",
@@ -1659,9 +1659,9 @@
     "resume_detail_batch": "最後のバッチ: {{current}} / {{total}}",
     "resume_detail_time": "最終保存: {{time}}",
     "resume_detail_file": "最後に完了したファイル: {{file}}",
-    "embedded_workshop_enabled": "インクリメンタル・ワークフローにSmart Workshopのフォーマット修正を組み込む",
+    "embedded_workshop_enabled": "インクリメンタル・ワークフローにFormat Repairのフォーマット修正を組み込む",
     "embedded_workshop_enabled_desc": "デフォルトで有効。翻訳完了後、ワークフローは自動フォーマット修正を1回実行し、検証結果を更新します。",
-    "embedded_workshop_settings": "Smart Workshop 設定",
+    "embedded_workshop_settings": "Format Repair 設定",
     "embedded_workshop_settings_desc": "デフォルトで折りたたまれています。展開して、翻訳とは別に校正設定を微調整します。",
     "embedded_workshop_follow": "デフォルトで現在の翻訳APIとモデルに従う",
     "embedded_workshop_follow_desc": "翻訳には大規模モデル、校正には小規模モデルを使用するなど、校正設定を別にしたい場合はこれを無効にします。",
@@ -1682,8 +1682,8 @@
     "aggregate_total": "集計合計",
     "aggregate_reused": "集計再利用",
     "aggregate_new": "集計新規",
-    "telemetry_workshop_export": "Workshopエクスポート",
-    "telemetry_embedded_workshop": "内蔵Workshop"
+    "telemetry_workshop_export": "Format Repair 検証",
+    "telemetry_embedded_workshop": "Format Repair 自動修復"
   },
   "recent_activity_type_translate": "インクリメンタル更新",
   "project_management": {
@@ -1763,8 +1763,8 @@
   "report_glossary_issues": "用語集チェックで {{count}} 件の潜在的な問題が検出されました",
   "report_no_glossary_issues": "用語集の問題は検出されませんでした！",
   "report_format_issues": "フォーマットチェックで {{count}} 件の潜在的な問題が検出されました",
-  "report_format_repair_complete": "{{detected}} 件の潜在的なフォーマット問題を検出し、スマートワークショップが {{fixed}} 件を修正しました。",
-  "report_format_repair_partial": "{{detected}} 件の潜在的なフォーマット問題を検出し、スマートワークショップが {{fixed}} 件を修正しました。残り {{remaining}} 件は確認が必要です。",
+  "report_format_repair_complete": "{{detected}} 件の潜在的なフォーマット問題を検出し、Format Repairが {{fixed}} 件を修正しました。",
+  "report_format_repair_partial": "{{detected}} 件の潜在的なフォーマット問題を検出し、Format Repairが {{fixed}} 件を修正しました。残り {{remaining}} 件は確認が必要です。",
   "report_no_format_issues": "フォーマットの問題は検出されませんでした！",
   "report_title_errors": "エラー",
   "report_title_glossary": "用語集チェック",
@@ -1778,7 +1778,7 @@
   "stage_reading_source": "ソースファイルを読み込み中",
   "stage_analyzing_files": "ファイルを解析中",
   "stage_initializing": "初期化中",
-  "stage_smart_workshop": "Smart Workshop",
+  "stage_smart_workshop": "Format Repair",
   "stage_failed": "翻訳に失敗しました",
   "tools_tab_workshop_generator": "ワークショップジェネレーター",
   "game_name_eu5": "Europa Universalis 5",
@@ -2075,8 +2075,9 @@
       "initial_translation": "初回翻訳",
       "translation": "翻訳処理",
       "incremental_translation": "増分翻訳",
-      "agent_workshop": "エージェント工房",
-      "repair": "エージェント修復",
+      "agent_workshop": "Format Repair",
+      "agent_workshop_batch": "Format Repair batch",
+      "repair": "Format repair",
       "neologism_mining": "新語の抽出",
       "dry_run": "エージェント試行",
       "task": "バックグラウンド処理",
