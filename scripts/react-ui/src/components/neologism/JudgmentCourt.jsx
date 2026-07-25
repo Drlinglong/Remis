@@ -537,9 +537,9 @@ const JudgmentCourt = ({
                 {parts.map((part, i) =>
                     part.toLowerCase() === term.toLowerCase() ?
                         <span key={i} style={{
-                            color: 'var(--mantine-color-yellow-4)',
                             fontWeight: 'bold',
-                            backgroundColor: 'rgba(255, 255, 0, 0.1)',
+                            backgroundColor: 'color-mix(in srgb, var(--paper-text-main) 10%, transparent)',
+                            color: 'var(--paper-text-main)',
                             padding: '0 4px',
                             borderRadius: '4px'
                         }}>{part}</span> :
@@ -550,7 +550,12 @@ const JudgmentCourt = ({
     };
 
     return (
-        <Box h="100%" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <Box
+            h="100%"
+            data-testid="judgment-court"
+            data-remis-surface="canvas"
+            style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}
+        >
             <Modal
                 opened={batchConfirmOpen === 'reject'}
                 onClose={() => {
@@ -675,6 +680,7 @@ const JudgmentCourt = ({
                 mx="md"
                 radius="md"
                 data-testid="neologism-project-toolbar"
+                data-remis-surface="surface"
                 className={styles.quietToolbar}
                 style={{
                     background: 'var(--glass-bg)',
@@ -693,10 +699,11 @@ const JudgmentCourt = ({
                             onChange={onSelectedProjectChange}
                             placeholder={t('neologism_review.court.select_project')}
                             size="sm"
+                            classNames={{ input: styles.semanticField }}
                             style={{ flex: '1 1 220px', maxWidth: 360 }}
                         />
                         {currentProject && (
-                            <Badge size="md" variant="light" color="blue">
+                            <Badge size="md" variant="light" color="blue" className={styles.surfaceBadge}>
                                 {t(
                                     docketView === 'pending'
                                         ? 'neologism_review.court.pending_terms'
@@ -711,7 +718,12 @@ const JudgmentCourt = ({
                             <IconBook2 size={16} />
                         </ThemeIcon>
                         <Box style={{ minWidth: 0, maxWidth: 220 }}>
-                            <Text size="xs" tt="uppercase" fw={700} c="teal">
+                            <Text
+                                size="xs"
+                                tt="uppercase"
+                                fw={700}
+                                style={{ color: 'var(--surface-text-muted)' }}
+                            >
                                 {t('neologism_review.court.project_glossary')}
                             </Text>
                             <Text size="sm" fw={700} truncate>
@@ -722,6 +734,8 @@ const JudgmentCourt = ({
                             variant="light"
                             color="teal"
                             size="compact-sm"
+                            data-remis-action="secondary"
+                            className={styles.secondaryAction}
                             leftSection={<IconExternalLink size={14} />}
                             onClick={handleOpenProjectGlossary}
                             disabled={!projectGlossary?.glossary_id || !onOpenGlossary}
@@ -734,7 +748,13 @@ const JudgmentCourt = ({
 
             <Grid
                 gutter={0}
-                style={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden' }}
+                data-remis-surface="surface"
+                style={{
+                    flex: '1 1 0',
+                    minHeight: 0,
+                    overflow: 'hidden',
+                    background: 'var(--surface-bg)',
+                }}
                 styles={{ inner: { height: '100%', minHeight: 0 } }}
             >
                 {/* Sidebar List */}
@@ -742,8 +762,9 @@ const JudgmentCourt = ({
                     span={3}
                     h="100%"
                     data-testid="neologism-docket-panel"
+                    data-remis-surface="surface"
                     style={{
-                        borderRight: '1px solid var(--glass-border)',
+                        borderRight: '1px solid var(--surface-border)',
                         display: 'flex',
                         flexDirection: 'column',
                         minHeight: 0,
@@ -753,7 +774,9 @@ const JudgmentCourt = ({
                     <Stack p="sm" gap="xs" h="100%" style={{ minHeight: 0 }}>
                         <Group justify="space-between">
                             <Title order={4} c="dimmed">{t('neologism_review.court.docket')}</Title>
-                            <Badge variant="dot" size="lg">{candidates.length}</Badge>
+                            <Badge variant="dot" size="lg" className={styles.surfaceBadge}>
+                                {candidates.length}
+                            </Badge>
                         </Group>
                         <SegmentedControl
                             fullWidth
@@ -858,6 +881,7 @@ const JudgmentCourt = ({
                                             radius="sm"
                                             onClick={() => setSelectedId(c.id)}
                                             aria-pressed={selectedId === c.id}
+                                            data-remis-surface="surface"
                                             style={{
                                                 cursor: 'pointer',
                                                 width: '100%',
@@ -872,12 +896,22 @@ const JudgmentCourt = ({
                                         >
                                             <Text size="sm" fw={600} lineClamp={1}>{c.original}</Text>
                                             {(c.duplicate_matches || []).length > 0 && (
-                                                <Badge color="orange" variant="light" size="xs">
+                                                <Badge
+                                                    color="orange"
+                                                    variant="light"
+                                                    size="xs"
+                                                    className={styles.surfaceBadge}
+                                                >
                                                     {t('neologism_review.court.duplicate_badge')}
                                                 </Badge>
                                             )}
                                             {docketView === 'processed' && (
-                                                <Badge color="blue" variant="light" size="xs">
+                                                <Badge
+                                                    color="blue"
+                                                    variant="light"
+                                                    size="xs"
+                                                    className={styles.surfaceBadge}
+                                                >
                                                     {t(`neologism_review.court.status_${c.status}`)}
                                                 </Badge>
                                             )}
@@ -906,6 +940,7 @@ const JudgmentCourt = ({
                 <Grid.Col
                     span={9}
                     h="100%"
+                    data-remis-surface="surface"
                     style={{ position: 'relative', minHeight: 0, overflow: 'hidden' }}
                 >
                     {selectedCandidate ? (
@@ -931,6 +966,7 @@ const JudgmentCourt = ({
                                         radius="md"
                                         data-testid="neologism-candidate-anchor"
                                         data-visual-priority="primary"
+                                        data-remis-surface="surface"
                                         className={styles.candidateAnchor}
                                         style={{
                                             background: 'var(--glass-bg)',
@@ -940,7 +976,7 @@ const JudgmentCourt = ({
                                         <Group align="flex-start" justify="space-between">
                                             <Box>
                                                 <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>{t('neologism_review.court.candidate_term')}</Text>
-                                                <Title order={2} style={{ fontSize: '1.75rem', color: 'var(--interactive-accent)' }}>
+                                                <Title order={2} style={{ fontSize: '1.75rem', color: 'var(--surface-text-main)' }}>
                                                     {selectedCandidate.original}
                                                 </Title>
                                             </Box>
@@ -949,6 +985,7 @@ const JudgmentCourt = ({
                                                 variant="outline"
                                                 color="gray"
                                                 title={selectedSourceFile || selectedSourceName}
+                                                className={styles.surfaceBadge}
                                                 style={{ maxWidth: '45%', minWidth: 0 }}
                                             >
                                                 {selectedSourceName}
@@ -965,6 +1002,8 @@ const JudgmentCourt = ({
                                                     icon={<IconAlertTriangle size={18} />}
                                                     color="orange"
                                                     variant="light"
+                                                    data-remis-surface="surface"
+                                                    className={styles.quietAlert}
                                                     title={t('neologism_review.court.duplicate_warning_title')}
                                                 >
                                                     <Stack gap={4}>
@@ -984,18 +1023,31 @@ const JudgmentCourt = ({
                                                 radius="md"
                                                 data-testid="neologism-analysis-panel"
                                                 data-visual-priority="secondary"
+                                                data-remis-surface="paper"
                                                 className={styles.secondaryPanel}
                                                 style={{ background: 'rgba(0,0,0,0.2)' }}
                                             >
                                                 <Group mb="xs">
-                                                    <ThemeIcon color="gray" variant="light" size="sm"><IconBulb size={14} /></ThemeIcon>
+                                                    <ThemeIcon
+                                                        color="gray"
+                                                        variant="light"
+                                                        size="sm"
+                                                        className={styles.paperIcon}
+                                                    >
+                                                        <IconBulb size={14} />
+                                                    </ThemeIcon>
                                                     <Text fw={700} size="sm">{t('neologism_review.court.ai_analysis')}</Text>
                                                 </Group>
                                                 <Text size="sm" style={{ lineHeight: 1.6 }}>
                                                     {selectedCandidate.reasoning}
                                                     </Text>
                                                     {selectedCandidate.review_language && (
-                                                        <Badge mt="sm" variant="light" color="yellow">
+                                                        <Badge
+                                                            mt="sm"
+                                                            variant="light"
+                                                            color="yellow"
+                                                            className={styles.paperBadge}
+                                                        >
                                                             {t('neologism_review.court.review_language_badge', {
                                                                 language: selectedCandidate.review_language,
                                                             })}
@@ -1015,7 +1067,9 @@ const JudgmentCourt = ({
                                                             key={`${evidence.source_file || 'legacy'}:${idx}`}
                                                             p="sm"
                                                             radius="md"
+                                                            data-testid="neologism-evidence-card"
                                                             data-visual-priority="secondary"
+                                                            data-remis-surface="paper"
                                                             className={styles.evidenceCard}
                                                             style={{ background: 'rgba(0,0,0,0.3)', minWidth: 0 }}
                                                         >
@@ -1063,6 +1117,7 @@ const JudgmentCourt = ({
                                     radius="md"
                                     data-testid="neologism-decision-panel"
                                     data-visual-priority="action"
+                                    data-remis-surface="surface"
                                     className={styles.decisionPanel}
                                     style={{ background: 'var(--glass-bg)', flexShrink: 0 }}
                                 >
@@ -1077,6 +1132,7 @@ const JudgmentCourt = ({
                                             ]}
                                             value={resolution}
                                             onChange={setResolution}
+                                            classNames={{ input: styles.semanticField }}
                                         />
                                     )}
                                     <TextInput
@@ -1086,8 +1142,13 @@ const JudgmentCourt = ({
                                         radius="md"
                                         value={editSuggestion}
                                         onChange={(e) => updateEditSuggestion(e.currentTarget.value)}
+                                        classNames={{ input: styles.semanticField }}
                                         rightSection={
-                                            <ActionIcon variant="subtle" onClick={() => updateEditSuggestion(selectedCandidate.suggestion)}>
+                                            <ActionIcon
+                                                variant="subtle"
+                                                style={{ color: 'var(--paper-text-muted)' }}
+                                                onClick={() => updateEditSuggestion(selectedCandidate.suggestion)}
+                                            >
                                                 <IconSparkles size={18} />
                                             </ActionIcon>
                                         }
@@ -1098,6 +1159,8 @@ const JudgmentCourt = ({
                                             variant="subtle"
                                             color="red"
                                             data-testid="neologism-reject-action"
+                                            data-remis-action="danger-secondary"
+                                            className={styles.dangerSecondaryAction}
                                             leftSection={<IconX />}
                                             onClick={handleReject}
                                             disabled={batchProcessing}
@@ -1109,6 +1172,7 @@ const JudgmentCourt = ({
                                             variant="filled"
                                             color="teal"
                                             data-testid="neologism-approve-action"
+                                            data-remis-action="primary"
                                             className={styles.primaryAction}
                                             leftSection={<IconGavel />}
                                             onClick={handleApprove}
@@ -1127,6 +1191,8 @@ const JudgmentCourt = ({
                                     p="sm"
                                     radius="md"
                                     withBorder
+                                    data-remis-surface="surface"
+                                    className={styles.decisionPanel}
                                     style={{ background: 'var(--glass-bg)', flexShrink: 0 }}
                                 >
                                     <Group justify="space-between" align="center">
@@ -1145,6 +1211,8 @@ const JudgmentCourt = ({
                                         <Button
                                             color="blue"
                                             variant="light"
+                                            data-remis-action="secondary"
+                                            className={styles.secondaryAction}
                                             leftSection={<IconRestore size={18} />}
                                             onClick={handleRestore}
                                             disabled={batchProcessing}
@@ -1166,7 +1234,12 @@ const JudgmentCourt = ({
                                 )}
                             </Text>
                             {docketView === 'pending' && onOpenMining && (
-                                <Button variant="light" onClick={onOpenMining}>
+                                <Button
+                                    variant="light"
+                                    data-remis-action="secondary"
+                                    className={styles.secondaryAction}
+                                    onClick={onOpenMining}
+                                >
                                     {t('neologism_review.tab_mining')}
                                 </Button>
                             )}

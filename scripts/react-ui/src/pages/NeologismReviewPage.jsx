@@ -37,6 +37,7 @@ const NeologismReviewPage = () => {
         <Box
             h="100%"
             data-neologism-layout="compact"
+            data-remis-surface="canvas"
             style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}
         >
             <Group px="md" pt="sm" gap="xs" align="center" wrap="nowrap" style={{ flexShrink: 0 }}>
