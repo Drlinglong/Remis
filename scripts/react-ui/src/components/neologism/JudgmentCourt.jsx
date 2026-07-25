@@ -513,6 +513,9 @@ const JudgmentCourt = ({
         : '';
     const selectedSourceName = selectedSourceFile.split(/[\\/]/).pop()
         || t('neologism_review.court.unknown_source');
+    const selectedCandidateHasDuplicates = Boolean(
+        selectedCandidate?.duplicate_matches?.length,
+    );
     const updateEditSuggestion = (value) => {
         if (!selectedDraftKey) return;
         setDraftSuggestions((current) => ({
@@ -997,7 +1000,7 @@ const JudgmentCourt = ({
                                         {/* Left Column: Analysis */}
                                         <Grid.Col span={7}>
                                             <Stack gap="sm">
-                                            {(selectedCandidate.duplicate_matches || []).length > 0 && (
+                                            {selectedCandidateHasDuplicates && (
                                                 <Alert
                                                     icon={<IconAlertTriangle size={18} />}
                                                     color="orange"
@@ -1018,28 +1021,29 @@ const JudgmentCourt = ({
                                                     </Stack>
                                                 </Alert>
                                             )}
-                                            <Paper
-                                                p="md"
-                                                radius="md"
-                                                data-testid="neologism-analysis-panel"
-                                                data-visual-priority="secondary"
-                                                data-remis-surface="paper"
-                                                className={styles.secondaryPanel}
-                                                style={{ background: 'rgba(0,0,0,0.2)' }}
-                                            >
-                                                <Group mb="xs">
-                                                    <ThemeIcon
-                                                        color="gray"
-                                                        variant="light"
-                                                        size="sm"
-                                                        className={styles.paperIcon}
-                                                    >
-                                                        <IconBulb size={14} />
-                                                    </ThemeIcon>
-                                                    <Text fw={700} size="sm">{t('neologism_review.court.ai_analysis')}</Text>
-                                                </Group>
-                                                <Text size="sm" style={{ lineHeight: 1.6 }}>
-                                                    {selectedCandidate.reasoning}
+                                            {!selectedCandidateHasDuplicates && (
+                                                <Paper
+                                                    p="md"
+                                                    radius="md"
+                                                    data-testid="neologism-analysis-panel"
+                                                    data-visual-priority="secondary"
+                                                    data-remis-surface="paper"
+                                                    className={styles.secondaryPanel}
+                                                    style={{ background: 'rgba(0,0,0,0.2)' }}
+                                                >
+                                                    <Group mb="xs">
+                                                        <ThemeIcon
+                                                            color="gray"
+                                                            variant="light"
+                                                            size="sm"
+                                                            className={styles.paperIcon}
+                                                        >
+                                                            <IconBulb size={14} />
+                                                        </ThemeIcon>
+                                                        <Text fw={700} size="sm">{t('neologism_review.court.ai_analysis')}</Text>
+                                                    </Group>
+                                                    <Text size="sm" style={{ lineHeight: 1.6 }}>
+                                                        {selectedCandidate.reasoning}
                                                     </Text>
                                                     {selectedCandidate.review_language && (
                                                         <Badge
@@ -1054,6 +1058,7 @@ const JudgmentCourt = ({
                                                         </Badge>
                                                     )}
                                                 </Paper>
+                                            )}
                                             </Stack>
                                         </Grid.Col>
 

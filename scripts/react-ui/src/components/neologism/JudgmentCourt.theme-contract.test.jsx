@@ -145,10 +145,7 @@ describe('JudgmentCourt semantic surfaces', () => {
       'data-remis-surface',
       'surface',
     );
-    expect(screen.getByTestId('neologism-analysis-panel')).toHaveAttribute(
-      'data-remis-surface',
-      'paper',
-    );
+    expect(screen.queryByTestId('neologism-analysis-panel')).not.toBeInTheDocument();
     expect(screen.getByTestId('neologism-evidence-card')).toHaveAttribute(
       'data-remis-surface',
       'paper',
