@@ -740,6 +740,7 @@ const JudgmentCourt = ({
                 <Grid.Col
                     span={3}
                     h="100%"
+                    data-testid="neologism-docket-panel"
                     style={{
                         borderRight: '1px solid var(--glass-border)',
                         display: 'flex',
@@ -826,12 +827,16 @@ const JudgmentCourt = ({
                                 )}
                             </Stack>
                         )}
-                        <ScrollArea
-                            type="always"
-                            scrollbars="y"
-                            scrollbarSize={8}
-                            style={{ flex: 1, minHeight: 0, margin: '0 -8px' }}
-                            p="xs"
+                        <Box
+                            data-testid="neologism-docket-scroll"
+                            style={{
+                                flex: '1 1 0',
+                                minHeight: 0,
+                                overflowY: 'auto',
+                                overflowX: 'hidden',
+                                scrollbarGutter: 'stable',
+                                padding: 'var(--mantine-spacing-xs)',
+                            }}
                         >
                             <Stack gap="xs">
                                 {candidates.map(c => (
@@ -892,7 +897,7 @@ const JudgmentCourt = ({
                                     </Stack>
                                 )}
                             </Stack>
-                        </ScrollArea>
+                        </Box>
                     </Stack>
                 </Grid.Col>
 
