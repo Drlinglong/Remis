@@ -76,6 +76,35 @@ describe('TaskCenterDrawer', () => {
     expect(navigateMock).toHaveBeenCalledWith('/tasks/failed-task-older');
   });
 
+  it('keeps only the latest completed task visible and opens its exact record', () => {
+    taskCenterState.tasks = [
+      {
+        task_id: 'completed-scan-latest',
+        title: 'Latest completed scan',
+        status: 'completed',
+      },
+      {
+        task_id: 'running-task',
+        title: 'Running task',
+        status: 'running',
+      },
+      {
+        task_id: 'completed-scan-older',
+        title: 'Older completed scan',
+        status: 'completed',
+      },
+    ];
+
+    render(<MantineProvider><TaskCenterDrawer /></MantineProvider>);
+
+    expect(screen.getByRole('button', { name: 'Running task' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Older completed scan' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Latest completed scan' }));
+
+    expect(closeTaskCenterMock).toHaveBeenCalledOnce();
+    expect(navigateMock).toHaveBeenCalledWith('/tasks/completed-scan-latest');
+  });
+
   it('marks a resolved terminal task as handled and refreshes the queue', async () => {
     api.post.mockResolvedValue({ data: { archived_at: '2026-07-22T01:00:00Z' } });
     refreshTasksMock.mockResolvedValue(undefined);

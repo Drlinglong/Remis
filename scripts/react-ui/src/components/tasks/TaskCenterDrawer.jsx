@@ -22,10 +22,15 @@ export function TaskCenterDrawer() {
   } = useTaskCenter();
   const [handlingTaskId, setHandlingTaskId] = useState('');
   const [handleError, setHandleError] = useState('');
-  const visibleTasks = useMemo(
-    () => tasks.filter((task) => ['queued', 'running', 'awaiting_approval', 'failed', 'interrupted'].includes(task.status)),
-    [tasks],
-  );
+  const visibleTasks = useMemo(() => {
+    const actionableTasks = tasks.filter((task) => (
+      ['queued', 'running', 'awaiting_approval', 'failed', 'interrupted'].includes(task.status)
+    ));
+    const latestCompletedTask = tasks.find((task) => task.status === 'completed');
+    return latestCompletedTask
+      ? [...actionableTasks, latestCompletedTask]
+      : actionableTasks;
+  }, [tasks]);
 
   const openTask = (task) => {
     closeTaskCenter();

@@ -181,6 +181,40 @@ describe('ProjectTrackingPage', () => {
     });
   });
 
+  it('shows a structured successful scan result and opens the returned task id', async () => {
+    const rootPath = 'I:\\SteamLibrary\\steamapps\\workshop\\content\\very\\long\\localization\\path';
+    projectWatchService.scanWatches.mockResolvedValueOnce({
+      data: [{
+        watch_id: 'w1',
+        status: 'changed',
+        task_id: 'manual-scan-task',
+        scanned_file_count: 12,
+        changed_count: 11,
+        root_path: rootPath,
+      }],
+    });
+    renderWithProvider(<ProjectTrackingPage />);
+
+    await screen.findByText('Steam Vic3');
+    fireEvent.click(screen.getAllByRole('checkbox')[1]);
+    fireEvent.click(screen.getByRole('button', { name: '扫描选中项' }));
+
+    const summary = await screen.findByText('扫描完成：有变更，已扫描文件 12，变更 11。');
+    const path = screen.getByTestId('project-tracking-scan-path');
+    expect(summary).toBeInTheDocument();
+    expect(summary).not.toHaveTextContent(rootPath);
+    expect(path).toHaveTextContent(rootPath);
+    expect(path).toHaveStyle({
+      fontFamily: 'monospace',
+      fontSize: 'var(--mantine-font-size-xs)',
+      overflowWrap: 'anywhere',
+    });
+
+    const feedback = summary.closest('[data-remis-surface="paper"]');
+    fireEvent.click(within(feedback).getByRole('button', { name: 'task_center.view_task' }));
+    expect(navigateMock).toHaveBeenCalledWith('/tasks/manual-scan-task');
+  });
+
   it('surfaces a manual scan conflict returned by the unified task workflow', async () => {
     projectWatchService.scanWatches.mockResolvedValueOnce({
       data: [{
