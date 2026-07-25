@@ -172,6 +172,13 @@ describe('HomePage', () => {
     expect(openTaskCenterMock).toHaveBeenCalledOnce();
   });
 
+  it('uses the paper contrast contract for the live-work card', async () => {
+    renderWithProvider(<HomePage />);
+
+    const subtitle = await screen.findByText('homepage_live_work_subtitle');
+    expect(subtitle.closest('.mantine-Card-root')).toHaveAttribute('data-remis-surface', 'paper');
+  });
+
   it('keeps the latest completed task visible and opens its exact task record', async () => {
     taskCenterState = {
       ...taskCenterState,

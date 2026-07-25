@@ -113,7 +113,14 @@ const HomePage = () => {
 
         <Grid gutter="md" mb="md">
           <Grid.Col span={{ base: 12, lg: 8 }}>
-            <Card withBorder radius="md" p="lg" className={styles.glassCard} h="100%">
+            <Card
+              withBorder
+              radius="md"
+              p="lg"
+              className={styles.glassCard}
+              h="100%"
+              data-remis-surface="paper"
+            >
               <Group justify="space-between" mb="md">
                 <div>
                   <Title order={3}>{t('homepage_live_work_title')}</Title>

@@ -53,7 +53,15 @@ const RecentActivityList = ({ id, className, activities, loading }) => {
     };
 
     return (
-        <Paper id={id} withBorder radius="md" p="md" className={className} style={{ background: 'transparent' }}>
+        <Paper
+            id={id}
+            withBorder
+            radius="md"
+            p="md"
+            className={className}
+            data-remis-surface="paper"
+            style={{ background: 'transparent' }}
+        >
             <Group justify="space-between" mb="md">
                 <Text fw={700}>{t('homepage_recent_activity')}</Text>
                 <ActionIcon variant="subtle" color="gray">
