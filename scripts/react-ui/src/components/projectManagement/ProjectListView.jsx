@@ -75,7 +75,7 @@ export function ProjectListView({
 
       <Box className={styles.projectContent}>
         {viewMode === 'active' && (
-          <Box className={styles.actionsSection} data-remis-surface="surface">
+          <Box className={styles.actionsSection} data-remis-surface="canvas">
             <Box>
               <Title order={3}>
                 {t('project_management.file_list.table.actions')}

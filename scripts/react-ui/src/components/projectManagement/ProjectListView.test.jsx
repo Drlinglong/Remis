@@ -50,6 +50,16 @@ describe('ProjectListView', () => {
     expect(screen.getByPlaceholderText('搜索项目...')).toBeInTheDocument();
   });
 
+  it('uses the canvas contrast contract for the transparent action description', () => {
+    renderView();
+
+    const description = screen.getByText('从本地 Mod 文件夹开始新的翻译。');
+    expect(description.closest('[data-remis-surface]')).toHaveAttribute(
+      'data-remis-surface',
+      'canvas',
+    );
+  });
+
   it('uses distinct semantic colors for different game tags', () => {
     renderView({
       projects: [

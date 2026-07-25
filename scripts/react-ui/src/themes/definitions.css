@@ -297,6 +297,12 @@ html[data-theme] {
  * Component surfaces opt into one of these contracts instead of guessing from
  * the active theme name. This keeps canvas, card, and overlay text independent.
  */
+html[data-theme] [data-remis-surface='canvas'] {
+  --mantine-color-text: var(--canvas-text-main) !important;
+  --mantine-color-dimmed: var(--canvas-text-muted) !important;
+  color: var(--canvas-text-main);
+}
+
 html[data-theme] [data-remis-surface='surface'] {
   --mantine-color-text: var(--surface-text-main) !important;
   --mantine-color-dimmed: var(--surface-text-muted) !important;
