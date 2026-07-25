@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import StatCard from './StatCard';
 
 describe('StatCard', () => {
-  it('uses the paper contrast contract for its label and value', () => {
+  it('uses the surface contrast contract for its label and value', () => {
     const { container } = render(
       <MantineProvider>
         <StatCard
@@ -22,6 +22,6 @@ describe('StatCard', () => {
 
     expect(screen.getByText('项目总数')).toBeInTheDocument();
     expect(screen.getByText('13')).toBeInTheDocument();
-    expect(container.querySelector('[data-remis-surface="paper"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-remis-surface="surface"]')).toBeInTheDocument();
   });
 });

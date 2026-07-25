@@ -9,7 +9,7 @@ const StatCard = ({ title, value, icon, color, progress, trend, className }) => 
             radius="md"
             p="xs"
             className={className}
-            data-remis-surface="paper"
+            data-remis-surface="surface"
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent' }}
         >
             <Group>

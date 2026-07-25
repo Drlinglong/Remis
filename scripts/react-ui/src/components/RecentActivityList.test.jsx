@@ -12,7 +12,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 describe('RecentActivityList', () => {
-  it('uses the paper contrast contract for activity details', () => {
+  it('uses the surface contrast contract for activity details', () => {
     const { container } = render(
       <MantineProvider>
         <RecentActivityList
@@ -30,6 +30,6 @@ describe('RecentActivityList', () => {
 
     expect(screen.getByText('蕾姆丝计划 - 演示Mod - 维多利亚3')).toBeInTheDocument();
     expect(screen.getByText(/recent_activity_desc_translate/)).toBeInTheDocument();
-    expect(container.querySelector('[data-remis-surface="paper"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-remis-surface="surface"]')).toBeInTheDocument();
   });
 });

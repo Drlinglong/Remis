@@ -59,7 +59,7 @@ const RecentActivityList = ({ id, className, activities, loading }) => {
             radius="md"
             p="md"
             className={className}
-            data-remis-surface="paper"
+            data-remis-surface="surface"
             style={{ background: 'transparent' }}
         >
             <Group justify="space-between" mb="md">

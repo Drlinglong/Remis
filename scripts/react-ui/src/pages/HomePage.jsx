@@ -106,7 +106,20 @@ const HomePage = () => {
         </Group>
 
         {attentionCount > 0 && (
-          <Alert mb="md" color="orange" icon={<IconAlertTriangle size={19} />}>
+          <Alert
+            mb="md"
+            color="orange"
+            icon={<IconAlertTriangle size={19} />}
+            data-remis-surface="paper"
+            style={{
+              background: 'var(--paper-bg)',
+              border: '1px solid var(--interactive-accent)',
+            }}
+            styles={{
+              icon: { color: 'var(--paper-text-main)' },
+              message: { color: 'var(--paper-text-main)' },
+            }}
+          >
             {t('task_center.attention_summary', { count: attentionCount })}
           </Alert>
         )}
@@ -119,7 +132,7 @@ const HomePage = () => {
               p="lg"
               className={styles.glassCard}
               h="100%"
-              data-remis-surface="paper"
+              data-remis-surface="surface"
             >
               <Group justify="space-between" mb="md">
                 <div>

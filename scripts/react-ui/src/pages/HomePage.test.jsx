@@ -172,11 +172,25 @@ describe('HomePage', () => {
     expect(openTaskCenterMock).toHaveBeenCalledOnce();
   });
 
-  it('uses the paper contrast contract for the live-work card', async () => {
+  it('uses the surface contrast contract for the dark live-work card', async () => {
     renderWithProvider(<HomePage />);
 
     const subtitle = await screen.findByText('homepage_live_work_subtitle');
-    expect(subtitle.closest('.mantine-Card-root')).toHaveAttribute('data-remis-surface', 'paper');
+    expect(subtitle.closest('.mantine-Card-root')).toHaveAttribute('data-remis-surface', 'surface');
+  });
+
+  it('uses readable paper tokens for the attention alert', async () => {
+    taskCenterState = {
+      ...taskCenterState,
+      attentionCount: 2,
+    };
+    renderWithProvider(<HomePage />);
+
+    const message = await screen.findByText('task_center.attention_summary');
+    const alert = message.closest('.mantine-Alert-root');
+    expect(alert).toHaveAttribute('data-remis-surface', 'paper');
+    expect(alert).toHaveStyle({ background: 'var(--paper-bg)' });
+    expect(message).toHaveStyle({ color: 'var(--paper-text-main)' });
   });
 
   it('keeps the latest completed task visible and opens its exact task record', async () => {
