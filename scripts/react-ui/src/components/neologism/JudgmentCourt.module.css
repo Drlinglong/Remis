@@ -1,0 +1,42 @@
+.quietToolbar,
+.secondaryPanel,
+.evidenceCard,
+.decisionPanel {
+  box-shadow: none !important;
+}
+
+.quietToolbar {
+  background: var(--surface-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--surface-border) 22%, transparent) !important;
+}
+
+.candidateAnchor {
+  background: var(--surface-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 72%, transparent) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--interactive-accent) 18%, transparent) !important;
+}
+
+.secondaryPanel {
+  background: color-mix(in srgb, var(--surface-bg-solid) 92%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--surface-border) 18%, transparent) !important;
+}
+
+.evidenceCard {
+  background: color-mix(in srgb, var(--surface-bg-solid) 86%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--surface-border) 12%, transparent) !important;
+}
+
+.decisionPanel {
+  background: var(--surface-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--surface-border) 38%, transparent) !important;
+}
+
+.primaryAction {
+  min-width: min(15rem, 100%);
+}
+
+@media (max-width: 48em) {
+  .primaryAction {
+    flex: 1 1 100%;
+  }
+}

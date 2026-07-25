@@ -12,6 +12,7 @@ import {
     IconRestore
 } from '@tabler/icons-react';
 import api from '../../utils/api';
+import styles from './JudgmentCourt.module.css';
 import { normalizeArrayPayload } from '../../utils/payload';
 
 const API_BASE_URL = '/api';
@@ -673,8 +674,8 @@ const JudgmentCourt = ({
                 mb="xs"
                 mx="md"
                 radius="md"
-                withBorder
                 data-testid="neologism-project-toolbar"
+                className={styles.quietToolbar}
                 style={{
                     background: 'var(--glass-bg)',
                     flexShrink: 0
@@ -928,6 +929,9 @@ const JudgmentCourt = ({
                                     <Paper
                                         p="md"
                                         radius="md"
+                                        data-testid="neologism-candidate-anchor"
+                                        data-visual-priority="primary"
+                                        className={styles.candidateAnchor}
                                         style={{
                                             background: 'var(--glass-bg)',
                                             backdropFilter: 'blur(10px)'
@@ -936,7 +940,7 @@ const JudgmentCourt = ({
                                         <Group align="flex-start" justify="space-between">
                                             <Box>
                                                 <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>{t('neologism_review.court.candidate_term')}</Text>
-                                                <Title order={2} style={{ fontSize: '1.75rem', color: 'var(--mantine-color-blue-3)' }}>
+                                                <Title order={2} style={{ fontSize: '1.75rem', color: 'var(--interactive-accent)' }}>
                                                     {selectedCandidate.original}
                                                 </Title>
                                             </Box>
@@ -975,10 +979,17 @@ const JudgmentCourt = ({
                                                     </Stack>
                                                 </Alert>
                                             )}
-                                            <Paper p="md" radius="md" style={{ background: 'rgba(0,0,0,0.2)' }} withBorder>
+                                            <Paper
+                                                p="md"
+                                                radius="md"
+                                                data-testid="neologism-analysis-panel"
+                                                data-visual-priority="secondary"
+                                                className={styles.secondaryPanel}
+                                                style={{ background: 'rgba(0,0,0,0.2)' }}
+                                            >
                                                 <Group mb="xs">
-                                                    <ThemeIcon color="yellow" variant="light" size="md"><IconBulb size={16} /></ThemeIcon>
-                                                    <Text fw={700}>{t('neologism_review.court.ai_analysis')}</Text>
+                                                    <ThemeIcon color="gray" variant="light" size="sm"><IconBulb size={14} /></ThemeIcon>
+                                                    <Text fw={700} size="sm">{t('neologism_review.court.ai_analysis')}</Text>
                                                 </Group>
                                                 <Text size="sm" style={{ lineHeight: 1.6 }}>
                                                     {selectedCandidate.reasoning}
@@ -1004,6 +1015,8 @@ const JudgmentCourt = ({
                                                             key={`${evidence.source_file || 'legacy'}:${idx}`}
                                                             p="sm"
                                                             radius="md"
+                                                            data-visual-priority="secondary"
+                                                            className={styles.evidenceCard}
                                                             style={{ background: 'rgba(0,0,0,0.3)', minWidth: 0 }}
                                                         >
                                                             <Stack gap="xs" style={{ minWidth: 0 }}>
@@ -1048,8 +1061,9 @@ const JudgmentCourt = ({
                                 <Paper
                                     p="sm"
                                     radius="md"
-                                    withBorder
                                     data-testid="neologism-decision-panel"
+                                    data-visual-priority="action"
+                                    className={styles.decisionPanel}
                                     style={{ background: 'var(--glass-bg)', flexShrink: 0 }}
                                 >
                                     {(selectedCandidate.duplicate_matches || []).length > 0 && (
@@ -1078,11 +1092,12 @@ const JudgmentCourt = ({
                                             </ActionIcon>
                                         }
                                     />
-                                    <Group mt="sm" grow>
+                                    <Group mt="sm" justify="flex-end" wrap="wrap">
                                         <Button
-                                            size="md"
-                                            variant="default"
-                                            color="gray"
+                                            size="sm"
+                                            variant="subtle"
+                                            color="red"
+                                            data-testid="neologism-reject-action"
                                             leftSection={<IconX />}
                                             onClick={handleReject}
                                             disabled={batchProcessing}
@@ -1091,8 +1106,10 @@ const JudgmentCourt = ({
                                         </Button>
                                         <Button
                                             size="md"
-                                            variant="gradient"
-                                            gradient={{ from: 'teal', to: 'lime', deg: 105 }}
+                                            variant="filled"
+                                            color="teal"
+                                            data-testid="neologism-approve-action"
+                                            className={styles.primaryAction}
                                             leftSection={<IconGavel />}
                                             onClick={handleApprove}
                                             disabled={
