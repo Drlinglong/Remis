@@ -441,6 +441,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
                         "Return to Incremental Translation, review the task diagnostics, "
                         "and retry after correcting the reported input or provider problem."
                     ),
+                    "attention_reason_code": "incremental_translation_failed_review_diagnostics",
                 },
                 append_log="Incremental translation failed.",
                 push=True,
@@ -548,9 +549,10 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
             },
             fields={
                 "attention_reason": (
-                    "Return to Incremental Translation, review the task diagnostics, "
-                    "and retry after correcting the reported input or provider problem."
+                    "Return to Incremental Translation and retry. If the problem repeats, "
+                    "export the task diagnostics for support."
                 ),
+                "attention_reason_code": "incremental_translation_internal_error",
             },
             append_log="Incremental translation failed.",
             push=True,

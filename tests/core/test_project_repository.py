@@ -282,6 +282,78 @@ async def test_batch_upsert_files_does_not_mutate_input_payload(repo):
 
     assert files_data[0]["file_path"] == original_path
 
+
+@pytest.mark.asyncio
+async def test_batch_upsert_files_reuses_identity_for_relativized_worktree_path(repo):
+    from pathlib import Path
+
+    from sqlalchemy import text
+
+    from scripts.app_settings import PROJECT_ROOT
+
+    project_id = "test_proj_cross_worktree_identity"
+    await repo.create_project(Project(
+        project_id=project_id,
+        name="Cross-worktree identity",
+        game_id="victoria3",
+        source_path="/tmp/source_cross_worktree",
+        source_language="zh-CN",
+    ))
+    stored_path = (
+        "{{PROJECT_ROOT}}/my_translation/"
+        "en-demo-incremental-update/localization/english/demo_l_english.yml"
+    )
+    async with repo._use_session() as session:
+        await session.execute(
+            text(
+                """
+                INSERT INTO project_files (
+                    file_id, project_id, file_path, status,
+                    original_key_count, line_count, file_type
+                )
+                VALUES (
+                    :file_id, :project_id, :file_path, :status,
+                    :original_key_count, :line_count, :file_type
+                )
+                """
+            ),
+            {
+                "file_id": "persisted-worktree-id",
+                "project_id": project_id,
+                "file_path": stored_path,
+                "status": "proofreading",
+                "original_key_count": 3,
+                "line_count": 10,
+                "file_type": "translation",
+            },
+        )
+        await session.commit()
+
+    current_path = str(
+        Path(PROJECT_ROOT)
+        / "my_translation"
+        / "en-demo-incremental-update"
+        / "localization"
+        / "english"
+        / "demo_l_english.yml"
+    )
+    effective_ids = await repo.batch_upsert_files([{
+        "file_id": "new-worktree-derived-id",
+        "project_id": project_id,
+        "file_path": current_path,
+        "status": "proofreading",
+        "original_key_count": 3,
+        "line_count": 12,
+        "file_type": "translation",
+    }])
+
+    files = await repo.get_project_files(project_id)
+    assert effective_ids == ["persisted-worktree-id"]
+    assert len(files) == 1
+    assert files[0].file_id == "persisted-worktree-id"
+    assert files[0].line_count == 12
+
+
 @pytest.mark.asyncio
 async def test_repository_does_not_commit_caller_owned_session(repo):
     from scripts.core.db_manager import db_manager

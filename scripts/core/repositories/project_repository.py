@@ -357,7 +357,11 @@ class ProjectRepository:
 
     # --- File Operations (Async Batch) ---
 
-    async def batch_upsert_files(self, project_files: List[Dict[str, Any]], session: Optional[AsyncSession] = None):
+    async def batch_upsert_files(
+        self,
+        project_files: List[Dict[str, Any]],
+        session: Optional[AsyncSession] = None,
+    ) -> List[str]:
         """
         Upserts a batch of files. SQLModel doesn't support generic upsert easily across DBs,
         but since we are SQLite specific with async engine, we can use SQLite ON CONFLICT logic 
@@ -365,7 +369,7 @@ class ProjectRepository:
         Given performance needs, raw SQL execute is best for batch upsert in SQLite.
         """
         if not project_files:
-            return
+            return []
 
         db_project_files = []
         for file_data in project_files:
@@ -378,6 +382,45 @@ class ProjectRepository:
         
         async with self._use_session(session) as session:
             try:
+                # file_id was historically derived from the resolved absolute
+                # path. A {{PROJECT_ROOT}} path therefore received a different
+                # UUID when the same database was opened from another
+                # worktree. Reuse the persisted identity for an already-known
+                # project/path pair before upserting so Kanban state and
+                # references remain stable.
+                existing_file_ids: Dict[tuple[str, str], str] = {}
+                for project_id in {
+                    str(item.get("project_id") or "")
+                    for item in db_project_files
+                    if item.get("project_id")
+                }:
+                    existing_result = await session.execute(
+                        text(
+                            """
+                            SELECT file_id, file_path
+                            FROM project_files
+                            WHERE project_id = :project_id
+                            """
+                        ),
+                        {"project_id": project_id},
+                    )
+                    existing_file_ids.update(
+                        {
+                            (project_id, str(row.file_path)): str(row.file_id)
+                            for row in existing_result
+                        }
+                    )
+
+                for db_file_data in db_project_files:
+                    stable_file_id = existing_file_ids.get(
+                        (
+                            str(db_file_data.get("project_id") or ""),
+                            str(db_file_data.get("file_path") or ""),
+                        )
+                    )
+                    if stable_file_id:
+                        db_file_data["file_id"] = stable_file_id
+
                 stmt = text('''
                     INSERT INTO project_files (file_id, project_id, file_path, status, original_key_count, line_count, file_type)
                     VALUES (:file_id, :project_id, :file_path, :status, :original_key_count, :line_count, :file_type)
@@ -395,6 +438,7 @@ class ProjectRepository:
                 await session.execute(stmt, db_project_files)
                 await self._commit_if_owner(session)
                 logger.info(f"ProjectRepository: Batch upsert committed successfully.")
+                return [str(item["file_id"]) for item in db_project_files]
             except Exception as e:
                 logger.error(f"Batch upsert failed: {str(e)}", exc_info=True)
                 await self._rollback_if_owner(session)

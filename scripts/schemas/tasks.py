@@ -57,6 +57,7 @@ class TaskSummary(BaseModel):
         "unknown",
     ]
     stage: str = ""
+    stage_code: str = ""
     progress: int = Field(default=0, ge=0, le=100)
     created_at: Optional[str] = None
     started_at: Optional[str] = None
@@ -65,6 +66,7 @@ class TaskSummary(BaseModel):
     archived_at: Optional[str] = None
     message: Optional[str] = None
     attention_reason: Optional[str] = None
+    attention_reason_code: Optional[str] = None
     checkpoint: TaskCheckpoint = Field(default_factory=TaskCheckpoint)
     result: TaskResult = Field(default_factory=TaskResult)
     blocking: bool = False

@@ -188,6 +188,10 @@ def test_incremental_failure_replaces_stale_translating_stage(monkeypatch):
     assert failed["progress"]["stage_code"] == "failed"
     assert failed["message"] == "Incremental translation failed."
     assert "Return to Incremental Translation" in failed["attention_reason"]
+    assert (
+        failed["attention_reason_code"]
+        == "incremental_translation_failed_review_diagnostics"
+    )
     assert failed["log"][-1] == "Incremental translation failed."
     assert all("invalid payload" not in line for line in failed["log"])
 

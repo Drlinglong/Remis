@@ -71,7 +71,14 @@ async def test_task_summary_exposes_actor_tree_recovery_and_result_contract():
         },
         dedupe_key="project_translation_write:project-1",
     )
-    task_state.init_progress("task-1", {"percent": 40, "stage": "Translating"})
+    task_state.init_progress(
+        "task-1",
+        {
+            "percent": 40,
+            "stage": "Translating",
+            "stage_code": "translating",
+        },
+    )
 
     payload = await tasks_router.list_task_summaries()
 
@@ -87,7 +94,32 @@ async def test_task_summary_exposes_actor_tree_recovery_and_result_contract():
         "mode": "execution",
         "project_id": "project-1",
     }
+    assert task.stage_code == "translating"
     assert task.blocking_reason
+
+
+@pytest.mark.asyncio
+async def test_failed_task_exposes_structured_recovery_localization_codes():
+    task_state.create_task(
+        "failed-incremental",
+        status="failed",
+        fields={
+            "kind": "incremental_translation",
+            "attention_reason": "English fallback",
+            "attention_reason_code": "incremental_translation_internal_error",
+        },
+    )
+    task_state.init_progress(
+        "failed-incremental",
+        {"stage": "Failed", "stage_code": "failed"},
+    )
+
+    detail = await tasks_router.get_task_detail("failed-incremental")
+
+    assert detail.stage == "Failed"
+    assert detail.stage_code == "failed"
+    assert detail.attention_reason == "English fallback"
+    assert detail.attention_reason_code == "incremental_translation_internal_error"
 
 
 @pytest.mark.asyncio
