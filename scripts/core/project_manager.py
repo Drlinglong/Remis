@@ -746,10 +746,14 @@ class ProjectManager:
                 action_type='path_registered',
                 description="history.path_registered_desc"
             )
-
-            await self.refresh_project_files(project_id)
         else:
             logger.info(f"Translation path {abs_path} already exists for project {project_id}")
+
+        # Incremental packages reuse the same date-based output directory. Even
+        # when the directory is already registered, its files may have been
+        # replaced or expanded by the latest run, so the project index must be
+        # refreshed every time.
+        await self.refresh_project_files(project_id)
 
     async def update_project_metadata(self, project_id: str, game_id: str, source_language: str):
         """

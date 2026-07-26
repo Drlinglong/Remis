@@ -427,11 +427,30 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
         result = asyncio.run(project_manager.run_incremental_update_workflow(request, progress_callback))
         
         if result.get("status") == "error":
+            failure_message = str(result.get("message") or "Unknown incremental translation error")
             task_state.update_task(
                 task_id,
                 status="failed",
-                append_log=f"Error: {result.get('message')}",
+                message="Incremental translation failed.",
+                progress={
+                    "stage": "Failed",
+                    "stage_code": "failed",
+                },
+                fields={
+                    "attention_reason": (
+                        "Return to Incremental Translation, review the task diagnostics, "
+                        "and retry after correcting the reported input or provider problem."
+                    ),
+                },
+                append_log="Incremental translation failed.",
                 push=True,
+            )
+            task_state.append_task_event(
+                task_id,
+                failure_message,
+                audience="diagnostic",
+                level="error",
+                event_type="workflow_error",
             )
         else:
             fields = {
@@ -505,6 +524,8 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
                         ),
                         "metadata": {
                             "project_id": project_id,
+                            "summary_code": "incremental_translation_completed",
+                            "processed_file_count": len(fields["file_summaries"]),
                             "workflow_log_paths": workflow_log_paths,
                             "warning_count": fields["warning_count"],
                         },
@@ -520,12 +541,23 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
         task_state.update_task(
             task_id,
             status="failed",
-            append_log=f"Incremental update failed: {str(e)}",
+            message="Incremental translation failed.",
+            progress={
+                "stage": "Failed",
+                "stage_code": "failed",
+            },
+            fields={
+                "attention_reason": (
+                    "Return to Incremental Translation, review the task diagnostics, "
+                    "and retry after correcting the reported input or provider problem."
+                ),
+            },
+            append_log="Incremental translation failed.",
             push=True,
         )
         task_state.append_task_event(
             task_id,
-            traceback.format_exc(),
+            f"{e}\n\n{traceback.format_exc()}",
             audience="diagnostic",
             level="error",
             event_type="traceback",

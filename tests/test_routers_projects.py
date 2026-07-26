@@ -141,12 +141,55 @@ def test_run_incremental_update_background_marks_task_completed(monkeypatch, tmp
     assert workflow_log_path in tasks[task_id]["result"]["output_paths"]
     assert tasks[task_id]["result"]["metadata"]["workflow_log_paths"] == [workflow_log_path]
     assert tasks[task_id]["result"]["metadata"]["project_id"] == project_id
+    assert tasks[task_id]["result"]["metadata"]["summary_code"] == "incremental_translation_completed"
+    assert tasks[task_id]["result"]["metadata"]["processed_file_count"] == 1
     write_logs.assert_called_once_with(
         [str(tmp_path / "zh-CN-demo")],
         tasks[task_id]["log"],
         {"languages": [{"target_lang": "zh-CN", "written": 1}]},
     )
     assert ws_push.call_count >= 2
+
+
+def test_incremental_failure_replaces_stale_translating_stage(monkeypatch):
+    task_id = "task-failed"
+    project_id = "project-1"
+    request = IncrementalUpdateRequest(project_id=project_id, target_lang_codes=["zh-CN"])
+    tasks.clear()
+    tasks[task_id] = {"status": "pending", "log": []}
+
+    async def fake_failed_workflow(_request, progress_callback):
+        progress_callback({
+            "percent": 60,
+            "stage": "Translating",
+            "stage_code": "translating",
+            "message": "Translating...",
+        })
+        return {
+            "status": "error",
+            "message": "provider returned an invalid payload",
+        }
+
+    monkeypatch.setattr(
+        projects_router.project_manager,
+        "run_incremental_update_workflow",
+        fake_failed_workflow,
+    )
+    monkeypatch.setattr(
+        "scripts.shared.ws_manager.ws_manager.sync_send_task_update",
+        MagicMock(),
+    )
+
+    projects_router.run_incremental_update_background(task_id, project_id, request)
+
+    failed = tasks[task_id]
+    assert failed["status"] == "failed"
+    assert failed["progress"]["stage"] == "Failed"
+    assert failed["progress"]["stage_code"] == "failed"
+    assert failed["message"] == "Incremental translation failed."
+    assert "Return to Incremental Translation" in failed["attention_reason"]
+    assert failed["log"][-1] == "Incremental translation failed."
+    assert all("invalid payload" not in line for line in failed["log"])
 
 
 def test_incremental_task_records_exact_workflow_context(mock_project_manager, monkeypatch):

@@ -286,6 +286,37 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
                 "Test"
             )
 
+    async def test_add_translation_path_refreshes_existing_directory_index(self):
+        """
+        A reused incremental output directory may contain a different file set
+        after a later run and must be rescanned even when already registered.
+        """
+        project_id = "incremental-project"
+        translation_path = os.path.abspath("/translation/reused-output")
+        project_data = {
+            "project_id": project_id,
+            "name": "Incremental Project",
+            "source_path": "/path/to/source",
+        }
+        mock_project = MagicMock()
+        mock_project.model_dump.return_value = project_data
+        mock_project.__getitem__ = lambda s, k: project_data[k]
+        self.mock_repo.get_project.return_value = mock_project
+        self.pm.refresh_project_files = AsyncMock()
+        self.pm.log_history_event = AsyncMock()
+
+        with patch("scripts.core.project_manager.ProjectJsonManager") as mock_json_manager:
+            manager = mock_json_manager.return_value
+            manager.get_config.return_value = {
+                "translation_dirs": [translation_path],
+            }
+
+            await self.pm.add_translation_path(project_id, translation_path)
+
+        manager.update_config.assert_not_called()
+        self.pm.log_history_event.assert_not_awaited()
+        self.pm.refresh_project_files.assert_awaited_once_with(project_id)
+
     async def test_get_project_kanban_reconciles_sidecar_with_db_files(self):
         project_id = "kanban-proj"
         project_data = {"project_id": project_id, "name": "Kanban", "source_path": "/path/to/source"}
