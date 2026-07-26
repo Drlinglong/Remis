@@ -14,7 +14,7 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { IconArrowRight, IconCheck, IconFolder } from '@tabler/icons-react';
+import { IconArrowRight, IconCheck, IconFolder, IconHistory } from '@tabler/icons-react';
 import { useBeforeUnload, useBlocker, useNavigate } from 'react-router-dom';
 import { isTauri } from '@tauri-apps/api/core';
 import layoutStyles from '../components/layout/Layout.module.css';
@@ -24,6 +24,7 @@ import { usePersistentState } from '../hooks/usePersistentState';
 import ProjectSelector from '../components/proofreading/ProjectSelector';
 import { SourceFileSelector, AIFileSelector } from '../components/proofreading/ProofreadingFileList';
 import ProofreadingWorkspace from '../components/proofreading/ProofreadingWorkspace';
+import { taskDetailRoute } from '../utils/taskRoutes';
 
 const ProofreadingPage = () => {
   const { t } = useTranslation();
@@ -45,6 +46,17 @@ const ProofreadingPage = () => {
   const reviewProgress = targetFiles.length
     ? Math.round((reviewedCount / targetFiles.length) * 100)
     : 0;
+  const originTaskId = state.searchParams?.get('taskId') || '';
+  const translationRows = (state.rows || []).filter((row) => (
+    row.row_type === 'translation' && row.key
+  ));
+  const focusedEntryKey = state.focusedEntryKey || state.focusEntryKey;
+  const focusedEntryIndex = translationRows.findIndex((row) => row.key === focusedEntryKey);
+  const nextEntry = translationRows[
+    focusedEntryIndex >= 0 && focusedEntryIndex < translationRows.length - 1
+      ? focusedEntryIndex + 1
+      : 0
+  ];
 
   useEffect(() => {
     setPageContext('proofreading');
@@ -143,6 +155,11 @@ const ProofreadingPage = () => {
     });
   }, [nextPendingFile, state]);
 
+  const saveAndNextEntry = useCallback(() => {
+    if (!nextEntry?.key) return;
+    state.requestSave(() => state.requestFocusEntry(nextEntry.key));
+  }, [nextEntry?.key, state]);
+
   const completePendingLeave = useCallback(() => {
     const action = pendingAction;
     setPendingAction(null);
@@ -203,6 +220,16 @@ const ProofreadingPage = () => {
           </Group>
 
           <Group gap="sm">
+            {originTaskId && (
+              <Button
+                variant="light"
+                size="sm"
+                leftSection={<IconHistory size={16} />}
+                onClick={() => requestProtectedAction(() => navigate(taskDetailRoute(originTaskId)))}
+              >
+                {t('proofreading.return_to_task', { defaultValue: 'Return to source task' })}
+              </Button>
+            )}
             <Text size="sm" c="dimmed" mr={4}>{t('proofreading.scale')}:</Text>
             <Select
               value={zoomLevel}
@@ -293,6 +320,8 @@ const ProofreadingPage = () => {
             variableWarnings={state.variableWarnings}
             onValidate={state.handleValidate}
             onSave={() => state.requestSave()}
+            onSaveAndNext={saveAndNextEntry}
+            canSaveAndNext={Boolean(nextEntry)}
             onConfirmSave={() => state.confirmSave(true)}
             onDiscardCommentChanges={() => state.confirmSave(false)}
             onCancelSave={state.cancelSave}

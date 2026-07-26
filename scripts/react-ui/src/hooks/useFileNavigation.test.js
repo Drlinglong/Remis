@@ -117,6 +117,27 @@ describe('useFileNavigation', () => {
     expect(setSearchParamsMock).toHaveBeenCalledWith({ projectId: 'proj-1' });
   });
 
+  it('preserves the source task while switching proofreading files', async () => {
+    searchParamsValue = new URLSearchParams(
+      'projectId=proj-1&fileId=target-1&taskId=task-origin',
+    );
+    const { result } = renderHook(() => useFileNavigation());
+
+    await waitFor(() => {
+      expect(result.current.selectedProject?.project_id).toBe('proj-1');
+    });
+
+    act(() => {
+      result.current.handleSourceFileChange('source-1');
+    });
+
+    expect(setSearchParamsMock).toHaveBeenCalledWith({
+      projectId: 'proj-1',
+      fileId: 'target-1',
+      taskId: 'task-origin',
+    });
+  });
+
   it('clears the previous project files before loading the newly selected project', async () => {
     let resolveSecondProject;
     api.get.mockImplementation((url) => {

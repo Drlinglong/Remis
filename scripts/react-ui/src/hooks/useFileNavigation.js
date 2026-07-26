@@ -11,6 +11,10 @@ import { readProofreadingSession } from './proofreadingSession';
  */
 export const useFileNavigation = () => {
     const [searchParams, setSearchParams] = useSearchParams();
+    const withWorkflowContext = useCallback((params) => ({
+        ...params,
+        ...(searchParams.get('taskId') ? { taskId: searchParams.get('taskId') } : {}),
+    }), [searchParams]);
 
     // ==================== States ====================
     const [projects, setProjects] = useState([]);
@@ -64,9 +68,9 @@ export const useFileNavigation = () => {
             setCurrentSourceFile(null);
             setCurrentTargetFile(null);
             setSelectedProject(proj);
-            setSearchParams({ projectId: proj.project_id });
+            setSearchParams(withWorkflowContext({ projectId: proj.project_id }));
         }
-    }, [projects, setSearchParams]);
+    }, [projects, setSearchParams, withWorkflowContext]);
 
     const handleSourceFileChange = useCallback((val) => {
         const source = sourceFiles.find(s => s.file_id === val);
@@ -75,13 +79,13 @@ export const useFileNavigation = () => {
             const targets = targetFilesMap[source.file_id];
             if (targets && targets.length > 0) {
                 setCurrentTargetFile(targets[0]);
-                setSearchParams({ projectId: selectedProject.project_id, fileId: targets[0].file_id });
+                setSearchParams(withWorkflowContext({ projectId: selectedProject.project_id, fileId: targets[0].file_id }));
             } else {
                 setCurrentTargetFile(null);
-                setSearchParams({ projectId: selectedProject.project_id, fileId: source.file_id });
+                setSearchParams(withWorkflowContext({ projectId: selectedProject.project_id, fileId: source.file_id }));
             }
         }
-    }, [sourceFiles, targetFilesMap, selectedProject, setSearchParams]);
+    }, [sourceFiles, targetFilesMap, selectedProject, setSearchParams, withWorkflowContext]);
 
     const handleTargetFileChange = useCallback((val) => {
         if (!currentSourceFile) return;
@@ -89,9 +93,9 @@ export const useFileNavigation = () => {
         const target = targets.find(t => t.file_id === val);
         if (target) {
             setCurrentTargetFile(target);
-            setSearchParams({ projectId: selectedProject.project_id, fileId: target.file_id });
+            setSearchParams(withWorkflowContext({ projectId: selectedProject.project_id, fileId: target.file_id }));
         }
-    }, [currentSourceFile, targetFilesMap, selectedProject, setSearchParams]);
+    }, [currentSourceFile, targetFilesMap, selectedProject, setSearchParams, withWorkflowContext]);
 
     // ==================== Effects ====================
     // Initialize: Fetch projects
@@ -107,14 +111,14 @@ export const useFileNavigation = () => {
             if (proj) {
                 setSelectedProject(proj);
                 if (!searchParams.get('projectId')) {
-                    setSearchParams({
+                    setSearchParams(withWorkflowContext({
                         projectId: proj.project_id,
                         ...(restoredSessionRef.current?.fileId ? { fileId: restoredSessionRef.current.fileId } : {}),
-                    }, { replace: true });
+                    }), { replace: true });
                 }
             }
         }
-    }, [searchParams, projects, selectedProject, setSearchParams]);
+    }, [searchParams, projects, selectedProject, setSearchParams, withWorkflowContext]);
 
     // Fetch files when project changes
     useEffect(() => {
@@ -171,12 +175,15 @@ export const useFileNavigation = () => {
 
                     const targetId = resolvedTarget ? resolvedTarget.file_id : resolvedSource.file_id;
                     if (String(urlFileId) !== String(targetId)) {
-                        setSearchParams({ projectId: selectedProject.project_id, fileId: targetId }, { replace: true });
+                        setSearchParams(withWorkflowContext({
+                            projectId: selectedProject.project_id,
+                            fileId: targetId,
+                        }), { replace: true });
                     }
                 }
             }
         }
-    }, [searchParams, sourceFiles, targetFilesMap, selectedProject, currentSourceFile, currentTargetFile, setSearchParams]);
+    }, [searchParams, sourceFiles, targetFilesMap, selectedProject, currentSourceFile, currentTargetFile, setSearchParams, withWorkflowContext]);
 
     return {
         projects,
