@@ -462,6 +462,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
                 "warnings": result.get("warnings", []),
                 "warning_count": result.get("warning_count", 0),
                 "workshop_issue_exports": result.get("workshop_issue_exports", []),
+                "source_advancement": result.get("source_advancement"),
             }
             task_state.update_task(
                 task_id,
@@ -529,6 +530,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
                             "processed_file_count": len(fields["file_summaries"]),
                             "workflow_log_paths": workflow_log_paths,
                             "warning_count": fields["warning_count"],
+                            "source_advancement": fields["source_advancement"],
                         },
                     },
                 },

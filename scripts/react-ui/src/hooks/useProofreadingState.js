@@ -82,6 +82,7 @@ const useProofreadingState = () => {
             filter,
             focusedEntryKey,
             scrollOffset,
+            originTaskId: navigation.originTaskId,
         }));
     }, [
         editor.documentRevision,
@@ -92,6 +93,7 @@ const useProofreadingState = () => {
         focusedEntryKey,
         query,
         scrollOffset,
+        navigation.originTaskId,
     ]);
 
     useEffect(() => {

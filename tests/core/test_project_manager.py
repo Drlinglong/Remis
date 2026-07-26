@@ -447,6 +447,83 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
 
             self.mock_repo.update_project_source_path.assert_not_called()
 
+    async def test_promote_incremental_source_refreshes_managed_copy_in_place(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            managed_root = os.path.join(temp_dir, "managed")
+            current_source = os.path.join(managed_root, "demo")
+            candidate_source = os.path.join(temp_dir, "new-version")
+            current_loc = os.path.join(current_source, "localization", "simp_chinese")
+            candidate_loc = os.path.join(candidate_source, "localization", "simp_chinese")
+            os.makedirs(current_loc)
+            os.makedirs(candidate_loc)
+            with open(
+                os.path.join(current_source, ".remis_project.json"),
+                "w",
+                encoding="utf-8",
+            ) as handle:
+                handle.write('{"config": {"translation_dirs": ["C:/translations"]}}')
+            with open(
+                os.path.join(current_loc, "old_l_simp_chinese.yml"),
+                "w",
+                encoding="utf-8",
+            ) as handle:
+                handle.write('l_simp_chinese:\\n old:0 "旧"\\n')
+            with open(
+                os.path.join(candidate_loc, "new_l_simp_chinese.yml"),
+                "w",
+                encoding="utf-8",
+            ) as handle:
+                handle.write('l_simp_chinese:\\n new:0 "新"\\n')
+
+            mock_obj = MagicMock()
+            mock_obj.model_dump.return_value = {
+                "project_id": "managed-project",
+                "name": "Managed Project",
+                "game_id": "victoria3",
+                "source_path": current_source,
+            }
+            self.mock_repo.get_project.return_value = mock_obj
+            self.pm.refresh_project_files = AsyncMock()
+            self.pm.log_history_event = AsyncMock()
+
+            with patch(
+                "scripts.core.project_manager.SOURCE_DIR",
+                managed_root,
+            ):
+                result = await self.pm.promote_incremental_source(
+                    "managed-project",
+                    candidate_source,
+                )
+
+            self.assertEqual(result["mode"], "managed_copy")
+            self.assertEqual(
+                result["source_path"],
+                os.path.realpath(current_source),
+            )
+            self.assertFalse(
+                os.path.exists(
+                    os.path.join(current_loc, "old_l_simp_chinese.yml")
+                )
+            )
+            self.assertTrue(
+                os.path.exists(
+                    os.path.join(current_loc, "new_l_simp_chinese.yml")
+                )
+            )
+            self.assertTrue(
+                os.path.exists(
+                    os.path.join(current_source, ".remis_project.json")
+                )
+            )
+            self.mock_repo.update_project_source_path.assert_not_awaited()
+            self.mock_repo.touch_project.assert_awaited_once_with(
+                "managed-project"
+            )
+            self.pm.refresh_project_files.assert_awaited_once_with(
+                "managed-project"
+            )
+            self.pm.log_history_event.assert_awaited_once()
+
     async def test_run_incremental_update_workflow_falls_back_to_defaults(self):
         """
         Unknown source language and game ID should fall back to English and victoria3.
@@ -510,6 +587,67 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
             use_resume=True,
             embedded_workshop=None,
             progress_callback=None,
+        )
+
+    async def test_run_incremental_update_workflow_advances_successful_custom_source(self):
+        project_id = "workflow-source-advance"
+        mock_obj = MagicMock()
+        mock_obj.model_dump.return_value = {
+            "project_id": project_id,
+            "source_language": "en",
+            "game_id": "victoria3",
+        }
+        self.mock_repo.get_project.return_value = mock_obj
+        self.pm.promote_incremental_source = AsyncMock(return_value={
+            "mode": "managed_copy",
+            "source_path": "C:/managed/demo",
+            "selected_source_path": "C:/fixtures/new-version",
+        })
+
+        config = MagicMock()
+        config.project_id = project_id
+        config.target_lang_codes = [MagicMock(value="zh-CN")]
+        config.api_provider = "test-provider"
+        config.provider = None
+        config.model = "test-model"
+        config.batch_size_limit = None
+        config.concurrency_limit = None
+        config.rpm_limit = None
+        config.dry_run = False
+        config.custom_source_path = "C:/fixtures/new-version"
+        config.use_resume = True
+        config.embedded_workshop = None
+
+        with patch.dict(
+            app_settings.LANGUAGE_BY_CODE,
+            {"en": {"code": "en"}, "zh-CN": {"code": "zh-CN"}},
+            clear=True,
+        ), patch.dict(
+            app_settings.GAME_PROFILES_BY_ID,
+            {"victoria3": {"id": "victoria3"}},
+            clear=True,
+        ), patch.dict(
+            app_settings.GAME_PROFILES,
+            {},
+            clear=True,
+        ), patch(
+            "scripts.workflows.update_translate.run_incremental_update",
+            new_callable=AsyncMock,
+        ) as mock_run:
+            mock_run.return_value = {
+                "status": "success",
+                "output_dir": "C:/outputs/update",
+            }
+
+            result = await self.pm.run_incremental_update_workflow(config)
+
+        self.pm.promote_incremental_source.assert_awaited_once_with(
+            project_id,
+            "C:/fixtures/new-version",
+        )
+        self.assertEqual(
+            result["source_advancement"]["selected_source_path"],
+            "C:/fixtures/new-version",
         )
 
     async def test_check_project_archive_uses_detected_language_fallback(self):

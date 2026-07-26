@@ -46,7 +46,7 @@ const ProofreadingPage = () => {
   const reviewProgress = targetFiles.length
     ? Math.round((reviewedCount / targetFiles.length) * 100)
     : 0;
-  const originTaskId = state.searchParams?.get('taskId') || '';
+  const originTaskId = state.originTaskId || state.searchParams?.get('taskId') || '';
   const translationRows = (state.rows || []).filter((row) => (
     row.row_type === 'translation' && row.key
   ));

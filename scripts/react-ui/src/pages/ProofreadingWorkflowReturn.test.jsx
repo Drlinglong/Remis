@@ -39,7 +39,8 @@ vi.mock('../hooks/useProofreadingState', () => ({
     scrollOffset: 0,
     translationChangeCount: 0,
     commentChangeCount: 0,
-    searchParams: new URLSearchParams('projectId=project-1&taskId=task-origin'),
+    searchParams: new URLSearchParams('projectId=project-1'),
+    originTaskId: 'task-origin',
     requestSave,
     requestFocusEntry,
   }),
@@ -73,7 +74,7 @@ describe('proofreading task recovery', () => {
         ),
       },
     ], {
-      initialEntries: ['/proofreading?projectId=project-1&taskId=task-origin'],
+      initialEntries: ['/proofreading?projectId=project-1'],
     });
 
     render(<MantineProvider><RouterProvider router={router} /></MantineProvider>);

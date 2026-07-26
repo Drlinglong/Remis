@@ -105,6 +105,10 @@ def test_run_incremental_update_background_marks_task_completed(monkeypatch, tmp
             "output_dirs": [str(tmp_path / "zh-CN-demo")],
             "warnings": ["warning-1"],
             "warning_count": 1,
+            "source_advancement": {
+                "mode": "managed_copy",
+                "source_path": str(tmp_path / "managed-demo"),
+            },
             "workshop_issue_exports": [
                 {
                     "issue_count": 2,
@@ -143,6 +147,10 @@ def test_run_incremental_update_background_marks_task_completed(monkeypatch, tmp
     assert tasks[task_id]["result"]["metadata"]["project_id"] == project_id
     assert tasks[task_id]["result"]["metadata"]["summary_code"] == "incremental_translation_completed"
     assert tasks[task_id]["result"]["metadata"]["processed_file_count"] == 1
+    assert tasks[task_id]["result"]["metadata"]["source_advancement"] == {
+        "mode": "managed_copy",
+        "source_path": str(tmp_path / "managed-demo"),
+    }
     write_logs.assert_called_once_with(
         [str(tmp_path / "zh-CN-demo")],
         tasks[task_id]["log"],

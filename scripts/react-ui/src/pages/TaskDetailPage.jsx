@@ -235,6 +235,9 @@ export default function TaskDetailPage() {
     : getTaskResultSummary(task, t);
   const localizedTaskStage = getTaskStageLabel(task, t);
   const localizedNextStep = getTaskNextStep(task, t);
+  const localizedBlockingReason = task?.blocking_reason_code === 'project_write_locked'
+    ? t('task_detail.blocking_description')
+    : (task?.blocking_reason || t('task_detail.blocking_description'));
   const presentedEvents = useMemo(() => (
     sortTaskEventsNewestFirst(task?.events || []).map((event) => {
       if (task?.kind === 'glossary_health_check') {
@@ -357,7 +360,7 @@ export default function TaskDetailPage() {
         )}
         {task.blocking && active && (
           <Alert color="orange" icon={<IconInfoCircle size={18} />} mb="md">
-            {task.blocking_reason || t('task_detail.blocking_description')}
+            {localizedBlockingReason}
           </Alert>
         )}
 

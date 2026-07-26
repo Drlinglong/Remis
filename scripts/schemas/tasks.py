@@ -71,6 +71,7 @@ class TaskSummary(BaseModel):
     result: TaskResult = Field(default_factory=TaskResult)
     blocking: bool = False
     blocking_reason: Optional[str] = None
+    blocking_reason_code: Optional[str] = None
     dedupe_key: Optional[str] = None
     idempotency_key: Optional[str] = None
     source_route: str = "/"

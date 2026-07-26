@@ -48,6 +48,9 @@ export const PreScanResultsStep = ({
     onBack,
     loading,
     executing,
+    currentTaskId,
+    conflictingTaskId,
+    onViewTask,
 }) => {
     const { t } = useTranslation();
     const languageSummary = buildPreScanLanguageSummary({ scanResults, selectedLangs, archiveInfo });
@@ -224,6 +227,25 @@ export const PreScanResultsStep = ({
                         {t('incremental_translation.start_translation_confirm')}
                     </Alert>
 
+                    {(conflictingTaskId || (executing && currentTaskId)) && (
+                        <Alert
+                            color="blue"
+                            title={t('incremental_translation.conflicting_task_title')}
+                            mt="md"
+                        >
+                            <Group justify="space-between" align="center" wrap="wrap">
+                                <Text size="sm">
+                                    {t('incremental_translation.conflicting_task_notice')}
+                                </Text>
+                                {onViewTask && (
+                                    <Button size="xs" variant="light" onClick={onViewTask}>
+                                        {t('task_center.view_task')}
+                                    </Button>
+                                )}
+                            </Group>
+                        </Alert>
+                    )}
+
                     <Group justify="flex-end" mt="md">
                         <Button variant="light" onClick={onBack} disabled={loading || executing}>
                             {t('common.back')}
@@ -233,7 +255,7 @@ export const PreScanResultsStep = ({
                             size="lg"
                             leftSection={<IconPlayerPlay size={20} />}
                             onClick={startTranslation}
-                            disabled={loading || executing}
+                            disabled={loading || executing || Boolean(conflictingTaskId)}
                         >
                             {t('incremental_translation.step_4_title')}
                         </Button>

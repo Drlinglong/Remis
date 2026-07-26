@@ -168,6 +168,10 @@ def _from_live_task(task: Dict[str, Any], agent_job: Optional[Dict[str, Any]]) -
                 else None
             )
         ),
+        blocking_reason_code=(
+            task.get("blocking_reason_code")
+            or ("project_write_locked" if blocking else None)
+        ),
         dedupe_key=task.get("dedupe_key"),
         idempotency_key=task.get("idempotency_key"),
         source_route=str(task.get("source_route") or ROUTE_BY_KIND.get(kind, "/")),

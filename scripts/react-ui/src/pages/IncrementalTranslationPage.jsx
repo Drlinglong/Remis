@@ -230,6 +230,11 @@ export const IncrementalTranslationPage = () => {
                         onBack={() => state.setActive(1)}
                         loading={state.loading}
                         executing={state.executing}
+                        currentTaskId={state.currentTaskId}
+                        conflictingTaskId={state.conflictingTaskId}
+                        onViewTask={state.currentTaskId
+                            ? () => navigate(taskDetailRoute(state.currentTaskId))
+                            : null}
                     />
                 </Stepper.Step>
 
@@ -246,6 +251,7 @@ export const IncrementalTranslationPage = () => {
                         openOutputFolder={state.openOutputFolder}
                         handleFinish={handleFinish}
                         completionSource={state.completionSource}
+                        conflictingTaskId={state.conflictingTaskId}
                         onViewTask={state.currentTaskId
                             ? () => navigate(taskDetailRoute(state.currentTaskId))
                             : null}

@@ -31,6 +31,7 @@ export const ExecutionStep = ({
     openOutputFolder,
     handleFinish,
     completionSource,
+    conflictingTaskId,
     onViewTask,
     onStartProofreading,
 }) => {
@@ -220,6 +221,27 @@ export const ExecutionStep = ({
                             </Stack>
                         </Alert>
                     </>
+                )}
+
+                {conflictingTaskId && !executing && (
+                    <Alert
+                        color="orange"
+                        mt="md"
+                        title={t('incremental_translation.conflicting_task_title')}
+                    >
+                        <Stack gap={6}>
+                            <Text size="sm">
+                                {t('incremental_translation.conflicting_task_notice')}
+                            </Text>
+                            {onViewTask && (
+                                <Group>
+                                    <Button size="xs" variant="light" color="orange" onClick={onViewTask}>
+                                        {t('task_center.view_task')}
+                                    </Button>
+                                </Group>
+                            )}
+                        </Stack>
+                    </Alert>
                 )}
 
                 <Group justify="space-between" mt={executing ? 'md' : 0} mb="xl">

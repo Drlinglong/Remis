@@ -29,6 +29,7 @@ describe('proofreadingSession', () => {
       filter: 'changed',
       focusedEntryKey: 'b',
       scrollOffset: 120,
+      originTaskId: 'task-origin',
     });
 
     expect(snapshot.patches).toEqual([{
@@ -38,6 +39,7 @@ describe('proofreadingSession', () => {
       final_value: 'Edited',
     }]);
     expect(snapshot.scrollOffset).toBe(120);
+    expect(snapshot.originTaskId).toBe('task-origin');
   });
 
   it('round-trips and clears a versioned session snapshot', () => {

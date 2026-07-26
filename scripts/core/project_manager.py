@@ -536,7 +536,7 @@ class ProjectManager:
              # Last effort fallback to victoria3
              game_profile = GAME_PROFILES_BY_ID.get("victoria3", {})
 
-        return await run_incremental_update(
+        result = await run_incremental_update(
             project_id=project_id,
             target_lang_infos=target_lang_infos,
             source_lang_info=source_lang_info,
@@ -552,6 +552,16 @@ class ProjectManager:
             embedded_workshop=config.embedded_workshop.model_dump() if config.embedded_workshop else None,
             progress_callback=progress_callback
         )
+        if (
+            result.get("status") == "success"
+            and not config.dry_run
+            and config.custom_source_path
+        ):
+            result["source_advancement"] = await self.promote_incremental_source(
+                project_id,
+                config.custom_source_path,
+            )
+        return result
 
     async def check_project_archive(self, project_id: str) -> Dict[str, Any]:
         """Checks if there's valid archival data for this project to perform incremental update."""
@@ -816,6 +826,130 @@ class ProjectManager:
         await self.repository.update_project_source_path(project_id, new_source_path)
 
         logger.info(f"Updated source_path for project {project_id}: {old_source_path} -> {new_source_path}")
+
+    async def promote_incremental_source(
+        self,
+        project_id: str,
+        new_source_path: str,
+    ) -> Dict[str, Any]:
+        """Advance a project to the source snapshot used by a successful update.
+
+        Copy-mode projects keep their stable Remis-managed root so project
+        identity, notes, Kanban state, and translation-directory registration
+        remain intact. Reference-mode projects advance their source pointer and
+        carry the existing Remis sidecar state to the new source root.
+        """
+        project = await self.get_project(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+
+        current_source = Path(project["source_path"]).resolve()
+        candidate_source = Path(
+            self._normalize_source_root_path(
+                new_source_path,
+                project.get("game_id", ""),
+            )
+        ).resolve()
+        if not candidate_source.is_dir():
+            raise ValueError(f"Source directory not found: {candidate_source}")
+        if current_source == candidate_source:
+            await self.refresh_project_files(project_id)
+            return {
+                "mode": "unchanged",
+                "source_path": str(current_source),
+            }
+
+        managed_root = Path(SOURCE_DIR).resolve()
+        try:
+            current_source.relative_to(managed_root)
+            is_managed_copy = True
+        except ValueError:
+            is_managed_copy = False
+
+        if is_managed_copy:
+            game_profile = GAME_PROFILES_BY_ID.get(
+                GAME_ID_ALIASES.get(
+                    str(project.get("game_id") or "").lower(),
+                    project.get("game_id"),
+                )
+            )
+            import_items = self._get_import_scope_items(
+                str(candidate_source),
+                game_profile,
+            )
+            if not import_items:
+                raise ValueError(
+                    f"No supported project source files found in {candidate_source}"
+                )
+
+            copied_items: List[str] = []
+            for source_item in import_items:
+                relative_path = source_item.resolve().relative_to(candidate_source)
+                destination = (current_source / relative_path).resolve()
+                try:
+                    destination.relative_to(current_source)
+                except ValueError as exc:
+                    raise ValueError(
+                        f"Incremental source item escapes the managed project root: {source_item}"
+                    ) from exc
+
+                if destination.is_dir():
+                    shutil.rmtree(destination)
+                elif destination.exists():
+                    destination.unlink()
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                if source_item.is_dir():
+                    shutil.copytree(source_item, destination)
+                else:
+                    shutil.copy2(source_item, destination)
+                copied_items.append(relative_path.as_posix())
+
+            await self.repository.touch_project(project_id)
+            await self.refresh_project_files(project_id)
+            await self.log_history_event(
+                project_id=project_id,
+                action_type="source_advanced",
+                description="history.incremental_source_advanced_desc",
+                metadata={
+                    "mode": "managed_copy",
+                    "selected_source_path": str(candidate_source),
+                    "copied_items": copied_items,
+                },
+            )
+            logger.info(
+                "Advanced managed project source for %s from %s",
+                project_id,
+                candidate_source,
+            )
+            return {
+                "mode": "managed_copy",
+                "source_path": str(current_source),
+                "selected_source_path": str(candidate_source),
+                "copied_items": copied_items,
+            }
+
+        old_json_manager = ProjectJsonManager(str(current_source))
+        old_config = old_json_manager.get_config()
+        old_kanban = old_json_manager.get_kanban_data()
+        await self.update_source_path(project_id, str(candidate_source))
+        new_json_manager = ProjectJsonManager(str(candidate_source))
+        new_json_manager.update_config(old_config)
+        new_json_manager.save_kanban_data(old_kanban)
+        await self.refresh_project_files(project_id)
+        await self.log_history_event(
+            project_id=project_id,
+            action_type="source_advanced",
+            description="history.incremental_source_advanced_desc",
+            metadata={
+                "mode": "reference",
+                "selected_source_path": str(candidate_source),
+            },
+        )
+        return {
+            "mode": "reference",
+            "source_path": str(candidate_source),
+            "selected_source_path": str(candidate_source),
+        }
 
     async def upload_project_translations(self, project_id: str) -> Dict[str, Any]:
         """

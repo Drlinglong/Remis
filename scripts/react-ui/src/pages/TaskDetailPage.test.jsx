@@ -30,6 +30,7 @@ const translateMock = (key, options) => {
   if (key === 'glossary_health_event_deterministic_found') return `Localized ${options.count} findings`;
   if (key === 'glossary_health_event_ai_started') return 'Localized AI advice started';
   if (key === 'glossary_health_completed_title') return 'Localized inspection completed';
+  if (key === 'task_detail.blocking_description') return 'Localized project write lock';
   return options?.defaultValue || key;
 };
 
@@ -196,6 +197,24 @@ describe('TaskDetailPage', () => {
     expect(screen.queryByText(/Return to Incremental Translation/)).not.toBeInTheDocument();
     expect(screen.getAllByText('failed').length).toBeGreaterThan(0);
     expect(screen.getAllByText('task_presentation.next_step.review_failure').length).toBeGreaterThan(0);
+  });
+
+  it('localizes the structured project write lock instead of exposing backend English', async () => {
+    api.get.mockResolvedValue({
+      data: {
+        ...failedTask,
+        status: 'running',
+        blocking: true,
+        blocking_reason: 'This task is changing project files. Conflicting writes are blocked until it finishes.',
+        blocking_reason_code: 'project_write_locked',
+        finished_at: null,
+      },
+    });
+
+    render(<MantineProvider><TaskDetailPage /></MantineProvider>);
+
+    expect(await screen.findByText('Localized project write lock')).toBeInTheDocument();
+    expect(screen.queryByText(/This task is changing project files/)).not.toBeInTheDocument();
   });
 
   it('shows recovery context, child rollup, and opens a result path', async () => {

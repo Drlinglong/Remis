@@ -96,6 +96,7 @@ async def test_task_summary_exposes_actor_tree_recovery_and_result_contract():
     }
     assert task.stage_code == "translating"
     assert task.blocking_reason
+    assert task.blocking_reason_code == "project_write_locked"
 
 
 @pytest.mark.asyncio

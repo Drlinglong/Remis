@@ -17,12 +17,22 @@
 }
 
 .taskRow {
+  width: 100%;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
   transition: border-color 140ms ease, transform 140ms ease;
 }
 
-.taskRow:hover {
+.taskRow:hover,
+.taskRow:focus-visible {
   border-color: var(--mantine-primary-color-filled);
   transform: translateY(-1px);
+}
+
+.taskRow:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
 }
 
 .taskMain,
@@ -41,7 +51,8 @@
   color: var(--surface-text-main);
 }
 
-.taskTitle:hover {
+.taskRow:hover .taskTitle,
+.taskRow:focus-visible .taskTitle {
   color: var(--mantine-primary-color-filled);
   text-decoration: underline;
   text-underline-offset: 3px;

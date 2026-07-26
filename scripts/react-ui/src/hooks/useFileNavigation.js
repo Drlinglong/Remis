@@ -11,10 +11,24 @@ import { readProofreadingSession } from './proofreadingSession';
  */
 export const useFileNavigation = () => {
     const [searchParams, setSearchParams] = useSearchParams();
+    const restoredSessionRef = useRef(readProofreadingSession());
+    const queryTaskId = searchParams.get('taskId') || '';
+    const requestedProjectId = (
+        searchParams.get('projectId')
+        || restoredSessionRef.current?.projectId
+        || ''
+    );
+    const restoredTaskId = (
+        restoredSessionRef.current?.projectId
+        && restoredSessionRef.current.projectId === requestedProjectId
+    )
+        ? (restoredSessionRef.current?.originTaskId || '')
+        : '';
+    const originTaskId = queryTaskId || restoredTaskId;
     const withWorkflowContext = useCallback((params) => ({
         ...params,
-        ...(searchParams.get('taskId') ? { taskId: searchParams.get('taskId') } : {}),
-    }), [searchParams]);
+        ...(originTaskId ? { taskId: originTaskId } : {}),
+    }), [originTaskId]);
 
     // ==================== States ====================
     const [projects, setProjects] = useState([]);
@@ -26,7 +40,6 @@ export const useFileNavigation = () => {
     const [currentSourceFile, setCurrentSourceFile] = useState(null);
     const [currentTargetFile, setCurrentTargetFile] = useState(null);
     const projectFilesRequestRef = useRef(0);
-    const restoredSessionRef = useRef(readProofreadingSession());
 
     // ==================== Actions ====================
     const fetchProjects = useCallback(async () => {
@@ -206,6 +219,7 @@ export const useFileNavigation = () => {
                 : Promise.resolve()
         ),
         searchParams,
-        setSearchParams
+        setSearchParams,
+        originTaskId,
     };
 };

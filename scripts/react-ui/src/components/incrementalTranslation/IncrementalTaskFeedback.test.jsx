@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import ConfigStep from './ConfigStep';
 import ExecutionStep from './ExecutionStep';
+import PreScanResultsStep from './PreScanResultsStep';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -76,6 +77,58 @@ describe('incremental task feedback', () => {
     );
 
     expect(screen.getByText('任务在后台运行，可以安全离开页面')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '查看任务' }));
+    expect(onViewTask).toHaveBeenCalledOnce();
+  });
+
+  it('explains a disabled execution button and opens the active task', () => {
+    const onViewTask = vi.fn();
+
+    renderWithMantine(
+      <PreScanResultsStep
+        scanResults={{
+          total: 1,
+          changed: 1,
+          file_summaries: [],
+        }}
+        selectedProject={{ source_language: 'zh-CN' }}
+        selectedLangs={['en']}
+        models={[]}
+        apiProviders={[]}
+        archiveInfo={{ archived_languages: ['en'] }}
+        loading={false}
+        executing
+        currentTaskId="task-running"
+        onViewTask={onViewTask}
+      />,
+    );
+
+    expect(screen.getByText('已有翻译任务')).toBeInTheDocument();
+    expect(screen.getByText('打开现有任务查看进度')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'incremental_translation.step_4_title' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: '查看任务' }));
+    expect(onViewTask).toHaveBeenCalledOnce();
+  });
+
+  it('keeps a duplicate execution conflict visible with an exact task entry', () => {
+    const onViewTask = vi.fn();
+
+    renderWithMantine(
+      <ExecutionStep
+        progress={0}
+        executing={false}
+        progressInfo={{ stage_code: 'initializing' }}
+        logs={[]}
+        finalSummary={null}
+        conflictingTaskId="task-existing"
+        logViewportRef={{ current: null }}
+        logScrollRef={{ current: null }}
+        onViewTask={onViewTask}
+      />,
+    );
+
+    expect(screen.getByText('已有翻译任务')).toBeInTheDocument();
+    expect(screen.getByText('打开现有任务查看进度')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '查看任务' }));
     expect(onViewTask).toHaveBeenCalledOnce();
   });

@@ -12,7 +12,6 @@ import {
   Text,
   TextInput,
   Title,
-  UnstyledButton,
 } from '@mantine/core';
 import {
   IconAlertTriangle,
@@ -181,16 +180,25 @@ export default function TaskHistoryPage() {
                   : task.title
               );
               return (
-                <Card key={task.task_id} withBorder radius="md" p="md" data-remis-surface="surface" className={styles.taskRow}>
+                <Card
+                  key={task.task_id}
+                  component="button"
+                  type="button"
+                  withBorder
+                  radius="md"
+                  p="md"
+                  data-remis-surface="surface"
+                  className={styles.taskRow}
+                  aria-label={kindLabel}
+                  onClick={() => navigate(taskDetailRoute(task.task_id))}
+                >
                   <Group justify="space-between" align="center" wrap="nowrap">
                     <Group gap="md" wrap="nowrap" className={styles.taskMain}>
                       <Text size="sm" c="dimmed" ff="monospace" className={styles.taskTime}>
                         {formatTaskTime(task, i18n.language)}
                       </Text>
                       <div className={styles.taskIdentity}>
-                        <UnstyledButton onClick={() => navigate(taskDetailRoute(task.task_id))} className={styles.taskTitle}>
-                          <Text fw={700}>{kindLabel}</Text>
-                        </UnstyledButton>
+                        <Text fw={700} className={styles.taskTitle}>{kindLabel}</Text>
                         <Text size="sm" c="dimmed" lineClamp={1}>{secondaryLabel}</Text>
                       </div>
                     </Group>
