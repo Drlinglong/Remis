@@ -1,0 +1,7 @@
+﻿l_english:
+ workshop_demo.clean:0 "The archive is ready for inspection."
+ workshop_demo.variable:0 "Move $COUNT$ units to [TARGET.GetName]."
+ workshop_demo.color:0 "#bold Important instructions#! remain visible."
+ workshop_demo.color_two:0 "#italic Historical context#! remains visible."
+ workshop_demo.color_three:0 "#warning Dangerous action#! requires review."
+ workshop_demo.scope:0 "[ROOT.GetCountry.GetName] controls this record."
