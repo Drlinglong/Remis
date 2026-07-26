@@ -83,6 +83,42 @@ def test_load_cached_filters_fixed_entries(tmp_path):
     assert data[0]["status"] == "detected"
 
 
+def test_format_scan_records_zero_issue_result_in_task_ledger(tmp_path):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+
+    with patch("scripts.routers.agent_workshop.project_manager", new_callable=MagicMock) as mock_pm, \
+         patch("scripts.routers.agent_workshop.task_state.create_task") as mock_create_task, \
+         patch("scripts.routers.agent_workshop.task_state.update_task") as mock_update_task:
+        mock_pm.get_project = AsyncMock(return_value={
+            "project_id": "scan-project",
+            "name": "Scan Project",
+            "source_path": str(project_root),
+            "game_id": "victoria3",
+            "source_language": "en",
+        })
+        mock_pm.get_project_files = AsyncMock(return_value=[])
+
+        response = client.get(
+            "/api/agent-workshop/scan",
+            params={"project_id": "scan-project", "force": True},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == []
+    task_id = response.headers["X-Remis-Task-Id"]
+    assert task_id
+    mock_create_task.assert_called_once()
+    assert mock_create_task.call_args.args[0] == task_id
+    assert mock_create_task.call_args.kwargs["fields"]["workflow_context"]["input_scope"] == str(project_root)
+    mock_update_task.assert_called_once()
+    assert mock_update_task.call_args.args[0] == task_id
+    assert mock_update_task.call_args.kwargs["status"] == "completed"
+    result = mock_update_task.call_args.kwargs["fields"]["result"]
+    assert result["metadata"]["issue_count"] == 0
+    assert result["metadata"]["mutations_applied"] is False
+
+
 def test_load_cached_falls_back_to_workshop_sidecar(tmp_path):
     project_root = tmp_path / "project"
     translation_root = tmp_path / "translation"

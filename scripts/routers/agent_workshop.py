@@ -9,7 +9,7 @@ import time
 import uuid
 from pathlib import Path
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
 from scripts.utils.post_process_validator import PostProcessValidator
@@ -644,8 +644,11 @@ async def load_cached_errors(project_id: str, sidecar_path: Optional[str] = None
 
     return []
 
-@router.get("/scan", response_model=List[ValidationIssue])
-async def scan_project(project_id: str, force: bool = Query(False), sidecar_path: Optional[str] = None):
+async def _scan_project_issues(
+    project_id: str,
+    force: bool = False,
+    sidecar_path: Optional[str] = None,
+):
     """
     Loads cached validation issues by default, or performs a fresh scan when forced.
     """
@@ -810,6 +813,112 @@ async def scan_project(project_id: str, force: bool = Query(False), sidecar_path
     logger.info("[AgentWorkshop] Fresh scan completed with %s issue(s)", len(issues))
                     
     return [i.model_dump() for i in issues]
+
+
+@router.get("/scan", response_model=List[ValidationIssue])
+async def scan_project(
+    response: Response,
+    project_id: str,
+    force: bool = Query(False),
+    sidecar_path: Optional[str] = None,
+):
+    """
+    Runs the deterministic format scan and records it in the shared task ledger.
+
+    The list response remains backward compatible. The exact task identity is
+    returned in a response header so the UI can refresh the Task Center or open
+    this scan directly without inventing a second scan record.
+    """
+    project = await project_manager.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    task_id = str(uuid.uuid4())
+    input_scope = sidecar_path or project.get("source_path")
+    task_state.create_task(
+        task_id,
+        status="processing",
+        log_message="Format scan started.",
+        fields={
+            "kind": "agent_workshop_scan",
+            "project_id": project_id,
+            "title": "Format scan",
+            "source_route": "/agent-workshop",
+            "created_by": {"type": "user"},
+            "blocking": False,
+            "workflow_context": {
+                "mode": "format_scan",
+                "project_id": project_id,
+                "input_scope": input_scope,
+                "force": force,
+            },
+            "progress": {
+                "percent": 10,
+                "stage": "Scanning",
+                "stage_code": "scanning",
+            },
+        },
+    )
+    response.headers["X-Remis-Task-Id"] = task_id
+
+    try:
+        issues = await _scan_project_issues(
+            project_id=project_id,
+            force=force,
+            sidecar_path=sidecar_path,
+        )
+        issue_count = len(issues)
+        task_state.update_task(
+            task_id,
+            status="completed",
+            progress={
+                "percent": 100,
+                "stage": "Completed",
+                "stage_code": "completed",
+            },
+            fields={
+                "result": {
+                    "types": ["validation_report"],
+                    "summary": (
+                        f"{issue_count} format issue(s) found."
+                        if issue_count
+                        else "No format issues found."
+                    ),
+                    "metadata": {
+                        "summary_code": "format_scan_completed",
+                        "issue_count": issue_count,
+                        "project_id": project_id,
+                        "input_scope": input_scope,
+                        "mutations_applied": False,
+                    },
+                },
+            },
+            append_log="Format scan completed.",
+        )
+        return issues
+    except Exception as exc:
+        task_state.update_task(
+            task_id,
+            status="failed",
+            message="Format scan could not be completed.",
+            progress={
+                "stage": "Failed",
+                "stage_code": "failed",
+            },
+            fields={
+                "attention_reason": "Return to Format Scan, verify the project input scope, and try again.",
+            },
+            append_log="Format scan failed.",
+        )
+        task_state.append_task_event(
+            task_id,
+            str(exc),
+            audience="diagnostic",
+            level="error",
+            event_type="scan_error",
+        )
+        raise
+
 
 def apply_translation_fix_to_file(file_path: Path, key_to_fix: str, new_value: str) -> bool:
     from scripts.core.loc_parser import parse_loc_file_with_lines
