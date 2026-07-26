@@ -2,7 +2,7 @@
 
 .pageTitle {
     font-family: var(--font-header);
-    color: var(--canvas-text-main);
+    color: var(--canvas-text-main) !important;
 }
 
 .incrementalPage {
