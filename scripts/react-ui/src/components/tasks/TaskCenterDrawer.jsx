@@ -9,6 +9,12 @@ import api from '../../utils/api';
 import { taskDetailRoute } from '../../utils/taskRoutes';
 import { TaskSummaryCard } from './TaskSummaryCard';
 
+function taskActivityTimestamp(task) {
+  const value = task.updated_at || task.finished_at || task.started_at || task.created_at;
+  const timestamp = value ? Date.parse(value) : Number.NaN;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
 export function TaskCenterDrawer() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -23,13 +29,21 @@ export function TaskCenterDrawer() {
   const [handlingTaskId, setHandlingTaskId] = useState('');
   const [handleError, setHandleError] = useState('');
   const visibleTasks = useMemo(() => {
-    const actionableTasks = tasks.filter((task) => (
+    const newestFirstTasks = [...tasks].sort((left, right) => {
+      const recencyDifference = taskActivityTimestamp(right) - taskActivityTimestamp(left);
+      return recencyDifference || String(right.task_id).localeCompare(String(left.task_id));
+    });
+    const actionableTasks = newestFirstTasks.filter((task) => (
       ['queued', 'running', 'awaiting_approval', 'failed', 'interrupted'].includes(task.status)
     ));
-    const latestCompletedTask = tasks.find((task) => task.status === 'completed');
-    return latestCompletedTask
+    const latestCompletedTask = newestFirstTasks.find((task) => task.status === 'completed');
+    const taskQueue = latestCompletedTask
       ? [...actionableTasks, latestCompletedTask]
       : actionableTasks;
+    return taskQueue.sort((left, right) => (
+      taskActivityTimestamp(right) - taskActivityTimestamp(left)
+      || String(right.task_id).localeCompare(String(left.task_id))
+    ));
   }, [tasks]);
 
   const openTask = (task) => {

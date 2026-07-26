@@ -76,6 +76,15 @@ describe('task presentation', () => {
       message: 'internal_provider_payload=opaque',
       technical: true,
     });
+
+    expect(getTaskEventPresentation(
+      { message: "Error code: 400 - No models loaded. Please load a model." },
+      { kind: 'incremental_translation' },
+      t,
+    )).toEqual({
+      message: 'glossary_health_no_model_loaded:{}',
+      technical: true,
+    });
   });
 
   it('orders newest events first and keeps equal timestamps deterministic', () => {

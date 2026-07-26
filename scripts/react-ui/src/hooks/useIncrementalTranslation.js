@@ -16,6 +16,7 @@ import {
     applyIncrementalStateSnapshot,
     buildIncrementalStateSnapshot,
     readIncrementalStateSnapshot,
+    resolveInFlightIncrementalTaskId,
     writeIncrementalStateSnapshot,
 } from './incrementalTranslationPersistence';
 import {
@@ -108,6 +109,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         executionInFlightRef,
         preScanInFlightRef,
         setActive,
+        setConflictingTaskId,
         setCurrentTaskId,
         setCurrentTaskMode,
         setExecuting,
@@ -225,6 +227,11 @@ export const useIncrementalTranslation = (notificationStyle) => {
     }, []);
 
     const handleSelectProject = useCallback(async (project, sourcePathOverride = null) => {
+        const inFlightTaskId = resolveInFlightIncrementalTaskId({
+            currentTaskId,
+            executionInFlight: executionInFlightRef.current,
+            preScanInFlight: preScanInFlightRef.current,
+        });
         const nextSourcePath = sourcePathOverride || project.source_path;
         setSelectedProject(project);
         setCustomSourcePath(nextSourcePath);
@@ -236,11 +243,20 @@ export const useIncrementalTranslation = (notificationStyle) => {
         setErrorKey(null);
         setProgress(0);
         setProgressInfo({});
-        setExecuting(false);
+        setExecuting(Boolean(inFlightTaskId && currentTaskMode === 'execution'));
         setCheckpointFound(false);
-        setCurrentTaskId(null);
-        setCurrentTaskMode(null);
-        setConflictingTaskId(null);
+        if (inFlightTaskId) {
+            setCurrentTaskId(inFlightTaskId);
+            setConflictingTaskId(inFlightTaskId);
+            notificationService.info(
+                t('incremental_translation.conflicting_task_notice'),
+                notificationStyle,
+            );
+        } else {
+            setCurrentTaskId(null);
+            setCurrentTaskMode(null);
+            setConflictingTaskId(null);
+        }
         completionSourceRef.current = null;
         statusResyncRef.current = false;
         setActive(1);
@@ -267,7 +283,14 @@ export const useIncrementalTranslation = (notificationStyle) => {
         } finally {
             setLoading(false);
         }
-    }, [checkCheckpoint, completionSourceRef]);
+    }, [
+        checkCheckpoint,
+        completionSourceRef,
+        currentTaskId,
+        currentTaskMode,
+        notificationStyle,
+        t,
+    ]);
 
     const runPreScan = useCallback(async () => {
         if (!selectedProject || !customSourcePath || loading || executing || preScanInFlightRef.current || executionInFlightRef.current) return;

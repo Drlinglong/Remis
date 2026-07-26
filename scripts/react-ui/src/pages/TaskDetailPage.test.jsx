@@ -31,6 +31,7 @@ const translateMock = (key, options) => {
   if (key === 'glossary_health_event_ai_started') return 'Localized AI advice started';
   if (key === 'glossary_health_completed_title') return 'Localized inspection completed';
   if (key === 'task_detail.blocking_description') return 'Localized project write lock';
+  if (key === 'glossary_health_no_model_loaded') return 'Load a local model before retrying.';
   return options?.defaultValue || key;
 };
 
@@ -103,7 +104,7 @@ describe('TaskDetailPage', () => {
 
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith('/api/tasks/failed-task', {
-        params: { include_diagnostics: false },
+        params: { include_diagnostics: true },
       });
     });
     expect((await screen.findAllByText('Failed translation attempt')).length).toBeGreaterThan(0);
@@ -125,34 +126,30 @@ describe('TaskDetailPage', () => {
     expect(navigateMock).toHaveBeenCalledWith('/project-management/project-demo');
   });
 
-  it('loads diagnostics only when requested and exposes an explicit export', async () => {
-    api.get.mockImplementation((_url, { params }) => Promise.resolve({
+  it('loads diagnostics by default and expands failed task logs', async () => {
+    api.get.mockImplementation(() => Promise.resolve({
       data: {
         ...failedTask,
-        events: params.include_diagnostics
-          ? [
-            ...failedTask.events,
-            {
-              event_id: 'event-diagnostic',
-              timestamp: '2026-07-22T00:00:09Z',
-              level: 'debug',
-              audience: 'diagnostic',
-              message: 'worker=2 batch=4',
-            },
-          ]
-          : failedTask.events,
+        events: [
+          ...failedTask.events,
+          {
+            event_id: 'event-diagnostic',
+            timestamp: '2026-07-22T00:00:09Z',
+            level: 'debug',
+            audience: 'diagnostic',
+            message: 'worker=2 batch=4',
+          },
+        ],
       },
     }));
 
     render(<MantineProvider><TaskDetailPage /></MantineProvider>);
 
     expect(await screen.findByText('The selected request failed')).toBeInTheDocument();
-    expect(screen.queryByText('worker=2 batch=4')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('switch', { name: 'task_detail.show_diagnostics' }));
-
-    expect(await screen.findByText('worker=2 batch=4')).toBeInTheDocument();
+    expect(screen.getByText('worker=2 batch=4')).toBeVisible();
     expect(screen.getByText('task_detail.diagnostic')).toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'task_detail.show_diagnostics' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('task-event-log')).toHaveAttribute('open');
     expect(screen.getByRole('link', { name: 'task_detail.export_log' })).toHaveAttribute(
       'href',
       '/api/tasks/failed-task/events/export?include_diagnostics=true',
@@ -354,6 +351,36 @@ describe('TaskDetailPage', () => {
         taskMode: 'pre_scan',
       },
     });
+  });
+
+  it('opens proofreading with the completed task identity preserved', async () => {
+    taskIdParam = 'incremental-completed';
+    api.get.mockResolvedValue({
+      data: {
+        ...failedTask,
+        task_id: 'incremental-completed',
+        kind: 'incremental_translation',
+        status: 'completed',
+        progress: 100,
+        attention_reason: null,
+        result: {
+          types: ['files'],
+          summary: '2 files processed',
+          output_paths: ['C:/outputs/incremental'],
+        },
+      },
+    });
+
+    render(<MantineProvider><TaskDetailPage /></MantineProvider>);
+
+    fireEvent.click(await screen.findByRole('button', {
+      name: 'project_management.primary_continue_proofreading',
+    }));
+
+    expect(navigateMock).toHaveBeenCalledWith(
+      '/proofreading?projectId=project-demo&taskId=incremental-completed',
+    );
+    expect(screen.getByTestId('task-event-log')).not.toHaveAttribute('open');
   });
 
   it('keeps partial glossary results actionable and hides provider payload by default', async () => {

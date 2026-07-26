@@ -82,16 +82,19 @@ describe('TaskCenterDrawer', () => {
         task_id: 'completed-scan-latest',
         title: 'Latest completed scan',
         status: 'completed',
+        finished_at: '2026-07-26T12:05:00Z',
       },
       {
         task_id: 'running-task',
         title: 'Running task',
         status: 'running',
+        started_at: '2026-07-26T12:04:00Z',
       },
       {
         task_id: 'completed-scan-older',
         title: 'Older completed scan',
         status: 'completed',
+        finished_at: '2026-07-26T12:03:00Z',
       },
     ];
 
@@ -99,10 +102,42 @@ describe('TaskCenterDrawer', () => {
 
     expect(screen.getByRole('button', { name: 'Running task' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Older completed scan' })).not.toBeInTheDocument();
+    const taskButtons = screen.getAllByRole('button')
+      .filter((button) => ['Latest completed scan', 'Running task'].includes(button.textContent));
+    expect(taskButtons.map((button) => button.textContent)).toEqual([
+      'Latest completed scan',
+      'Running task',
+    ]);
     fireEvent.click(screen.getByRole('button', { name: 'Latest completed scan' }));
 
     expect(closeTaskCenterMock).toHaveBeenCalledOnce();
     expect(navigateMock).toHaveBeenCalledWith('/tasks/completed-scan-latest');
+  });
+
+  it('sorts actionable tasks by their latest activity instead of API response order', () => {
+    taskCenterState.tasks = [
+      {
+        task_id: 'older-running',
+        title: 'Older running task',
+        status: 'running',
+        updated_at: '2026-07-26T12:01:00Z',
+      },
+      {
+        task_id: 'newer-failed',
+        title: 'Newer failed task',
+        status: 'failed',
+        updated_at: '2026-07-26T12:06:00Z',
+      },
+    ];
+
+    render(<MantineProvider><TaskCenterDrawer /></MantineProvider>);
+
+    const taskButtons = screen.getAllByRole('button')
+      .filter((button) => ['Newer failed task', 'Older running task'].includes(button.textContent));
+    expect(taskButtons.map((button) => button.textContent)).toEqual([
+      'Newer failed task',
+      'Older running task',
+    ]);
   });
 
   it('marks a resolved terminal task as handled and refreshes the queue', async () => {

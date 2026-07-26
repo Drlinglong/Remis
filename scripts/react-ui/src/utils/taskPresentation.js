@@ -132,6 +132,9 @@ export const getTaskEventPresentation = (event, task, t) => {
   if (/^Pre-fetching archive|^Comparing /i.test(message)) {
     return { message: t('task_presentation.event.comparing_archive'), technical: false };
   }
+  if (/No models loaded/i.test(message)) {
+    return { message: t('glossary_health_no_model_loaded'), technical: true };
+  }
   return { message, technical: true };
 };
 

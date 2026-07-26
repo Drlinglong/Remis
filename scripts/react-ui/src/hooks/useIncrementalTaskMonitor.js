@@ -7,6 +7,7 @@ export function useIncrementalTaskMonitor({
   executionInFlightRef,
   preScanInFlightRef,
   setActive,
+  setConflictingTaskId,
   setCurrentTaskId,
   setCurrentTaskMode,
   setExecuting,
@@ -50,6 +51,7 @@ export function useIncrementalTaskMonitor({
 
     if (data.status === 'completed') {
       completionSourceRef.current = source;
+      setConflictingTaskId(null);
       console.info(`Incremental task completed via ${source}.`);
       clearTaskPolling();
 
@@ -79,6 +81,7 @@ export function useIncrementalTaskMonitor({
 
     if (data.status === 'failed') {
       completionSourceRef.current = source;
+      setConflictingTaskId(null);
       console.warn(`Incremental task failed via ${source}.`);
       clearTaskPolling();
       addLog(t('incremental_translation.task_failed_check_logs'));
@@ -102,6 +105,7 @@ export function useIncrementalTaskMonitor({
     executionInFlightRef,
     preScanInFlightRef,
     setActive,
+    setConflictingTaskId,
     setCurrentTaskId,
     setCurrentTaskMode,
     setExecuting,

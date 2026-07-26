@@ -16,7 +16,6 @@ import {
   ScrollArea,
   SimpleGrid,
   Stack,
-  Switch,
   Text,
   Title,
   Tooltip,
@@ -130,14 +129,14 @@ export default function TaskDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [mutating, setMutating] = useState(false);
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [logExpanded, setLogExpanded] = useState(false);
   const [actionError, setActionError] = useState('');
 
   const loadTask = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
     try {
       const response = await api.get(`/api/tasks/${encodeURIComponent(decodedTaskId)}`, {
-        params: { include_diagnostics: showDiagnostics },
+        params: { include_diagnostics: true },
       });
       setTask(response.data);
       setError('');
@@ -146,13 +145,17 @@ export default function TaskDetailPage() {
     } finally {
       if (!quiet) setLoading(false);
     }
-  }, [decodedTaskId, showDiagnostics, t]);
+  }, [decodedTaskId, t]);
 
   useEffect(() => {
     loadTask();
   }, [loadTask]);
 
   const taskStatus = task?.status;
+
+  useEffect(() => {
+    setLogExpanded(['failed', 'interrupted'].includes(taskStatus));
+  }, [decodedTaskId, taskStatus]);
 
   useEffect(() => {
     if (!ACTIVE_TASK_STATUSES.has(taskStatus)) return undefined;
@@ -253,9 +256,7 @@ export default function TaskDetailPage() {
       };
     })
   ), [isPartialGlossaryHealth, task, t]);
-  const visibleEvents = showDiagnostics
-    ? presentedEvents
-    : presentedEvents.filter((item) => !item.technical);
+  const visibleEvents = presentedEvents;
   const hasGlossaryHealthCases = (resultMetadata.issues || []).some((issue) => (
     (issue.items || []).length > 0
   ));
@@ -366,31 +367,36 @@ export default function TaskDetailPage() {
 
         <Progress value={task.progress || 0} size="sm" radius="xl" mb="md" aria-label={t('task_center.progress')} />
 
-        <Card withBorder radius="md" p="lg" mb="md" data-remis-surface="surface">
-          <Title order={3} mb="md">{t('task_detail.user_summary')}</Title>
-          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
-            <Box>
-              <Text size="xs" c="dimmed">{t('task_detail.current_stage')}</Text>
-              <Text fw={700}>{localizedTaskStage || displayStatusLabel}</Text>
-            </Box>
-            <Box>
-              <Text size="xs" c="dimmed">{t('task_detail.result')}</Text>
-              <Text>
-                {isGlossaryHealthResult
-                  ? t('task_detail.detailed_result_below')
-                  : (localizedResultSummary || displayStatusLabel)}
-              </Text>
-            </Box>
-            <Box>
-              <Text size="xs" c="dimmed">{t('task_detail.next_step')}</Text>
-              <Text>{localizedNextStep}</Text>
-            </Box>
-          </SimpleGrid>
-        </Card>
-
-        <Grid gutter="md" align="stretch">
+        <Grid gutter="md" align="start">
           <Grid.Col span={{ base: 12, lg: 8 }}>
-            <details className={styles.technicalLogDetails}>
+            <Card withBorder radius="md" p="lg" mb="md" data-remis-surface="surface">
+              <Title order={3} mb="md">{t('task_detail.user_summary')}</Title>
+              <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
+                <Box>
+                  <Text size="xs" c="dimmed">{t('task_detail.current_stage')}</Text>
+                  <Text fw={700}>{localizedTaskStage || displayStatusLabel}</Text>
+                </Box>
+                <Box>
+                  <Text size="xs" c="dimmed">{t('task_detail.result')}</Text>
+                  <Text>
+                    {isGlossaryHealthResult
+                      ? t('task_detail.detailed_result_below')
+                      : (localizedResultSummary || displayStatusLabel)}
+                  </Text>
+                </Box>
+                <Box>
+                  <Text size="xs" c="dimmed">{t('task_detail.next_step')}</Text>
+                  <Text>{localizedNextStep}</Text>
+                </Box>
+              </SimpleGrid>
+            </Card>
+
+            <details
+              className={styles.technicalLogDetails}
+              data-testid="task-event-log"
+              open={logExpanded}
+              onToggle={(event) => setLogExpanded(event.currentTarget.open)}
+            >
               <summary>
                 {t('task_detail.technical_logs')} · {t('task_detail.newest_first')}
               </summary>
@@ -403,16 +409,9 @@ export default function TaskDetailPage() {
                   </Text>
                 </div>
                 <Group gap="xs">
-                  <Switch
-                    size="sm"
-                    checked={showDiagnostics}
-                    onChange={(event) => setShowDiagnostics(event.currentTarget.checked)}
-                    label={t('task_detail.show_diagnostics')}
-                    aria-label={t('task_detail.show_diagnostics')}
-                  />
                   <Button
                     component="a"
-                    href={`/api/tasks/${encodeURIComponent(decodedTaskId)}/events/export?include_diagnostics=${showDiagnostics}`}
+                    href={`/api/tasks/${encodeURIComponent(decodedTaskId)}/events/export?include_diagnostics=true`}
                     download
                     variant="subtle"
                     size="compact-sm"
@@ -425,7 +424,7 @@ export default function TaskDetailPage() {
                   </Button>
                 </Group>
               </Group>
-              <ScrollArea h="min(58vh, 620px)" type="auto" offsetScrollbars>
+              <ScrollArea.Autosize mah={620} type="auto" offsetScrollbars>
                 {visibleEvents.length ? (
                   <Stack gap={0} className={styles.eventList}>
                     {visibleEvents.map(({ event, message, technical }) => (
@@ -453,7 +452,7 @@ export default function TaskDetailPage() {
                     <Text c="dimmed">{t('task_detail.no_events')}</Text>
                   </Stack>
                 )}
-              </ScrollArea>
+              </ScrollArea.Autosize>
               </Card>
             </details>
           </Grid.Col>
@@ -626,7 +625,10 @@ export default function TaskDetailPage() {
                       mt="sm"
                       variant="light"
                       leftSection={<IconCheck size={17} />}
-                      onClick={() => navigate(buildProofreadingUrl({ projectId: task.project_id }))}
+                      onClick={() => navigate(buildProofreadingUrl({
+                        projectId: task.project_id,
+                        taskId: task.task_id,
+                      }))}
                     >
                       {t('project_management.primary_continue_proofreading')}
                     </Button>
