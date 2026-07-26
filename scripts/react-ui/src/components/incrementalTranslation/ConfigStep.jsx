@@ -80,6 +80,9 @@ export const ConfigStep = ({
     // Actions
     runPreScan,
     onBack,
+    currentTaskId,
+    conflictingTaskId,
+    onViewTask,
 }) => {
     const { t } = useTranslation();
 
@@ -391,6 +394,24 @@ export const ConfigStep = ({
                             </Accordion.Item>
                         </Accordion>
 
+                        {(conflictingTaskId || (loading && currentTaskId)) && (
+                            <Alert
+                                color="blue"
+                                title={t('incremental_translation.conflicting_task_title')}
+                            >
+                                <Group justify="space-between" align="center" wrap="wrap">
+                                    <Text size="sm">
+                                        {t('incremental_translation.conflicting_task_notice')}
+                                    </Text>
+                                    {onViewTask && (
+                                        <Button size="xs" variant="light" onClick={onViewTask}>
+                                            {t('task_center.view_task')}
+                                        </Button>
+                                    )}
+                                </Group>
+                            </Alert>
+                        )}
+
                         <Group justify="space-between" mt="lg">
                             <Button variant="outline" onClick={onBack}>
                                 {t('common.back')}
@@ -398,7 +419,7 @@ export const ConfigStep = ({
                             <Button
                                 id="incremental-scan-btn"
                                 loading={loading}
-                                disabled={selectedLangs.length === 0}
+                                disabled={selectedLangs.length === 0 || Boolean(conflictingTaskId)}
                                 onClick={runPreScan}
                             >
                                 {t('incremental_translation.run_pre_scan')}

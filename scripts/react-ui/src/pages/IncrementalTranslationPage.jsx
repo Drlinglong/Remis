@@ -194,6 +194,11 @@ export const IncrementalTranslationPage = () => {
                         // Actions
                         runPreScan={state.runPreScan}
                         onBack={() => state.setActive(0)}
+                        currentTaskId={state.currentTaskId}
+                        conflictingTaskId={state.conflictingTaskId}
+                        onViewTask={state.currentTaskId
+                            ? () => navigate(taskDetailRoute(state.currentTaskId))
+                            : null}
                     />
                 </Stepper.Step>
 
@@ -247,6 +252,7 @@ export const IncrementalTranslationPage = () => {
                         onStartProofreading={state.selectedProject?.project_id
                             ? () => navigate(buildProofreadingUrl({
                                 projectId: state.selectedProject.project_id,
+                                taskId: state.currentTaskId,
                             }))
                             : null}
                     />

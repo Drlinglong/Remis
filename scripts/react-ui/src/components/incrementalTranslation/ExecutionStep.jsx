@@ -197,13 +197,29 @@ export const ExecutionStep = ({
                 />
 
                 {executing && (
-                    <BusyHeartbeat
-                        active
-                        compact
-                        title={stageTitle}
-                        description={stageDescription}
-                        color="blue"
-                    />
+                    <>
+                        <BusyHeartbeat
+                            active
+                            compact
+                            title={stageTitle}
+                            description={stageDescription}
+                            color="blue"
+                        />
+                        <Alert color="blue" mt="md">
+                            <Stack gap={6}>
+                                <Text size="sm">
+                                    {t('incremental_translation.background_task_notice')}
+                                </Text>
+                                {onViewTask && (
+                                    <Group>
+                                        <Button size="xs" variant="light" onClick={onViewTask}>
+                                            {t('task_center.view_task')}
+                                        </Button>
+                                    </Group>
+                                )}
+                            </Stack>
+                        </Alert>
+                    </>
                 )}
 
                 <Group justify="space-between" mt={executing ? 'md' : 0} mb="xl">
