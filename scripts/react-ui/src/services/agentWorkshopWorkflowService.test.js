@@ -71,9 +71,13 @@ describe('agentWorkshopWorkflowService', () => {
   it('normalizes scan result wrappers into issue arrays', async () => {
     workshopService.scanProject.mockResolvedValue({
       data: { issues: [{ key: 'issue-1' }] },
+      headers: { 'x-remis-task-id': 'scan-task-1' },
     });
 
-    await expect(scanAgentWorkshopProject('project-1')).resolves.toEqual([{ key: 'issue-1' }]);
+    await expect(scanAgentWorkshopProject('project-1')).resolves.toEqual({
+      issues: [{ key: 'issue-1' }],
+      taskId: 'scan-task-1',
+    });
     expect(workshopService.scanProject).toHaveBeenCalledWith('project-1', null);
   });
 
@@ -82,7 +86,10 @@ describe('agentWorkshopWorkflowService', () => {
       data: [{ key: 'issue-1' }],
     });
 
-    await expect(scanAgentWorkshopProject('project-1', 'C:/mods/out/workshop_issues.json')).resolves.toEqual([{ key: 'issue-1' }]);
+    await expect(scanAgentWorkshopProject('project-1', 'C:/mods/out/workshop_issues.json')).resolves.toEqual({
+      issues: [{ key: 'issue-1' }],
+      taskId: null,
+    });
     expect(workshopService.scanProject).toHaveBeenCalledWith('project-1', 'C:/mods/out/workshop_issues.json');
   });
 

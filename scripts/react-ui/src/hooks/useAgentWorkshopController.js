@@ -308,10 +308,17 @@ export const useAgentWorkshopController = () => {
     setScanLoading(true);
     setWorkflowError('');
     try {
-      const nextIssues = await scanAgentWorkshopProject(selectedProjectId, selectedSidecarPath);
+      const scanResult = await scanAgentWorkshopProject(selectedProjectId, selectedSidecarPath);
+      const nextIssues = scanResult.issues;
       setIssues(nextIssues);
+      setCurrentRunTaskId(scanResult.taskId);
       setIsCached(nextIssues.length > 0);
       setActive(2);
+      if (scanResult.taskId) {
+        window.dispatchEvent(new CustomEvent('remis:task-created', {
+          detail: { taskId: scanResult.taskId },
+        }));
+      }
     } catch (error) {
       console.error('Scan failed', error);
       setWorkflowError(error?.response?.data?.detail?.message || error?.response?.data?.detail || error.message || 'Scan failed.');

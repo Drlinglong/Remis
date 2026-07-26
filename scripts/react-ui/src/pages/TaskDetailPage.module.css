@@ -26,6 +26,21 @@
 
 .logCard {
   min-height: 500px;
+  margin-top: 10px;
+}
+
+.technicalLogDetails {
+  color: var(--surface-text-muted);
+}
+
+.technicalLogDetails > summary {
+  width: fit-content;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.technicalLogDetails[open] > summary {
+  color: var(--surface-text-main);
 }
 
 .eventList {

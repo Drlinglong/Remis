@@ -55,6 +55,7 @@
     "view_task": "View task",
     "progress": "Task progress",
     "created_by": "Started by: {{creator}}",
+    "started_at": "Started: {{time}}",
     "blocking": "Using project",
     "mark_handled": "Mark handled",
     "handle_error": "Unable to mark this task as handled",
@@ -81,6 +82,7 @@
       "initial_translation": "Initial translation",
       "translation": "Translation",
       "incremental_translation": "Incremental translation",
+      "agent_workshop_scan": "Format scan",
       "agent_workshop": "Format Repair",
       "agent_workshop_batch": "Format Repair batch",
       "repair": "Format repair",
@@ -101,6 +103,12 @@
     "load_error": "Unable to load task",
     "not_available": "Not available",
     "run_log": "Run log",
+    "user_summary": "What this task is doing",
+    "current_stage": "Current stage",
+    "next_step": "Next step",
+    "detailed_result_below": "A detailed result is available below.",
+    "technical_logs": "Technical logs and diagnostics",
+    "newest_first": "Newest first",
     "show_diagnostics": "Show diagnostics",
     "diagnostic": "Diagnostic",
     "export_log": "Export log",
@@ -121,6 +129,36 @@
     "output_paths": "Output paths",
     "child_tasks": "Child tasks",
     "back_to_workflow": "Back to workflow"
+  },
+  "task_presentation": {
+    "incremental": {
+      "preparing": "Preparing the incremental update",
+      "scanning": "Scanning source files",
+      "comparing": "Comparing with the archived baseline",
+      "translating": "Translating changed content",
+      "validating": "Checking translation format"
+    },
+    "event": {
+      "incremental_queued": "Incremental update queued",
+      "files_scanned": "Scanned {{count}} source files",
+      "translating_batches": "Translating {{language}}: batch {{current}} of {{total}}",
+      "incremental_completed": "Incremental translation completed",
+      "format_validation": "Checking and repairing translation format",
+      "comparing_archive": "Comparing source content with the archived baseline"
+    },
+    "result": {
+      "incremental_completed": "Processed {{count}} translation files.",
+      "incremental_completed_with_warnings": "Processed {{files}} translation files with {{warnings}} runtime warnings.",
+      "format_scan_completed": "Format scan completed with {{count}} issues."
+    },
+    "next_step": {
+      "review_failure": "Review the failure summary and diagnostic information before retrying.",
+      "proofread": "Continue to proofreading to review the generated translations.",
+      "review_format_issues": "Review the detected format issues before applying repairs.",
+      "no_action_required": "No format issue needs action.",
+      "completed": "The task is complete. Review its result and output location.",
+      "wait": "This task is still running. You can leave and return from Task Center."
+    }
   },
   "task_history": {
     "eyebrow": "Task archive",
@@ -1662,6 +1700,7 @@
     "scope_hint": "This page checks only Paradox script-format issues such as variables, tags, line breaks, and key names. It does not check typos, wording, or writing style.",
     "issue_breakdown": "Issue Breakdown",
     "no_issues": "There are no open validation issues right now."
+    ,"scan_task_recorded": "This format scan is recorded in Task Center. Open it to review the exact project and input scope."
   },
   "incremental_translation": {
     "title": "Incremental Translation",
@@ -1929,6 +1968,8 @@
     "select_translation": "Select translation",
     "validate": "Validate",
     "save": "Save",
+    "save_and_next_entry": "Save and next entry",
+    "return_to_task": "Return to source task",
     "search": "Search keys and text",
     "changed": "Changed",
     "issue": "Issue",

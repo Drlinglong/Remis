@@ -4,6 +4,10 @@ import { IconArrowRight, IconClock } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import { ACTIVE_TASK_STATUSES, formatTaskDuration, taskDurationMs } from '../../utils/taskTime';
+import {
+  formatTaskTimestamp,
+  getTaskStageLabel,
+} from '../../utils/taskPresentation';
 
 const STATUS_COLORS = {
   queued: 'gray',
@@ -38,7 +42,6 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
     : t(`task_center.status.${task.status}`, { defaultValue: task.status });
   const creatorLabel = task.created_by?.label || t(`task_center.creator.${task.created_by?.type || 'system'}`);
   const showProgress = ['queued', 'running'].includes(task.status);
-  const rawDetail = task.stage || task.message;
   const localizedDetail = isPartialGlossaryHealth
     ? t('glossary_health_partial_message')
     : ['glossary_health_check', 'glossary_merge'].includes(task.kind)
@@ -51,7 +54,11 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
         )
         : statusLabel
     )
-    : rawDetail;
+    : getTaskStageLabel(task, t);
+  const startedAt = formatTaskTimestamp(
+    task.started_at || task.created_at,
+    typeof navigator === 'undefined' ? undefined : navigator.language,
+  );
 
   return (
     <Paper withBorder radius="md" p={compact ? 'sm' : 'md'} data-remis-surface="paper">
@@ -73,7 +80,11 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
           <Progress value={task.progress || 0} size="sm" radius="xl" aria-label={t('task_center.progress')} />
         )}
         {task.attention_reason && !isPartialGlossaryHealth && (
-          <Text size="sm" c="orange">{task.attention_reason}</Text>
+          <Text size="sm" c="orange">
+            {['failed', 'interrupted'].includes(task.status)
+              ? t('task_presentation.next_step.review_failure')
+              : task.attention_reason}
+          </Text>
         )}
         <Group gap="xs">
           <Text size="xs" c="dimmed">{t('task_center.created_by', { creator: creatorLabel })}</Text>
@@ -82,13 +93,18 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
           )}
         </Group>
         <Group justify="space-between">
-          <Group gap={6} c="dimmed" title={t('task_detail.elapsed')}>
-            <IconClock size={14} />
-            <Text size="xs" ff="monospace">
-              {formatTaskDuration(taskDurationMs(task, now))}
+          <Stack gap={2}>
+            <Text size="xs" c="dimmed">
+              {t('task_center.started_at', { time: startedAt })}
             </Text>
-            {showProgress && <Text size="xs">· {task.progress || 0}%</Text>}
-          </Group>
+            <Group gap={6} c="dimmed" title={t('task_detail.elapsed')}>
+              <IconClock size={14} />
+              <Text size="xs" ff="monospace">
+                {formatTaskDuration(taskDurationMs(task, now))}
+              </Text>
+              {showProgress && <Text size="xs">· {task.progress || 0}%</Text>}
+            </Group>
+          </Stack>
           <Group gap={4}>
             {onHandle && task.allowed_actions?.includes('archive_task') && (
               <Button

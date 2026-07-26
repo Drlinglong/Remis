@@ -102,6 +102,7 @@
     "view_task": "查看任务",
     "progress": "任务进度",
     "created_by": "发起者：{{creator}}",
+    "started_at": "发起时间：{{time}}",
     "blocking": "正在占用项目",
     "mark_handled": "标记已处理",
     "handle_error": "无法将这个任务标记为已处理",
@@ -128,6 +129,7 @@
       "initial_translation": "初次翻译",
       "translation": "翻译任务",
       "incremental_translation": "增量翻译",
+      "agent_workshop_scan": "格式规则扫描",
       "agent_workshop": "格式修复台",
       "agent_workshop_batch": "格式修复批次",
       "repair": "格式修复",
@@ -148,6 +150,12 @@
     "load_error": "无法加载任务",
     "not_available": "暂无",
     "run_log": "运行记录",
+    "user_summary": "本次任务摘要",
+    "current_stage": "当前阶段",
+    "next_step": "下一步",
+    "detailed_result_below": "详细结果见下方结果卡片。",
+    "technical_logs": "技术日志与诊断信息",
+    "newest_first": "最新优先",
     "show_diagnostics": "显示诊断日志",
     "diagnostic": "诊断",
     "export_log": "导出日志",
@@ -168,6 +176,36 @@
     "output_paths": "输出路径",
     "child_tasks": "子任务",
     "back_to_workflow": "返回工作流"
+  },
+  "task_presentation": {
+    "incremental": {
+      "preparing": "正在准备增量更新",
+      "scanning": "正在扫描源码文件",
+      "comparing": "正在与归档基线比较",
+      "translating": "正在翻译变更内容",
+      "validating": "正在检查翻译格式"
+    },
+    "event": {
+      "incremental_queued": "增量更新已进入队列",
+      "files_scanned": "已扫描 {{count}} 个源码文件",
+      "translating_batches": "正在翻译 {{language}}：第 {{current}} / {{total}} 批",
+      "incremental_completed": "增量翻译已完成",
+      "format_validation": "正在检查并修复翻译格式",
+      "comparing_archive": "正在将源码内容与归档基线比较"
+    },
+    "result": {
+      "incremental_completed": "已处理 {{count}} 个翻译文件。",
+      "incremental_completed_with_warnings": "已处理 {{files}} 个翻译文件；运行时警告 {{warnings}} 条。",
+      "format_scan_completed": "格式规则扫描完成，发现 {{count}} 个问题。"
+    },
+    "next_step": {
+      "review_failure": "请先查看失败摘要和诊断信息，再决定是否重试。",
+      "proofread": "继续前往校对，检查本次生成的译文。",
+      "review_format_issues": "请先检查发现的格式问题，再决定是否修复。",
+      "no_action_required": "没有需要处理的格式问题。",
+      "completed": "任务已完成；请检查结果和产物位置。",
+      "wait": "任务仍在后台运行。你可以离开页面，稍后从任务中心返回。"
+    }
   },
   "task_history": {
     "eyebrow": "任务档案",
@@ -1932,6 +1970,7 @@
     "scope_hint": "这里只检查 P 社脚本语言里的变量、标签、换行、键名等格式问题，不检查错字、病句或文风是否自然。",
     "issue_breakdown": "问题类型分布",
     "no_issues": "当前没有待处理的格式问题。"
+    ,"scan_task_recorded": "本次格式规则扫描已记录到任务中心。打开任务可核对准确项目和输入范围。"
   },
   "recent_activity_type_translate": "增量更新",
   "common": {
@@ -1962,6 +2001,8 @@
     "select_translation": "选择译文文件",
     "validate": "运行校验",
     "save": "保存",
+    "save_and_next_entry": "保存并下一条",
+    "return_to_task": "返回原任务",
     "search": "搜索 Key 或文本",
     "changed": "已修改",
     "issue": "有问题",

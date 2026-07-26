@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActionIcon,
   Alert,
@@ -14,6 +14,7 @@ import {
   Menu,
   Progress,
   ScrollArea,
+  SimpleGrid,
   Stack,
   Switch,
   Text,
@@ -46,6 +47,13 @@ import api from '../utils/api';
 import { getGameBadgeColor } from '../utils/gamePresentation';
 import { buildProofreadingUrl } from '../utils/proofreadingLinks';
 import { ACTIVE_TASK_STATUSES, formatTaskDuration, taskDurationMs } from '../utils/taskTime';
+import {
+  getTaskEventPresentation,
+  getTaskNextStep,
+  getTaskResultSummary,
+  getTaskStageLabel,
+  sortTaskEventsNewestFirst,
+} from '../utils/taskPresentation';
 import { glossaryHealthReviewRoute, taskDetailRoute, taskWorkflowTarget } from '../utils/taskRoutes';
 import styles from './TaskDetailPage.module.css';
 
@@ -222,7 +230,27 @@ export default function TaskDetailPage() {
       score: healthMetadata.score,
       count: healthMetadata.issue_count || 0,
     })
-    : task?.result?.summary;
+    : getTaskResultSummary(task, t);
+  const localizedTaskStage = getTaskStageLabel(task, t);
+  const localizedNextStep = getTaskNextStep(task, t);
+  const presentedEvents = useMemo(() => (
+    sortTaskEventsNewestFirst(task?.events || []).map((event) => {
+      if (task?.kind === 'glossary_health_check') {
+        return {
+          event,
+          message: localizeGlossaryHealthEvent(event, t, isPartialGlossaryHealth),
+          technical: event.audience === 'diagnostic',
+        };
+      }
+      return {
+        event,
+        ...getTaskEventPresentation(event, task, t),
+      };
+    })
+  ), [isPartialGlossaryHealth, task, t]);
+  const visibleEvents = showDiagnostics
+    ? presentedEvents
+    : presentedEvents.filter((item) => !item.technical);
   const hasGlossaryHealthCases = (resultMetadata.issues || []).some((issue) => (
     (issue.items || []).length > 0
   ));
@@ -317,7 +345,7 @@ export default function TaskDetailPage() {
 
         {!isPartialGlossaryHealth && (task.attention_reason || ['failed', 'interrupted'].includes(task.status)) && (
           <Alert color="red" icon={<IconAlertTriangle size={18} />} mb="md">
-            {task.attention_reason || task.message || t('task_center.status.failed')}
+            {localizedNextStep}
           </Alert>
         )}
         {actionError && (
@@ -333,9 +361,35 @@ export default function TaskDetailPage() {
 
         <Progress value={task.progress || 0} size="sm" radius="xl" mb="md" aria-label={t('task_center.progress')} />
 
+        <Card withBorder radius="md" p="lg" mb="md" data-remis-surface="surface">
+          <Title order={3} mb="md">{t('task_detail.user_summary')}</Title>
+          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
+            <Box>
+              <Text size="xs" c="dimmed">{t('task_detail.current_stage')}</Text>
+              <Text fw={700}>{localizedTaskStage || displayStatusLabel}</Text>
+            </Box>
+            <Box>
+              <Text size="xs" c="dimmed">{t('task_detail.result')}</Text>
+              <Text>
+                {isGlossaryHealthResult
+                  ? t('task_detail.detailed_result_below')
+                  : (localizedResultSummary || displayStatusLabel)}
+              </Text>
+            </Box>
+            <Box>
+              <Text size="xs" c="dimmed">{t('task_detail.next_step')}</Text>
+              <Text>{localizedNextStep}</Text>
+            </Box>
+          </SimpleGrid>
+        </Card>
+
         <Grid gutter="md" align="stretch">
           <Grid.Col span={{ base: 12, lg: 8 }}>
-            <Card withBorder radius="md" p="lg" className={styles.logCard} data-remis-surface="surface">
+            <details className={styles.technicalLogDetails}>
+              <summary>
+                {t('task_detail.technical_logs')} · {t('task_detail.newest_first')}
+              </summary>
+              <Card withBorder radius="md" p="lg" className={styles.logCard} data-remis-surface="surface">
               <Group justify="space-between" mb="md">
                 <div>
                   <Title order={3}>{t('task_detail.run_log')}</Title>
@@ -367,24 +421,22 @@ export default function TaskDetailPage() {
                 </Group>
               </Group>
               <ScrollArea h="min(58vh, 620px)" type="auto" offsetScrollbars>
-                {task.events?.length ? (
+                {visibleEvents.length ? (
                   <Stack gap={0} className={styles.eventList}>
-                    {task.events.map((event) => (
+                    {visibleEvents.map(({ event, message, technical }) => (
                       <Box key={event.event_id} className={styles.eventRow} data-level={event.level}>
                         <Text size="xs" c="dimmed" className={styles.eventTime}>
                           {formatTimestamp(event.timestamp, i18n.language)}
                         </Text>
                         <Box className={styles.eventMarker} data-color={EVENT_COLORS[event.level] || 'gray'} />
                         <Group gap="xs" wrap="nowrap">
-                          {event.audience === 'diagnostic' && (
+                          {technical && (
                             <Badge size="xs" color="gray" variant="outline">
                               {t('task_detail.diagnostic')}
                             </Badge>
                           )}
                           <Text size="sm" className={styles.eventMessage}>
-                            {task.kind === 'glossary_health_check'
-                              ? localizeGlossaryHealthEvent(event, t, isPartialGlossaryHealth)
-                              : event.message}
+                            {message}
                           </Text>
                         </Group>
                       </Box>
@@ -397,7 +449,8 @@ export default function TaskDetailPage() {
                   </Stack>
                 )}
               </ScrollArea>
-            </Card>
+              </Card>
+            </details>
           </Grid.Col>
 
           <Grid.Col span={{ base: 12, lg: 4 }}>
@@ -588,7 +641,11 @@ export default function TaskDetailPage() {
                         : t('task_detail.not_available')}
                     </Badge>
                   </Group>
-                  <Text size="sm" fw={700}>{task.checkpoint.stage || task.stage}</Text>
+                  <Text size="sm" fw={700}>
+                    {task.checkpoint.stage && !/^(failed|translating)$/i.test(task.checkpoint.stage)
+                      ? task.checkpoint.stage
+                      : localizedTaskStage}
+                  </Text>
                   {task.checkpoint.updated_at && (
                     <Text size="xs" c="dimmed">
                       {formatTimestamp(task.checkpoint.updated_at, i18n.language)}

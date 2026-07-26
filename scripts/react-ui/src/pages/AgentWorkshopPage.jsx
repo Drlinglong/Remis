@@ -176,6 +176,29 @@ const AgentWorkshopPage = () => {
                     <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.cached_state')}</Text><Title order={5}>{isCached ? t('agent_workshop.cached_label') : t('agent_workshop.scanned_label')}</Title></Card>
                   </SimpleGrid>
                   <Alert icon={<IconAlertTriangle size={16} />} color={issues.length ? 'orange' : 'green'} radius="md">{issues.length ? t('agent_workshop.start_fix_confirm') : t('agent_workshop.no_errors_desc')}</Alert>
+                  {currentRunTaskId && (
+                    <Alert icon={<IconInfoCircle size={16} />} color="blue" radius="md" mt="md">
+                      <Group justify="space-between" align="center" wrap="wrap">
+                        <Box>
+                          <Text size="sm" fw={600}>
+                            {t('agent_workshop.scan_task_recorded', {
+                              defaultValue: 'This format scan is recorded in Task Center.',
+                            })}
+                          </Text>
+                          <Text size="xs" c="dimmed">
+                            {t('task_detail.task_id')}: {currentRunTaskId}
+                          </Text>
+                        </Box>
+                        <Button
+                          variant="light"
+                          size="xs"
+                          onClick={() => navigate(taskDetailRoute(currentRunTaskId))}
+                        >
+                          {t('task_center.view_task')}
+                        </Button>
+                      </Group>
+                    </Alert>
+                  )}
                   <Group justify="flex-end" mt="md"><Button variant="light" onClick={() => setActive(1)}>{t('common.back')}</Button><Button id="agent-workshop-start-fix-btn" leftSection={<IconPlayerPlay size={18} />} onClick={requestFixRunApproval} disabled={!issues.length || !selectedProvider || !selectedModel || executing}>{t('agent_workshop.start_fix')}</Button></Group>
                   {issueTypeSummary.length > 0 && <Stack gap="xs" mt="xl"><Text size="sm" fw={600}>{t('agent_workshop.issue_type_summary')}</Text><SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>{issueTypeSummary.map((item) => <Card key={item.label} withBorder p="sm" radius="md"><Text size="xs" c="dimmed" lineClamp={2}>{localizeIssueLabel(item.label)}</Text><Text size="sm" fw={700}>{item.count}</Text></Card>)}</SimpleGrid></Stack>}
                   {groupedIssues.length > 0 && (

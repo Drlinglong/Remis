@@ -45,10 +45,13 @@ export function TaskCenterProvider({ children }) {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') refreshTasks({ quiet: true });
     };
+    const handleTaskCreated = () => refreshTasks({ quiet: true });
     document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('remis:task-created', handleTaskCreated);
     return () => {
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('remis:task-created', handleTaskCreated);
     };
   }, [refreshTasks]);
 
