@@ -44,7 +44,44 @@
     "show_diagnostics": "診断ログを表示", "diagnostic": "診断", "export_log": "ログをエクスポート",
     "live_updates": "リアルタイム更新中", "event_count": "{{count}} 件のイベント", "no_events": "実行イベントは記録されていません",
     "task_info": "タスクの詳細", "task_id": "タスク ID", "project": "プロジェクト", "project_name": "プロジェクト名", "project_id": "プロジェクト ID", "task_flow": "タスク工程", "technical_info": "技術情報", "blocking_description": "このタスクはプロジェクトファイルを変更中です。同じプロジェクトへの同時書き込みを防ぐため、Remis は競合操作を一時的に制限します。実行終了時に解除されます。", "started_at": "開始日時", "finished_at": "終了日時",
-    "result": "結果", "output_paths": "出力パス", "child_tasks": "子タスク", "back_to_workflow": "ワークフローに戻る"
+    "result": "結果", "output_paths": "出力パス", "child_tasks": "子タスク", "back_to_workflow": "ワークフローに戻る",
+    "user_summary": "このタスクの実行内容",
+    "current_stage": "現在のステージ",
+    "next_step": "次のステップ",
+    "detailed_result_below": "詳細な結果は以下で確認できます。",
+    "technical_logs": "技術ログと診断情報",
+    "newest_first": "新しい順"
+  },
+  "task_presentation": {
+    "incremental": {
+      "preparing": "増分更新を準備中",
+      "scanning": "ソースファイルをスキャン中",
+      "comparing": "アーカイブ済みの基準データと比較中",
+      "translating": "変更された内容を翻訳中",
+      "validating": "翻訳形式を確認中"
+    },
+    "event": {
+      "incremental_queued": "増分更新を待機中",
+      "files_scanned": "ソースファイルを {{count}} 件スキャンしました",
+      "translating_batches": "{{language}}を翻訳中：バッチ {{current}} / {{total}}",
+      "incremental_completed": "増分翻訳が完了しました",
+      "format_validation": "翻訳形式を確認・修復中",
+      "comparing_archive": "ソース内容をアーカイブ済みの基準データと比較中"
+    },
+    "result": {
+      "incremental_completed": "{{count}} 件の翻訳ファイルを処理しました。",
+      "incremental_completed_with_warnings": "{{files}} 件の翻訳ファイルを処理しました。実行時の警告は {{warnings}} 件です。",
+      "format_scan_completed": "形式スキャンが完了し、{{count}} 件の問題が見つかりました。"
+    },
+    "next_step": {
+      "review_failure": "再試行する前に、失敗の概要と診断情報を確認してください。",
+      "internal_error": "Remis で内部整合性エラーが発生しました。このタスク記録を保持し、プロジェクトデータを修復してから再試行してください。",
+      "proofread": "校正に進み、生成された翻訳を確認してください。",
+      "review_format_issues": "修復を適用する前に、検出された形式の問題を確認してください。",
+      "no_action_required": "対応が必要な形式の問題はありません。",
+      "completed": "タスクは完了しました。結果と出力先を確認してください。",
+      "wait": "このタスクはまだ実行中です。タスクセンターから離れても、後で戻って確認できます。"
+    }
   },
   "task_history": {
     "eyebrow": "タスクアーカイブ", "title": "タスクログ", "subtitle": "完了済み・対応済みを含むバックグラウンド実行を日付別に確認します。",
@@ -1534,7 +1571,8 @@
     "help": "Format Repairは、このプロジェクトの保存された形式の問題記録を最初に読み取り、更新された修正ステータスをそこに書き戻します。",
     "scope_hint": "このページは、変数、タグ、改行、キー名などのParadoxスクリプト形式の問題のみをチェックします。誤字脱字、表現、文章スタイルはチェックしません。",
     "issue_breakdown": "問題の内訳",
-    "no_issues": "現在、未解決のバリデーションの問題はありません。"
+    "no_issues": "現在、未解決のバリデーションの問題はありません。",
+    "scan_task_recorded": "この形式スキャンはタスクセンターに記録されています。開くと、対象プロジェクトと入力範囲を正確に確認できます。"
   },
   "incremental_translation": {
     "title": "増分翻訳",
@@ -1563,6 +1601,9 @@
     "start_translation_confirm": "翻訳を開始しますか？これによりAPI呼び出しが発生し、コストがかかる場合があります。",
     "execution_log": "実行ログ",
     "processing_file": "処理中: {{file}}",
+    "background_task_notice": "タスクはバックグラウンドで実行されています。このページを離れても、タスクセンターでいつでも進捗を確認できます。",
+    "conflicting_task_title": "このプロジェクトでは翻訳タスクがすでに実行中です",
+    "conflicting_task_notice": "Remis は2つ目の書き込みタスクの開始を防止しました。既存のタスクを開いて、進捗または結果を確認してください。",
     "batch_status": "バッチ {{current}}/{{total}} 完了...",
     "completion_title": "増分翻訳が完了しました",
     "checkpoint_found_label": "チェックポイントが見つかりました",
@@ -1802,6 +1843,8 @@
     "edit_final": "{{key}} の最終翻訳を編集",
     "blank_lines": "空行 {{count}} 行",
     "no_entries": "現在のフィルターに一致する項目はありません。",
+    "save_and_next_entry": "保存して次の項目へ",
+    "return_to_task": "元のタスクに戻る",
     "tabs": {
       "entries": "項目",
       "raw": "生ファイル"
@@ -2050,6 +2093,7 @@
     "view_task": "作業を開く",
     "progress": "作業の進捗",
     "created_by": "開始元：{{creator}}",
+    "started_at": "開始：{{time}}",
     "blocking": "プロジェクトを使用中",
     "mark_handled": "対応済みにする",
     "handle_error": "タスクを対応済みにできませんでした",
@@ -2077,6 +2121,7 @@
       "translation": "翻訳処理",
       "incremental_translation": "増分翻訳",
       "agent_workshop": "Format Repair",
+      "agent_workshop_scan": "形式スキャン",
       "agent_workshop_batch": "Format Repair batch",
       "repair": "Format repair",
       "neologism_mining": "新語の抽出",

@@ -153,6 +153,7 @@
     },
     "next_step": {
       "review_failure": "Review the failure summary and diagnostic information before retrying.",
+      "internal_error": "Remis encountered an internal consistency error. Keep this task record and retry after the project data has been repaired.",
       "proofread": "Continue to proofreading to review the generated translations.",
       "review_format_issues": "Review the detected format issues before applying repairs.",
       "no_action_required": "No format issue needs action.",
@@ -1699,8 +1700,8 @@
     "help": "Format Repair reads this project's saved format issue record first and writes updated fix status back into it.",
     "scope_hint": "This page checks only Paradox script-format issues such as variables, tags, line breaks, and key names. It does not check typos, wording, or writing style.",
     "issue_breakdown": "Issue Breakdown",
-    "no_issues": "There are no open validation issues right now."
-    ,"scan_task_recorded": "This format scan is recorded in Task Center. Open it to review the exact project and input scope."
+    "no_issues": "There are no open validation issues right now.",
+    "scan_task_recorded": "This format scan is recorded in Task Center. Open it to review the exact project and input scope."
   },
   "incremental_translation": {
     "title": "Incremental Translation",

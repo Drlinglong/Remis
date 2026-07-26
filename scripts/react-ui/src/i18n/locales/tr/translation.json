@@ -44,7 +44,39 @@
     "show_diagnostics": "Tanılamayı göster", "diagnostic": "Tanılama", "export_log": "Günlüğü dışa aktar",
     "live_updates": "Canlı güncelleniyor", "event_count": "{{count}} olay", "no_events": "Kaydedilmiş çalıştırma olayı yok",
     "task_info": "Görev ayrıntıları", "task_id": "Görev kimliği", "project": "Proje", "project_name": "Proje adı", "project_id": "Proje kimliği", "task_flow": "Görev akışı", "technical_info": "Teknik kimlikler", "blocking_description": "Bu görev proje dosyalarını değiştiriyor. Remis aynı projeye eşzamanlı yazan çakışan görevleri geçici olarak engeller; çalışma bitince kısıtlama kalkar.", "started_at": "Başlangıç", "finished_at": "Bitiş",
+    "user_summary": "Bu görevin yaptığı işlem", "current_stage": "Geçerli aşama", "next_step": "Sonraki adım", "detailed_result_below": "Ayrıntılı sonuç aşağıda yer alıyor.", "technical_logs": "Teknik günlükler ve tanılama", "newest_first": "En yeniler önce",
     "result": "Sonuç", "output_paths": "Çıktı yolları", "child_tasks": "Alt görevler", "back_to_workflow": "İş akışına dön"
+  },
+  "task_presentation": {
+    "incremental": {
+      "preparing": "Artımlı güncelleme hazırlanıyor",
+      "scanning": "Kaynak dosyalar taranıyor",
+      "comparing": "Arşivlenmiş temel sürümle karşılaştırılıyor",
+      "translating": "Değişen içerik çevriliyor",
+      "validating": "Çeviri biçimi denetleniyor"
+    },
+    "event": {
+      "incremental_queued": "Artımlı güncelleme kuyruğa alındı",
+      "files_scanned": "{{count}} kaynak dosya tarandı",
+      "translating_batches": "{{language}} diline çevriliyor: {{total}} partinin {{current}}. partisi",
+      "incremental_completed": "Artımlı çeviri tamamlandı",
+      "format_validation": "Çeviri biçimi denetleniyor ve onarılıyor",
+      "comparing_archive": "Kaynak içerik arşivlenmiş temel sürümle karşılaştırılıyor"
+    },
+    "result": {
+      "incremental_completed": "{{count}} çeviri dosyası işlendi.",
+      "incremental_completed_with_warnings": "{{files}} çeviri dosyası {{warnings}} çalışma zamanı uyarısıyla işlendi.",
+      "format_scan_completed": "Biçim taraması {{count}} sorunla tamamlandı."
+    },
+    "next_step": {
+      "review_failure": "Yeniden denemeden önce hata özetini ve tanılama bilgilerini inceleyin.",
+      "internal_error": "Remis bir iç tutarlılık hatasıyla karşılaştı. Bu görev kaydını saklayın ve proje verileri onarıldıktan sonra yeniden deneyin.",
+      "proofread": "Oluşturulan çevirileri incelemek için düzeltme okumasına geçin.",
+      "review_format_issues": "Onarımları uygulamadan önce algılanan biçim sorunlarını inceleyin.",
+      "no_action_required": "İşlem gerektiren bir biçim sorunu yok.",
+      "completed": "Görev tamamlandı. Sonucu ve çıktı konumunu inceleyin.",
+      "wait": "Bu görev hâlâ çalışıyor. Ayrılıp daha sonra Görev Merkezi'nden geri dönebilirsiniz."
+    }
   },
   "task_history": {
     "eyebrow": "Görev arşivi", "title": "Görev günlükleri", "subtitle": "İşlenmiş görevler dahil tüm arka plan çalıştırmalarını güne göre inceleyin.",
@@ -1534,11 +1566,15 @@
     "help": "Format Repair önce bu projenin kayıtlı format sorunu kaydını okur ve güncellenmiş düzeltme durumunu geri yazar.",
     "scope_hint": "Bu sayfa yalnızca değişkenler, etiketler, satır sonları ve anahtar adları gibi Paradox betik formatı sorunlarını kontrol eder. Yazım hatalarını, ifade biçimini veya yazım stilini kontrol etmez.",
     "issue_breakdown": "Sorun Dağılımı",
-    "no_issues": "Şu anda açık bir doğrulama sorunu yok."
+    "no_issues": "Şu anda açık bir doğrulama sorunu yok.",
+    "scan_task_recorded": "Bu biçim taraması Görev Merkezi'ne kaydedildi. Kesin proje ve girdi kapsamını incelemek için görevi açın."
   },
   "incremental_translation": {
     "title": "Artımlı Çeviri",
     "description": "Rehberli iş akışı: kaynak değişikliklerini analiz edin ve yalnızca yeni veya değiştirilmiş içeriği çevirin.",
+    "background_task_notice": "Görev arka planda çalışıyor. Bu sayfadan güvenle ayrılabilir ve ilerlemeyi istediğiniz zaman Görev Merkezi'nden denetleyebilirsiniz.",
+    "conflicting_task_title": "Bu proje için zaten bir çeviri görevi çalışıyor",
+    "conflicting_task_notice": "Remis ikinci bir yazma görevinin başlatılmasını engelledi. İlerlemeyi veya sonucu takip etmek için mevcut görevi açın.",
     "step_1_title": "Proje Seç",
     "step_1_desc": "Güncellenecek mevcut bir projeyi seçin",
     "step_2_title": "Doğrulama ve Kurulum",
@@ -1789,6 +1825,8 @@
   },
   "proofreading": {
     "target_language": "Hedef Dil",
+    "save_and_next_entry": "Kaydet ve sonraki girdiye geç",
+    "return_to_task": "Kaynak göreve dön",
     "scale": "Ölçek",
     "select_project_placeholder": "Proje seç",
     "select_source_file": "Kaynak dosyayı seç",
@@ -2050,6 +2088,7 @@
     "view_task": "Görevi aç",
     "progress": "Görev ilerlemesi",
     "created_by": "Başlatan: {{creator}}",
+    "started_at": "Başlangıç: {{time}}",
     "blocking": "Proje kullanımda",
     "mark_handled": "İşlendi olarak işaretle",
     "handle_error": "Görev işlendi olarak işaretlenemedi",
@@ -2078,6 +2117,7 @@
       "incremental_translation": "Artımlı çeviri",
       "agent_workshop": "Format Repair",
       "agent_workshop_batch": "Format Repair batch",
+      "agent_workshop_scan": "Biçim taraması",
       "repair": "Format repair",
       "neologism_mining": "Yeni sözcük taraması",
       "dry_run": "Aracı deneme çalışması",

@@ -20,6 +20,24 @@ export const getTaskStageLabel = (task, t) => {
   const raw = String(task.stage || task.message || '').trim();
   if (task.kind !== 'incremental_translation') return raw || statusLabel;
 
+  const stageCode = task.stage_code || task.progress?.stage_code;
+  const stageCodeKeys = {
+    initializing: 'preparing',
+    scanning_source: 'scanning',
+    loading_archive: 'comparing',
+    comparing_entries: 'comparing',
+    translating_content: 'translating',
+    finishing: 'validating',
+    completed: 'completed',
+    failed: 'failed',
+  };
+  if (stageCodeKeys[stageCode]) {
+    return ['completed', 'failed'].includes(stageCode)
+      ? statusLabel
+      : t(`task_presentation.incremental.${stageCodeKeys[stageCode]}`);
+  }
+
+  // Compatibility for task records created before stage_code was persisted.
   if (/queue|initializ/i.test(raw)) return t('task_presentation.incremental.preparing');
   if (/scan/i.test(raw)) return t('task_presentation.incremental.scanning');
   if (/archive|compar/i.test(raw)) return t('task_presentation.incremental.comparing');
@@ -57,6 +75,12 @@ export const getTaskResultSummary = (task, t) => {
 
 export const getTaskNextStep = (task, t) => {
   if (!task) return '';
+  if (task.attention_reason_code === 'incremental_translation_internal_error') {
+    return t('task_presentation.next_step.internal_error');
+  }
+  if (task.attention_reason_code === 'incremental_translation_failed_review_diagnostics') {
+    return t('task_presentation.next_step.review_failure');
+  }
   if (task.status === 'failed' || task.status === 'interrupted') {
     return t('task_presentation.next_step.review_failure');
   }

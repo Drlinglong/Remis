@@ -11,6 +11,7 @@ const refreshTasksMock = vi.fn();
 let taskIdParam = 'failed-task';
 const translateMock = (key, options) => {
   if (key === 'task_center.kind.initial_translation') return 'Initial translation';
+  if (key === 'task_center.kind.incremental_translation') return 'Incremental translation';
   if (key === 'task_center.kind.agent_workshop') return 'Format Repair';
   if (key === 'agent_workshop.description') return 'Check and batch-repair format issues in localization files.';
   if (key === 'game_name_victoria3') return 'Victoria 3';
@@ -173,6 +174,28 @@ describe('TaskDetailPage', () => {
     expect((await screen.findAllByText('Format Repair')).length).toBeGreaterThan(0);
     expect(screen.getByText('Check and batch-repair format issues in localization files.')).toBeInTheDocument();
     expect(screen.queryByText('Agent Workshop repair')).not.toBeInTheDocument();
+  });
+
+  it('does not expose persisted English title or recovery copy for a failed incremental task', async () => {
+    api.get.mockResolvedValue({
+      data: {
+        ...failedTask,
+        kind: 'incremental_translation',
+        title: 'Incremental translation failed',
+        stage: 'Failed',
+        stage_code: 'failed',
+        attention_reason: 'Return to Incremental Translation, review the task diagnostics, and retry.',
+        attention_reason_code: 'incremental_translation_failed_review_diagnostics',
+      },
+    });
+
+    render(<MantineProvider><TaskDetailPage /></MantineProvider>);
+
+    expect((await screen.findAllByText('Incremental translation')).length).toBeGreaterThan(0);
+    expect(screen.queryByText('Incremental translation failed')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Return to Incremental Translation/)).not.toBeInTheDocument();
+    expect(screen.getAllByText('failed').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('task_presentation.next_step.review_failure').length).toBeGreaterThan(0);
   });
 
   it('shows recovery context, child rollup, and opens a result path', async () => {

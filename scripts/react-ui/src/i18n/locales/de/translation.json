@@ -41,10 +41,44 @@
     "eyebrow": "Aufgabenverlauf", "archived": "Archiviert", "elapsed": "Laufzeit", "more_actions": "Weitere Aktionen",
     "restore": "Im Aufgabencenter wiederherstellen", "archive": "Im Aufgabencenter ausblenden",
     "load_error": "Aufgabe konnte nicht geladen werden", "not_available": "Nicht verfügbar", "run_log": "Ausführungsprotokoll",
+    "user_summary": "Was diese Aufgabe ausführt", "current_stage": "Aktueller Schritt", "next_step": "Nächster Schritt",
+    "detailed_result_below": "Ein ausführliches Ergebnis ist weiter unten verfügbar.",
+    "technical_logs": "Technische Protokolle und Diagnosedaten", "newest_first": "Neueste zuerst",
     "show_diagnostics": "Diagnoseprotokoll anzeigen", "diagnostic": "Diagnose", "export_log": "Protokoll exportieren",
     "live_updates": "Live-Aktualisierung", "event_count": "{{count}} Ereignisse", "no_events": "Keine Ausführungsereignisse aufgezeichnet",
     "task_info": "Aufgabendetails", "task_id": "Aufgaben-ID", "project": "Projekt", "project_name": "Projektname", "project_id": "Projekt-ID", "task_flow": "Aufgabenablauf", "technical_info": "Technische IDs", "blocking_description": "Diese Aufgabe ändert gerade Projektdateien. Remis verhindert vorübergehend konkurrierende Schreibvorgänge; nach Ende der Ausführung wird die Sperre aufgehoben.", "started_at": "Gestartet", "finished_at": "Beendet",
     "result": "Ergebnis", "output_paths": "Ausgabepfade", "child_tasks": "Unteraufgaben", "back_to_workflow": "Zurück zum Arbeitsablauf"
+  },
+  "task_presentation": {
+    "incremental": {
+      "preparing": "Inkrementelle Aktualisierung wird vorbereitet",
+      "scanning": "Quelldateien werden durchsucht",
+      "comparing": "Vergleich mit dem archivierten Ausgangsstand",
+      "translating": "Geänderte Inhalte werden übersetzt",
+      "validating": "Übersetzungsformat wird geprüft"
+    },
+    "event": {
+      "incremental_queued": "Inkrementelle Aktualisierung eingereiht",
+      "files_scanned": "{{count}} Quelldateien durchsucht",
+      "translating_batches": "{{language}} wird übersetzt: Batch {{current}} von {{total}}",
+      "incremental_completed": "Inkrementelle Übersetzung abgeschlossen",
+      "format_validation": "Übersetzungsformat wird geprüft und repariert",
+      "comparing_archive": "Quellinhalt wird mit dem archivierten Ausgangsstand verglichen"
+    },
+    "result": {
+      "incremental_completed": "{{count}} Übersetzungsdateien verarbeitet.",
+      "incremental_completed_with_warnings": "{{files}} Übersetzungsdateien mit {{warnings}} Laufzeitwarnungen verarbeitet.",
+      "format_scan_completed": "Formatprüfung mit {{count}} Problemen abgeschlossen."
+    },
+    "next_step": {
+      "review_failure": "Prüfen Sie vor einem erneuten Versuch die Fehlerzusammenfassung und die Diagnosedaten.",
+      "internal_error": "Remis hat einen internen Konsistenzfehler festgestellt. Bewahren Sie diesen Aufgabeneintrag auf und versuchen Sie es erneut, nachdem die Projektdaten repariert wurden.",
+      "proofread": "Fahren Sie mit dem Korrekturlesen fort, um die erzeugten Übersetzungen zu prüfen.",
+      "review_format_issues": "Prüfen Sie die erkannten Formatprobleme, bevor Sie Reparaturen anwenden.",
+      "no_action_required": "Kein Formatproblem erfordert eine Aktion.",
+      "completed": "Die Aufgabe ist abgeschlossen. Prüfen Sie das Ergebnis und den Ausgabeort.",
+      "wait": "Diese Aufgabe wird noch ausgeführt. Sie können die Seite verlassen und später über das Aufgabencenter zurückkehren."
+    }
   },
   "task_history": {
     "eyebrow": "Aufgabenarchiv", "title": "Aufgabenprotokolle", "subtitle": "Alle Hintergrundläufe nach Tag prüfen, einschließlich erledigter Aufgaben.",
@@ -581,6 +615,8 @@
   "proofreading.close_unsaved_body": "Ihre Korrekturen wurden nicht gespeichert. Speichern oder verwerfen Sie sie, oder kehren Sie zur Bearbeitung zurück.",
   "proofreading.discard_and_close": "Verwerfen und schließen",
   "proofreading.save_and_close": "Speichern und schließen",
+  "proofreading.save_and_next_entry": "Speichern und zum nächsten Eintrag",
+  "proofreading.return_to_task": "Zurück zur Aufgabe",
   "proofreading.external_change_title": "Diese Datei wurde außerhalb von Remis geändert",
   "proofreading.external_change_body": "Die Seite zeigt eine ältere Version. Laden Sie die Datei neu, oder behalten Sie Ihre lokalen Änderungen und lösen Sie den Konflikt beim Speichern.",
   "proofreading.reload_from_disk": "Von Datenträger neu laden",
@@ -1534,7 +1570,8 @@
     "help": "Der Format Repair liest zuerst den gespeicherten Formatfehler-Datensatz dieses Projekts und schreibt den aktualisierten Reparaturstatus dorthin zurück.",
     "scope_hint": "Diese Seite prüft nur Paradox-Skriptformatfehler wie Variablen, Tags, Zeilenumbrüche und Schlüsselnamen. Rechtschreibfehler, Wortwahl oder Schreibstil werden nicht geprüft.",
     "issue_breakdown": "Fehleraufschlüsselung",
-    "no_issues": "Aktuell liegen keine offenen Validierungsfehler vor."
+    "no_issues": "Aktuell liegen keine offenen Validierungsfehler vor.",
+    "scan_task_recorded": "Diese Formatprüfung ist im Aufgabencenter gespeichert. Öffnen Sie sie, um das genaue Projekt und den Eingabeumfang zu prüfen."
   },
   "incremental_translation": {
     "title": "Inkrementelle Übersetzung",
@@ -1547,6 +1584,9 @@
     "step_3_desc": "Änderungsstatistikbericht prüfen",
     "step_4_title": "Durchführung der Übersetzung",
     "step_4_desc": "KI-Übersetzung ausführen und Ausgabedateien schreiben",
+    "background_task_notice": "Die Aufgabe wird im Hintergrund ausgeführt. Sie können diese Seite ohne Bedenken verlassen und den Fortschritt jederzeit im Aufgabencenter prüfen.",
+    "conflicting_task_title": "Für dieses Projekt wird bereits eine Übersetzungsaufgabe ausgeführt",
+    "conflicting_task_notice": "Remis hat den Start einer zweiten Schreibaufgabe verhindert. Öffnen Sie die vorhandene Aufgabe, um ihren Fortschritt oder ihr Ergebnis zu verfolgen.",
     "select_project_first": "Bitte wählen Sie zuerst ein Projekt aus der Liste aus.",
     "archive_found": "Archiv gefunden: Version {{version}}, zuletzt aktualisiert am {{date}}",
     "archive_missing": "Kein Übersetzungsarchiv für dieses Projekt gefunden. Der inkrementelle Vergleich kann nicht fortgesetzt werden.",
@@ -2055,6 +2095,7 @@
     "handle_error": "Die Aufgabe konnte nicht als bearbeitet markiert werden",
     "view_history": "Alle Protokolle",
     "active_summary": "{{count}} aktive oder wartende Aufgaben",
+    "started_at": "Gestartet: {{time}}",
     "attention_summary": "{{count}} Aufgaben benötigen Ihre Aufmerksamkeit",
     "creator": {
       "user": "Benutzer",
@@ -2076,6 +2117,7 @@
       "initial_translation": "Erstübersetzung",
       "translation": "Übersetzungsauftrag",
       "incremental_translation": "Inkrementelles Update",
+      "agent_workshop_scan": "Formatprüfung",
       "agent_workshop": "Format Repair",
       "agent_workshop_batch": "Format Repair batch",
       "repair": "Format repair",

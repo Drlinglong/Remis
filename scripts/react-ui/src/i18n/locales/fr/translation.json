@@ -41,10 +41,44 @@
     "eyebrow": "Historique des tâches", "archived": "Archivée", "elapsed": "Temps écoulé", "more_actions": "Plus d’actions",
     "restore": "Restaurer dans le centre des tâches", "archive": "Masquer du centre des tâches",
     "load_error": "Impossible de charger la tâche", "not_available": "Non disponible", "run_log": "Journal d’exécution",
+    "user_summary": "Ce que fait cette tâche", "current_stage": "Étape actuelle", "next_step": "Étape suivante",
+    "detailed_result_below": "Un résultat détaillé est disponible ci-dessous.",
+    "technical_logs": "Journaux techniques et diagnostics", "newest_first": "Plus récents en premier",
     "show_diagnostics": "Afficher les diagnostics", "diagnostic": "Données de diagnostic", "export_log": "Exporter le journal",
     "live_updates": "Mise à jour en direct", "event_count": "{{count}} événements", "no_events": "Aucun événement d’exécution enregistré",
     "task_info": "Détails de la tâche", "task_id": "ID de tâche", "project": "Projet", "project_name": "Nom du projet", "project_id": "ID du projet", "task_flow": "Flux de la tâche", "technical_info": "Identifiants techniques", "blocking_description": "Cette tâche modifie actuellement les fichiers du projet. Remis empêche temporairement les écritures concurrentes sur ce projet ; la restriction disparaît à la fin de l’exécution.", "started_at": "Démarrée", "finished_at": "Terminée",
     "result": "Résultat", "output_paths": "Chemins de sortie", "child_tasks": "Sous-tâches", "back_to_workflow": "Retour au flux de travail"
+  },
+  "task_presentation": {
+    "incremental": {
+      "preparing": "Préparation de la mise à jour incrémentale",
+      "scanning": "Analyse des fichiers source",
+      "comparing": "Comparaison avec la référence archivée",
+      "translating": "Traduction du contenu modifié",
+      "validating": "Vérification du format des traductions"
+    },
+    "event": {
+      "incremental_queued": "Mise à jour incrémentale mise en attente",
+      "files_scanned": "{{count}} fichiers source analysés",
+      "translating_batches": "Traduction en {{language}} : lot {{current}} sur {{total}}",
+      "incremental_completed": "Traduction incrémentale terminée",
+      "format_validation": "Vérification et réparation du format des traductions",
+      "comparing_archive": "Comparaison du contenu source avec la référence archivée"
+    },
+    "result": {
+      "incremental_completed": "{{count}} fichiers de traduction traités.",
+      "incremental_completed_with_warnings": "{{files}} fichiers de traduction traités avec {{warnings}} avertissements d’exécution.",
+      "format_scan_completed": "Analyse du format terminée avec {{count}} problèmes."
+    },
+    "next_step": {
+      "review_failure": "Consultez le résumé de l’échec et les informations de diagnostic avant de réessayer.",
+      "internal_error": "Remis a rencontré une erreur interne de cohérence. Conservez cet enregistrement de tâche et réessayez après la réparation des données du projet.",
+      "proofread": "Passez à la relecture pour vérifier les traductions générées.",
+      "review_format_issues": "Examinez les problèmes de format détectés avant d’appliquer les réparations.",
+      "no_action_required": "Aucun problème de format ne nécessite d’intervention.",
+      "completed": "La tâche est terminée. Vérifiez son résultat et son emplacement de sortie.",
+      "wait": "Cette tâche est toujours en cours. Vous pouvez quitter cette page et y revenir depuis le centre des tâches."
+    }
   },
   "task_history": {
     "eyebrow": "Archives des tâches", "title": "Journaux des tâches", "subtitle": "Consultez chaque exécution en arrière-plan par jour, y compris les tâches traitées.",
@@ -581,6 +615,8 @@
   "proofreading.close_unsaved_body": "Vos modifications de relecture ne sont pas enregistrées. Enregistrez-les, abandonnez-les ou reprenez l’édition.",
   "proofreading.discard_and_close": "Abandonner et fermer",
   "proofreading.save_and_close": "Enregistrer et fermer",
+  "proofreading.save_and_next_entry": "Enregistrer et passer à l’entrée suivante",
+  "proofreading.return_to_task": "Revenir à la tâche",
   "proofreading.external_change_title": "Ce fichier a été modifié en dehors de Remis",
   "proofreading.external_change_body": "La page affiche une ancienne version. Rechargez le fichier depuis le disque, ou conservez vos modifications locales et résolvez le conflit à l’enregistrement.",
   "proofreading.reload_from_disk": "Recharger depuis le disque",
@@ -1534,7 +1570,8 @@
     "help": "L'Format Repair lit d'abord l'enregistrement des problèmes de format de ce projet et y réinscrit le statut de correction mis à jour.",
     "scope_hint": "Cette page vérifie uniquement les problèmes de format des scripts Paradox tels que les variables, les balises, les sauts de ligne et les noms de clés. Elle ne vérifie pas les fautes de frappe, la formulation ou le style d'écriture.",
     "issue_breakdown": "Répartition des problèmes",
-    "no_issues": "Il n'y a aucun problème de validation ouvert pour le moment."
+    "no_issues": "Il n'y a aucun problème de validation ouvert pour le moment.",
+    "scan_task_recorded": "Cette analyse du format est enregistrée dans le centre des tâches. Ouvrez-la pour vérifier le projet exact et le périmètre des données d’entrée."
   },
   "incremental_translation": {
     "title": "Traduction incrémentale",
@@ -1547,6 +1584,9 @@
     "step_3_desc": "Examiner le rapport de statistiques de changement",
     "step_4_title": "Exécution de la traduction",
     "step_4_desc": "Lancer la traduction par IA et écrire les fichiers de sortie",
+    "background_task_notice": "La tâche s’exécute en arrière-plan. Vous pouvez quitter cette page sans risque et consulter sa progression à tout moment dans le centre des tâches.",
+    "conflicting_task_title": "Une tâche de traduction est déjà en cours pour ce projet",
+    "conflicting_task_notice": "Remis a empêché le démarrage d’une seconde tâche d’écriture. Ouvrez la tâche existante pour suivre sa progression ou consulter son résultat.",
     "select_project_first": "Veuillez d'abord sélectionner un projet dans la liste.",
     "archive_found": "Archive trouvée : version {{version}}, dernière mise à jour le {{date}}",
     "archive_missing": "Aucune archive de traduction trouvée pour ce projet. La comparaison incrémentielle ne peut pas continuer.",
@@ -2055,6 +2095,7 @@
     "handle_error": "Impossible de marquer cette tâche comme traitée",
     "view_history": "Tous les journaux",
     "active_summary": "{{count}} tâches actives ou en attente",
+    "started_at": "Démarrée : {{time}}",
     "attention_summary": "{{count}} tâches demandent votre attention",
     "creator": {
       "user": "Utilisateur",
@@ -2076,6 +2117,7 @@
       "initial_translation": "Traduction initiale",
       "translation": "Mission de traduction",
       "incremental_translation": "Mise à jour incrémentale",
+      "agent_workshop_scan": "Analyse du format",
       "agent_workshop": "Format Repair",
       "agent_workshop_batch": "Format Repair batch",
       "repair": "Format repair",

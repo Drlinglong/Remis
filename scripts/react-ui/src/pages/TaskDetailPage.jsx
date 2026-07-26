@@ -216,6 +216,8 @@ export default function TaskDetailPage() {
     : (STATUS_COLORS[task?.status] || 'gray');
   const localizedTaskTitle = ['agent_workshop', 'agent_workshop_batch', 'repair'].includes(task?.kind)
     ? t('agent_workshop.description')
+    : task?.kind === 'incremental_translation'
+      ? t('task_center.kind.incremental_translation')
     : task?.kind === 'glossary_health_check'
       ? t('glossary_health_task_title', {
         count: healthMetadata.glossary_count || 1,

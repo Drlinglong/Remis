@@ -44,7 +44,39 @@
     "show_diagnostics": "Pokaż diagnostykę", "diagnostic": "Diagnostyka", "export_log": "Eksportuj dziennik",
     "live_updates": "Aktualizacja na żywo", "event_count": "Liczba zdarzeń: {{count}}", "no_events": "Brak zapisanych zdarzeń wykonania",
     "task_info": "Szczegóły zadania", "task_id": "Identyfikator zadania", "project": "Powiązany projekt", "project_name": "Nazwa projektu", "project_id": "Identyfikator projektu", "task_flow": "Przebieg zadania", "technical_info": "Dane techniczne", "blocking_description": "To zadanie modyfikuje pliki projektu. Remis tymczasowo blokuje równoczesny zapis do tego samego projektu; ograniczenie znika po zakończeniu uruchomienia.", "started_at": "Rozpoczęto", "finished_at": "Zakończono",
+    "user_summary": "Co wykonuje to zadanie", "current_stage": "Bieżący etap", "next_step": "Następny krok", "detailed_result_below": "Szczegółowy wynik jest dostępny poniżej.", "technical_logs": "Dzienniki techniczne i diagnostyka", "newest_first": "Najnowsze najpierw",
     "result": "Wynik", "output_paths": "Ścieżki wyjściowe", "child_tasks": "Zadania podrzędne", "back_to_workflow": "Wróć do przepływu pracy"
+  },
+  "task_presentation": {
+    "incremental": {
+      "preparing": "Przygotowywanie aktualizacji przyrostowej",
+      "scanning": "Skanowanie plików źródłowych",
+      "comparing": "Porównywanie z zarchiwizowaną wersją bazową",
+      "translating": "Tłumaczenie zmienionej treści",
+      "validating": "Sprawdzanie formatu tłumaczenia"
+    },
+    "event": {
+      "incremental_queued": "Aktualizacja przyrostowa została dodana do kolejki",
+      "files_scanned": "Przeskanowano {{count}} plików źródłowych",
+      "translating_batches": "Tłumaczenie na język {{language}}: partia {{current}} z {{total}}",
+      "incremental_completed": "Tłumaczenie przyrostowe zostało ukończone",
+      "format_validation": "Sprawdzanie i naprawianie formatu tłumaczenia",
+      "comparing_archive": "Porównywanie treści źródłowej z zarchiwizowaną wersją bazową"
+    },
+    "result": {
+      "incremental_completed": "Przetworzono {{count}} plików tłumaczenia.",
+      "incremental_completed_with_warnings": "Przetworzono {{files}} plików tłumaczenia z {{warnings}} ostrzeżeniami środowiska wykonawczego.",
+      "format_scan_completed": "Skanowanie formatu zakończono z liczbą problemów: {{count}}."
+    },
+    "next_step": {
+      "review_failure": "Przed ponowną próbą przejrzyj podsumowanie błędu i informacje diagnostyczne.",
+      "internal_error": "Remis napotkał wewnętrzny błąd spójności. Zachowaj ten rekord zadania i spróbuj ponownie po naprawieniu danych projektu.",
+      "proofread": "Przejdź do korekty, aby sprawdzić wygenerowane tłumaczenia.",
+      "review_format_issues": "Przed zastosowaniem napraw przejrzyj wykryte problemy z formatem.",
+      "no_action_required": "Żaden problem z formatem nie wymaga działania.",
+      "completed": "Zadanie zostało ukończone. Sprawdź jego wynik i lokalizację plików wyjściowych.",
+      "wait": "To zadanie jest nadal wykonywane. Możesz opuścić Centrum zadań i wrócić do niego później."
+    }
   },
   "task_history": {
     "eyebrow": "Archiwum zadań", "title": "Dzienniki zadań", "subtitle": "Przeglądaj wszystkie uruchomienia w tle według dnia, także zadania obsłużone.",
@@ -1534,11 +1566,15 @@
     "help": "Format Repair najpierw odczytuje zapisany rekord błędów formatu tego projektu, a następnie zapisuje w nim zaktualizowany status naprawy.",
     "scope_hint": "Ta strona sprawdza tylko błędy formatu skryptu Paradox, takie jak zmienne, tagi, znaki nowej linii i nazwy kluczy. Nie sprawdza literówek, słownictwa ani stylu pisania.",
     "issue_breakdown": "Podział błędów",
-    "no_issues": "Obecnie nie ma otwartych błędów walidacji."
+    "no_issues": "Obecnie nie ma otwartych błędów walidacji.",
+    "scan_task_recorded": "To skanowanie formatu zostało zapisane w Centrum zadań. Otwórz je, aby sprawdzić dokładny projekt i zakres danych wejściowych."
   },
   "incremental_translation": {
     "title": "Tłumaczenie przyrostowe",
     "description": "Instruktażowy przepływ pracy: analizuj zmiany źródłowe i tłumacz tylko nową lub zmodyfikowaną treść.",
+    "background_task_notice": "Zadanie działa w tle. Możesz bezpiecznie opuścić tę stronę i w dowolnym momencie sprawdzić postęp w Centrum zadań.",
+    "conflicting_task_title": "Dla tego projektu jest już wykonywane zadanie tłumaczeniowe",
+    "conflicting_task_notice": "Remis zapobiegł uruchomieniu drugiego zadania zapisującego dane. Otwórz istniejące zadanie, aby śledzić jego postęp lub wynik.",
     "step_1_title": "Wybierz projekt",
     "step_1_desc": "Wybierz istniejący projekt do aktualizacji",
     "step_2_title": "Walidacja i konfiguracja",
@@ -1789,6 +1825,8 @@
   },
   "proofreading": {
     "target_language": "Język docelowy",
+    "save_and_next_entry": "Zapisz i przejdź do następnego wpisu",
+    "return_to_task": "Wróć do zadania źródłowego",
     "scale": "Skala",
     "select_project_placeholder": "Wybierz projekt",
     "select_source_file": "Wybierz plik źródłowy",
@@ -2050,6 +2088,7 @@
     "view_task": "Otwórz zadanie",
     "progress": "Postęp zadania",
     "created_by": "Uruchomione przez: {{creator}}",
+    "started_at": "Rozpoczęto: {{time}}",
     "blocking": "Projekt jest używany",
     "mark_handled": "Oznacz jako obsłużone",
     "handle_error": "Nie udało się oznaczyć zadania jako obsłużone",
@@ -2078,6 +2117,7 @@
       "incremental_translation": "Tłumaczenie przyrostowe",
       "agent_workshop": "Format Repair",
       "agent_workshop_batch": "Format Repair batch",
+      "agent_workshop_scan": "Skanowanie formatu",
       "repair": "Format repair",
       "neologism_mining": "Wyszukiwanie neologizmów",
       "dry_run": "Próba agenta",

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getTaskEventPresentation,
+  getTaskNextStep,
   getTaskResultSummary,
   getTaskStageLabel,
   sortTaskEventsNewestFirst,
@@ -19,6 +20,27 @@ describe('task presentation', () => {
 
     expect(label).toContain('task_center.status.failed');
     expect(label).not.toMatch(/Translating/i);
+  });
+
+  it('prefers structured stage and recovery codes over English backend copy', () => {
+    expect(getTaskStageLabel({
+      kind: 'incremental_translation',
+      status: 'running',
+      stage: 'Translating',
+      stage_code: 'comparing_entries',
+    }, t)).toContain('task_presentation.incremental.comparing');
+
+    const failedTask = {
+      kind: 'incremental_translation',
+      status: 'failed',
+      stage: 'Failed',
+      stage_code: 'failed',
+      attention_reason: 'Return to Incremental Translation and retry.',
+      attention_reason_code: 'incremental_translation_internal_error',
+    };
+    expect(getTaskStageLabel(failedTask, t)).toContain('task_center.status.failed');
+    expect(getTaskNextStep(failedTask, t)).toContain('task_presentation.next_step.internal_error');
+    expect(getTaskNextStep(failedTask, t)).not.toContain('Return to Incremental');
   });
 
   it('localizes persisted incremental summaries and deterministic format scans', () => {

@@ -41,10 +41,44 @@
     "eyebrow": "Historial de tareas", "archived": "Archivada", "elapsed": "Tiempo transcurrido", "more_actions": "Más acciones",
     "restore": "Restaurar en el centro de tareas", "archive": "Ocultar del centro de tareas",
     "load_error": "No se pudo cargar la tarea", "not_available": "No disponible", "run_log": "Registro de ejecución",
+    "user_summary": "Qué está haciendo esta tarea", "current_stage": "Etapa actual", "next_step": "Siguiente paso",
+    "detailed_result_below": "A continuación se muestra un resultado detallado.",
+    "technical_logs": "Registros técnicos y diagnósticos", "newest_first": "Más recientes primero",
     "show_diagnostics": "Mostrar diagnósticos", "diagnostic": "Diagnóstico", "export_log": "Exportar registro",
     "live_updates": "Actualización en directo", "event_count": "{{count}} eventos", "no_events": "No hay eventos de ejecución registrados",
     "task_info": "Detalles de la tarea", "task_id": "ID de tarea", "project": "Proyecto", "project_name": "Nombre del proyecto", "project_id": "ID del proyecto", "task_flow": "Flujo de la tarea", "technical_info": "Identificadores técnicos", "blocking_description": "Esta tarea está modificando archivos del proyecto. Remis evita temporalmente escrituras simultáneas en el mismo proyecto; la restricción termina al finalizar la ejecución.", "started_at": "Iniciada", "finished_at": "Finalizada",
     "result": "Resultado", "output_paths": "Rutas de salida", "child_tasks": "Tareas secundarias", "back_to_workflow": "Volver al flujo de trabajo"
+  },
+  "task_presentation": {
+    "incremental": {
+      "preparing": "Preparando la actualización incremental",
+      "scanning": "Analizando los archivos fuente",
+      "comparing": "Comparando con la referencia archivada",
+      "translating": "Traduciendo el contenido modificado",
+      "validating": "Comprobando el formato de la traducción"
+    },
+    "event": {
+      "incremental_queued": "Actualización incremental en cola",
+      "files_scanned": "Se analizaron {{count}} archivos fuente",
+      "translating_batches": "Traduciendo al {{language}}: lote {{current}} de {{total}}",
+      "incremental_completed": "Traducción incremental completada",
+      "format_validation": "Comprobando y reparando el formato de la traducción",
+      "comparing_archive": "Comparando el contenido fuente con la referencia archivada"
+    },
+    "result": {
+      "incremental_completed": "Se procesaron {{count}} archivos de traducción.",
+      "incremental_completed_with_warnings": "Se procesaron {{files}} archivos de traducción con {{warnings}} advertencias de ejecución.",
+      "format_scan_completed": "El análisis de formato finalizó con {{count}} problemas."
+    },
+    "next_step": {
+      "review_failure": "Revisa el resumen del error y la información de diagnóstico antes de volver a intentarlo.",
+      "internal_error": "Remis encontró un error interno de coherencia. Conserva este registro de tarea y vuelve a intentarlo después de reparar los datos del proyecto.",
+      "proofread": "Continúa con la corrección para revisar las traducciones generadas.",
+      "review_format_issues": "Revisa los problemas de formato detectados antes de aplicar reparaciones.",
+      "no_action_required": "Ningún problema de formato requiere intervención.",
+      "completed": "La tarea ha finalizado. Revisa el resultado y la ubicación de salida.",
+      "wait": "Esta tarea aún se está ejecutando. Puedes salir y volver desde el centro de tareas."
+    }
   },
   "task_history": {
     "eyebrow": "Archivo de tareas", "title": "Registros de tareas", "subtitle": "Revisa por día todas las ejecuciones en segundo plano, incluidas las tareas atendidas.",
@@ -581,6 +615,8 @@
   "proofreading.close_unsaved_body": "Los cambios de corrección no se han guardado. Guárdalos, descártalos o vuelve a editar.",
   "proofreading.discard_and_close": "Descartar y cerrar",
   "proofreading.save_and_close": "Guardar y cerrar",
+  "proofreading.save_and_next_entry": "Guardar e ir a la siguiente entrada",
+  "proofreading.return_to_task": "Volver a la tarea",
   "proofreading.external_change_title": "Este archivo cambió fuera de Remis",
   "proofreading.external_change_body": "La página muestra una versión anterior. Recarga el archivo del disco o conserva tus cambios locales y resuelve el conflicto al guardar.",
   "proofreading.reload_from_disk": "Recargar del disco",
@@ -1535,7 +1571,8 @@
     "help": "Format Repair lee primero el registro de problemas de formato guardado de este proyecto y escribe el estado de corrección actualizado en él.",
     "scope_hint": "Esta página solo verifica problemas de formato de scripts de Paradox, como variables, etiquetas, saltos de línea y nombres de claves. No verifica errores ortográficos, redacción o estilo de escritura.",
     "issue_breakdown": "Desglose de Problemas",
-    "no_issues": "No hay problemas de validación abiertos en este momento."
+    "no_issues": "No hay problemas de validación abiertos en este momento.",
+    "scan_task_recorded": "Este análisis de formato está registrado en el centro de tareas. Ábrelo para revisar el proyecto exacto y el alcance de la entrada."
   },
   "incremental_translation": {
     "title": "Traducción Incremental",
@@ -1548,6 +1585,9 @@
     "step_3_desc": "Revisar el informe de estadísticas de cambios",
     "step_4_title": "Ejecución de la Traducción",
     "step_4_desc": "Ejecutar traducción por IA y escribir archivos de salida",
+    "background_task_notice": "La tarea se está ejecutando en segundo plano. Puedes salir de esta página con seguridad y consultar el progreso en cualquier momento desde el centro de tareas.",
+    "conflicting_task_title": "Ya hay una tarea de traducción en curso para este proyecto",
+    "conflicting_task_notice": "Remis impidió que se iniciara una segunda tarea de escritura. Abre la tarea existente para seguir su progreso o consultar el resultado.",
     "select_project_first": "Por favor, seleccione primero un proyecto de la lista.",
     "archive_found": "Archivo encontrado: versión {{version}}, última actualización {{date}}",
     "archive_missing": "No se encontró ningún archivo de traducción para este proyecto. La comparación incremental no puede continuar.",
@@ -2056,6 +2096,7 @@
     "handle_error": "No se pudo marcar la tarea como atendida",
     "view_history": "Todos los registros",
     "active_summary": "{{count}} tareas activas o pendientes",
+    "started_at": "Iniciada: {{time}}",
     "attention_summary": "{{count}} tareas requieren tu atención",
     "creator": {
       "user": "Persona usuaria",
@@ -2077,6 +2118,7 @@
       "initial_translation": "Traducción inicial",
       "translation": "Trabajo de traducción",
       "incremental_translation": "Actualización incremental",
+      "agent_workshop_scan": "Análisis de formato",
       "agent_workshop": "Format Repair",
       "agent_workshop_batch": "Format Repair batch",
       "repair": "Format repair",

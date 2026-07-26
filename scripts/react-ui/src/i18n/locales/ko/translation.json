@@ -44,7 +44,44 @@
     "show_diagnostics": "진단 로그 표시", "diagnostic": "진단", "export_log": "로그 내보내기",
     "live_updates": "실시간 업데이트 중", "event_count": "이벤트 {{count}}개", "no_events": "기록된 실행 이벤트가 없습니다",
     "task_info": "작업 상세 정보", "task_id": "작업 ID", "project": "프로젝트", "project_name": "프로젝트 이름", "project_id": "프로젝트 ID", "task_flow": "작업 흐름", "technical_info": "기술 정보", "blocking_description": "이 작업은 현재 프로젝트 파일을 수정하고 있습니다. 같은 프로젝트에 동시에 쓰는 충돌 작업을 Remis가 일시적으로 제한하며, 실행이 끝나면 자동 해제됩니다.", "started_at": "시작 시간", "finished_at": "완료 시간",
-    "result": "결과", "output_paths": "출력 경로", "child_tasks": "하위 작업", "back_to_workflow": "워크플로로 돌아가기"
+    "result": "결과", "output_paths": "출력 경로", "child_tasks": "하위 작업", "back_to_workflow": "워크플로로 돌아가기",
+    "user_summary": "이 작업에서 수행하는 내용",
+    "current_stage": "현재 단계",
+    "next_step": "다음 단계",
+    "detailed_result_below": "아래에서 상세 결과를 확인할 수 있습니다.",
+    "technical_logs": "기술 로그 및 진단 정보",
+    "newest_first": "최신순"
+  },
+  "task_presentation": {
+    "incremental": {
+      "preparing": "증분 업데이트 준비 중",
+      "scanning": "소스 파일 스캔 중",
+      "comparing": "보관된 기준 데이터와 비교 중",
+      "translating": "변경된 콘텐츠 번역 중",
+      "validating": "번역 형식 확인 중"
+    },
+    "event": {
+      "incremental_queued": "증분 업데이트 대기열에 추가됨",
+      "files_scanned": "소스 파일 {{count}}개를 스캔했습니다",
+      "translating_batches": "{{language}} 번역 중: {{current}} / {{total}} 배치",
+      "incremental_completed": "증분 번역이 완료되었습니다",
+      "format_validation": "번역 형식 확인 및 복구 중",
+      "comparing_archive": "소스 콘텐츠를 보관된 기준 데이터와 비교 중"
+    },
+    "result": {
+      "incremental_completed": "번역 파일 {{count}}개를 처리했습니다.",
+      "incremental_completed_with_warnings": "번역 파일 {{files}}개를 처리했으며 실행 경고 {{warnings}}개가 발생했습니다.",
+      "format_scan_completed": "형식 스캔이 완료되었으며 문제 {{count}}개가 발견되었습니다."
+    },
+    "next_step": {
+      "review_failure": "재시도하기 전에 실패 요약과 진단 정보를 검토하세요.",
+      "internal_error": "Remis에서 내부 일관성 오류가 발생했습니다. 이 작업 기록을 보존하고 프로젝트 데이터를 복구한 뒤 다시 시도하세요.",
+      "proofread": "교정으로 이동하여 생성된 번역을 검토하세요.",
+      "review_format_issues": "복구를 적용하기 전에 감지된 형식 문제를 검토하세요.",
+      "no_action_required": "조치가 필요한 형식 문제가 없습니다.",
+      "completed": "작업이 완료되었습니다. 결과와 출력 위치를 검토하세요.",
+      "wait": "이 작업은 아직 실행 중입니다. 작업 센터를 나갔다가 나중에 다시 확인할 수 있습니다."
+    }
   },
   "task_history": {
     "eyebrow": "작업 보관함", "title": "작업 로그", "subtitle": "완료 및 처리된 작업을 포함한 모든 백그라운드 실행을 날짜별로 확인합니다.",
@@ -1534,7 +1571,8 @@
     "help": "Format Repair은 이 프로젝트의 저장된 형식 문제 기록을 먼저 읽고 업데이트된 수정 상태를 다시 기록합니다.",
     "scope_hint": "이 페이지는 변수, 태그, 줄바꿈, 키 이름과 같은 패러독스 스크립트 형식 문제만 확인합니다. 오타, 표현 또는 문체는 확인하지 않습니다.",
     "issue_breakdown": "문제 분석",
-    "no_issues": "현재 미해결된 검증 문제가 없습니다."
+    "no_issues": "현재 미해결된 검증 문제가 없습니다.",
+    "scan_task_recorded": "이 형식 스캔은 작업 센터에 기록됩니다. 열어서 정확한 프로젝트와 입력 범위를 확인하세요."
   },
   "incremental_translation": {
     "title": "증분 번역",
@@ -1563,6 +1601,9 @@
     "start_translation_confirm": "번역을 시작하시겠습니까? API 호출이 발생하며 비용이 청구될 수 있습니다.",
     "execution_log": "실행 로그",
     "processing_file": "처리 중: {{file}}",
+    "background_task_notice": "작업이 백그라운드에서 실행 중입니다. 이 페이지를 나가도 안전하며 작업 센터에서 언제든 진행 상황을 확인할 수 있습니다.",
+    "conflicting_task_title": "이 프로젝트에서 번역 작업이 이미 실행 중입니다",
+    "conflicting_task_notice": "Remis가 두 번째 쓰기 작업의 시작을 차단했습니다. 기존 작업을 열어 진행 상황이나 결과를 확인하세요.",
     "batch_status": "배치 {{current}}/{{total}} 완료...",
     "completion_title": "증분 번역 완료",
     "checkpoint_found_label": "체크포인트 발견",
@@ -1802,6 +1843,8 @@
     "edit_final": "{{key}} 최종 번역 편집",
     "blank_lines": "빈 줄 {{count}}개",
     "no_entries": "현재 필터와 일치하는 항목이 없습니다.",
+    "save_and_next_entry": "저장 후 다음 항목",
+    "return_to_task": "원본 작업으로 돌아가기",
     "tabs": {
       "entries": "항목",
       "raw": "원시 파일"
@@ -2050,6 +2093,7 @@
     "view_task": "작업 열기",
     "progress": "작업 진행률",
     "created_by": "시작 주체: {{creator}}",
+    "started_at": "시작: {{time}}",
     "blocking": "프로젝트 사용 중",
     "mark_handled": "처리됨으로 표시",
     "handle_error": "작업을 처리됨으로 표시할 수 없습니다",
@@ -2077,6 +2121,7 @@
       "translation": "번역 작업",
       "incremental_translation": "증분 번역",
       "agent_workshop": "Format Repair",
+      "agent_workshop_scan": "형식 스캔",
       "agent_workshop_batch": "Format Repair batch",
       "repair": "Format repair",
       "neologism_mining": "신조어 탐색",

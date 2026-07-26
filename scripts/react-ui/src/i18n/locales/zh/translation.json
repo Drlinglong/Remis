@@ -200,6 +200,7 @@
     },
     "next_step": {
       "review_failure": "请先查看失败摘要和诊断信息，再决定是否重试。",
+      "internal_error": "Remis 遇到内部数据一致性错误。请保留本任务记录，待项目数据修复后再重试。",
       "proofread": "继续前往校对，检查本次生成的译文。",
       "review_format_issues": "请先检查发现的格式问题，再决定是否修复。",
       "no_action_required": "没有需要处理的格式问题。",
@@ -1969,8 +1970,8 @@
     "help": "格式修复台会优先读取这个项目自己的格式问题记录，修复状态也会继续回写到这里。",
     "scope_hint": "这里只检查 P 社脚本语言里的变量、标签、换行、键名等格式问题，不检查错字、病句或文风是否自然。",
     "issue_breakdown": "问题类型分布",
-    "no_issues": "当前没有待处理的格式问题。"
-    ,"scan_task_recorded": "本次格式规则扫描已记录到任务中心。打开任务可核对准确项目和输入范围。"
+    "no_issues": "当前没有待处理的格式问题。",
+    "scan_task_recorded": "本次格式规则扫描已记录到任务中心。打开任务可核对准确项目和输入范围。"
   },
   "recent_activity_type_translate": "增量更新",
   "common": {

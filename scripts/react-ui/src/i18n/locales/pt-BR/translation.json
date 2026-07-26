@@ -44,7 +44,39 @@
     "show_diagnostics": "Exibir informações de diagnóstico", "diagnostic": "Informação de diagnóstico", "export_log": "Baixar registro",
     "live_updates": "Atualização ao vivo", "event_count": "{{count}} ocorrências", "no_events": "Nenhum evento de execução registrado",
     "task_info": "Detalhes da tarefa", "task_id": "ID da tarefa", "project": "Projeto", "project_name": "Nome do projeto", "project_id": "ID do projeto", "task_flow": "Fluxo da tarefa", "technical_info": "Dados técnicos", "blocking_description": "Esta tarefa está alterando arquivos do projeto. O Remis impede temporariamente gravações concorrentes no mesmo projeto; a restrição termina quando a execução acaba.", "started_at": "Começou em", "finished_at": "Concluída em",
+    "user_summary": "O que esta tarefa está fazendo", "current_stage": "Etapa atual", "next_step": "Próxima etapa", "detailed_result_below": "Um resultado detalhado está disponível abaixo.", "technical_logs": "Logs técnicos e diagnósticos", "newest_first": "Mais recentes primeiro",
     "result": "Resultado da tarefa", "output_paths": "Caminhos de saída", "child_tasks": "Tarefas filhas", "back_to_workflow": "Voltar ao fluxo de trabalho"
+  },
+  "task_presentation": {
+    "incremental": {
+      "preparing": "Preparando a atualização incremental",
+      "scanning": "Verificando os arquivos de origem",
+      "comparing": "Comparando com a referência arquivada",
+      "translating": "Traduzindo o conteúdo alterado",
+      "validating": "Verificando o formato da tradução"
+    },
+    "event": {
+      "incremental_queued": "Atualização incremental adicionada à fila",
+      "files_scanned": "{{count}} arquivos de origem verificados",
+      "translating_batches": "Traduzindo para {{language}}: lote {{current}} de {{total}}",
+      "incremental_completed": "Tradução incremental concluída",
+      "format_validation": "Verificando e corrigindo o formato da tradução",
+      "comparing_archive": "Comparando o conteúdo de origem com a referência arquivada"
+    },
+    "result": {
+      "incremental_completed": "{{count}} arquivos de tradução processados.",
+      "incremental_completed_with_warnings": "{{files}} arquivos de tradução processados com {{warnings}} avisos de execução.",
+      "format_scan_completed": "Verificação de formato concluída com {{count}} problemas."
+    },
+    "next_step": {
+      "review_failure": "Revise o resumo da falha e as informações de diagnóstico antes de tentar novamente.",
+      "internal_error": "O Remis encontrou um erro interno de consistência. Mantenha este registro da tarefa e tente novamente depois que os dados do projeto forem corrigidos.",
+      "proofread": "Prossiga para a revisão e verifique as traduções geradas.",
+      "review_format_issues": "Revise os problemas de formato detectados antes de aplicar as correções.",
+      "no_action_required": "Nenhum problema de formato requer ação.",
+      "completed": "A tarefa foi concluída. Revise o resultado e o local de saída.",
+      "wait": "Esta tarefa ainda está em execução. Você pode sair e voltar pelo Centro de Tarefas."
+    }
   },
   "task_history": {
     "eyebrow": "Arquivo de tarefas", "title": "Logs de tarefas", "subtitle": "Revise por dia todas as execuções em segundo plano, inclusive tarefas tratadas.",
@@ -1535,11 +1567,15 @@
     "help": "A Format Repair lê primeiro o registro de problemas de formato salvos deste projeto e grava o status de correção atualizado nele.",
     "scope_hint": "Esta página verifica apenas problemas de formato de script Paradox, como variáveis, tags, quebras de linha e nomes de chaves. Ela não verifica erros de digitação, redação ou estilo de escrita.",
     "issue_breakdown": "Detalhamento de Problemas",
-    "no_issues": "Não há problemas de validação abertos no momento."
+    "no_issues": "Não há problemas de validação abertos no momento.",
+    "scan_task_recorded": "Esta verificação de formato foi registrada no Centro de Tarefas. Abra-a para revisar o projeto e o escopo de entrada exatos."
   },
   "incremental_translation": {
     "title": "Tradução Incremental",
     "description": "Fluxo de trabalho guiado: analise as alterações de origem e traduza apenas o conteúdo novo ou modificado.",
+    "background_task_notice": "A tarefa está sendo executada em segundo plano. Você pode sair desta página com segurança e verificar o progresso a qualquer momento no Centro de Tarefas.",
+    "conflicting_task_title": "Já existe uma tarefa de tradução em execução para este projeto",
+    "conflicting_task_notice": "O Remis impediu o início de uma segunda tarefa de gravação. Abra a tarefa existente para acompanhar o progresso ou o resultado.",
     "step_1_title": "Selecionar Projeto",
     "step_1_desc": "Escolha um projeto existente para atualizar",
     "step_2_title": "Validação e Configuração",
@@ -1790,6 +1826,8 @@
   },
   "proofreading": {
     "target_language": "Idioma de Destino",
+    "save_and_next_entry": "Salvar e ir para a próxima entrada",
+    "return_to_task": "Voltar à tarefa de origem",
     "scale": "Escala",
     "select_project_placeholder": "Selecionar projeto",
     "select_source_file": "Selecionar arquivo de origem",
@@ -2051,6 +2089,7 @@
     "view_task": "Abrir tarefa",
     "progress": "Andamento da tarefa",
     "created_by": "Criada por: {{creator}}",
+    "started_at": "Iniciada em: {{time}}",
     "blocking": "Projeto em uso",
     "mark_handled": "Marcar como tratada",
     "handle_error": "Não foi possível marcar a tarefa como tratada",
@@ -2079,6 +2118,7 @@
       "incremental_translation": "Tradução incremental",
       "agent_workshop": "Format Repair",
       "agent_workshop_batch": "Format Repair batch",
+      "agent_workshop_scan": "Verificação de formato",
       "repair": "Format repair",
       "neologism_mining": "Mineração de neologismos",
       "dry_run": "Teste do agente",
