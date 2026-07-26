@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { configDefaults } from 'vitest/config'
 
 // https://vite.dev/config/
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -100,5 +101,6 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/setupTests.js',
+    exclude: [...configDefaults.exclude, 'tests/visual/**'],
   },
 })
