@@ -249,6 +249,7 @@ class TaskRepository:
         self,
         *,
         include_archived: bool = False,
+        include_children: bool = True,
         statuses: Optional[Iterable[str]] = None,
         kind: Optional[str] = None,
         from_time: Optional[str] = None,
@@ -261,6 +262,8 @@ class TaskRepository:
         parameters: list[Any] = []
         if not include_archived:
             clauses.append("archived_at IS NULL")
+        if not include_children:
+            clauses.append("parent_task_id IS NULL")
         if statuses is not None:
             placeholders, normalized = self._in_clause(statuses)
             if not normalized:
@@ -284,7 +287,12 @@ class TaskRepository:
             else "updated_at DESC, created_at DESC"
         )
 
-        count_scope = "" if include_archived else "WHERE archived_at IS NULL"
+        count_clauses: list[str] = []
+        if not include_archived:
+            count_clauses.append("archived_at IS NULL")
+        if not include_children:
+            count_clauses.append("parent_task_id IS NULL")
+        count_scope = f"WHERE {' AND '.join(count_clauses)}" if count_clauses else ""
         with self._lock, self._connect() as connection:
             count_row = connection.execute(
                 f"""

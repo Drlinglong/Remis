@@ -240,6 +240,7 @@ def _persisted_task_page(
     *,
     jobs: Dict[str, Dict[str, Any]],
     include_archived: bool,
+    include_children: bool,
     active_only: bool,
     status: Optional[str],
     kind: Optional[str],
@@ -273,6 +274,7 @@ def _persisted_task_page(
     )
     page = repository.query_task_page(
         include_archived=include_archived,
+        include_children=include_children,
         statuses=raw_statuses,
         kind=kind,
         from_time=_iso_utc(from_time),
@@ -345,6 +347,7 @@ def _task_matches_glossary(summary: TaskSummary, glossary_id: int) -> bool:
 async def list_task_summaries(
     active_only: Annotated[bool, Query()] = False,
     include_archived: Annotated[bool, Query()] = False,
+    include_children: Annotated[bool, Query()] = False,
     status: Annotated[Optional[str], Query()] = None,
     kind: Annotated[Optional[str], Query()] = None,
     glossary_id: Annotated[Optional[int], Query(ge=1)] = None,
@@ -363,6 +366,7 @@ async def list_task_summaries(
         persisted_page = _persisted_task_page(
             jobs=jobs,
             include_archived=include_archived,
+            include_children=include_children,
             active_only=active_only,
             status=normalized_status,
             kind=kind,
@@ -376,6 +380,8 @@ async def list_task_summaries(
             return persisted_page
 
     summaries = _collect_task_summaries(include_archived=include_archived)
+    if not include_children:
+        summaries = [item for item in summaries if not item.parent_task_id]
     await _enrich_project_context(summaries)
     active_count = sum(item.status in ACTIVE_STATUSES for item in summaries)
     attention_count = sum(item.status in ATTENTION_STATUSES for item in summaries)

@@ -59,6 +59,8 @@ export const useAgentWorkshopController = () => {
   const [fixing, setFixing] = useState(false);
   const restoredRef = useRef(false);
   const runResumeRef = useRef(false);
+  const fixRunInFlightRef = useRef(false);
+  const fixRunIdempotencyKeyRef = useRef(null);
 
   const sessionState = useMemo(() => ({
     active,
@@ -170,6 +172,7 @@ export const useAgentWorkshopController = () => {
     const key = String(code).trim();
     const known = {
       validation_vic3_variable_parity_mismatch: t('agent_workshop.issue_vic3_variable_parity'),
+      validation_variable_parity_mismatch: t('agent_workshop.issue_variable_parity'),
       validation_vic3_color_tags_mismatch: t('agent_workshop.issue_vic3_color_tags'),
       validation_residual_punctuation_found: t('agent_workshop.validation_residual_punctuation_found'),
       validation_invalid_key_format: t('agent_workshop.issue_invalid_key_format'),
@@ -178,7 +181,7 @@ export const useAgentWorkshopController = () => {
     if (known[key]) return known[key];
     if (key.includes('颜色标签') && key.includes('结束符')) return t('agent_workshop.issue_vic3_color_tags');
     if (key.includes('源语言标点') || key.includes('标点符号')) return t('agent_workshop.validation_residual_punctuation_found');
-    if (key.includes('变量数量') || key.includes('变量')) return t('agent_workshop.issue_vic3_variable_parity');
+    if (key.includes('变量数量') || key.includes('变量')) return t('agent_workshop.issue_variable_parity');
     if (key.startsWith('validation_')) return t('agent_workshop.issue_validation_generic');
     return key;
   }, [t]);
@@ -458,15 +461,28 @@ export const useAgentWorkshopController = () => {
 
   const requestFixRunApproval = useCallback(() => {
     if (!selectedProjectId || !issues.length || !selectedProvider || !selectedModel || executing) return;
+    if (!fixRunIdempotencyKeyRef.current) {
+      fixRunIdempotencyKeyRef.current = createAgentWorkshopIdempotencyKey(selectedProjectId);
+    }
     setWorkflowError('');
     setApprovalOpen(true);
   }, [executing, issues.length, selectedModel, selectedProjectId, selectedProvider]);
 
   const executeFixRun = useCallback(async () => {
-    if (!selectedProjectId || !issues.length || !selectedProvider || !selectedModel || executing) return;
+    if (
+      !selectedProjectId
+      || !issues.length
+      || !selectedProvider
+      || !selectedModel
+      || executing
+      || fixRunInFlightRef.current
+    ) return;
 
     const runIssues = [...issues];
-    const idempotencyKey = createAgentWorkshopIdempotencyKey(selectedProjectId);
+    fixRunInFlightRef.current = true;
+    const idempotencyKey = fixRunIdempotencyKeyRef.current
+      || createAgentWorkshopIdempotencyKey(selectedProjectId);
+    fixRunIdempotencyKeyRef.current = idempotencyKey;
     setApprovalOpen(false);
     setWorkflowError('');
     runResumeRef.current = false;
@@ -497,7 +513,10 @@ export const useAgentWorkshopController = () => {
         idempotencyKey,
       });
       setCurrentRunTaskId(run.task_id);
-      addExecutionLog(`Task accepted: ${run.task_id}`);
+      addExecutionLog(t('agent_workshop.task_accepted_log', {
+        taskId: run.task_id,
+        defaultValue: `Task accepted: ${run.task_id}`,
+      }));
       writeAgentWorkshopSnapshot(createAgentWorkshopSnapshot(sessionState, {
         active: 3,
         executing: true,
@@ -516,6 +535,7 @@ export const useAgentWorkshopController = () => {
       addExecutionLog(message);
       setWorkflowError(message);
     } finally {
+      fixRunInFlightRef.current = false;
       setExecuting(false);
     }
   }, [
@@ -530,9 +550,12 @@ export const useAgentWorkshopController = () => {
     selectedProjectId,
     selectedProvider,
     sessionState,
+    t,
   ]);
 
   const resetWorkflow = useCallback(() => {
+    fixRunInFlightRef.current = false;
+    fixRunIdempotencyKeyRef.current = null;
     clearAgentWorkshopSnapshot();
     setActive(0);
     setSelectedProjectId(null);

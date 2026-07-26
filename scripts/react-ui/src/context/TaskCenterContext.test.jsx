@@ -39,7 +39,15 @@ describe('TaskCenterProvider', () => {
       if (params.active_only) {
         return Promise.resolve({
           data: {
-            tasks: [{ task_id: 'old-running', title: 'Older running task', status: 'running' }],
+            tasks: [
+              { task_id: 'old-running', title: 'Older running task', status: 'running' },
+              {
+                task_id: 'old-running:batch:1',
+                parent_task_id: 'old-running',
+                title: 'Internal batch task',
+                status: 'running',
+              },
+            ],
             active_count: 1,
             attention_count: 0,
           },
@@ -68,6 +76,7 @@ describe('TaskCenterProvider', () => {
     });
     expect(screen.getByText('Older running task')).toBeInTheDocument();
     expect(screen.getByText('Latest completed task')).toBeInTheDocument();
+    expect(screen.queryByText('Internal batch task')).not.toBeInTheDocument();
     expect(screen.getByText('active:1')).toBeInTheDocument();
   });
 });

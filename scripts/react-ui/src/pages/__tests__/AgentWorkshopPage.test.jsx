@@ -215,7 +215,7 @@ describe('AgentWorkshopPage', () => {
             if (url === '/api/project/test-p/history') {
                 return Promise.resolve({ data: [] });
             }
-            if (url === '/api/agent-workshop/scan?project_id=test-p') {
+            if (url === '/api/agent-workshop/scan?project_id=test-p&force=true') {
                 return Promise.resolve({
                     data: [{
                         file_name: 'events.yml',
@@ -256,7 +256,7 @@ describe('AgentWorkshopPage', () => {
 
         expect(api.post).not.toHaveBeenCalled();
         const dialog = await screen.findByRole('dialog');
-        expect(within(dialog).getByText('agent_workshop.start_fix_confirm')).toBeInTheDocument();
+        expect(within(dialog).getByText('agent_workshop.start_fix_confirm_cloud')).toBeInTheDocument();
 
         fireEvent.click(within(dialog).getByRole('button', { name: 'agent_workshop.start_fix' }));
 

@@ -105,6 +105,44 @@ def test_task_page_filters_counts_and_paginates_without_loading_events(tmp_path,
     assert len(history_page["tasks"]) == 6
 
 
+def test_task_page_can_exclude_child_tasks_from_rows_and_global_counts(tmp_path):
+    db_path = tmp_path / "task-parent-filter.sqlite"
+    migrate_main_database(str(db_path))
+    repository = TaskRepository(str(db_path))
+    timestamp = "2026-07-26T12:00:00Z"
+    repository.save_task({
+        "task_id": "parent",
+        "kind": "agent_workshop",
+        "title": "Format Repair",
+        "status": "running",
+        "created_at": timestamp,
+        "updated_at": timestamp,
+    })
+    repository.save_task({
+        "task_id": "parent:batch:1",
+        "kind": "agent_workshop_batch",
+        "parent_task_id": "parent",
+        "title": "Batch 1",
+        "status": "failed",
+        "created_at": timestamp,
+        "updated_at": timestamp,
+    })
+
+    top_level = repository.query_task_page(include_children=False)
+    complete_ledger = repository.query_task_page(include_children=True)
+
+    assert [task["task_id"] for task in top_level["tasks"]] == ["parent"]
+    assert top_level["total_count"] == 1
+    assert top_level["active_count"] == 1
+    assert top_level["attention_count"] == 0
+    assert {task["task_id"] for task in complete_ledger["tasks"]} == {
+        "parent",
+        "parent:batch:1",
+    }
+    assert complete_ledger["total_count"] == 2
+    assert complete_ledger["attention_count"] == 1
+
+
 def test_task_events_default_to_user_audience_and_can_include_diagnostics(tmp_path):
     db_path = tmp_path / "task-events.sqlite"
     migrate_main_database(str(db_path))

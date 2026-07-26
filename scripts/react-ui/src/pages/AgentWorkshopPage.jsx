@@ -15,6 +15,7 @@ import styles from './AgentWorkshop.module.css';
 import translationStyles from './Translation.module.css';
 import { buildProofreadingUrl } from '../utils/proofreadingLinks';
 import { taskDetailRoute } from '../utils/taskRoutes';
+import { isLocalAgentWorkshopProvider } from '../services/agentWorkshopWorkflowService';
 
 const AgentWorkshopPage = () => {
   const logViewportRef = useRef(null);
@@ -88,7 +89,7 @@ const AgentWorkshopPage = () => {
   }, [executionLogs]);
 
   return (
-    <Box className={styles.container}>
+    <Box className={styles.container} data-remis-surface="canvas">
       <Container size="xl" py="lg">
         <Stack gap="lg">
           <Stack gap={0}>
@@ -103,8 +104,8 @@ const AgentWorkshopPage = () => {
 
           <Stepper active={active} onStepClick={setActive} allowNextStepsSelect={false} breakpoint="sm">
             <Stepper.Step label={t('agent_workshop.step_select_project')} description={t('agent_workshop.step_select_project_desc')} icon={<IconFolderCode size={18} />}>
-              <Stack mt="xl" className={translationStyles.executionStep}>
-                <Paper id="agent-workshop-project-selector" withBorder p="md" radius="md" className={translationStyles.glassCard}>
+              <Stack mt="xl">
+                <Paper id="agent-workshop-project-selector" withBorder p="md" radius="md" className={translationStyles.glassCard} data-remis-surface="surface">
                   <Group grow align="flex-end">
                     <TextInput label={t('common.search')} placeholder={t('agent_workshop.project_search_placeholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.currentTarget.value)} leftSection={<IconSearch size={16} />} />
                     <Select label={t('common.filter_game')} data={gameFilterOptions} value={gameFilter} onChange={(value) => setGameFilter(value || 'all')} />
@@ -112,11 +113,11 @@ const AgentWorkshopPage = () => {
                 </Paper>
                 <SimpleGrid id="agent-workshop-project-grid" cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
                   {filteredProjects.map((project) => (
-                    <Card key={project.project_id} padding="lg" radius="md" withBorder onClick={() => handleProjectSelect(project.project_id)} style={{ cursor: 'pointer' }} className={selectedProjectId === project.project_id ? translationStyles.selectedCard : translationStyles.glassCard}>
+                    <Card key={project.project_id} padding="lg" radius="md" withBorder onClick={() => handleProjectSelect(project.project_id)} style={{ cursor: 'pointer' }} className={selectedProjectId === project.project_id ? translationStyles.selectedCard : translationStyles.glassCard} data-remis-surface="surface">
                       <Stack gap="xs">
                         <Box><Title order={5}>{project.name}</Title><Text size="xs" c="dimmed">{project.source_path?.split(/[\\/]/).pop()}</Text></Box>
                         <Group gap="xs"><Badge color="blue" variant="light">{project.game_id}</Badge><Badge color="teal" variant="light">{project.source_language || '--'}</Badge></Group>
-                        <Text size="xs" c="dimmed" lineClamp={2}>{project.source_path}</Text>
+                        <Text size="xs" c="dimmed" lineClamp={2} className={styles.pathText}>{project.source_path}</Text>
                       </Stack>
                     </Card>
                   ))}
@@ -132,7 +133,7 @@ const AgentWorkshopPage = () => {
             <Stepper.Step label={t('agent_workshop.step_project_summary')} description={t('agent_workshop.step_project_summary_desc')} icon={<IconSettings size={18} />}>
               <Stack mt="xl" gap="md">
                 {projectContextLoading && <Paper withBorder p="lg" radius="md" className={translationStyles.glassCard}><Text size="sm">{t('common.loading')}</Text></Paper>}
-                {selectedProject && <Paper id="agent-workshop-project-summary" withBorder p="lg" radius="md" className={translationStyles.glassCard}><Stack>
+                {selectedProject && <Paper id="agent-workshop-project-summary" withBorder p="lg" radius="md" className={translationStyles.glassCard} data-remis-surface="surface"><Stack>
                   <Group justify="space-between"><Title order={4}>{selectedProject.name}</Title><Badge color="blue" variant="light">{selectedProject.game_id}</Badge></Group>
                   <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
                     <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('incremental_translation.project_source_language')}</Text><Text size="sm" fw={600}>{selectedProject.source_language || '--'}</Text></Card>
@@ -142,7 +143,7 @@ const AgentWorkshopPage = () => {
                     <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.source_entries')}</Text><Text size="sm" fw={600}>{archiveInfo?.source_entry_count ?? '--'}</Text></Card>
                     <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.translation_entries')}</Text><Text size="sm" fw={600}>{archiveInfo?.total_translation_entries ?? '--'}</Text></Card>
                   </SimpleGrid>
-                  <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.project_path')}</Text><Text size="sm" fw={500}>{selectedProject.source_path}</Text></Card>
+                  <Card withBorder p="sm" radius="md" data-remis-surface="paper"><Text size="xs" c="dimmed">{t('agent_workshop.project_path')}</Text><Text size="sm" fw={500} className={styles.pathText}>{selectedProject.source_path}</Text></Card>
                   <Alert icon={<IconInfoCircle size={16} />} color="blue" radius="md"><Text size="sm">{t('agent_workshop.scan_help')}</Text></Alert>
                   <Group justify="space-between"><Button variant="light" onClick={() => setActive(0)}>{t('common.back')}</Button><Button id="agent-workshop-scan-btn" leftSection={<IconSearch size={16} />} onClick={handleScan} loading={scanLoading}>{t('agent_workshop.scan_btn')}</Button></Group>
                 </Stack></Paper>}
@@ -151,7 +152,7 @@ const AgentWorkshopPage = () => {
 
             <Stepper.Step label={t('agent_workshop.step_scan_summary')} description={t('agent_workshop.step_scan_summary_desc')} icon={<IconChartBar size={18} />}>
               <Stack mt="xl" gap="md">
-                <Paper withBorder p="lg" radius="md" className={translationStyles.glassCard}>
+                <Paper withBorder p="lg" radius="md" className={translationStyles.glassCard} data-remis-surface="surface">
                   <SimpleGrid id="agent-workshop-fix-settings" cols={{ base: 1, sm: 2 }} spacing="md" mb="md">
                     <Select label={t('agent_workshop.provider_label')} data={apiProviders} value={selectedProvider} onChange={handleProviderChange} />
                     <Select label={t('agent_workshop.model_label')} data={modelOptions} value={selectedModel} onChange={setSelectedModel} searchable />
@@ -175,7 +176,13 @@ const AgentWorkshopPage = () => {
                     <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.issue_entries')}</Text><Title order={3} c={issues.length ? 'orange' : 'green'}>{issues.length}</Title></Card>
                     <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.cached_state')}</Text><Title order={5}>{isCached ? t('agent_workshop.cached_label') : t('agent_workshop.scanned_label')}</Title></Card>
                   </SimpleGrid>
-                  <Alert icon={<IconAlertTriangle size={16} />} color={issues.length ? 'orange' : 'green'} radius="md">{issues.length ? t('agent_workshop.start_fix_confirm') : t('agent_workshop.no_errors_desc')}</Alert>
+                  <Alert icon={<IconAlertTriangle size={16} />} color={issues.length ? 'orange' : 'green'} radius="md">
+                    {issues.length
+                      ? t(isLocalAgentWorkshopProvider(selectedProvider)
+                        ? 'agent_workshop.start_fix_confirm_local'
+                        : 'agent_workshop.start_fix_confirm_cloud')
+                      : t('agent_workshop.no_errors_desc')}
+                  </Alert>
                   {currentRunTaskId && (
                     <Alert icon={<IconInfoCircle size={16} />} color="blue" radius="md" mt="md">
                       <Group justify="space-between" align="center" wrap="wrap">
@@ -226,21 +233,24 @@ const AgentWorkshopPage = () => {
                                   </Accordion.Control>
                                   <Accordion.Panel>
                                     <Stack gap="sm">
-                                      {fileIssues.map((issue, index) => (
-                                        <Paper key={`${issue.file_name}:${issue.key}:${index}`} p="sm" withBorder>
+                                      {fileIssues.map((issue, index) => {
+                                        const invalidKeyIssue = issue.error_code === 'validation_invalid_key_format';
+                                        return (
+                                        <Paper key={`${issue.file_name}:${issue.key}:${index}`} p="sm" withBorder className={styles.issuePaper} data-remis-surface="paper">
                                           <Group justify="space-between" align="flex-start" wrap="nowrap">
                                             <Box style={{ minWidth: 0, flex: 1 }}>
                                               <Text size="sm" fw={600}>{issue.key}</Text>
-                                              <Badge color="red" variant="light" mt={6}>{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge>
-                                              <Text size="xs" c="dimmed" mt={8}>{localizeIssueDetails(issue)}</Text>
-                                              <Code block mt="sm">{issue.target_str}</Code>
+                                              <Badge color="red" variant="light" mt={6} className={styles.issueBadge}>{localizeIssueLabel(issue.error_code || issue.error_type)}</Badge>
+                                              <Text size="xs" c="dimmed" mt={8} className={styles.issueDetails}>{localizeIssueDetails(issue)}</Text>
+                                              <Code block mt="sm" className={styles.issueText}>{issue.target_str}</Code>
                                             </Box>
                                             <Stack gap="xs">
                                               <Button
                                                 size="xs"
                                                 variant="light"
                                                 leftSection={<IconEdit size={14} />}
-                                                disabled={!issue.file_id || !issue.key}
+                                                disabled={!issue.file_id || !issue.key || invalidKeyIssue}
+                                                title={invalidKeyIssue ? t('proofreading.editor_help.key') : undefined}
                                                 onClick={() => navigate(buildProofreadingUrl({
                                                   projectId: selectedProjectId,
                                                   fileId: issue.file_id,
@@ -257,7 +267,8 @@ const AgentWorkshopPage = () => {
                                             </Stack>
                                           </Group>
                                         </Paper>
-                                      ))}
+                                        );
+                                      })}
                                     </Stack>
                                   </Accordion.Panel>
                                 </Accordion.Item>
@@ -273,7 +284,7 @@ const AgentWorkshopPage = () => {
             </Stepper.Step>
 
             <Stepper.Step label={t('agent_workshop.step_execution')} description={t('agent_workshop.step_execution_desc')} icon={<IconRobot size={18} />}>
-              <Stack mt="xl"><Paper id="agent-workshop-execution-panel" withBorder p="xl" radius="md" className={translationStyles.glassCard}>
+              <Stack mt="xl"><Paper id="agent-workshop-execution-panel" withBorder p="xl" radius="md" className={translationStyles.glassCard} data-remis-surface="surface">
                 <Title order={4} mb="md">{t('agent_workshop.execution_title')}</Title>
                 {currentRunTaskId && (
                   <Alert icon={<IconInfoCircle size={16} />} color="blue" radius="md" mb="md">
@@ -347,10 +358,19 @@ const AgentWorkshopPage = () => {
           title={t('agent_workshop.start_fix')}
           centered
           radius="md"
+          classNames={{
+            content: styles.approvalModalContent,
+            header: styles.approvalModalHeader,
+            title: styles.approvalModalTitle,
+            body: styles.approvalModalBody,
+            close: styles.approvalModalClose,
+          }}
         >
-          <Stack>
-            <Alert icon={<IconAlertTriangle size={16} />} color="orange" radius="md">
-              {t('agent_workshop.start_fix_confirm')}
+          <Stack data-remis-surface="paper">
+            <Alert icon={<IconAlertTriangle size={16} />} color="orange" radius="md" className={styles.approvalWarning}>
+              {t(isLocalAgentWorkshopProvider(selectedProvider)
+                ? 'agent_workshop.start_fix_confirm_local'
+                : 'agent_workshop.start_fix_confirm_cloud')}
             </Alert>
             <SimpleGrid cols={2} spacing="xs">
               <Text size="sm" c="dimmed">{t('agent_workshop.issue_entries')}</Text>
@@ -366,10 +386,10 @@ const AgentWorkshopPage = () => {
               })}
             </Text>
             <Group justify="flex-end">
-              <Button variant="subtle" color="gray" onClick={() => setApprovalOpen(false)}>
+              <Button variant="subtle" color="gray" onClick={() => setApprovalOpen(false)} data-remis-action="secondary" className={styles.approvalSecondary}>
                 {t('cancel')}
               </Button>
-              <Button color="orange" leftSection={<IconPlayerPlay size={16} />} onClick={executeFixRun}>
+              <Button color="orange" leftSection={<IconPlayerPlay size={16} />} onClick={executeFixRun} data-remis-action="primary" disabled={executing}>
                 {t('agent_workshop.start_fix')}
               </Button>
             </Group>
@@ -384,7 +404,9 @@ const AgentWorkshopPage = () => {
               <Paper p="xs" withBorder><Text size="xs" fw={700} c="red" tt="uppercase">{t('agent_workshop.modal_error_detected')}</Text><Code block color="red">{currentIssue?.target_str}</Code><Text size="xs" mt={4}>{localizeIssueDetails(currentIssue)}</Text></Paper>
               {!fixResult && (
                 <Alert icon={<IconAlertTriangle size={16} />} color="orange" radius="md">
-                  {t('agent_workshop.start_fix_confirm')}
+                  {t(isLocalAgentWorkshopProvider(selectedProvider)
+                    ? 'agent_workshop.start_fix_confirm_local'
+                    : 'agent_workshop.start_fix_confirm_cloud')}
                 </Alert>
               )}
               {!fixResult && <Button fullWidth variant="gradient" gradient={{ from: 'indigo', to: 'cyan' }} onClick={handleFixRequest} disabled={fixing || !selectedProvider || !selectedModel}>{selectedProvider && selectedModel ? t('agent_workshop.fix_btn') : t('agent_workshop.select_model_hint')}</Button>}

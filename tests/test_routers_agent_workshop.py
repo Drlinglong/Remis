@@ -1,3 +1,4 @@
+import inspect
 import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -404,6 +405,80 @@ def test_scan_uses_translation_relative_paths_for_external_translation_dirs(tmp_
 
     translation_cache = ValidationLogger.load_errors(str(translation_root))
     assert [item["key"] for item in translation_cache] == [data[0]["key"]]
+
+
+def test_force_scan_pairs_source_language_files_inside_translation_root_and_reports_invalid_keys(tmp_path):
+    project_root = tmp_path / "project"
+    translation_root = tmp_path / "translation"
+    english_file = translation_root / "localization" / "english" / "demo_l_english.yml"
+    chinese_file = translation_root / "localization" / "simp_chinese" / "demo_l_simp_chinese.yml"
+    project_root.mkdir()
+    ProjectJsonManager(str(project_root)).update_config({
+        "translation_dirs": [str(translation_root)]
+    })
+    _write_loc_file(
+        english_file,
+        "l_english",
+        [
+            ("demo.variable:0", "Move $COUNT$ units."),
+            ("demo.color:0", "#bold Important#!"),
+        ],
+    )
+    chinese_file.parent.mkdir(parents=True, exist_ok=True)
+    chinese_file.write_text(
+        '\ufeffl_simp_chinese:\n'
+        ' demo.variable:0 "移动若干部队。"\n'
+        ' demo.color:0 "#bold 重要内容"\n'
+        ' demo invalid:0 "非法键"\n',
+        encoding="utf-8",
+    )
+
+    with patch("scripts.routers.agent_workshop.project_manager", new_callable=MagicMock) as mock_pm:
+        mock_pm.get_project = AsyncMock(return_value={
+            "project_id": "fixture-project",
+            "source_path": str(project_root),
+            "game_id": "stellaris",
+            "source_language": "en",
+        })
+        mock_pm.get_project_files = AsyncMock(return_value=[
+            {
+                "file_id": "source-language-copy",
+                "file_path": str(english_file),
+                "file_type": "translation",
+            },
+            {
+                "file_id": "broken-target",
+                "file_path": str(chinese_file),
+                "file_type": "translation",
+            },
+        ])
+
+        response = client.get(
+            "/api/agent-workshop/scan",
+            params={"project_id": "fixture-project", "force": True},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    issue_codes = {item["error_code"] for item in data}
+    assert "validation_invalid_key_format" in issue_codes
+    assert any(
+        item["key"] == "demo.variable:0"
+        and item["source_str"] == "Move $COUNT$ units."
+        for item in data
+    )
+    assert any(
+        item["key"] == "demo.color:0"
+        and item["source_str"] == "#bold Important#!"
+        for item in data
+    )
+    invalid_issue = next(
+        item for item in data
+        if item["error_code"] == "validation_invalid_key_format"
+    )
+    assert invalid_issue["key"] == "demo invalid:0"
+    assert invalid_issue["line_number"] == 4
+    assert invalid_issue["file_id"] == "broken-target"
 
 
 def test_force_scan_with_selected_sidecar_scans_only_current_translation_scope(tmp_path):
@@ -961,6 +1036,12 @@ def test_fix_run_creates_backend_managed_task():
     assert child["workflow_context"]["parent_task_id"] == task_id
     assert child["workflow_context"]["batch_number"] == 1
     assert tasks[task_id]["result"]["metadata"]["batch_task_ids"] == [child["task_id"]]
+
+
+def test_fix_run_background_entrypoint_is_synchronous_for_threadpool_execution():
+    from scripts.routers.agent_workshop import _run_agent_workshop_fix_task_in_worker
+
+    assert inspect.iscoroutinefunction(_run_agent_workshop_fix_task_in_worker) is False
 
 
 def test_fix_run_requires_approval_for_exact_scope():

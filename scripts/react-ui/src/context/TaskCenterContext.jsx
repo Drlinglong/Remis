@@ -19,8 +19,13 @@ export function TaskCenterProvider({ children }) {
         api.get('/api/tasks', { params: { active_only: true, limit: 200 } }),
         api.get('/api/tasks', { params: { status: 'completed', limit: 1 } }),
       ]);
-      const queueTasks = Array.isArray(queueResponse.data?.tasks) ? queueResponse.data.tasks : [];
-      const completedTasks = Array.isArray(completedResponse.data?.tasks) ? completedResponse.data.tasks : [];
+      // Child tasks are implementation details. Keep this defensive filter even
+      // though the API excludes them by default, so an older backend cannot
+      // make one user action look like many independently launched tasks.
+      const queueTasks = (Array.isArray(queueResponse.data?.tasks) ? queueResponse.data.tasks : [])
+        .filter((task) => !task.parent_task_id);
+      const completedTasks = (Array.isArray(completedResponse.data?.tasks) ? completedResponse.data.tasks : [])
+        .filter((task) => !task.parent_task_id);
       const seen = new Set(queueTasks.map((task) => task.task_id));
       setTasks([
         ...queueTasks,

@@ -20,7 +20,7 @@ from scripts.shared import task_state
 from scripts.core.agents.fix_agent import ReflexionFixAgent
 from scripts.core.base_handler import BaseApiHandler # For typing or creation
 
-from scripts.core.loc_parser import parse_loc_file
+from scripts.core.loc_parser import ENTRY_RE, parse_loc_file
 from scripts.utils.validation_logger import ValidationLogger
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.core.services.validation_sidecar_service import ValidationSidecarService
@@ -30,6 +30,9 @@ from scripts.schemas.tasks import TaskCreator
 router = APIRouter(prefix="/api/agent-workshop", tags=["agent-workshop"])
 logger = logging.getLogger(__name__)
 validation_sidecars = ValidationSidecarService()
+RELAXED_INVALID_ENTRY_RE = re.compile(
+    r'^\s*(?P<key>.+?)\s*:\s*(?P<version>[0-9]*)\s*"(?P<value>.*)"\s*$'
+)
 
 
 def _resolve_workshop_model_config(
@@ -65,6 +68,8 @@ class ValidationIssue(BaseModel):
     error_type: str
     error_code: Optional[str] = None
     details: str
+    details_code: Optional[str] = None
+    details_params: Optional[Dict[str, Any]] = None
     severity: Optional[str] = None
     text_sample: Optional[str] = None
     workflow: Optional[str] = None
@@ -619,6 +624,24 @@ def _resolve_source_entries_for_translation(
     )
     return {}, target_lang
 
+
+def _parse_invalid_key_entries(file_path: Path) -> List[tuple[str, str, int]]:
+    """Return localization rows rejected only because their key is malformed."""
+    from scripts.utils import read_text_bom
+
+    invalid_entries: List[tuple[str, str, int]] = []
+    for line_number, line in enumerate(read_text_bom(file_path).splitlines(), start=1):
+        if ENTRY_RE.match(line):
+            continue
+        match = RELAXED_INVALID_ENTRY_RE.match(line)
+        if not match:
+            continue
+        key = match.group("key").strip()
+        version = match.group("version").strip()
+        full_key = f"{key}:{version}" if version else key
+        invalid_entries.append((full_key, match.group("value"), line_number))
+    return invalid_entries
+
 @router.get("/load-cached", response_model=List[ValidationIssue])
 async def load_cached_errors(project_id: str, sidecar_path: Optional[str] = None):
     """
@@ -727,10 +750,32 @@ async def _scan_project_issues(
     def get_translation_rel_path(p):
         return _relative_to_any(Path(p), translation_roots, source_root)
 
-    source_files = {get_source_rel_path(f['file_path']): f for f in files if f.get('file_type') == 'source'}
+    from scripts.utils.i18n_utils import iso_to_paradox
+
+    source_paradox = iso_to_paradox(source_lang_iso)
+
+    def is_source_language_file(file_info: Dict[str, Any]) -> bool:
+        match = re.search(
+            r"_l_(?P<lang_suffix>[a-z_]+)\.yml$",
+            str(file_info.get("file_path") or ""),
+            re.IGNORECASE,
+        )
+        return bool(match and match.group("lang_suffix").lower() == source_paradox.lower())
+
+    source_files = {
+        get_source_rel_path(f["file_path"]): f
+        for f in files
+        if f.get("file_type") == "source"
+    }
+    source_files.update({
+        get_translation_rel_path(f["file_path"]): f
+        for f in files
+        if f.get("file_type") == "translation" and is_source_language_file(f)
+    })
     translation_files = [
         f for f in files
         if f.get('file_type') == 'translation'
+        and not is_source_language_file(f)
         and (
             not translation_roots
             or _find_translation_root(Path(f.get('file_path', '')), translation_roots) is not None
@@ -767,6 +812,45 @@ async def _scan_project_issues(
         # Parse the translation file
         entries = dict(parse_loc_file(file_path))
         logger.info("[AgentWorkshop] Parsed %s translation entries from %s", len(entries), rel_path)
+
+        for key, value, line_number in _parse_invalid_key_entries(file_path):
+            invalid_key_results = [
+                result
+                for result in validator.validate_entry(
+                    game_id,
+                    key,
+                    value,
+                    line_number=line_number,
+                    source_value="",
+                    target_lang=target_lang,
+                    dynamic_valid_tags=dynamic_valid_tags,
+                )
+                if getattr(result, "code", None) == "validation_invalid_key_format"
+            ]
+            for result in invalid_key_results:
+                issues.append(ValidationIssue(
+                    file_name=rel_path,
+                    file_id=file_info.get("file_id"),
+                    file_path=str(file_path),
+                    key=key,
+                    line_number=line_number,
+                    source_str="",
+                    source_context_status="missing",
+                    source_context_origin="none",
+                    source_context_warning=(
+                        "This row has an invalid localization key and needs manual review."
+                    ),
+                    target_str=value,
+                    error_type=result.message,
+                    error_code=result.code,
+                    details=result.details or "",
+                    details_code=getattr(result, "details_code", None),
+                    details_params=getattr(result, "details_params", None),
+                    severity=result.level.value,
+                    text_sample=getattr(result, "text_sample", None),
+                    target_lang=target_lang,
+                    status="detected",
+                ))
         
         for key, value in entries.items():
             try:
@@ -784,6 +868,11 @@ async def _scan_project_issues(
                 
             for res in results:
                 if res.level.value in ["error", "warning"]:
+                    error_code = getattr(res, "code", None)
+                    details_code = getattr(res, "details_code", None)
+                    details_params = getattr(res, "details_params", None)
+                    text_sample = getattr(res, "text_sample", None)
+                    line_number = getattr(res, "line_number", None)
                     logger.info(
                         "[AgentWorkshop] Issue detected: file=%s key=%s level=%s message=%s",
                         rel_path,
@@ -802,7 +891,13 @@ async def _scan_project_issues(
                         source_context_warning=None if source_entries.get(key, "") else "Original source text was not found during direct project scan. The repair will rely on best-effort inference unless another fallback source is available.",
                         target_str=value,
                         error_type=res.message,
+                        error_code=error_code if isinstance(error_code, str) else None,
                         details=res.details or "",
+                        details_code=details_code if isinstance(details_code, str) else None,
+                        details_params=details_params if isinstance(details_params, dict) else None,
+                        severity=res.level.value,
+                        text_sample=text_sample if isinstance(text_sample, str) else None,
+                        line_number=line_number if isinstance(line_number, int) else None,
                         target_lang=target_lang,
                         status="detected"
                     ))
@@ -1601,6 +1696,11 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
         )
 
 
+def _run_agent_workshop_fix_task_in_worker(task_id: str, request: FixRunRequest) -> None:
+    """Run blocking provider work outside FastAPI's main event loop."""
+    asyncio.run(_run_agent_workshop_fix_task(task_id, request))
+
+
 @router.post("/fix-run", response_model=FixRunResponse)
 async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTasks):
     """
@@ -1701,5 +1801,5 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
                 "existing_task_id": exc.existing_task.get("task_id"),
             },
         ) from exc
-    background_tasks.add_task(_run_agent_workshop_fix_task, task_id, request)
+    background_tasks.add_task(_run_agent_workshop_fix_task_in_worker, task_id, request)
     return FixRunResponse(task_id=task_id)

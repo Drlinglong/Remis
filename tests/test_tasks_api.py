@@ -80,7 +80,7 @@ async def test_task_summary_exposes_actor_tree_recovery_and_result_contract():
         },
     )
 
-    payload = await tasks_router.list_task_summaries()
+    payload = await tasks_router.list_task_summaries(include_children=True)
 
     task = payload.tasks[0]
     assert task.created_by.type == "remis_agent"
@@ -97,6 +97,50 @@ async def test_task_summary_exposes_actor_tree_recovery_and_result_contract():
     assert task.stage_code == "translating"
     assert task.blocking_reason
     assert task.blocking_reason_code == "project_write_locked"
+
+
+@pytest.mark.asyncio
+async def test_task_center_hides_children_by_default_but_detail_keeps_aggregate():
+    task_state.create_task(
+        "repair-parent",
+        status="running",
+        fields={"kind": "agent_workshop", "title": "Format Repair"},
+    )
+    task_state.create_task(
+        "repair-parent:batch:1",
+        status="completed",
+        fields={
+            "kind": "agent_workshop_batch",
+            "parent_task_id": "repair-parent",
+            "title": "Format Repair batch 1/2",
+        },
+    )
+    task_state.init_progress("repair-parent:batch:1", {"percent": 100})
+    task_state.create_task(
+        "repair-parent:batch:2",
+        status="running",
+        fields={
+            "kind": "agent_workshop_batch",
+            "parent_task_id": "repair-parent",
+            "title": "Format Repair batch 2/2",
+        },
+    )
+    task_state.init_progress("repair-parent:batch:2", {"percent": 50})
+
+    top_level = await tasks_router.list_task_summaries()
+    with_children = await tasks_router.list_task_summaries(include_children=True)
+    detail = await tasks_router.get_task_detail("repair-parent")
+
+    assert [item.task_id for item in top_level.tasks] == ["repair-parent"]
+    assert top_level.active_count == 1
+    assert {item.task_id for item in with_children.tasks} == {
+        "repair-parent",
+        "repair-parent:batch:1",
+        "repair-parent:batch:2",
+    }
+    assert detail.child_aggregate.total == 2
+    assert detail.child_aggregate.completed == 1
+    assert detail.child_aggregate.active == 1
 
 
 @pytest.mark.asyncio
