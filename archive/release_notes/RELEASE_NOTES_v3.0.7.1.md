@@ -55,9 +55,9 @@ contracts without sending prompts or API keys externally.
 - The frozen backend returned a real healthy response on an isolated localhost
   port before desktop packaging.
 - Windows installer:
-  `remis-mod-factory_3.0.7.1_x64-setup.exe` (41,913,399 bytes / 39.97 MiB).
+  `remis-mod-factory_3.0.7.1_x64-setup.exe` (41,916,708 bytes / 39.97 MiB).
 - SHA-256:
-  `BE0FA41E5C91014FFADFBD74A8B4ADCC09A1043B1FEB81FA2AA39AF81FD928B1`.
+  `3C7ED5028BFB6818A46BFA2474430ECE7A5E5FD17338933590CA27FE5B63F94C`.
 - A current production dependency audit reports two high-severity React Router
   findings. npm's available remediation is a forced route-stack version change,
   so it is not mixed into this narrowly scoped provider hotfix.
@@ -102,8 +102,8 @@ contracts without sending prompts or API keys externally.
   打包通过。
 - 冻结后端在桌面打包前于隔离的 localhost 端口返回真实健康响应。
 - Windows 安装包：
-  `remis-mod-factory_3.0.7.1_x64-setup.exe`（41,913,399 字节 / 39.97 MiB）。
+  `remis-mod-factory_3.0.7.1_x64-setup.exe`（41,916,708 字节 / 39.97 MiB）。
 - SHA-256：
-  `BE0FA41E5C91014FFADFBD74A8B4ADCC09A1043B1FEB81FA2AA39AF81FD928B1`。
+  `3C7ED5028BFB6818A46BFA2474430ECE7A5E5FD17338933590CA27FE5B63F94C`。
 - 当前生产依赖审计报告 2 项 React Router 高危问题；npm 提供的修复需要
   强制更换路由栈版本，因此没有混入这次范围严格受限的供应商热修。
