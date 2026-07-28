@@ -15,7 +15,7 @@ import {
   Group,
 } from '@mantine/core';
 import { IconArrowLeft, IconPlayerPlay } from '@tabler/icons-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router';
 import { useTutorial } from '../context/TutorialContextCore';
 import '../App.css';
 import layoutStyles from '../components/layout/Layout.module.css';

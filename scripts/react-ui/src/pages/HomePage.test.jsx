@@ -32,7 +32,7 @@ vi.mock('../utils/api', () => ({
   },
 }));
 
-vi.mock('react-router-dom', () => ({
+vi.mock('react-router', () => ({
   useNavigate: () => navigateMock,
 }));
 

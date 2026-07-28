@@ -7,7 +7,7 @@ import {
   IconRobot, IconCheck, IconRefresh, IconInfoCircle, IconSearch, IconWand,
   IconPlayerPlay, IconChartBar, IconSettings, IconFolderCode, IconAlertTriangle, IconEdit,
 } from '@tabler/icons-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import PerformanceControlPanel from '../components/shared/PerformanceControlPanel';
 import BusyHeartbeat from '../components/shared/BusyHeartbeat';
 import { useAgentWorkshopController } from '../hooks/useAgentWorkshopController';

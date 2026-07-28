@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useState } from 'react';
-import { createHashRouter, Outlet, RouterProvider } from 'react-router-dom';
+import { createHashRouter, Outlet } from 'react-router';
+import { RouterProvider } from 'react-router/dom';
 import { Center, Loader } from '@mantine/core';
 
 // import { MantineProvider } from '@mantine/core'; // Removed unused import

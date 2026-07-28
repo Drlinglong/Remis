@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { notifications } from '@mantine/notifications';
 import { usePersistentState } from './usePersistentState';
 import api from '../utils/api';

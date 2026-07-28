@@ -1,19 +1,24 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import useBreadcrumbs from 'use-react-router-breadcrumbs';
+import { NavLink, useLocation } from 'react-router';
 import { Breadcrumbs as MantineBreadcrumbs, Anchor } from '@mantine/core';
-import { routes } from '../../App'; // Import the routes from App.jsx
 
 const Breadcrumbs = () => {
-    const breadcrumbs = useBreadcrumbs(routes);
+    const { pathname } = useLocation();
+    const segments = pathname.split('/').filter(Boolean);
+    const breadcrumbs = segments.map((segment, index) => ({
+        pathname: `/${segments.slice(0, index + 1).join('/')}`,
+        label: decodeURIComponent(segment)
+            .replaceAll('-', ' ')
+            .replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    }));
 
-    const items = breadcrumbs.map(({ match, breadcrumb }, index) => {
+    const items = breadcrumbs.map(({ pathname: matchPath, label }, index) => {
         const isLast = index === breadcrumbs.length - 1;
         return isLast ? (
-            <span key={match.pathname}>{breadcrumb}</span>
+            <span key={matchPath}>{label}</span>
         ) : (
-            <Anchor component={NavLink} to={match.pathname} key={match.pathname}>
-                {breadcrumb}
+            <Anchor component={NavLink} to={matchPath} key={matchPath}>
+                {label}
             </Anchor>
         );
     });

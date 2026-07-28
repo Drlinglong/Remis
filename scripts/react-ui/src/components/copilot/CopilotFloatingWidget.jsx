@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActionIcon, Indicator, Paper, Text, Tooltip } from '@mantine/core';
 import { IconMessageChatbot, IconX } from '@tabler/icons-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import RemisCopilotThread from './RemisCopilotThread';
 import { useRemisCopilotContext } from '../../context/CopilotContext';

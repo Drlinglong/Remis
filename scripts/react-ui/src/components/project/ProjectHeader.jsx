@@ -2,7 +2,7 @@ import React from 'react';
 import { Paper, Group, Title, Button, Tooltip, Grid, Card, Text, Stack } from '@mantine/core';
 import { IconArchive, IconRestore, IconTrash, IconSettings, IconPlayerPlay, IconRocket, IconDatabaseCog } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import styles from '../../pages/ProjectManagement.module.css';
 import { useDeployActions } from '../../hooks/useDeployActions';
 import { DeployModals } from '../deploy/DeployModals';

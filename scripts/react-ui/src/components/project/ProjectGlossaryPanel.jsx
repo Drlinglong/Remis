@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Alert, Badge, Button, Group, Paper, Select, Stack, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconBook2, IconExternalLink, IconInfoCircle, IconLink, IconPlus, IconUnlink } from '@tabler/icons-react';

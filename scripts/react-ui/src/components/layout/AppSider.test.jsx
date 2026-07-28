@@ -8,7 +8,7 @@ import { AppSider } from './AppSider';
 const navigateMock = vi.fn();
 const startTourMock = vi.fn();
 
-vi.mock('react-router-dom', () => ({
+vi.mock('react-router', () => ({
   useNavigate: () => navigateMock,
   useLocation: () => ({ pathname: '/settings' }),
 }));

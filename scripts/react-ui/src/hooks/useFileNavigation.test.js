@@ -35,7 +35,7 @@ vi.mock('./usePersistentState', async () => {
   };
 });
 
-vi.mock('react-router-dom', () => ({
+vi.mock('react-router', () => ({
   useSearchParams: () => [searchParamsValue, setSearchParamsMock],
 }));
 

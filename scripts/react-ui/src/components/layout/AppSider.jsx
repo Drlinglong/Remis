@@ -22,7 +22,7 @@ import {
     IconPinFilled,
     IconMessageChatbot,
 } from '@tabler/icons-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import styles from './Layout.module.css';
 import { FEATURES } from '../../config/features';

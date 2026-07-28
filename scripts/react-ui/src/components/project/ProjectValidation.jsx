@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Badge, Button, Card, Group, Loader, Paper, ScrollArea, Select, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { IconEdit, IconInfoCircle, IconRefresh, IconRobot } from '@tabler/icons-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
 import { buildProofreadingUrl } from '../../utils/proofreadingLinks';

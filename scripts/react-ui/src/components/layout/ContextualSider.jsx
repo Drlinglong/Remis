@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Text, SegmentedControl, Group, ActionIcon } from '@mantine/core';
 import { IconInfoCircle, IconHistory, IconLayoutSidebarRightCollapse, IconLayoutSidebarRightExpand } from '@tabler/icons-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useSidebar } from '../../context/SidebarContextCore';
 import styles from './Layout.module.css';

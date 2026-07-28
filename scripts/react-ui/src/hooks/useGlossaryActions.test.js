@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import useGlossaryActions from './useGlossaryActions';

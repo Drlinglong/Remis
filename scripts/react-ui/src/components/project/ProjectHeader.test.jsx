@@ -7,7 +7,7 @@ import ProjectHeader from './ProjectHeader';
 
 const navigateMock = vi.fn();
 
-vi.mock('react-router-dom', () => ({
+vi.mock('react-router', () => ({
   useNavigate: () => navigateMock,
 }));
 

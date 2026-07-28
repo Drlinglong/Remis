@@ -3,7 +3,7 @@ import useProofreadingState from './useProofreadingState';
 import { vi, describe, it, expect } from 'vitest';
 
 // Mock dependencies
-vi.mock('react-router-dom', () => ({
+vi.mock('react-router', () => ({
     useSearchParams: () => [new URLSearchParams(), vi.fn()],
 }));
 

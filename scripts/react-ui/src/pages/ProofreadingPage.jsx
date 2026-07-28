@@ -13,7 +13,7 @@ import {
   Title,
 } from '@mantine/core';
 import { IconFolder } from '@tabler/icons-react';
-import { useBeforeUnload, useBlocker } from 'react-router-dom';
+import { useBeforeUnload, useBlocker } from 'react-router';
 import { isTauri } from '@tauri-apps/api/core';
 import layoutStyles from '../components/layout/Layout.module.css';
 import { useTutorial } from '../context/TutorialContextCore';

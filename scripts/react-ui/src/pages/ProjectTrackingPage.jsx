@@ -29,7 +29,7 @@ import {
   IconTrash,
 } from '@tabler/icons-react';
 import { open } from '@tauri-apps/plugin-dialog';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { PROJECT_WATCHES_UPDATED_EVENT } from '../components/ProjectWatchScheduler';
 import { useTutorial } from '../context/TutorialContextCore';

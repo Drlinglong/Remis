@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Box, Group, Stack, Tabs, Text, ThemeIcon, Title } from '@mantine/core';
 import { IconCpu, IconGavel } from '@tabler/icons-react';
 import MiningDashboard from '../components/neologism/MiningDashboard';

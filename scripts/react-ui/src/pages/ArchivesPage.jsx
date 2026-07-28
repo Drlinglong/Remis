@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Title, Text, Paper, Group, Badge, Button, ScrollArea, Box, LoadingOverlay } from '@mantine/core';
 import { IconArchive, IconArrowLeft, IconRefresh } from '@tabler/icons-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import api from '../utils/api';
 
 const API_BASE = '/api';

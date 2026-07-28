@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MantineProvider } from '@mantine/core';
-import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
+import { createMemoryRouter, useLocation } from 'react-router';
+import { RouterProvider } from 'react-router/dom';
 import ProjectValidation from './ProjectValidation';
 import api from '../../utils/api';
 

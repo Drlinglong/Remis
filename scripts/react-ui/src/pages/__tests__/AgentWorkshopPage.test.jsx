@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import React from 'react';
 import { MantineProvider } from '@mantine/core';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import AgentWorkshopPage from '../AgentWorkshopPage';
 import api from '../../utils/api';
 import { AGENT_WORKSHOP_STORAGE_KEY } from '../../hooks/agentWorkshopSession';

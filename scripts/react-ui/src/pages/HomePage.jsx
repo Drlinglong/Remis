@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Grid, Card, Title, Text, ThemeIcon, Group, Stack, Box, Button, BackgroundImage, Overlay, ActionIcon } from '@mantine/core';
 import { IconRocket, IconRefresh, IconChartBar, IconVocabulary, IconChecklist, IconActivity, IconTools } from '@tabler/icons-react';
 import ActionCard from '../components/ActionCard';
