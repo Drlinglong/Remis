@@ -21,11 +21,6 @@ class OpenAIHandler(BaseApiHandler):
 
         api_key = get_api_key(self.provider_name, api_key_env)
         if not api_key:
-            self.logger.error(
-                "API key '%s' was not found for provider '%s'.",
-                api_key_env,
-                self.provider_name,
-            )
             raise ValueError(f"{api_key_env} not set")
 
         base_url = provider_config.get("base_url")

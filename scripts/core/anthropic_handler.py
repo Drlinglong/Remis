@@ -15,11 +15,6 @@ class AnthropicHandler(BaseApiHandler):
         api_key_env = provider_config.get("api_key_env", "ANTHROPIC_API_KEY")
         api_key = get_api_key(self.provider_name, api_key_env)
         if not api_key:
-            self.logger.error(
-                "API key '%s' was not found for provider '%s'.",
-                api_key_env,
-                self.provider_name,
-            )
             raise ValueError(f"{api_key_env} not set")
 
         self.base_url = provider_config.get(
