@@ -2,8 +2,6 @@ import json
 import re
 from pathlib import Path
 
-import tomllib
-
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_INTERNAL_VERSION = "3.0.7+1"
@@ -42,10 +40,10 @@ def test_release_metadata_is_synchronized():
             encoding="utf-8"
         )
     )
-    cargo = tomllib.loads(
-        (ROOT / "scripts" / "react-ui" / "src-tauri" / "Cargo.toml").read_text(
-            encoding="utf-8"
-        )
+    cargo_toml = (
+        ROOT / "scripts" / "react-ui" / "src-tauri" / "Cargo.toml"
+    ).read_text(
+        encoding="utf-8"
     )
     cargo_lock = (
         ROOT / "scripts" / "react-ui" / "src-tauri" / "Cargo.lock"
@@ -56,7 +54,11 @@ def test_release_metadata_is_synchronized():
     assert package_lock["version"] == EXPECTED_INTERNAL_VERSION
     assert package_lock["packages"][""]["version"] == EXPECTED_INTERNAL_VERSION
     assert tauri_config["version"] == EXPECTED_INTERNAL_VERSION
-    assert cargo["package"]["version"] == EXPECTED_INTERNAL_VERSION
+    assert re.search(
+        rf'^\[package\]\s+name = "remis-mod-factory"\s+version = "{re.escape(EXPECTED_INTERNAL_VERSION)}"',
+        cargo_toml,
+        flags=re.MULTILINE,
+    )
     assert re.search(
         rf'name = "remis-mod-factory"\s+version = "{re.escape(EXPECTED_INTERNAL_VERSION)}"',
         cargo_lock,
