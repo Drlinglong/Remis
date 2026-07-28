@@ -82,8 +82,8 @@ DEFAULT_BACKEND_PORT = 1453
 # --- 项目信息 ----------------------------------------------------
 PROJECT_NAME = "Paradox Mod 本地化工厂 - Paradox Mod Localization Factory"
 PROJECT_DISPLAY_NAME = "蕾姆丝计划 - Project Remis "
-VERSION = "3.0.7"
-LAST_UPDATE_DATE = "2026-07-19"
+VERSION = "3.0.7+1"
+LAST_UPDATE_DATE = "2026-07-28"
 COPYRIGHT = "© 2026 Project Remis Team"
 
 # --- 项目信息显示配置 --------------------------------------------

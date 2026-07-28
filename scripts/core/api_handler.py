@@ -8,6 +8,7 @@ if TYPE_CHECKING:
 
 # --- Handler Imports ---
 from .openai_handler import OpenAIHandler
+from .anthropic_handler import AnthropicHandler
 from .gemini_handler import GeminiHandler
 from .qwen_handler import QwenHandler
 from .deepseek_handler import DeepSeekHandler
@@ -21,6 +22,42 @@ from .hunyuan_handler import HunyuanHandler
 from .yourfavourite_handler import YourFavouriteHandler
 
 
+OPENAI_COMPATIBLE_PROVIDER_IDS = {
+    "openai",
+    "kimi",
+    "minimax",
+    "zhipu",
+}
+
+LOCAL_PROVIDER_IDS = {
+    "ollama",
+    "lm_studio",
+    "vllm",
+    "koboldcpp",
+    "oobabooga",
+    "text-generation-webui",
+}
+
+PROVIDER_HANDLER_CLASSES = {
+    "anthropic": AnthropicHandler,
+    "gemini": GeminiHandler,
+    "qwen": QwenHandler,
+    "deepseek": DeepSeekHandler,
+    "grok": GrokHandler,
+    "modelscope": ModelScopeHandler,
+    "siliconflow": SiliconFlowHandler,
+    "nvidia": NvidiaHandler,
+    "hunyuan": HunyuanHandler,
+    "your_favourite_api": YourFavouriteHandler,
+}
+
+SUPPORTED_PROVIDER_IDS = (
+    set(PROVIDER_HANDLER_CLASSES)
+    | OPENAI_COMPATIBLE_PROVIDER_IDS
+    | LOCAL_PROVIDER_IDS
+)
+
+
 def get_handler(provider_name: str, model_name: str = None) -> 'BaseApiHandler':
     """
     【工厂函数】根据名称返回对应的API处理器实例。
@@ -30,37 +67,14 @@ def get_handler(provider_name: str, model_name: str = None) -> 'BaseApiHandler':
             raise ValueError(
                 "The Gemini CLI provider has been removed. Use the Gemini API provider with GEMINI_API_KEY instead."
             )
-        if provider_name == "openai":
+        if provider_name in OPENAI_COMPATIBLE_PROVIDER_IDS:
             return OpenAIHandler(provider_name, model_id=model_name)
-        elif provider_name == "qwen":
-            return QwenHandler(provider_name, model_id=model_name)
-        elif provider_name == "gemini":
-            return GeminiHandler(provider_name, model_id=model_name)
-        elif provider_name == "deepseek":
-            return DeepSeekHandler(provider_name, model_id=model_name)
-        elif provider_name == "grok":
-            return GrokHandler(provider_name, model_id=model_name)
-        elif provider_name == "minimax":
-            return OpenAIHandler(provider_name, model_id=model_name)
-        
-        # Unified Local Handler Route
-        elif provider_name in ["ollama", "lm_studio", "vllm", "koboldcpp", "oobabooga", "text-generation-webui"]:
+        if provider_name in LOCAL_PROVIDER_IDS:
             return LocalLLMHandler(provider_name, model_id=model_name)
-
-        elif provider_name == "modelscope":
-            return ModelScopeHandler(provider_name, model_id=model_name)
-        elif provider_name == "siliconflow":
-            return SiliconFlowHandler(provider_name, model_id=model_name)
-        elif provider_name == "nvidia":
-            return NvidiaHandler(provider_name, model_id=model_name)
-        elif provider_name == "hunyuan":
-            return HunyuanHandler(provider_name, model_id=model_name)
-        elif provider_name == "your_favourite_api":
-            return YourFavouriteHandler(provider_name, model_id=model_name)
-        else:
-            # 默认返回 Gemini
-            logging.warning(f"Unknown provider '{provider_name}', falling back to 'gemini'.")
-            return GeminiHandler("gemini", model_id=model_name)
+        handler_class = PROVIDER_HANDLER_CLASSES.get(provider_name)
+        if handler_class is None:
+            raise ValueError(f"Unknown API provider: {provider_name}")
+        return handler_class(provider_name, model_id=model_name)
     except Exception as e:
         logging.error(f"Failed to instantiate handler for {provider_name}: {e}", exc_info=True)
         raise
