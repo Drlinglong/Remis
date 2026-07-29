@@ -4,18 +4,15 @@ import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import { usePersistentState } from './usePersistentState';
 import api from '../utils/api';
-
-const EMPTY_GLOSSARY_OVERVIEW = {
-    summary: {
-        game_count: 0,
-        glossary_count: 0,
-        term_count: 0,
-        main_glossary_count: 0,
-        project_glossary_count: 0,
-        bound_project_count: 0,
-    },
-    glossaries: [],
-};
+import {
+    EMPTY_GLOSSARY_OVERVIEW,
+    normalizeGlossaryContentPayload,
+    normalizeGlossaryOverviewPayload,
+    normalizeGlossaryProjectsPayload,
+    normalizeGlossaryTaskHistoryPayload,
+    normalizeGlossaryTreePayload,
+} from '../utils/glossaryPayload';
+import { isGlossaryTaskActive, pollGlossaryTask } from './glossaryTaskMonitor';
 
 const localizeHealthTaskError = (t, message = '') => (
     /no models loaded/i.test(message)
@@ -51,7 +48,10 @@ const useGlossaryActions = () => {
     const [targetLanguages, setTargetLanguages] = useState([]);
     const [apiProviders, setApiProviders] = useState([]);
     const [projects, setProjects] = useState([]);
-    const [glossaryOperation, setGlossaryOperation] = useState(null);
+    const [glossaryOperation, setGlossaryOperation] = usePersistentState(
+        'glossary_active_operation',
+        null
+    );
     const [selectedTargetLang, setSelectedTargetLang] = usePersistentState('glossary_target_lang', '');
     const [searchScope, setSearchScope] = usePersistentState('glossary_search_scope', 'file');
     const [filtering, setFiltering] = usePersistentState('glossary_filtering', '');
@@ -86,11 +86,12 @@ const useGlossaryActions = () => {
                     api.get('/api/projects').catch(() => ({ data: [] })),
                 ]);
 
-                setTreeData(treeResponse.data);
-                setOverview(overviewResponse.data);
-                setProjects(projectsResponse.data || []);
-                if (treeResponse.data.length > 0 && !selectedGameRef.current) {
-                    setSelectedGameRef.current(treeResponse.data[0].key);
+                const normalizedTree = normalizeGlossaryTreePayload(treeResponse.data);
+                setTreeData(normalizedTree);
+                setOverview(normalizeGlossaryOverviewPayload(overviewResponse.data));
+                setProjects(normalizeGlossaryProjectsPayload(projectsResponse.data));
+                if (normalizedTree.length > 0 && !selectedGameRef.current) {
+                    setSelectedGameRef.current(normalizedTree[0].key);
                 }
 
                 const languages = Object.values(configResponse.data.languages);
@@ -169,7 +170,7 @@ const useGlossaryActions = () => {
                 file_name: glossaryNode.key,
             }).then((response) => {
                 if (!active) return;
-                const entry = (response.data?.entries || [])
+                const entry = normalizeGlossaryContentPayload(response.data).entries
                     .find((candidate) => candidate.id === focusEntryId);
                 setFocusedEntry(entry || null);
             }).catch(() => {
@@ -240,8 +241,9 @@ const useGlossaryActions = () => {
                 response = await api.post('/api/glossary/search', payload);
             }
 
-            setData(response.data.entries);
-            setRowCount(response.data.totalCount);
+            const normalizedContent = normalizeGlossaryContentPayload(response.data);
+            setData(normalizedContent.entries);
+            setRowCount(normalizedContent.totalCount);
         } catch {
             notifications.show({
                 title: 'Error',
@@ -264,7 +266,7 @@ const useGlossaryActions = () => {
         setIsLoadingOverview(true);
         try {
             const response = await api.get('/api/glossaries/overview');
-            setOverview(response.data);
+            setOverview(normalizeGlossaryOverviewPayload(response.data));
             return true;
         } catch {
             notifications.show({
@@ -286,8 +288,8 @@ const useGlossaryActions = () => {
                 api.get('/api/glossary/tree'),
                 api.get('/api/glossaries/overview'),
             ]);
-            setTreeData(treeResponse.data);
-            setOverview(overviewResponse.data);
+            setTreeData(normalizeGlossaryTreePayload(treeResponse.data));
+            setOverview(normalizeGlossaryOverviewPayload(overviewResponse.data));
             return true;
         } catch {
             notifications.show({
@@ -302,54 +304,66 @@ const useGlossaryActions = () => {
         }
     }, []);
 
-    const monitorGlossaryTask = useCallback(async (taskId, kind) => {
-        const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+    const monitorGlossaryTask = useCallback(async (taskId, kind, isCancelled) => {
         try {
-            for (let attempt = 0; attempt < 300; attempt += 1) {
-                const response = await api.get(`/api/tasks/${taskId}`);
-                const task = response.data;
-                setGlossaryOperation((current) => (
-                    current?.taskId === taskId
-                        ? { ...current, status: task.status, task }
-                        : current
-                ));
-                if (task.status === 'completed') {
-                    if (kind === 'merge') await refreshGlossaryIndex();
-                    const healthReport = task.result?.metadata || {};
-                    notifications.show({
-                        title: kind === 'merge'
-                            ? 'Glossary merge completed'
-                            : translate('glossary_health_completed_title'),
-                        message: kind === 'merge'
-                            ? (task.result?.summary || 'The background task completed.')
-                            : translate('glossary_health_completed_message', {
-                                score: healthReport.score ?? 0,
-                                count: healthReport.issue_count ?? 0,
-                            }),
-                        color: 'green',
-                    });
-                    return task;
-                }
-                if (['failed', 'cancelled', 'interrupted'].includes(task.status)) {
-                    notifications.show({
-                        title: kind === 'merge'
-                            ? 'Glossary merge failed'
-                            : translate('glossary_health_failed_title'),
-                        message: kind === 'merge'
-                            ? (task.message || 'Open the task center for details.')
-                            : localizeHealthTaskError(translate, task.message),
-                        color: 'red',
-                    });
-                    return task;
-                }
-                await wait(1000);
-            }
-            notifications.show({
-                title: 'Task is still running',
-                message: 'Follow its progress in the task center.',
-                color: 'blue',
+            const task = await pollGlossaryTask({
+                taskId,
+                getTask: async (currentTaskId) => {
+                    const response = await api.get(`/api/tasks/${currentTaskId}`);
+                    return response.data;
+                },
+                onTask: (nextTask) => {
+                    setGlossaryOperation((current) => (
+                        current?.taskId === taskId
+                            ? { ...current, status: nextTask.status, task: nextTask }
+                            : current
+                    ));
+                },
+                isCancelled,
             });
+
+            if (!task) {
+                if (!isCancelled()) {
+                    notifications.show({
+                        title: 'Task is still running',
+                        message: 'Follow its progress in the task center.',
+                        color: 'blue',
+                    });
+                }
+                return null;
+            }
+
+            if (task.status === 'completed') {
+                if (kind === 'merge') await refreshGlossaryIndex();
+                if (isCancelled()) return task;
+                const healthReport = task.result?.metadata || {};
+                notifications.show({
+                    title: kind === 'merge'
+                        ? 'Glossary merge completed'
+                        : translate('glossary_health_completed_title'),
+                    message: kind === 'merge'
+                        ? (task.result?.summary || 'The background task completed.')
+                        : translate('glossary_health_completed_message', {
+                            score: healthReport.score ?? 0,
+                            count: healthReport.issue_count ?? 0,
+                        }),
+                    color: 'green',
+                });
+                return task;
+            }
+
+            notifications.show({
+                title: kind === 'merge'
+                    ? 'Glossary merge failed'
+                    : translate('glossary_health_failed_title'),
+                message: kind === 'merge'
+                    ? (task.message || 'Open the task center for details.')
+                    : localizeHealthTaskError(translate, task.message),
+                color: 'red',
+            });
+            return task;
         } catch (error) {
+            if (isCancelled()) return null;
             setGlossaryOperation((current) => (
                 current?.taskId === taskId
                     ? { ...current, status: 'monitor_error', error: error.message }
@@ -361,8 +375,27 @@ const useGlossaryActions = () => {
                 color: 'orange',
             });
         }
-        return null;
-    }, [refreshGlossaryIndex, translate]);
+    }, [refreshGlossaryIndex, setGlossaryOperation, translate]);
+
+    const shouldMonitorGlossaryOperation = isGlossaryTaskActive(glossaryOperation);
+    useEffect(() => {
+        if (!shouldMonitorGlossaryOperation) return undefined;
+
+        let cancelled = false;
+        void monitorGlossaryTask(
+            glossaryOperation.taskId,
+            glossaryOperation.kind,
+            () => cancelled
+        );
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        glossaryOperation?.kind,
+        glossaryOperation?.taskId,
+        monitorGlossaryTask,
+        shouldMonitorGlossaryOperation,
+    ]);
 
     const onSelectTree = (key, info) => {
         if (info.isLeaf) {
@@ -673,7 +706,6 @@ const useGlossaryActions = () => {
                 message: `Task ${response.data.task_id} is available in the task center.`,
                 color: 'blue',
             });
-            void monitorGlossaryTask(response.data.task_id, 'merge');
             return response.data;
         } catch (error) {
             const detail = error.response?.data?.detail;
@@ -719,7 +751,6 @@ const useGlossaryActions = () => {
                     : translate('glossary_health_queued_script'),
                 color: 'blue',
             });
-            void monitorGlossaryTask(response.data.task_id, 'health');
             return response.data;
         } catch (error) {
             const detail = error.response?.data?.detail;
@@ -737,7 +768,6 @@ const useGlossaryActions = () => {
                     message: translate('glossary_health_queued_script'),
                     color: 'blue',
                 });
-                void monitorGlossaryTask(detail.task_id, 'health');
                 return {
                     task_id: detail.task_id,
                     status: 'running',
@@ -769,7 +799,7 @@ const useGlossaryActions = () => {
                 limit: 50,
             },
         });
-        return response.data?.tasks || [];
+        return normalizeGlossaryTaskHistoryPayload(response.data);
     };
 
     const handleDeleteGlossary = async () => {

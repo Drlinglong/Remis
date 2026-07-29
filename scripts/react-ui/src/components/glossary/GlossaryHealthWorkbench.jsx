@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import api from '../../utils/api';
+import { normalizeGlossaryContentPayload } from '../../utils/glossaryPayload';
 import styles from './GlossaryHealthWorkbench.module.css';
 
 const caseKey = (item) => `${item.issueCode}:${item.entry_id || item.source}`;
@@ -99,7 +100,8 @@ const GlossaryHealthWorkbench = ({ report }) => {
           game_id: null,
           file_name: `${selectedCase.game_id || 'unknown'}|${selectedCase.glossary_id}|${selectedCase.glossary_name || ''}`,
         });
-        const entry = (response.data?.entries || []).find((item) => item.id === selectedCase.entry_id);
+        const entry = normalizeGlossaryContentPayload(response.data).entries
+            .find((item) => item.id === selectedCase.entry_id);
         if (!active) return;
         setCurrentEntry(entry || null);
         const existingSource = entry?.source || selectedCase.source || '';

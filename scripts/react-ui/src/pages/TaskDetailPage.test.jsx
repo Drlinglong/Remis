@@ -1,6 +1,6 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import TaskDetailPage from './TaskDetailPage';
 import api from '../utils/api';
@@ -97,6 +97,11 @@ describe('TaskDetailPage', () => {
     vi.clearAllMocks();
     taskIdParam = 'failed-task';
     api.get.mockResolvedValue({ data: failedTask });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it('loads and displays the exact task selected by the route', async () => {
@@ -257,6 +262,78 @@ describe('TaskDetailPage', () => {
         path: 'C:/Remis/output/incremental_update.log',
       });
     });
+  });
+
+  it('polls an active task to completion when the WebSocket stays silent', async () => {
+    vi.useFakeTimers();
+    taskIdParam = 'running-task';
+    const runningTask = {
+      ...failedTask,
+      task_id: 'running-task',
+      title: 'Running translation',
+      status: 'running',
+      finished_at: null,
+      attention_reason: null,
+      events: [],
+    };
+    api.get
+      .mockResolvedValueOnce({ data: runningTask })
+      .mockResolvedValue({ data: { ...runningTask, status: 'completed', progress: 100 } });
+
+    class SilentWebSocket {
+      close = vi.fn();
+    }
+    vi.stubGlobal('WebSocket', SilentWebSocket);
+
+    render(<MantineProvider><TaskDetailPage /></MantineProvider>);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(api.get).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      vi.advanceTimersByTime(4000);
+      vi.advanceTimersByTime(200);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(api.get).toHaveBeenCalledTimes(2);
+    expect(screen.getAllByText('completed').length).toBeGreaterThan(0);
+  });
+
+  it('refreshes an active task when the page becomes visible again', async () => {
+    taskIdParam = 'visible-task';
+    const runningTask = {
+      ...failedTask,
+      task_id: 'visible-task',
+      title: 'Visible task',
+      status: 'running',
+      finished_at: null,
+      attention_reason: null,
+      events: [],
+    };
+    api.get
+      .mockResolvedValueOnce({ data: runningTask })
+      .mockResolvedValue({ data: { ...runningTask, status: 'completed', progress: 100 } });
+
+    class SilentWebSocket {
+      close = vi.fn();
+    }
+    vi.stubGlobal('WebSocket', SilentWebSocket);
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: 'visible',
+    });
+
+    render(<MantineProvider><TaskDetailPage /></MantineProvider>);
+    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+    expect(screen.getAllByText('completed').length).toBeGreaterThan(0);
   });
 
   it('restores the detailed glossary health report and advisory result', async () => {

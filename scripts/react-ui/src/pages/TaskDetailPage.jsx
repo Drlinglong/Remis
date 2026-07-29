@@ -76,6 +76,8 @@ const EVENT_COLORS = {
   debug: 'gray',
 };
 
+const ACTIVE_TASK_REFRESH_INTERVAL_MS = 4000;
+
 const formatTimestamp = (value, locale) => {
   if (!value) return '--';
   const parsed = new Date(value);
@@ -163,6 +165,7 @@ export default function TaskDetailPage() {
     let socket;
     let retryTimer;
     let refreshTimer;
+    let pollTimer;
     let cancelled = false;
 
     const scheduleRefresh = () => {
@@ -185,10 +188,18 @@ export default function TaskDetailPage() {
     };
 
     connect();
+    pollTimer = window.setInterval(scheduleRefresh, ACTIVE_TASK_REFRESH_INTERVAL_MS);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') scheduleRefresh();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       cancelled = true;
       if (retryTimer) window.clearTimeout(retryTimer);
       if (refreshTimer) window.clearTimeout(refreshTimer);
+      if (pollTimer) window.clearInterval(pollTimer);
+      document.removeEventListener('visibilitychange', handleVisibility);
       socket?.close();
     };
   }, [decodedTaskId, loadTask, taskStatus]);

@@ -47,13 +47,13 @@ vi.mock('./usePersistentState', async () => {
         ? persistentStateStore.get(key)
         : initialValue;
       const [value, setValue] = ReactModule.useState(initial);
-      const wrappedSetValue = (next) => {
+      const wrappedSetValue = ReactModule.useCallback((next) => {
         setValue((prev) => {
           const resolved = typeof next === 'function' ? next(prev) : next;
           persistentStateStore.set(key, resolved);
           return resolved;
         });
-      };
+      }, [key]);
       return [value, wrappedSetValue];
     },
   };
@@ -158,6 +158,50 @@ describe('useGlossaryActions', () => {
     expect(result.current.data).toEqual([]);
     expect(result.current.viewMode).toBe('overview');
     expect(result.current.overview.summary.glossary_count).toBe(1);
+  });
+
+  it('normalizes wrapped glossary collection payloads at the API boundary', async () => {
+    const originalGet = api.get.getMockImplementation();
+    api.get.mockImplementation((url) => {
+      if (url === '/api/glossary/tree') {
+        return Promise.resolve({
+          data: {
+            tree: [{
+              key: 'vic3',
+              title: 'Victoria 3',
+              children: [{ key: 'vic3|7|units.json', title: 'units.json', isLeaf: true }],
+            }],
+          },
+        });
+      }
+      if (url === '/api/glossaries/overview') {
+        return Promise.resolve({
+          data: {
+            overview: {
+              summary: { glossary_count: 1 },
+              glossaries: [{ glossary_id: 7, game_id: 'vic3', name: 'units.json' }],
+            },
+          },
+        });
+      }
+      if (url === '/api/projects') {
+        return Promise.resolve({
+          data: { projects: [{ project_id: 'wrapped-project', name: 'Wrapped' }] },
+        });
+      }
+      return originalGet(url);
+    });
+
+    const { result } = renderGlossaryHook();
+    await waitFor(() => expect(result.current.isLoadingTree).toBe(false));
+
+    expect(result.current.treeData).toHaveLength(1);
+    expect(result.current.projects).toEqual([
+      expect.objectContaining({ project_id: 'wrapped-project' }),
+    ]);
+    expect(result.current.overview.glossaries).toEqual([
+      expect.objectContaining({ glossary_id: 7 }),
+    ]);
   });
 
   it('selects a leaf node and resets glossary browsing state', async () => {
@@ -566,6 +610,37 @@ describe('useGlossaryActions', () => {
       existing_task: true,
     }));
     await waitFor(() => expect(result.current.glossaryOperation?.status).toBe('completed'));
+  });
+
+  it('resumes a persisted glossary task after the hook remounts', async () => {
+    persistentStateStore.set('glossary_active_operation', {
+      taskId: 'resumed-health-task',
+      kind: 'health',
+      status: 'running',
+      preview: { score: 90 },
+    });
+    const originalGet = api.get.getMockImplementation();
+    api.get.mockImplementation((url) => {
+      if (url === '/api/tasks/resumed-health-task') {
+        return Promise.resolve({
+          data: {
+            status: 'completed',
+            result: {
+              metadata: { score: 92, issue_count: 1, mutations_applied: false },
+            },
+          },
+        });
+      }
+      return originalGet(url);
+    });
+
+    const { result } = renderGlossaryHook();
+
+    await waitFor(() => {
+      expect(result.current.glossaryOperation?.status).toBe('completed');
+    });
+    expect(api.get).toHaveBeenCalledWith('/api/tasks/resumed-health-task');
+    expect(result.current.glossaryOperation.task.result.metadata.score).toBe(92);
   });
 
   it('loads persisted health-check history for one glossary', async () => {
