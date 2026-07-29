@@ -10,6 +10,8 @@ from scripts.core.project_manager import ProjectManager
 from scripts.core.archive_manager import ArchiveManager
 from scripts.core.repositories.project_repository import ProjectRepository
 from scripts.core.repositories.project_watch_repository import ProjectWatchRepository
+from scripts.core.repositories.model_arena_repository import ModelArenaRepository
+from scripts.core.services.model_arena_service import ModelArenaService
 from scripts.core.services.project_watch_service import ProjectWatchService
 
 # Initialize Managers/Services
@@ -40,6 +42,13 @@ project_manager = ProjectManager(
 project_watch_service = ProjectWatchService(
     watch_repository=project_watch_repository,
     project_repository=project_repository,
+)
+
+model_arena_repository = ModelArenaRepository(app_settings.REMIS_DB_PATH)
+model_arena_service = ModelArenaService(
+    repository=model_arena_repository,
+    project_manager=project_manager,
+    glossary_manager=glossary_manager,
 )
 
 proofreading_service = ProofreadingService(

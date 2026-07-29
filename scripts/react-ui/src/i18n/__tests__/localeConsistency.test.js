@@ -88,6 +88,8 @@ const releaseDuplicateValueAllowlistPatterns = [
   /^incremental_translation\.(progress_stage_|project_|reused_short|telemetry_(title|total)|rpm_limit|validation_issue_export_item|warning_details_suffix|error_title)/,
   /^project_management\.(repair_metadata|tooltip_repair_metadata|repair_metadata_success|repair_metadata_error)$/,
   /^project_management\.(details|manage_paths|actions|file_list|file_type|file_status)\./,
+  /^model_arena\./,
+  /^page_title_model_arena$/,
 ];
 
 const isAllowedReleaseDuplicateKey = (key) => (

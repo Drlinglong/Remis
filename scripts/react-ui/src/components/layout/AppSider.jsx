@@ -24,6 +24,7 @@ import {
     IconActivity,
     IconChevronRight,
     IconDots,
+    IconTrophy,
 } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -40,6 +41,7 @@ const primaryNavItems = [
 const workflowItems = [
     { icon: IconLanguage, label: 'page_title_translation', path: '/translation' },
     ...(FEATURES.ENABLE_INCREMENTAL_TRANSLATION ? [{ icon: IconRocket, label: 'incremental_translation.title', path: '/incremental-translation' }] : []),
+    { icon: IconTrophy, label: 'page_title_model_arena', path: '/model-arena' },
 ];
 
 const qualityNavItems = [

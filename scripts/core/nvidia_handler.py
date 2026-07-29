@@ -39,6 +39,7 @@ class NvidiaHandler(BaseApiHandler):
         """【必须由子类实现】执行对NVIDIA NIM API的调用并返回原始文本响应。"""
         provider_config = self.get_provider_config()
         model_name = provider_config.get("default_model")
+        self.last_completion_source = "assistant_content"
 
         try:
             response = client.chat.completions.create(
@@ -52,53 +53,16 @@ class NvidiaHandler(BaseApiHandler):
             # Robust extraction of content
             message = response.choices[0].message
             content = getattr(message, "content", None)
-            reasoning = getattr(message, "reasoning_content", None)
-            
-            # Use reasoning content if primary content is empty (common for some NIM thinking models)
-            if not content and reasoning:
-                self.logger.warning(f"NVIDIA NIM: 'content' is empty, using 'reasoning_content' for model {model_name}")
-                content = reasoning
-            
-            if content is None:
-                self.logger.error(f"NVIDIA NIM: Both 'content' and 'reasoning_content' are None for model {model_name}")
-                self.logger.debug(f"Full response object: {response}")
-                return "ERROR: API returned empty content (NVIDIA NIM)"
+            if not isinstance(content, str) or not content.strip():
+                raise ValueError(
+                    "NVIDIA NIM returned no final assistant content. "
+                    "reasoning_content is intentionally ignored; configure the model "
+                    "to emit its final translation in message.content."
+                )
 
-            content = content.strip()
-            
-            # Strip <think>...</think> tags if present
-            import re
-            content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
-            
-            # --- Robust JSON Post-Processing ---
-            # If the output looks like it might contain nested lists or be embedded in text
-            # some models might return "Here is your JSON: [ ... ]"
-            try:
-                # 1. Try to find the first '[' and last ']' to extract potential JSON array
-                start_idx = content.find('[')
-                end_idx = content.rfind(']')
-                if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-                    json_str = content[start_idx:end_idx+1]
-                    # 2. Parse and flatten if it's a list of lists
-                    import json
-                    from json_repair import repair_json
-                    repaired = repair_json(json_str)
-                    data = json.loads(repaired)
-                    if isinstance(data, list):
-                        flattened = []
-                        for item in data:
-                            if isinstance(item, list):
-                                # Flatten nested list: [["A"], ["B"]] -> ["A", "B"]
-                                # Combine items if multiple in a sub-list, though usually it's just one
-                                flattened.append(" ".join(str(i) for i in item))
-                            else:
-                                flattened.append(str(item))
-                        # Update content with repaired and flattened JSON
-                        content = json.dumps(flattened, ensure_ascii=False)
-            except Exception as je:
-                self.logger.warning(f"Failed to auto-flatten/repair NVIDIA response: {je}")
-
-            return content
+            # Preserve the adapter-selected final content exactly up to outer
+            # whitespace. Parsing and validation must see what the model emitted.
+            return content.strip()
         except Exception as e:
             self.logger.exception(f"NVIDIA NIM API call failed: {e}")
             raise

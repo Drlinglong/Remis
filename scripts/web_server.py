@@ -143,6 +143,7 @@ def setup_app_routers():
     from scripts.routers import (
         projects, project_watches, translation, glossary, proofreading, docs, tools,
         neologism, validation, config, system, prompts, agent_workshop, agent, tasks,
+        model_arena,
     )
     
     app.include_router(projects.router)
@@ -160,6 +161,7 @@ def setup_app_routers():
     app.include_router(prompts.router)
     app.include_router(agent.router)
     app.include_router(tasks.router)
+    app.include_router(model_arena.router)
     if copilot_router_enabled():
         from scripts.routers import copilot
 

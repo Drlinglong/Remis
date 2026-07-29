@@ -154,7 +154,9 @@ def test_openai_compatible_call_appends_system_prompt_suffix():
 
     assert handler._call_openai_compatible(client, "translate this") == '{"translations":["ok"]}'
     messages = client.chat.completions.create.call_args.kwargs["messages"]
-    assert messages[0]["content"] == "You are a professional translator. /no_think"
+    assert messages[0]["content"] == (
+        "You are a professional translator for game mods. /no_think"
+    )
     assert messages[1]["content"] == "translate this"
 
 
