@@ -210,7 +210,7 @@ export function buildWorkflowCompletionMessage(workflow) {
   const enhancements = [
     workflow.useResume && '断点续传',
     workflow.useMainGlossary && '主词典',
-    workflow.workshopEnabled && '智能工坊',
+    workflow.workshopEnabled && '格式修复台',
   ].filter(Boolean);
   const text = [
     '### 已批准并启动翻译',

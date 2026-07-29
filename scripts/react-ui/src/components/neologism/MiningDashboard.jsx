@@ -26,8 +26,9 @@ const TARGET_LANGUAGE_OPTIONS = [
     { value: 'de', label: 'German (Deutsch)' },
     { value: 'ru', label: 'Russian (Русский)' },
     { value: 'es', label: 'Spanish (Español)' },
-    { value: 'pt', label: 'Portuguese (Português)' },
-    { value: 'pl', label: 'Polish (Polski)' }
+    { value: 'pt-BR', label: 'Portuguese (Português)' },
+    { value: 'pl', label: 'Polish (Polski)' },
+    { value: 'tr', label: 'Turkish (Türkçe)' }
 ];
 const LANGUAGE_ALIASES = {
     english: 'en',
@@ -52,7 +53,10 @@ const normalizeLanguageCode = (value) => {
  * 负责配置和启动 AI 新词扫描
  */
 const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningComplete }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const interfaceLanguage = normalizeLanguageCode(
+        i18n?.resolvedLanguage || i18n?.language || 'en',
+    );
     const [projects, setProjects] = useState([]);
     const [files, setFiles] = useState([]);
     const [selectedFiles, setSelectedFiles] = useState([]);
@@ -60,6 +64,7 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
     const [apiProvider, setApiProvider] = useState('gemini');
     const [modelName, setModelName] = useState(null);
     const [targetLang, setTargetLang] = useState('zh-CN');
+    const [reviewLanguage, setReviewLanguage] = useState(interfaceLanguage);
     const [scanning, setScanning] = useState(false);
     const [miningStatus, setMiningStatus] = useState(null);
     const wsRef = useRef(null);
@@ -71,6 +76,10 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
         const provider = providers.find((item) => item.value === apiProvider);
         setModelName(provider?.selected_model || provider?.default_model || provider?.available_models?.[0] || null);
     }, [apiProvider, providers]);
+
+    useEffect(() => {
+        setReviewLanguage(interfaceLanguage);
+    }, [interfaceLanguage]);
 
     const closeMiningSocket = useCallback(() => {
         if (reconnectTimerRef.current) {
@@ -262,6 +271,7 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
                 api_provider: apiProvider,
                 model_name: modelName,
                 target_lang: targetLang,
+                review_language: reviewLanguage,
                 file_paths: selectedFiles.length > 0 ? selectedFiles : null
             });
             setMiningStatus({
@@ -317,6 +327,15 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
                             data={availableTargetLanguages}
                             value={targetLang}
                             onChange={setTargetLang}
+                            size="md"
+                        />
+
+                        <Select
+                            label={t('neologism_review.mining.review_language')}
+                            description={t('neologism_review.mining.review_language_desc')}
+                            data={TARGET_LANGUAGE_OPTIONS}
+                            value={reviewLanguage}
+                            onChange={setReviewLanguage}
                             size="md"
                         />
 

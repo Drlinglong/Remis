@@ -1,10 +1,12 @@
 import hashlib
+import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from scripts.app_settings import GAME_PROFILES_BY_ID
 from scripts.core.repositories.project_repository import ProjectRepository
 from scripts.core.repositories.project_watch_repository import ProjectWatchRepository
+from scripts.shared import task_state
 
 
 LOCALIZATION_DIR_NAMES = {"localization", "localisation"}
@@ -16,9 +18,11 @@ class ProjectWatchService:
         self,
         watch_repository: Optional[ProjectWatchRepository] = None,
         project_repository: Optional[ProjectRepository] = None,
+        task_ledger=task_state,
     ):
         self.repository = watch_repository or ProjectWatchRepository()
         self.project_repository = project_repository or ProjectRepository()
+        self.task_ledger = task_ledger
 
     async def list_watches(self) -> List[Dict[str, Any]]:
         watches = await self.repository.list_watches()
@@ -58,7 +62,12 @@ class ProjectWatchService:
         watch = await self.repository.get_watch(watch_id)
         if not watch:
             raise ValueError(f"Watch not found: {watch_id}")
-        return await self._scan_watch_record(watch)
+        return await self._scan_watch_task(
+            watch,
+            created_by={"type": "user"},
+            scheduled=False,
+            suppress_errors=False,
+        )
 
     async def scan_watches(self, watch_ids: List[str]) -> List[Dict[str, Any]]:
         results = []
@@ -75,19 +84,31 @@ class ProjectWatchService:
             if not watch.enabled or not watch.scan_interval_minutes:
                 continue
             if not watch.last_scan_at:
-                due.append(watch.watch_id)
+                due.append(watch)
                 continue
             try:
                 last_scan = datetime.datetime.fromisoformat(watch.last_scan_at)
                 if last_scan.tzinfo is None:
                     last_scan = last_scan.replace(tzinfo=datetime.timezone.utc)
             except ValueError:
-                due.append(watch.watch_id)
+                due.append(watch)
                 continue
             age_minutes = (now - last_scan).total_seconds() / 60
             if age_minutes >= watch.scan_interval_minutes:
-                due.append(watch.watch_id)
-        return await self.scan_watches(due)
+                due.append(watch)
+        return [
+            await self._scan_watch_task(
+                watch,
+                created_by={
+                    "type": "automation",
+                    "actor_id": "project_watch_scheduler",
+                    "label": "Automatic monitor",
+                },
+                scheduled=True,
+                suppress_errors=True,
+            )
+            for watch in due
+        ]
 
     def _validate_path(self, raw_path: Optional[str]) -> Path:
         if not raw_path:
@@ -97,7 +118,167 @@ class ProjectWatchService:
             raise ValueError(f"Path not found or not a directory: {raw_path}")
         return path
 
-    async def _scan_watch_record(self, watch) -> Dict[str, Any]:
+    async def _scan_watch_task(
+        self,
+        watch,
+        *,
+        created_by: Dict[str, Any],
+        scheduled: bool,
+        suppress_errors: bool,
+    ) -> Dict[str, Any]:
+        task_id = str(uuid.uuid4())
+        project = (
+            await self.project_repository.get_project(watch.project_id)
+            if watch.project_id
+            else None
+        )
+        project_data = (
+            project.model_dump()
+            if project is not None and hasattr(project, "model_dump")
+            else (project or {})
+        )
+        project_context = {
+            "name": project_data.get("name") or watch.name,
+            "game_id": project_data.get("game_id"),
+        }
+        shared_operation_key = (
+            f"project_translation_write:{watch.project_id}"
+            if watch.project_id
+            else f"project_watch_scan:{watch.watch_id}"
+        )
+        task_fields = {
+            "kind": "project_watch_scan",
+            "project_id": watch.project_id,
+            "project_context": project_context,
+            "title": (
+                f"Scheduled update check for {watch.name}"
+                if scheduled
+                else f"Scan updates for {watch.name}"
+            ),
+            "source_route": "/project-tracking",
+            "created_by": created_by,
+            "blocking": True,
+            "blocking_reason": (
+                "Remis is taking a consistent project snapshot. Conflicting project writes "
+                "are blocked until this scan finishes."
+            ),
+        }
+        try:
+            self.task_ledger.create_task(
+                task_id,
+                status="running",
+                log_message=(
+                    f"Scheduled scan started for {watch.name}."
+                    if scheduled
+                    else f"Manual scan started for {watch.name}."
+                ),
+                fields=task_fields,
+                dedupe_key=shared_operation_key,
+                reject_duplicate=True,
+            )
+        except self.task_ledger.DuplicateTaskError as exc:
+            existing_task_id = exc.existing_task.get("task_id")
+            conflict_message = (
+                f"{'Scheduled' if scheduled else 'Manual'} scan was blocked because "
+                "another task is already reading or writing this project."
+            )
+            self.task_ledger.create_task(
+                task_id,
+                status="failed",
+                log_message=conflict_message,
+                fields={
+                    **task_fields,
+                    "blocking": False,
+                    "blocking_reason": conflict_message,
+                    "attention_reason": conflict_message,
+                    "result": {
+                        "types": ["project_watch_scan"],
+                        "summary": conflict_message,
+                        "metadata": {
+                            "watch_id": watch.watch_id,
+                            "scan_status": "blocked",
+                            "conflicting_task_id": existing_task_id,
+                        },
+                    },
+                },
+            )
+            return {
+                "watch_id": watch.watch_id,
+                "status": "blocked",
+                "task_id": task_id,
+                "conflicting_task_id": existing_task_id,
+                "changed_count": 0,
+                "message": conflict_message,
+            }
+
+        try:
+            summary = await self._scan_watch_record(watch, task_id=task_id)
+            changed_count = int(summary.get("changed_count", 0) or 0)
+            result_summary = (
+                f"Scan completed with {changed_count} localization change(s)."
+            )
+            self.task_ledger.update_task(
+                task_id,
+                status="completed",
+                append_log=result_summary,
+                progress={"current": 1, "total": 1, "percent": 100, "stage": "Completed"},
+                fields={
+                    "result": {
+                        "types": ["project_watch_scan"],
+                        "summary": result_summary,
+                        "metadata": {
+                            **summary,
+                            "watch_name": watch.name,
+                        },
+                    },
+                    "checkpoint": {
+                        "available": False,
+                        "resume_supported": False,
+                        "stage": "Completed",
+                    },
+                },
+            )
+            return summary
+        except Exception as exc:
+            failure_message = (
+                f"{'Scheduled' if scheduled else 'Manual'} project scan failed. "
+                "Check the task diagnostics."
+            )
+            self.task_ledger.update_task(
+                task_id,
+                status="failed",
+                message=failure_message,
+                append_log=failure_message,
+                fields={
+                    "attention_reason": failure_message,
+                    "result": {
+                        "types": ["project_watch_scan"],
+                        "summary": failure_message,
+                        "metadata": {
+                            "watch_id": watch.watch_id,
+                            "scan_status": "failed",
+                        },
+                    },
+                },
+            )
+            self.task_ledger.append_task_event(
+                task_id,
+                repr(exc),
+                audience="diagnostic",
+                level="error",
+                event_type="exception",
+            )
+            if not suppress_errors:
+                raise
+            return {
+                "watch_id": watch.watch_id,
+                "status": "failed",
+                "task_id": task_id,
+                "changed_count": 0,
+                "message": failure_message,
+            }
+
+    async def _scan_watch_record(self, watch, task_id: Optional[str] = None) -> Dict[str, Any]:
         root = self._validate_path(watch.path)
         current = self._collect_localization_snapshots(root, watch.project_id)
         previous = {
@@ -146,6 +327,7 @@ class ProjectWatchService:
 
         summary = {
             "watch_id": watch.watch_id,
+            "task_id": task_id,
             "status": status,
             "baseline_created": baseline_created,
             "root_path": str(root),
@@ -163,6 +345,7 @@ class ProjectWatchService:
             summary = {
                 **previous_summary,
                 "watch_id": watch.watch_id,
+                "task_id": task_id,
                 "status": "changed",
                 "baseline_created": False,
                 "root_path": str(root),

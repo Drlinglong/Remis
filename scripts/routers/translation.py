@@ -145,9 +145,16 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
 
     except Exception as e:
         tb_str = traceback.format_exc()
-        error_message = f"Translation workflow execution failed: {e}\n{tb_str}"
-        logging.error(f"Task {task_id} failed: {error_message}")
-        finalize_task(task_id, "failed", error_message, "Failed")
+        user_error = f"Translation workflow failed: {e}"
+        logging.error(f"Task {task_id} failed: {user_error}\n{tb_str}")
+        finalize_task(task_id, "failed", user_error, "Failed")
+        task_state.append_task_event(
+            task_id,
+            tb_str,
+            audience="diagnostic",
+            level="error",
+            event_type="traceback",
+        )
         if project_id:
             try:
                 _run_async(project_manager.log_history_event(
@@ -221,6 +228,21 @@ def run_translation_workflow_v2(
             workshop_progress=workshop_progress,
             log_message=log_message,
             push=should_push,
+            fields={
+                "checkpoint": {
+                    "available": bool(use_resume and current > 0 and not is_final),
+                    "resume_supported": bool(use_resume),
+                    "stage": stage,
+                    "cursor": current_file or str(current),
+                    "updated_at": task_state.utc_now_iso(),
+                    "metadata": {
+                        "completed": current,
+                        "total": total,
+                        "current_batch": current_batch,
+                        "total_batches": total_batches,
+                    },
+                },
+            },
         )
 
     try:
@@ -305,7 +327,15 @@ def run_translation_workflow_v2(
         logging.info("Returned from initial_translate.run")
         task_state.update_task(
             task_id,
-            fields={"output_dirs": _get_output_directories(mod_name, target_languages)},
+            fields={
+                "output_dirs": _get_output_directories(mod_name, target_languages),
+                "checkpoint": {
+                    "available": False,
+                    "resume_supported": bool(use_resume),
+                    "stage": "Completed",
+                    "updated_at": task_state.utc_now_iso(),
+                },
+            },
             push=False,
         )
         finalize_task(task_id, "completed", "Translation workflow completed successfully.", "Completed")
@@ -321,9 +351,16 @@ def run_translation_workflow_v2(
                 logging.error(f"Failed to log completion activity (v2): {e}")
     except Exception as e:
         tb_str = traceback.format_exc()
-        error_message = f"Translation workflow failed: {e}\n{tb_str}"
-        logging.error(error_message)
-        finalize_task(task_id, "failed", error_message, "Failed")
+        user_error = f"Translation workflow failed: {e}"
+        logging.error(f"{user_error}\n{tb_str}")
+        finalize_task(task_id, "failed", user_error, "Failed")
+        task_state.append_task_event(
+            task_id,
+            tb_str,
+            audience="diagnostic",
+            level="error",
+            event_type="traceback",
+        )
         if project_id:
             try:
                 _run_async(project_manager.log_history_event(
@@ -344,7 +381,37 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         raise HTTPException(status_code=404, detail="Project not found")
 
     task_id = str(uuid.uuid4())
-    task_state.create_task(task_id, status="pending")
+    try:
+        task_state.create_task(
+            task_id,
+            status="pending",
+            fields={
+                "kind": "initial_translation",
+                "project_id": request.project_id,
+                "project_context": {"name": project["name"], "game_id": project.get("game_id")},
+                "title": f"Translate {project['name']}",
+                "source_route": "/translation",
+                "created_by": {"type": "user"},
+                "blocking": True,
+                "idempotency_key": request.idempotency_key,
+                "checkpoint": {
+                    "available": False,
+                    "resume_supported": request.use_resume,
+                    "stage": "Queued",
+                },
+            },
+            dedupe_key=f"project_translation_write:{request.project_id}",
+            reject_duplicate=True,
+        )
+    except task_state.DuplicateTaskError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "duplicate_task",
+                "message": "This project already has a translation task in progress.",
+                "existing_task_id": exc.existing_task.get("task_id"),
+            },
+        ) from exc
 
     # Prepare arguments for the workflow
     # Use the actual folder name from source_path to ensure it matches the directory on disk
@@ -408,7 +475,11 @@ async def start_translation(
     mod_context: str = Form("")
 ):
     task_id = str(uuid.uuid4())
-    task_state.create_task(task_id, status="pending")
+    task_state.create_task(
+        task_id,
+        status="pending",
+        fields={"kind": "initial_translation", "title": "Uploaded Mod translation", "source_route": "/translation"},
+    )
     try:
         mod_name = file.filename.replace(".zip", "")
         source_path = os.path.join(SOURCE_DIR, mod_name)
@@ -465,7 +536,11 @@ async def start_translation_v2(
     payload: TranslationRequestV2
 ):
     task_id = str(uuid.uuid4())
-    task_state.create_task(task_id, status="pending")
+    task_state.create_task(
+        task_id,
+        status="pending",
+        fields={"kind": "initial_translation", "title": "Mod translation", "source_route": "/translation"},
+    )
 
     if not os.path.exists(payload.project_path) or not os.path.isdir(payload.project_path):
         raise HTTPException(status_code=400, detail="Invalid project path.")

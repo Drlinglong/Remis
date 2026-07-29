@@ -4,7 +4,7 @@ This legacy Agent guide is no longer the primary collaboration source.
 
 Use project context in this order:
 
-1. Root [GEMINI.md](../../GEMINI.md)
+1. Collaboration and safety rules in root [AGENTS.md](../../AGENTS.md)
 2. The current codebase
 3. Developer docs for focused implementation notes and refactor history
 

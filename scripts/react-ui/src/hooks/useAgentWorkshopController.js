@@ -12,6 +12,7 @@ import {
 import { pollAgentWorkshopRun } from './agentWorkshopRunMonitor';
 import {
   buildAgentWorkshopModelOptions,
+  createAgentWorkshopIdempotencyKey,
   getAgentWorkshopRunStatus,
   loadAgentWorkshopBootstrap,
   loadAgentWorkshopProjectContext,
@@ -50,12 +51,16 @@ export const useAgentWorkshopController = () => {
   const [executionLogs, setExecutionLogs] = useState([]);
   const [executionStats, setExecutionStats] = useState(null);
   const [currentRunTaskId, setCurrentRunTaskId] = useState(null);
+  const [approvalOpen, setApprovalOpen] = useState(false);
+  const [workflowError, setWorkflowError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentIssue, setCurrentIssue] = useState(null);
   const [fixResult, setFixResult] = useState(null);
   const [fixing, setFixing] = useState(false);
   const restoredRef = useRef(false);
   const runResumeRef = useRef(false);
+  const fixRunInFlightRef = useRef(false);
+  const fixRunIdempotencyKeyRef = useRef(null);
 
   const sessionState = useMemo(() => ({
     active,
@@ -167,6 +172,7 @@ export const useAgentWorkshopController = () => {
     const key = String(code).trim();
     const known = {
       validation_vic3_variable_parity_mismatch: t('agent_workshop.issue_vic3_variable_parity'),
+      validation_variable_parity_mismatch: t('agent_workshop.issue_variable_parity'),
       validation_vic3_color_tags_mismatch: t('agent_workshop.issue_vic3_color_tags'),
       validation_residual_punctuation_found: t('agent_workshop.validation_residual_punctuation_found'),
       validation_invalid_key_format: t('agent_workshop.issue_invalid_key_format'),
@@ -175,7 +181,7 @@ export const useAgentWorkshopController = () => {
     if (known[key]) return known[key];
     if (key.includes('颜色标签') && key.includes('结束符')) return t('agent_workshop.issue_vic3_color_tags');
     if (key.includes('源语言标点') || key.includes('标点符号')) return t('agent_workshop.validation_residual_punctuation_found');
-    if (key.includes('变量数量') || key.includes('变量')) return t('agent_workshop.issue_vic3_variable_parity');
+    if (key.includes('变量数量') || key.includes('变量')) return t('agent_workshop.issue_variable_parity');
     if (key.startsWith('validation_')) return t('agent_workshop.issue_validation_generic');
     return key;
   }, [t]);
@@ -294,6 +300,7 @@ export const useAgentWorkshopController = () => {
     setExecutionLogs([]);
     setExecutionStats(null);
     setProgress(0);
+    setWorkflowError('');
     setIsCached(false);
     setActive(1);
     await loadProjectContext(projectId);
@@ -302,13 +309,22 @@ export const useAgentWorkshopController = () => {
   const handleScan = useCallback(async () => {
     if (!selectedProjectId) return;
     setScanLoading(true);
+    setWorkflowError('');
     try {
-      const nextIssues = await scanAgentWorkshopProject(selectedProjectId, selectedSidecarPath);
+      const scanResult = await scanAgentWorkshopProject(selectedProjectId, selectedSidecarPath);
+      const nextIssues = scanResult.issues;
       setIssues(nextIssues);
+      setCurrentRunTaskId(scanResult.taskId);
       setIsCached(nextIssues.length > 0);
       setActive(2);
+      if (scanResult.taskId) {
+        window.dispatchEvent(new CustomEvent('remis:task-created', {
+          detail: { taskId: scanResult.taskId },
+        }));
+      }
     } catch (error) {
       console.error('Scan failed', error);
+      setWorkflowError(error?.response?.data?.detail?.message || error?.response?.data?.detail || error.message || 'Scan failed.');
     } finally {
       setScanLoading(false);
     }
@@ -323,6 +339,7 @@ export const useAgentWorkshopController = () => {
   const handleFixRequest = useCallback(async () => {
     if (!selectedProjectId || !currentIssue) return;
     setFixing(true);
+    setWorkflowError('');
     try {
       const result = await requestAgentWorkshopIssueFix({
         issue: currentIssue,
@@ -337,6 +354,7 @@ export const useAgentWorkshopController = () => {
       setFixResult(result);
     } catch (error) {
       console.error('Fix failed', error);
+      setWorkflowError(error?.response?.data?.detail?.message || error?.response?.data?.detail || error.message || 'Fix failed.');
     } finally {
       setFixing(false);
     }
@@ -344,6 +362,7 @@ export const useAgentWorkshopController = () => {
 
   const applyRunTaskStatus = useCallback((task, runIssues = issues) => {
     const taskProgress = task?.progress || {};
+    const resolvedTaskId = task?.task_id || currentRunTaskId;
     if (typeof taskProgress.percent === 'number') {
       setProgress(taskProgress.percent);
     }
@@ -363,7 +382,7 @@ export const useAgentWorkshopController = () => {
       });
     }
 
-    if (task?.status === 'completed') {
+    if (task?.status === 'completed' || task?.status === 'partial_failed') {
       const results = Array.isArray(task?.summary?.results) ? task.summary.results : [];
       const successfulByKey = new Map(
         results
@@ -382,30 +401,28 @@ export const useAgentWorkshopController = () => {
       setIssues((prev) => prev.filter((issue) => !successfulByKey.has(`${issue.file_name}::${issue.key}`)));
       setProgress(100);
       setExecuting(false);
-      setCurrentRunTaskId(null);
       persistState({
         active: 3,
         progress: 100,
         executionStats: task.summary,
         executing: false,
-        currentRunTaskId: null,
+        currentRunTaskId: resolvedTaskId,
       });
       return true;
     }
 
-    if (task?.status === 'failed') {
-      addExecutionLog(task.message || 'Agent Workshop run failed.');
+    if (['failed', 'cancelled', 'interrupted'].includes(task?.status)) {
+      addExecutionLog(task.message || 'Format Repair run failed.');
       setExecuting(false);
-      setCurrentRunTaskId(null);
       persistState({
         executing: false,
-        currentRunTaskId: null,
+        currentRunTaskId: resolvedTaskId,
       });
       return true;
     }
 
     return false;
-  }, [addExecutionLog, batchSizeLimit, issues, persistState]);
+  }, [addExecutionLog, batchSizeLimit, currentRunTaskId, issues, persistState]);
 
   const applyRunTaskStatusRef = useRef(applyRunTaskStatus);
   const addExecutionLogRef = useRef(addExecutionLog);
@@ -430,10 +447,11 @@ export const useAgentWorkshopController = () => {
 
     resumeRun().catch((error) => {
       if (cancelled) return;
-      console.error('Failed to resume Agent Workshop run', error);
-      addExecutionLogRef.current(error?.response?.data?.detail || error.message || 'Agent Workshop run failed.');
+      console.error('Failed to resume Format Repair run', error);
+      const detail = error?.response?.data?.detail;
+      addExecutionLogRef.current(detail?.message || detail || error.message || 'Format Repair run failed.');
+      setWorkflowError(detail?.message || detail || error.message || 'Format Repair run failed.');
       setExecuting(false);
-      setCurrentRunTaskId(null);
     });
 
     return () => {
@@ -441,10 +459,33 @@ export const useAgentWorkshopController = () => {
     };
   }, [currentRunTaskId, executing]);
 
-  const executeFixRun = useCallback(async () => {
+  const requestFixRunApproval = useCallback(() => {
     if (!selectedProjectId || !issues.length || !selectedProvider || !selectedModel || executing) return;
+    if (!fixRunIdempotencyKeyRef.current) {
+      fixRunIdempotencyKeyRef.current = createAgentWorkshopIdempotencyKey(selectedProjectId);
+    }
+    setWorkflowError('');
+    setApprovalOpen(true);
+  }, [executing, issues.length, selectedModel, selectedProjectId, selectedProvider]);
+
+  const executeFixRun = useCallback(async () => {
+    if (
+      !selectedProjectId
+      || !issues.length
+      || !selectedProvider
+      || !selectedModel
+      || executing
+      || fixRunInFlightRef.current
+    ) return;
 
     const runIssues = [...issues];
+    fixRunInFlightRef.current = true;
+    const idempotencyKey = fixRunIdempotencyKeyRef.current
+      || createAgentWorkshopIdempotencyKey(selectedProjectId);
+    fixRunIdempotencyKeyRef.current = idempotencyKey;
+    setApprovalOpen(false);
+    setWorkflowError('');
+    runResumeRef.current = false;
     setExecuting(true);
     setProgress(0);
     setExecutionLogs([]);
@@ -469,8 +510,13 @@ export const useAgentWorkshopController = () => {
         rpmLimit,
         selectedModel,
         selectedProvider,
+        idempotencyKey,
       });
       setCurrentRunTaskId(run.task_id);
+      addExecutionLog(t('agent_workshop.task_accepted_log', {
+        taskId: run.task_id,
+        defaultValue: `Task accepted: ${run.task_id}`,
+      }));
       writeAgentWorkshopSnapshot(createAgentWorkshopSnapshot(sessionState, {
         active: 3,
         executing: true,
@@ -483,10 +529,13 @@ export const useAgentWorkshopController = () => {
         onTask: (task) => applyRunTaskStatus(task, runIssues),
       });
     } catch (error) {
-      console.error('Agent Workshop run failed', error);
-      addExecutionLog(error?.response?.data?.detail || error.message || 'Agent Workshop run failed.');
-      setCurrentRunTaskId(null);
+      console.error('Format Repair run failed', error);
+      const detail = error?.response?.data?.detail;
+      const message = detail?.message || detail || error.message || 'Format Repair run failed.';
+      addExecutionLog(message);
+      setWorkflowError(message);
     } finally {
+      fixRunInFlightRef.current = false;
       setExecuting(false);
     }
   }, [
@@ -501,9 +550,12 @@ export const useAgentWorkshopController = () => {
     selectedProjectId,
     selectedProvider,
     sessionState,
+    t,
   ]);
 
   const resetWorkflow = useCallback(() => {
+    fixRunInFlightRef.current = false;
+    fixRunIdempotencyKeyRef.current = null;
     clearAgentWorkshopSnapshot();
     setActive(0);
     setSelectedProjectId(null);
@@ -519,6 +571,8 @@ export const useAgentWorkshopController = () => {
     setProgress(0);
     setExecuting(false);
     setCurrentRunTaskId(null);
+    setApprovalOpen(false);
+    setWorkflowError('');
   }, []);
 
   const closeFixModal = useCallback(() => setIsModalOpen(false), []);
@@ -543,6 +597,7 @@ export const useAgentWorkshopController = () => {
   return {
     active,
     addExecutionLog,
+    approvalOpen,
     apiProviders,
     applyCurrentFixPreview,
     archiveInfo,
@@ -551,6 +606,7 @@ export const useAgentWorkshopController = () => {
     concurrencyLimit,
     confirmTutorialPrompt,
     currentIssue,
+    currentRunTaskId,
     dismissTutorialPrompt,
     executeFixRun,
     executing,
@@ -580,6 +636,7 @@ export const useAgentWorkshopController = () => {
     projectContextLoading,
     resetFixResult,
     resetWorkflow,
+    requestFixRunApproval,
     rpmLimit,
     scanLoading,
     searchQuery,
@@ -595,6 +652,8 @@ export const useAgentWorkshopController = () => {
     setSearchQuery,
     setSelectedModel,
     showTutorialPrompt,
+    setApprovalOpen,
     t,
+    workflowError,
   };
 };

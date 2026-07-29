@@ -20,6 +20,9 @@ const createActions = (overrides = {}) => ({
   setDeployPath: vi.fn(),
   workshopPath: 'J:/Steam/workshop/123',
   setWorkshopPath: vi.fn(),
+  deployPreview: null,
+  confirmOverwrite: false,
+  setConfirmOverwrite: vi.fn(),
   loading: false,
   infoLoading: false,
   handleExecuteDeploy: vi.fn(),
@@ -36,6 +39,46 @@ const renderModals = (actions) => render(
 );
 
 describe('DeployModals destructive action guard', () => {
+  it('requires explicit overwrite confirmation before deploying over an existing target', () => {
+    const actions = createActions({
+      deployModalOpen: true,
+      deployPath: 'J:/Paradox/mod/zh-CN-demo',
+      deployPreview: {
+        preview_id: 'preview-1',
+        source_path: 'J:/output/zh-CN-demo',
+        target_path: 'J:/Paradox/mod/zh-CN-demo',
+        target_exists: true,
+        validation_error_count: 0,
+      },
+    });
+    renderModals(actions);
+
+    const deployButton = screen.getByRole('button', { name: 'deploy_btn_direct_deploy' });
+    expect(deployButton).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'deploy_preview_overwrite_confirm' }));
+
+    expect(actions.setConfirmOverwrite).toHaveBeenCalledWith(true);
+    expect(actions.handleExecuteDeploy).not.toHaveBeenCalled();
+  });
+
+  it('blocks deployment while the preview reports validation errors', () => {
+    const actions = createActions({
+      deployModalOpen: true,
+      deployPath: 'J:/Paradox/mod/zh-CN-demo',
+      deployPreview: {
+        preview_id: 'preview-errors',
+        source_path: 'J:/output/zh-CN-demo',
+        target_path: 'J:/Paradox/mod/zh-CN-demo',
+        target_exists: false,
+        validation_error_count: 2,
+      },
+    });
+    renderModals(actions);
+
+    expect(screen.getByRole('button', { name: 'deploy_btn_direct_deploy' })).toBeDisabled();
+    expect(screen.getByText('deploy_preview_validation_blocked')).toBeInTheDocument();
+  });
+
   it('opens a second confirmation instead of cleaning immediately', () => {
     const actions = createActions({ cleanModalOpen: true });
     renderModals(actions);

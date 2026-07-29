@@ -70,3 +70,26 @@ def test_review_requires_exact_candidate_set():
             target_lang="zh-CN",
             game_name="Stellaris",
         )
+
+
+def test_review_prompt_keeps_suggestion_target_separate_from_review_language():
+    client = FakeClient([
+        json.dumps([{
+            "original": "Pax Remisia",
+            "suggestion": "Пакс Ремизия",
+            "reasoning": "采用音译以保留专名辨识度；没有既有词典先例。",
+            "confidence": 0.82,
+        }], ensure_ascii=False)
+    ])
+
+    NeologismMiner(client).review_terms(
+        [{"original": "Pax Remisia", "contexts": ["Pax Remisia endures."], "frequency": 2}],
+        source_lang="en",
+        target_lang="ru",
+        review_language="zh-CN",
+        game_name="Stellaris",
+    )
+
+    system_prompt = client.calls[0][0][0]["content"]
+    assert "Write every `reasoning` value in zh-CN" in system_prompt
+    assert "suggestion must remain in ru" in system_prompt

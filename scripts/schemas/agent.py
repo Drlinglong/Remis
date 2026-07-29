@@ -72,6 +72,12 @@ class AgentRepairRequest(BaseModel):
     concurrency_limit: Optional[int] = 1
     rpm_limit: Optional[int] = 40
     max_retries: Optional[int] = 3
+    idempotency_key: Optional[str] = Field(
+        default=None,
+        min_length=8,
+        max_length=128,
+        description="Caller-stable key for safely retrying the same approved repair request.",
+    )
 
 
 class AgentExportRequest(BaseModel):
@@ -101,9 +107,17 @@ class AgentValidationSummary(BaseModel):
     truncated: bool = False
 
 
+class AgentJobResult(BaseModel):
+    types: List[str] = Field(default_factory=list)
+    output_paths: List[str] = Field(default_factory=list)
+    summary: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
 class AgentJobResponse(BaseModel):
     job_id: str
     project_id: Optional[str] = None
+    parent_task_id: Optional[str] = None
     status: Literal[
         "queued",
         "running",
@@ -121,6 +135,8 @@ class AgentJobResponse(BaseModel):
     )
     allowed_actions: List[str] = Field(default_factory=list)
     output_paths: List[str] = Field(default_factory=list)
+    result: AgentJobResult = Field(default_factory=AgentJobResult)
+    workflow_context: Dict[str, Any] = Field(default_factory=dict)
     message: Optional[str] = None
     recovery: Dict[str, Any] = Field(default_factory=dict)
     links: Dict[str, str] = Field(default_factory=dict)

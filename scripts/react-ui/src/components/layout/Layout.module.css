@@ -26,6 +26,36 @@
     border-left: 1px solid var(--glass-border) !important;
 }
 
+.sidebarOverlay {
+    position: absolute;
+    top: 0;
+    right: 50px;
+    bottom: 0;
+    z-index: 110;
+    min-width: 280px;
+    max-width: min(420px, calc(100vw - 130px));
+}
+
+.sidebarCompactRail {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 105;
+    width: 44px !important;
+    height: auto !important;
+    background: transparent !important;
+    border-left: 0 !important;
+    box-shadow: none !important;
+    pointer-events: none;
+}
+
+.sidebarCompactRail button {
+    pointer-events: auto;
+    background: var(--surface-bg, var(--glass-bg));
+    border: 1px solid var(--surface-border, var(--glass-border));
+}
+
 /* Navigation Links / Icons */
 .icon {
     color: var(--text-muted);
@@ -33,10 +63,34 @@
 }
 
 .navLink {
+    position: relative;
     border-radius: var(--card-radius) !important;
     transition: all 0.2s ease;
     color: var(--text-main) !important;
     background: transparent !important;
+}
+
+.navBadgeDot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--surface-bg, var(--glass-bg));
+}
+
+.navMenuDropdown {
+    --mantine-color-text: var(--elevated-text-main, var(--surface-text-main)) !important;
+    background: var(--elevated-bg, var(--surface-bg)) !important;
+    border: 1px solid var(--elevated-border, var(--surface-border)) !important;
+    color: var(--elevated-text-main, var(--surface-text-main)) !important;
+    backdrop-filter: none !important;
+}
+
+.menuTrigger {
+    min-height: 44px;
 }
 
 .navLink:hover {

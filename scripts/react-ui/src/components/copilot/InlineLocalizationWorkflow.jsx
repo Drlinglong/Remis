@@ -150,7 +150,7 @@ export default function InlineLocalizationWorkflow({ initialArgs = {}, onStarted
             <Group gap="lg">
               <Switch checked={useResume} onChange={(e) => setUseResume(e.currentTarget.checked)} label="断点续传" />
               <Switch checked={useMainGlossary} onChange={(e) => setUseMainGlossary(e.currentTarget.checked)} label="主词典" />
-              <Switch checked={workshopEnabled} onChange={(e) => setWorkshopEnabled(e.currentTarget.checked)} label="智能工坊" />
+              <Switch checked={workshopEnabled} onChange={(e) => setWorkshopEnabled(e.currentTarget.checked)} label="格式修复台" />
             </Group>
             <Group justify="flex-end">
               <Button variant="default" onClick={onClose}>取消</Button>
@@ -170,7 +170,7 @@ export default function InlineLocalizationWorkflow({ initialArgs = {}, onStarted
               <Text size="sm"><b>路径：</b>{plan.inspection?.folder_path}</Text>
               <Text size="sm"><b>模型：</b>{model}</Text>
               <Text size="sm"><b>限流：</b>Batch {batchSize}，并发 {concurrency}，RPM {rpm}</Text>
-              <Text size="sm"><b>增强：</b>{[useResume && '断点续传', useMainGlossary && '主词典', workshopEnabled && '智能工坊'].filter(Boolean).join('、') || '无'}</Text>
+              <Text size="sm"><b>增强：</b>{[useResume && '断点续传', useMainGlossary && '主词典', workshopEnabled && '格式修复台'].filter(Boolean).join('、') || '无'}</Text>
             </div>
             <Alert color="orange">批准后会创建 Remis 项目、复制受支持内容并立即启动后台翻译。源 Mod 不会被直接修改，在线 API 可能产生费用。</Alert>
             <Group justify="space-between">

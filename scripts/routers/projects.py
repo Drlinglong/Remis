@@ -7,6 +7,7 @@ from typing import Optional, Dict, Any, Callable, List
 from datetime import datetime, timezone
 
 from scripts.shared.services import project_manager
+from scripts.shared import task_state
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.schemas.project import (
     CreateProjectRequest, 
@@ -26,8 +27,9 @@ validation_sidecars = ValidationSidecarService()
 
 
 def _write_incremental_logs(output_dirs: list[str], log_lines: list[str], telemetry: Optional[Dict[str, Any]] = None):
+    written_paths: list[str] = []
     if not output_dirs:
-        return
+        return written_paths
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     telemetry_lines = []
@@ -54,8 +56,10 @@ def _write_incremental_logs(output_dirs: list[str], log_lines: list[str], teleme
             log_path = os.path.join(output_dir, "incremental_update.log")
             with open(log_path, "w", encoding="utf-8") as handle:
                 handle.write(content)
+            written_paths.append(log_path)
         except Exception as exc:
             logging.error(f"Failed to write incremental log file to {output_dir}: {exc}")
+    return written_paths
 
 
 @router.get("/api/projects")
@@ -93,9 +97,30 @@ async def list_project_files(project_id: str):
 @router.post("/api/project/{project_id}/status")
 async def update_project_status(project_id: str, request: UpdateProjectStatusRequest):
     """Updates a project's status."""
+    if request.status == "archived":
+        blocker = task_state.find_active_task_by_dedupe_key(
+            f"project_translation_write:{project_id}"
+        )
+        if blocker is not None:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "project_busy",
+                    "message": "Wait for the active project operation before archiving.",
+                    "project_id": project_id,
+                    "blocking_task_id": blocker.get("task_id"),
+                    "allowed_actions": ["view_task"],
+                },
+            )
     try:
-        await project_manager.update_project_status(project_id, request.status)
-        return {"status": "success", "message": f"Project status updated to {request.status}"}
+        lifecycle = await project_manager.update_project_status(project_id, request.status)
+        return {
+            "status": "success",
+            "message": f"Project status updated to {request.status}",
+            "lifecycle": lifecycle,
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as e:
         logging.error(f"Error updating project status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -402,11 +427,31 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
         result = asyncio.run(project_manager.run_incremental_update_workflow(request, progress_callback))
         
         if result.get("status") == "error":
+            failure_message = str(result.get("message") or "Unknown incremental translation error")
             task_state.update_task(
                 task_id,
                 status="failed",
-                append_log=f"Error: {result.get('message')}",
+                message="Incremental translation failed.",
+                progress={
+                    "stage": "Failed",
+                    "stage_code": "failed",
+                },
+                fields={
+                    "attention_reason": (
+                        "Return to Incremental Translation, review the task diagnostics, "
+                        "and retry after correcting the reported input or provider problem."
+                    ),
+                    "attention_reason_code": "incremental_translation_failed_review_diagnostics",
+                },
+                append_log="Incremental translation failed.",
                 push=True,
+            )
+            task_state.append_task_event(
+                task_id,
+                failure_message,
+                audience="diagnostic",
+                level="error",
+                event_type="workflow_error",
             )
         else:
             fields = {
@@ -417,6 +462,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
                 "warnings": result.get("warnings", []),
                 "warning_count": result.get("warning_count", 0),
                 "workshop_issue_exports": result.get("workshop_issue_exports", []),
+                "source_advancement": result.get("source_advancement"),
             }
             task_state.update_task(
                 task_id,
@@ -459,7 +505,37 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
                         push=False,
                     )
             task = task_state.get_task(task_id) or task
-            _write_incremental_logs(fields["output_dirs"], task.get("log", []), fields["telemetry"])
+            workflow_log_paths = _write_incremental_logs(
+                fields["output_dirs"],
+                task.get("log", []),
+                fields["telemetry"],
+            )
+            output_paths = [
+                *[str(path) for path in fields["output_dirs"] if path],
+                *[str(path) for path in workflow_log_paths if path],
+            ]
+            task_state.update_task(
+                task_id,
+                fields={
+                    "result": {
+                        "types": ["files", "change_summary", "workflow_log"],
+                        "output_paths": list(dict.fromkeys(output_paths)),
+                        "summary": (
+                            f"{len(fields['file_summaries'])} file(s) processed; "
+                            f"{fields['warning_count']} runtime warning(s)."
+                        ),
+                        "metadata": {
+                            "project_id": project_id,
+                            "summary_code": "incremental_translation_completed",
+                            "processed_file_count": len(fields["file_summaries"]),
+                            "workflow_log_paths": workflow_log_paths,
+                            "warning_count": fields["warning_count"],
+                            "source_advancement": fields["source_advancement"],
+                        },
+                    },
+                },
+                push=False,
+            )
             logging.info(f"Incremental task {task_id} completed successfully.")
 
     except Exception as e:
@@ -468,8 +544,27 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
         task_state.update_task(
             task_id,
             status="failed",
-            append_log=f"Critical Failure: {str(e)}\n{traceback.format_exc()}",
+            message="Incremental translation failed.",
+            progress={
+                "stage": "Failed",
+                "stage_code": "failed",
+            },
+            fields={
+                "attention_reason": (
+                    "Return to Incremental Translation and retry. If the problem repeats, "
+                    "export the task diagnostics for support."
+                ),
+                "attention_reason_code": "incremental_translation_internal_error",
+            },
+            append_log="Incremental translation failed.",
             push=True,
+        )
+        task_state.append_task_event(
+            task_id,
+            f"{e}\n\n{traceback.format_exc()}",
+            audience="diagnostic",
+            level="error",
+            event_type="traceback",
         )
     finally:
         task_state.push_task_update(task_id)
@@ -477,11 +572,38 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
 @router.post("/api/project/{project_id}/incremental-update")
 async def run_incremental_update(project_id: str, request: IncrementalUpdateRequest, background_tasks: BackgroundTasks):
     """Triggers the incremental update workflow in background."""
-    from scripts.shared import task_state
     import uuid
     
     task_id = str(uuid.uuid4())
-    task_state.create_task(task_id, status="pending", log_message="Queuing incremental update...")
+    try:
+        task_state.create_task(
+            task_id,
+            status="pending",
+            log_message="Queuing incremental update...",
+            fields={
+                "kind": "incremental_translation",
+                "project_id": project_id,
+                "title": "Incremental translation",
+                "source_route": "/incremental-translation",
+                "created_by": {"type": "user"},
+                "blocking": True,
+                "workflow_context": {
+                    "mode": "pre_scan" if request.dry_run else "execution",
+                    "project_id": project_id,
+                },
+            },
+            dedupe_key=f"project_translation_write:{project_id}",
+            reject_duplicate=True,
+        )
+    except task_state.DuplicateTaskError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "duplicate_task",
+                "message": "This project already has a translation task in progress.",
+                "existing_task_id": exc.existing_task.get("task_id"),
+            },
+        ) from exc
     
     if request.project_id != project_id:
         request.project_id = project_id

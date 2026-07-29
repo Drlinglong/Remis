@@ -45,6 +45,7 @@ export const createProofreadingSessionSnapshot = ({
     filter = 'all',
     focusedEntryKey = null,
     scrollOffset = 0,
+    originTaskId = null,
 }) => ({
     projectId: fileInfo?.project_id || null,
     fileId: fileInfo?.file_id || null,
@@ -54,6 +55,7 @@ export const createProofreadingSessionSnapshot = ({
     filter,
     focusedEntryKey,
     scrollOffset: Number.isFinite(scrollOffset) ? scrollOffset : 0,
+    originTaskId: originTaskId || null,
 });
 
 export const restoreProofreadingRows = ({ rows, documentRevision, snapshot }) => {

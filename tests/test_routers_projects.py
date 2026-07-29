@@ -105,6 +105,10 @@ def test_run_incremental_update_background_marks_task_completed(monkeypatch, tmp
             "output_dirs": [str(tmp_path / "zh-CN-demo")],
             "warnings": ["warning-1"],
             "warning_count": 1,
+            "source_advancement": {
+                "mode": "managed_copy",
+                "source_path": str(tmp_path / "managed-demo"),
+            },
             "workshop_issue_exports": [
                 {
                     "issue_count": 2,
@@ -113,7 +117,8 @@ def test_run_incremental_update_background_marks_task_completed(monkeypatch, tmp
             ],
         }
 
-    write_logs = MagicMock()
+    workflow_log_path = str(tmp_path / "zh-CN-demo" / "incremental_update.log")
+    write_logs = MagicMock(return_value=[workflow_log_path])
     ws_push = MagicMock()
     monkeypatch.setattr(
         projects_router.project_manager,
@@ -136,6 +141,16 @@ def test_run_incremental_update_background_marks_task_completed(monkeypatch, tmp
     assert "Runtime translation warnings: 1." in tasks[task_id]["log"]
     assert any("Post-build validation issues: 2." in line for line in tasks[task_id]["log"])
     assert any("Workshop issue sidecar generated:" in line for line in tasks[task_id]["log"])
+    assert tasks[task_id]["result"]["types"] == ["files", "change_summary", "workflow_log"]
+    assert workflow_log_path in tasks[task_id]["result"]["output_paths"]
+    assert tasks[task_id]["result"]["metadata"]["workflow_log_paths"] == [workflow_log_path]
+    assert tasks[task_id]["result"]["metadata"]["project_id"] == project_id
+    assert tasks[task_id]["result"]["metadata"]["summary_code"] == "incremental_translation_completed"
+    assert tasks[task_id]["result"]["metadata"]["processed_file_count"] == 1
+    assert tasks[task_id]["result"]["metadata"]["source_advancement"] == {
+        "mode": "managed_copy",
+        "source_path": str(tmp_path / "managed-demo"),
+    }
     write_logs.assert_called_once_with(
         [str(tmp_path / "zh-CN-demo")],
         tasks[task_id]["log"],
@@ -144,12 +159,143 @@ def test_run_incremental_update_background_marks_task_completed(monkeypatch, tmp
     assert ws_push.call_count >= 2
 
 
+def test_incremental_failure_replaces_stale_translating_stage(monkeypatch):
+    task_id = "task-failed"
+    project_id = "project-1"
+    request = IncrementalUpdateRequest(project_id=project_id, target_lang_codes=["zh-CN"])
+    tasks.clear()
+    tasks[task_id] = {"status": "pending", "log": []}
+
+    async def fake_failed_workflow(_request, progress_callback):
+        progress_callback({
+            "percent": 60,
+            "stage": "Translating",
+            "stage_code": "translating",
+            "message": "Translating...",
+        })
+        return {
+            "status": "error",
+            "message": "provider returned an invalid payload",
+        }
+
+    monkeypatch.setattr(
+        projects_router.project_manager,
+        "run_incremental_update_workflow",
+        fake_failed_workflow,
+    )
+    monkeypatch.setattr(
+        "scripts.shared.ws_manager.ws_manager.sync_send_task_update",
+        MagicMock(),
+    )
+
+    projects_router.run_incremental_update_background(task_id, project_id, request)
+
+    failed = tasks[task_id]
+    assert failed["status"] == "failed"
+    assert failed["progress"]["stage"] == "Failed"
+    assert failed["progress"]["stage_code"] == "failed"
+    assert failed["message"] == "Incremental translation failed."
+    assert "Return to Incremental Translation" in failed["attention_reason"]
+    assert (
+        failed["attention_reason_code"]
+        == "incremental_translation_failed_review_diagnostics"
+    )
+    assert failed["log"][-1] == "Incremental translation failed."
+    assert all("invalid payload" not in line for line in failed["log"])
+
+
+def test_incremental_task_records_exact_workflow_context(mock_project_manager, monkeypatch):
+    client = TestClient(app)
+    tasks.clear()
+    monkeypatch.setattr(projects_router, "run_incremental_update_background", MagicMock())
+
+    response = client.post(
+        "/api/project/project-1/incremental-update",
+        json={
+            "project_id": "project-1",
+            "target_lang_codes": ["zh-CN"],
+            "dry_run": True,
+        },
+    )
+
+    assert response.status_code == 200
+    task = tasks[response.json()["task_id"]]
+    assert task["project_id"] == "project-1"
+    assert task["workflow_context"] == {
+        "mode": "pre_scan",
+        "project_id": "project-1",
+    }
+
+
+def test_write_incremental_logs_returns_explicit_artifact_paths(tmp_path):
+    first_output = tmp_path / "first"
+    second_output = tmp_path / "second"
+
+    written = projects_router._write_incremental_logs(
+        [str(first_output), str(second_output)],
+        ["Queued", "Completed"],
+        {"warning_count": 0},
+    )
+
+    assert written == [
+        str(first_output / "incremental_update.log"),
+        str(second_output / "incremental_update.log"),
+    ]
+    assert "# Incremental Update Log" in (first_output / "incremental_update.log").read_text(encoding="utf-8")
+    assert "Completed" in (second_output / "incremental_update.log").read_text(encoding="utf-8")
+
+
 def test_update_project_status_rejects_unknown_status(mock_project_manager):
     client = TestClient(app)
 
     response = client.post("/api/project/proj-1/status", json={"status": "half_deleted"})
 
     assert response.status_code == 422
+    mock_project_manager.update_project_status.assert_not_awaited()
+
+
+def test_update_project_status_returns_watch_lifecycle_counts(mock_project_manager):
+    tasks.clear()
+    mock_project_manager.update_project_status.return_value = {
+        "project_id": "proj-1",
+        "previous_status": "active",
+        "status": "archived",
+        "paused_watch_count": 2,
+        "restored_watch_count": 0,
+    }
+    client = TestClient(app)
+
+    response = client.post("/api/project/proj-1/status", json={"status": "archived"})
+
+    assert response.status_code == 200
+    assert response.json()["lifecycle"]["paused_watch_count"] == 2
+    mock_project_manager.update_project_status.assert_awaited_once_with(
+        "proj-1",
+        "archived",
+    )
+
+
+def test_archive_project_returns_exact_blocking_task(mock_project_manager):
+    tasks.clear()
+    projects_router.task_state.create_task(
+        "workshop-task-1",
+        status="running",
+        fields={"kind": "agent_workshop", "project_id": "proj-1"},
+        dedupe_key="project_translation_write:proj-1",
+        reject_duplicate=True,
+    )
+    client = TestClient(app)
+
+    response = client.post("/api/project/proj-1/status", json={"status": "archived"})
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == {
+        "code": "project_busy",
+        "message": "Wait for the active project operation before archiving.",
+        "project_id": "proj-1",
+        "blocking_task_id": "workshop-task-1",
+        "allowed_actions": ["view_task"],
+    }
     mock_project_manager.update_project_status.assert_not_awaited()
 
 

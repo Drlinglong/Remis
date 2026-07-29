@@ -1,0 +1,151 @@
+.quietToolbar,
+.secondaryPanel,
+.evidenceCard,
+.decisionPanel,
+.quietAlert {
+  box-shadow: none !important;
+}
+
+.quietToolbar {
+  background: var(--surface-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--surface-border) 22%, transparent) !important;
+}
+
+.candidateAnchor {
+  background: var(--surface-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 72%, transparent) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--interactive-accent) 18%, transparent) !important;
+}
+
+.secondaryPanel {
+  background: var(--paper-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--paper-text-main) 16%, transparent) !important;
+}
+
+.evidenceCard {
+  background: var(--paper-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--paper-text-main) 12%, transparent) !important;
+}
+
+.decisionPanel {
+  background: var(--surface-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--surface-border) 38%, transparent) !important;
+}
+
+.quietAlert {
+  background: color-mix(in srgb, var(--surface-bg-solid) 92%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--surface-border) 24%, transparent) !important;
+  color: var(--surface-text-main) !important;
+}
+
+.quietAlert :global(.mantine-Alert-title),
+.quietAlert :global(.mantine-Alert-message) {
+  color: var(--surface-text-main) !important;
+}
+
+.surfaceBadge {
+  background: color-mix(in srgb, var(--surface-text-main) 9%, transparent) !important;
+  border-color: color-mix(in srgb, var(--surface-text-main) 32%, transparent) !important;
+  color: var(--surface-text-main) !important;
+}
+
+.paperBadge,
+.paperIcon {
+  background: color-mix(in srgb, var(--paper-text-main) 9%, var(--paper-bg)) !important;
+  border-color: color-mix(in srgb, var(--paper-text-main) 24%, transparent) !important;
+  color: var(--paper-text-main) !important;
+}
+
+.semanticField {
+  background: var(--paper-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--paper-text-main) 38%, transparent) !important;
+  color: var(--paper-text-main) !important;
+  box-shadow: none !important;
+}
+
+.semanticField::placeholder {
+  color: var(--paper-text-muted) !important;
+  opacity: 1;
+}
+
+.semanticFieldWrapper {
+  --mantine-color-text: var(--surface-text-main);
+  --mantine-color-dimmed: var(--surface-text-muted);
+}
+
+.semanticFieldLabel {
+  color: var(--surface-text-main) !important;
+}
+
+.semanticFieldDescription {
+  color: var(--surface-text-muted) !important;
+}
+
+.primaryAction {
+  min-width: min(15rem, 100%);
+  background: var(--interactive-accent) !important;
+  border: 1px solid var(--surface-text-muted) !important;
+  color: var(--interactive-accent-text) !important;
+  box-shadow: none !important;
+}
+
+.secondaryAction {
+  background: transparent !important;
+  border: 1px solid var(--surface-text-muted) !important;
+  color: var(--surface-text-main) !important;
+  box-shadow: none !important;
+}
+
+.dangerSecondaryAction {
+  background: transparent !important;
+  border: 1px solid var(--surface-text-muted) !important;
+  color: var(--surface-text-main) !important;
+  box-shadow: inset 3px 0 0 var(--mantine-color-red-6) !important;
+}
+
+.batchModalContent,
+.batchModalHeader,
+.batchModalBody {
+  --mantine-color-text: var(--paper-text-main) !important;
+  --mantine-color-dimmed: var(--paper-text-muted) !important;
+  background: var(--paper-bg) !important;
+  color: var(--paper-text-main) !important;
+}
+
+.batchModalContent {
+  border: 1px solid var(--paper-text-muted) !important;
+}
+
+.batchModalTitle {
+  color: var(--paper-text-main) !important;
+}
+
+.batchModalClose {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--paper-text-main) !important;
+}
+
+.batchModalClose:hover {
+  background: color-mix(in srgb, var(--paper-text-main) 9%, var(--paper-bg)) !important;
+  border-color: var(--paper-text-muted) !important;
+}
+
+.batchModalAlert {
+  background: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg)) !important;
+  border: 1px solid var(--paper-text-muted) !important;
+  color: var(--paper-text-main) !important;
+  box-shadow: none !important;
+}
+
+.batchModalAlert :global(.mantine-Alert-icon),
+.batchModalAlert :global(.mantine-Alert-title),
+.batchModalAlert :global(.mantine-Alert-message) {
+  color: var(--paper-text-main) !important;
+}
+
+@media (max-width: 48em) {
+  .primaryAction {
+    flex: 1 1 100%;
+  }
+}

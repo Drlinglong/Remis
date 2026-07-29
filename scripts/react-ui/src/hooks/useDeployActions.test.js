@@ -44,19 +44,38 @@ describe('useDeployActions', () => {
   });
 
   it('deploys only the selected project output to the chosen path', async () => {
-    api.post.mockResolvedValue({ data: { status: 'success' } });
+    api.post
+      .mockResolvedValueOnce({
+        data: {
+          preview_id: 'preview-1',
+          source_path: 'J:/output/zh-CN-demo',
+          target_path: 'J:/Paradox/mod/zh-CN-demo',
+          target_exists: false,
+          validation_error_count: 0,
+        },
+      })
+      .mockResolvedValueOnce({ data: { status: 'success', task_id: 'deploy-task-1' } });
     const { result, options } = renderDeployActions();
 
-    act(() => result.current.setDeployPath('J:/Paradox/mod/zh-CN-demo'));
+    act(() => result.current.handleOpenDeployModal());
+    await waitFor(() => expect(result.current.deployPreview?.preview_id).toBe('preview-1'));
     await act(async () => result.current.handleExecuteDeploy());
 
-    expect(api.post).toHaveBeenCalledWith('/api/tools/deploy_mod', {
+    expect(api.post).toHaveBeenNthCalledWith(1, '/api/tools/deploy_preview', {
+      project_id: 'project-1',
+      output_folder_name: 'zh-CN-demo',
+      game_id: 'victoria3',
+    });
+    expect(api.post).toHaveBeenNthCalledWith(2, '/api/tools/deploy_mod', {
       project_id: 'project-1',
       output_folder_name: 'zh-CN-demo',
       game_id: 'victoria3',
       target_deploy_path: 'J:/Paradox/mod/zh-CN-demo',
       clean_fake_loc: false,
       source_language: 'english',
+      preview_id: 'preview-1',
+      approved: true,
+      confirm_overwrite: false,
     });
     expect(options.onDeploySuccess).toHaveBeenCalledOnce();
   });
@@ -85,15 +104,58 @@ describe('useDeployActions', () => {
   });
 
   it('does not report a failed deployment as successful', async () => {
-    api.post.mockResolvedValue({ data: { status: 'error', message: 'blocked' } });
+    api.post
+      .mockResolvedValueOnce({
+        data: {
+          preview_id: 'preview-failed',
+          source_path: 'J:/output/zh-CN-demo',
+          target_path: 'J:/Paradox/mod/zh-CN-demo',
+          target_exists: false,
+          validation_error_count: 0,
+        },
+      })
+      .mockResolvedValueOnce({ data: { status: 'error', message: 'blocked' } });
     const { result, options } = renderDeployActions();
 
+    act(() => result.current.handleOpenDeployModal());
+    await waitFor(() => expect(result.current.deployPreview).not.toBeNull());
     await act(async () => result.current.handleExecuteDeploy());
 
     expect(options.onDeploySuccess).not.toHaveBeenCalled();
     expect(notifications.show).toHaveBeenCalledWith(expect.objectContaining({
       color: 'red',
       message: 'blocked',
+    }));
+  });
+
+  it('treats a completed deployment with launcher warning as completed', async () => {
+    api.post
+      .mockResolvedValueOnce({
+        data: {
+          preview_id: 'preview-warning',
+          source_path: 'J:/output/zh-CN-demo',
+          target_path: 'J:/Paradox/mod/zh-CN-demo',
+          target_exists: false,
+          validation_error_count: 0,
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          status: 'warning',
+          message: 'Mod copied; launcher descriptor needs review.',
+          task_id: 'deploy-task-warning',
+        },
+      });
+    const { result, options } = renderDeployActions();
+
+    act(() => result.current.handleOpenDeployModal());
+    await waitFor(() => expect(result.current.deployPreview).not.toBeNull());
+    await act(async () => result.current.handleExecuteDeploy());
+
+    expect(options.onDeploySuccess).toHaveBeenCalledOnce();
+    expect(notifications.show).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'Mod copied; launcher descriptor needs review.',
+      color: 'orange',
     }));
   });
 });

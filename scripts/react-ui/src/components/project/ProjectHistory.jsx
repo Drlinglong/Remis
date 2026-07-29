@@ -11,6 +11,7 @@ import {
 import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
+import styles from '../../pages/ProjectManagement.module.css';
 
 const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, onProjectDataChanged }) => {
     const { t, i18n } = useTranslation();
@@ -166,8 +167,8 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
     }
 
     return (
-        <Stack id="project-history-panel" p="md" gap="xl">
-            <Paper id="project-history-current-state" withBorder p="md" radius="md" style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)' }}>
+        <Stack data-remis-surface="canvas" id="project-history-panel" p="md" gap="xl" className={styles.projectCanvas}>
+            <Paper data-remis-surface="surface" id="project-history-current-state" withBorder p="md" radius="md" className={styles.surfacePanel}>
                 <Group justify="space-between" mb="md">
                     <Group>
                         <IconGitBranch size={24} color="var(--mantine-color-blue-filled)" />
@@ -190,23 +191,23 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
                 <Divider mb="md" />
 
                 <SimpleGrid cols={{ base: 1, sm: 2, lg: 5 }} mb="md">
-                    <Card withBorder p="sm" radius="md">
+                    <Card data-remis-surface="surface" withBorder p="sm" radius="md" className={styles.surfaceInset}>
                         <Text size="xs" c="dimmed">{t('project_history.last_archive_time', 'Last Upload / Build')}</Text>
                         <Text size="sm" fw={600}>{latestArchiveTime ? new Date(latestArchiveTime).toLocaleString() : t('project_history.no_archive_data', 'No archive data')}</Text>
                     </Card>
-                    <Card withBorder p="sm" radius="md">
+                    <Card data-remis-surface="surface" withBorder p="sm" radius="md" className={styles.surfaceInset}>
                         <Text size="xs" c="dimmed">{t('project_history.source_entries', 'Source Entries')}</Text>
                         <Text size="sm" fw={600}>{archiveSummary?.source_entry_count ?? 0}</Text>
                     </Card>
-                    <Card withBorder p="sm" radius="md">
+                    <Card data-remis-surface="surface" withBorder p="sm" radius="md" className={styles.surfaceInset}>
                         <Text size="xs" c="dimmed">{t('project_history.translation_entries', 'Translation Entries')}</Text>
                         <Text size="sm" fw={600}>{archiveSummary?.total_translation_entries ?? 0}</Text>
                     </Card>
-                    <Card withBorder p="sm" radius="md">
+                    <Card data-remis-surface="surface" withBorder p="sm" radius="md" className={styles.surfaceInset}>
                         <Text size="xs" c="dimmed">{t('project_history.files_count', 'Files')}</Text>
                         <Text size="sm" fw={600}>{archiveSummary?.source_file_count ?? projectDetails?.overview?.totalFiles ?? 0}</Text>
                     </Card>
-                    <Card withBorder p="sm" radius="md">
+                    <Card data-remis-surface="surface" withBorder p="sm" radius="md" className={styles.surfaceInset}>
                         <Text size="xs" c="dimmed">{t('project_history.target_language_count', 'Target Languages')}</Text>
                         <Text size="sm" fw={600}>{archiveSummary?.target_language_count ?? archivedLanguages.length}</Text>
                     </Card>
@@ -215,7 +216,7 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
                 <Text size="xs" c="dimmed">{t('project_history.archived_languages', 'Archived Target Languages')}</Text>
                 <Text size="sm" mb="md">{archivedLanguages.length > 0 ? archivedLanguages.join(', ') : t('project_history.no_archived_languages', 'No archived target languages yet.')}</Text>
 
-                <Alert color="blue" icon={<IconInfoCircle size={16} />}>
+                <Alert data-remis-surface="surface" color="blue" icon={<IconInfoCircle size={16} />} className={styles.surfaceAlert}>
                     <Text size="sm">{t('project_history.incremental_prompt', 'Need to update translations after getting a new mod version?')}</Text>
                     <Button
                         id="project-history-incremental-btn"
@@ -230,7 +231,7 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
             </Paper>
 
             <Stack gap="md">
-                <Title order={4} mb="sm">
+                <Title order={4} mb="sm" className={styles.canvasTitle}>
                     <Group gap="xs">
                         <IconHistory size={20} />
                         {t('project_history.title', 'Project History & Versions')}
@@ -258,7 +259,7 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
                                     </Group>
                                 }
                             >
-                                <Paper withBorder p="sm" mt="xs" radius="md">
+                                <Paper data-remis-surface="paper" withBorder p="sm" mt="xs" radius="md" className={styles.paperPanel}>
                                     <Stack gap="xs">
                                         <Text size="sm">{translateHistoryDescription(event)}</Text>
                                         {shouldShowHistoryMetadata(event) && (

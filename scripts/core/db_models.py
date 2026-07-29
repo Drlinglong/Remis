@@ -31,7 +31,7 @@ class ProjectGlossaryBinding(SQLModel, table=True):
     __tablename__ = "project_glossary_bindings"
 
     project_id: str = Field(foreign_key="projects.project_id", primary_key=True)
-    glossary_id: int = Field(foreign_key="glossaries.glossary_id", index=True)
+    glossary_id: int = Field(foreign_key="glossaries.glossary_id", primary_key=True)
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -82,6 +82,7 @@ class ProjectWatch(SQLModel, table=True):
     path: str
     project_id: Optional[str] = Field(default=None, foreign_key="projects.project_id", index=True)
     enabled: bool = Field(default=True)
+    paused_by_project_archive: bool = Field(default=False)
     scan_interval_minutes: Optional[int] = None
     last_scan_at: Optional[str] = None
     last_change_at: Optional[str] = None

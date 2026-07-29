@@ -4,7 +4,14 @@ import { IconArrowUpRight, IconArrowDownRight } from '@tabler/icons-react';
 
 const StatCard = ({ title, value, icon, color, progress, trend, className }) => {
     return (
-        <Paper withBorder radius="md" p="xs" className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent' }}>
+        <Paper
+            withBorder
+            radius="md"
+            p="xs"
+            className={className}
+            data-remis-surface="surface"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent' }}
+        >
             <Group>
                 <RingProgress
                     size={80}

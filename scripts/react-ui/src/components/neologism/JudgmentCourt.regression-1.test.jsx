@@ -81,6 +81,27 @@ describe('JudgmentCourt candidate accessibility regression', () => {
     expect(firstCase).toHaveAttribute('aria-pressed', 'false');
   });
 
+  it('keeps project context and review controls in a compact workspace', async () => {
+    render(
+      <MantineProvider>
+        <JudgmentCourt
+          selectedProject="project-1"
+          onSelectedProjectChange={vi.fn()}
+        />
+      </MantineProvider>,
+    );
+
+    await screen.findByRole('button', { name: /Hyperlane Relay/ });
+
+    expect(screen.getByTestId('neologism-project-toolbar')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {
+      name: 'neologism_review.court.current_project',
+    })).toHaveValue('Stellaris Demo');
+    expect(screen.queryByRole('heading', { name: 'Stellaris Demo' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('neologism-review-workspace')).toBeInTheDocument();
+    expect(screen.getByTestId('neologism-decision-panel')).toBeInTheDocument();
+  });
+
   it('opens the bound project glossary from the prominent context card', async () => {
     const onOpenGlossary = vi.fn();
     render(

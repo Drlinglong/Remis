@@ -38,6 +38,8 @@ export const projectService = {
      */
     checkArchive: (projectId) => api.get(`/api/project/${projectId}/check-archive`),
 
+    getProjectValidationStatus: (projectId) => api.get(`/api/project/${projectId}/validation-status`),
+
     /**
      * Retrieve status and progress of a background task.
      * @param {string} taskId Task ID

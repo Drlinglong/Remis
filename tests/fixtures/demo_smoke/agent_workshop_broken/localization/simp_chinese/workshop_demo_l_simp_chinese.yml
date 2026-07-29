@@ -1,0 +1,11 @@
+﻿l_simp_chinese:
+ workshop_demo.clean:0 "档案已经准备好接受检查，"
+ workshop demo.invalid_key:0 "这个键包含非法空格。"
+ workshop demo.invalid_key_two:0 "第二个非法键。"
+ workshop demo.invalid_key_three:0 "第三个非法键。"
+ workshop demo.invalid_key_four:0 "第四个非法键。"
+ workshop_demo.variable:0 "将若干部队移动到 [TARGET.GetName]。"
+ workshop_demo.color:0 "#bold 重要指示缺少结束标记。"
+ workshop_demo.color_two:0 "#italic 历史背景缺少结束标记。"
+ workshop_demo.color_three:0 "#warning 危险操作缺少结束标记。"
+ workshop_demo.scope:0 "该记录的作用域变量被删除。"

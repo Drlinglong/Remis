@@ -71,6 +71,11 @@ const releaseDuplicateValueAllowlistPatterns = [
   /^select_game_profile$/,
   /^stage_smart_workshop$/,
   /^progress_smart_workshop_status$/,
+  /^page_title_agent_workshop$/,
+  /^task_center\.kind\.agent_workshop$/,
+  /^task_center\.kind\.agent_workshop_batch$/,
+  /^task_center\.kind\.repair$/,
+  /^agent_workshop\.title$/,
   /^agent_workshop\.(issue_format_marker_parity|validation_format_marker_parity_mismatch|validation_format_marker_parity_details_localized)$/,
   /^agent_workshop\.(table_|discard|regenerate|batch_size|model_label)/,
   /^tutorial\.(home|settings|version|sidebar_tutorial_btn)/,
@@ -184,6 +189,61 @@ describe('locale consistency', () => {
     expect(enLocale.common.browse).toBe('Browse');
     expect(ruLocale.common.browse).not.toBe(enLocale.common.browse);
     expect(zhLocale.common.browse).not.toBe(enLocale.common.browse);
+  });
+
+  it('separates the Format Repair product name from the internal Remis Agent identity', () => {
+    const enLocale = loadLocale(localeFiles.en);
+    const zhLocale = loadLocale(localeFiles.zh);
+    const legacyProductNamePattern = (
+      /Agent[- ]Workshop|Smart Workshop|workshop|智能工坊|智能工作坊|工坊|Werkstatt|taller|atelier|ワークショップ|워크숍|작업실|warsztat|oficina|мастерск|atölye/i
+    );
+    const productKeyPattern = (
+      /^(page_title_agent_workshop|task_center\.kind\.(agent_workshop|agent_workshop_batch|repair)|agent_workshop\.|project_validation\.|tutorial\.agent_workshop\.|tutorial\.project_management\.validation_workshop\.|tutorial\.incremental_translation\.workshop\.|translation_page\.embedded_workshop_|incremental_translation\.(embedded_workshop_|telemetry_(workshop_export|embedded_workshop)|validation_issue_summary_)|report_format_repair_)/
+    );
+
+    expect(enLocale.page_title_agent_workshop).toBe('Format Repair');
+    expect(enLocale.agent_workshop.title).toBe('Format Repair');
+    expect(enLocale.agent_workshop.description).toBe(
+      'Check and batch-repair format issues in localization files.',
+    );
+    expect(enLocale.task_center.creator.remis_agent).toBe('Remis Agent');
+    expect(enLocale.task_center.creator.remis_agent).not.toBe(enLocale.page_title_agent_workshop);
+
+    expect(zhLocale.page_title_agent_workshop).toBe('格式修复台');
+    expect(zhLocale.agent_workshop.title).toBe('格式修复台');
+    expect(zhLocale.agent_workshop.description).toBe(
+      '检查并批量修复本地化文件中的格式问题。',
+    );
+    expect(zhLocale.task_center.creator.remis_agent).not.toBe(zhLocale.page_title_agent_workshop);
+
+    const offenders = Object.entries(localeFiles).flatMap(([locale, filePath]) => (
+      flattenEntries(loadLocale(filePath))
+        .filter(([key, value]) => productKeyPattern.test(key) && typeof value === 'string')
+        .filter(([, value]) => legacyProductNamePattern.test(
+          value.replaceAll('workshop_issues.json', ''),
+        ))
+        .map(([key, value]) => `${locale}.${key}: ${JSON.stringify(value)}`)
+    ));
+    expect(offenders, offenders.join('\n')).toEqual([]);
+
+    Object.entries(localeFiles).forEach(([locale, filePath]) => {
+      const localeData = loadLocale(filePath);
+      const productName = locale === 'zh' ? '格式修复台' : 'Format Repair';
+      expect(localeData.page_title_agent_workshop).toBe(productName);
+      expect(localeData.agent_workshop.title).toBe(productName);
+      expect(localeData.task_center.kind.agent_workshop).toBe(
+        productName,
+      );
+      expect(localeData.task_center.kind.agent_workshop_batch).toBe(
+        locale === 'zh' ? '格式修复批次' : 'Format Repair batch',
+      );
+      expect(localeData.task_center.kind.repair).toBe(
+        locale === 'zh' ? '格式修复' : 'Format repair',
+      );
+      expect(localeData.incremental_translation.telemetry_workshop_export).toContain(productName);
+      expect(localeData.incremental_translation.telemetry_embedded_workshop).toContain(productName);
+      expect(localeData.incremental_translation.validation_issue_summary_title).toContain(productName);
+    });
   });
 
   it('does not leave locale strings as pure question-mark placeholders', () => {

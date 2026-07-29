@@ -24,6 +24,16 @@ operator guide over the product; it is not the product itself.
 - Desktop frontend: React/Tauri under `scripts/react-ui/`.
 - Product website: React/Vite under `website/`.
 - Codex operator Skill: `.agents/skills/remis-agent/`.
+- Write Git commit messages in English using
+  `<type>(<scope>): <subject>`.
+
+## Text integrity
+
+- Scripts that read or write source, locale, or configuration files must set
+  UTF-8 explicitly. Do not round-trip non-ASCII text through terminal output.
+- Before committing locale changes, parse the edited JSON, scan for runs of
+  replacement question marks or mojibake, and run
+  `scripts/react-ui/src/__tests__/textEncodingIntegrity.test.js`.
 
 Run focused verification for the area changed:
 

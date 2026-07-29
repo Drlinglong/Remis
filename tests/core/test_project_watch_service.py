@@ -7,6 +7,8 @@ import pytest_asyncio
 from scripts.core.repositories.project_repository import ProjectRepository
 from scripts.core.repositories.project_watch_repository import ProjectWatchRepository
 from scripts.core.services.project_watch_service import ProjectWatchService
+from scripts.core.db_models import Project
+from scripts.shared import task_state
 
 
 def write_loc(path, content):
@@ -21,6 +23,7 @@ async def watch_service(tmp_path):
     from scripts.core.db_manager import db_manager
 
     original_path = db_manager.db_path
+    original_task_repository = task_state.get_repository()
     db_manager.db_path = db_path
     if hasattr(db_manager, "_async_engine"):
         await db_manager._async_engine.dispose()
@@ -30,7 +33,11 @@ async def watch_service(tmp_path):
         watch_repository=ProjectWatchRepository(db_path),
         project_repository=ProjectRepository(db_path),
     )
+    task_state.tasks.clear()
+    task_state.configure_repository(None)
     yield service
+    task_state.tasks.clear()
+    task_state.configure_repository(original_task_repository)
     if hasattr(db_manager, "_async_engine"):
         await db_manager._async_engine.dispose()
         del db_manager._async_engine
@@ -168,3 +175,112 @@ async def test_project_watch_ignores_non_localization_files(watch_service, tmp_p
     result = await watch_service.scan_watch(watch["watch_id"])
 
     assert result["changed_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_due_project_watch_creates_automation_task_with_persisted_result(
+    watch_service,
+    tmp_path,
+):
+    mod_root = tmp_path / "scheduled-mod"
+    write_loc(
+        mod_root / "localization" / "english" / "demo_l_english.yml",
+        'l_english:\n key:0 "Same"\n',
+    )
+    watch = await watch_service.create_watch({
+        "name": "Scheduled Mod",
+        "path": str(mod_root),
+        "enabled": True,
+        "scan_interval_minutes": 1,
+    })
+
+    results = await watch_service.scan_due_watches()
+
+    assert len(results) == 1
+    task = task_state.get_task(results[0]["task_id"])
+    assert task["status"] == "completed"
+    assert task["kind"] == "project_watch_scan"
+    assert task["created_by"]["type"] == "automation"
+    assert task["created_by"]["actor_id"] == "project_watch_scheduler"
+    assert task["source_route"] == "/project-tracking"
+    assert task["result"]["metadata"]["watch_id"] == watch["watch_id"]
+
+    persisted_watch = (await watch_service.list_watches())[0]
+    assert persisted_watch["last_scan_summary"]["task_id"] == task["task_id"]
+
+
+@pytest.mark.asyncio
+async def test_manual_project_watch_creates_user_task_with_exact_result_link(
+    watch_service,
+    tmp_path,
+):
+    mod_root = tmp_path / "manual-mod"
+    write_loc(
+        mod_root / "localization" / "english" / "demo_l_english.yml",
+        'l_english:\n key:0 "Same"\n',
+    )
+    watch = await watch_service.create_watch({
+        "name": "Manual Mod",
+        "path": str(mod_root),
+    })
+
+    result = await watch_service.scan_watch(watch["watch_id"])
+
+    task = task_state.get_task(result["task_id"])
+    assert task["status"] == "completed"
+    assert task["kind"] == "project_watch_scan"
+    assert task["created_by"] == {"type": "user"}
+    assert task["title"] == "Scan updates for Manual Mod"
+    assert task["result"]["metadata"]["watch_id"] == watch["watch_id"]
+
+    persisted_watch = (await watch_service.list_watches())[0]
+    assert persisted_watch["last_scan_summary"]["task_id"] == task["task_id"]
+
+
+@pytest.mark.asyncio
+async def test_due_project_watch_records_conflict_with_active_project_write(
+    watch_service,
+    tmp_path,
+):
+    mod_root = tmp_path / "conflicted-mod"
+    write_loc(
+        mod_root / "localization" / "english" / "demo_l_english.yml",
+        'l_english:\n key:0 "Same"\n',
+    )
+    project = await watch_service.project_repository.create_project(Project(
+        project_id="project-conflict",
+        name="Conflict Project",
+        game_id="victoria3",
+        source_path=str(mod_root),
+        target_path=str(tmp_path / "output"),
+        source_language="english",
+        status="active",
+    ))
+    watch = await watch_service.create_watch({
+        "name": "Conflicted Mod",
+        "path": str(mod_root),
+        "project_id": project.project_id,
+        "enabled": True,
+        "scan_interval_minutes": 1,
+    })
+    task_state.create_task(
+        "manual-write",
+        status="running",
+        fields={"kind": "incremental_translation", "project_id": project.project_id},
+        dedupe_key=f"project_translation_write:{project.project_id}",
+        reject_duplicate=True,
+    )
+
+    results = await watch_service.scan_due_watches()
+
+    assert len(results) == 1
+    assert results[0]["watch_id"] == watch["watch_id"]
+    assert results[0]["status"] == "blocked"
+    assert results[0]["conflicting_task_id"] == "manual-write"
+    assert results[0]["changed_count"] == 0
+    assert "blocked" in results[0]["message"].lower()
+    blocked_task = task_state.get_task(results[0]["task_id"])
+    assert blocked_task["status"] == "failed"
+    assert blocked_task["created_by"]["type"] == "automation"
+    assert blocked_task["result"]["metadata"]["conflicting_task_id"] == "manual-write"
+    assert blocked_task["blocking"] is False

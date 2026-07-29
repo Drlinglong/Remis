@@ -4,6 +4,7 @@ import {
   applyIncrementalStateSnapshot,
   buildIncrementalStateSnapshot,
   readIncrementalStateSnapshot,
+  resolveInFlightIncrementalTaskId,
   resolvePersistedProject,
   writeIncrementalStateSnapshot,
 } from './incrementalTranslationPersistence';
@@ -114,6 +115,20 @@ describe('incrementalTranslationPersistence', () => {
     expect(resolvePersistedProject(staleProject, [currentProject])).toBe(currentProject);
     expect(resolvePersistedProject(staleProject, [])).toBe(staleProject);
     expect(resolvePersistedProject(null, [currentProject])).toBeNull();
+  });
+
+  it('keeps the exact task identity while an incremental request is in flight', () => {
+    expect(resolveInFlightIncrementalTaskId({
+      currentTaskId: 'task-running',
+      executionInFlight: true,
+    })).toBe('task-running');
+    expect(resolveInFlightIncrementalTaskId({
+      currentTaskId: 'task-scanning',
+      preScanInFlight: true,
+    })).toBe('task-scanning');
+    expect(resolveInFlightIncrementalTaskId({
+      currentTaskId: 'task-finished',
+    })).toBeNull();
   });
 
   it('applies a persisted state snapshot through provided setters and refs', () => {

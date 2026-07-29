@@ -26,6 +26,7 @@ const renderMonitor = (overrides = {}) => {
     executionInFlightRef: { current: false },
     preScanInFlightRef: { current: false },
     setActive: vi.fn(),
+    setConflictingTaskId: vi.fn(),
     setCurrentTaskId: vi.fn(),
     setCurrentTaskMode: vi.fn(),
     setExecuting: vi.fn(),
@@ -75,6 +76,7 @@ describe('useIncrementalTaskMonitor', () => {
 
     expect(props.addLog).toHaveBeenCalledTimes(1);
     expect(props.addLog).toHaveBeenCalledWith('incremental_translation.translation_completed_success');
+    expect(props.setConflictingTaskId).toHaveBeenCalledWith(null);
   });
 
   it('logs websocket errors while a task is still active', () => {

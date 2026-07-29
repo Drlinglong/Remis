@@ -14,6 +14,7 @@ from scripts.schemas.agent import (
     AgentProjectCreateRequest,
     AgentProjectPlanRequest,
     AgentRepairRequest,
+    AgentValidationSummary,
 )
 from scripts.shared import task_state
 
@@ -366,6 +367,108 @@ async def test_repair_requires_approval_before_loading_issues(isolated_registry)
     assert exc_info.value.detail["code"] == "approval_required"
 
 
+def test_agent_repair_status_and_actions_preserve_workshop_governance():
+    validation = AgentValidationSummary(available=True)
+
+    assert agent_router._normalize_status("partial_failed") == "failed"
+    assert agent_router._normalize_status("interrupted") == "interrupted"
+    assert agent_router._job_allowed_actions(
+        "completed",
+        validation,
+        ["reports/repair.json"],
+        kind="repair",
+    ) == ["inspect_validation"]
+
+
+@pytest.mark.asyncio
+async def test_approved_agent_repair_forwards_governed_workshop_contract(
+    isolated_registry,
+    monkeypatch,
+):
+    task_state.tasks.clear()
+    plan = isolated_registry.create_plan(
+        project_id="project-1",
+        execution_args={
+            "project_id": "project-1",
+            "api_provider": "lm_studio",
+            "model": "local-model",
+        },
+        dry_run=False,
+        summary="Repair fixture",
+    )
+    isolated_registry.consume_plan(plan["plan_id"], approved=True)
+    isolated_registry.record_job(
+        job_id="job-parent",
+        project_id="project-1",
+        plan_id=plan["plan_id"],
+        kind="translation",
+        execution_args=plan["execution_args"],
+    )
+
+    async def fake_validation(_project_id, include_items=False):
+        return {
+            "summary": AgentValidationSummary(),
+            "items": [],
+            "_raw_items": [{
+                "file_name": "events.yml",
+                "key": "entry",
+                "status": "detected",
+            }],
+        }
+
+    captured = {}
+
+    async def fake_start_fix_run(request, _background_tasks):
+        captured["request"] = request
+        task_state.create_task(
+            "repair-child",
+            status="partial_failed",
+            fields={
+                "kind": "agent_workshop",
+                "project_id": "project-1",
+                "result": {
+                    "types": ["workshop_repairs", "repair_reports"],
+                    "output_paths": ["reports/repair-child.json"],
+                    "summary": "One repair still needs review.",
+                },
+                "checkpoint": {
+                    "available": False,
+                    "resume_supported": False,
+                },
+            },
+        )
+
+        class Response:
+            task_id = "repair-child"
+
+        return Response()
+
+    monkeypatch.setattr(agent_router, "_validation_payload", fake_validation)
+    monkeypatch.setattr(agent_router, "start_fix_run", fake_start_fix_run)
+
+    response = await agent_router.repair_agent_job(
+        "job-parent",
+        AgentRepairRequest(approved=True),
+        BackgroundTasks(),
+    )
+
+    forwarded = captured["request"]
+    assert forwarded.approval.approved is True
+    assert forwarded.approval.issue_count == 1
+    assert forwarded.created_by.type == "remis_agent"
+    assert forwarded.idempotency_key.startswith("agent-repair:")
+    assert response.job_id == "repair-child"
+    assert response.status == "failed"
+    assert response.parent_task_id == "job-parent"
+    assert response.output_paths == ["reports/repair-child.json"]
+    assert response.result.summary == "One repair still needs review."
+    assert response.workflow_context["source_task_id"] == "job-parent"
+    assert response.recovery["checkpoint_resume_supported"] is False
+    assert response.allowed_actions == ["retry"]
+    assert "export_preview" not in response.links
+    assert task_state.tasks["repair-child"]["parent_task_id"] == "job-parent"
+
+
 def test_export_candidate_rejects_path_traversal(tmp_path, monkeypatch):
     destination = tmp_path / "translations"
     destination.mkdir()
@@ -482,6 +585,10 @@ def test_openapi_exposes_agent_contract():
     assert "/api/agent/jobs/plan" in schema["paths"]
     assert "/api/agent/jobs/{job_id}/approve-export" in schema["paths"]
     assert "AgentJobResponse" in schema["components"]["schemas"]
+    job_properties = schema["components"]["schemas"]["AgentJobResponse"]["properties"]
+    assert "parent_task_id" in job_properties
+    assert "result" in job_properties
+    assert "workflow_context" in job_properties
 
 
 def test_agent_api_cors_allows_localhost_and_rejects_remote_origins():

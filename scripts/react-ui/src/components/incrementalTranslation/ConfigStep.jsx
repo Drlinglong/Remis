@@ -80,6 +80,9 @@ export const ConfigStep = ({
     // Actions
     runPreScan,
     onBack,
+    currentTaskId,
+    conflictingTaskId,
+    onViewTask,
 }) => {
     const { t } = useTranslation();
 
@@ -332,7 +335,7 @@ export const ConfigStep = ({
                                 <Accordion.Control>
                                     <Group justify="space-between" wrap="nowrap">
                                         <Box>
-                                            <Text fw={600}>{t('translation_page.embedded_workshop_title', { defaultValue: '智能工坊 (校对插件)' })}</Text>
+                                            <Text fw={600}>{t('translation_page.embedded_workshop_title', { defaultValue: '格式修复台（格式修复）' })}</Text>
                                             <Text size="xs" c="dimmed">
                                                 {t('translation_page.embedded_workshop_subtitle', { defaultValue: '在生成翻译后，顺便进行文本智能润饰与格式校对。' })}
                                             </Text>
@@ -391,6 +394,24 @@ export const ConfigStep = ({
                             </Accordion.Item>
                         </Accordion>
 
+                        {(conflictingTaskId || (loading && currentTaskId)) && (
+                            <Alert
+                                color="blue"
+                                title={t('incremental_translation.conflicting_task_title')}
+                            >
+                                <Group justify="space-between" align="center" wrap="wrap">
+                                    <Text size="sm">
+                                        {t('incremental_translation.conflicting_task_notice')}
+                                    </Text>
+                                    {onViewTask && (
+                                        <Button size="xs" variant="light" onClick={onViewTask}>
+                                            {t('task_center.view_task')}
+                                        </Button>
+                                    )}
+                                </Group>
+                            </Alert>
+                        )}
+
                         <Group justify="space-between" mt="lg">
                             <Button variant="outline" onClick={onBack}>
                                 {t('common.back')}
@@ -398,7 +419,7 @@ export const ConfigStep = ({
                             <Button
                                 id="incremental-scan-btn"
                                 loading={loading}
-                                disabled={selectedLangs.length === 0}
+                                disabled={selectedLangs.length === 0 || Boolean(conflictingTaskId)}
                                 onClick={runPreScan}
                             >
                                 {t('incremental_translation.run_pre_scan')}

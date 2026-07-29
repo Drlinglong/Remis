@@ -2,6 +2,7 @@ import React from 'react';
 import { AppShell, Box } from '@mantine/core';
 import { AppSider } from './AppSider';
 import { ContextualSider } from './ContextualSider';
+import { TaskCenterDrawer } from '../tasks/TaskCenterDrawer';
 
 export function MainLayout({ children }) {
     return (
@@ -10,7 +11,7 @@ export function MainLayout({ children }) {
             style={{ height: '100vh', overflow: 'hidden' }}
         >
             <AppShell.Main style={{ padding: 0, height: '100vh', display: 'flex', overflow: 'hidden', background: 'transparent' }}>
-                <Box style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}>
+                <Box style={{ position: 'relative', display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}>
                     {/* Left Sidebar (Navigation) */}
                     <AppSider />
 
@@ -23,6 +24,7 @@ export function MainLayout({ children }) {
 
                     {/* Right Sidebar (Context) */}
                     <ContextualSider />
+                    <TaskCenterDrawer />
                 </Box>
             </AppShell.Main>
         </AppShell>

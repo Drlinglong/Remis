@@ -11,6 +11,7 @@ import GlobalStyles from './components/GlobalStyles';
 import { NotificationProvider } from './context/NotificationContext';
 import { SidebarProvider } from './context/SidebarContext';
 import { TranslationProvider } from './context/TranslationContext';
+import { TaskCenterProvider } from './context/TaskCenterContext';
 import { TutorialProvider } from './context/TutorialContext';
 import { MainLayout } from './components/layout/MainLayout';
 import SplashScreen from './components/SplashScreen';
@@ -40,6 +41,9 @@ const ArchivesPage = lazy(() => import('./pages/ArchivesPage'));
 const NeologismReviewPage = lazy(() => import('./pages/NeologismReviewPage'));
 const AgentWorkshopPage = lazy(() => import('./pages/AgentWorkshopPage'));
 const CopilotPage = lazy(() => import('./pages/CopilotPage'));
+const TaskDetailPage = lazy(() => import('./pages/TaskDetailPage'));
+const TaskHistoryPage = lazy(() => import('./pages/TaskHistoryPage'));
+const GlossaryHealthReviewPage = lazy(() => import('./pages/GlossaryHealthReviewPage'));
 
 const RouteFallback = () => (
     <Center h="50vh">
@@ -56,6 +60,9 @@ const appRouteConfig = [
     { path: '/proofreading', element: <ProofreadingPage /> },
     { path: '/project-management', element: <ProjectManagementPage /> },
     { path: '/project-management/:projectId', element: <ProjectManagementPage /> },
+    { path: '/tasks/:taskId', element: <TaskDetailPage /> },
+    { path: '/tasks/:taskId/glossary-health', element: <GlossaryHealthReviewPage /> },
+    { path: '/task-history', element: <TaskHistoryPage /> },
     { path: '/project-tracking', element: <ProjectTrackingPage /> },
     { path: '/incremental-translation', element: <IncrementalTranslationPage /> },
     ...(FEATURES.ENABLE_NEOLOGISM_TRIBUNAL ? [{ path: '/neologism-review', element: <NeologismReviewPage /> }] : []),
@@ -104,7 +111,9 @@ const App = () => {
                     ) : (
                         <SidebarProvider>
                             <TranslationProvider>
-                                <RouterProvider router={appRouter} fallbackElement={<RouteFallback />} />
+                                <TaskCenterProvider>
+                                    <RouterProvider router={appRouter} fallbackElement={<RouteFallback />} />
+                                </TaskCenterProvider>
                             </TranslationProvider>
                         </SidebarProvider>
                     )}

@@ -15,6 +15,7 @@ import {
 import {
     IconAlertCircle,
     IconAlertTriangle,
+    IconArrowRight,
     IconCheck,
     IconDeviceFloppy,
     IconX,
@@ -36,6 +37,8 @@ const ProofreadingWorkspace = ({
     variableWarnings,
     onValidate,
     onSave,
+    onSaveAndNext,
+    canSaveAndNext,
     onConfirmSave,
     onDiscardCommentChanges,
     onCancelSave,
@@ -121,6 +124,18 @@ const ProofreadingWorkspace = ({
                             size="sm"
                         >
                             {t('proofreading.save')}
+                        </Button>
+                        <Button
+                            leftSection={<IconDeviceFloppy size={16} />}
+                            rightSection={<IconArrowRight size={16} />}
+                            onClick={onSaveAndNext}
+                            loading={saving}
+                            disabled={!canSaveAndNext}
+                            size="sm"
+                        >
+                            {t('proofreading.save_and_next_entry', {
+                                defaultValue: 'Save and next entry',
+                            })}
                         </Button>
                     </Group>
                 </Group>

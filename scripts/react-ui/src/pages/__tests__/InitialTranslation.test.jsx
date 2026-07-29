@@ -132,6 +132,10 @@ vi.mock('../../context/NotificationContextCore', () => ({
   }),
 }));
 
+vi.mock('../../context/TaskCenterContextCore', () => ({
+  useTaskCenter: () => ({ openTaskCenter: vi.fn() }),
+}));
+
 vi.mock('../../context/TutorialContextCore', () => ({
   useTutorial: () => ({
     setPageContext: setPageContextMock,
@@ -149,7 +153,9 @@ vi.mock('../../context/TranslationContextCore', () => ({
       activeStep,
       setActiveStep,
       setTaskId: vi.fn(),
+      taskId: null,
       taskStatus: null,
+      isProcessing: false,
       setIsProcessing: vi.fn(),
       translationDetails: null,
       setTranslationDetails: vi.fn(),
@@ -340,7 +346,7 @@ describe('InitialTranslation', () => {
     const { container } = renderPage(['/?projectId=proj-1']);
 
     await waitFor(() => {
-      expect(screen.getByText('智能工坊设置')).toBeInTheDocument();
+      expect(screen.getByText('格式修复台设置')).toBeInTheDocument();
     });
 
     // 重新获取展开按钮以保证渲染稳定性
@@ -373,7 +379,7 @@ describe('InitialTranslation', () => {
     const { container } = renderPage(['/?projectId=proj-1']);
 
     await waitFor(() => {
-      expect(screen.getByText('智能工坊设置')).toBeInTheDocument();
+      expect(screen.getByText('格式修复台设置')).toBeInTheDocument();
     });
 
     const expandButtons = screen.getAllByRole('button', { name: '展开' });

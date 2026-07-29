@@ -1,0 +1,184 @@
+.page {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.content {
+  width: min(100%, 1440px);
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header {
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--canvas-text-muted) 62%, transparent);
+}
+
+.statusBadge {
+  --badge-bg: color-mix(in srgb, var(--canvas-bg-solid) 88%, transparent) !important;
+  --badge-color: var(--canvas-text-main) !important;
+  --badge-bd: 1px solid var(--canvas-text-muted) !important;
+  text-shadow: none !important;
+}
+
+.timer {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--canvas-text-muted);
+  border-radius: 8px;
+  color: var(--canvas-text-main);
+  background: color-mix(in srgb, var(--canvas-bg-solid) 88%, transparent);
+  text-shadow: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.logCard {
+  margin-top: 10px;
+}
+
+.technicalLogDetails {
+  color: var(--canvas-text-muted);
+}
+
+.technicalLogDetails > summary {
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--canvas-bg-solid) 82%, transparent);
+  cursor: pointer;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+.technicalLogDetails[open] > summary {
+  color: var(--canvas-text-main);
+}
+
+.eventList {
+  position: relative;
+}
+
+.eventRow {
+  display: grid;
+  grid-template-columns: minmax(118px, auto) 10px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 10px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--surface-border) 62%, transparent);
+}
+
+.eventRow[data-level='error'] {
+  background: color-mix(in srgb, var(--mantine-color-red-9) 12%, transparent);
+}
+
+.eventTime {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.eventMarker {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--mantine-color-gray-6);
+}
+
+.eventMarker[data-color='red'] { background: var(--mantine-color-red-6); }
+.eventMarker[data-color='yellow'] { background: var(--mantine-color-yellow-6); }
+.eventMarker[data-color='green'] { background: var(--mantine-color-green-6); }
+.eventMarker[data-color='blue'] { background: var(--mantine-color-blue-6); }
+
+.eventMessage {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.taskId {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.projectIdentityCopy {
+  min-width: 0;
+}
+
+.projectName {
+  margin-top: 2px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.blockingBadge {
+  width: fit-content;
+  cursor: help;
+}
+
+.repairResultItem {
+  --mantine-color-text: var(--paper-text-main) !important;
+  --mantine-color-dimmed: var(--paper-text-muted) !important;
+  background: var(--paper-bg) !important;
+  border-color: color-mix(in srgb, var(--paper-text-main) 24%, transparent) !important;
+  color: var(--paper-text-main) !important;
+}
+
+.repairResultFile,
+.repairResultReason {
+  color: var(--paper-text-muted) !important;
+  overflow-wrap: anywhere;
+}
+
+.repairResultKey {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 3px;
+  background: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg)) !important;
+  color: var(--paper-text-main) !important;
+  overflow-wrap: anywhere;
+}
+
+.repairResultBadge {
+  flex: 0 0 auto;
+  color: var(--paper-text-main) !important;
+}
+
+.technicalDetails {
+  padding-top: 8px;
+  border-top: 1px solid var(--surface-border);
+  color: var(--surface-text-muted);
+}
+
+.technicalDetails summary {
+  width: fit-content;
+  cursor: pointer;
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  .content {
+    padding: 14px;
+  }
+
+  .header {
+    align-items: stretch;
+  }
+
+  .eventRow {
+    grid-template-columns: 10px minmax(0, 1fr);
+  }
+
+  .eventTime {
+    grid-column: 2;
+  }
+
+  .eventMarker {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+}

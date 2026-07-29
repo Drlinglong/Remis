@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import React from 'react';
 import { MantineProvider } from '@mantine/core';
@@ -58,6 +58,7 @@ describe('AgentWorkshopPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         sessionStorage.clear();
+        localStorage.setItem('remis_tutorial_agent-workshop_prompt_seen_v1', 'true');
         
         // Mock Projects API
         api.get.mockImplementation((url) => {
@@ -185,7 +186,95 @@ describe('AgentWorkshopPage', () => {
         await waitFor(() => {
             const snapshot = JSON.parse(sessionStorage.getItem(AGENT_WORKSHOP_STORAGE_KEY));
             expect(snapshot.executing).toBe(false);
-            expect(snapshot.currentRunTaskId).toBeNull();
+            expect(snapshot.currentRunTaskId).toBe('task-resume');
         });
     }, 5000);
+
+    it('requires explicit approval before submitting the governed repair scope', async () => {
+        api.get.mockImplementation((url) => {
+            if (url === '/api/projects?status=active' || url === '/api/projects') {
+                return Promise.resolve({
+                    data: [{ project_id: 'test-p', name: 'Test Project', game_id: 'vic3', status: 'active' }],
+                });
+            }
+            if (url === '/api/config') {
+                return Promise.resolve({
+                    data: {
+                        api_providers: [{
+                            value: 'gemini',
+                            label: 'Gemini',
+                            available_models: ['gemini-pro'],
+                            selected_model: 'gemini-pro',
+                        }],
+                    },
+                });
+            }
+            if (url === '/api/project/test-p/check-archive') {
+                return Promise.resolve({ data: { source_entry_count: 1 } });
+            }
+            if (url === '/api/project/test-p/history') {
+                return Promise.resolve({ data: [] });
+            }
+            if (url === '/api/agent-workshop/scan?project_id=test-p&force=true') {
+                return Promise.resolve({
+                    data: [{
+                        file_name: 'events.yml',
+                        key: 'entry',
+                        target_str: 'broken',
+                        error_type: 'validation_error',
+                    }],
+                });
+            }
+            if (url === '/api/status/task-approved') {
+                return Promise.resolve({
+                    data: {
+                        task_id: 'task-approved',
+                        status: 'completed',
+                        progress: { percent: 100 },
+                        summary: {
+                            total: 1,
+                            completed: 1,
+                            successCount: 1,
+                            failedCount: 0,
+                            results: [{ file_name: 'events.yml', key: 'entry', status: 'SUCCESS' }],
+                        },
+                    },
+                });
+            }
+            return Promise.resolve({ data: [] });
+        });
+        api.post.mockResolvedValue({
+            data: { task_id: 'task-approved', status: 'queued', allowed_actions: ['view_task'] },
+        });
+
+        renderWithProvider(<AgentWorkshopPage />);
+
+        fireEvent.click(await screen.findByText('Test Project'));
+        fireEvent.click(await screen.findByRole('button', { name: 'agent_workshop.scan_btn' }));
+        const startButton = await screen.findByRole('button', { name: 'agent_workshop.start_fix' });
+        fireEvent.click(startButton);
+
+        expect(api.post).not.toHaveBeenCalled();
+        const dialog = await screen.findByRole('dialog');
+        expect(within(dialog).getByText('agent_workshop.start_fix_confirm_cloud')).toBeInTheDocument();
+
+        fireEvent.click(within(dialog).getByRole('button', { name: 'agent_workshop.start_fix' }));
+
+        await waitFor(() => {
+            expect(api.post).toHaveBeenCalledWith(
+                '/api/agent-workshop/fix-run',
+                expect.objectContaining({
+                    project_id: 'test-p',
+                    approval: {
+                        approved: true,
+                        issue_count: 1,
+                        api_provider: 'gemini',
+                        api_model: 'gemini-pro',
+                    },
+                    idempotency_key: expect.stringMatching(/^agent-workshop:test-p:/),
+                    created_by: { type: 'user' },
+                })
+            );
+        });
+    });
 });

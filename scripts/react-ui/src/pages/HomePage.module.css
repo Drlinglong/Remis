@@ -1,4 +1,14 @@
-/* scripts/react-ui/src/pages/HomePage.module.css */
+.pageScroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.pageTitle {
+    color: var(--text-highlight);
+    font-family: var(--font-header);
+    line-height: 1.15;
+    margin-top: 4px;
+}
 
 .welcomeBanner {
     position: relative;
@@ -41,14 +51,12 @@
     box-shadow: var(--shadow-elevation) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    color: var(--text-main) !important;
+    color: var(--surface-text-main) !important;
     transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
 }
 
 .glassCard:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
+    border-color: var(--surface-border, var(--glass-border)) !important;
 }
 
 .cardTitle {

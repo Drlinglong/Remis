@@ -1,0 +1,25 @@
+:global(*) {
+  box-sizing: border-box;
+}
+
+:global(html),
+:global(body),
+:global(#root) {
+  min-height: 100%;
+  margin: 0;
+}
+
+:global(body) {
+  overflow-x: hidden;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--canvas-bg-solid);
+  color: var(--canvas-text-main);
+}
+
+.subtitle {
+  color: var(--canvas-text-muted) !important;
+}

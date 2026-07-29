@@ -22,6 +22,7 @@ import {
 
 import heroBg from '../../assets/project_hero_bg.png';
 import styles from '../../pages/ProjectManagement.module.css';
+import { getGameBadgeColor } from '../../utils/gamePresentation';
 
 export function ProjectListView({
   projects,
@@ -74,7 +75,7 @@ export function ProjectListView({
 
       <Box className={styles.projectContent}>
         {viewMode === 'active' && (
-          <Box className={styles.actionsSection} data-remis-surface="surface">
+          <Box className={styles.actionsSection} data-remis-surface="canvas">
             <Box>
               <Title order={3}>
                 {t('project_management.file_list.table.actions')}
@@ -123,7 +124,13 @@ export function ProjectListView({
             >
               <Group justify="space-between" mb="xs">
                 <Text fw={500} className={styles.projectTitle}>{project.name}</Text>
-                <Badge color={project.status === 'active' ? 'blue' : 'gray'}>{project.game_id}</Badge>
+                <Badge
+                  color={getGameBadgeColor(project.game_id)}
+                  data-game-color={getGameBadgeColor(project.game_id)}
+                  variant="filled"
+                >
+                  {project.game_id}
+                </Badge>
               </Group>
               <Text size="sm" color="dimmed" lineClamp={2}>
                 {project.notes || t('project_management.no_notes', 'No notes')}

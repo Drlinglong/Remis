@@ -16,6 +16,7 @@ import {
     applyIncrementalStateSnapshot,
     buildIncrementalStateSnapshot,
     readIncrementalStateSnapshot,
+    resolveInFlightIncrementalTaskId,
     writeIncrementalStateSnapshot,
 } from './incrementalTranslationPersistence';
 import {
@@ -67,6 +68,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
     const [finalSummary, setFinalSummary] = useState(null);
     const [currentTaskId, setCurrentTaskId] = useState(null);
     const [currentTaskMode, setCurrentTaskMode] = useState(null);
+    const [conflictingTaskId, setConflictingTaskId] = useState(null);
     
     // Checkpoints
     const [checkpointFound, setCheckpointFound] = useState(false);
@@ -107,6 +109,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         executionInFlightRef,
         preScanInFlightRef,
         setActive,
+        setConflictingTaskId,
         setCurrentTaskId,
         setCurrentTaskMode,
         setExecuting,
@@ -137,6 +140,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         sessionStorage.removeItem(INCREMENTAL_STATE_STORAGE_KEY);
         setCurrentTaskId(null);
         setCurrentTaskMode(null);
+        setConflictingTaskId(null);
         preScanInFlightRef.current = false;
         executionInFlightRef.current = false;
         completionSourceRef.current = null;
@@ -223,6 +227,11 @@ export const useIncrementalTranslation = (notificationStyle) => {
     }, []);
 
     const handleSelectProject = useCallback(async (project, sourcePathOverride = null) => {
+        const inFlightTaskId = resolveInFlightIncrementalTaskId({
+            currentTaskId,
+            executionInFlight: executionInFlightRef.current,
+            preScanInFlight: preScanInFlightRef.current,
+        });
         const nextSourcePath = sourcePathOverride || project.source_path;
         setSelectedProject(project);
         setCustomSourcePath(nextSourcePath);
@@ -234,10 +243,20 @@ export const useIncrementalTranslation = (notificationStyle) => {
         setErrorKey(null);
         setProgress(0);
         setProgressInfo({});
-        setExecuting(false);
+        setExecuting(Boolean(inFlightTaskId && currentTaskMode === 'execution'));
         setCheckpointFound(false);
-        setCurrentTaskId(null);
-        setCurrentTaskMode(null);
+        if (inFlightTaskId) {
+            setCurrentTaskId(inFlightTaskId);
+            setConflictingTaskId(inFlightTaskId);
+            notificationService.info(
+                t('incremental_translation.conflicting_task_notice'),
+                notificationStyle,
+            );
+        } else {
+            setCurrentTaskId(null);
+            setCurrentTaskMode(null);
+            setConflictingTaskId(null);
+        }
         completionSourceRef.current = null;
         statusResyncRef.current = false;
         setActive(1);
@@ -264,7 +283,14 @@ export const useIncrementalTranslation = (notificationStyle) => {
         } finally {
             setLoading(false);
         }
-    }, [checkCheckpoint, completionSourceRef]);
+    }, [
+        checkCheckpoint,
+        completionSourceRef,
+        currentTaskId,
+        currentTaskMode,
+        notificationStyle,
+        t,
+    ]);
 
     const runPreScan = useCallback(async () => {
         if (!selectedProject || !customSourcePath || loading || executing || preScanInFlightRef.current || executionInFlightRef.current) return;
@@ -305,6 +331,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
 
             const taskId = res.data.task_id;
             if (taskId) {
+                setConflictingTaskId(null);
                 setCurrentTaskId(taskId);
                 setCurrentTaskMode('pre_scan');
                 connectWebSocket(taskId, true);
@@ -322,7 +349,20 @@ export const useIncrementalTranslation = (notificationStyle) => {
             }
         } catch (err) {
             console.error('Pre-scan error:', err);
-            notificationService.error(t('notification.error_generic'), notificationStyle);
+            const detail = err?.response?.data?.detail;
+            const duplicateTaskId = detail?.code === 'duplicate_task'
+                ? detail.existing_task_id
+                : null;
+            if (duplicateTaskId) {
+                setConflictingTaskId(duplicateTaskId);
+                setCurrentTaskId(duplicateTaskId);
+                notificationService.info(
+                    t('incremental_translation.conflicting_task_notice'),
+                    notificationStyle,
+                );
+            } else {
+                notificationService.error(t('notification.error_generic'), notificationStyle);
+            }
             setLoading(false);
             preScanInFlightRef.current = false;
         }
@@ -378,12 +418,30 @@ export const useIncrementalTranslation = (notificationStyle) => {
                 throw new Error(t('incremental_translation.task_id_missing'));
             }
 
+            setConflictingTaskId(null);
             setCurrentTaskId(taskId);
             setCurrentTaskMode('execution');
             connectWebSocket(taskId);
+            notificationService.info(
+                t('incremental_translation.background_task_notice'),
+                notificationStyle,
+            );
 
         } catch (err) {
-            addLog(t('incremental_translation.critical_error', { message: err.message }));
+            const detail = err?.response?.data?.detail;
+            const duplicateTaskId = detail?.code === 'duplicate_task'
+                ? detail.existing_task_id
+                : null;
+            if (duplicateTaskId) {
+                setConflictingTaskId(duplicateTaskId);
+                setCurrentTaskId(duplicateTaskId);
+                notificationService.info(
+                    t('incremental_translation.conflicting_task_notice'),
+                    notificationStyle,
+                );
+            } else {
+                addLog(t('incremental_translation.critical_error', { message: err.message }));
+            }
             setExecuting(false);
             executionInFlightRef.current = false;
         }
@@ -418,7 +476,24 @@ export const useIncrementalTranslation = (notificationStyle) => {
                 routeSelectionAppliedRef.current = true;
                 restorationAppliedRef.current = true;
                 resetPersistedState();
-                handleSelectProject(routeProject, routeState.customSourcePath || routeProject.source_path);
+                void handleSelectProject(
+                    routeProject,
+                    routeState.customSourcePath || routeProject.source_path,
+                ).then(() => {
+                    if (!routeState.taskId) return;
+                    const taskMode = routeState.taskMode === 'pre_scan' ? 'pre_scan' : 'execution';
+                    statusResyncRef.current = false;
+                    setCurrentTaskId(routeState.taskId);
+                    setCurrentTaskMode(taskMode);
+                    if (taskMode === 'pre_scan') {
+                        preScanInFlightRef.current = true;
+                        setLoading(true);
+                    } else {
+                        executionInFlightRef.current = true;
+                        setExecuting(true);
+                        setActive(3);
+                    }
+                });
                 return;
             }
         }
@@ -594,7 +669,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         concurrencyLimit, setConcurrencyLimit,
         rpmLimit, setRpmLimit,
         archiveInfo, scanResults, error, errorKey,setErrorKey,
-        executing, progress, progressInfo, logs, finalSummary,
+        executing, progress, progressInfo, logs, finalSummary, currentTaskId, conflictingTaskId,
         checkpointFound, checkpointInfo, useResume, setUseResume,
         showResumeDetails, setShowResumeDetails,
         embeddedWorkshopEnabled, setEmbeddedWorkshopEnabled,

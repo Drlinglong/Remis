@@ -13,8 +13,10 @@ import {
   Box,
   Button,
   Group,
+  Alert,
+  Title,
 } from '@mantine/core';
-import { IconArrowLeft, IconPlayerPlay } from '@tabler/icons-react';
+import { IconActivity, IconArrowLeft, IconInfoCircle, IconPlayerPlay } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router';
 import { useTutorial } from '../context/TutorialContextCore';
 import '../App.css';
@@ -36,6 +38,7 @@ import {
   findProjectById,
 } from '../utils/initialTranslation';
 import api from '../utils/api';
+import { useTaskCenter } from '../context/TaskCenterContextCore';
 
 const formatModelSummary = (modelName = '') => {
   const knownModels = {
@@ -153,7 +156,9 @@ const InitialTranslation = () => {
     activeStep: active,
     setActiveStep: setActive,
     setTaskId,
+    taskId,
     taskStatus,
+    isProcessing,
     setIsProcessing,
     translationDetails,
     setTranslationDetails,
@@ -161,6 +166,7 @@ const InitialTranslation = () => {
     setSelectedProjectId,
     resetTranslation
   } = useTranslationContext();
+  const { openTaskCenter } = useTaskCenter();
   const { setPageContext } = useTutorial();
 
   // Project State
@@ -383,6 +389,25 @@ const InitialTranslation = () => {
     <Container fluid pt="xl" px={0} h="100vh" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxWidth: '100%', width: '100%' }}>
       <Box px="md" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         <Stack gap="xl" pb="xl" w="100%">
+          <Group justify="space-between" align="flex-start" gap="md">
+            <div>
+              <Text size="sm" fw={700} c="dimmed" tt="uppercase">{t('initial_translation.eyebrow')}</Text>
+              <Title order={1}>{t('page_title_translation')}</Title>
+              <Text c="dimmed">{t(`initial_translation.stage_hint.${active}`)}</Text>
+            </div>
+            {taskId && (
+              <Button variant="light" leftSection={<IconActivity size={17} />} onClick={openTaskCenter}>
+                {t('task_center.title')}
+              </Button>
+            )}
+          </Group>
+
+          {isProcessing && (
+            <Alert color="blue" icon={<IconInfoCircle size={18} />}>
+              {t('initial_translation.background_task_notice')}
+            </Alert>
+          )}
+
           <Box w="100%">
             <Stepper active={active} onStepClick={setActive} allowNextStepsSelect={false}>
               <Stepper.Step label={t('translation_page.title')} description={t('translation_page.subtitle')}>

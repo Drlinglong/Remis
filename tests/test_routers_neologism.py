@@ -93,3 +93,58 @@ async def test_list_mining_files_returns_only_eligible_source_files(tmp_path, mo
     result = await neologism.list_mining_files("project-1")
 
     assert result == [{"file_path": str(events.resolve()), "relative_path": "events.yml"}]
+
+
+@pytest.mark.asyncio
+async def test_processed_view_and_restore_preserve_written_glossary_entries(monkeypatch):
+    async def get_project(project_id):
+        return {"project_id": project_id}
+
+    monkeypatch.setattr(neologism.project_manager, "get_project", get_project)
+    monkeypatch.setattr(
+        neologism.neologism_manager,
+        "get_candidates",
+        lambda project_id, view: [{
+            "id": "candidate-1",
+            "status": "approved",
+            "project_id": project_id,
+            "view": view,
+        }],
+    )
+    monkeypatch.setattr(
+        neologism.neologism_manager,
+        "restore_candidate",
+        lambda project_id, candidate_id: "approved",
+    )
+
+    processed = await neologism.list_neologisms("project-1", view="processed")
+    restored = await neologism.restore_neologism(
+        "candidate-1",
+        neologism.RestoreNeologismRequest(project_id="project-1"),
+    )
+
+    assert processed[0]["view"] == "processed"
+    assert restored == {
+        "status": "success",
+        "previous_status": "approved",
+        "glossary_entry_preserved": True,
+    }
+
+
+@pytest.mark.asyncio
+async def test_reject_conflicts_with_an_existing_terminal_verdict(monkeypatch):
+    async def get_project(project_id):
+        return {"project_id": project_id}
+
+    monkeypatch.setattr(neologism.project_manager, "get_project", get_project)
+    monkeypatch.setattr(
+        neologism.neologism_manager,
+        "reject_candidate",
+        lambda project_id, candidate_id: "approved",
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await neologism.reject_neologism("candidate-1", {"project_id": "project-1"})
+
+    assert exc_info.value.status_code == 409
+    assert "already approved" in exc_info.value.detail

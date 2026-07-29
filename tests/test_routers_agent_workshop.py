@@ -1,3 +1,4 @@
+import inspect
 import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -8,6 +9,7 @@ from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.routers.agent_workshop import apply_translation_fix_to_file
 from scripts.routers.agent_workshop import _resolve_source_entries_for_translation
 from scripts.routers.agent_workshop import BatchResultItem, FixBatchResponse
+from scripts.shared import task_state
 from scripts.shared.state import tasks
 from scripts.utils.validation_logger import ValidationLogger
 from scripts.web_server import app
@@ -80,6 +82,42 @@ def test_load_cached_filters_fixed_entries(tmp_path):
     assert len(data) == 1
     assert data[0]["file_name"] == "a.yml"
     assert data[0]["status"] == "detected"
+
+
+def test_format_scan_records_zero_issue_result_in_task_ledger(tmp_path):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+
+    with patch("scripts.routers.agent_workshop.project_manager", new_callable=MagicMock) as mock_pm, \
+         patch("scripts.routers.agent_workshop.task_state.create_task") as mock_create_task, \
+         patch("scripts.routers.agent_workshop.task_state.update_task") as mock_update_task:
+        mock_pm.get_project = AsyncMock(return_value={
+            "project_id": "scan-project",
+            "name": "Scan Project",
+            "source_path": str(project_root),
+            "game_id": "victoria3",
+            "source_language": "en",
+        })
+        mock_pm.get_project_files = AsyncMock(return_value=[])
+
+        response = client.get(
+            "/api/agent-workshop/scan",
+            params={"project_id": "scan-project", "force": True},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == []
+    task_id = response.headers["X-Remis-Task-Id"]
+    assert task_id
+    mock_create_task.assert_called_once()
+    assert mock_create_task.call_args.args[0] == task_id
+    assert mock_create_task.call_args.kwargs["fields"]["workflow_context"]["input_scope"] == str(project_root)
+    mock_update_task.assert_called_once()
+    assert mock_update_task.call_args.args[0] == task_id
+    assert mock_update_task.call_args.kwargs["status"] == "completed"
+    result = mock_update_task.call_args.kwargs["fields"]["result"]
+    assert result["metadata"]["issue_count"] == 0
+    assert result["metadata"]["mutations_applied"] is False
 
 
 def test_load_cached_falls_back_to_workshop_sidecar(tmp_path):
@@ -369,6 +407,80 @@ def test_scan_uses_translation_relative_paths_for_external_translation_dirs(tmp_
     assert [item["key"] for item in translation_cache] == [data[0]["key"]]
 
 
+def test_force_scan_pairs_source_language_files_inside_translation_root_and_reports_invalid_keys(tmp_path):
+    project_root = tmp_path / "project"
+    translation_root = tmp_path / "translation"
+    english_file = translation_root / "localization" / "english" / "demo_l_english.yml"
+    chinese_file = translation_root / "localization" / "simp_chinese" / "demo_l_simp_chinese.yml"
+    project_root.mkdir()
+    ProjectJsonManager(str(project_root)).update_config({
+        "translation_dirs": [str(translation_root)]
+    })
+    _write_loc_file(
+        english_file,
+        "l_english",
+        [
+            ("demo.variable:0", "Move $COUNT$ units."),
+            ("demo.color:0", "#bold Important#!"),
+        ],
+    )
+    chinese_file.parent.mkdir(parents=True, exist_ok=True)
+    chinese_file.write_text(
+        '\ufeffl_simp_chinese:\n'
+        ' demo.variable:0 "移动若干部队。"\n'
+        ' demo.color:0 "#bold 重要内容"\n'
+        ' demo invalid:0 "非法键"\n',
+        encoding="utf-8",
+    )
+
+    with patch("scripts.routers.agent_workshop.project_manager", new_callable=MagicMock) as mock_pm:
+        mock_pm.get_project = AsyncMock(return_value={
+            "project_id": "fixture-project",
+            "source_path": str(project_root),
+            "game_id": "stellaris",
+            "source_language": "en",
+        })
+        mock_pm.get_project_files = AsyncMock(return_value=[
+            {
+                "file_id": "source-language-copy",
+                "file_path": str(english_file),
+                "file_type": "translation",
+            },
+            {
+                "file_id": "broken-target",
+                "file_path": str(chinese_file),
+                "file_type": "translation",
+            },
+        ])
+
+        response = client.get(
+            "/api/agent-workshop/scan",
+            params={"project_id": "fixture-project", "force": True},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    issue_codes = {item["error_code"] for item in data}
+    assert "validation_invalid_key_format" in issue_codes
+    assert any(
+        item["key"] == "demo.variable:0"
+        and item["source_str"] == "Move $COUNT$ units."
+        for item in data
+    )
+    assert any(
+        item["key"] == "demo.color:0"
+        and item["source_str"] == "#bold Important#!"
+        for item in data
+    )
+    invalid_issue = next(
+        item for item in data
+        if item["error_code"] == "validation_invalid_key_format"
+    )
+    assert invalid_issue["key"] == "demo invalid:0"
+    assert invalid_issue["line_number"] == 4
+    assert invalid_issue["file_id"] == "broken-target"
+
+
 def test_force_scan_with_selected_sidecar_scans_only_current_translation_scope(tmp_path):
     project_root = tmp_path / "project"
     current_translation = tmp_path / "en-Demo-incremental-update-20260708"
@@ -510,6 +622,12 @@ def test_fix_issue_updates_file_status_and_report(tmp_path):
             "details": "broken",
             "api_provider": "gemini",
             "api_model": "gemini-3-flash-preview",
+            "approval": {
+                "approved": True,
+                "issue_count": 1,
+                "api_provider": "gemini",
+                "api_model": "gemini-3-flash-preview",
+            },
         })
 
     assert response.status_code == 200
@@ -566,6 +684,12 @@ def test_fix_issue_does_not_mark_fixed_when_apply_fails(tmp_path):
             "details": "broken",
             "api_provider": "gemini",
             "api_model": "gemini-3-flash-preview",
+            "approval": {
+                "approved": True,
+                "issue_count": 1,
+                "api_provider": "gemini",
+                "api_model": "gemini-3-flash-preview",
+            },
         })
 
     assert response.status_code == 200
@@ -674,6 +798,12 @@ def test_fix_batch_only_marks_successful_items_fixed(tmp_path):
             "project_id": "p4",
             "api_provider": "gemini",
             "api_model": "gemini-3-flash-preview",
+            "approval": {
+                "approved": True,
+                "issue_count": 2,
+                "api_provider": "gemini",
+                "api_model": "gemini-3-flash-preview",
+            },
             "issues": [
                 {
                     "file_name": "events/test_l_simp_chinese.yml",
@@ -717,6 +847,26 @@ def test_fix_batch_only_marks_successful_items_fixed(tmp_path):
     }
     assert status_map["demo.one:0"] == "fixed"
     assert status_map["demo.two:0"] == "detected"
+
+
+def test_single_fix_requires_explicit_approval_before_model_or_write():
+    response = client.post("/api/agent-workshop/fix", json={
+        "project_id": "p-approval",
+        "file_name": "events.yml",
+        "key": "demo.one:0",
+        "source_str": "Hello",
+        "target_str": "坏译文",
+        "error_type": "validation_error",
+        "details": "broken",
+        "api_provider": "gemini",
+        "api_model": "gemini-3-flash-preview",
+    })
+
+    assert response.status_code == 409
+    detail = response.json()["detail"]
+    assert detail["code"] == "approval_required"
+    assert detail["approval_scope"]["issue_count"] == 1
+    assert detail["approval_scope"]["may_incur_model_cost"] is True
 
 
 def test_fix_batch_does_not_mark_fixed_when_post_validation_fails(tmp_path):
@@ -775,6 +925,12 @@ def test_fix_batch_does_not_mark_fixed_when_post_validation_fails(tmp_path):
             "project_id": "p6",
             "api_provider": "gemini",
             "api_model": "gemini-3-flash-preview",
+            "approval": {
+                "approved": True,
+                "issue_count": 1,
+                "api_provider": "gemini",
+                "api_model": "gemini-3-flash-preview",
+            },
             "issues": [
                 {
                     "file_name": "events/test_l_simp_chinese.yml",
@@ -824,11 +980,25 @@ def test_fix_run_creates_backend_managed_task():
             max_retries=3,
         )
 
-    with patch("scripts.routers.agent_workshop._run_fix_batch", side_effect=fake_run_batch) as mock_run_batch:
+    with (
+        patch(
+            "scripts.routers.agent_workshop._require_repairable_project",
+            new_callable=AsyncMock,
+            return_value={"project_id": "p-run", "status": "active"},
+        ),
+        patch("scripts.routers.agent_workshop._run_fix_batch", side_effect=fake_run_batch) as mock_run_batch,
+    ):
         response = client.post("/api/agent-workshop/fix-run", json={
             "project_id": "p-run",
             "api_provider": "gemini",
             "api_model": "gemini-3-flash-preview",
+            "approval": {
+                "approved": True,
+                "issue_count": 1,
+                "api_provider": "gemini",
+                "api_model": "gemini-3-flash-preview",
+            },
+            "idempotency_key": "workshop-run-test-1",
             "batch_size_limit": 1,
             "concurrency_limit": 1,
             "rpm_limit": 600,
@@ -852,6 +1022,214 @@ def test_fix_run_creates_backend_managed_task():
     assert tasks[task_id]["summary"]["successCount"] == 1
     assert tasks[task_id]["summary"]["failedCount"] == 0
     assert tasks[task_id]["summary"]["results"][0]["suggested_fix"] == "修复"
+    assert tasks[task_id]["dedupe_key"] == "project_translation_write:p-run"
+    assert tasks[task_id]["workflow_context"] == {
+        "mode": "repair",
+        "project_id": "p-run",
+        "issue_count": 1,
+        "api_provider": "gemini",
+        "api_model": "gemini-3-flash-preview",
+    }
+    child = tasks[f"{task_id}:batch:1"]
+    assert child["parent_task_id"] == task_id
+    assert child["status"] == "completed"
+    assert child["workflow_context"]["parent_task_id"] == task_id
+    assert child["workflow_context"]["batch_number"] == 1
+    assert tasks[task_id]["result"]["metadata"]["batch_task_ids"] == [child["task_id"]]
+
+
+def test_fix_run_background_entrypoint_is_synchronous_for_threadpool_execution():
+    from scripts.routers.agent_workshop import _run_agent_workshop_fix_task_in_worker
+
+    assert inspect.iscoroutinefunction(_run_agent_workshop_fix_task_in_worker) is False
+
+
+def test_fix_run_requires_approval_for_exact_scope():
+    tasks.clear()
+    with patch(
+        "scripts.routers.agent_workshop._require_repairable_project",
+        new_callable=AsyncMock,
+        return_value={"project_id": "p-run", "status": "active"},
+    ):
+        response = client.post("/api/agent-workshop/fix-run", json={
+            "project_id": "p-run",
+            "api_provider": "gemini",
+            "api_model": "gemini-3-flash-preview",
+            "approval": {
+                "approved": True,
+                "issue_count": 2,
+                "api_provider": "gemini",
+                "api_model": "gemini-3-flash-preview",
+            },
+            "idempotency_key": "workshop-run-approval",
+            "issues": [{
+                "file_name": "events/test_l_simp_chinese.yml",
+                "key": "demo.one:0",
+                "source_str": "Hello",
+                "target_str": "坏译文",
+                "error_type": "validation_error",
+                "details": "broken",
+            }],
+        })
+
+    assert response.status_code == 409
+    detail = response.json()["detail"]
+    assert detail["code"] == "approval_required"
+    assert detail["approval_scope"]["issue_count"] == 1
+    assert detail["approval_scope"]["writes_project_files"] is True
+    assert tasks == {}
+
+
+def test_fix_run_shares_project_write_lock_with_translation_and_deployment():
+    tasks.clear()
+    task_state.create_task(
+        "existing-project-write",
+        status="running",
+        fields={"kind": "incremental_translation", "project_id": "p-run"},
+        dedupe_key="project_translation_write:p-run",
+        reject_duplicate=True,
+    )
+
+    with patch(
+        "scripts.routers.agent_workshop._require_repairable_project",
+        new_callable=AsyncMock,
+        return_value={"project_id": "p-run", "status": "active"},
+    ):
+        response = client.post("/api/agent-workshop/fix-run", json={
+            "project_id": "p-run",
+            "api_provider": "gemini",
+            "api_model": "gemini-3-flash-preview",
+            "approval": {
+                "approved": True,
+                "issue_count": 1,
+                "api_provider": "gemini",
+                "api_model": "gemini-3-flash-preview",
+            },
+            "idempotency_key": "workshop-run-conflict",
+            "issues": [{
+                "file_name": "events/test_l_simp_chinese.yml",
+                "key": "demo.one:0",
+                "source_str": "Hello",
+                "target_str": "坏译文",
+                "error_type": "validation_error",
+                "details": "broken",
+            }],
+        })
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "duplicate_task"
+    assert response.json()["detail"]["existing_task_id"] == "existing-project-write"
+
+
+def test_fix_run_reuses_matching_idempotent_request():
+    tasks.clear()
+
+    async def fake_run_batch(_request):
+        return FixBatchResponse(
+            results=[
+                BatchResultItem(
+                    file_name="events/test_l_simp_chinese.yml",
+                    key="demo.one:0",
+                    suggested_fix="修复",
+                    status="SUCCESS",
+                    parity_message="Validation passed",
+                )
+            ],
+        )
+
+    payload = {
+        "project_id": "p-run-idempotent",
+        "api_provider": "gemini",
+        "api_model": "gemini-3-flash-preview",
+        "approval": {
+            "approved": True,
+            "issue_count": 1,
+            "api_provider": "gemini",
+            "api_model": "gemini-3-flash-preview",
+        },
+        "idempotency_key": "workshop-run-idempotent",
+        "issues": [{
+            "file_name": "events/test_l_simp_chinese.yml",
+            "key": "demo.one:0",
+            "source_str": "Hello",
+            "target_str": "坏译文",
+            "error_type": "validation_error",
+            "details": "broken",
+        }],
+    }
+
+    with (
+        patch(
+            "scripts.routers.agent_workshop._require_repairable_project",
+            new_callable=AsyncMock,
+            return_value={"project_id": "p-run-idempotent", "status": "active"},
+        ),
+        patch("scripts.routers.agent_workshop._run_fix_batch", side_effect=fake_run_batch) as mock_run_batch,
+    ):
+        first = client.post("/api/agent-workshop/fix-run", json=payload)
+        second = client.post("/api/agent-workshop/fix-run", json=payload)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.json() == {
+        "task_id": first.json()["task_id"],
+        "status": "completed",
+        "reused": True,
+        "allowed_actions": ["view_task"],
+    }
+    assert mock_run_batch.await_count == 1
+
+
+def test_fix_run_marks_partial_results_for_review():
+    tasks.clear()
+
+    async def fake_run_batch(_request):
+        return FixBatchResponse(
+            results=[
+                BatchResultItem(
+                    file_name="events/test_l_simp_chinese.yml",
+                    key="demo.one:0",
+                    suggested_fix="",
+                    status="FAILED",
+                    parity_message="Still broken",
+                )
+            ],
+        )
+
+    with (
+        patch(
+            "scripts.routers.agent_workshop._require_repairable_project",
+            new_callable=AsyncMock,
+            return_value={"project_id": "p-run-partial", "status": "active"},
+        ),
+        patch("scripts.routers.agent_workshop._run_fix_batch", side_effect=fake_run_batch),
+    ):
+        response = client.post("/api/agent-workshop/fix-run", json={
+            "project_id": "p-run-partial",
+            "api_provider": "gemini",
+            "api_model": "gemini-3-flash-preview",
+            "approval": {
+                "approved": True,
+                "issue_count": 1,
+                "api_provider": "gemini",
+                "api_model": "gemini-3-flash-preview",
+            },
+            "idempotency_key": "workshop-run-partial",
+            "issues": [{
+                "file_name": "events/test_l_simp_chinese.yml",
+                "key": "demo.one:0",
+                "source_str": "Hello",
+                "target_str": "坏译文",
+                "error_type": "validation_error",
+                "details": "broken",
+            }],
+        })
+
+    task_id = response.json()["task_id"]
+    assert tasks[task_id]["status"] == "partial_failed"
+    assert tasks[task_id]["attention_reason"] == "0 issue(s) fixed; 1 still require review."
+    assert tasks[task_id]["result"]["summary"] == "0 issue(s) fixed; 1 still require review."
+    assert tasks[f"{task_id}:batch:1"]["status"] == "partial_failed"
 
 
 def test_apply_translation_fix_to_file_escapes_quotes(tmp_path):

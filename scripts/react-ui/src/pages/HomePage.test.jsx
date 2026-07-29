@@ -8,6 +8,8 @@ import api from '../utils/api';
 const navigateMock = vi.fn();
 const startTourMock = vi.fn();
 const setPageContextMock = vi.fn();
+const openTaskCenterMock = vi.fn();
+let taskCenterState;
 
 vi.mock('@mantine/core', async () => {
   const actual = await vi.importActual('@mantine/core');
@@ -42,6 +44,10 @@ vi.mock('../context/TutorialContextCore', () => ({
     setPageContext: setPageContextMock,
   }),
   getTutorialKey: (page = 'general') => `remis_tutorial_${page}_v1`,
+}));
+
+vi.mock('../context/TaskCenterContextCore', () => ({
+  useTaskCenter: () => taskCenterState,
 }));
 
 vi.mock('react-i18next', () => ({
@@ -94,6 +100,10 @@ vi.mock('../components/ActionCard', () => ({
   default: () => <div />,
 }));
 
+vi.mock('../components/tasks/TaskSummaryCard', () => ({
+  TaskSummaryCard: ({ task, onOpen }) => <button type="button" onClick={() => onOpen(task)}>{task.title}</button>,
+}));
+
 const renderWithProvider = (ui) =>
   render(<MantineProvider>{ui}</MantineProvider>);
 
@@ -101,12 +111,20 @@ describe('HomePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    taskCenterState = {
+      activeCount: 0,
+      attentionCount: 0,
+      loading: false,
+      openTaskCenter: openTaskCenterMock,
+      tasks: [],
+    };
     api.get.mockResolvedValue({
       data: {
         stats: {
           total_projects: 3,
           words_translated: 1200,
           active_tasks: 2,
+          active_projects: 2,
           completion_rate: 50,
         },
         charts: {
@@ -119,36 +137,76 @@ describe('HomePage', () => {
     });
   });
 
-  it('loads dashboard data, sets page context, and navigates from the hero CTA', async () => {
+  it('loads dashboard data, sets page context, and navigates from the state-driven CTA', async () => {
     renderWithProvider(<HomePage />);
 
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith('/api/system/stats');
     });
-    await screen.findByText('homepage_quick_links');
+    await screen.findByText('homepage_live_work_title');
 
     expect(setPageContextMock).toHaveBeenCalledWith(expect.any(Function));
     expect(setPageContextMock.mock.calls[0][0]('other')).toBe('home');
     expect(screen.queryByText('tutorial.auto_start_prompt.title')).not.toBeInTheDocument();
-    expect(screen.getByText('homepage_action_card_new_project')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'homepage_action_continue_project' })[0]).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'homepage_action_card_new_project' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'homepage_action_continue_project' })[0]);
     expect(navigateMock).toHaveBeenCalledWith('/project-management');
     expect(startTourMock).not.toHaveBeenCalled();
   });
 
-  it('hides tutorial prompt after being acknowledged and navigates from quick links', async () => {
-    localStorage.setItem('remis_tutorial_prompt_seen_v1', 'true');
+  it('foregrounds the task center when work is already running', async () => {
+    taskCenterState = {
+      ...taskCenterState,
+      activeCount: 1,
+      tasks: [{ task_id: 'task-1', title: 'Translation', status: 'running' }],
+    };
 
     renderWithProvider(<HomePage />);
 
     await waitFor(() => {
-      expect(screen.getByText('homepage_quick_links')).toBeInTheDocument();
+      expect(screen.getByText('homepage_action_view_tasks')).toBeInTheDocument();
     });
 
-    expect(screen.queryByText('tutorial.auto_start_prompt.title')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'homepage_action_view_tasks' }));
+    expect(openTaskCenterMock).toHaveBeenCalledOnce();
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: 'homepage_quick_link_toolbox' }));
-    expect(navigateMock).toHaveBeenCalledWith('/tools');
+  it('uses the surface contrast contract for the dark live-work card', async () => {
+    renderWithProvider(<HomePage />);
+
+    const subtitle = await screen.findByText('homepage_live_work_subtitle');
+    expect(subtitle.closest('.mantine-Card-root')).toHaveAttribute('data-remis-surface', 'surface');
+  });
+
+  it('uses readable paper tokens for the attention alert', async () => {
+    taskCenterState = {
+      ...taskCenterState,
+      attentionCount: 2,
+    };
+    renderWithProvider(<HomePage />);
+
+    const message = await screen.findByText('task_center.attention_summary');
+    const alert = message.closest('.mantine-Alert-root');
+    expect(alert).toHaveAttribute('data-remis-surface', 'paper');
+    expect(alert).toHaveStyle({ background: 'var(--paper-bg)' });
+    expect(message).toHaveStyle({ color: 'var(--paper-text-main)' });
+  });
+
+  it('keeps the latest completed task visible and opens its exact task record', async () => {
+    taskCenterState = {
+      ...taskCenterState,
+      tasks: [
+        { task_id: 'task-running', title: 'Running translation', status: 'running' },
+        { task_id: 'task-completed', title: 'Completed translation', status: 'completed' },
+      ],
+    };
+
+    renderWithProvider(<HomePage />);
+
+    const completedTask = await screen.findByRole('button', { name: 'Completed translation' });
+    fireEvent.click(completedTask);
+
+    expect(navigateMock).toHaveBeenCalledWith('/tasks/task-completed');
   });
 });

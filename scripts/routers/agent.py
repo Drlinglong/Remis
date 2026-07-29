@@ -304,7 +304,9 @@ def _normalize_status(raw_status: Optional[str], *, recovered: bool = False) -> 
         "processing": "running",
         "completed": "completed",
         "failed": "failed",
+        "partial_failed": "failed",
         "cancelled": "cancelled",
+        "interrupted": "interrupted",
     }.get(str(raw_status or "").lower(), "unknown")
 
 
@@ -325,7 +327,11 @@ def _job_allowed_actions(
             actions.append("repair")
         if kind == "dry_run":
             actions.append("create_translation_plan")
-        elif output_paths and validation.errors == 0:
+        elif (
+            kind in {"translation", "initial_translation", "incremental_translation"}
+            and output_paths
+            and validation.errors == 0
+        ):
             actions.append("approve_export")
     return actions
 
@@ -355,12 +361,23 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
         for path in live_task.get("output_dirs", [])
         if path
     ]
+    result = live_task.get("result") or {}
+    for path in result.get("output_paths") or []:
+        if path and str(path) not in output_paths:
+            output_paths.append(str(path))
     if live_task.get("result_path") and live_task["result_path"] not in output_paths:
         output_paths.append(str(live_task["result_path"]))
     status = _normalize_status(live_task.get("status"), recovered=recovered)
+    checkpoint = live_task.get("checkpoint") or {}
+    resume_supported = checkpoint.get("resume_supported")
+    if resume_supported is None:
+        resume_supported = bool(
+            (metadata or {}).get("execution_args", {}).get("use_resume", False)
+        )
     response = AgentJobResponse(
         job_id=job_id,
         project_id=project_id,
+        parent_task_id=live_task.get("parent_task_id"),
         status=status,
         kind=kind,
         progress={
@@ -377,17 +394,21 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
             status, validation, output_paths, kind=kind
         ),
         output_paths=output_paths,
+        result=result,
+        workflow_context=dict(live_task.get("workflow_context") or {}),
         message=live_task.get("message"),
         recovery={
             "source": "persisted_snapshot" if recovered else "live_task_state",
-            "checkpoint_resume_supported": bool(
-                (metadata or {}).get("execution_args", {}).get("use_resume", False)
-            ),
+            "checkpoint_resume_supported": bool(resume_supported),
         },
         links={
             "self": f"/api/agent/jobs/{job_id}",
             "validation": f"/api/agent/jobs/{job_id}/validation",
-            "export_preview": f"/api/agent/jobs/{job_id}/export-preview",
+            **(
+                {"export_preview": f"/api/agent/jobs/{job_id}/export-preview"}
+                if kind in {"translation", "initial_translation", "incremental_translation"}
+                else {}
+            ),
         },
     )
     agent_registry.update_snapshot(
@@ -399,6 +420,8 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
             "agent_job_kind": kind,
             "output_dirs": output_paths,
             "result_path": live_task.get("result_path"),
+            "result": result,
+            "checkpoint": live_task.get("checkpoint") or {},
             "message": live_task.get("message"),
         },
     )
@@ -702,6 +725,12 @@ async def start_agent_job(
             job_id,
             status="completed",
             log_message="Agent dry-run readiness check completed.",
+            fields={
+                "kind": "dry_run",
+                "project_id": plan["project_id"],
+                "created_by": {"type": "remis_agent", "label": "Remis Agent"},
+                "idempotency_key": request.plan_id,
+            },
         )
         task_state.init_progress(
             job_id,
@@ -737,7 +766,7 @@ async def start_agent_job(
 
     try:
         response = await start_translation_project(
-            InitialTranslationRequest(**args),
+            InitialTranslationRequest(**{**args, "idempotency_key": request.plan_id}),
             background_tasks,
         )
     except Exception:
@@ -749,6 +778,8 @@ async def start_agent_job(
         fields={
             "project_id": plan["project_id"],
             "agent_job_kind": "translation",
+            "created_by": {"type": "remis_agent", "label": "Remis Agent"},
+            "idempotency_key": request.plan_id,
         },
     )
     agent_registry.record_job(
@@ -868,16 +899,31 @@ async def repair_agent_job(
     if not issues:
         raise _error(409, "no_repair_items", "No active validation items need repair")
     args = metadata.get("execution_args") or {}
+    api_provider = request.api_provider or args.get("api_provider") or "lm_studio"
+    api_model = request.api_model or args.get("model") or "local-model"
+    repair_scope = (
+        f"{job_id}:{metadata['project_id']}:{api_provider}:{api_model}:"
+        f"{[(item.get('file_name'), item.get('key'), item.get('status')) for item in issues]}"
+    )
+    idempotency_key = request.idempotency_key or f"agent-repair:{uuid.uuid5(uuid.NAMESPACE_URL, repair_scope)}"
     response = await start_fix_run(
         FixRunRequest(
             project_id=metadata["project_id"],
-            api_provider=request.api_provider or args.get("api_provider"),
-            api_model=request.api_model or args.get("model"),
+            api_provider=api_provider,
+            api_model=api_model,
             batch_size_limit=request.batch_size_limit,
             concurrency_limit=request.concurrency_limit,
             rpm_limit=request.rpm_limit,
             max_retries=request.max_retries,
             issues=issues,
+            approval={
+                "approved": request.approved,
+                "issue_count": len(issues),
+                "api_provider": api_provider,
+                "api_model": api_model,
+            },
+            idempotency_key=idempotency_key,
+            created_by={"type": "remis_agent", "label": "Remis Agent"},
         ),
         background_tasks,
     )
@@ -887,7 +933,17 @@ async def repair_agent_job(
         fields={
             "project_id": metadata["project_id"],
             "parent_job_id": job_id,
+            "parent_task_id": job_id,
             "agent_job_kind": "repair",
+            "created_by": {"type": "remis_agent", "label": "Remis Agent"},
+            "workflow_context": {
+                "mode": "repair",
+                "project_id": metadata["project_id"],
+                "source_task_id": job_id,
+                "issue_count": len(issues),
+                "api_provider": api_provider,
+                "api_model": api_model,
+            },
         },
     )
     agent_registry.record_job(

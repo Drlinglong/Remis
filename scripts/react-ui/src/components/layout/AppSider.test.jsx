@@ -15,13 +15,24 @@ vi.mock('react-router', () => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key) => key,
+    t: (key) => ({
+      page_title_agent_workshop: 'Format Repair',
+    }[key] || key),
   }),
 }));
 
 vi.mock('../../context/TutorialContextCore', () => ({
   useTutorial: () => ({
     startTour: startTourMock,
+  }),
+}));
+
+vi.mock('../../context/TaskCenterContextCore', () => ({
+  useTaskCenter: () => ({
+    activeCount: 0,
+    attentionCount: 0,
+    openTaskCenter: vi.fn(),
+    opened: false,
   }),
 }));
 
@@ -62,14 +73,16 @@ describe('AppSider', () => {
     expect(startTourMock).toHaveBeenCalledOnce();
   });
 
-  it('shows project tracking and the neologism review entry in the main navigation', () => {
+  it('groups project tracking and neologism review under more features', async () => {
     renderWithProvider(<AppSider />);
 
     const sidebar = document.getElementById('sidebar-nav');
     fireEvent.mouseEnter(sidebar);
 
-    expect(screen.getByText('page_title_project_tracking')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('neologism_review.title'));
+    fireEvent.click(screen.getByText('nav_more'));
+    expect(await screen.findByText('nav_mod_monitor')).toBeInTheDocument();
+    expect(await screen.findByText('Format Repair')).toBeInTheDocument();
+    fireEvent.click(await screen.findByText('neologism_review.title'));
     expect(navigateMock).toHaveBeenCalledWith('/neologism-review');
   });
 

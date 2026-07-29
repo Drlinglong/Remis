@@ -1,8 +1,10 @@
+import os
+
 from fastapi.testclient import TestClient
 
 from scripts.web_server import app
 from scripts.routers import system as system_router
-from scripts.shared import services
+from scripts.shared import services, task_state
 from scripts.core import db_initializer
 from scripts.core.db_manager import db_manager
 
@@ -30,12 +32,18 @@ class _FakeArchiveManager:
 def test_reset_db_endpoint_rebuilds_main_database(monkeypatch):
     removed_paths = []
     initialize_called = {"value": False}
+    configured_repositories = []
     fake_engine = _FakeEngine()
     fake_archive_manager = _FakeArchiveManager()
 
     monkeypatch.setattr(system_router, "_remove_sqlite_family", removed_paths.append)
     monkeypatch.setattr(db_initializer, "initialize_database", lambda: initialize_called.__setitem__("value", True))
     monkeypatch.setattr(services, "archive_manager", fake_archive_manager)
+    monkeypatch.setattr(
+        task_state,
+        "configure_repository",
+        lambda repository, **kwargs: configured_repositories.append((repository, kwargs)),
+    )
     if not hasattr(db_manager, "_async_engine"):
         db_manager._async_engine = None
     monkeypatch.setattr(db_manager, "_async_engine", fake_engine, raising=False)
@@ -50,6 +58,39 @@ def test_reset_db_endpoint_rebuilds_main_database(monkeypatch):
     assert fake_archive_manager._conn is None
     assert fake_engine.disposed is True
     assert not hasattr(db_manager, "_async_engine")
+    assert len(configured_repositories) == 1
+    configured_repository, configure_options = configured_repositories[0]
+    assert os.path.normcase(os.path.normpath(configured_repository.db_path)) == os.path.normcase(
+        os.path.normpath(system_router.REMIS_DB_PATH)
+    )
+    assert configure_options == {"hydrate": True, "replace": True}
+
+
+def test_open_database_folder_opens_main_database_parent(monkeypatch, tmp_path):
+    database_folder = tmp_path / "appdata"
+    database_folder.mkdir()
+    opened_paths = []
+    monkeypatch.setattr(system_router, "REMIS_DB_PATH", str(database_folder / "remis.sqlite"))
+    monkeypatch.setattr(system_router, "_open_directory_in_explorer", opened_paths.append)
+
+    response = client.post("/api/system/open-database-folder")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "success",
+        "database_file": "remis.sqlite",
+    }
+    assert opened_paths == [str(database_folder)]
+
+
+def test_open_database_folder_reports_missing_parent(monkeypatch, tmp_path):
+    missing_folder = tmp_path / "missing"
+    monkeypatch.setattr(system_router, "REMIS_DB_PATH", str(missing_folder / "remis.sqlite"))
+
+    response = client.post("/api/system/open-database-folder")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Database folder not found"
 
 
 def test_save_and_read_file_are_limited_to_remis_roots(monkeypatch, tmp_path):

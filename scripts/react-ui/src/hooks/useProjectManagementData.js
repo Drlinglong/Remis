@@ -5,7 +5,7 @@ import projectService from '../services/projectService';
 import { usePersistentState } from './usePersistentState';
 import { normalizeArrayPayload } from '../utils/payload';
 
-const buildProjectDetails = ({ archiveInfo, config, files, project, projectId }) => {
+const buildProjectDetails = ({ archiveInfo, config, files, project, projectId, validationStatus }) => {
   const totalLines = files.reduce((acc, file) => acc + (file.line_count || 0), 0);
   const doneCount = files.filter((file) => file.status === 'done').length;
   const proofreadCount = files.filter((file) => file.status === 'proofreading' || file.status === 'todo').length;
@@ -28,6 +28,10 @@ const buildProjectDetails = ({ archiveInfo, config, files, project, projectId })
       target_language_count: archiveInfo.target_language_count || 0,
       baseline_versions: archiveInfo.baseline_versions || [],
     } : null,
+    validation: {
+      issues_count: Number(validationStatus?.issues_count || 0),
+      last_updated_at: validationStatus?.last_updated_at || null,
+    },
     overview: {
       totalFiles: files.length,
       totalLines,
@@ -106,10 +110,11 @@ export function useProjectManagementData() {
     if (!selectedProject) return;
 
     try {
-      const [filesResponse, configResponse, archiveResponse] = await Promise.all([
+      const [filesResponse, configResponse, archiveResponse, validationResponse] = await Promise.all([
         projectService.getProjectFiles(projectId),
         projectService.getProjectConfig(projectId),
         projectService.checkArchive(projectId).catch(() => ({ data: null })),
+        projectService.getProjectValidationStatus(projectId).catch(() => ({ data: null })),
       ]);
 
       const archiveInfo = archiveResponse?.data?.exists ? archiveResponse.data : null;
@@ -120,6 +125,7 @@ export function useProjectManagementData() {
         files,
         project: selectedProject,
         projectId,
+        validationStatus: validationResponse?.data,
       }));
     } catch (error) {
       console.error('Failed to load files or config', error);

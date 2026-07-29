@@ -104,6 +104,7 @@ async def get_system_stats():
                 "total_projects": dashboard_stats["total_projects"],
                 "words_translated": dashboard_stats["translated_files"], 
                 "active_tasks": dashboard_stats["active_projects"],
+                "active_projects": dashboard_stats["active_projects"],
                 "completion_rate": dashboard_stats["completion_rate"]
             },
             "charts": {
@@ -121,8 +122,8 @@ async def get_system_stats():
 @router.post("/reset-db")
 async def reset_database():
     """
-    Resets the internal project database without touching source/translation files on disk.
-    This clears recent projects and dashboard file statuses by rebuilding the main app DB.
+    Rebuilds the main Remis database from its default skeleton.
+    Source and translation project folders are outside this database and remain untouched.
     """
     try:
         from scripts.core.db_initializer import initialize_database
@@ -139,14 +140,39 @@ async def reset_database():
 
         _remove_sqlite_family(REMIS_DB_PATH)
         initialize_database()
+        from scripts.core.repositories.task_repository import TaskRepository
+        from scripts.shared import task_state
+
+        task_state.configure_repository(
+            TaskRepository(REMIS_DB_PATH),
+            hydrate=True,
+            replace=True,
+        )
 
         return {
             "status": "success",
-            "message": "Main project database has been reset.",
+            "message": "Main Remis database has been rebuilt from the default skeleton.",
         }
     except Exception as e:
         logger.error(f"Failed to reset main database: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to reset database: {str(e)}")
+
+
+@router.post("/open-database-folder")
+async def open_database_folder():
+    """Open the folder containing the main Remis SQLite database."""
+    database_path = os.path.abspath(REMIS_DB_PATH)
+    database_folder = os.path.dirname(database_path)
+    database_file = os.path.basename(database_path)
+    if not os.path.isdir(database_folder):
+        raise HTTPException(status_code=404, detail="Database folder not found")
+    try:
+        _open_directory_in_explorer(database_folder)
+        return {"status": "success", "database_file": database_file}
+    except Exception as e:
+        logger.error("Failed to open database folder %s: %s", database_folder, e)
+        raise HTTPException(status_code=500, detail=f"Failed to open database folder: {str(e)}")
+
 
 class OpenFolderRequest(BaseModel):
     path: str

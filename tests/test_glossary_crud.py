@@ -104,14 +104,17 @@ def test_glossary_crud_lifecycle():
             break
     assert not found_after_delete, "Entry still exists after deletion"
 
-def test_create_glossary_file():
+def test_create_named_glossary_asset():
     payload = {
         "game_id": "ck3",
-        "file_name": "Test Glossary File"
+        "name": "Test Glossary"
     }
-    response = client.post("/api/glossary/file", json=payload)
+    response = client.post("/api/glossary", json=payload)
     assert response.status_code == 201
-    assert response.json()["message"] == "File created successfully"
+    assert response.json() == {
+        "message": "Glossary created successfully",
+        "name": "Test Glossary",
+    }
     
     # Verify it appears in the tree
     response = client.get("/api/glossary/tree")
@@ -121,19 +124,19 @@ def test_create_glossary_file():
     for game in tree:
         if game["key"] == "ck3":
             for child in game["children"]:
-                if "Test Glossary File" in child["title"]:
+                if "Test Glossary" in child["title"]:
                     found = True
                     break
-    assert found, "Created glossary file not found in tree"
+    assert found, "Created glossary not found in tree"
     
     # --- CLEANUP ---
-    # Find the glossary_id for the created file
+    # Find the glossary_id for the created glossary
     glossary_id_to_delete = None
     for game in tree:
         if game["key"] == "ck3":
             for child in game["children"]:
-                if "Test Glossary File" in child["title"]:
-                    # key is "game|glossary_id|filename"
+                if "Test Glossary" in child["title"]:
+                    # key remains "game|glossary_id|name" for tree selection compatibility
                     glossary_id_to_delete = int(child["key"].split('|')[1])
                     break
     

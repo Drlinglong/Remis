@@ -1,6 +1,6 @@
 import React, { useContext, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Select, Group, Title, Text, Container, Paper, Stack, Divider, Tabs, Box, Button, Modal } from '@mantine/core';
+import { Select, Group, Title, Text, Container, Paper, Stack, Divider, Tabs, Box, Button, Modal, Code } from '@mantine/core';
 import api from '../utils/api';
 import { IconLanguage, IconPalette, IconSettings, IconKey, IconMessage, IconInfoCircle } from '@tabler/icons-react';
 import ThemeContext from '../ThemeContext';
@@ -21,6 +21,7 @@ const SettingsPage = () => {
     const [showTutorialPrompt, setShowTutorialPrompt] = React.useState(false);
     const [activeTab, setActiveTab] = React.useState('general');
     const [rpmLimit, setRpmLimit] = React.useState('40');
+    const [databaseFile, setDatabaseFile] = React.useState('remis.sqlite');
 
     useEffect(() => {
         const savedLanguage = localStorage.getItem('language');
@@ -162,16 +163,38 @@ const SettingsPage = () => {
 
                                 <Divider my="xl" label={t('settings_system_maintenance')} labelPosition="center" />
 
-                                <Group justify="space-between">
+                                <Group justify="space-between" align="flex-start">
                                     <Box>
                                         <Text fw={500} c="red">{t('settings_reset_db_title')}</Text>
-                                        <Text size="sm" c="dimmed">
+                                        <Text size="sm" c="dimmed" maw={720}>
                                             {t('settings_reset_db_desc')}
                                         </Text>
+                                        <Text size="sm" mt="xs">
+                                            <Text component="span" fw={600}>{t('settings_database_file_label')}</Text>{' '}
+                                            <Code>{databaseFile}</Code>
+                                        </Text>
                                     </Box>
-                                    <Button color="red" variant="light" onClick={() => setResetModalOpen(true)}>
-                                        {t('btn_reset_db')}
-                                    </Button>
+                                    <Group gap="xs" wrap="nowrap">
+                                        <Button
+                                            variant="default"
+                                            onClick={async () => {
+                                                try {
+                                                    const response = await api.post('/api/system/open-database-folder');
+                                                    if (response.data?.database_file) {
+                                                        setDatabaseFile(response.data.database_file);
+                                                    }
+                                                } catch (e) {
+                                                    const detail = e?.response?.data?.detail || e?.message || '';
+                                                    alert(`${t('error_cannot_open_folder')}: ${detail}`);
+                                                }
+                                            }}
+                                        >
+                                            {t('button_open_folder')}
+                                        </Button>
+                                        <Button color="red" variant="light" onClick={() => setResetModalOpen(true)}>
+                                            {t('btn_reset_db')}
+                                        </Button>
+                                    </Group>
                                 </Group>
                             </Stack>
                         </Tabs.Panel>

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router';
 import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
 import { buildProofreadingUrl } from '../../utils/proofreadingLinks';
+import styles from '../../pages/ProjectManagement.module.css';
 
 const ProjectValidation = ({ projectId }) => {
   const { t } = useTranslation();
@@ -104,7 +105,7 @@ const ProjectValidation = ({ projectId }) => {
 
   if (loading) {
     return (
-      <Paper withBorder p="lg" radius="md">
+      <Paper data-remis-surface="paper" withBorder p="lg" radius="md" className={styles.paperPanel}>
         <Group justify="center">
           <Loader size="sm" />
         </Group>
@@ -114,7 +115,7 @@ const ProjectValidation = ({ projectId }) => {
 
   return (
     <Stack id="project-validation-panel" p="md" gap="lg">
-      <Paper withBorder p="md" radius="md">
+      <Paper data-remis-surface="paper" withBorder p="md" radius="md" className={styles.paperPanel}>
         <Group justify="space-between" mb="md">
           <Stack gap={0}>
             <Title order={4}>{t('project_validation.title')}</Title>
@@ -133,21 +134,21 @@ const ProjectValidation = ({ projectId }) => {
         </Group>
 
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} mb="md">
-          <Card withBorder p="sm" radius="md">
+          <Card data-remis-surface="paper" withBorder p="sm" radius="md" className={styles.paperInset}>
             <Text size="xs" c="dimmed">{t('project_validation.issues_count')}</Text>
             <Text size="lg" fw={700}>{status?.issues_count ?? 0}</Text>
           </Card>
-          <Card withBorder p="sm" radius="md">
+          <Card data-remis-surface="paper" withBorder p="sm" radius="md" className={styles.paperInset}>
             <Text size="xs" c="dimmed">{t('project_validation.last_updated')}</Text>
             <Text size="sm" fw={600}>{status?.last_updated_at ? new Date(status.last_updated_at).toLocaleString() : '--'}</Text>
           </Card>
-          <Card withBorder p="sm" radius="md">
+          <Card data-remis-surface="paper" withBorder p="sm" radius="md" className={styles.paperInset}>
             <Text size="xs" c="dimmed">{t('project_validation.report_count')}</Text>
             <Text size="lg" fw={700}>{status?.report_count ?? 0}</Text>
           </Card>
         </SimpleGrid>
 
-        <Card withBorder p="sm" radius="md" mb="md">
+        <Card data-remis-surface="paper" withBorder p="sm" radius="md" mb="md" className={styles.paperInset}>
           {sidecarOptions.length > 0 ? (
             <Select
               label={t('project_validation.sidecar_path')}
@@ -180,20 +181,20 @@ const ProjectValidation = ({ projectId }) => {
           )}
         </Card>
 
-        <Alert icon={<IconInfoCircle size={16} />} color="blue" radius="md" mb="sm">
+        <Alert data-remis-surface="paper" icon={<IconInfoCircle size={16} />} color="blue" radius="md" mb="sm" className={styles.paperAlert}>
           <Text size="sm">
             {t('project_validation.help')}
           </Text>
         </Alert>
 
-        <Alert id="project-validation-scope-alert" icon={<IconInfoCircle size={16} />} color="gray" radius="md">
+        <Alert data-remis-surface="paper" id="project-validation-scope-alert" icon={<IconInfoCircle size={16} />} color="gray" radius="md" className={styles.paperAlert}>
           <Text size="sm">
             {t('project_validation.scope_hint')}
           </Text>
         </Alert>
       </Paper>
 
-      <Paper withBorder p="md" radius="md">
+      <Paper data-remis-surface="paper" withBorder p="md" radius="md" className={styles.paperPanel}>
         <Title order={5} mb="md">{t('project_validation.issue_breakdown')}</Title>
         {entries.length === 0 ? (
           <Text size="sm" c="dimmed">{t('project_validation.no_issues')}</Text>
@@ -210,14 +211,14 @@ const ProjectValidation = ({ projectId }) => {
       </Paper>
 
       {issues.length > 0 && (
-        <Paper withBorder p="md" radius="md">
+        <Paper data-remis-surface="paper" withBorder p="md" radius="md" className={styles.paperPanel}>
           <Title order={5} mb="md">
             {t('proofreading.issue_details', { defaultValue: 'Issue details' })}
           </Title>
           <ScrollArea.Autosize mah={360}>
             <Stack gap="xs">
               {issues.map((issue, index) => (
-                <Card key={`${issue.file_name}:${issue.key}:${index}`} withBorder p="sm" radius="md">
+                <Card data-remis-surface="paper" key={`${issue.file_name}:${issue.key}:${index}`} withBorder p="sm" radius="md" className={styles.paperInset}>
                   <Group justify="space-between" align="flex-start" wrap="nowrap">
                     <Stack gap={3} style={{ minWidth: 0 }}>
                       <Text size="xs" c="dimmed" truncate>{issue.file_name || issue.file_path}</Text>

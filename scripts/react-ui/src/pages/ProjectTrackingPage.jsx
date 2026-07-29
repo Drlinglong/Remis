@@ -23,6 +23,7 @@ import {
   IconAlertTriangle,
   IconEdit,
   IconFolder,
+  IconHistory,
   IconPlayerPlay,
   IconPlus,
   IconRefresh,
@@ -35,6 +36,7 @@ import { PROJECT_WATCHES_UPDATED_EVENT } from '../components/ProjectWatchSchedul
 import { useTutorial } from '../context/TutorialContextCore';
 import projectService from '../services/projectService';
 import projectWatchService from '../services/projectWatchService';
+import { taskDetailRoute } from '../utils/taskRoutes';
 import styles from './ProjectTrackingPage.module.css';
 
 const PAGE_REFRESH_INTERVAL_MS = 60 * 1000;
@@ -103,6 +105,7 @@ const ProjectTrackingPage = () => {
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [scanFeedback, setScanFeedback] = useState(null);
 
   useEffect(() => {
     setPageContext(modalOpen ? 'project-tracking-modal' : 'project-tracking');
@@ -151,6 +154,7 @@ const ProjectTrackingPage = () => {
       days: t('project_tracking.unit_days'),
     },
     selectProjectFirst: t('project_tracking.select_project_first'),
+    viewScanTask: t('task_center.view_task'),
   }), [t]);
 
   const intervalUnitOptions = useMemo(() => [
@@ -289,18 +293,29 @@ const ProjectTrackingPage = () => {
     if (!watchIds.length) return;
     setBusy(true);
     setMessage('');
+    setScanFeedback(null);
     try {
       const response = await projectWatchService.scanWatches(watchIds);
       const results = Array.isArray(response.data) ? response.data : [];
+      const blockedOrFailed = results.find((result) => ['blocked', 'failed'].includes(result.status));
+      if (blockedOrFailed?.message) {
+        setMessage(blockedOrFailed.message);
+      }
       if (results.length === 1) {
         const result = results[0];
-        const changedCount = result.changed_count ?? 0;
-        setMessage(t('project_tracking.scan_message', {
-          status: text[result.status] || result.status,
-          scanned: result.scanned_file_count ?? 0,
-          changes: changedCount,
-          path: result.root_path || '',
-        }));
+        if (!blockedOrFailed) {
+          const changedCount = result.changed_count ?? 0;
+          setScanFeedback({
+            summary: t('project_tracking.scan_message', {
+              status: text[result.status] || result.status,
+              scanned: result.scanned_file_count ?? 0,
+              changes: changedCount,
+              path: '',
+            }).trim(),
+            rootPath: result.root_path || '',
+            taskId: result.task_id || '',
+          });
+        }
       }
       await loadData();
     } catch (error) {
@@ -373,7 +388,42 @@ const ProjectTrackingPage = () => {
           </Group>
         </Group>
 
-        {message && <Alert color="orange" icon={<IconAlertTriangle size={16} />}>{message}</Alert>}
+        {message && (
+          <Alert color="orange" icon={<IconAlertTriangle size={16} />} data-remis-surface="paper">
+            {message}
+          </Alert>
+        )}
+        {scanFeedback && (
+          <Paper withBorder radius="md" p="md" data-remis-surface="paper">
+            <Stack gap="xs">
+              <Group justify="space-between" align="flex-start">
+                <Text fw={700}>{scanFeedback.summary}</Text>
+                {scanFeedback.taskId && (
+                  <Button
+                    variant="subtle"
+                    size="compact-sm"
+                    onClick={() => navigate(taskDetailRoute(scanFeedback.taskId))}
+                  >
+                    {text.viewScanTask}
+                  </Button>
+                )}
+              </Group>
+              {scanFeedback.rootPath && (
+                <Text
+                  data-testid="project-tracking-scan-path"
+                  c="dimmed"
+                  style={{
+                    fontFamily: 'monospace',
+                    fontSize: 'var(--mantine-font-size-xs)',
+                    overflowWrap: 'anywhere',
+                  }}
+                >
+                  {scanFeedback.rootPath}
+                </Text>
+              )}
+            </Stack>
+          </Paper>
+        )}
 
         <Paper withBorder radius="md" p="md" className={styles.trackingSurface}>
           <Group justify="space-between" mb="md">
@@ -456,6 +506,18 @@ const ProjectTrackingPage = () => {
                               <IconPlayerPlay size={16} />
                             </ActionIcon>
                           </Tooltip>
+                          {watch.last_scan_summary?.task_id && (
+                            <Tooltip label={text.viewScanTask}>
+                              <ActionIcon
+                                aria-label={text.viewScanTask}
+                                variant="subtle"
+                                color="blue"
+                                onClick={() => navigate(taskDetailRoute(watch.last_scan_summary.task_id))}
+                              >
+                                <IconHistory size={16} />
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
                           <Tooltip label={text.edit}>
                             <ActionIcon aria-label={text.edit} variant="subtle" onClick={() => openEditModal(watch)}>
                               <IconEdit size={16} />

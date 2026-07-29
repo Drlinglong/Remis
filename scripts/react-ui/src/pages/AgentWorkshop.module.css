@@ -1,6 +1,5 @@
 .container {
-    height: 100%;
-    overflow-y: auto;
+    min-height: 100%;
     background: transparent;
 }
 
@@ -39,11 +38,144 @@
     background: rgba(255, 255, 255, 0.03);
 }
 
-:global([data-theme='victoria']) .title {
-    color: #ffd700;
+.pathText {
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
-:global([data-theme='sci-fi']) .resultsPanel {
-    border-color: #00f2ff;
-    box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
+.issuePaper {
+    --mantine-color-text: var(--paper-text-main) !important;
+    --mantine-color-dimmed: var(--paper-text-muted) !important;
+    background: var(--paper-bg) !important;
+    border-color: var(--paper-border) !important;
+    color: var(--paper-text-main) !important;
+}
+
+.issueBadge {
+    background: color-mix(in srgb, var(--mantine-color-red-7) 18%, var(--paper-bg)) !important;
+    color: var(--paper-text-main) !important;
+    border: 1px solid color-mix(in srgb, var(--mantine-color-red-7) 55%, var(--paper-border)) !important;
+}
+
+.issueDetails {
+    color: var(--paper-text-muted) !important;
+}
+
+.issueText {
+    background: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg)) !important;
+    color: var(--paper-text-main) !important;
+    border: 1px solid var(--paper-border) !important;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.approvalModalContent,
+.approvalModalHeader,
+.approvalModalBody {
+    --mantine-color-text: var(--paper-text-main) !important;
+    --mantine-color-dimmed: var(--paper-text-muted) !important;
+    background: var(--paper-bg) !important;
+    color: var(--paper-text-main) !important;
+}
+
+.approvalModalContent {
+    border: 1px solid var(--paper-border) !important;
+}
+
+.approvalModalHeader {
+    border-bottom: 1px solid var(--paper-border);
+}
+
+.approvalModalTitle,
+.approvalModalClose {
+    color: var(--paper-text-main) !important;
+}
+
+.approvalWarning {
+    --alert-color: var(--paper-text-main) !important;
+    background: color-mix(in srgb, var(--mantine-color-orange-6) 16%, var(--paper-bg)) !important;
+    color: var(--paper-text-main) !important;
+    border-color: color-mix(in srgb, var(--mantine-color-orange-6) 55%, var(--paper-border)) !important;
+}
+
+.approvalWarning :global(.mantine-Alert-message),
+.approvalWarning :global(.mantine-Alert-title),
+.approvalWarning :global(.mantine-Alert-icon) {
+    color: var(--paper-text-main) !important;
+}
+
+.approvalSecondary {
+    --button-color: var(--paper-text-main) !important;
+    background: var(--paper-bg) !important;
+    border: 1px solid var(--paper-border) !important;
+    color: var(--paper-text-main) !important;
+}
+
+.approvalSecondary :global(.mantine-Button-label) {
+    color: var(--paper-text-main) !important;
+}
+
+.issueFixModalContent,
+.issueFixModalHeader,
+.issueFixModalBody {
+    --mantine-color-text: var(--paper-text-main) !important;
+    --mantine-color-dimmed: var(--paper-text-muted) !important;
+    background: var(--paper-bg) !important;
+    color: var(--paper-text-main) !important;
+}
+
+.issueFixModalContent {
+    background-image: none !important;
+    border: 1px solid var(--paper-border) !important;
+    backdrop-filter: none !important;
+}
+
+.issueFixModalHeader {
+    border-bottom: 1px solid var(--paper-border);
+}
+
+.issueFixModalTitle,
+.issueFixModalClose {
+    color: var(--paper-text-main) !important;
+    text-shadow: none !important;
+}
+
+.issueFixPanel {
+    --mantine-color-text: var(--paper-text-main) !important;
+    --mantine-color-dimmed: var(--paper-text-muted) !important;
+    background: color-mix(in srgb, var(--paper-text-main) 4%, var(--paper-bg)) !important;
+    border-color: color-mix(in srgb, var(--paper-text-main) 28%, transparent) !important;
+    color: var(--paper-text-main) !important;
+    box-shadow: none !important;
+}
+
+.issueFixCode,
+.issueFixErrorCode {
+    margin-top: 6px;
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 22%, transparent) !important;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.issueFixCode {
+    background: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg)) !important;
+    color: var(--paper-text-main) !important;
+}
+
+.issueFixErrorCode {
+    background: color-mix(in srgb, var(--mantine-color-red-7) 14%, var(--paper-bg)) !important;
+    color: var(--paper-text-main) !important;
+}
+
+.issueFixResult {
+    --alert-color: var(--paper-text-main) !important;
+    background: color-mix(in srgb, var(--mantine-color-blue-6) 11%, var(--paper-bg)) !important;
+    border-color: color-mix(in srgb, var(--mantine-color-blue-6) 42%, var(--paper-border)) !important;
+    color: var(--paper-text-main) !important;
+}
+
+.issueFixResult :global(.mantine-Alert-icon),
+.issueFixResult :global(.mantine-Alert-title),
+.issueFixResult :global(.mantine-Alert-message) {
+    color: var(--paper-text-main) !important;
 }

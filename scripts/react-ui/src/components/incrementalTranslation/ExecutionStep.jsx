@@ -31,6 +31,9 @@ export const ExecutionStep = ({
     openOutputFolder,
     handleFinish,
     completionSource,
+    conflictingTaskId,
+    onViewTask,
+    onStartProofreading,
 }) => {
     const { t } = useTranslation();
 
@@ -195,13 +198,50 @@ export const ExecutionStep = ({
                 />
 
                 {executing && (
-                    <BusyHeartbeat
-                        active
-                        compact
-                        title={stageTitle}
-                        description={stageDescription}
-                        color="blue"
-                    />
+                    <>
+                        <BusyHeartbeat
+                            active
+                            compact
+                            title={stageTitle}
+                            description={stageDescription}
+                            color="blue"
+                        />
+                        <Alert color="blue" mt="md">
+                            <Stack gap={6}>
+                                <Text size="sm">
+                                    {t('incremental_translation.background_task_notice')}
+                                </Text>
+                                {onViewTask && (
+                                    <Group>
+                                        <Button size="xs" variant="light" onClick={onViewTask}>
+                                            {t('task_center.view_task')}
+                                        </Button>
+                                    </Group>
+                                )}
+                            </Stack>
+                        </Alert>
+                    </>
+                )}
+
+                {conflictingTaskId && !executing && (
+                    <Alert
+                        color="orange"
+                        mt="md"
+                        title={t('incremental_translation.conflicting_task_title')}
+                    >
+                        <Stack gap={6}>
+                            <Text size="sm">
+                                {t('incremental_translation.conflicting_task_notice')}
+                            </Text>
+                            {onViewTask && (
+                                <Group>
+                                    <Button size="xs" variant="light" color="orange" onClick={onViewTask}>
+                                        {t('task_center.view_task')}
+                                    </Button>
+                                </Group>
+                            )}
+                        </Stack>
+                    </Alert>
                 )}
 
                 <Group justify="space-between" mt={executing ? 'md' : 0} mb="xl">
@@ -285,6 +325,16 @@ export const ExecutionStep = ({
                         </Alert>
                         <TelemetrySummary telemetry={finalSummary.telemetry} />
                         <Group>
+                            {onViewTask && (
+                                <Button size="lg" variant="default" onClick={onViewTask}>
+                                    {t('task_center.view_task')}
+                                </Button>
+                            )}
+                            {onStartProofreading && (
+                                <Button size="lg" variant="light" color="teal" onClick={onStartProofreading}>
+                                    {t('project_management.primary_continue_proofreading')}
+                                </Button>
+                            )}
                             <Button size="lg" variant="light" onClick={openOutputFolder}>
                                 {t('button_open_folder')}
                             </Button>

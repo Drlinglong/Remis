@@ -203,10 +203,13 @@ class FileService:
             existing_file_ids = set(existing_file_ids_list)
             
             # Upsert new/updated files (Batch)
-            await self.project_repository.batch_upsert_files(files_to_upsert)
+            effective_file_ids = await self.project_repository.batch_upsert_files(files_to_upsert)
             
             # Calculate obsolete files
-            current_scan_ids = set(f['file_id'] for f in files_to_upsert)
+            current_scan_ids = set(
+                effective_file_ids
+                or (f["file_id"] for f in files_to_upsert)
+            )
             files_to_delete = existing_file_ids - current_scan_ids
             
             if files_to_delete:

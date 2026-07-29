@@ -32,3 +32,9 @@ Object.defineProperty(globalThis, 'ResizeObserver', {
     configurable: true,
     value: ResizeObserver,
 });
+
+Object.defineProperty(Element.prototype, 'scrollIntoView', {
+    writable: true,
+    configurable: true,
+    value: vi.fn(),
+});

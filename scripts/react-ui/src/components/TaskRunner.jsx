@@ -124,8 +124,11 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
             : t('report_no_format_issues'));
 
     const getLocalizedStage = (stage) => {
-        if (String(stage || '').startsWith('Smart Workshop')) {
-            return t('stage_smart_workshop', { defaultValue: 'Smart Workshop' });
+        if (
+            String(stage || '').startsWith('Smart Workshop')
+            || String(stage || '').startsWith('Format Repair')
+        ) {
+            return t('stage_smart_workshop', { defaultValue: 'Format Repair' });
         }
         const map = {
             'Creating Backup': 'stage_creating_backup',

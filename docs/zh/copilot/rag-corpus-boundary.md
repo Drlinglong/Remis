@@ -77,7 +77,7 @@ Micro-RAG 服务于 **终端用户**（汉化者、玩家、非开发者），�
 | `docs/zh/technical/**` | 如 RAG 选型、数据库迁移等工程方案 |
 | `docs/agent.md`、`docs/en/agent.md` | 已降级的旧 Agent/协作规章，不是产品帮助 |
 | `docs/archive/**`、开发历史、专题实现笔记 | 易过时，易误导用户 |
-| `GEMINI.md` 及仓库协作规章 | 给写代码的 Agent/人，不是终端用户手册 |
+| `AGENTS.md` 及仓库协作规章 | 给写代码的 Agent/人，不是终端用户手册 |
 
 ### 3.2 源码与构建产物
 

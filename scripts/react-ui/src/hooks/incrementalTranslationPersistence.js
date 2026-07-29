@@ -84,6 +84,16 @@ export const resolvePersistedProject = (persistedProject, projects = []) => {
   return projects.find((project) => project.project_id === persistedProject.project_id) || persistedProject;
 };
 
+export const resolveInFlightIncrementalTaskId = ({
+  currentTaskId,
+  executionInFlight = false,
+  preScanInFlight = false,
+} = {}) => (
+  currentTaskId && (executionInFlight || preScanInFlight)
+    ? currentTaskId
+    : null
+);
+
 export const applyIncrementalStateSnapshot = (snapshot, setters, refs = {}) => {
   if (!snapshot) return;
 

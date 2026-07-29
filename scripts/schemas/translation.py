@@ -36,6 +36,7 @@ class EmbeddedWorkshopConfig(BaseModel):
 
 class InitialTranslationRequest(BaseModel):
     project_id: str
+    idempotency_key: Optional[str] = None
     source_lang_code: LanguageCode
     target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
     api_provider: str = "gemini"

@@ -297,16 +297,86 @@ html[data-theme] {
  * Component surfaces opt into one of these contracts instead of guessing from
  * the active theme name. This keeps canvas, card, and overlay text independent.
  */
+html[data-theme] [data-remis-surface='canvas'] {
+  --mantine-color-text: var(--canvas-text-main) !important;
+  --mantine-color-dimmed: var(--canvas-text-muted) !important;
+  color: var(--canvas-text-main);
+}
+
 html[data-theme] [data-remis-surface='surface'] {
   --mantine-color-text: var(--surface-text-main) !important;
   --mantine-color-dimmed: var(--surface-text-muted) !important;
   color: var(--surface-text-main);
 }
 
+html[data-theme] [data-remis-surface='paper'] {
+  --mantine-color-text: var(--paper-text-main) !important;
+  --mantine-color-dimmed: var(--paper-text-muted) !important;
+  color: var(--paper-text-main);
+}
+
 html[data-theme] [data-remis-surface='elevated'] {
   --mantine-color-text: var(--elevated-text-main) !important;
   --mantine-color-dimmed: var(--elevated-text-muted) !important;
   color: var(--elevated-text-main);
+}
+
+html[data-theme] [data-remis-action='primary'] {
+  background: var(--interactive-accent) !important;
+  border-color: var(--surface-text-muted) !important;
+  color: var(--interactive-accent-text) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] [data-remis-action='primary']:is(:hover, :active) {
+  background: var(--interactive-accent) !important;
+  color: var(--interactive-accent-text) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] [data-remis-action='secondary'],
+html[data-theme] [data-remis-action='danger-secondary'] {
+  background: transparent !important;
+  border-color: var(--surface-text-muted) !important;
+  color: var(--surface-text-main) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] [data-remis-action='secondary']:is(:hover, :active),
+html[data-theme] [data-remis-action='danger-secondary']:is(:hover, :active) {
+  background: color-mix(in srgb, var(--surface-text-main) 9%, transparent) !important;
+  color: var(--surface-text-main) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] [data-remis-action='danger-secondary']:is(:hover, :active) {
+  box-shadow: inset 3px 0 0 var(--mantine-color-red-6) !important;
+}
+
+html[data-theme] [data-remis-action='paper-primary'] {
+  background: var(--interactive-accent) !important;
+  border-color: var(--paper-text-muted) !important;
+  color: var(--interactive-accent-text) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] [data-remis-action='paper-secondary'] {
+  background: transparent !important;
+  border-color: var(--paper-text-muted) !important;
+  color: var(--paper-text-main) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] [data-remis-action='paper-danger'] {
+  background: var(--mantine-color-red-8) !important;
+  border-color: var(--paper-text-muted) !important;
+  color: var(--mantine-color-white) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] [data-remis-action^='paper-']:is(:hover, :active) {
+  filter: brightness(1.08);
+  box-shadow: none !important;
 }
 
 html[data-theme] :is(button, a, input, select, textarea, [role='button']):focus-visible {

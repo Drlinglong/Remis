@@ -20,7 +20,7 @@ from scripts.core.db_models import (
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 3
+MAIN_DB_TARGET_VERSION = 8
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -135,6 +135,7 @@ def _migration_002_add_project_watches(db_path: str) -> None:
                 path TEXT NOT NULL,
                 project_id TEXT,
                 enabled BOOLEAN NOT NULL DEFAULT 1,
+                paused_by_project_archive BOOLEAN NOT NULL DEFAULT 0,
                 scan_interval_minutes INTEGER,
                 last_scan_at TEXT,
                 last_change_at TEXT,
@@ -211,10 +212,171 @@ def _migration_003_add_project_glossary_bindings(db_path: str) -> None:
         conn.commit()
 
 
+def _migration_004_add_background_task_ledger(db_path: str) -> None:
+    with _connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS background_tasks (
+                task_id TEXT PRIMARY KEY,
+                kind TEXT NOT NULL DEFAULT 'task',
+                project_id TEXT,
+                parent_task_id TEXT,
+                created_by JSON NOT NULL DEFAULT '{}',
+                title TEXT NOT NULL DEFAULT 'Background task',
+                status TEXT NOT NULL,
+                stage TEXT NOT NULL DEFAULT '',
+                progress JSON NOT NULL DEFAULT '{}',
+                created_at TEXT,
+                started_at TEXT,
+                updated_at TEXT,
+                finished_at TEXT,
+                message TEXT,
+                attention_reason TEXT,
+                checkpoint JSON NOT NULL DEFAULT '{}',
+                result JSON NOT NULL DEFAULT '{}',
+                blocking BOOLEAN NOT NULL DEFAULT 0,
+                dedupe_key TEXT,
+                idempotency_key TEXT,
+                source_route TEXT NOT NULL DEFAULT '/',
+                archived_at TEXT,
+                payload JSON NOT NULL DEFAULT '{}'
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS task_events (
+                event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id TEXT NOT NULL,
+                sequence INTEGER NOT NULL,
+                timestamp TEXT NOT NULL,
+                level TEXT NOT NULL DEFAULT 'info',
+                event_type TEXT NOT NULL DEFAULT 'log',
+                message TEXT NOT NULL,
+                metadata JSON NOT NULL DEFAULT '{}',
+                FOREIGN KEY(task_id) REFERENCES background_tasks(task_id) ON DELETE CASCADE,
+                UNIQUE(task_id, sequence)
+            )
+            """
+        )
+        _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_background_tasks_status ON background_tasks (status)")
+        _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_background_tasks_project_id ON background_tasks (project_id)")
+        _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_background_tasks_parent_task_id ON background_tasks (parent_task_id)")
+        _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_background_tasks_archived_at ON background_tasks (archived_at)")
+        _ensure_index(conn, "CREATE INDEX IF NOT EXISTS ix_task_events_task_id_sequence ON task_events (task_id, sequence)")
+        conn.commit()
+
+
+def _migration_005_make_glossary_bindings_many_to_many(db_path: str) -> None:
+    """Allow every project and glossary to participate in multiple bindings."""
+    with _connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE project_glossary_bindings_v2 (
+                project_id TEXT NOT NULL,
+                glossary_id INTEGER NOT NULL,
+                created_at TEXT,
+                updated_at TEXT,
+                PRIMARY KEY(project_id, glossary_id),
+                FOREIGN KEY(project_id) REFERENCES projects(project_id),
+                FOREIGN KEY(glossary_id) REFERENCES glossaries(glossary_id)
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO project_glossary_bindings_v2
+                (project_id, glossary_id, created_at, updated_at)
+            SELECT project_id, glossary_id, created_at, updated_at
+            FROM project_glossary_bindings
+            """
+        )
+        conn.execute("DROP TABLE project_glossary_bindings")
+        conn.execute(
+            "ALTER TABLE project_glossary_bindings_v2 RENAME TO project_glossary_bindings"
+        )
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_project_glossary_bindings_project_id "
+            "ON project_glossary_bindings (project_id)",
+        )
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_project_glossary_bindings_glossary_id "
+            "ON project_glossary_bindings (glossary_id)",
+        )
+        conn.commit()
+
+
+def _migration_006_index_task_summary_queries(db_path: str) -> None:
+    """Keep task-center pagination and queue polling indexed as history grows."""
+    with _connect(db_path) as conn:
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_background_tasks_archived_updated "
+            "ON background_tasks (archived_at, updated_at DESC)",
+        )
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_background_tasks_status_updated "
+            "ON background_tasks (status, updated_at DESC)",
+        )
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_background_tasks_created_at "
+            "ON background_tasks (created_at DESC)",
+        )
+        conn.commit()
+
+
+def _migration_007_govern_task_events_and_retention(db_path: str) -> None:
+    """Add event visibility and indexes used by diagnostic and retention queries."""
+    with _connect(db_path) as conn:
+        _ensure_column(
+            conn,
+            "task_events",
+            "audience",
+            "audience TEXT NOT NULL DEFAULT 'user'",
+        )
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_task_events_task_audience_sequence "
+            "ON task_events (task_id, audience, sequence)",
+        )
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_background_tasks_status_finished "
+            "ON background_tasks (status, finished_at DESC)",
+        )
+        _ensure_index(
+            conn,
+            "CREATE INDEX IF NOT EXISTS ix_background_tasks_idempotency_key "
+            "ON background_tasks (idempotency_key)",
+        )
+        conn.commit()
+
+
+def _migration_008_pause_archived_project_watches(db_path: str) -> None:
+    """Remember which scheduled watches were paused by project archiving."""
+    with _connect(db_path) as conn:
+        _ensure_column(
+            conn,
+            "project_watches",
+            "paused_by_project_archive",
+            "paused_by_project_archive BOOLEAN NOT NULL DEFAULT 0",
+        )
+        conn.commit()
+
+
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
     (3, "add_project_glossary_bindings", _migration_003_add_project_glossary_bindings),
+    (4, "add_background_task_ledger", _migration_004_add_background_task_ledger),
+    (5, "make_glossary_bindings_many_to_many", _migration_005_make_glossary_bindings_many_to_many),
+    (6, "index_task_summary_queries", _migration_006_index_task_summary_queries),
+    (7, "govern_task_events_and_retention", _migration_007_govern_task_events_and_retention),
+    (8, "pause_archived_project_watches", _migration_008_pause_archived_project_watches),
 ]
 
 

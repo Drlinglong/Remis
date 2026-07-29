@@ -138,6 +138,19 @@ def test_mining_status_reservation_prevents_parallel_project_runs():
     }
 
 
+def test_processed_candidates_can_be_restored_without_losing_their_decision_data(tmp_path, monkeypatch):
+    monkeypatch.setattr(neologism_module, "CACHE_DIR", str(tmp_path))
+    manager = NeologismManager()
+    manager.save_candidates("project-1", [make_candidate(status="ignored")])
+
+    assert manager.get_candidates("project-1", view="pending") == []
+    assert manager.get_candidates("project-1", view="processed")[0]["status"] == "ignored"
+    assert manager.restore_candidate("project-1", "candidate-1") == "ignored"
+    restored = manager.get_candidates("project-1", view="pending")[0]
+    assert restored["status"] == "pending"
+    assert restored["suggestion"] == "以太相引擎"
+
+
 def test_candidate_store_rejects_path_like_project_ids(tmp_path, monkeypatch):
     monkeypatch.setattr(neologism_module, "CACHE_DIR", str(tmp_path))
     manager = NeologismManager()
@@ -212,6 +225,9 @@ def test_mining_uses_grounded_evidence_and_marks_glossary_duplicates(tmp_path, m
     candidates = manager.load_candidates("project-1")
     assert len(candidates) == 1
     assert candidates[0].context_snippets == ["Aetherophasic Engine powers the crisis."]
+    assert candidates[0].context_evidence[0].snippet == "Aetherophasic Engine powers the crisis."
+    assert candidates[0].context_evidence[0].source_file == str(source_file)
+    assert candidates[0].review_language == "en"
     assert candidates[0].frequency == 1
     assert candidates[0].suggestion == "以太相引擎"
     assert candidates[0].duplicate_matches[0]["entry_id"] == "main-entry-1"
@@ -255,3 +271,35 @@ def test_ungrounded_model_terms_are_discarded(tmp_path, monkeypatch):
     assert manager.run_mining_workflow("project-1", [str(source_file)], "gemini") == 0
     assert manager.load_candidates("project-1") == []
     assert manager.get_mining_status("project-1")["status"] == "completed"
+
+
+def test_reject_is_idempotent_but_does_not_overwrite_other_terminal_statuses(tmp_path, monkeypatch):
+    monkeypatch.setattr(neologism_module, "CACHE_DIR", str(tmp_path / "cache"))
+    manager = NeologismManager()
+    def candidate(candidate_id, status="pending"):
+        return Candidate(
+            id=candidate_id,
+            project_id="project-1",
+            original=candidate_id.title(),
+            context_snippets=[],
+            suggestion="译名",
+            reasoning="reason",
+            status=status,
+        )
+
+    manager.save_candidates("project-1", [
+        candidate("pending"),
+        candidate("ignored", "ignored"),
+        candidate("approved", "approved"),
+    ])
+
+    assert manager.reject_candidate("project-1", "pending") == "pending"
+    assert manager.reject_candidate("project-1", "ignored") == "ignored"
+    assert manager.reject_candidate("project-1", "approved") == "approved"
+
+    statuses = {candidate.id: candidate.status for candidate in manager.load_candidates("project-1")}
+    assert statuses == {
+        "pending": "ignored",
+        "ignored": "ignored",
+        "approved": "approved",
+    }

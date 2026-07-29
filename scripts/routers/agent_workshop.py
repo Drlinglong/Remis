@@ -2,13 +2,14 @@ import os
 import sqlite3
 import re
 import json
+import hashlib
 import logging
 import asyncio
 import time
 import uuid
 from pathlib import Path
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
 from scripts.utils.post_process_validator import PostProcessValidator
@@ -19,15 +20,19 @@ from scripts.shared import task_state
 from scripts.core.agents.fix_agent import ReflexionFixAgent
 from scripts.core.base_handler import BaseApiHandler # For typing or creation
 
-from scripts.core.loc_parser import parse_loc_file
+from scripts.core.loc_parser import ENTRY_RE, parse_loc_file
 from scripts.utils.validation_logger import ValidationLogger
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.core.services.validation_sidecar_service import ValidationSidecarService
 from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService, resolve_dynamic_valid_tags
+from scripts.schemas.tasks import TaskCreator
 
 router = APIRouter(prefix="/api/agent-workshop", tags=["agent-workshop"])
 logger = logging.getLogger(__name__)
 validation_sidecars = ValidationSidecarService()
+RELAXED_INVALID_ENTRY_RE = re.compile(
+    r'^\s*(?P<key>.+?)\s*:\s*(?P<version>[0-9]*)\s*"(?P<value>.*)"\s*$'
+)
 
 
 def _resolve_workshop_model_config(
@@ -63,6 +68,8 @@ class ValidationIssue(BaseModel):
     error_type: str
     error_code: Optional[str] = None
     details: str
+    details_code: Optional[str] = None
+    details_params: Optional[Dict[str, Any]] = None
     severity: Optional[str] = None
     text_sample: Optional[str] = None
     workflow: Optional[str] = None
@@ -76,6 +83,25 @@ class ValidationIssue(BaseModel):
     last_suggested_fix: Optional[str] = None
     last_attempt_at: Optional[str] = None
 
+class WorkshopRepairApproval(BaseModel):
+    approved: bool = Field(
+        default=False,
+        description="True only after the user approves this exact repair scope.",
+    )
+    issue_count: int = Field(
+        ge=1,
+        description="Number of issues shown to the user when approval was granted.",
+    )
+    api_provider: str = Field(
+        min_length=1,
+        description="Provider identifier shown in the approval prompt.",
+    )
+    api_model: str = Field(
+        min_length=1,
+        description="Model identifier shown in the approval prompt.",
+    )
+
+
 class FixRequest(BaseModel):
     project_id: str
     file_name: str
@@ -88,8 +114,12 @@ class FixRequest(BaseModel):
     target_str: str
     error_type: str
     details: str
-    api_provider: Optional[str] = None
-    api_model: Optional[str] = None
+    api_provider: str = Field(min_length=1)
+    api_model: str = Field(min_length=1)
+    approval: Optional[WorkshopRepairApproval] = Field(
+        default=None,
+        description="Approval snapshot bound to this single model-backed write.",
+    )
 
 class FixResult(BaseModel):
     suggested_fix: str
@@ -104,6 +134,10 @@ class FixBatchRequest(BaseModel):
     api_model: Optional[str] = None
     max_retries: Optional[int] = None
     issues: List[Dict[str, Any]] # Collection of the original issue fields
+    approval: Optional[WorkshopRepairApproval] = Field(
+        default=None,
+        description="Approval snapshot bound to this batch request.",
+    )
 
 class BatchAttemptSummary(BaseModel):
     attempt: int
@@ -131,17 +165,105 @@ class FixBatchResponse(BaseModel):
 
 class FixRunRequest(BaseModel):
     project_id: str
-    api_provider: Optional[str] = None
-    api_model: Optional[str] = None
+    api_provider: str = Field(min_length=1)
+    api_model: str = Field(min_length=1)
     batch_size_limit: Optional[int] = None
     concurrency_limit: Optional[int] = 1
     rpm_limit: Optional[int] = 40
     max_retries: Optional[int] = 3
     issues: List[Dict[str, Any]]
+    approval: Optional[WorkshopRepairApproval] = Field(
+        default=None,
+        description="Approval snapshot bound to the full governed repair run.",
+    )
+    idempotency_key: str = Field(
+        min_length=8,
+        max_length=128,
+        description="Caller-stable key used to safely reuse an identical accepted run.",
+    )
+    created_by: TaskCreator = Field(
+        default_factory=TaskCreator,
+        description="Structured actor identity for user, Remis Agent, or automation callers.",
+    )
 
 class FixRunResponse(BaseModel):
     task_id: str
-    status: str = "started"
+    status: str = "queued"
+    reused: bool = False
+    allowed_actions: List[str] = Field(default_factory=lambda: ["view_task"])
+
+
+def _fix_run_fingerprint(request: FixRunRequest) -> str:
+    governed_scope = {
+        "project_id": request.project_id,
+        "api_provider": request.api_provider,
+        "api_model": request.api_model,
+        "batch_size_limit": request.batch_size_limit,
+        "concurrency_limit": request.concurrency_limit,
+        "rpm_limit": request.rpm_limit,
+        "max_retries": request.max_retries,
+        "issues": request.issues,
+    }
+    canonical = json.dumps(governed_scope, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _validate_repair_approval(
+    approval: Optional[WorkshopRepairApproval],
+    *,
+    project_id: str,
+    issue_count: int,
+    api_provider: str,
+    api_model: str,
+) -> None:
+    if (
+        approval is None
+        or not approval.approved
+        or approval.issue_count != issue_count
+        or approval.api_provider != api_provider
+        or approval.api_model != api_model
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "approval_required",
+                "message": "Explicit approval is required for this exact Format Repair scope.",
+                "retryable": False,
+                "approval_scope": {
+                    "project_id": project_id,
+                    "issue_count": issue_count,
+                    "api_provider": api_provider,
+                    "api_model": api_model,
+                    "writes_project_files": True,
+                    "may_incur_model_cost": True,
+                },
+            },
+        )
+
+
+async def _require_repairable_project(project_id: str) -> Dict[str, Any]:
+    project = await project_manager.get_project(project_id)
+    if not project:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "project_not_found",
+                "message": "The selected Format Repair project no longer exists.",
+                "project_id": project_id,
+            },
+        )
+    status = str(project.get("status") or "active").lower()
+    if status != "active":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "project_not_active",
+                "message": "Restore this project before running Format Repair.",
+                "project_id": project_id,
+                "project_status": status,
+            },
+        )
+    return project
 
 
 def _normalize_issue_dict(issue: Dict[str, Any]) -> Dict[str, Any]:
@@ -253,7 +375,7 @@ def _write_fix_report(
     report_path = reports_dir / report_name
 
     content = "\n".join([
-        "# Agent Workshop Fix Report",
+        "# Format Repair Report",
         "",
         f"- File: `{file_name}`",
         f"- Key: `{key}`",
@@ -502,6 +624,24 @@ def _resolve_source_entries_for_translation(
     )
     return {}, target_lang
 
+
+def _parse_invalid_key_entries(file_path: Path) -> List[tuple[str, str, int]]:
+    """Return localization rows rejected only because their key is malformed."""
+    from scripts.utils import read_text_bom
+
+    invalid_entries: List[tuple[str, str, int]] = []
+    for line_number, line in enumerate(read_text_bom(file_path).splitlines(), start=1):
+        if ENTRY_RE.match(line):
+            continue
+        match = RELAXED_INVALID_ENTRY_RE.match(line)
+        if not match:
+            continue
+        key = match.group("key").strip()
+        version = match.group("version").strip()
+        full_key = f"{key}:{version}" if version else key
+        invalid_entries.append((full_key, match.group("value"), line_number))
+    return invalid_entries
+
 @router.get("/load-cached", response_model=List[ValidationIssue])
 async def load_cached_errors(project_id: str, sidecar_path: Optional[str] = None):
     """
@@ -527,8 +667,11 @@ async def load_cached_errors(project_id: str, sidecar_path: Optional[str] = None
 
     return []
 
-@router.get("/scan", response_model=List[ValidationIssue])
-async def scan_project(project_id: str, force: bool = Query(False), sidecar_path: Optional[str] = None):
+async def _scan_project_issues(
+    project_id: str,
+    force: bool = False,
+    sidecar_path: Optional[str] = None,
+):
     """
     Loads cached validation issues by default, or performs a fresh scan when forced.
     """
@@ -607,10 +750,32 @@ async def scan_project(project_id: str, force: bool = Query(False), sidecar_path
     def get_translation_rel_path(p):
         return _relative_to_any(Path(p), translation_roots, source_root)
 
-    source_files = {get_source_rel_path(f['file_path']): f for f in files if f.get('file_type') == 'source'}
+    from scripts.utils.i18n_utils import iso_to_paradox
+
+    source_paradox = iso_to_paradox(source_lang_iso)
+
+    def is_source_language_file(file_info: Dict[str, Any]) -> bool:
+        match = re.search(
+            r"_l_(?P<lang_suffix>[a-z_]+)\.yml$",
+            str(file_info.get("file_path") or ""),
+            re.IGNORECASE,
+        )
+        return bool(match and match.group("lang_suffix").lower() == source_paradox.lower())
+
+    source_files = {
+        get_source_rel_path(f["file_path"]): f
+        for f in files
+        if f.get("file_type") == "source"
+    }
+    source_files.update({
+        get_translation_rel_path(f["file_path"]): f
+        for f in files
+        if f.get("file_type") == "translation" and is_source_language_file(f)
+    })
     translation_files = [
         f for f in files
         if f.get('file_type') == 'translation'
+        and not is_source_language_file(f)
         and (
             not translation_roots
             or _find_translation_root(Path(f.get('file_path', '')), translation_roots) is not None
@@ -647,6 +812,45 @@ async def scan_project(project_id: str, force: bool = Query(False), sidecar_path
         # Parse the translation file
         entries = dict(parse_loc_file(file_path))
         logger.info("[AgentWorkshop] Parsed %s translation entries from %s", len(entries), rel_path)
+
+        for key, value, line_number in _parse_invalid_key_entries(file_path):
+            invalid_key_results = [
+                result
+                for result in validator.validate_entry(
+                    game_id,
+                    key,
+                    value,
+                    line_number=line_number,
+                    source_value="",
+                    target_lang=target_lang,
+                    dynamic_valid_tags=dynamic_valid_tags,
+                )
+                if getattr(result, "code", None) == "validation_invalid_key_format"
+            ]
+            for result in invalid_key_results:
+                issues.append(ValidationIssue(
+                    file_name=rel_path,
+                    file_id=file_info.get("file_id"),
+                    file_path=str(file_path),
+                    key=key,
+                    line_number=line_number,
+                    source_str="",
+                    source_context_status="missing",
+                    source_context_origin="none",
+                    source_context_warning=(
+                        "This row has an invalid localization key and needs manual review."
+                    ),
+                    target_str=value,
+                    error_type=result.message,
+                    error_code=result.code,
+                    details=result.details or "",
+                    details_code=getattr(result, "details_code", None),
+                    details_params=getattr(result, "details_params", None),
+                    severity=result.level.value,
+                    text_sample=getattr(result, "text_sample", None),
+                    target_lang=target_lang,
+                    status="detected",
+                ))
         
         for key, value in entries.items():
             try:
@@ -664,6 +868,11 @@ async def scan_project(project_id: str, force: bool = Query(False), sidecar_path
                 
             for res in results:
                 if res.level.value in ["error", "warning"]:
+                    error_code = getattr(res, "code", None)
+                    details_code = getattr(res, "details_code", None)
+                    details_params = getattr(res, "details_params", None)
+                    text_sample = getattr(res, "text_sample", None)
+                    line_number = getattr(res, "line_number", None)
                     logger.info(
                         "[AgentWorkshop] Issue detected: file=%s key=%s level=%s message=%s",
                         rel_path,
@@ -682,7 +891,13 @@ async def scan_project(project_id: str, force: bool = Query(False), sidecar_path
                         source_context_warning=None if source_entries.get(key, "") else "Original source text was not found during direct project scan. The repair will rely on best-effort inference unless another fallback source is available.",
                         target_str=value,
                         error_type=res.message,
+                        error_code=error_code if isinstance(error_code, str) else None,
                         details=res.details or "",
+                        details_code=details_code if isinstance(details_code, str) else None,
+                        details_params=details_params if isinstance(details_params, dict) else None,
+                        severity=res.level.value,
+                        text_sample=text_sample if isinstance(text_sample, str) else None,
+                        line_number=line_number if isinstance(line_number, int) else None,
                         target_lang=target_lang,
                         status="detected"
                     ))
@@ -693,6 +908,112 @@ async def scan_project(project_id: str, force: bool = Query(False), sidecar_path
     logger.info("[AgentWorkshop] Fresh scan completed with %s issue(s)", len(issues))
                     
     return [i.model_dump() for i in issues]
+
+
+@router.get("/scan", response_model=List[ValidationIssue])
+async def scan_project(
+    response: Response,
+    project_id: str,
+    force: bool = Query(False),
+    sidecar_path: Optional[str] = None,
+):
+    """
+    Runs the deterministic format scan and records it in the shared task ledger.
+
+    The list response remains backward compatible. The exact task identity is
+    returned in a response header so the UI can refresh the Task Center or open
+    this scan directly without inventing a second scan record.
+    """
+    project = await project_manager.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    task_id = str(uuid.uuid4())
+    input_scope = sidecar_path or project.get("source_path")
+    task_state.create_task(
+        task_id,
+        status="processing",
+        log_message="Format scan started.",
+        fields={
+            "kind": "agent_workshop_scan",
+            "project_id": project_id,
+            "title": "Format scan",
+            "source_route": "/agent-workshop",
+            "created_by": {"type": "user"},
+            "blocking": False,
+            "workflow_context": {
+                "mode": "format_scan",
+                "project_id": project_id,
+                "input_scope": input_scope,
+                "force": force,
+            },
+            "progress": {
+                "percent": 10,
+                "stage": "Scanning",
+                "stage_code": "scanning",
+            },
+        },
+    )
+    response.headers["X-Remis-Task-Id"] = task_id
+
+    try:
+        issues = await _scan_project_issues(
+            project_id=project_id,
+            force=force,
+            sidecar_path=sidecar_path,
+        )
+        issue_count = len(issues)
+        task_state.update_task(
+            task_id,
+            status="completed",
+            progress={
+                "percent": 100,
+                "stage": "Completed",
+                "stage_code": "completed",
+            },
+            fields={
+                "result": {
+                    "types": ["validation_report"],
+                    "summary": (
+                        f"{issue_count} format issue(s) found."
+                        if issue_count
+                        else "No format issues found."
+                    ),
+                    "metadata": {
+                        "summary_code": "format_scan_completed",
+                        "issue_count": issue_count,
+                        "project_id": project_id,
+                        "input_scope": input_scope,
+                        "mutations_applied": False,
+                    },
+                },
+            },
+            append_log="Format scan completed.",
+        )
+        return issues
+    except Exception as exc:
+        task_state.update_task(
+            task_id,
+            status="failed",
+            message="Format scan could not be completed.",
+            progress={
+                "stage": "Failed",
+                "stage_code": "failed",
+            },
+            fields={
+                "attention_reason": "Return to Format Scan, verify the project input scope, and try again.",
+            },
+            append_log="Format scan failed.",
+        )
+        task_state.append_task_event(
+            task_id,
+            str(exc),
+            audience="diagnostic",
+            level="error",
+            event_type="scan_error",
+        )
+        raise
+
 
 def apply_translation_fix_to_file(file_path: Path, key_to_fix: str, new_value: str) -> bool:
     from scripts.core.loc_parser import parse_loc_file_with_lines
@@ -831,11 +1152,17 @@ async def fix_issue(request: FixRequest):
         requested_provider=request.api_provider,
         requested_model=request.api_model,
     )
+    _validate_repair_approval(
+        request.approval,
+        project_id=request.project_id,
+        issue_count=1,
+        api_provider=provider_name,
+        api_model=model_name or request.api_model,
+    )
     
+    project = await _require_repairable_project(request.project_id)
     handler = get_handler(provider_name, model_name=model_name)
-    
-    project = await project_manager.get_project(request.project_id)
-    game_id = project.get('game_id', 'vic3') if project else 'vic3'
+    game_id = project.get('game_id', 'vic3')
     
     agent = ReflexionFixAgent(handler)
     result = await agent.fix_issue_loop(
@@ -860,7 +1187,7 @@ async def fix_issue(request: FixRequest):
     result["reflection"] = concise_reflection
     result["report_path"] = None
 
-    if result.get('status') == 'SUCCESS' and project:
+    if result.get('status') == 'SUCCESS':
         target_lang = _infer_target_lang_from_issue(request.file_name)
         applied, failure_reason, apply_message = _apply_fix_with_confirmation(
             project=project,
@@ -920,10 +1247,9 @@ async def _run_fix_batch(request: FixBatchRequest) -> FixBatchResponse:
         requested_model=request.api_model,
     )
     
+    project = await _require_repairable_project(request.project_id)
     handler = get_handler(provider_name, model_name=model_name)
-    
-    project = await project_manager.get_project(request.project_id)
-    game_id = project.get('game_id', 'vic3') if project else 'vic3'
+    game_id = project.get('game_id', 'vic3')
     
     agent = ReflexionFixAgent(handler)
     first_issue = request.issues[0] if request.issues else {}
@@ -1031,6 +1357,17 @@ async def fix_batch(request: FixBatchRequest):
     """
     Initiates the Reflexion Fix Workflow for a batch of issues.
     """
+    provider_name, model_name = _resolve_workshop_model_config(
+        requested_provider=request.api_provider,
+        requested_model=request.api_model,
+    )
+    _validate_repair_approval(
+        request.approval,
+        project_id=request.project_id,
+        issue_count=len(request.issues),
+        api_provider=provider_name,
+        api_model=model_name or request.api_model or "",
+    )
     return await _run_fix_batch(request)
 
 
@@ -1060,22 +1397,62 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
     failed_count = 0
     all_results: List[Dict[str, Any]] = []
     all_attempts: List[Dict[str, Any]] = []
+    child_task_ids: Dict[int, str] = {}
 
     for batch_number, batch in enumerate(batches, start=1):
+        child_task_id = f"{task_id}:batch:{batch_number}"
+        child_task_ids[batch_number] = child_task_id
+        task_state.create_task(
+            child_task_id,
+            status="queued",
+            log_message=f"Repair batch {batch_number}/{total_batches} queued.",
+            fields={
+                "kind": "agent_workshop_batch",
+                "project_id": request.project_id,
+                "parent_task_id": task_id,
+                "title": f"Format Repair batch {batch_number}/{total_batches}",
+                "source_route": f"/tasks/{task_id}",
+                "created_by": request.created_by.model_dump(),
+                "blocking": False,
+                "workflow_context": {
+                    "mode": "repair_batch",
+                    "project_id": request.project_id,
+                    "parent_task_id": task_id,
+                    "batch_number": batch_number,
+                    "issue_count": len(batch),
+                },
+                "checkpoint": {
+                    "available": False,
+                    "resume_supported": False,
+                    "stage": "queued",
+                    "metadata": {
+                        "batch_number": batch_number,
+                        "issue_count": len(batch),
+                    },
+                },
+            },
+        )
         queue.put_nowait((batch_number, batch))
 
     task_state.init_progress(task_id, {
         "total": total,
         "current": 0,
         "percent": 0,
-        "stage": "Agent Workshop",
+        "stage": "Format Repair",
         "current_batch": 0,
         "total_batches": total_batches,
     })
     task_state.update_task(
         task_id,
         status="processing",
-        append_log=f"Agent Workshop run started: {total} issue(s), {total_batches} batch(es), concurrency={concurrency}, rpm={rpm}.",
+        append_log=f"Format Repair started repairing {total} issue(s) in {total_batches} batch(es).",
+    )
+    task_state.append_task_event(
+        task_id,
+        f"Format Repair execution settings: concurrency={concurrency}, rpm={rpm}, max_retries={max_retries}.",
+        audience="diagnostic",
+        level="debug",
+        event_type="execution_settings",
     )
 
     async def wait_for_rate_limit() -> None:
@@ -1095,15 +1472,28 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
             except asyncio.QueueEmpty:
                 return
 
+            child_task_id = child_task_ids[batch_number]
             await wait_for_rate_limit()
+            task_state.update_task(
+                child_task_id,
+                status="processing",
+                progress={
+                    "current": 0,
+                    "total": len(batch),
+                    "percent": 0,
+                    "stage": "Repairing",
+                },
+                append_log=f"Repair batch {batch_number}/{total_batches} started.",
+            )
             task_state.update_progress(
                 task_id,
                 current=completed,
                 total=total,
                 current_batch=batch_number,
                 total_batches=total_batches,
-                stage="Agent Workshop",
+                stage="Format Repair",
                 log_message=f"Worker {worker_id}: fixing batch {batch_number}/{total_batches} ({len(batch)} issue(s)).",
+                event_audience="diagnostic",
                 push=True,
             )
 
@@ -1131,6 +1521,39 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
                     current_completed = completed
                     current_success = success_count
                     current_failed = failed_count
+                child_status = "completed" if batch_failed == 0 else "partial_failed"
+                child_summary = f"{batch_success} fixed, {batch_failed} still require review."
+                task_state.update_task(
+                    child_task_id,
+                    status=child_status,
+                    progress={
+                        "current": len(batch),
+                        "total": len(batch),
+                        "percent": 100,
+                        "stage": "Completed" if batch_failed == 0 else "Needs review",
+                    },
+                    summary={
+                        "total": len(batch),
+                        "successCount": batch_success,
+                        "failedCount": batch_failed,
+                    },
+                    fields={
+                        "result": {
+                            "types": ["workshop_repairs"],
+                            "summary": child_summary,
+                            "metadata": {
+                                "batch_number": batch_number,
+                                "results": batch_results,
+                            },
+                        },
+                        "attention_reason": child_summary if batch_failed else None,
+                    },
+                    append_log=(
+                        f"Repair batch {batch_number}/{total_batches} completed."
+                        if batch_failed == 0
+                        else f"Repair batch {batch_number}/{total_batches} needs review: {batch_failed} item(s) failed."
+                    ),
+                )
                 task_state.update_progress(
                     task_id,
                     current=current_completed,
@@ -1139,8 +1562,9 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
                     total_batches=total_batches,
                     successful_batches=current_success,
                     failed_batches=current_failed,
-                    stage="Agent Workshop",
+                    stage="Format Repair",
                     log_message=f"Batch {batch_number}/{total_batches} completed: {batch_success}/{len(batch)} fixed.",
+                    event_audience="diagnostic",
                     push=True,
                 )
             except Exception as exc:
@@ -1150,6 +1574,33 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
                     failed_count += len(batch)
                     current_completed = completed
                     current_failed = failed_count
+                task_state.update_task(
+                    child_task_id,
+                    status="failed",
+                    message="The batch could not be completed.",
+                    progress={
+                        "current": len(batch),
+                        "total": len(batch),
+                        "percent": 100,
+                        "stage": "Failed",
+                    },
+                    fields={
+                        "result": {
+                            "types": ["workshop_repairs"],
+                            "summary": "No repairs from this batch were applied.",
+                            "metadata": {"batch_number": batch_number},
+                        },
+                        "attention_reason": "The batch failed before producing a complete result.",
+                    },
+                    append_log=f"Repair batch {batch_number}/{total_batches} failed.",
+                )
+                task_state.append_task_event(
+                    child_task_id,
+                    str(exc),
+                    audience="diagnostic",
+                    level="error",
+                    event_type="batch_exception",
+                )
                 task_state.update_progress(
                     task_id,
                     current=current_completed,
@@ -1157,8 +1608,9 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
                     current_batch=batch_number,
                     total_batches=total_batches,
                     failed_batches=current_failed,
-                    stage="Agent Workshop",
+                    stage="Format Repair",
                     log_message=f"Batch {batch_number}/{total_batches} failed: {exc}",
+                    event_audience="diagnostic",
                     push=True,
                 )
             finally:
@@ -1181,22 +1633,72 @@ async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> 
             "attempts": all_attempts,
             "maxRetries": max_retries,
         }
+        report_paths = sorted({
+            str(item.get("report_path"))
+            for item in all_results
+            if item.get("report_path")
+        })
+        final_status = "completed" if failed_count == 0 else "partial_failed"
+        result_summary = (
+            f"{success_count} issue(s) fixed."
+            if failed_count == 0
+            else f"{success_count} issue(s) fixed; {failed_count} still require review."
+        )
         task_state.update_task(
             task_id,
-            status="completed",
-            progress={"current": total, "total": total, "percent": 100, "stage": "Completed"},
+            status=final_status,
+            progress={
+                "current": total,
+                "total": total,
+                "percent": 100,
+                "stage": "Completed" if failed_count == 0 else "Needs review",
+            },
             summary=summary,
-            fields={"results": all_results, "attempts": all_attempts},
-            append_log="Agent Workshop run completed.",
+            fields={
+                "results": all_results,
+                "attempts": all_attempts,
+                "result": {
+                    "types": ["workshop_repairs", *(["repair_reports"] if report_paths else [])],
+                    "output_paths": report_paths,
+                    "summary": result_summary,
+                    "metadata": {
+                        "total": total,
+                        "success_count": success_count,
+                        "failed_count": failed_count,
+                        "batch_task_ids": [
+                            child_task_ids[index]
+                            for index in sorted(child_task_ids)
+                        ],
+                    },
+                },
+                "attention_reason": result_summary if failed_count else None,
+            },
+            append_log=(
+                "Format Repair run completed."
+                if failed_count == 0
+                else f"Format Repair run finished with {failed_count} item(s) requiring review."
+            ),
         )
     except Exception as exc:
         logger.exception("Agent Workshop run failed")
         task_state.update_task(
             task_id,
             status="failed",
-            message=str(exc),
-            append_log=f"Agent Workshop run failed: {exc}",
+            message="Format Repair could not complete this repair run.",
+            append_log="Format Repair run failed. Open diagnostics for technical details.",
         )
+        task_state.append_task_event(
+            task_id,
+            str(exc),
+            audience="diagnostic",
+            level="error",
+            event_type="run_exception",
+        )
+
+
+def _run_agent_workshop_fix_task_in_worker(task_id: str, request: FixRunRequest) -> None:
+    """Run blocking provider work outside FastAPI's main event loop."""
+    asyncio.run(_run_agent_workshop_fix_task(task_id, request))
 
 
 @router.post("/fix-run", response_model=FixRunResponse)
@@ -1208,9 +1710,96 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
     batching, worker concurrency, RPM throttling, retries, and reflection stay here.
     """
     if not request.issues:
-        raise HTTPException(status_code=400, detail="No issues supplied for Agent Workshop run.")
+        raise HTTPException(status_code=400, detail="No issues supplied for Format Repair.")
+    _validate_repair_approval(
+        request.approval,
+        project_id=request.project_id,
+        issue_count=len(request.issues),
+        api_provider=request.api_provider,
+        api_model=request.api_model,
+    )
+    operation_fingerprint = _fix_run_fingerprint(request)
+    existing = task_state.find_task_by_idempotency_key(request.idempotency_key)
+    if existing is not None:
+        if existing.get("operation_fingerprint") != operation_fingerprint:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "idempotency_conflict",
+                    "message": "This idempotency key is already bound to a different Format Repair scope.",
+                    "retryable": False,
+                    "existing_task_id": existing.get("task_id"),
+                },
+            )
+        return FixRunResponse(
+            task_id=str(existing.get("task_id")),
+            status=str(existing.get("status") or "queued"),
+            reused=True,
+        )
 
+    await _require_repairable_project(request.project_id)
     task_id = str(uuid.uuid4())
-    task_state.create_task(task_id, status="pending", log_message="Agent Workshop run queued.")
-    background_tasks.add_task(_run_agent_workshop_fix_task, task_id, request)
+    try:
+        task_state.create_task(
+            task_id,
+            status="pending",
+            log_message="Format Repair run queued.",
+            fields={
+                "kind": "agent_workshop",
+                "project_id": request.project_id,
+                "title": "Format Repair",
+                "source_route": "/agent-workshop",
+                "created_by": request.created_by.model_dump(),
+                "blocking": True,
+                "blocking_reason": "Format Repair is repairing project files. Conflicting writes are blocked until it finishes.",
+                "idempotency_key": request.idempotency_key,
+                "operation_fingerprint": operation_fingerprint,
+                "workflow_context": {
+                    "mode": "repair",
+                    "project_id": request.project_id,
+                    "issue_count": len(request.issues),
+                    "api_provider": request.api_provider,
+                    "api_model": request.api_model,
+                },
+                "checkpoint": {
+                    "available": False,
+                    "resume_supported": False,
+                    "stage": "queued",
+                    "metadata": {
+                        "issue_count": len(request.issues),
+                        "api_provider": request.api_provider,
+                        "api_model": request.api_model,
+                    },
+                },
+            },
+            dedupe_key=f"project_translation_write:{request.project_id}",
+            reject_duplicate=True,
+        )
+    except task_state.DuplicateTaskError as exc:
+        existing = exc.existing_task
+        if existing.get("idempotency_key") == request.idempotency_key:
+            if existing.get("operation_fingerprint") != operation_fingerprint:
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "code": "idempotency_conflict",
+                        "message": "This idempotency key is already bound to a different Format Repair scope.",
+                        "retryable": False,
+                        "existing_task_id": existing.get("task_id"),
+                    },
+                ) from exc
+            return FixRunResponse(
+                task_id=str(existing.get("task_id")),
+                status=str(existing.get("status") or "queued"),
+                reused=True,
+            )
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "duplicate_task",
+                "message": "This project already has a Format Repair task in progress.",
+                "existing_task_id": exc.existing_task.get("task_id"),
+            },
+        ) from exc
+    background_tasks.add_task(_run_agent_workshop_fix_task_in_worker, task_id, request)
     return FixRunResponse(task_id=task_id)

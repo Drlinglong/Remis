@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 from sqlmodel import select
 from scripts.core.repositories.project_repository import ProjectRepository
+from scripts.core.repositories.project_watch_repository import ProjectWatchRepository
 from scripts.core.glossary_manager import GlossaryManager
 from scripts.core.db_models import (
     ActivityLog,
@@ -79,6 +80,66 @@ async def test_create_and_get_project(repo):
     assert fetched.project_id == project_id
     assert fetched.name == "Test Project 1"
     assert fetched.source_language == "english"
+
+
+@pytest.mark.asyncio
+async def test_archive_pauses_enabled_watches_and_restore_preserves_manual_choices(repo):
+    project_id = "archive-watch-project"
+    await repo.create_project(
+        Project(
+            project_id=project_id,
+            name="Long-term Shelf Project",
+            game_id="victoria3",
+            source_path="/tmp/archive-watch-project",
+            source_language="english",
+            status="active",
+        )
+    )
+    watch_repo = ProjectWatchRepository(repo.db_path)
+    for watch_id, enabled in [
+        ("enabled-watch-1", True),
+        ("enabled-watch-2", True),
+        ("already-disabled-watch", False),
+    ]:
+        await watch_repo.create_watch(
+            {
+                "watch_id": watch_id,
+                "name": watch_id,
+                "path": f"/tmp/{watch_id}",
+                "project_id": project_id,
+                "enabled": enabled,
+                "scan_interval_minutes": 60,
+            }
+        )
+    await watch_repo.create_watch(
+        {
+            "watch_id": "unrelated-watch",
+            "name": "unrelated-watch",
+            "path": "/tmp/unrelated-watch",
+            "enabled": True,
+            "scan_interval_minutes": 60,
+        }
+    )
+
+    archived = await repo.update_project_lifecycle_status(project_id, "archived")
+
+    assert archived["paused_watch_count"] == 2
+    assert (await watch_repo.get_watch("enabled-watch-1")).enabled is False
+    assert (await watch_repo.get_watch("enabled-watch-1")).paused_by_project_archive is True
+    assert (await watch_repo.get_watch("enabled-watch-2")).paused_by_project_archive is True
+    assert (await watch_repo.get_watch("already-disabled-watch")).paused_by_project_archive is False
+    assert (await watch_repo.get_watch("unrelated-watch")).enabled is True
+
+    # A manual choice made while archived takes precedence over automatic restore.
+    await watch_repo.update_watch("enabled-watch-2", {"enabled": False})
+    await repo.update_project_lifecycle_status(project_id, "deleted")
+    restored = await repo.update_project_lifecycle_status(project_id, "active")
+
+    assert restored["restored_watch_count"] == 1
+    assert (await watch_repo.get_watch("enabled-watch-1")).enabled is True
+    assert (await watch_repo.get_watch("enabled-watch-1")).paused_by_project_archive is False
+    assert (await watch_repo.get_watch("enabled-watch-2")).enabled is False
+    assert (await watch_repo.get_watch("already-disabled-watch")).enabled is False
 
 @pytest.mark.asyncio
 async def test_create_project_does_not_mutate_input_model(repo):
@@ -220,6 +281,78 @@ async def test_batch_upsert_files_does_not_mutate_input_payload(repo):
     await repo.batch_upsert_files(files_data)
 
     assert files_data[0]["file_path"] == original_path
+
+
+@pytest.mark.asyncio
+async def test_batch_upsert_files_reuses_identity_for_relativized_worktree_path(repo):
+    from pathlib import Path
+
+    from sqlalchemy import text
+
+    from scripts.app_settings import PROJECT_ROOT
+
+    project_id = "test_proj_cross_worktree_identity"
+    await repo.create_project(Project(
+        project_id=project_id,
+        name="Cross-worktree identity",
+        game_id="victoria3",
+        source_path="/tmp/source_cross_worktree",
+        source_language="zh-CN",
+    ))
+    stored_path = (
+        "{{PROJECT_ROOT}}/my_translation/"
+        "en-demo-incremental-update/localization/english/demo_l_english.yml"
+    )
+    async with repo._use_session() as session:
+        await session.execute(
+            text(
+                """
+                INSERT INTO project_files (
+                    file_id, project_id, file_path, status,
+                    original_key_count, line_count, file_type
+                )
+                VALUES (
+                    :file_id, :project_id, :file_path, :status,
+                    :original_key_count, :line_count, :file_type
+                )
+                """
+            ),
+            {
+                "file_id": "persisted-worktree-id",
+                "project_id": project_id,
+                "file_path": stored_path,
+                "status": "proofreading",
+                "original_key_count": 3,
+                "line_count": 10,
+                "file_type": "translation",
+            },
+        )
+        await session.commit()
+
+    current_path = str(
+        Path(PROJECT_ROOT)
+        / "my_translation"
+        / "en-demo-incremental-update"
+        / "localization"
+        / "english"
+        / "demo_l_english.yml"
+    )
+    effective_ids = await repo.batch_upsert_files([{
+        "file_id": "new-worktree-derived-id",
+        "project_id": project_id,
+        "file_path": current_path,
+        "status": "proofreading",
+        "original_key_count": 3,
+        "line_count": 12,
+        "file_type": "translation",
+    }])
+
+    files = await repo.get_project_files(project_id)
+    assert effective_ids == ["persisted-worktree-id"]
+    assert len(files) == 1
+    assert files[0].file_id == "persisted-worktree-id"
+    assert files[0].line_count == 12
+
 
 @pytest.mark.asyncio
 async def test_repository_does_not_commit_caller_owned_session(repo):

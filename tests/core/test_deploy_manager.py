@@ -150,6 +150,32 @@ def test_deploy_copies_known_output_to_detected_mod_root(tmp_path, monkeypatch):
     deployed = mod_root / "zh-CN-demo" / "localization.yml"
     assert result["status"] == "success"
     assert deployed.read_text(encoding="utf-8") == "demo"
+    assert result["output_paths"] == [str(mod_root / "zh-CN-demo")]
+
+
+def test_deploy_reports_mod_folder_and_launcher_descriptor(tmp_path, monkeypatch):
+    destination = tmp_path / "translations"
+    source = destination / "zh-CN-demo"
+    source.mkdir(parents=True)
+    (source / "descriptor.mod").write_text('name="Demo"', encoding="utf-8")
+    mod_root = tmp_path / "Paradox" / "mod"
+    mod_root.mkdir(parents=True)
+    monkeypatch.setattr(deploy_module, "DEST_DIR", str(destination))
+    deployer = ModDeployer()
+    monkeypatch.setattr(
+        deployer,
+        "get_paradox_mod_dir",
+        lambda _game_id: mod_root,
+    )
+
+    result = deployer.deploy_mod("zh-CN-demo", "stellaris")
+
+    assert result["status"] == "success"
+    assert result["output_paths"] == [
+        str(mod_root / "zh-CN-demo"),
+        str(mod_root / "zh-CN-demo.mod"),
+    ]
+    assert (mod_root / "zh-CN-demo.mod").exists()
 
 
 def test_deploy_does_not_return_internal_exception_details(tmp_path, monkeypatch):

@@ -2,41 +2,65 @@
 
 .pageTitle {
     font-family: var(--font-header);
-    color: var(--text-main);
+    color: var(--canvas-text-main) !important;
 }
 
 .incrementalPage {
     padding-bottom: 96px;
+    --mantine-color-text: var(--canvas-text-main);
+    --mantine-color-dimmed: var(--canvas-text-muted);
+    color: var(--canvas-text-main);
+}
+
+.incrementalPage :global(.mantine-Stepper-stepLabel) {
+    color: var(--canvas-text-main);
+}
+
+.incrementalPage :global(.mantine-Stepper-stepDescription) {
+    color: var(--canvas-text-muted);
 }
 
 .glassCard {
-    background: var(--glass-bg, rgba(30, 30, 30, 0.6)) !important;
+    --mantine-color-text: var(--surface-text-main);
+    --mantine-color-dimmed: var(--surface-text-muted);
+    background: var(--surface-bg-solid) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1)) !important;
+    border: 1px solid var(--surface-border) !important;
     border-radius: var(--card-radius, 12px) !important;
     box-shadow: var(--shadow-elevation, 0 8px 32px rgba(0, 0, 0, 0.2)) !important;
-    color: var(--text-main) !important;
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+    color: var(--surface-text-main) !important;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
 }
 
 .glassCard:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
+    border-color: var(--surface-text-muted) !important;
+}
+
+.glassCard :global(.mantine-Card-root) {
+    --mantine-color-text: var(--paper-text-main);
+    --mantine-color-dimmed: var(--paper-text-muted);
+    background: var(--paper-bg) !important;
+    border-color: var(--paper-text-muted) !important;
+    color: var(--paper-text-main) !important;
 }
 
 .selectedCard {
-    background: rgba(var(--primary-color-rgb, 12, 133, 237), 0.15) !important;
-    border: 2px solid var(--primary-color, #1c7ed6) !important;
-    box-shadow: 0 0 15px rgba(28, 126, 214, 0.3) !important;
-    transform: scale(1.02);
+    --mantine-color-text: var(--surface-text-main);
+    --mantine-color-dimmed: var(--surface-text-muted);
+    background: color-mix(in srgb, var(--interactive-accent) 12%, var(--surface-bg-solid)) !important;
+    border: 2px solid var(--interactive-accent) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 24%, transparent) !important;
+    color: var(--surface-text-main) !important;
 }
 
 .logArea {
-    background: rgba(0, 0, 0, 0.4);
+    --mantine-color-text: var(--elevated-text-main);
+    --mantine-color-dimmed: var(--elevated-text-muted);
+    background: var(--elevated-bg);
+    color: var(--elevated-text-main);
     border-radius: 8px;
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--surface-border);
     padding: 12px;
 }
 
@@ -44,9 +68,12 @@
     max-height: 400px;
     overflow-y: auto;
     overflow-x: hidden;
-    background: rgba(0, 0, 0, 0.3);
+    --mantine-color-text: var(--elevated-text-main);
+    --mantine-color-dimmed: var(--elevated-text-muted);
+    background: var(--elevated-bg);
+    color: var(--elevated-text-main);
     border-radius: 8px;
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--surface-border);
     padding: 12px;
     scrollbar-width: auto;
 }
@@ -56,12 +83,12 @@
 }
 
 .logScrollBox::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--elevated-text-muted);
     border-radius: 8px;
 }
 
 .logScrollBox::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, var(--elevated-text-main) 8%, transparent);
 }
 
 .executionStep {

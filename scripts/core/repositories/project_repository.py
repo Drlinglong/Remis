@@ -198,6 +198,71 @@ class ProjectRepository:
                 session.add(project)
                 await self._commit_if_owner(session)
 
+    async def update_project_lifecycle_status(
+        self,
+        project_id: str,
+        status: str,
+        session: Optional[AsyncSession] = None,
+    ) -> Dict[str, Any]:
+        """Atomically update project visibility and its archive-paused watches."""
+        async with self._use_session(session) as session:
+            try:
+                result = await session.execute(
+                    select(Project).where(Project.project_id == project_id)
+                )
+                project = result.scalar_one_or_none()
+                if not project:
+                    raise ValueError(f"Project not found: {project_id}")
+
+                previous_status = project.status
+                project.status = status
+                project.last_modified = datetime.datetime.now().isoformat()
+                session.add(project)
+
+                watch_result = await session.execute(
+                    select(ProjectWatch).where(ProjectWatch.project_id == project_id)
+                )
+                watches = list(watch_result.scalars().all())
+                paused_count = 0
+                restored_count = 0
+                if status == "archived":
+                    for watch in watches:
+                        if watch.enabled:
+                            watch.enabled = False
+                            watch.paused_by_project_archive = True
+                            session.add(watch)
+                            paused_count += 1
+                elif status == "active":
+                    for watch in watches:
+                        if watch.paused_by_project_archive:
+                            watch.enabled = True
+                            watch.paused_by_project_archive = False
+                            session.add(watch)
+                            restored_count += 1
+
+                await self.add_history_entry(
+                    project_id=project_id,
+                    action_type="status_change",
+                    description=f"Status updated to: {status}",
+                    extra_metadata={
+                        "previous_status": previous_status,
+                        "paused_watch_count": paused_count,
+                        "restored_watch_count": restored_count,
+                    },
+                    session=session,
+                )
+                await self._commit_if_owner(session)
+                return {
+                    "project_id": project_id,
+                    "previous_status": previous_status,
+                    "status": status,
+                    "paused_watch_count": paused_count,
+                    "restored_watch_count": restored_count,
+                }
+            except Exception:
+                await self._rollback_if_owner(session)
+                raise
+
     async def update_project_notes(self, project_id: str, notes: str, session: Optional[AsyncSession] = None):
         """Persists project notes to the database and updates last_modified."""
         async with self._use_session(session) as session:
@@ -292,7 +357,11 @@ class ProjectRepository:
 
     # --- File Operations (Async Batch) ---
 
-    async def batch_upsert_files(self, project_files: List[Dict[str, Any]], session: Optional[AsyncSession] = None):
+    async def batch_upsert_files(
+        self,
+        project_files: List[Dict[str, Any]],
+        session: Optional[AsyncSession] = None,
+    ) -> List[str]:
         """
         Upserts a batch of files. SQLModel doesn't support generic upsert easily across DBs,
         but since we are SQLite specific with async engine, we can use SQLite ON CONFLICT logic 
@@ -300,7 +369,7 @@ class ProjectRepository:
         Given performance needs, raw SQL execute is best for batch upsert in SQLite.
         """
         if not project_files:
-            return
+            return []
 
         db_project_files = []
         for file_data in project_files:
@@ -313,6 +382,45 @@ class ProjectRepository:
         
         async with self._use_session(session) as session:
             try:
+                # file_id was historically derived from the resolved absolute
+                # path. A {{PROJECT_ROOT}} path therefore received a different
+                # UUID when the same database was opened from another
+                # worktree. Reuse the persisted identity for an already-known
+                # project/path pair before upserting so Kanban state and
+                # references remain stable.
+                existing_file_ids: Dict[tuple[str, str], str] = {}
+                for project_id in {
+                    str(item.get("project_id") or "")
+                    for item in db_project_files
+                    if item.get("project_id")
+                }:
+                    existing_result = await session.execute(
+                        text(
+                            """
+                            SELECT file_id, file_path
+                            FROM project_files
+                            WHERE project_id = :project_id
+                            """
+                        ),
+                        {"project_id": project_id},
+                    )
+                    existing_file_ids.update(
+                        {
+                            (project_id, str(row.file_path)): str(row.file_id)
+                            for row in existing_result
+                        }
+                    )
+
+                for db_file_data in db_project_files:
+                    stable_file_id = existing_file_ids.get(
+                        (
+                            str(db_file_data.get("project_id") or ""),
+                            str(db_file_data.get("file_path") or ""),
+                        )
+                    )
+                    if stable_file_id:
+                        db_file_data["file_id"] = stable_file_id
+
                 stmt = text('''
                     INSERT INTO project_files (file_id, project_id, file_path, status, original_key_count, line_count, file_type)
                     VALUES (:file_id, :project_id, :file_path, :status, :original_key_count, :line_count, :file_type)
@@ -330,6 +438,7 @@ class ProjectRepository:
                 await session.execute(stmt, db_project_files)
                 await self._commit_if_owner(session)
                 logger.info(f"ProjectRepository: Batch upsert committed successfully.")
+                return [str(item["file_id"]) for item in db_project_files]
             except Exception as e:
                 logger.error(f"Batch upsert failed: {str(e)}", exc_info=True)
                 await self._rollback_if_owner(session)
