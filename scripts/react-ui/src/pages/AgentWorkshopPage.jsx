@@ -409,21 +409,86 @@ const AgentWorkshopPage = () => {
           </Stack>
         </Modal>
 
-        <Modal opened={isModalOpen} onClose={closeFixModal} title={<Group gap="xs"><IconRobot size={20} /><Text fw={600}>{t('agent_workshop.modal_title')}</Text></Group>} size="lg">
-          <Box style={{ position: 'relative' }}>
+        <Modal
+          opened={isModalOpen}
+          onClose={closeFixModal}
+          title={<Group gap="xs"><IconRobot size={20} /><Text fw={600}>{t('agent_workshop.modal_title')}</Text></Group>}
+          size="lg"
+          classNames={{
+            content: styles.issueFixModalContent,
+            header: styles.issueFixModalHeader,
+            title: styles.issueFixModalTitle,
+            body: styles.issueFixModalBody,
+            close: styles.issueFixModalClose,
+          }}
+        >
+          <Box style={{ position: 'relative' }} data-remis-surface="paper">
             <LoadingOverlay visible={fixing} overlayBlur={2} />
             <Stack gap="md">
-              <Paper p="xs" withBorder><Text size="xs" fw={700} c="dimmed" tt="uppercase">{t('agent_workshop.modal_source_context')}</Text><Code block>{currentIssue?.source_str || t('agent_workshop.no_source_context')}</Code></Paper>
-              <Paper p="xs" withBorder><Text size="xs" fw={700} c="red" tt="uppercase">{t('agent_workshop.modal_error_detected')}</Text><Code block color="red">{currentIssue?.target_str}</Code><Text size="xs" mt={4}>{localizeIssueDetails(currentIssue)}</Text></Paper>
+              <Paper p="sm" withBorder className={styles.issueFixPanel}>
+                <Text size="xs" fw={700} c="dimmed" tt="uppercase">{t('agent_workshop.modal_source_context')}</Text>
+                <Code block className={styles.issueFixCode}>{currentIssue?.source_str || t('agent_workshop.no_source_context')}</Code>
+              </Paper>
+              <Paper p="sm" withBorder className={styles.issueFixPanel}>
+                <Text size="xs" fw={700} c="red" tt="uppercase">{t('agent_workshop.modal_error_detected')}</Text>
+                <Code block className={styles.issueFixErrorCode}>{currentIssue?.target_str}</Code>
+                <Text size="xs" mt={6}>{localizeIssueDetails(currentIssue)}</Text>
+              </Paper>
               {!fixResult && (
-                <Alert icon={<IconAlertTriangle size={16} />} color="orange" radius="md">
-                  {t(isLocalAgentWorkshopProvider(selectedProvider)
-                    ? 'agent_workshop.start_fix_confirm_local'
-                    : 'agent_workshop.start_fix_confirm_cloud')}
-                </Alert>
+                <>
+                  <Box>
+                    <Text size="sm" fw={700}>{t('agent_workshop.repair_model_heading')}</Text>
+                    <Text size="xs" c="dimmed" mb="xs">{t('agent_workshop.repair_model_help')}</Text>
+                    <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+                      <Select
+                        label={t('agent_workshop.provider_label')}
+                        data={apiProviders}
+                        value={selectedProvider}
+                        onChange={handleProviderChange}
+                      />
+                      <Select
+                        label={t('agent_workshop.model_label')}
+                        data={modelOptions}
+                        value={selectedModel}
+                        onChange={setSelectedModel}
+                        searchable
+                      />
+                    </SimpleGrid>
+                  </Box>
+                  <Alert icon={<IconAlertTriangle size={16} />} color="orange" radius="md" className={styles.approvalWarning}>
+                    {t(isLocalAgentWorkshopProvider(selectedProvider)
+                      ? 'agent_workshop.single_fix_confirm_local'
+                      : 'agent_workshop.single_fix_confirm_cloud')}
+                  </Alert>
+                </>
               )}
-              {!fixResult && <Button fullWidth variant="gradient" gradient={{ from: 'indigo', to: 'cyan' }} onClick={handleFixRequest} disabled={fixing || !selectedProvider || !selectedModel}>{selectedProvider && selectedModel ? t('agent_workshop.fix_btn') : t('agent_workshop.select_model_hint')}</Button>}
-              {fixResult && <Stack gap="md"><Alert icon={<IconInfoCircle size={16} />} title={t('agent_workshop.modal_analysis')} color="indigo" variant="light"><Text size="sm" fs="italic">{fixResult.reflection}</Text>{fixResult.report_path && <Text size="xs" mt={8} c="dimmed">{t('agent_workshop.report_path')}: {fixResult.report_path}</Text>}</Alert><Paper p="xs" withBorder style={{ backgroundColor: 'rgba(40, 167, 69, 0.05)' }}><Text size="xs" fw={700} c="green" tt="uppercase">{t('agent_workshop.modal_suggestion')}</Text><Code block color="green">{fixResult.suggested_fix}</Code>{fixResult.parity_message && <Text size="xs" mt={4} c={fixResult.status === 'SUCCESS' ? 'green' : 'orange'}><IconCheck size={12} /> {fixResult.parity_message}</Text>}</Paper><Group grow mt="lg"><Button variant="subtle" onClick={resetFixResult}>{t('agent_workshop.regenerate')}</Button><Button color="green" onClick={applyCurrentFixPreview}>{t('agent_workshop.apply_fix')}</Button></Group></Stack>}
+              {!fixResult && (
+                <Button
+                  fullWidth
+                  onClick={handleFixRequest}
+                  disabled={fixing || !selectedProvider || !selectedModel}
+                  data-remis-action="paper-primary"
+                >
+                  {selectedProvider && selectedModel ? t('agent_workshop.fix_btn') : t('agent_workshop.select_model_hint')}
+                </Button>
+              )}
+              {fixResult && (
+                <Stack gap="md">
+                  <Alert icon={<IconInfoCircle size={16} />} title={t('agent_workshop.modal_analysis')} color="indigo" variant="light" className={styles.issueFixResult}>
+                    <Text size="sm">{fixResult.reflection}</Text>
+                    {fixResult.report_path && <Text size="xs" mt={8} c="dimmed">{t('agent_workshop.report_path')}: {fixResult.report_path}</Text>}
+                  </Alert>
+                  <Paper p="sm" withBorder className={styles.issueFixPanel}>
+                    <Text size="xs" fw={700} tt="uppercase">{t('agent_workshop.modal_suggestion')}</Text>
+                    <Code block className={styles.issueFixCode}>{fixResult.suggested_fix}</Code>
+                    {fixResult.parity_message && <Text size="xs" mt={6}><IconCheck size={12} /> {fixResult.parity_message}</Text>}
+                  </Paper>
+                  <Group grow mt="sm">
+                    <Button variant="subtle" onClick={resetFixResult} data-remis-action="paper-secondary">{t('agent_workshop.regenerate')}</Button>
+                    <Button onClick={applyCurrentFixPreview} data-remis-action="paper-primary">{t('agent_workshop.apply_fix')}</Button>
+                  </Group>
+                </Stack>
+              )}
             </Stack>
           </Box>
         </Modal>

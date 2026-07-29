@@ -114,3 +114,68 @@
 .approvalSecondary :global(.mantine-Button-label) {
     color: var(--paper-text-main) !important;
 }
+
+.issueFixModalContent,
+.issueFixModalHeader,
+.issueFixModalBody {
+    --mantine-color-text: var(--paper-text-main) !important;
+    --mantine-color-dimmed: var(--paper-text-muted) !important;
+    background: var(--paper-bg) !important;
+    color: var(--paper-text-main) !important;
+}
+
+.issueFixModalContent {
+    background-image: none !important;
+    border: 1px solid var(--paper-border) !important;
+    backdrop-filter: none !important;
+}
+
+.issueFixModalHeader {
+    border-bottom: 1px solid var(--paper-border);
+}
+
+.issueFixModalTitle,
+.issueFixModalClose {
+    color: var(--paper-text-main) !important;
+    text-shadow: none !important;
+}
+
+.issueFixPanel {
+    --mantine-color-text: var(--paper-text-main) !important;
+    --mantine-color-dimmed: var(--paper-text-muted) !important;
+    background: color-mix(in srgb, var(--paper-text-main) 4%, var(--paper-bg)) !important;
+    border-color: color-mix(in srgb, var(--paper-text-main) 28%, transparent) !important;
+    color: var(--paper-text-main) !important;
+    box-shadow: none !important;
+}
+
+.issueFixCode,
+.issueFixErrorCode {
+    margin-top: 6px;
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 22%, transparent) !important;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.issueFixCode {
+    background: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg)) !important;
+    color: var(--paper-text-main) !important;
+}
+
+.issueFixErrorCode {
+    background: color-mix(in srgb, var(--mantine-color-red-7) 14%, var(--paper-bg)) !important;
+    color: var(--paper-text-main) !important;
+}
+
+.issueFixResult {
+    --alert-color: var(--paper-text-main) !important;
+    background: color-mix(in srgb, var(--mantine-color-blue-6) 11%, var(--paper-bg)) !important;
+    border-color: color-mix(in srgb, var(--mantine-color-blue-6) 42%, var(--paper-border)) !important;
+    color: var(--paper-text-main) !important;
+}
+
+.issueFixResult :global(.mantine-Alert-icon),
+.issueFixResult :global(.mantine-Alert-title),
+.issueFixResult :global(.mantine-Alert-message) {
+    color: var(--paper-text-main) !important;
+}
