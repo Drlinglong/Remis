@@ -1,0 +1,67 @@
+.modalContent,
+.modalHeader,
+.modalBody {
+  --mantine-color-text: var(--paper-text-main) !important;
+  --mantine-color-dimmed: var(--paper-text-muted) !important;
+  background: var(--paper-bg) !important;
+  color: var(--paper-text-main) !important;
+}
+
+.modalContent {
+  border-color: var(--paper-border, var(--paper-text-muted)) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+}
+
+.modalHeader {
+  border-bottom: 1px solid var(--paper-border, var(--paper-text-muted));
+}
+
+.modalTitle,
+.modalClose {
+  color: var(--paper-text-main) !important;
+  text-shadow: none !important;
+}
+
+.modalClose {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+}
+
+.modalClose:hover {
+  background: color-mix(in srgb, var(--paper-text-main) 9%, var(--paper-bg)) !important;
+  border-color: var(--paper-text-muted) !important;
+}
+
+.importModeRoot {
+  background: color-mix(in srgb, var(--paper-text-main) 9%, var(--paper-bg)) !important;
+  border: 1px solid var(--paper-border, var(--paper-text-muted));
+}
+
+.importModeLabel {
+  color: var(--paper-text-muted) !important;
+}
+
+.importModeLabel[data-active] {
+  color: var(--paper-text-main) !important;
+}
+
+.importModeIndicator {
+  background: var(--paper-bg) !important;
+  border: 1px solid color-mix(in srgb, var(--paper-text-main) 24%, transparent);
+  box-shadow: none !important;
+}
+
+.importModeAlert {
+  --alert-color: var(--paper-text-main) !important;
+  background: color-mix(in srgb, var(--mantine-color-blue-6) 12%, var(--paper-bg)) !important;
+  border: 1px solid color-mix(in srgb, var(--mantine-color-blue-6) 45%, var(--paper-border, var(--paper-text-muted))) !important;
+  color: var(--paper-text-main) !important;
+  box-shadow: none !important;
+}
+
+.importModeAlert :global(.mantine-Alert-icon),
+.importModeAlert :global(.mantine-Alert-title),
+.importModeAlert :global(.mantine-Alert-message) {
+  color: var(--paper-text-main) !important;
+}

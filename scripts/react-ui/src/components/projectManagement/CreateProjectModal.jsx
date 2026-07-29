@@ -13,6 +13,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import { IconCopy, IconFolder, IconLink } from '@tabler/icons-react';
+import styles from './CreateProjectModal.module.css';
 
 const fallbackGames = [
   { value: 'stellaris', label: 'Stellaris' },
@@ -56,8 +57,15 @@ export function CreateProjectModal({
       size="lg"
       closeOnClickOutside={!isCreatingProject}
       closeOnEscape={!isCreatingProject}
+      classNames={{
+        content: styles.modalContent,
+        header: styles.modalHeader,
+        title: styles.modalTitle,
+        body: styles.modalBody,
+        close: styles.modalClose,
+      }}
     >
-      <Stack>
+      <Stack data-remis-surface="paper">
         <TextInput
           label={t('form_label_project_name')}
           placeholder={t('form_placeholder_project_name')}
@@ -79,6 +87,11 @@ export function CreateProjectModal({
           </Button>
         </Group>
         <SegmentedControl
+          classNames={{
+            root: styles.importModeRoot,
+            label: styles.importModeLabel,
+            indicator: styles.importModeIndicator,
+          }}
           fullWidth
           value={newProjectImportMode}
           onChange={setNewProjectImportMode}
@@ -89,6 +102,7 @@ export function CreateProjectModal({
           ]}
         />
         <Alert
+          className={styles.importModeAlert}
           color={newProjectImportMode === 'reference' ? 'yellow' : 'blue'}
           variant="light"
           icon={newProjectImportMode === 'reference' ? <IconLink size={16} /> : <IconCopy size={16} />}
