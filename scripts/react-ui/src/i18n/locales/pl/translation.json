@@ -45,7 +45,7 @@
     "live_updates": "Aktualizacja na żywo", "event_count": "Liczba zdarzeń: {{count}}", "no_events": "Brak zapisanych zdarzeń wykonania",
     "task_info": "Szczegóły zadania", "task_id": "Identyfikator zadania", "project": "Powiązany projekt", "project_name": "Nazwa projektu", "project_id": "Identyfikator projektu", "task_flow": "Przebieg zadania", "technical_info": "Dane techniczne", "blocking_description": "To zadanie modyfikuje pliki projektu. Remis tymczasowo blokuje równoczesny zapis do tego samego projektu; ograniczenie znika po zakończeniu uruchomienia.", "started_at": "Rozpoczęto", "finished_at": "Zakończono",
     "user_summary": "Co wykonuje to zadanie", "current_stage": "Bieżący etap", "next_step": "Następny krok", "detailed_result_below": "Szczegółowy wynik jest dostępny poniżej.", "technical_logs": "Dzienniki techniczne i diagnostyka", "newest_first": "Najnowsze najpierw",
-    "result": "Wynik", "output_paths": "Ścieżki wyjściowe", "child_tasks": "Zadania podrzędne", "back_to_workflow": "Wróć do przepływu pracy"
+    "result": "Wynik", "output_paths": "Ścieżki wyjściowe", "child_tasks": "Zadania podrzędne", "repair_item_results": "Elementy w tej partii", "repair_item_fixed": "Naprawione", "repair_item_needs_review": "Wymagają sprawdzenia", "repair_item_reason": "Powód", "back_to_workflow": "Wróć do przepływu pracy"
   },
   "task_presentation": {
     "incremental": {
@@ -66,7 +66,9 @@
     "result": {
       "incremental_completed": "Przetworzono {{count}} plików tłumaczenia.",
       "incremental_completed_with_warnings": "Przetworzono {{files}} plików tłumaczenia z {{warnings}} ostrzeżeniami środowiska wykonawczego.",
-      "format_scan_completed": "Skanowanie formatu zakończono z liczbą problemów: {{count}}."
+      "format_scan_completed": "Skanowanie formatu zakończono z liczbą problemów: {{count}}.",
+      "format_repair_completed": "Naprawiono {{fixed}} problemów z formatem.",
+      "format_repair_partial": "Naprawiono {{fixed}} problemów z formatem; {{remaining}} nadal wymaga sprawdzenia."
     },
     "next_step": {
       "review_failure": "Przed ponowną próbą przejrzyj podsumowanie błędu i informacje diagnostyczne.",
@@ -74,6 +76,7 @@
       "proofread": "Przejdź do korekty, aby sprawdzić wygenerowane tłumaczenia.",
       "review_format_issues": "Przed zastosowaniem napraw przejrzyj wykryte problemy z formatem.",
       "no_action_required": "Żaden problem z formatem nie wymaga działania.",
+      "review_format_failures": "Przejrzyj poniższą listę, aby znaleźć pliki i klucze, które nadal wymagają ręcznej interwencji.",
       "completed": "Zadanie zostało ukończone. Sprawdź jego wynik i lokalizację plików wyjściowych.",
       "wait": "To zadanie jest nadal wykonywane. Możesz opuścić Centrum zadań i wrócić do niego później."
     }
@@ -1491,6 +1494,10 @@
     "regenerate": "Wygeneruj ponownie",
     "fix_all": "Napraw wszystkie błędy",
     "select_model_hint": "Najpierw wybierz model AI",
+    "repair_model_heading": "Model używany do tej naprawy",
+    "repair_model_help": "Przed rozpoczęciem potwierdź dostawcę i model.",
+    "single_fix_confirm_local": "Zostanie wywołany lokalny model wybrany poniżej. Jeśli walidacja zakończy się pomyślnie, naprawa zostanie od razu zapisana. Opłata za chmurowe API nie zostanie naliczona.",
+    "single_fix_confirm_cloud": "Zostanie wywołany model chmurowy wybrany poniżej, co może wiązać się z kosztami. Jeśli walidacja zakończy się pomyślnie, naprawa zostanie od razu zapisana.",
     "batch_size": "Problemy na partię",
     "cached_label": "Wyniki ostatniego skanowania",
     "scanned_label": "Bieżące skanowanie",
@@ -1502,6 +1509,8 @@
     "issue_vic3_color_tags": "Niezgodność tagów kolorów Victoria 3",
     "issue_format_marker_parity": "Format marker count mismatch",
     "issue_invalid_key_format": "Problem z formatem klucza lokalizacji",
+    "invalid_key_manual_title": "Nie można zmienić nazwy klucza podczas korekty",
+    "invalid_key_manual_help": "Korekta pozwala edytować przetłumaczony tekst, ale nie zmieniać nazw kluczy lokalizacji. Popraw ten klucz w pliku źródłowym, a następnie wykonaj skanowanie ponownie.",
     "unknown_issue": "Nieznany problem",
     "diff_preview": "Podgląd zmian poprawki",
     "before_fix": "Przed poprawką",

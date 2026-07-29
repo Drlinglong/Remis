@@ -44,7 +44,7 @@
     "show_diagnostics": "診断ログを表示", "diagnostic": "診断", "export_log": "ログをエクスポート",
     "live_updates": "リアルタイム更新中", "event_count": "{{count}} 件のイベント", "no_events": "実行イベントは記録されていません",
     "task_info": "タスクの詳細", "task_id": "タスク ID", "project": "プロジェクト", "project_name": "プロジェクト名", "project_id": "プロジェクト ID", "task_flow": "タスク工程", "technical_info": "技術情報", "blocking_description": "このタスクはプロジェクトファイルを変更中です。同じプロジェクトへの同時書き込みを防ぐため、Remis は競合操作を一時的に制限します。実行終了時に解除されます。", "started_at": "開始日時", "finished_at": "終了日時",
-    "result": "結果", "output_paths": "出力パス", "child_tasks": "子タスク", "back_to_workflow": "ワークフローに戻る",
+    "result": "結果", "output_paths": "出力パス", "child_tasks": "子タスク", "repair_item_results": "このバッチの項目", "repair_item_fixed": "修正済み", "repair_item_needs_review": "要確認", "repair_item_reason": "理由", "back_to_workflow": "ワークフローに戻る",
     "user_summary": "このタスクの実行内容",
     "current_stage": "現在のステージ",
     "next_step": "次のステップ",
@@ -71,7 +71,9 @@
     "result": {
       "incremental_completed": "{{count}} 件の翻訳ファイルを処理しました。",
       "incremental_completed_with_warnings": "{{files}} 件の翻訳ファイルを処理しました。実行時の警告は {{warnings}} 件です。",
-      "format_scan_completed": "形式スキャンが完了し、{{count}} 件の問題が見つかりました。"
+      "format_scan_completed": "形式スキャンが完了し、{{count}} 件の問題が見つかりました。",
+      "format_repair_completed": "{{fixed}} 件の形式問題を修正しました。",
+      "format_repair_partial": "{{fixed}} 件の形式問題を修正しました。残り {{remaining}} 件は確認が必要です。"
     },
     "next_step": {
       "review_failure": "再試行する前に、失敗の概要と診断情報を確認してください。",
@@ -79,6 +81,7 @@
       "proofread": "校正に進み、生成された翻訳を確認してください。",
       "review_format_issues": "修復を適用する前に、検出された形式の問題を確認してください。",
       "no_action_required": "対応が必要な形式の問題はありません。",
+      "review_format_failures": "下の項目一覧で、手動対応が必要なファイルとキーを確認してください。",
       "completed": "タスクは完了しました。結果と出力先を確認してください。",
       "wait": "このタスクはまだ実行中です。タスクセンターから離れても、後で戻って確認できます。"
     }
@@ -1496,6 +1499,10 @@
     "regenerate": "再生成",
     "fix_all": "すべての問題を修正",
     "select_model_hint": "最初にAIモデルを選択してください",
+    "repair_model_heading": "この修復に使用するモデル",
+    "repair_model_help": "開始前にプロバイダーとモデルを確認してください。",
+    "single_fix_confirm_local": "下で選択したローカルモデルを呼び出します。検証に合格すると、この修復はすぐに保存されます。クラウド API の料金は発生しません。",
+    "single_fix_confirm_cloud": "下で選択したクラウドモデルを呼び出すため、料金が発生する場合があります。検証に合格すると、この修復はすぐに保存されます。",
     "batch_size": "バッチあたりの問題数",
     "cached_label": "前回のスキャン結果",
     "scanned_label": "今回のスキャン",
@@ -1507,6 +1514,8 @@
     "issue_vic3_color_tags": "Victoria 3 カラータグの不一致",
     "issue_format_marker_parity": "Format marker count mismatch",
     "issue_invalid_key_format": "ローカライズキーの形式の問題",
+    "invalid_key_manual_title": "校正ではキー名を変更できません",
+    "invalid_key_manual_help": "校正では翻訳文を編集できますが、ローカライズキーの名前は変更できません。ソースファイルでこのキーを修正してから、もう一度スキャンしてください。",
     "unknown_issue": "不明な問題",
     "diff_preview": "修正差分のプレビュー",
     "before_fix": "修正前",

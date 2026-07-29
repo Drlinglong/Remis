@@ -47,7 +47,7 @@
     "show_diagnostics": "Diagnoseprotokoll anzeigen", "diagnostic": "Diagnose", "export_log": "Protokoll exportieren",
     "live_updates": "Live-Aktualisierung", "event_count": "{{count}} Ereignisse", "no_events": "Keine Ausführungsereignisse aufgezeichnet",
     "task_info": "Aufgabendetails", "task_id": "Aufgaben-ID", "project": "Projekt", "project_name": "Projektname", "project_id": "Projekt-ID", "task_flow": "Aufgabenablauf", "technical_info": "Technische IDs", "blocking_description": "Diese Aufgabe ändert gerade Projektdateien. Remis verhindert vorübergehend konkurrierende Schreibvorgänge; nach Ende der Ausführung wird die Sperre aufgehoben.", "started_at": "Gestartet", "finished_at": "Beendet",
-    "result": "Ergebnis", "output_paths": "Ausgabepfade", "child_tasks": "Unteraufgaben", "back_to_workflow": "Zurück zum Arbeitsablauf"
+    "result": "Ergebnis", "output_paths": "Ausgabepfade", "child_tasks": "Unteraufgaben", "repair_item_results": "Elemente in diesem Stapel", "repair_item_fixed": "Behoben", "repair_item_needs_review": "Überprüfung erforderlich", "repair_item_reason": "Grund", "back_to_workflow": "Zurück zum Arbeitsablauf"
   },
   "task_presentation": {
     "incremental": {
@@ -68,7 +68,9 @@
     "result": {
       "incremental_completed": "{{count}} Übersetzungsdateien verarbeitet.",
       "incremental_completed_with_warnings": "{{files}} Übersetzungsdateien mit {{warnings}} Laufzeitwarnungen verarbeitet.",
-      "format_scan_completed": "Formatprüfung mit {{count}} Problemen abgeschlossen."
+      "format_scan_completed": "Formatprüfung mit {{count}} Problemen abgeschlossen.",
+      "format_repair_completed": "{{fixed}} Formatprobleme behoben.",
+      "format_repair_partial": "{{fixed}} Formatprobleme behoben; {{remaining}} müssen noch überprüft werden."
     },
     "next_step": {
       "review_failure": "Prüfen Sie vor einem erneuten Versuch die Fehlerzusammenfassung und die Diagnosedaten.",
@@ -76,6 +78,7 @@
       "proofread": "Fahren Sie mit dem Korrekturlesen fort, um die erzeugten Übersetzungen zu prüfen.",
       "review_format_issues": "Prüfen Sie die erkannten Formatprobleme, bevor Sie Reparaturen anwenden.",
       "no_action_required": "Kein Formatproblem erfordert eine Aktion.",
+      "review_format_failures": "Prüfen Sie die Liste unten, um Dateien und Schlüssel zu finden, die noch manuell bearbeitet werden müssen.",
       "completed": "Die Aufgabe ist abgeschlossen. Prüfen Sie das Ergebnis und den Ausgabeort.",
       "wait": "Diese Aufgabe wird noch ausgeführt. Sie können die Seite verlassen und später über das Aufgabencenter zurückkehren."
     }
@@ -1495,6 +1498,10 @@
     "regenerate": "Regenerieren",
     "fix_all": "Alle Probleme beheben",
     "select_model_hint": "Bitte wählen Sie zuerst ein KI-Modell aus",
+    "repair_model_heading": "Modell für diese Reparatur",
+    "repair_model_help": "Bestätigen Sie vor dem Start Anbieter und Modell.",
+    "single_fix_confirm_local": "Das unten ausgewählte lokale Modell wird aufgerufen. Wenn die Validierung erfolgreich ist, wird diese Reparatur sofort gespeichert. Es fallen keine Cloud-API-Kosten an.",
+    "single_fix_confirm_cloud": "Das unten ausgewählte Cloud-Modell wird aufgerufen und kann Kosten verursachen. Wenn die Validierung erfolgreich ist, wird diese Reparatur sofort gespeichert.",
     "batch_size": "Probleme pro Batch",
     "cached_label": "Letzte Scan-Ergebnisse",
     "scanned_label": "Aktueller Scan",
@@ -1506,6 +1513,8 @@
     "issue_vic3_color_tags": "Victoria 3 Farbtag-Abweichung",
     "issue_format_marker_parity": "Format marker count mismatch",
     "issue_invalid_key_format": "Formatproblem beim Lokalisierungsschlüssel",
+    "invalid_key_manual_title": "Der Schlüssel kann beim Korrekturlesen nicht umbenannt werden",
+    "invalid_key_manual_help": "Beim Korrekturlesen kann der übersetzte Text bearbeitet werden, Lokalisierungsschlüssel können jedoch nicht umbenannt werden. Korrigieren Sie den Schlüssel in der Quelldatei und scannen Sie erneut.",
     "unknown_issue": "Unbekanntes Problem",
     "diff_preview": "Vorschau der Korrektur-Diff",
     "before_fix": "Vor der Korrektur",

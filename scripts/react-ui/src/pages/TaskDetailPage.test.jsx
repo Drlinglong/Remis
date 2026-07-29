@@ -318,7 +318,12 @@ describe('TaskDetailPage', () => {
       .mockResolvedValueOnce({ data: runningTask })
       .mockResolvedValue({ data: { ...runningTask, status: 'completed', progress: 100 } });
 
+    const webSocketConnected = vi.fn();
     class SilentWebSocket {
+      constructor() {
+        webSocketConnected();
+      }
+
       close = vi.fn();
     }
     vi.stubGlobal('WebSocket', SilentWebSocket);
@@ -329,6 +334,7 @@ describe('TaskDetailPage', () => {
 
     render(<MantineProvider><TaskDetailPage /></MantineProvider>);
     await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(webSocketConnected).toHaveBeenCalledTimes(1));
 
     document.dispatchEvent(new Event('visibilitychange'));
 

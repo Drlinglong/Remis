@@ -47,7 +47,7 @@
     "show_diagnostics": "Afficher les diagnostics", "diagnostic": "Données de diagnostic", "export_log": "Exporter le journal",
     "live_updates": "Mise à jour en direct", "event_count": "{{count}} événements", "no_events": "Aucun événement d’exécution enregistré",
     "task_info": "Détails de la tâche", "task_id": "ID de tâche", "project": "Projet", "project_name": "Nom du projet", "project_id": "ID du projet", "task_flow": "Flux de la tâche", "technical_info": "Identifiants techniques", "blocking_description": "Cette tâche modifie actuellement les fichiers du projet. Remis empêche temporairement les écritures concurrentes sur ce projet ; la restriction disparaît à la fin de l’exécution.", "started_at": "Démarrée", "finished_at": "Terminée",
-    "result": "Résultat", "output_paths": "Chemins de sortie", "child_tasks": "Sous-tâches", "back_to_workflow": "Retour au flux de travail"
+    "result": "Résultat", "output_paths": "Chemins de sortie", "child_tasks": "Sous-tâches", "repair_item_results": "Éléments de ce lot", "repair_item_fixed": "Corrigés", "repair_item_needs_review": "À vérifier", "repair_item_reason": "Raison", "back_to_workflow": "Retour au flux de travail"
   },
   "task_presentation": {
     "incremental": {
@@ -68,7 +68,9 @@
     "result": {
       "incremental_completed": "{{count}} fichiers de traduction traités.",
       "incremental_completed_with_warnings": "{{files}} fichiers de traduction traités avec {{warnings}} avertissements d’exécution.",
-      "format_scan_completed": "Analyse du format terminée avec {{count}} problèmes."
+      "format_scan_completed": "Analyse du format terminée avec {{count}} problèmes.",
+      "format_repair_completed": "{{fixed}} problèmes de format corrigés.",
+      "format_repair_partial": "{{fixed}} problèmes de format corrigés ; {{remaining}} restent à vérifier."
     },
     "next_step": {
       "review_failure": "Consultez le résumé de l’échec et les informations de diagnostic avant de réessayer.",
@@ -76,6 +78,7 @@
       "proofread": "Passez à la relecture pour vérifier les traductions générées.",
       "review_format_issues": "Examinez les problèmes de format détectés avant d’appliquer les réparations.",
       "no_action_required": "Aucun problème de format ne nécessite d’intervention.",
+      "review_format_failures": "Consultez la liste ci-dessous pour repérer les fichiers et les clés qui nécessitent encore une intervention manuelle.",
       "completed": "La tâche est terminée. Vérifiez son résultat et son emplacement de sortie.",
       "wait": "Cette tâche est toujours en cours. Vous pouvez quitter cette page et y revenir depuis le centre des tâches."
     }
@@ -1495,6 +1498,10 @@
     "regenerate": "Régénérer",
     "fix_all": "Corriger tous les problèmes",
     "select_model_hint": "Veuillez d'abord sélectionner un modèle d'IA",
+    "repair_model_heading": "Modèle utilisé pour cette correction",
+    "repair_model_help": "Confirmez le fournisseur et le modèle avant de commencer.",
+    "single_fix_confirm_local": "Le modèle local sélectionné ci-dessous sera appelé. Si la validation réussit, cette correction sera enregistrée immédiatement. Aucun frais d’API cloud ne sera engagé.",
+    "single_fix_confirm_cloud": "Le modèle cloud sélectionné ci-dessous sera appelé et peut entraîner des frais. Si la validation réussit, cette correction sera enregistrée immédiatement.",
     "batch_size": "Problèmes par lot",
     "cached_label": "Résultats de la dernière analyse",
     "scanned_label": "Analyse actuelle",
@@ -1506,6 +1513,8 @@
     "issue_vic3_color_tags": "Incohérence de la balise de couleur Victoria 3",
     "issue_format_marker_parity": "Format marker count mismatch",
     "issue_invalid_key_format": "Problème de format de clé de localisation",
+    "invalid_key_manual_title": "La clé ne peut pas être renommée pendant la relecture",
+    "invalid_key_manual_help": "La relecture permet de modifier le texte traduit, mais pas de renommer les clés de localisation. Corrigez cette clé dans le fichier source, puis relancez l’analyse.",
     "unknown_issue": "Problème inconnu",
     "diff_preview": "Aperçu du correctif (diff)",
     "before_fix": "Avant correction",

@@ -47,7 +47,7 @@
     "show_diagnostics": "Mostrar diagnósticos", "diagnostic": "Diagnóstico", "export_log": "Exportar registro",
     "live_updates": "Actualización en directo", "event_count": "{{count}} eventos", "no_events": "No hay eventos de ejecución registrados",
     "task_info": "Detalles de la tarea", "task_id": "ID de tarea", "project": "Proyecto", "project_name": "Nombre del proyecto", "project_id": "ID del proyecto", "task_flow": "Flujo de la tarea", "technical_info": "Identificadores técnicos", "blocking_description": "Esta tarea está modificando archivos del proyecto. Remis evita temporalmente escrituras simultáneas en el mismo proyecto; la restricción termina al finalizar la ejecución.", "started_at": "Iniciada", "finished_at": "Finalizada",
-    "result": "Resultado", "output_paths": "Rutas de salida", "child_tasks": "Tareas secundarias", "back_to_workflow": "Volver al flujo de trabajo"
+    "result": "Resultado", "output_paths": "Rutas de salida", "child_tasks": "Tareas secundarias", "repair_item_results": "Elementos de este lote", "repair_item_fixed": "Corregidos", "repair_item_needs_review": "Requieren revisión", "repair_item_reason": "Motivo", "back_to_workflow": "Volver al flujo de trabajo"
   },
   "task_presentation": {
     "incremental": {
@@ -68,7 +68,9 @@
     "result": {
       "incremental_completed": "Se procesaron {{count}} archivos de traducción.",
       "incremental_completed_with_warnings": "Se procesaron {{files}} archivos de traducción con {{warnings}} advertencias de ejecución.",
-      "format_scan_completed": "El análisis de formato finalizó con {{count}} problemas."
+      "format_scan_completed": "El análisis de formato finalizó con {{count}} problemas.",
+      "format_repair_completed": "Se corrigieron {{fixed}} problemas de formato.",
+      "format_repair_partial": "Se corrigieron {{fixed}} problemas de formato; {{remaining}} aún requieren revisión."
     },
     "next_step": {
       "review_failure": "Revisa el resumen del error y la información de diagnóstico antes de volver a intentarlo.",
@@ -76,6 +78,7 @@
       "proofread": "Continúa con la corrección para revisar las traducciones generadas.",
       "review_format_issues": "Revisa los problemas de formato detectados antes de aplicar reparaciones.",
       "no_action_required": "Ningún problema de formato requiere intervención.",
+      "review_format_failures": "Revisa la lista siguiente para localizar los archivos y las claves que aún requieren atención manual.",
       "completed": "La tarea ha finalizado. Revisa el resultado y la ubicación de salida.",
       "wait": "Esta tarea aún se está ejecutando. Puedes salir y volver desde el centro de tareas."
     }
@@ -1496,6 +1499,10 @@
     "regenerate": "Regenerar",
     "fix_all": "Corregir todos los problemas",
     "select_model_hint": "Por favor, seleccione primero un modelo de IA",
+    "repair_model_heading": "Modelo para esta corrección",
+    "repair_model_help": "Confirma el proveedor y el modelo antes de comenzar.",
+    "single_fix_confirm_local": "Se llamará al modelo local seleccionado abajo. Si la validación es correcta, esta corrección se guardará de inmediato. No se generarán cargos de API en la nube.",
+    "single_fix_confirm_cloud": "Se llamará al modelo en la nube seleccionado abajo y puede generar costes. Si la validación es correcta, esta corrección se guardará de inmediato.",
     "batch_size": "Problemas por lote",
     "cached_label": "Resultados del último escaneo",
     "scanned_label": "Escaneo actual",
@@ -1507,6 +1514,8 @@
     "issue_vic3_color_tags": "Discrepancia en las etiquetas de color de Victoria 3",
     "issue_format_marker_parity": "Format marker count mismatch",
     "issue_invalid_key_format": "Problema de formato de clave de localización",
+    "invalid_key_manual_title": "La clave no se puede renombrar durante la corrección",
+    "invalid_key_manual_help": "La corrección permite editar el texto traducido, pero no renombrar claves de localización. Corrige esta clave en el archivo fuente y vuelve a analizar.",
     "unknown_issue": "Problema desconocido",
     "diff_preview": "Vista previa de corrección de diferencias",
     "before_fix": "Antes de la corrección",

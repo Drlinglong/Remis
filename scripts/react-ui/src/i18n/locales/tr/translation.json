@@ -45,7 +45,7 @@
     "live_updates": "Canlı güncelleniyor", "event_count": "{{count}} olay", "no_events": "Kaydedilmiş çalıştırma olayı yok",
     "task_info": "Görev ayrıntıları", "task_id": "Görev kimliği", "project": "Proje", "project_name": "Proje adı", "project_id": "Proje kimliği", "task_flow": "Görev akışı", "technical_info": "Teknik kimlikler", "blocking_description": "Bu görev proje dosyalarını değiştiriyor. Remis aynı projeye eşzamanlı yazan çakışan görevleri geçici olarak engeller; çalışma bitince kısıtlama kalkar.", "started_at": "Başlangıç", "finished_at": "Bitiş",
     "user_summary": "Bu görevin yaptığı işlem", "current_stage": "Geçerli aşama", "next_step": "Sonraki adım", "detailed_result_below": "Ayrıntılı sonuç aşağıda yer alıyor.", "technical_logs": "Teknik günlükler ve tanılama", "newest_first": "En yeniler önce",
-    "result": "Sonuç", "output_paths": "Çıktı yolları", "child_tasks": "Alt görevler", "back_to_workflow": "İş akışına dön"
+    "result": "Sonuç", "output_paths": "Çıktı yolları", "child_tasks": "Alt görevler", "repair_item_results": "Bu gruptaki öğeler", "repair_item_fixed": "Düzeltildi", "repair_item_needs_review": "İnceleme gerekiyor", "repair_item_reason": "Neden", "back_to_workflow": "İş akışına dön"
   },
   "task_presentation": {
     "incremental": {
@@ -66,7 +66,9 @@
     "result": {
       "incremental_completed": "{{count}} çeviri dosyası işlendi.",
       "incremental_completed_with_warnings": "{{files}} çeviri dosyası {{warnings}} çalışma zamanı uyarısıyla işlendi.",
-      "format_scan_completed": "Biçim taraması {{count}} sorunla tamamlandı."
+      "format_scan_completed": "Biçim taraması {{count}} sorunla tamamlandı.",
+      "format_repair_completed": "{{fixed}} biçim sorunu düzeltildi.",
+      "format_repair_partial": "{{fixed}} biçim sorunu düzeltildi; {{remaining}} sorun hâlâ incelenmeli."
     },
     "next_step": {
       "review_failure": "Yeniden denemeden önce hata özetini ve tanılama bilgilerini inceleyin.",
@@ -74,6 +76,7 @@
       "proofread": "Oluşturulan çevirileri incelemek için düzeltme okumasına geçin.",
       "review_format_issues": "Onarımları uygulamadan önce algılanan biçim sorunlarını inceleyin.",
       "no_action_required": "İşlem gerektiren bir biçim sorunu yok.",
+      "review_format_failures": "Hâlâ elle işlem gerektiren dosya ve anahtarları bulmak için aşağıdaki öğe listesini inceleyin.",
       "completed": "Görev tamamlandı. Sonucu ve çıktı konumunu inceleyin.",
       "wait": "Bu görev hâlâ çalışıyor. Ayrılıp daha sonra Görev Merkezi'nden geri dönebilirsiniz."
     }
@@ -1491,6 +1494,10 @@
     "regenerate": "Yeniden Oluştur",
     "fix_all": "Tüm Sorunları Düzelt",
     "select_model_hint": "Lütfen önce bir YZ modeli seçin",
+    "repair_model_heading": "Bu onarımda kullanılacak model",
+    "repair_model_help": "Başlamadan önce sağlayıcıyı ve modeli onaylayın.",
+    "single_fix_confirm_local": "Aşağıda seçilen yerel model çağrılır. Doğrulama başarılı olursa bu onarım hemen kaydedilir. Bulut API ücreti oluşmaz.",
+    "single_fix_confirm_cloud": "Aşağıda seçilen bulut modeli çağrılır ve ücret doğabilir. Doğrulama başarılı olursa bu onarım hemen kaydedilir.",
     "batch_size": "Grup başına sorun sayısı",
     "cached_label": "Son tarama sonuçları",
     "scanned_label": "Mevcut tarama",
@@ -1502,6 +1509,8 @@
     "issue_vic3_color_tags": "Victoria 3 renk etiketi uyuşmazlığı",
     "issue_format_marker_parity": "Format marker count mismatch",
     "issue_invalid_key_format": "Yerelleştirme anahtarı formatı sorunu",
+    "invalid_key_manual_title": "Anahtar düzeltme okumasında yeniden adlandırılamaz",
+    "invalid_key_manual_help": "Düzeltme okumasında çevrilmiş metin düzenlenebilir ancak yerelleştirme anahtarları yeniden adlandırılamaz. Bu anahtarı kaynak dosyada düzeltin ve yeniden tarayın.",
     "unknown_issue": "Bilinmeyen sorun",
     "diff_preview": "Düzeltme farkı önizlemesi",
     "before_fix": "Düzeltme öncesi",

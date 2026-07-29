@@ -44,7 +44,7 @@
     "show_diagnostics": "진단 로그 표시", "diagnostic": "진단", "export_log": "로그 내보내기",
     "live_updates": "실시간 업데이트 중", "event_count": "이벤트 {{count}}개", "no_events": "기록된 실행 이벤트가 없습니다",
     "task_info": "작업 상세 정보", "task_id": "작업 ID", "project": "프로젝트", "project_name": "프로젝트 이름", "project_id": "프로젝트 ID", "task_flow": "작업 흐름", "technical_info": "기술 정보", "blocking_description": "이 작업은 현재 프로젝트 파일을 수정하고 있습니다. 같은 프로젝트에 동시에 쓰는 충돌 작업을 Remis가 일시적으로 제한하며, 실행이 끝나면 자동 해제됩니다.", "started_at": "시작 시간", "finished_at": "완료 시간",
-    "result": "결과", "output_paths": "출력 경로", "child_tasks": "하위 작업", "back_to_workflow": "워크플로로 돌아가기",
+    "result": "결과", "output_paths": "출력 경로", "child_tasks": "하위 작업", "repair_item_results": "이 배치의 항목", "repair_item_fixed": "수정됨", "repair_item_needs_review": "검토 필요", "repair_item_reason": "이유", "back_to_workflow": "워크플로로 돌아가기",
     "user_summary": "이 작업에서 수행하는 내용",
     "current_stage": "현재 단계",
     "next_step": "다음 단계",
@@ -71,7 +71,9 @@
     "result": {
       "incremental_completed": "번역 파일 {{count}}개를 처리했습니다.",
       "incremental_completed_with_warnings": "번역 파일 {{files}}개를 처리했으며 실행 경고 {{warnings}}개가 발생했습니다.",
-      "format_scan_completed": "형식 스캔이 완료되었으며 문제 {{count}}개가 발견되었습니다."
+      "format_scan_completed": "형식 스캔이 완료되었으며 문제 {{count}}개가 발견되었습니다.",
+      "format_repair_completed": "형식 문제 {{fixed}}개를 수정했습니다.",
+      "format_repair_partial": "형식 문제 {{fixed}}개를 수정했으며 {{remaining}}개는 아직 검토가 필요합니다."
     },
     "next_step": {
       "review_failure": "재시도하기 전에 실패 요약과 진단 정보를 검토하세요.",
@@ -79,6 +81,7 @@
       "proofread": "교정으로 이동하여 생성된 번역을 검토하세요.",
       "review_format_issues": "복구를 적용하기 전에 감지된 형식 문제를 검토하세요.",
       "no_action_required": "조치가 필요한 형식 문제가 없습니다.",
+      "review_format_failures": "아래 항목 목록에서 수동 처리가 필요한 파일과 키를 확인하세요.",
       "completed": "작업이 완료되었습니다. 결과와 출력 위치를 검토하세요.",
       "wait": "이 작업은 아직 실행 중입니다. 작업 센터를 나갔다가 나중에 다시 확인할 수 있습니다."
     }
@@ -1496,6 +1499,10 @@
     "regenerate": "다시 생성",
     "fix_all": "모든 문제 수정",
     "select_model_hint": "먼저 AI 모델을 선택해 주세요",
+    "repair_model_heading": "이 수정에 사용할 모델",
+    "repair_model_help": "시작하기 전에 제공업체와 모델을 확인하세요.",
+    "single_fix_confirm_local": "아래에서 선택한 로컬 모델을 호출합니다. 검증을 통과하면 이 수정 사항이 즉시 저장됩니다. 클라우드 API 요금은 발생하지 않습니다.",
+    "single_fix_confirm_cloud": "아래에서 선택한 클라우드 모델을 호출하며 비용이 발생할 수 있습니다. 검증을 통과하면 이 수정 사항이 즉시 저장됩니다.",
     "batch_size": "배치당 문제 수",
     "cached_label": "마지막 스캔 결과",
     "scanned_label": "현재 스캔",
@@ -1507,6 +1514,8 @@
     "issue_vic3_color_tags": "Victoria 3 색상 태그 불일치",
     "issue_format_marker_parity": "Format marker count mismatch",
     "issue_invalid_key_format": "로컬라이징 키 형식 문제",
+    "invalid_key_manual_title": "교정에서는 키 이름을 변경할 수 없습니다",
+    "invalid_key_manual_help": "교정에서는 번역문을 편집할 수 있지만 로컬라이징 키의 이름은 변경할 수 없습니다. 소스 파일에서 이 키를 수정한 뒤 다시 스캔하세요.",
     "unknown_issue": "알 수 없는 문제",
     "diff_preview": "수정 차이 미리보기",
     "before_fix": "수정 전",

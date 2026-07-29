@@ -45,7 +45,7 @@
     "live_updates": "Atualização ao vivo", "event_count": "{{count}} ocorrências", "no_events": "Nenhum evento de execução registrado",
     "task_info": "Detalhes da tarefa", "task_id": "ID da tarefa", "project": "Projeto", "project_name": "Nome do projeto", "project_id": "ID do projeto", "task_flow": "Fluxo da tarefa", "technical_info": "Dados técnicos", "blocking_description": "Esta tarefa está alterando arquivos do projeto. O Remis impede temporariamente gravações concorrentes no mesmo projeto; a restrição termina quando a execução acaba.", "started_at": "Começou em", "finished_at": "Concluída em",
     "user_summary": "O que esta tarefa está fazendo", "current_stage": "Etapa atual", "next_step": "Próxima etapa", "detailed_result_below": "Um resultado detalhado está disponível abaixo.", "technical_logs": "Logs técnicos e diagnósticos", "newest_first": "Mais recentes primeiro",
-    "result": "Resultado da tarefa", "output_paths": "Caminhos de saída", "child_tasks": "Tarefas filhas", "back_to_workflow": "Voltar ao fluxo de trabalho"
+    "result": "Resultado da tarefa", "output_paths": "Caminhos de saída", "child_tasks": "Tarefas filhas", "repair_item_results": "Itens deste lote", "repair_item_fixed": "Corrigidos", "repair_item_needs_review": "Precisam de revisão", "repair_item_reason": "Justificativa", "back_to_workflow": "Voltar ao fluxo de trabalho"
   },
   "task_presentation": {
     "incremental": {
@@ -66,7 +66,9 @@
     "result": {
       "incremental_completed": "{{count}} arquivos de tradução processados.",
       "incremental_completed_with_warnings": "{{files}} arquivos de tradução processados com {{warnings}} avisos de execução.",
-      "format_scan_completed": "Verificação de formato concluída com {{count}} problemas."
+      "format_scan_completed": "Verificação de formato concluída com {{count}} problemas.",
+      "format_repair_completed": "{{fixed}} problemas de formato corrigidos.",
+      "format_repair_partial": "{{fixed}} problemas de formato corrigidos; {{remaining}} ainda precisam de revisão."
     },
     "next_step": {
       "review_failure": "Revise o resumo da falha e as informações de diagnóstico antes de tentar novamente.",
@@ -74,6 +76,7 @@
       "proofread": "Prossiga para a revisão e verifique as traduções geradas.",
       "review_format_issues": "Revise os problemas de formato detectados antes de aplicar as correções.",
       "no_action_required": "Nenhum problema de formato requer ação.",
+      "review_format_failures": "Revise a lista abaixo para localizar os arquivos e as chaves que ainda precisam de atenção manual.",
       "completed": "A tarefa foi concluída. Revise o resultado e o local de saída.",
       "wait": "Esta tarefa ainda está em execução. Você pode sair e voltar pelo Centro de Tarefas."
     }
@@ -1492,6 +1495,10 @@
     "regenerate": "Regenerar",
     "fix_all": "Corrigir Todos os Problemas",
     "select_model_hint": "Por favor, selecione um modelo de IA primeiro",
+    "repair_model_heading": "Modelo usado neste reparo",
+    "repair_model_help": "Confirme o provedor e o modelo antes de começar.",
+    "single_fix_confirm_local": "O modelo local selecionado abaixo será chamado. Se a validação for aprovada, este reparo será salvo imediatamente. Não haverá cobrança de API na nuvem.",
+    "single_fix_confirm_cloud": "O modelo em nuvem selecionado abaixo será chamado e poderá gerar custos. Se a validação for aprovada, este reparo será salvo imediatamente.",
     "batch_size": "Problemas por lote",
     "cached_label": "Resultados da última varredura",
     "scanned_label": "Varredura atual",
@@ -1503,6 +1510,8 @@
     "issue_vic3_color_tags": "Incompatibilidade de tag de cor do Victoria 3",
     "issue_format_marker_parity": "Format marker count mismatch",
     "issue_invalid_key_format": "Problema de formato da chave de localização",
+    "invalid_key_manual_title": "A chave não pode ser renomeada durante a revisão",
+    "invalid_key_manual_help": "A revisão permite editar o texto traduzido, mas não renomear chaves de localização. Corrija esta chave no arquivo de origem e faça a verificação novamente.",
     "unknown_issue": "Problema desconhecido",
     "diff_preview": "Prévia de diferença da correção",
     "before_fix": "Antes da correção",
