@@ -30,7 +30,7 @@ import {
   IconSparkles,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 
 import ArenaHistory from '../components/modelArena/ArenaHistory';
 import ArenaResults from '../components/modelArena/ArenaResults';

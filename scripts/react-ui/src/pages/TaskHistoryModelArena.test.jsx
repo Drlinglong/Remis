@@ -9,7 +9,7 @@ vi.mock('../utils/api', () => ({
   default: { get: vi.fn() },
 }));
 
-vi.mock('react-router-dom', () => ({
+vi.mock('react-router', () => ({
   useNavigate: () => vi.fn(),
 }));
 
