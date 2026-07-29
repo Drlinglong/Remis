@@ -2,7 +2,7 @@ import sqlite3
 
 import pytest
 
-from scripts.core.db_migrations import migrate_main_database
+from scripts.core.db_migrations import MAIN_DB_TARGET_VERSION, migrate_main_database
 from scripts.core.repositories.model_arena_repository import ModelArenaRepository
 
 
@@ -72,7 +72,7 @@ def _samples(prefix="sample"):
 def test_migration_009_creates_independent_arena_schema(tmp_path):
     db_path = tmp_path / "arena.sqlite"
 
-    assert migrate_main_database(str(db_path)) == 9
+    assert migrate_main_database(str(db_path)) == MAIN_DB_TARGET_VERSION
 
     with sqlite3.connect(db_path) as connection:
         migration = connection.execute(
