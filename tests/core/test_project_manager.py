@@ -11,8 +11,13 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         # 1. Mock Dependencies
         self.mock_file_service = MagicMock()
-        # Set async methods on file service mock
-        self.mock_file_service.scan_and_sync_files = AsyncMock()
+        self.mock_file_service.discover_files.return_value = {
+            "project_id": "test-123",
+            "files": [],
+            "file_count": 0,
+            "scanned_paths": [],
+            "warnings": [],
+        }
 
         self.mock_repo = MagicMock()
         # Set async methods on repo mock
@@ -20,6 +25,8 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         self.mock_repo.get_project = AsyncMock()
         self.mock_repo.list_projects = AsyncMock()
         self.mock_repo.get_project_files = AsyncMock()
+        self.mock_repo.batch_upsert_files = AsyncMock()
+        self.mock_repo.delete_files_by_ids = AsyncMock()
         self.mock_repo.update_project_status = AsyncMock()
         self.mock_repo.update_project_lifecycle_status = AsyncMock()
         self.mock_repo.update_project_notes = AsyncMock()
@@ -27,6 +34,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         self.mock_repo.touch_project = AsyncMock()
         self.mock_repo.update_project_metadata = AsyncMock()
         self.mock_repo.update_project_source_path = AsyncMock()
+        self.mock_repo.delete_project = AsyncMock()
         
         self.mock_kanban = MagicMock()
         
@@ -95,7 +103,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         mock_json_mgr.assert_called()
         
         # 3. File Refresh Triggered
-        self.mock_file_service.scan_and_sync_files.assert_called_once()
+        self.mock_file_service.discover_files.assert_called_once()
         
         self.assertEqual(result["id"], "123")
 
@@ -271,20 +279,28 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         
         self.mock_repo.get_project.return_value = mock_obj
 
-        # Patch ProjectJsonManager to avoid disk I/O for translation_dirs
-        with patch("scripts.core.project_manager.ProjectJsonManager") as MockJson:
-            MockJson.return_value.get_config.return_value = {"translation_dirs": ["/trans/path"]}
-            
+        with patch.object(
+            self.pm,
+            "_read_project_sidecar",
+            return_value={"config": {"translation_dirs": ["/trans/path"]}},
+        ):
             # Action
-            await self.pm.refresh_project_files(project_id)
+            result = await self.pm.refresh_project_files(project_id)
             
             # Assertion
-            self.mock_file_service.scan_and_sync_files.assert_called_once_with(
-                project_id, 
-                "/path/to/source", 
-                ["/trans/path"], 
-                "Test"
+            self.mock_file_service.discover_files.assert_called_once_with(
+                project_id=project_id,
+                source_path="/path/to/source",
+                translation_dirs=[os.path.normpath("/trans/path")],
+                source_language="en",
+                game_id="victoria3",
+                status_by_file_id={},
             )
+            self.assertEqual(result["file_count"], 0)
+            self.mock_repo.get_project_files.assert_not_awaited()
+            self.mock_repo.batch_upsert_files.assert_not_awaited()
+            self.mock_repo.delete_files_by_ids.assert_not_awaited()
+            self.mock_repo.update_project_source_path.assert_not_awaited()
 
     async def test_add_translation_path_refreshes_existing_directory_index(self):
         """
@@ -317,14 +333,13 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         self.pm.log_history_event.assert_not_awaited()
         self.pm.refresh_project_files.assert_awaited_once_with(project_id)
 
-    async def test_get_project_kanban_reconciles_sidecar_with_db_files(self):
+    async def test_get_project_kanban_projects_disk_files_without_db_lookup(self):
         project_id = "kanban-proj"
         project_data = {"project_id": project_id, "name": "Kanban", "source_path": "/path/to/source"}
         mock_project = MagicMock()
         mock_project.model_dump.return_value = project_data
         mock_project.__getitem__ = lambda s, k: project_data[k]
-        mock_file = MagicMock()
-        mock_file.model_dump.return_value = {
+        discovered_file = {
             "file_id": "source-id",
             "project_id": project_id,
             "file_path": "/path/to/source/localisation/demo_l_english.yml",
@@ -332,16 +347,54 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
             "file_type": "source",
         }
         self.mock_repo.get_project.return_value = mock_project
-        self.mock_repo.get_project_files.return_value = [mock_file]
-        self.mock_kanban.sync_board_to_files.return_value = {"tasks": {"source-id": {}}}
+        self.mock_file_service.discover_files.return_value = {
+            "project_id": project_id,
+            "files": [discovered_file],
+            "file_count": 1,
+            "scanned_paths": ["/path/to/source"],
+            "warnings": [],
+        }
+        self.mock_kanban.preview_board_for_files.return_value = {"tasks": {"source-id": {}}}
 
         result = await self.pm.get_project_kanban(project_id)
 
         self.assertEqual(result, {"tasks": {"source-id": {}}})
-        self.mock_kanban.sync_board_to_files.assert_called_once_with(
+        self.mock_kanban.preview_board_for_files.assert_called_once_with(
             "/path/to/source",
-            [mock_file.model_dump.return_value],
+            [discovered_file],
         )
+        self.mock_repo.get_project_files.assert_not_awaited()
+
+    async def test_dashboard_stats_use_live_discovery_instead_of_project_files(self):
+        project_a = MagicMock()
+        project_a.model_dump.return_value = {
+            "project_id": "project-a",
+            "name": "A",
+            "game_id": "hoi4",
+            "status": "active",
+        }
+        project_b = MagicMock()
+        project_b.model_dump.return_value = {
+            "project_id": "project-b",
+            "name": "B",
+            "game_id": "hoi4",
+            "status": "archived",
+        }
+        self.mock_repo.list_projects.return_value = [project_a, project_b]
+
+        async def live_files(project_id):
+            if project_id == "project-a":
+                return [{"status": "done"}, {"status": "todo"}]
+            return [{"status": "proofreading"}]
+
+        with patch.object(self.pm, "get_project_files", side_effect=live_files):
+            result = await self.pm.get_dashboard_stats()
+
+        self.assertEqual(result["total_projects"], 2)
+        self.assertEqual(result["active_projects"], 1)
+        self.assertEqual(result["translated_files"], 1)
+        self.assertEqual(result["completion_rate"], 66.7)
+        self.mock_repo.get_project_files.assert_not_awaited()
 
     async def test_repair_project_metadata_rebuilds_sidecars_and_refreshes_files(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -364,9 +417,13 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
                 "source_path": source_root,
             }
             self.mock_repo.get_project.return_value = mock_obj
-            self.mock_repo.get_project_files.return_value = [
-                MagicMock(model_dump=MagicMock(return_value={"file_path": "one.yml"}))
-            ]
+            self.mock_file_service.discover_files.return_value = {
+                "project_id": "repair-proj",
+                "files": [{"file_path": "one.yml"}],
+                "file_count": 1,
+                "scanned_paths": [source_root],
+                "warnings": [],
+            }
 
             result = await self.pm.repair_project_metadata("repair-proj")
 
@@ -374,7 +431,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         self.assertIn("cleared_stale_project_error_cache", result["actions"])
         self.assertEqual(result["error_cache_status"], "cleared_stale")
         self.assertEqual(result["file_count"], 1)
-        self.mock_file_service.scan_and_sync_files.assert_called()
+        self.mock_file_service.discover_files.assert_called()
 
     async def test_update_project_metadata(self):
         """
@@ -523,6 +580,31 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
                 "managed-project"
             )
             self.pm.log_history_event.assert_awaited_once()
+
+    async def test_delete_project_preserves_sidecar_when_source_files_are_kept(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sidecar_path = os.path.join(temp_dir, ".remis_project.json")
+            with open(sidecar_path, "w", encoding="utf-8") as handle:
+                handle.write('{"config": {"translation_dirs": []}}')
+            mock_obj = MagicMock()
+            mock_obj.model_dump.return_value = {
+                "project_id": "keep-files-project",
+                "name": "Keep Files",
+                "game_id": "hoi4",
+                "source_path": temp_dir,
+            }
+            self.mock_repo.get_project.return_value = mock_obj
+
+            result = await self.pm.delete_project(
+                "keep-files-project",
+                delete_source_files=False,
+            )
+
+            self.assertTrue(result)
+            self.assertTrue(os.path.exists(sidecar_path))
+            self.mock_repo.delete_project.assert_awaited_once_with(
+                "keep-files-project"
+            )
 
     async def test_run_incremental_update_workflow_falls_back_to_defaults(self):
         """

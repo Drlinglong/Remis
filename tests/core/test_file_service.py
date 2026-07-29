@@ -3,17 +3,6 @@ import os
 from scripts.core.services.file_service import FileService
 
 
-class FakeArchiveManager:
-    def __init__(self):
-        self.source_versions = []
-
-    def get_or_create_mod_entry(self, project_name, project_id):
-        return 7
-
-    def create_source_version(self, mod_id, source_files_data):
-        self.source_versions.append((mod_id, source_files_data))
-
-
 def _write_loc(path, header, key, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"{header}:\n {key}:0 \"{value}\"\n", encoding="utf-8")
@@ -36,7 +25,7 @@ def test_scan_dir_filters_source_to_requested_language(tmp_path):
         "Uberschreiben",
     )
 
-    service = FileService(kanban_service=None, archive_manager=None, project_repository=None)
+    service = FileService()
 
     source_files = service.scan_dir(str(source_root), "source", "english", "project-1", [".yml", ".yaml"])
     source_paths = {os.path.relpath(file["file_path"], source_root).replace("\\", "/") for file in source_files}
@@ -59,25 +48,38 @@ def test_scan_dir_filters_source_to_requested_language(tmp_path):
     }
 
 
-def test_archive_notification_skips_non_source_language_files(tmp_path):
+def test_discovery_is_transient_and_reports_unavailable_roots(tmp_path):
     source_root = tmp_path / "mod"
     english_file = source_root / "localization" / "english" / "ut_l_english.yml"
     french_file = source_root / "localization" / "french" / "ut_l_french.yml"
     _write_loc(english_file, "l_english", "ut.key", "Hello")
     _write_loc(french_file, "l_french", "ut.key", "Bonjour")
 
-    archive_manager = FakeArchiveManager()
-    service = FileService(kanban_service=None, archive_manager=archive_manager, project_repository=None)
-    files = [
-        {"file_type": "source", "file_path": str(english_file)},
-        {"file_type": "source", "file_path": str(french_file)},
+    service = FileService()
+    file_id = service.scan_dir(
+        str(source_root),
+        "source",
+        "english",
+        "project-1",
+        [".yml", ".yaml"],
+    )[0]["file_id"]
+    manifest = service.discover_files(
+        project_id="project-1",
+        source_path=str(source_root),
+        translation_dirs=[str(tmp_path / "missing-translation")],
+        source_language="en",
+        game_id="stellaris",
+        status_by_file_id={file_id: "proofreading"},
+    )
+
+    assert manifest["file_count"] == 1
+    assert manifest["files"][0]["file_path"] == str(english_file)
+    assert manifest["files"][0]["status"] == "proofreading"
+    assert manifest["warnings"] == [
+        {
+            "code": "directory_unavailable",
+            "file_type": "translation",
+            "path": str(tmp_path / "missing-translation"),
+        }
     ]
-
-    service._notify_archive_manager("project-1", "Project Utopia", str(source_root), files, "english")
-
-    assert len(archive_manager.source_versions) == 1
-    mod_id, source_files_data = archive_manager.source_versions[0]
-    assert mod_id == 7
-    assert [file["file_path"] for file in source_files_data] == ["localization/english/ut_l_english.yml"]
-    assert source_files_data[0]["key_map"] == ["ut.key:0"]
-    assert source_files_data[0]["texts_to_translate"] == ["Hello"]
+    assert not (source_root / ".remis_project.json").exists()

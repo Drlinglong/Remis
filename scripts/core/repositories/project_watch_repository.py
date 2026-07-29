@@ -121,22 +121,24 @@ class ProjectWatchRepository:
         summary: Dict[str, Any],
         status: str,
         changed: bool,
+        replace_snapshots: bool = True,
         session: Optional[AsyncSession] = None,
     ) -> None:
         async with self._use_session(session) as session:
             try:
                 now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-                await session.execute(delete(ProjectWatchFileSnapshot).where(ProjectWatchFileSnapshot.watch_id == watch_id))
-                for item in snapshots:
-                    session.add(ProjectWatchFileSnapshot(
-                        snapshot_id=str(uuid.uuid4()),
-                        watch_id=watch_id,
-                        relative_path=item["relative_path"],
-                        sha256=item["sha256"],
-                        size=item["size"],
-                        mtime_ns=item["mtime_ns"],
-                        last_seen_at=now,
-                    ))
+                if replace_snapshots:
+                    await session.execute(delete(ProjectWatchFileSnapshot).where(ProjectWatchFileSnapshot.watch_id == watch_id))
+                    for item in snapshots:
+                        session.add(ProjectWatchFileSnapshot(
+                            snapshot_id=str(uuid.uuid4()),
+                            watch_id=watch_id,
+                            relative_path=item["relative_path"],
+                            sha256=item["sha256"],
+                            size=item["size"],
+                            mtime_ns=item["mtime_ns"],
+                            last_seen_at=now,
+                        ))
 
                 result = await session.execute(select(ProjectWatch).where(ProjectWatch.watch_id == watch_id))
                 watch = result.scalar_one_or_none()

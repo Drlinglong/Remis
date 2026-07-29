@@ -75,7 +75,6 @@ async def project_manager(test_db_path):
 @pytest.mark.asyncio
 async def test_update_file_status_with_kanban_sync(project_manager, temp_project_dir):
     project_id = "test-prod-id"
-    file_id = "test-file-id"
     source_path = temp_project_dir.replace("\\", "/") # Normalize for DB
     
     # Create DB entry for project
@@ -91,11 +90,19 @@ async def test_update_file_status_with_kanban_sync(project_manager, temp_project
     )
     await project_manager.repository.create_project(proj)
     
-    # Create DB entry for file
+    localization_file = os.path.join(source_path, "localization", "english", "test_l_english.yml")
+    os.makedirs(os.path.dirname(localization_file), exist_ok=True)
+    with open(localization_file, "w", encoding="utf-8") as handle:
+        handle.write('l_english:\n test.key:0 "Test"\n')
+
+    discovered = await project_manager.get_project_files(project_id)
+    file_id = discovered[0]["file_id"]
+
+    # A stale legacy DB row must not be touched by project-local status changes.
     file_record = ProjectFile(
         file_id=file_id,
         project_id=project_id,
-        file_path="localization/test.yml",
+        file_path=localization_file,
         status="todo",
         original_key_count=10,
         line_count=20,
@@ -123,7 +130,7 @@ async def test_update_file_status_with_kanban_sync(project_manager, temp_project
     new_status = "in_progress"
     await project_manager.update_file_status_with_kanban_sync(project_id, file_id, new_status)
 
-    # 3. Verification - DB
+    # 3. Verification - transient manifest is hydrated from the sidecar.
     files = await project_manager.get_project_files(project_id)
     assert len(files) == 1
     assert files[0]['status'] == new_status
@@ -137,10 +144,11 @@ async def test_update_file_status_with_kanban_sync(project_manager, temp_project
         # Original logic: if key != file_id, pops and re-inserts.
         assert updated_data["kanban"]["tasks"][file_id]["status"] == new_status
 
-    # 5. Verification - Activity Log
+    # 5. Verification - legacy project_files content was not updated.
+    legacy_files = await project_manager.repository.get_project_files(project_id)
+    assert legacy_files[0].status == "todo"
     logs = await project_manager.repository.get_recent_logs(limit=5)
-    assert any(log['project_id'] == project_id and log['type'] == 'file_update' for log in logs)
-    assert any(new_status in log['description'] for log in logs)
+    assert not any(log['type'] == 'file_update' for log in logs)
 
 
 @pytest.mark.asyncio
@@ -171,7 +179,6 @@ async def test_default_project_manager_wires_repository_into_kanban_service(test
         assert project_manager.kanban_service.repository is project_manager.repository
 
         project_id = "default-manager-project"
-        file_id = "default-manager-file"
         source_path = temp_project_dir.replace("\\", "/")
 
         await project_manager.repository.create_project(Project(
@@ -184,10 +191,17 @@ async def test_default_project_manager_wires_repository_into_kanban_service(test
             created_at="2024-01-01",
             last_modified="2024-01-01"
         ))
+        localization_file = os.path.join(source_path, "localization", "english", "default_l_english.yml")
+        os.makedirs(os.path.dirname(localization_file), exist_ok=True)
+        with open(localization_file, "w", encoding="utf-8") as handle:
+            handle.write('l_english:\n default.key:0 "Default"\n')
+        discovered = await project_manager.get_project_files(project_id)
+        file_id = discovered[0]["file_id"]
+
         await project_manager.repository.batch_upsert_files([ProjectFile(
             file_id=file_id,
             project_id=project_id,
-            file_path="localization/default.yml",
+            file_path=localization_file,
             status="todo",
             original_key_count=10,
             line_count=20,

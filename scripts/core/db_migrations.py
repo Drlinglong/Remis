@@ -20,7 +20,11 @@ from scripts.core.db_models import (
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 9
+MAIN_DB_TARGET_VERSION = 10
+
+
+class UnsupportedDatabaseVersionError(RuntimeError):
+    """Raised when this Remis build encounters a newer managed schema."""
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -512,6 +516,61 @@ def _migration_009_add_model_arena_history(db_path: str) -> None:
                 ON model_arena_events (run_id, sequence);
             """
         )
+def _migration_010_enforce_status_contracts(db_path: str) -> None:
+    """Reject invalid workflow states at the SQLite boundary."""
+    triggers = [
+        (
+            "trg_projects_status_insert",
+            "projects",
+            "INSERT",
+            "NEW.status NOT IN ('active', 'archived', 'deleted')",
+        ),
+        (
+            "trg_projects_status_update",
+            "projects",
+            "UPDATE OF status",
+            "NEW.status NOT IN ('active', 'archived', 'deleted')",
+        ),
+        (
+            "trg_project_files_status_insert",
+            "project_files",
+            "INSERT",
+            "NEW.status NOT IN ('todo', 'in_progress', 'proofreading', 'paused', 'done')",
+        ),
+        (
+            "trg_project_files_status_update",
+            "project_files",
+            "UPDATE OF status",
+            "NEW.status NOT IN ('todo', 'in_progress', 'proofreading', 'paused', 'done')",
+        ),
+        (
+            "trg_project_watches_status_insert",
+            "project_watches",
+            "INSERT",
+            "NEW.status NOT IN ('never_scanned', 'baseline', 'clean', 'changed', 'no_localization', 'error')",
+        ),
+        (
+            "trg_project_watches_status_update",
+            "project_watches",
+            "UPDATE OF status",
+            "NEW.status NOT IN ('never_scanned', 'baseline', 'clean', 'changed', 'no_localization', 'error')",
+        ),
+    ]
+    with _connect(db_path) as conn:
+        conn.execute(
+            "UPDATE project_files SET status = 'done' WHERE status = 'translated'"
+        )
+        for trigger_name, table_name, operation, predicate in triggers:
+            conn.execute(
+                f"""
+                CREATE TRIGGER IF NOT EXISTS {trigger_name}
+                BEFORE {operation} ON {table_name}
+                FOR EACH ROW WHEN {predicate}
+                BEGIN
+                    SELECT RAISE(ABORT, 'invalid {table_name}.status');
+                END
+                """
+            )
         conn.commit()
 
 
@@ -525,6 +584,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (7, "govern_task_events_and_retention", _migration_007_govern_task_events_and_retention),
     (8, "pause_archived_project_watches", _migration_008_pause_archived_project_watches),
     (9, "add_model_arena_history", _migration_009_add_model_arena_history),
+    (10, "enforce_status_contracts", _migration_010_enforce_status_contracts),
 ]
 
 
@@ -532,6 +592,16 @@ def migrate_main_database(db_path: str) -> int:
     with _connect(db_path) as conn:
         _ensure_migrations_table(conn)
         applied_versions = _applied_versions(conn)
+        future_versions = sorted(
+            version
+            for version in applied_versions
+            if version > MAIN_DB_TARGET_VERSION
+        )
+        if future_versions:
+            raise UnsupportedDatabaseVersionError(
+                "Database schema is newer than this Remis build "
+                f"(found {future_versions[-1]}, supports {MAIN_DB_TARGET_VERSION})."
+            )
 
     for version, name, migration in MAIN_DB_MIGRATIONS:
         if version in applied_versions:

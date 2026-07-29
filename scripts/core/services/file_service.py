@@ -1,10 +1,9 @@
+import logging
 import os
 import uuid
-import logging
-from typing import List, Dict, Any
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from scripts.core.loc_parser import parse_loc_file
 from scripts.utils.i18n_utils import iso_to_paradox
 
 logger = logging.getLogger(__name__)
@@ -25,18 +24,11 @@ KNOWN_PARADOX_LANGUAGE_DIRS = {
     "trad_chinese",
     "turkish",
 }
+FILE_WORKFLOW_STATUSES = {"todo", "in_progress", "proofreading", "paused", "done"}
 
 
 class FileService:
-    """
-    Service to orchestrate file scanning, database synchronization, and notification of other services.
-    Acts as the source of truth for 'Disk State' -> 'DB State'.
-    """
-
-    def __init__(self, kanban_service, archive_manager, project_repository):
-        self.kanban_service = kanban_service
-        self.archive_manager = archive_manager
-        self.project_repository = project_repository
+    """Read-only discovery of project localization files on disk."""
 
     @staticmethod
     def _source_language_in_path(path: str) -> str | None:
@@ -49,14 +41,6 @@ class FileService:
         return None
 
     @classmethod
-    def _is_source_language_path(cls, path: str, search_lang: str) -> bool:
-        if not search_lang:
-            return True
-
-        lang_in_path = cls._source_language_in_path(path)
-        return lang_in_path is None or lang_in_path == search_lang.lower()
-
-    @classmethod
     def _prune_non_source_language_dirs(cls, root: str, dirs: List[str], search_lang: str) -> bool:
         if not search_lang:
             return True
@@ -67,199 +51,156 @@ class FileService:
             dirs[:] = []
             return False
 
-        root_name = Path(root).name.lower()
-        if root_name in LOCALIZATION_DIR_NAMES:
+        if Path(root).name.lower() in LOCALIZATION_DIR_NAMES:
             dirs[:] = [
                 directory
                 for directory in dirs
                 if directory.lower() not in KNOWN_PARADOX_LANGUAGE_DIRS
                 or directory.lower() == normalized_search_lang
             ]
-
         return True
 
-    def scan_dir(self, root_path: str, file_type: str, search_lang: str, project_id: str, allowed_extensions: List[str] = None) -> List[Dict]:
-        """
-        Scans a directory for localization files.
-        search_lang: The Paradox-style language key (e.g. 'simp_chinese') to filter/identify files.
-        """
-        if not os.path.exists(root_path):
-            logger.warning(f"FileService: Directory not found: {root_path}")
+    def scan_dir(
+        self,
+        root_path: str,
+        file_type: str,
+        search_lang: str,
+        project_id: str,
+        allowed_extensions: Optional[List[str]] = None,
+        issues: Optional[List[Dict[str, str]]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Scan one directory without creating, repairing, or persisting anything."""
+        if not os.path.isdir(root_path):
+            logger.warning("FileService: Directory unavailable: %s", root_path)
             return []
-        
-        # Default extensions if not provided
-        if allowed_extensions is None:
-            allowed_extensions = ['.yml', '.yaml', '.txt', '.csv', '.json']
 
-        files_found = []
-        for root, dirs, files in os.walk(root_path):
-            # Exclude hidden directories
-            dirs[:] = [d for d in dirs if not d.startswith('.')]
-            if file_type == 'source' and not self._prune_non_source_language_dirs(root, dirs, search_lang):
+        extensions = allowed_extensions or [".yml", ".yaml", ".txt", ".csv", ".json"]
+        files_found: List[Dict[str, Any]] = []
+
+        def record_walk_error(exc: OSError) -> None:
+            logger.warning("FileService: Could not scan %s: %s", exc.filename or root_path, exc)
+            if issues is not None:
+                issues.append(
+                    {
+                        "code": "directory_scan_failed",
+                        "file_type": file_type,
+                        "path": str(exc.filename or root_path),
+                    }
+                )
+
+        for root, dirs, files in os.walk(root_path, onerror=record_walk_error):
+            dirs[:] = [directory for directory in dirs if not directory.startswith(".")]
+            if file_type == "source" and not self._prune_non_source_language_dirs(root, dirs, search_lang):
                 continue
 
-            for file in files:
-                # Filter by allowed extensions
-                if any(file.lower().endswith(ext) for ext in allowed_extensions):
-                    # Special case for Paradox metadata
-                    current_file_type = file_type
-                    if file == 'metadata.json' or file == 'descriptor.mod':
-                        current_file_type = 'metadata'
-                    elif file == '.remis_project.json':
-                        # Internal project file, skip or mark as system?
-                        # User asked if we still use it -> Yes.
-                        # Do we want it in the file list? Maybe as 'config'?
-                        # Let's include it for transparency but mark as config.
-                        current_file_type = 'config'
-                    
-                    full_path = os.path.join(root, file)
-                    
-                    # Count lines
-                    line_count = 0
-                    try:
-                        with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
-                            line_count = sum(1 for _ in f)
-                    except Exception as e:
-                        logger.error(f"Failed to count lines for {full_path}: {e}")
+            for filename in files:
+                if not any(filename.lower().endswith(ext) for ext in extensions):
+                    continue
 
-                    files_found.append({
-                        # Use lower() for path to ensure case-insensitivity on Windows
-                        'file_id': str(uuid.uuid5(uuid.NAMESPACE_URL, full_path.lower().replace('\\', '/'))),
-                        'project_id': project_id,
-                        'file_path': full_path,
-                        'status': 'todo',
-                        'original_key_count': 0,
-                        'line_count': line_count,
-                        'file_type': current_file_type
-                    })
-        
-        logger.info(f"FileService: Scanned {file_type} dir {root_path}: {len(files_found)} files")
+                full_path = os.path.join(root, filename)
+                try:
+                    with open(full_path, "r", encoding="utf-8", errors="ignore") as handle:
+                        line_count = sum(1 for _ in handle)
+                except OSError as exc:
+                    logger.warning("FileService: Could not read %s: %s", full_path, exc)
+                    line_count = 0
+                    if issues is not None:
+                        issues.append(
+                            {
+                                "code": "file_read_failed",
+                                "file_type": file_type,
+                                "path": full_path,
+                            }
+                        )
+
+                files_found.append(
+                    {
+                        "file_id": str(
+                            uuid.uuid5(
+                                uuid.NAMESPACE_URL,
+                                full_path.lower().replace("\\", "/"),
+                            )
+                        ),
+                        "project_id": project_id,
+                        "file_path": full_path,
+                        "status": "todo",
+                        "original_key_count": 0,
+                        "line_count": line_count,
+                        "file_type": file_type,
+                    }
+                )
+
+        logger.info("FileService: Discovered %s file(s) under %s", len(files_found), root_path)
         return files_found
 
-    async def scan_and_sync_files(self, project_id: str, source_path: str, translation_dirs: List[str], project_name: str) -> None:
+    def discover_files(
+        self,
+        *,
+        project_id: str,
+        source_path: str,
+        translation_dirs: List[str],
+        source_language: str,
+        game_id: str,
+        status_by_file_id: Optional[Dict[str, str]] = None,
+    ) -> Dict[str, Any]:
         """
-        Orchestrates:
-        1. Get Project Config (for Source Lang)
-        2. Scan Files (Source + Translations) using ISO -> Paradox mapping
-        3. Sync to DB
-        4. Trigger Kanban & Archive
+        Build a transient disk manifest.
+
+        This method deliberately has no repository, archive, or sidecar-writing
+        dependency. Translation upload is the separate persistence boundary.
         """
-        # 1. Fetch Source Language from DB (Repository)
-        # We need the ISO code from DB to convert to Paradox key for disk operations.
-        # Although scan_dir currently grabs everything, future strict scanning will need this.
-        # And ArchiveManager/Kanban might need to know the 'disk language'.
-        project = await self.project_repository.get_project(project_id)
-        if not project:
-            logger.error(f"FileService: Project {project_id} not found during sync")
-            return
+        normalized_game_id = (game_id or "victoria3").lower()
+        allowed_extensions = (
+            [".yml", ".yaml", ".csv", ".txt"]
+            if normalized_game_id == "eu4"
+            else [".yml", ".yaml"]
+        )
+        disk_source_language = iso_to_paradox(source_language)
+        warnings: List[Dict[str, str]] = []
+        scanned_paths: List[str] = []
+        files: List[Dict[str, Any]] = []
 
-        iso_source = project.source_language
-        disk_source_lang = iso_to_paradox(iso_source)
-        game_id = project.game_id.lower() if project.game_id else "victoria3"
-        
-        # Determine allowed extensions based on game_id
-        # EU4 uses csv/txt mostly. Others use yml.
-        if game_id == 'eu4':
-            allowed_extensions = ['.yml', '.yaml', '.csv', '.txt']
-        else:
-            # For Vic3, HOI4, Stellaris, CK3 - strictly yml/yaml to avoid README clutter
-            allowed_extensions = ['.yml', '.yaml']
-        
-        logger.info(f"FileService: Syncing '{project_name}' (Game: {game_id}). Extensions: {allowed_extensions}")
-        
-        files_to_upsert = []
-
-        # Scan source directory
-        files_to_upsert.extend(self.scan_dir(source_path, 'source', disk_source_lang, project_id, allowed_extensions))
-        
-        # Scan translation directories
-        for trans_dir in translation_dirs:
-            files_to_upsert.extend(self.scan_dir(trans_dir, 'translation', disk_source_lang, project_id, allowed_extensions))
-
-        # 2. JSON Hydration (Status Reconciliation)
-        # Establish .remis_project.json as the SSOT for file statuses.
-        try:
-            kanban_data = self.kanban_service.get_board(source_path)
-            kanban_tasks = kanban_data.get("tasks", {})
-            
-            for f in files_to_upsert:
-                file_id = f['file_id']
-                if file_id in kanban_tasks:
-                    # Use status from JSON if it exists
-                    json_status = kanban_tasks[file_id].get('status')
-                    if json_status:
-                        f['status'] = json_status
-            
-            logger.info("FileService: Hydrated file statuses from JSON sidecar.")
-        except Exception as e:
-            logger.warning(f"FileService: Could not hydrate from JSON (normal for new projects): {e}")
-
-        logger.info(f"FileService: Total files to upsert: {len(files_to_upsert)}")
-
-        # 3. Update Database (Upsert & Clean) via Repository
-        try:
-            # Get existing file IDs for this project
-            existing_file_ids_list = await self.project_repository.get_project_file_ids(project_id)
-            existing_file_ids = set(existing_file_ids_list)
-            
-            # Upsert new/updated files (Batch)
-            effective_file_ids = await self.project_repository.batch_upsert_files(files_to_upsert)
-            
-            # Calculate obsolete files
-            current_scan_ids = set(
-                effective_file_ids
-                or (f["file_id"] for f in files_to_upsert)
+        roots = [(source_path, "source"), *[(path, "translation") for path in translation_dirs]]
+        for root_path, file_type in roots:
+            if not os.path.isdir(root_path):
+                warnings.append(
+                    {
+                        "code": "directory_unavailable",
+                        "file_type": file_type,
+                        "path": root_path,
+                    }
+                )
+                continue
+            scanned_paths.append(root_path)
+            files.extend(
+                self.scan_dir(
+                    root_path,
+                    file_type,
+                    disk_source_language,
+                    project_id,
+                    allowed_extensions,
+                    warnings,
+                )
             )
-            files_to_delete = existing_file_ids - current_scan_ids
-            
-            if files_to_delete:
-                logger.info(f"FileService: Removing {len(files_to_delete)} obsolete files/ghosts.")
-                await self.project_repository.delete_files_by_ids(list(files_to_delete))
 
-        except Exception as e:
-            logger.error(f"FileService: DB Sync failed: {e}")
-            raise e
+        known_statuses = status_by_file_id or {}
+        for file_record in files:
+            previous_status = known_statuses.get(file_record["file_id"])
+            if previous_status in FILE_WORKFLOW_STATUSES:
+                file_record["status"] = previous_status
+            elif previous_status:
+                warnings.append(
+                    {
+                        "code": "invalid_file_status",
+                        "file_type": file_record["file_type"],
+                        "path": file_record["file_path"],
+                    }
+                )
 
-        # 3. Notify Kanban Service
-        try:
-            self.kanban_service.sync_files_to_board(source_path, files_to_upsert)
-        except Exception as e:
-            logger.error(f"FileService: Kanban Sync failed: {e}")
-
-        # 4. Notify Archive Manager
-        self._notify_archive_manager(project_id, project_name, source_path, files_to_upsert, disk_source_lang)
-
-    def _notify_archive_manager(self, project_id: str, project_name: str, source_path: str, files: List[Dict], search_lang: str | None = None):
-        """
-        Orchestrates archiving logic.
-        """
-        try:
-            source_files_data = []
-            for f in files:
-                if f['file_type'] == 'source' and f['file_path'].endswith(('.yml', '.yaml')):
-                    if search_lang and not self._is_source_language_path(f['file_path'], search_lang):
-                        logger.warning(
-                            "FileService: Skipping non-source language file during archive: %s",
-                            f['file_path'],
-                        )
-                        continue
-                    try:
-                        entries = parse_loc_file(Path(f['file_path']))
-                        if entries:
-                            source_files_data.append({
-                                'filename': os.path.basename(f['file_path']),
-                                'file_path': os.path.relpath(f['file_path'], source_path).replace('\\', '/'),
-                                'key_map': [e[0] for e in entries],
-                                'texts_to_translate': [e[1] for e in entries]
-                            })
-                    except Exception as e:
-                        logger.error(f"Failed to parse {f['file_path']} for archiving: {e}")
-
-            if source_files_data:
-                # Use project.name as mod name for archive
-                mod_id = self.archive_manager.get_or_create_mod_entry(project_name, project_id)
-                if mod_id:
-                    self.archive_manager.create_source_version(mod_id, source_files_data)
-                    logger.info("FileService: Archive updated.")
-        except Exception as e:
-             logger.error(f"FileService: Archive notification failed: {e}")
+        return {
+            "project_id": project_id,
+            "files": files,
+            "file_count": len(files),
+            "scanned_paths": scanned_paths,
+            "warnings": warnings,
+        }

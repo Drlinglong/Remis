@@ -293,6 +293,47 @@ class ProjectWatchService:
         baseline_created = len(previous) == 0 and len(current) > 0
         no_localization_files = len(current) == 0
 
+        if no_localization_files:
+            if has_pending_change:
+                summary = {
+                    **previous_summary,
+                    "watch_id": watch.watch_id,
+                    "status": "changed",
+                    "baseline_created": False,
+                    "root_path": str(root),
+                    "scanned_file_count": 0,
+                    "snapshot_preserved": bool(previous),
+                    "pending_acknowledgement": True,
+                    "scan_warning": "no_localization",
+                }
+                status = "changed"
+            else:
+                summary = {
+                    "watch_id": watch.watch_id,
+                    "status": "no_localization",
+                    "baseline_created": False,
+                    "root_path": str(root),
+                    "scanned_file_count": 0,
+                    "added_count": 0,
+                    "modified_count": 0,
+                    "deleted_count": 0,
+                    "changed_count": 0,
+                    "added": [],
+                    "modified": [],
+                    "deleted": [],
+                    "snapshot_preserved": bool(previous),
+                }
+                status = "no_localization"
+            await self.repository.replace_snapshots_and_update_watch(
+                watch.watch_id,
+                current,
+                summary,
+                status,
+                False,
+                replace_snapshots=False,
+            )
+            return summary
+
         added = []
         modified = []
         deleted = []
@@ -320,9 +361,7 @@ class ProjectWatchService:
 
         changed = bool(added or modified or deleted)
         status = "changed" if changed else "clean"
-        if no_localization_files:
-            status = "no_localization"
-        elif baseline_created:
+        if baseline_created:
             status = "baseline"
 
         summary = {

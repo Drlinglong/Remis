@@ -104,6 +104,10 @@ def _resolve_allowed_mod_folder(folder_path: str) -> Path:
                     ),
                     None,
                 )
+        except PermissionError as exc:
+            raise PermissionError(
+                f"Permission denied while inspecting mod folder: {current}"
+            ) from exc
         except OSError as exc:
             raise ValueError("Mod folder does not exist") from exc
         if match is None:

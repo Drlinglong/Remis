@@ -10,7 +10,13 @@ from scripts.shared.services import project_manager
 from scripts.shared import task_state
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.schemas.project import (
+    ActionResponse,
     CreateProjectRequest, 
+    FileDiscoveryResponse,
+    ProjectFile,
+    ProjectStatusActionResponse,
+    ProjectSummaryResponse,
+    TranslationUploadResponse,
     UpdateProjectStatusRequest, 
     UpdateProjectNotesRequest, 
     UpdateProjectMetadataRequest, 
@@ -62,7 +68,11 @@ def _write_incremental_logs(output_dirs: list[str], log_lines: list[str], teleme
     return written_paths
 
 
-@router.get("/api/projects")
+@router.get(
+    "/api/projects",
+    response_model=List[ProjectSummaryResponse],
+    response_model_exclude_none=True,
+)
 async def list_projects(status: Optional[str] = None):
     """Returns a list of all projects, optionally filtered by status."""
     projects = await project_manager.get_projects(status)
@@ -89,12 +99,15 @@ async def create_project(request: CreateProjectRequest):
         logging.error(f"Error creating project: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/api/project/{project_id}/files")
+@router.get("/api/project/{project_id}/files", response_model=List[ProjectFile])
 async def list_project_files(project_id: str):
     """Lists files for a given project."""
     return await project_manager.get_project_files(project_id)
 
-@router.post("/api/project/{project_id}/status")
+@router.post(
+    "/api/project/{project_id}/status",
+    response_model=ProjectStatusActionResponse,
+)
 async def update_project_status(project_id: str, request: UpdateProjectStatusRequest):
     """Updates a project's status."""
     if request.status == "archived":
@@ -125,7 +138,7 @@ async def update_project_status(project_id: str, request: UpdateProjectStatusReq
         logging.error(f"Error updating project status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/api/project/{project_id}/metadata")
+@router.post("/api/project/{project_id}/metadata", response_model=ActionResponse)
 async def update_project_metadata(project_id: str, request: UpdateProjectMetadataRequest):
     """Updates a project's metadata (game_id, source_language)."""
     try:
@@ -200,7 +213,7 @@ async def save_project_kanban(project_id: str, kanban_data: Dict[str, Any]):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.put("/api/project/{project_id}/file/{file_id}/status")
+@router.put("/api/project/{project_id}/file/{file_id}/status", response_model=ActionResponse)
 async def update_file_status(project_id: str, file_id: str, request: UpdateFileStatusRequest):
     """Updates a single file's status, syncs with Kanban, and logs activity."""
     try:
@@ -210,11 +223,13 @@ async def update_file_status(project_id: str, file_id: str, request: UpdateFileS
         logging.error(f"Error updating individual file status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/api/project/{project_id}/refresh")
+@router.post("/api/project/{project_id}/refresh", response_model=FileDiscoveryResponse)
 async def refresh_project_files(project_id: str):
     try:
-        await project_manager.refresh_project_files(project_id)
-        return {"status": "success"}
+        manifest = await project_manager.refresh_project_files(project_id)
+        return {"status": "success", **manifest}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -227,7 +242,10 @@ async def repair_project_metadata(project_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/api/project/{project_id}/upload-translations")
+@router.post(
+    "/api/project/{project_id}/upload-translations",
+    response_model=TranslationUploadResponse,
+)
 async def upload_project_translations(project_id: str):
     """Scans and uploads existing translations to the archive."""
     try:
@@ -256,7 +274,7 @@ async def get_project_config(project_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/api/project/{project_id}/config")
+@router.post("/api/project/{project_id}/config", response_model=ActionResponse)
 async def update_project_config(project_id: str, request: UpdateConfigRequest):
     project = await project_manager.get_project(project_id)
     if not project:
@@ -304,7 +322,7 @@ async def update_project_config(project_id: str, request: UpdateConfigRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/api/project/{project_id}")
+@router.delete("/api/project/{project_id}", response_model=ActionResponse)
 async def delete_project(project_id: str, delete_files: bool = False):
     """
     Permanently delete a project.
@@ -333,7 +351,7 @@ async def get_project_history(project_id: str):
         logging.error(f"Error fetching project history: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/api/project/history/{history_id}")
+@router.delete("/api/project/history/{history_id}", response_model=ActionResponse)
 async def delete_history_event(history_id: str):
     """Deletes a specific history event."""
     try:

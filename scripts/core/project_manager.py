@@ -10,7 +10,7 @@ import asyncio
 from typing import List, Optional, Dict, Any, Callable, TYPE_CHECKING
 from dataclasses import dataclass
 from pathlib import Path
-from scripts.app_settings import PROJECTS_DB_PATH, SOURCE_DIR, GAME_ID_ALIASES, GAME_PROFILES_BY_ID
+from scripts.app_settings import PROJECTS_DB_PATH, SOURCE_DIR, GAME_ID_ALIASES, GAME_PROFILES_BY_ID, resolve_path
 
 if TYPE_CHECKING:
     from scripts.schemas.project import IncrementalUpdateRequest
@@ -57,17 +57,17 @@ class ProjectManager:
             kanban_service: Injected KanbanService instance.
         """
         self.db_path = db_path
+        if file_service is None:
+            from scripts.core.services.file_service import FileService
+            file_service = FileService()
         self.file_service = file_service
         self.repository = project_repository
         self.kanban_service = kanban_service
 
         # Fallback for KanbanService
         if not self.kanban_service:
-            if self.file_service and hasattr(self.file_service, 'kanban_service'):
-                 self.kanban_service = self.file_service.kanban_service
-            else:
-                from scripts.core.services.kanban_service import KanbanService
-                self.kanban_service = KanbanService(repository=self.repository)
+            from scripts.core.services.kanban_service import KanbanService
+            self.kanban_service = KanbanService(repository=self.repository)
         
         # Fallback for Repository
         if not self.repository:
@@ -299,27 +299,63 @@ class ProjectManager:
                     logger.error(f"Failed to persist normalized source_path for project {project_id}: {exc}")
         return project_data
 
-    async def refresh_project_files(self, project_id: str):
-        """Rescans source and translation directories and updates the DB and JSON sidecar."""
-        project = await self.get_project(project_id)
-        if not project:
-            logger.error(f"Project {project_id} not found")
-            return
-
-        source_path = project['source_path']
-        
+    @staticmethod
+    def _read_project_sidecar(source_path: str) -> Dict[str, Any]:
+        """Load project-side configuration/status without creating or repairing files."""
+        sidecar_path = Path(source_path) / ".remis_project.json"
+        if not sidecar_path.is_file():
+            return {}
         try:
-            json_manager = ProjectJsonManager(source_path)
-            config = json_manager.get_config()
-            translation_dirs = config.get('translation_dirs', [])
-        except Exception as e:
-            logger.error(f"Failed to load translation_dirs from JSON: {e}")
-            translation_dirs = []
+            payload = json.loads(sidecar_path.read_text(encoding="utf-8"))
+            return payload if isinstance(payload, dict) else {}
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning("Could not read project sidecar %s: %s", sidecar_path, exc)
+            return {}
 
-        if self.file_service:
-            await self.file_service.scan_and_sync_files(project_id, source_path, translation_dirs, project['name'])
-        else:
-            logger.error("FileService not initialized in ProjectManager!")
+    def _discover_project_files(self, project: Dict[str, Any]) -> Dict[str, Any]:
+        sidecar = self._read_project_sidecar(project["source_path"])
+        config = sidecar.get("config", {}) if isinstance(sidecar.get("config"), dict) else {}
+        raw_translation_dirs = config.get("translation_dirs", [])
+        translation_dirs = (
+            [resolve_path(path) for path in raw_translation_dirs if isinstance(path, str) and path]
+            if isinstance(raw_translation_dirs, list)
+            else []
+        )
+        kanban = sidecar.get("kanban", {}) if isinstance(sidecar.get("kanban"), dict) else {}
+        tasks = kanban.get("tasks", {}) if isinstance(kanban.get("tasks"), dict) else {}
+        status_by_file_id = {
+            str(task_id): task["status"]
+            for task_id, task in tasks.items()
+            if isinstance(task, dict) and isinstance(task.get("status"), str)
+        }
+        return self.file_service.discover_files(
+            project_id=project.get("project_id") or project.get("id"),
+            source_path=project["source_path"],
+            translation_dirs=translation_dirs,
+            source_language=project.get("source_language", "en"),
+            game_id=project.get("game_id", "victoria3"),
+            status_by_file_id=status_by_file_id,
+        )
+
+    async def _get_project_for_discovery(self, project_id: str) -> Optional[Dict[str, Any]]:
+        """Read project metadata and normalize paths in memory without persistence."""
+        project_record = await self.repository.get_project(project_id)
+        if not project_record:
+            return None
+        project = project_record.model_dump()
+        if project.get("source_path") and project.get("game_id"):
+            project["source_path"] = self._normalize_source_root_path(
+                project["source_path"],
+                project["game_id"],
+            )
+        return project
+
+    async def refresh_project_files(self, project_id: str) -> Dict[str, Any]:
+        """Return a fresh, read-only disk manifest for the project."""
+        project = await self._get_project_for_discovery(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+        return self._discover_project_files(project)
 
     async def repair_project_metadata(self, project_id: str) -> Dict[str, Any]:
         """
@@ -623,20 +659,76 @@ class ProjectManager:
         return await self._normalize_project_record(p.model_dump())
 
     async def get_project_files(self, project_id: str) -> List[Dict[str, Any]]:
-        """Returns all files for a project."""
-        files = await self.repository.get_project_files(project_id)
-        return [f.model_dump() for f in files]
+        """Return the current transient disk manifest's file list."""
+        manifest = await self.refresh_project_files(project_id)
+        return manifest["files"]
+
+    async def get_dashboard_stats(self) -> Dict[str, Any]:
+        """Aggregate dashboard counts from live project manifests, not legacy file rows."""
+        project_records = await self.repository.list_projects()
+        projects = [record.model_dump() for record in project_records]
+        status_counts = {
+            "todo": 0,
+            "in_progress": 0,
+            "proofreading": 0,
+            "paused": 0,
+            "done": 0,
+        }
+        game_counts: Dict[str, int] = {}
+        for project in projects:
+            game_id = str(project.get("game_id") or "unknown")
+            game_counts[game_id] = game_counts.get(game_id, 0) + 1
+            try:
+                files = await self.get_project_files(project["project_id"])
+            except (OSError, ValueError) as exc:
+                logger.warning(
+                    "Skipping unavailable project %s in dashboard file counts: %s",
+                    project.get("project_id"),
+                    exc,
+                )
+                continue
+            for file_record in files:
+                status = file_record.get("status", "todo")
+                if status in status_counts:
+                    status_counts[status] += 1
+
+        total_files = sum(status_counts.values())
+        completed_files = status_counts["done"] + status_counts["proofreading"]
+        completion_rate = (
+            completed_files / total_files * 100
+            if total_files
+            else 0
+        )
+        return {
+            "total_projects": len(projects),
+            "active_projects": sum(
+                1 for project in projects if project.get("status") == "active"
+            ),
+            "total_files": total_files,
+            "status_distribution": [
+                {"name": status, "value": count}
+                for status, count in status_counts.items()
+            ],
+            "game_distribution": [
+                {"name": game_id, "value": count}
+                for game_id, count in sorted(game_counts.items())
+            ],
+            "total_keys": 0,
+            "translated_keys": 0,
+            "translated_files": status_counts["done"],
+            "completion_rate": round(completion_rate, 1),
+        }
 
     async def get_project_kanban(self, project_id: str) -> Dict[str, Any]:
-        """Returns kanban board reconciled with the current DB file index."""
-        project = await self.get_project(project_id)
+        """Return a read-only board projection over the current disk manifest."""
+        project = await self._get_project_for_discovery(project_id)
         if not project:
             raise ValueError(f"Project {project_id} not found")
 
-        files = await self.repository.get_project_files(project_id)
-        return self.kanban_service.sync_board_to_files(
+        files = self._discover_project_files(project)["files"]
+        return self.kanban_service.preview_board_for_files(
             project['source_path'],
-            [f.model_dump() for f in files],
+            files,
         )
 
     async def update_project_status(self, project_id: str, status: str):
@@ -664,42 +756,32 @@ class ProjectManager:
         await self.kanban_service.save_board_and_sync(project_id, project['source_path'], kanban_data)
 
     async def update_file_status_with_kanban_sync(self, project_id: str, file_id: str, status: str):
-        """Updates file status in DB and also moves it in the Kanban JSON."""
-        project = await self.get_project(project_id)
+        """Update file workflow status only in the project sidecar."""
+        project = await self._get_project_for_discovery(project_id)
         if not project:
             raise ValueError(f"Project {project_id} not found")
 
-        await self.kanban_service.update_file_status_sync(project_id, project['source_path'], file_id, status)
-        
-        await self.repository.touch_project(project_id)
+        files = self._discover_project_files(project)["files"]
+        await self.kanban_service.update_file_status_sync(
+            project_id,
+            project['source_path'],
+            file_id,
+            status,
+            files,
+        )
 
     async def update_file_status(self, project_id: str, file_path: str, status: str):
-        """Updates the status of a file in a project."""
-        # Use simple UPDATE via connection helper if ID not available?
-        # Actually Repository delete_project uses _get_connection internally.
-        # But we made repo fully async. 
-        # Ideally we should use file_id. If we only have path, we need to query ID first.
-        # For now, let's try to avoid direct DB here. 
-        # Assuming we can find the file ID or just implementing update_file_status_by_path in repo?
-        # Let's revert to using repository if possible. But repo interface is `update_file_status_by_id`.
-        # I'll query for file first.
-        # Wait, get_project_files returns all files. I can find it there.
-        files = await self.repository.get_project_files(project_id)
-        target_file = next((f for f in files if f.file_path == file_path), None)
-        
+        """Update a discovered file's workflow status in the sidecar."""
+        files = await self.get_project_files(project_id)
+        target_file = next((file for file in files if file["file_path"] == file_path), None)
         if target_file:
-            await self.repository.update_file_status_by_id(target_file.file_id, status)
-            await self.log_history_event(
-                project_id=project_id,
-                action_type='file_update',
-                description=f"File {os.path.basename(file_path)} status updated to {status}"
+            await self.update_file_status_with_kanban_sync(
+                project_id,
+                target_file["file_id"],
+                status,
             )
-            await self.repository.touch_project(project_id)
         else:
             logger.warning(f"File {file_path} not found in project {project_id} during status update.")
-
-    async def update_file_status_by_id(self, file_id: str, status: str):
-        await self.repository.update_file_status_by_id(file_id, status)
 
     async def delete_project(self, project_id: str, delete_source_files: bool = False):
         try:
@@ -707,14 +789,6 @@ class ProjectManager:
             if not project:
                 return False
 
-            if 'source_path' in project and os.path.exists(project['source_path']):
-                config_path = os.path.join(project['source_path'], '.remis_project.json')
-                if os.path.exists(config_path):
-                    try:
-                        os.remove(config_path)
-                    except Exception as e:
-                        logger.error(f"Failed to delete JSON sidecar: {e}")
-            
             await self.repository.delete_project(project_id)
             
             if delete_source_files and 'source_path' in project and os.path.exists(project['source_path']):

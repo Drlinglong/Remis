@@ -5,7 +5,10 @@ import pytest
 
 import scripts.core.db_initializer as db_initializer
 from scripts import app_settings
-from scripts.core.db_migrations import migrate_main_database
+from scripts.core.db_migrations import (
+    UnsupportedDatabaseVersionError,
+    migrate_main_database,
+)
 from scripts.core.db_initializer import (
     extract_bundled_demo_translations,
     initialize_database,
@@ -79,6 +82,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (7, "govern_task_events_and_retention"),
         (8, "pause_archived_project_watches"),
         (9, "add_model_arena_history"),
+        (10, "enforce_status_contracts"),
     ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
@@ -169,7 +173,18 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     assert {"source_language", "last_modified", "last_activity_type", "last_activity_desc", "notes", "target_path"}.issubset(project_columns)
 
     cursor.execute("SELECT version FROM schema_migrations")
-    assert cursor.fetchall() == [(1,), (2,), (3,), (4,), (5,), (6,), (7,), (8,), (9,)]
+    assert cursor.fetchall() == [
+        (1,),
+        (2,),
+        (3,),
+        (4,),
+        (5,),
+        (6,),
+        (7,),
+        (8,),
+        (9,),
+        (10,),
+    ]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")
     assert cursor.fetchone() == ("project_watches",)
@@ -222,9 +237,9 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     assert cursor.fetchone()[0] == "Legacy"
     conn.close()
 
-    assert migrate_main_database(str(db_path)) == 9
+    assert migrate_main_database(str(db_path)) == 10
     conn = sqlite3.connect(db_path)
-    assert conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0] == 9
+    assert conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0] == 10
     assert conn.execute("SELECT COUNT(*) FROM project_glossary_bindings").fetchone()[0] == 1
     conn.close()
 
@@ -295,6 +310,32 @@ def test_glossary_binding_schema_allows_many_to_many_relationships(tmp_path):
         "SELECT COUNT(*) FROM project_glossary_bindings WHERE glossary_id = 1"
     ).fetchone()[0] == 2
     conn.close()
+
+
+def test_migration_rejects_future_schema_version(tmp_path):
+    db_path = tmp_path / "future.sqlite"
+    migrate_main_database(str(db_path))
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "INSERT INTO schema_migrations (version, name, applied_at) VALUES (999, 'future', '2026-01-01')"
+        )
+
+    with pytest.raises(UnsupportedDatabaseVersionError, match="newer than this Remis build"):
+        migrate_main_database(str(db_path))
+
+
+def test_status_contract_triggers_reject_unknown_values(tmp_path):
+    db_path = tmp_path / "status-contract.sqlite"
+    migrate_main_database(str(db_path))
+    with sqlite3.connect(db_path) as conn:
+        with pytest.raises(sqlite3.IntegrityError, match="invalid projects.status"):
+            conn.execute(
+                """
+                INSERT INTO projects
+                    (project_id, name, game_id, source_path, status, created_at)
+                VALUES ('bad-project', 'Bad', 'hoi4', '/tmp/bad', 'mystery', '2026-01-01')
+                """
+            )
 
 
 def test_run_projects_db_migrations_raises_on_failure(monkeypatch, tmp_path):

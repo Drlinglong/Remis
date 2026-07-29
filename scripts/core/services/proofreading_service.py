@@ -598,8 +598,12 @@ class ProofreadingService:
             
             _atomic_write_lines(target_file_path, patched_lines)
 
-            # 5. Update Project State
-            await self.project_manager.repository.update_file_status_by_id(file_id, "done")
+            # 5. Update project-local workflow state
+            await self.project_manager.update_file_status_with_kanban_sync(
+                project_id,
+                file_id,
+                "done",
+            )
             return {
                 "status": "success",
                 "document_revision": _file_revision(target_file_path),

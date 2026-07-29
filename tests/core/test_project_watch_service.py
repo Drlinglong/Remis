@@ -86,6 +86,31 @@ async def test_project_watch_empty_localization_scan_does_not_create_baseline(wa
 
 
 @pytest.mark.asyncio
+async def test_project_watch_empty_scan_preserves_existing_baseline(watch_service, tmp_path):
+    mod_root = tmp_path / "mod"
+    loc_file = mod_root / "localization" / "english" / "demo_l_english.yml"
+    original_content = 'l_english:\n key:0 "Stable"\n'
+    write_loc(loc_file, original_content)
+
+    watch = await watch_service.create_watch({"name": "Demo Mod", "path": str(mod_root)})
+    await watch_service.scan_watch(watch["watch_id"])
+    loc_file.unlink()
+
+    unavailable = await watch_service.scan_watch(watch["watch_id"])
+    preserved = await watch_service.repository.get_snapshots(watch["watch_id"])
+
+    assert unavailable["status"] == "no_localization"
+    assert unavailable["snapshot_preserved"] is True
+    assert unavailable["deleted_count"] == 0
+    assert len(preserved) == 1
+
+    write_loc(loc_file, original_content)
+    restored = await watch_service.scan_watch(watch["watch_id"])
+    assert restored["status"] == "clean"
+    assert restored["changed_count"] == 0
+
+
+@pytest.mark.asyncio
 async def test_project_watch_preserves_app_data_demo_path_when_project_root_has_same_folder(watch_service, tmp_path, monkeypatch):
     import scripts.app_settings as app_settings
 

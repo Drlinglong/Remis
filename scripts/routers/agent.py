@@ -60,6 +60,35 @@ TERMINAL_TASK_STATUSES = {"completed", "failed", "cancelled"}
 LATEST_RELEASE_URL = "https://api.github.com/repos/Drlinglong/Remis/releases/latest"
 
 
+def _persist_agent_task_snapshot(job_id: str, snapshot: Dict[str, Any]) -> None:
+    """Persist Agent-owned task state independently of client polling."""
+    if not agent_registry.get_job(job_id):
+        return
+    agent_registry.update_snapshot(
+        job_id,
+        {
+            "status": snapshot.get("status"),
+            "progress": snapshot.get("progress") or {},
+            "project_id": snapshot.get("project_id"),
+            "agent_job_kind": snapshot.get("agent_job_kind"),
+            "output_dirs": snapshot.get("output_dirs") or [],
+            "result_path": snapshot.get("result_path"),
+            "message": snapshot.get("message"),
+        },
+    )
+
+
+def _persist_terminal_agent_task_snapshot(
+    job_id: str,
+    snapshot: Dict[str, Any],
+) -> None:
+    if snapshot.get("status") in TERMINAL_TASK_STATUSES:
+        _persist_agent_task_snapshot(job_id, snapshot)
+
+
+task_state.register_task_update_listener(_persist_terminal_agent_task_snapshot)
+
+
 def _error(
     status_code: int,
     code: str,
@@ -187,6 +216,12 @@ def _public_game(profile: Dict[str, Any]) -> Dict[str, Any]:
 def _validate_agent_import_path(folder_path: str) -> Dict[str, Any]:
     try:
         inspection = inspect_mod_folder(folder_path)
+    except PermissionError as exc:
+        raise _error(
+            403,
+            "import_path_permission_denied",
+            "Remis does not have permission to inspect the selected folder",
+        ) from exc
     except ValueError as exc:
         reason = str(exc)
         if reason in {

@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 from typing import List, Dict, Any, Optional
 from scripts.core.project_json_manager import ProjectJsonManager
@@ -17,16 +18,43 @@ class KanbanService:
         self.linking_strategy = linking_strategy or ParadoxFileLinkingStrategy()
         self.repository = repository
 
-    def get_board(self, source_path: str) -> Dict[str, Any]:
-        """
-        Retrieves the Kanban board data from the project's JSON sidecar.
-        """
+    @staticmethod
+    def get_board_read_only(source_path: str) -> Dict[str, Any]:
+        """Read the board without creating or repairing the project sidecar."""
+        sidecar_path = os.path.join(source_path, ".remis_project.json")
         try:
-            json_manager = ProjectJsonManager(source_path)
-            return json_manager.get_kanban_data()
-        except Exception as e:
-            logger.error(f"Failed to get kanban board for {source_path}: {e}")
-            raise
+            with open(sidecar_path, "r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+            board = payload.get("kanban", {}) if isinstance(payload, dict) else {}
+            if not isinstance(board, dict):
+                board = {}
+        except (OSError, json.JSONDecodeError):
+            board = {}
+
+        default_columns = ["todo", "in_progress", "proofreading", "paused", "done"]
+        columns = board.get("columns")
+        return {
+            **board,
+            "columns": columns if isinstance(columns, list) and len(columns) >= 3 else default_columns,
+            "tasks": board.get("tasks", {}) if isinstance(board.get("tasks"), dict) else {},
+            "column_order": (
+                board.get("column_order")
+                if isinstance(board.get("column_order"), list)
+                else default_columns
+            ),
+        }
+
+    def preview_board_for_files(self, source_path: str, files: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Project current disk files onto the board without persisting reconciliation."""
+        board = self.get_board_read_only(source_path)
+        return {
+            **board,
+            "tasks": self.linking_strategy.process_files(
+                source_path,
+                files,
+                board.get("tasks", {}),
+            ),
+        }
 
     def save_board(self, source_path: str, kanban_data: Dict[str, Any]) -> None:
         """
@@ -39,40 +67,19 @@ class KanbanService:
             logger.error(f"Failed to save kanban board for {source_path}: {e}")
             raise
 
-    def sync_board_to_files(self, source_path: str, files: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def update_file_status_sync(
+        self,
+        project_id: str,
+        source_path: str,
+        file_id: str,
+        status: str,
+        files: Optional[List[Dict[str, Any]]] = None,
+    ) -> None:
         """
-        Reconciles the JSON sidecar with the current DB file index.
+        Updates file status in the JSON sidecar only.
         """
-        board = self.get_board(source_path)
-        tasks = board.get("tasks", {})
-        reconciled_tasks = self.linking_strategy.process_files(source_path, files, tasks)
-
-        if reconciled_tasks != tasks:
-            board = {
-                **board,
-                "tasks": reconciled_tasks,
-            }
-            self.save_board(source_path, board)
-            logger.info(
-                "KanbanService: Reconciled board for %s. Removed %s stale task(s).",
-                source_path,
-                max(0, len(tasks) - len(reconciled_tasks)),
-            )
-
-        return board
-
-    async def update_file_status_sync(self, project_id: str, source_path: str, file_id: str, status: str) -> None:
-        """
-        Updates file status in DB and also moves it in the Kanban JSON.
-        """
-        if not self.repository:
-            logger.warning("KanbanService: Repository not initialized, skipping DB sync")
-            return
-
-        await self.repository.update_file_status_by_id(file_id, status)
-
         try:
-            board = self.get_board(source_path)
+            board = self.preview_board_for_files(source_path, files or [])
             tasks = board.get("tasks", {})
             
             target_key = None
@@ -96,12 +103,6 @@ class KanbanService:
                     tasks[target_key]['status'] = status
                     self.save_board(source_path, board)
                     
-                    file_name = tasks[target_key].get('title', file_id)
-                    await self.repository.add_history_entry(
-                        project_id=project_id,
-                        action_type='file_update',
-                        description=f"Changed status of '{file_name}' to {status}"
-                    )
             else:
                 logger.warning(f"Task for file {file_id} not found in Kanban. Skipping JSON update.")
 
@@ -110,89 +111,7 @@ class KanbanService:
 
     async def save_board_and_sync(self, project_id: str, source_path: str, kanban_data: Dict[str, Any]) -> None:
         """
-        Saves kanban board, updates file statuses in DB, and logs activity.
+        Saves kanban board state to the project sidecar only.
         """
-        if not self.repository:
-            # Fallback to simple save if no repo
-            self.save_board(source_path, kanban_data)
-            return
-
-        try:
-            old_board = self.get_board(source_path)
-            old_tasks = old_board.get("tasks", {})
-        except Exception:
-            old_tasks = {}
-
         self.save_board(source_path, kanban_data)
-        
-        try:
-            new_tasks = kanban_data.get("tasks", {})
-            moved_tasks = []
-            for tid, new_task in new_tasks.items():
-                old_task = old_tasks.get(tid)
-                if old_task and old_task.get('status') != new_task.get('status'):
-                    moved_tasks.append(new_task)
-            
-            # Batch update DB statuses
-            for task in moved_tasks:
-                if task.get('type') == 'file':
-                    await self.repository.update_file_status_by_id(task['id'], task['status'])
-            
-            if moved_tasks:
-                # Logging logic
-                first = moved_tasks[0]
-                desc = f"Moved '{first.get('title')}' to {first.get('status')}"
-                if len(moved_tasks) > 1:
-                    desc += f" (and {len(moved_tasks)-1} others)"
-                
-                recent_logs = await self.repository.get_recent_logs(limit=3)
-                is_dupe = any(l['project_id'] == project_id and l['type'] == 'file_update' and l['description'] == desc for l in recent_logs)
-                
-                if not is_dupe:
-                    await self.repository.add_history_entry(project_id, 'file_update', desc)
-                else:
-                    logger.info(f"Suppressed duplicate file_update log for {project_id}")
-            else:
-                recent_logs = await self.repository.get_recent_logs(limit=5)
-                # Check for general kanban update (layout changes, etc)
-                # This is a heuristic, avoiding spam
-                is_dupe = any(l['project_id'] == project_id and l['type'] == 'kanban_update' for l in recent_logs)
-                if not is_dupe:
-                     await self.repository.add_history_entry(project_id, 'kanban_update', "Updated Kanban board layout")
-                
-        except Exception as e:
-            logger.error(f"Error during kanban diff/sync: {e}")
-
-        await self.repository.touch_project(project_id)
-        logger.info(f"Saved kanban and synchronized status for project {project_id}")
-
-    def sync_files_to_board(self, source_path: str, files: List[Dict[str, Any]]) -> None:
-        """
-        Syncs a list of files (provided by an external scanner) to the Kanban board.
-        Delegates core linking and task creation logic to the active FileLinkingStrategy.
-        """
-        try:
-            json_manager = ProjectJsonManager(source_path)
-            kanban_data = json_manager.get_kanban_data()
-            tasks = kanban_data.get("tasks", {})
-            columns = kanban_data.get("columns", [])
-            
-            # Robustness: Ensure default columns exist
-            default_columns = ["todo", "in_progress", "proofreading", "paused", "done"]
-            if len(columns) < 3:
-                columns = default_columns
-            
-            # DELEGATE: Use the strategy to process files and update tasks
-            updated_tasks = self.linking_strategy.process_files(source_path, files, tasks)
-
-            # Save Board
-            json_manager.save_kanban_data({
-                "columns": columns,
-                "tasks": updated_tasks,
-                "column_order": kanban_data.get("column_order", columns)
-            })
-            logger.info(f"KanbanService: Synced board for {source_path}. Total tasks: {len(updated_tasks)}")
-            
-        except Exception as e:
-            logger.error(f"Failed to sync files to kanban: {e}")
-            raise
+        logger.info("Saved project-local kanban state for %s", project_id)

@@ -12,15 +12,21 @@ from scripts.app_settings import DEST_DIR, LANGUAGES, SOURCE_DIR
 from scripts.utils import i18n
 
 
-def sync_project_file_status(source_file_path: str):
-    """Mark a file as complete in the project database."""
+def sync_project_file_status(project_id: str, source_file_path: str):
+    """Mark a file complete in the project-local sidecar."""
     try:
         import uuid
 
         file_id = str(uuid.uuid5(uuid.NAMESPACE_URL, source_file_path.lower().replace('\\', '/')))
-        asyncio.run(project_manager.repository.update_file_status_by_id(file_id, 'done'))
+        asyncio.run(
+            project_manager.update_file_status_with_kanban_sync(
+                project_id,
+                file_id,
+                "done",
+            )
+        )
     except Exception as e:
-        logging.error(f"Failed to update DB status for {os.path.basename(source_file_path)}: {e}")
+        logging.error(f"Failed to update project-local status for {os.path.basename(source_file_path)}: {e}")
 
 
 def build_dest_dir(file_task: FileTask, target_lang: dict, output_folder_name: str, game_profile: dict) -> str:
@@ -214,7 +220,7 @@ def finalize_translated_file(
         checkpoint_manager.mark_file_completed(file_task.filename)
 
     if project_id and not is_failed:
-        sync_project_file_status(source_file_path)
+        sync_project_file_status(project_id, source_file_path)
 
     if version_id and not is_failed:
         try:

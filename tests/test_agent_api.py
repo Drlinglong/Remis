@@ -321,6 +321,19 @@ def test_project_import_path_rejects_home_directory():
     assert exc_info.value.detail["code"] == "import_path_not_allowed"
 
 
+def test_project_import_path_reports_permission_denied(monkeypatch):
+    def deny(_folder_path):
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(agent_router, "inspect_mod_folder", deny)
+
+    with pytest.raises(HTTPException) as exc_info:
+        agent_router._validate_agent_import_path("C:/restricted/mod")
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail["code"] == "import_path_permission_denied"
+
+
 @pytest.mark.asyncio
 async def test_project_import_is_approval_gated(
     tmp_path,
@@ -573,6 +586,50 @@ def test_agent_registry_recovers_non_secret_job_metadata(tmp_path):
     assert job["execution_args"]["model"] == "local-model"
     assert "api_key" not in path.read_text(encoding="utf-8")
     assert "must-not-persist" not in path.read_text(encoding="utf-8")
+
+
+@pytest.mark.asyncio
+async def test_terminal_agent_snapshot_persists_without_polling(
+    isolated_registry,
+    monkeypatch,
+):
+    job_id = "job-terminal-without-poll"
+    isolated_registry.record_job(
+        job_id=job_id,
+        project_id="project-1",
+        plan_id="plan-1",
+        kind="translation",
+        execution_args={"use_resume": True},
+    )
+    task_state.create_task(job_id, status="running")
+    task_state.update_task(
+        job_id,
+        status="completed",
+        progress={"current": 3, "total": 3, "percent": 100},
+        fields={
+            "project_id": "project-1",
+            "agent_job_kind": "translation",
+            "output_dirs": ["C:/output"],
+        },
+    )
+
+    persisted = isolated_registry.get_job(job_id)["last_snapshot"]
+    assert persisted["status"] == "completed"
+    assert persisted["progress"]["percent"] == 100
+    assert persisted["output_dirs"] == ["C:/output"]
+    task_state.tasks.pop(job_id, None)
+
+    async def fake_validation(project_id, include_items=False):
+        return {
+            "summary": agent_router.AgentValidationSummary(),
+            "items": [],
+            "_raw_items": [],
+        }
+
+    monkeypatch.setattr(agent_router, "_validation_payload", fake_validation)
+    recovered = await agent_router.get_agent_job(job_id)
+    assert recovered.status == "completed"
+    assert recovered.recovery["source"] == "persisted_snapshot"
 
 
 def test_openapi_exposes_agent_contract():

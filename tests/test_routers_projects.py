@@ -17,7 +17,13 @@ def mock_project_manager():
         mock.get_project = AsyncMock()
         mock.get_project_files = AsyncMock(return_value=[])
         mock.create_project = AsyncMock()
-        mock.refresh_project_files = AsyncMock()
+        mock.refresh_project_files = AsyncMock(return_value={
+            "project_id": "proj-1",
+            "files": [],
+            "file_count": 0,
+            "scanned_paths": [],
+            "warnings": [],
+        })
         mock.repair_project_metadata = AsyncMock()
         mock.update_project_files_to_db = AsyncMock()
         mock.update_file_status_with_kanban_sync = AsyncMock()
@@ -39,6 +45,22 @@ def test_read_projects(mock_project_manager):
     assert response.status_code == 200
     assert response.json() == [{"project_id": "1", "name": "Test Project", "status": "active"}]
     mock_project_manager.get_projects.assert_called_once()
+
+
+def test_refresh_returns_transient_manifest(mock_project_manager):
+    client = TestClient(app)
+    response = client.post("/api/project/proj-1/refresh")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "success",
+        "project_id": "proj-1",
+        "files": [],
+        "file_count": 0,
+        "scanned_paths": [],
+        "warnings": [],
+    }
+    mock_project_manager.refresh_project_files.assert_awaited_once_with("proj-1")
 
 def test_create_project_invalid_path(mock_project_manager):
     # The router checks os.path.exists before calling manager.create_project (synchronously)

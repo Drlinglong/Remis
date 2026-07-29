@@ -25,11 +25,7 @@ archive_manager = ArchiveManager()
 kanban_service = KanbanService()
 
 # 2. Orchestrator Services
-file_service = FileService(
-    kanban_service=kanban_service, 
-    archive_manager=archive_manager,
-    project_repository=project_repository
-)
+file_service = FileService()
 
 # 3. High-Level Facades
 # ProjectManager needs file_service injected, AND project_repository

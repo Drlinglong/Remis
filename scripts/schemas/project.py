@@ -1,5 +1,5 @@
 from typing import Optional, List, Literal
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 from scripts.schemas.common import LanguageCode
 
 class CreateProjectRequest(BaseModel):
@@ -57,10 +57,65 @@ class ProjectFile(BaseModel):
     file_id: str
     project_id: str
     file_path: str
-    status: str 
+    status: Literal["todo", "in_progress", "proofreading", "paused", "done"]
     original_key_count: int
     line_count: int
     file_type: str 
+
+
+class ProjectSummaryResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    project_id: str
+    name: str
+    status: Literal["active", "archived", "deleted"]
+    game_id: Optional[str] = None
+    source_path: Optional[str] = None
+    source_language: Optional[str] = None
+
+
+class ActionResponse(BaseModel):
+    status: Literal["success"]
+    message: Optional[str] = None
+
+
+class ProjectLifecycleResult(BaseModel):
+    project_id: str
+    previous_status: Literal["active", "archived", "deleted"]
+    status: Literal["active", "archived", "deleted"]
+    paused_watch_count: int = 0
+    restored_watch_count: int = 0
+
+
+class ProjectStatusActionResponse(ActionResponse):
+    lifecycle: ProjectLifecycleResult
+
+
+class FileDiscoveryWarning(BaseModel):
+    code: Literal[
+        "directory_unavailable",
+        "directory_scan_failed",
+        "file_read_failed",
+        "invalid_file_status",
+    ]
+    file_type: Literal["source", "translation"]
+    path: str
+
+
+class FileDiscoveryResponse(BaseModel):
+    status: Literal["success"]
+    project_id: str
+    files: List[ProjectFile]
+    file_count: int
+    scanned_paths: List[str]
+    warnings: List[FileDiscoveryWarning]
+
+
+class TranslationUploadResponse(BaseModel):
+    status: Literal["success", "warning", "info"]
+    message: str
+    match_count: Optional[int] = None
+    version_id: Optional[int] = None
 
 class EmbeddedWorkshopConfig(BaseModel):
     enabled: bool = True

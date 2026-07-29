@@ -3,13 +3,14 @@ import sqlite3
 import threading
 from copy import deepcopy
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from scripts.core.repositories.task_repository import TaskRepository
 from scripts.shared.state import tasks
 from scripts.shared.ws_manager import ws_manager
 
 _LOCK = threading.RLock()
+_UPDATE_LISTENERS: list[Callable[[str, Dict[str, Any]], None]] = []
 MAX_STORED_LOG_LINES = 1000
 MAX_PAYLOAD_LOG_LINES = 100
 TASK_RETENTION_DAYS = 365
@@ -249,6 +250,25 @@ def _persist_task(
         logging.error("Failed to persist task %s: %s", task.get("task_id"), exc)
 
 
+def register_task_update_listener(
+    listener: Callable[[str, Dict[str, Any]], None],
+) -> None:
+    """Register an in-process observer for persisted task projections."""
+    with _LOCK:
+        if listener not in _UPDATE_LISTENERS:
+            _UPDATE_LISTENERS.append(listener)
+
+
+def _notify_task_update_listeners(task_id: str, snapshot: Dict[str, Any]) -> None:
+    with _LOCK:
+        listeners = list(_UPDATE_LISTENERS)
+    for listener in listeners:
+        try:
+            listener(task_id, deepcopy(snapshot))
+        except Exception as exc:
+            logging.error("Task update listener failed for %s: %s", task_id, exc)
+
+
 def create_task(
     task_id: str,
     *,
@@ -379,6 +399,7 @@ def update_task(
             event_audience=event_audience,
         )
         snapshot = deepcopy(task)
+    _notify_task_update_listeners(task_id, snapshot)
     if push:
         push_task_update(task_id)
     return snapshot

@@ -148,7 +148,11 @@ def test_finalize_translated_file_updates_tracker_checkpoint_and_archive(monkeyp
         return os.path.join(dest_dir, filename)
 
     monkeypatch.setattr(file_service.file_builder, "rebuild_and_write_file", fake_rebuild_and_write_file)
-    monkeypatch.setattr(file_service, "sync_project_file_status", lambda path: synced_paths.append(path))
+    monkeypatch.setattr(
+        file_service,
+        "sync_project_file_status",
+        lambda project_id, path: synced_paths.append((project_id, path)),
+    )
     monkeypatch.setattr(
         file_service.archive_manager,
         "archive_translated_results",
@@ -175,7 +179,7 @@ def test_finalize_translated_file_updates_tracker_checkpoint_and_archive(monkeyp
     assert tracker.files[0]["source_path"] == source_file_path
     assert tracker.files[0]["translated_lines"] == 1
     assert checkpoint.completed == ["events_l_english.yml"]
-    assert synced_paths == [source_file_path]
+    assert synced_paths == [("project-1", source_file_path)]
     assert archive_calls == [
         (
             9,
@@ -204,7 +208,11 @@ def test_finalize_failed_file_writes_fallback_without_success_side_effects(monke
         return os.path.join(dest_dir, filename)
 
     monkeypatch.setattr(file_service.file_builder, "rebuild_and_write_file", fake_rebuild_and_write_file)
-    monkeypatch.setattr(file_service, "sync_project_file_status", lambda path: synced_paths.append(path))
+    monkeypatch.setattr(
+        file_service,
+        "sync_project_file_status",
+        lambda project_id, path: synced_paths.append((project_id, path)),
+    )
     monkeypatch.setattr(
         file_service.archive_manager,
         "archive_translated_results",
