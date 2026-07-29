@@ -1906,6 +1906,8 @@
     "issue_vic3_color_tags": "Victoria 3 颜色标签数量不匹配",
     "issue_format_marker_parity": "格式标记数量不匹配",
     "issue_invalid_key_format": "本地化键格式异常",
+    "invalid_key_manual_title": "无法在校对页修改键名",
+    "invalid_key_manual_help": "校对页只允许修改译文，不允许重命名本地化键。请在源文件中修正这个键名，然后重新扫描。",
     "unknown_issue": "未知问题",
     "diff_preview": "修复差异预览",
     "before_fix": "修复前",

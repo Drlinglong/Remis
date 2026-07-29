@@ -8,6 +8,7 @@ import {
   IconPlayerPlay, IconChartBar, IconSettings, IconFolderCode, IconAlertTriangle, IconEdit,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
+import { notifications } from '@mantine/notifications';
 import PerformanceControlPanel from '../components/shared/PerformanceControlPanel';
 import BusyHeartbeat from '../components/shared/BusyHeartbeat';
 import { useAgentWorkshopController } from '../hooks/useAgentWorkshopController';
@@ -87,6 +88,23 @@ const AgentWorkshopPage = () => {
       logViewportRef.current.scrollTo({ top: logViewportRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [executionLogs]);
+
+  const openManualProofreading = (issue) => {
+    if (issue.error_code === 'validation_invalid_key_format') {
+      notifications.show({
+        color: 'orange',
+        title: t('agent_workshop.invalid_key_manual_title'),
+        message: t('agent_workshop.invalid_key_manual_help'),
+      });
+      return;
+    }
+    navigate(buildProofreadingUrl({
+      projectId: selectedProjectId,
+      fileId: issue.file_id,
+      entryKey: issue.key,
+      lineHint: issue.line_number,
+    }));
+  };
 
   return (
     <Box className={styles.container} data-remis-surface="canvas">
@@ -249,14 +267,9 @@ const AgentWorkshopPage = () => {
                                                 size="xs"
                                                 variant="light"
                                                 leftSection={<IconEdit size={14} />}
-                                                disabled={!issue.file_id || !issue.key || invalidKeyIssue}
-                                                title={invalidKeyIssue ? t('proofreading.editor_help.key') : undefined}
-                                                onClick={() => navigate(buildProofreadingUrl({
-                                                  projectId: selectedProjectId,
-                                                  fileId: issue.file_id,
-                                                  entryKey: issue.key,
-                                                  lineHint: issue.line_number,
-                                                }))}
+                                                disabled={!issue.file_id || !issue.key}
+                                                title={invalidKeyIssue ? t('agent_workshop.invalid_key_manual_help') : undefined}
+                                                onClick={() => openManualProofreading(issue)}
                                                 style={{ whiteSpace: 'nowrap' }}
                                               >
                                                 {t('proofreading.open_entry', { defaultValue: 'Manual proofreading' })}

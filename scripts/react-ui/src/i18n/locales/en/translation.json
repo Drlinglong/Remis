@@ -1636,6 +1636,8 @@
     "issue_vic3_color_tags": "Victoria 3 color tag mismatch",
     "issue_format_marker_parity": "Format marker count mismatch",
     "issue_invalid_key_format": "Localization key format issue",
+    "invalid_key_manual_title": "The key cannot be renamed in proofreading",
+    "invalid_key_manual_help": "Proofreading can edit translated text but cannot rename localization keys. Correct this key in the source file, then scan again.",
     "unknown_issue": "Unknown issue",
     "diff_preview": "Fix diff preview",
     "before_fix": "Before fix",
