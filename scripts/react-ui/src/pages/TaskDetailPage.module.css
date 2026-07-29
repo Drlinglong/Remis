@@ -12,15 +12,24 @@
 .header {
   padding-bottom: 18px;
   margin-bottom: 18px;
-  border-bottom: 1px solid var(--surface-border);
+  border-bottom: 1px solid color-mix(in srgb, var(--canvas-text-muted) 62%, transparent);
+}
+
+.statusBadge {
+  --badge-bg: color-mix(in srgb, var(--canvas-bg-solid) 88%, transparent) !important;
+  --badge-color: var(--canvas-text-main) !important;
+  --badge-bd: 1px solid var(--canvas-text-muted) !important;
+  text-shadow: none !important;
 }
 
 .timer {
   min-height: 36px;
   padding: 0 12px;
-  border: 1px solid var(--surface-border);
+  border: 1px solid var(--canvas-text-muted);
   border-radius: 8px;
-  color: var(--surface-text-main);
+  color: var(--canvas-text-main);
+  background: color-mix(in srgb, var(--canvas-bg-solid) 88%, transparent);
+  text-shadow: none;
   font-variant-numeric: tabular-nums;
 }
 
@@ -29,17 +38,21 @@
 }
 
 .technicalLogDetails {
-  color: var(--surface-text-muted);
+  color: var(--canvas-text-muted);
 }
 
 .technicalLogDetails > summary {
   width: fit-content;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--canvas-bg-solid) 82%, transparent);
   cursor: pointer;
   font-weight: 700;
+  text-shadow: none;
 }
 
 .technicalLogDetails[open] > summary {
-  color: var(--surface-text-main);
+  color: var(--canvas-text-main);
 }
 
 .eventList {
@@ -103,6 +116,35 @@
 .blockingBadge {
   width: fit-content;
   cursor: help;
+}
+
+.repairResultItem {
+  --mantine-color-text: var(--paper-text-main) !important;
+  --mantine-color-dimmed: var(--paper-text-muted) !important;
+  background: var(--paper-bg) !important;
+  border-color: color-mix(in srgb, var(--paper-text-main) 24%, transparent) !important;
+  color: var(--paper-text-main) !important;
+}
+
+.repairResultFile,
+.repairResultReason {
+  color: var(--paper-text-muted) !important;
+  overflow-wrap: anywhere;
+}
+
+.repairResultKey {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 3px;
+  background: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg)) !important;
+  color: var(--paper-text-main) !important;
+  overflow-wrap: anywhere;
+}
+
+.repairResultBadge {
+  flex: 0 0 auto;
+  color: var(--paper-text-main) !important;
 }
 
 .technicalDetails {

@@ -128,6 +128,10 @@
     "result": "Result",
     "output_paths": "Output paths",
     "child_tasks": "Child tasks",
+    "repair_item_results": "Items in this batch",
+    "repair_item_fixed": "Fixed",
+    "repair_item_needs_review": "Needs review",
+    "repair_item_reason": "Reason",
     "back_to_workflow": "Back to workflow"
   },
   "task_presentation": {
@@ -149,7 +153,9 @@
     "result": {
       "incremental_completed": "Processed {{count}} translation files.",
       "incremental_completed_with_warnings": "Processed {{files}} translation files with {{warnings}} runtime warnings.",
-      "format_scan_completed": "Format scan completed with {{count}} issues."
+      "format_scan_completed": "Format scan completed with {{count}} issues.",
+      "format_repair_completed": "Fixed {{fixed}} format issues.",
+      "format_repair_partial": "Fixed {{fixed}} format issues; {{remaining}} still need review."
     },
     "next_step": {
       "review_failure": "Review the failure summary and diagnostic information before retrying.",
@@ -157,6 +163,7 @@
       "proofread": "Continue to proofreading to review the generated translations.",
       "review_format_issues": "Review the detected format issues before applying repairs.",
       "no_action_required": "No format issue needs action.",
+      "review_format_failures": "Review the item list below to find the files and keys that still need manual attention.",
       "completed": "The task is complete. Review its result and output location.",
       "wait": "This task is still running. You can leave and return from Task Center."
     }

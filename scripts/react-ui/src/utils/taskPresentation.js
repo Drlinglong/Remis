@@ -1,4 +1,4 @@
-const TERMINAL_STATUSES = new Set(['completed', 'failed', 'interrupted', 'cancelled']);
+const TERMINAL_STATUSES = new Set(['completed', 'partial_failed', 'failed', 'interrupted', 'cancelled']);
 
 const numeric = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -61,6 +61,22 @@ export const getTaskResultSummary = (task, t) => {
       count: numeric(metadata.issue_count),
     });
   }
+  if (['agent_workshop', 'agent_workshop_batch'].includes(task.kind)) {
+    const results = Array.isArray(metadata.results) ? metadata.results : [];
+    const fixed = numeric(
+      metadata.success_count ?? task.summary?.successCount,
+      results.filter((item) => item?.status === 'SUCCESS').length,
+    );
+    const remaining = numeric(
+      metadata.failed_count ?? task.summary?.failedCount,
+      results.filter((item) => item?.status !== 'SUCCESS').length,
+    );
+    if (fixed || remaining || results.length > 0) {
+      return remaining > 0
+        ? t('task_presentation.result.format_repair_partial', { fixed, remaining })
+        : t('task_presentation.result.format_repair_completed', { fixed });
+    }
+  }
 
   const raw = String(task.result?.summary || '').trim();
   const incrementalMatch = raw.match(/^(\d+) file\(s\) processed;\s*(\d+) runtime warning\(s\)\.?$/i);
@@ -91,6 +107,9 @@ export const getTaskNextStep = (task, t) => {
     return numeric(task.result?.metadata?.issue_count) > 0
       ? t('task_presentation.next_step.review_format_issues')
       : t('task_presentation.next_step.no_action_required');
+  }
+  if (['agent_workshop', 'agent_workshop_batch'].includes(task.kind) && task.status === 'partial_failed') {
+    return t('task_presentation.next_step.review_format_failures');
   }
   if (task.status === 'completed') return t('task_presentation.next_step.completed');
   return t('task_presentation.next_step.wait');

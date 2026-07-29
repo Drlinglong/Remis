@@ -12,6 +12,7 @@ import {
   Group,
   Loader,
   Menu,
+  Paper,
   Progress,
   ScrollArea,
   SimpleGrid,
@@ -202,6 +203,10 @@ export default function TaskDetailPage() {
   const gameId = task?.project_context?.game_id;
   const gameName = gameId ? t(`game_name_${String(gameId).toLowerCase()}`, { defaultValue: gameId }) : '';
   const resultMetadata = task?.result?.metadata || {};
+  const workshopRepairResults = ['agent_workshop', 'agent_workshop_batch'].includes(task?.kind)
+    && Array.isArray(resultMetadata.results)
+    ? resultMetadata.results
+    : [];
   const healthMetadata = resultMetadata.preview || resultMetadata;
   const resultTypes = new Set(task?.result?.types || []);
   const isGlossaryHealthResult = resultTypes.has('glossary_health_report');
@@ -311,7 +316,7 @@ export default function TaskDetailPage() {
             <Text size="sm" fw={700} c="dimmed" tt="uppercase">{t('task_detail.eyebrow')}</Text>
             <Group gap="sm" align="center">
               <Title order={1}>{kindLabel}</Title>
-              <Badge color={displayStatusColor} variant="light" size="lg">
+              <Badge color={displayStatusColor} variant="light" size="lg" className={styles.statusBadge}>
                 {displayStatusLabel}
               </Badge>
               {task.archived_at && <Badge color="gray" variant="outline">{t('task_detail.archived')}</Badge>}
@@ -526,6 +531,42 @@ export default function TaskDetailPage() {
                 <Card withBorder radius="md" p="lg" data-remis-surface="surface">
                   <Title order={3} mb="sm">{t('task_detail.result')}</Title>
                   {localizedResultSummary && <Text size="sm" mb="sm">{localizedResultSummary}</Text>}
+                  {workshopRepairResults.length > 0 && (
+                    <Stack gap="xs" mb="sm" data-testid="workshop-repair-results">
+                      <Text size="xs" fw={700} c="dimmed">
+                        {t('task_detail.repair_item_results')}
+                      </Text>
+                      {workshopRepairResults.map((item, index) => {
+                        const repaired = item.status === 'SUCCESS';
+                        return (
+                          <Paper
+                            key={`${item.file_name}:${item.key}:${index}`}
+                            withBorder
+                            p="sm"
+                            className={styles.repairResultItem}
+                            data-remis-surface="paper"
+                          >
+                            <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
+                              <Box style={{ minWidth: 0 }}>
+                                <Text size="xs" c="dimmed" className={styles.repairResultFile}>{item.file_name}</Text>
+                                <Code className={styles.repairResultKey}>{item.key}</Code>
+                              </Box>
+                              <Badge color={repaired ? 'green' : 'orange'} variant="outline" className={styles.repairResultBadge}>
+                                {t(repaired
+                                  ? 'task_detail.repair_item_fixed'
+                                  : 'task_detail.repair_item_needs_review')}
+                              </Badge>
+                            </Group>
+                            {!repaired && item.parity_message && (
+                              <Text size="xs" mt="xs" className={styles.repairResultReason}>
+                                {t('task_detail.repair_item_reason')}: {item.parity_message}
+                              </Text>
+                            )}
+                          </Paper>
+                        );
+                      })}
+                    </Stack>
+                  )}
                   {isGlossaryHealthResult && (
                     <Stack gap="sm" mb="sm" data-testid="glossary-health-task-result">
                       <Group gap="xs">

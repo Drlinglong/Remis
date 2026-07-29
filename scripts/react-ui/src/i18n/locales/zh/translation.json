@@ -175,6 +175,10 @@
     "result": "任务结果",
     "output_paths": "输出路径",
     "child_tasks": "子任务",
+    "repair_item_results": "本批次处理明细",
+    "repair_item_fixed": "已修复",
+    "repair_item_needs_review": "仍需处理",
+    "repair_item_reason": "未通过原因",
     "back_to_workflow": "返回工作流"
   },
   "task_presentation": {
@@ -196,7 +200,9 @@
     "result": {
       "incremental_completed": "已处理 {{count}} 个翻译文件。",
       "incremental_completed_with_warnings": "已处理 {{files}} 个翻译文件；运行时警告 {{warnings}} 条。",
-      "format_scan_completed": "格式规则扫描完成，发现 {{count}} 个问题。"
+      "format_scan_completed": "格式规则扫描完成，发现 {{count}} 个问题。",
+      "format_repair_completed": "已修复 {{fixed}} 个格式问题。",
+      "format_repair_partial": "已修复 {{fixed}} 个格式问题，另有 {{remaining}} 个仍需处理。"
     },
     "next_step": {
       "review_failure": "请先查看失败摘要和诊断信息，再决定是否重试。",
@@ -204,6 +210,7 @@
       "proofread": "继续前往校对，检查本次生成的译文。",
       "review_format_issues": "请先检查发现的格式问题，再决定是否修复。",
       "no_action_required": "没有需要处理的格式问题。",
+      "review_format_failures": "查看下方处理明细，定位仍需手动处理的文件和键。",
       "completed": "任务已完成；请检查结果和产物位置。",
       "wait": "任务仍在后台运行。你可以离开页面，稍后从任务中心返回。"
     }
