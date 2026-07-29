@@ -191,7 +191,10 @@ class LocalLLMHandler(BaseApiHandler):
         
         try:
             # Handle prompt splitting if needed (legacy Ollama logic)
-            system_prompt = _append_system_suffix("You are a professional translator.", provider_config)
+            system_prompt = _append_system_suffix(
+                "You are a professional translator for game mods.",
+                provider_config,
+            )
             user_prompt = prompt
             if "--- INPUT LIST ---" in prompt:
                  parts = prompt.split("--- INPUT LIST ---", 1)
@@ -237,7 +240,13 @@ class LocalLLMHandler(BaseApiHandler):
         
         try:
             messages = [
-                {"role": "system", "content": _append_system_suffix("You are a professional translator.", provider_config)},
+                {
+                    "role": "system",
+                    "content": _append_system_suffix(
+                        "You are a professional translator for game mods.",
+                        provider_config,
+                    ),
+                },
                 {"role": "user", "content": prompt}
             ]
             

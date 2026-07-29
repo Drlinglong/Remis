@@ -44,6 +44,7 @@ const CopilotPage = lazy(() => import('./pages/CopilotPage'));
 const TaskDetailPage = lazy(() => import('./pages/TaskDetailPage'));
 const TaskHistoryPage = lazy(() => import('./pages/TaskHistoryPage'));
 const GlossaryHealthReviewPage = lazy(() => import('./pages/GlossaryHealthReviewPage'));
+const ModelArenaPage = lazy(() => import('./pages/ModelArenaPage'));
 
 const RouteFallback = () => (
     <Center h="50vh">
@@ -65,6 +66,7 @@ const appRouteConfig = [
     { path: '/task-history', element: <TaskHistoryPage /> },
     { path: '/project-tracking', element: <ProjectTrackingPage /> },
     { path: '/incremental-translation', element: <IncrementalTranslationPage /> },
+    { path: '/model-arena', element: <ModelArenaPage /> },
     ...(FEATURES.ENABLE_NEOLOGISM_TRIBUNAL ? [{ path: '/neologism-review', element: <NeologismReviewPage /> }] : []),
     { path: '/archives', element: <ArchivesPage /> },
     { path: '/agent-workshop', element: <AgentWorkshopPage /> },

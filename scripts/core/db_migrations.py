@@ -20,7 +20,7 @@ from scripts.core.db_models import (
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 8
+MAIN_DB_TARGET_VERSION = 9
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -368,6 +368,153 @@ def _migration_008_pause_archived_project_watches(db_path: str) -> None:
         conn.commit()
 
 
+def _migration_009_add_model_arena_history(db_path: str) -> None:
+    """Persist model-arena evidence independently from background task retention."""
+    with _connect(db_path) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS model_arena_runs (
+                run_id TEXT PRIMARY KEY,
+                project_id TEXT,
+                project_name_snapshot TEXT NOT NULL,
+                game_id TEXT NOT NULL,
+                source_lang_code TEXT NOT NULL,
+                target_lang_code TEXT NOT NULL,
+                sample_seed TEXT NOT NULL,
+                sampler_version TEXT NOT NULL,
+                sample_size INTEGER NOT NULL CHECK(sample_size BETWEEN 3 AND 12),
+                eligible_count INTEGER NOT NULL CHECK(eligible_count >= sample_size),
+                status TEXT NOT NULL CHECK(status IN (
+                    'draft', 'queued', 'running', 'voting', 'completed',
+                    'partial_failed', 'failed', 'abandoned'
+                )),
+                settings_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                started_at TEXT,
+                completed_at TEXT,
+                FOREIGN KEY(project_id) REFERENCES projects(project_id) ON DELETE SET NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS model_arena_contestants (
+                contestant_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL,
+                provider_id TEXT NOT NULL,
+                model_id TEXT NOT NULL,
+                execution_order INTEGER NOT NULL,
+                config_snapshot_json TEXT NOT NULL,
+                config_fingerprint TEXT NOT NULL,
+                prompt_fingerprint TEXT NOT NULL,
+                status TEXT NOT NULL,
+                request_count INTEGER NOT NULL DEFAULT 0 CHECK(request_count >= 0),
+                elapsed_ms INTEGER,
+                failure_code TEXT,
+                FOREIGN KEY(run_id) REFERENCES model_arena_runs(run_id) ON DELETE CASCADE,
+                UNIQUE(run_id, provider_id, model_id),
+                UNIQUE(run_id, execution_order)
+            );
+
+            CREATE TABLE IF NOT EXISTS model_arena_requests (
+                request_id TEXT PRIMARY KEY,
+                contestant_id TEXT NOT NULL,
+                batch_ordinal INTEGER NOT NULL CHECK(batch_ordinal >= 0),
+                system_instruction TEXT,
+                prompt_text TEXT NOT NULL,
+                effective_parameters_json TEXT NOT NULL,
+                prompt_sha256 TEXT NOT NULL,
+                completion_text_before_parse TEXT,
+                completion_source TEXT NOT NULL,
+                completion_sha256 TEXT,
+                usage_json TEXT NOT NULL,
+                parse_status TEXT NOT NULL,
+                failure_code TEXT,
+                elapsed_ms INTEGER,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(contestant_id) REFERENCES model_arena_contestants(contestant_id) ON DELETE CASCADE,
+                UNIQUE(contestant_id, batch_ordinal)
+            );
+
+            CREATE TABLE IF NOT EXISTS model_arena_samples (
+                sample_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL,
+                ordinal INTEGER NOT NULL CHECK(ordinal >= 0),
+                entry_key TEXT NOT NULL,
+                relative_file_path TEXT NOT NULL,
+                line_number INTEGER,
+                source_text TEXT NOT NULL,
+                source_sha256 TEXT NOT NULL,
+                feature_tags_json TEXT NOT NULL,
+                display_permutation_json TEXT NOT NULL,
+                FOREIGN KEY(run_id) REFERENCES model_arena_runs(run_id) ON DELETE CASCADE,
+                UNIQUE(run_id, ordinal)
+            );
+
+            CREATE TABLE IF NOT EXISTS model_arena_outputs (
+                output_id TEXT PRIMARY KEY,
+                sample_id TEXT NOT NULL,
+                contestant_id TEXT NOT NULL,
+                translated_text TEXT,
+                response_sha256 TEXT,
+                parse_status TEXT NOT NULL,
+                hard_error_count INTEGER NOT NULL DEFAULT 0 CHECK(hard_error_count >= 0),
+                validation_json TEXT NOT NULL,
+                FOREIGN KEY(sample_id) REFERENCES model_arena_samples(sample_id) ON DELETE CASCADE,
+                FOREIGN KEY(contestant_id) REFERENCES model_arena_contestants(contestant_id) ON DELETE CASCADE,
+                UNIQUE(sample_id, contestant_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS model_arena_votes (
+                vote_id TEXT PRIMARY KEY,
+                sample_id TEXT NOT NULL UNIQUE,
+                verdict TEXT NOT NULL CHECK(verdict IN (
+                    'winner', 'tie', 'reject_all', 'unjudgeable'
+                )),
+                winner_output_id TEXT,
+                reason_codes_json TEXT NOT NULL,
+                note TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(sample_id) REFERENCES model_arena_samples(sample_id) ON DELETE CASCADE,
+                FOREIGN KEY(winner_output_id) REFERENCES model_arena_outputs(output_id) ON DELETE SET NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS model_arena_events (
+                event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id TEXT NOT NULL,
+                sequence INTEGER NOT NULL CHECK(sequence > 0),
+                timestamp TEXT NOT NULL,
+                level TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                failure_code TEXT,
+                metrics_json TEXT NOT NULL,
+                FOREIGN KEY(run_id) REFERENCES model_arena_runs(run_id) ON DELETE CASCADE,
+                UNIQUE(run_id, sequence)
+            );
+
+            CREATE INDEX IF NOT EXISTS ix_model_arena_runs_created_at
+                ON model_arena_runs (created_at DESC);
+            CREATE INDEX IF NOT EXISTS ix_model_arena_runs_project_created
+                ON model_arena_runs (project_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS ix_model_arena_runs_status_created
+                ON model_arena_runs (status, created_at DESC);
+            CREATE INDEX IF NOT EXISTS ix_model_arena_runs_language_pair
+                ON model_arena_runs (source_lang_code, target_lang_code, created_at DESC);
+            CREATE INDEX IF NOT EXISTS ix_model_arena_contestants_run
+                ON model_arena_contestants (run_id, execution_order);
+            CREATE INDEX IF NOT EXISTS ix_model_arena_requests_contestant
+                ON model_arena_requests (contestant_id, batch_ordinal);
+            CREATE INDEX IF NOT EXISTS ix_model_arena_samples_run
+                ON model_arena_samples (run_id, ordinal);
+            CREATE INDEX IF NOT EXISTS ix_model_arena_outputs_sample
+                ON model_arena_outputs (sample_id);
+            CREATE INDEX IF NOT EXISTS ix_model_arena_outputs_contestant
+                ON model_arena_outputs (contestant_id);
+            CREATE INDEX IF NOT EXISTS ix_model_arena_events_run_sequence
+                ON model_arena_events (run_id, sequence);
+            """
+        )
+        conn.commit()
+
+
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
@@ -377,6 +524,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (6, "index_task_summary_queries", _migration_006_index_task_summary_queries),
     (7, "govern_task_events_and_retention", _migration_007_govern_task_events_and_retention),
     (8, "pause_archived_project_watches", _migration_008_pause_archived_project_watches),
+    (9, "add_model_arena_history", _migration_009_add_model_arena_history),
 ]
 
 

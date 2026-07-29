@@ -171,13 +171,14 @@ export default function TaskHistoryPage() {
               const projectLabel = [task.project_context?.name, projectGameName].filter(Boolean).join(' — ');
               const resultMetadata = task.result?.metadata || {};
               const healthMetadata = resultMetadata.preview || resultMetadata;
+              const isModelArenaTask = ['model_arena', 'model_arena_retry'].includes(task.kind);
               const secondaryLabel = projectLabel || (
                 task.kind === 'glossary_health_check'
                   ? t('glossary_health_task_title', {
                     count: healthMetadata.glossary_count || 1,
                     defaultValue: task.title,
                   })
-                  : task.title
+                  : (isModelArenaTask ? null : task.title)
               );
               return (
                 <Card
@@ -199,7 +200,9 @@ export default function TaskHistoryPage() {
                       </Text>
                       <div className={styles.taskIdentity}>
                         <Text fw={700} className={styles.taskTitle}>{kindLabel}</Text>
-                        <Text size="sm" c="dimmed" lineClamp={1}>{secondaryLabel}</Text>
+                        {secondaryLabel && (
+                          <Text size="sm" c="dimmed" lineClamp={1}>{secondaryLabel}</Text>
+                        )}
                       </div>
                     </Group>
                     <Group gap="sm" wrap="nowrap">
