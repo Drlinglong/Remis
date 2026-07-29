@@ -1,6 +1,6 @@
 import ast
 import json
-import tomllib
+import re
 from pathlib import Path
 
 
@@ -17,12 +17,32 @@ def _read_python_constant(module_path: Path, name: str) -> str:
     raise AssertionError(f"{name} is not defined in {module_path}")
 
 
+def _read_cargo_package_version(manifest_path: Path) -> str:
+    manifest = manifest_path.read_text(encoding="utf-8")
+    match = re.search(
+        r'^\[package\]\s+name = "remis-mod-factory"\s+version = "([^"]+)"',
+        manifest,
+        flags=re.MULTILINE,
+    )
+    assert match is not None
+    return match.group(1)
+
+
+def _read_cargo_lock_version(lock_path: Path) -> str:
+    lockfile = lock_path.read_text(encoding="utf-8")
+    match = re.search(
+        r'name = "remis-mod-factory"\s+version = "([^"]+)"',
+        lockfile,
+    )
+    assert match is not None
+    return match.group(1)
+
+
 def test_release_version_metadata_stays_in_sync():
     backend_version = _read_python_constant(
         REPO_ROOT / "scripts" / "app_settings.py",
         "VERSION",
     )
-
     package_json = json.loads(
         (REPO_ROOT / "scripts" / "react-ui" / "package.json").read_text(
             encoding="utf-8",
@@ -42,14 +62,11 @@ def test_release_version_metadata_stays_in_sync():
             / "tauri.conf.json"
         ).read_text(encoding="utf-8")
     )
-    cargo_manifest = tomllib.loads(
-        (
-            REPO_ROOT
-            / "scripts"
-            / "react-ui"
-            / "src-tauri"
-            / "Cargo.toml"
-        ).read_text(encoding="utf-8")
+    cargo_manifest_version = _read_cargo_package_version(
+        REPO_ROOT / "scripts" / "react-ui" / "src-tauri" / "Cargo.toml"
+    )
+    cargo_lock_version = _read_cargo_lock_version(
+        REPO_ROOT / "scripts" / "react-ui" / "src-tauri" / "Cargo.lock"
     )
 
     assert {
@@ -60,7 +77,8 @@ def test_release_version_metadata_stays_in_sync():
             "version"
         ],
         "scripts/react-ui/src-tauri/tauri.conf.json": tauri_config["version"],
-        "scripts/react-ui/src-tauri/Cargo.toml": cargo_manifest["package"]["version"],
+        "scripts/react-ui/src-tauri/Cargo.toml": cargo_manifest_version,
+        "scripts/react-ui/src-tauri/Cargo.lock": cargo_lock_version,
     } == {
         "scripts/app_settings.py": backend_version,
         "scripts/react-ui/package.json": backend_version,
@@ -68,4 +86,5 @@ def test_release_version_metadata_stays_in_sync():
         "scripts/react-ui/package-lock.json packages['']": backend_version,
         "scripts/react-ui/src-tauri/tauri.conf.json": backend_version,
         "scripts/react-ui/src-tauri/Cargo.toml": backend_version,
+        "scripts/react-ui/src-tauri/Cargo.lock": backend_version,
     }

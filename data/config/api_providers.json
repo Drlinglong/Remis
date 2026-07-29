@@ -16,10 +16,10 @@
         "api_key_env": "ANTHROPIC_API_KEY",
         "base_url": "https://api.anthropic.com/v1",
         "name": "Anthropic Claude",
-        "default_model": "claude-4-5-sonnet",
+        "default_model": "claude-sonnet-4-5",
         "available_models": [
-            "claude-4-5-sonnet",
-            "claude-4-5-haiku",
+            "claude-sonnet-4-5",
+            "claude-haiku-4-5",
             "claude-3-5-sonnet-20241022",
             "claude-3-5-haiku-20241022"
         ],
@@ -170,11 +170,11 @@
         "base_url": "https://api.moonshot.cn/v1",
         "default_model": "moonshot-v1-8k",
         "available_models": [
-            "moonshotai/kimi-p1-ultra",
-            "deepseek/deepseek-r1",
-            "deepseek/deepseek-v3",
-            "nvidia/llama-3.1-nemotron-70b-instruct",
-            "kimi-k2-turbo"
+            "kimi-k2.6",
+            "kimi-k2.5",
+            "moonshot-v1-8k",
+            "moonshot-v1-32k",
+            "moonshot-v1-128k"
         ],
         "name": "Kimi (Moonshot AI)",
         "description_key": "api_desc_kimi"
@@ -184,10 +184,13 @@
         "base_url": "https://api.minimaxi.com/v1",
         "default_model": "MiniMax-M2.1",
         "available_models": [
+            "MiniMax-M2.7",
+            "MiniMax-M2.7-highspeed",
+            "MiniMax-M2.5",
+            "MiniMax-M2.5-highspeed",
             "MiniMax-M2.1",
-            "MiniMax-M2.1-lightning",
-            "MiniMax-M2",
-            "abab6.5-chat"
+            "MiniMax-M2.1-highspeed",
+            "MiniMax-M2"
         ],
         "name": "Minimax (海螺)",
         "description_key": "api_desc_minimax"

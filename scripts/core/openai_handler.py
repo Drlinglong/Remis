@@ -1,10 +1,8 @@
 # scripts/core/openai_handler.py
-import os
 import openai
 from openai import OpenAI
-import logging
 
-from scripts.app_settings import API_PROVIDERS
+from scripts.app_settings import get_api_key
 from scripts.core.base_handler import BaseApiHandler
 
 class OpenAIHandler(BaseApiHandler):
@@ -14,17 +12,17 @@ class OpenAIHandler(BaseApiHandler):
         """
         初始化并返回OpenAI的API客户端。
         """
-        # 1. 尝试从配置或环境变量获取 API Key (OpenAI 必须要有 Key)
-        api_key = os.getenv("OPENAI_API_KEY")
         provider_config = self.get_provider_config()
-        if not api_key:
-             api_key = provider_config.get("api_key")
-        
-        if not api_key:
-            self.logger.error("API Key 'OPENAI_API_KEY' not found in environment variables or config.")
-            raise ValueError("OPENAI_API_KEY not set")
+        api_key_env = provider_config.get("api_key_env")
+        if not api_key_env:
+            raise ValueError(
+                f"Provider '{self.provider_name}' does not declare an API key environment variable."
+            )
 
-        # 2. Get Base URL (Optional)
+        api_key = get_api_key(self.provider_name, api_key_env)
+        if not api_key:
+            raise ValueError(f"{api_key_env} not set")
+
         base_url = provider_config.get("base_url")
 
         try:
@@ -95,4 +93,3 @@ class OpenAIHandler(BaseApiHandler):
         except Exception as e:
             self.logger.exception(f"OpenAI chat generation failed: {e}")
             return ""
-
