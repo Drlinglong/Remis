@@ -300,6 +300,7 @@ html[data-theme] {
 html[data-theme] [data-remis-surface='canvas'] {
   --mantine-color-text: var(--canvas-text-main) !important;
   --mantine-color-dimmed: var(--canvas-text-muted) !important;
+  --remis-content-text: var(--canvas-text-main);
   color: var(--canvas-text-main);
 }
 
@@ -322,18 +323,34 @@ html[data-theme] [data-remis-surface='canvas'] .mantine-Title-root {
 html[data-theme] [data-remis-surface='surface'] {
   --mantine-color-text: var(--surface-text-main) !important;
   --mantine-color-dimmed: var(--surface-text-muted) !important;
+  --remis-content-text: var(--surface-text-main);
   color: var(--surface-text-main);
 }
 
 html[data-theme] [data-remis-surface='paper'] {
   --mantine-color-text: var(--paper-text-main) !important;
   --mantine-color-dimmed: var(--paper-text-muted) !important;
+  --remis-content-text: var(--paper-text-main);
   color: var(--paper-text-main);
+}
+
+/*
+ * Semantic surfaces can be nested. A Paper title inside a Canvas must use the
+ * inner material's ink instead of inheriting the outer canvas heading color.
+ */
+html[data-theme] [data-remis-surface='paper'] .mantine-Title-root {
+  color: var(--remis-content-text) !important;
+  background: transparent !important;
+  -webkit-text-fill-color: currentColor !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
 }
 
 html[data-theme] [data-remis-surface='elevated'] {
   --mantine-color-text: var(--elevated-text-main) !important;
   --mantine-color-dimmed: var(--elevated-text-muted) !important;
+  --remis-content-text: var(--elevated-text-main);
   color: var(--elevated-text-main);
 }
 

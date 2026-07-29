@@ -110,7 +110,30 @@ html.byzantine .mantine-Card-root {
     /* Dark Brown Text */
     --mantine-color-text: #3e2723;
     --mantine-color-dimmed: #616161;
+    --remis-content-text: var(--paper-text-main, #3e2723);
     box-shadow: inset 0 0 10px rgba(184, 134, 11, 0.1);
+}
+
+/*
+ * Parchment surfaces need their own text contract. Status badges keep their
+ * semantic tint, but use dark ink so compact labels remain legible on pale
+ * backgrounds. Nested title precedence is handled by definitions.css.
+ */
+html.byzantine :is(.mantine-Paper-root, .mantine-Card-root)
+    :is(.mantine-Alert-title, .mantine-Alert-message) {
+    color: var(--remis-content-text, var(--paper-text-main, #3e2723)) !important;
+}
+
+html.byzantine :is(.mantine-Paper-root, .mantine-Card-root) .mantine-Title-root {
+    color: var(--remis-content-text, var(--paper-text-main, #3e2723)) !important;
+    background: none !important;
+    -webkit-text-fill-color: currentColor !important;
+    text-shadow: none !important;
+}
+
+html.byzantine :is(.mantine-Paper-root, .mantine-Card-root) .mantine-Badge-root {
+    color: var(--remis-content-text, var(--paper-text-main, #3e2723)) !important;
+    font-weight: 700;
 }
 
 html.byzantine .mantine-Input-input::placeholder,
