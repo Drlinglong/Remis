@@ -17,6 +17,10 @@ vi.mock('../utils/api', () => ({
   default: { get: vi.fn() },
 }));
 
+vi.mock('../context/TutorialContextCore', () => ({
+  useTutorial: () => ({ setPageContext: vi.fn() }),
+}));
+
 vi.mock('react-router', () => ({
   useNavigate: () => navigateMock,
 }));

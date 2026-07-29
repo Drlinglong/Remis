@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { Box, Group, Stack, Tabs, Text, ThemeIcon, Title } from '@mantine/core';
@@ -9,6 +9,7 @@ import {
     getNeologismReviewSession,
     updateNeologismReviewSession,
 } from './neologismReviewSession';
+import { useTutorial } from '../context/TutorialContextCore';
 
 /**
  * 新词审核页面
@@ -17,6 +18,7 @@ import {
 const NeologismReviewPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const { setPageContext } = useTutorial();
     const [activeTab, setActiveTab] = useState(
         () => getNeologismReviewSession().activeTab,
     );
@@ -24,6 +26,10 @@ const NeologismReviewPage = () => {
         () => getNeologismReviewSession().selectedProject,
     );
     const [courtRefreshToken, setCourtRefreshToken] = useState(0);
+
+    useEffect(() => {
+        setPageContext(activeTab === 'court' ? 'neologism-court' : 'neologism-mining');
+    }, [activeTab, setPageContext]);
 
     const handleActiveTabChange = useCallback((nextTab) => {
         const resolvedTab = nextTab || 'dashboard';
@@ -61,7 +67,7 @@ const NeologismReviewPage = () => {
             data-remis-surface="canvas"
             style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}
         >
-            <Group px="md" pt="sm" gap="xs" align="center" wrap="nowrap" style={{ flexShrink: 0 }}>
+            <Group id="neologism-page-header" px="md" pt="sm" gap="xs" align="center" wrap="nowrap" style={{ flexShrink: 0 }}>
                 <ThemeIcon size="md" radius="sm" variant="light" color="blue">
                     <IconGavel size={18} />
                 </ThemeIcon>
@@ -83,7 +89,7 @@ const NeologismReviewPage = () => {
                 radius="md"
                 style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: '1 1 0' }}
             >
-                <Box px="md" pt="xs" style={{ flexShrink: 0 }}>
+                <Box id="neologism-page-tabs" px="md" pt="xs" style={{ flexShrink: 0 }}>
                     <Tabs.List>
                         <Tabs.Tab value="dashboard" leftSection={<IconCpu size={16} />}>
                             {t('neologism_review.tab_mining')}
@@ -95,6 +101,7 @@ const NeologismReviewPage = () => {
                 </Box>
 
                 <Tabs.Panel
+                    id="neologism-mining-panel"
                     value="dashboard"
                     style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
                 >
@@ -106,6 +113,7 @@ const NeologismReviewPage = () => {
                 </Tabs.Panel>
 
                 <Tabs.Panel
+                    id="neologism-court-panel"
                     value="court"
                     style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}
                 >

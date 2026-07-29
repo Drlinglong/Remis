@@ -32,6 +32,10 @@ vi.mock('../../components/neologism/JudgmentCourt', () => ({
   ),
 }));
 
+vi.mock('../../context/TutorialContextCore', () => ({
+  useTutorial: () => ({ setPageContext: vi.fn() }),
+}));
+
 
 describe('NeologismReviewPage', () => {
   beforeEach(() => {

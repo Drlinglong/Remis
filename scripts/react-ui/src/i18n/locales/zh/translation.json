@@ -1096,10 +1096,12 @@
   "recent_activity_desc_file_update": "更新了文件状态",
   "recent_activity_type_translation_workflow": "翻译任务",
   "recent_activity_type_path_registered": "路径注册",
+  "recent_activity_type_source_advanced": "增量源基线更新",
   "recent_activity_desc_translation_started": "开始翻译项目",
   "recent_activity_desc_translation_completed": "翻译任务已成功完成",
   "recent_activity_desc_translation_failed": "翻译任务执行失败",
   "recent_activity_desc_path_registered": "已自动注册翻译输出路径",
+  "recent_activity_desc_source_advanced": "已将增量更新的源文件基线推进到最新版本。",
   "recent_activity_no_data": "暂无近期活动",
   "tutorial": {
     "next": "下一步",
@@ -1112,20 +1114,20 @@
     "api_key_warning_tooltip": "大模型 API 需要密钥才能正常工作。在大批量的翻译过程中密钥是必不可少的，如果您还没有准备好密钥，请前往 设置 -> API 设置 进行填写。",
     "home": {
       "welcome": {
-        "title": "欢迎来到 Remis!",
-        "desc": "我是您的智能本地化助手。让我们用几秒钟带您熟悉一下这个工作台。"
+        "title": "工作台概览",
+        "desc": "这里汇总当前工作、项目状态和近期活动。后台任务不会因为离开原页面而消失。"
       },
       "stats": {
-        "title": "核心数据看板",
-        "desc": "在这里您可以直观地看到所有项目的翻译进度、词数统计和活跃任务。"
+        "title": "正在进行与需要处理",
+        "desc": "这里就是首页任务队列。可以查看精确任务、标记已处理、刷新，或进入全部日志。"
       },
       "activity": {
         "title": "近期动态",
         "desc": "这里记录了您最近的所有操作，包括项目更新和笔记添加，方便随时回溯。"
       },
       "quick_links": {
-        "title": "快速入口",
-        "desc": "常用工具一键直达：无论是工坊描述生成还是词典管理。"
+        "title": "项目组合",
+        "desc": "图表按状态和游戏汇总本地项目，帮助你判断接下来应处理哪个项目。"
       },
       "navigation": {
         "title": "功能导航",

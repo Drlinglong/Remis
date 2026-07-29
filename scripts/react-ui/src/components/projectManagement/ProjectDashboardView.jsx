@@ -44,7 +44,7 @@ export function ProjectDashboardView({
 
   return (
     <div data-remis-surface="canvas" className={styles.projectCanvas} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <Paper data-remis-surface="paper" p="md" shadow="xs" className={styles.paperPanel} style={{ zIndex: 10 }}>
+      <Paper id="project-dashboard-header" data-remis-surface="paper" p="md" shadow="xs" className={styles.paperPanel} style={{ zIndex: 10 }}>
         <Group justify="space-between">
           <Group>
             <Button variant="subtle" onClick={() => setSelectedProjectId(null)} leftSection={<IconArrowLeft size={16} />}>
@@ -66,7 +66,7 @@ export function ProjectDashboardView({
         list: styles.tabsList,
         panel: styles.tabsPanel,
       }}>
-        <Tabs.List style={{ paddingLeft: '1rem', paddingTop: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
+        <Tabs.List id="project-dashboard-tabs" style={{ paddingLeft: '1rem', paddingTop: '0.5rem', background: 'rgba(0,0,0,0.1)' }}>
           <Tabs.Tab value="overview">{t('project_management.tabs_overview')}</Tabs.Tab>
           <Tabs.Tab value="validation" id="validation-tab-control">{t('project_management.tabs_validation')}</Tabs.Tab>
           {FEATURES.ENABLE_PROJECT_HISTORY && <Tabs.Tab value="history" id="history-tab-control">{t('project_management.tabs_history', 'Project History')}</Tabs.Tab>}
@@ -92,7 +92,7 @@ export function ProjectDashboardView({
           </Menu>
         </Tabs.List>
 
-        <Tabs.Panel value="overview" style={{ flex: 1, overflow: 'auto', padding: '1rem', minHeight: 0 }}>
+        <Tabs.Panel id="project-dashboard-overview" value="overview" style={{ flex: 1, overflow: 'auto', padding: '1rem', minHeight: 0 }}>
           {projectDetails ? (
             <ProjectOverview
               projectDetails={projectDetails}

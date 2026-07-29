@@ -28,6 +28,7 @@ import api from '../utils/api';
 import { taskDayBounds } from '../utils/taskDates';
 import { taskDetailRoute } from '../utils/taskRoutes';
 import { formatTaskDuration, taskDurationMs } from '../utils/taskTime';
+import { useTutorial } from '../context/TutorialContextCore';
 import styles from './TaskHistoryPage.module.css';
 
 const PAGE_SIZE = 100;
@@ -66,6 +67,7 @@ const formatTaskTime = (task, locale) => {
 export default function TaskHistoryPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { setPageContext } = useTutorial();
   const today = useMemo(() => toDateInput(new Date()), []);
   const [selectedDate, setSelectedDate] = useState(today);
   const [tasks, setTasks] = useState([]);
@@ -104,10 +106,14 @@ export default function TaskHistoryPage() {
     loadTasks();
   }, [loadTasks]);
 
+  useEffect(() => {
+    setPageContext('task-history');
+  }, [setPageContext]);
+
   return (
     <Box className={styles.page}>
       <Box className={styles.content}>
-        <Group justify="space-between" align="flex-end" gap="md" mb="xl">
+        <Group id="task-history-header" justify="space-between" align="flex-end" gap="md" mb="xl">
           <div>
             <Text size="sm" fw={700} c="dimmed" tt="uppercase">{t('task_history.eyebrow')}</Text>
             <Title order={1}>{t('task_history.title')}</Title>
@@ -149,6 +155,7 @@ export default function TaskHistoryPage() {
           </Alert>
         )}
 
+        <Box id="task-history-list">
         {loading ? (
           <Group justify="center" py={80}><Loader /></Group>
         ) : tasks.length === 0 ? (
@@ -227,6 +234,7 @@ export default function TaskHistoryPage() {
             )}
           </Stack>
         )}
+        </Box>
       </Box>
     </Box>
   );

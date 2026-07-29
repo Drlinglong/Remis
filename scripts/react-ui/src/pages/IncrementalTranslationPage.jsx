@@ -114,7 +114,7 @@ export const IncrementalTranslationPage = () => {
     };
 
     return (
-        <Container size="xl" py="xl" className={styles.incrementalPage}>
+        <Container data-remis-surface="canvas" size="xl" py="xl" className={styles.incrementalPage}>
             <Title order={2} mb="xl" className={styles.pageTitle}>
                 <IconRocket size={32} style={{ marginRight: 12, verticalAlign: 'middle' }} />
                 {t('incremental_translation.title')}

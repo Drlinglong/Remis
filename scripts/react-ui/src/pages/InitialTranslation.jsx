@@ -386,7 +386,7 @@ const InitialTranslation = () => {
   };
 
   return (
-    <Container fluid pt="xl" px={0} h="100vh" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxWidth: '100%', width: '100%' }}>
+    <Container data-remis-surface="canvas" fluid pt="xl" px={0} h="100vh" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxWidth: '100%', width: '100%' }}>
       <Box px="md" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         <Stack gap="xl" pb="xl" w="100%">
           <Group justify="space-between" align="flex-start" gap="md">

@@ -55,6 +55,10 @@ vi.mock('../context/TaskCenterContextCore', () => ({
   }),
 }));
 
+vi.mock('../context/TutorialContextCore', () => ({
+  useTutorial: () => ({ setPageContext: vi.fn() }),
+}));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: translateMock,

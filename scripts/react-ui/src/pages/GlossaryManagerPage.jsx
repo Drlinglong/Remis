@@ -32,7 +32,7 @@ const GlossaryManagerPage = () => {
     const { setPageContext } = useTutorial();
 
     useEffect(() => {
-        setPageContext('glossaryManager');
+        setPageContext('glossary-manager');
     }, [setPageContext]);
 
     // Hook 集中管理所有状态和逻辑

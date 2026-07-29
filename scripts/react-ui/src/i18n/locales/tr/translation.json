@@ -904,10 +904,12 @@
   "recent_activity_desc_file_update": "Bir dosya durumu güncellendi",
   "recent_activity_type_translation_workflow": "Çeviri",
   "recent_activity_type_path_registered": "Yol Kaydı",
+  "recent_activity_type_source_advanced": "Kaynak temeli güncellendi",
   "recent_activity_desc_translation_started": "Çeviri görevi başlatıldı",
   "recent_activity_desc_translation_completed": "Çeviri başarıyla tamamlandı",
   "recent_activity_desc_translation_failed": "Çeviri görevi başarısız oldu",
   "recent_activity_desc_path_registered": "Çeviri çıktı yolu otomatik olarak kaydedildi",
+  "recent_activity_desc_source_advanced": "Artımlı kaynak temeli en son sürüme ilerletildi.",
   "recent_activity_no_data": "Son etkinlik yok",
   "tutorial": {
     "next": "İleri",

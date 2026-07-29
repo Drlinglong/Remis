@@ -34,6 +34,13 @@ const RecentActivityList = ({ id, className, activities, loading }) => {
             return t('agent_workshop.history.incremental_translate_desc', metadata);
         }
 
+        if (
+            activity.type === 'source_advanced' &&
+            description === 'history.incremental_source_advanced_desc'
+        ) {
+            return t('recent_activity_desc_source_advanced');
+        }
+
         if (activity.type === 'file_update' && description.includes(' to ')) {
             return t('recent_activity_desc_status_updated', {
                 status: t(

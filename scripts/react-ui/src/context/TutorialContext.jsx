@@ -14,8 +14,11 @@ export const TutorialProvider = ({ children }) => {
         // Use provided pageName or fallback to current pageContext
         const targetPage = pageName || pageContext;
         const steps = getTutorialSteps(t, targetPage);
+        const visibleSteps = steps.filter((step) => (
+            typeof step.element !== 'string' || document.querySelector(step.element)
+        ));
 
-        if (!steps || steps.length === 0) {
+        if (visibleSteps.length === 0) {
             console.warn(`No tutorial steps found for page: ${targetPage}`);
             return;
         }
@@ -34,7 +37,7 @@ export const TutorialProvider = ({ children }) => {
             onDestroyed: () => {
                 setIsTourActive(false);
             },
-            steps: steps
+            steps: visibleSteps
         });
 
         setIsTourActive(true);

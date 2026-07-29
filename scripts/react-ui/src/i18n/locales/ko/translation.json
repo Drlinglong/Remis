@@ -909,10 +909,12 @@
   "recent_activity_desc_file_update": "파일 상태를 업데이트했습니다.",
   "recent_activity_type_translation_workflow": "번역",
   "recent_activity_type_path_registered": "경로 등록",
+  "recent_activity_type_source_advanced": "소스 기준 업데이트",
   "recent_activity_desc_translation_started": "번역 작업을 시작했습니다.",
   "recent_activity_desc_translation_completed": "번역이 성공적으로 완료되었습니다.",
   "recent_activity_desc_translation_failed": "번역 작업에 실패했습니다.",
   "recent_activity_desc_path_registered": "번역 출력 경로를 자동으로 등록했습니다.",
+  "recent_activity_desc_source_advanced": "증분 업데이트 소스 기준을 최신 버전으로 갱신했습니다.",
   "recent_activity_no_data": "최근 활동이 없습니다.",
   "tutorial": {
     "next": "다음",

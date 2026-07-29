@@ -18,12 +18,14 @@ import GlossaryHealthWorkbench from '../components/glossary/GlossaryHealthWorkbe
 import GlossaryHealthPenaltyBreakdown from '../components/glossary/GlossaryHealthPenaltyBreakdown';
 import api from '../utils/api';
 import { taskDetailRoute } from '../utils/taskRoutes';
+import { useTutorial } from '../context/TutorialContextCore';
 import styles from './GlossaryHealthReviewPage.module.css';
 
 const GlossaryHealthReviewPage = () => {
   const { taskId = '' } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { setPageContext } = useTutorial();
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -44,6 +46,10 @@ const GlossaryHealthReviewPage = () => {
   useEffect(() => {
     loadTask();
   }, [loadTask]);
+
+  useEffect(() => {
+    setPageContext('glossary-health-review');
+  }, [setPageContext]);
 
   const isGlossaryHealthTask = useMemo(() => (
     (task?.result?.types || []).includes('glossary_health_report')
@@ -79,7 +85,7 @@ const GlossaryHealthReviewPage = () => {
 
   return (
     <Box className={styles.page}>
-      <Box component="header" className={styles.header}>
+      <Box id="glossary-health-review-header" component="header" className={styles.header}>
         <Button
           variant="subtle"
           color="gray"
@@ -106,7 +112,7 @@ const GlossaryHealthReviewPage = () => {
         </Group>
       </Box>
 
-      <Box className={styles.workbench}>
+      <Box id="glossary-health-review-workbench" className={styles.workbench}>
         <GlossaryHealthWorkbench report={report} />
       </Box>
     </Box>

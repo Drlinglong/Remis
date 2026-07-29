@@ -909,10 +909,12 @@
   "recent_activity_desc_file_update": "ファイルのステータスを更新しました",
   "recent_activity_type_translation_workflow": "翻訳",
   "recent_activity_type_path_registered": "パス登録",
+  "recent_activity_type_source_advanced": "ソース基準を更新",
   "recent_activity_desc_translation_started": "翻訳タスクを開始しました",
   "recent_activity_desc_translation_completed": "翻訳が正常に完了しました",
   "recent_activity_desc_translation_failed": "翻訳タスクに失敗しました",
   "recent_activity_desc_path_registered": "翻訳出力パスを自動登録しました",
+  "recent_activity_desc_source_advanced": "増分更新のソース基準を最新バージョンへ進めました。",
   "recent_activity_no_data": "最近のアクティビティはありません",
   "tutorial": {
     "next": "次へ",

@@ -904,10 +904,12 @@
   "recent_activity_desc_file_update": "Zaktualizowano status pliku",
   "recent_activity_type_translation_workflow": "Tłumaczenie",
   "recent_activity_type_path_registered": "Rejestracja ścieżki",
+  "recent_activity_type_source_advanced": "Zaktualizowano bazę źródłową",
   "recent_activity_desc_translation_started": "Rozpoczęto zadanie tłumaczenia",
   "recent_activity_desc_translation_completed": "Tłumaczenie zakończone pomyślnie",
   "recent_activity_desc_translation_failed": "Zadanie tłumaczenia nie powiodło się",
   "recent_activity_desc_path_registered": "Automatycznie zarejestrowano ścieżkę wyjściową tłumaczenia",
+  "recent_activity_desc_source_advanced": "Bazę źródłową aktualizacji przyrostowej przesunięto do najnowszej wersji.",
   "recent_activity_no_data": "Brak ostatniej aktywności",
   "tutorial": {
     "next": "Dalej",

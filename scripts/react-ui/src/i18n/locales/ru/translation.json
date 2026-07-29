@@ -970,10 +970,12 @@
   "recent_activity_desc_file_update": "Обновлен статус файла",
   "recent_activity_type_translation_workflow": "Перевод",
   "recent_activity_type_path_registered": "Регистрация путей",
+  "recent_activity_type_source_advanced": "Исходная база обновлена",
   "recent_activity_desc_translation_started": "Начата задача перевода",
   "recent_activity_desc_translation_completed": "Перевод успешно завершен",
   "recent_activity_desc_translation_failed": "Задача перевода не удалась",
   "recent_activity_desc_path_registered": "Автоматически зарегистрирован путь для перевода",
+  "recent_activity_desc_source_advanced": "Исходная база инкрементального обновления переведена на последнюю версию.",
   "recent_activity_no_data": "Нет недавних действий",
   "tutorial": {
     "next": "Далее",

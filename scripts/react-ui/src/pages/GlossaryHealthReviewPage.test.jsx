@@ -16,6 +16,10 @@ vi.mock('../utils/api', () => ({
   },
 }));
 
+vi.mock('../context/TutorialContextCore', () => ({
+  useTutorial: () => ({ setPageContext: vi.fn() }),
+}));
+
 vi.mock('react-router', () => ({
   useNavigate: () => navigateMock,
   useParams: () => ({ taskId: 'health-task' }),

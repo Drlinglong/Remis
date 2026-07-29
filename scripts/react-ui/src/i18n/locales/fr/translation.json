@@ -908,10 +908,12 @@
   "recent_activity_desc_file_update": "Statut d'un fichier mis à jour",
   "recent_activity_type_translation_workflow": "Traduction",
   "recent_activity_type_path_registered": "Enregistrement du chemin",
+  "recent_activity_type_source_advanced": "Référence source actualisée",
   "recent_activity_desc_translation_started": "Tâche de traduction démarrée",
   "recent_activity_desc_translation_completed": "Traduction terminée avec succès",
   "recent_activity_desc_translation_failed": "Échec de la tâche de traduction",
   "recent_activity_desc_path_registered": "Chemin de sortie de la traduction enregistré automatiquement",
+  "recent_activity_desc_source_advanced": "La référence source incrémentale a été avancée vers la dernière version.",
   "recent_activity_no_data": "Aucune activité récente",
   "tutorial": {
     "next": "Suivant",

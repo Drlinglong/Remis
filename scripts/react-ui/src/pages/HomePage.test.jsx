@@ -8,7 +8,7 @@ import api from '../utils/api';
 const navigateMock = vi.fn();
 const startTourMock = vi.fn();
 const setPageContextMock = vi.fn();
-const openTaskCenterMock = vi.fn();
+const refreshTasksMock = vi.fn();
 let taskCenterState;
 
 vi.mock('@mantine/core', async () => {
@@ -31,6 +31,7 @@ const { MantineProvider } = await import('@mantine/core');
 vi.mock('../utils/api', () => ({
   default: {
     get: vi.fn(),
+    post: vi.fn(),
   },
 }));
 
@@ -101,7 +102,14 @@ vi.mock('../components/ActionCard', () => ({
 }));
 
 vi.mock('../components/tasks/TaskSummaryCard', () => ({
-  TaskSummaryCard: ({ task, onOpen }) => <button type="button" onClick={() => onOpen(task)}>{task.title}</button>,
+  TaskSummaryCard: ({ task, onHandle, onOpen }) => (
+    <div>
+      <button type="button" onClick={() => onOpen(task)}>{task.title}</button>
+      {onHandle && task.allowed_actions?.includes('archive_task') && (
+        <button type="button" onClick={() => onHandle(task)}>task_center.mark_handled</button>
+      )}
+    </div>
+  ),
 }));
 
 const renderWithProvider = (ui) =>
@@ -115,7 +123,7 @@ describe('HomePage', () => {
       activeCount: 0,
       attentionCount: 0,
       loading: false,
-      openTaskCenter: openTaskCenterMock,
+      refreshTasks: refreshTasksMock,
       tasks: [],
     };
     api.get.mockResolvedValue({
@@ -155,21 +163,32 @@ describe('HomePage', () => {
     expect(startTourMock).not.toHaveBeenCalled();
   });
 
-  it('foregrounds the task center when work is already running', async () => {
+  it('keeps task operations inside the live-work area', async () => {
     taskCenterState = {
       ...taskCenterState,
       activeCount: 1,
-      tasks: [{ task_id: 'task-1', title: 'Translation', status: 'running' }],
+      tasks: [{
+        task_id: 'task-1',
+        title: 'Translation',
+        status: 'failed',
+        allowed_actions: ['archive_task'],
+      }],
     };
+    api.post.mockResolvedValue({ data: {} });
 
     renderWithProvider(<HomePage />);
 
-    await waitFor(() => {
-      expect(screen.getByText('homepage_action_view_tasks')).toBeInTheDocument();
-    });
+    expect(await screen.findByRole('button', { name: 'task_center.view_history' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'button_refresh' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'task_center.title' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'homepage_action_review_tasks' })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'homepage_action_view_tasks' }));
-    expect(openTaskCenterMock).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'task_center.mark_handled' }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/api/tasks/task-1/archive');
+      expect(refreshTasksMock).toHaveBeenCalledWith({ quiet: true });
+    });
   });
 
   it('uses the surface contrast contract for the dark live-work card', async () => {

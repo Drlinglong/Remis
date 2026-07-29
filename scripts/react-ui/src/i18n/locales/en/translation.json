@@ -1042,10 +1042,12 @@
   "recent_activity_desc_file_update": "Updated a file status",
   "recent_activity_type_translation_workflow": "Translation",
   "recent_activity_type_path_registered": "Path Registration",
+  "recent_activity_type_source_advanced": "Source Baseline Updated",
   "recent_activity_desc_translation_started": "Started translation task",
   "recent_activity_desc_translation_completed": "Translation completed successfully",
   "recent_activity_desc_translation_failed": "Translation task failed",
   "recent_activity_desc_path_registered": "Auto-registered translation output path",
+  "recent_activity_desc_source_advanced": "Advanced the incremental source baseline to the latest version.",
   "recent_activity_no_data": "No recent activity",
   "tutorial": {
     "next": "Next",
@@ -1058,20 +1060,20 @@
     "api_key_warning_tooltip": "LLM APIs require a key to function correctly. This key is specialized for large-scale translation tasks. If you haven't prepared an API key yet, please go to Settings -> API Settings to enter it.",
     "home": {
       "welcome": {
-        "title": "Welcome to Remis!",
-        "desc": "I'm your smart localization assistant. Let's take a quick tour of the workbench."
+        "title": "Workbench overview",
+        "desc": "This page brings together current work, project status, and recent activity. Background tasks continue after you leave their source page."
       },
       "stats": {
-        "title": "Core Metrics",
-        "desc": "View translation progress, word counts, and active tasks at a glance."
+        "title": "In progress and needs attention",
+        "desc": "This is the homepage task queue. Open an exact task, mark it handled, refresh the list, or view all logs."
       },
       "activity": {
         "title": "Recent Activity",
         "desc": "Tracks your recent actions including project updates and notes."
       },
       "quick_links": {
-        "title": "Quick Access",
-        "desc": "One-click access to common tools like Workshop Generator and Glossary Manager."
+        "title": "Project portfolio",
+        "desc": "These charts group local projects by status and game so you can decide what to work on next."
       },
       "navigation": {
         "title": "Navigation",

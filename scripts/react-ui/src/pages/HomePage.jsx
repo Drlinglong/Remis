@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, Card, Grid, Group, Stack, Text, Title } from '@mantine/core';
-import { IconAlertTriangle, IconArrowRight, IconBriefcase, IconChecklist, IconPlayerPlay } from '@tabler/icons-react';
+import { IconAlertTriangle, IconBriefcase, IconChecklist, IconHistory, IconPlayerPlay, IconRefresh } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
@@ -20,10 +20,9 @@ const HomePage = () => {
   const navigate = useNavigate();
   const { setPageContext } = useTutorial();
   const {
-    activeCount,
     attentionCount,
     loading: tasksLoading,
-    openTaskCenter,
+    refreshTasks,
     tasks,
   } = useTaskCenter();
   const [greeting, setGreeting] = useState('');
@@ -36,6 +35,8 @@ const HomePage = () => {
   const [charts, setCharts] = useState({ project_status: [], project_distribution: [] });
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [handlingTaskId, setHandlingTaskId] = useState('');
+  const [handleError, setHandleError] = useState('');
 
   useEffect(() => {
     setPageContext((prev) => (prev === 'home' ? prev : 'home'));
@@ -75,34 +76,29 @@ const HomePage = () => {
     return [...actionableTasks.slice(0, 2), latestCompletedTask];
   }, [tasks]);
 
-  const nextAction = useMemo(() => {
-    if (attentionCount > 0) {
-      return { label: t('homepage_action_review_tasks'), onClick: openTaskCenter, icon: IconAlertTriangle };
-    }
-    if (activeCount > 0) {
-      return { label: t('homepage_action_view_tasks'), onClick: openTaskCenter, icon: IconChecklist };
-    }
-    if (stats.total_projects === 0) {
-      return { label: t('homepage_action_card_new_project'), onClick: () => navigate('/project-management'), icon: IconBriefcase };
-    }
-    return { label: t('homepage_action_continue_project'), onClick: () => navigate('/project-management'), icon: IconPlayerPlay };
-  }, [activeCount, attentionCount, navigate, openTaskCenter, stats.total_projects, t]);
-  const NextIcon = nextAction.icon;
-
   const openTask = (task) => navigate(taskDetailRoute(task.task_id));
+  const markHandled = async (task) => {
+    setHandlingTaskId(task.task_id);
+    setHandleError('');
+    try {
+      await api.post(`/api/tasks/${encodeURIComponent(task.task_id)}/archive`);
+      await refreshTasks({ quiet: true });
+    } catch (error) {
+      setHandleError(error.response?.data?.detail || error.message || t('task_center.handle_error'));
+    } finally {
+      setHandlingTaskId('');
+    }
+  };
 
   return (
-    <Box h="100vh" className={styles.pageScroll}>
+    <Box h="100vh" className={styles.pageScroll} data-remis-surface="canvas">
       <Box p={{ base: 'md', lg: 'xl' }} maw={1500} mx="auto">
-        <Group justify="space-between" align="flex-start" mb="lg" gap="md">
+        <Group id="homepage-workspace-header" align="flex-start" mb="lg" gap="md">
           <div>
             <Text size="sm" fw={700} c="dimmed" tt="uppercase">{t('homepage_workspace_eyebrow')}</Text>
             <Title order={1} className={styles.pageTitle}>{greeting}</Title>
             <Text c="dimmed" maw={680}>{t('homepage_workspace_subtitle')}</Text>
           </div>
-          <Button size="md" leftSection={<NextIcon size={18} />} onClick={nextAction.onClick}>
-            {nextAction.label}
-          </Button>
         </Group>
 
         {attentionCount > 0 && (
@@ -127,6 +123,7 @@ const HomePage = () => {
         <Grid gutter="md" mb="md">
           <Grid.Col span={{ base: 12, lg: 8 }}>
             <Card
+              id="homepage-live-work"
               withBorder
               radius="md"
               p="lg"
@@ -139,14 +136,38 @@ const HomePage = () => {
                   <Title order={3}>{t('homepage_live_work_title')}</Title>
                   <Text size="sm" c="dimmed">{t('homepage_live_work_subtitle')}</Text>
                 </div>
-                <Button variant="subtle" rightSection={<IconArrowRight size={15} />} onClick={openTaskCenter}>
-                  {t('task_center.title')}
-                </Button>
+                <Group gap={4} wrap="nowrap">
+                  <Button
+                    variant="subtle"
+                    size="compact-sm"
+                    leftSection={<IconHistory size={15} />}
+                    onClick={() => navigate('/task-history')}
+                  >
+                    {t('task_center.view_history')}
+                  </Button>
+                  <Button
+                    variant="subtle"
+                    size="compact-sm"
+                    leftSection={<IconRefresh size={15} />}
+                    loading={tasksLoading}
+                    onClick={() => refreshTasks()}
+                  >
+                    {t('button_refresh')}
+                  </Button>
+                </Group>
               </Group>
+              {handleError && <Alert color="red" mb="sm">{handleError}</Alert>}
               {visibleTasks.length > 0 ? (
                 <Stack gap="sm">
                   {visibleTasks.map((task) => (
-                    <TaskSummaryCard compact key={task.task_id} task={task} onOpen={openTask} />
+                    <TaskSummaryCard
+                      compact
+                      key={task.task_id}
+                      task={task}
+                      handling={handlingTaskId === task.task_id}
+                      onHandle={markHandled}
+                      onOpen={openTask}
+                    />
                   ))}
                 </Stack>
               ) : (
@@ -195,7 +216,7 @@ const HomePage = () => {
 
         <Grid gutter="md">
           <Grid.Col span={{ base: 12, lg: 8 }}>
-            <Card withBorder radius="md" p="lg" className={styles.glassCard}>
+            <Card id="homepage-project-portfolio" withBorder radius="md" p="lg" className={styles.glassCard}>
               <Title order={3} mb="md">{t('homepage_project_portfolio')}</Title>
               <Grid>
                 <Grid.Col span={{ base: 12, sm: 6 }}><ProjectStatusPieChart data={charts.project_status || []} /></Grid.Col>

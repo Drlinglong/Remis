@@ -5,7 +5,7 @@ export const getTutorialSteps = (t, pageName) => {
     const steps = {
         home: [
             {
-                element: '#welcome-banner',
+                element: '#homepage-workspace-header',
                 popover: {
                     title: t('tutorial.home.welcome.title'),
                     description: t('tutorial.home.welcome.desc'),
@@ -14,10 +14,19 @@ export const getTutorialSteps = (t, pageName) => {
                 }
             },
             {
-                element: '#stat-cards',
+                element: '#homepage-live-work',
                 popover: {
                     title: t('tutorial.home.stats.title'),
                     description: t('tutorial.home.stats.desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#homepage-project-portfolio',
+                popover: {
+                    title: t('tutorial.home.quick_links.title'),
+                    description: t('tutorial.home.quick_links.desc'),
                     side: "top",
                     align: 'center'
                 }
@@ -27,15 +36,6 @@ export const getTutorialSteps = (t, pageName) => {
                 popover: {
                     title: t('tutorial.home.activity.title'),
                     description: t('tutorial.home.activity.desc'),
-                    side: "left",
-                    align: 'start'
-                }
-            },
-            {
-                element: '#quick-links',
-                popover: {
-                    title: t('tutorial.home.quick_links.title'),
-                    description: t('tutorial.home.quick_links.desc'),
                     side: "left",
                     align: 'start'
                 }
@@ -264,7 +264,7 @@ export const getTutorialSteps = (t, pageName) => {
         ],
         'project-management-dashboard': [
             {
-                element: '#project-stats-grid',
+                element: '#project-dashboard-header',
                 popover: {
                     title: t('tutorial.project_management.stats.title'),
                     description: t('tutorial.project_management.stats.desc'),
@@ -273,30 +273,21 @@ export const getTutorialSteps = (t, pageName) => {
                 }
             },
             {
-                element: '#start-translation-btn',
-                popover: {
-                    title: t('tutorial.project_management.start.title'),
-                    description: t('tutorial.project_management.start.desc'),
-                    side: "left",
-                    align: 'center'
-                }
-            },
-            {
-                element: '#manage-paths-btn',
-                popover: {
-                    title: t('tutorial.project_management.paths.title'),
-                    description: t('tutorial.project_management.paths.desc'),
-                    side: "bottom",
-                    align: 'end'
-                }
-            },
-            {
-                element: '#kanban-tab-control',
+                element: '#project-dashboard-tabs',
                 popover: {
                     title: t('tutorial.project_management.tabs.title'),
                     description: t('tutorial.project_management.tabs.desc'),
                     side: "bottom",
                     align: 'center'
+                }
+            },
+            {
+                element: '#project-dashboard-overview',
+                popover: {
+                    title: t('tutorial.project_management.paths.title'),
+                    description: t('tutorial.project_management.paths.desc'),
+                    side: "top",
+                    align: 'start'
                 }
             },
             {
@@ -440,7 +431,7 @@ export const getTutorialSteps = (t, pageName) => {
                 }
             },
             {
-                element: '#incremental-target-languages',
+                element: '#incremental-project-details-card',
                 popover: {
                     title: t('tutorial.incremental_translation.languages.title'),
                     description: t('tutorial.incremental_translation.languages.desc'),
@@ -449,25 +440,7 @@ export const getTutorialSteps = (t, pageName) => {
                 }
             },
             {
-                element: '#incremental-folder-picker',
-                popover: {
-                    title: t('tutorial.incremental_translation.folder.title'),
-                    description: t('tutorial.incremental_translation.folder.desc'),
-                    side: "top",
-                    align: 'start'
-                }
-            },
-            {
-                element: '#incremental-embedded-workshop',
-                popover: {
-                    title: t('tutorial.incremental_translation.workshop.title'),
-                    description: t('tutorial.incremental_translation.workshop.desc'),
-                    side: "top",
-                    align: 'start'
-                }
-            },
-            {
-                element: '#incremental-run-prescan-btn',
+                element: '#incremental-scan-btn',
                 popover: {
                     title: t('tutorial.incremental_translation.prescan.title'),
                     description: t('tutorial.incremental_translation.prescan.desc'),
@@ -660,6 +633,115 @@ export const getTutorialSteps = (t, pageName) => {
                     description: t('tutorial.proofreading.validate.desc'),
                     side: "left",
                     align: 'start'
+                }
+            }
+        ],
+        'neologism-mining': [
+            {
+                element: '#neologism-page-tabs',
+                popover: {
+                    title: t('neologism_review.title'),
+                    description: t('neologism_review.subtitle'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#neologism-mining-panel',
+                popover: {
+                    title: t('neologism_review.tab_mining'),
+                    description: t('neologism_review.mining.select_files_desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            }
+        ],
+        'neologism-court': [
+            {
+                element: '#neologism-page-tabs',
+                popover: {
+                    title: t('neologism_review.title'),
+                    description: t('neologism_review.subtitle'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#neologism-court-panel',
+                popover: {
+                    title: t('neologism_review.tab_court'),
+                    description: t('neologism_review.court.final_translation_desc'),
+                    side: "top",
+                    align: 'center'
+                }
+            }
+        ],
+        'task-history': [
+            {
+                element: '#task-history-header',
+                popover: {
+                    title: t('task_history.title'),
+                    description: t('task_history.subtitle'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#task-history-list',
+                popover: {
+                    title: t('task_history.day_heading', { date: '' }),
+                    description: t('task_history.empty_description'),
+                    side: "top",
+                    align: 'center'
+                }
+            }
+        ],
+        'task-detail': [
+            {
+                element: '#task-detail-header',
+                popover: {
+                    title: t('task_detail.task_info'),
+                    description: t('task_center.subtitle'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#task-detail-summary',
+                popover: {
+                    title: t('task_detail.user_summary'),
+                    description: t('task_detail.detailed_result_below'),
+                    side: "top",
+                    align: 'center'
+                }
+            },
+            {
+                element: '#task-detail-technical-log',
+                popover: {
+                    title: t('task_detail.technical_logs'),
+                    description: t('task_detail.newest_first'),
+                    side: "top",
+                    align: 'start'
+                }
+            }
+        ],
+        'glossary-health-review': [
+            {
+                element: '#glossary-health-review-header',
+                popover: {
+                    title: t('glossary_health_workbench'),
+                    description: t('glossary_health_workbench_desc'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#glossary-health-review-workbench',
+                popover: {
+                    title: t('glossary_health_editable_values'),
+                    description: t('glossary_health_editable_values_help'),
+                    side: "top",
+                    align: 'center'
                 }
             }
         ]

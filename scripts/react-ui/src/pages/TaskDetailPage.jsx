@@ -42,6 +42,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 
 import { useTaskCenter } from '../context/TaskCenterContextCore';
+import { useTutorial } from '../context/TutorialContextCore';
 import GlossaryHealthPenaltyBreakdown from '../components/glossary/GlossaryHealthPenaltyBreakdown';
 import api from '../utils/api';
 import { getGameBadgeColor } from '../utils/gamePresentation';
@@ -128,6 +129,7 @@ export default function TaskDetailPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { openTaskCenter, refreshTasks } = useTaskCenter();
+  const { setPageContext } = useTutorial();
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -153,6 +155,10 @@ export default function TaskDetailPage() {
   useEffect(() => {
     loadTask();
   }, [loadTask]);
+
+  useEffect(() => {
+    setPageContext('task-detail');
+  }, [setPageContext]);
 
   const taskStatus = task?.status;
 
@@ -322,7 +328,7 @@ export default function TaskDetailPage() {
   return (
     <Box className={styles.page}>
       <Box className={styles.content}>
-        <Group justify="space-between" align="flex-start" gap="md" className={styles.header}>
+        <Group id="task-detail-header" justify="space-between" align="flex-start" gap="md" className={styles.header}>
           <Stack gap={6}>
             <Text size="sm" fw={700} c="dimmed" tt="uppercase">{t('task_detail.eyebrow')}</Text>
             <Group gap="sm" align="center">
@@ -385,7 +391,7 @@ export default function TaskDetailPage() {
 
         <Grid gutter="md" align="start">
           <Grid.Col span={{ base: 12, lg: 8 }}>
-            <Card withBorder radius="md" p="lg" mb="md" data-remis-surface="surface">
+            <Card id="task-detail-summary" withBorder radius="md" p="lg" mb="md" data-remis-surface="surface">
               <Title order={3} mb="md">{t('task_detail.user_summary')}</Title>
               <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
                 <Box>
@@ -408,6 +414,7 @@ export default function TaskDetailPage() {
             </Card>
 
             <details
+              id="task-detail-technical-log"
               className={styles.technicalLogDetails}
               data-testid="task-event-log"
               open={logExpanded}

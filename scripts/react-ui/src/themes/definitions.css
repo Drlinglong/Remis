@@ -303,6 +303,22 @@ html[data-theme] [data-remis-surface='canvas'] {
   color: var(--canvas-text-main);
 }
 
+/*
+ * Legacy themes decorate every Mantine title globally. On light canvas
+ * surfaces that creates doubled black shadows and theme-colored text with poor
+ * contrast. Canvas headings are structural UI labels, so keep them calm and
+ * let hero/banner headings opt into decoration outside this surface contract.
+ */
+html[data-theme] [data-remis-surface='canvas'] .mantine-Title-root {
+  color: var(--canvas-text-main) !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  display: block;
+  padding: 0;
+  text-shadow: none !important;
+}
+
 html[data-theme] [data-remis-surface='surface'] {
   --mantine-color-text: var(--surface-text-main) !important;
   --mantine-color-dimmed: var(--surface-text-muted) !important;

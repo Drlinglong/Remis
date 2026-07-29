@@ -908,10 +908,12 @@
   "recent_activity_desc_file_update": "Dateistatus aktualisiert",
   "recent_activity_type_translation_workflow": "Ubersetzung",
   "recent_activity_type_path_registered": "Pfadregistrierung",
+  "recent_activity_type_source_advanced": "Quellbasis aktualisiert",
   "recent_activity_desc_translation_started": "Übersetzungsvorgang gestartet",
   "recent_activity_desc_translation_completed": "Übersetzung erfolgreich abgeschlossen",
   "recent_activity_desc_translation_failed": "Übersetzungsvorgang fehlgeschlagen",
   "recent_activity_desc_path_registered": "Übersetzungsausgabepfad automatisch registriert",
+  "recent_activity_desc_source_advanced": "Die inkrementelle Quellbasis wurde auf die neueste Version gesetzt.",
   "recent_activity_no_data": "Keine letzten Aktivitäten",
   "tutorial": {
     "next": "Weiter",

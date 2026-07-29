@@ -904,10 +904,12 @@
   "recent_activity_desc_file_update": "Atualizou o status de um arquivo",
   "recent_activity_type_translation_workflow": "Tradução",
   "recent_activity_type_path_registered": "Registro de Caminho",
+  "recent_activity_type_source_advanced": "Base de origem atualizada",
   "recent_activity_desc_translation_started": "Iniciou tarefa de tradução",
   "recent_activity_desc_translation_completed": "Tradução concluída com sucesso",
   "recent_activity_desc_translation_failed": "Falha na tarefa de tradução",
   "recent_activity_desc_path_registered": "Caminho de saída da tradução registrado automaticamente",
+  "recent_activity_desc_source_advanced": "A base de origem incremental foi avançada para a versão mais recente.",
   "recent_activity_no_data": "Nenhuma atividade recente",
   "tutorial": {
     "next": "Próximo",

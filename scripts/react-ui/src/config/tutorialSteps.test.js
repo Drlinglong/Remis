@@ -34,4 +34,30 @@ describe('tutorialSteps', () => {
       expect(getTutorialSteps(t, pageName).length).toBeGreaterThan(0);
     });
   });
+
+  it('covers the task, glossary health, and neologism modules added to the current navigation', () => {
+    [
+      'neologism-mining',
+      'neologism-court',
+      'task-history',
+      'task-detail',
+      'glossary-health-review',
+    ].forEach((pageName) => {
+      expect(getTutorialSteps(t, pageName).length).toBeGreaterThan(0);
+    });
+  });
+
+  it('targets the current homepage and project dashboard structure', () => {
+    expect(getTutorialSteps(t, 'home').map((step) => step.element)).toEqual(expect.arrayContaining([
+      '#homepage-workspace-header',
+      '#homepage-live-work',
+      '#homepage-project-portfolio',
+      '#recent-activity',
+    ]));
+    expect(getTutorialSteps(t, 'project-management-dashboard').map((step) => step.element)).toEqual(expect.arrayContaining([
+      '#project-dashboard-header',
+      '#project-dashboard-tabs',
+      '#project-dashboard-overview',
+    ]));
+  });
 });

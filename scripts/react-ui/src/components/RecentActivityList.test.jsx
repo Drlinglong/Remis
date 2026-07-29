@@ -32,4 +32,25 @@ describe('RecentActivityList', () => {
     expect(screen.getByText(/recent_activity_desc_translate/)).toBeInTheDocument();
     expect(container.querySelector('[data-remis-surface="surface"]')).toBeInTheDocument();
   });
+
+  it('localizes incremental source baseline activity codes', () => {
+    render(
+      <MantineProvider>
+        <RecentActivityList
+          activities={[{
+            id: 'activity-source-advanced',
+            title: 'Demo project',
+            type: 'source_advanced',
+            description: 'history.incremental_source_advanced_desc',
+            timestamp: '2026-07-22T00:00:00Z',
+          }]}
+          loading={false}
+        />
+      </MantineProvider>,
+    );
+
+    expect(screen.getByText(/recent_activity_desc_source_advanced/)).toBeInTheDocument();
+    expect(screen.getByText('recent_activity_type_source_advanced')).toBeInTheDocument();
+    expect(screen.queryByText(/history\.incremental_source_advanced_desc/)).not.toBeInTheDocument();
+  });
 });

@@ -73,7 +73,7 @@ export function ProjectListView({
         </BackgroundImage>
       </Box>
 
-      <Box className={styles.projectContent}>
+      <Box className={styles.projectContent} data-remis-surface="canvas">
         {viewMode === 'active' && (
           <Box className={styles.actionsSection} data-remis-surface="canvas">
             <Box>
