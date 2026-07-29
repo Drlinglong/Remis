@@ -4,7 +4,7 @@ Remis is a Windows-first desktop application with a Python backend, a React fron
 
 ## Development setup
 
-Follow the [development setup guide](docs/zh/developer/development-setup.md) for Python, Node.js, and Rust prerequisites.
+Follow the [development setup guide](docs/zh/developer/development-setup.md) for Python, Node.js, and Rust prerequisites. The React Router 8 toolchain requires Node.js 22.22.0 or newer.
 
 ## Before opening a pull request
 

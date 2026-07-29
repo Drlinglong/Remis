@@ -7,7 +7,7 @@ SaaS. The homepage uses `The operating system for AI localization.` as the categ
 statement, then distinguishes local project control from cloud-or-local model
 inference. Future RAG and agent claims must retain visible delivery status.
 The in-app Copilot remains an in-development roadmap item and is not presented
-as shipped in v3.0.7. The standalone Aventine page presents the first
+as shipped in v3.1.0. The standalone Aventine page presents the first
 reproducible translation-recipe tournament and judge-calibration results.
 
 ## Local development

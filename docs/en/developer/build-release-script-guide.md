@@ -50,6 +50,41 @@ Recommended structure:
 
 ## Usage
 
+## Database policy for the 3.1.0 desktop installer
+
+The current Tauri installer is built by `scripts/build_pipeline.py`. First-run
+database setup has three layers:
+
+1. The user's AppData database stores local projects, tasks, Model Arena
+   history, and user glossaries. Release builds are forbidden from reading it.
+2. `assets/skeleton.sqlite` is the checked-in, reviewable release input. The
+   build exports only the default glossary data plus the three approved demo
+   projects, their file index, and their glossary bindings.
+3. On first launch, `scripts/core/db_initializer.py` creates the current schema
+   and imports the generated `seed_data_main.sql` and
+   `seed_data_projects.sql`.
+
+The only demo projects allowed in an installer are:
+
+- `Project Remis - Demo Mod -EU5`
+- `Project Remis - Demo Mod - Stellaris`
+- `蕾姆丝计划 - 演示Mod - 维多利亚3`
+
+The build also checks `assets/mods_cache_skeleton.sqlite` and requires it to
+contain exactly the same three demos. Extra or missing projects fail the build.
+Activity logs, project history, watch snapshots, background tasks, and Model
+Arena history are never exported into first-run seed SQL.
+
+To add a future demo, update the `DEMO_PROJECTS` allowlist in
+`scripts/utils/export_seed_data.py`, then explicitly run:
+
+```powershell
+python scripts\db\generate_skeleton.py --from-development
+```
+
+That command overwrites checked-in release assets and therefore requires a
+database diff and test review before commit. Normal release builds never run it.
+
 ### Prerequisites
 
 1.  **Conda Environment**: The script assumes it is run within an activated Conda/Python environment. Please ensure Conda is installed on your system and that the `CONDA_ROOT` and `ENV_NAME` variables are correctly configured in the script.

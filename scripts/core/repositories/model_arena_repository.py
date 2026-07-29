@@ -488,6 +488,77 @@ class ModelArenaRepository:
             raise KeyError(f"Unknown model arena run: {run_id}")
         return result
 
+    def claim_run_transition(
+        self,
+        run_id: str,
+        *,
+        expected_statuses: Iterable[str],
+        status: str,
+        **changes: Any,
+    ) -> Optional[dict[str, Any]]:
+        """Atomically move a run out of an expected state.
+
+        A ``None`` result means the run still exists but another caller already
+        changed its status. This compare-and-set boundary prevents duplicate
+        paid model execution across concurrent HTTP/background workers.
+        """
+        expected = sorted(
+            {
+                str(expected_status)
+                for expected_status in expected_statuses
+                if expected_status
+            }
+        )
+        if not expected:
+            raise ValueError("expected_statuses must not be empty")
+
+        payload = {"status": status, **changes}
+        assignments: list[str] = []
+        parameters: list[Any] = []
+        for public_name, value in payload.items():
+            column_name = (
+                "settings_json" if public_name == "settings" else public_name
+            )
+            if column_name not in self._RUN_COLUMNS:
+                raise ValueError(
+                    f"Unsupported model arena run field: {public_name}"
+                )
+            assignments.append(f"{column_name} = ?")
+            parameters.append(
+                self._json_value(
+                    {public_name: value},
+                    "settings_json",
+                    "settings",
+                    {},
+                )
+                if column_name == "settings_json"
+                else value
+            )
+
+        expected_placeholders = ", ".join("?" for _ in expected)
+        parameters.extend((run_id, *expected))
+        with self._lock, self._connect() as connection:
+            cursor = connection.execute(
+                "UPDATE model_arena_runs SET "
+                f"{', '.join(assignments)} "
+                f"WHERE run_id = ? AND status IN ({expected_placeholders})",
+                parameters,
+            )
+            if cursor.rowcount == 0:
+                exists = connection.execute(
+                    "SELECT 1 FROM model_arena_runs WHERE run_id = ?",
+                    (run_id,),
+                ).fetchone()
+                if exists is None:
+                    raise KeyError(f"Unknown model arena run: {run_id}")
+                return None
+            connection.commit()
+
+        claimed = self.get_run(run_id)
+        if claimed is None:  # pragma: no cover - guarded by the update
+            raise KeyError(f"Unknown model arena run: {run_id}")
+        return claimed
+
     def insert_requests(self, requests: Iterable[dict[str, Any]]) -> None:
         with self._lock, self._connect() as connection:
             for request in requests:

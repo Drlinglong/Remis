@@ -20,9 +20,9 @@
 - `docs/zh/developer/build-release-script-guide.md`
 - `docs/zh/developer/feature_flags.md`
 
-### 产品 Copilot 设计（#132，未实现）
+### 产品 Copilot 设计与隐藏工程预览（#132）
 
-面向「用户帮助 + 结构化操作建议」，**不是**开发者编码助手。普通用户使用 Tauri 打包客户端，Copilot 不能改 Remis 源码。
+面向「用户帮助 + 结构化操作建议」，**不是**开发者编码助手。普通用户使用 Tauri 打包客户端，Copilot 不能改 Remis 源码。3.1.0 保留其代码与测试作为工程预览，但常规桌面 UI 和打包 API 路由仍然关闭。
 
 - `docs/zh/copilot/README.md` — 入口与三类材料划分
 - `docs/zh/copilot/rag-corpus-boundary.md` — 用户 Micro-RAG 白名单/黑名单（开发者文档默认不进索引）

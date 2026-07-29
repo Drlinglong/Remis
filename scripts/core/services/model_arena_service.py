@@ -52,6 +52,10 @@ ANONYMOUS_STATUSES = {"queued", "running", "voting", "partial_failed"}
 _PROMPT_GLOSSARY_LOCK = threading.RLock()
 
 
+class ModelArenaRunClaimError(RuntimeError):
+    """Raised when another worker already owns an arena execution."""
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -520,7 +524,23 @@ class ModelArenaService:
         settings.update(
             {"start_idempotency_key": idempotency_key, "task_id": task_id}
         )
-        self.repository.update_run(run_id, status="queued", settings=settings)
+        claimed = self.repository.claim_run_transition(
+            run_id,
+            expected_statuses={"draft"},
+            status="queued",
+            settings=settings,
+        )
+        if claimed is None:
+            latest = self._require_run(run_id)
+            latest_settings = dict(latest.get("settings") or {})
+            if latest_settings.get("start_idempotency_key") == idempotency_key:
+                return {
+                    "run_id": run_id,
+                    "task_id": latest_settings.get("task_id"),
+                    "status": latest["status"],
+                    "idempotent_replay": True,
+                }
+            raise ValueError("This arena run has already been started")
         self.repository.append_event(run_id, {"event_type": "run_queued"})
         return {
             "run_id": run_id,
@@ -530,12 +550,16 @@ class ModelArenaService:
         }
 
     def execute_run(self, run_id: str) -> dict[str, Any]:
-        run = self._require_run(run_id)
-        if run["status"] not in {"queued", "running"}:
-            raise ValueError("Arena run is not queued for execution")
-        self.repository.update_run(
-            run_id, status="running", started_at=run.get("started_at") or _utc_now()
+        run = self.repository.claim_run_transition(
+            run_id,
+            expected_statuses={"queued"},
+            status="running",
+            started_at=_utc_now(),
         )
+        if run is None:
+            raise ModelArenaRunClaimError(
+                "Arena run is not queued for execution"
+            )
         self.repository.append_event(run_id, {"event_type": "execution_started"})
         return self._execute_bundle(
             run,
@@ -548,15 +572,6 @@ class ModelArenaService:
         self, run_id: str, *, idempotency_key: str, task_id: str
     ) -> dict[str, Any]:
         run = self._require_run(run_id)
-        if run["status"] not in {"failed", "partial_failed"}:
-            raise ValueError("Only failed contestants can be retried")
-        failed_ids = [
-            item["contestant_id"]
-            for item in run["contestants"]
-            if item.get("status") == "failed"
-        ]
-        if not failed_ids:
-            raise ValueError("This arena run has no failed contestants")
         settings = dict(run.get("settings") or {})
         retries = dict(settings.get("retry_tasks") or {})
         if idempotency_key in retries:
@@ -567,13 +582,40 @@ class ModelArenaService:
                 "status": run["status"],
                 "idempotent_replay": True,
             }
+        if run["status"] not in {"failed", "partial_failed"}:
+            raise ValueError("Only failed contestants can be retried")
+        failed_ids = [
+            item["contestant_id"]
+            for item in run["contestants"]
+            if item.get("status") == "failed"
+        ]
+        if not failed_ids:
+            raise ValueError("This arena run has no failed contestants")
         retries[idempotency_key] = {
             "task_id": task_id,
             "contestant_ids": failed_ids,
         }
         settings["retry_tasks"] = retries
         settings["active_retry_key"] = idempotency_key
-        self.repository.update_run(run_id, status="queued", settings=settings)
+        claimed = self.repository.claim_run_transition(
+            run_id,
+            expected_statuses={"failed", "partial_failed"},
+            status="queued",
+            settings=settings,
+        )
+        if claimed is None:
+            latest = self._require_run(run_id)
+            latest_retries = dict(
+                (latest.get("settings") or {}).get("retry_tasks") or {}
+            )
+            if idempotency_key in latest_retries:
+                return {
+                    "run_id": run_id,
+                    "task_id": latest_retries[idempotency_key]["task_id"],
+                    "status": latest["status"],
+                    "idempotent_replay": True,
+                }
+            raise ValueError("This arena run already has a queued retry")
         self.repository.append_event(
             run_id,
             {
@@ -589,9 +631,13 @@ class ModelArenaService:
         }
 
     def execute_retry(self, run_id: str) -> dict[str, Any]:
-        run = self._require_run(run_id)
-        if run["status"] not in {"queued", "running"}:
-            raise ValueError("Arena retry is not queued")
+        run = self.repository.claim_run_transition(
+            run_id,
+            expected_statuses={"queued"},
+            status="running",
+        )
+        if run is None:
+            raise ModelArenaRunClaimError("Arena retry is not queued")
         settings = dict(run.get("settings") or {})
         retry_key = settings.get("active_retry_key")
         retry = (settings.get("retry_tasks") or {}).get(retry_key, {})
@@ -601,7 +647,6 @@ class ModelArenaService:
         ]
         if not contestants:
             raise ValueError("Arena retry has no frozen failed contestant subset")
-        self.repository.update_run(run_id, status="running")
         self.repository.append_event(
             run_id,
             {
@@ -787,9 +832,14 @@ class ModelArenaService:
         missing = len(sample_ids - voted_ids)
         if missing:
             raise ValueError(f"{missing} sample vote(s) are still required")
-        self.repository.update_run(
-            run_id, status="completed", completed_at=_utc_now()
+        completed = self.repository.claim_run_transition(
+            run_id,
+            expected_statuses={"voting", "partial_failed"},
+            status="completed",
+            completed_at=_utc_now(),
         )
+        if completed is None:
+            raise ValueError("Arena run is no longer open for judging")
         self.repository.append_event(
             run_id,
             {"event_type": "identities_revealed", "metrics": {"vote_count": len(voted_ids)}},

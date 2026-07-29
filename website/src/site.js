@@ -79,7 +79,7 @@ export const productLayers = [
     eyebrow: 'KNOWLEDGE LAYER',
     status: 'In development',
     title: 'A contextual Copilot that knows where you are',
-    body: 'The 3.0.7 branch adds session memory, route-aware help, agent-selected read tools, and persistent task handoff across the Remis interface.',
+    body: 'The 3.1.0 branch adds session memory, route-aware help, agent-selected read tools, and persistent task handoff across the Remis interface.',
     code: 'observe → retrieve → explain → hand off',
   },
   {
@@ -160,7 +160,7 @@ export const copilotLayers = [
     eyebrow: 'READ-ONLY KNOWLEDGE LAYER',
     name: 'Contextual help and read tools',
     status: 'In development',
-    description: 'The 3.0.7 branch grounds answers in the current route, packaged product guides, session history, and agent-selected read-only skills.',
+    description: 'The 3.1.0 branch grounds answers in the current route, packaged product guides, session history, and agent-selected read-only skills.',
   },
   {
     eyebrow: 'SCHEMA-BOUND REASONING LAYER',
@@ -346,13 +346,13 @@ export const roadmapPhases = [
   {
     status: 'In development',
     title: 'Contextual, session-based Help Copilot',
-    version: 'v3.0.8',
+    version: 'Post-v3.1.0',
     summary: 'Route-aware help, packaged product knowledge, persistent sessions, agent-selected read tools, and a floating assistant across the app.',
   },
   {
     status: 'In development',
     title: 'Approval-gated localization workflows',
-    version: 'v3.0.8',
+    version: 'Post-v3.1.0',
     summary: 'PydanticAI turns user intent into typed workflow plans. Remis validates, previews, and waits for inline approval before handing off work.',
   },
   {

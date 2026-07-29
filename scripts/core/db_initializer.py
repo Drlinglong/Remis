@@ -106,7 +106,11 @@ def seed_main_database(db_path, resource_dir):
         project_count = import_seed_inserts(
             conn,
             seed_projects,
-            {"projects", "project_files", "project_history", "activity_log"},
+            {
+                "projects",
+                "project_files",
+                "project_glossary_bindings",
+            },
         )
         conn.commit()
         init_logger.info(

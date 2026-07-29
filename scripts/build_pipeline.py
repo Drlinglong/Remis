@@ -209,14 +209,32 @@ def main():
         print(f"[INIT] Creating {binaries_dir}")
         os.makedirs(binaries_dir)
 
-    # Step 1.5: Export Seed Data
-    print_step("Step 1.5: Export Seed Data")
+    # Step 1.5: Export reviewed release seed data.
+    # Never read the developer's live AppData databases during a release build.
+    print_step("Step 1.5: Export Reviewed Seed Data")
     export_script = os.path.join(scripts_dir, "utils", "export_seed_data.py")
-    run_command(f"python \"{export_script}\"", cwd=project_root)
-    
+    release_seed_db = os.path.join(project_root, "assets", "skeleton.sqlite")
+    cache_skeleton_db = os.path.join(
+        project_root,
+        "assets",
+        "mods_cache_skeleton.sqlite",
+    )
+    run_command(
+        [
+            env_python,
+            export_script,
+            "--source-db",
+            release_seed_db,
+            "--cache-db",
+            cache_skeleton_db,
+        ],
+        cwd=project_root,
+        shell=False,
+    )
+
     seed_main = os.path.join(project_root, "data", "seed_data_main.sql")
     seed_projects = os.path.join(project_root, "data", "seed_data_projects.sql")
-    
+
     if not os.path.exists(seed_main):
         print(f"[ERROR] Main seed data not found at {seed_main}")
         sys.exit(1)
@@ -224,10 +242,6 @@ def main():
         print(f"[ERROR] Projects seed data not found at {seed_projects}")
         sys.exit(1)
 
-    # Step 1.6: Generate Skeleton DB
-    print_step("Step 1.6: Generate Skeleton DB")
-    skeleton_script = os.path.join(scripts_dir, "db", "generate_skeleton.py")
-    run_command(f"python \"{skeleton_script}\"", cwd=project_root)
     print_step("Step 2: Freeze the Backend (PyInstaller)")
     
     web_server_script = os.path.join(scripts_dir, "web_server.py")
@@ -266,15 +280,8 @@ def main():
     else:
          print(f"[WARNING] Config files not found at {config_dir}")
     
-    # [NEW] Add Skeleton DB
-    skeleton_db = os.path.join(project_root, "assets", "skeleton.sqlite")
-    if os.path.exists(skeleton_db):
-         add_data_args += f' --add-data "{skeleton_db};assets"'
-    else:
-         print(f"[WARNING] Skeleton DB not found at {skeleton_db}")
-
-    # [NEW] Add Mods Cache Skeleton DB
-    cache_skeleton_db = os.path.join(project_root, "assets", "mods_cache_skeleton.sqlite")
+    # Add the reviewed three-demo archive cache. The main skeleton.sqlite is a
+    # release-input artifact only; first-run initialization uses the seed SQL.
     if os.path.exists(cache_skeleton_db):
          add_data_args += f' --add-data "{cache_skeleton_db};assets"'
     else:

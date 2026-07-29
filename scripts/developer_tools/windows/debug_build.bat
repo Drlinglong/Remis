@@ -4,6 +4,11 @@ setlocal
 
 for %%I in ("%~dp0\..\..\..") do set "PROJECT_ROOT=%%~fI"
 
+python "%PROJECT_ROOT%\scripts\utils\export_seed_data.py" ^
+  --source-db "%PROJECT_ROOT%\assets\skeleton.sqlite" ^
+  --cache-db "%PROJECT_ROOT%\assets\mods_cache_skeleton.sqlite"
+if errorlevel 1 exit /b 1
+
 pyinstaller --clean --onefile --name web_server ^
   --hidden-import uvicorn ^
   --hidden-import fastapi ^
@@ -19,6 +24,5 @@ pyinstaller --clean --onefile --name web_server ^
   --add-data "%PROJECT_ROOT%\data\seed_data_projects.sql;data" ^
   --add-data "%PROJECT_ROOT%\data\lang;data/lang" ^
   --add-data "%PROJECT_ROOT%\docs\zh\user-guides;docs/zh/user-guides" ^
-  --add-data "%PROJECT_ROOT%\assets\skeleton.sqlite;assets" ^
   --add-data "%PROJECT_ROOT%\assets\mods_cache_skeleton.sqlite;assets" ^
   "%PROJECT_ROOT%\scripts\web_server.py"

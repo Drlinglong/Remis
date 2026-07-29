@@ -1,3 +1,4 @@
+import argparse
 import os
 import re
 import sqlite3
@@ -9,6 +10,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 sys.path.insert(0, PROJECT_ROOT)
 from scripts import app_settings
 from scripts.core.file_parser import extract_translatable_content
+from scripts.utils.export_seed_data import DEMO_PROJECTS_BY_ID
 
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
 ASSETS_DIR = os.path.join(PROJECT_ROOT, 'assets')
@@ -18,14 +20,15 @@ MODS_CACHE_DB = app_settings.MODS_CACHE_DB_PATH  # DEV mods_cache.sqlite
 OUTPUT_DB = os.path.join(ASSETS_DIR, 'skeleton.sqlite')
 OUTPUT_CACHE_DB = os.path.join(ASSETS_DIR, 'mods_cache_skeleton.sqlite')  # NEW
 
-# Demo Projects to Keep
-# 1. Project Remis Stellaris Demo Mod
-# 2. 蕾姆丝计划演示mod：最后的罗马人 (Vic3)
-KEEP_PROJECT_IDS = [
-    '6049331a-433d-4d09-9205-165c3aad6010', 
-    'a525f596-6c71-43fe-ade2-52c9205a2720',
-    'ae507ae2-2a08-44e3-9c3d-caa4445911f2'
-]
+KEEP_PROJECT_IDS = list(DEMO_PROJECTS_BY_ID)
+SKELETON_DATA_TABLE_ALLOWLIST = {
+    "glossaries",
+    "entries",
+    "projects",
+    "project_files",
+    "project_glossary_bindings",
+    "schema_migrations",
+}
 
 DEMO_ROOT_PLACEHOLDER = "{{BUNDLED_DEMO_ROOT}}"
 TRANS_ROOT_PLACEHOLDER = "{{BUNDLED_TRANSLATION_ROOT}}"
@@ -57,6 +60,27 @@ def ensure_assets_dir():
     if not os.path.exists(ASSETS_DIR):
         print(f"[INFO] Creating assets directory: {ASSETS_DIR}")
         os.makedirs(ASSETS_DIR)
+
+
+def clear_non_release_runtime_data(cursor):
+    """Keep schema, but empty every table that is not an approved seed table."""
+    cursor.execute("PRAGMA foreign_keys=OFF")
+    table_names = [
+        row[0]
+        for row in cursor.execute(
+            """
+            SELECT name FROM sqlite_master
+            WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+            """
+        ).fetchall()
+    ]
+    for table_name in table_names:
+        if table_name in SKELETON_DATA_TABLE_ALLOWLIST:
+            continue
+        quoted_name = str(table_name).replace('"', '""')
+        cursor.execute(f'DELETE FROM "{quoted_name}"')
+    cursor.connection.commit()
+    cursor.execute("PRAGMA foreign_keys=ON")
 
 
 def sanitize_project_file_paths(cursor):
@@ -186,6 +210,7 @@ def create_skeleton():
     
     conn = sqlite3.connect(OUTPUT_DB)
     cursor = conn.cursor()
+    clear_non_release_runtime_data(cursor)
     
     # 2. Attach Projects DB
     if not os.path.exists(PROJECTS_DB):
@@ -194,6 +219,22 @@ def create_skeleton():
         
     print(f"[ATTACH] Attaching {PROJECTS_DB}")
     cursor.execute("ATTACH DATABASE ? AS src", (PROJECTS_DB,))
+
+    placeholders = ", ".join("?" for _ in KEEP_PROJECT_IDS)
+    source_demo_rows = cursor.execute(
+        f"""
+        SELECT project_id, name
+        FROM src.projects
+        WHERE project_id IN ({placeholders})
+        """,
+        KEEP_PROJECT_IDS,
+    ).fetchall()
+    if {row[0]: row[1] for row in source_demo_rows} != DEMO_PROJECTS_BY_ID:
+        raise RuntimeError(
+            "Development database does not contain the exact approved demo "
+            "project identities. Update the release seed policy deliberately "
+            "before adding or renaming a demo."
+        )
     
     # 3. Create Tables (if not exist in Glossary DB, which they shouldn't)
     # Copied schema from db_initializer.py
@@ -245,13 +286,21 @@ def create_skeleton():
     cursor.execute("DELETE FROM main.projects")
     cursor.execute("DELETE FROM main.project_files")
     cursor.execute("DELETE FROM main.activity_log")
+    cursor.execute("DELETE FROM main.project_glossary_bindings")
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_history'")
     if cursor.fetchone():
         cursor.execute("DELETE FROM main.project_history")
     
     # Projects
     # We need to handle potential missing columns in SRC by selecting literals if needed.
-    
+
+    src_tables = [
+        row[0]
+        for row in cursor.execute(
+            "SELECT name FROM src.sqlite_master WHERE type='table'"
+        ).fetchall()
+    ]
+
     # Check if columns exist in src
     src_columns = [row[1] for row in cursor.execute("PRAGMA src.table_info(projects)").fetchall()]
     
@@ -290,31 +339,16 @@ def create_skeleton():
         SELECT * FROM src.project_files
         WHERE project_id IN (?, ?, ?)
     """, (KEEP_PROJECT_IDS[0], KEEP_PROJECT_IDS[1], KEEP_PROJECT_IDS[2]))
-    
-    # Logs - Do we keep them? Let's keep them for history or maybe clear them.
-    # User said "Clean user data" - maybe clean logs?
-    # Keeping logs for Demo might be nice to show "history". Let's keep them for these projects.
-    
-    # Check if activity_log exists in src
-    src_tables = [row[0] for row in cursor.execute("SELECT name FROM src.sqlite_master WHERE type='table'").fetchall()]
-    
-    if 'activity_log' in src_tables:
-        cursor.execute("""
-            INSERT INTO main.activity_log
-            SELECT * FROM src.activity_log
-            WHERE project_id IN (?, ?, ?)
-        """, (KEEP_PROJECT_IDS[0], KEEP_PROJECT_IDS[1], KEEP_PROJECT_IDS[2]))
-    else:
-        print("[WARN] activity_log table not found in source DB. Skipping logs.")
 
-    if 'project_history' in src_tables:
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_history'")
-        if cursor.fetchone():
-            cursor.execute("""
-                INSERT INTO main.project_history
-                SELECT * FROM src.project_history
-                WHERE project_id IN (?, ?, ?)
-            """, (KEEP_PROJECT_IDS[0], KEEP_PROJECT_IDS[1], KEEP_PROJECT_IDS[2]))
+    if "project_glossary_bindings" in src_tables:
+        cursor.execute(
+            """
+            INSERT INTO main.project_glossary_bindings
+            SELECT * FROM src.project_glossary_bindings
+            WHERE project_id IN (?, ?, ?)
+            """,
+            (KEEP_PROJECT_IDS[0], KEEP_PROJECT_IDS[1], KEEP_PROJECT_IDS[2]),
+        )
 
     conn.commit()
     
@@ -470,4 +504,20 @@ def create_skeleton():
         print(f"[SUCCESS] Mods Cache Skeleton Generated (Filtered) at {OUTPUT_CACHE_DB}")
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description=(
+            "Refresh repository release assets from development databases. "
+            "Normal release builds do not run this command."
+        )
+    )
+    parser.add_argument(
+        "--from-development",
+        action="store_true",
+        help="Acknowledge that reviewed release assets will be overwritten.",
+    )
+    args = parser.parse_args()
+    if not args.from_development:
+        parser.error(
+            "Refusing to read development databases without --from-development."
+        )
     create_skeleton()

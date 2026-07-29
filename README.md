@@ -112,14 +112,14 @@ Remis treats localization as a stateful AI engineering problem, not a single mod
 | **LLM orchestration** | Provider abstraction across hosted APIs and local OpenAI-compatible runtimes, with configurable batching, concurrency, RPM limits, retries, and resumable execution |
 | **Context engineering** | Project metadata, mod description, global and game glossaries, translation memory, parent context, validator diagnostics, and task state are assembled at the point of use |
 | **Structured generation** | Typed Pydantic/PydanticAI contracts, schema validation, native function calling, constrained tool selection, provider response parsing, and explicit failure propagation |
-| **Agentic AI workflows** | A localhost Agent API for Codex plus an in-development Copilot architecture with model-selected read tools, typed workflow planning, approval-gated execution, persistent sessions, and task handoff |
-| **Reliability layer** | Deterministic Paradox-format validators, repair loops, checkpoint recovery, incremental reuse, WebSocket task recovery, and human review |
+| **Agentic AI workflows** | A localhost Agent API for Codex, task-backed Agent Workshop repairs, and an in-development Copilot architecture with model-selected read tools, typed workflow planning, approval-gated execution, persistent sessions, and task handoff |
+| **Reliability layer** | Deterministic Paradox-format validators, repair loops, checkpoint recovery, incremental reuse, persisted Task Center history, WebSocket and REST task recovery, and human review |
 | **LLMOps, evaluation & observability** | Frozen translation and repair fixtures exercise production prompts, glossary injection, parsers, validators, latency, structured-output failures, and over-editing behavior |
 | **Desktop product engineering** | Tauri 2 + React 19 + FastAPI + SQLite, packaged as a real Windows application rather than a notebook or hosted demo |
 
 ## Approval-gated Agent System
 
-Remis 3.0.7 ships a localhost Agent API and a repository-local operator Skill so Codex can inspect, plan, validate, and monitor localization through Remis instead of bypassing the product with direct filesystem edits.
+Remis 3.1.0 ships a localhost Agent API and a repository-local operator Skill so Codex can inspect, plan, validate, and monitor localization through Remis instead of bypassing the product with direct filesystem edits.
 
 1. **Preflight** — the Agent checks the running Remis version, provider readiness, and the latest official GitHub Release before starting a workflow.
 2. **Inspect and plan** — read-only endpoints return bounded project state, validation summaries, persisted job state, and explicit `allowed_actions`.
@@ -128,7 +128,7 @@ Remis 3.0.7 ships a localhost Agent API and a repository-local operator Skill so
 
 This is bounded agency, not invisible autonomy. Read operations are allowlisted. Write operations remain server-owned, explicit, expiring, and approval-gated.
 
-The in-product Remis Copilot and its PydanticAI planner are an engineering preview. Their UI and packaged API route are intentionally hidden in 3.0.7 while startup hardening and end-to-end validation continue; they are planned for the next release.
+The in-product Remis Copilot and its PydanticAI planner remain an engineering preview. Their UI and packaged API route are intentionally hidden in 3.1.0 while startup hardening and end-to-end validation continue.
 
 ### Use Remis with Codex
 
@@ -157,8 +157,8 @@ That boundary matters more than bolting a vector database onto the product. Remi
 
 | Knowledge layer | Status |
 |---|---|
-| Model-selected help packs and source-aware answers | **Engineering preview; hidden in 3.0.7** |
-| Route context, session memory, and bounded project read tools | **Engineering preview; hidden in 3.0.7** |
+| Model-selected help packs and source-aware answers | **Engineering preview; hidden in 3.1.0** |
+| Route context, session memory, and bounded project read tools | **Engineering preview; hidden in 3.1.0** |
 | Curated Micro-RAG corpus contract and indexing boundaries | **Architecture complete** |
 | Vector retrieval and retrieval evaluation over the user corpus | **Next adapter** |
 | Autonomous write access to arbitrary user files | **Explicitly out of scope** |
@@ -196,6 +196,8 @@ The trust boundary is deliberate: models may propose, translate, classify, and r
 | **Professional proofreading** | Side-by-side source/translation review, patch-based editing, history, diagnostics, and human approval |
 | **Neologism Tribunal** | Mine source-grounded terminology candidates, review duplicates and meanings, then promote approved terms into project glossaries |
 | **Agent Workshop** | Scan localization structure, diagnose format failures, and run bounded repair workflows |
+| **Task Center** | Follow active work, inspect persisted run history and item-level outcomes, and return to the exact project or review step |
+| **Model Arena** | Compare two or three configured models anonymously on the same source sample before choosing a translation recipe |
 | **Incremental updates** | Detect source changes, reuse approved work, resume interrupted tasks, and avoid retranslating unchanged entries |
 | **One-click deployment** | Build and install a localization mod with the load-order rules Paradox games require |
 | **International interface** | 11 UI languages across the desktop application |

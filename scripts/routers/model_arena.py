@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from scripts import app_settings
+from scripts.core.services.model_arena_service import ModelArenaRunClaimError
 from scripts.schemas.model_arena import (
     CreateModelArenaRunRequest,
     ModelArenaVoteRequest,
@@ -72,6 +73,24 @@ def _run_arena_task(run_id: str, task_id: str, retry: bool = False) -> None:
                 "percent": 100,
             },
             summary={"run_id": run_id, "arena_status": run_status},
+        )
+    except ModelArenaRunClaimError as exc:
+        logger.warning(
+            "Model arena task %s did not acquire run %s: %s",
+            task_id,
+            run_id,
+            exc,
+        )
+        task_state.update_task(
+            task_id,
+            status="failed",
+            append_log="Model arena execution was already claimed by another task.",
+            progress={"stage": "Not started", "percent": 100},
+            attention_reason=(
+                "Another task already owns this arena execution. "
+                "Open the existing arena task instead."
+            ),
+            attention_reason_code="arena_run_already_claimed",
         )
     except Exception as exc:
         logger.exception("Model arena task %s failed", task_id)

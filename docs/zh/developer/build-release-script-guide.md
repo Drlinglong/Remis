@@ -50,6 +50,37 @@
 
 ## 使用方法
 
+## 3.1.0 桌面安装包的数据库规则
+
+当前 Tauri 桌面安装包由 `scripts/build_pipeline.py` 构建。数据库初始化分成三层：
+
+1. 用户日常运行 Remis 的数据库位于 AppData，只保存本机项目、任务、Arena
+   历史和用户术语表。发布构建禁止读取它。
+2. `assets/skeleton.sqlite` 是仓库内、可审查的发布输入。构建脚本从中只导出
+   默认术语表数据，以及三个固定 Demo 项目、文件索引和项目术语表绑定。
+3. 新安装首次启动时，`scripts/core/db_initializer.py` 创建当前数据库结构，
+   再导入构建生成的 `seed_data_main.sql` 和 `seed_data_projects.sql`。
+
+三个允许随安装包发布的 Demo 是：
+
+- `Project Remis - Demo Mod -EU5`
+- `Project Remis - Demo Mod - Stellaris`
+- `蕾姆丝计划 - 演示Mod - 维多利亚3`
+
+构建会同时检查 `assets/mods_cache_skeleton.sqlite`，并要求其中恰好也是这三个
+Demo。任何额外或缺失项目都会使构建失败。活动日志、项目历史、监控快照、后台
+任务和 Model Arena 历史不会进入初始化 SQL。
+
+需要新增 Demo 时，先修改 `scripts/utils/export_seed_data.py` 中的
+`DEMO_PROJECTS` 白名单，再显式运行：
+
+```powershell
+python scripts\db\generate_skeleton.py --from-development
+```
+
+该命令会覆盖仓库内的发布资产，因此必须检查数据库差异和测试结果后再提交。
+普通发布构建不会自动运行它。
+
 ### 前提条件
 
 1.  **Conda 环境**：脚本假设在一个已激活的 Conda/Python 环境中运行。请确保您的系统已安装 Conda，并且 `CONDA_ROOT` 和 `ENV_NAME` 变量在脚本中配置正确。

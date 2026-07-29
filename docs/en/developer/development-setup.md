@@ -7,6 +7,7 @@ This guide explains how to set up a local development environment for Project Re
 - [Git](https://git-scm.com/)
 - [Conda / Miniconda](https://docs.conda.io/en/latest/miniconda.html)
 - [NVM for Windows](https://github.com/coreybutler/nvm-windows) (or `nvm` on macOS/Linux)
+- [Rust](https://rustup.rs/) (required only for Tauri shell development and release builds)
 
 ## Quick Start
 
@@ -33,52 +34,41 @@ pip install -r requirements.txt
 ```bash
 cd scripts/react-ui
 
-# Install the specified Node.js version
-nvm install v20.12.2
-nvm use v20.12.2
+# React Router 8 / Vite 8 require Node.js 22.22.0 or newer
+nvm install 22.22.0
+nvm use 22.22.0
 
 # Install frontend dependencies
-npm install
+npm ci
 ```
 
 ### 4. Start Development Servers
 
 Use the one-click launcher script:
 
-```bash
-./scripts/developer_tools/windows/run-dev.bat
+```powershell
+.\scripts\developer_tools\windows\run-dev.bat
 ```
 
 This will start both:
-- **Backend**: FastAPI (port 8000)
-- **Frontend**: Vite React (port 5173)
+- **Backend**: FastAPI (`127.0.0.1:1453` by default; the launcher selects an available port if needed)
+- **Frontend**: Vite React / Tauri development UI (port 5174 by default)
 
-Or start manually:
-
-**Terminal 1 - Backend:**
-```bash
-conda activate local_factory
-uvicorn scripts.web_server:app --reload --port 8000
-```
-
-**Terminal 2 - Frontend:**
-```bash
-cd scripts/react-ui
-npm run dev
-```
+Use this launcher for development checkouts. It selects the intended Python
+environment, backend port, and frontend proxy configuration together.
 
 ## Directory Structure
 
 ```
-remis-mod-factory/
-├── src-tauri/                     # Tauri desktop shell (Rust)
+Remis/
 ├── scripts/
 │   ├── react-ui/                  # React frontend
+│   │   └── src-tauri/             # Tauri desktop shell (Rust)
 │   ├── web_server.py              # FastAPI backend entry point
 │   ├── routers/                   # API routes
-│   ├── services/                  # Business service layer
 │   ├── core/                      # Core translation engine
 │   └── workflows/                 # Translation workflows
+├── website/                       # Product website
 ├── data/                          # Data directory
 ├── tests/                         # Test suite
 └── docs/                          # Documentation
@@ -86,18 +76,21 @@ remis-mod-factory/
 
 ## Building the Desktop App
 
-Building the Tauri desktop app requires the Rust toolchain:
+Check the Tauri desktop shell locally:
 
-```bash
-# Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# Build
-npm run tauri build
+```powershell
+cargo fmt --manifest-path scripts/react-ui/src-tauri/Cargo.toml -- --check
+New-Item -ItemType File -Force scripts/react-ui/src-tauri/web_server-x86_64-pc-windows-msvc.exe | Out-Null
+cargo check --locked --manifest-path scripts/react-ui/src-tauri/Cargo.toml
+Remove-Item scripts/react-ui/src-tauri/web_server-x86_64-pc-windows-msvc.exe
 ```
+
+The placeholder is only for `cargo check`. A release build must use the
+repository build pipeline to create the real Python sidecar, health-check the
+packaged backend, and produce the Windows installer.
 
 ## Related Documentation
 
-- [Project Technical Documentation](../main.md)
-- [Frontend Development Guide](../frontend/)
-- [API Documentation](../../technical/)
+- [Documentation Center](../../documentation-center.md)
+- [Local CI Guide](../../zh/developer/ci-setup.md)
+- [Release Build Script Guide](./build-release-script-guide.md)

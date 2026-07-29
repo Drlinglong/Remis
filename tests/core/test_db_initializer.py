@@ -48,6 +48,10 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         VALUES ('proj_1', 'Demo Project', 'eu5', '{{DEMO_ROOT}}/demos/Test_Project_Remis_EU5', '{{BUNDLED_TRANSLATION_ROOT}}/zh-CN-Test_Project_Remis_EU5', 'en', 'active', '2026-01-01T00:00:00', '2026-01-01T00:00:00', NULL, NULL, NULL);
         INSERT INTO project_files (file_id, project_id, file_path, status, original_key_count, line_count, file_type)
         VALUES ('file_1', 'proj_1', '{{DEMO_ROOT}}/demos/Test_Project_Remis_EU5/main_menu/localization/english/demo.yml', 'todo', 10, 20, 'source');
+        INSERT INTO project_glossary_bindings (project_id, glossary_id)
+        VALUES ('proj_1', 1);
+        INSERT INTO activity_log (log_id, project_id, type, description, timestamp)
+        VALUES ('must_not_import', 'proj_1', 'private', 'not release seed data', '2026-01-01');
         COMMIT;
         """,
     )
@@ -99,6 +103,12 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
 
     cursor.execute("SELECT COUNT(*) FROM entries")
     assert cursor.fetchone()[0] == 1
+
+    cursor.execute("SELECT project_id, glossary_id FROM project_glossary_bindings")
+    assert cursor.fetchone() == ("proj_1", 1)
+
+    cursor.execute("SELECT COUNT(*) FROM activity_log")
+    assert cursor.fetchone()[0] == 0
     conn.close()
 
     assert (app_data_dir / "my_translation" / "zh-CN-Test_Project_Remis_EU5" / "demo.yml").exists()

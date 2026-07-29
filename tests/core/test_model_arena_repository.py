@@ -1,4 +1,6 @@
 import sqlite3
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
@@ -271,3 +273,33 @@ def test_repository_rejects_secrets_in_contestant_config_snapshot(tmp_path):
         repository.create_run(_draft(), contestants, _samples())
 
     assert repository.get_run("run-1") is None
+
+
+def test_claim_run_transition_allows_only_one_concurrent_owner(tmp_path):
+    db_path = tmp_path / "arena.sqlite"
+    migrate_main_database(str(db_path))
+    _create_project(db_path)
+    creator = ModelArenaRepository(str(db_path))
+    creator.create_run(_draft(), _contestants(), _samples())
+    creator.update_run("run-1", status="queued")
+
+    repositories = [
+        ModelArenaRepository(str(db_path)),
+        ModelArenaRepository(str(db_path)),
+    ]
+    barrier = threading.Barrier(2)
+
+    def claim(repository):
+        barrier.wait(timeout=5)
+        return repository.claim_run_transition(
+            "run-1",
+            expected_statuses={"queued"},
+            status="running",
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(claim, repositories))
+
+    assert sum(result is not None for result in results) == 1
+    assert sum(result is None for result in results) == 1
+    assert creator.get_run("run-1")["status"] == "running"
