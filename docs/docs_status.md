@@ -26,6 +26,8 @@
 - `docs/zh/developer/glossary-contract.md` — 当前优先级、数据副作用、实现差距与测试门禁
 - `docs/zh/product-intent-model-arena.md` — 小样选模、人工投票、确认与禁止副作用
 - `docs/zh/developer/model-arena-contract.md` — 抽样、执行、匿名、历史、导出与当前边界
+- `docs/zh/product-intent-task-center.md` — 后台任务收件箱、处理语义与主页信息架构边界
+- `docs/zh/developer/task-center-contract.md` — 持久化状态、详情摘要、历史与 Agent 消费契约
 
 ### 当前协作与维护
 
@@ -57,6 +59,7 @@
 - `docs/zh/user-guides/agent-workshop.md`
 - `docs/zh/user-guides/glossary.md`
 - `docs/zh/user-guides/model-arena.md`
+- `docs/zh/user-guides/task-center.md`
 - `docs/zh/user-guides/logs-and-diagnostics.md`
 - `docs/zh/user-guides/error-catalog.md`
 - `docs/zh/user-guides/faq.md`（已按客户端工作流修订）
