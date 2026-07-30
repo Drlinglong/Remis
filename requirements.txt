@@ -15,7 +15,7 @@ flake8
 
 # Refactoring Dependencies
 pydantic
-pydantic-ai-slim[openai]==2.9.0
+pydantic-ai-slim[openai]==2.21.0
 json-repair
 python-dotenv
 requests
