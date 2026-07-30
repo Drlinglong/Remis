@@ -482,7 +482,7 @@ const GlossaryOverview = ({
                                             </Text>
                                         </Table.Td>
                                         <Table.Td className={styles.actionCell}>
-                                            <Group gap="xs" wrap="nowrap">
+                                            <Group className={styles.actionGroup} gap="xs" wrap="nowrap">
                                                 <Button
                                                     size="xs"
                                                     variant="light"

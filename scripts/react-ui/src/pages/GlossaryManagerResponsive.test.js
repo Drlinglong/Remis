@@ -36,6 +36,15 @@ describe('Glossary Manager responsive layout contract', () => {
             /\.actionCell\s*{[^}]*position:\s*sticky[^}]*right:\s*0/s
         );
         expect(overviewCss).toMatch(
+            /\.actionCell\s*{[^}]*width:\s*280px[^}]*min-width:\s*280px/s
+        );
+        expect(overviewCss).toMatch(
+            /\.actionGroup\s*{[^}]*min-width:\s*max-content/s
+        );
+        expect(overviewCss).toMatch(
+            /\.actionGroup\s*>\s*\*\s*{[^}]*flex:\s*0 0 auto/s
+        );
+        expect(overviewCss).toMatch(
             /@media \(max-width: 1100px\)[\s\S]*\.projectCell,[\s\S]*\.updatedCell\s*{[^}]*display:\s*none/s
         );
         expect(overviewCss).toMatch(
