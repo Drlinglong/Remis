@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActionIcon, Badge, Box, Menu, Stack, Text, UnstyledButton, rem } from '@mantine/core';
+import { ActionIcon, Badge, Box, Group, Menu, Stack, Text, UnstyledButton, rem } from '@mantine/core';
 import {
     IconHome,
     IconBook,
@@ -7,7 +7,6 @@ import {
     IconVocabulary,
     IconChecklist,
     IconBriefcase,
-    IconGitBranch,
     IconTools,
     IconSettings,
     IconCrane,
@@ -20,43 +19,39 @@ import {
     IconRadar,
     IconPin,
     IconPinFilled,
-    IconMessageChatbot,
     IconActivity,
     IconChevronRight,
-    IconDots,
+    IconShieldCheck,
     IconTrophy,
 } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import styles from './Layout.module.css';
 import { FEATURES } from '../../config/features';
+import {
+    getNavigationSections,
+    getPageById,
+    isPageEnabled,
+} from '../../config/pageRegistry';
 import { useTutorial } from '../../context/TutorialContextCore';
 import { useTaskCenter } from '../../context/TaskCenterContextCore';
 
-const primaryNavItems = [
-    { icon: IconHome, label: 'page_title_home', path: '/' },
-    { icon: IconBriefcase, label: 'page_title_project_management', path: '/project-management' },
-];
-
-const workflowItems = [
-    { icon: IconLanguage, label: 'page_title_translation', path: '/translation' },
-    ...(FEATURES.ENABLE_INCREMENTAL_TRANSLATION ? [{ icon: IconRocket, label: 'incremental_translation.title', path: '/incremental-translation' }] : []),
-    { icon: IconTrophy, label: 'page_title_model_arena', path: '/model-arena' },
-];
-
-const qualityNavItems = [
-    { icon: IconChecklist, label: 'page_title_proofreading', path: '/proofreading' },
-    { icon: IconVocabulary, label: 'page_title_glossary_manager', path: '/glossary-manager' },
-];
-
-const moreNavItems = [
-    { icon: IconRadar, label: 'nav_mod_monitor', path: '/project-tracking' },
-    ...(FEATURES.ENABLE_AGENT_WORKSHOP ? [{ icon: IconRobot, label: 'page_title_agent_workshop', path: '/agent-workshop' }] : []),
-    ...(FEATURES.ENABLE_NEOLOGISM_TRIBUNAL ? [{ icon: IconSparkles, label: 'neologism_review.title', path: '/neologism-review' }] : []),
-    ...(FEATURES.ENABLE_REMIS_COPILOT ? [{ icon: IconMessageChatbot, label: 'page_title_copilot', path: '/copilot', id: 'nav-copilot' }] : []),
-    { icon: IconTools, label: 'page_title_tools', path: '/tools', id: 'nav-tools' },
-    ...(FEATURES.ENABLE_DOCS ? [{ icon: IconBook, label: 'page_title_docs', path: '/docs' }] : []),
-];
+const NAV_ICONS = {
+    home: IconHome,
+    book: IconBook,
+    language: IconLanguage,
+    vocabulary: IconVocabulary,
+    checklist: IconChecklist,
+    briefcase: IconBriefcase,
+    tools: IconTools,
+    settings: IconSettings,
+    sparkles: IconSparkles,
+    rocket: IconRocket,
+    robot: IconRobot,
+    radar: IconRadar,
+    trophy: IconTrophy,
+    'shield-check': IconShieldCheck,
+};
 
 const developmentItems = [
     { icon: IconCode, label: 'page_title_under_development', path: '/under-development' },
@@ -64,7 +59,7 @@ const developmentItems = [
     { icon: IconBulb, label: 'page_title_in_conception', path: '/in-conception' },
 ];
 
-function NavbarLink({ icon, label, active, onClick, expanded, id, className, badge }) {
+function NavbarLink({ icon, label, active, onClick, expanded, id, className, badge, nested = false }) {
     const { t } = useTranslation();
     const LinkIcon = icon;
 
@@ -77,15 +72,19 @@ function NavbarLink({ icon, label, active, onClick, expanded, id, className, bad
             title={expanded ? undefined : t(label)}
             style={{
                 width: '100%',
-                padding: '10px', /* equivalent to theme.spacing.xs approximately */
+                padding: nested ? '7px 8px 7px 24px' : '10px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: expanded ? 'flex-start' : 'center',
             }}
         >
-            <LinkIcon className={styles.icon} style={{ width: rem(22), height: rem(22) }} stroke={1.5} />
+            <LinkIcon
+                className={styles.icon}
+                style={{ width: rem(nested ? 18 : 22), height: rem(nested ? 18 : 22) }}
+                stroke={1.5}
+            />
             {expanded && (
-                <Text size="sm" ml="md" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'var(--font-body)' }}>
+                <Text size="sm" ml={nested ? 'sm' : 'md'} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'var(--font-body)' }}>
                     {t(label)}
                 </Text>
             )}
@@ -95,8 +94,47 @@ function NavbarLink({ icon, label, active, onClick, expanded, id, className, bad
     );
 }
 
-function NavbarMenu({ active, expanded, icon, items, label, navigate }) {
+function toNavigationItem(page) {
+    return {
+        ...page.navigation,
+        icon: NAV_ICONS[page.navigation.icon],
+        path: page.routePaths[0],
+        match: page.match,
+    };
+}
+
+function NavbarMenu({ active, expanded, icon, items, label, navigate, pathname }) {
     const { t } = useTranslation();
+    const SectionIcon = icon;
+
+    if (expanded) {
+        return (
+            <Box className={styles.navSection}>
+                <Group
+                    gap="xs"
+                    className={styles.navSectionHeader}
+                    data-active={active || undefined}
+                >
+                    <SectionIcon className={styles.icon} size={18} stroke={1.5} />
+                    <Text size="xs" fw={700}>{t(label)}</Text>
+                </Group>
+                <Stack gap={2}>
+                    {items.map((item) => (
+                        <NavbarLink
+                            {...item}
+                            key={item.path}
+                            active={item.match?.test(pathname)}
+                            onClick={() => navigate(item.path)}
+                            expanded
+                            nested
+                            className={styles.navSubLink}
+                        />
+                    ))}
+                </Stack>
+            </Box>
+        );
+    }
+
     return (
         <Menu position="right-start" offset={8} withinPortal shadow="md">
             <Menu.Target>
@@ -142,27 +180,12 @@ export function AppSider() {
     const taskQueueCount = tasks.filter((task) => (
         ['queued', 'running', 'awaiting_approval', 'failed', 'interrupted'].includes(task.status)
     )).length;
-
-    const primaryLinks = primaryNavItems.map((link) => (
-        <NavbarLink
-            {...link}
-            key={link.label}
-            active={location.pathname === link.path}
-            onClick={() => navigate(link.path)}
-            expanded={expanded}
-            id={link.id}
-        />
-    ));
-
-    const qualityLinks = qualityNavItems.map((link) => (
-        <NavbarLink
-            {...link}
-            key={link.label}
-            active={location.pathname === link.path}
-            onClick={() => navigate(link.path)}
-            expanded={expanded}
-        />
-    ));
+    const navigationSections = getNavigationSections(FEATURES);
+    const settingsItem = toNavigationItem(getPageById('settings'));
+    const documentationPage = getPageById('documentation');
+    const documentationItem = isPageEnabled(documentationPage, FEATURES)
+        ? toNavigationItem(documentationPage)
+        : null;
 
     const devLinks = developmentItems.map((link) => (
         <NavbarLink
@@ -237,44 +260,67 @@ export function AppSider() {
                 )}
             </Stack>
 
-            <Stack gap="xs" style={{ flex: 1 }}>
-                {primaryLinks}
-                <NavbarMenu
-                    active={workflowItems.some((item) => location.pathname === item.path)}
-                    expanded={expanded}
-                    icon={IconLanguage}
-                    items={workflowItems}
-                    label="nav_translation_workflow"
-                    navigate={navigate}
-                />
-                {qualityLinks}
-                <NavbarLink
-                    icon={IconActivity}
-                    label="task_center.title"
-                    active={taskCenterOpened || location.pathname === '/task-history' || location.pathname.startsWith('/tasks/')}
-                    onClick={openTaskCenter}
-                    expanded={expanded}
-                    badge={taskQueueCount}
-                />
-                <NavbarMenu
-                    active={moreNavItems.some((item) => location.pathname === item.path)}
-                    expanded={expanded}
-                    icon={IconDots}
-                    items={moreNavItems}
-                    label="nav_more"
-                    navigate={navigate}
-                />
+            <Stack gap="xs" className={styles.navSections}>
+                {navigationSections.map((section) => {
+                    if (section.type === 'task-center') {
+                        return (
+                            <NavbarLink
+                                key={section.id}
+                                icon={IconActivity}
+                                label="task_center.title"
+                                active={taskCenterOpened || location.pathname === '/task-history' || location.pathname.startsWith('/tasks/')}
+                                onClick={openTaskCenter}
+                                expanded={expanded}
+                                badge={taskQueueCount}
+                            />
+                        );
+                    }
+
+                    const items = section.pages.map(toNavigationItem);
+                    if (section.type === 'menu') {
+                        return (
+                            <NavbarMenu
+                                key={section.id}
+                                active={section.pages.some((page) => page.match?.test(location.pathname))}
+                                expanded={expanded}
+                                icon={NAV_ICONS[section.icon]}
+                                items={items}
+                                label={section.label}
+                                navigate={navigate}
+                                pathname={location.pathname}
+                            />
+                        );
+                    }
+
+                    const item = items[0];
+                    return item ? (
+                        <NavbarLink
+                            {...item}
+                            key={section.id}
+                            active={item.match?.test(location.pathname)}
+                            onClick={() => navigate(item.path)}
+                            expanded={expanded}
+                            id={item.id}
+                        />
+                    ) : null;
+                })}
             </Stack>
 
             <Stack gap="xs" mt="md" pt="md" style={{ borderTop: '1px solid var(--glass-border)' }}>
                 {FEATURES.ENABLE_EXPERIMENTAL_FEATURES && devLinks}
+                {documentationItem && (
+                    <NavbarLink
+                        {...documentationItem}
+                        active={documentationItem.match?.test(location.pathname)}
+                        onClick={() => navigate(documentationItem.path)}
+                        expanded={expanded}
+                    />
+                )}
                 <NavbarLink
-                    icon={IconSettings}
-                    label="page_title_settings"
-                    path="/settings"
+                    {...settingsItem}
                     id="nav-settings"
-                    active={location.pathname === '/settings'}
-                    onClick={() => navigate('/settings')}
+                    active={settingsItem.match?.test(location.pathname)}
+                    onClick={() => navigate(settingsItem.path)}
                     expanded={expanded}
                 />
                 <Box id="tutorial-sidebar-link" style={{ width: '100%' }}>

@@ -2094,7 +2094,8 @@
     "grounding": "文書根拠"
   },
   "nav_translation_workflow": "翻訳ワークフロー",
-  "nav_more": "その他の機能",
+  "nav_projects": "プロジェクト",
+  "nav_quality_terminology": "品質・用語",
   "nav_mod_monitor": "Mod 監視",
   "initial_translation.eyebrow": "翻訳の手順",
   "initial_translation.stage_hint.0": "作業するプロジェクトを選択してください。",

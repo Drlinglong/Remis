@@ -29,7 +29,8 @@
   "nav_home": "Homepage",
   "nav_docs": "Documentation",
   "nav_translation_workflow": "Translation Workflow",
-  "nav_more": "More",
+  "nav_projects": "Projects",
+  "nav_quality_terminology": "Quality & Terminology",
   "nav_mod_monitor": "Mod Monitor",
   "page_title_home": "Homepage",
   "page_title_docs": "Documentation",
@@ -1080,7 +1081,7 @@
       },
       "navigation": {
         "title": "Navigation",
-        "desc": "Switch between different modules using the sidebar: from Kanban to Proofreading."
+        "desc": "The sidebar groups work by Projects, Translation Workflow, and Quality & Terminology, while Task Center keeps active work and items needing attention."
       },
       "tutorial_btn": {
         "title": "Tutorial Guide",

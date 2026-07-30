@@ -2090,7 +2090,8 @@
     "grounding": "Base nos docs"
   },
   "nav_translation_workflow": "Fluxo de tradução",
-  "nav_more": "Mais recursos",
+  "nav_projects": "Projetos",
+  "nav_quality_terminology": "Qualidade e terminologia",
   "nav_mod_monitor": "Acompanhamento de mods",
   "initial_translation.eyebrow": "Etapas da tradução",
   "initial_translation.stage_hint.0": "Escolha o projeto no qual você quer trabalhar.",

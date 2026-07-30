@@ -2089,7 +2089,8 @@
     "grounding": "Belge dayanağı"
   },
   "nav_translation_workflow": "Çeviri iş akışı",
-  "nav_more": "Diğer bölümler",
+  "nav_projects": "Projeler",
+  "nav_quality_terminology": "Kalite ve terminoloji",
   "nav_mod_monitor": "Mod izleyici",
   "initial_translation.eyebrow": "Çeviri adımları",
   "initial_translation.stage_hint.0": "Üzerinde çalışmak istediğiniz projeyi seçin.",

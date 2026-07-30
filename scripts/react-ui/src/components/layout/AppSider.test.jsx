@@ -73,17 +73,29 @@ describe('AppSider', () => {
     expect(startTourMock).toHaveBeenCalledOnce();
   });
 
-  it('groups project tracking and neologism review under more features', async () => {
+  it('organizes mature workflows into stable user domains without a more bucket', () => {
     renderWithProvider(<AppSider />);
 
     const sidebar = document.getElementById('sidebar-nav');
     fireEvent.mouseEnter(sidebar);
 
-    fireEvent.click(screen.getByText('nav_more'));
-    expect(await screen.findByText('nav_mod_monitor')).toBeInTheDocument();
-    expect(await screen.findByText('Format Repair')).toBeInTheDocument();
-    fireEvent.click(await screen.findByText('neologism_review.title'));
+    expect(screen.getByText('nav_projects')).toBeInTheDocument();
+    expect(screen.getByText('nav_translation_workflow')).toBeInTheDocument();
+    expect(screen.getByText('nav_quality_terminology')).toBeInTheDocument();
+    expect(screen.getByText('nav_mod_monitor')).toBeInTheDocument();
+    expect(screen.getByText('Format Repair')).toBeInTheDocument();
+    expect(screen.queryByText('nav_more')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('neologism_review.title'));
     expect(navigateMock).toHaveBeenCalledWith('/neologism-review');
+  });
+
+  it('keeps domain menus available from the collapsed icon rail', async () => {
+    renderWithProvider(<AppSider />);
+
+    fireEvent.click(screen.getByTitle('nav_projects'));
+
+    expect(await screen.findByText('nav_mod_monitor')).toBeInTheDocument();
   });
 
   it('keeps the in-development Remis Copilot entry hidden', () => {

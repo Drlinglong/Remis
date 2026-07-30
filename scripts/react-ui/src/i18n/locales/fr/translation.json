@@ -2091,7 +2091,8 @@
     "grounding": "Ancrage doc"
   },
   "nav_translation_workflow": "Flux de traduction",
-  "nav_more": "Autres sections",
+  "nav_projects": "Projets",
+  "nav_quality_terminology": "Qualité et terminologie",
   "nav_mod_monitor": "Suivi des mods",
   "initial_translation.eyebrow": "Parcours de traduction",
   "initial_translation.stage_hint.0": "Choisissez le projet sur lequel vous souhaitez travailler.",

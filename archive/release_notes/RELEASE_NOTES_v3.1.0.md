@@ -23,6 +23,10 @@ workflow, data, and interface changes.
   next action first, make deployment available as soon as a usable translation
   exists, and reduce visual and decision-making friction across all five
   themes.
+- **Navigation organized around the work.** The sidebar now groups mature
+  features under Projects, Translation Workflow, and Quality & Terminology
+  instead of hiding unrelated workflows under a generic More menu. Task Center
+  and the global Remis assistant keep their separate roles.
 
 ### Technical details for maintainers
 
@@ -55,7 +59,7 @@ workflow, data, and interface changes.
 ### Pre-release validation
 
 - Backend: 633 tests passed, 1 skipped; Python compilation passed.
-- Desktop frontend: 452 tests passed; locale consistency, text-encoding
+- Desktop frontend: 459 tests passed; locale consistency, text-encoding
   integrity, lint, and production build passed.
 - Product website: 55 tests passed; lint and production build passed.
 - Rust/Tauri: formatting and locked dependency compilation passed using the
@@ -83,6 +87,9 @@ desktop QA remain release-operator gates before publication.
 - **让日常流程更易读、更省心。** 项目页面会优先展示最有用的下一步；只要已有
   可用译文，就能选择继续校对或直接部署。五套主题下的视觉层级和说明文字也得到
   统一改善，降低操作时的判断负担。
+- **按照工作目标整理导航。** 侧栏现在以“项目”“翻译工作流”“质量与术语”
+  组织成熟功能，不再把无关工作流藏在笼统的“更多功能”中；任务中心和全局
+  Remis 小助手继续承担各自独立的职责。
 
 ### 面向维护者的技术细节
 
@@ -106,7 +113,7 @@ desktop QA remain release-operator gates before publication.
 ### 发布前验证
 
 - 后端：633 项通过，1 项跳过；Python 编译通过。
-- 桌面前端：452 项通过；语言包一致性、文本编码完整性、lint 与生产构建通过。
+- 桌面前端：459 项通过；语言包一致性、文本编码完整性、lint 与生产构建通过。
 - 产品网站：55 项通过；lint 与生产构建通过。
 - 发布 seed 只读取仓库内受审资产，严格限制为三个固定 Demo，并从首次初始化
   SQL 中排除任务、Arena、监控、活动日志和项目历史等运行期数据。

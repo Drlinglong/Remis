@@ -93,6 +93,36 @@
     min-height: 44px;
 }
 
+.navSections {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 2px;
+}
+
+.navSection {
+    padding: 2px 0 4px;
+}
+
+.navSectionHeader {
+    min-height: 28px;
+    padding: 4px 10px;
+    color: var(--text-muted);
+}
+
+.navSectionHeader[data-active="true"] {
+    color: var(--text-highlight);
+}
+
+.navSectionHeader[data-active="true"] .icon {
+    color: var(--text-highlight);
+}
+
+.navSubLink {
+    min-height: 36px;
+}
+
 .navLink:hover {
     background-color: rgba(255, 255, 255, 0.1) !important;
     color: var(--text-highlight) !important;

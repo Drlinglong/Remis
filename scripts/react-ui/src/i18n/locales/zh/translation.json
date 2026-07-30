@@ -76,7 +76,8 @@
   "stage_failed": "翻译失败",
   "nav_docs": "文档",
   "nav_translation_workflow": "翻译工作流",
-  "nav_more": "更多功能",
+  "nav_projects": "项目",
+  "nav_quality_terminology": "质量与术语",
   "nav_mod_monitor": "Mod 监控",
   "page_title_home": "主页",
   "page_title_docs": "文档",
@@ -1134,7 +1135,7 @@
       },
       "navigation": {
         "title": "功能导航",
-        "desc": "通过左侧边栏切换不同功能模块：从项目看板到高级校对。"
+        "desc": "左侧边栏按项目、翻译工作流、质量与术语整理功能；任务中心单独保留正在进行和需要处理的工作。"
       },
       "tutorial_btn": {
         "title": "教学引导",

@@ -18,6 +18,7 @@ import SplashScreen from './components/SplashScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProjectWatchScheduler from './components/ProjectWatchScheduler';
 import { FEATURES } from './config/features';
+import { buildAppRouteConfig } from './config/pageRegistry';
 import { CopilotContextProvider } from './context/CopilotContext';
 import CopilotFloatingWidget from './components/copilot/CopilotFloatingWidget';
 
@@ -52,32 +53,32 @@ const RouteFallback = () => (
     </Center>
 );
 
-// --- Single Source of Truth for Routing ---
-const appRouteConfig = [
-    { path: '/', element: <HomePage /> },
-    { path: '/docs', element: <DocumentationPage /> },
-    { path: '/translation', element: <InitialTranslationPage /> },
-    { path: '/glossary-manager', element: <GlossaryManagerPage /> },
-    { path: '/proofreading', element: <ProofreadingPage /> },
-    { path: '/project-management', element: <ProjectManagementPage /> },
-    { path: '/project-management/:projectId', element: <ProjectManagementPage /> },
-    { path: '/tasks/:taskId', element: <TaskDetailPage /> },
-    { path: '/tasks/:taskId/glossary-health', element: <GlossaryHealthReviewPage /> },
-    { path: '/task-history', element: <TaskHistoryPage /> },
-    { path: '/project-tracking', element: <ProjectTrackingPage /> },
-    { path: '/incremental-translation', element: <IncrementalTranslationPage /> },
-    { path: '/model-arena', element: <ModelArenaPage /> },
-    ...(FEATURES.ENABLE_NEOLOGISM_TRIBUNAL ? [{ path: '/neologism-review', element: <NeologismReviewPage /> }] : []),
-    { path: '/archives', element: <ArchivesPage /> },
-    { path: '/agent-workshop', element: <AgentWorkshopPage /> },
-    ...(FEATURES.ENABLE_REMIS_COPILOT ? [{ path: '/copilot', element: <CopilotPage /> }] : []),
-    { path: '/cicd', element: <CICDPage /> },
-    { path: '/tools', element: <ToolsPage /> },
-    { path: '/settings', element: <SettingsPage /> },
-    { path: '/under-development', element: <UnderDevelopmentPage /> },
-    { path: '/under-construction', element: <UnderConstructionPage /> },
-    { path: '/in-conception', element: <InConceptionPage /> },
-];
+const pageElements = {
+    home: <HomePage />,
+    documentation: <DocumentationPage />,
+    'initial-translation': <InitialTranslationPage />,
+    'glossary-manager': <GlossaryManagerPage />,
+    proofreading: <ProofreadingPage />,
+    'project-management': <ProjectManagementPage />,
+    'task-detail': <TaskDetailPage />,
+    'glossary-health-review': <GlossaryHealthReviewPage />,
+    'task-history': <TaskHistoryPage />,
+    'project-tracking': <ProjectTrackingPage />,
+    'incremental-translation': <IncrementalTranslationPage />,
+    'model-arena': <ModelArenaPage />,
+    'neologism-review': <NeologismReviewPage />,
+    archives: <ArchivesPage />,
+    'agent-workshop': <AgentWorkshopPage />,
+    copilot: <CopilotPage />,
+    cicd: <CICDPage />,
+    tools: <ToolsPage />,
+    settings: <SettingsPage />,
+    'under-development': <UnderDevelopmentPage />,
+    'under-construction': <UnderConstructionPage />,
+    'in-conception': <InConceptionPage />,
+};
+
+const appRouteConfig = buildAppRouteConfig(pageElements, FEATURES);
 
 const AppRouterLayout = () => (
     <TutorialProvider>

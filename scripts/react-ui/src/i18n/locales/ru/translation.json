@@ -2112,7 +2112,8 @@
     "grounding": "Опора на docs"
   },
   "nav_translation_workflow": "Процесс перевода",
-  "nav_more": "Другие разделы",
+  "nav_projects": "Проекты",
+  "nav_quality_terminology": "Качество и терминология",
   "nav_mod_monitor": "Мониторинг модов",
   "initial_translation.eyebrow": "Этапы перевода",
   "initial_translation.stage_hint.0": "Выберите проект, над которым хотите работать.",

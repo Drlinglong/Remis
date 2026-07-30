@@ -2094,7 +2094,8 @@
     "grounding": "문서 근거"
   },
   "nav_translation_workflow": "번역 작업 흐름",
-  "nav_more": "기타 기능",
+  "nav_projects": "프로젝트",
+  "nav_quality_terminology": "품질 및 용어",
   "nav_mod_monitor": "모드 모니터",
   "initial_translation.eyebrow": "번역 진행 절차",
   "initial_translation.stage_hint.0": "작업할 프로젝트를 선택하세요.",

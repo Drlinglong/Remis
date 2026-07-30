@@ -2091,7 +2091,8 @@
     "grounding": "Dokumentbasis"
   },
   "nav_translation_workflow": "Übersetzungsablauf",
-  "nav_more": "Weitere Bereiche",
+  "nav_projects": "Projekte",
+  "nav_quality_terminology": "Qualität und Terminologie",
   "nav_mod_monitor": "Mod-Überwachung",
   "initial_translation.eyebrow": "Übersetzungsablauf",
   "initial_translation.stage_hint.0": "Wählen Sie das Projekt aus, an dem Sie arbeiten möchten.",
