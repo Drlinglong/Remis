@@ -129,5 +129,6 @@ describe('Agent Workshop invalid-key recovery', () => {
     fireEvent.click((await screen.findByText('events.yml')).closest('button'));
 
     expect(await screen.findByRole('button', { name: 'agent_workshop.fix_btn' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'agent_workshop.start_fix' })).toBeDisabled();
   });
 });

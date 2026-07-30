@@ -14,6 +14,7 @@ import {
   buildAgentWorkshopModelOptions,
   createAgentWorkshopIdempotencyKey,
   getAgentWorkshopRunStatus,
+  isRepairableAgentWorkshopIssue,
   loadAgentWorkshopBootstrap,
   loadAgentWorkshopProjectContext,
   requestAgentWorkshopIssueFix,
@@ -61,7 +62,6 @@ export const useAgentWorkshopController = () => {
   const runResumeRef = useRef(false);
   const fixRunInFlightRef = useRef(false);
   const fixRunIdempotencyKeyRef = useRef(null);
-
   const sessionState = useMemo(() => ({
     active,
     selectedProjectId,
@@ -460,25 +460,25 @@ export const useAgentWorkshopController = () => {
   }, [currentRunTaskId, executing]);
 
   const requestFixRunApproval = useCallback(() => {
-    if (!selectedProjectId || !issues.length || !selectedProvider || !selectedModel || executing) return;
+    if (!selectedProjectId || !issues.some(isRepairableAgentWorkshopIssue) || !selectedProvider || !selectedModel || executing) return;
     if (!fixRunIdempotencyKeyRef.current) {
       fixRunIdempotencyKeyRef.current = createAgentWorkshopIdempotencyKey(selectedProjectId);
     }
     setWorkflowError('');
     setApprovalOpen(true);
-  }, [executing, issues.length, selectedModel, selectedProjectId, selectedProvider]);
+  }, [executing, issues, selectedModel, selectedProjectId, selectedProvider]);
 
   const executeFixRun = useCallback(async () => {
     if (
       !selectedProjectId
-      || !issues.length
+      || !issues.some(isRepairableAgentWorkshopIssue)
       || !selectedProvider
       || !selectedModel
       || executing
       || fixRunInFlightRef.current
     ) return;
 
-    const runIssues = [...issues];
+    const runIssues = issues.filter(isRepairableAgentWorkshopIssue);
     fixRunInFlightRef.current = true;
     const idempotencyKey = fixRunIdempotencyKeyRef.current
       || createAgentWorkshopIdempotencyKey(selectedProjectId);

@@ -16,7 +16,7 @@ import styles from './AgentWorkshop.module.css';
 import translationStyles from './Translation.module.css';
 import { buildProofreadingUrl } from '../utils/proofreadingLinks';
 import { taskDetailRoute } from '../utils/taskRoutes';
-import { isLocalAgentWorkshopProvider } from '../services/agentWorkshopWorkflowService';
+import { isLocalAgentWorkshopProvider, isRepairableAgentWorkshopIssue } from '../services/agentWorkshopWorkflowService';
 
 const AgentWorkshopPage = () => {
   const logViewportRef = useRef(null);
@@ -82,6 +82,7 @@ const AgentWorkshopPage = () => {
     t,
     workflowError,
   } = useAgentWorkshopController();
+  const repairableIssueCount = issues.filter(isRepairableAgentWorkshopIssue).length;
 
   useEffect(() => {
     if (logViewportRef.current) {
@@ -224,7 +225,7 @@ const AgentWorkshopPage = () => {
                       </Group>
                     </Alert>
                   )}
-                  <Group justify="flex-end" mt="md"><Button variant="light" onClick={() => setActive(1)}>{t('common.back')}</Button><Button id="agent-workshop-start-fix-btn" leftSection={<IconPlayerPlay size={18} />} onClick={requestFixRunApproval} disabled={!issues.length || !selectedProvider || !selectedModel || executing}>{t('agent_workshop.start_fix')}</Button></Group>
+                  <Group justify="flex-end" mt="md"><Button variant="light" onClick={() => setActive(1)}>{t('common.back')}</Button><Button id="agent-workshop-start-fix-btn" leftSection={<IconPlayerPlay size={18} />} onClick={requestFixRunApproval} disabled={!repairableIssueCount || !selectedProvider || !selectedModel || executing}>{t('agent_workshop.start_fix')}</Button></Group>
                   {issueTypeSummary.length > 0 && <Stack gap="xs" mt="xl"><Text size="sm" fw={600}>{t('agent_workshop.issue_type_summary')}</Text><SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>{issueTypeSummary.map((item) => <Card key={item.label} withBorder p="sm" radius="md"><Text size="xs" c="dimmed" lineClamp={2}>{localizeIssueLabel(item.label)}</Text><Text size="sm" fw={700}>{item.count}</Text></Card>)}</SimpleGrid></Stack>}
                   {groupedIssues.length > 0 && (
                     <Accordion id="agent-workshop-issue-details" variant="separated" radius="md" mt="xl">
@@ -391,7 +392,7 @@ const AgentWorkshopPage = () => {
             </Alert>
             <SimpleGrid cols={2} spacing="xs">
               <Text size="sm" c="dimmed">{t('agent_workshop.issue_entries')}</Text>
-              <Text size="sm" fw={600}>{issues.length}</Text>
+              <Text size="sm" fw={600}>{repairableIssueCount}</Text>
               <Text size="sm" c="dimmed">{t('agent_workshop.provider_label')}</Text>
               <Text size="sm" fw={600}>{selectedProvider}</Text>
               <Text size="sm" c="dimmed">{t('agent_workshop.model_label')}</Text>

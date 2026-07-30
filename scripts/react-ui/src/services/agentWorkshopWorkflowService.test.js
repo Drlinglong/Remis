@@ -138,6 +138,7 @@ describe('agentWorkshopWorkflowService', () => {
       concurrencyLimit: '1',
       issues: [
         { file_name: 'a.yml', key: 'broken key', error_code: 'validation_invalid_key_format' },
+        { file_name: 'b.yml', key: 'legacy broken key', error_type: 'validation_invalid_key_format' },
         { file_name: 'a.yml', key: 'valid.key', error_code: 'validation_variable_parity_mismatch' },
       ],
       projectId: 'project-1',
