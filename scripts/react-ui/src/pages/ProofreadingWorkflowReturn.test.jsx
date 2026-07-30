@@ -1,8 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
-import { createMemoryRouter, useLocation } from 'react-router';
-import { RouterProvider } from 'react-router/dom';
+import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import ProofreadingPage from './ProofreadingPage';
