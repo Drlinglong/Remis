@@ -5,20 +5,15 @@ updates:
     directory: "/"
     schedule:
       interval: monthly
-    open-pull-requests-limit: 2
+    # Ordinary version upgrades are reviewed and batched manually.
+    # Security updates use a separate limit and remain enabled below.
+    open-pull-requests-limit: 0
     ignore:
       # Major upgrades require a coordinated compatibility review.
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
     groups:
-      python-non-major:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
       python-security:
         applies-to: security-updates
         patterns:
@@ -28,20 +23,15 @@ updates:
     directory: "/scripts/react-ui"
     schedule:
       interval: monthly
-    open-pull-requests-limit: 2
+    # Ordinary version upgrades are reviewed and batched manually.
+    # Security updates use a separate limit and remain enabled below.
+    open-pull-requests-limit: 0
     ignore:
       # Major upgrades require a coordinated compatibility review.
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
     groups:
-      frontend-non-major:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
       frontend-security:
         applies-to: security-updates
         patterns:
@@ -51,20 +41,15 @@ updates:
     directory: "/scripts/react-ui/src-tauri"
     schedule:
       interval: monthly
-    open-pull-requests-limit: 2
+    # Ordinary version upgrades are reviewed and batched manually.
+    # Security updates use a separate limit and remain enabled below.
+    open-pull-requests-limit: 0
     ignore:
       # Major upgrades require a coordinated compatibility review.
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
     groups:
-      rust-non-major:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
       rust-security:
         applies-to: security-updates
         patterns:
@@ -74,20 +59,15 @@ updates:
     directory: "/"
     schedule:
       interval: monthly
-    open-pull-requests-limit: 2
+    # Ordinary version upgrades are reviewed and batched manually.
+    # Security updates use a separate limit and remain enabled below.
+    open-pull-requests-limit: 0
     ignore:
       # Major upgrades require a coordinated compatibility review.
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
     groups:
-      actions-non-major:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
       actions-security:
         applies-to: security-updates
         patterns:
