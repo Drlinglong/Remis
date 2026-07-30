@@ -19,6 +19,8 @@
 - [Task Center 开发契约](developer/task-center-contract.md) - 状态、持久化、已处理语义与 Agent 读取边界
 - [智能工坊产品意图](product-intent-agent-workshop.md) - 格式安全护栏、自动写回与禁止语义重写
 - [智能工坊开发契约](developer/agent-workshop-contract.md) - 扫描、有限重试、逐条写回与当前高风险差距
+- [Agent / Copilot 产品意图](product-intent-agent-copilot.md) - 同一聊天入口、计划批准、有限域执行与公开目标
+- [Agent / Copilot 开发契约](developer/agent-copilot-contract.md) - Action Registry、工作流计划、终态与当前差距
 
 ## 快速开始
 - [从零开始：第一次汉化](user-guides/getting-started.md) - **推荐首读**：项目管理建项 → 初次翻译 → 部署
@@ -51,8 +53,9 @@
 - [开发环境搭建指南](developer/development-setup.md) - 仓库开发环境说明
 - [CI、依赖维护与仓库门禁](developer/ci-setup.md) - GitHub Actions、Dependabot 与本地等价命令
 
-## 产品 Copilot（设计草案，#132）
+## Remis Agent / Copilot（3.1.0 隐藏预览）
 - [Copilot 文档入口](copilot/README.md) - 用户 RAG / Agent 操作说明 / 与开发者文档的边界
+- [Remis 小助手用户指南](user-guides/remis-assistant.md) - 在同一聊天框问问题、批准计划和检查结果
 - [用户 Micro-RAG 语料边界](copilot/rag-corpus-boundary.md) - 索引白名单与黑名单（不喂 developer 文档）
 - [Agent 操作说明书](copilot/agent-operations.md) - 可提议操作、禁止改源码、引导 GitHub 反馈
 

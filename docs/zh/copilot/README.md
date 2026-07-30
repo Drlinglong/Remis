@@ -1,9 +1,10 @@
 # Remis Copilot 文档
 
-> **Status:** Design draft（#132 地基）
+> **Status:** 3.1.0 隐藏工程预览；下一版本面向普通用户开放
 > **Related:** [Issue #132](https://github.com/Drlinglong/Remis/issues/132)
 
-本目录存放 **Remis 产品 Copilot** 相关说明，与「开发者如何改代码」无关。
+本目录存放 **Remis Agent / Copilot** 相关说明。两种职责通过同一个聊天入口交给用户：
+Copilot 回答如何使用 Remis，Agent 把自然语言目标整理成待批准的 Remis 工作流。
 
 ## 三类读者，三类材料
 
@@ -18,6 +19,9 @@
 - **用户 RAG**：回答「Remis 怎么用」。
 - **Agent 说明书**：回答「我能建议系统做什么」。
 - **开发者文档**（`docs/zh/developer/**`、`docs/zh/technical/**`）：回答「代码怎么接」——**默认不进用户 RAG，也不塞进 Agent 长上下文。**
+
+产品意图见 [Agent / Copilot 产品意图](../product-intent-agent-copilot.md)，当前实现见
+[开发契约](../developer/agent-copilot-contract.md)。
 
 ## 产品形态前提
 
@@ -47,6 +51,9 @@
    - [校对](../user-guides/proofreading.md)
    - [智能工坊](../user-guides/agent-workshop.md)
    - [词典与词汇表](../user-guides/glossary.md)
+   - [模型竞技场](../user-guides/model-arena.md)
+   - [任务中心](../user-guides/task-center.md)
+   - [Remis 小助手](../user-guides/remis-assistant.md)
    - [项目追踪](../user-guides/project-tracking.md)
    - [新词审判庭](../user-guides/neologism-tribunal.md)
    - [工具：封面图生成器](../user-guides/tools-thumbnail-generator.md)
