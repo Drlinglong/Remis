@@ -58,6 +58,11 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
         "description": "Mod 更新后只翻新增内容、归档基线和增量翻译流程。",
         "resources": ("zh/user-guides/incremental-update.md",),
     },
+    "model_arena": {
+        "title": "模型竞技场",
+        "description": "正式翻译前匿名比较两个或三个模型的小样结果。",
+        "resources": ("zh/user-guides/model-arena.md",),
+    },
     "import_translation": {
         "title": "导入已有译文",
         "description": "导入半成品汉化或已有翻译，并接入 Remis 项目流程。",

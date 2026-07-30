@@ -22,8 +22,11 @@ export default [
     },
     rules: {
       ...js.configs.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
       ...reactRefresh.configs.vite.rules,
+      // Keep the established Hooks checks without implicitly enabling the
+      // React Compiler rule suite during a dependency security upgrade.
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^[A-Z_]' }],
     },
   },
