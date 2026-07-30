@@ -63,7 +63,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "22.22.0"
           cache: npm
           cache-dependency-path: scripts/react-ui/package-lock.json
 
@@ -80,6 +80,40 @@ jobs:
         run: npm run test
 
       - name: Build frontend
+        run: npm run build
+
+  website:
+    name: Website checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: website
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22.22.0"
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install website dependencies
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run website tests
+        run: npm run test
+
+      - name: Build website
         run: npm run build
 
   rust:

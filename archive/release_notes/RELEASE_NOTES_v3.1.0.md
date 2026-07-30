@@ -48,7 +48,11 @@ workflow, data, and interface changes.
 ### Platform and security
 
 - Upgraded the desktop frontend to React Router 8 and Vite 8, with Node.js
-  22.22.0 or newer required for frontend development and release builds.
+  22.22.0 pinned for frontend development, CI, and release builds.
+- Consolidated the compatible Dependabot security updates for PostCSS, esbuild,
+  js-yaml, brace-expansion, and serde_with. Production dependency audits report
+  no known vulnerabilities; website dependency changes now receive their own
+  CI install, audit, lint, test, and build gate.
 - Preserved the v3.0.7.1 provider-routing fixes: provider-specific credentials
   and endpoints, native Anthropic routing, and explicit failure for unsupported
   providers instead of silent fallback.
@@ -71,8 +75,8 @@ workflow, data, and interface changes.
 - No paid model calls, user-facing project/model export, deployment, or
   project-file overwrite operation was performed during integration validation.
 
-Windows installer packaging, a packaged-backend smoke test, and final rendered
-desktop QA remain release-operator gates before publication.
+The Windows installer candidate and packaged-backend smoke test passed. Final
+rendered desktop QA remains the release-operator gate before publication.
 
 ## 中文
 
@@ -104,7 +108,10 @@ desktop QA remain release-operator gates before publication.
 ### 平台与安全
 
 - 桌面前端升级到 React Router 8 和 Vite 8；前端开发与发布构建要求 Node.js
-  22.22.0 或更高版本。
+  22.22.0，并在本地版本文件、CI 和发布构建中固定该版本。
+- 统一整合 PostCSS、esbuild、js-yaml、brace-expansion 和 serde_with 等兼容的
+  Dependabot 安全更新；生产依赖审计未发现已知漏洞。官网依赖更新现在也必须通过
+  独立的 CI 安装、审计、lint、测试和构建。
 - 保留 v3.0.7.1 的供应商路由修复：供应商专属凭据和端点、原生 Anthropic
   路由，以及对未支持供应商明确报错而非静默回退。
 - 主数据库升级到迁移 10。现有数据库保留迁移 1 至 9，并增量应用新的生命周期/
@@ -121,5 +128,5 @@ desktop QA remain release-operator gates before publication.
 - 集成验证期间没有发起付费模型调用、面向用户的项目/模型导出、部署或项目文件
   覆盖操作。
 
-正式发布前仍需由发布操作者完成 Windows 安装包构建、打包后端烟雾测试和最终
+Windows 安装包候选和打包后端烟雾测试已经通过；正式发布前仅剩发布操作者的最终
 桌面渲染巡检。
