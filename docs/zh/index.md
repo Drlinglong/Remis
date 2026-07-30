@@ -11,6 +11,8 @@
 - [部署开发契约](developer/deployment-contract.md) - 预览、覆盖、文件写入与当前差距
 - [校对产品意图](product-intent-proofreading.md) - 人工定稿、保存语义与功能边界
 - [校对开发契约](developer/proofreading-contract.md) - 文件级保存、冲突保护与已知缺陷
+- [术语表产品意图](product-intent-glossary.md) - 术语范围、上下文优先与禁止副作用
+- [术语表开发契约](developer/glossary-contract.md) - 装载优先级、数据写入与当前差距
 
 ## 快速开始
 - [从零开始：第一次汉化](user-guides/getting-started.md) - **推荐首读**：项目管理建项 → 初次翻译 → 部署
@@ -61,6 +63,8 @@
 
 ## 词典系统
 - [词典与词汇表（用户向）](user-guides/glossary.md) - **客户端怎么用**：主词典 / 额外词典 / 项目词典
+- [术语表产品意图](product-intent-glossary.md) - 适用范围、优先级、确认与非目标
+- [术语表开发契约](developer/glossary-contract.md) - 当前实现、意图差距与测试门禁
 - [词典系统概览](glossary/overview.md) - 机制与文件结构（偏开发/进阶）
 - [词典工具使用](glossary/tools-guide.md) - parser.py / validator.py（开发向）
 - [系统机制说明](glossary/system-mechanism.md) - 技术实现详解

@@ -22,6 +22,8 @@
 - `docs/zh/developer/deployment-contract.md` — 部署当前实现、产品差距与测试门禁
 - `docs/zh/product-intent-proofreading.md` — 校对目标、人工定稿优先级与功能边界
 - `docs/zh/developer/proofreading-contract.md` — 文件级保存、冲突保护、Issue #149 与已知缺陷
+- `docs/zh/product-intent-glossary.md` — 术语范围、上下文优先、确认边界与非目标
+- `docs/zh/developer/glossary-contract.md` — 当前优先级、数据副作用、实现差距与测试门禁
 
 ### 当前协作与维护
 
