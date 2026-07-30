@@ -25,6 +25,11 @@ from scripts.utils.validation_logger import ValidationLogger
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.core.services.validation_sidecar_service import ValidationSidecarService
 from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService, resolve_dynamic_valid_tags
+from scripts.core.services.workshop_writeback_service import (
+    apply_translation_fix_to_file,
+    apply_validated_workshop_fix as _apply_fix_with_confirmation,
+    is_repairable_workshop_issue,
+)
 from scripts.schemas.tasks import TaskCreator
 
 router = APIRouter(prefix="/api/agent-workshop", tags=["agent-workshop"])
@@ -113,6 +118,7 @@ class FixRequest(BaseModel):
     source_context_warning: Optional[str] = None
     target_str: str
     error_type: str
+    error_code: Optional[str] = None
     details: str
     api_provider: str = Field(min_length=1)
     api_model: str = Field(min_length=1)
@@ -237,6 +243,23 @@ def _validate_repair_approval(
                     "writes_project_files": True,
                     "may_incur_model_cost": True,
                 },
+            },
+        )
+
+
+def _reject_unsupported_repair_issues(issues: List[Dict[str, Any]]) -> None:
+    unsupported = [
+        {"file_name": issue.get("file_name"), "key": issue.get("key"), "error_code": issue.get("error_code")}
+        for issue in issues
+        if not is_repairable_workshop_issue(issue)
+    ]
+    if unsupported:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "unsupported_repair_issue",
+                "message": "Invalid localization keys require manual file repair and cannot be sent to a model.",
+                "issues": unsupported,
             },
         )
 
@@ -537,31 +560,6 @@ def _scoped_translation_roots(
         scoped_roots.append(root)
 
     return scoped_roots or configured_roots
-
-
-def _resolve_issue_target_path(project: Dict[str, Any], issue_file_path: Optional[str], issue_file_name: Optional[str]) -> Optional[Path]:
-    if issue_file_path:
-        candidate = Path(issue_file_path)
-        if candidate.exists():
-            return candidate
-
-    source_path = project.get("source_path")
-    if not source_path:
-        return None
-
-    json_manager = ProjectJsonManager(source_path)
-    translation_dirs = json_manager.get_config().get("translation_dirs", []) or []
-
-    if issue_file_name:
-        for trans_dir in translation_dirs:
-            candidate = Path(trans_dir) / issue_file_name
-            if candidate.exists():
-                return candidate
-
-    fallback = Path(source_path) / (issue_file_name or "")
-    if fallback.exists():
-        return fallback
-    return None
 
 
 def _resolve_source_entries_for_translation(
@@ -1015,41 +1013,6 @@ async def scan_project(
         raise
 
 
-def apply_translation_fix_to_file(file_path: Path, key_to_fix: str, new_value: str) -> bool:
-    from scripts.core.loc_parser import parse_loc_file_with_lines
-    try:
-        entries = parse_loc_file_with_lines(file_path)
-        target_line = -1
-        for key, value, line_number in entries:
-            # Full key matching ensures we get `key:0` or just `key`
-            if key == key_to_fix or key.split(':')[0] == key_to_fix.split(':')[0]:
-                target_line = line_number
-                break
-                
-        if target_line != -1:
-            idx = target_line - 1
-            with open(file_path, 'r', encoding='utf-8-sig') as f:
-                lines = f.readlines()
-                
-            old_line = lines[idx]
-            first_quote = old_line.find('"')
-            # Look for the last quote from right, but not an escaped quote.
-            # Using rfind on `"` is ok because our Loc parser logic relies on simple quote framing.
-            last_quote = old_line.rfind('"', first_quote + 1)
-            
-            if first_quote != -1 and last_quote != -1:
-                safe_val = new_value.replace('"', r'\"')
-                lines[idx] = old_line[:first_quote+1] + safe_val + old_line[last_quote:]
-                with open(file_path, 'w', encoding='utf-8-sig') as f:
-                    f.writelines(lines)
-                return True
-        return False
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).error(f"Failed to apply fix to {file_path}: {e}")
-        return False
-
-
 def _infer_target_lang_from_issue(issue_file_name: Optional[str], explicit_target_lang: Optional[str] = None) -> Optional[str]:
     if explicit_target_lang:
         return explicit_target_lang
@@ -1064,83 +1027,6 @@ def _infer_target_lang_from_issue(issue_file_name: Optional[str], explicit_targe
     return paradox_to_iso(match.group(1))
 
 
-def _read_translation_value(file_path: Path, key_to_find: str) -> Optional[str]:
-    try:
-        entries = dict(parse_loc_file(file_path))
-    except Exception as exc:
-        logger.error(f"Failed to parse updated translation file {file_path}: {exc}")
-        return None
-
-    if key_to_find in entries:
-        return entries[key_to_find]
-
-    base_key = key_to_find.split(":")[0]
-    if base_key in entries:
-        return entries[base_key]
-
-    normalized_key = f"{base_key}:0"
-    return entries.get(normalized_key)
-
-
-def _post_validate_fixed_translation(
-    game_id: str,
-    key: str,
-    source_str: str,
-    target_str: str,
-    target_lang: Optional[str] = None,
-) -> List[str]:
-    validator = PostProcessValidator()
-    try:
-        results = validator.validate_entry(
-            game_id=game_id,
-            key=key,
-            value=target_str,
-            source_value=source_str,
-            target_lang=target_lang,
-        )
-    except Exception as exc:
-        return [f"Post-validation crashed: {exc}"]
-
-    return [result.message for result in results if result.level.value == "error"]
-
-
-def _apply_fix_with_confirmation(
-    project: Dict[str, Any],
-    game_id: str,
-    file_name: str,
-    file_path: Optional[str],
-    key: str,
-    source_str: str,
-    suggested_fix: str,
-    target_lang: Optional[str] = None,
-) -> tuple[bool, str, str]:
-    target_path = _resolve_issue_target_path(project, file_path, file_name)
-    if not target_path or not target_path.exists():
-        return False, "target_not_found", "Target file not found for fix application."
-
-    if not apply_translation_fix_to_file(target_path, key, suggested_fix):
-        return False, "writeback_failure", "Failed to write suggested fix to target file."
-
-    current_value = _read_translation_value(target_path, key)
-    if current_value is None:
-        return False, "readback_missing", "Fixed entry could not be read back from target file."
-
-    if current_value != suggested_fix:
-        return False, "readback_mismatch", "Read-back confirmation mismatch after writing fix."
-
-    validation_errors = _post_validate_fixed_translation(
-        game_id=game_id,
-        key=key,
-        source_str=source_str,
-        target_str=current_value,
-        target_lang=target_lang,
-    )
-    if validation_errors:
-        return False, "post_validation_failure", "Post-write validation failed: " + " | ".join(validation_errors)
-
-    return True, "validated_and_applied", "Applied and re-validated successfully."
-
-
 @router.post("/fix", response_model=FixResult)
 async def fix_issue(request: FixRequest):
     """
@@ -1152,6 +1038,7 @@ async def fix_issue(request: FixRequest):
         requested_provider=request.api_provider,
         requested_model=request.api_model,
     )
+    _reject_unsupported_repair_issues([request.model_dump()])
     _validate_repair_approval(
         request.approval,
         project_id=request.project_id,
@@ -1361,6 +1248,7 @@ async def fix_batch(request: FixBatchRequest):
         requested_provider=request.api_provider,
         requested_model=request.api_model,
     )
+    _reject_unsupported_repair_issues(request.issues)
     _validate_repair_approval(
         request.approval,
         project_id=request.project_id,
@@ -1711,6 +1599,7 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
     """
     if not request.issues:
         raise HTTPException(status_code=400, detail="No issues supplied for Format Repair.")
+    _reject_unsupported_repair_issues(request.issues)
     _validate_repair_approval(
         request.approval,
         project_id=request.project_id,

@@ -79,6 +79,9 @@ export const requestAgentWorkshopIssueFix = async ({
   selectedModel,
   selectedProvider,
 }) => {
+  if (issue?.error_code === 'validation_invalid_key_format') {
+    throw new Error('Invalid localization keys require manual file repair.');
+  }
   const response = await workshopService.fixIssue({
     project_id: projectId,
     api_provider: selectedProvider,
@@ -105,6 +108,9 @@ export const startAgentWorkshopFixRun = async ({
   selectedProvider,
   idempotencyKey,
 }) => {
+  const repairableIssues = issues.filter(
+    (issue) => issue?.error_code !== 'validation_invalid_key_format'
+  );
   const response = await workshopService.startFixRun({
     project_id: projectId,
     api_provider: selectedProvider,
@@ -113,10 +119,10 @@ export const startAgentWorkshopFixRun = async ({
     concurrency_limit: Number(concurrencyLimit) || 1,
     rpm_limit: Number(rpmLimit) || 40,
     max_retries: 3,
-    issues,
+    issues: repairableIssues,
     approval: {
       approved: true,
-      issue_count: issues.length,
+      issue_count: repairableIssues.length,
       api_provider: selectedProvider,
       api_model: selectedModel,
     },
