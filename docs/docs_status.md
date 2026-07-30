@@ -28,6 +28,8 @@
 - `docs/zh/developer/model-arena-contract.md` — 抽样、执行、匿名、历史、导出与当前边界
 - `docs/zh/product-intent-task-center.md` — 后台任务收件箱、处理语义与主页信息架构边界
 - `docs/zh/developer/task-center-contract.md` — 持久化状态、详情摘要、历史与 Agent 消费契约
+- `docs/zh/product-intent-agent-workshop.md` — 格式安全护栏、自动写回、有限重试与明确非目标
+- `docs/zh/developer/agent-workshop-contract.md` — 扫描、模型修复、逐条写回、实现差距与测试门禁
 
 ### 当前协作与维护
 
