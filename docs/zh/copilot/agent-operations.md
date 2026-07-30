@@ -79,7 +79,8 @@
 3. **区分「说明」与「执行」**：
    - 说明：文字答案；
    - 执行：仅通过 `suggested_actions` / `CommandIntent` 提议，由客户端处理。
-4. **执行计划必须让用户确认**：整份计划确认一次；已经完整展示的付费调用和部署不重复确认。
+4. **执行计划必须让用户确认**：整份计划确认一次；已经完整展示的付费调用、部署和醒目
+   标注的高风险删除都不重复确认。
 5. **置信度诚实**：文档不足时用 `confidence: low`，并建议查日志或 GitHub。
 6. **不要假装已执行**：正确说法是「您可以点击下方按钮…」「确认后 Remis 将…」。
 
@@ -96,7 +97,7 @@
 - `read_only`：只读查询/说明
 - `safe_ui_navigation`：打开界面或文件夹，不改项目内容
 - `read_only_network`：测试连接等，不写项目文件
-- `requires_confirmation`：会改项目或游戏目录，必须用户确认
+- `requires_confirmation`：该意图必须进入整份计划确认；高风险操作还要醒目标注
 
 ### 5.1 帮助与导航（优先实现）
 
@@ -134,8 +135,8 @@
 | action | 含义（用户语言） | 风险 | 用户确认 |
 |--------|------------------|------|----------|
 | `deploy_mod` | 一键部署汉化到 Paradox 用户 mod 目录 | 写用户 mod 目录 | **由整份计划确认涵盖，不追加** |
-| `clean_fake_localization` | 删除原始模组目录中的假本地化（保留源语言） | 写创意工坊/原版目录 | **是（高风险）** |
-| `clean_fake_loc_and_deploy` | 先清理假本地化再部署（若客户端合并为一步） | 同上 | **是（高风险）** |
+| `clean_fake_localization` | 删除原始模组目录中的假本地化（保留源语言） | 写创意工坊/原版目录 | **计划中醒目标注；整份确认涵盖** |
+| `clean_fake_loc_and_deploy` | 先清理假本地化再部署（若客户端合并为一步） | 同上 | **计划中醒目标注；整份确认涵盖** |
 
 引导原则：
 
@@ -149,6 +150,9 @@
 Agent 没有通用“修改原始 Mod／创意工坊文件”能力。不得把自然语言要求转换成任意文件
 编辑 action，也不得用一个确认框为未注册能力授予权限。未来若 Remis 注册某个用途明确的
 特殊功能，只能执行该功能的固定边界。
+
+不存在独立的“删除部署数据”功能。不得生成 `delete_deployment`、`remove_deployed_mod`
+之类 action；同名部署时替换旧目标只能作为 `deploy_mod` 的明确步骤展示。
 
 ### 5.4 会改动翻译项目的操作（须确认；Command 阶段）
 
@@ -210,7 +214,7 @@ mode: all | only_new | selected_files | dry_run | null
 project_id: string | null      # 由客户端填充当前项目时可为 null
 source_lang / target_langs
 preserve_existing: bool        # 默认 true
-requires_confirmation: bool    # 表示该意图必须进入整份计划确认，不代表每个节点重复弹窗
+requires_confirmation: bool    # 进入整份计划确认；高风险项醒目标注，不代表节点重复弹窗
 explanation: string            # 用用户语言解释将要做什么
 ```
 
