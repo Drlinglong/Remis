@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from scripts.core.project_json_manager import ProjectJsonManager
@@ -869,6 +870,43 @@ def test_single_fix_requires_explicit_approval_before_model_or_write():
     assert detail["approval_scope"]["may_incur_model_cost"] is True
 
 
+@pytest.mark.parametrize("endpoint", ["/fix", "/fix-batch", "/fix-run"])
+def test_invalid_key_never_reaches_model_backed_repair(endpoint):
+    issue = {
+        "file_name": "events/test_l_english.yml",
+        "key": "demo invalid:0",
+        "source_str": "Source",
+        "target_str": "Broken",
+        "error_type": "Invalid key format",
+        "error_code": "validation_invalid_key_format",
+        "details": "The localization key is invalid.",
+    }
+    payload = {
+        "project_id": "p-invalid-key",
+        "api_provider": "gemini",
+        "api_model": "gemini-3-flash-preview",
+        "approval": {
+            "approved": True,
+            "issue_count": 1,
+            "api_provider": "gemini",
+            "api_model": "gemini-3-flash-preview",
+        },
+    }
+    if endpoint == "/fix":
+        payload.update(issue)
+    else:
+        payload["issues"] = [issue]
+    if endpoint == "/fix-run":
+        payload["idempotency_key"] = "invalid-key-run"
+
+    with patch("scripts.core.api_handler.get_handler") as mock_get_handler:
+        response = client.post(f"/api/agent-workshop{endpoint}", json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "unsupported_repair_issue"
+    mock_get_handler.assert_not_called()
+
+
 def test_fix_batch_does_not_mark_fixed_when_post_validation_fails(tmp_path):
     project_root = tmp_path / "project"
     translation_root = tmp_path / "translation"
@@ -913,13 +951,13 @@ def test_fix_batch_does_not_mark_fixed_when_post_validation_fails(tmp_path):
     with patch("scripts.routers.agent_workshop.project_manager", new_callable=MagicMock) as mock_pm, \
          patch("scripts.routers.agent_workshop.ReflexionFixAgent", return_value=mock_agent), \
          patch("scripts.core.api_handler.get_handler", return_value=MagicMock()), \
-         patch("scripts.routers.agent_workshop.PostProcessValidator") as mock_validator_cls:
+         patch("scripts.core.services.workshop_writeback_service.PostProcessValidator") as mock_validator_cls:
         mock_pm.get_project = AsyncMock(return_value={
             "project_id": "p6",
             "source_path": str(project_root),
             "game_id": "victoria3",
         })
-        mock_validator_cls.return_value.validate_entry.return_value = [fake_error]
+        mock_validator_cls.return_value.validate_entry.side_effect = [[], [fake_error]]
 
         response = client.post("/api/agent-workshop/fix-batch", json={
             "project_id": "p6",
@@ -950,6 +988,7 @@ def test_fix_batch_does_not_mark_fixed_when_post_validation_fails(tmp_path):
     assert result["status"] == "FAILED"
     assert "Post-write validation failed" in result["parity_message"]
     assert result["report_path"] is None
+    assert 'demo.one:0 "坏译文一"' in translation_file.read_text(encoding="utf-8-sig")
 
     cached = ValidationLogger.load_errors(str(project_root))
     assert cached[0]["status"] == "failed"

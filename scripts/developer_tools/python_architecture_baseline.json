@@ -12,7 +12,7 @@
     "scripts/core/services/model_arena_execution_service.py": 1163,
     "scripts/core/services/model_arena_service.py": 1036,
     "scripts/routers/agent.py": 1165,
-    "scripts/routers/agent_workshop.py": 1805
+    "scripts/routers/agent_workshop.py": 1694
   },
   "function_line_exceptions": {
     "scripts/build_pipeline.py::main": 285,
@@ -27,7 +27,7 @@
     "scripts/core/parallel_processor.py::ParallelProcessor.process_files_stream": 160,
     "scripts/core/project_manager.py::ProjectManager.promote_incremental_source": 123,
     "scripts/core/project_manager.py::ProjectManager.repair_project_metadata": 126,
-    "scripts/core/services/embedded_workshop_service.py::run_embedded_workshop": 167,
+    "scripts/core/services/embedded_workshop_service.py::run_embedded_workshop": 155,
     "scripts/core/services/incremental_preparation_service.py::IncrementalPreparationService.prepare_language_update": 122,
     "scripts/core/services/initial_translation_language_service.py::run_language_translation": 163,
     "scripts/core/services/model_arena_execution_service.py::ModelArenaExecutionService._execute_contestant": 323,

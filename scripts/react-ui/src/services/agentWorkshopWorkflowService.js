@@ -26,6 +26,10 @@ export const createAgentWorkshopIdempotencyKey = (projectId) => {
   return `agent-workshop:${projectId}:${randomPart}`;
 };
 
+export const isRepairableAgentWorkshopIssue = (issue) => (
+  ![issue?.error_code, issue?.error_type].includes('validation_invalid_key_format')
+);
+
 export const loadAgentWorkshopBootstrap = async () => {
   const [projectsRes, configRes] = await Promise.all([
     projectService.getActiveProjects(),
@@ -79,6 +83,9 @@ export const requestAgentWorkshopIssueFix = async ({
   selectedModel,
   selectedProvider,
 }) => {
+  if (!isRepairableAgentWorkshopIssue(issue)) {
+    throw new Error('Invalid localization keys require manual file repair.');
+  }
   const response = await workshopService.fixIssue({
     project_id: projectId,
     api_provider: selectedProvider,
@@ -105,6 +112,7 @@ export const startAgentWorkshopFixRun = async ({
   selectedProvider,
   idempotencyKey,
 }) => {
+  const repairableIssues = issues.filter(isRepairableAgentWorkshopIssue);
   const response = await workshopService.startFixRun({
     project_id: projectId,
     api_provider: selectedProvider,
@@ -113,10 +121,10 @@ export const startAgentWorkshopFixRun = async ({
     concurrency_limit: Number(concurrencyLimit) || 1,
     rpm_limit: Number(rpmLimit) || 40,
     max_retries: 3,
-    issues,
+    issues: repairableIssues,
     approval: {
       approved: true,
-      issue_count: issues.length,
+      issue_count: repairableIssues.length,
       api_provider: selectedProvider,
       api_model: selectedModel,
     },

@@ -2,6 +2,26 @@
 
 本目录包含 V3 Mod Localization Factory 项目的所有中文文档。
 
+## 产品意图与契约
+- [功能意图契约模板](product-intent-template.md) - 玲珑决定、Agent 核验、共同确认
+- [项目文件发现与翻译上载](product-intent-project-file-discovery.md) - 已填写示例
+- [初次翻译与增量翻译产品意图](product-intent-translation-workflows.md) - 用户目标、失败语义与基线边界
+- [翻译主流程开发契约](developer/translation-workflow-contract.md) - 当前实现、差异与回归测试
+- [部署产品意图](product-intent-deployment.md) - 文件复制、用户确认与启动器边界
+- [部署开发契约](developer/deployment-contract.md) - 预览、覆盖、文件写入与当前差距
+- [校对产品意图](product-intent-proofreading.md) - 人工定稿、保存语义与功能边界
+- [校对开发契约](developer/proofreading-contract.md) - 文件级保存、冲突保护与已知缺陷
+- [术语表产品意图](product-intent-glossary.md) - 术语范围、上下文优先与禁止副作用
+- [术语表开发契约](developer/glossary-contract.md) - 装载优先级、数据写入与当前差距
+- [Model Arena 产品意图](product-intent-model-arena.md) - 小样比较、人工决定与禁止副作用
+- [Model Arena 开发契约](developer/model-arena-contract.md) - 抽样、匿名投票、历史与导出边界
+- [Task Center 产品意图](product-intent-task-center.md) - 任务收件箱、结果找回与主页边界
+- [Task Center 开发契约](developer/task-center-contract.md) - 状态、持久化、已处理语义与 Agent 读取边界
+- [智能工坊产品意图](product-intent-agent-workshop.md) - 格式安全护栏、自动写回与禁止语义重写
+- [智能工坊开发契约](developer/agent-workshop-contract.md) - 扫描、有限重试、逐条写回与当前高风险差距
+- [Agent / Copilot 产品意图](product-intent-agent-copilot.md) - 同一聊天入口、计划批准、有限域执行与公开目标
+- [Agent / Copilot 开发契约](developer/agent-copilot-contract.md) - Action Registry、工作流计划、终态与当前差距
+
 ## 快速开始
 - [从零开始：第一次汉化](user-guides/getting-started.md) - **推荐首读**：项目管理建项 → 初次翻译 → 部署
 - [常见问题解答 (FAQ)](user-guides/faq.md) - 常见问题和解决方案
@@ -18,6 +38,8 @@
 - [校对](user-guides/proofreading.md) - 三栏编辑器、补丁模式、保存与验证
 - [智能工坊](user-guides/agent-workshop.md) - 扫描格式问题并用 AI 修复
 - [词典与词汇表](user-guides/glossary.md) - 主词典 / 额外词典 / 项目词典与翻译启用
+- [模型竞技场](user-guides/model-arena.md) - 正式翻译前比较 2 或 3 个候选模型
+- [任务中心](user-guides/task-center.md) - 查看后台进度、失败、结果和全部日志
 - [常见问题解答 (FAQ)](user-guides/faq.md) - 常见问题和解决方案
 - [工厂工作原理](user-guides/how_the_factory_works.md) - 原理向流水线说明
 - [日志与诊断](user-guides/logs-and-diagnostics.md) - 日志在哪、怎么看、如何反馈
@@ -31,8 +53,9 @@
 - [开发环境搭建指南](developer/development-setup.md) - 仓库开发环境说明
 - [CI、依赖维护与仓库门禁](developer/ci-setup.md) - GitHub Actions、Dependabot 与本地等价命令
 
-## 产品 Copilot（设计草案，#132）
+## Remis Agent / Copilot（3.1.0 隐藏预览）
 - [Copilot 文档入口](copilot/README.md) - 用户 RAG / Agent 操作说明 / 与开发者文档的边界
+- [Remis 小助手用户指南](user-guides/remis-assistant.md) - 在同一聊天框问问题、批准计划和检查结果
 - [用户 Micro-RAG 语料边界](copilot/rag-corpus-boundary.md) - 索引白名单与黑名单（不喂 developer 文档）
 - [Agent 操作说明书](copilot/agent-operations.md) - 可提议操作、禁止改源码、引导 GitHub 反馈
 
@@ -51,6 +74,8 @@
 
 ## 词典系统
 - [词典与词汇表（用户向）](user-guides/glossary.md) - **客户端怎么用**：主词典 / 额外词典 / 项目词典
+- [术语表产品意图](product-intent-glossary.md) - 适用范围、优先级、确认与非目标
+- [术语表开发契约](developer/glossary-contract.md) - 当前实现、意图差距与测试门禁
 - [词典系统概览](glossary/overview.md) - 机制与文件结构（偏开发/进阶）
 - [词典工具使用](glossary/tools-guide.md) - parser.py / validator.py（开发向）
 - [系统机制说明](glossary/system-mechanism.md) - 技术实现详解
@@ -60,4 +85,4 @@
 - [English Documentation](../en/index.md) - English documentation index
 - [归档文档](../archive/README.md) - 历史记录与旧版总览
 - [开发历史归档](../archive/developer-history/README.md) - 重构总结与设计冻结文档
-- [返回文档中心](../../documentation-center.md) - 返回文档中心
+- [返回文档中心](../documentation-center.md) - 返回文档中心
