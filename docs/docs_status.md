@@ -18,6 +18,8 @@
 - `docs/zh/product-intent-project-file-discovery.md` — 已填写的文件发现示例
 - `docs/zh/product-intent-translation-workflows.md` — 初次与增量翻译产品意图
 - `docs/zh/developer/translation-workflow-contract.md` — 当前代码事实、目标边界与测试门禁
+- `docs/zh/product-intent-deployment.md` — 部署目标、确认边界与明确非目标
+- `docs/zh/developer/deployment-contract.md` — 部署当前实现、产品差距与测试门禁
 
 ### 当前协作与维护
 

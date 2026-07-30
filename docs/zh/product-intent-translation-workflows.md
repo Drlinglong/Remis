@@ -3,6 +3,8 @@
 这份文档描述 Remis 翻译主流程为什么存在、用户应得到什么，以及失败时数据必须怎样处理。
 它是产品意图，不是 3.1.0 当前实现说明。已知实现差异见
 [翻译主流程开发契约](developer/translation-workflow-contract.md)。
+翻译成果写入 Paradox 用户目录后的边界见
+[部署产品意图](product-intent-deployment.md)。
 
 ## 文档状态
 
