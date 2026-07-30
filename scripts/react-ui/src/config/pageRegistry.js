@@ -76,7 +76,7 @@ export const PAGE_REGISTRY = Object.freeze([
     domain: PAGE_DOMAINS.TRANSLATION,
     navigation: { entryMode: ENTRY_MODES.PRIMARY, section: 'translation', label: 'page_title_model_arena', icon: 'trophy', order: 30 },
     guide: 'docs/zh/user-guides/model-arena.md',
-    copilot: { pageName: '模型竞技场 / Model Arena', helpSkillId: 'getting_started' },
+    copilot: { pageName: '模型竞技场 / Model Arena', helpSkillId: 'model_arena' },
   },
   {
     id: 'proofreading',
@@ -127,7 +127,7 @@ export const PAGE_REGISTRY = Object.freeze([
     domain: PAGE_DOMAINS.TASKS,
     navigation: { entryMode: ENTRY_MODES.CONTEXTUAL },
     tutorialContext: 'task-history',
-    copilot: { pageName: '任务日志 / Task History', helpSkillId: 'faq' },
+    copilot: { pageName: '任务日志 / Task History', helpSkillId: 'task_center' },
   },
   {
     id: 'task-detail',
@@ -136,7 +136,7 @@ export const PAGE_REGISTRY = Object.freeze([
     domain: PAGE_DOMAINS.TASKS,
     navigation: { entryMode: ENTRY_MODES.CONTEXTUAL },
     tutorialContext: 'task-detail',
-    copilot: { pageName: '任务详情 / Task Detail', helpSkillId: 'faq' },
+    copilot: { pageName: '任务详情 / Task Detail', helpSkillId: 'task_center' },
   },
   {
     id: 'glossary-health-review',
@@ -183,7 +183,7 @@ export const PAGE_REGISTRY = Object.freeze([
     domain: PAGE_DOMAINS.ASSISTANT,
     enabledBy: 'ENABLE_REMIS_COPILOT',
     navigation: { entryMode: ENTRY_MODES.GLOBAL },
-    copilot: { pageName: 'Remis 小助手 / Copilot', helpSkillId: 'faq' },
+    copilot: { pageName: 'Remis 小助手 / Copilot', helpSkillId: 'remis_assistant' },
   },
   {
     id: 'archives',

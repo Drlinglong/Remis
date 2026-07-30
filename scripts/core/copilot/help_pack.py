@@ -78,6 +78,21 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
         "description": "扫描和修复格式、变量、标签等批量问题。",
         "resources": ("zh/user-guides/agent-workshop.md",),
     },
+    "model_arena": {
+        "title": "模型竞技场",
+        "description": "用样本文本比较候选模型、投票、处理失败并查看结果。",
+        "resources": ("zh/user-guides/model-arena.md",),
+    },
+    "task_center": {
+        "title": "任务中心",
+        "description": "查看后台任务进度、结果、失败范围、任务详情和历史记录。",
+        "resources": ("zh/user-guides/task-center.md",),
+    },
+    "remis_assistant": {
+        "title": "Remis 小助手",
+        "description": "在同一聊天框提问、生成工作流计划、确认执行并判断真实完成。",
+        "resources": ("zh/user-guides/remis-assistant.md",),
+    },
     "glossary": {
         "title": "词典与词汇表",
         "description": "术语、专有名词、词典创建、绑定和使用。",

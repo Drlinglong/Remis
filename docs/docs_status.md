@@ -39,10 +39,15 @@
 - `docs/zh/developer/build-release-script-guide.md`
 - `docs/zh/developer/feature_flags.md`
 
-### 产品 Copilot 设计与隐藏工程预览（#132）
+### Remis Agent / Copilot 产品契约与隐藏工程预览（#132）
 
-面向「用户帮助 + 结构化操作建议」，**不是**开发者编码助手。普通用户使用 Tauri 打包客户端，Copilot 不能改 Remis 源码。3.1.0 保留其代码与测试作为工程预览，但常规桌面 UI 和打包 API 路由仍然关闭。
+面向普通用户的同一聊天入口：Copilot 负责帮助答疑，Agent 负责把自然语言目标整理成待批准
+的 Remis 工作流。它不是开发者编码助手，也不能直接改文件。3.1.0 保留代码与测试作为隐藏
+工程预览；下一版本目标是公开第一版，当前尚未支持通用多步骤编排和聊天内终态总结。
 
+- `docs/zh/product-intent-agent-copilot.md` — 用户价值、统一入口、确认、成功标准与公开目标
+- `docs/zh/user-guides/remis-assistant.md` — 普通用户如何提问、批准计划和判断真实完成
+- `docs/zh/developer/agent-copilot-contract.md` — 当前入口、Registry、计划执行、终态与差距
 - `docs/zh/copilot/README.md` — 入口与三类材料划分
 - `docs/zh/copilot/rag-corpus-boundary.md` — 用户 Micro-RAG 白名单/黑名单（开发者文档默认不进索引）
 - `docs/zh/copilot/agent-operations.md` — Agent 可提议的操作、禁止项、GitHub 反馈引导
@@ -62,6 +67,7 @@
 - `docs/zh/user-guides/glossary.md`
 - `docs/zh/user-guides/model-arena.md`
 - `docs/zh/user-guides/task-center.md`
+- `docs/zh/user-guides/remis-assistant.md`
 - `docs/zh/user-guides/logs-and-diagnostics.md`
 - `docs/zh/user-guides/error-catalog.md`
 - `docs/zh/user-guides/faq.md`（已按客户端工作流修订）

@@ -274,7 +274,11 @@ const AgentWorkshopPage = () => {
                                               >
                                                 {t('proofreading.open_entry', { defaultValue: 'Manual proofreading' })}
                                               </Button>
-                                              <Button size="xs" variant="light" leftSection={<IconWand size={14} />} onClick={() => openFixModal(issue)} style={{ whiteSpace: 'nowrap' }}>
+                                              <Button
+                                                size="xs" variant="light" leftSection={<IconWand size={14} />} disabled={invalidKeyIssue}
+                                                title={invalidKeyIssue ? t('agent_workshop.invalid_key_manual_help') : undefined}
+                                                onClick={() => openFixModal(issue)} style={{ whiteSpace: 'nowrap' }}
+                                              >
                                                 {t('agent_workshop.fix_btn')}
                                               </Button>
                                             </Stack>

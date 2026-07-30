@@ -115,4 +115,19 @@ describe('Agent Workshop invalid-key recovery', () => {
       message: 'agent_workshop.invalid_key_manual_help',
     });
   });
+
+  it('does not offer model repair for an invalid key', async () => {
+    render(
+      <MantineProvider>
+        <MemoryRouter>
+          <AgentWorkshopPage />
+        </MemoryRouter>
+      </MantineProvider>,
+    );
+
+    fireEvent.click((await screen.findByText('agent_workshop.file_issue_details')).closest('button'));
+    fireEvent.click((await screen.findByText('events.yml')).closest('button'));
+
+    expect(await screen.findByRole('button', { name: 'agent_workshop.fix_btn' })).toBeDisabled();
+  });
 });

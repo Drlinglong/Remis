@@ -128,6 +128,31 @@ describe('agentWorkshopWorkflowService', () => {
     expect(workshopService.fixBatch).not.toHaveBeenCalled();
   });
 
+  it('excludes invalid keys from model-backed batch repair', async () => {
+    workshopService.startFixRun.mockResolvedValue({
+      data: { task_id: 'task-1', status: 'started' },
+    });
+
+    await startAgentWorkshopFixRun({
+      batchSizeLimit: '10',
+      concurrencyLimit: '1',
+      issues: [
+        { file_name: 'a.yml', key: 'broken key', error_code: 'validation_invalid_key_format' },
+        { file_name: 'a.yml', key: 'valid.key', error_code: 'validation_variable_parity_mismatch' },
+      ],
+      projectId: 'project-1',
+      rpmLimit: '60',
+      selectedModel: 'gemini-pro',
+      selectedProvider: 'gemini',
+      idempotencyKey: 'agent-workshop:project-1:test',
+    });
+
+    expect(workshopService.startFixRun).toHaveBeenCalledWith(expect.objectContaining({
+      issues: [expect.objectContaining({ key: 'valid.key' })],
+      approval: expect.objectContaining({ issue_count: 1 }),
+    }));
+  });
+
   it('binds single-issue model repair to the selected approval scope', async () => {
     workshopService.fixIssue.mockResolvedValue({
       data: { status: 'SUCCESS', suggested_fix: 'fixed' },
@@ -149,6 +174,21 @@ describe('agentWorkshopWorkflowService', () => {
         api_model: 'gemini-pro',
       },
     }));
+  });
+
+  it('rejects invalid-key single repair before calling the API', async () => {
+    await expect(requestAgentWorkshopIssueFix({
+      issue: {
+        file_name: 'a.yml',
+        key: 'broken key',
+        error_code: 'validation_invalid_key_format',
+      },
+      projectId: 'project-1',
+      selectedModel: 'gemini-pro',
+      selectedProvider: 'gemini',
+    })).rejects.toThrow('Invalid localization keys require manual file repair.');
+
+    expect(workshopService.fixIssue).not.toHaveBeenCalled();
   });
 
   it('creates project-scoped idempotency keys for safe retries', () => {

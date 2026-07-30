@@ -8,6 +8,11 @@ from typing import Any, Dict, List, Optional
 from scripts.core.agents.fix_agent import ReflexionFixAgent
 from scripts.core.api_handler import get_handler
 from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService
+from scripts.core.services.workshop_writeback_service import (
+    apply_validated_workshop_fix_to_path,
+    is_repairable_workshop_issue,
+    resolve_output_translation_target,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +54,7 @@ def _load_issues(sidecar_path: Path) -> List[Dict[str, Any]]:
     return [
         issue for issue in issues
         if isinstance(issue, dict) and str(issue.get("status", "detected")).lower() not in {"fixed", "ignored"}
+        and is_repairable_workshop_issue(issue)
     ]
 
 
@@ -57,53 +63,41 @@ def _chunked(items: List[Dict[str, Any]], size: int) -> List[List[Dict[str, Any]
     return [items[index:index + size] for index in range(0, len(items), size)]
 
 
-def _resolve_issue_target_path(output_root: Path, issue: Dict[str, Any]) -> Optional[Path]:
-    file_path = issue.get("file_path")
-    if file_path:
-        candidate = Path(file_path)
-        if candidate.exists():
-            return candidate
+def _apply_validated_results(
+    output_root: str | Path,
+    results: List[Dict[str, Any]],
+    issues: List[Dict[str, Any]],
+    game_profile: Dict[str, Any],
+    target_lang_info: Dict[str, Any],
+) -> tuple[int, int]:
+    fixed_count = 0
+    failed_count = 0
+    issue_map = {
+        (issue.get("file_name"), issue.get("key")): issue
+        for issue in issues
+    }
+    for result in results:
+        original_issue = issue_map.get((result.get("file_name"), result.get("key")))
+        if result.get("status") != "SUCCESS" or not original_issue:
+            failed_count += 1
+            continue
 
-    file_name = issue.get("file_name")
-    if file_name:
-        candidate = output_root / file_name
-        if candidate.exists():
-            return candidate
-    return None
-
-
-def _apply_translation_fix_to_file(file_path: Path, key_to_fix: str, new_value: str) -> bool:
-    from scripts.core.loc_parser import parse_loc_file_with_lines
-
-    try:
-        entries = parse_loc_file_with_lines(file_path)
-        target_line = -1
-        for key, _value, line_number in entries:
-            if key == key_to_fix or key.split(':')[0] == key_to_fix.split(':')[0]:
-                target_line = line_number
-                break
-
-        if target_line == -1:
-            return False
-
-        index = target_line - 1
-        with open(file_path, 'r', encoding='utf-8-sig') as handle:
-            lines = handle.readlines()
-
-        old_line = lines[index]
-        first_quote = old_line.find('"')
-        last_quote = old_line.rfind('"', first_quote + 1)
-        if first_quote == -1 or last_quote == -1:
-            return False
-
-        safe_value = new_value.replace('"', r'\"')
-        lines[index] = old_line[:first_quote + 1] + safe_value + old_line[last_quote:]
-        with open(file_path, 'w', encoding='utf-8-sig') as handle:
-            handle.writelines(lines)
-        return True
-    except Exception as exc:
-        logger.error("Failed to apply embedded workshop fix to %s: %s", file_path, exc)
-        return False
+        target_path = resolve_output_translation_target(output_root, original_issue)
+        applied = False
+        if target_path:
+            applied, _failure_reason, _message = apply_validated_workshop_fix_to_path(
+                target_path=target_path,
+                game_id=game_profile.get("id", ""),
+                key=result["key"],
+                source_str=original_issue.get("source_str", ""),
+                suggested_fix=result.get("suggested_fix", ""),
+                target_lang=original_issue.get("target_lang") or target_lang_info.get("code"),
+            )
+        if applied:
+            fixed_count += 1
+        else:
+            failed_count += 1
+    return fixed_count, failed_count
 
 
 async def run_embedded_workshop(
@@ -223,25 +217,13 @@ async def run_embedded_workshop(
 
     await asyncio.gather(*(worker(worker_id + 1) for worker_id in range(max(1, concurrency))))
 
-    fixed_count = 0
-    failed_count = 0
-    for result in results:
-        original_issue = next(
-            (
-                issue for issue in issues
-                if issue.get("file_name") == result.get("file_name") and issue.get("key") == result.get("key")
-            ),
-            None,
-        )
-        if result.get("status") != "SUCCESS" or not original_issue:
-            failed_count += 1
-            continue
-
-        target_path = _resolve_issue_target_path(output_root, original_issue)
-        if target_path and _apply_translation_fix_to_file(target_path, result["key"], result.get("suggested_fix", "")):
-            fixed_count += 1
-        else:
-            failed_count += 1
+    fixed_count, failed_count = _apply_validated_results(
+        output_root,
+        results,
+        issues,
+        game_profile,
+        target_lang_info,
+    )
 
     exporter = WorkshopIssueExportService()
     refreshed_export = exporter.export_for_output(
