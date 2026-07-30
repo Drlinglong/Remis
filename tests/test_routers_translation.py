@@ -159,3 +159,42 @@ def test_run_translation_workflow_v2_logs_project_history_through_async_bridge(m
     assert project_manager.log_history_event.await_count == 2
     project_manager.get_project.assert_awaited_once_with("project-1")
     glossary_manager.get_project_glossary.assert_awaited_once()
+
+
+def test_run_translation_workflow_v2_gives_explicit_glossary_highest_priority(monkeypatch, tmp_path):
+    task_state.create_task("task-glossary-priority", status="pending")
+    monkeypatch.setattr(translation.i18n, "load_language", MagicMock())
+    run_workflow = MagicMock()
+    monkeypatch.setattr(translation.initial_translate, "run", run_workflow)
+
+    project_manager = MagicMock()
+    project_manager.log_history_event = AsyncMock()
+    project_manager.get_project = AsyncMock(
+        return_value={"source_path": str(tmp_path), "name": "Example Mod"}
+    )
+    monkeypatch.setattr(translation, "project_manager", project_manager)
+
+    glossary_manager = MagicMock()
+    glossary_manager.get_available_glossaries = AsyncMock(
+        return_value=[{"glossary_id": 10, "is_main": True}]
+    )
+    glossary_manager.get_project_glossary = AsyncMock(
+        return_value={"glossary_id": 20, "name": "Project Terms"}
+    )
+    monkeypatch.setattr(translation, "glossary_manager", glossary_manager)
+
+    translation.run_translation_workflow_v2(
+        "task-glossary-priority",
+        "Example Mod",
+        "stellaris",
+        "en",
+        ["zh-CN"],
+        "gemini",
+        "",
+        [30],
+        None,
+        True,
+        project_id="project-1",
+    )
+
+    assert run_workflow.call_args.kwargs["selected_glossary_ids"] == [10, 20, 30]

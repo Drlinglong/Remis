@@ -275,18 +275,14 @@ def run_translation_workflow_v2(
             raise ValueError("Failed to resolve game profile, source language, or target languages.")
         _reject_source_language_targets(source_lang_code, target_languages)
 
-        # Glossaries are ordered from low to high priority. Matching resolves
-        # conflicts as: project > explicitly selected/game > main/global.
+        # Glossaries are ordered from low to high priority. Explicit user
+        # selection is the final override: selected > project > main/global.
         final_glossary_ids = []
         if use_main_glossary:
             available = _run_async(glossary_manager.get_available_glossaries(game_profile["id"]))
             main_glossary = next((g for g in available if g.get('is_main')), None)
             if main_glossary and main_glossary['glossary_id'] not in final_glossary_ids:
                 final_glossary_ids.append(main_glossary['glossary_id'])
-
-        for glossary_id in selected_glossary_ids or []:
-            if glossary_id not in final_glossary_ids:
-                final_glossary_ids.append(glossary_id)
 
         override_path = None
         project = None
@@ -312,6 +308,10 @@ def run_translation_workflow_v2(
                     project_glossary['glossary_id'],
                     project_id,
                 )
+
+        for glossary_id in selected_glossary_ids or []:
+            if glossary_id not in final_glossary_ids:
+                final_glossary_ids.append(glossary_id)
 
         logging.info("Calling initial_translate.run...")
         initial_translate.run(
