@@ -1,5 +1,15 @@
 # Remis 模型竞技场实施计划
 
+> **文档状态：** historical
+>
+> **原用途：** Model Arena 首版实施前的设计与切片计划
+>
+> **Copilot 语料：** excluded
+>
+> **现行替代：** [Model Arena 用户指南](../../../zh/user-guides/model-arena.md)、
+> [产品意图](../../../zh/product-intent-model-arena.md)与
+> [开发契约](../../../zh/developer/model-arena-contract.md)
+
 ## 1. 产品定位
 
 模型竞技场是 Remis 内部的轻量级、人工偏好驱动的试译工具。用户在正式翻译整个 Mod 前，从同一批代表性原文中比较 2 或 3 个候选模型，完成匿名选择后再查看模型身份、偏好次数、偏好理由、格式硬错误、失败类型与耗时。

@@ -6,19 +6,21 @@
 本目录存放 **Remis Agent / Copilot** 相关说明。两种职责通过同一个聊天入口交给用户：
 Copilot 回答如何使用 Remis，Agent 把自然语言目标整理成待批准的 Remis 工作流。
 
-## 三类读者，三类材料
+## 两层检索语料，一份固定操作契约
 
-| 材料 | 读者 | 是否进入用户 Micro-RAG | 说明 |
-|------|------|------------------------|------|
-| [用户语料边界](rag-corpus-boundary.md) | 实现者 / 维护者 | 否（这是索引规则本身） | 规定 RAG **可以**和**不可以**索引什么 |
-| [Agent 操作说明书](agent-operations.md) | Copilot（模型侧） | 否（走 system / tool 说明，不是用户文档检索） | 只描述能提议的操作、禁止项、如何引导用户 |
-| `docs/zh/user-guides/**` 等 | 终端用户 | **是** | 真正的答疑语料 |
+| 材料 | 读者 / 消费者 | 进入哪里 | 说明 |
+|------|------|------|------|
+| [双层语料边界](rag-corpus-boundary.md) | 实现者 / 维护者 | 不进入检索 | 规定两层语料的白名单、优先级和排除项 |
+| `docs/zh/user-guides/**` | 终端用户 / Help Copilot | `user-help` | 回答怎么用、失败后怎么办 |
+| `docs/zh/product-intent-*.md` + `docs/zh/developer/*-contract.md` | Remis Agent | `agent-planning` | 理解功能目的、当前能力与不可越界事项 |
+| [Agent 操作说明书](agent-operations.md) | Copilot（模型侧） | 固定 system/tool 附录 | 关键能力和禁止项不能依赖检索命中 |
 
 ## 原则（一句话）
 
-- **用户 RAG**：回答「Remis 怎么用」。
-- **Agent 说明书**：回答「我能建议系统做什么」。
-- **开发者文档**（`docs/zh/developer/**`、`docs/zh/technical/**`）：回答「代码怎么接」——**默认不进用户 RAG，也不塞进 Agent 长上下文。**
+- **`user-help`**：回答「Remis 怎么用」。
+- **`agent-planning`**：回答「这个目标为什么存在，当前能怎样安全规划」。
+- **Agent 操作说明书**：固定回答「我能建议系统做什么」，不能被检索内容覆盖。
+- **其他开发者文档**：回答「代码怎么接」——默认不进任一运行时语料。
 
 产品意图见 [Agent / Copilot 产品意图](../product-intent-agent-copilot.md)，当前实现见
 [开发契约](../developer/agent-copilot-contract.md)。
@@ -39,9 +41,11 @@ Copilot 回答如何使用 Remis，Agent 把自然语言目标整理成待批准
 
 ## 阅读顺序
 
-1. [rag-corpus-boundary.md](rag-corpus-boundary.md) — 先定「喂什么」
-2. [agent-operations.md](agent-operations.md) — 再定「Agent 能干什么」
-3. 用户语料（已进白名单、供 Micro-RAG 索引）：
+1. [rag-corpus-boundary.md](rag-corpus-boundary.md) — 先分清 `user-help` 与 `agent-planning`
+2. [agent-operations.md](agent-operations.md) — 再固定「Agent 能干什么」
+3. `agent-planning`：按功能成对阅读[产品意图](../product-intent-agent-copilot.md)和
+   [当前开发契约](../developer/agent-copilot-contract.md)；执行能力仍以 Action Registry 为准。
+4. `user-help`（已进白名单、供答疑检索）：
    - [从零开始](../user-guides/getting-started.md)（**首读**：建项目 → 初次翻译 → 部署）
    - [增量翻译](../user-guides/incremental-update.md)
    - [导入已有译文](../user-guides/import-existing-translations.md)
@@ -67,3 +71,4 @@ Copilot 回答如何使用 Remis，Agent 把自然语言目标整理成待批准
 - 不做可自由改用户目录的自治 Agent
 - 不做开发者编码助手
 - 不把架构 / CI / 重构文档当用户帮助内容
+- 不把归档实施计划或未来愿景当成当前可执行能力

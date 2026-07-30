@@ -36,4 +36,4 @@ This directory contains all English documentation for the V3 Mod Localization Fa
 - [Chinese Documentation](../zh/index.md) - Chinese documentation index
 - [Archived Docs](../archive/README.md) - Historical records and retired overviews
 - [Developer History Archive](../archive/developer-history/README.md) - Refactor and design history
-- [Back to Documentation Center](../../documentation-center.md) - Back to documentation center
+- [Back to Documentation Center](../documentation-center.md) - Back to documentation center

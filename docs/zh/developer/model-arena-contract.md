@@ -192,4 +192,5 @@ Evidence 模式包含实际 prompt、项目样本、译文、投票备注和解�
 - `tests/core/test_model_arena_export_service.py`
 - `scripts/react-ui/src/components/modelArena/*.test.jsx`
 
-更长的首版设计背景见[实施计划](model_arena_implementation_plan.md)。
+更长的首版设计背景已归档为[历史实施计划](../../archive/developer-history/zh/model_arena_implementation_plan.md)；
+它只用于回顾设计演化，不代表当前实现。

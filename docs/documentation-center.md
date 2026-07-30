@@ -18,9 +18,9 @@
 
 ## 文档状态 / Documentation Status
 
-- [文档状态说明](docs_status.md) - 哪些文档更适合作为当前入口，哪些更适合作为历史记录
+- [文档状态说明](docs_status.md) - 当前入口、轻量状态字段与 Copilot 双层语料登记
 - [归档文档](archive/README.md) - 已退出主入口的历史文档
-- [产品 Copilot 设计草案](zh/copilot/README.md) - Issue #132 地基（用户 RAG 边界 + Agent 操作说明）
+- [Remis Copilot 文档](zh/copilot/README.md) - Issue #132 地基（用户答疑、Agent 规划与操作边界）
 
 ## 项目概述 / Project Overview
 

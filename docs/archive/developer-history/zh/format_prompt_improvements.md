@@ -1,5 +1,14 @@
 # 格式化提示词改进与游戏特定规则
 
+> **文档状态：** historical
+>
+> **原用途：** 2025 年一轮游戏专用格式提示词改造的实现快照
+>
+> **Copilot 语料：** excluded
+>
+> **现行替代：** 当前代码、验证器测试与
+> [智能工坊开发契约](../../../zh/developer/agent-workshop-contract.md)
+
 ## 概述
 
 本次改进的核心在于为每个游戏配置了专门的 `format_prompt`，并结合 `scripts/config.py` 中的 `GAME_PROFILES` 和 `FALLBACK_FORMAT_PROMPT` 实现了强大的保底机制。这一系列优化旨在显著提高AI翻译的质量和准确性，确保翻译结果完美适配P社游戏的复杂本地化格式要求。
@@ -206,6 +215,4 @@ else:
 - 强调了 `FALLBACK_FORMAT_PROMPT` 的保底机制。
 - 明确了 API Handler 如何智能选择 `format_prompt`。
 - 增加了 `punctuation_prompt` 占位符的说明。
-
-
 

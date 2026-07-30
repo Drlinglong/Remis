@@ -2,6 +2,38 @@
 
 这份文件用于说明 `docs/` 中哪些文档更适合当作当前入口，哪些更适合当作历史记录或专题实现笔记。
 
+## 轻量状态字段
+
+本页是文档状态的中央登记入口。为了避免每份文档复制一套容易漂移的元数据，优先按路径
+和下表登记；只有历史文档需要在文件开头额外写明替代文档。
+
+| 字段 | 可用值 | 含义 |
+|---|---|---|
+| `status` | `current` / `draft` / `historical` | 文档能否作为当前事实使用；不等同于功能是否已向用户开放 |
+| `audience` | `user` / `product` / `developer` / `agent` | 主要读者 |
+| `canonical_for` | 功能或规则名 | 该文档负责回答的唯一问题 |
+| `superseded_by` | 相对路径 | 历史文档的现行替代；当前文档可省略 |
+| `copilot_scope` | `user-help` / `agent-planning` / `excluded` | 可进入哪一层语料 |
+| `last_verified` | 版本号或日期 | 最近一次按实现核验的基线 |
+
+### 路径默认值
+
+| 路径 | status | audience | copilot_scope | canonical_for |
+|---|---|---|---|---|
+| `docs/zh/user-guides/**` | `current` | `user` | `user-help` | 用户何时使用、如何操作、失败后怎么办 |
+| `docs/zh/product-intent-<feature>.md` | `current` | `product`, `agent` | `agent-planning` | 为什么存在、产品边界、明确非目标 |
+| `docs/zh/product-intent-template.md` | `current` | `product`, `agent` | `excluded` | 文档治理模板，不是具体功能事实 |
+| `docs/zh/developer/*-contract.md` | `current` | `developer`, `agent` | `agent-planning` | 当前实现、实现差距、回归门禁 |
+| `docs/zh/copilot/agent-operations.md` | `current` | `agent` | `excluded` | 固定 system/tool 能力说明，不通过 RAG 检索 |
+| `docs/zh/copilot/rag-corpus-boundary.md` | `current` | `developer`, `agent` | `excluded` | 语料准入规则本身 |
+| `docs/archive/**` | `historical` | 按文档而定 | `excluded` | 历史背景，不作为当前事实 |
+
+未被明确登记的专题文档默认是参考材料，`copilot_scope: excluded`。需要进入语料时，先把它
+改造成对应的用户指南、产品意图或开发契约，而不是直接扩大目录白名单。
+
+第一轮治理完成的核心模块以 3.1.0 为 `last_verified`：翻译主流程、部署、校对、术语表、
+Model Arena、Task Center、智能工坊，以及 Agent / Copilot 隐藏预览。
+
 ## 建议优先阅读
 
 ### 当前入口
@@ -48,11 +80,12 @@
 - `docs/zh/product-intent-agent-copilot.md` — 用户价值、统一入口、确认、成功标准与公开目标
 - `docs/zh/user-guides/remis-assistant.md` — 普通用户如何提问、批准计划和判断真实完成
 - `docs/zh/developer/agent-copilot-contract.md` — 当前入口、Registry、计划执行、终态与差距
-- `docs/zh/copilot/README.md` — 入口与三类材料划分
-- `docs/zh/copilot/rag-corpus-boundary.md` — 用户 Micro-RAG 白名单/黑名单（开发者文档默认不进索引）
+- `docs/zh/copilot/README.md` — 双层语料与固定操作契约入口
+- `docs/zh/copilot/rag-corpus-boundary.md` — `user-help` 与 `agent-planning` 双层语料边界
 - `docs/zh/copilot/agent-operations.md` — Agent 可提议的操作、禁止项、GitHub 反馈引导
 
-注意：`docs/zh/copilot/` 与 `docs/zh/developer/**` **默认不作为用户 RAG 语料**；用户答疑语料以 `docs/zh/user-guides/**` 为主。
+注意：`docs/zh/developer/**` **不进入用户答疑语料**。只有命名为 `*-contract.md` 的现行
+开发契约可进入独立的 `agent-planning` 语料；其他开发文档默认排除。
 
 与 #132 Help 语料直接相关的用户短文（优先索引）：
 
@@ -90,6 +123,8 @@
 - 某些面向特定版本或特定发布阶段的报告
 - `docs/archive/` 下的归档文档
 - `docs/archive/developer-history/` 下的开发历史文档
+- 已弃用的 `incremental_update_mvp_checklist.md`
+- 增量更新 MVP 状态、Model Arena 实施计划和格式提示词改造等阶段快照
 
 ## 使用原则
 
@@ -97,3 +132,4 @@
 - 仓库协作、安全边界和验证要求以根目录 `AGENTS.md` 为准。
 - 当某份文档明显描述的是一次重构或一次版本演进，应将其视为“历史决策记录”，而不是永久规范。
 - 当一份文档已移动到 `docs/archive/`，说明它已退出主入口，不再作为默认阅读材料。
+- Copilot 答疑只读 `user-help`；Agent 规划只读 `agent-planning`，并以当前开发契约限制可执行能力。

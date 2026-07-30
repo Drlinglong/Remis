@@ -234,6 +234,6 @@ This project, by introducing a new parallel processor architecture, achieves tru
 ---
 
 > 📚 **Related Documentation**:
-> - [Parallel Processing Technology](developer/parallel-processing.md)
-> - [Implementation Record](developer/parallel-processing-implementation.md)
-> - [Glossary System](glossary/overview.md)
+> - [Parallel Processing Technology](parallel-processing.md)
+> - [Historical Implementation Record](../../archive/developer-history/en/parallel_processing_implementation.md)
+> - [Glossary System](../glossary/overview.md)

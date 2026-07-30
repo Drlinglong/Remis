@@ -138,6 +138,6 @@
 ---
 
 > 📚 **关联文档**:
-> - [RAG 架构与模型选型](rag-design.md)
-> - [并行处理技术详解](developer/parallel-processing.md)
-> - [重构决策指南](developer/refactor_decision_guide.md)
+> - [RAG 架构与模型选型](../technical/rag-design.md)
+> - [并行处理技术详解](parallel-processing.md)
+> - [重构决策指南](refactor_decision_guide.md)

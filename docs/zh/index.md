@@ -54,21 +54,20 @@
 - [CI、依赖维护与仓库门禁](developer/ci-setup.md) - GitHub Actions、Dependabot 与本地等价命令
 
 ## Remis Agent / Copilot（3.1.0 隐藏预览）
-- [Copilot 文档入口](copilot/README.md) - 用户 RAG / Agent 操作说明 / 与开发者文档的边界
+- [Copilot 文档入口](copilot/README.md) - `user-help` / `agent-planning` / 固定操作契约
 - [Remis 小助手用户指南](user-guides/remis-assistant.md) - 在同一聊天框问问题、批准计划和检查结果
-- [用户 Micro-RAG 语料边界](copilot/rag-corpus-boundary.md) - 索引白名单与黑名单（不喂 developer 文档）
+- [Copilot 与 Agent 双层语料边界](copilot/rag-corpus-boundary.md) - 两层索引白名单、优先级与排除项
 - [Agent 操作说明书](copilot/agent-operations.md) - 可提议操作、禁止改源码、引导 GitHub 反馈
 
 ## 开发者文档
 - [文档状态说明](../docs_status.md) - 当前文档入口与历史记录说明
-- [AI 智能体开发规章](../agent.md) - 已降级的旧入口，保留兼容说明
+- [AI 智能体开发规章](../agent.md) - 已降级的兼容入口；当前规则以根目录 `AGENTS.md` 为准
 - [架构概述](developer/architecture.md) - 系统架构和设计
 - [RAG 架构与模型选型](technical/rag-design.md) - 本地/云端双轨制 RAG 设计与模型选型方案（工程选型，非用户语料）
 - [重构决策指南](developer/refactor_decision_guide.md) - 什么时候该补丁，什么时候该重构
 - [发布构建脚本指南](developer/build-release-script-guide.md) - `build_release.bat` 脚本的使用说明
 - [Feature Flags 说明](developer/feature_flags.md) - 前端实验功能开关
 - [动态标签验证器与工具](developer/dynamic_tag_validator_and_tools.md) - 当前验证器相关说明
-- [格式化提示词改进与游戏特定规则](developer/format_prompt_improvements.md) - AI提示优化和游戏特定格式规则
 - [多文件并行处理架构说明](developer/parallel-processing.md) - 并行处理技术详解
 - [Workshop 描述生成器指南](developer/workshop_description_generator_guide.md) - 工具说明
 

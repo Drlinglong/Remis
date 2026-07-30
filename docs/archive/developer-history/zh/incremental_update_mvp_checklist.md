@@ -1,5 +1,15 @@
 # 增量更新 MVP 验收 Checklist
 
+> **文档状态：** historical
+>
+> **原用途：** 增量更新 MVP 的人工验收单；现已弃用
+>
+> **Copilot 语料：** excluded
+>
+> **现行替代：** [增量翻译用户指南](../../../zh/user-guides/incremental-update.md)、
+> [翻译主流程产品意图](../../../zh/product-intent-translation-workflows.md)与
+> [开发契约](../../../zh/developer/translation-workflow-contract.md)
+
 本清单用于在真实项目上验证“增量更新”MVP 是否稳定可用。
 
 ---

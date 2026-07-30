@@ -1,5 +1,15 @@
 # 增量更新 MVP 状态清单
 
+> **文档状态：** historical
+>
+> **原用途：** 增量更新 MVP 的阶段性完成度与后续里程碑快照
+>
+> **Copilot 语料：** excluded
+>
+> **现行替代：** [增量翻译用户指南](../../../zh/user-guides/incremental-update.md)、
+> [翻译主流程产品意图](../../../zh/product-intent-translation-workflows.md)与
+> [开发契约](../../../zh/developer/translation-workflow-contract.md)
+
 ## MVP Done
 
 - 归档上传链路已打通：项目现有译文可上传到 `mods_cache.sqlite`，作为增量更新基线。
