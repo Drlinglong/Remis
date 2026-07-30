@@ -9,6 +9,8 @@
 - [翻译主流程开发契约](developer/translation-workflow-contract.md) - 当前实现、差异与回归测试
 - [部署产品意图](product-intent-deployment.md) - 文件复制、用户确认与启动器边界
 - [部署开发契约](developer/deployment-contract.md) - 预览、覆盖、文件写入与当前差距
+- [校对产品意图](product-intent-proofreading.md) - 人工定稿、保存语义与功能边界
+- [校对开发契约](developer/proofreading-contract.md) - 文件级保存、冲突保护与已知缺陷
 
 ## 快速开始
 - [从零开始：第一次汉化](user-guides/getting-started.md) - **推荐首读**：项目管理建项 → 初次翻译 → 部署
