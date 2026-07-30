@@ -8,8 +8,112 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 MIN_GOOGLE_GENAI_VERSION = (1, 68, 0)
+
+RELEASE_DEMO_SOURCE_FILES = {
+    "Test_Project_Remis_stellaris": (
+        ".remis_project.json",
+        "descriptor.mod",
+        "thumbnail.png",
+        "localisation/english/remis_demo_events_l_english.yml",
+        "localisation/english/remis_demo_tech_l_english.yml",
+        "localisation/english/remis_demo_traditions_l_english.yml",
+    ),
+    "Test_Project_Remis_Vic3": (
+        ".remis_project.json",
+        ".metadata/metadata.json",
+        "thumbnail.png",
+        "localization/simp_chinese/remis_demo_l_simp_chinese.yml",
+    ),
+    "Test_Project_Remis_EU5": (
+        ".remis_project.json",
+        ".metadata/metadata.json",
+        ".metadata/thumbnail.png",
+        "thumbnail.png",
+        "main_menu/localization/english/remis_demo_eu5_l_english.yml",
+    ),
+}
+
+RELEASE_DEMO_TRANSLATION_FILES = {
+    "zh-CN-Test_Project_Remis_stellaris": (
+        ".remis_checkpoint_zh-CN.json",
+        "校对进度表 Proofreading Progress.csv",
+        "descriptor.mod",
+        "thumbnail.png",
+        "localisation/simp_chinese/remis_demo_traditions_l_simp_chinese.yml",
+        "localisation/simp_chinese/simp_chinese/remis_demo_events_l_simp_chinese.yml",
+        "localisation/simp_chinese/simp_chinese/remis_demo_tech_l_simp_chinese.yml",
+        "localisation/simp_chinese/simp_chinese/remis_demo_traditions_l_simp_chinese.yml",
+    ),
+    "en-Test_Project_Remis_Vic3": (
+        "校对进度表 Proofreading Progress.csv",
+        ".metadata/metadata.json",
+        "thumbnail.png",
+        "localization/english/remis_demo_l_english.yml",
+    ),
+    "zh-CN-Test_Project_Remis_EU5": (
+        "校对进度表 Proofreading Progress.csv",
+        ".metadata/metadata.json",
+        ".metadata/thumbnail.png",
+        "thumbnail.png",
+        "main_menu/localization/simp_chinese/remis_demo_eu5_l_simp_chinese.yml",
+    ),
+}
+
+
+def _sanitize_demo_json(value):
+    if isinstance(value, dict):
+        return {key: _sanitize_demo_json(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_demo_json(item) for item in value]
+    if isinstance(value, str):
+        normalized = value.replace("\\", "/")
+        if "/source_mod/" in normalized:
+            return "{{BUNDLED_DEMO_ROOT}}/" + normalized.split("/source_mod/", 1)[1]
+        if "/my_translation/" in normalized:
+            return (
+                "{{BUNDLED_TRANSLATION_ROOT}}/"
+                + normalized.split("/my_translation/", 1)[1]
+            )
+    return value
+
+
+def prepare_release_demo_assets(project_root, build_dir):
+    """Stage only reviewed Demo files; exclude logs, errors, and workshop state."""
+    staging_root = Path(build_dir) / "release_demo_assets"
+    reviewed_root = Path(project_root) / "assets" / "release_demo_content"
+    source_root = reviewed_root / "demos"
+    translation_root = reviewed_root / "translations"
+
+    for group_name, root, manifest in (
+        ("demos", source_root, RELEASE_DEMO_SOURCE_FILES),
+        ("my_translation", translation_root, RELEASE_DEMO_TRANSLATION_FILES),
+    ):
+        for folder_name, relative_files in manifest.items():
+            for relative_file in relative_files:
+                source_path = root / folder_name / Path(relative_file)
+                if not source_path.is_file():
+                    raise FileNotFoundError(
+                        f"Required release Demo file not found: {source_path}"
+                    )
+                target_path = staging_root / group_name / folder_name / Path(relative_file)
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                if source_path.suffix.lower() == ".json":
+                    with source_path.open("r", encoding="utf-8-sig") as handle:
+                        payload = json.load(handle)
+                    with target_path.open("w", encoding="utf-8", newline="\n") as handle:
+                        json.dump(
+                            _sanitize_demo_json(payload),
+                            handle,
+                            ensure_ascii=False,
+                            indent=2,
+                        )
+                        handle.write("\n")
+                else:
+                    shutil.copy2(source_path, target_path)
+    return staging_root
 
 def print_step(step_name):
     print(f"\n{'='*60}")
@@ -287,44 +391,19 @@ def main():
     else:
          print(f"[WARNING] Mods Cache Skeleton DB not found at {cache_skeleton_db}")
 
-    # [NEW] Add Demo Mods
-    # Mapping source folders to 'demos' directory in resources
-    demos_map = {
-        "Test_Project_Remis_stellaris": "demos/Test_Project_Remis_stellaris",
-        "Test_Project_Remis_Vic3": "demos/Test_Project_Remis_Vic3",
-        "Test_Project_Remis_Vic3_Incremental_Frozen": "demos/Test_Project_Remis_Vic3_Incremental_Frozen",
-        "Test_Project_Remis_EU5": "demos/Test_Project_Remis_EU5"
-    }
-    
-    source_mod_dir = os.path.join(project_root, "source_mod")
-    for folder_name, dest_tag in demos_map.items():
-        src_path = os.path.join(source_mod_dir, folder_name)
-        if os.path.exists(src_path):
-            add_data_args += f' --add-data "{src_path};{dest_tag}"'
-        else:
-             print(f"[WARNING] Demo mod not found at {src_path}")
-    
-    # [NEW] Add Demo Translations
-    # We map the dev folders to the clean structure expected by rehydration.
-    trans_map = {
-        "zh-CN-Test_Project_Remis_stellaris": "my_translation/zh-CN-Test_Project_Remis_stellaris",
-        "en-Test_Project_Remis_Vic3": "my_translation/en-Test_Project_Remis_Vic3",
-        "zh-CN-Test_Project_Remis_EU5": "my_translation/zh-CN-Test_Project_Remis_EU5",
-        "zh-CN-蕾姆丝计划演示模组：最后一位罗马人": "my_translation/legacy_vic3" # Fallback
-    }
-    
-    trans_dir = os.path.join(project_root, "my_translation")
-    for folder_name, dest_tag in trans_map.items():
-        src_path = os.path.join(trans_dir, folder_name)
-        if os.path.exists(src_path):
-            add_data_args += f' --add-data "{src_path};{dest_tag}"'
-        else:
-             print(f"[WARNING] Demo translation not found at {src_path}")
-    
-    # Check for demos folder (Legacy/General)
-    demos_dir = os.path.join(project_root, "demos")
-    if os.path.exists(demos_dir):
-        add_data_args += f' --add-data "{demos_dir};demos"'
+    try:
+        staged_demo_root = prepare_release_demo_assets(
+            project_root,
+            os.path.join(project_root, "build"),
+        )
+    except (FileNotFoundError, json.JSONDecodeError) as exc:
+        print(f"[ERROR] {exc}")
+        sys.exit(1)
+
+    add_data_args += (
+        f' --add-data "{staged_demo_root / "demos"};demos"'
+        f' --add-data "{staged_demo_root / "my_translation"};my_translation"'
+    )
     
     # Find jamo path dynamically from the target conda env
     jamo_data = os.path.join(conda_env_path, "Lib", "site-packages", "jamo", "data")

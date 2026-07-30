@@ -354,6 +354,25 @@ html[data-theme] [data-remis-surface='elevated'] {
   color: var(--elevated-text-main);
 }
 
+/*
+ * Mantine light variants carry theme tint backgrounds but can also inject a
+ * foreground intended for the page color scheme. Resolve compact labels and
+ * alerts against the nearest semantic material instead.
+ */
+html[data-theme] [data-remis-surface] .mantine-Badge-root[data-variant='light'] {
+  color: var(--remis-content-text) !important;
+}
+
+html[data-theme] [data-remis-surface] .mantine-Alert-root {
+  --alert-color: var(--remis-content-text) !important;
+  color: var(--remis-content-text) !important;
+}
+
+html[data-theme] [data-remis-surface] .mantine-Alert-root
+  :is(.mantine-Alert-icon, .mantine-Alert-title, .mantine-Alert-message) {
+  color: var(--remis-content-text) !important;
+}
+
 html[data-theme] [data-remis-action='primary'] {
   background: var(--interactive-accent) !important;
   border-color: var(--surface-text-muted) !important;

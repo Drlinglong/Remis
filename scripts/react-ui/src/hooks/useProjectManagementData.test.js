@@ -85,7 +85,9 @@ describe('useProjectManagementData', () => {
         overview: {
           totalFiles: 1,
           totalLines: 20,
+          completedFiles: 1,
         },
+        has_available_translation: true,
         files: [
           {
             key: 'file-1',

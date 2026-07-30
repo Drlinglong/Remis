@@ -1,0 +1,86 @@
+{
+  "version": "1.0",
+  "config": {
+    "translation_dirs": [
+      "{{BUNDLED_TRANSLATION_ROOT}}/zh-CN-Test_Project_Remis_EU5"
+    ]
+  },
+  "kanban": {
+    "columns": [
+      "todo",
+      "in_progress",
+      "proofreading",
+      "paused",
+      "done"
+    ],
+    "tasks": {
+      "9d178f04-ac38-5c6d-8d4a-d3d1fb401d71": {
+        "id": "9d178f04-ac38-5c6d-8d4a-d3d1fb401d71",
+        "type": "file",
+        "title": "remis_demo_eu5_l_english.yml",
+        "filePath": "{{BUNDLED_DEMO_ROOT}}/Test_Project_Remis_EU5/main_menu/localization/english/remis_demo_eu5_l_english.yml",
+        "status": "proofreading",
+        "comments": "",
+        "priority": "medium",
+        "meta": {
+          "source_lines": 45,
+          "file_type": "source",
+          "translation_status": {},
+          "rel_path": "main_menu\\localization\\english\\remis_demo_eu5_l_english.yml"
+        }
+      },
+      "0fd6588d-d280-5342-b611-af8eee8c49b7": {
+        "id": "0fd6588d-d280-5342-b611-af8eee8c49b7",
+        "type": "file",
+        "title": ".remis_project.json",
+        "filePath": "{{BUNDLED_DEMO_ROOT}}/Test_Project_Remis_EU5/.remis_project.json",
+        "status": "proofreading",
+        "comments": "Configuration/Metadata File",
+        "priority": "low",
+        "meta": {
+          "lines": 25,
+          "file_type": "config",
+          "rel_path": ".remis_project.json"
+        }
+      },
+      "a81e599e-3a80-5c9e-85ba-3804f99eaa9b": {
+        "id": "a81e599e-3a80-5c9e-85ba-3804f99eaa9b",
+        "type": "file",
+        "title": "remis_demo_eu5_l_simp_chinese.yml",
+        "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/zh-CN-Test_Project_Remis_EU5/main_menu/localization/simp_chinese/remis_demo_eu5_l_simp_chinese.yml",
+        "status": "proofreading",
+        "comments": "",
+        "priority": "medium",
+        "meta": {
+          "lines": 45,
+          "file_type": "translation",
+          "lang": "simp_chinese",
+          "parent_task_id": "9d178f04-ac38-5c6d-8d4a-d3d1fb401d71",
+          "rel_path": "remis_demo_eu5_l_simp_chinese.yml"
+        }
+      },
+      "ee5fa120-8591-572f-9f78-a7cf91ad7404": {
+        "id": "ee5fa120-8591-572f-9f78-a7cf91ad7404",
+        "type": "file",
+        "title": "校对进度表 Proofreading Progress.csv",
+        "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/zh-CN-Test_Project_Remis_EU5/校对进度表 Proofreading Progress.csv",
+        "status": "done",
+        "meta": {
+          "lines": 8,
+          "file_type": "translation",
+          "lang": "unknown",
+          "parent_task_id": null,
+          "rel_path": "校对进度表 Proofreading Progress.csv"
+        }
+      }
+    },
+    "column_order": [
+      "todo",
+      "in_progress",
+      "proofreading",
+      "paused",
+      "done"
+    ]
+  },
+  "notes": []
+}

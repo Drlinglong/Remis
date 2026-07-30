@@ -69,6 +69,23 @@ async function renderedContrast(locator) {
 }
 
 for (const themeId of themes) {
+  test(`${themeId} project glossary paper content remains readable`, async ({ page }) => {
+    await page.goto(`/visual-fixtures.html?theme=${themeId}&contract=project-glossary`);
+    const fixture = page.getByTestId('project-glossary-contrast-fixture');
+    await expect(fixture).toHaveAttribute('data-visual-ready', 'true');
+
+    const samples = [
+      page.getByTestId('project-glossary-title'),
+      page.getByTestId('project-glossary-description'),
+      page.getByTestId('project-glossary-badge'),
+      page.getByTestId('project-glossary-alert'),
+    ];
+    for (const sample of samples) {
+      await expect(sample).toBeVisible();
+      expect(await renderedContrast(sample)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   for (const viewport of viewports) {
     test(`${themeId} ${viewport.id} visual contract remains stable`, async ({ page }) => {
       await page.setViewportSize({

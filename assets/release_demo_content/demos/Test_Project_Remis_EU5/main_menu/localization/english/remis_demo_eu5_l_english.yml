@@ -1,0 +1,45 @@
+﻿l_english:
+ # ==========================================================================
+ # Project Remis Demo: Europa Universalis V (Project Caesar)
+ # Scenario: 1337 - The Last Breath of Byzantium
+ # Theme: The convergence of Republic, Empire, and Eastern Rome.
+ # ==========================================================================
+
+ # --------------------------------------------------------------------------
+ # Event 1: The Stranger at Blachernae (1337 Start)
+ # Context: The Empire is broke. Andronikos II disbanded the navy.
+ # --------------------------------------------------------------------------
+ remis_eu5.1.t:0 "The Ghost of the Palatine"
+ remis_eu5.1.d:0 "A mysterious woman arrives at the court, claiming to represent the memory of Rome itself."
+ remis_eu5.1.f:0 "The treasury is empty. The Venetians mock our galleys, and the Ottomans sharpen their scimitars across the straits. In the throne room of the Blachernae Palace, the mood is one of funeral silence.\n\nInto this gloom steps a woman who calls herself Remis. She wears the silk of a Byzantine princess, but beneath her cloak lies the iron breastplate of a Republican Legionary. She does not bow to [Root.Monarch.GetName]. Instead, she looks at the crumbling mosaics and sighs in a dialect of Latin not spoken for a thousand years:\n\n\"Consul, Basileus, Emperor... whatever you call yourself today. You have forgotten §R Aeterna Roma§!. You govern a city of ghosts, while the barbarians measure the curtains for their new mosques.\""
+ remis_eu5.1.a:0 "Who are you to speak to the Basileus this way?"
+ remis_eu5.1.b:0 "If you have gold, you are welcome. If you have advice, speak."
+
+ # --------------------------------------------------------------------------
+ # Event 2: The Economic Reform (Project Caesar)
+ # Context: Fixing the economy via Neologisms.
+ # --------------------------------------------------------------------------
+ remis_eu5.2.t:0 "Operation: §H Project Caesar§!"
+ remis_eu5.2.d:0 "Remis proposes a radical restructuring of the imperial economy, bypassing the corrupt nobility."
+ remis_eu5.2.f:0 "Remis has presented a scroll she calls §Y Project Caesar§!. It is terrifying in its efficiency. It calls for the immediate dissolution of the pronoia grants that have bled our tax revenue dry.\n\n\"We will mint a new currency,\" she declares, tossing a heavy coin onto the council table. \"The §Y Solidus Nova§!. It will not be debased by copper like your current coins. It will be backed by the only resource we have left: the blood of our patriots and the iron of our resolve.\"\n\nThe nobility is furious, but the merchants in Galata are listening."
+ remis_eu5.2.a:0 "Enact the reforms. The aristocracy be damned."
+ remis_eu5.2.b:0 "We cannot risk a civil war now."
+
+ # --------------------------------------------------------------------------
+ # Event 3: The Military & The Shadow (The Purple Silence)
+ # Context: Dealing with internal spies and external threats.
+ # --------------------------------------------------------------------------
+ remis_eu5.3.t:0 "The Purple Silence"
+ remis_eu5.3.d:0 "Dissenters are vanishing. Remis claims it is necessary for survival."
+ remis_eu5.3.f:0 "Rumors are spreading through the hippodrome. They say that Remis has established a network of informants known only as §R The Purple Silence§!. These agents do not carry the Varangian axe; they carry the Republican pugio (dagger).\n\nLast night, a Senator who was secretly negotiating with the Serbian King Stefan Dušan was found dead. On his desk was a note written in archaic script: \"The Republic has no need for traitors.\"\n\nRemis stands before you, her face unreadable. \"To rebuild the §Y Legio Renovatio§!, we must first excise the cancer within. Do not look away, Caesar. This is what survival looks like.\""
+ remis_eu5.3.a:0 "Necessary evil."
+ remis_eu5.3.b:0 "This is tyranny!"
+
+ # --------------------------------------------------------------------------
+ # Event 4: The Restoration (Endgame)
+ # Context: Retaking Anatolia.
+ # --------------------------------------------------------------------------
+ remis_eu5.4.t:0 "Roma Invicta"
+ remis_eu5.4.d:0 "The Ottomans have been pushed back. The Eagle flies over Anatolia once more."
+ remis_eu5.4.f:0 "The campaign was brutal. But where your generals saw only hills and valleys, Remis saw the ghost of Trajan's legions. She directed the §Y Legio Renovatio§! with a memory that spanned centuries.\n\nNow, standing on the reclaimed shores of Anatolia, she looks West, towards Rome, and East, towards Jerusalem. She is no longer just a mix of eras; she is the singularity of them.\n\n\"The §R Aeterna Roma§! does not die,\" she whispers, the wind catching her Tyrian purple cloak. \"It merely sleeps. And today, it wakes.\""
+ remis_eu5.4.a:0 "Roma Invicta!"

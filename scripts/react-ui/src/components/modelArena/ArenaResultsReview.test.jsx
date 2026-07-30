@@ -4,6 +4,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import ArenaResults from './ArenaResults';
+import { openExternalUrl } from '../../utils/externalLinks';
+
+vi.mock('../../utils/externalLinks', () => ({
+  openExternalUrl: vi.fn(),
+}));
 
 const t = (key, values = {}) => {
   if (key === 'model_arena.output_count') return `${values.count} outputs`;
@@ -52,8 +57,8 @@ describe('ArenaResults output review', () => {
     expect(screen.getAllByText('deepseek').length).toBeGreaterThan(0);
     expect(screen.getAllByText('deepseek-v4-pro').length).toBeGreaterThan(0);
     expect(screen.queryByText('model_arena.output_review_description')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'model_arena.share_invite' })).toHaveAttribute(
-      'href',
+    fireEvent.click(screen.getByRole('button', { name: 'model_arena.share_invite' }));
+    expect(openExternalUrl).toHaveBeenCalledWith(
       'https://github.com/Drlinglong/Remis/issues/153',
     );
     const outputReviewControl = screen.getByRole('button', {

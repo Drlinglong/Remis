@@ -282,31 +282,48 @@
   white-space: pre-line;
 }
 
+.stage :global(.model-arena-results-header) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.stage :global(.model-arena-results-actions) {
+  align-self: start;
+}
+
 .stage :global(.model-arena-share-invite) {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  max-width: 23rem;
-  padding: 0.45rem 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--interactive-accent) 52%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--interactive-accent) 10%, var(--surface-bg-solid));
-  color: var(--surface-text-main) !important;
-  font-size: 0.8rem;
-  font-weight: 750;
-  line-height: 1.35;
-  text-decoration: none;
-  transition: background 120ms ease, border-color 120ms ease;
+  max-width: 24rem;
+  min-height: 3rem;
+  padding-inline: 1rem;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 78%, white 10%);
+  background: var(--interactive-accent) !important;
+  color: var(--interactive-accent-text) !important;
+  box-shadow: 0 0.55rem 1.25rem color-mix(in srgb, var(--interactive-accent) 28%, transparent);
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: normal;
 }
 
 .stage :global(.model-arena-share-invite:hover) {
-  border-color: var(--interactive-accent);
-  background: color-mix(in srgb, var(--interactive-accent) 18%, var(--surface-bg-solid));
+  filter: brightness(1.08);
+  transform: translateY(-1px);
 }
 
 .stage :global(.model-arena-share-invite svg) {
   flex: 0 0 auto;
-  color: var(--interactive-accent);
+  color: currentColor;
+}
+
+@media (max-width: 62rem) {
+  .stage :global(.model-arena-results-header) {
+    grid-template-columns: 1fr;
+  }
+
+  .stage :global(.model-arena-results-actions) {
+    justify-content: flex-start;
+  }
 }
 
 .stage :global(.model-arena-source) {

@@ -10,7 +10,9 @@ import { theme as customTheme } from '../theme';
 import VisualReliabilityLab from './VisualReliabilityLab';
 
 const supportedThemes = new Set(['victorian', 'byzantine', 'scifi', 'wwii', 'medieval']);
-const requestedTheme = new URLSearchParams(window.location.search).get('theme');
+const searchParams = new URLSearchParams(window.location.search);
+const requestedTheme = searchParams.get('theme');
+const requestedContract = searchParams.get('contract');
 const activeTheme = supportedThemes.has(requestedTheme) ? requestedTheme : 'scifi';
 const rootElement = window.document.documentElement;
 
@@ -21,7 +23,7 @@ rootElement.classList.add(activeTheme);
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <MantineProvider theme={customTheme} defaultColorScheme="dark">
-      <VisualReliabilityLab themeId={activeTheme} />
+      <VisualReliabilityLab themeId={activeTheme} contract={requestedContract} />
     </MantineProvider>
   </StrictMode>,
 );

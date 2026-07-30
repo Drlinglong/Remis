@@ -13,6 +13,10 @@ vi.mock('react-router', () => ({
   useNavigate: () => vi.fn(),
 }));
 
+vi.mock('../context/TutorialContextCore', () => ({
+  useTutorial: () => ({ setPageContext: vi.fn() }),
+}));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key, options) => (

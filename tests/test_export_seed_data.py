@@ -49,10 +49,18 @@ def _create_release_source(path: Path) -> None:
             connection.execute(
                 """
                 INSERT INTO entries (
-                    entry_id, glossary_id, translations
-                ) VALUES (?, ?, ?)
+                    entry_id, glossary_id, translations, raw_metadata
+                ) VALUES (?, ?, ?, ?)
                 """,
-                (f"entry-{index}", index, '{"en":"Hello"}'),
+                (
+                    f"entry-{index}",
+                    index,
+                    '{"en":"Hello"}',
+                    (
+                        '{"source_file":"C:\\\\Users\\\\developer\\\\AppData\\\\'
+                        f'Roaming\\\\RemisModFactoryDev\\\\demos\\\\Demo{index}\\\\source.yml"}}'
+                    ),
+                ),
             )
             connection.execute(
                 """
@@ -141,6 +149,9 @@ def test_release_seed_export_is_three_demo_allowlist(tmp_path):
     assert "{{PROJECT_ROOT}}" not in project_sql
     assert "{{BUNDLED_DEMO_ROOT}}/Demo1/source.yml" in project_sql
     assert "{{BUNDLED_TRANSLATION_ROOT}}/Demo2/output.yml" in project_sql
+    main_sql = main_seed.read_text(encoding="utf-8")
+    assert "C:\\\\Users\\\\developer" not in main_sql
+    assert "{{BUNDLED_DEMO_ROOT}}/Demo1/source.yml" in main_sql
 
     installed_db = tmp_path / "installed.sqlite"
     migrate_main_database(str(installed_db))

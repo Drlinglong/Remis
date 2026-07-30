@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Accordion,
   Alert,
-  Anchor,
   Badge,
   Button,
   Card,
@@ -17,9 +16,12 @@ import {
   IconAlertTriangle,
   IconChevronDown,
   IconDownload,
-  IconHeart,
+  IconBrandGithub,
   IconRefresh,
 } from '@tabler/icons-react';
+import { openExternalUrl } from '../../utils/externalLinks';
+
+const COMMUNITY_RESULTS_ISSUE = 'https://github.com/Drlinglong/Remis/issues/153';
 
 const resultRows = (run) => (
   run.results?.contestants
@@ -42,23 +44,25 @@ export default function ArenaResults({
 
   return (
     <Stack gap="lg">
-      <Group justify="space-between" align="flex-start">
+      <Group
+        className="model-arena-results-header"
+        justify="space-between"
+        align="flex-start"
+      >
         <div>
           <Title order={3}>{t('model_arena.results_title')}</Title>
           <Text className="model-arena-results-description" c="dimmed">
             {t('model_arena.results_description')}
           </Text>
         </div>
-        <Group gap="sm" justify="flex-end">
-          <Anchor
+        <Group className="model-arena-results-actions" gap="sm" justify="flex-end">
+          <Button
             className="model-arena-share-invite"
-            href="https://github.com/Drlinglong/Remis/issues/153"
-            target="_blank"
-            rel="noreferrer"
+            leftSection={<IconBrandGithub size={20} stroke={2.1} />}
+            onClick={() => openExternalUrl(COMMUNITY_RESULTS_ISSUE)}
           >
-            <IconHeart size={16} stroke={2.2} />
-            <span>{t('model_arena.share_invite')}</span>
-          </Anchor>
+            {t('model_arena.share_invite')}
+          </Button>
           <Button leftSection={<IconDownload size={17} />} onClick={() => onPreviewExport(run)}>
             {t('model_arena.export_preview')}
           </Button>

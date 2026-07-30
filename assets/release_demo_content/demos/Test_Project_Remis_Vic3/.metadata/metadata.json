@@ -1,0 +1,12 @@
+{
+  "name": "Project Remis Demo Mod",
+  "id": "1.0.0",
+  "version": "",
+  "supported_game_version": "",
+  "short_description": "Project Remis的汉化演示用Mod，不具备实际游戏性。",
+  "tags": [],
+  "relationships": [],
+  "game_custom_data": {
+    "multiplayer_synchronized": true
+  }
+}

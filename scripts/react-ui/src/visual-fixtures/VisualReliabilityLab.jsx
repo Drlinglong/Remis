@@ -44,7 +44,57 @@ function SurfaceSample({ surface, title, children, testId }) {
   );
 }
 
-export default function VisualReliabilityLab({ themeId }) {
+function ProjectGlossaryContrastFixture({ themeId }) {
+  return (
+    <Box
+      className={styles.page}
+      data-remis-surface="canvas"
+      data-testid="project-glossary-contrast-fixture"
+      data-visual-ready="true"
+    >
+      <Paper
+        className={styles.surfaceSample}
+        data-remis-surface="paper"
+        p="lg"
+        radius="md"
+        withBorder
+      >
+        <Stack gap="sm">
+          <Group justify="space-between" align="flex-start">
+            <Box>
+              <Title order={3} data-testid="project-glossary-title">
+                项目词典
+              </Title>
+              <Text c="dimmed" size="sm" data-testid="project-glossary-description">
+                新词挖掘机自动生成的 Mod 词典会与当前 Mod 项目绑定。
+              </Text>
+            </Box>
+            <Badge
+              color="teal"
+              variant="light"
+              leftSection={<IconDatabase size={12} />}
+              data-testid="project-glossary-badge"
+            >
+              蕾姆丝计划 - 演示MOD - 维多利亚3
+            </Badge>
+          </Group>
+          <Alert icon={<IconAlertTriangle size={18} />} color="blue" variant="light">
+            <Text data-testid="project-glossary-alert">
+              当新词挖掘开始时，Remis 会自动创建并绑定项目词典。
+            </Text>
+          </Alert>
+          <Text size="xs" c="dimmed">{themeId}</Text>
+        </Stack>
+      </Paper>
+    </Box>
+  );
+}
+
+export default function VisualReliabilityLab({ themeId, contract }) {
+  if (contract === 'project-glossary') {
+    return <ProjectGlossaryContrastFixture themeId={themeId} />;
+  }
+
   return (
     <Box
       className={styles.page}

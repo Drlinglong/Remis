@@ -1,5 +1,7 @@
 /* global __APP_VERSION__ */
 
+import { openExternalUrl } from './utils/externalLinks';
+
 // [Project Remis] Build Fingerprint
 console.log(
   `%c[Remis] Build Fingerprint%c\nVersion: ${__APP_VERSION__}`,
@@ -30,8 +32,6 @@ if (import.meta.env.DEV) {
   });
 }
 
-// [TAURI] Handle external links - open in system browser
-// [TAURI] Handle external links - open in system browser
 document.addEventListener('click', async (e) => {
   const link = e.target.closest('a[href]');
   if (!link) return;
@@ -42,19 +42,10 @@ document.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // Use Tauri shell API if available (in production build)
-    if (window.__TAURI__) {
-      try {
-        const { open } = await import('@tauri-apps/plugin-shell');
-        await open(href);
-      } catch (err) {
-        console.warn('Failed to open link via Tauri shell:', err);
-        // Fallback: try window.open
-        window.open(href, '_blank');
-      }
-    } else {
-      // Dev mode: use regular browser navigation
-      window.open(href, '_blank');
+    try {
+      await openExternalUrl(href);
+    } catch (err) {
+      console.warn('Failed to open external link:', err);
     }
   }
 }, true); // Use capture phase to ensure we catch events even if propagation is stopped

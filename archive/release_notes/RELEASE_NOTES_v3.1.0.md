@@ -1,6 +1,6 @@
 # Project Remis v3.1.0
 
-Release candidate prepared on 2026-07-29.
+Release candidate prepared on 2026-07-30.
 
 Version 3.1.0 consolidates the work originally developed under the 3.0.8
 feature branches. The minor-version increase reflects the breadth of the
@@ -10,27 +10,36 @@ workflow, data, and interface changes.
 
 ### Highlights
 
-- Added a persistent Task Center with paginated history, per-run details,
-  structured stage/result/next-step presentation, project identity, event
-  history, and recovery links.
-- Added task-backed initial and incremental translation flows, deterministic
-  format scans, proofreading handoff, project write-conflict protection, and
-  resumable review paths.
-- Added the Agent Workshop format-repair workflow with explicit provider/model
-  confirmation, protected localization keys, persisted repair tasks, and
-  item-level repair results.
-- Added the anonymous Model Arena for two- or three-model comparison, persisted
-  runs and votes, privacy-aware export preview, and independent database
-  history.
-- Overhauled glossary asset management, project bindings, health review,
-  duplication, safe batch deletion, and task-detail recovery.
-- Completed the neologism review recovery flow, including recoverable batch
-  rejection, session preservation, clearer source evidence, and theme-aware
-  review surfaces.
-- Added project file rediscovery, stable file identity, lifecycle status
-  contracts, project monitors, and more reliable archive/deployment state.
-- Expanded theme and contrast contracts across task, project, glossary,
-  neologism, settings, and workshop surfaces.
+- **A persistent Task Center.** Long-running work no longer disappears when you
+  leave a page. See what is running, what needs attention, and what recently
+  finished, then return to the exact task when you are ready.
+- **Rebuilt glossary asset management.** Browse and maintain all glossaries in
+  one place, review their health, copy or merge them, and manage project
+  bindings with clearer safeguards.
+- **The anonymous Model Arena.** Compare two or three models on representative
+  text from your own Mod before committing to a full translation. Vote without
+  seeing model names, then review and optionally share the results.
+- **A calmer, more readable workflow.** Project pages now place the most useful
+  next action first, make deployment available as soon as a usable translation
+  exists, and reduce visual and decision-making friction across all five
+  themes.
+
+### Technical details for maintainers
+
+- Initial translation, incremental translation, proofreading, deterministic
+  format scans, and Agent Workshop repairs now use persisted tasks with precise
+  run details, structured outcomes, recovery paths, and project write-conflict
+  protection.
+- Agent Workshop protects localization keys, requires explicit provider/model
+  confirmation, and records item-level repair results.
+- Model Arena keeps runs and votes in an independent database and provides a
+  privacy-aware export preview before anything is shared.
+- Neologism review now preserves sessions across recoverable batch rejection
+  and presents clearer source evidence.
+- Project file rediscovery, stable file identity, lifecycle contracts, project
+  monitors, and archive/deployment state handling were hardened.
+- Semantic surface and contrast contracts were expanded across task, project,
+  glossary, neologism, settings, and Workshop interfaces.
 
 ### Platform and security
 
@@ -42,13 +51,11 @@ workflow, data, and interface changes.
 - Upgraded the main database through migration 10. Existing databases retain
   migrations 1 through 9 and receive the new lifecycle/status constraints
   incrementally.
-- Production dependency audits for both the desktop frontend and product
-  website report zero known vulnerabilities.
 
 ### Pre-release validation
 
-- Backend: 630 tests passed, 1 skipped; Python compilation passed.
-- Desktop frontend: 442 tests passed; locale consistency, text-encoding
+- Backend: 633 tests passed, 1 skipped; Python compilation passed.
+- Desktop frontend: 452 tests passed; locale consistency, text-encoding
   integrity, lint, and production build passed.
 - Product website: 55 tests passed; lint and production build passed.
 - Rust/Tauri: formatting and locked dependency compilation passed using the
@@ -67,20 +74,25 @@ desktop QA remain release-operator gates before publication.
 
 ### 主要更新
 
-- 新增持久化任务中心：支持分页历史、单次运行详情、结构化“阶段—结果—下一步”、
-  项目身份、事件历史与恢复入口。
-- 初始翻译和增量翻译全面接入任务合同，新增确定性格式扫描、校对交接、项目写入
-  冲突保护和可恢复的审阅路径。
-- 新增 Agent Workshop 格式修复工作流：明确确认提供商与模型，保护本地化键，
-  持久化修复任务，并展示逐项修复结果。
-- 新增匿名 Model Arena：支持 2 或 3 个模型对比、运行与投票持久化、隐私感知的
-  导出预览，以及独立的数据库历史记录。
-- 重做术语表资产管理、项目绑定、健康检查、复制、安全批量删除和任务详情恢复。
-- 完成新词审查恢复流程，包括可恢复的批量拒绝、会话保留、更清晰的来源证据和
-  适配主题的审查界面。
-- 新增项目文件重新发现、稳定文件身份、生命周期状态合同和项目监控，并增强归档
-  与部署状态的可靠性。
-- 扩展任务、项目、术语表、新词、设置和 Workshop 界面的主题与对比度合同。
+- **新增持久化任务中心。** 离开页面后，长时间运行的工作不再凭空消失。您可以
+  随时查看正在运行、需要处理和最近完成的任务，并准确返回对应任务。
+- **重做术语表资产管理。** 现在可以在统一入口浏览和维护全部术语表，检查健康
+  状态、复制或合并词典，并通过更清晰的保护措施管理项目绑定。
+- **新增匿名 Model Arena。** 在正式翻译整个 Mod 前，从自己的 Mod 中抽取代表性
+  文本，对 2 或 3 个模型进行匿名比较；揭晓模型后还可检查并自愿分享结果。
+- **让日常流程更易读、更省心。** 项目页面会优先展示最有用的下一步；只要已有
+  可用译文，就能选择继续校对或直接部署。五套主题下的视觉层级和说明文字也得到
+  统一改善，降低操作时的判断负担。
+
+### 面向维护者的技术细节
+
+- 初始翻译、增量翻译、校对、确定性格式扫描和 Agent Workshop 修复统一接入持久化
+  任务，提供精确运行详情、结构化结果、恢复路径和项目写入冲突保护。
+- Agent Workshop 会保护本地化键，要求明确确认提供商与模型，并记录逐项修复结果。
+- Model Arena 使用独立数据库保存运行与投票，并在分享前提供隐私感知的导出预览。
+- 新词审查可从批量拒绝等可恢复状态继续，并保留会话及更清晰的来源证据。
+- 加固项目文件重新发现、稳定文件身份、生命周期合同、项目监控以及归档/部署状态。
+- 将语义表面和对比度合同扩展到任务、项目、术语表、新词、设置和 Workshop 界面。
 
 ### 平台与安全
 
@@ -90,12 +102,11 @@ desktop QA remain release-operator gates before publication.
   路由，以及对未支持供应商明确报错而非静默回退。
 - 主数据库升级到迁移 10。现有数据库保留迁移 1 至 9，并增量应用新的生命周期/
   状态约束。
-- 桌面前端与产品网站的生产依赖审计均为 0 个已知漏洞。
 
 ### 发布前验证
 
-- 后端：630 项通过，1 项跳过；Python 编译通过。
-- 桌面前端：442 项通过；语言包一致性、文本编码完整性、lint 与生产构建通过。
+- 后端：633 项通过，1 项跳过；Python 编译通过。
+- 桌面前端：452 项通过；语言包一致性、文本编码完整性、lint 与生产构建通过。
 - 产品网站：55 项通过；lint 与生产构建通过。
 - 发布 seed 只读取仓库内受审资产，严格限制为三个固定 Demo，并从首次初始化
   SQL 中排除任务、Arena、监控、活动日志和项目历史等运行期数据。

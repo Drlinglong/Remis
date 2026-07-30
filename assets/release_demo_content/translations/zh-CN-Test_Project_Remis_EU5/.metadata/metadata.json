@@ -1,0 +1,13 @@
+{
+  "name": "Test_Project_Remis_EU5",
+  "id": "Test_Project_Remis_EU5",
+  "version": "1.0.0",
+  "supported_game_version": "0.0.0",
+  "short_description": "Project Remis的汉化演示用Mod，不具备实际游戏性。",
+  "tags": [
+    "Translation"
+  ],
+  "picture": "thumbnail.png",
+  "relationships": [],
+  "game_custom_data": {}
+}

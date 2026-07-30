@@ -1,0 +1,12 @@
+{
+  "name": "Project Remis Demo Mod (English Translation)",
+  "id": "1.0.0",
+  "version": "",
+  "supported_game_version": "",
+  "short_description": "A localization demo mod for Project Remis, with no actual gameplay.",
+  "tags": [],
+  "relationships": [],
+  "game_custom_data": {
+    "multiplayer_synchronized": true
+  }
+}

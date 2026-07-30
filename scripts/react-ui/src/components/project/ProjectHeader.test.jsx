@@ -79,6 +79,33 @@ describe('ProjectHeader', () => {
     expect(handleStatusChange).toHaveBeenNthCalledWith(2, 'deleted');
   });
 
+  it('offers direct deployment when at least one translated version is available', () => {
+    renderWithProvider(
+      <ProjectHeader
+        projectDetails={{
+          ...baseProjectDetails,
+          has_available_translation: true,
+          overview: { ...baseProjectDetails.overview, toBeProofread: 35 },
+          validation: { issues_count: 0 },
+        }}
+        handleStatusChange={vi.fn()}
+        onDeleteForever={vi.fn()}
+        onManageProject={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('heading', {
+      name: 'project_management.translation_available_title',
+    })).toBeInTheDocument();
+    expect(screen.getByText('project_management.translation_available_hint')).toBeInTheDocument();
+    expect(screen.getByRole('button', {
+      name: 'project_management.primary_continue_proofreading',
+    })).toBeInTheDocument();
+    expect(screen.getByRole('button', {
+      name: 'project_management.direct_deploy',
+    })).toBeInTheDocument();
+  });
+
   it('shows deleted project actions for restore and permanent delete', async () => {
     const handleStatusChange = vi.fn();
     const onDeleteForever = vi.fn();

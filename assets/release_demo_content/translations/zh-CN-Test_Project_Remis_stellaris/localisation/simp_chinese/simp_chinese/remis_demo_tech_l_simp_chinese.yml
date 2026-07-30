@@ -1,0 +1,18 @@
+﻿l_simp_chinese:
+ # ==========================================================================
+ # File: Technology & Components
+ # Context: Technobabble and proprietary terms.
+ # ==========================================================================
+
+ # Neologism Target: Argentum-9 -> 秘银-9
+ # Neologism Target: Vigilantes Aeturni -> 永恒监察官
+ tech_argentum_refinement:0 "§YArgentum-9§! 精炼"
+ tech_argentum_refinement_desc:0 "通过在高密度晶格中压缩原始虚空能量，我们可以合成一种高度不稳定的同位素：§HArgentum-9§!。这种物质是§YVigilantes Aeturni§!动力装甲的核心动力源，赋予他们近乎预知的反应时间。它发出一种嗡鸣声，有些人形容为“星辰的哭泣”。"
+
+ # Neologism Target: Sublimation Protocol -> 升华协议
+ tech_sublimation_implant:0 "升华神经接口"
+ tech_sublimation_implant_desc:0 "为了实现§LPax Remisia§!的宏伟愿景，我们必须消除个体误解的摩擦。通过为所有5级公民强制植入§R升华协议§!芯片，我们将他们的情感基线与中央宫殿同步。幸福不再是一种追求；它是一种广播。"
+
+ # Component: Weapon
+ component_sol_lance:0 "太阳光矛"
+component_sol_lance_desc:0 "一种定向能量武器，聚焦被俘获恒星的愤怒。正如女皇曾经所说：“太阳光矛的光芒不仅仅是燃烧；它揭示了隐藏在黑暗中的真相。”"

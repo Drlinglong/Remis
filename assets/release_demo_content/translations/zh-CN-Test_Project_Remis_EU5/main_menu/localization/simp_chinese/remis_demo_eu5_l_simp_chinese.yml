@@ -1,0 +1,45 @@
+﻿l_simp_chinese:
+ # ==========================================================================
+ # Project Remis Demo: Europa Universalis V (Project Caesar)
+ # Scenario: 1337 - The Last Breath of Byzantium
+ # Theme: The convergence of Republic, Empire, and Eastern Rome.
+ # ==========================================================================
+
+ # --------------------------------------------------------------------------
+ # Event 1: The Stranger at Blachernae (1337 Start)
+ # Context: The Empire is broke. Andronikos II disbanded the navy.
+ # --------------------------------------------------------------------------
+ remis_eu5.1.t:0 "Translation"
+ remis_eu5.1.d:0 "Translation"
+ remis_eu5.1.f:0 "Translation"
+ remis_eu5.1.a:0 "Translation"
+ remis_eu5.1.b:0 "Translation"
+
+ # --------------------------------------------------------------------------
+ # Event 2: The Economic Reform (Project Caesar)
+ # Context: Fixing the economy via Neologisms.
+ # --------------------------------------------------------------------------
+ remis_eu5.2.t:0 "Translation"
+ remis_eu5.2.d:0 "Translation"
+ remis_eu5.2.f:0 "Translation"
+ remis_eu5.2.a:0 "Translation"
+ remis_eu5.2.b:0 "Translation"
+
+ # --------------------------------------------------------------------------
+ # Event 3: The Military & The Shadow (The Purple Silence)
+ # Context: Dealing with internal spies and external threats.
+ # --------------------------------------------------------------------------
+ remis_eu5.3.t:0 "Translation"
+ remis_eu5.3.d:0 "Translation"
+ remis_eu5.3.f:0 "Translation"
+ remis_eu5.3.a:0 "Translation"
+ remis_eu5.3.b:0 "Translation"
+
+ # --------------------------------------------------------------------------
+ # Event 4: The Restoration (Endgame)
+ # Context: Retaking Anatolia.
+ # --------------------------------------------------------------------------
+ remis_eu5.4.t:0 "Translation"
+ remis_eu5.4.d:0 "Translation"
+ remis_eu5.4.f:0 "Translation"
+ remis_eu5.4.a:0 "Translation"

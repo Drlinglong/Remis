@@ -8,7 +8,9 @@ const dashboardSource = readSource('src/components/projectManagement/ProjectDash
 const headerSource = readSource('src/components/project/ProjectHeader.jsx');
 const historySource = readSource('src/components/project/ProjectHistory.jsx');
 const validationSource = readSource('src/components/project/ProjectValidation.jsx');
+const glossarySource = readSource('src/components/project/ProjectGlossaryPanel.jsx');
 const stylesSource = readSource('src/pages/ProjectManagement.module.css');
+const definitionsSource = readSource('src/themes/definitions.css');
 
 describe('project detail semantic surface contract', () => {
   it('keeps the page header on paper without the legacy highlighted title treatment', () => {
@@ -30,6 +32,16 @@ describe('project detail semantic surface contract', () => {
     expect(validationSource).toContain('className={styles.paperPanel}');
     expect(validationSource).toContain('className={styles.paperInset}');
     expect(validationSource).toContain('className={styles.paperAlert}');
+  });
+
+  it('keeps project glossary cards, badges, and alerts on explicit paper semantics', () => {
+    expect(glossarySource.match(/data-remis-surface="paper"/g)).toHaveLength(2);
+    expect(glossarySource.match(/className=\{styles\.paperPanel\}/g)).toHaveLength(2);
+    expect(glossarySource).toContain('className={styles.paperAlert}');
+    expect(definitionsSource).toContain(
+      "[data-remis-surface] .mantine-Badge-root[data-variant='light']",
+    );
+    expect(definitionsSource).toContain("[data-remis-surface] .mantine-Alert-root");
   });
 
   it('binds semantic text tokens to the same solid backgrounds used by the panels', () => {

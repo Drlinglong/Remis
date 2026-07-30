@@ -35,6 +35,11 @@ const ProjectHeader = ({
     const overview = projectDetails.overview || {};
     const translated = Number(overview.translated || 0);
     const primaryAction = getProjectPrimaryAction(projectDetails);
+    const canDeployAvailableTranslation = projectDetails.status === 'active'
+        && Boolean(projectDetails.has_available_translation)
+        && Number(projectDetails.validation?.issues_count || 0) === 0;
+    const showDirectDeployAlongsidePrimary = canDeployAvailableTranslation
+        && primaryAction !== 'deploy';
     const archiveSummary = projectDetails?.archive_summary || null;
     const latestArchiveTime = archiveSummary?.last_upload_at || archiveSummary?.created_at || null;
 
@@ -80,13 +85,30 @@ const ProjectHeader = ({
             <Group justify="space-between" align="flex-start" mb="md" gap="sm">
                 <div>
                     <Text size="xs" fw={700} c="dimmed" tt="uppercase">{t('project_management.current_state')}</Text>
-                    <Title order={3}>{primaryLabels[primaryAction]}</Title>
-                    <Text size="sm" c="dimmed">{t(`project_management.primary_hint.${primaryAction}`)}</Text>
+                    <Title order={3}>
+                        {showDirectDeployAlongsidePrimary
+                            ? t('project_management.translation_available_title')
+                            : primaryLabels[primaryAction]}
+                    </Title>
+                    <Text size="sm" c="dimmed">
+                        {showDirectDeployAlongsidePrimary
+                            ? t('project_management.translation_available_hint')
+                            : t(`project_management.primary_hint.${primaryAction}`)}
+                    </Text>
                 </div>
                 <Group gap="xs">
                     <Button leftSection={<PrimaryIcon size={18} />} onClick={runPrimaryAction}>
                         {primaryLabels[primaryAction]}
                     </Button>
+                    {showDirectDeployAlongsidePrimary && (
+                        <Button
+                            variant="light"
+                            leftSection={<IconRocket size={18} />}
+                            onClick={handleOpenDeployModal}
+                        >
+                            {t('project_management.direct_deploy')}
+                        </Button>
+                    )}
                     <Menu position="bottom-end" withinPortal shadow="md" transitionProps={{ duration: 0 }}>
                         <Menu.Target>
                             <Button variant="default" px="xs" aria-label={t('project_management.project_menu')}>

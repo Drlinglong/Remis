@@ -132,3 +132,27 @@ def test_resolve_conda_env_path_uses_conda_install_when_active_env_differs(monke
         "envs",
         "local_factory",
     )
+
+
+def test_packaging_requires_only_the_three_reviewed_demo_resources():
+    expected_sources = {
+        "Test_Project_Remis_stellaris",
+        "Test_Project_Remis_Vic3",
+        "Test_Project_Remis_EU5",
+    }
+    expected_translations = {
+        "zh-CN-Test_Project_Remis_stellaris",
+        "en-Test_Project_Remis_Vic3",
+        "zh-CN-Test_Project_Remis_EU5",
+    }
+
+    assert set(build_pipeline.RELEASE_DEMO_SOURCE_FILES) == expected_sources
+    assert set(build_pipeline.RELEASE_DEMO_TRANSLATION_FILES) == expected_translations
+    packaged_files = {
+        relative_file
+        for files in build_pipeline.RELEASE_DEMO_TRANSLATION_FILES.values()
+        for relative_file in files
+    }
+    assert ".remis_errors.json" not in packaged_files
+    assert "workshop_issues.json" not in packaged_files
+    assert not any(name.startswith("format_validation_report_") for name in packaged_files)

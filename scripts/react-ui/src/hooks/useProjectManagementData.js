@@ -9,6 +9,7 @@ const buildProjectDetails = ({ archiveInfo, config, files, project, projectId, v
   const totalLines = files.reduce((acc, file) => acc + (file.line_count || 0), 0);
   const doneCount = files.filter((file) => file.status === 'done').length;
   const proofreadCount = files.filter((file) => file.status === 'proofreading' || file.status === 'todo').length;
+  const archivedLanguages = archiveInfo?.archived_languages || [];
 
   return {
     project_id: projectId,
@@ -17,7 +18,8 @@ const buildProjectDetails = ({ archiveInfo, config, files, project, projectId, v
     status: project.status,
     notes: project.notes,
     source_language: config.source_language || project.source_language,
-    archived_languages: archiveInfo?.archived_languages || [],
+    archived_languages: archivedLanguages,
+    has_available_translation: doneCount > 0 || archivedLanguages.length > 0,
     archive_summary: archiveInfo ? {
       version_id: archiveInfo.version_id,
       created_at: archiveInfo.created_at,
@@ -35,6 +37,7 @@ const buildProjectDetails = ({ archiveInfo, config, files, project, projectId, v
     overview: {
       totalFiles: files.length,
       totalLines,
+      completedFiles: doneCount,
       translated: Math.round((doneCount / files.length) * 100) || 0,
       toBeProofread: Math.round((proofreadCount / files.length) * 100) || 0,
       glossary: 'Default',

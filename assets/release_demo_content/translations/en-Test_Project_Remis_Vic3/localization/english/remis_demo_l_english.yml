@@ -1,0 +1,67 @@
+﻿l_english:
+ # ==============================================
+ # Project Remis 官方演示模组：最后一位罗马人
+ # 作者: Dr. Linglong & Remis AI Architecture
+ # ==============================================
+
+ # ----------------------------------------------
+ # 事件 1: 登场
+ # ----------------------------------------------
+ remis_event.1.t:0 "Gift of the Storm"
+ remis_event.1.d:0 "The guards discovered a mysterious girl holding an ancient Roman token at the gates of the residence."
+ remis_event.1.f:0 "The thunder outside sounded as if it were tearing the sky apart. On such a violent rainy night, the guards of the residence found a trembling figure on the steps.\n\nIt was a girl. She was drenched, her mind clouded by a high fever, murmuring in an ancient dialect that no one could understand. What truly shocked a keen-eyed nobleman was not her stunning beauty, but her cloak, soaked in mud-the deep red hue remaining upon it looked exactly like the legendary, long-lost #r Tyrian Purple#!.\n\nAnd in her tightly clenched palm was a worn gold coin; the portrait stamped upon it was neither Queen Victoria nor Napoleon, but a #r nursing she-wolf#!."
+ remis_event.1.a:0 "Bring her inside first."
+
+ # ----------------------------------------------
+ # 事件 2: 展现能力
+ # ----------------------------------------------
+ remis_event.2.t:0 "Unexpected Talent"
+ remis_event.2.d:0 "The girl known as \"Remus\" demonstrated astonishing administrative and diplomatic talent."
+ remis_event.2.f:0 "The girl we call \"Remus\" recovered quickly. To repay the kindness of her shelter, she volunteered to take on work.\n\nAt first, the other bureaucrats, with schadenfreude on their faces, pushed the most tedious tax archives and moldy diplomatic documents onto her. However, a few days later, those smiles vanished.\n\nHer speed in processing documents was staggering, and her classification logic was as clear as if it had been codified into law. She even corrected a Latin grammatical error in a draft declaration of war sent to [SCOPE.sCountry('rival_country').GetName], pointing to the line and saying: \"#r Lord [Root.GetCharacter.GetFullName]#!, such phrasing is not only rude, but makes us appear uncultured.\""
+ remis_event.2.a:0 "Who exactly is she?"
+
+ # ----------------------------------------------
+ # 事件 3: 挽留
+ # ----------------------------------------------
+ remis_event.3.t:0 "Confession on a Rainy Night"
+ remis_event.3.d:0 "Remus attempted to leave, but you successfully persuaded her to stay by promising safety and stability."
+ remis_event.3.f:0 "Another rainy night. I passed by her office and saw the processed documents stacked neatly on the desk-arranged in some kind of ancient military phalanx formation. But she was gone.\n\nAn ominous feeling led me to summon the guards. We searched the residence for half a day, finally finding her curled up and weeping in a corner of the bathroom, clutching that gold coin tightly. Seeing me enter, she frantically tried to wipe away her tears, accidentally knocking over items on the washstand as she stood up, shattering perfume bottles and combs across the floor.\n\n\"I... I have finished the work,\" she said, head bowed and voice trembling, \"if you feel I am an encumbrance, My Lord, I can leave at any time.\""
+ remis_event.3.a:0 "Stay; it is safer here than outside."
+ remis_event.3.b:0 "Tell me your wish; perhaps I can help you achieve it."
+
+ # ----------------------------------------------
+ # 事件 4: 坦白与野心
+ # ----------------------------------------------
+ remis_event.4.t:0 "Daughter of the Wolf"
+ remis_event.4.d:0 "Remus revealed her true identity and offered to assist you with Constantinople as the objective."
+ remis_event.4.f:0 "For the following few days, she kept herself locked in her room. Until this morning, she pushed open the doors to my office. She was no longer that timid wanderer; she had changed into a sharp, modern outfit, but a millennial flame burned in her eyes.\n\n\"I have observed you for a long time, [Root.GetCharacter.GetFullName],\" she addressed me by name, \"your strategies, your ambition... they remind me of my ancestors. I am willing to use everything I know of the Empire to assist you.\"\n\nShe walked to the world map, her finger crossing the ocean to press firmly upon the Bosphorus Strait.\n\n\"But I wish to return to my homeland. I wish to see #r Constantinople#!.\""
+ remis_event.4.a:0 "Then let us go on a diplomatic visit."
+ remis_event.4.b:0 "The time has come to restore Rome!"
+
+ # ----------------------------------------------
+ # 事件 5: 改革
+ # ----------------------------------------------
+ remis_event.5.t:0 "Wisdom of the Eternal City"
+ remis_event.5.d:0 "The advanced technology and laws of ancient Rome are revitalized within the modern state."
+ remis_event.5.f:0 "Under Miss Remus's guidance, a series of \"retro\" reforms are quietly taking place in [Root.GetCountry.GetName]. It sounds madness, but the results have been surprisingly effective.\n\nThe improved #r sewer and aqueduct systems#! have greatly enhanced urban sanitation; a certain #r Greek Fire#!, modified from a lost recipe, has been equipped to our armed forces; and the new code blends the essence of the Napoleonic Code with Roman law. Most surprising of all, in the residence's back garden, she guided craftsmen from memory to build a miniature model of the #r Hagia Sophia#!, its dome structure so exquisite that it puts contemporary Architects to shame."
+ remis_event.5.a:0 "Rome can be rebuilt in a day."
+ # 获得现代排水系统科技，海军攻防+10，对护卫舰和风帆战舰的伤害额外增加
+ # 在首都创建一个等级为1的‘圣索菲亚大教堂模型‘奇观
+
+ # ----------------------------------------------
+ # 事件 6: 外交辩论
+ # ----------------------------------------------
+ remis_event.6.t:0 "The Debate of Legitimacy"
+ remis_event.6.d:0 "Remus refuted the envoys of Greece and the Ottomans in a diplomatic setting, establishing Roman legitimacy."
+ remis_event.6.f:0 "Envoys from the Kingdom of Greece and the Ottoman Empire arrived simultaneously. They had heard rumors of the \"Roman Princess\" and expressed strong protest and ridicule. However, during the debate in the parliamentary hall, that ridicule quickly turned to fear.\n\nRemus not only refuted their accusations in fluent Greek and Turkish but also cited every legal statute from the past several hundred years to prove the illegitimacy of their rule. When she produced that ancient gold coin from her sleeve and explained the origin of the family crest upon it, the room fell silent.\n\nThis debate spread across the world via telegraph. Now, even the newspapers in London and Paris are discussing: #r Who is the true Rome?#!"
+ remis_event.6.a:0 "We are, of course!"
+ # 玩家获得30点恶名，和奥斯曼与希腊的关系下降150
+
+
+ # ----------------------------------------------
+ # 事件 7: 结局
+ # ----------------------------------------------
+ remis_event.7.t:0 "Phoenix Rebirth"
+ remis_event.7.d:0 "With the restoration of Byzantium, our nation formally claims the inheritance of the Roman legacy."
+ remis_event.7.f:0 "With the restoration of Byzantium, our nation has finally put forward an irrefutable sovereign claim to the Roman legacy.\n\nAs the sky was stained ink-black by the storm clouds, she ascended the ancient platform of the Senate. Ancient noble legends mention that senators would climb here to await omens of divine favor. She sat down, and she did not have to wait long. A bolt of lightning tore through the firmament, and a golden eagle flew through the wind and rain, landing on the dripping eaves to bow its head to her.\n\nIn that moment, she wept: Rome shall rise again."
+ remis_event.7.a:0 "Rome shall rise again."

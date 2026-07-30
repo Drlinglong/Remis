@@ -4,6 +4,7 @@ import { Alert, Badge, Button, Group, Paper, Select, Stack, Text, Title } from '
 import { notifications } from '@mantine/notifications';
 import { IconBook2, IconExternalLink, IconInfoCircle, IconLink, IconPlus, IconUnlink } from '@tabler/icons-react';
 
+import styles from '../../pages/ProjectManagement.module.css';
 import api from '../../utils/api';
 import { normalizeArrayPayload } from '../../utils/payload';
 
@@ -160,7 +161,7 @@ export default function ProjectGlossaryPanel({ project, t }) {
 
   return (
     <Stack gap="md">
-      <Paper p="lg" withBorder>
+      <Paper data-remis-surface="paper" className={styles.paperPanel} p="lg" withBorder>
         <Stack gap="sm">
           <Group justify="space-between" align="flex-start">
             <div>
@@ -176,13 +177,18 @@ export default function ProjectGlossaryPanel({ project, t }) {
             )}
           </Group>
 
-          <Alert icon={<IconInfoCircle size={18} />} color="blue" variant="light">
+          <Alert
+            className={styles.paperAlert}
+            icon={<IconInfoCircle size={18} />}
+            color="blue"
+            variant="light"
+          >
             {t('project_management.project_glossary.auto_binding_note')}
           </Alert>
         </Stack>
       </Paper>
 
-      <Paper p="lg" withBorder>
+      <Paper data-remis-surface="paper" className={styles.paperPanel} p="lg" withBorder>
         <Stack gap="md">
           <div>
             <Text fw={700}>{t('project_management.project_glossary.current_binding')}</Text>

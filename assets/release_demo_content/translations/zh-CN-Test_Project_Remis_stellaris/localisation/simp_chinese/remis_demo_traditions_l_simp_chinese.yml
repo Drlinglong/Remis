@@ -1,0 +1,21 @@
+﻿l_simp_chinese:
+ # ==========================================================================
+ # File: Traditions & Ascension Perks
+ # Context: Cultural values and abstract philosophy.
+ # ==========================================================================
+
+ # Tree Name
+ tradition_pax_remisia_name:0 "§LPax Remisia§!"
+ tradition_pax_remisia_desc:0 "真正的和平并非战争的缺失，而是异见的消失。我们将秩序视为最高美德，它掩盖了自由那琐碎且混乱的本质。"
+
+ # Tradition 1
+ tr_pax_remisia_vigilance_name:0 "永恒警戒"
+ tr_pax_remisia_vigilance_desc:0 "我们的§Y永恒警戒者§!无处不在。暗巷中的每一次低语，背叛之心的每一次漏拍，都处于帝国的注视之下。隐私是罪人的盾牌。"
+
+ # Tradition 2
+ tr_pax_remisia_argentum_economy_name:0 "白银标准"
+ tr_pax_remisia_argentum_economy_desc:0 "通过垄断§HArgentum-9§!的开采，我们扼住了星系的咽喉。任何敢于反抗的星系，将在一个标准周内发现其反应堆冷却，城市陷入黑暗。"
+
+ # Ascension Perk
+ ap_absolute_sublimation_name:0 "绝对升华"
+ap_absolute_sublimation_desc:0 "个体是脆弱的，集体是永恒的。我们将完成§R升华协议§!，将所有臣民的意识融合为一个统一且和谐的意志。我们将在肉体与灵魂上，化身为国家。"

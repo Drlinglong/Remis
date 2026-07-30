@@ -1,0 +1,33 @@
+﻿l_simp_chinese:
+ # ==========================================================================
+ # Project Remis Demo: The Birth of the Empire
+ # File: Narrative Events
+ # Context: High-density narrative text to test streaming and formatting stability.
+ # ==========================================================================
+
+ # --------------------------------------------------------------------------
+ # Event 1: The Proclamation (The "I love democracy" moment)
+ # Neologism Targets: The Curia Caelestis, Sublimation Protocol, Pax Remisia
+ # --------------------------------------------------------------------------
+ remis_crisis.1.t:0 "新秩序的曙光"
+ remis_crisis.1.desc:0 "在雷鸣般的掌声中，自由灭亡了。雷穆斯女皇宣布重组星海共和国。"
+
+ # TEST: Very long text block with internal quotes and variables.
+ remis_crisis.1.desc_text:0 "§H[Root.GetCapitalName]§! 的天际线被一千艘泰坦级战舰的阴影遮蔽，像蝗虫群般遮天蔽日。在 §Y天穹元老院§! 的核心深处，最高议长雷穆斯从她的悬浮讲台上站起。\n\n她的声音通过心灵网络放大，回荡在星域中每一个知性生物的脑海中：\n\n“公民们！共和国的混乱已经滋生太久。我们已被巨型企业的贪婪和僵局参议院的无能榨干。但今天，流血停止了。为了确保我们未来的稳定与安全，我授权立即激活 §R升华协议§!。”\n\n她停顿了一下，金色的眼睛扫视着惊恐的代表，她的笑容冷酷而绝对：\n\n“我们不仅仅是在建立一个政府；我们是在锻造一个永恒的庇护所。这不仅仅是法律；这是 §L雷穆斯治世§!。在这种和平之下，异议已过时，沉默是最高的品德。”"
+
+ remis_crisis.1.a:0 "这就是自由消亡的方式……"
+ remis_crisis.1.b:0 "向女皇致敬！（加入§Y永恒监察官§!）"
+ remis_crisis.1.c:0 "我们绝不屈膝！（宣战）"
+
+ # --------------------------------------------------------------------------
+ # Event 2: The Purge (Testing Dialogue and "Nested" logic)
+ # Neologism Targets: Vigilantes Aeturni
+ # --------------------------------------------------------------------------
+ remis_crisis.2.t:0 "大厅中的寂静"
+ remis_crisis.2.desc:0 "政治对手正以惊人的速度消失。"
+
+ # TEST: Dialogue heavy, checking if AI breaks the "quote" structure.
+ remis_crisis.2.desc_text:0 "这起初只是谣言。然后，它成为了一种常态。那些对新政权表示反对的参议员们简单地停止了出席会议。当被问及他们的下落时，新任安全负责人只是笑了笑，调整了他的手套。\n\n“瓦莱里乌斯参议员？我相信他已经……退休到乡村庄园，反思忠诚的美德，”一名§Y永恒监察官§!的官员说道，他的手随意地搭在配枪上。“§L雷穆斯治世§! 能让混乱的心灵变得多么清明。一瞬间，你在高喊‘权利’；下一刻，你意识到‘职责’是唯一重要的词。”\n\n在他身后，拘留区的厚重大门砰的一声关上，掩盖了一道疑似尖叫的声音。"
+
+ remis_crisis.2.a:0 "我什么也没看见。我什么也没听见。"
+remis_crisis.2.b:0 "这种暴政不能容忍。"

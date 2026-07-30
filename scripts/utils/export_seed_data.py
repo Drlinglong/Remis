@@ -8,6 +8,7 @@ exactly the three approved demo projects.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sqlite3
@@ -188,6 +189,39 @@ def sanitize_release_path(value: object) -> object:
     return path
 
 
+def sanitize_release_metadata(value: object) -> object:
+    if isinstance(value, dict):
+        return {
+            key: sanitize_release_metadata(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [sanitize_release_metadata(item) for item in value]
+    if isinstance(value, str):
+        normalized = value.replace("\\", "/")
+        is_path = (
+            WINDOWS_ABSOLUTE_PATH.match(value)
+            or normalized.startswith(("/", "//", "{{PROJECT_ROOT}}/"))
+        )
+        if is_path:
+            return sanitize_release_path(value)
+    return value
+
+
+def sanitize_raw_metadata(value: object) -> object:
+    if not isinstance(value, str) or not value:
+        return value
+    try:
+        metadata = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise ValueError("Invalid raw_metadata JSON in release seed.") from exc
+    return json.dumps(
+        sanitize_release_metadata(metadata),
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+
+
 def _write_seed(
     output_path: Path,
     *,
@@ -211,9 +245,12 @@ def _main_seed_statements(connection: sqlite3.Connection) -> list[str]:
         rows = connection.execute(
             f'SELECT * FROM "{table_name}" ORDER BY rowid'
         ).fetchall()
-        statements.extend(
-            _insert_statement(table_name, columns, tuple(row)) for row in rows
-        )
+        for row in rows:
+            values = list(row)
+            if "raw_metadata" in columns:
+                index = columns.index("raw_metadata")
+                values[index] = sanitize_raw_metadata(values[index])
+            statements.append(_insert_statement(table_name, columns, values))
     return statements
 
 

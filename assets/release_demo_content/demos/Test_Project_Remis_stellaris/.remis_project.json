@@ -1,0 +1,205 @@
+{
+  "version": "1.0",
+  "config": {
+    "translation_dirs": [
+      "{{BUNDLED_TRANSLATION_ROOT}}/Multilanguage-Test_Project_Remis_stellaris"
+    ],
+    "source_language": "en"
+  },
+  "kanban": {
+    "columns": [
+      "todo",
+      "in_progress",
+      "proofreading",
+      "paused",
+      "done"
+    ],
+    "tasks": {
+      "b91bc5d7-2fca-5e4d-9431-41bb8f8f3816": {
+        "id": "b91bc5d7-2fca-5e4d-9431-41bb8f8f3816",
+        "type": "file",
+        "title": "remis_demo_events_l_english.yml",
+        "filePath": "{{BUNDLED_DEMO_ROOT}}/Test_Project_Remis_stellaris/localisation/english/remis_demo_events_l_english.yml",
+        "status": "done",
+        "comments": "",
+        "priority": "medium",
+        "meta": {
+          "source_lines": 33,
+          "file_type": "source",
+          "translation_status": {},
+          "rel_path": "localisation\\english\\remis_demo_events_l_english.yml"
+        }
+      },
+      "5260bf56-1c7d-5735-a3ce-f6d0e384bd73": {
+        "id": "5260bf56-1c7d-5735-a3ce-f6d0e384bd73",
+        "type": "file",
+        "title": "remis_demo_tech_l_english.yml",
+        "filePath": "{{BUNDLED_DEMO_ROOT}}/Test_Project_Remis_stellaris/localisation/english/remis_demo_tech_l_english.yml",
+        "status": "done",
+        "comments": "",
+        "priority": "medium",
+        "meta": {
+          "source_lines": 13,
+          "file_type": "source",
+          "translation_status": {},
+          "rel_path": "localisation\\english\\remis_demo_tech_l_english.yml"
+        }
+      },
+      "a186b321-39d8-5e6e-a7e3-af7bc8a1669c": {
+        "id": "a186b321-39d8-5e6e-a7e3-af7bc8a1669c",
+        "type": "file",
+        "title": "remis_demo_traditions_l_english.yml",
+        "filePath": "{{BUNDLED_DEMO_ROOT}}/Test_Project_Remis_stellaris/localisation/english/remis_demo_traditions_l_english.yml",
+        "status": "done",
+        "comments": "",
+        "priority": "medium",
+        "meta": {
+          "source_lines": 21,
+          "file_type": "source",
+          "translation_status": {},
+          "rel_path": "localisation\\english\\remis_demo_traditions_l_english.yml"
+        }
+      },
+      "5f57b840-dc1d-524a-b028-466f708c6088": {
+        "id": "5f57b840-dc1d-524a-b028-466f708c6088",
+        "type": "file",
+        "title": ".remis_project.json",
+        "filePath": "{{BUNDLED_DEMO_ROOT}}/Test_Project_Remis_stellaris/.remis_project.json",
+        "status": "paused",
+        "comments": "Configuration/Metadata File",
+        "priority": "low",
+        "meta": {
+          "lines": 182,
+          "file_type": "config",
+          "rel_path": ".remis_project.json"
+        }
+      },
+      "62b9e144-b109-530f-8108-0229f27099bb": {
+        "id": "62b9e144-b109-530f-8108-0229f27099bb",
+        "type": "file",
+        "title": ".remis_checkpoint_zh-CN.json",
+        "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/Multilanguage-Test_Project_Remis_stellaris/.remis_checkpoint_zh-CN.json",
+        "status": "todo",
+        "meta": {
+          "lines": 12,
+          "file_type": "translation",
+          "lang": "unknown",
+          "parent_task_id": null,
+          "rel_path": ".remis_checkpoint_zh-CN.json"
+        }
+      },
+      "a10aefd7-9384-5431-bb27-d63582223a30": {
+        "id": "a10aefd7-9384-5431-bb27-d63582223a30",
+        "type": "file",
+        "title": "校对进度表 Proofreading Progress.csv",
+        "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/Multilanguage-Test_Project_Remis_stellaris/校对进度表 Proofreading Progress.csv",
+        "status": "todo",
+        "meta": {
+          "lines": 5,
+          "file_type": "translation",
+          "lang": "unknown",
+          "parent_task_id": null,
+          "rel_path": "校对进度表 Proofreading Progress.csv"
+        }
+      },
+      "7ea12170-1bc4-5f7f-b698-6cf89a8494b3": {
+        "id": "7ea12170-1bc4-5f7f-b698-6cf89a8494b3",
+        "type": "file",
+        "title": "remis_demo_events_l_japanese.yml",
+        "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/Multilanguage-Test_Project_Remis_stellaris/localisation/japanese/remis_demo_events_l_japanese.yml",
+        "status": "done",
+        "meta": {
+          "lines": 33,
+          "file_type": "translation",
+          "lang": "japanese",
+          "parent_task_id": "b91bc5d7-2fca-5e4d-9431-41bb8f8f3816",
+          "rel_path": "remis_demo_events_l_japanese.yml"
+        }
+      },
+      "13ac7599-c73b-5bc5-9237-e7f6fe695cc0": {
+        "id": "13ac7599-c73b-5bc5-9237-e7f6fe695cc0",
+        "type": "file",
+        "title": "remis_demo_tech_l_japanese.yml",
+        "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/Multilanguage-Test_Project_Remis_stellaris/localisation/japanese/remis_demo_tech_l_japanese.yml",
+        "status": "done",
+        "meta": {
+          "lines": 13,
+          "file_type": "translation",
+          "lang": "japanese",
+          "parent_task_id": "5260bf56-1c7d-5735-a3ce-f6d0e384bd73",
+          "rel_path": "remis_demo_tech_l_japanese.yml"
+        }
+      },
+      "31d1e75f-992c-571d-b53d-e010baf86cdc": {
+        "id": "31d1e75f-992c-571d-b53d-e010baf86cdc",
+        "type": "file",
+        "title": "remis_demo_traditions_l_japanese.yml",
+        "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/Multilanguage-Test_Project_Remis_stellaris/localisation/japanese/remis_demo_traditions_l_japanese.yml",
+        "status": "done",
+        "meta": {
+          "lines": 21,
+          "file_type": "translation",
+          "lang": "japanese",
+          "parent_task_id": "a186b321-39d8-5e6e-a7e3-af7bc8a1669c",
+          "rel_path": "remis_demo_traditions_l_japanese.yml"
+        }
+      },
+      "afd02db7-c516-5883-bcab-77dc88968fbb": {
+        "id": "afd02db7-c516-5883-bcab-77dc88968fbb",
+        "type": "file",
+        "title": "remis_demo_events_l_simp_chinese.yml",
+        "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/Multilanguage-Test_Project_Remis_stellaris/localisation/simp_chinese/remis_demo_events_l_simp_chinese.yml",
+        "status": "in_progress",
+        "meta": {
+          "lines": 33,
+          "file_type": "translation",
+          "lang": "simp_chinese",
+          "parent_task_id": "b91bc5d7-2fca-5e4d-9431-41bb8f8f3816",
+          "rel_path": "remis_demo_events_l_simp_chinese.yml"
+        }
+      },
+      "e6394817-6bf5-5759-8568-9168ffdfae9d": {
+        "id": "e6394817-6bf5-5759-8568-9168ffdfae9d",
+        "type": "file",
+        "title": "remis_demo_tech_l_simp_chinese.yml",
+        "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/Multilanguage-Test_Project_Remis_stellaris/localisation/simp_chinese/remis_demo_tech_l_simp_chinese.yml",
+        "status": "in_progress",
+        "meta": {
+          "lines": 13,
+          "file_type": "translation",
+          "lang": "simp_chinese",
+          "parent_task_id": "5260bf56-1c7d-5735-a3ce-f6d0e384bd73",
+          "rel_path": "remis_demo_tech_l_simp_chinese.yml"
+        }
+      },
+      "3649d845-f76b-5a51-a0a3-35866601e9fd": {
+        "id": "3649d845-f76b-5a51-a0a3-35866601e9fd",
+        "type": "file",
+        "title": "remis_demo_traditions_l_simp_chinese.yml",
+        "filePath": "{{BUNDLED_TRANSLATION_ROOT}}/Multilanguage-Test_Project_Remis_stellaris/localisation/simp_chinese/remis_demo_traditions_l_simp_chinese.yml",
+        "status": "todo",
+        "meta": {
+          "lines": 21,
+          "file_type": "translation",
+          "lang": "simp_chinese",
+          "parent_task_id": "a186b321-39d8-5e6e-a7e3-af7bc8a1669c",
+          "rel_path": "remis_demo_traditions_l_simp_chinese.yml"
+        }
+      }
+    },
+    "column_order": [
+      "todo",
+      "in_progress",
+      "proofreading",
+      "paused",
+      "done"
+    ]
+  },
+  "notes": [
+    {
+      "id": "1767019562.299661",
+      "content": "test",
+      "created_at": "2025-12-30T01:46:02.299661"
+    }
+  ]
+}

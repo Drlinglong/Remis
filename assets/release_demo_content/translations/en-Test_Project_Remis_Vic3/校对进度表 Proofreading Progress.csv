@@ -1,0 +1,19 @@
+﻿"状态 Status","源文件 Source File","本地化文件 Localized File","已译行 Translated Lines","校对进度 Proofreading Progress","备注 Notes"
+"","remis_demo_l_simp_chinese.yml","localization\english\remis_demo_l_english.yml","30","",""
+"","remis_demo_l_simp_chinese.yml","localization\english\remis_demo_l_english.yml","30","",""
+"","remis_demo_l_simp_chinese.yml","localization\english\remis_demo_l_english.yml","30","",""
+"","remis_demo_l_simp_chinese.yml","localization\english\remis_demo_l_english.yml","30","",""
+"","remis_demo_l_simp_chinese.yml","localization\english\remis_demo_l_english.yml","30","Errors: 0, Warnings: 2, Info: 0 | 🔴ERROR=Crash 🟡WARNING=Anomaly 🔵INFO=Suggestion","📊 Validation Level Explanation:
+🔴 ERROR: Must fix (Game crash/Cannot recognize)
+🟡 WARNING: Recommended to fix (Display anomaly)
+🔵 INFO: Recommended to check (Minor impact)
+----------------------------------------
+L56 | WARNING | Color tag `#...` and end marker `#!` count mismatch, which may cause text display anomalies. | Found 1 start tags, but 0 end markers.
+L56 | WARNING | Format marker count mismatch: source formatting wrappers were not fully preserved in the translation. | Source has 1 start format markers and 1 end markers; translation has 1 start format markers and 0 end markers."
+"","remis_demo_l_simp_chinese.yml","localization\english\remis_demo_l_english.yml","30","Errors: 0, Warnings: 2, Info: 0 | 🔴ERROR=Crash 🟡WARNING=Anomaly 🔵INFO=Suggestion","📊 Validation Level Explanation:
+🔴 ERROR: Must fix (Game crash/Cannot recognize)
+🟡 WARNING: Recommended to fix (Display anomaly)
+🔵 INFO: Recommended to check (Minor impact)
+----------------------------------------
+L56 | WARNING | Color tag `#...` and end marker `#!` count mismatch, which may cause text display anomalies. | Found 1 start tags, but 0 end markers.
+L56 | WARNING | Format marker count mismatch: source formatting wrappers were not fully preserved in the translation. | Source has 1 start format markers and 1 end markers; translation has 1 start format markers and 0 end markers."

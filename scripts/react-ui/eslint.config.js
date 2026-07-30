@@ -47,6 +47,102 @@ export default defineConfig([
       // === 其他优化 ===
       // 允许不必要的转义（正则表达式中常见）
       'no-useless-escape': 'warn',
+
+    },
+  },
+  {
+    files: ['src/**/*.{js,jsx}'],
+    rules: {
+      // === 前端可维护性门禁 ===
+      // 新的生产代码不得超过 600 行。已有超限文件在下方按当前行数
+      // 冻结上限：可以缩小，但不得继续膨胀。
+      'max-lines': ['error', {
+        max: 600,
+        skipBlankLines: false,
+        skipComments: false,
+      }],
+
+      // 先暴露最严重的历史热点，避免低阈值产生无法行动的警告洪水。
+      // 随着债务清理逐步降低阈值，再升级为 error。
+      'max-lines-per-function': ['warn', {
+        max: 500,
+        skipBlankLines: true,
+        skipComments: true,
+        IIFEs: true,
+      }],
+      'complexity': ['warn', 50],
+      'max-statements': ['warn', 150],
+    },
+  },
+  {
+    // 测试夹具和声明式配置不受生产代码架构门禁约束。
+    files: [
+      '**/*.{test,spec}.{js,jsx}',
+      '**/__tests__/**/*.{js,jsx}',
+      'src/config/**/*.{js,jsx}',
+    ],
+    rules: {
+      'max-lines': 'off',
+      'max-lines-per-function': 'off',
+      'complexity': 'off',
+      'max-statements': 'off',
+    },
+  },
+  {
+    // Legacy debt ceilings, captured on 2026-07-30.
+    // Never raise these values. Refactors should remove entries as files shrink
+    // below the default 600-line production limit.
+    files: ['src/components/neologism/JudgmentCourt.jsx'],
+    rules: {
+      'max-lines': ['error', 1305],
+    },
+  },
+  {
+    files: ['src/hooks/useGlossaryActions.js'],
+    rules: {
+      'max-lines': ['error', 891],
+    },
+  },
+  {
+    files: ['src/pages/TaskDetailPage.jsx'],
+    rules: {
+      'max-lines': ['error', 771],
+    },
+  },
+  {
+    files: ['src/components/glossary/GlossaryOverview.jsx'],
+    rules: {
+      'max-lines': ['error', 727],
+    },
+  },
+  {
+    files: ['src/components/glossary/GlossaryOperations.jsx'],
+    rules: {
+      'max-lines': ['error', 708],
+    },
+  },
+  {
+    files: ['src/hooks/useIncrementalTranslation.js'],
+    rules: {
+      'max-lines': ['error', 690],
+    },
+  },
+  {
+    files: ['src/pages/ModelArenaPage.jsx'],
+    rules: {
+      'max-lines': ['error', 690],
+    },
+  },
+  {
+    files: ['src/hooks/useAgentWorkshopController.js'],
+    rules: {
+      'max-lines': ['error', 659],
+    },
+  },
+  {
+    files: ['src/pages/ProjectTrackingPage.jsx'],
+    rules: {
+      'max-lines': ['error', 609],
     },
   },
 ])
