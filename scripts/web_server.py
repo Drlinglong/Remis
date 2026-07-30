@@ -65,12 +65,23 @@ def run_port_preflight():
             )
             sys.exit(0)
 
-        from scripts.utils.system_utils import force_free_port
-        force_free_port(backend_port)
+        trusted_remis_pid = None
+        if isinstance(existing_health, dict) and existing_health.get("app") == "remis":
+            candidate_pid = existing_health.get("pid")
+            if isinstance(candidate_pid, int) and not isinstance(candidate_pid, bool) and candidate_pid > 0:
+                trusted_remis_pid = candidate_pid
+
+        from scripts.utils.system_utils import force_free_port, is_port_available
+        force_free_port(backend_port, trusted_remis_pid=trusted_remis_pid)
+        if not is_port_available(backend_port):
+            raise RuntimeError(
+                f"Backend port {backend_port} remains occupied after safe Remis cleanup."
+            )
     except SystemExit:
         raise
     except Exception as exc:
         panic_log(f"Port preflight failed: {exc}")
+        raise
 
 panic_log("=== WEB SERVER STARTUP (LOG_CONFIG=NONE) ===")
 

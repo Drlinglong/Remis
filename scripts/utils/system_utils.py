@@ -36,6 +36,7 @@ def _is_remis_backend_process(proc: Any) -> bool:
         "remis-mod-factory",
         "scripts\\web_server.py",
         "scripts/web_server.py",
+        "scripts.web_server:app",
     )
     if name.startswith("python") and any(marker in cmdline for marker in remis_markers):
         return True
@@ -43,7 +44,22 @@ def _is_remis_backend_process(proc: Any) -> bool:
     return any(marker in exe for marker in remis_markers) and "web_server" in cmdline
 
 
-def force_free_port(port: int):
+def _should_terminate_port_owner(proc: Any, trusted_remis_pid: Optional[int] = None) -> bool:
+    """Return True only for a recognized Remis process or a health-verified owner."""
+    try:
+        pid = proc.pid
+    except Exception:
+        pid = None
+
+    return _is_remis_backend_process(proc) or (
+        isinstance(trusted_remis_pid, int)
+        and not isinstance(trusted_remis_pid, bool)
+        and trusted_remis_pid > 0
+        and pid == trusted_remis_pid
+    )
+
+
+def force_free_port(port: int, *, trusted_remis_pid: Optional[int] = None):
     """
     Checks if a port is in use and attempts to stop stale Remis backend processes.
     Uses psutil for reliable cross-platform process discovery.
@@ -74,7 +90,7 @@ def force_free_port(port: int):
                     if pid and pid != current_pid and pid != parent_pid:
                         try:
                             proc = psutil.Process(pid)
-                            if _is_remis_backend_process(proc):
+                            if _should_terminate_port_owner(proc, trusted_remis_pid):
                                 processes_to_kill.append(proc)
                             else:
                                 msg = f"[PORT] Port {port} is occupied by non-Remis PID {pid} ({proc.name()}). Leaving it untouched."
