@@ -13,6 +13,8 @@
 - [校对开发契约](developer/proofreading-contract.md) - 文件级保存、冲突保护与已知缺陷
 - [术语表产品意图](product-intent-glossary.md) - 术语范围、上下文优先与禁止副作用
 - [术语表开发契约](developer/glossary-contract.md) - 装载优先级、数据写入与当前差距
+- [Model Arena 产品意图](product-intent-model-arena.md) - 小样比较、人工决定与禁止副作用
+- [Model Arena 开发契约](developer/model-arena-contract.md) - 抽样、匿名投票、历史与导出边界
 
 ## 快速开始
 - [从零开始：第一次汉化](user-guides/getting-started.md) - **推荐首读**：项目管理建项 → 初次翻译 → 部署
@@ -30,6 +32,7 @@
 - [校对](user-guides/proofreading.md) - 三栏编辑器、补丁模式、保存与验证
 - [智能工坊](user-guides/agent-workshop.md) - 扫描格式问题并用 AI 修复
 - [词典与词汇表](user-guides/glossary.md) - 主词典 / 额外词典 / 项目词典与翻译启用
+- [模型竞技场](user-guides/model-arena.md) - 正式翻译前比较 2 或 3 个候选模型
 - [常见问题解答 (FAQ)](user-guides/faq.md) - 常见问题和解决方案
 - [工厂工作原理](user-guides/how_the_factory_works.md) - 原理向流水线说明
 - [日志与诊断](user-guides/logs-and-diagnostics.md) - 日志在哪、怎么看、如何反馈

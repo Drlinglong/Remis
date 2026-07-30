@@ -24,6 +24,8 @@
 - `docs/zh/developer/proofreading-contract.md` — 文件级保存、冲突保护、Issue #149 与已知缺陷
 - `docs/zh/product-intent-glossary.md` — 术语范围、上下文优先、确认边界与非目标
 - `docs/zh/developer/glossary-contract.md` — 当前优先级、数据副作用、实现差距与测试门禁
+- `docs/zh/product-intent-model-arena.md` — 小样选模、人工投票、确认与禁止副作用
+- `docs/zh/developer/model-arena-contract.md` — 抽样、执行、匿名、历史、导出与当前边界
 
 ### 当前协作与维护
 
@@ -54,6 +56,7 @@
 - `docs/zh/user-guides/proofreading.md`
 - `docs/zh/user-guides/agent-workshop.md`
 - `docs/zh/user-guides/glossary.md`
+- `docs/zh/user-guides/model-arena.md`
 - `docs/zh/user-guides/logs-and-diagnostics.md`
 - `docs/zh/user-guides/error-catalog.md`
 - `docs/zh/user-guides/faq.md`（已按客户端工作流修订）
