@@ -10,9 +10,11 @@ export default defineConfig([
     files: ['**/*.{js,jsx}'],
     extends: [
       js.configs.recommended,
-      reactHooks.configs['recommended-latest'],
       reactRefresh.configs.vite,
     ],
+    plugins: {
+      'react-hooks': reactHooks,
+    },
     languageOptions: {
       ecmaVersion: 2020,
       globals: {
@@ -26,6 +28,10 @@ export default defineConfig([
       },
     },
     rules: {
+      // Keep the established Hooks checks without implicitly enabling the
+      // React Compiler rule suite during a dependency security upgrade.
+      'react-hooks/rules-of-hooks': 'error',
+
       // === 放宽 "未使用变量" 规则 ===
       // 允许以 _ 开头的未使用变量（常见约定）
       // 允许以大写字母开头的未使用变量（组件名、常量）
