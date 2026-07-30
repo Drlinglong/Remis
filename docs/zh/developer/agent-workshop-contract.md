@@ -156,7 +156,7 @@ Prompt 当前允许 format repair、failed-chunk recovery 和 limited source-awa
 规则必须基于源语言和目标语言，只处理残留源语言标点，并保护 `$...$`、`[...]`、`§...§!`
 等游戏语法。不能把旧 Issue 中面向中文到英文的示例扩张成无条件全局替换。
 
-## 当前高风险差距与已处理项
+## 当前差距与历史安全闭环
 
 ### 1. 整句审视缺少词典约束
 
@@ -174,14 +174,14 @@ Prompt 当前允许 format repair、failed-chunk recovery 和 limited source-awa
 时点的词典。必须保留既有优先级和语境说明，不能只做无上下文字符串替换。无格式错误的
 普通译文仍不得进入工坊。
 
-### 2. 最终校验失败没有回滚（安全修复分支已处理）
+### 2. 最终校验失败没有回滚（已处理）
 
 3.1.0 基线中的 `_apply_fix_with_confirmation()` 先写入，再读回并做最终验证；读回或最终
 验证失败时不会恢复旧行。
 
 这与“所有格式错误解决后才自动写回”冲突，并可能把失败候选留在项目译文中。
 
-**本分支实现**：`workshop_writeback_service` 在写前验证候选并保存原文件字节；写入、读回
+**当前实现**：`workshop_writeback_service` 在写前验证候选并保存原文件字节；写入、读回
 或最终验证失败时恢复完整快照。测试断言失败后文件逐字节等于原文件。
 
 ### 3. 单条“应用修复”文案与真实时序不一致
@@ -195,22 +195,22 @@ Prompt 当前允许 format repair、failed-chunk recovery 和 limited source-awa
 **目标修复**：把操作表述为“确认并自动修复”，结果页表述为“已修复／关闭”；或者拆分
 真正的 preview API。按产品决定，前者更符合无需浪费用户时间的定位。
 
-### 4. 损坏 key 仍可触发 AI（安全修复分支已处理）
+### 4. 损坏 key 仍可触发 AI（已处理）
 
 3.1.0 基线能扫描和展示损坏 key，但“AI 修复”仍可触发，可能产生费用后才写回失败。
 
-**本分支实现**：内嵌工坊在分批前过滤 `validation_invalid_key_format`；独立单条、同步批量
+**当前实现**：内嵌工坊在分批前过滤 `validation_invalid_key_format`；独立单条、同步批量
 和后台批量 API 在模型初始化前返回 422；前端禁用单条 AI 按钮，批量请求排除这类记录。
 
-### 5. 独立与内嵌写回保障不统一（安全修复分支已处理）
+### 5. 独立与内嵌写回保障不统一（已处理）
 
 3.1.0 基线中，独立路径有读回和最终验证，内嵌路径只在候选验证通过后写入并重新扫描；
 两者没有统一的原值回滚事务。
 
-**本分支实现**：两个入口共同调用安全写回服务，统一候选验证、原值快照、写入、读回、
+**当前实现**：两个入口共同调用安全写回服务，统一候选验证、原值快照、写入、读回、
 最终验证和失败回滚。
 
-### 6. 写回目标缺少目录硬边界（安全修复分支已处理）
+### 6. 写回目标缺少目录硬边界（已处理）
 
 3.1.0 基线中的 `_resolve_issue_target_path()` 优先接受请求中任何存在的 `file_path`，最后
 还会回退到 `project.source_path / issue_file_name`，没有 containment 检查。
@@ -218,7 +218,7 @@ Prompt 当前允许 format repair、failed-chunk recovery 和 limited source-awa
 这与“绝不能修改原始 Mod 或创意工坊文件”的产品边界冲突，也使 API 调用者能够扩大批准
 范围。
 
-**本分支实现**：独立工坊只接受 `translation_dirs` 内经 `resolve(strict=True)` 后仍满足
+**当前实现**：独立工坊只接受 `translation_dirs` 内经 `resolve(strict=True)` 后仍满足
 containment 的文件；内嵌工坊只接受本次 output root 内文件。取消 source fallback，并拒绝
 任意外部绝对路径、路径穿越和符号链接逃逸。
 ## 用户界面当前行为
