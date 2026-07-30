@@ -15,7 +15,7 @@
     "scripts/routers/agent_workshop.py": 1805
   },
   "function_line_exceptions": {
-    "scripts/build_pipeline.py::main": 310,
+    "scripts/build_pipeline.py::main": 285,
     "scripts/core/agents/fix_agent.py::ReflexionFixAgent.fix_batch_loop": 164,
     "scripts/core/copilot/service.py::run_copilot_chat": 307,
     "scripts/core/db_initializer.py::fix_demo_paths": 140,
@@ -49,7 +49,7 @@
     "scripts/workflows/update_translate.py::run_incremental_update": 444
   },
   "complexity_exceptions": {
-    "scripts/build_pipeline.py::main": 33,
+    "scripts/build_pipeline.py::main": 30,
     "scripts/core/copilot/service.py::run_copilot_chat": 23,
     "scripts/core/db_initializer.py::fix_demo_paths": 26,
     "scripts/core/db_initializer.py::initialize_database": 31,
