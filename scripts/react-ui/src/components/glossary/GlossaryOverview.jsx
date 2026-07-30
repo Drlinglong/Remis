@@ -23,8 +23,6 @@ import {
     IconAlertTriangle,
     IconBook2,
     IconCopy,
-    IconEdit,
-    IconExternalLink,
     IconInfoCircle,
     IconSearch,
     IconTrash,
@@ -33,6 +31,7 @@ import {
 import { usePersistentState } from '../../hooks/usePersistentState';
 import styles from './GlossaryOverview.module.css';
 import GlossaryOperations from './GlossaryOperations';
+import GlossaryRowActions from './GlossaryRowActions';
 
 const KIND_COLORS = {
     main: 'blue',
@@ -482,24 +481,12 @@ const GlossaryOverview = ({
                                             </Text>
                                         </Table.Td>
                                         <Table.Td className={styles.actionCell}>
-                                            <Group className={styles.actionGroup} gap="xs" wrap="nowrap">
-                                                <Button
-                                                    size="xs"
-                                                    variant="light"
-                                                    rightSection={<IconExternalLink size={14} aria-hidden="true" />}
-                                                    onClick={() => onOpenGlossary(glossary)}
-                                                >
-                                                    {t('glossary_overview_open', 'Open glossary')}
-                                                </Button>
-                                                <Button
-                                                    size="xs"
-                                                    variant="default"
-                                                    leftSection={<IconEdit size={14} aria-hidden="true" />}
-                                                    onClick={() => openEditDialog(glossary)}
-                                                >
-                                                    {t('glossary_edit_metadata_action', 'Edit information')}
-                                                </Button>
-                                            </Group>
+                                            <GlossaryRowActions
+                                                glossary={glossary}
+                                                onOpen={onOpenGlossary}
+                                                onEdit={openEditDialog}
+                                                className={styles.actionGroup}
+                                            />
                                         </Table.Td>
                                     </Table.Tr>
                                 );

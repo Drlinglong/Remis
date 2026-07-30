@@ -104,8 +104,8 @@
 }
 
 .actionCell {
-    width: 280px;
-    min-width: 280px;
+    width: 104px;
+    min-width: 104px;
     position: sticky;
     right: 0;
     z-index: 2;
@@ -113,16 +113,17 @@
 }
 
 .actionGroup {
-    min-width: max-content;
+    min-width: 0;
+    justify-content: center;
 }
 
 .actionGroup > * {
     flex: 0 0 auto;
 }
 
-.actionCell button {
+.actionGroup button {
+    min-width: 36px;
     min-height: 36px;
-    white-space: nowrap;
 }
 
 .inventoryTable tbody tr:nth-of-type(odd) .actionCell {
@@ -176,8 +177,8 @@
     }
 
     .actionCell {
-        width: 280px;
-        min-width: 280px;
+        width: 104px;
+        min-width: 104px;
     }
 }
 
@@ -208,7 +209,7 @@
     }
 
     .actionCell {
-        width: 280px;
-        min-width: 280px;
+        width: 104px;
+        min-width: 104px;
     }
 }
