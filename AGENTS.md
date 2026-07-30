@@ -24,6 +24,13 @@ operator guide over the product; it is not the product itself.
 - Desktop frontend: React/Tauri under `scripts/react-ui/`.
 - Product website: React/Vite under `website/`.
 - Codex operator Skill: `.agents/skills/remis-agent/`.
+- Create every local Git worktree under
+  `J:\V3_Mod_Localization_Factory-worktrees\<worktree-name>`.
+- Never create a Remis worktree under
+  `C:\Users\Drlin\.codex\worktrees`, elsewhere on the C drive, or under the
+  repository's `.tmp` directory unless the user explicitly overrides this
+  rule. Resolve and verify the absolute target path before running
+  `git worktree add`.
 - Write Git commit messages in English using
   `<type>(<scope>): <subject>`.
 
