@@ -1,6 +1,6 @@
 # Project Remis v3.1.0
 
-Release candidate prepared on 2026-07-30.
+Released on 2026-07-30.
 
 Version 3.1.0 consolidates the work originally developed under the 3.0.8
 feature branches. The minor-version increase reflects the breadth of the
@@ -56,6 +56,10 @@ workflow, data, and interface changes.
 - Preserved the v3.0.7.1 provider-routing fixes: provider-specific credentials
   and endpoints, native Anthropic routing, and explicit failure for unsupported
   providers instead of silent fallback.
+- Hardened desktop startup around the fixed local backend port. A new build can
+  replace a confirmed stale Remis development backend, while unrelated
+  processes are left untouched and reported instead of causing a silent
+  cross-checkout connection.
 - Upgraded the main database through migration 10. Existing databases retain
   migrations 1 through 9 and receive the new lifecycle/status constraints
   incrementally.
@@ -75,8 +79,9 @@ workflow, data, and interface changes.
 - No paid model calls, user-facing project/model export, deployment, or
   project-file overwrite operation was performed during integration validation.
 
-The Windows installer candidate and packaged-backend smoke test passed. Final
-rendered desktop QA remains the release-operator gate before publication.
+The Windows installer, packaged-backend smoke test, installed database-backed
+project and glossary views, and reduced-window glossary action layout passed
+the release operator's final desktop QA.
 
 ## 中文
 
@@ -114,6 +119,8 @@ rendered desktop QA remains the release-operator gate before publication.
   独立的 CI 安装、审计、lint、测试和构建。
 - 保留 v3.0.7.1 的供应商路由修复：供应商专属凭据和端点、原生 Anthropic
   路由，以及对未支持供应商明确报错而非静默回退。
+- 加固桌面端固定本地端口的启动流程。新版本可以替换已确认属于 Remis 的旧开发
+  后端；如果端口属于其他程序，则会保留并明确报告，避免静默连接到错误工作树。
 - 主数据库升级到迁移 10。现有数据库保留迁移 1 至 9，并增量应用新的生命周期/
   状态约束。
 
@@ -128,5 +135,5 @@ rendered desktop QA remains the release-operator gate before publication.
 - 集成验证期间没有发起付费模型调用、面向用户的项目/模型导出、部署或项目文件
   覆盖操作。
 
-Windows 安装包候选和打包后端烟雾测试已经通过；正式发布前仅剩发布操作者的最终
-桌面渲染巡检。
+Windows 安装包、打包后端烟雾测试、安装后依赖数据库的项目与词典页面，以及
+缩小窗口后的词典操作区，均已通过发布操作者的最终桌面巡检。
