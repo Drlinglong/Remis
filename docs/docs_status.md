@@ -12,6 +12,13 @@
 - `docs/en/index.md`
 - `docs/archive/README.md`
 
+### 产品意图与开发契约
+
+- `docs/zh/product-intent-template.md` — 产品负责人问答与 Agent 核验模板
+- `docs/zh/product-intent-project-file-discovery.md` — 已填写的文件发现示例
+- `docs/zh/product-intent-translation-workflows.md` — 初次与增量翻译产品意图
+- `docs/zh/developer/translation-workflow-contract.md` — 当前代码事实、目标边界与测试门禁
+
 ### 当前协作与维护
 
 - `docs/zh/developer/refactor_decision_guide.md`

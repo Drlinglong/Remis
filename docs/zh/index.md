@@ -2,6 +2,12 @@
 
 本目录包含 V3 Mod Localization Factory 项目的所有中文文档。
 
+## 产品意图与契约
+- [功能意图契约模板](product-intent-template.md) - 玲珑决定、Agent 核验、共同确认
+- [项目文件发现与翻译上载](product-intent-project-file-discovery.md) - 已填写示例
+- [初次翻译与增量翻译产品意图](product-intent-translation-workflows.md) - 用户目标、失败语义与基线边界
+- [翻译主流程开发契约](developer/translation-workflow-contract.md) - 当前实现、差异与回归测试
+
 ## 快速开始
 - [从零开始：第一次汉化](user-guides/getting-started.md) - **推荐首读**：项目管理建项 → 初次翻译 → 部署
 - [常见问题解答 (FAQ)](user-guides/faq.md) - 常见问题和解决方案
@@ -60,4 +66,4 @@
 - [English Documentation](../en/index.md) - English documentation index
 - [归档文档](../archive/README.md) - 历史记录与旧版总览
 - [开发历史归档](../archive/developer-history/README.md) - 重构总结与设计冻结文档
-- [返回文档中心](../../documentation-center.md) - 返回文档中心
+- [返回文档中心](../documentation-center.md) - 返回文档中心
