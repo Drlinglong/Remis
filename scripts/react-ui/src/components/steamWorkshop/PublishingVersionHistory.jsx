@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Badge,
@@ -30,6 +30,7 @@ const typeLabel = (assetType) => assetType === 'cover' ? '封面图' : '工坊�
 export default function PublishingVersionHistory({ workspaceId }) {
   const navigate = useNavigate();
   const history = usePublishingVersionHistory(workspaceId);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   if (history.isLoading) {
     return <Center h={220}><Loader type="dots" /></Center>;
@@ -129,6 +130,16 @@ export default function PublishingVersionHistory({ workspaceId }) {
                     >
                       {selected ? '当前采用' : '设为采用'}
                     </Button>
+                    <Button
+                      data-remis-action="paper-danger"
+                      size="compact-sm"
+                      color="red"
+                      variant="subtle"
+                      disabled={selected}
+                      onClick={() => setDeleteTarget(version)}
+                    >
+                      {selected ? '采用中，不可删除' : '删除'}
+                    </Button>
                   </Group>
                 </Group>
               </Paper>
@@ -157,6 +168,35 @@ export default function PublishingVersionHistory({ workspaceId }) {
           ) : (
             <BbcodePreview bbcode={history.openedVersion?.bbcode || ''} />
           )}
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        data-remis-surface="elevated"
+        title="删除历史版本"
+      >
+        <Stack data-remis-surface="elevated">
+          <Text>
+            {deleteTarget
+              ? `确定删除${typeLabel(deleteTarget.asset_type)} #${deleteTarget.sequence}？此操作无法撤销。`
+              : ''}
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setDeleteTarget(null)}>取消</Button>
+            <Button
+              color="red"
+              loading={history.busyVersionId === deleteTarget?.version_id}
+              onClick={async () => {
+                if (deleteTarget && await history.deleteVersion(deleteTarget)) {
+                  setDeleteTarget(null);
+                }
+              }}
+            >
+              确认删除
+            </Button>
+          </Group>
         </Stack>
       </Modal>
     </Stack>

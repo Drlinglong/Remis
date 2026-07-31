@@ -191,6 +191,18 @@ def get_version(version_id: str):
         raise _http_error(exc) from exc
 
 
+@router.delete(
+    "/workspaces/{workspace_id}/versions/{version_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_version(workspace_id: str, version_id: str):
+    try:
+        steam_workshop_service.delete_version(workspace_id, version_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except Exception as exc:
+        raise _http_error(exc) from exc
+
+
 @router.get("/versions/{version_id}/content", response_class=FileResponse)
 def get_version_content(version_id: str):
     try:

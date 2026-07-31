@@ -44,6 +44,10 @@ export const selectDescriptionVersion = async (workspaceId, versionId) => unwrap
   }),
 );
 
+export const deletePublishingVersion = async (workspaceId, versionId) => unwrap(
+  await api.delete(`${BASE_URL}/workspaces/${workspaceId}/versions/${versionId}`),
+);
+
 export const generateDescriptionCandidate = async (workspaceId, payload) => unwrap(
   await api.post(`${BASE_URL}/workspaces/${workspaceId}/generate-description`, payload),
 );

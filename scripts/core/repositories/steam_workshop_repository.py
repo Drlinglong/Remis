@@ -242,6 +242,43 @@ class SteamWorkshopRepository:
             ).fetchone()
         return row["cover_file_ref"] if row else None
 
+    def delete_version(self, workspace_id: str, version_id: str) -> dict[str, Any]:
+        with self._lock, self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            workspace = connection.execute(
+                "SELECT current_cover_version_id, current_description_version_id "
+                "FROM steam_workshop_workspaces WHERE workspace_id = ?",
+                (workspace_id,),
+            ).fetchone()
+            if not workspace:
+                raise LookupError("Workspace not found")
+            version = connection.execute(
+                "SELECT asset_type, cover_file_ref FROM steam_workshop_asset_versions "
+                "WHERE version_id = ? AND workspace_id = ?",
+                (version_id, workspace_id),
+            ).fetchone()
+            if not version:
+                raise LookupError("Version not found")
+            if version_id in {
+                workspace["current_cover_version_id"],
+                workspace["current_description_version_id"],
+            }:
+                raise ValueError("Selected version cannot be deleted")
+            connection.execute(
+                "UPDATE steam_workshop_asset_versions SET parent_version_id = NULL "
+                "WHERE parent_version_id = ?",
+                (version_id,),
+            )
+            connection.execute(
+                "DELETE FROM steam_workshop_asset_versions WHERE version_id = ?",
+                (version_id,),
+            )
+            connection.execute(
+                "UPDATE steam_workshop_workspaces SET updated_at = ? WHERE workspace_id = ?",
+                (self._now(), workspace_id),
+            )
+        return dict(version)
+
     def select_version(
         self,
         workspace_id: str,

@@ -217,6 +217,12 @@ class SteamWorkshopService:
             raise LookupError("Version not found")
         return version
 
+    def delete_version(self, workspace_id: str, version_id: str) -> None:
+        deleted = self.repository.delete_version(workspace_id, version_id)
+        file_ref = deleted.get("cover_file_ref")
+        if file_ref:
+            self._cover_path(file_ref).unlink(missing_ok=True)
+
     def select_version(
         self,
         workspace_id: str,

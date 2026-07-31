@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import steamWorkshopCoverService from '../../services/steamWorkshopCoverService';
 import {
   getPublishingWorkspace,
+  deletePublishingVersion,
   listPublishingVersions,
   selectDescriptionVersion,
 } from './description/descriptionService';
@@ -57,6 +58,24 @@ export function usePublishingVersionHistory(workspaceId) {
     }
   }, [refresh, workspaceId]);
 
+  const deleteVersion = useCallback(async (version) => {
+    setBusyVersionId(version.version_id);
+    setError('');
+    try {
+      await deletePublishingVersion(workspaceId, version.version_id);
+      setOpenedVersion((current) => (
+        current?.version_id === version.version_id ? null : current
+      ));
+      await refresh();
+      return true;
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || '无法删除这个版本。');
+      return false;
+    } finally {
+      setBusyVersionId(null);
+    }
+  }, [refresh, workspaceId]);
+
   const filteredVersions = useMemo(
     () => filter === 'all'
       ? versions
@@ -74,6 +93,7 @@ export function usePublishingVersionHistory(workspaceId) {
     adoptVersion,
     busyVersionId,
     error,
+    deleteVersion,
     filter,
     filteredVersions,
     isLoading,
