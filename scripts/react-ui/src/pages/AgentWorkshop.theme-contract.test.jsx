@@ -35,4 +35,13 @@ describe('Agent Workshop visual reliability contract', () => {
     expect(pageCss).toContain('.approvalModalHeader');
     expect(pageCss).toContain('.approvalWarning');
   });
+
+  it('binds every scan summary card and value to readable paper text tokens', () => {
+    expect(pageSource.match(/className=\{styles\.summaryCard\}/g)).toHaveLength(3);
+    expect(pageSource.match(/data-remis-surface="paper"/g).length).toBeGreaterThanOrEqual(3);
+    expect(pageSource.match(/className=\{styles\.summaryValue\}/g)).toHaveLength(3);
+    expect(pageCss).toMatch(/--summary-text-main:\s*var\(--paper-text-main,\s*var\(--surface-text-main\)\)/);
+    expect(pageCss).toMatch(/\.summaryCard:global\(\.mantine-Card-root\)\s*\{[\s\S]*?color:\s*var\(--summary-text-main\)\s*!important;/);
+    expect(pageCss).toMatch(/\.summaryValue\s*\{[\s\S]*?color:\s*var\(--summary-text-main\)\s*!important;[\s\S]*?-webkit-text-fill-color:\s*currentColor\s*!important;/);
+  });
 });

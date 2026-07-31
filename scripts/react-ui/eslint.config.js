@@ -140,12 +140,6 @@ export default defineConfig([
     },
   },
   {
-    files: ['src/hooks/useAgentWorkshopController.js'],
-    rules: {
-      'max-lines': ['error', 659],
-    },
-  },
-  {
     files: ['src/pages/ProjectTrackingPage.jsx'],
     rules: {
       'max-lines': ['error', 609],
