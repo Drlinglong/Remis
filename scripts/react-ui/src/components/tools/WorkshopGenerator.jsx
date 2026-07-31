@@ -9,7 +9,6 @@ import {
   LoadingOverlay,
   Modal,
   Paper,
-  SegmentedControl,
   Select,
   Stack,
   Text,
@@ -21,7 +20,6 @@ import {
 import { notifications } from '@mantine/notifications';
 import { IconAlertCircle, IconCheck, IconCopy, IconDeviceFloppy } from '@tabler/icons-react';
 import { BbcodePreview } from '../steamWorkshop/description/BbcodePreview';
-import { DescriptionVersionHistory } from '../steamWorkshop/description/DescriptionVersionHistory';
 import { DescriptionGenerationPanel } from '../steamWorkshop/description/DescriptionGenerationPanel';
 import { useDescriptionWorkspace } from '../steamWorkshop/description/useDescriptionWorkspace';
 import { WorkspaceCreateForm } from '../steamWorkshop/description/WorkspaceCreateForm';
@@ -42,11 +40,8 @@ const WorkshopGenerator = ({
   workspaceId = null,
   manageWorkspace = true,
 }) => {
-  const [view, setView] = useState('edit');
   const [createOpen, setCreateOpen] = useState(false);
   const {
-    adoptVersion,
-    chooseVersion,
     createWorkspace,
     editor,
     error,
@@ -57,7 +52,6 @@ const WorkshopGenerator = ({
     saveCandidate,
     selectWorkspace,
     setEditor,
-    versions,
     workspace,
     workspaces,
   } = useDescriptionWorkspace({
@@ -77,21 +71,6 @@ const WorkshopGenerator = ({
       message: `版本 ${saved.sequence} 已持久化，但尚未设为当前采用。`,
       color: 'green',
     });
-  };
-
-  const handleAdopt = async (versionId) => {
-    if (await adoptVersion(versionId)) {
-      notifications.show({
-        title: '当前采用版本已更新',
-        message: '后续发布准备将默认使用这个版本。',
-        color: 'green',
-      });
-    }
-  };
-
-  const handleOpenVersion = (version) => {
-    chooseVersion(version);
-    setView('edit');
   };
 
   const workspaceOptions = workspaces.map((item) => ({
@@ -181,17 +160,7 @@ const WorkshopGenerator = ({
               workshopItemId={workspace.workshop_item_id}
             />
 
-            <SegmentedControl
-              value={view}
-              onChange={setView}
-              data={[
-                { value: 'edit', label: '编辑与预览' },
-                { value: 'history', label: `版本历史 (${versions.length})` },
-              ]}
-            />
-
-            {view === 'edit' ? (
-              <Grid gutter="lg">
+            <Grid gutter="lg">
                 <Grid.Col span={{ base: 12, md: 6 }}>
                   <Stack>
                     <Group grow>
@@ -245,16 +214,10 @@ const WorkshopGenerator = ({
                   <Title order={4} mb="sm">安全预览</Title>
                   <BbcodePreview bbcode={editor.bbcode} />
                 </Grid.Col>
-              </Grid>
-            ) : (
-              <DescriptionVersionHistory
-                currentVersionId={workspace.current_description_version_id}
-                isSaving={isSaving}
-                onAdopt={handleAdopt}
-                onOpen={handleOpenVersion}
-                versions={versions}
-              />
-            )}
+            </Grid>
+            <Text c="dimmed" size="xs">
+              已保存版本请前往独立的“版本历史”页面检视和采用。
+            </Text>
           </>
         )}
       </Stack>

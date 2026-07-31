@@ -74,15 +74,13 @@ export const CoverCanvas = ({
         return (
             <Paper
                 id="thumbnail-upload-area"
+                className="cover-canvas-placeholder"
                 withBorder
                 p="md"
                 onClick={onRequestBackground}
                 onDrop={onDrop}
                 onDragOver={onDragOver}
                 style={{
-                    width: '100%',
-                    maxWidth: 512,
-                    aspectRatio: '1/1',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'center',
@@ -104,7 +102,6 @@ export const CoverCanvas = ({
         <div
             id="thumbnail-canvas"
             ref={canvasRef}
-            style={{ width: 512, height: 512 }}
             onDrop={onDrop}
             onDragOver={onDragOver}
         >

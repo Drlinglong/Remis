@@ -77,3 +77,15 @@ describe.each(themeIds)('%s semantic contrast contract', (themeId) => {
     ).toBeGreaterThanOrEqual(3);
   });
 });
+
+describe('semantic badge bindings', () => {
+  it('keeps light and outline badges readable on their nearest material', () => {
+    expect(definitionsCss).toContain(
+      "[data-remis-surface] .mantine-Badge-root[data-variant='light']",
+    );
+    expect(definitionsCss).toContain(
+      "[data-remis-surface] .mantine-Badge-root[data-variant='outline']",
+    );
+    expect(definitionsCss).toContain('color: var(--remis-content-text) !important');
+  });
+});

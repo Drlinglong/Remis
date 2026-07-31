@@ -141,7 +141,12 @@ const ThumbnailGenerator = ({
                             placeholder={labels.placeholder}
                             dragHint={labels.dragHint}
                         />
-                        <Button variant="light" onClick={handleDownload} disabled={!hasCanvasContent}>
+                        <Button
+                            className="cover-canvas-action"
+                            variant="light"
+                            onClick={handleDownload}
+                            disabled={!hasCanvasContent}
+                        >
                             {labels.download}
                         </Button>
                     </Paper>
@@ -154,14 +159,10 @@ const ThumbnailGenerator = ({
             <CoverVersionPanel
                 workspaceId={workspaceId}
                 projectId={projectId}
-                versions={versionState.versions}
-                selectedVersionId={versionState.selectedVersionId}
                 busyAction={versionState.busyAction}
                 error={versionState.error || draftError}
                 draftSavedAt={draftSavedAt}
                 onSave={saveCandidate}
-                onLoad={versionState.loadVersion}
-                onSelect={versionState.selectVersion}
                 canSave={hasCanvasContent}
                 labels={labels}
             />

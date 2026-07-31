@@ -28,6 +28,12 @@ export const listDescriptionVersions = async (workspaceId) => unwrap(
   }),
 );
 
+export const listPublishingVersions = async (workspaceId, assetType = null) => unwrap(
+  await api.get(`${BASE_URL}/workspaces/${workspaceId}/versions`, {
+    params: assetType ? { asset_type: assetType } : undefined,
+  }),
+);
+
 export const createDescriptionVersion = async (workspaceId, payload) => unwrap(
   await api.post(`${BASE_URL}/workspaces/${workspaceId}/versions/description`, payload),
 );

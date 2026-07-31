@@ -32,6 +32,7 @@ class FakeHandler:
 def test_generate_reads_steam_and_returns_auditable_candidate():
     handler = FakeHandler()
     seen = {}
+    progress = []
 
     def fake_post(url, *, data, timeout):
         seen.update(url=url, data=data, timeout=timeout)
@@ -48,6 +49,9 @@ def test_generate_reads_steam_and_returns_auditable_candidate():
         target_language_name="简体中文",
         provider="lm_studio",
         model="google/gemma-4-31b-qat",
+        progress_callback=lambda stage, message: progress.append(
+            (stage, message)
+        ),
     )
 
     assert seen["data"]["publishedfileids[0]"] == "3538617386"
@@ -59,3 +63,8 @@ def test_generate_reads_steam_and_returns_auditable_candidate():
     assert "Current Steam Workshop description" in handler.prompt
     assert "简体中文" in handler.prompt
     assert handler.temperature == 0.2
+    assert [stage for stage, _message in progress] == [
+        "fetching_source",
+        "generating_description",
+    ]
+    assert all(message for _stage, message in progress)

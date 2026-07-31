@@ -25,7 +25,7 @@ vi.mock('../tools/ProjectOverview', () => ({
   default: () => <div>overview</div>,
 }));
 
-vi.mock('../steamWorkshop/SteamWorkshopWorkspace', () => ({
+vi.mock('../steamWorkshop/SteamWorkshopOverview', () => ({
   default: ({ projectId }) => <div>publishing assets for {projectId}</div>,
 }));
 

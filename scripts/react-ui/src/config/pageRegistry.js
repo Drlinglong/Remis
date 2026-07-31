@@ -150,8 +150,12 @@ export const PAGE_REGISTRY = Object.freeze([
   },
   {
     id: 'steam-workshop',
-    routePaths: ['/steam-workshop'],
-    match: /^\/steam-workshop$/,
+    routePaths: [
+      '/steam-workshop',
+      '/steam-workshop/:workspaceId',
+      '/steam-workshop/:workspaceId/:section',
+    ],
+    match: /^\/steam-workshop(?:\/[^/]+(?:\/(?:cover|description|history))?)?$/,
     domain: PAGE_DOMAINS.PUBLISHING,
     navigation: { entryMode: ENTRY_MODES.PRIMARY, section: 'steam-workshop', label: 'page_title_steam_workshop', icon: 'brand-steam', order: 0 },
     tutorialContext: 'steam-workshop',

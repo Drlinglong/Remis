@@ -2168,7 +2168,9 @@
       "glossary_health_check": "Проверка словаря",
       "glossary_merge": "Объединение словарей",
       "model_arena": "Пробный запуск арены моделей",
-      "model_arena_retry": "Повторить сбойные модели арены"
+      "model_arena_retry": "Повторить сбойные модели арены",
+      "steam_workshop_cover": "Сохранить обложку Steam Workshop",
+      "steam_workshop_description_generation": "Создать описание Steam Workshop"
     }
   },
   "homepage_workspace_eyebrow": "Рабочее пространство Remis",

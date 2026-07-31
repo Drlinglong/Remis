@@ -2147,7 +2147,9 @@
       "glossary_health_check": "Glossarprüfung",
       "glossary_merge": "Glossarzusammenführung",
       "model_arena": "Modellarena-Test",
-      "model_arena_retry": "Fehlgeschlagene Arena-Modelle erneut versuchen"
+      "model_arena_retry": "Fehlgeschlagene Arena-Modelle erneut versuchen",
+      "steam_workshop_cover": "Steam-Workshop-Titelbild speichern",
+      "steam_workshop_description_generation": "Steam-Workshop-Beschreibung erstellen"
     }
   },
   "homepage_workspace_eyebrow": "Remis-Arbeitsbereich",

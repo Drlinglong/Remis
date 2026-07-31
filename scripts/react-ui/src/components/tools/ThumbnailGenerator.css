@@ -1,7 +1,30 @@
 #thumbnail-canvas {
+    width: min(512px, 100%);
+    max-width: 100%;
+    min-width: 0;
+    height: auto;
+    aspect-ratio: 1;
     overflow: hidden;
     border-radius: 4px;
     box-shadow: var(--remis-shadow-sm, none);
+}
+
+#thumbnail-canvas .konvajs-content,
+#thumbnail-canvas canvas {
+    width: 100% !important;
+    max-width: 100%;
+    height: 100% !important;
+}
+
+#thumbnail-canvas canvas {
+    display: block;
+}
+
+.cover-canvas-placeholder {
+    width: min(512px, 100%);
+    max-width: 100%;
+    min-width: 0;
+    aspect-ratio: 1;
 }
 
 .flag-list {
@@ -48,6 +71,11 @@
     flex-direction: column;
     align-items: center;
     gap: 16px;
+}
+
+.cover-canvas-action {
+    max-width: 100%;
+    flex: 0 0 auto;
 }
 
 .cover-version-panel {

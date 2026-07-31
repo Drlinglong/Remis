@@ -80,13 +80,24 @@ class WorkshopDescriptionGenerationService:
         target_language_name: str,
         provider: str,
         model: str,
+        progress_callback: Callable[[str, str], None] | None = None,
     ) -> GeneratedWorkshopDescription:
+        if progress_callback:
+            progress_callback(
+                "fetching_source",
+                "Reading the current Steam Workshop description.",
+            )
         source_description = self.fetch_source_description(workshop_item_id)
         prompt = self.build_prompt(
             source_description,
             user_template,
             target_language_name,
         )
+        if progress_callback:
+            progress_callback(
+                "generating_description",
+                "Steam description loaded. Generating a localized candidate.",
+            )
         handler = self._handler_factory(provider, model_name=model)
         if not handler or not getattr(handler, "client", None):
             raise RuntimeError("Selected model provider is not configured")

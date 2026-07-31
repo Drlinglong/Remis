@@ -2145,7 +2145,9 @@
       "glossary_health_check": "Kontrola glosariusza",
       "glossary_merge": "Scalanie glosariuszy",
       "model_arena": "Próba w arenie modeli",
-      "model_arena_retry": "Ponów nieudane modele areny"
+      "model_arena_retry": "Ponów nieudane modele areny",
+      "steam_workshop_cover": "Zapisz okładkę Steam Workshop",
+      "steam_workshop_description_generation": "Wygeneruj opis Steam Workshop"
     }
   },
   "homepage_workspace_eyebrow": "Obszar roboczy Remis",

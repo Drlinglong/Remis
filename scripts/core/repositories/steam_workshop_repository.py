@@ -54,12 +54,34 @@ class SteamWorkshopRepository:
         return result
 
     def list_workspaces(self, project_id: str | None = None) -> list[dict[str, Any]]:
-        query = "SELECT * FROM steam_workshop_workspaces"
+        query = """
+            SELECT
+                workspace.*,
+                cover.sequence AS current_cover_sequence,
+                description.sequence AS current_description_sequence,
+                (
+                    SELECT COUNT(*)
+                    FROM steam_workshop_asset_versions AS cover_versions
+                    WHERE cover_versions.workspace_id = workspace.workspace_id
+                      AND cover_versions.asset_type = 'cover'
+                ) AS cover_version_count,
+                (
+                    SELECT COUNT(*)
+                    FROM steam_workshop_asset_versions AS description_versions
+                    WHERE description_versions.workspace_id = workspace.workspace_id
+                      AND description_versions.asset_type = 'description'
+                ) AS description_version_count
+            FROM steam_workshop_workspaces AS workspace
+            LEFT JOIN steam_workshop_asset_versions AS cover
+                ON cover.version_id = workspace.current_cover_version_id
+            LEFT JOIN steam_workshop_asset_versions AS description
+                ON description.version_id = workspace.current_description_version_id
+        """
         params: tuple[Any, ...] = ()
         if project_id is not None:
-            query += " WHERE project_id = ?"
+            query += " WHERE workspace.project_id = ?"
             params = (project_id,)
-        query += " ORDER BY updated_at DESC, workspace_id"
+        query += " ORDER BY workspace.updated_at DESC, workspace.workspace_id"
         with self._connect() as connection:
             return [dict(row) for row in connection.execute(query, params)]
 

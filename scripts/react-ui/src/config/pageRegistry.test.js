@@ -18,6 +18,7 @@ describe('pageRegistry', () => {
     const page = PAGE_REGISTRY.find((item) => item.id === 'steam-workshop');
 
     expect(page.routePaths).toContain('/steam-workshop');
+    expect(page.routePaths).toContain('/steam-workshop/:workspaceId/:section');
     expect(page.domain).toBe(PAGE_DOMAINS.PUBLISHING);
     expect(page.navigation.entryMode).toBe(ENTRY_MODES.PRIMARY);
   });
@@ -70,6 +71,7 @@ describe('pageRegistry', () => {
     expect(resolveRegisteredPage('/project-management/demo')?.id).toBe('project-management');
     expect(resolveRegisteredPage('/tasks/task-1/glossary-health')?.id).toBe('glossary-health-review');
     expect(resolveRegisteredPage('/model-arena')?.copilot.pageName).toContain('Model Arena');
+    expect(resolveRegisteredPage('/steam-workshop/workspace-1/history')?.id).toBe('steam-workshop');
   });
 
   it('keeps declared navigation guides on disk', () => {

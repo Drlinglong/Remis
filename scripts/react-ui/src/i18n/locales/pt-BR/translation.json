@@ -2146,7 +2146,9 @@
       "glossary_health_check": "Verificação do glossário",
       "glossary_merge": "Mesclagem de glossários",
       "model_arena": "Teste da arena de modelos",
-      "model_arena_retry": "Tentar novamente modelos com falha"
+      "model_arena_retry": "Tentar novamente modelos com falha",
+      "steam_workshop_cover": "Salvar capa da Oficina Steam",
+      "steam_workshop_description_generation": "Gerar descrição da Oficina Steam"
     }
   },
   "homepage_workspace_eyebrow": "Área de trabalho Remis",

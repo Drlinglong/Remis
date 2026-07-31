@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import json
 import sqlite3
 import struct
 import zlib
@@ -12,11 +13,13 @@ from scripts.core.db_migrations import MAIN_DB_TARGET_VERSION, migrate_main_data
 from scripts.core.repositories.steam_workshop_repository import (
     SteamWorkshopRepository,
 )
+from scripts.core.repositories.task_repository import TaskRepository
 from scripts.core.services.steam_workshop_service import SteamWorkshopService
 from scripts.core.services.workshop_description_generation_service import (
     GeneratedWorkshopDescription,
 )
 from scripts.routers import steam_workshop as steam_workshop_router
+from scripts.shared import task_state
 
 
 def _png_chunk(name: bytes, data: bytes) -> bytes:
@@ -61,10 +64,18 @@ def workshop_client(tmp_path, monkeypatch):
         "steam_workshop_service",
         service,
     )
+    previous_tasks = dict(task_state.tasks)
+    task_state.tasks.clear()
+    task_state.configure_repository(TaskRepository(str(db_path)))
     app = FastAPI()
     app.include_router(steam_workshop_router.router)
-    with TestClient(app) as client:
-        yield client, service, db_path
+    try:
+        with TestClient(app) as client:
+            yield client, service, db_path
+    finally:
+        task_state.configure_repository(None)
+        task_state.tasks.clear()
+        task_state.tasks.update(previous_tasks)
 
 
 def _workspace(client, **overrides):
@@ -90,7 +101,17 @@ def _description(client, workspace_id, text="你好 [b]世界[/b]", **overrides)
 
 
 def _cover(client, workspace_id, **overrides):
-    payload = {
+    payload = _cover_payload(**overrides)
+    response = client.post(
+        f"/api/steam-workshop/workspaces/{workspace_id}/versions/cover",
+        json=payload,
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def _cover_payload(**overrides):
+    return {
         "png_base64": base64.b64encode(_png()).decode("ascii"),
         "canvas": {
             "schema_version": 1,
@@ -102,12 +123,6 @@ def _cover(client, workspace_id, **overrides):
         "source": "manual",
         **overrides,
     }
-    response = client.post(
-        f"/api/steam-workshop/workspaces/{workspace_id}/versions/cover",
-        json=payload,
-    )
-    assert response.status_code == 201, response.text
-    return response.json()
 
 
 def test_migration_upgrades_managed_database_with_asset_tables(tmp_path):
@@ -214,6 +229,7 @@ def test_description_versions_are_utf8_immutable_snapshots(workshop_client):
     ).json()
     assert reloaded["bbcode"] == "你好 [b]世界[/b]"
     assert reloaded["status"] == "candidate"
+    assert task_state.get_repository().list_tasks() == []
 
 
 def test_selecting_version_keeps_history_and_validates_ownership(workshop_client):
@@ -231,6 +247,17 @@ def test_selecting_version_keeps_history_and_validates_ownership(workshop_client
     )
     assert selected.status_code == 200
     assert selected.json()["status"] == "selected"
+    workspace_summary = next(
+        item
+        for item in client.get("/api/steam-workshop/workspaces").json()
+        if item["workspace_id"] == workspace["workspace_id"]
+    )
+    assert workspace_summary["description_version_count"] == 2
+    assert workspace_summary["cover_version_count"] == 0
+    assert (
+        workspace_summary["current_description_sequence"]
+        == second["sequence"]
+    )
     listing = client.get(
         f"/api/steam-workshop/workspaces/{workspace['workspace_id']}"
         "/versions?asset_type=description"
@@ -262,6 +289,29 @@ def test_cover_storage_is_controlled_and_round_trips(workshop_client):
     content = client.get(cover["content_url"])
     assert content.status_code == 200
     assert content.content == _png()
+
+    task_id = cover["task_id"]
+    task_state.tasks.clear()
+    listing = task_state.get_repository().query_task_page(
+        kind=steam_workshop_router.COVER_TASK_KIND,
+    )
+    assert [item["task_id"] for item in listing["tasks"]] == [task_id]
+    task = task_state.get_repository().get_task(task_id)
+    assert task["status"] == "completed"
+    assert task["project_id"] is None
+    assert (
+        task["source_route"]
+        == f"/steam-workshop/{workspace['workspace_id']}/cover"
+    )
+    assert task["workflow_context"] == {
+        "workspace_id": workspace["workspace_id"],
+        "asset_type": "cover",
+    }
+    assert task["result"]["metadata"] == {
+        "workspace_id": workspace["workspace_id"],
+        "version_id": cover["version_id"],
+        "asset_type": "cover",
+    }
 
     service.repository.get_cover_file_ref = lambda _version_id: "../outside.png"
     with pytest.raises(ValueError, match="Unsafe cover"):
@@ -313,6 +363,38 @@ def test_cover_canvas_accepts_editable_embedded_image_payload(workshop_client):
     assert loaded["canvas"]["background_image"] == embedded_image
 
 
+def test_cover_failure_persists_failed_task_without_partial_success(
+    workshop_client,
+    monkeypatch,
+):
+    client, service, _db_path = workshop_client
+    workspace = _workspace(client, project_id="project-1")
+    monkeypatch.setattr(
+        service.repository,
+        "create_version",
+        lambda _data: (_ for _ in ()).throw(RuntimeError("database offline")),
+    )
+
+    response = client.post(
+        f"/api/steam-workshop/workspaces/{workspace['workspace_id']}"
+        "/versions/cover",
+        json=_cover_payload(),
+    )
+
+    assert response.status_code == 400
+    tasks = task_state.get_repository().list_tasks()
+    assert len(tasks) == 1
+    task = tasks[0]
+    assert task["status"] == "failed"
+    assert task["status"] != "partial_failed"
+    assert task["project_id"] == "project-1"
+    assert task["result"]["metadata"] == {
+        "workspace_id": workspace["workspace_id"],
+        "version_id": None,
+        "asset_type": "cover",
+    }
+
+
 def test_model_generation_requires_approval_and_saves_candidate(
     workshop_client,
     monkeypatch,
@@ -327,7 +409,7 @@ def test_model_generation_requires_approval_and_saves_candidate(
         "/generate-description"
     )
     payload = {
-        "user_template": "[b]Remis[/b]",
+        "user_template": "PRIVATE TEMPLATE SENTINEL",
         "target_language_name": "简体中文",
         "language": "zh-CN",
         "provider": "lm_studio",
@@ -337,10 +419,16 @@ def test_model_generation_requires_approval_and_saves_candidate(
     denied = client.post(endpoint, json=payload)
     assert denied.status_code == 409
 
-    monkeypatch.setattr(
-        steam_workshop_router.description_generation_service,
-        "generate",
-        lambda **_kwargs: GeneratedWorkshopDescription(
+    def generated_description(*, progress_callback, **_kwargs):
+        progress_callback(
+            "fetching_source",
+            "Reading the current Steam Workshop description.",
+        )
+        progress_callback(
+            "generating_description",
+            "Steam description loaded. Generating a localized candidate.",
+        )
+        return GeneratedWorkshopDescription(
             bbcode="[h1]Remis 汉化[/h1]",
             source_description="Original",
             source_description_sha256=hashlib.sha256(
@@ -349,7 +437,12 @@ def test_model_generation_requires_approval_and_saves_candidate(
             workshop_item_id="3538617386",
             provider="lm_studio",
             model="google/gemma-4-31b-qat",
-        ),
+        )
+
+    monkeypatch.setattr(
+        steam_workshop_router.description_generation_service,
+        "generate",
+        generated_description,
     )
     payload["approved"] = True
     created = client.post(endpoint, json=payload)
@@ -358,7 +451,77 @@ def test_model_generation_requires_approval_and_saves_candidate(
     assert created.json()["source"] == "model"
     assert created.json()["status"] == "candidate"
     assert created.json()["metadata"]["model"] == "google/gemma-4-31b-qat"
+    task_id = created.json()["task_id"]
+    task_state.tasks.clear()
+    task = task_state.get_repository().get_task(task_id)
+    assert task["status"] == "completed"
+    assert task["result"]["metadata"] == {
+        "workspace_id": workspace["workspace_id"],
+        "version_id": created.json()["version_id"],
+        "asset_type": "description",
+    }
+    assert "PRIVATE TEMPLATE SENTINEL" not in json.dumps(task)
+    assert [
+        event["message"]
+        for event in task_state.get_repository().list_events(task_id)
+    ] == [
+        "Preparing Steam Workshop description generation.",
+        "Reading the current Steam Workshop description.",
+        "Steam description loaded. Generating a localized candidate.",
+        "Model output received. Saving the candidate version.",
+        "Steam Workshop description candidate saved.",
+    ]
     current = client.get(
         f"/api/steam-workshop/workspaces/{workspace['workspace_id']}"
     ).json()
     assert current["current_description_version_id"] is None
+
+
+def test_model_generation_failure_persists_failed_task(
+    workshop_client,
+    monkeypatch,
+):
+    client, _service, _db_path = workshop_client
+    workspace = _workspace(
+        client,
+        project_id="project-1",
+        workshop_item_id="3538617386",
+    )
+
+    def fail_generation(*, progress_callback, **_kwargs):
+        progress_callback(
+            "fetching_source",
+            "Reading the current Steam Workshop description.",
+        )
+        raise RuntimeError("provider unavailable")
+
+    monkeypatch.setattr(
+        steam_workshop_router.description_generation_service,
+        "generate",
+        fail_generation,
+    )
+    response = client.post(
+        f"/api/steam-workshop/workspaces/{workspace['workspace_id']}"
+        "/generate-description",
+        json={
+            "user_template": "PRIVATE TEMPLATE SENTINEL",
+            "target_language_name": "简体中文",
+            "language": "zh-CN",
+            "provider": "lm_studio",
+            "model": "google/gemma-4-31b-qat",
+            "approved": True,
+        },
+    )
+
+    assert response.status_code == 400
+    tasks = task_state.get_repository().list_tasks()
+    assert len(tasks) == 1
+    task = tasks[0]
+    assert task["status"] == "failed"
+    assert task["status"] != "partial_failed"
+    assert task["result"]["metadata"] == {
+        "workspace_id": workspace["workspace_id"],
+        "version_id": None,
+        "asset_type": "description",
+    }
+    assert "PRIVATE TEMPLATE SENTINEL" not in json.dumps(task)

@@ -2145,7 +2145,9 @@
       "glossary_health_check": "Sözlük sağlık denetimi",
       "glossary_merge": "Sözlük birleştirme",
       "model_arena": "Model arenası denemesi",
-      "model_arena_retry": "Başarısız arena modellerini yeniden dene"
+      "model_arena_retry": "Başarısız arena modellerini yeniden dene",
+      "steam_workshop_cover": "Steam Atölyesi kapağını kaydet",
+      "steam_workshop_description_generation": "Steam Atölyesi açıklaması oluştur"
     }
   },
   "homepage_workspace_eyebrow": "Remis çalışma alanı",

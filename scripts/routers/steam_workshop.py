@@ -2,6 +2,12 @@ from fastapi import APIRouter, HTTPException, Query, Response, status
 from fastapi.responses import FileResponse
 
 from scripts.core.services.steam_workshop_service import SteamWorkshopService
+from scripts.core.services.steam_workshop_task_service import (
+    COVER_TASK_KIND,
+    DESCRIPTION_TASK_KIND,
+    generate_description_candidate,
+    save_cover_candidate,
+)
 from scripts.core.services.workshop_description_generation_service import (
     WorkshopDescriptionGenerationService,
 )
@@ -18,7 +24,6 @@ from scripts.schemas.steam_workshop import (
 router = APIRouter(prefix="/api/steam-workshop", tags=["steam-workshop"])
 steam_workshop_service = SteamWorkshopService()
 description_generation_service = WorkshopDescriptionGenerationService()
-
 
 def _http_error(exc: Exception) -> HTTPException:
     if isinstance(exc, LookupError):
@@ -117,33 +122,16 @@ def generate_description(
         )
         if not workshop_item_id:
             raise ValueError("A Workshop ID is required for model generation")
-        generated = description_generation_service.generate(
+    except Exception as exc:
+        raise _http_error(exc) from exc
+
+    try:
+        return generate_description_candidate(
+            workspace=workspace,
             workshop_item_id=workshop_item_id,
-            user_template=request.user_template,
-            target_language_name=request.target_language_name,
-            provider=request.provider,
-            model=request.model,
-        )
-        return steam_workshop_service.create_description_version(
-            workspace_id,
-            {
-                "bbcode": generated.bbcode,
-                "language": request.language,
-                "source": "model",
-                "parent_version_id": workspace.get(
-                    "current_description_version_id"
-                ),
-                "metadata": {
-                    "provider": generated.provider,
-                    "model": generated.model,
-                    "workshop_item_id": generated.workshop_item_id,
-                    "generator": "steam-workshop-description",
-                },
-                "source_description": generated.source_description,
-                "source_description_sha256": (
-                    generated.source_description_sha256
-                ),
-            },
+            request=request.model_dump(),
+            workshop_service=steam_workshop_service,
+            generation_service=description_generation_service,
         )
     except Exception as exc:
         raise _http_error(exc) from exc
@@ -158,9 +146,15 @@ def create_cover_version(
     request: CreateCoverVersionRequest,
 ):
     try:
-        return steam_workshop_service.create_cover_version(
-            workspace_id,
-            request.model_dump(),
+        workspace = steam_workshop_service.get_workspace(workspace_id)
+    except Exception as exc:
+        raise _http_error(exc) from exc
+
+    try:
+        return save_cover_candidate(
+            workspace=workspace,
+            request=request.model_dump(),
+            workshop_service=steam_workshop_service,
         )
     except Exception as exc:
         raise _http_error(exc) from exc

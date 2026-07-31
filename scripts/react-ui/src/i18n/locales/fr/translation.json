@@ -2147,7 +2147,9 @@
       "glossary_health_check": "Vérification du glossaire",
       "glossary_merge": "Fusion de glossaires",
       "model_arena": "Essai dans l’arène de modèles",
-      "model_arena_retry": "Réessayer les modèles en échec"
+      "model_arena_retry": "Réessayer les modèles en échec",
+      "steam_workshop_cover": "Enregistrer la couverture Steam Workshop",
+      "steam_workshop_description_generation": "Générer la description Steam Workshop"
     }
   },
   "homepage_workspace_eyebrow": "Espace de travail Remis",

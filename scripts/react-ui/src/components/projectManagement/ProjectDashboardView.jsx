@@ -8,7 +8,7 @@ import ProjectHistory from '../project/ProjectHistory';
 import ProjectValidation from '../project/ProjectValidation';
 import KanbanBoard from '../tools/KanbanBoard';
 import ProjectOverview from '../tools/ProjectOverview';
-import SteamWorkshopWorkspace from '../steamWorkshop/SteamWorkshopWorkspace';
+import SteamWorkshopOverview from '../steamWorkshop/SteamWorkshopOverview';
 import styles from '../../pages/ProjectManagement.module.css';
 
 export function ProjectDashboardView({
@@ -123,11 +123,9 @@ export function ProjectDashboardView({
         </Tabs.Panel>
 
         <Tabs.Panel value="publishing_assets" style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
-          <SteamWorkshopWorkspace
-            description={`管理“${selectedProject.name}”的封面图、工坊描述和当前采用版本。`}
+          <SteamWorkshopOverview
             projectId={selectedProject.project_id}
             projectName={selectedProject.name}
-            title={t('project_management.tabs_publishing_assets', '发布素材管理')}
           />
         </Tabs.Panel>
 
