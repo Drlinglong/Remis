@@ -22,6 +22,8 @@ describe('Steam Workshop semantic surface contract', () => {
     expect(pageSource).toContain('<Paper data-remis-surface="surface"');
     expect(overviewSource).toContain('<Stack data-remis-surface="surface"');
     expect(workspaceSource).toContain('<Stack data-remis-surface="surface"');
+    expect(workspaceSource).toContain('<Paper withBorder p="lg" data-remis-surface="paper"');
+    expect(workspaceSource).not.toContain('<Paper withBorder p="lg" data-remis-surface="surface"');
     expect(workspaceCardSource).toContain('data-remis-surface="paper"');
     expect(generatorSource).toContain('data-remis-surface="surface"');
     expect(generatorSource).toContain('data-remis-surface="paper"');

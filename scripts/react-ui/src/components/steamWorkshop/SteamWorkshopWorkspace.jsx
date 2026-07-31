@@ -71,7 +71,7 @@ export default function SteamWorkshopWorkspace({ activeSection, workspaceId }) {
 
       {workspace && (
         <>
-          <Paper withBorder p="lg" data-remis-surface="surface">
+          <Paper withBorder p="lg" data-remis-surface="paper">
             <Stack gap="md">
               <Group justify="space-between" align="flex-start">
                 <Group align="flex-start">
