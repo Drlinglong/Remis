@@ -1,10 +1,19 @@
 import React, { Fragment } from 'react';
 import { Blockquote, Code, Divider, List, Text, Title } from '@mantine/core';
 
-const TOKEN_PATTERN = /(\[(?:\/)?(?:b|i|u|h1|h2|h3|quote|code|list|hr|\*)\])/gi;
-const TAG_PATTERN = /^\[(\/)?([a-z0-9*]+)\]$/i;
+const TOKEN_PATTERN = /(\[(?:\/)?(?:b|i|u|h1|h2|h3|quote|code|list|hr|\*|url(?:=[^\]\r\n]*)?)\])/gi;
+const TAG_PATTERN = /^\[(\/)?([a-z0-9*]+)(?:=([^\]\r\n]*))?\]$/i;
 
-const renderContainer = (tag, children, key) => {
+const safeExternalHref = (candidate) => {
+  try {
+    const url = new URL(candidate.trim());
+    return ['http:', 'https:', 'mailto:'].includes(url.protocol) ? url.href : null;
+  } catch {
+    return null;
+  }
+};
+
+const renderContainer = (tag, children, key, href) => {
   if (tag === 'b') return <Text span fw={700} key={key}>{children}</Text>;
   if (tag === 'i') return <Text span fs="italic" key={key}>{children}</Text>;
   if (tag === 'u') return <Text span td="underline" key={key}>{children}</Text>;
@@ -15,6 +24,9 @@ const renderContainer = (tag, children, key) => {
   if (tag === 'code') return <Code block key={key}>{children}</Code>;
   if (tag === 'list') return <List key={key}>{children}</List>;
   if (tag === '*') return <List.Item key={key}>{children}</List.Item>;
+  if (tag === 'url' && href) {
+    return <a href={href} key={key} target="_blank" rel="noopener noreferrer">{children}</a>;
+  }
   return <Fragment key={key}>{children}</Fragment>;
 };
 
@@ -23,16 +35,20 @@ const parseTokens = (bbcode) => {
   const stack = [root];
   const closeTop = (key) => {
     const node = stack.pop();
-    stack.at(-1).children.push(renderContainer(node.tag, node.children, key));
+    const href = node.tag === 'url' ? safeExternalHref(node.href ?? node.text) : undefined;
+    stack.at(-1).children.push(renderContainer(node.tag, node.children, key, href));
   };
 
   bbcode.split(TOKEN_PATTERN).filter(Boolean).forEach((token, index) => {
     const match = token.match(TAG_PATTERN);
     if (!match) {
       stack.at(-1).children.push(<Fragment key={`text-${index}`}>{token}</Fragment>);
+      stack.forEach((node) => {
+        node.text = `${node.text ?? ''}${token}`;
+      });
       return;
     }
-    const [, closing, rawTag] = match;
+    const [, closing, rawTag, rawValue] = match;
     const tag = rawTag.toLowerCase();
     if (tag === 'hr' && !closing) {
       stack.at(-1).children.push(<Divider key={`hr-${index}`} my="sm" />);
@@ -48,7 +64,7 @@ const parseTokens = (bbcode) => {
       return;
     }
     if (tag === '*' && stack.at(-1).tag === '*') closeTop(`implicit-item-${index}`);
-    stack.push({ tag, children: [] });
+    stack.push({ tag, children: [], href: tag === 'url' ? rawValue : undefined, text: '' });
   });
 
   while (stack.length > 1) {
