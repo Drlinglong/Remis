@@ -1146,6 +1146,17 @@
         "desc": "Revisa las sugerencias de antes/después aquí una vez que finalice la ejecución y luego decide qué conservar."
       }
     },
+    "steam_workshop": {
+      "prompt": { "message": "Primero crea o selecciona un espacio de publicación; después prepara su portada, descripción y versión adoptada." },
+      "overview": { "title": "Espacios de publicación", "desc": "Steam Workshop solo administra materiales locales de publicación; no sube ni modifica contenido de Steam." },
+      "workspace": { "title": "Crear o vincular un espacio", "desc": "Vincúlalo a un proyecto de Remis o déjalo independiente. La ID de Workshop es opcional hasta la subida real." },
+      "enter": { "title": "Entrar al espacio", "desc": "Abre un espacio para preparar juntos la portada, la descripción de Workshop y el historial de versiones." },
+      "sections": { "title": "Tres áreas de publicación", "desc": "Portada compone la imagen, Descripción edita BBCode e Historial revisa o adopta candidatos guardados." },
+      "cover": { "title": "Componer la portada", "desc": "Añade miniatura del proyecto, banderas, texto o emblemas. La descarga es local; guarda una versión candidata al terminar." },
+      "cover_versions": { "title": "Guardar una portada reutilizable", "desc": "La versión guarda el lienzo editable y el PNG exportado. Adopta el candidato más tarde desde el historial." },
+      "description": { "title": "Escribir y previsualizar BBCode", "desc": "Edita BBCode, revisa la vista previa segura y guarda un candidato. La generación con modelo requiere ID de Workshop y aprobación explícita." },
+      "history": { "title": "Revisar y adoptar versiones", "desc": "Filtra candidatos de portada y descripción, abre su contenido y adopta uno explícitamente. Adoptar no sube nada a Steam." }
+    },
     "sidebar_tutorial_btn": "Guía",
     "auto_start_prompt": {
       "title": "Inicio rápido",

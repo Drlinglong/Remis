@@ -1146,6 +1146,17 @@
         "desc": "Überprüfen Sie hier die Vorher/Nachher-Vorschläge, sobald der Durchlauf abgeschlossen ist, und entscheiden Sie dann, was beibehalten werden soll."
       }
     },
+    "steam_workshop": {
+      "prompt": { "message": "Erstelle oder wähle zuerst einen Veröffentlichungs-Arbeitsbereich und bereite dann Cover, Beschreibung und übernommene Version vor." },
+      "overview": { "title": "Veröffentlichungs-Arbeitsbereiche", "desc": "Steam Workshop verwaltet nur lokale Veröffentlichungsdateien und lädt nichts zu Steam hoch." },
+      "workspace": { "title": "Arbeitsbereich erstellen oder binden", "desc": "Binde ein Remis-Projekt oder arbeite unabhängig. Eine Workshop-ID ist bis zum echten Upload optional." },
+      "enter": { "title": "Arbeitsbereich öffnen", "desc": "Im Arbeitsbereich bereitest du Cover, Workshop-Beschreibung und Versionsverlauf gemeinsam vor." },
+      "sections": { "title": "Drei Veröffentlichungsbereiche", "desc": "Cover erstellt Bilder, Beschreibung bearbeitet BBCode, Versionsverlauf prüft oder übernimmt gespeicherte Kandidaten." },
+      "cover": { "title": "Cover gestalten", "desc": "Füge Projektbild, Flaggen, Text oder Embleme hinzu. Der Download ist nur lokal; speichere danach eine Kandidatenversion." },
+      "cover_versions": { "title": "Wiederverwendbares Cover speichern", "desc": "Eine gespeicherte Version enthält bearbeitbare Leinwand und exportiertes PNG. Übernimm sie später im Versionsverlauf." },
+      "description": { "title": "BBCode schreiben und prüfen", "desc": "Bearbeite BBCode, prüfe die sichere Vorschau und speichere einen Kandidaten. Modellgenerierung braucht Workshop-ID und ausdrückliche Zustimmung." },
+      "history": { "title": "Versionen prüfen und übernehmen", "desc": "Filtere Cover- und Beschreibungskandidaten, öffne ihren Inhalt und übernimm einen bewusst. Das lädt nichts zu Steam hoch." }
+    },
     "sidebar_tutorial_btn": "Anleitung",
     "auto_start_prompt": {
       "title": "Schnellstart",

@@ -35,6 +35,28 @@ describe('tutorialSteps', () => {
     });
   });
 
+  it('guides Steam Workshop from workspace setup to each publishing asset area', () => {
+    const contexts = {
+      'steam-workshop': ['#steam-workshop-page', '#steam-workshop-content button'],
+      'steam-workshop-cover': [
+        '#thumbnail-toolbox',
+        '#thumbnail-canvas, #thumbnail-upload-area',
+      ],
+      'steam-workshop-description': ['#steam-workshop-content textarea'],
+      'steam-workshop-history': ['#steam-workshop-content'],
+    };
+
+    Object.entries(contexts).forEach(([pageName, expectedElements]) => {
+      const steps = getTutorialSteps(t, pageName);
+      expect(steps.length).toBeGreaterThan(0);
+      expect(steps.map((step) => step.element)).toEqual(expect.arrayContaining(expectedElements));
+      steps.forEach((step) => {
+        expect(step.popover.title).toMatch(/^tutorial\.steam_workshop\./);
+        expect(step.popover.description).toMatch(/^tutorial\.steam_workshop\./);
+      });
+    });
+  });
+
   it('covers the task, glossary health, and neologism modules added to the current navigation', () => {
     [
       'neologism-mining',

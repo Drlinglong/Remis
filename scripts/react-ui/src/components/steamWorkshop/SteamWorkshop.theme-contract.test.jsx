@@ -18,8 +18,8 @@ const definitionsSource = readSource('src/themes/definitions.css');
 
 describe('Steam Workshop semantic surface contract', () => {
   it('keeps publishing pages on the nearest workbench material', () => {
-    expect(pageSource).toContain('<Container data-remis-surface="canvas"');
-    expect(pageSource).toContain('<Paper data-remis-surface="surface"');
+    expect(pageSource).toMatch(/<Container[^>]*data-remis-surface="canvas"/);
+    expect(pageSource).toMatch(/<Paper[^>]*data-remis-surface="surface"/);
     expect(overviewSource).toContain('<Stack data-remis-surface="surface"');
     expect(workspaceSource).toContain('<Stack data-remis-surface="surface"');
     expect(workspaceSource).toContain('<Paper withBorder p="lg" data-remis-surface="paper"');

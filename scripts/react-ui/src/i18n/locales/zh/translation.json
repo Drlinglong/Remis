@@ -1166,6 +1166,17 @@
         "desc": "直接在这里编辑原词、译词及变体，所有更改会实时保存到 SQLite。"
       }
     },
+    "steam_workshop": {
+      "prompt": { "message": "先创建或选择发布工作区，再准备它的封面图、工坊描述和当前采用版本。" },
+      "overview": { "title": "发布工作区", "desc": "Steam 工坊只管理本地发布素材，不会上传或修改 Steam 内容。" },
+      "workspace": { "title": "创建或绑定工作区", "desc": "可为现有 Remis 项目创建工作区，也可暂时独立创建。真正上传前 Workshop ID 可以留空。" },
+      "enter": { "title": "进入工作区", "desc": "进入后可在同一处准备封面图、工坊描述，并管理它们的版本历史。" },
+      "sections": { "title": "三类发布素材", "desc": "“封面图”用于编辑图片，“工坊描述”用于编写 BBCode，“版本历史”用于检视和采用已保存的候选版本。" },
+      "cover": { "title": "制作封面图", "desc": "可加入项目封面、国旗、文字或标识。下载只保存本机副本；设计完成后请保存候选版本。" },
+      "cover_versions": { "title": "保存可复用的封面版本", "desc": "保存会同时保留可编辑画布和导出的 PNG，之后请在“版本历史”中选择采用的候选版本。" },
+      "description": { "title": "编写并预览 BBCode", "desc": "在此编辑 BBCode、检查安全预览并保存候选版本。模型生成需要 Workshop ID 和你的明确批准。" },
+      "history": { "title": "检视并采用版本", "desc": "筛选封面图和描述候选版本，打开查看内容，再明确设为采用。设为采用不会上传 Steam。" }
+    },
     "sidebar_tutorial_btn": "教学引导",
     "incremental_translation": {
       "select": {

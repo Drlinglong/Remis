@@ -1286,6 +1286,17 @@
         "desc": "Review before/after suggestions here once the run completes, then decide what to keep."
       }
     },
+    "steam_workshop": {
+      "prompt": { "message": "Create or select a publishing workspace first, then prepare its cover, description, and adopted version." },
+      "overview": { "title": "Publishing workspaces", "desc": "Steam Workshop stores local publishing assets only. It does not upload or change Steam content." },
+      "workspace": { "title": "Create or bind a workspace", "desc": "Create a workspace for a Remis project, or leave it independent. A Workshop ID is optional until a real upload exists." },
+      "enter": { "title": "Enter a workspace", "desc": "Open a workspace to prepare its cover, Workshop description, and version history together." },
+      "sections": { "title": "Three publishing areas", "desc": "Use Cover for image composition, Description for BBCode, and Version History to inspect or adopt saved candidates." },
+      "cover": { "title": "Compose the cover", "desc": "Add a project thumbnail, flags, text, or emblems. Downloading is local only; save a candidate version when the design is ready." },
+      "cover_versions": { "title": "Save a reusable cover version", "desc": "A saved cover keeps both the editable canvas and exported PNG. Later choose the candidate in Version History." },
+      "description": { "title": "Write and preview BBCode", "desc": "Edit BBCode here, check the safe preview, and save it as a candidate. Model generation requires a Workshop ID and explicit approval." },
+      "history": { "title": "Inspect and adopt versions", "desc": "Filter cover and description candidates, open their content, then explicitly set one as adopted. Adoption never uploads to Steam." }
+    },
     "sidebar_tutorial_btn": "Tutorial",
     "auto_start_prompt": {
       "title": "Quick Start",

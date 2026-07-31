@@ -1146,6 +1146,17 @@
         "desc": "Examinez ici les suggestions avant/après une fois l'exécution terminée, puis décidez de ce que vous souhaitez conserver."
       }
     },
+    "steam_workshop": {
+      "prompt": { "message": "Créez ou choisissez d’abord un espace de publication, puis préparez sa couverture, sa description et sa version adoptée." },
+      "overview": { "title": "Espaces de publication", "desc": "Steam Workshop gère uniquement les ressources locales de publication et ne téléverse ni ne modifie Steam." },
+      "workspace": { "title": "Créer ou lier un espace", "desc": "Liez un projet Remis ou laissez-le indépendant. L’identifiant Workshop reste facultatif jusqu’au véritable téléversement." },
+      "enter": { "title": "Ouvrir un espace", "desc": "Dans un espace, préparez ensemble la couverture, la description Workshop et l’historique des versions." },
+      "sections": { "title": "Trois espaces de publication", "desc": "Couverture compose l’image, Description édite le BBCode et Historique examine ou adopte les candidats enregistrés." },
+      "cover": { "title": "Composer la couverture", "desc": "Ajoutez miniature du projet, drapeaux, texte ou emblèmes. Le téléchargement est local ; enregistrez ensuite une version candidate." },
+      "cover_versions": { "title": "Enregistrer une couverture réutilisable", "desc": "La version conserve le canevas éditable et le PNG exporté. Adoptez ensuite le candidat depuis l’historique." },
+      "description": { "title": "Écrire et prévisualiser le BBCode", "desc": "Modifiez le BBCode, vérifiez l’aperçu sûr et enregistrez un candidat. La génération par modèle exige une ID Workshop et une approbation explicite." },
+      "history": { "title": "Examiner et adopter des versions", "desc": "Filtrez les candidats de couverture et de description, ouvrez leur contenu puis adoptez-en un explicitement. Cela ne téléverse rien sur Steam." }
+    },
     "sidebar_tutorial_btn": "Tutoriel",
     "auto_start_prompt": {
       "title": "Démarrage rapide",

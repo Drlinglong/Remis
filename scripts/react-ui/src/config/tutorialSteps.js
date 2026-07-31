@@ -607,6 +607,104 @@ export const getTutorialSteps = (t, pageName) => {
                 }
             }
         ],
+        'steam-workshop': [
+            {
+                element: '#steam-workshop-page',
+                popover: {
+                    title: t('tutorial.steam_workshop.overview.title'),
+                    description: t('tutorial.steam_workshop.overview.desc'),
+                    side: 'bottom',
+                    align: 'start',
+                },
+            },
+            {
+                element: '#steam-workshop-content button',
+                popover: {
+                    title: t('tutorial.steam_workshop.workspace.title'),
+                    description: t('tutorial.steam_workshop.workspace.desc'),
+                    side: 'bottom',
+                    align: 'start',
+                },
+            },
+            {
+                element: '#steam-workshop-content',
+                popover: {
+                    title: t('tutorial.steam_workshop.enter.title'),
+                    description: t('tutorial.steam_workshop.enter.desc'),
+                    side: 'top',
+                    align: 'center',
+                },
+            },
+        ],
+        'steam-workshop-cover': [
+            {
+                element: '#steam-workshop-content [role="tablist"]',
+                popover: {
+                    title: t('tutorial.steam_workshop.sections.title'),
+                    description: t('tutorial.steam_workshop.sections.desc'),
+                    side: 'bottom',
+                    align: 'start',
+                },
+            },
+            {
+                element: '#thumbnail-toolbox',
+                popover: {
+                    title: t('tutorial.steam_workshop.cover.title'),
+                    description: t('tutorial.steam_workshop.cover.desc'),
+                    side: 'right',
+                    align: 'start',
+                },
+            },
+            {
+                element: '#thumbnail-canvas, #thumbnail-upload-area',
+                popover: {
+                    title: t('tutorial.steam_workshop.cover_versions.title'),
+                    description: t('tutorial.steam_workshop.cover_versions.desc'),
+                    side: 'top',
+                    align: 'center',
+                },
+            },
+        ],
+        'steam-workshop-description': [
+            {
+                element: '#steam-workshop-content [role="tablist"]',
+                popover: {
+                    title: t('tutorial.steam_workshop.sections.title'),
+                    description: t('tutorial.steam_workshop.sections.desc'),
+                    side: 'bottom',
+                    align: 'start',
+                },
+            },
+            {
+                element: '#steam-workshop-content textarea',
+                popover: {
+                    title: t('tutorial.steam_workshop.description.title'),
+                    description: t('tutorial.steam_workshop.description.desc'),
+                    side: 'right',
+                    align: 'start',
+                },
+            },
+        ],
+        'steam-workshop-history': [
+            {
+                element: '#steam-workshop-content [role="tablist"]',
+                popover: {
+                    title: t('tutorial.steam_workshop.sections.title'),
+                    description: t('tutorial.steam_workshop.sections.desc'),
+                    side: 'bottom',
+                    align: 'start',
+                },
+            },
+            {
+                element: '#steam-workshop-content',
+                popover: {
+                    title: t('tutorial.steam_workshop.history.title'),
+                    description: t('tutorial.steam_workshop.history.desc'),
+                    side: 'top',
+                    align: 'center',
+                },
+            },
+        ],
         'proofreading': [
             {
                 element: '#proofreading-mod-select',

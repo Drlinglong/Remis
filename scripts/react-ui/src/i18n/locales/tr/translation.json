@@ -1142,6 +1142,17 @@
         "desc": "Çalıştırma tamamlandığında buradaki öncesi/sonrası önerilerini inceleyin, ardından nelerin saklanacağına karar verin."
       }
     },
+    "steam_workshop": {
+      "prompt": { "message": "Önce bir yayın çalışma alanı oluşturun veya seçin; ardından kapağını, açıklamasını ve kullanılacak sürümünü hazırlayın." },
+      "overview": { "title": "Yayın çalışma alanları", "desc": "Steam Workshop yalnızca yerel yayın materyallerini yönetir; Steam içeriğini yüklemez veya değiştirmez." },
+      "workspace": { "title": "Çalışma alanı oluşturun veya bağlayın", "desc": "Bir Remis projesine bağlayın ya da bağımsız bırakın. Gerçek yükleme gerçekleşene kadar Workshop ID isteğe bağlıdır." },
+      "enter": { "title": "Çalışma alanını açın", "desc": "Bir çalışma alanında kapağı, Workshop açıklamasını ve sürüm geçmişini birlikte hazırlayabilirsiniz." },
+      "sections": { "title": "Üç yayın alanı", "desc": "Kapak resmi oluşturur, Açıklama BBCode düzenler, Sürüm Geçmişi ise kaydedilmiş adayları inceler veya kullanıma alır." },
+      "cover": { "title": "Kapağı oluşturun", "desc": "Proje küçük resmi, bayraklar, metin veya amblemler ekleyin. İndirme yalnızca yereldir; bitince aday sürümü kaydedin." },
+      "cover_versions": { "title": "Yeniden kullanılabilir kapak kaydedin", "desc": "Kaydedilen sürüm hem düzenlenebilir tuvali hem de dışa aktarılan PNG'yi içerir. Adayı daha sonra Sürüm Geçmişi'nden kullanın." },
+      "description": { "title": "BBCode yazın ve önizleyin", "desc": "BBCode'u düzenleyin, güvenli önizlemeyi kontrol edin ve aday olarak kaydedin. Model üretimi Workshop ID ve açık onay gerektirir." },
+      "history": { "title": "Sürümleri inceleyin ve kullanın", "desc": "Kapak ve açıklama adaylarını filtreleyin, içeriğini açın ve birini açıkça kullanıma alın. Bu işlem Steam'e yükleme yapmaz." }
+    },
     "sidebar_tutorial_btn": "Eğitici",
     "auto_start_prompt": {
       "title": "Hızlı Başlangıç",

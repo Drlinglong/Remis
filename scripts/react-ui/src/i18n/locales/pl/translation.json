@@ -1142,6 +1142,17 @@
         "desc": "Przejrzyj tutaj sugestie przed/po po zakończeniu przebiegu, a następnie zdecyduj, co zachować."
       }
     },
+    "steam_workshop": {
+      "prompt": { "message": "Najpierw utwórz lub wybierz obszar publikacji, a następnie przygotuj okładkę, opis i przyjętą wersję." },
+      "overview": { "title": "Obszary publikacji", "desc": "Steam Workshop zarządza wyłącznie lokalnymi materiałami publikacyjnymi i nie przesyła ani nie zmienia treści Steam." },
+      "workspace": { "title": "Utwórz lub powiąż obszar", "desc": "Powiąż projekt Remis lub pozostaw obszar niezależny. Identyfikator Workshop jest opcjonalny do czasu prawdziwego przesłania." },
+      "enter": { "title": "Otwórz obszar", "desc": "W obszarze przygotujesz razem okładkę, opis Workshop i historię wersji." },
+      "sections": { "title": "Trzy obszary publikacji", "desc": "Okładka tworzy obraz, Opis edytuje BBCode, a Historia wersji przegląda lub przyjmuje zapisane kandydaty." },
+      "cover": { "title": "Utwórz okładkę", "desc": "Dodaj miniaturę projektu, flagi, tekst lub emblematy. Pobranie jest lokalne; po zakończeniu zapisz wersję kandydującą." },
+      "cover_versions": { "title": "Zapisz okładkę do ponownego użycia", "desc": "Zapisana wersja zawiera edytowalne płótno i wyeksportowany PNG. Później wybierz kandydata w historii wersji." },
+      "description": { "title": "Pisz i podglądaj BBCode", "desc": "Edytuj BBCode, sprawdź bezpieczny podgląd i zapisz kandydata. Generowanie modelem wymaga ID Workshop i wyraźnej zgody." },
+      "history": { "title": "Przeglądaj i przyjmuj wersje", "desc": "Filtruj kandydatów okładek i opisów, otwieraj ich treść, a następnie wyraźnie przyjmij jednego. Przyjęcie nie wysyła nic do Steam." }
+    },
     "sidebar_tutorial_btn": "Samouczek",
     "auto_start_prompt": {
       "title": "Szybki start",

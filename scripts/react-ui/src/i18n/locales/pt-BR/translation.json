@@ -1142,6 +1142,17 @@
         "desc": "Revise as sugestões de antes/depois aqui quando a execução for concluída e decida o que manter."
       }
     },
+    "steam_workshop": {
+      "prompt": { "message": "Primeiro crie ou escolha um espaço de publicação; depois prepare a capa, a descrição e a versão adotada." },
+      "overview": { "title": "Espaços de publicação", "desc": "O Steam Workshop administra apenas materiais locais de publicação; ele não envia nem altera conteúdo no Steam." },
+      "workspace": { "title": "Criar ou vincular um espaço", "desc": "Vincule um projeto Remis ou deixe-o independente. A ID do Workshop é opcional até haver um envio real." },
+      "enter": { "title": "Entrar no espaço", "desc": "Abra um espaço para preparar juntos a capa, a descrição do Workshop e o histórico de versões." },
+      "sections": { "title": "Três áreas de publicação", "desc": "Capa compõe a imagem, Descrição edita BBCode e Histórico de versões inspeciona ou adota candidatos salvos." },
+      "cover": { "title": "Compor a capa", "desc": "Adicione miniatura do projeto, bandeiras, texto ou emblemas. O download é local; salve uma versão candidata ao concluir." },
+      "cover_versions": { "title": "Salvar uma capa reutilizável", "desc": "A versão salva inclui a tela editável e o PNG exportado. Depois adote o candidato no histórico de versões." },
+      "description": { "title": "Escrever e pré-visualizar BBCode", "desc": "Edite BBCode, confira a prévia segura e salve um candidato. A geração por modelo requer ID do Workshop e aprovação explícita." },
+      "history": { "title": "Inspecionar e adotar versões", "desc": "Filtre candidatos de capa e descrição, abra seu conteúdo e adote um explicitamente. A adoção não envia nada ao Steam." }
+    },
     "sidebar_tutorial_btn": "Guia interativo",
     "auto_start_prompt": {
       "title": "Início Rápido",
