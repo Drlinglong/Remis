@@ -57,39 +57,19 @@ const releaseDuplicateValueAllowlist = new Set([
   'api_desc_minimax',
   'project_management.details.id',
   'incremental_translation.warning_validation_prefix',
+  // "Format Repair" is the fixed product identity outside Chinese. Keep these
+  // exact keys exempt instead of reopening a broad Agent Workshop pattern.
+  'page_title_agent_workshop',
+  'agent_workshop.title',
+  'task_center.kind.agent_workshop',
+  'task_center.kind.agent_workshop_batch',
+  'task_center.kind.repair',
 ]);
 
 const releaseDuplicateValueAllowlistPatterns = [
   /^game_name_/,
   /^theme_/,
   /^app_title$/,
-  /^thumbnail_generator\./,
-  /^log_viewer_/,
-  /^initial_translation_/,
-  /^workshop_generator\./,
-  /^proofreading\./,
-  /^select_game_profile$/,
-  /^stage_smart_workshop$/,
-  /^progress_smart_workshop_status$/,
-  /^page_title_agent_workshop$/,
-  /^task_center\.kind\.agent_workshop$/,
-  /^task_center\.kind\.agent_workshop_batch$/,
-  /^task_center\.kind\.repair$/,
-  /^agent_workshop\.title$/,
-  /^agent_workshop\.(issue_format_marker_parity|validation_format_marker_parity_mismatch|validation_format_marker_parity_details_localized)$/,
-  /^agent_workshop\.(table_|discard|regenerate|batch_size|model_label)/,
-  /^tutorial\.(home|settings|version|sidebar_tutorial_btn)/,
-  /^translation_page\./,
-  /^translation_config\./,
-  /^context_sidebar\./,
-  /^summary_/,
-  /^stage_initializing$/,
-  /^deploy_/,
-  /^incremental_translation\.(progress_stage_|project_|reused_short|telemetry_(title|total)|rpm_limit|validation_issue_export_item|warning_details_suffix|error_title)/,
-  /^project_management\.(repair_metadata|tooltip_repair_metadata|repair_metadata_success|repair_metadata_error)$/,
-  /^project_management\.(details|manage_paths|actions|file_list|file_type|file_status)\./,
-  /^model_arena\./,
-  /^page_title_model_arena$/,
 ];
 
 const isAllowedReleaseDuplicateKey = (key) => (
