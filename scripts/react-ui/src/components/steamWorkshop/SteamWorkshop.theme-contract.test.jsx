@@ -31,10 +31,10 @@ describe('Steam Workshop semantic surface contract', () => {
   });
 
   it('resolves titles, badges, and tabs from the nearest semantic material', () => {
-    expect(definitionsSource).toContain('--remis-content-muted: var(--canvas-text-muted);');
-    expect(definitionsSource).toContain('--remis-content-muted: var(--surface-text-muted);');
-    expect(definitionsSource).toContain('--remis-content-muted: var(--paper-text-muted);');
-    expect(definitionsSource).toContain('--remis-content-muted: var(--elevated-text-muted);');
+    expect(definitionsSource).toContain('--remis-content-muted: var(--canvas-text-muted)');
+    expect(definitionsSource).toContain('--remis-content-muted: var(--surface-text-muted)');
+    expect(definitionsSource).toContain('--remis-content-muted: var(--paper-text-muted)');
+    expect(definitionsSource).toContain('--remis-content-muted: var(--elevated-text-muted)');
     expect(definitionsSource).toContain(
       "html[data-theme] [data-remis-surface='surface'] .mantine-Title-root",
     );

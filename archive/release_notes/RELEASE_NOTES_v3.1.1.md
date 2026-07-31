@@ -22,6 +22,14 @@ installer smoke testing is still required before publication.
 - **A recoverable cover editor.** Build a 512 × 512 Workshop cover from
   backgrounds, flags, text, and custom images; save editable candidate versions,
   reload an earlier canvas, choose the active version, or download the PNG.
+  Linked workspaces can reuse a project's original thumbnail, text can be edited
+  directly on the canvas, and reset versus clear now have distinct behavior.
+- **More faithful Steam BBCode preview.** Horizontal rules and Steam-style list
+  items now render as separators and list entries instead of leaking BBCode into
+  the preview.
+- **Readable themed workflows.** Semantic surfaces restore contrast throughout
+  incremental translation and the API, prompt, and version settings pages,
+  including the Byzantine, Medieval, and World War II themes.
 - **Clearer navigation and project handoff.** Steam publishing is available as
   a dedicated workflow and from project management, while the former thumbnail
   and Workshop tools have been separated into focused screens.
@@ -74,9 +82,9 @@ installer smoke testing is still required before publication.
 
 ### Pre-release validation
 
-- Backend: 662 tests passed, 1 skipped; Python architecture guard and source
+- Backend: 665 tests passed, 1 skipped; Python architecture guard and source
   compilation passed.
-- Desktop frontend: 533 tests across 137 files passed. Locale consistency,
+- Desktop frontend: 542 tests across 140 files passed. Locale consistency,
   text encoding, lint (0 errors; 12 existing complexity/length warnings), and
   production build passed.
 - Product website: 55 tests across 7 files passed; lint and production build
@@ -84,8 +92,12 @@ installer smoke testing is still required before publication.
 - Rust/Tauri: formatting and locked dependency compilation passed.
 - Release-version synchronization, all eleven locale JSON parses, and
   diff-integrity checks passed.
-- Installer packaging and live desktop smoke results still require the release
-  operator's final verification.
+- Rendered theme checks passed for 20 incremental-workflow combinations and 15
+  settings combinations. Live browser smoke also covered project-thumbnail
+  reuse, inline text editing, reset/clear semantics, PNG download, and the
+  reported BBCode examples without console errors.
+- Installer packaging and the native Tauri Save As dialog still require the
+  release operator's final desktop verification.
 - No paid model call, export, deployment, Steam upload, or project-file
   overwrite was performed during integration.
 
@@ -99,7 +111,12 @@ installer smoke testing is still required before publication.
   历史版本，并把“生成候选”与“采用版本”分开。模型生成仍是用户主动发起且可能产生
   供应商费用的操作。
 - **新增可恢复的封面编辑流程。** 可用背景、旗帜、文字和自定义图片制作 512 × 512
-  封面，保存可继续编辑的候选版本，重新载入旧画布，选择当前版本或下载 PNG。
+  封面，保存可继续编辑的候选版本，重新载入旧画布，选择当前版本或下载 PNG。关联项目后
+  可以直接复用项目原始封面，文本可在画布上直接编辑，“重置”和“清空”也有了明确区分。
+- **改进 Steam BBCode 预览。** 分隔线和 Steam 风格列表项会正确渲染，不再把 `[hr]`
+  或 `[*]` 等标记直接泄漏到预览中。
+- **修复主题化工作流的可读性。** 增量翻译以及 API、Prompt、版本信息设置页改用明确的
+  语义表面；拜占庭、中世纪和二战主题中的文字与背景对比度已恢复。
 - **整理发布入口和项目衔接。** Steam 发布成为独立工作流，也可从项目管理进入；原有
   缩略图与工坊描述工具被拆成职责更清晰的界面。
 - **提高多语言界面可靠性。** 十个非源语言包不再依赖“重复译文允许列表”，Steam
@@ -134,11 +151,14 @@ installer smoke testing is still required before publication.
 
 ### 发布前验证
 
-- 后端：662 项通过、1 项跳过；Python 架构门禁与源码编译通过。
-- 桌面前端：137 个测试文件、533 项测试通过；语言包一致性、文本编码、lint（0 error，
+- 后端：665 项通过、1 项跳过；Python 架构门禁与源码编译通过。
+- 桌面前端：140 个测试文件、542 项测试通过；语言包一致性、文本编码、lint（0 error，
   12 个既有复杂度／函数长度 warning）和生产构建通过。
 - 产品官网：7 个测试文件、55 项测试通过；lint 和生产构建通过。
 - Rust/Tauri：格式检查与锁定依赖编译通过。
 - 发布版本同步、十一份语言 JSON 解析和差异完整性检查通过。
-- 安装包构建与桌面实机冒烟仍需发布操作者最终确认。
+- 主题实渲染检查覆盖 20 组增量翻译组合和 15 组设置页组合；浏览器实机冒烟也覆盖了
+  项目封面复用、画布文本编辑、重置／清空语义、PNG 下载及本次报告的 BBCode 示例，
+  未发现控制台错误。
+- 安装包构建和 Tauri 原生“另存为”窗口仍需发布操作者进行最终桌面验证。
 - 集成期间没有发起付费模型调用、导出、部署、Steam 上传或项目文件覆盖。
