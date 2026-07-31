@@ -135,6 +135,13 @@ def test_read_help_skill_reads_full_allowlisted_resource():
     assert "创建" in excerpts[0]["content"]
 
 
+def test_steam_workshop_guide_is_agent_selectable():
+    excerpts = read_help_skills(["steam_workshop"])
+    assert excerpts
+    assert excerpts[0]["path"] == "zh/user-guides/steam-workshop.md"
+    assert "发布工作区" in excerpts[0]["content"]
+
+
 def test_build_system_prompt_forces_low_when_agent_selects_no_skill():
     system, sources, grounding, score = build_system_prompt([])
     assert grounding == "none"

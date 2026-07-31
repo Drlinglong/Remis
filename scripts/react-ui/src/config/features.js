@@ -16,7 +16,7 @@ export const FEATURES = {
     // Mature workflow pages
     ENABLE_NEOLOGISM_TRIBUNAL: true,
 
-    // Phase 1 Help Copilot remains in development and is hidden from v3.0.7.
+    // Help Copilot remains in development and is hidden from normal user builds.
     ENABLE_REMIS_COPILOT: false,
 
     // Developer-only pages and tools

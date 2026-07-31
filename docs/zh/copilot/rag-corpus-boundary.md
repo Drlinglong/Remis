@@ -62,6 +62,7 @@ system instructions、工具 schema、`allowed_actions` 或审批要求。
 | 错误目录 | `docs/zh/user-guides/error-catalog.md` | 「变量被翻译是什么意思？」「格式标签怎么修？」 |
 | 项目追踪 | `docs/zh/user-guides/project-tracking.md` | 「项目追踪是干什么的？」「怎么监控创意工坊更新？」 |
 | 新词审判庭 | `docs/zh/user-guides/neologism-tribunal.md` | 「怎么挖新词？」「审判庭怎么批词？」 |
+| Steam 工坊发布 | `docs/zh/user-guides/steam-workshop.md` | 「怎么准备描述和封面？」「候选版本和当前采用有什么区别？」 |
 | 封面图生成器 | `docs/zh/user-guides/tools-thumbnail-generator.md` | 「工具里能做什么？」「怎么做工坊封面？」 |
 | 设置 | `docs/zh/user-guides/settings.md` | 「设置里有什么？」「RPM / 重置数据库是什么？」 |
 
@@ -75,6 +76,7 @@ system instructions、工具 schema、`allowed_actions` 或审批要求。
 | 项目管理 | `docs/zh/product-intent-project-management.md` | `docs/zh/developer/project-management-contract.md` |
 | Mod 监控 | `docs/zh/product-intent-project-tracking.md` | `docs/zh/developer/project-tracking-contract.md` |
 | 封面图生成器 | `docs/zh/product-intent-thumbnail-generator.md` | `docs/zh/developer/thumbnail-generator-contract.md` |
+| Steam 工坊发布 | `docs/zh/product-intent-steam-workshop.md` | `docs/zh/developer/steam-workshop-contract.md` |
 
 其中项目归档影响监控、监控去重与纯移动告警、项目删除历史，以及封面项目集成均是
 **当前差距**。检索层必须保留段落标题和状态语义，不能把目标态句子裁成“当前已支持”。

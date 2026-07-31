@@ -1,6 +1,6 @@
 # Remis Copilot 文档
 
-> **Status:** 3.1.0 隐藏工程预览；下一版本面向普通用户开放
+> **Status:** 3.1.1 隐藏工程预览；公开版本仍需完成发布门禁
 > **Related:** [Issue #132](https://github.com/Drlinglong/Remis/issues/132)
 
 本目录存放 **Remis Agent / Copilot** 相关说明。两种职责通过同一个聊天入口交给用户：
@@ -61,6 +61,7 @@ Copilot 回答如何使用 Remis，Agent 把自然语言目标整理成待批准
    - [Remis 小助手](../user-guides/remis-assistant.md)
    - [项目追踪](../user-guides/project-tracking.md)
    - [新词审判庭](../user-guides/neologism-tribunal.md)
+   - [Steam 工坊发布](../user-guides/steam-workshop.md)
    - [工具：封面图生成器](../user-guides/tools-thumbnail-generator.md)
    - [设置](../user-guides/settings.md)
    - [日志与诊断](../user-guides/logs-and-diagnostics.md)
@@ -74,6 +75,8 @@ Copilot 回答如何使用 Remis，Agent 把自然语言目标整理成待批准
      [开发契约](../developer/project-tracking-contract.md)
    - [封面图生成器产品意图](../product-intent-thumbnail-generator.md) +
      [开发契约](../developer/thumbnail-generator-contract.md)
+   - [Steam 工坊产品意图](../product-intent-steam-workshop.md) +
+     [开发契约](../developer/steam-workshop-contract.md)
 
 产品意图描述目标，开发契约明确当前实现与差距。Agent 遇到“未实现”或“冲突”项时只能
 解释或提出计划，不能把它登记成当前可执行 action。

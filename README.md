@@ -119,7 +119,7 @@ Remis treats localization as a stateful AI engineering problem, not a single mod
 
 ## Approval-gated Agent System
 
-Remis 3.1.0 ships a localhost Agent API and a repository-local operator Skill so Codex can inspect, plan, validate, and monitor localization through Remis instead of bypassing the product with direct filesystem edits.
+Remis 3.1.1 ships a localhost Agent API and a repository-local operator Skill so Codex can inspect, plan, validate, and monitor localization through Remis instead of bypassing the product with direct filesystem edits.
 
 1. **Preflight** — the Agent checks the running Remis version, provider readiness, and the latest official GitHub Release before starting a workflow.
 2. **Inspect and plan** — read-only endpoints return bounded project state, validation summaries, persisted job state, and explicit `allowed_actions`.
@@ -128,7 +128,7 @@ Remis 3.1.0 ships a localhost Agent API and a repository-local operator Skill so
 
 This is bounded agency, not invisible autonomy. Read operations are allowlisted. Write operations remain server-owned, explicit, expiring, and approval-gated.
 
-The in-product Remis Copilot and its PydanticAI planner remain an engineering preview. Their UI and packaged API route are intentionally hidden in 3.1.0 while startup hardening and end-to-end validation continue.
+The in-product Remis Copilot and its PydanticAI planner remain an engineering preview. Their UI and packaged API route are intentionally hidden in normal 3.1.1 builds while startup hardening and end-to-end validation continue.
 
 ### Use Remis with Codex
 
@@ -157,8 +157,8 @@ That boundary matters more than bolting a vector database onto the product. Remi
 
 | Knowledge layer | Status |
 |---|---|
-| Model-selected help packs and source-aware answers | **Engineering preview; hidden in 3.1.0** |
-| Route context, session memory, and bounded project read tools | **Engineering preview; hidden in 3.1.0** |
+| Model-selected help packs and source-aware answers | **Engineering preview; hidden in normal 3.1.1 builds** |
+| Route context, session memory, and bounded project read tools | **Engineering preview; hidden in normal 3.1.1 builds** |
 | Curated Micro-RAG corpus contract and indexing boundaries | **Architecture complete** |
 | Vector retrieval and retrieval evaluation over the user corpus | **Next adapter** |
 | Autonomous write access to arbitrary user files | **Explicitly out of scope** |

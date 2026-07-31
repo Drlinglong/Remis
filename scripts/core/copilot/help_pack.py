@@ -63,11 +63,6 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
         "description": "Mod 更新后只翻新增内容、归档基线和增量翻译流程。",
         "resources": ("zh/user-guides/incremental-update.md",),
     },
-    "model_arena": {
-        "title": "模型竞技场",
-        "description": "正式翻译前匿名比较两个或三个模型的小样结果。",
-        "resources": ("zh/user-guides/model-arena.md",),
-    },
     "import_translation": {
         "title": "导入已有译文",
         "description": "导入半成品汉化或已有翻译，并接入 Remis 项目流程。",
@@ -122,6 +117,11 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
         "title": "缩略图生成器",
         "description": "使用工具生成 Mod 缩略图。",
         "resources": ("zh/user-guides/tools-thumbnail-generator.md",),
+    },
+    "steam_workshop": {
+        "title": "Steam 工坊发布",
+        "description": "创建发布工作区，准备工坊描述和封面，并管理候选版本。",
+        "resources": ("zh/user-guides/steam-workshop.md",),
     },
     "faq": {
         "title": "常见问题",
