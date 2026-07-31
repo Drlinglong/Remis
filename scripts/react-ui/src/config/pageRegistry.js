@@ -35,8 +35,8 @@ export const PAGE_REGISTRY = Object.freeze([
     domain: PAGE_DOMAINS.PROJECTS,
     navigation: { entryMode: ENTRY_MODES.PRIMARY, section: 'projects', label: 'page_title_project_management', icon: 'briefcase', order: 10 },
     tutorialContext: 'project-management',
-    guide: 'docs/zh/user-guides/getting-started.md',
-    copilot: { pageName: '项目管理 / Project Management', helpSkillId: 'getting_started' },
+    guide: 'docs/zh/user-guides/project-management.md',
+    copilot: { pageName: '项目管理 / Project Management', helpSkillId: 'project_management' },
   },
   {
     id: 'project-tracking',

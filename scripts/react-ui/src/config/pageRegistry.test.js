@@ -59,7 +59,11 @@ describe('pageRegistry', () => {
   });
 
   it('resolves route-aware Copilot context from the registry', () => {
-    expect(resolveRegisteredPage('/project-management/demo')?.id).toBe('project-management');
+    const projectManagement = resolveRegisteredPage('/project-management/demo');
+
+    expect(projectManagement?.id).toBe('project-management');
+    expect(projectManagement?.guide).toBe('docs/zh/user-guides/project-management.md');
+    expect(projectManagement?.copilot.helpSkillId).toBe('project_management');
     expect(resolveRegisteredPage('/tasks/task-1/glossary-health')?.id).toBe('glossary-health-review');
     expect(resolveRegisteredPage('/model-arena')?.copilot.pageName).toContain('Model Arena');
   });
