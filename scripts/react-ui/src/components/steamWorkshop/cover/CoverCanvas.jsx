@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Image as KonvaImage, Layer, Rect, Stage, Text as KonvaText, Transformer } from 'react-konva';
 import { IconUpload } from '@tabler/icons-react';
 import { Paper, Text, useMantineTheme } from '@mantine/core';
+import { COVER_CANVAS_SIZE, getCoverStageScale } from './coverCanvasGeometry';
 
 const DraggableItem = ({ item, selected, onSelect, onChange, onEdit, accentColor }) => {
     const shapeRef = useRef(null);
@@ -89,9 +90,40 @@ export const CoverCanvas = ({
 }) => {
     const theme = useMantineTheme();
     const accentColor = theme.colors[theme.primaryColor][6];
+    const containerRef = useRef(null);
+    const [stageScale, setStageScale] = useState(1);
     const empty = editor.backgroundColor === '#ffffff'
         && !editor.backgroundImage
         && editor.elements.length === 0;
+
+    const setCanvasRef = useCallback((node) => {
+        containerRef.current = node;
+        if (typeof canvasRef === 'function') {
+            canvasRef(node);
+        } else if (canvasRef) {
+            canvasRef.current = node;
+        }
+    }, [canvasRef]);
+
+    useLayoutEffect(() => {
+        const container = containerRef.current;
+        if (!container) return undefined;
+
+        const updateScale = (width = container.clientWidth) => {
+            setStageScale((current) => {
+                const next = getCoverStageScale(width);
+                return current === next ? current : next;
+            });
+        };
+        updateScale();
+        if (typeof ResizeObserver === 'undefined') return undefined;
+
+        const observer = new ResizeObserver((entries) => {
+            updateScale(entries[0]?.contentRect.width);
+        });
+        observer.observe(container);
+        return () => observer.disconnect();
+    }, [empty]);
     if (empty) {
         return (
             <Paper
@@ -123,18 +155,22 @@ export const CoverCanvas = ({
     return (
         <div
             id="thumbnail-canvas"
-            ref={canvasRef}
+            ref={setCanvasRef}
             onDrop={onDrop}
             onDragOver={onDragOver}
         >
             <Stage
-                width={512}
-                height={512}
+                width={COVER_CANVAS_SIZE}
+                height={COVER_CANVAS_SIZE}
+                style={{
+                    transform: `scale(${stageScale})`,
+                    transformOrigin: 'top left',
+                }}
                 onMouseDown={(event) => event.target === event.target.getStage() && editor.setSelectedId(null)}
                 onTouchStart={(event) => event.target === event.target.getStage() && editor.setSelectedId(null)}
             >
                 <Layer>
-                    <Rect width={512} height={512} fill={editor.backgroundColor} />
+                    <Rect width={COVER_CANVAS_SIZE} height={COVER_CANVAS_SIZE} fill={editor.backgroundColor} />
                     {editor.backgroundImage && <BackgroundImage value={editor.backgroundImage} />}
                     {editor.elements.map((item) => (
                         <DraggableItem

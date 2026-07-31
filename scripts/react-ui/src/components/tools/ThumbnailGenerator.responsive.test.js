@@ -32,10 +32,10 @@ describe('thumbnail generator responsive layout contract', () => {
             /#thumbnail-canvas \{[\s\S]*position: relative/s,
         );
         expect(thumbnailCss).toMatch(
-            /#thumbnail-canvas \.konvajs-content\s*\{[\s\S]*position: absolute !important[\s\S]*inset: 0[\s\S]*width: 100% !important[\s\S]*height: 100% !important/s,
+            /#thumbnail-canvas \.konvajs-content\s*\{[\s\S]*position: absolute !important[\s\S]*inset: 0[\s\S]*width: 512px !important[\s\S]*height: 512px !important/s,
         );
         expect(thumbnailCss).toMatch(
-            /#thumbnail-canvas canvas\s*\{[\s\S]*position: absolute !important[\s\S]*inset: 0[\s\S]*width: 100% !important[\s\S]*height: 100% !important/s,
+            /#thumbnail-canvas canvas\s*\{[\s\S]*position: absolute !important[\s\S]*inset: 0[\s\S]*width: 512px !important[\s\S]*height: 512px !important/s,
         );
         expect(thumbnailCss).toMatch(
             /\.cover-canvas-panel\s*\{[\s\S]*display: flex[\s\S]*flex-direction: column[\s\S]*gap: 16px/s,
