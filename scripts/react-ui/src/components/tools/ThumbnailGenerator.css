@@ -1,23 +1,7 @@
-/* Styles handled by Mantine components are removed. */
-
 #thumbnail-canvas {
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  border-radius: 4px; /* Slightly rounded corners for the canvas */
-  overflow: hidden; /* Ensures content stays within rounded corners */
-}
-
-.canvas-placeholder {
-    width: 512px;
-    height: 512px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background-color: #f8f9fa; /* This might need to be theme-aware */
-    border: 2px dashed #dee2e6; /* This might need to be theme-aware */
-    border-radius: 8px;
-    text-align: center;
-    cursor: pointer;
+    overflow: hidden;
+    border-radius: 4px;
+    box-shadow: var(--remis-shadow-sm, none);
 }
 
 .flag-list {
@@ -26,16 +10,53 @@
     gap: 10px;
 }
 
+.flag-button {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+    line-height: 0;
+}
+
+.flag-button:focus-visible {
+    outline: 2px solid var(--focus-ring, var(--mantine-primary-color-filled));
+    outline-offset: 3px;
+}
+
 .flag-item {
     width: 40px;
     height: 30px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--surface-border, currentColor);
     border-radius: 4px;
-    cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .flag-item:hover {
     transform: scale(1.1);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    box-shadow: var(--remis-shadow-sm, none);
+}
+
+.cover-editor-workspace,
+.cover-editor-center,
+.cover-version-copy {
+    min-width: 0;
+}
+
+.cover-canvas-panel {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.cover-version-panel {
+    color: var(--paper-text-main, inherit);
+    background: var(--paper-bg, inherit);
+    border-color: var(--paper-border, currentColor);
+}
+
+.cover-version-hash {
+    max-width: 42ch;
+    overflow-wrap: anywhere;
 }

@@ -14,6 +14,14 @@ import {
 } from './pageRegistry';
 
 describe('pageRegistry', () => {
+  it('registers Steam Workshop as a primary publishing page', () => {
+    const page = PAGE_REGISTRY.find((item) => item.id === 'steam-workshop');
+
+    expect(page.routePaths).toContain('/steam-workshop');
+    expect(page.domain).toBe(PAGE_DOMAINS.PUBLISHING);
+    expect(page.navigation.entryMode).toBe(ENTRY_MODES.PRIMARY);
+  });
+
   it('keeps route ids and route paths unique', () => {
     const ids = PAGE_REGISTRY.map((page) => page.id);
     const paths = PAGE_REGISTRY.flatMap((page) => page.routePaths);
