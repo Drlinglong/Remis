@@ -1,7 +1,7 @@
 import React, { Fragment } from 'react';
-import { Blockquote, Code, List, Text, Title } from '@mantine/core';
+import { Blockquote, Code, Divider, List, Text, Title } from '@mantine/core';
 
-const TOKEN_PATTERN = /(\[(?:\/)?(?:b|i|u|h1|h2|h3|quote|code|list|\*)\])/gi;
+const TOKEN_PATTERN = /(\[(?:\/)?(?:b|i|u|h1|h2|h3|quote|code|list|hr|\*)\])/gi;
 const TAG_PATTERN = /^\[(\/)?([a-z0-9*]+)\]$/i;
 
 const renderContainer = (tag, children, key) => {
@@ -21,6 +21,10 @@ const renderContainer = (tag, children, key) => {
 const parseTokens = (bbcode) => {
   const root = { tag: 'root', children: [] };
   const stack = [root];
+  const closeTop = (key) => {
+    const node = stack.pop();
+    stack.at(-1).children.push(renderContainer(node.tag, node.children, key));
+  };
 
   bbcode.split(TOKEN_PATTERN).filter(Boolean).forEach((token, index) => {
     const match = token.match(TAG_PATTERN);
@@ -30,15 +34,20 @@ const parseTokens = (bbcode) => {
     }
     const [, closing, rawTag] = match;
     const tag = rawTag.toLowerCase();
+    if (tag === 'hr' && !closing) {
+      stack.at(-1).children.push(<Divider key={`hr-${index}`} my="sm" />);
+      return;
+    }
     if (closing) {
+      if (tag === 'list' && stack.at(-1).tag === '*') closeTop(`implicit-item-${index}`);
       if (stack.length === 1 || stack.at(-1).tag !== tag) {
         stack.at(-1).children.push(<Fragment key={`text-${index}`}>{token}</Fragment>);
         return;
       }
-      const node = stack.pop();
-      stack.at(-1).children.push(renderContainer(node.tag, node.children, `tag-${index}`));
+      closeTop(`tag-${index}`);
       return;
     }
+    if (tag === '*' && stack.at(-1).tag === '*') closeTop(`implicit-item-${index}`);
     stack.push({ tag, children: [] });
   });
 
