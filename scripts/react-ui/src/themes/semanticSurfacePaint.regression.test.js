@@ -27,6 +27,9 @@ describe('semantic material paint regressions', () => {
   // Report: .gstack/design-reports/design-audit-127.0.0.1-2026-07-31.md
   it('binds light badges and alerts to the nearest semantic material', () => {
     expect(definitionsCss).toContain(
+      '--remis-content-text: var(--surface-text-main) !important;',
+    );
+    expect(definitionsCss).toContain(
       'background: color-mix(in srgb, var(--remis-content-text) 12%, var(--remis-content-bg)) !important;',
     );
     expect(definitionsCss).toContain('background: var(--remis-content-bg) !important;');

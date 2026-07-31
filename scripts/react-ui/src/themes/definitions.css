@@ -300,10 +300,10 @@ html[data-theme] {
 html[data-theme] [data-remis-surface='canvas'] {
   --mantine-color-text: var(--canvas-text-main) !important;
   --mantine-color-dimmed: var(--canvas-text-muted) !important;
-  --remis-content-text: var(--canvas-text-main);
-  --remis-content-muted: var(--canvas-text-muted);
-  --remis-content-bg: var(--canvas-bg-solid);
-  --remis-content-border: var(--surface-border);
+  --remis-content-text: var(--canvas-text-main) !important;
+  --remis-content-muted: var(--canvas-text-muted) !important;
+  --remis-content-bg: var(--canvas-bg-solid) !important;
+  --remis-content-border: var(--surface-border) !important;
   color: var(--canvas-text-main);
 }
 
@@ -326,10 +326,10 @@ html[data-theme] [data-remis-surface='canvas'] .mantine-Title-root {
 html[data-theme] [data-remis-surface='surface'] {
   --mantine-color-text: var(--surface-text-main) !important;
   --mantine-color-dimmed: var(--surface-text-muted) !important;
-  --remis-content-text: var(--surface-text-main);
-  --remis-content-muted: var(--surface-text-muted);
-  --remis-content-bg: var(--surface-bg-solid);
-  --remis-content-border: var(--surface-border);
+  --remis-content-text: var(--surface-text-main) !important;
+  --remis-content-muted: var(--surface-text-muted) !important;
+  --remis-content-bg: var(--surface-bg-solid) !important;
+  --remis-content-border: var(--surface-border) !important;
   color: var(--surface-text-main);
 }
 
@@ -355,10 +355,10 @@ html[data-theme] [data-remis-surface='surface']:is(.mantine-Paper-root, .mantine
 html[data-theme] [data-remis-surface='paper'] {
   --mantine-color-text: var(--paper-text-main) !important;
   --mantine-color-dimmed: var(--paper-text-muted) !important;
-  --remis-content-text: var(--paper-text-main);
-  --remis-content-muted: var(--paper-text-muted);
-  --remis-content-bg: var(--paper-bg);
-  --remis-content-border: var(--paper-text-muted);
+  --remis-content-text: var(--paper-text-main) !important;
+  --remis-content-muted: var(--paper-text-muted) !important;
+  --remis-content-bg: var(--paper-bg) !important;
+  --remis-content-border: var(--paper-text-muted) !important;
   color: var(--paper-text-main);
 }
 
@@ -383,10 +383,10 @@ html[data-theme] [data-remis-surface='paper']:is(.mantine-Paper-root, .mantine-C
 html[data-theme] [data-remis-surface='elevated'] {
   --mantine-color-text: var(--elevated-text-main) !important;
   --mantine-color-dimmed: var(--elevated-text-muted) !important;
-  --remis-content-text: var(--elevated-text-main);
-  --remis-content-muted: var(--elevated-text-muted);
-  --remis-content-bg: var(--elevated-bg);
-  --remis-content-border: var(--surface-border);
+  --remis-content-text: var(--elevated-text-main) !important;
+  --remis-content-muted: var(--elevated-text-muted) !important;
+  --remis-content-bg: var(--elevated-bg) !important;
+  --remis-content-border: var(--surface-border) !important;
   color: var(--elevated-text-main);
 }
 
