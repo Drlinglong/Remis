@@ -43,7 +43,7 @@ export const ProjectSelectStep = ({
 
     return (
         <Stack mt="xl" className={styles.executionStep}>
-            <Paper id="incremental-project-selector" withBorder p="md" radius="md" className={styles.glassCard}>
+            <Paper data-remis-surface="surface" id="incremental-project-selector" withBorder p="md" radius="md" className={styles.glassCard}>
                 <Group grow align="flex-end">
                     <TextInput
                         label={t('common.search', { defaultValue: 'Search' })}
@@ -64,6 +64,7 @@ export const ProjectSelectStep = ({
             <SimpleGrid id="incremental-project-grid" cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
                 {filteredProjects.map((p) => (
                     <Card
+                        data-remis-surface="surface"
                         key={p.project_id}
                         padding="lg"
                         radius="md"
@@ -94,7 +95,7 @@ export const ProjectSelectStep = ({
             </SimpleGrid>
 
             {filteredProjects.length === 0 && (
-                <Paper withBorder p="xl" radius="md" className={styles.glassCard}>
+                <Paper data-remis-surface="surface" withBorder p="xl" radius="md" className={styles.glassCard}>
                     <Text ta="center" c="dimmed">
                         {t('common.nothing_found')}
                     </Text>

@@ -302,6 +302,8 @@ html[data-theme] [data-remis-surface='canvas'] {
   --mantine-color-dimmed: var(--canvas-text-muted) !important;
   --remis-content-text: var(--canvas-text-main);
   --remis-content-muted: var(--canvas-text-muted);
+  --remis-content-bg: var(--canvas-bg-solid);
+  --remis-content-border: var(--surface-border);
   color: var(--canvas-text-main);
 }
 
@@ -326,6 +328,8 @@ html[data-theme] [data-remis-surface='surface'] {
   --mantine-color-dimmed: var(--surface-text-muted) !important;
   --remis-content-text: var(--surface-text-main);
   --remis-content-muted: var(--surface-text-muted);
+  --remis-content-bg: var(--surface-bg-solid);
+  --remis-content-border: var(--surface-border);
   color: var(--surface-text-main);
 }
 
@@ -338,11 +342,23 @@ html[data-theme] [data-remis-surface='surface'] .mantine-Title-root {
   text-shadow: none !important;
 }
 
+/*
+ * Legacy theme sheets decorate every Paper and Card globally. A component that
+ * declares a surface must also paint that declared material, otherwise its
+ * inherited text contract can be applied to a contrasting legacy background.
+ */
+html[data-theme] [data-remis-surface='surface']:is(.mantine-Paper-root, .mantine-Card-root) {
+  background: var(--surface-bg-solid) !important;
+  border-color: var(--surface-border) !important;
+}
+
 html[data-theme] [data-remis-surface='paper'] {
   --mantine-color-text: var(--paper-text-main) !important;
   --mantine-color-dimmed: var(--paper-text-muted) !important;
   --remis-content-text: var(--paper-text-main);
   --remis-content-muted: var(--paper-text-muted);
+  --remis-content-bg: var(--paper-bg);
+  --remis-content-border: var(--paper-text-muted);
   color: var(--paper-text-main);
 }
 
@@ -359,11 +375,18 @@ html[data-theme] [data-remis-surface='paper'] .mantine-Title-root {
   text-shadow: none !important;
 }
 
+html[data-theme] [data-remis-surface='paper']:is(.mantine-Paper-root, .mantine-Card-root) {
+  background: var(--paper-bg) !important;
+  border-color: var(--paper-text-muted) !important;
+}
+
 html[data-theme] [data-remis-surface='elevated'] {
   --mantine-color-text: var(--elevated-text-main) !important;
   --mantine-color-dimmed: var(--elevated-text-muted) !important;
   --remis-content-text: var(--elevated-text-main);
   --remis-content-muted: var(--elevated-text-muted);
+  --remis-content-bg: var(--elevated-bg);
+  --remis-content-border: var(--surface-border);
   color: var(--elevated-text-main);
 }
 
@@ -412,6 +435,7 @@ html[data-theme] [data-remis-surface='elevated'] .mantine-Title-root {
  * alerts against the nearest semantic material instead.
  */
 html[data-theme] [data-remis-surface] .mantine-Badge-root[data-variant='light'] {
+  background: color-mix(in srgb, var(--remis-content-text) 12%, var(--remis-content-bg)) !important;
   color: var(--remis-content-text) !important;
 }
 
@@ -438,7 +462,8 @@ html[data-theme] [data-remis-surface] .mantine-Tabs-tab:is([data-active], [aria-
 }
 
 html[data-theme] [data-remis-surface] .mantine-Alert-root {
-  --alert-color: var(--remis-content-text) !important;
+  background: var(--remis-content-bg) !important;
+  border: 1px solid var(--remis-content-border) !important;
   color: var(--remis-content-text) !important;
 }
 

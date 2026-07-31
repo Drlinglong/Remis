@@ -110,7 +110,7 @@ export const ConfigStep = ({
     }));
 
     return (
-        <Stack mt="xl" gap="md" style={{ position: 'relative' }}>
+        <Stack data-remis-surface="surface" mt="xl" gap="md" style={{ position: 'relative' }}>
             {(errorKey || error) && (
                 <Alert icon={<IconAlertCircle size={16} />} title={t('incremental_translation.error_title')} color="red" radius="md">
                     {errorKey ? t(errorKey) : error}
@@ -124,7 +124,7 @@ export const ConfigStep = ({
             )}
 
             {archiveInfo && (
-                <Paper id="incremental-setup-card" withBorder p="lg" radius="md" className={styles.glassCard}>
+                <Paper data-remis-surface="surface" id="incremental-setup-card" withBorder p="lg" radius="md" className={styles.glassCard}>
                     <Stack>
                         <Alert icon={<IconCheck size={16} />} color="blue" radius="md">
                             <Text size="sm" fw={600}>{t('incremental_translation.workflow_supported_title')}</Text>

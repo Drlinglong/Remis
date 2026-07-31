@@ -5,8 +5,8 @@
 }
 
 .card {
-    background: var(--glass-bg) !important;
-    border: 1px solid var(--glass-border) !important;
+    background: var(--surface-bg-solid) !important;
+    border: 1px solid var(--surface-border) !important;
     border-radius: var(--card-radius, 8px) !important;
     padding: 1.25rem;
     display: flex;
@@ -32,12 +32,12 @@
 .title {
     font-weight: 600;
     font-size: 1.1rem;
-    color: var(--text-highlight, #fff);
+    color: var(--surface-text-main);
 }
 
 .description {
     font-size: 0.85rem;
-    color: var(--text-dimmed, #888);
+    color: var(--surface-text-muted);
     margin-bottom: 1rem;
     flex: 1;
     /* Pushes actions to bottom */
@@ -47,7 +47,7 @@
 .actions {
     margin-top: auto;
     padding-top: 1rem;
-    border-top: 1px solid var(--glass-border);
+    border-top: 1px solid var(--surface-border);
 }
 
 .statusBadge {
