@@ -3,8 +3,42 @@
 use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
 
+const PNG_SIGNATURE: &[u8; 8] = b"\x89PNG\r\n\x1a\n";
+
+#[tauri::command]
+fn save_thumbnail_png(path: String, contents: Vec<u8>) -> Result<(), String> {
+    if contents.len() > 10 * 1024 * 1024 {
+        return Err("Thumbnail PNG exceeds the supported size".into());
+    }
+    if !path.to_ascii_lowercase().ends_with(".png") {
+        return Err("Thumbnail must use a .png filename".into());
+    }
+    if !contents.starts_with(PNG_SIGNATURE) {
+        return Err("Thumbnail contents are not a PNG image".into());
+    }
+    std::fs::write(path, contents).map_err(|error| error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::save_thumbnail_png;
+
+    #[test]
+    fn rejects_non_png_extensions_before_writing() {
+        let error = save_thumbnail_png("thumbnail.jpg".into(), b"not-an-image".to_vec());
+        assert_eq!(error.unwrap_err(), "Thumbnail must use a .png filename");
+    }
+
+    #[test]
+    fn rejects_non_png_content_before_writing() {
+        let error = save_thumbnail_png("thumbnail.png".into(), b"not-an-image".to_vec());
+        assert_eq!(error.unwrap_err(), "Thumbnail contents are not a PNG image");
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
+    .invoke_handler(tauri::generate_handler![save_thumbnail_png])
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(

@@ -1,6 +1,9 @@
+import mimetypes
+
 from fastapi import APIRouter, HTTPException, Query, Response, status
 from fastapi.responses import FileResponse
 
+from scripts.core.services.project_thumbnail_service import find_project_thumbnail
 from scripts.core.services.steam_workshop_service import SteamWorkshopService
 from scripts.core.services.steam_workshop_task_service import (
     COVER_TASK_KIND,
@@ -20,6 +23,7 @@ from scripts.schemas.steam_workshop import (
     SelectVersionRequest,
     UpdateWorkspaceRequest,
 )
+from scripts.shared.services import project_manager
 
 router = APIRouter(prefix="/api/steam-workshop", tags=["steam-workshop"])
 steam_workshop_service = SteamWorkshopService()
@@ -52,6 +56,25 @@ def get_workspace(workspace_id: str):
         return steam_workshop_service.get_workspace(workspace_id)
     except Exception as exc:
         raise _http_error(exc) from exc
+
+
+@router.get("/workspaces/{workspace_id}/project-thumbnail")
+async def get_project_thumbnail(workspace_id: str):
+    """Return the bound project's source thumbnail without exposing its path."""
+    try:
+        workspace = steam_workshop_service.get_workspace(workspace_id)
+        project_id = workspace.get("project_id")
+        if not project_id:
+            raise ValueError("Workspace is not bound to a project")
+        project = await project_manager.get_project(project_id)
+        if not project:
+            raise LookupError("Bound project not found")
+        thumbnail = find_project_thumbnail(project.get("source_path"))
+    except Exception as exc:
+        raise _http_error(exc) from exc
+
+    media_type = mimetypes.guess_type(thumbnail.name)[0] or "application/octet-stream"
+    return FileResponse(thumbnail, media_type=media_type, filename=thumbnail.name)
 
 
 @router.patch("/workspaces/{workspace_id}")

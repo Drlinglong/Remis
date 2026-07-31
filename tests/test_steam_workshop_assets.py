@@ -4,6 +4,7 @@ import json
 import sqlite3
 import struct
 import zlib
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -46,14 +47,17 @@ def _png(width: int = 2, height: int = 3) -> bytes:
 @pytest.fixture
 def workshop_client(tmp_path, monkeypatch):
     db_path = tmp_path / "remis.sqlite"
+    project_root = tmp_path / "project-source"
+    project_root.mkdir()
     assert migrate_main_database(str(db_path)) == MAIN_DB_TARGET_VERSION
     with sqlite3.connect(db_path) as connection:
         connection.execute(
             """
             INSERT INTO projects (
                 project_id, name, game_id, source_path, source_language, status
-            ) VALUES ('project-1', 'Project', 'vic3', 'source', 'en', 'active')
-            """
+            ) VALUES (?, 'Project', 'vic3', ?, 'en', 'active')
+            """,
+            ("project-1", str(project_root)),
         )
     service = SteamWorkshopService(
         SteamWorkshopRepository(str(db_path)),
@@ -64,6 +68,11 @@ def workshop_client(tmp_path, monkeypatch):
         "steam_workshop_service",
         service,
     )
+    async def get_project(project_id):
+        if project_id != "project-1":
+            return None
+        return {"project_id": project_id, "source_path": str(project_root)}
+    monkeypatch.setattr(steam_workshop_router.project_manager, "get_project", get_project)
     previous_tasks = dict(task_state.tasks)
     task_state.tasks.clear()
     task_state.configure_repository(TaskRepository(str(db_path)))
@@ -194,6 +203,34 @@ def test_workspace_crud_supports_optional_bindings(workshop_client):
     assert client.get(
         f"/api/steam-workshop/workspaces/{unbound['workspace_id']}"
     ).status_code == 404
+
+
+# Regression: ISSUE-004 — project cover import previously opened an unrelated file picker.
+# Found by /qa on 2026-07-31
+# Report: .gstack/qa-reports/qa-report-127.0.0.1-2026-07-31.md
+def test_project_thumbnail_reads_only_the_bound_project_root(workshop_client, tmp_path):
+    client, _service, _db_path = workshop_client
+    workspace = _workspace(client, project_id="project-1")
+    project_root = Path(tmp_path / "project-source")
+    project_root.mkdir(exist_ok=True)
+    (tmp_path / "thumbnail.png").write_bytes(_png(width=4, height=4))
+
+    missing_response = client.get(
+        f"/api/steam-workshop/workspaces/{workspace['workspace_id']}"
+        "/project-thumbnail"
+    )
+    assert missing_response.status_code == 404
+
+    (project_root / "thumbnail.png").write_bytes(_png())
+
+    response = client.get(
+        f"/api/steam-workshop/workspaces/{workspace['workspace_id']}"
+        "/project-thumbnail"
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert response.content == _png()
 
 
 def test_description_versions_are_utf8_immutable_snapshots(workshop_client):

@@ -33,13 +33,13 @@ const fitInside = (image, maxWidth, maxHeight) => {
 };
 
 export const useCoverEditor = ({ defaultText }) => {
-    const modImageInputRef = useRef(null);
     const backgroundInputRef = useRef(null);
     const emblemInputRef = useRef(null);
     const [backgroundColor, setBackgroundColor] = useState('#ffffff');
     const [backgroundImage, setBackgroundImage] = useState(null);
     const [elements, setElements] = useState([]);
     const [selectedId, setSelectedId] = useState(null);
+    const [editingTextId, setEditingTextId] = useState(null);
 
     const addElement = useCallback((element) => {
         setElements((current) => [...current, element]);
@@ -49,12 +49,7 @@ export const useCoverEditor = ({ defaultText }) => {
         const image = await readImageFile(file);
         if (kind === 'background') {
             const size = fitInside(image, 512, 512);
-            setBackgroundImage({
-                image,
-                x: (512 - size.width) / 2,
-                y: (512 - size.height) / 2,
-                ...size,
-            });
+            setBackgroundImage({ image, x: (512 - size.width) / 2, y: (512 - size.height) / 2, ...size });
             return;
         }
         const isModImage = kind === 'mod';
@@ -74,6 +69,12 @@ export const useCoverEditor = ({ defaultText }) => {
             addElement(element);
         }
     }, [addElement]);
+
+    const setBackgroundImageFromSource = useCallback(async (source) => {
+        const image = await loadImageSource(source);
+        const size = fitInside(image, 512, 512);
+        setBackgroundImage({ image, x: (512 - size.width) / 2, y: (512 - size.height) / 2, ...size });
+    }, []);
 
     const addFlag = useCallback(async (code, position = { x: 60, y: 60 }) => {
         const image = await loadImageSource(FLAG_SOURCES[code]);
@@ -108,6 +109,7 @@ export const useCoverEditor = ({ defaultText }) => {
     }, []);
 
     const addText = useCallback(() => {
+        const id = uuidv4();
         addElement({
             type: 'text',
             text: defaultText,
@@ -116,8 +118,10 @@ export const useCoverEditor = ({ defaultText }) => {
             fontSize: 30,
             fontFamily: 'Arial',
             fill: '#000000',
-            id: uuidv4(),
+            id,
         });
+        setSelectedId(id);
+        setEditingTextId(id);
     }, [addElement, defaultText]);
 
     const updateElement = useCallback((id, attributes) => {
@@ -126,13 +130,28 @@ export const useCoverEditor = ({ defaultText }) => {
 
     const deleteSelected = useCallback(() => {
         setElements((current) => current.filter((item) => item.id !== selectedId));
+        setEditingTextId(null);
         setSelectedId(null);
     }, [selectedId]);
+
+    const resetCanvas = useCallback(() => {
+        setElements([]);
+        setEditingTextId(null);
+        setSelectedId(null);
+    }, []);
+
+    const beginTextEditing = useCallback((id) => {
+        setSelectedId(id);
+        setEditingTextId(id);
+    }, []);
+
+    const finishTextEditing = useCallback(() => setEditingTextId(null), []);
 
     const replaceCanvas = useCallback((canvas) => {
         setBackgroundColor(canvas.backgroundColor);
         setBackgroundImage(canvas.backgroundImage);
         setElements(canvas.elements);
+        setEditingTextId(null);
         setSelectedId(null);
     }, []);
 
@@ -153,13 +172,18 @@ export const useCoverEditor = ({ defaultText }) => {
         selectedId,
         setSelectedId,
         selectedElement: elements.find((item) => item.id === selectedId),
-        inputRefs: { modImageInputRef, backgroundInputRef, emblemInputRef },
+        editingTextId,
+        inputRefs: { backgroundInputRef, emblemInputRef },
         addFileImage,
+        setBackgroundImageFromSource,
         addFlag,
         addAllFlags,
         addText,
         updateElement,
         deleteSelected,
+        resetCanvas,
+        beginTextEditing,
+        finishTextEditing,
         replaceCanvas,
     };
 };

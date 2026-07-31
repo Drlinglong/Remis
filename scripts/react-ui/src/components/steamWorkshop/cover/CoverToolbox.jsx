@@ -1,28 +1,29 @@
-import { Button, Paper, Stack, Title, Tooltip } from '@mantine/core';
+import { Button, Paper, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { IconUpload } from '@tabler/icons-react';
 import { AVAILABLE_FLAGS, FLAG_SOURCES } from './coverEditorAssets';
 
-export const CoverToolbox = ({ editor, labels }) => (
+export const CoverToolbox = ({
+    canLoadProjectThumbnail,
+    editor,
+    labels,
+    onLoadProjectThumbnail,
+    projectThumbnailError,
+}) => (
     <Paper id="thumbnail-toolbox" withBorder p="md" data-remis-surface="paper">
         <Stack>
-            <Button
-                variant="light"
-                leftSection={<IconUpload size={14} />}
-                onClick={() => editor.inputRefs.modImageInputRef.current?.click()}
-            >
-                {labels.uploadModImage}
-            </Button>
-            <input
-                ref={editor.inputRefs.modImageInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) editor.addFileImage(file, 'mod');
-                    event.target.value = '';
-                }}
-                style={{ display: 'none' }}
-            />
+            <Tooltip label={labels.useProjectThumbnailTooltip} multiline w={230} withArrow>
+                <span>
+                    <Button
+                        variant="light"
+                        leftSection={<IconUpload size={14} />}
+                        disabled={!canLoadProjectThumbnail}
+                        onClick={onLoadProjectThumbnail}
+                    >
+                        {labels.useProjectThumbnail}
+                    </Button>
+                </span>
+            </Tooltip>
+            {projectThumbnailError && <Text c="red" role="alert" size="xs">{projectThumbnailError}</Text>}
 
             <div>
                 <Title order={5}>{labels.addFlags}</Title>
@@ -47,10 +48,7 @@ export const CoverToolbox = ({ editor, labels }) => (
             <Button
                 variant="subtle"
                 color="red"
-                onClick={() => {
-                    editor.setElements([]);
-                    editor.setSelectedId(null);
-                }}
+                onClick={editor.resetCanvas}
             >
                 {labels.resetCanvas}
             </Button>

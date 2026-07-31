@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { invoke, isTauri } from '@tauri-apps/api/core';
 import { useTranslation } from 'react-i18next';
 import { Button, Grid, Paper, Stack, Text } from '@mantine/core';
+import { save } from '@tauri-apps/plugin-dialog';
 import html2canvas from 'html2canvas';
 
 import './ThumbnailGenerator.css';
@@ -12,10 +14,13 @@ import { hydrateCoverCanvas, serializeCoverCanvas } from '../steamWorkshop/cover
 import { useCoverDraft } from '../steamWorkshop/cover/useCoverDraft';
 import { useCoverEditor } from '../steamWorkshop/cover/useCoverEditor';
 import { useCoverVersions } from '../steamWorkshop/cover/useCoverVersions';
+import steamWorkshopCoverService from '../../services/steamWorkshopCoverService';
 
 const translationLabels = (t) => ({
     toolboxTitle: t('thumbnail_generator.toolbox_title'),
-    uploadModImage: t('thumbnail_generator.upload_mod_image'),
+    useProjectThumbnail: t('thumbnail_generator.use_project_thumbnail'),
+    useProjectThumbnailTooltip: t('thumbnail_generator.use_project_thumbnail_tooltip'),
+    projectThumbnailUnavailable: t('thumbnail_generator.project_thumbnail_unavailable'),
     addFlags: t('thumbnail_generator.add_flags'),
     addText: t('thumbnail_generator.add_text'),
     addAllFlags: t('thumbnail_generator.add_all_flags'),
@@ -53,11 +58,36 @@ const translationLabels = (t) => ({
     }),
 });
 
-const downloadDataUrl = (dataUrl) => {
+const dataUrlToBytes = (dataUrl) => {
+    const encoded = dataUrl.split(',', 2)[1] || '';
+    const binary = window.atob(encoded);
+    return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+};
+
+export const downloadDataUrl = (dataUrl) => {
+    const bytes = dataUrlToBytes(dataUrl);
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'image/png' }));
     const link = document.createElement('a');
     link.download = 'thumbnail.png';
-    link.href = dataUrl;
+    link.href = url;
+    document.body.appendChild(link);
     link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+};
+
+export const saveThumbnail = async (dataUrl) => {
+    if (!isTauri()) {
+        downloadDataUrl(dataUrl);
+        return;
+    }
+    const path = await save({
+        defaultPath: 'thumbnail.png',
+        filters: [{ name: 'PNG image', extensions: ['png'] }],
+        title: '保存封面图',
+    });
+    if (!path) return;
+    await invoke('save_thumbnail_png', { path, contents: Array.from(dataUrlToBytes(dataUrl)) });
 };
 
 const waitForPaint = () => new Promise((resolve) => {
@@ -75,6 +105,7 @@ const ThumbnailGenerator = ({
     const canvasContainerRef = useRef(null);
     const canvasLoadGenerationRef = useRef(0);
     const requestedVersionIdRef = useRef(null);
+    const [projectThumbnailError, setProjectThumbnailError] = useState(null);
     const editor = useCoverEditor({ defaultText: t('thumbnail_generator.default_text') });
     const { replaceCanvas, selectedId, setSelectedId } = editor;
     const { draftSavedAt, draftError, clearCanvas: clearDraftCanvas } = useCoverDraft({
@@ -138,7 +169,18 @@ const ThumbnailGenerator = ({
             canvas: serializeCoverCanvas(editor.canvasState),
         });
     };
-    const handleDownload = async () => downloadDataUrl(await capturePng());
+    const handleDownload = async () => saveThumbnail(await capturePng());
+    const handleUseProjectThumbnail = async () => {
+        if (!workspaceId || !projectId) return;
+        try {
+            await editor.setBackgroundImageFromSource(
+                steamWorkshopCoverService.getProjectThumbnailUrl(workspaceId),
+            );
+            setProjectThumbnailError(null);
+        } catch (_error) {
+            setProjectThumbnailError(labels.projectThumbnailUnavailable);
+        }
+    };
     const handleDrop = (event) => {
         event.preventDefault();
         const file = event.dataTransfer.files?.[0];
@@ -152,12 +194,19 @@ const ThumbnailGenerator = ({
         <Stack data-remis-surface="surface" className="cover-editor-workspace">
             <Grid align="flex-start">
                 <Grid.Col span={{ base: 12, md: 3 }}>
-                    <CoverToolbox editor={toolboxEditor} labels={labels} />
+                    <CoverToolbox
+                        canLoadProjectThumbnail={Boolean(workspaceId && projectId)}
+                        editor={toolboxEditor}
+                        labels={labels}
+                        onLoadProjectThumbnail={handleUseProjectThumbnail}
+                        projectThumbnailError={projectThumbnailError}
+                    />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }} className="cover-editor-center">
                     <Paper withBorder p="md" data-remis-surface="surface" className="cover-canvas-panel">
                         <CoverCanvas
                             canvasRef={canvasContainerRef}
+                            editTextLabel={labels.textContent}
                             editor={editor}
                             onDrop={handleDrop}
                             onDragOver={(event) => event.preventDefault()}

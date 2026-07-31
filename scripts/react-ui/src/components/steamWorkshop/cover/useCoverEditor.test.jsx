@@ -57,4 +57,27 @@ describe('useCoverEditor image uploads', () => {
             height: 128,
         });
     });
+
+    // Regression: ISSUE-005 — reset and clear canvas previously appeared identical.
+    // Found by /qa on 2026-07-31
+    // Report: .gstack/qa-reports/qa-report-127.0.0.1-2026-07-31.md
+    it('opens newly added text for editing and resets only its element layers', async () => {
+        const { result } = renderHook(() => useCoverEditor({ defaultText: 'Cover' }));
+
+        act(() => {
+            result.current.setBackgroundColor('#123456');
+            result.current.addText();
+        });
+
+        expect(result.current.elements).toHaveLength(1);
+        expect(result.current.selectedElement).toMatchObject({ type: 'text', text: 'Cover' });
+        expect(result.current.editingTextId).toBe(result.current.selectedId);
+
+        act(() => result.current.resetCanvas());
+
+        expect(result.current.elements).toEqual([]);
+        expect(result.current.backgroundColor).toBe('#123456');
+        expect(result.current.selectedId).toBeNull();
+        expect(result.current.editingTextId).toBeNull();
+    });
 });

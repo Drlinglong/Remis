@@ -3,6 +3,10 @@ import api from '../utils/api';
 const base64Payload = (dataUrl) => dataUrl.includes(',') ? dataUrl.split(',', 2)[1] : dataUrl;
 
 export const steamWorkshopCoverService = {
+    getProjectThumbnailUrl: (workspaceId) => (
+        `/api/steam-workshop/workspaces/${workspaceId}/project-thumbnail`
+    ),
+
     listVersions: async (workspaceId) => {
         const response = await api.get(
             `/api/steam-workshop/workspaces/${workspaceId}/versions`,

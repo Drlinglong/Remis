@@ -17,7 +17,8 @@ const inspectorSource = readFileSync(
 
 const labels = {
     toolboxTitle: '工具箱',
-    uploadModImage: '上传 Mod 图片',
+    useProjectThumbnail: '使用项目封面图',
+    useProjectThumbnailTooltip: '将尝试寻找该项目的原始封面图并作为背景使用',
     addFlags: '添加国旗',
     addText: '添加文本',
     addAllFlags: '一键添加所有旗帜',
@@ -52,6 +53,7 @@ const createEditor = () => ({
     setBackgroundImage: vi.fn(),
     setElements: vi.fn(),
     setSelectedId: vi.fn(),
+    resetCanvas: vi.fn(),
 });
 
 describe('cover editor material contract', () => {
@@ -59,7 +61,12 @@ describe('cover editor material contract', () => {
         const editor = createEditor();
         const { container } = render(
             <MantineProvider>
-                <CoverToolbox editor={editor} labels={labels} />
+                <CoverToolbox
+                    canLoadProjectThumbnail
+                    editor={editor}
+                    labels={labels}
+                    onLoadProjectThumbnail={vi.fn()}
+                />
                 <CoverInspector editor={editor} labels={labels} />
             </MantineProvider>,
         );
@@ -70,6 +77,7 @@ describe('cover editor material contract', () => {
         expect(screen.getByRole('heading', { name: '添加国旗' })).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: '属性检查器' })).toBeInTheDocument();
         expect(screen.getByText('背景颜色')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: '使用项目封面图' })).toBeEnabled();
     });
 
     it('keeps the source bound to paper semantics instead of surface tokens', () => {
@@ -79,6 +87,8 @@ describe('cover editor material contract', () => {
         });
         expect(toolboxSource).not.toContain('labels.toolboxTitle');
         expect(toolboxSource).toContain('labels.addFlags');
+        expect(toolboxSource).toContain('labels.useProjectThumbnailTooltip');
+        expect(toolboxSource).not.toContain('modImageInputRef');
         expect(inspectorSource).toContain('labels.inspectorTitle');
         expect(inspectorSource).toContain('labels.backgroundColor');
     });

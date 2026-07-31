@@ -3,7 +3,7 @@ import { Image as KonvaImage, Layer, Rect, Stage, Text as KonvaText, Transformer
 import { IconUpload } from '@tabler/icons-react';
 import { Paper, Text, useMantineTheme } from '@mantine/core';
 
-const DraggableItem = ({ item, selected, onSelect, onChange, accentColor }) => {
+const DraggableItem = ({ item, selected, onSelect, onChange, onEdit, accentColor }) => {
     const shapeRef = useRef(null);
     const transformerRef = useRef(null);
 
@@ -34,6 +34,8 @@ const DraggableItem = ({ item, selected, onSelect, onChange, accentColor }) => {
         draggable: true,
         onClick: onSelect,
         onTap: onSelect,
+        onDblClick: item.type === 'text' ? onEdit : undefined,
+        onDblTap: item.type === 'text' ? onEdit : undefined,
         onDragEnd: (event) => onChange({ ...item, x: event.target.x(), y: event.target.y() }),
         onTransformEnd: finishTransform,
     };
@@ -77,6 +79,7 @@ const BackgroundImage = ({ value }) => {
 
 export const CoverCanvas = ({
     canvasRef,
+    editTextLabel,
     editor,
     onDrop,
     onDragOver,
@@ -140,11 +143,35 @@ export const CoverCanvas = ({
                             selected={item.id === editor.selectedId}
                             accentColor={accentColor}
                             onSelect={() => editor.setSelectedId(item.id === editor.selectedId ? null : item.id)}
+                            onEdit={() => editor.beginTextEditing(item.id)}
                             onChange={(attributes) => editor.updateElement(item.id, attributes)}
                         />
                     ))}
                 </Layer>
             </Stage>
+            {editor.editingTextId && editor.selectedElement?.type === 'text' && (
+                <input
+                    aria-label={editTextLabel}
+                    autoFocus
+                    className="cover-canvas-text-editor"
+                    style={{
+                        fontFamily: editor.selectedElement.fontFamily,
+                        fontSize: `clamp(12px, ${editor.selectedElement.fontSize / 5.12}cqw, ${editor.selectedElement.fontSize}px)`,
+                        left: `${editor.selectedElement.x / 5.12}%`,
+                        top: `${editor.selectedElement.y / 5.12}%`,
+                    }}
+                    type="text"
+                    value={editor.selectedElement.text}
+                    onBlur={editor.finishTextEditing}
+                    onChange={(event) => editor.updateElement(editor.selectedElement.id, {
+                        ...editor.selectedElement,
+                        text: event.target.value,
+                    })}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter') editor.finishTextEditing();
+                    }}
+                />
+            )}
         </div>
     );
 };

@@ -55,4 +55,10 @@ describe('steamWorkshopCoverService', () => {
             { version_id: 'cover-v3' },
         );
     });
+
+    it('keeps the project-thumbnail request scoped to its workspace', () => {
+        expect(steamWorkshopCoverService.getProjectThumbnailUrl('workspace-1')).toBe(
+            '/api/steam-workshop/workspaces/workspace-1/project-thumbnail',
+        );
+    });
 });
