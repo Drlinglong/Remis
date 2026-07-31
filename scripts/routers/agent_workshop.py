@@ -5,7 +5,6 @@ import json
 import hashlib
 import logging
 import asyncio
-import time
 import uuid
 from pathlib import Path
 from typing import List, Optional, Dict, Any
@@ -24,6 +23,9 @@ from scripts.core.loc_parser import ENTRY_RE, parse_loc_file
 from scripts.utils.validation_logger import ValidationLogger
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.core.services.validation_sidecar_service import ValidationSidecarService
+from scripts.core.services.agent_workshop_run_service import (
+    AgentWorkshopRunCoordinator,
+)
 from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService, resolve_dynamic_valid_tags
 from scripts.core.services.workshop_writeback_service import (
     apply_translation_fix_to_file,
@@ -1259,329 +1261,25 @@ async def fix_batch(request: FixBatchRequest):
     return await _run_fix_batch(request)
 
 
-def _build_fix_run_batches(issues: List[Dict[str, Any]], batch_size_limit: Optional[int]) -> List[List[Dict[str, Any]]]:
-    batch_size = max(1, min(batch_size_limit or 10, 50))
-    return [
-        issues[index:index + batch_size]
-        for index in range(0, len(issues), batch_size)
-    ]
-
-
-async def _run_agent_workshop_fix_task(task_id: str, request: FixRunRequest) -> None:
-    started_at = time.time()
-    batches = _build_fix_run_batches(request.issues, request.batch_size_limit)
-    total = len(request.issues)
-    total_batches = len(batches)
-    concurrency = max(1, min(request.concurrency_limit or 1, 5))
-    rpm = max(1, request.rpm_limit or 40)
-    interval_seconds = 60 / rpm
-    max_retries = max(1, min(request.max_retries or 3, 5))
-    queue = asyncio.Queue()
-    rate_lock = asyncio.Lock()
-    stats_lock = asyncio.Lock()
-    next_dispatch_at = 0.0
-    completed = 0
-    success_count = 0
-    failed_count = 0
-    all_results: List[Dict[str, Any]] = []
-    all_attempts: List[Dict[str, Any]] = []
-    child_task_ids: Dict[int, str] = {}
-
-    for batch_number, batch in enumerate(batches, start=1):
-        child_task_id = f"{task_id}:batch:{batch_number}"
-        child_task_ids[batch_number] = child_task_id
-        task_state.create_task(
-            child_task_id,
-            status="queued",
-            log_message=f"Repair batch {batch_number}/{total_batches} queued.",
-            fields={
-                "kind": "agent_workshop_batch",
-                "project_id": request.project_id,
-                "parent_task_id": task_id,
-                "title": f"Format Repair batch {batch_number}/{total_batches}",
-                "source_route": f"/tasks/{task_id}",
-                "created_by": request.created_by.model_dump(),
-                "blocking": False,
-                "workflow_context": {
-                    "mode": "repair_batch",
-                    "project_id": request.project_id,
-                    "parent_task_id": task_id,
-                    "batch_number": batch_number,
-                    "issue_count": len(batch),
-                },
-                "checkpoint": {
-                    "available": False,
-                    "resume_supported": False,
-                    "stage": "queued",
-                    "metadata": {
-                        "batch_number": batch_number,
-                        "issue_count": len(batch),
-                    },
-                },
-            },
-        )
-        queue.put_nowait((batch_number, batch))
-
-    task_state.init_progress(task_id, {
-        "total": total,
-        "current": 0,
-        "percent": 0,
-        "stage": "Format Repair",
-        "current_batch": 0,
-        "total_batches": total_batches,
-    })
-    task_state.update_task(
-        task_id,
-        status="processing",
-        append_log=f"Format Repair started repairing {total} issue(s) in {total_batches} batch(es).",
+async def _run_agent_workshop_fix_task(
+    task_id: str,
+    request: FixRunRequest,
+) -> None:
+    coordinator = AgentWorkshopRunCoordinator(
+        task_id=task_id,
+        request=request,
+        task_store=task_state,
+        batch_runner=_run_fix_batch,
+        batch_request_factory=lambda batch, max_retries: FixBatchRequest(
+            project_id=request.project_id,
+            api_provider=request.api_provider,
+            api_model=request.api_model,
+            max_retries=max_retries,
+            issues=batch,
+        ),
     )
-    task_state.append_task_event(
-        task_id,
-        f"Format Repair execution settings: concurrency={concurrency}, rpm={rpm}, max_retries={max_retries}.",
-        audience="diagnostic",
-        level="debug",
-        event_type="execution_settings",
-    )
+    await coordinator.run()
 
-    async def wait_for_rate_limit() -> None:
-        nonlocal next_dispatch_at
-        async with rate_lock:
-            now = time.monotonic()
-            wait_seconds = max(0.0, next_dispatch_at - now)
-            next_dispatch_at = max(now, next_dispatch_at) + interval_seconds
-        if wait_seconds > 0:
-            await asyncio.sleep(wait_seconds)
-
-    async def worker(worker_id: int) -> None:
-        nonlocal completed, success_count, failed_count
-        while True:
-            try:
-                batch_number, batch = queue.get_nowait()
-            except asyncio.QueueEmpty:
-                return
-
-            child_task_id = child_task_ids[batch_number]
-            await wait_for_rate_limit()
-            task_state.update_task(
-                child_task_id,
-                status="processing",
-                progress={
-                    "current": 0,
-                    "total": len(batch),
-                    "percent": 0,
-                    "stage": "Repairing",
-                },
-                append_log=f"Repair batch {batch_number}/{total_batches} started.",
-            )
-            task_state.update_progress(
-                task_id,
-                current=completed,
-                total=total,
-                current_batch=batch_number,
-                total_batches=total_batches,
-                stage="Format Repair",
-                log_message=f"Worker {worker_id}: fixing batch {batch_number}/{total_batches} ({len(batch)} issue(s)).",
-                event_audience="diagnostic",
-                push=True,
-            )
-
-            try:
-                response = await _run_fix_batch(FixBatchRequest(
-                    project_id=request.project_id,
-                    api_provider=request.api_provider,
-                    api_model=request.api_model,
-                    max_retries=max_retries,
-                    issues=batch,
-                ))
-                batch_results = [item.model_dump() for item in response.results]
-                batch_attempts = [item.model_dump() for item in response.attempts]
-                batch_success = sum(1 for item in batch_results if item.get("status") == "SUCCESS")
-                batch_failed = len(batch_results) - batch_success
-                async with stats_lock:
-                    all_results.extend(batch_results)
-                    all_attempts.extend([
-                        {"batch_number": batch_number, **attempt}
-                        for attempt in batch_attempts
-                    ])
-                    completed += len(batch)
-                    success_count += batch_success
-                    failed_count += batch_failed
-                    current_completed = completed
-                    current_success = success_count
-                    current_failed = failed_count
-                child_status = "completed" if batch_failed == 0 else "partial_failed"
-                child_summary = f"{batch_success} fixed, {batch_failed} still require review."
-                task_state.update_task(
-                    child_task_id,
-                    status=child_status,
-                    progress={
-                        "current": len(batch),
-                        "total": len(batch),
-                        "percent": 100,
-                        "stage": "Completed" if batch_failed == 0 else "Needs review",
-                    },
-                    summary={
-                        "total": len(batch),
-                        "successCount": batch_success,
-                        "failedCount": batch_failed,
-                    },
-                    fields={
-                        "result": {
-                            "types": ["workshop_repairs"],
-                            "summary": child_summary,
-                            "metadata": {
-                                "batch_number": batch_number,
-                                "results": batch_results,
-                            },
-                        },
-                        "attention_reason": child_summary if batch_failed else None,
-                    },
-                    append_log=(
-                        f"Repair batch {batch_number}/{total_batches} completed."
-                        if batch_failed == 0
-                        else f"Repair batch {batch_number}/{total_batches} needs review: {batch_failed} item(s) failed."
-                    ),
-                )
-                task_state.update_progress(
-                    task_id,
-                    current=current_completed,
-                    total=total,
-                    current_batch=batch_number,
-                    total_batches=total_batches,
-                    successful_batches=current_success,
-                    failed_batches=current_failed,
-                    stage="Format Repair",
-                    log_message=f"Batch {batch_number}/{total_batches} completed: {batch_success}/{len(batch)} fixed.",
-                    event_audience="diagnostic",
-                    push=True,
-                )
-            except Exception as exc:
-                logger.exception("Agent Workshop batch %s failed", batch_number)
-                async with stats_lock:
-                    completed += len(batch)
-                    failed_count += len(batch)
-                    current_completed = completed
-                    current_failed = failed_count
-                task_state.update_task(
-                    child_task_id,
-                    status="failed",
-                    message="The batch could not be completed.",
-                    progress={
-                        "current": len(batch),
-                        "total": len(batch),
-                        "percent": 100,
-                        "stage": "Failed",
-                    },
-                    fields={
-                        "result": {
-                            "types": ["workshop_repairs"],
-                            "summary": "No repairs from this batch were applied.",
-                            "metadata": {"batch_number": batch_number},
-                        },
-                        "attention_reason": "The batch failed before producing a complete result.",
-                    },
-                    append_log=f"Repair batch {batch_number}/{total_batches} failed.",
-                )
-                task_state.append_task_event(
-                    child_task_id,
-                    str(exc),
-                    audience="diagnostic",
-                    level="error",
-                    event_type="batch_exception",
-                )
-                task_state.update_progress(
-                    task_id,
-                    current=current_completed,
-                    total=total,
-                    current_batch=batch_number,
-                    total_batches=total_batches,
-                    failed_batches=current_failed,
-                    stage="Format Repair",
-                    log_message=f"Batch {batch_number}/{total_batches} failed: {exc}",
-                    event_audience="diagnostic",
-                    push=True,
-                )
-            finally:
-                queue.task_done()
-
-    try:
-        await asyncio.gather(*[
-            worker(index)
-            for index in range(1, min(concurrency, max(total_batches, 1)) + 1)
-        ])
-        summary = {
-            "total": total,
-            "completed": completed,
-            "successCount": success_count,
-            "failedCount": failed_count,
-            "durationMs": int((time.time() - started_at) * 1000),
-            "batchSize": max(1, min(request.batch_size_limit or 10, 50)),
-            "totalBatches": total_batches,
-            "results": all_results,
-            "attempts": all_attempts,
-            "maxRetries": max_retries,
-        }
-        report_paths = sorted({
-            str(item.get("report_path"))
-            for item in all_results
-            if item.get("report_path")
-        })
-        final_status = "completed" if failed_count == 0 else "partial_failed"
-        result_summary = (
-            f"{success_count} issue(s) fixed."
-            if failed_count == 0
-            else f"{success_count} issue(s) fixed; {failed_count} still require review."
-        )
-        task_state.update_task(
-            task_id,
-            status=final_status,
-            progress={
-                "current": total,
-                "total": total,
-                "percent": 100,
-                "stage": "Completed" if failed_count == 0 else "Needs review",
-            },
-            summary=summary,
-            fields={
-                "results": all_results,
-                "attempts": all_attempts,
-                "result": {
-                    "types": ["workshop_repairs", *(["repair_reports"] if report_paths else [])],
-                    "output_paths": report_paths,
-                    "summary": result_summary,
-                    "metadata": {
-                        "total": total,
-                        "success_count": success_count,
-                        "failed_count": failed_count,
-                        "batch_task_ids": [
-                            child_task_ids[index]
-                            for index in sorted(child_task_ids)
-                        ],
-                    },
-                },
-                "attention_reason": result_summary if failed_count else None,
-            },
-            append_log=(
-                "Format Repair run completed."
-                if failed_count == 0
-                else f"Format Repair run finished with {failed_count} item(s) requiring review."
-            ),
-        )
-    except Exception as exc:
-        logger.exception("Agent Workshop run failed")
-        task_state.update_task(
-            task_id,
-            status="failed",
-            message="Format Repair could not complete this repair run.",
-            append_log="Format Repair run failed. Open diagnostics for technical details.",
-        )
-        task_state.append_task_event(
-            task_id,
-            str(exc),
-            audience="diagnostic",
-            level="error",
-            event_type="run_exception",
-        )
 
 
 def _run_agent_workshop_fix_task_in_worker(task_id: str, request: FixRunRequest) -> None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import BackgroundTasks, HTTPException
@@ -286,16 +287,21 @@ def test_validation_items_are_split_into_error_warning_and_human_review():
         [
             {"severity": "error", "error_code": "variable_missing"},
             {"severity": "warning", "error_code": "style_warning"},
+            {
+                "severity": "warning",
+                "error_code": "validation_invalid_key_format",
+            },
             {"error_code": "ambiguous_source"},
         ]
     )
 
     assert summary.errors == 1
     assert summary.warnings == 1
-    assert summary.human_review_items == 1
+    assert summary.human_review_items == 2
     assert [item["category"] for item in items] == [
         "error",
         "warning",
+        "human_review",
         "human_review",
     ]
 
@@ -422,11 +428,19 @@ async def test_approved_agent_repair_forwards_governed_workshop_contract(
         return {
             "summary": AgentValidationSummary(),
             "items": [],
-            "_raw_items": [{
-                "file_name": "events.yml",
-                "key": "entry",
-                "status": "detected",
-            }],
+            "_raw_items": [
+                {
+                    "file_name": "events.yml",
+                    "key": "entry",
+                    "status": "detected",
+                },
+                {
+                    "file_name": "events.yml",
+                    "key": "invalid key",
+                    "error_code": "validation_invalid_key_format",
+                    "status": "detected",
+                },
+            ],
         }
 
     captured = {}
@@ -468,6 +482,7 @@ async def test_approved_agent_repair_forwards_governed_workshop_contract(
     forwarded = captured["request"]
     assert forwarded.approval.approved is True
     assert forwarded.approval.issue_count == 1
+    assert [issue["key"] for issue in forwarded.issues] == ["entry"]
     assert forwarded.created_by.type == "remis_agent"
     assert forwarded.idempotency_key.startswith("agent-repair:")
     assert response.job_id == "repair-child"
@@ -480,6 +495,62 @@ async def test_approved_agent_repair_forwards_governed_workshop_contract(
     assert response.allowed_actions == ["retry"]
     assert "export_preview" not in response.links
     assert task_state.tasks["repair-child"]["parent_task_id"] == "job-parent"
+
+
+@pytest.mark.asyncio
+async def test_agent_repair_stops_when_only_manual_review_items_remain(
+    isolated_registry,
+    monkeypatch,
+):
+    plan = isolated_registry.create_plan(
+        project_id="project-1",
+        execution_args={
+            "project_id": "project-1",
+            "api_provider": "lm_studio",
+            "model": "local-model",
+        },
+        dry_run=False,
+        summary="Manual review fixture",
+    )
+    isolated_registry.consume_plan(plan["plan_id"], approved=True)
+    isolated_registry.record_job(
+        job_id="job-manual-only",
+        project_id="project-1",
+        plan_id=plan["plan_id"],
+        kind="translation",
+        execution_args=plan["execution_args"],
+    )
+
+    async def fake_validation(_project_id, include_items=False):
+        return {
+            "summary": AgentValidationSummary(
+                human_review_items=1,
+                total=1,
+                available=True,
+            ),
+            "items": [],
+            "_raw_items": [{
+                "file_name": "events.yml",
+                "key": "invalid key",
+                "error_code": "validation_invalid_key_format",
+                "status": "detected",
+            }],
+        }
+
+    start_fix_run = AsyncMock()
+    monkeypatch.setattr(agent_router, "_validation_payload", fake_validation)
+    monkeypatch.setattr(agent_router, "start_fix_run", start_fix_run)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await agent_router.repair_agent_job(
+            "job-manual-only",
+            AgentRepairRequest(approved=True),
+            BackgroundTasks(),
+        )
+
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.detail["code"] == "no_repairable_items"
+    start_fix_run.assert_not_awaited()
 
 
 def test_export_candidate_rejects_path_traversal(tmp_path, monkeypatch):
