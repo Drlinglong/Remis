@@ -389,6 +389,18 @@ def extract_bundled_demo_translations(src_root, dst_root, force=False):
     return extracted
 
 
+def _install_steam_workshop_demo(remis_db_path, resource_dir, app_data_dir):
+    try:
+        from scripts.core.services.steam_workshop_demo_seed import (
+            ensure_steam_workshop_demo,
+        )
+
+        if ensure_steam_workshop_demo(remis_db_path, resource_dir, app_data_dir):
+            init_logger.info("[SEED] Installed bundled Steam Workshop demo workspace.")
+    except Exception as e:
+        init_logger.error("[SEED] Failed to install Steam Workshop demo: %s", e)
+
+
 def initialize_database():
     """Main entry point for DB setup."""
     setup_init_logging()
@@ -494,3 +506,5 @@ def initialize_database():
             hydrate_json_configs(app_data_dir)
         except Exception as e:
             init_logger.error("[INIT] Failed during path hydration: %s", e)
+
+    _install_steam_workshop_demo(remis_db_path, resource_dir, app_data_dir)

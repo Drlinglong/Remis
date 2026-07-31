@@ -152,7 +152,7 @@ def test_migration_upgrades_managed_database_with_asset_tables(tmp_path):
             [(version, f"migration-{version}") for version in range(1, 11)],
         )
 
-    assert migrate_main_database(str(db_path)) == 11
+    assert migrate_main_database(str(db_path)) == MAIN_DB_TARGET_VERSION
     with sqlite3.connect(db_path) as connection:
         tables = {
             row[0]

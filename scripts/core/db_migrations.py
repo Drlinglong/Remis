@@ -22,7 +22,7 @@ from scripts.core.db_models import (
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 11
+MAIN_DB_TARGET_VERSION = 12
 
 
 class UnsupportedDatabaseVersionError(RuntimeError):
@@ -636,6 +636,21 @@ def _migration_011_add_steam_workshop_assets(db_path: str) -> None:
         conn.commit()
 
 
+def _migration_012_track_bundled_seed_state(db_path: str) -> None:
+    """Record one-time bundled data hydration without overwriting later edits."""
+    with _connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bundled_seed_state (
+                seed_key TEXT PRIMARY KEY,
+                seed_version INTEGER NOT NULL,
+                applied_at TEXT NOT NULL
+            )
+            """
+        )
+        conn.commit()
+
+
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
@@ -648,6 +663,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (9, "add_model_arena_history", _migration_009_add_model_arena_history),
     (10, "enforce_status_contracts", _migration_010_enforce_status_contracts),
     (11, "add_steam_workshop_assets", _migration_011_add_steam_workshop_assets),
+    (12, "track_bundled_seed_state", _migration_012_track_bundled_seed_state),
 ]
 
 
