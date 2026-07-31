@@ -125,7 +125,7 @@ const ThumbnailGenerator = ({
         || editor.elements.length > 0;
 
     return (
-        <Stack data-remis-surface="canvas" className="cover-editor-workspace">
+        <Stack data-remis-surface="surface" className="cover-editor-workspace">
             <Grid align="flex-start">
                 <Grid.Col span={{ base: 12, md: 3 }}>
                     <CoverToolbox editor={editor} labels={labels} />

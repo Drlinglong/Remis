@@ -126,6 +126,7 @@ export default function PublishingVersionHistory({ workspaceId }) {
       <Modal
         opened={Boolean(history.openedVersion)}
         onClose={() => history.setOpenedVersion(null)}
+        data-remis-surface="elevated"
         title={history.openedVersion
           ? `${typeLabel(history.openedVersion.asset_type)} #${history.openedVersion.sequence}`
           : '版本内容'}

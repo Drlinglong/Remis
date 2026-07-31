@@ -49,6 +49,7 @@ export default function WorkspaceEditorModal({
     <Modal
       opened={opened}
       onClose={onClose}
+      data-remis-surface="elevated"
       title={initialWorkspace ? '编辑发布工作区' : '新建 Steam 发布工作区'}
     >
       <Stack data-remis-surface="elevated">

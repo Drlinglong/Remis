@@ -29,7 +29,13 @@ describe('thumbnail generator responsive layout contract', () => {
 
     it('scales the Konva host and keeps the download action in normal flow', () => {
         expect(thumbnailCss).toMatch(
-            /#thumbnail-canvas \.konvajs-content,[\s\S]*#thumbnail-canvas canvas\s*\{[\s\S]*width: 100% !important[\s\S]*height: 100% !important/s,
+            /#thumbnail-canvas \{[\s\S]*position: relative/s,
+        );
+        expect(thumbnailCss).toMatch(
+            /#thumbnail-canvas \.konvajs-content\s*\{[\s\S]*position: absolute !important[\s\S]*inset: 0[\s\S]*width: 100% !important[\s\S]*height: 100% !important/s,
+        );
+        expect(thumbnailCss).toMatch(
+            /#thumbnail-canvas canvas\s*\{[\s\S]*position: absolute !important[\s\S]*inset: 0[\s\S]*width: 100% !important[\s\S]*height: 100% !important/s,
         );
         expect(thumbnailCss).toMatch(
             /\.cover-canvas-panel\s*\{[\s\S]*display: flex[\s\S]*flex-direction: column[\s\S]*gap: 16px/s,
@@ -38,5 +44,10 @@ describe('thumbnail generator responsive layout contract', () => {
             /\.cover-canvas-action\s*\{[\s\S]*max-width: 100%[\s\S]*flex: 0 0 auto/s,
         );
         expect(thumbnailSource).toContain('className="cover-canvas-action"');
+    });
+
+    it('uses the workbench surface for editor content and controls', () => {
+        expect(thumbnailSource).toContain('<Stack data-remis-surface="surface"');
+        expect(thumbnailSource).not.toContain('<Stack data-remis-surface="canvas"');
     });
 });

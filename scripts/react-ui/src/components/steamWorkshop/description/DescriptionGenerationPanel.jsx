@@ -163,6 +163,7 @@ export function DescriptionGenerationPanel({
       <Modal
         opened={opened}
         onClose={closeModal}
+        data-remis-surface="elevated"
         title="确认模型生成"
         size="lg"
       >

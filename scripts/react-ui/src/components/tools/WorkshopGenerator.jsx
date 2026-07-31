@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Badge,
@@ -34,6 +34,12 @@ const DEFAULT_TEMPLATE = `[h1]模组标题[/h1]
 [*]特色二
 [/list]`;
 
+const editorStateForVersion = (version) => ({
+  bbcode: version?.bbcode || '',
+  language: version?.language || 'zh',
+  parentVersionId: version?.version_id || null,
+});
+
 const WorkshopGenerator = ({
   projectId = null,
   projectName = '',
@@ -52,12 +58,34 @@ const WorkshopGenerator = ({
     saveCandidate,
     selectWorkspace,
     setEditor,
+    versions,
     workspace,
     workspaces,
   } = useDescriptionWorkspace({
     projectId,
     requestedWorkspaceId: workspaceId,
   });
+
+  const adoptedVersion = versions.find(
+    (version) => version.version_id === workspace?.current_description_version_id,
+  ) || null;
+  const latestVersion = versions[0] || null;
+  const preferredVersion = adoptedVersion || latestVersion;
+  const workspaceEntryKey = workspace
+    ? `${workspace.workspace_id}:${workspace.current_description_version_id || 'none'}`
+    : null;
+  const initializedEntryRef = useRef(null);
+
+  useEffect(() => {
+    if (!workspaceEntryKey) {
+      initializedEntryRef.current = null;
+      return;
+    }
+    if (isLoading || initializedEntryRef.current === workspaceEntryKey) return;
+
+    setEditor(editorStateForVersion(preferredVersion));
+    initializedEntryRef.current = workspaceEntryKey;
+  }, [isLoading, preferredVersion, setEditor, workspaceEntryKey]);
 
   const updateEditor = (field, value) => {
     setEditor((current) => ({ ...current, [field]: value }));
@@ -71,6 +99,22 @@ const WorkshopGenerator = ({
       message: `版本 ${saved.sequence} 已持久化，但尚未设为当前采用。`,
       color: 'green',
     });
+  };
+
+  const handleGenerate = async (payload) => {
+    const generated = await generateCandidate(payload);
+    if (!generated) return null;
+
+    notifications.show({
+      title: '模型候选版本已保存',
+      message: `版本 ${generated.sequence} 已生成，尚未设为当前采用。`,
+      color: 'green',
+    });
+
+    if (adoptedVersion) {
+      setEditor(editorStateForVersion(adoptedVersion));
+    }
+    return generated;
   };
 
   const workspaceOptions = workspaces.map((item) => ({
@@ -146,35 +190,19 @@ const WorkshopGenerator = ({
           <>
             <DescriptionGenerationPanel
               isGenerating={isGenerating}
-              onGenerate={async (payload) => {
-                const generated = await generateCandidate(payload);
-                if (generated) {
-                  notifications.show({
-                    title: '模型候选版本已保存',
-                    message: `版本 ${generated.sequence} 已生成，尚未设为当前采用。`,
-                    color: 'green',
-                  });
-                }
-                return generated;
-              }}
+              onGenerate={handleGenerate}
               workshopItemId={workspace.workshop_item_id}
             />
 
             <Grid gutter="lg">
                 <Grid.Col span={{ base: 12, md: 6 }}>
                   <Stack>
-                    <Group grow>
-                      <TextInput
-                        label="语言"
-                        value={editor.language}
-                        onChange={(event) => updateEditor('language', event.currentTarget.value)}
-                      />
-                      <TextInput
-                        label="父版本"
-                        value={editor.parentVersionId || '新版本'}
-                        readOnly
-                      />
-                    </Group>
+                    <TextInput
+                      label="手工候选语言"
+                      description="手工保存时记录的版本语言；模型生成请使用上方的“描述语言”。"
+                      value={editor.language}
+                      onChange={(event) => updateEditor('language', event.currentTarget.value)}
+                    />
                     <Textarea
                       label="Steam BBCode"
                       minRows={20}

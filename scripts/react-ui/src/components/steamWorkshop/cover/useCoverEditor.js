@@ -21,9 +21,15 @@ const loadImageSource = (src) => new Promise((resolve, reject) => {
     image.src = src;
 });
 
+const getImageDimensions = (image) => ({
+    width: image.naturalWidth || image.width,
+    height: image.naturalHeight || image.height,
+});
+
 const fitInside = (image, maxWidth, maxHeight) => {
-    const ratio = Math.min(maxWidth / image.width, maxHeight / image.height, 1);
-    return { width: image.width * ratio, height: image.height * ratio };
+    const { width, height } = getImageDimensions(image);
+    const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
+    return { width: width * ratio, height: height * ratio };
 };
 
 export const useCoverEditor = ({ defaultText }) => {

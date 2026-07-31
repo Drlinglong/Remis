@@ -56,6 +56,25 @@ const DraggableItem = ({ item, selected, onSelect, onChange, accentColor }) => {
     );
 };
 
+const BackgroundImage = ({ value }) => {
+    const imageRef = useRef(null);
+
+    useEffect(() => {
+        imageRef.current?.getLayer?.()?.batchDraw();
+    }, [value.image]);
+
+    return (
+        <KonvaImage
+            ref={imageRef}
+            image={value.image}
+            x={value.x}
+            y={value.y}
+            width={value.width}
+            height={value.height}
+        />
+    );
+};
+
 export const CoverCanvas = ({
     canvasRef,
     editor,
@@ -113,7 +132,7 @@ export const CoverCanvas = ({
             >
                 <Layer>
                     <Rect width={512} height={512} fill={editor.backgroundColor} />
-                    {editor.backgroundImage && <KonvaImage {...editor.backgroundImage} />}
+                    {editor.backgroundImage && <BackgroundImage value={editor.backgroundImage} />}
                     {editor.elements.map((item) => (
                         <DraggableItem
                             key={item.id}

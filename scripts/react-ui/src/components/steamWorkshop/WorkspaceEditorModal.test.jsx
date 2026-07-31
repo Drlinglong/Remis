@@ -20,6 +20,13 @@ describe('WorkspaceEditorModal', () => {
       </MantineProvider>,
     );
 
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.closest('[data-remis-surface="elevated"]')).toBeInTheDocument();
+    expect(dialog.querySelector('.mantine-Modal-header')).toBeInTheDocument();
+    expect(dialog.querySelector('.mantine-Modal-title')).toBeInTheDocument();
+    expect(dialog.querySelector('.mantine-Modal-body')).toBeInTheDocument();
+    expect(dialog.querySelector('.mantine-Modal-close')).toBeInTheDocument();
+
     fireEvent.change(screen.getByRole('textbox', { name: /工作区名称/ }), {
       target: { value: '演示发布素材' },
     });

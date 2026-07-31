@@ -89,3 +89,19 @@ describe('semantic badge bindings', () => {
     expect(definitionsCss).toContain('color: var(--remis-content-text) !important');
   });
 });
+
+describe('semantic modal bindings', () => {
+  it('keeps Mantine portal primitives on the elevated material', () => {
+    [
+      '.mantine-Modal-content',
+      '.mantine-Modal-header',
+      '.mantine-Modal-body',
+      '.mantine-Modal-title',
+      '.mantine-Modal-close',
+    ].forEach((selector) => {
+      expect(definitionsCss).toContain(selector);
+    });
+    expect(definitionsCss).toContain('background: var(--elevated-bg) !important;');
+    expect(definitionsCss).toContain('color: var(--elevated-text-main) !important;');
+  });
+});

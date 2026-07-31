@@ -51,6 +51,12 @@ describe('SteamWorkshopOverview', () => {
     expect(
       screen.getByText('演示项目发布素材').closest('[data-remis-surface]'),
     ).toHaveAttribute('data-remis-surface', 'paper');
+    expect(
+      screen.getByText('项目：演示项目').closest('[data-remis-surface]'),
+    ).toHaveAttribute('data-remis-surface', 'paper');
+    expect(
+      screen.getByText('Workshop ID: 3538617386').closest('[data-remis-surface]'),
+    ).toHaveAttribute('data-remis-surface', 'paper');
     expect(screen.getByRole('button', { name: '进入工作区' }))
       .toHaveAttribute('data-remis-action', 'paper-primary');
 

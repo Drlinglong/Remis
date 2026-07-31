@@ -98,6 +98,10 @@ describe('DescriptionGenerationPanel outer configuration regression', () => {
     fireEvent.click(screen.getByRole('button', { name: '模型生成' }));
 
     const dialog = await screen.findByRole('dialog');
+    expect(dialog.closest('[data-remis-surface="elevated"]')).toBeInTheDocument();
+    expect(dialog.querySelector('.mantine-Modal-header')).toBeInTheDocument();
+    expect(dialog.querySelector('.mantine-Modal-title')).toBeInTheDocument();
+    expect(dialog.querySelector('.mantine-Modal-body')).toBeInTheDocument();
     expect(within(dialog).getByText('本次调用摘要')).toBeInTheDocument();
     expect(within(dialog).getByText('LM Studio')).toBeInTheDocument();
     expect(within(dialog).getByText('google/gemma-4-31b-qat')).toBeInTheDocument();

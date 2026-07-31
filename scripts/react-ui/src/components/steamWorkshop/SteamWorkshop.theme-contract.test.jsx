@@ -8,6 +8,11 @@ const pageSource = readSource('src/pages/SteamWorkshopPage.jsx');
 const overviewSource = readSource('src/components/steamWorkshop/SteamWorkshopOverview.jsx');
 const workspaceSource = readSource('src/components/steamWorkshop/SteamWorkshopWorkspace.jsx');
 const workspaceCardSource = readSource('src/components/steamWorkshop/WorkspaceCard.jsx');
+const workspaceEditorSource = readSource('src/components/steamWorkshop/WorkspaceEditorModal.jsx');
+const versionHistorySource = readSource('src/components/steamWorkshop/PublishingVersionHistory.jsx');
+const descriptionGenerationSource = readSource(
+  'src/components/steamWorkshop/description/DescriptionGenerationPanel.jsx',
+);
 const generatorSource = readSource('src/components/tools/WorkshopGenerator.jsx');
 const definitionsSource = readSource('src/themes/definitions.css');
 
@@ -60,9 +65,27 @@ describe('Steam Workshop semantic surface contract', () => {
     expect(definitionsSource).toContain('color: var(--interactive-accent-text) !important;');
   });
 
+  it('keeps every publishing modal Portal on the elevated semantic material', () => {
+    [workspaceEditorSource, versionHistorySource, descriptionGenerationSource].forEach((source) => {
+      expect(source).toContain('data-remis-surface="elevated"');
+    });
+
+    [
+      '.mantine-Modal-content',
+      '.mantine-Modal-header',
+      '.mantine-Modal-body',
+      '.mantine-Modal-title',
+      '.mantine-Modal-close',
+    ].forEach((selector) => {
+      expect(definitionsSource).toContain(selector);
+    });
+    expect(definitionsSource).toContain('background: var(--elevated-bg) !important;');
+    expect(definitionsSource).toContain('--remis-content-text: var(--elevated-text-main) !important;');
+  });
+
   it('does not introduce theme-name branches in publishing components', () => {
     expect(
-      `${pageSource}\n${overviewSource}\n${workspaceSource}\n${workspaceCardSource}\n${generatorSource}`,
+      `${pageSource}\n${overviewSource}\n${workspaceSource}\n${workspaceCardSource}\n${workspaceEditorSource}\n${versionHistorySource}\n${descriptionGenerationSource}\n${generatorSource}`,
     ).not.toMatch(/data-theme|\.(?:byzantine|wwii|medieval|victorian|scifi)\b/);
   });
 });

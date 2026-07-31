@@ -9,12 +9,9 @@ const adoptVersion = vi.fn();
 const setOpenedVersion = vi.fn();
 
 vi.mock('./usePublishingVersionHistory', () => ({
-  usePublishingVersionHistory: () => ({
-    adoptVersion,
-    busyVersionId: null,
-    error: '',
-    filter: 'all',
-    filteredVersions: [
+  usePublishingVersionHistory: () => {
+    const [openedVersion, setOpenedVersionState] = React.useState(null);
+    const versions = [
       {
         version_id: 'cover-1',
         asset_type: 'cover',
@@ -31,21 +28,29 @@ vi.mock('./usePublishingVersionHistory', () => ({
         bbcode: '[b]描述[/b]',
         created_at: '2026-07-31T11:00:00Z',
       },
-    ],
-    isLoading: false,
-    isSelected: (version) => version.version_id === 'cover-1',
-    openedVersion: null,
-    setFilter: vi.fn(),
-    setOpenedVersion,
-    versions: [
-      { version_id: 'cover-1', asset_type: 'cover' },
-      { version_id: 'description-2', asset_type: 'description' },
-    ],
-  }),
+    ];
+
+    return {
+      adoptVersion,
+      busyVersionId: null,
+      error: '',
+      filter: 'all',
+      filteredVersions: versions,
+      isLoading: false,
+      isSelected: (version) => version.version_id === 'cover-1',
+      openedVersion,
+      setFilter: vi.fn(),
+      setOpenedVersion: (version) => {
+        setOpenedVersion(version);
+        setOpenedVersionState(version);
+      },
+      versions,
+    };
+  },
 }));
 
 describe('PublishingVersionHistory', () => {
-  it('shows both asset types and adopts a candidate only from the history view', () => {
+  it('shows both asset types and adopts a candidate only from the history view', async () => {
     render(
       <MantineProvider>
         <PublishingVersionHistory workspaceId="workspace-1" />
@@ -58,6 +63,11 @@ describe('PublishingVersionHistory', () => {
     expect(setOpenedVersion).toHaveBeenCalledWith(expect.objectContaining({
       version_id: 'description-2',
     }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.closest('[data-remis-surface="elevated"]')).toBeInTheDocument();
+    expect(dialog.querySelector('.mantine-Modal-header')).toBeInTheDocument();
+    expect(dialog.querySelector('.mantine-Modal-title')).toBeInTheDocument();
+    expect(dialog.querySelector('.mantine-Modal-body')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '设为采用' }));
     expect(adoptVersion).toHaveBeenCalledWith(expect.objectContaining({
       version_id: 'description-2',

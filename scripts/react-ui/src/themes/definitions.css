@@ -367,6 +367,36 @@ html[data-theme] [data-remis-surface='elevated'] {
   color: var(--elevated-text-main);
 }
 
+/*
+ * Mantine renders Modal content in a portal. The modal root is therefore the
+ * semantic owner for its content, header, title, body, and close button; the
+ * inner Stack alone cannot provide the contract to those siblings. Modal
+ * content is also a Paper, so bind its own variables and background to the
+ * elevated material with enough specificity to win over theme Paper rules.
+ */
+html[data-theme] [data-remis-surface='elevated'] :is(
+  .mantine-Modal-content,
+  .mantine-Modal-header,
+  .mantine-Modal-body,
+  .mantine-Modal-title,
+  .mantine-Modal-close
+) {
+  --mantine-color-text: var(--elevated-text-main) !important;
+  --mantine-color-dimmed: var(--elevated-text-muted) !important;
+  --remis-content-text: var(--elevated-text-main) !important;
+  --remis-content-muted: var(--elevated-text-muted) !important;
+  color: var(--elevated-text-main) !important;
+}
+
+html[data-theme] [data-remis-surface='elevated'] .mantine-Modal-content {
+  background: var(--elevated-bg) !important;
+  background-image: none !important;
+}
+
+html[data-theme] [data-remis-surface='elevated'] .mantine-Modal-header {
+  background: transparent !important;
+}
+
 html[data-theme] [data-remis-surface='elevated'] .mantine-Title-root {
   color: var(--remis-content-text) !important;
   background: transparent !important;
