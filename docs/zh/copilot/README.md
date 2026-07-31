@@ -47,6 +47,7 @@ Copilot 回答如何使用 Remis，Agent 把自然语言目标整理成待批准
    [当前开发契约](../developer/agent-copilot-contract.md)；执行能力仍以 Action Registry 为准。
 4. `user-help`（已进白名单、供答疑检索）：
    - [从零开始](../user-guides/getting-started.md)（**首读**：建项目 → 初次翻译 → 部署）
+   - [项目管理](../user-guides/project-management.md)
    - [增量翻译](../user-guides/incremental-update.md)
    - [导入已有译文](../user-guides/import-existing-translations.md)
    - [Provider 速查](../user-guides/provider-setup-index.md)
@@ -65,6 +66,17 @@ Copilot 回答如何使用 Remis，Agent 把自然语言目标整理成待批准
    - [日志与诊断](../user-guides/logs-and-diagnostics.md)
    - [错误目录](../user-guides/error-catalog.md)
    - 以及 FAQ 与各 Provider 补充专文
+
+5. 新补齐的 `agent-planning` 功能对：
+   - [项目管理产品意图](../product-intent-project-management.md) +
+     [开发契约](../developer/project-management-contract.md)
+   - [Mod 监控产品意图](../product-intent-project-tracking.md) +
+     [开发契约](../developer/project-tracking-contract.md)
+   - [封面图生成器产品意图](../product-intent-thumbnail-generator.md) +
+     [开发契约](../developer/thumbnail-generator-contract.md)
+
+产品意图描述目标，开发契约明确当前实现与差距。Agent 遇到“未实现”或“冲突”项时只能
+解释或提出计划，不能把它登记成当前可执行 action。
 
 ## 非目标
 

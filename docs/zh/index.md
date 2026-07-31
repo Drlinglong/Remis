@@ -5,6 +5,8 @@
 ## 产品意图与契约
 - [功能意图契约模板](product-intent-template.md) - 玲珑决定、Agent 核验、共同确认
 - [项目文件发现与翻译上载](product-intent-project-file-discovery.md) - 已填写示例
+- [项目管理产品意图](product-intent-project-management.md) - 长期工作空间、生命周期与磁盘事实
+- [项目管理开发契约](developer/project-management-contract.md) - 数据边界、删除语义与当前差距
 - [初次翻译与增量翻译产品意图](product-intent-translation-workflows.md) - 用户目标、失败语义与基线边界
 - [翻译主流程开发契约](developer/translation-workflow-contract.md) - 当前实现、差异与回归测试
 - [部署产品意图](product-intent-deployment.md) - 文件复制、用户确认与启动器边界
@@ -20,6 +22,10 @@
 - [Task Center 开发契约](developer/task-center-contract.md) - 状态、持久化、已处理语义与 Agent 读取边界
 - [智能工坊产品意图](product-intent-agent-workshop.md) - 格式安全护栏、自动写回与禁止语义重写
 - [智能工坊开发契约](developer/agent-workshop-contract.md) - 扫描、有限重试、逐条写回与当前高风险差距
+- [Mod 监控产品意图](product-intent-project-tracking.md) - 只读本地化变化探测与 Agent 边界
+- [Mod 监控开发契约](developer/project-tracking-contract.md) - 快照、告警、调度与生命周期差距
+- [封面图生成器产品意图](product-intent-thumbnail-generator.md) - 统一风格封面、输出与禁止副作用
+- [封面图生成器开发契约](developer/thumbnail-generator-contract.md) - 512 PNG 当前实现与项目集成边界
 - [Agent / Copilot 产品意图](product-intent-agent-copilot.md) - 同一聊天入口、计划批准、有限域执行与公开目标
 - [Agent / Copilot 开发契约](developer/agent-copilot-contract.md) - Action Registry、工作流计划、终态与当前差距
 
@@ -32,6 +38,8 @@
 
 ## 用户指南
 - [从零开始：第一次汉化](user-guides/getting-started.md) - 项目制正确入口（先建项目，再初次翻译）
+- [项目管理](user-guides/project-management.md) - 长期项目、路径、归档、删除与工作流入口
+- [Mod 监控](user-guides/project-tracking.md) - 监控本地化文件变化并进入增量翻译
 - [增量翻译](user-guides/incremental-update.md) - Mod 更新后复用旧译文、只翻变更
 - [导入已有译文](user-guides/import-existing-translations.md) - 半成品 / 翻译上载
 - [一键部署](user-guides/one-click-deploy.md) - 装进游戏；可选清理假本地化
@@ -49,6 +57,7 @@
 - [使用 Ollama 进行本地化翻译](user-guides/using_ollama.md) - Ollama 补充说明
 - [使用自定义 OpenAI API](user-guides/using_custom_openai_api.md) - 自定义接口补充说明
 - [使用 ModelScope 与 SiliconFlow](user-guides/using_modelscope_and_siliconflow.md) - 魔搭 / 硅基流动补充说明
+- [工具：封面图生成器](user-guides/tools-thumbnail-generator.md) - 制作并下载本地化 Mod 封面
 
 ## 安装与配置
 - [开发环境搭建指南](developer/development-setup.md) - 仓库开发环境说明

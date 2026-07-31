@@ -23,6 +23,11 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
         "description": "第一次使用 Remis、创建项目、初次汉化和完整新手流程。",
         "resources": ("zh/user-guides/getting-started.md",),
     },
+    "project_management": {
+        "title": "项目管理",
+        "description": "创建和维护长期 Mod 汉化项目，处理路径、归档、删除与工作流入口。",
+        "resources": ("zh/user-guides/project-management.md",),
+    },
     "provider_setup": {
         "title": "Provider 配置总览",
         "description": "选择 Provider，理解 API Key、Base URL、模型和配置入口。",

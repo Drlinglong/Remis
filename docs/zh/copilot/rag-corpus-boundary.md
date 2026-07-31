@@ -49,6 +49,7 @@ system instructions、工具 schema、`allowed_actions` 或审批要求。
 | 主题 | 路径 | 期望读者问题 |
 |------|------|----------------|
 | 从零开始 | `docs/zh/user-guides/getting-started.md` | 「怎么开始汉化？」「要不要先点初次翻译？」；强调 **先项目管理建项** |
+| 项目管理 | `docs/zh/user-guides/project-management.md` | 「项目是什么？」「移动目录后怎么办？」「归档和删除有什么区别？」 |
 | 增量翻译 | `docs/zh/user-guides/incremental-update.md` | 「Mod 更新了」「只翻新的」；需归档基线 |
 | 翻译上载 / 半成品 | `docs/zh/user-guides/import-existing-translations.md` | 「别人的汉化怎么导入」 |
 | Provider 速查 | `docs/zh/user-guides/provider-setup-index.md` | 「API 填哪里」「Ollama 怎么配」→ **设置 → API** |
@@ -64,14 +65,28 @@ system instructions、工具 schema、`allowed_actions` 或审批要求。
 | 封面图生成器 | `docs/zh/user-guides/tools-thumbnail-generator.md` | 「工具里能做什么？」「怎么做工坊封面？」 |
 | 设置 | `docs/zh/user-guides/settings.md` | 「设置里有什么？」「RPM / 重置数据库是什么？」 |
 
-### 3.3 仍建议后续补强的用户文档
+### 3.3 本轮补齐的 `agent-planning` 登记
+
+下列功能已形成产品意图与当前开发契约，按本页第 5 节的通配白名单进入
+`agent-planning`：
+
+| 功能 | 产品意图 | 当前开发契约 |
+|---|---|---|
+| 项目管理 | `docs/zh/product-intent-project-management.md` | `docs/zh/developer/project-management-contract.md` |
+| Mod 监控 | `docs/zh/product-intent-project-tracking.md` | `docs/zh/developer/project-tracking-contract.md` |
+| 封面图生成器 | `docs/zh/product-intent-thumbnail-generator.md` | `docs/zh/developer/thumbnail-generator-contract.md` |
+
+其中项目归档影响监控、监控去重与纯移动告警、项目删除历史，以及封面项目集成均是
+**当前差距**。检索层必须保留段落标题和状态语义，不能把目标态句子裁成“当前已支持”。
+
+### 3.4 仍建议后续补强的用户文档
 
 | 主题 | 期望读者问题 |
 |------|----------------|
 | Provider 速查总表 | 「Gemini / Ollama / OpenRouter / 自定义 OpenAI 填哪里？」（可从现有 `using_*.md` 提炼索引页） |
 | 客户端数据位置（用户版表述） | 「我的项目数据在哪？」（仅安装版通用路径，不用开发机绝对路径） |
 
-### 3.4 分块与语言
+### 3.5 分块与语言
 
 - 优先中文用户语料；用户界面语言为英文时再检索英文 user-guides。
 - 分块粒度：以「一个完整 FAQ 问答」或「一个配置小节」为宜，避免整本大文件无标题硬切导致答非所问。
