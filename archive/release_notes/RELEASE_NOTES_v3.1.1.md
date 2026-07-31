@@ -26,7 +26,15 @@ installer smoke testing is still required before publication.
   directly on the canvas, and reset versus clear now have distinct behavior.
 - **More faithful Steam BBCode preview.** Horizontal rules and Steam-style list
   items now render as separators and list entries instead of leaking BBCode into
-  the preview.
+  the preview. HTTP(S) and mail links render as safe, clickable links without
+  injecting raw HTML.
+- **A guided, predictable publishing workflow.** An in-product tutorial now
+  covers workspace setup, cover editing, description preparation, and history.
+  Workspace games are selected from Remis-supported profiles instead of entered
+  as arbitrary text, and individual unselected history versions can be deleted.
+- **A bundled publishing demo.** `Demo - 测试工作区` is installed once with the
+  Victoria 3 demo project, its original 512 × 512 Remis thumbnail, and two
+  prepared description versions; later user edits are not overwritten.
 - **Readable themed workflows.** Semantic surfaces restore contrast throughout
   incremental translation and the API, prompt, and version settings pages,
   including the Byzantine, Medieval, and World War II themes.
@@ -58,8 +66,9 @@ installer smoke testing is still required before publication.
 ### Data, platform, and security
 
 - Main database migration 11 adds publishing workspaces plus versioned
-  description and cover assets. Existing databases migrate incrementally from
-  the 3.1.0 schema.
+  description and cover assets. Migration 12 records one-time bundled seed
+  installation so existing databases receive the canonical demo without
+  overwriting later user edits.
 - Restored the post-3.1.0 frontend and website validation baseline, including
   the ESLint security upgrade and current Python architecture ratchets.
 - Made `run-dev.bat --check` genuinely non-mutating; launcher validation no
@@ -82,10 +91,10 @@ installer smoke testing is still required before publication.
 
 ### Pre-release validation
 
-- Backend: 665 tests passed, 1 skipped; Python architecture guard and source
+- Backend: 668 tests passed, 1 skipped; Python architecture guard and source
   compilation passed.
-- Desktop frontend: 542 tests across 140 files passed. Locale consistency,
-  text encoding, lint (0 errors; 12 existing complexity/length warnings), and
+- Desktop frontend: 550 tests across 145 files passed. Locale consistency,
+  text encoding, lint (0 errors; 15 existing complexity/length warnings), and
   production build passed.
 - Product website: 55 tests across 7 files passed; lint and production build
   passed.
@@ -93,9 +102,11 @@ installer smoke testing is still required before publication.
 - Release-version synchronization, all eleven locale JSON parses, and
   diff-integrity checks passed.
 - Rendered theme checks passed for 20 incremental-workflow combinations and 15
-  settings combinations. Live browser smoke also covered project-thumbnail
-  reuse, inline text editing, reset/clear semantics, PNG download, and the
-  reported BBCode examples without console errors.
+  settings combinations. Live browser smoke covered the canonical demo,
+  supported-game selection, the guided tour, project-thumbnail tooltip, narrow
+  canvas text selection/drag/edit, protected history deletion, and clickable
+  BBCode links. The restricted browser blocked the existing Google Fonts
+  request, but no application runtime exception occurred.
 - Installer packaging and the native Tauri Save As dialog still require the
   release operator's final desktop verification.
 - No paid model call, export, deployment, Steam upload, or project-file
@@ -114,7 +125,12 @@ installer smoke testing is still required before publication.
   封面，保存可继续编辑的候选版本，重新载入旧画布，选择当前版本或下载 PNG。关联项目后
   可以直接复用项目原始封面，文本可在画布上直接编辑，“重置”和“清空”也有了明确区分。
 - **改进 Steam BBCode 预览。** 分隔线和 Steam 风格列表项会正确渲染，不再把 `[hr]`
-  或 `[*]` 等标记直接泄漏到预览中。
+  或 `[*]` 等标记直接泄漏到预览中；HTTP(S) 与邮件链接会以安全、可点击的新窗口链接
+  呈现，不注入原始 HTML。
+- **补充可预测的发布引导。** 产品内教学覆盖工作区、封面、描述和版本历史；游戏改为从
+  Remis 已支持列表中选择，未采用的单条封面或描述历史也可以删除。
+- **内置标准发布 Demo。** `Demo - 测试工作区` 会一次性安装，绑定维多利亚 3 演示项目，
+  使用项目原始 512 × 512 Remis logo 缩略图，并预置两份描述；用户后续编辑不会被覆盖。
 - **修复主题化工作流的可读性。** 增量翻译以及 API、Prompt、版本信息设置页改用明确的
   语义表面；拜占庭、中世纪和二战主题中的文字与背景对比度已恢复。
 - **整理发布入口和项目衔接。** Steam 发布成为独立工作流，也可从项目管理进入；原有
@@ -135,7 +151,8 @@ installer smoke testing is still required before publication.
 
 ### 数据、平台与安全
 
-- 主数据库迁移 11 新增发布工作区、描述版本和封面版本；已有 3.1.0 数据库会增量升级。
+- 主数据库迁移 11 新增发布工作区、描述版本和封面版本；迁移 12 记录一次性内置种子状态，
+  让已有 3.1.0 数据库获得标准 Demo，同时不覆盖用户后续修改。
 - 恢复 3.1.0 发布后的前端与官网验证基线，包括 ESLint 安全升级和当前 Python 架构棘轮。
 - `run-dev.bat --check` 现在是真正的无副作用检查，不会在报告成功前终止已有的旧 Remis
   后端。
@@ -151,14 +168,15 @@ installer smoke testing is still required before publication.
 
 ### 发布前验证
 
-- 后端：665 项通过、1 项跳过；Python 架构门禁与源码编译通过。
-- 桌面前端：140 个测试文件、542 项测试通过；语言包一致性、文本编码、lint（0 error，
-  12 个既有复杂度／函数长度 warning）和生产构建通过。
+- 后端：668 项通过、1 项跳过；Python 架构门禁与源码编译通过。
+- 桌面前端：145 个测试文件、550 项测试通过；语言包一致性、文本编码、lint（0 error，
+  15 个既有复杂度／函数长度 warning）和生产构建通过。
 - 产品官网：7 个测试文件、55 项测试通过；lint 和生产构建通过。
 - Rust/Tauri：格式检查与锁定依赖编译通过。
 - 发布版本同步、十一份语言 JSON 解析和差异完整性检查通过。
-- 主题实渲染检查覆盖 20 组增量翻译组合和 15 组设置页组合；浏览器实机冒烟也覆盖了
-  项目封面复用、画布文本编辑、重置／清空语义、PNG 下载及本次报告的 BBCode 示例，
-  未发现控制台错误。
+- 主题实渲染检查覆盖 20 组增量翻译组合和 15 组设置页组合；浏览器实机冒烟覆盖标准
+  Demo、游戏下拉选择、产品教学、项目封面 tooltip、窄视口文字选择／拖拽／再编辑、
+  历史删除保护和可点击 BBCode 链接。受限浏览器拦截了既有 Google Fonts 请求，但未出现
+  应用运行时异常。
 - 安装包构建和 Tauri 原生“另存为”窗口仍需发布操作者进行最终桌面验证。
 - 集成期间没有发起付费模型调用、导出、部署、Steam 上传或项目文件覆盖。
