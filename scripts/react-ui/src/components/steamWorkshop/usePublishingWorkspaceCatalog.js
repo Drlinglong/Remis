@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import configService from '../../services/configService';
 import projectService from '../../services/projectService';
 import { normalizeArrayPayload } from '../../utils/payload';
 import {
@@ -21,6 +22,7 @@ const summarizeWorkspace = (workspace) => ({
 export function usePublishingWorkspaceCatalog({ projectId = null } = {}) {
   const [workspaces, setWorkspaces] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [games, setGames] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -29,13 +31,21 @@ export function usePublishingWorkspaceCatalog({ projectId = null } = {}) {
     setError('');
     setIsLoading(true);
     try {
-      const [workspaceItems, projectResponse] = await Promise.all([
+      const [workspaceItems, projectResponse, configResponse] = await Promise.all([
         listPublishingWorkspaces({ projectId }),
         projectService.getActiveProjects(),
+        configService.getConfig(),
       ]);
       setProjects(normalizeArrayPayload(
         projectResponse.data,
         ['projects', 'items', 'data', 'results'],
+      ));
+      const profiles = Object.values(configResponse.data?.game_profiles || {});
+      setGames(Array.from(
+        new Map(profiles.map((profile) => [profile.id, {
+          value: profile.id,
+          label: profile.name,
+        }])).values(),
       ));
       setWorkspaces(workspaceItems.map(summarizeWorkspace));
     } catch (requestError) {
@@ -81,6 +91,7 @@ export function usePublishingWorkspaceCatalog({ projectId = null } = {}) {
     error,
     isLoading,
     isSaving,
+    games,
     projectNames,
     projects,
     refresh,

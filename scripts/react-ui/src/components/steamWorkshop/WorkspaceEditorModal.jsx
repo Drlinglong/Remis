@@ -10,6 +10,7 @@ const emptyValues = {
 
 export default function WorkspaceEditorModal({
   fixedProjectId = null,
+  games = [],
   initialWorkspace = null,
   isSaving,
   opened,
@@ -72,10 +73,15 @@ export default function WorkspaceEditorModal({
           value={values.projectId || null}
           onChange={(value) => update('projectId', value)}
         />
-        <TextInput
-          label="游戏 ID（可选）"
-          value={values.gameId}
-          onChange={(event) => update('gameId', event.currentTarget.value)}
+        <Select
+          clearable
+          searchable
+          label="游戏（可选）"
+          description="从 Remis 当前支持的游戏中选择，工作区会保存稳定的游戏 ID。"
+          placeholder="选择游戏"
+          data={games}
+          value={values.gameId || null}
+          onChange={(value) => update('gameId', value)}
         />
         <TextInput
           label="Steam Workshop ID（可选）"

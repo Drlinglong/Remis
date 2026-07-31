@@ -102,6 +102,7 @@ export default function SteamWorkshopOverview({
         onSave={saveWorkspace}
         projectName={projectName}
         projects={catalog.projects}
+        games={catalog.games}
       />
     </Stack>
   );
