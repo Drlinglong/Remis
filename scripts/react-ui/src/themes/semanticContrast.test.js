@@ -77,3 +77,31 @@ describe.each(themeIds)('%s semantic contrast contract', (themeId) => {
     ).toBeGreaterThanOrEqual(3);
   });
 });
+
+describe('semantic badge bindings', () => {
+  it('keeps light and outline badges readable on their nearest material', () => {
+    expect(definitionsCss).toContain(
+      "[data-remis-surface] .mantine-Badge-root[data-variant='light']",
+    );
+    expect(definitionsCss).toContain(
+      "[data-remis-surface] .mantine-Badge-root[data-variant='outline']",
+    );
+    expect(definitionsCss).toContain('color: var(--remis-content-text) !important');
+  });
+});
+
+describe('semantic modal bindings', () => {
+  it('keeps Mantine portal primitives on the elevated material', () => {
+    [
+      '.mantine-Modal-content',
+      '.mantine-Modal-header',
+      '.mantine-Modal-body',
+      '.mantine-Modal-title',
+      '.mantine-Modal-close',
+    ].forEach((selector) => {
+      expect(definitionsCss).toContain(selector);
+    });
+    expect(definitionsCss).toContain('background: var(--elevated-bg) !important;');
+    expect(definitionsCss).toContain('color: var(--elevated-text-main) !important;');
+  });
+});

@@ -34,6 +34,7 @@
   "page_title_glossary_manager": "용어집 관리",
   "page_title_proofreading": "교정",
   "page_title_tools": "도구",
+  "page_title_steam_workshop": "Steam 창작마당",
   "page_title_cicd": "CI/CD",
   "page_title_project_management": "프로젝트 관리",
   "page_title_settings": "설정",
@@ -2149,7 +2150,9 @@
       "glossary_health_check": "용어집 상태 점검",
       "glossary_merge": "용어집 병합",
       "model_arena": "모델 아레나 시험 번역",
-      "model_arena_retry": "실패한 아레나 모델 재시도"
+      "model_arena_retry": "실패한 아레나 모델 재시도",
+      "steam_workshop_cover": "Steam 창작마당 표지 저장",
+      "steam_workshop_description_generation": "Steam 창작마당 설명 생성"
     }
   },
   "homepage_workspace_eyebrow": "Remis 작업 공간",

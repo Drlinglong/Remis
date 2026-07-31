@@ -34,6 +34,7 @@
   "page_title_glossary_manager": "Glossar-Manager",
   "page_title_proofreading": "Korrekturlesen",
   "page_title_tools": "Werkzeuge",
+  "page_title_steam_workshop": "Steam-Workshop",
   "page_title_cicd": "CI/CD",
   "page_title_project_management": "Projektmanagement",
   "page_title_settings": "Einstellungen",
@@ -2146,7 +2147,9 @@
       "glossary_health_check": "Glossarprüfung",
       "glossary_merge": "Glossarzusammenführung",
       "model_arena": "Modellarena-Test",
-      "model_arena_retry": "Fehlgeschlagene Arena-Modelle erneut versuchen"
+      "model_arena_retry": "Fehlgeschlagene Arena-Modelle erneut versuchen",
+      "steam_workshop_cover": "Steam-Workshop-Titelbild speichern",
+      "steam_workshop_description_generation": "Steam-Workshop-Beschreibung erstellen"
     }
   },
   "homepage_workspace_eyebrow": "Remis-Arbeitsbereich",

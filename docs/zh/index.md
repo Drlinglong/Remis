@@ -8,6 +8,7 @@
 - [初次翻译与增量翻译产品意图](product-intent-translation-workflows.md) - 用户目标、失败语义与基线边界
 - [翻译主流程开发契约](developer/translation-workflow-contract.md) - 当前实现、差异与回归测试
 - [部署产品意图](product-intent-deployment.md) - 文件复制、用户确认与启动器边界
+- [Steam 工坊产品意图](product-intent-steam-workshop.md) - 发布素材、可选项目绑定、版本记录与上传边界
 - [部署开发契约](developer/deployment-contract.md) - 预览、覆盖、文件写入与当前差距
 - [校对产品意图](product-intent-proofreading.md) - 人工定稿、保存语义与功能边界
 - [校对开发契约](developer/proofreading-contract.md) - 文件级保存、冲突保护与已知缺陷
@@ -70,6 +71,8 @@
 - [动态标签验证器与工具](developer/dynamic_tag_validator_and_tools.md) - 当前验证器相关说明
 - [多文件并行处理架构说明](developer/parallel-processing.md) - 并行处理技术详解
 - [Workshop 描述生成器指南](developer/workshop_description_generator_guide.md) - 工具说明
+- [Steam 工坊与发布素材](user-guides/steam-workshop.md) - 工作区、封面图、工坊描述与版本历史
+- [Steam 工坊开发契约](developer/steam-workshop-contract.md) - 发布工作区、资产版本与 3.2.x 上传预留
 
 ## 词典系统
 - [词典与词汇表（用户向）](user-guides/glossary.md) - **客户端怎么用**：主词典 / 额外词典 / 项目词典

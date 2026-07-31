@@ -34,6 +34,7 @@
   "page_title_glossary_manager": "Gestor de glosarios",
   "page_title_proofreading": "Corrección",
   "page_title_tools": "Herramientas",
+  "page_title_steam_workshop": "Taller de Steam",
   "page_title_cicd": "CI/CD",
   "page_title_project_management": "Gestión de proyectos",
   "page_title_settings": "Ajustes",
@@ -2147,7 +2148,9 @@
       "glossary_health_check": "Revisión del glosario",
       "glossary_merge": "Fusión de glosarios",
       "model_arena": "Prueba de arena de modelos",
-      "model_arena_retry": "Reintentar modelos fallidos de la arena"
+      "model_arena_retry": "Reintentar modelos fallidos de la arena",
+      "steam_workshop_cover": "Guardar portada de Steam Workshop",
+      "steam_workshop_description_generation": "Generar descripción de Steam Workshop"
     }
   },
   "homepage_workspace_eyebrow": "Espacio de trabajo Remis",

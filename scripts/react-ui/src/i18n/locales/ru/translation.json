@@ -81,6 +81,7 @@
   "page_title_glossary_manager": "Управление глоссарием",
   "page_title_proofreading": "Корректура",
   "page_title_tools": "Инструменты",
+  "page_title_steam_workshop": "Мастерская Steam",
   "page_title_cicd": "CI/CD",
   "page_title_project_management": "Управление проектами",
   "page_title_settings": "Настройки",
@@ -2167,7 +2168,9 @@
       "glossary_health_check": "Проверка словаря",
       "glossary_merge": "Объединение словарей",
       "model_arena": "Пробный запуск арены моделей",
-      "model_arena_retry": "Повторить сбойные модели арены"
+      "model_arena_retry": "Повторить сбойные модели арены",
+      "steam_workshop_cover": "Сохранить обложку Steam Workshop",
+      "steam_workshop_description_generation": "Создать описание Steam Workshop"
     }
   },
   "homepage_workspace_eyebrow": "Рабочее пространство Remis",

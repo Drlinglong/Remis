@@ -1,0 +1,42 @@
+.overview {
+  min-width: 0;
+}
+
+.headerCopy {
+  min-width: 0;
+}
+
+.grid {
+  align-items: stretch;
+}
+
+.card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cardTitle {
+  overflow-wrap: anywhere;
+}
+
+.metadata {
+  flex: 1;
+}
+
+.identifier {
+  overflow-wrap: anywhere;
+}
+
+.versionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 48em) {
+  .versionGrid {
+    grid-template-columns: 1fr;
+  }
+}

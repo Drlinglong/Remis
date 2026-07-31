@@ -34,6 +34,7 @@
   "page_title_glossary_manager": "用語集マネージャー",
   "page_title_proofreading": "校正",
   "page_title_tools": "ツール",
+  "page_title_steam_workshop": "Steamワークショップ",
   "page_title_cicd": "CI/CD",
   "page_title_project_management": "プロジェクト管理",
   "page_title_settings": "設定",
@@ -2149,7 +2150,9 @@
       "glossary_health_check": "用語集ヘルスチェック",
       "glossary_merge": "用語集の統合",
       "model_arena": "モデルアリーナ試訳",
-      "model_arena_retry": "失敗したアリーナモデルを再試行"
+      "model_arena_retry": "失敗したアリーナモデルを再試行",
+      "steam_workshop_cover": "Steam Workshop カバーを保存",
+      "steam_workshop_description_generation": "Steam Workshop の説明を生成"
     }
   },
   "homepage_workspace_eyebrow": "Remis ワークスペース",

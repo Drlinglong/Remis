@@ -91,6 +91,7 @@
   "page_title_glossary_manager": "词汇表管理",
   "page_title_proofreading": "校对",
   "page_title_tools": "工具",
+  "page_title_steam_workshop": "Steam 工坊",
   "page_title_cicd": "CI/CD",
   "page_title_project_management": "项目管理",
   "page_title_settings": "设置",
@@ -140,7 +141,9 @@
       "glossary_health_check": "词典巡检",
       "glossary_merge": "词典合并",
       "model_arena": "模型竞技场试译",
-      "model_arena_retry": "重试竞技场失败模型"
+      "model_arena_retry": "重试竞技场失败模型",
+      "steam_workshop_cover": "保存 Steam 工坊封面图",
+      "steam_workshop_description_generation": "生成 Steam 工坊描述"
     }
   },
   "task_detail": {

@@ -34,6 +34,7 @@
   "page_title_glossary_manager": "Gerenciador de Glossário",
   "page_title_proofreading": "Revisão",
   "page_title_tools": "Ferramentas",
+  "page_title_steam_workshop": "Oficina Steam",
   "page_title_cicd": "CI/CD",
   "page_title_project_management": "Gerenciamento de Projetos",
   "page_title_settings": "Configurações",
@@ -2145,7 +2146,9 @@
       "glossary_health_check": "Verificação do glossário",
       "glossary_merge": "Mesclagem de glossários",
       "model_arena": "Teste da arena de modelos",
-      "model_arena_retry": "Tentar novamente modelos com falha"
+      "model_arena_retry": "Tentar novamente modelos com falha",
+      "steam_workshop_cover": "Salvar capa da Oficina Steam",
+      "steam_workshop_description_generation": "Gerar descrição da Oficina Steam"
     }
   },
   "homepage_workspace_eyebrow": "Área de trabalho Remis",

@@ -1,258 +1,269 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  Radio,
-  Select,
-  TextInput,
-  Textarea,
-  Button,
-  LoadingOverlay,
-  Title,
-  Text,
-  Group,
   Alert,
-  Autocomplete,
+  Badge,
+  Button,
   CopyButton,
-  ActionIcon,
-  Tooltip
+  Grid,
+  Group,
+  LoadingOverlay,
+  Modal,
+  Paper,
+  Select,
+  Stack,
+  Text,
+  Textarea,
+  TextInput,
+  Title,
+  Tooltip,
 } from '@mantine/core';
-import { IconCopy, IconAlertCircle } from '@tabler/icons-react';
-import api from '../../utils/api';
-import { useTranslation } from 'react-i18next';
 import { notifications } from '@mantine/notifications';
+import { IconAlertCircle, IconCheck, IconCopy, IconDeviceFloppy } from '@tabler/icons-react';
+import { BbcodePreview } from '../steamWorkshop/description/BbcodePreview';
+import { DescriptionGenerationPanel } from '../steamWorkshop/description/DescriptionGenerationPanel';
+import { useDescriptionWorkspace } from '../steamWorkshop/description/useDescriptionWorkspace';
+import { WorkspaceCreateForm } from '../steamWorkshop/description/WorkspaceCreateForm';
 
-const WorkshopGenerator = () => {
-  const { t } = useTranslation();
+const DEFAULT_TEMPLATE = `[h1]模组标题[/h1]
 
-  // --- State Management ---
-  const [projects, setProjects] = useState([]);
-  const [languages, setLanguages] = useState([]);
-  const [apiProviders, setApiProviders] = useState([]);
-  const [selectedProjectId, setSelectedProjectId] = useState(null);
-  const [selectedProvider, setSelectedProvider] = useState(null);
-  const [manualItemId, setManualItemId] = useState('');
-  const [inputMode, setInputMode] = useState('project');
-  const [userTemplate, setUserTemplate] = useState(
-    `<!-- Chinese Title -->\n[h1]在此输入您的中文标题[/h1]\n\n<!-- Chinese Description -->\n[b]在此输入您的中文简介和描述。[/b]\n\n`
-  );
-  const [targetLanguage, setTargetLanguage] = useState('zh');
-  const [customLanguage, setCustomLanguage] = useState('');
-  const [generatedBbcode, setGeneratedBbcode] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState('');
+[b]在这里编写 Steam 工坊描述。[/b]
 
-  // --- Data Fetching ---
+[h2]特色[/h2]
+[list]
+[*]特色一
+[*]特色二
+[/list]`;
+
+const editorStateForVersion = (version) => ({
+  bbcode: version?.bbcode || '',
+  language: version?.language || 'zh',
+  parentVersionId: version?.version_id || null,
+});
+
+const WorkshopGenerator = ({
+  projectId = null,
+  projectName = '',
+  workspaceId = null,
+  manageWorkspace = true,
+}) => {
+  const [createOpen, setCreateOpen] = useState(false);
+  const {
+    createWorkspace,
+    editor,
+    error,
+    generateCandidate,
+    isGenerating,
+    isLoading,
+    isSaving,
+    saveCandidate,
+    selectWorkspace,
+    setEditor,
+    versions,
+    workspace,
+    workspaces,
+  } = useDescriptionWorkspace({
+    projectId,
+    requestedWorkspaceId: workspaceId,
+  });
+
+  const adoptedVersion = versions.find(
+    (version) => version.version_id === workspace?.current_description_version_id,
+  ) || null;
+  const latestVersion = versions[0] || null;
+  const preferredVersion = adoptedVersion || latestVersion;
+  const workspaceEntryKey = workspace
+    ? `${workspace.workspace_id}:${workspace.current_description_version_id || 'none'}`
+    : null;
+  const initializedEntryRef = useRef(null);
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [projectsResponse, configResponse] = await Promise.all([
-          api.get('/api/projects'),
-          api.get('/api/config')
-        ]);
-
-        const projectData = projectsResponse.data;
-        setProjects(projectData);
-        if (projectData.length > 0) {
-          setSelectedProjectId(projectData[0].project_id);
-        }
-
-        const configData = configResponse.data;
-        if (configData.languages) {
-          const langArray = Object.values(configData.languages);
-          setLanguages(langArray);
-        }
-        if (configData.api_providers) {
-          setApiProviders(configData.api_providers);
-          if (configData.api_providers.length > 0) {
-            setSelectedProvider(configData.api_providers[0].value);
-          }
-        }
-
-      } catch {
-        const fetchError = t('workshop_generator.errors.fetch_config_failed');
-        setError(fetchError);
-        notifications.show({ title: 'Error', message: fetchError, color: 'red' });
-      }
-    };
-    fetchData();
-  }, [t]);
-
-  // --- Helper Functions ---
-  const extractWorkshopId = (value) => {
-    if (!value) return '';
-    const match = value.match(/(?:steamcommunity\.com\/sharedfiles\/filedetails\/\?id=)(\d+)/);
-    return match ? match[1] : value;
-  };
-
-  const handleManualIdChange = (value) => {
-    const extractedId = extractWorkshopId(value);
-    setManualItemId(extractedId);
-  };
-
-  // --- Core Logic Handler ---
-  const handleGenerate = async () => {
-    setError(null);
-    setSuccessMessage('');
-    setIsLoading(true);
-    setGeneratedBbcode('');
-
-    let finalItemId = '';
-    let finalProjectId = '';
-
-    if (inputMode === 'project') {
-      const selectedProject = projects.find(p => p.project_id === selectedProjectId);
-      if (!selectedProject) {
-        setError(t('workshop_generator.errors.project_not_selected'));
-        setIsLoading(false);
-        return;
-      }
-      if (!selectedProject.workshop_id) {
-        setError(t('workshop_generator.errors.project_id_missing'));
-        setIsLoading(false);
-        return;
-      }
-      finalItemId = selectedProject.workshop_id;
-      finalProjectId = selectedProject.project_id;
-    } else {
-      finalItemId = manualItemId;
-    }
-
-    if (!finalItemId || !selectedProvider) {
-      setError(t('workshop_generator.errors.workshop_id_or_provider_required'));
-      setIsLoading(false);
+    if (!workspaceEntryKey) {
+      initializedEntryRef.current = null;
       return;
     }
+    if (isLoading || initializedEntryRef.current === workspaceEntryKey) return;
 
-    try {
-      const response = await api.post('/api/tools/generate_workshop_description', {
-        item_id: finalItemId,
-        project_id: finalProjectId,
-        user_template: userTemplate,
-        target_language: targetLanguage,
-        custom_language: customLanguage,
-        api_provider: selectedProvider
-      });
-      setGeneratedBbcode(response.data.bbcode);
-      const message = response.data.saved_path
-        ? `${t('workshop_generator.messages.generation_successful')} ${response.data.saved_path}`
-        : response.data.message || t('workshop_generator.messages.generation_successful_no_save');
-      setSuccessMessage(message);
-      notifications.show({ title: 'Success', message, color: 'green' });
+    setEditor(editorStateForVersion(preferredVersion));
+    initializedEntryRef.current = workspaceEntryKey;
+  }, [isLoading, preferredVersion, setEditor, workspaceEntryKey]);
 
-    } catch (err) {
-      const errorMessage = err.response?.data?.detail || t('workshop_generator.errors.generation_failed');
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
+  const updateEditor = (field, value) => {
+    setEditor((current) => ({ ...current, [field]: value }));
   };
 
-  // --- Render ---
+  const handleSave = async () => {
+    const saved = await saveCandidate();
+    if (!saved) return;
+    notifications.show({
+      title: '候选版本已保存',
+      message: `版本 ${saved.sequence} 已持久化，但尚未设为当前采用。`,
+      color: 'green',
+    });
+  };
+
+  const handleGenerate = async (payload) => {
+    const generated = await generateCandidate(payload);
+    if (!generated) return null;
+
+    notifications.show({
+      title: '模型候选版本已保存',
+      message: `版本 ${generated.sequence} 已生成，尚未设为当前采用。`,
+      color: 'green',
+    });
+
+    if (adoptedVersion) {
+      setEditor(editorStateForVersion(adoptedVersion));
+    }
+    return generated;
+  };
+
+  const workspaceOptions = workspaces.map((item) => ({
+    value: item.workspace_id,
+    label: item.name,
+  }));
+
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', position: 'relative' }}>
+    <div
+      data-remis-surface="surface"
+      style={{
+        maxWidth: 1400,
+        margin: '0 auto',
+        padding: 24,
+        position: 'relative',
+        minWidth: 0,
+      }}
+    >
       <LoadingOverlay visible={isLoading} />
-      <Title order={3}>{t('workshop_generator.title')}</Title>
-      <Text>{t('workshop_generator.description')}</Text>
-
-      <Group direction="column" grow mt="lg">
-
-        {/* Input Mode */}
-        <Radio.Group value={inputMode} onChange={setInputMode}>
-          <Group>
-            <Radio value="project" label={t('workshop_generator.input_mode.project')} />
-            <Radio value="manual" label={t('workshop_generator.input_mode.manual')} />
-          </Group>
-        </Radio.Group>
-
-        {/* Input Area */}
-        {inputMode === 'project' ? (
-          <Select
-            value={selectedProjectId}
-            onChange={setSelectedProjectId}
-            data={projects.map(p => ({ label: p.name, value: p.project_id }))}
-            placeholder={t('workshop_generator.placeholders.select_project')}
-          />
-        ) : (
-          <Autocomplete
-            value={manualItemId}
-            onChange={handleManualIdChange}
-            placeholder={t('workshop_generator.placeholders.manual_input')}
-            data={[]}
-          />
-        )}
-
-        {/* User Template */}
-        <Textarea
-          label={<Title order={5}>{t('workshop_generator.template_title')}</Title>}
-          minRows={10}
-          value={userTemplate}
-          onChange={(e) => setUserTemplate(e.currentTarget.value)}
-          placeholder={t('workshop_generator.placeholders.template_input')}
-        />
-
-        {/* Configuration */}
-        <Group grow>
-          <Select
-            label={t('workshop_generator.labels.target_language')}
-            value={targetLanguage}
-            onChange={setTargetLanguage}
-            data={[
-              ...languages.map(lang => ({ value: lang.code, label: lang.name })),
-              { value: 'custom', label: t('workshop_generator.languages.custom') }
-            ]}
-          />
-
-          {targetLanguage === 'custom' && (
-            <TextInput
-              value={customLanguage}
-              onChange={(e) => setCustomLanguage(e.currentTarget.value)}
-              placeholder={t('workshop_generator.placeholders.custom_language')}
-            />
-          )}
-
-          <Select
-            label={t('workshop_generator.labels.api_provider')}
-            value={selectedProvider}
-            onChange={setSelectedProvider}
-            placeholder={t('workshop_generator.placeholders.select_provider')}
-            data={apiProviders}
-          />
+      <Stack gap="lg">
+        <Group justify="space-between" align="flex-start">
+          <div>
+            <Title order={2}>工坊描述</Title>
+            <Text c="dimmed">
+              编辑安全可预览的 BBCode，并把成果保存为可回溯的候选版本。
+            </Text>
+          </div>
+          {projectId && <Badge variant="light">已绑定项目：{projectName || projectId}</Badge>}
         </Group>
 
-        {/* Controls */}
-        <Button onClick={handleGenerate} loading={isLoading} fullWidth>
-          {t('workshop_generator.buttons.generate')}
-        </Button>
-
-        {/* Messages */}
-        {error && <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red">{error}</Alert>}
-        {successMessage && <Alert icon={<IconAlertCircle size={16} />} title="Success" color="green">{successMessage}</Alert>}
-
-        {/* Output Area */}
-        {generatedBbcode && (
-          <div>
-            <Group justify="space-between">
-              <Title order={5}>{t('workshop_generator.output_title')}</Title>
-              <CopyButton value={generatedBbcode}>
-                {({ copied, copy }) => (
-                  <Tooltip label={copied ? 'Copied' : t('workshop_generator.buttons.copy')}>
-                    <ActionIcon color={copied ? 'teal' : 'gray'} onClick={copy}>
-                      <IconCopy size={16} />
-                    </ActionIcon>
-                  </Tooltip>
-                )}
-              </CopyButton>
-            </Group>
-            <Textarea
-              minRows={15}
-              value={generatedBbcode}
-              readOnly
-              styles={{ input: { fontFamily: 'monospace', backgroundColor: 'var(--mantine-color-gray-1)' } }}
-            />
-          </div>
+        {error && (
+          <Alert icon={<IconAlertCircle size={16} />} color="red" title="操作失败">
+            {typeof error === 'string' ? error : '请求失败，请稍后重试。'}
+          </Alert>
         )}
 
-      </Group>
+        {manageWorkspace && <Paper withBorder p="md" data-remis-surface="paper">
+          <Group align="flex-end">
+            <Select
+              flex={1}
+              label="发布工作区"
+              placeholder="选择工作区"
+              data={workspaceOptions}
+              value={workspace?.workspace_id || null}
+              onChange={selectWorkspace}
+              disabled={Boolean(workspaceId)}
+            />
+            <Button variant="default" onClick={() => setCreateOpen(true)}>
+              新建工作区
+            </Button>
+          </Group>
+          {workspace && (
+            <Group gap="xs" mt="sm">
+              <Badge variant="outline">
+                {workspace.workshop_item_id
+                  ? `Workshop ID: ${workspace.workshop_item_id}`
+                  : '尚未绑定 Workshop ID'}
+              </Badge>
+              <Badge variant="outline">
+                {workspace.project_id ? '项目工作区' : '未绑定项目'}
+              </Badge>
+            </Group>
+          )}
+        </Paper>}
+
+        {!workspace && (
+          <Alert color="blue" title="先创建发布工作区">
+            工作区可以绑定当前项目，也可以不填写 Workshop ID。素材版本不会依赖远端物品存在。
+          </Alert>
+        )}
+
+        {workspace && (
+          <>
+            <DescriptionGenerationPanel
+              isGenerating={isGenerating}
+              onGenerate={handleGenerate}
+              workshopItemId={workspace.workshop_item_id}
+            />
+
+            <Grid gutter="lg">
+                <Grid.Col span={{ base: 12, md: 6 }}>
+                  <Stack>
+                    <TextInput
+                      label="手工候选语言"
+                      description="手工保存时记录的版本语言；模型生成请使用上方的“描述语言”。"
+                      value={editor.language}
+                      onChange={(event) => updateEditor('language', event.currentTarget.value)}
+                    />
+                    <Textarea
+                      label="Steam BBCode"
+                      minRows={20}
+                      autosize
+                      maxRows={32}
+                      value={editor.bbcode}
+                      placeholder={DEFAULT_TEMPLATE}
+                      onChange={(event) => updateEditor('bbcode', event.currentTarget.value)}
+                      styles={{ input: { fontFamily: 'monospace' } }}
+                    />
+                    <Group justify="space-between">
+                      <CopyButton value={editor.bbcode}>
+                        {({ copied, copy }) => (
+                          <Tooltip label={copied ? '已复制' : '复制 BBCode'}>
+                            <Button
+                              variant="default"
+                              leftSection={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                              onClick={copy}
+                            >
+                              {copied ? '已复制' : '复制'}
+                            </Button>
+                          </Tooltip>
+                        )}
+                      </CopyButton>
+                      <Button
+                        leftSection={<IconDeviceFloppy size={16} />}
+                        disabled={!editor.bbcode.trim()}
+                        loading={isSaving}
+                        onClick={handleSave}
+                      >
+                        保存候选版本
+                      </Button>
+                    </Group>
+                  </Stack>
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 6 }}>
+                  <Title order={4} mb="sm">安全预览</Title>
+                  <BbcodePreview bbcode={editor.bbcode} />
+                </Grid.Col>
+            </Grid>
+            <Text c="dimmed" size="xs">
+              已保存版本请前往独立的“版本历史”页面检视和采用。
+            </Text>
+          </>
+        )}
+      </Stack>
+
+      {manageWorkspace && <Modal
+        opened={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title="新建 Steam 发布工作区"
+      >
+        <div data-remis-surface="elevated">
+          <WorkspaceCreateForm
+            defaultName={projectName ? `${projectName} 发布素材` : ''}
+            isSaving={isSaving}
+            onCancel={() => setCreateOpen(false)}
+            onCreate={createWorkspace}
+          />
+        </div>
+      </Modal>}
     </div>
   );
 };

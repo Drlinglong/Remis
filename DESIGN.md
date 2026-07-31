@@ -111,6 +111,14 @@ approval regardless of theme.
    a dedicated, reviewable commit.
 6. Critical real pages are added to the browser matrix incrementally with stable,
    local fixtures; no paid model call is required.
+7. Any new or changed page, component, modal, or menu must pass an actual
+   readability check in all five supported themes before commit or completion:
+   Byzantine, Victorian, Sci-Fi, WWII, and Medieval.
+8. The semantic surface declaration must match the background material the
+   component actually paints. Checking tokens or `data-remis-surface` alone is
+   not evidence of material correctness.
+9. jsdom tests and static contract checks may support the review, but do not
+   count as five-theme visual acceptance.
 
 ### Running the browser gate
 
@@ -141,6 +149,19 @@ A theme is complete only when:
 - menus and overlays remain readable;
 - layout, focus, disabled, error, and empty states are visually verified;
 - the theme preserves the same workflow hierarchy as every other theme.
+- Any new or changed page, component, modal, or menu has been visually checked
+  for actual readability in Byzantine, Victorian, Sci-Fi, WWII, and Medieval
+  before commit or completion.
+- White text on a white background, light text on a light background, black
+  text on a black background, and dark text on a dark background are prohibited.
+- The rendered background material matches the component's declared semantic
+  surface; token presence or a `data-remis-surface` attribute alone is not
+  sufficient.
+- Completion reports for page changes list evidence for each of the five theme
+  checks. If any theme cannot be verified, the report must state the gap and
+  must not claim the change is complete.
+- jsdom and static contract checks are supporting evidence only and do not
+  satisfy the five-theme visual acceptance gate.
 
 ## Decisions log
 
@@ -149,3 +170,4 @@ A theme is complete only when:
 | 2026-07-26 | Adopt semantic surface and action contracts | Mixed light and dark materials cannot safely inherit one global theme text color |
 | 2026-07-26 | Add deterministic five-theme browser fixtures | Real layout, overflow, and CSS cascade failures are not visible to jsdom tests |
 | 2026-07-26 | Keep themes expressive but hierarchy invariant | Users should learn one Remis workflow rather than five different products |
+| 2026-07-31 | Make five-theme rendered readability evidence a completion gate | Token presence, static contracts, and jsdom cannot prove the painted material or actual readability; page-change reports must expose every theme check and any verification gap |

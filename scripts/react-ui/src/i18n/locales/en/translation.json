@@ -44,6 +44,7 @@
   "page_title_glossary_manager": "Glossary Manager",
   "page_title_proofreading": "Proofreading",
   "page_title_tools": "Tools",
+  "page_title_steam_workshop": "Steam Workshop",
   "page_title_cicd": "CI/CD",
   "page_title_project_management": "Project Management",
   "page_title_settings": "Settings",
@@ -93,7 +94,9 @@
       "glossary_health_check": "Glossary health check",
       "glossary_merge": "Glossary merge",
       "model_arena": "Model arena trial",
-      "model_arena_retry": "Retry failed arena models"
+      "model_arena_retry": "Retry failed arena models",
+      "steam_workshop_cover": "Save Steam Workshop cover",
+      "steam_workshop_description_generation": "Generate Steam Workshop description"
     }
   },
   "task_detail": {

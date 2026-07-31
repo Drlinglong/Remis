@@ -5,6 +5,7 @@ export const PAGE_DOMAINS = Object.freeze({
   QUALITY: 'quality',
   TASKS: 'tasks',
   TOOLS: 'tools',
+  PUBLISHING: 'publishing',
   ASSISTANT: 'assistant',
   SETTINGS: 'settings',
   INTERNAL: 'internal',
@@ -148,10 +149,25 @@ export const PAGE_REGISTRY = Object.freeze([
     copilot: { pageName: '词典巡检 / Glossary Health Review', helpSkillId: 'glossary' },
   },
   {
+    id: 'steam-workshop',
+    routePaths: [
+      '/steam-workshop',
+      '/steam-workshop/:workspaceId',
+      '/steam-workshop/:workspaceId/:section',
+    ],
+    match: /^\/steam-workshop(?:\/[^/]+(?:\/(?:cover|description|history))?)?$/,
+    domain: PAGE_DOMAINS.PUBLISHING,
+    navigation: { entryMode: ENTRY_MODES.PRIMARY, section: 'steam-workshop', label: 'page_title_steam_workshop', icon: 'brand-steam', order: 0 },
+    tutorialContext: 'steam-workshop',
+    guide: 'docs/zh/user-guides/steam-workshop.md',
+    copilot: { pageName: 'Steam 工坊 / Steam Workshop', helpSkillId: 'thumbnail_generator' },
+  },
+  {
     id: 'tools',
     routePaths: ['/tools'],
     match: /^\/tools$/,
     domain: PAGE_DOMAINS.TOOLS,
+    enabledBy: 'ENABLE_EXPERIMENTAL_FEATURES',
     navigation: { entryMode: ENTRY_MODES.PRIMARY, section: 'tools', label: 'page_title_tools', icon: 'tools', order: 0 },
     tutorialContext: 'tools',
     guide: 'docs/zh/user-guides/tools-thumbnail-generator.md',
@@ -230,6 +246,7 @@ export const NAVIGATION_SECTIONS = Object.freeze([
   { id: 'translation', type: 'menu', label: 'nav_translation_workflow', icon: 'language', pageIds: ['initial-translation', 'incremental-translation', 'model-arena'] },
   { id: 'quality', type: 'menu', label: 'nav_quality_terminology', icon: 'shield-check', pageIds: ['proofreading', 'glossary-manager', 'neologism-review', 'agent-workshop'] },
   { id: 'task-center', type: 'task-center', pageIds: [] },
+  { id: 'steam-workshop', type: 'link', pageIds: ['steam-workshop'] },
   { id: 'tools', type: 'link', pageIds: ['tools'] },
 ]);
 

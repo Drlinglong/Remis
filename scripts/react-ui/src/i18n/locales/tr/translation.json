@@ -34,6 +34,7 @@
   "page_title_glossary_manager": "Sözlük Yöneticisi",
   "page_title_proofreading": "Son Okuma",
   "page_title_tools": "Araçlar",
+  "page_title_steam_workshop": "Steam Atölyesi",
   "page_title_cicd": "CI/CD",
   "page_title_project_management": "Proje Yönetimi",
   "page_title_settings": "Ayarlar",
@@ -2144,7 +2145,9 @@
       "glossary_health_check": "Sözlük sağlık denetimi",
       "glossary_merge": "Sözlük birleştirme",
       "model_arena": "Model arenası denemesi",
-      "model_arena_retry": "Başarısız arena modellerini yeniden dene"
+      "model_arena_retry": "Başarısız arena modellerini yeniden dene",
+      "steam_workshop_cover": "Steam Atölyesi kapağını kaydet",
+      "steam_workshop_description_generation": "Steam Atölyesi açıklaması oluştur"
     }
   },
   "homepage_workspace_eyebrow": "Remis çalışma alanı",
