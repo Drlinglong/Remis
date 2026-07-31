@@ -11,8 +11,8 @@
     "scripts/core/project_manager.py": 1063,
     "scripts/core/services/model_arena_execution_service.py": 1163,
     "scripts/core/services/model_arena_service.py": 1036,
-    "scripts/routers/agent.py": 1165,
-    "scripts/routers/agent_workshop.py": 1694
+    "scripts/routers/agent.py": 1139,
+    "scripts/routers/agent_workshop.py": 1392
   },
   "function_line_exceptions": {
     "scripts/build_pipeline.py::main": 285,
@@ -37,8 +37,6 @@
     "scripts/core/services/project_watch_service.py::ProjectWatchService._scan_watch_task": 159,
     "scripts/core/services/proofreading_service.py::ProofreadingService.get_proofread_data": 133,
     "scripts/db/generate_skeleton.py::create_skeleton": 306,
-    "scripts/routers/agent_workshop.py::_run_agent_workshop_fix_task": 315,
-    "scripts/routers/agent_workshop.py::_run_agent_workshop_fix_task.worker": 151,
     "scripts/routers/agent_workshop.py::_scan_project_issues": 241,
     "scripts/routers/projects.py::run_incremental_update_background": 170,
     "scripts/routers/tools.py::deploy_mod": 228,
