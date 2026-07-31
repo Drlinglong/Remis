@@ -14,7 +14,7 @@ import { AVAILABLE_FONTS } from './coverEditorAssets';
 export const CoverInspector = ({ editor, labels }) => {
     const selected = editor.selectedElement;
     return (
-        <Paper withBorder p="md" data-remis-surface="surface">
+        <Paper withBorder p="md" data-remis-surface="paper">
             <Stack>
                 <Title order={4}>{labels.inspectorTitle}</Title>
                 <ColorInput

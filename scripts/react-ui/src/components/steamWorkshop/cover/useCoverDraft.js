@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    hydrateCoverCanvas,
-    readCoverDraft,
+    createEmptyCoverCanvas,
     serializeCoverCanvas,
     writeCoverDraft,
 } from './coverCanvasState';
@@ -13,38 +12,54 @@ export const useCoverDraft = ({
     replaceCanvas,
     storage = window.localStorage,
 }) => {
-    const [restored, setRestored] = useState(false);
+    const restored = true;
     const [draftSavedAt, setDraftSavedAt] = useState(null);
     const [draftError, setDraftError] = useState(null);
     const replaceCanvasRef = useRef(replaceCanvas);
+    const saveGenerationRef = useRef(0);
+    const clearPendingRef = useRef(false);
+    const hasMountedRef = useRef(false);
     replaceCanvasRef.current = replaceCanvas;
 
     useEffect(() => {
-        let cancelled = false;
-        setRestored(false);
-        const restore = async () => {
-            try {
-                const stored = readCoverDraft(storage, { workspaceId, projectId });
-                if (stored) {
-                    const hydrated = await hydrateCoverCanvas(stored);
-                    if (!cancelled) replaceCanvasRef.current(hydrated);
-                }
-            } catch {
-                // A corrupt local draft must not prevent the editor from opening.
-            } finally {
-                if (!cancelled) setRestored(true);
-            }
-        };
-        restore();
-        return () => {
-            cancelled = true;
-        };
+        if (!hasMountedRef.current) {
+            hasMountedRef.current = true;
+            return undefined;
+        }
+
+        saveGenerationRef.current += 1;
+        clearPendingRef.current = true;
+        replaceCanvasRef.current(createEmptyCoverCanvas());
+        return undefined;
+    }, [projectId, storage, workspaceId]);
+
+    const clearCanvas = useCallback(() => {
+        const emptyCanvas = createEmptyCoverCanvas();
+        saveGenerationRef.current += 1;
+        clearPendingRef.current = true;
+        try {
+            writeCoverDraft(storage, { workspaceId, projectId }, emptyCanvas);
+            setDraftSavedAt(new Date());
+            setDraftError(null);
+        } catch (error) {
+            setDraftError(error);
+        }
+        replaceCanvasRef.current(emptyCanvas);
     }, [projectId, storage, workspaceId]);
 
     useEffect(() => {
         if (!restored) return undefined;
+        const canvas = serializeCoverCanvas(canvasState);
+        const isBlank = canvas.backgroundColor === '#ffffff'
+            && !canvas.backgroundImage
+            && canvas.elements.length === 0;
+        if (clearPendingRef.current) {
+            if (!isBlank) return undefined;
+            clearPendingRef.current = false;
+        }
+        const saveGeneration = saveGenerationRef.current;
         const timer = window.setTimeout(() => {
-            const canvas = serializeCoverCanvas(canvasState);
+            if (saveGeneration !== saveGenerationRef.current) return;
             try {
                 writeCoverDraft(storage, { workspaceId, projectId }, canvas);
                 setDraftSavedAt(new Date());
@@ -56,5 +71,5 @@ export const useCoverDraft = ({
         return () => window.clearTimeout(timer);
     }, [canvasState, projectId, restored, storage, workspaceId]);
 
-    return { restored, draftSavedAt, draftError };
+    return { restored, draftSavedAt, draftError, clearCanvas };
 };

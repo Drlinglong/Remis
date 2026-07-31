@@ -1,6 +1,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { writeCoverDraft } from './coverCanvasState';
+import {
+    createEmptyCoverCanvas,
+    readCoverDraft,
+    writeCoverDraft,
+} from './coverCanvasState';
 import { useCoverDraft } from './useCoverDraft';
 
 const memoryStorage = () => {
@@ -16,7 +20,7 @@ describe('useCoverDraft', () => {
         vi.useRealTimers();
     });
 
-    it('restores the draft for the active project context', async () => {
+    it('starts with a blank canvas instead of restoring the persisted draft', async () => {
         const storage = memoryStorage();
         const canvas = {
             schema_version: 1,
@@ -42,11 +46,45 @@ describe('useCoverDraft', () => {
         }));
 
         await waitFor(() => expect(result.current.restored).toBe(true));
-        expect(replaceCanvas).toHaveBeenCalledWith({
-            backgroundColor: '#ffffff',
+        expect(replaceCanvas).not.toHaveBeenCalled();
+    });
+
+    it('clears the editor and persisted draft immediately without a stale autosave', async () => {
+        vi.useFakeTimers();
+        const storage = memoryStorage();
+        const context = { projectId: 'project-1', workspaceId: null };
+        writeCoverDraft(storage, context, {
+            schema_version: 1,
+            width: 512,
+            height: 512,
+            backgroundColor: '#222222',
             backgroundImage: null,
-            elements: [],
+            elements: [{ id: 'persisted-text', type: 'text', text: 'persisted' }],
         });
+        const replaceCanvas = vi.fn();
+        const { result } = renderHook(() => useCoverDraft({
+            ...context,
+            canvasState: {
+                backgroundColor: '#222222',
+                backgroundImage: { src: 'data:image/png;base64,background' },
+                elements: [{ id: 'text-1', type: 'text', text: 'stale' }],
+            },
+            replaceCanvas,
+            storage,
+        }));
+
+        await act(async () => {
+            result.current.clearCanvas();
+        });
+
+        expect(replaceCanvas).toHaveBeenCalledWith(createEmptyCoverCanvas());
+        expect(readCoverDraft(storage, context)).toEqual(createEmptyCoverCanvas());
+
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(601);
+        });
+
+        expect(readCoverDraft(storage, context)).toEqual(createEmptyCoverCanvas());
     });
 
     it('debounces autosave instead of creating a version per canvas change', async () => {

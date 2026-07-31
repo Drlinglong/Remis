@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Grid, Paper, Stack, Text } from '@mantine/core';
 import html2canvas from 'html2canvas';
@@ -65,6 +65,7 @@ const waitForPaint = () => new Promise((resolve) => {
 });
 
 const ThumbnailGenerator = ({
+    editCoverVersionId = null,
     projectId = null,
     workspaceId = null,
     currentCoverVersionId = null,
@@ -72,9 +73,11 @@ const ThumbnailGenerator = ({
     const { t } = useTranslation();
     const labels = translationLabels(t);
     const canvasContainerRef = useRef(null);
+    const canvasLoadGenerationRef = useRef(0);
+    const requestedVersionIdRef = useRef(null);
     const editor = useCoverEditor({ defaultText: t('thumbnail_generator.default_text') });
     const { replaceCanvas, selectedId, setSelectedId } = editor;
-    const { draftSavedAt, draftError } = useCoverDraft({
+    const { draftSavedAt, draftError, clearCanvas: clearDraftCanvas } = useCoverDraft({
         workspaceId,
         projectId,
         canvasState: editor.canvasState,
@@ -82,13 +85,34 @@ const ThumbnailGenerator = ({
     });
 
     const loadCanvas = useCallback(async (canvas) => {
-        replaceCanvas(await hydrateCoverCanvas(canvas));
+        const generation = canvasLoadGenerationRef.current + 1;
+        canvasLoadGenerationRef.current = generation;
+        const hydrated = await hydrateCoverCanvas(canvas);
+        if (generation === canvasLoadGenerationRef.current) replaceCanvas(hydrated);
     }, [replaceCanvas]);
+    const handleClearCanvas = useCallback(() => {
+        canvasLoadGenerationRef.current += 1;
+        clearDraftCanvas();
+    }, [clearDraftCanvas]);
+    const toolboxEditor = { ...editor, clearCanvas: handleClearCanvas };
     const versionState = useCoverVersions({
         workspaceId,
         currentVersionId: currentCoverVersionId,
         onLoadCanvas: loadCanvas,
     });
+    const { loadVersion } = versionState;
+
+    useEffect(() => {
+        if (!editCoverVersionId) {
+            requestedVersionIdRef.current = null;
+            return;
+        }
+        if (requestedVersionIdRef.current === editCoverVersionId) return;
+
+        requestedVersionIdRef.current = editCoverVersionId;
+        // Keep the explicit id in the URL so refresh and deep links repeat this intentional load.
+        loadVersion(editCoverVersionId);
+    }, [editCoverVersionId, loadVersion]);
 
     const capturePng = useCallback(async () => {
         const previousSelection = selectedId;
@@ -128,7 +152,7 @@ const ThumbnailGenerator = ({
         <Stack data-remis-surface="surface" className="cover-editor-workspace">
             <Grid align="flex-start">
                 <Grid.Col span={{ base: 12, md: 3 }}>
-                    <CoverToolbox editor={editor} labels={labels} />
+                    <CoverToolbox editor={toolboxEditor} labels={labels} />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }} className="cover-editor-center">
                     <Paper withBorder p="md" data-remis-surface="surface" className="cover-canvas-panel">

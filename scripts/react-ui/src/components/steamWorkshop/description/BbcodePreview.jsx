@@ -57,13 +57,14 @@ export const BbcodePreview = ({ bbcode }) => (
     aria-label="BBCode 预览"
     data-remis-surface="paper"
     style={{
+      background: 'var(--paper-bg)',
       border: '1px solid var(--surface-border)',
       borderRadius: 'var(--mantine-radius-md)',
       minHeight: 180,
       padding: 16,
       whiteSpace: 'pre-wrap',
       overflowWrap: 'anywhere',
-      color: 'var(--surface-text-main)',
+      color: 'var(--remis-content-text, var(--paper-text-main))',
     }}
   >
     {bbcode ? parseTokens(bbcode) : <Text c="dimmed">输入 BBCode 后在这里预览。</Text>}

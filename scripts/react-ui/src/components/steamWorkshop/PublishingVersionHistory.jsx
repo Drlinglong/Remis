@@ -15,6 +15,7 @@ import {
   Title,
 } from '@mantine/core';
 import { IconAlertCircle, IconFileDescription, IconPhoto } from '@tabler/icons-react';
+import { useNavigate } from 'react-router';
 
 import { BbcodePreview } from './description/BbcodePreview';
 import { usePublishingVersionHistory } from './usePublishingVersionHistory';
@@ -27,6 +28,7 @@ const formatTime = (value) => new Intl.DateTimeFormat(undefined, {
 const typeLabel = (assetType) => assetType === 'cover' ? '封面图' : '工坊描述';
 
 export default function PublishingVersionHistory({ workspaceId }) {
+  const navigate = useNavigate();
   const history = usePublishingVersionHistory(workspaceId);
 
   if (history.isLoading) {
@@ -98,6 +100,18 @@ export default function PublishingVersionHistory({ workspaceId }) {
                     </div>
                   </Group>
                   <Group gap="xs">
+                    {version.asset_type === 'cover' && (
+                      <Button
+                        data-remis-action="paper-secondary"
+                        size="compact-sm"
+                        variant="subtle"
+                        onClick={() => navigate(
+                          `/steam-workshop/${workspaceId}/cover?coverVersionId=${encodeURIComponent(version.version_id)}`,
+                        )}
+                      >
+                        载入编辑
+                      </Button>
+                    )}
                     <Button
                       data-remis-action="paper-secondary"
                       size="compact-sm"

@@ -20,7 +20,7 @@ import {
   IconPencil,
   IconPhoto,
 } from '@tabler/icons-react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 import PublishingVersionHistory from './PublishingVersionHistory';
 import WorkspaceEditorModal from './WorkspaceEditorModal';
@@ -43,11 +43,13 @@ const sections = [
 
 export default function SteamWorkshopWorkspace({ activeSection, workspaceId }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [editOpen, setEditOpen] = useState(false);
   const detail = usePublishingWorkspaceDetail(workspaceId);
   const section = sections.some((item) => item.value === activeSection)
     ? activeSection
     : 'cover';
+  const coverVersionId = section === 'cover' ? searchParams.get('coverVersionId') : null;
   const workspace = detail.workspace;
 
   const navigateSection = (nextSection) => {
@@ -136,6 +138,7 @@ export default function SteamWorkshopWorkspace({ activeSection, workspaceId }) {
               <Suspense fallback={<EditorFallback />}>
                 {section === 'cover' && (
                   <ThumbnailGenerator
+                    editCoverVersionId={coverVersionId}
                     projectId={workspace.project_id}
                     workspaceId={workspace.workspace_id}
                     currentCoverVersionId={workspace.current_cover_version_id}

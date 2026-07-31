@@ -3,9 +3,8 @@ import { IconUpload } from '@tabler/icons-react';
 import { AVAILABLE_FLAGS, FLAG_SOURCES } from './coverEditorAssets';
 
 export const CoverToolbox = ({ editor, labels }) => (
-    <Paper id="thumbnail-toolbox" withBorder p="md" data-remis-surface="surface">
+    <Paper id="thumbnail-toolbox" withBorder p="md" data-remis-surface="paper">
         <Stack>
-            <Title order={4}>{labels.toolboxTitle}</Title>
             <Button
                 variant="light"
                 leftSection={<IconUpload size={14} />}
@@ -58,10 +57,7 @@ export const CoverToolbox = ({ editor, labels }) => (
             <Button
                 variant="subtle"
                 color="red"
-                onClick={() => {
-                    editor.setBackgroundImage(null);
-                    editor.setBackgroundColor('#ffffff');
-                }}
+                onClick={editor.clearCanvas}
             >
                 {labels.deleteCanvas}
             </Button>

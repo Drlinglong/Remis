@@ -1,6 +1,7 @@
 import React from 'react';
 import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import PublishingVersionHistory from './PublishingVersionHistory';
@@ -53,12 +54,21 @@ describe('PublishingVersionHistory', () => {
   it('shows both asset types and adopts a candidate only from the history view', async () => {
     render(
       <MantineProvider>
-        <PublishingVersionHistory workspaceId="workspace-1" />
+        <MemoryRouter initialEntries={['/steam-workshop/workspace-1/history']}>
+          <LocationProbe />
+          <PublishingVersionHistory workspaceId="workspace-1" />
+        </MemoryRouter>
       </MantineProvider>,
     );
 
     expect(screen.getByText('封面图 #1')).toBeInTheDocument();
     expect(screen.getByText('工坊描述 #2')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '载入编辑' })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: '载入编辑' }));
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/steam-workshop/workspace-1/cover?coverVersionId=cover-1',
+    );
+    expect(adoptVersion).not.toHaveBeenCalled();
     fireEvent.click(screen.getAllByRole('button', { name: '打开' })[1]);
     expect(setOpenedVersion).toHaveBeenCalledWith(expect.objectContaining({
       version_id: 'description-2',
@@ -74,3 +84,8 @@ describe('PublishingVersionHistory', () => {
     }));
   });
 });
+
+const LocationProbe = () => {
+  const location = useLocation();
+  return <output data-testid="location">{location.pathname}{location.search}</output>;
+};

@@ -39,4 +39,21 @@ describe('BbcodePreview', () => {
     expect(preview).toHaveAttribute('data-remis-surface', 'paper');
     expect(preview).toHaveStyle({ overflowWrap: 'anywhere' });
   });
+
+  it('binds preview background and text to the nearest paper material', () => {
+    render(
+      <MantineProvider>
+        <BbcodePreview bbcode="[h1]大标题[/h1][h2]小标题[/h2]正文" />
+      </MantineProvider>,
+    );
+
+    const preview = screen.getByLabelText('BBCode 预览');
+    expect(preview).toHaveStyle({
+      background: 'var(--paper-bg)',
+      color: 'var(--remis-content-text, var(--paper-text-main))',
+    });
+    expect(screen.getByRole('heading', { name: '大标题' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '小标题' })).toBeInTheDocument();
+    expect(screen.getByText('正文')).toBeInTheDocument();
+  });
 });
