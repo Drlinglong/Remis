@@ -43,7 +43,7 @@ class ContextWorkflowService:
     CHUNK_SIZE = 16
     REVIEW_BATCH_SIZE = ContextCandidateAdapter.REVIEW_BATCH_SIZE
     SCHEMA_VERSION = "context-v1"
-    PROMPT_VERSION = "context-synthesis-v2"
+    PROMPT_VERSION = "context-synthesis-v3"
     ACTIVE_STATUSES = ContextWorkflowStatusService.ACTIVE_STATUSES
 
     def __init__(
@@ -100,11 +100,13 @@ class ContextWorkflowService:
         duplicate_index: dict[str, list[dict[str, Any]]] | None = None,
         model_name: str | None = None,
         review_language: str = "en",
+        description_language: str | None = None,
         analysis_scope: AnalysisScope = AnalysisScope.TERMS_ONLY,
         upstream_version: str | None = None,
         analysis_config: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         scope = AnalysisScope(analysis_scope)
+        effective_description_language = description_language or review_language
         parsed_files: tuple[ParsedSourceFile, ...] = ()
         processed_files = 0
         try:
@@ -118,7 +120,7 @@ class ContextWorkflowService:
             extractions = self._extract(miner, parsed_files, scope, game_name, task_id)
             terms_result = self._finish_terms_only(
                 project_id, parsed_files, extractions, miner, duplicate_index or {},
-                source_lang, target_lang, game_name, review_language,
+                source_lang, target_lang, game_name, effective_description_language,
             )
             if scope is AnalysisScope.TERMS_ONLY:
                 result = terms_result
@@ -132,6 +134,7 @@ class ContextWorkflowService:
                 result = self._finish_context(
                     project_id, parsed_files, snapshot, diff, parent, extractions,
                     handler, api_provider, model_name, upstream_version, analysis_config,
+                    effective_description_language,
                 )
                 result.update({"new_terms": terms_result["new_terms"], "duplicate_terms": terms_result["duplicate_terms"]})
             self._complete(project_id, task_id, result, len(parsed_files))
@@ -197,6 +200,7 @@ class ContextWorkflowService:
         model_name: str | None,
         upstream_version: str | None,
         analysis_config: dict[str, Any] | None,
+        description_language: str,
     ) -> dict[str, Any]:
         sources = self._persist_sources(project_id, parsed_files, snapshot.source_snapshot_hash)
         contributions = self._persist_contributions(extractions, sources)
@@ -211,10 +215,15 @@ class ContextWorkflowService:
         aggregates = self._build_aggregates(project_id, contributions)
         for aggregate in aggregates:
             self.repository.save_aggregate(aggregate)
-        syntheses = self.synthesizer_factory(handler).synthesize(aggregates, contributions, sources)
+        syntheses = self.synthesizer_factory(handler).synthesize(
+            aggregates,
+            contributions,
+            sources,
+            description_language,
+        )
         metadata = self._metadata(
             snapshot, parsed_files, diff, parent, api_provider, model_name,
-            upstream_version, analysis_config,
+            upstream_version, analysis_config, description_language,
         )
         draft = self.context_service.start_draft(project_id, parent.release_id if parent else None)
         release = self.context_service.publish_draft(
@@ -330,10 +339,12 @@ class ContextWorkflowService:
         model_name: str | None,
         upstream_version: str | None,
         analysis_config: dict[str, Any] | None,
+        description_language: str,
     ) -> ContextReleaseMetadata:
         config = dict(analysis_config or {})
         config.update({
             "reuse_strategy": "full_reextract",
+            "description_language": description_language,
             "source_items": [
                 {
                     "relative_path": item.identity.relative_path,

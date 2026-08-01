@@ -31,7 +31,7 @@ export const buildAnalysisPayload = ({
     apiProvider,
     modelName,
     targetLang,
-    reviewLanguage,
+    descriptionLanguage,
     selectedFiles,
     analysisScope,
     upstreamVersion,
@@ -41,7 +41,8 @@ export const buildAnalysisPayload = ({
         api_provider: apiProvider,
         model_name: modelName || null,
         target_lang: targetLang,
-        review_language: reviewLanguage,
+        review_language: descriptionLanguage,
+        description_language: descriptionLanguage,
         file_paths: selectedFiles?.length > 0 ? selectedFiles : null,
         analysis_scope: analysisScope || ANALYSIS_SCOPES.TERMS_ONLY,
     };

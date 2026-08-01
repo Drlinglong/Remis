@@ -40,9 +40,19 @@ class MineNeologismsRequest(BaseModel):
         max_length=16,
         pattern=r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?$",
     )
+    description_language: Optional[str] = Field(
+        default=None,
+        min_length=2,
+        max_length=16,
+        pattern=r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?$",
+    )
     file_paths: Optional[List[str]] = None
     analysis_scope: Literal["terms_only", "narrative_context"] = "terms_only"
     upstream_version: Optional[str] = Field(default=None, max_length=200)
+
+    @property
+    def effective_description_language(self) -> str:
+        return self.description_language or self.review_language
 
 class RestoreNeologismRequest(BaseModel):
     project_id: str = Field(min_length=1)

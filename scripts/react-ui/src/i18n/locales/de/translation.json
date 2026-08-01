@@ -408,6 +408,18 @@
   "initial_translation_summary_target_count": "{{count}} Zielsprachen",
   "initial_translation_summary_main_glossary_on": "Hauptglossar aktiviert",
   "initial_translation_summary_main_glossary_off": "Hauptglossar deaktiviert",
+  "translation_context_mode": {
+    "label": "Übersetzungskontext",
+    "description": "Wählen Sie, welches Projektwissen dieser Lauf verwenden darf. Höhere Stufen bieten mehr dateiübergreifenden Kontext.",
+    "none": "Keine Glossare",
+    "glossaries": "Haupt- und Projektglossar",
+    "archive": "Haupt- und Projektglossar + Mod-Archiv",
+    "summary": {
+      "none": "Kein Glossar oder Archiv",
+      "glossaries": "Projektglossare aktiviert",
+      "archive": "Vollständiges Mod-Archiv aktiviert"
+    }
+  },
   "initial_translation_summary_workshop_on": "Intelligente Korrektur aktiviert",
   "initial_translation_summary_workshop_off": "Intelligente Korrektur deaktiviert",
   "initial_translation_start_checking": "Konfiguration wird geprüft…",
@@ -1091,6 +1103,8 @@
       "subtitle": "Choose how much of the mod source Remis should organize into a durable archive.",
       "setup_title": "Analysis setup",
       "setup_desc": "The selected scope is recorded with the source snapshot and the analysis result.",
+      "description_language": "Beschreibungssprache",
+      "description_language_desc": "Die KI verfasst Entitäts-, Ereignisketten- und Projektzusammenfassungen in dieser Sprache. Auch Begriffserklärungen verwenden sie.",
       "scope_label": "Analysis scope",
       "scope_terms_only": "Organize terms only",
       "scope_terms_only_desc": "Find candidate terminology and continue to the Judgment Court for human review.",

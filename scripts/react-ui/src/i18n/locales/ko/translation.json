@@ -411,6 +411,18 @@
   "initial_translation_summary_target_count": "대상 언어 {{count}}개",
   "initial_translation_summary_main_glossary_on": "기본 용어집 사용",
   "initial_translation_summary_main_glossary_off": "기본 용어집 사용 안 함",
+  "translation_context_mode": {
+    "label": "번역 컨텍스트",
+    "description": "이번 번역에서 사용할 프로젝트 지식을 선택합니다. 높은 단계일수록 파일 간 문맥이 더 풍부합니다.",
+    "none": "용어집 사용 안 함",
+    "glossaries": "기본 + 프로젝트 용어집",
+    "archive": "기본 + 프로젝트 용어집 + 모드 아카이브",
+    "summary": {
+      "none": "용어집 또는 아카이브 없음",
+      "glossaries": "프로젝트 용어집 사용",
+      "archive": "전체 모드 아카이브 사용"
+    }
+  },
   "initial_translation_summary_workshop_on": "스마트 교정 사용",
   "initial_translation_summary_workshop_off": "스마트 교정 사용 안 함",
   "initial_translation_start_checking": "설정을 확인하는 중…",
@@ -1092,6 +1104,8 @@
       "subtitle": "Choose how much of the mod source Remis should organize into a durable archive.",
       "setup_title": "Analysis setup",
       "setup_desc": "The selected scope is recorded with the source snapshot and the analysis result.",
+      "description_language": "설명 언어",
+      "description_language_desc": "AI가 인물, 장소, 조직, 이벤트 체인, 프로젝트 요약과 용어 설명을 이 언어로 작성합니다.",
       "scope_label": "Analysis scope",
       "scope_terms_only": "Organize terms only",
       "scope_terms_only_desc": "Find candidate terminology and continue to the Judgment Court for human review.",

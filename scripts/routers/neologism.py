@@ -361,6 +361,7 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
             "new_terms": 0,
             "duplicate_terms": 0,
             "analysis_scope": payload.analysis_scope,
+            "description_language": payload.effective_description_language,
         },
         fields={"kind": "neologism_mining", "stage_code": "queued"},
         push=True,
@@ -377,7 +378,8 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
         task_id=task_id,
         duplicate_index=duplicate_index,
         model_name=payload.model_name,
-        review_language=payload.review_language,
+        review_language=payload.effective_description_language,
+        description_language=payload.effective_description_language,
         analysis_scope=payload.analysis_scope,
         upstream_version=payload.upstream_version,
     )

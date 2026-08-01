@@ -406,6 +406,18 @@
   "initial_translation_summary_target_count": "{{count}} idiomas-alvo",
   "initial_translation_summary_main_glossary_on": "Glossário principal ativado",
   "initial_translation_summary_main_glossary_off": "Glossário principal desativado",
+  "translation_context_mode": {
+    "label": "Contexto da tradução",
+    "description": "Escolha quais conhecimentos do projeto esta tradução pode usar. Níveis maiores oferecem mais contexto entre arquivos.",
+    "none": "Sem glossários",
+    "glossaries": "Glossários principal e do projeto",
+    "archive": "Glossários principal e do projeto + arquivo do mod",
+    "summary": {
+      "none": "Sem glossário ou arquivo",
+      "glossaries": "Glossários do projeto ativados",
+      "archive": "Arquivo completo do mod ativado"
+    }
+  },
   "initial_translation_summary_workshop_on": "Revisão inteligente ativada",
   "initial_translation_summary_workshop_off": "Revisão inteligente desativada",
   "initial_translation_start_checking": "Verificando a configuração…",
@@ -1087,6 +1099,8 @@
       "subtitle": "Choose how much of the mod source Remis should organize into a durable archive.",
       "setup_title": "Analysis setup",
       "setup_desc": "The selected scope is recorded with the source snapshot and the analysis result.",
+      "description_language": "Idioma das descrições",
+      "description_language_desc": "A IA escreve neste idioma os resumos de entidades, cadeias de eventos e do projeto, além das explicações de termos.",
       "scope_label": "Analysis scope",
       "scope_terms_only": "Organize terms only",
       "scope_terms_only_desc": "Find candidate terminology and continue to the Judgment Court for human review.",

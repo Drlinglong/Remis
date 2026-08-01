@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel, Field, field_validator
 from scripts.schemas.common import LanguageCode
 
@@ -43,6 +43,7 @@ class InitialTranslationRequest(BaseModel):
     model: str = "gemini-pro"
     batch_size_limit: Optional[int] = None
     source_context_overlap: int = Field(default=0, ge=0, le=100)
+    translation_context_mode: Optional[Literal["none", "glossaries", "archive"]] = None
     use_project_context: bool = True
     context_release_id: Optional[str] = None
     context_character_budget: int = Field(default=4000, ge=0, le=20000)

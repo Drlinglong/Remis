@@ -146,6 +146,7 @@ describe('MiningDashboard', () => {
         project_id: 'project-1',
         target_lang: 'zh-TW',
         review_language: 'zh-CN',
+        description_language: 'zh-CN',
         analysis_scope: 'terms_only',
       }));
     });

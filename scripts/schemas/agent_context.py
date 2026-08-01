@@ -23,6 +23,7 @@ class AgentContextReleaseMetadata(BaseModel):
     created_at: str
     parent_release_id: str | None = None
     upstream_version: str | None = None
+    description_language: str | None = None
     source_refs: list[str] = Field(default_factory=list, max_length=200)
 
 

@@ -488,6 +488,18 @@
   "initial_translation_summary_target_count": "Целевых языков: {{count}}",
   "initial_translation_summary_main_glossary_on": "Основной глоссарий включён",
   "initial_translation_summary_main_glossary_off": "Основной глоссарий отключён",
+  "translation_context_mode": {
+    "label": "Контекст перевода",
+    "description": "Выберите знания проекта для этого перевода. Более высокие уровни дают больше межфайлового контекста.",
+    "none": "Без глоссариев",
+    "glossaries": "Основной и проектный глоссарии",
+    "archive": "Основной и проектный глоссарии + архив мода",
+    "summary": {
+      "none": "Без глоссария и архива",
+      "glossaries": "Проектные глоссарии включены",
+      "archive": "Полный архив мода включён"
+    }
+  },
   "initial_translation_summary_workshop_on": "Умная корректура включена",
   "initial_translation_summary_workshop_off": "Умная корректура отключена",
   "initial_translation_start_checking": "Проверка конфигурации…",
@@ -1153,6 +1165,8 @@
       "subtitle": "Choose how much of the mod source Remis should organize into a durable archive.",
       "setup_title": "Analysis setup",
       "setup_desc": "The selected scope is recorded with the source snapshot and the analysis result.",
+      "description_language": "Язык описаний",
+      "description_language_desc": "ИИ создаёт на этом языке сводки по сущностям, цепочкам событий и проекту, а также объяснения терминов.",
       "scope_label": "Analysis scope",
       "scope_terms_only": "Organize terms only",
       "scope_terms_only_desc": "Find candidate terminology and continue to the Judgment Court for human review.",

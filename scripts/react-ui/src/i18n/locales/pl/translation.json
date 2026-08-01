@@ -406,6 +406,18 @@
   "initial_translation_summary_target_count": "Języki docelowe: {{count}}",
   "initial_translation_summary_main_glossary_on": "Główny glosariusz włączony",
   "initial_translation_summary_main_glossary_off": "Główny glosariusz wyłączony",
+  "translation_context_mode": {
+    "label": "Kontekst tłumaczenia",
+    "description": "Wybierz wiedzę projektu dostępną w tym tłumaczeniu. Wyższe poziomy zapewniają szerszy kontekst między plikami.",
+    "none": "Bez glosariuszy",
+    "glossaries": "Glosariusz główny i projektu",
+    "archive": "Glosariusze główny i projektu + archiwum moda",
+    "summary": {
+      "none": "Bez glosariusza i archiwum",
+      "glossaries": "Glosariusze projektu włączone",
+      "archive": "Pełne archiwum moda włączone"
+    }
+  },
   "initial_translation_summary_workshop_on": "Inteligentna korekta włączona",
   "initial_translation_summary_workshop_off": "Inteligentna korekta wyłączona",
   "initial_translation_start_checking": "Sprawdzanie konfiguracji…",
@@ -1087,6 +1099,8 @@
       "subtitle": "Choose how much of the mod source Remis should organize into a durable archive.",
       "setup_title": "Analysis setup",
       "setup_desc": "The selected scope is recorded with the source snapshot and the analysis result.",
+      "description_language": "Język opisów",
+      "description_language_desc": "AI tworzy w tym języku podsumowania encji, łańcuchów wydarzeń i projektu oraz objaśnienia terminów.",
       "scope_label": "Analysis scope",
       "scope_terms_only": "Organize terms only",
       "scope_terms_only_desc": "Find candidate terminology and continue to the Judgment Court for human review.",

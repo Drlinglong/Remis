@@ -14,7 +14,7 @@ describe('initialTranslation utils', () => {
       model_name: 'gemini-pro',
       mod_context: 'ship it',
       selected_glossary_ids: ['2', '3'],
-      use_main_glossary: true,
+      translation_context_mode: 'archive',
       clean_source: false,
       use_resume: true,
       translation_batch_size_limit: '20',
@@ -38,7 +38,9 @@ describe('initialTranslation utils', () => {
       model: 'gemini-pro',
       mod_context: 'ship it',
       selected_glossary_ids: ['2', '3'],
+      translation_context_mode: 'archive',
       use_main_glossary: true,
+      use_project_context: true,
       clean_source: false,
       use_resume: true,
       batch_size_limit: 20,
@@ -53,6 +55,42 @@ describe('initialTranslation utils', () => {
         concurrency_limit: 4,
         rpm_limit: 60,
       },
+    });
+  });
+
+  it.each([
+    ['none', [], false, false],
+    ['glossaries', [2], true, false],
+    ['archive', [2], true, true],
+  ])('maps %s to one deterministic backend resource policy', (
+    mode,
+    glossaryIds,
+    useMainGlossary,
+    useProjectContext,
+  ) => {
+    const payload = buildTranslationPayload({
+      source_lang_code: 'en',
+      target_lang_codes: ['zh-CN'],
+      api_provider: 'local',
+      model_name: 'local-model',
+      mod_context: '',
+      selected_glossary_ids: [2],
+      translation_context_mode: mode,
+      clean_source: false,
+      use_resume: false,
+      translation_batch_size_limit: '',
+      translation_concurrency_limit: '',
+      translation_rpm_limit: '40',
+      embedded_workshop_enabled: false,
+      embedded_workshop_follow_primary_settings: true,
+      english_disguise: false,
+    }, 'proj-1');
+
+    expect(payload).toMatchObject({
+      translation_context_mode: mode,
+      selected_glossary_ids: glossaryIds,
+      use_main_glossary: useMainGlossary,
+      use_project_context: useProjectContext,
     });
   });
 

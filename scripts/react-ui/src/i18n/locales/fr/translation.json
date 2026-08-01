@@ -408,6 +408,18 @@
   "initial_translation_summary_target_count": "{{count}} langues cibles",
   "initial_translation_summary_main_glossary_on": "Glossaire principal activé",
   "initial_translation_summary_main_glossary_off": "Glossaire principal désactivé",
+  "translation_context_mode": {
+    "label": "Contexte de traduction",
+    "description": "Choisissez les connaissances du projet utilisables pour cette traduction. Les niveaux supérieurs ajoutent du contexte entre fichiers.",
+    "none": "Aucun glossaire",
+    "glossaries": "Glossaires principal et du projet",
+    "archive": "Glossaires principal et du projet + archives du mod",
+    "summary": {
+      "none": "Aucun glossaire ni archive",
+      "glossaries": "Glossaires du projet activés",
+      "archive": "Archives complètes du mod activées"
+    }
+  },
   "initial_translation_summary_workshop_on": "Relecture intelligente activée",
   "initial_translation_summary_workshop_off": "Relecture intelligente désactivée",
   "initial_translation_start_checking": "Vérification de la configuration…",
@@ -1091,6 +1103,8 @@
       "subtitle": "Choose how much of the mod source Remis should organize into a durable archive.",
       "setup_title": "Analysis setup",
       "setup_desc": "The selected scope is recorded with the source snapshot and the analysis result.",
+      "description_language": "Langue des descriptions",
+      "description_language_desc": "L’IA rédige dans cette langue les résumés des entités, chaînes d’événements et du projet, ainsi que les explications terminologiques.",
       "scope_label": "Analysis scope",
       "scope_terms_only": "Organize terms only",
       "scope_terms_only_desc": "Find candidate terminology and continue to the Judgment Court for human review.",

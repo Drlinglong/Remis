@@ -111,9 +111,7 @@ const TranslationActionBar = ({
             </Text>
             <Text size="sm" c="dimmed">·</Text>
             <Text size="sm" c="dimmed" className={controlsStyles.summaryItem}>
-              {form.values.use_main_glossary
-                ? t('initial_translation_summary_main_glossary_on')
-                : t('initial_translation_summary_main_glossary_off')}
+              {t(`translation_context_mode.summary.${form.values.translation_context_mode}`)}
             </Text>
             <Text size="sm" c="dimmed">·</Text>
             <Text size="sm" c="dimmed" className={controlsStyles.summaryItem}>
@@ -187,7 +185,7 @@ const InitialTranslation = () => {
       model_name: 'gemini-pro',
       mod_context: '',
       selected_glossary_ids: [],
-      use_main_glossary: true,
+      translation_context_mode: 'archive',
       clean_source: false,
       use_resume: false,
       translation_batch_size_limit: '',

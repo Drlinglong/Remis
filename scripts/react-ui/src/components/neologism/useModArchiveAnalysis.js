@@ -84,7 +84,7 @@ export const useModArchiveAnalysis = ({
     const [apiProvider, setApiProvider] = useState('gemini');
     const [modelName, setModelName] = useState(null);
     const [targetLang, setTargetLang] = useState('zh-CN');
-    const [reviewLanguage, setReviewLanguage] = useState(interfaceLanguage);
+    const [descriptionLanguage, setDescriptionLanguage] = useState(interfaceLanguage);
     const [analysisScope, setAnalysisScope] = useState(ANALYSIS_SCOPES.TERMS_ONLY);
     const [upstreamVersion, setUpstreamVersion] = useState('');
     const [scanning, setScanning] = useState(false);
@@ -107,7 +107,7 @@ export const useModArchiveAnalysis = ({
     }, [apiProvider, providers]);
 
     useEffect(() => {
-        setReviewLanguage(interfaceLanguage);
+        setDescriptionLanguage(interfaceLanguage);
     }, [interfaceLanguage]);
 
     const closeMiningSocket = useCallback(() => {
@@ -307,7 +307,7 @@ export const useModArchiveAnalysis = ({
             apiProvider,
             modelName,
             targetLang,
-            reviewLanguage,
+            descriptionLanguage,
             selectedFiles,
             analysisScope,
             upstreamVersion,
@@ -344,7 +344,7 @@ export const useModArchiveAnalysis = ({
         currentProject?.sourceLanguage,
         files.length,
         modelName,
-        reviewLanguage,
+        descriptionLanguage,
         selectedFiles,
         selectedProject,
         status?.status,
@@ -366,8 +366,8 @@ export const useModArchiveAnalysis = ({
         setModelName,
         targetLang,
         setTargetLang,
-        reviewLanguage,
-        setReviewLanguage,
+        descriptionLanguage,
+        setDescriptionLanguage,
         analysisScope,
         setAnalysisScope,
         upstreamVersion,

@@ -237,6 +237,7 @@ class AgentContextService:
     @staticmethod
     def _release_metadata(release: ContextRelease) -> AgentContextReleaseMetadata:
         metadata = release.metadata
+        config = metadata.analysis_config if isinstance(metadata.analysis_config, dict) else {}
         scope = metadata.analysis_scope if isinstance(metadata.analysis_scope, dict) else {}
         safe_scope: dict[str, Any] = {}
         if isinstance(scope.get("mode"), str):
@@ -254,6 +255,11 @@ class AgentContextService:
             created_at=metadata.created_at,
             parent_release_id=metadata.parent_release_id,
             upstream_version=metadata.upstream_version,
+            description_language=(
+                str(config["description_language"])[:16]
+                if config.get("description_language")
+                else None
+            ),
             source_refs=_release_source_refs(release),
         )
 

@@ -604,6 +604,18 @@
   "initial_translation_summary_target_count": "{{count}} 种目标语言",
   "initial_translation_summary_main_glossary_on": "主词典已启用",
   "initial_translation_summary_main_glossary_off": "主词典未启用",
+  "translation_context_mode": {
+    "label": "翻译上下文",
+    "description": "选择本次翻译允许使用的项目知识；级别越高，可提供的跨文件背景越完整。",
+    "none": "不使用任何词典",
+    "glossaries": "主词典 + 项目专属词典",
+    "archive": "主词典 + 项目专属词典 + 项目档案",
+    "summary": {
+      "none": "不使用词典或档案",
+      "glossaries": "使用项目词典",
+      "archive": "使用完整项目档案"
+    }
+  },
   "initial_translation_summary_workshop_on": "智能校对已启用",
   "initial_translation_summary_workshop_off": "智能校对未启用",
   "initial_translation_start_checking": "正在检查配置…",
@@ -1123,6 +1135,8 @@
       "subtitle": "选择 Remis 要从模组源文件中整理到持久档案里的范围。",
       "setup_title": "分析设置",
       "setup_desc": "所选范围会与源快照和分析结果一起记录。",
+      "description_language": "描述语言",
+      "description_language_desc": "AI 将使用该语言生成人物、地点、组织、事件链和项目摘要；术语建议的解释也使用该语言。",
       "scope_label": "分析范围",
       "scope_terms_only": "仅整理术语",
       "scope_terms_only_desc": "发现候选术语，然后进入审判庭进行人工审核。",

@@ -301,18 +301,22 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
         encoding="utf-8",
     )
     repo = FakeRepository()
-    service = _service(repo)
+    handler = FakeHandler()
+    service = _service(repo, handler=handler)
 
     first = service.run(
         "project-1", [str(source)], str(root), "local", task_id="task-1",
         analysis_scope=AnalysisScope.NARRATIVE_CONTEXT, model_name="fake-model",
+        description_language="zh-CN",
     )
     assert first["context_release_id"] == "release-1"
     release = repo.releases["release-1"]
     assert release.metadata.provider_id == "local"
     assert release.metadata.model_id == "fake-model"
     assert release.metadata.schema_version == "context-v1"
-    assert release.metadata.prompt_version == "context-synthesis-v2"
+    assert release.metadata.prompt_version == "context-synthesis-v3"
+    assert release.metadata.analysis_config["description_language"] == "zh-CN"
+    assert "Simplified Chinese (zh-CN)" in handler.calls[0][0]["content"]
     assert any(
         update[1].get("fields", {}).get("stage_code") == "synthesizing"
         for update in service.task_backend.updates
@@ -328,6 +332,7 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
     second = service.run(
         "project-1", [str(source)], str(root), "local", task_id="task-2",
         analysis_scope=AnalysisScope.NARRATIVE_CONTEXT, model_name="fake-model",
+        description_language="zh-CN",
     )
     second_release = repo.releases[second["context_release_id"]]
     assert second_release.metadata.parent_release_id == "release-1"

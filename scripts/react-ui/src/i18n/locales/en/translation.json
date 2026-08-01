@@ -518,6 +518,18 @@
   "initial_translation_summary_target_count": "Target languages: {{count}}",
   "initial_translation_summary_main_glossary_on": "Main glossary enabled",
   "initial_translation_summary_main_glossary_off": "Main glossary disabled",
+  "translation_context_mode": {
+    "label": "Translation context",
+    "description": "Choose which project knowledge this run may use. Higher levels provide more cross-file context.",
+    "none": "No glossaries",
+    "glossaries": "Main + project glossaries",
+    "archive": "Main + project glossaries + Mod Archive",
+    "summary": {
+      "none": "No glossary or archive",
+      "glossaries": "Project glossaries enabled",
+      "archive": "Full Mod Archive enabled"
+    }
+  },
   "initial_translation_summary_workshop_on": "Smart proofreading enabled",
   "initial_translation_summary_workshop_off": "Smart proofreading disabled",
   "initial_translation_start_checking": "Checking configuration…",
@@ -1069,6 +1081,8 @@
       "subtitle": "Choose how much of the mod source Remis should organize into a durable archive.",
       "setup_title": "Analysis setup",
       "setup_desc": "The selected scope is recorded with the source snapshot and the analysis result.",
+      "description_language": "Description language",
+      "description_language_desc": "AI writes entity, event-chain, and project summaries in this language. Term explanations use it too.",
       "scope_label": "Analysis scope",
       "scope_terms_only": "Organize terms only",
       "scope_terms_only_desc": "Find candidate terminology and continue to the Judgment Court for human review.",

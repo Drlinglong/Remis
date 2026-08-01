@@ -406,6 +406,18 @@
   "initial_translation_summary_target_count": "{{count}} hedef dil",
   "initial_translation_summary_main_glossary_on": "Ana sözlük etkin",
   "initial_translation_summary_main_glossary_off": "Ana sözlük devre dışı",
+  "translation_context_mode": {
+    "label": "Çeviri bağlamı",
+    "description": "Bu çevirinin kullanabileceği proje bilgisini seçin. Üst düzeyler dosyalar arasında daha fazla bağlam sağlar.",
+    "none": "Sözlük kullanma",
+    "glossaries": "Ana ve proje sözlükleri",
+    "archive": "Ana ve proje sözlükleri + mod arşivi",
+    "summary": {
+      "none": "Sözlük veya arşiv yok",
+      "glossaries": "Proje sözlükleri etkin",
+      "archive": "Tam mod arşivi etkin"
+    }
+  },
   "initial_translation_summary_workshop_on": "Akıllı düzeltme etkin",
   "initial_translation_summary_workshop_off": "Akıllı düzeltme devre dışı",
   "initial_translation_start_checking": "Yapılandırma denetleniyor…",
@@ -1087,6 +1099,8 @@
       "subtitle": "Choose how much of the mod source Remis should organize into a durable archive.",
       "setup_title": "Analysis setup",
       "setup_desc": "The selected scope is recorded with the source snapshot and the analysis result.",
+      "description_language": "Açıklama dili",
+      "description_language_desc": "Yapay zekâ varlık, olay zinciri ve proje özetlerini ve terim açıklamalarını bu dilde yazar.",
       "scope_label": "Analysis scope",
       "scope_terms_only": "Organize terms only",
       "scope_terms_only_desc": "Find candidate terminology and continue to the Judgment Court for human review.",

@@ -33,6 +33,21 @@ summary. Entity summaries describe entities, event summaries describe ordered
 event chains, and the project summary describes the project-level pattern.
 """
 
+    LANGUAGE_NAMES = {
+        "zh-cn": "Simplified Chinese",
+        "zh-tw": "Traditional Chinese",
+        "en": "English",
+        "ja": "Japanese",
+        "ko": "Korean",
+        "fr": "French",
+        "de": "German",
+        "ru": "Russian",
+        "es": "Spanish",
+        "pt-br": "Brazilian Portuguese",
+        "pl": "Polish",
+        "tr": "Turkish",
+    }
+
     def __init__(self, handler: Any):
         self.handler = handler
         self.logger = logging.getLogger(__name__)
@@ -42,6 +57,7 @@ event chains, and the project summary describes the project-level pattern.
         aggregates: Iterable[ContextAggregate],
         contributions: dict[str, ContextContribution],
         sources: dict[str, ContextSourceItem],
+        description_language: str = "en",
     ) -> list[GeneratedSynthesis]:
         aggregate_list = list(aggregates)
         if not aggregate_list:
@@ -53,6 +69,7 @@ event chains, and the project summary describes the project-level pattern.
                     aggregate_list[start:start + self.MAX_AGGREGATES_PER_CALL],
                     contributions,
                     sources,
+                    description_language,
                 )
             )
         return synthesized
@@ -62,10 +79,14 @@ event chains, and the project summary describes the project-level pattern.
         aggregate_list: list[ContextAggregate],
         contributions: dict[str, ContextContribution],
         sources: dict[str, ContextSourceItem],
+        description_language: str,
     ) -> list[GeneratedSynthesis]:
         request = self._request_payload(aggregate_list, contributions, sources)
         messages = [
-            {"role": "system", "content": self.SYSTEM_PROMPT},
+            {
+                "role": "system",
+                "content": self._system_prompt(description_language),
+            },
             {"role": "user", "content": json.dumps(request, ensure_ascii=False, sort_keys=True)},
         ]
         response = self._generate(messages)
@@ -101,6 +122,17 @@ event chains, and the project summary describes the project-level pattern.
             )
             for item in parsed.syntheses
         ]
+
+    @classmethod
+    def _system_prompt(cls, description_language: str) -> str:
+        language_code = description_language.strip()
+        language_name = cls.LANGUAGE_NAMES.get(language_code.casefold(), language_code)
+        return (
+            f"{cls.SYSTEM_PROMPT.strip()}\n"
+            f"Write every summary in {language_name} ({language_code}). "
+            "Keep source evidence unchanged and preserve proper names when no approved localized "
+            "name is provided."
+        )
 
     @staticmethod
     def _validation_error_category(error: Exception) -> str:

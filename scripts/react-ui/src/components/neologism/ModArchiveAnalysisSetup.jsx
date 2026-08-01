@@ -49,8 +49,8 @@ const ModArchiveAnalysisSetup = ({ controller }) => {
         setModelName,
         targetLang,
         setTargetLang,
-        reviewLanguage,
-        setReviewLanguage,
+        descriptionLanguage,
+        setDescriptionLanguage,
         analysisScope,
         setAnalysisScope,
         upstreamVersion,
@@ -186,11 +186,11 @@ const ModArchiveAnalysisSetup = ({ controller }) => {
                         />
 
                         <Select
-                            label={t('neologism_review.mining.review_language')}
-                            description={t('neologism_review.mining.review_language_desc')}
+                            label={t('mod_archive.analysis.description_language')}
+                            description={t('mod_archive.analysis.description_language_desc')}
                             data={TARGET_LANGUAGE_OPTIONS}
-                            value={reviewLanguage}
-                            onChange={setReviewLanguage}
+                            value={descriptionLanguage}
+                            onChange={setDescriptionLanguage}
                         />
 
                         <Select

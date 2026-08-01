@@ -11,7 +11,10 @@ from scripts.app_settings import SOURCE_DIR, DEST_DIR
 
 def load_glossaries_for_run(game_id: str, use_glossary: bool, selected_glossary_ids: Optional[List[int]] = None):
     """Load glossary state before translation begins."""
-    if not game_id or not use_glossary:
+    if not use_glossary:
+        asyncio.run(glossary_manager.load_selected_glossaries([]))
+        return
+    if not game_id:
         return
 
     if selected_glossary_ids:

@@ -411,6 +411,18 @@
   "initial_translation_summary_target_count": "対象言語：{{count}}",
   "initial_translation_summary_main_glossary_on": "メイン用語集：有効",
   "initial_translation_summary_main_glossary_off": "メイン用語集：無効",
+  "translation_context_mode": {
+    "label": "翻訳コンテキスト",
+    "description": "この翻訳で使用できるプロジェクト知識を選択します。上位ほどファイルをまたぐ文脈が増えます。",
+    "none": "用語集を使用しない",
+    "glossaries": "メイン用語集 + プロジェクト用語集",
+    "archive": "メイン用語集 + プロジェクト用語集 + Modアーカイブ",
+    "summary": {
+      "none": "用語集・アーカイブなし",
+      "glossaries": "プロジェクト用語集を使用",
+      "archive": "完全なModアーカイブを使用"
+    }
+  },
   "initial_translation_summary_workshop_on": "スマート校正：有効",
   "initial_translation_summary_workshop_off": "スマート校正：無効",
   "initial_translation_start_checking": "設定を確認中…",
@@ -1092,6 +1104,8 @@
       "subtitle": "Choose how much of the mod source Remis should organize into a durable archive.",
       "setup_title": "Analysis setup",
       "setup_desc": "The selected scope is recorded with the source snapshot and the analysis result.",
+      "description_language": "説明言語",
+      "description_language_desc": "AIは人物・場所・組織・イベントチェーン・プロジェクトの要約と用語説明をこの言語で作成します。",
       "scope_label": "Analysis scope",
       "scope_terms_only": "Organize terms only",
       "scope_terms_only_desc": "Find candidate terminology and continue to the Judgment Court for human review.",

@@ -22,6 +22,7 @@ def _release() -> ContextRelease:
             provider_id="lm_studio",
             model_id="local-model",
             analysis_config={
+                "description_language": "zh-CN",
                 "source_items": [
                     {"relative_path": "localization/events.yml"},
                     {"relative_path": "C:/private/secret.yml"},
@@ -138,6 +139,7 @@ def test_agent_context_service_projects_published_metadata_without_internal_path
         "mode": "narrative_context",
         "source_file_count": 1,
     }
+    assert response.description_language == "zh-CN"
     assert "analysis_config" not in response.model_dump()
     assert "private" not in response.model_dump_json()
 

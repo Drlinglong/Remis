@@ -45,16 +45,21 @@ Use this sequence:
 4. Show the plan, source path, detected game evidence, and copy/reference mode.
 5. Obtain explicit user approval, then call `POST /api/agent/projects`.
 6. Create a translation plan with `POST /api/agent/jobs/plan`.
-7. Show target languages, provider/model, estimated risk, and whether model
+7. Select one explicit `translation_context_mode`: `none`, `glossaries`, or
+   `archive`. Never reconstruct this choice from legacy booleans.
+8. Read and show `context_readiness`, including the source-snapshot match,
+   published release, project glossary entry count, and pending candidate count.
+   Do not describe `archive` as active or complete unless `can_start` is true.
+9. Show target languages, provider/model, estimated risk, and whether model
    calls can incur cost.
-8. For a zero-cost readiness check, set `dry_run: true`. Otherwise obtain
+10. For a zero-cost readiness check, set `dry_run: true`. Otherwise obtain
    explicit approval before `POST /api/agent/jobs`.
-9. Poll `GET /api/agent/jobs/{job_id}` until a terminal or actionable state.
-10. Inspect `GET /api/agent/jobs/{job_id}/validation`.
-11. Retry deterministic failures first. Request approval before model-backed
+11. Poll `GET /api/agent/jobs/{job_id}` until a terminal or actionable state.
+12. Inspect `GET /api/agent/jobs/{job_id}/validation`.
+13. Retry deterministic failures first. Request approval before model-backed
     repair with `POST /api/agent/jobs/{job_id}/repair`.
-12. Preview export with `GET /api/agent/jobs/{job_id}/export-preview`.
-13. Show overwrite and deployment risks. Obtain explicit approval before
+14. Preview export with `GET /api/agent/jobs/{job_id}/export-preview`.
+15. Show overwrite and deployment risks. Obtain explicit approval before
     `POST /api/agent/jobs/{job_id}/approve-export`.
 
 Read [references/api-workflow.md](references/api-workflow.md) for payloads,
@@ -89,6 +94,9 @@ invent percentages, translated entry counts, validation results, or exports.
 ## Handle failure safely
 
 - Treat `409 approval_required` as a prompt to show the plan and ask the user.
+- Treat `409 project_context_not_ready` as a hard context-preparation boundary.
+  Report the returned `context_readiness` details; do not silently downgrade to
+  glossaries or no context.
 - Treat `409 overwrite_confirmation_required` as a separate overwrite gate.
 - Treat `404` as stale or unknown state; re-list projects or inspect registry
   recovery information before retrying.

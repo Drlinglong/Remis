@@ -177,6 +177,7 @@ def create_localization_plan(
     rpm_limit: int | None = 40,
     use_resume: bool = True,
     use_main_glossary: bool = True,
+    translation_context_mode: str | None = None,
     embedded_workshop_enabled: bool = True,
 ) -> dict[str, Any]:
     inspection = inspect_mod_folder(folder_path)
@@ -191,6 +192,11 @@ def create_localization_plan(
         raise ValueError(f"Unknown API provider: {api_provider}")
     if not model.strip():
         raise ValueError("Model is required")
+    effective_context_mode = translation_context_mode or (
+        "archive" if use_main_glossary else "none"
+    )
+    if effective_context_mode not in {"none", "glossaries", "archive"}:
+        raise ValueError("Translation context mode must be none, glossaries, or archive")
 
     plan_id = str(uuid.uuid4())
     payload = {
@@ -236,6 +242,7 @@ def create_localization_plan(
             "rpm_limit": rpm_limit,
             "use_resume": use_resume,
             "use_main_glossary": use_main_glossary,
+            "translation_context_mode": effective_context_mode,
             "embedded_workshop_enabled": embedded_workshop_enabled,
         },
         "requires_approval": True,
@@ -290,6 +297,7 @@ async def create_translation_plan(
     rpm_limit: int | None = 40,
     use_resume: bool = True,
     use_main_glossary: bool = True,
+    translation_context_mode: str | None = None,
     embedded_workshop_enabled: bool = True,
 ) -> dict[str, Any]:
     project = await project_manager.get_project(project_id)
@@ -306,6 +314,11 @@ async def create_translation_plan(
         raise ValueError(f"Unknown API provider: {api_provider}")
     if not model.strip():
         raise ValueError("Model is required")
+    effective_context_mode = translation_context_mode or (
+        "archive" if use_main_glossary else "none"
+    )
+    if effective_context_mode not in {"none", "glossaries", "archive"}:
+        raise ValueError("Translation context mode must be none, glossaries, or archive")
     for label, value in {
         "batch_size_limit": batch_size_limit,
         "concurrency_limit": concurrency_limit,
@@ -325,7 +338,9 @@ async def create_translation_plan(
         "rpm_limit": rpm_limit,
         "mod_context": "",
         "selected_glossary_ids": [],
-        "use_main_glossary": use_main_glossary,
+        "translation_context_mode": effective_context_mode,
+        "use_main_glossary": effective_context_mode != "none",
+        "use_project_context": effective_context_mode == "archive",
         "clean_source": False,
         "use_resume": use_resume,
         "embedded_workshop": {
@@ -346,6 +361,7 @@ async def create_translation_plan(
         "inspection": {
             "project_id": project_id,
             "project_name": project.get("name"),
+            "game_id": project.get("game_id"),
             "source_path": project.get("source_path"),
             "source_language": source_language,
             "project_file_count": len(files),

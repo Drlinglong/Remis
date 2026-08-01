@@ -26,7 +26,15 @@ from scripts.core.services.agent_validation_policy import (
     repairable_issues,
     validation_allowed_actions,
 )
+from scripts.core.services.agent_translation_plan_service import (
+    AgentTranslationPlanError,
+    build_agent_translation_plan,
+)
+from scripts.core.services.translation_context_readiness_service import (
+    TranslationContextReadinessService,
+)
 from scripts.core.services.validation_sidecar_service import ValidationSidecarService
+from scripts.core.neologism_manager import neologism_manager
 from scripts.routers.agent_workshop import FixRunRequest, start_fix_run
 from scripts.routers.agent_context import AGENT_CONTEXT_CAPABILITIES
 from scripts.routers.translation import start_translation_project
@@ -46,11 +54,15 @@ from scripts.schemas.agent import (
 )
 from scripts.schemas.translation import InitialTranslationRequest
 from scripts.shared import task_state
-from scripts.shared.services import project_manager
+from scripts.shared.services import glossary_manager, project_manager
 from scripts.utils.system_utils import sanitize_for_json
 
 router = APIRouter(prefix="/api/agent", tags=["Agent API"])
 validation_sidecars = ValidationSidecarService()
+translation_context_readiness = TranslationContextReadinessService(
+    glossary_manager,
+    neologism_manager,
+)
 logger = logging.getLogger(__name__)
 
 LOCAL_PROVIDER_IDS = {
@@ -99,10 +111,16 @@ def _error(
     message: str,
     *,
     retryable: bool = False,
+    details: dict[str, Any] | None = None,
 ) -> HTTPException:
     return HTTPException(
         status_code=status_code,
-        detail={"code": code, "message": message, "retryable": retryable},
+        detail={
+            "code": code,
+            "message": message,
+            "retryable": retryable,
+            **(details or {}),
+        },
     )
 
 
@@ -636,69 +654,23 @@ async def get_agent_project_status(project_id: str):
 
 @router.post("/jobs/plan", response_model=AgentPlanResponse)
 async def plan_agent_job(request: AgentJobPlanRequest):
-    provider = API_PROVIDERS.get(request.api_provider)
-    if provider is None:
-        raise _error(400, "invalid_provider", "Unknown API provider")
-    env_name = provider.get("api_key_env")
-    if env_name and not get_api_key(request.api_provider, env_name):
-        raise _error(
-            409,
-            "provider_setup_required",
-            (
-                f"{provider.get('name') or request.api_provider} requires an API key. "
-                "Configure it in Remis Settings > API Settings. If the user does not "
-                "know what an API key is, explain it before continuing."
-            ),
-        )
     try:
-        plan = await create_translation_plan(
-            project_id=request.project_id,
-            target_lang_codes=[
-                item.value if hasattr(item, "value") else str(item)
-                for item in request.target_lang_codes
-            ],
-            api_provider=request.api_provider,
-            model=request.model,
-            batch_size_limit=request.batch_size_limit,
-            concurrency_limit=request.concurrency_limit,
-            rpm_limit=request.rpm_limit,
-            use_resume=request.use_resume,
-            use_main_glossary=request.use_main_glossary,
-            embedded_workshop_enabled=request.embedded_workshop_enabled,
+        return await build_agent_translation_plan(
+            request,
+            api_providers=API_PROVIDERS,
+            key_resolver=get_api_key,
+            plan_factory=create_translation_plan,
+            readiness_service=translation_context_readiness,
+            registry=agent_registry,
+            local_provider_ids=LOCAL_PROVIDER_IDS,
         )
-    except ValueError as exc:
-        message = str(exc)
-        code = "project_not_found" if "Project not found" in message else "invalid_request"
-        raise _error(404 if code == "project_not_found" else 400, code, message) from exc
-
-    summary = (
-        "Read-only readiness check. No model call or localization output will be written."
-        if request.dry_run
-        else "Start the existing Remis translation workflow after explicit approval."
-    )
-    record = agent_registry.create_plan(
-        project_id=request.project_id,
-        execution_args=plan["execution_args"],
-        dry_run=request.dry_run,
-        summary=summary,
-    )
-    local_provider = request.api_provider in LOCAL_PROVIDER_IDS
-    return AgentPlanResponse(
-        plan_id=record["plan_id"],
-        status="ready" if request.dry_run else "awaiting_approval",
-        project_id=request.project_id,
-        dry_run=request.dry_run,
-        requires_approval=not request.dry_run,
-        risk={
-            "writes_output": not request.dry_run,
-            "may_use_paid_api": not request.dry_run and not local_provider,
-            "overwrites_existing_output": False,
-            "exports_to_game_directory": False,
-        },
-        summary=summary,
-        allowed_actions=["start_dry_run"] if request.dry_run else ["approve_start"],
-        expires_at=record["expires_at"],
-    )
+    except AgentTranslationPlanError as exc:
+        raise _error(
+            exc.status_code,
+            exc.code,
+            exc.message,
+            details=exc.details,
+        ) from exc
 
 
 @router.post("/jobs", response_model=AgentJobResponse)
@@ -749,6 +721,7 @@ async def start_agent_job(
                 "file_count": len(files),
                 "would_use_provider": args.get("api_provider"),
                 "would_use_model": args.get("model"),
+                "translation_context_mode": args.get("translation_context_mode"),
             },
             fields={
                 "project_id": plan["project_id"],
@@ -851,6 +824,7 @@ async def retry_agent_job(job_id: str):
             rpm_limit=args.get("rpm_limit", 40),
             use_resume=True,
             use_main_glossary=args.get("use_main_glossary", True),
+            translation_context_mode=args.get("translation_context_mode"),
             embedded_workshop_enabled=(
                 args.get("embedded_workshop", {}).get("enabled", True)
             ),

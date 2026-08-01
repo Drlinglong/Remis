@@ -96,7 +96,7 @@ $body = @{
   concurrency_limit = 1
   rpm_limit = 40
   use_resume = $true
-  use_main_glossary = $true
+  translation_context_mode = 'archive'
   dry_run = $false
 } | ConvertTo-Json
 
@@ -106,8 +106,19 @@ $jobPlan = Invoke-RestMethod -Method Post `
 ```
 
 For a readiness test with no model call or output, set `dry_run` to `true`.
-For a real job, display `summary`, `risk`, provider/model, targets, and expiry,
-then ask for approval:
+The context modes are:
+
+- `none`: no glossary and no Mod Archive context;
+- `glossaries`: main, project, and explicitly selected glossaries;
+- `archive`: the same glossaries plus the published Mod Archive release.
+
+Always display `context_readiness` before approval. It reports the exact
+project glossary entry count, pending candidate count, published release,
+source-snapshot match, effective context item count, and warnings. A real
+`archive` plan is rejected with `409 project_context_not_ready` when the
+release is missing, stale, empty, or cannot be verified. Do not silently retry
+with a lower mode. For a real job, display `summary`, `risk`, provider/model,
+targets, context readiness, and expiry, then ask for approval:
 
 ```powershell
 $body = @{ plan_id = $jobPlan.plan_id; approved = $true } | ConvertTo-Json
