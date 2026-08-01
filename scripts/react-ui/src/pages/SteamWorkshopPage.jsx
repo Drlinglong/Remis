@@ -56,11 +56,12 @@ export default function SteamWorkshopPage() {
       <Modal
         opened={showTutorialPrompt}
         onClose={dismissTutorialPrompt}
+        data-remis-surface="elevated"
         title={t('tutorial.auto_start_prompt.title')}
         centered
         radius="md"
       >
-        <Stack>
+        <Stack data-remis-surface="elevated">
           <Text size="sm">{t('tutorial.steam_workshop.prompt.message')}</Text>
           <Group justify="flex-end" mt="md">
             <Button variant="subtle" color="gray" onClick={dismissTutorialPrompt}>
