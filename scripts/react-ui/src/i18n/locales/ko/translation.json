@@ -1626,6 +1626,7 @@
   "api_desc_anthropic": "공식 Anthropic API (Claude 4.5/3.5 Sonnet & Haiku)",
   "api_desc_qwen": "Alibaba Cloud Qwen (통이치엔원) - 베이징 리전",
   "api_desc_deepseek": "DeepSeek-V3/R1 (비추론 모드) - OpenAI 호환",
+  "api_desc_openrouter": "OpenRouter API를 통해 여러 모델 제공업체를 통합 이용",
   "api_desc_kimi": "Moonshot AI Kimi 모델 (최신 K2 시리즈 포함)",
   "api_desc_minimax": "Minimax Hailuo M2 시리즈 (M2.1, M2.1-lightning)",
   "api_desc_zhipu": "Zhipu AI GLM-4 시리즈 (4.7/4.6/4.5 포함)",
