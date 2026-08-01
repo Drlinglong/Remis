@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "fixture_id": "remis_issue_198_narrative_v1",
+  "issue": 198,
+  "game_id": "stellaris",
+  "source_language": "en",
+  "localization_header": "l_english:",
+  "encoding": "utf-8",
+  "baseline_root": "source_mod",
+  "variant_root": "source_mod_modified_deleted",
+  "source_provenance": [
+    {
+      "path": "localisation/english/01_context_l_english.yml",
+      "batch": "batch_01_context",
+      "role": "people, places, organizations, aliases, and concepts"
+    },
+    {
+      "path": "localisation/english/02_first_signal_l_english.yml",
+      "batch": "batch_02_first_signal",
+      "role": "inciting event and first response"
+    },
+    {
+      "path": "localisation/english/03_council_split_l_english.yml",
+      "batch": "batch_03_council_split",
+      "role": "branch-dependent council facts and decisions"
+    },
+    {
+      "path": "localisation/english/04_technology_l_english.yml",
+      "batch": "batch_04_technology",
+      "role": "technology, building, and policy context"
+    },
+    {
+      "path": "localisation/english/05_resolution_l_english.yml",
+      "batch": "batch_05_resolution",
+      "role": "branch-aware resolution and epilogue"
+    }
+  ],
+  "expected_baseline": {
+    "file_count": 5,
+    "entry_count": 41,
+    "minimum_event_files": 3,
+    "minimum_batches": 5
+  },
+  "recurring_terms": [
+    {"term": "Remis", "category": "person", "minimum_occurrences": 15},
+    {"term": "the Red Archivist", "category": "alias", "minimum_occurrences": 3},
+    {"term": "the Ledger-Breaker", "category": "alias", "minimum_occurrences": 3},
+    {"term": "Meridian Gate", "category": "place", "minimum_occurrences": 9},
+    {"term": "Kestrel Reach", "category": "place", "minimum_occurrences": 8},
+    {"term": "Cartographers' Guild", "category": "organization", "minimum_occurrences": 4},
+    {"term": "Meridian Council", "category": "organization", "minimum_occurrences": 5},
+    {"term": "Watch of Quiet Stars", "category": "organization", "minimum_occurrences": 4},
+    {"term": "Accord of Echoes", "category": "concept", "minimum_occurrences": 7},
+    {"term": "Echo Lattice", "category": "technology", "minimum_occurrences": 3},
+    {"term": "Mercy Protocol", "category": "concept", "minimum_occurrences": 6},
+    {"term": "Meridian Seal", "category": "concept", "minimum_occurrences": 4}
+  ],
+  "aliases": [
+    {"canonical": "Remis", "aliases": ["the Red Archivist", "the Ledger-Breaker"]}
+  ],
+  "event_chain": [
+    {
+      "id": "signal_reaches_gate",
+      "batch": "batch_02_first_signal",
+      "file": "localisation/english/02_first_signal_l_english.yml",
+      "keys": ["first_contact.220.t:0", "first_contact.220.desc:0", "remis198_signal_choice.a:0", "remis198_signal_choice.b:0"],
+      "links_to": ["council_hears_vesper"]
+    },
+    {
+      "id": "council_hears_vesper",
+      "batch": "batch_03_council_split",
+      "file": "localisation/english/03_council_split_l_english.yml",
+      "keys": ["council.310.t:0", "council.310.desc:0", "remis198_concord_branch:0", "remis198_warden_branch:0"],
+      "links_to": ["seal_or_watch"]
+    },
+    {
+      "id": "seal_or_watch",
+      "batch": "batch_03_council_split",
+      "file": "localisation/english/03_council_split_l_english.yml",
+      "keys": ["council.311.t:0", "council.311.desc:0", "decision_meridian_seal:0", "decision_meridian_watch:0"],
+      "links_to": ["resolution_of_reach"]
+    },
+    {
+      "id": "resolution_of_reach",
+      "batch": "batch_05_resolution",
+      "file": "localisation/english/05_resolution_l_english.yml",
+      "keys": ["resolution.400.t:0", "resolution.400.desc:0", "resolution.400.a:0", "resolution.400.b:0", "remis198_epilogue_concord:0", "remis198_epilogue_warden:0"],
+      "links_to": []
+    }
+  ],
+  "event_groups": [
+    {
+      "id": "meridian_chain",
+      "description": "One narrative chain grouped across semantic links, not a shared key prefix.",
+      "keys": ["first_contact.220.desc:0", "council.310.desc:0", "decision_meridian_seal:0", "resolution.400.desc:0"],
+      "minimum_distinct_files": 3,
+      "minimum_distinct_key_prefixes": 3
+    }
+  ],
+  "branch_facts": [
+    {
+      "branch": "concord",
+      "keys": ["remis198_concord_branch:0", "decision_meridian_seal:0", "remis198_epilogue_concord:0"],
+      "required_facts": ["Meridian Council", "Meridian Seal", "Mercy Protocol", "Remis", "Kestrel Reach"]
+    },
+    {
+      "branch": "warden",
+      "keys": ["remis198_warden_branch:0", "decision_meridian_watch:0", "remis198_epilogue_warden:0"],
+      "required_facts": ["Watch of Quiet Stars", "Meridian Gate", "Remis", "Kestrel Reach"]
+    }
+  ],
+  "variant_delta": {
+    "changed_keys": ["first_contact.220.desc:0", "council.310.desc:0", "resolution.400.desc:0"],
+    "deleted_files": ["localisation/english/04_technology_l_english.yml"],
+    "deleted_keys": ["tech_accord_lattice:0", "tech_accord_lattice_desc:0", "tech_echo_beacon:0", "tech_echo_beacon_desc:0", "building_meridian_archive:0", "building_meridian_archive_desc:0", "policy_mercy_protocol:0"]
+  }
+}

@@ -1,0 +1,8 @@
+l_english:
+ # Batch 05: the ending keeps both branch-dependent readings explicit.
+ resolution.400.t:0 "The Reach Answers"
+ resolution.400.desc:0 "At §Y Kestrel Reach§!, Meridian Gate answers with two tones. Remis holds the Meridian Seal in one hand and the Cartographers' Guild ledger in the other, waiting for the Meridian Council's final order. The Red Archivist says the signal sounds like a fleet; the Watch of Quiet Stars hears a fleet."
+ resolution.400.a:0 "Let the Concord speak through the Accord of Echoes and the Mercy Protocol."
+ resolution.400.b:0 "Let the Watch of Quiet Stars speak through silence at Meridian Gate."
+ remis198_epilogue_concord:0 "The Meridian Council opens Meridian Gate, and Remis becomes the keeper of the Accord of Echoes at Kestrel Reach. The Mercy Protocol answers before the guns do."
+ remis198_epilogue_warden:0 "The Watch of Quiet Stars closes Meridian Gate, and Remis becomes the silent warden of Kestrel Reach. The Ledger-Breaker keeps the Meridian Seal until the signal can be proved."

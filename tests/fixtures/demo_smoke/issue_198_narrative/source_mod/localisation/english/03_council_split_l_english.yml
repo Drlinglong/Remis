@@ -1,0 +1,11 @@
+l_english:
+ # Batch 03: the same chain branches on facts, not on a common key prefix.
+ council.310.t:0 "Two Readings of the Accord"
+ council.310.desc:0 "The Meridian Council gathers at Meridian Gate. Remis presents the ledger from Kestrel Reach, while the Watch of Quiet Stars counts ships and the Cartographers' Guild counts omissions. The Red Archivist refuses to call either count proof."
+ remis198_concord_branch:0 "The Concord faction says the Accord of Echoes is an invitation, and Remis should carry the Meridian Seal to Kestrel Reach under the Mercy Protocol."
+ remis198_warden_branch:0 "The Warden faction says the Accord of Echoes is a warning, and the Watch of Quiet Stars must guard Meridian Gate until Kestrel Reach is quiet."
+ council.311.t:0 "The Vote Beneath the Gate"
+ council.311.desc:0 "The Meridian Council votes while Remis waits beneath the relay. The Cartographers' Guild asks for a name; the Watch of Quiet Stars asks for a lock; the Ledger-Breaker asks who benefits from the silence."
+ decision_meridian_seal:0 "Grant Remis the Meridian Seal and open the path to Kestrel Reach under the Mercy Protocol."
+ decision_meridian_watch:0 "Give the Watch of Quiet Stars authority to close Meridian Gate until Remis can verify the signal."
+ remis198_branch_warning:0 "Whichever reading prevails, the Accord of Echoes will be remembered by both sides."

@@ -1,0 +1,10 @@
+l_english:
+ # Batch 02: the signal makes the shared context actionable.
+ first_contact.220.t:0 "A Signal at Meridian Gate"
+ first_contact.220.desc:0 "At §H [Root.GetCapitalName]§!, Remis hears a reply hidden inside the Accord of Echoes. The Cartographers' Guild calls it a route; the Watch of Quiet Stars calls it a threat. Remis, the Red Archivist, asks why a distress call would know her name.\n\n\"The signal is not a throne,\" says the Ledger-Breaker. \"It is a door.\""
+ remis198_signal_choice.a:0 "Ask the Meridian Council to open the route under the Mercy Protocol."
+ remis198_signal_choice.b:0 "Ask the Watch of Quiet Stars to seal Meridian Gate before the signal answers."
+ meridian_gate.221.t:0 "The Ledger That Remembers"
+ meridian_gate.221.desc:0 "The ledger places Kestrel Reach beyond the next jump, yet its margin bears Remis's other title: the Ledger-Breaker. The Cartographers' Guild denies drawing it, while Remis says the Accord of Echoes has been keeping accounts."
+ meridian_gate.221.a:0 "Follow the Accord of Echoes into Kestrel Reach."
+ meridian_gate.221.b:0 "Hold Meridian Gate until the Meridian Council agrees."

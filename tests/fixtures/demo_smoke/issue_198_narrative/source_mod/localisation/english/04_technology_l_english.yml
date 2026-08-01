@@ -1,0 +1,9 @@
+l_english:
+ # Batch 04: technology terms recur outside the event files.
+ tech_accord_lattice:0 "Echo Lattice"
+ tech_accord_lattice_desc:0 "The Echo Lattice converts the Accord of Echoes into a navigable signal for Meridian Gate. Remis warns that the lattice remembers every route, including the route by which the Ledger-Breaker first found Kestrel Reach."
+ tech_echo_beacon:0 "Meridian Echo Beacon"
+ tech_echo_beacon_desc:0 "A beacon tuned to Kestrel Reach can carry the Meridian Seal without exposing the Cartographers' Guild's full map. The Mercy Protocol requires the beacon to answer before it opens."
+ building_meridian_archive:0 "Meridian Archive"
+ building_meridian_archive_desc:0 "The Meridian Archive stores the Echo Lattice records beneath the Meridian Council chamber, where Remis can compare the Watch of Quiet Stars' warnings with the Guild's maps."
+ policy_mercy_protocol:0 "Mercy Protocol"

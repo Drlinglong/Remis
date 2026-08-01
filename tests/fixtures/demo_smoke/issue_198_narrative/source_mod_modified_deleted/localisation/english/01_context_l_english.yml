@@ -1,0 +1,13 @@
+l_english:
+ # Issue 198 fixture: stable context shared by every narrative batch.
+ character_remis:0 "Remis"
+ character_remis_desc:0 "Remis keeps a red ledger of promises made by worlds that have never met. The Cartographers' Guild calls her the Red Archivist; the Watch of Quiet Stars calls her the Ledger-Breaker."
+ place_meridian_gate:0 "Meridian Gate"
+ place_meridian_gate_desc:0 "Meridian Gate is the abandoned relay above Kestrel Reach, where the first Accord of Echoes was written as a promise to carry people, not armies."
+ place_kestrel_reach:0 "Kestrel Reach"
+ org_cartographers_guild:0 "Cartographers' Guild"
+ org_meridian_council:0 "Meridian Council"
+ org_watch_quiet_stars:0 "Watch of Quiet Stars"
+ concept_accord_of_echoes:0 "Accord of Echoes"
+ alias_red_archivist:0 "the Red Archivist"
+ alias_ledger_breaker:0 "the Ledger-Breaker"
