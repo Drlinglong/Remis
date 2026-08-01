@@ -1,4 +1,4 @@
-/* global __APP_VERSION__ */
+/* global __APP_VERSION__, __APP_RELEASE_DATE__ */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Stack, Group, Text, Title, Paper, Anchor, Alert, ThemeIcon, Box, Divider, Button } from '@mantine/core';
@@ -10,7 +10,7 @@ import styles from './VersionInfoTab.module.css';
 const VersionInfoTab = () => {
     const { t } = useTranslation();
     const REMIS_VERSION = __APP_VERSION__; // Injected from package.json by Vite.
-    const lastUpdated = "2026-05-20"; // Last updated date
+    const lastUpdated = __APP_RELEASE_DATE__; // Injected from package.json by Vite.
     const githubRepoUrl = "https://github.com/Drlinglong/Remis";
 
     const handleOpenLogs = async () => {

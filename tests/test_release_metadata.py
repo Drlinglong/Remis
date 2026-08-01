@@ -1,4 +1,5 @@
 import ast
+import datetime as dt
 import json
 import re
 from pathlib import Path
@@ -88,3 +89,29 @@ def test_release_version_metadata_stays_in_sync():
         "scripts/react-ui/src-tauri/Cargo.toml": backend_version,
         "scripts/react-ui/src-tauri/Cargo.lock": backend_version,
     }
+
+
+def test_release_date_is_current_and_visible_in_version_info():
+    package_json = json.loads(
+        (REPO_ROOT / "scripts" / "react-ui" / "package.json").read_text(
+            encoding="utf-8",
+        )
+    )
+    release_date = dt.date.fromisoformat(package_json["releaseDate"])
+    release_note = (
+        REPO_ROOT
+        / "archive"
+        / "release_notes"
+        / f"RELEASE_NOTES_v{package_json['version']}.md"
+    ).read_text(encoding="utf-8")
+    version_info = (
+        REPO_ROOT
+        / "scripts"
+        / "react-ui"
+        / "src"
+        / "components"
+        / "VersionInfoTab.jsx"
+    ).read_text(encoding="utf-8")
+
+    assert f"Released on {release_date.isoformat()}." in release_note
+    assert "const lastUpdated = __APP_RELEASE_DATE__" in version_info
