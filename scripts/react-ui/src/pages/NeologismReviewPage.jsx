@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { Box, Group, Stack, Tabs, Text, ThemeIcon, Title } from '@mantine/core';
-import { IconCpu, IconGavel } from '@tabler/icons-react';
+import { IconArchive, IconCpu, IconGavel } from '@tabler/icons-react';
 import MiningDashboard from '../components/neologism/MiningDashboard';
 import JudgmentCourt from '../components/neologism/JudgmentCourt';
+import PublishedArchivePanel from '../components/neologism/PublishedArchivePanel';
 import {
     getNeologismReviewSession,
     updateNeologismReviewSession,
@@ -26,9 +27,16 @@ const NeologismReviewPage = () => {
         () => getNeologismReviewSession().selectedProject,
     );
     const [courtRefreshToken, setCourtRefreshToken] = useState(0);
+    const [archiveStatus, setArchiveStatus] = useState(null);
 
     useEffect(() => {
-        setPageContext(activeTab === 'court' ? 'neologism-court' : 'neologism-mining');
+        if (activeTab === 'court') {
+            setPageContext('neologism-court');
+        } else if (activeTab === 'published') {
+            setPageContext('mod-archive-published');
+        } else {
+            setPageContext('mod-archive-analysis');
+        }
     }, [activeTab, setPageContext]);
 
     const handleActiveTabChange = useCallback((nextTab) => {
@@ -40,12 +48,19 @@ const NeologismReviewPage = () => {
     const handleSelectedProjectChange = useCallback((projectId) => {
         updateNeologismReviewSession({ selectedProject: projectId });
         setSelectedProject(projectId);
+        setArchiveStatus(null);
     }, []);
 
-    const handleMiningComplete = useCallback(() => {
-        setCourtRefreshToken((value) => value + 1);
-        updateNeologismReviewSession({ activeTab: 'court' });
-        setActiveTab('court');
+    const handleMiningStatusChange = useCallback((nextStatus) => {
+        setArchiveStatus(nextStatus);
+    }, []);
+
+    const handleMiningComplete = useCallback((nextStatus) => {
+        const scope = nextStatus?.analysisScope || nextStatus?.analysis_scope;
+        const nextTab = scope === 'narrative_context' ? 'published' : 'court';
+        if (nextTab === 'court') setCourtRefreshToken((value) => value + 1);
+        updateNeologismReviewSession({ activeTab: nextTab });
+        setActiveTab(nextTab);
     }, []);
 
     const handleOpenMining = useCallback(() => {
@@ -68,8 +83,17 @@ const NeologismReviewPage = () => {
             style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}
         >
             <Group id="neologism-page-header" px="md" pt="sm" gap="xs" align="center" wrap="nowrap" style={{ flexShrink: 0 }}>
-                <ThemeIcon size="md" radius="sm" variant="light" color="blue">
-                    <IconGavel size={18} />
+                <ThemeIcon
+                    size="md"
+                    radius="sm"
+                    variant="light"
+                    data-remis-surface="canvas"
+                    style={{
+                        color: 'var(--interactive-accent)',
+                        background: 'color-mix(in srgb, var(--interactive-accent) 14%, transparent)',
+                    }}
+                >
+                    <IconArchive size={18} />
                 </ThemeIcon>
                 <Stack gap={0} style={{ minWidth: 0, flex: 1 }}>
                     <Title
@@ -77,9 +101,9 @@ const NeologismReviewPage = () => {
                         lineClamp={1}
                         style={{ fontSize: 'clamp(1.35rem, 2.2vw, 1.8rem)', lineHeight: 1.15 }}
                     >
-                        {t('neologism_review.title')}
+                        {t('mod_archive.title')}
                     </Title>
-                    <Text size="xs" c="dimmed" lineClamp={1}>{t('neologism_review.subtitle')}</Text>
+                    <Text size="xs" c="dimmed" lineClamp={1}>{t('mod_archive.subtitle')}</Text>
                 </Stack>
             </Group>
             <Tabs
@@ -91,8 +115,11 @@ const NeologismReviewPage = () => {
             >
                 <Box id="neologism-page-tabs" px="md" pt="xs" style={{ flexShrink: 0 }}>
                     <Tabs.List>
-                        <Tabs.Tab value="dashboard" leftSection={<IconCpu size={16} />}>
-                            {t('neologism_review.tab_mining')}
+                        <Tabs.Tab value="dashboard" leftSection={<IconArchive size={16} />}>
+                            {t('mod_archive.tab_analysis')}
+                        </Tabs.Tab>
+                        <Tabs.Tab value="published" leftSection={<IconCpu size={16} />}>
+                            {t('mod_archive.tab_published')}
                         </Tabs.Tab>
                         <Tabs.Tab value="court" leftSection={<IconGavel size={16} />}>
                             {t('neologism_review.tab_court')}
@@ -109,7 +136,21 @@ const NeologismReviewPage = () => {
                         selectedProject={selectedProject}
                         onSelectedProjectChange={handleSelectedProjectChange}
                         onMiningComplete={handleMiningComplete}
+                        onMiningStatusChange={handleMiningStatusChange}
                     />
+                </Tabs.Panel>
+
+                <Tabs.Panel
+                    id="neologism-published-panel"
+                    value="published"
+                    style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
+                >
+                    {activeTab === 'published' && (
+                        <PublishedArchivePanel
+                            selectedProject={selectedProject}
+                            status={archiveStatus}
+                        />
+                    )}
                 </Tabs.Panel>
 
                 <Tabs.Panel

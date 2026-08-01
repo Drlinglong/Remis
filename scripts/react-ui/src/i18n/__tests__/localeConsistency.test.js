@@ -89,6 +89,10 @@ const releaseDuplicateValueAllowlistPatterns = [
   /^game_name_/,
   /^theme_/,
   /^app_title$/,
+  // Mod Archive is newly introduced in the current release. Keep the key
+  // contract aligned while non-primary locales use the approved English
+  // fallback until native translations are supplied.
+  /^mod_archive\./,
 ];
 
 const isAllowedReleaseDuplicateKey = (key) => (

@@ -754,6 +754,46 @@ export const getTutorialSteps = (t, pageName) => {
                 }
             }
         ],
+        'mod-archive-analysis': [
+            {
+                element: '#neologism-page-tabs',
+                popover: {
+                    title: t('mod_archive.title'),
+                    description: t('mod_archive.subtitle'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#mod-archive-analysis',
+                popover: {
+                    title: t('mod_archive.analysis.setup_title'),
+                    description: t('mod_archive.analysis.scope_switch_note'),
+                    side: "top",
+                    align: 'center'
+                }
+            }
+        ],
+        'mod-archive-published': [
+            {
+                element: '#neologism-page-tabs',
+                popover: {
+                    title: t('mod_archive.release.title'),
+                    description: t('mod_archive.release.subtitle'),
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#mod-archive-release-panel',
+                popover: {
+                    title: t('mod_archive.release.metadata_title'),
+                    description: t('mod_archive.release.read_only'),
+                    side: "top",
+                    align: 'center'
+                }
+            }
+        ],
         'neologism-court': [
             {
                 element: '#neologism-page-tabs',
