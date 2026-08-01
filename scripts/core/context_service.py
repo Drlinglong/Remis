@@ -53,5 +53,9 @@ class ContextService:
     def effective_context(self, release_id: str) -> EffectiveContext | None:
         return self.repository.get_effective_context(release_id)
 
+    def list_releases(self, project_id: str) -> list[ContextRelease]:
+        """Return published releases newest first for one project."""
+        return self.repository.list_releases(project_id)
+
     def traceability(self, release_id: str) -> list[dict]:
         return self.repository.get_release_traceability(release_id)

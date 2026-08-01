@@ -527,7 +527,7 @@ class ProjectManager:
 
     async def run_incremental_update_workflow(self, config: Any, progress_callback: Optional[Callable] = None):
         """Orchestrates the incremental update workflow."""
-        from scripts.workflows.update_translate import run_incremental_update
+        from scripts.workflows.update_translate import run_incremental_update; from scripts.core.services.translation_context_service import context_workflow_kwargs
         from scripts.app_settings import LANGUAGE_BY_CODE, GAME_PROFILES, GAME_PROFILES_BY_ID
         
         # Handle case where frontend sends api_provider instead of provider
@@ -586,7 +586,7 @@ class ProjectManager:
             custom_source_path=config.custom_source_path,
             use_resume=config.use_resume,
             embedded_workshop=config.embedded_workshop.model_dump() if config.embedded_workshop else None,
-            progress_callback=progress_callback
+            **context_workflow_kwargs(config), progress_callback=progress_callback
         )
         if (
             result.get("status") == "success"

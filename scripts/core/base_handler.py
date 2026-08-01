@@ -1,5 +1,6 @@
 # scripts/core/base_handler.py
 import asyncio
+import json
 import time
 import logging
 from abc import ABC, abstractmethod
@@ -177,6 +178,7 @@ class BaseApiHandler(ABC):
 
         punctuation_prompt_part = f"\nPUNCTUATION CONVERSION:\n{punctuation_prompt}\n" if punctuation_prompt else ""
         source_context_prompt = self._build_source_context_prompt(task)
+        release_context_prompt = self._build_context_release_prompt(task)
         
         # Add a "Final Warning" section for Victoria 3 specifically
         final_warning = ""
@@ -194,6 +196,7 @@ class BaseApiHandler(ABC):
             + custom_global_prompt_part
             + glossary_prompt_part
             + source_context_prompt
+            + release_context_prompt
             + format_prompt_part
             + punctuation_prompt_part
             + final_warning
@@ -217,6 +220,39 @@ class BaseApiHandler(ABC):
             + "\n".join(context_lines)
             + "\nEND SOURCE-ONLY NEIGHBOR CONTEXT\n"
         )
+
+    @staticmethod
+    def _build_context_release_prompt(task: BatchTask) -> str:
+        if not task.context_summaries:
+            return ""
+        metadata = task.context_metadata
+        metadata_line = json.dumps(
+            {
+                "context_release_id": metadata.get("context_release_id"),
+                "source_snapshot_hash": metadata.get("source_snapshot_hash"),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        lines = [
+            "\nPROJECT CONTEXT RELEASE (context only; do not translate as output):",
+            f"Release metadata: {metadata_line}",
+            "Use the following effective published context to resolve terminology and narrative references. "
+            "It does not change the required output count or key mapping.",
+        ]
+        for item in task.context_summaries:
+            summary = json.dumps(
+                item.get("summary", {}),
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            lines.append(
+                f"- {item.get('context_key', '')} ({item.get('aggregate_type', '')}): {summary}"
+            )
+        lines.append("END PROJECT CONTEXT RELEASE\n")
+        return "\n".join(lines)
 
     def _parse_response(self, response: str, original_texts: list[str], target_lang_code: str) -> list[str] | None:
         """

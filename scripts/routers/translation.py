@@ -16,6 +16,7 @@ from scripts.workflows import initial_translate
 from scripts.utils import i18n
 from scripts.utils.system_utils import slugify_to_ascii
 from scripts.core.checkpoint_manager import CheckpointManager
+from scripts.core.services.translation_context_service import context_workflow_kwargs
 import asyncio
 from scripts.shared.ws_manager import ws_manager
 router = APIRouter()
@@ -83,6 +84,27 @@ def finalize_task(task_id: str, status: str, log_message: Optional[str] = None, 
         append_log=log_message,
         progress=progress or None,
         push=True,
+    )
+
+
+def _record_context_metadata(task_id: str, workflow_result: object) -> None:
+    if not isinstance(workflow_result, dict):
+        return
+    context_metadata = workflow_result.get("context")
+    if not context_metadata:
+        return
+    warning = context_metadata.get("warning") or {}
+    task_state.update_task(
+        task_id,
+        fields={
+            "context": context_metadata,
+            "result": {"metadata": {"context": context_metadata}},
+        },
+        append_log=(
+            f"Project context warning: {warning.get('code')}."
+            if warning.get("code") else None
+        ),
+        push=False,
     )
 
 
@@ -179,6 +201,7 @@ def run_translation_workflow_v2(
     concurrency_limit: Optional[int] = None,
     rpm_limit: Optional[int] = 40,
     embedded_workshop: Optional[dict] = None,
+    use_project_context: bool = True, context_release_id: Optional[str] = None, context_character_budget: int = 4000,
 ):
     i18n.load_language('en_US')
     task_state.update_task(
@@ -245,8 +268,7 @@ def run_translation_workflow_v2(
         )
 
     try:
-        logging.info(f"Starting V2 Workflow for Task {task_id}")
-        logging.info(f"Params: game_profile_id={game_profile_id}, source={source_lang_code}, targets={target_lang_codes}")
+        logging.info(f"Starting V2 Workflow for Task {task_id}"); logging.info(f"Params: game_profile_id={game_profile_id}, source={source_lang_code}, targets={target_lang_codes}")
 
         normalized_game_id = game_profile_id
         if game_profile_id == 'vic3':
@@ -313,7 +335,7 @@ def run_translation_workflow_v2(
                 final_glossary_ids.append(glossary_id)
 
         logging.info("Calling initial_translate.run...")
-        initial_translate.run(
+        workflow_result = initial_translate.run(
             mod_name=mod_name, game_profile=game_profile, source_lang=source_lang,
             target_languages=target_languages, selected_provider=api_provider,
             mod_context=mod_context, selected_glossary_ids=final_glossary_ids,
@@ -322,9 +344,9 @@ def run_translation_workflow_v2(
             clean_source=clean_source, batch_size_limit=batch_size_limit,
             source_context_overlap=source_context_overlap,
             concurrency_limit=concurrency_limit, rpm_limit=rpm_limit,
-            embedded_workshop=embedded_workshop
+            embedded_workshop=embedded_workshop, **context_workflow_kwargs({"use_project_context": use_project_context, "context_release_id": context_release_id, "context_character_budget": context_character_budget}),
         )
-        logging.info("Returned from initial_translate.run")
+        _record_context_metadata(task_id, workflow_result); logging.info("Returned from initial_translate.run")
         task_state.update_task(
             task_id,
             fields={
@@ -448,6 +470,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         concurrency_limit=request.concurrency_limit,
         rpm_limit=request.rpm_limit,
         embedded_workshop=request.embedded_workshop.model_dump() if request.embedded_workshop else None,
+        **context_workflow_kwargs(request),
     )
 
     # Auto-register translation path (Optimistic registration)

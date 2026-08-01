@@ -30,6 +30,7 @@ class IncrementalTranslationService:
         concurrency_limit: Optional[int] = None,
         rpm_limit: Optional[int] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+        context_selection: Optional[Any] = None,
     ) -> Tuple[Dict[str, List[str]], List[Dict[str, Any]]]:
         if not file_tasks_for_ai:
             if progress_callback:
@@ -52,6 +53,7 @@ class IncrementalTranslationService:
             max_workers=self._resolve_max_workers(selected_provider, concurrency_limit),
             chunk_size_override=batch_size_limit,
             source_context_overlap=source_context_overlap,
+            context_selector=context_selection,
         )
 
         def translate_batch(batch):

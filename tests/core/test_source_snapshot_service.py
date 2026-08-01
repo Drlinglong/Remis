@@ -64,6 +64,15 @@ def test_content_change_classifies_file_and_item_as_modified():
     assert diff.has_changes is True
 
 
+def test_item_content_changes_project_hash_even_when_file_bytes_are_unchanged():
+    service = SourceSnapshotService()
+    first = service.build_snapshot([file("events.yml", "same", ("event.one", "Old"))])
+    second = service.build_snapshot([file("events.yml", "same", ("event.one", "New"))])
+
+    assert first.files[0].source_sha256 == second.files[0].source_sha256
+    assert first.source_snapshot_hash != second.source_snapshot_hash
+
+
 def test_add_delete_and_unchanged_classifications_are_stable():
     service = SourceSnapshotService()
     previous = service.build_snapshot([

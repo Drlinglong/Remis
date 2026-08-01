@@ -25,10 +25,12 @@ class ParallelProcessor:
         max_workers: int = 24,
         chunk_size_override: Optional[int] = None,
         source_context_overlap: int = 0,
+        context_selector: Optional[Any] = None,
     ):
         self.max_workers = max_workers
         self.chunk_size_override = max(1, int(chunk_size_override)) if chunk_size_override else None
         self.source_context_overlap = max(0, int(source_context_overlap or 0))
+        self.context_selector = context_selector
         self.logger = logging.getLogger(__name__)
 
     def process_files_parallel(
@@ -79,7 +81,7 @@ class ParallelProcessor:
         texts: List[str],
         translation_indices: List[int],
     ) -> BatchTask:
-        return BatchTask(
+        batch_task = BatchTask(
             file_task=file_task,
             batch_index=batch_index,
             start_index=start_index,
@@ -89,6 +91,20 @@ class ParallelProcessor:
                 file_task, translation_indices[:len(texts)]
             ),
         )
+        if self.context_selector is not None:
+            source_entries = self._source_entries(file_task)
+            requested_entries = [
+                source_entries[index]
+                for index in translation_indices[:len(texts)]
+                if 0 <= index < len(source_entries)
+            ]
+            summaries, metadata = self.context_selector.select_for_batch(
+                file_task.file_path or file_task.filename,
+                requested_entries,
+            )
+            batch_task.context_summaries = summaries
+            batch_task.context_metadata = metadata
+        return batch_task
 
     @staticmethod
     def _translation_entry_indices(file_task: FileTask, text_count: int) -> List[int]:

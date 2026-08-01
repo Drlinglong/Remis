@@ -39,3 +39,5 @@ class BatchTask:
     fell_back_to_source: bool = field(default=False, init=False)
     warnings: List[Dict[str, Any]] = field(default_factory=list, init=False)
     context_entries: List[Dict[str, str]] = field(default_factory=list)
+    context_summaries: List[Dict[str, Any]] = field(default_factory=list)
+    context_metadata: Dict[str, Any] = field(default_factory=dict)

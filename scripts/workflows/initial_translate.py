@@ -20,6 +20,7 @@ from scripts.core.services.initial_translation_workspace_service import (
     load_glossaries_for_run,
     prepare_output_workspace,
 )
+from scripts.core.services.translation_context_service import prepare_workflow_context
 from scripts.app_settings import SOURCE_DIR, DEST_DIR
 from scripts.utils import i18n
 
@@ -44,7 +45,7 @@ def run(mod_name: str,
         source_context_overlap: int = 0,
         concurrency_limit: Optional[int] = None,
         rpm_limit: Optional[int] = 40,
-        embedded_workshop: Optional[dict] = None):
+        embedded_workshop: Optional[dict] = None, use_project_context: bool = True, context_release_id: Optional[str] = None, context_character_budget: int = 4000, context_service: Any = None, snapshot_service: Any = None):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info("Entered initial_translate.run")
     logging.info(f"--- Starting 'Initial Translation' workflow for: {mod_name} ---")
@@ -94,6 +95,7 @@ def run(mod_name: str,
     except Exception:
         return
 
+    context_selection = prepare_workflow_context(project_id, all_files_content, use_project_context, context_release_id, context_character_budget, context_service, snapshot_service)
     # Calculate Total Batches (Pre-calculation)
     effective_chunk_size = get_chunk_size_for_provider(selected_provider, batch_size_limit)
     total_batches = calculate_total_batches(all_files_content, effective_chunk_size)
@@ -107,7 +109,6 @@ def run(mod_name: str,
     )
     if not mod_id or not version_id:
         return
-
     # ───────────── 5. 多语言并行翻译 (Streaming from Memory) ─────────────
     
     last_target_lang = None
@@ -136,7 +137,7 @@ def run(mod_name: str,
             rpm_limit=rpm_limit,
             batch_size_limit=batch_size_limit,
             source_context_overlap=source_context_overlap,
-            embedded_workshop=embedded_workshop,
+            embedded_workshop=embedded_workshop, context_selection=context_selection,
         )
 
     finalize_workflow_run(
@@ -154,7 +155,7 @@ def run(mod_name: str,
         resolved_model_name,
         target_languages,
         project_id,
-    )
+    ); return {"context": context_selection.metadata}
 
 
 def discover_files(mod_name: str, game_profile: dict, source_lang: dict, override_path: Optional[str] = None) -> List[dict]:
