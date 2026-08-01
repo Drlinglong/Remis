@@ -4,9 +4,13 @@ from typing import Any, Dict, List, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
-
-class NeologismMiningError(RuntimeError):
-    """Raised when a mining model call cannot produce trustworthy structured output."""
+from scripts.core.neologism_extraction import (
+    AnalysisScope,
+    NeologismMiningError,
+    SourceItem,
+    StructuredNeologismExtraction,
+    StructuredNeologismExtractor,
+)
 
 
 class NeologismTerm(BaseModel):
@@ -98,6 +102,22 @@ Output only a JSON array with this schema:
         self.client = client
         self.logger = logging.getLogger(__name__)
 
+    def extract_structured(
+        self,
+        source_items: List[SourceItem],
+        *,
+        scope: AnalysisScope = AnalysisScope.TERMS_ONLY,
+        game_name: str = "Paradox Game",
+    ) -> StructuredNeologismExtraction:
+        """Return the unified extraction contract for one already-read chunk."""
+
+        return StructuredNeologismExtractor(self.client).extract(
+            source_items,
+            scope=scope,
+            game_name=game_name,
+            allow_legacy_term_array=False,
+        )
+
     def _generate(self, messages: List[Dict[str, str]]) -> str:
         try:
             response = self.client.generate_with_messages(messages, temperature=0.1)
@@ -151,18 +171,23 @@ Output only a JSON array with this schema:
         game_name: str = "Paradox Game",
     ) -> List[NeologismTerm]:
         del target_lang, target_lang_code
-        system_prompt = self.EXTRACTION_SYSTEM_PROMPT.format(game_name=game_name)
-        terms = self._parse_with_repair(
-            [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": text_chunk},
-            ],
-            TERM_LIST_ADAPTER,
-            "extraction",
+        extraction = StructuredNeologismExtractor(self.client).extract(
+            [SourceItem(
+                source_item_id="legacy-chunk-0",
+                relative_path="legacy-chunk.txt",
+                source_order=0,
+                source_text=text_chunk,
+                text_inferred=True,
+            )],
+            scope=AnalysisScope.TERMS_ONLY,
+            game_name=game_name,
+            allow_legacy_term_array=True,
         )
-        if len(terms) > 100:
-            raise NeologismMiningError("LLM extraction exceeded the 100-candidate safety limit for one chunk")
-        return terms
+        return [NeologismTerm(
+            original=term.original,
+            category=term.category,
+            confidence=term.confidence,
+        ) for term in extraction.terms]
 
     def review_terms(
         self,
