@@ -1,0 +1,13 @@
+.overflow-aware-control {
+    display: inline-flex;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.overflow-aware-label {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

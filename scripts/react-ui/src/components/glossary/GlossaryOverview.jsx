@@ -29,6 +29,7 @@ import {
 } from '@tabler/icons-react';
 
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 import styles from './GlossaryOverview.module.css';
 import GlossaryOperations from './GlossaryOperations';
 import GlossaryRowActions from './GlossaryRowActions';
@@ -39,11 +40,11 @@ const KIND_COLORS = {
     standard: 'gray',
 };
 
-const formatUpdatedAt = (value, fallback) => {
+const formatUpdatedAt = (value, fallback, language) => {
     if (!value) return fallback;
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return fallback;
-    return new Intl.DateTimeFormat(undefined, { dateStyle: 'short' }).format(date);
+    return formatLocalizedDateTime(date, language, { dateStyle: 'short' });
 };
 
 const GlossaryOverview = ({
@@ -64,7 +65,7 @@ const GlossaryOverview = ({
     onStartHealthCheck,
     onLoadHealthHistory,
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [query, setQuery] = usePersistentState('glossary_overview_query', '');
     const [kind, setKind] = usePersistentState('glossary_overview_kind', 'all');
     const [duplicateTarget, setDuplicateTarget] = useState(null);
@@ -477,6 +478,7 @@ const GlossaryOverview = ({
                                                 {formatUpdatedAt(
                                                     glossary.updated_at,
                                                     t('glossary_overview_unknown_date', 'Unknown'),
+                                                    getResolvedInterfaceLocale(i18n),
                                                 )}
                                             </Text>
                                         </Table.Td>

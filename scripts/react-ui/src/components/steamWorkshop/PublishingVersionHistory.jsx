@@ -19,12 +19,8 @@ import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import { BbcodePreview } from './description/BbcodePreview';
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 import { usePublishingVersionHistory } from './usePublishingVersionHistory';
-
-const formatTime = (value) => new Intl.DateTimeFormat(undefined, {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-}).format(new Date(value));
 
 const typeLabel = (assetType, t) => assetType === 'cover'
   ? t('steam_workshop.cover_label')
@@ -32,7 +28,7 @@ const typeLabel = (assetType, t) => assetType === 'cover'
 
 export default function PublishingVersionHistory({ workspaceId }) {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const history = usePublishingVersionHistory(workspaceId);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -99,7 +95,10 @@ export default function PublishingVersionHistory({ workspaceId }) {
                         {!selected && <Badge variant="light">{t('steam_workshop.candidate')}</Badge>}
                       </Group>
                       <Text size="xs" c="dimmed">
-                        {formatTime(version.created_at)} · {version.source}
+                        {formatLocalizedDateTime(version.created_at, getResolvedInterfaceLocale(i18n), {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })} · {version.source}
                         {version.language ? ` · ${version.language}` : ''}
                       </Text>
                     </div>

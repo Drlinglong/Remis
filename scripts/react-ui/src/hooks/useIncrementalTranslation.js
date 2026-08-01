@@ -29,9 +29,9 @@ import {
     shouldResyncIncrementalTask,
 } from './incrementalTranslationTaskResync';
 import { useIncrementalTaskMonitor } from './useIncrementalTaskMonitor';
-
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../utils/localizedDateTime';
 export const useIncrementalTranslation = (notificationStyle) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const location = useLocation();
 
     // UI Steps / Navigation
@@ -97,8 +97,8 @@ export const useIncrementalTranslation = (notificationStyle) => {
     const [configLoaded, setConfigLoaded] = useState(false);
 
     const addLog = useCallback((msg) => {
-        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
-    }, []);
+        setLogs(prev => [...prev, `[${formatLocalizedDateTime(Date.now(), getResolvedInterfaceLocale(i18n), { timeStyle: 'medium' })}] ${msg}`]);
+    }, [i18n]);
 
     const {
         completionSourceRef,
@@ -383,7 +383,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         executionInFlightRef.current = true;
         setExecuting(true);
         setActive(3);
-        setLogs([`[${new Date().toLocaleTimeString()}] ${t('incremental_translation.status_ws_initializing')}`]);
+        setLogs([`[${formatLocalizedDateTime(Date.now(), getResolvedInterfaceLocale(i18n), { timeStyle: 'medium' })}] ${t('incremental_translation.status_ws_initializing')}`]);
         setFinalSummary(null);
         setProgress(0);
         setProgressInfo({ percent: 0, stage_code: 'initializing', stage: t('incremental_translation.progress_stage_initializing') });
@@ -450,7 +450,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         selectedProvider, selectedModel, batchSizeLimit, concurrencyLimit, rpmLimit, customSourcePath,
         useResume, embeddedWorkshopEnabled, embeddedWorkshopFollowPrimary, embeddedWorkshopProvider,
         embeddedWorkshopModel, embeddedWorkshopBatchSize, embeddedWorkshopConcurrency, embeddedWorkshopRpm,
-        completionSourceRef, connectWebSocket, addLog, notificationStyle, t
+        completionSourceRef, connectWebSocket, addLog, notificationStyle, t, i18n
     ]);
 
     const openOutputFolder = useCallback(async () => {

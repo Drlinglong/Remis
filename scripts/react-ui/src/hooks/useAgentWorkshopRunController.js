@@ -11,6 +11,7 @@ import {
   isRepairableAgentWorkshopIssue,
   startAgentWorkshopFixRun,
 } from '../services/agentWorkshopWorkflowService';
+import { formatCurrentLocalizedDateTime } from '../utils/localizedDateTime';
 
 export const useAgentWorkshopRunController = ({
   baseSessionState,
@@ -66,7 +67,7 @@ export const useAgentWorkshopRunController = ({
 
   const addExecutionLog = useCallback((message) => {
     setExecutionLogs((previousLogs) => {
-      const nextLogs = [...previousLogs, `[${new Date().toLocaleTimeString()}] ${message}`];
+      const nextLogs = [...previousLogs, `[${formatCurrentLocalizedDateTime(Date.now(), { timeStyle: 'medium' })}] ${message}`];
       writeAgentWorkshopSnapshot(createAgentWorkshopSnapshot(sessionState, {
         executionLogs: nextLogs,
       }));

@@ -3,14 +3,15 @@ import { Badge, Button, Group, Paper, Stack, Text, Title } from '@mantine/core';
 import { IconArrowRight, IconEdit } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 import styles from './SteamWorkshopOverview.module.css';
 
-const formatTime = (value, t) => {
+const formatTime = (value, t, language) => {
   if (!value) return t('steam_workshop.not_updated');
-  return new Intl.DateTimeFormat(undefined, {
+  return formatLocalizedDateTime(value, language, {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(new Date(value));
+  });
 };
 
 const VersionSummary = ({ current, count, label, t }) => (
@@ -24,7 +25,7 @@ const VersionSummary = ({ current, count, label, t }) => (
 );
 
 export default function WorkspaceCard({ onEdit, onOpen, projectName, workspace }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <Paper withBorder p="lg" data-remis-surface="paper" className={styles.card}>
       <Stack gap="md" className={styles.metadata}>
@@ -73,7 +74,7 @@ export default function WorkspaceCard({ onEdit, onOpen, projectName, workspace }
         </div>
 
         <Text size="xs" c="dimmed">
-          {t('steam_workshop.latest_update', { time: formatTime(workspace.updated_at, t) })}
+          {t('steam_workshop.latest_update', { time: formatTime(workspace.updated_at, t, getResolvedInterfaceLocale(i18n)) })}
         </Text>
       </Stack>
       <Button

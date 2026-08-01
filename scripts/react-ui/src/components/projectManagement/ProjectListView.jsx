@@ -23,6 +23,7 @@ import {
 import heroBg from '../../assets/project_hero_bg.png';
 import styles from '../../pages/ProjectManagement.module.css';
 import { getGameBadgeColor } from '../../utils/gamePresentation';
+import { formatCurrentLocalizedDateTime } from '../../utils/localizedDateTime';
 
 export function ProjectListView({
   projects,
@@ -137,7 +138,7 @@ export function ProjectListView({
               </Text>
               <Group mt="md">
                 <Text size="xs" color="dimmed">
-                  {t('project_management.last_updated', 'Last updated')}: {new Date(project.last_updated || Date.now()).toLocaleDateString()}
+                  {t('project_management.last_updated', 'Last updated')}: {formatCurrentLocalizedDateTime(project.last_updated || Date.now(), { dateStyle: 'short' })}
                 </Text>
               </Group>
             </Card>

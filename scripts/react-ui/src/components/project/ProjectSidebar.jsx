@@ -4,9 +4,10 @@ import { IconX, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../utils/api';
 import { useSidebar } from '../../context/SidebarContextCore';
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 
 const ProjectSidebar = ({ projectId, onDeleteNote }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { setSidebarContent } = useSidebar();
     const [history, setHistory] = useState([]);
 
@@ -42,7 +43,7 @@ const ProjectSidebar = ({ projectId, onDeleteNote }) => {
                 history.map((note) => (
                     <Paper key={note.id} withBorder p="sm" radius="md" style={{ background: 'rgba(255,255,255,0.05)' }}>
                         <Group justify="space-between" mb="xs">
-                            <Text size="xs" c="dimmed">{note.created_at ? new Date(note.created_at).toLocaleString() : 'Unknown date'}</Text>
+                            <Text size="xs" c="dimmed">{note.created_at ? formatLocalizedDateTime(note.created_at, getResolvedInterfaceLocale(i18n)) : 'Unknown date'}</Text>
                             <ActionIcon color="red" variant="subtle" size="xs" onClick={() => onDeleteNote(note.id)}>
                                 <IconTrash size={14} />
                             </ActionIcon>

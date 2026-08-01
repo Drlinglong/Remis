@@ -4,6 +4,7 @@ import { IconArrowRight, IconClock } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import { ACTIVE_TASK_STATUSES, formatTaskDuration, taskDurationMs } from '../../utils/taskTime';
+import { getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 import {
   formatTaskTimestamp,
   getTaskStageLabel,
@@ -21,7 +22,7 @@ const STATUS_COLORS = {
 };
 
 export function TaskSummaryCard({ compact = false, handling = false, onHandle, onOpen, task }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const active = ACTIVE_TASK_STATUSES.has(task.status);
   const [now, setNow] = useState(Date.now());
   const isPartialGlossaryHealth = (
@@ -57,7 +58,7 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
     : getTaskStageLabel(task, t);
   const startedAt = formatTaskTimestamp(
     task.started_at || task.created_at,
-    typeof navigator === 'undefined' ? undefined : navigator.language,
+    getResolvedInterfaceLocale(i18n),
   );
 
   return (

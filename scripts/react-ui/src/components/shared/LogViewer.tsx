@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 import { Card, Text } from '@mantine/core';
 import './LogViewer.css';
 import layoutStyles from '../layout/Layout.module.css';
 
 const LogViewer = ({ logs }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const logContainerRef = useRef(null);
 
   useEffect(() => {
@@ -28,7 +29,7 @@ const LogViewer = ({ logs }) => {
   };
 
   const formatTimestamp = (date) => {
-    return new Date(date).toLocaleTimeString();
+    return formatLocalizedDateTime(date, getResolvedInterfaceLocale(i18n), { timeStyle: 'medium' });
   };
 
   return (

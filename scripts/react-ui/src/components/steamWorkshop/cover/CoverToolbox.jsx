@@ -1,5 +1,6 @@
 import { Button, Paper, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { IconUpload } from '@tabler/icons-react';
+import { OverflowAwareLabel } from '../../common/OverflowAwareLabel';
 import { AVAILABLE_FLAGS, FLAG_SOURCES } from './coverEditorAssets';
 
 export const CoverToolbox = ({
@@ -11,18 +12,22 @@ export const CoverToolbox = ({
 }) => (
     <Paper id="thumbnail-toolbox" withBorder p="md" data-remis-surface="paper">
         <Stack>
-            <Tooltip label={labels.useProjectThumbnailTooltip} multiline w={230} withArrow>
-                <span>
-                    <Button
-                        variant="light"
-                        leftSection={<IconUpload size={14} />}
-                        disabled={!canLoadProjectThumbnail}
-                        onClick={onLoadProjectThumbnail}
-                    >
-                        {labels.useProjectThumbnail}
-                    </Button>
-                </span>
-            </Tooltip>
+            <OverflowAwareLabel
+                description={labels.useProjectThumbnailTooltip}
+                label={labels.useProjectThumbnail}
+                tooltipProps={{ multiline: true, w: 230 }}
+            >
+                <Button
+                    className="cover-toolbox-project-thumbnail"
+                    fullWidth
+                    variant="light"
+                    leftSection={<IconUpload size={14} />}
+                    disabled={!canLoadProjectThumbnail}
+                    onClick={onLoadProjectThumbnail}
+                >
+                    {labels.useProjectThumbnail}
+                </Button>
+            </OverflowAwareLabel>
             {projectThumbnailError && <Text c="red" role="alert" size="xs">{projectThumbnailError}</Text>}
 
             <div>
