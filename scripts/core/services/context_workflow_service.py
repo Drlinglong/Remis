@@ -40,7 +40,7 @@ from scripts.shared import task_state
 class ContextWorkflowService:
     """Own the maintained scan workflow while keeping domain ports injectable."""
 
-    CHUNK_SIZE = 50
+    CHUNK_SIZE = 16
     REVIEW_BATCH_SIZE = ContextCandidateAdapter.REVIEW_BATCH_SIZE
     SCHEMA_VERSION = "context-v1"
     PROMPT_VERSION = "context-synthesis-v1"

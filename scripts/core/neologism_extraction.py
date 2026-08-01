@@ -223,9 +223,7 @@ Return only this JSON shape, with no markdown:
                 ),
             },
         ]
-        extraction = self._parse_with_one_repair(messages, items, allow_legacy_term_array)
-        self._validate_grounding(extraction, items, scope)
-        return extraction
+        return self._parse_with_one_repair(messages, items, scope, allow_legacy_term_array)
 
     def extract_chunks(
         self,
@@ -251,12 +249,13 @@ Return only this JSON shape, with no markdown:
         self,
         messages: List[Dict[str, str]],
         source_items: Sequence[SourceItem],
+        scope: AnalysisScope,
         allow_legacy_term_array: bool,
     ) -> StructuredNeologismExtraction:
         response = self._generate(messages)
         try:
-            return self._parse_payload(response, source_items, allow_legacy_term_array)
-        except (json.JSONDecodeError, ValidationError, TypeError, ValueError) as first_error:
+            return self._parse_and_validate(response, source_items, scope, allow_legacy_term_array)
+        except (json.JSONDecodeError, ValidationError, TypeError, ValueError, NeologismMiningError) as first_error:
             repair_messages = messages + [
                 {"role": "assistant", "content": response},
                 {
@@ -271,12 +270,23 @@ Return only this JSON shape, with no markdown:
             ]
             repaired = self._generate(repair_messages)
             try:
-                return self._parse_payload(repaired, source_items, allow_legacy_term_array)
-            except (json.JSONDecodeError, ValidationError, TypeError, ValueError) as second_error:
+                return self._parse_and_validate(repaired, source_items, scope, allow_legacy_term_array)
+            except (json.JSONDecodeError, ValidationError, TypeError, ValueError, NeologismMiningError) as second_error:
                 self.logger.error("Structured extraction failed after one repair")
                 raise NeologismMiningError(
                     "LLM returned invalid structured extraction output after one repair"
                 ) from second_error
+
+    def _parse_and_validate(
+        self,
+        response: str,
+        source_items: Sequence[SourceItem],
+        scope: AnalysisScope,
+        allow_legacy_term_array: bool,
+    ) -> StructuredNeologismExtraction:
+        extraction = self._parse_payload(response, source_items, allow_legacy_term_array)
+        self._validate_grounding(extraction, source_items, scope)
+        return extraction
 
     @staticmethod
     def _parse_payload(

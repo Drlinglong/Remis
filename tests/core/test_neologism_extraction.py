@@ -105,33 +105,62 @@ def test_terms_only_retains_terms_and_does_not_accept_narrative_arrays():
     assert '"scope": "terms_only"' in handler.calls[0][0][1]["content"]
 
 
-def test_ungrounded_evidence_is_rejected_without_a_second_extraction_call():
-    handler = FakeHandler([json.dumps({
+def test_ungrounded_evidence_gets_one_grounding_repair_attempt():
+    invalid = json.dumps({
         "terms": [{
             "original": "Hallucinated Term",
             "category": "other",
             "evidence": [{"source_item_id": "item-1", "snippet": "not in source"}],
         }],
         "entities": [], "facts": [], "events": [], "relationships": [],
-    })])
+    })
+    repaired = json.dumps({
+        "terms": [{
+            "original": "Aether Engine",
+            "category": "technology",
+            "evidence": [{"source_item_id": "item-1", "snippet": "Aether Engine"}],
+        }],
+        "entities": [], "facts": [], "events": [], "relationships": [],
+    })
+    handler = FakeHandler([invalid, repaired])
 
-    with pytest.raises(NeologismMiningError, match="ungrounded evidence"):
+    result = StructuredNeologismExtractor(handler).extract([source_item()])
+
+    assert result.terms[0].original == "Aether Engine"
+    assert len(handler.calls) == 2
+    assert "ungrounded evidence snippet" in handler.calls[1][0][-1]["content"]
+
+
+def test_ungrounded_evidence_is_rejected_after_one_repair():
+    invalid = json.dumps({
+        "terms": [{
+            "original": "Hallucinated Term",
+            "category": "other",
+            "evidence": [{"source_item_id": "item-1", "snippet": "not in source"}],
+        }],
+        "entities": [], "facts": [], "events": [], "relationships": [],
+    })
+    handler = FakeHandler([invalid, invalid])
+
+    with pytest.raises(NeologismMiningError, match="after one repair"):
         StructuredNeologismExtractor(handler).extract([source_item()])
-    assert len(handler.calls) == 1
+    assert len(handler.calls) == 2
 
 
 def test_unknown_source_item_rejects_model_provenance():
-    handler = FakeHandler([json.dumps({
+    invalid = json.dumps({
         "terms": [{
             "original": "Curia Caelestis",
             "category": "faction",
             "evidence": [{"source_item_id": "other-item", "snippet": "Curia Caelestis"}],
         }],
         "entities": [], "facts": [], "events": [], "relationships": [],
-    })])
+    })
+    handler = FakeHandler([invalid, invalid])
 
-    with pytest.raises(NeologismMiningError, match="unknown source item"):
+    with pytest.raises(NeologismMiningError, match="after one repair"):
         StructuredNeologismExtractor(handler).extract([source_item()])
+    assert len(handler.calls) == 2
 
 
 def test_source_identity_is_normalized_and_model_cannot_override_it():

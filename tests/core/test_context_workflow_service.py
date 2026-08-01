@@ -208,6 +208,24 @@ def test_failed_task_creation_can_release_only_its_queued_reservation():
     assert service.reserve("project-1", "task-2", AnalysisScope.TERMS_ONLY) is True
 
 
+def test_context_extraction_chunks_bound_structured_model_output():
+    items = [
+        SourceItem(
+            source_item_id=f"item-{index}",
+            relative_path="localisation/english/main.yml",
+            item_key=f"key_{index}:0",
+            source_order=index,
+            source_text=f"Source text {index}",
+        )
+        for index in range(ContextWorkflowService.CHUNK_SIZE + 1)
+    ]
+
+    chunks = list(ContextWorkflowService._chunks(items))
+
+    assert [len(chunk) for chunk in chunks] == [ContextWorkflowService.CHUNK_SIZE, 1]
+    assert ContextWorkflowService.CHUNK_SIZE == 16
+
+
 def test_source_parser_preserves_utf8_key_order_and_normalized_path(tmp_path):
     root = tmp_path / "mod"
     root.mkdir()
