@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Alert,
@@ -21,6 +21,8 @@ import {
     getTraceabilityRows,
     isReleaseStale,
 } from './modArchiveModel';
+import ModArchiveOverrideEditor from './ModArchiveOverrideEditor';
+import { useModArchiveDraft } from './useModArchiveDraft';
 import { useModArchiveRelease } from './useModArchiveRelease';
 import styles from './ModArchive.module.css';
 
@@ -75,6 +77,7 @@ const SummarySection = ({ kind, title, entries, emptyLabel, t }) => (
 
 const PublishedArchivePanel = ({ selectedProject, status }) => {
     const { t } = useTranslation();
+    const [publishedChildReleaseId, setPublishedChildReleaseId] = useState(null);
     const releaseState = useModArchiveRelease(selectedProject);
     const {
         phase,
@@ -88,9 +91,19 @@ const PublishedArchivePanel = ({ selectedProject, status }) => {
         loadTraceability,
     } = releaseState;
     const stale = isReleaseStale(release, status);
-    const entries = getArchiveEntries(effective);
-    const counts = getArchiveCounts(effective);
+    const entries = useMemo(() => getArchiveEntries(effective), [effective]);
+    const counts = useMemo(() => getArchiveCounts(effective), [effective]);
     const rows = getTraceabilityRows(traceability);
+    const handlePublished = useCallback(async (nextRelease) => {
+        setPublishedChildReleaseId(nextRelease?.release_id || null);
+        await refresh();
+    }, [refresh]);
+    const draftState = useModArchiveDraft({
+        selectedProject,
+        baseReleaseId: release?.release_id,
+        contextEntries: entries,
+        onPublished: handlePublished,
+    });
 
     if (!selectedProject) {
         return (
@@ -192,9 +205,23 @@ const PublishedArchivePanel = ({ selectedProject, status }) => {
                                 {t('mod_archive.release.read_only')}
                             </Text>
                         </div>
-                        <Button className={styles.secondaryAction} variant="outline" size="sm" onClick={refresh} leftSection={<IconRefresh size={15} />} data-remis-action="secondary">
-                            {t('mod_archive.release.refresh')}
-                        </Button>
+                        <Group gap="xs">
+                            <Button
+                                className={styles.secondaryAction}
+                                variant="outline"
+                                size="sm"
+                                onClick={draftState.startDraft}
+                                loading={draftState.phase === 'starting'}
+                                disabled={draftState.phase === 'starting' || draftState.phase === 'publishing'}
+                                data-remis-action="secondary"
+                                data-testid="mod-archive-start-draft"
+                            >
+                                {t('mod_archive.release.start_draft')}
+                            </Button>
+                            <Button className={styles.secondaryAction} variant="outline" size="sm" onClick={refresh} leftSection={<IconRefresh size={15} />} data-remis-action="secondary">
+                                {t('mod_archive.release.refresh')}
+                            </Button>
+                        </Group>
                     </Group>
                     <div className={styles.metadataGrid}>
                         <MetadataCell label={t('mod_archive.release.release_id')} value={release.release_id} technical />
@@ -205,9 +232,26 @@ const PublishedArchivePanel = ({ selectedProject, status }) => {
                         <MetadataCell label={t('mod_archive.release.upstream_version')} value={release.metadata?.upstream_version || t('mod_archive.release.not_available')} />
                         <MetadataCell label={t('mod_archive.release.provider')} value={release.metadata?.provider_id} />
                         <MetadataCell label={t('mod_archive.release.model')} value={release.metadata?.model_id} />
+                        {release.metadata?.parent_release_id && (
+                            <MetadataCell label={t('mod_archive.release.parent_release')} value={release.metadata.parent_release_id} technical />
+                        )}
                     </div>
                 </Stack>
             </Paper>
+
+            {publishedChildReleaseId === release.release_id && (
+                <Alert className={styles.statusSurface} mt="md" data-tone="success" data-testid="mod-archive-published-notice">
+                    <Text fw={700}>{t('mod_archive.release.draft.publish_success')}</Text>
+                    <Text size="sm">{publishedChildReleaseId}</Text>
+                </Alert>
+            )}
+
+            <ModArchiveOverrideEditor
+                draftState={draftState}
+                contextEntries={entries}
+                baseReleaseId={release.release_id}
+                t={t}
+            />
 
             <Paper className={styles.paper} p="lg" mt="md" withBorder data-remis-surface="paper">
                 <Stack gap="md">

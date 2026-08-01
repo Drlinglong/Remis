@@ -213,9 +213,53 @@
     color: var(--surface-text-main) !important;
 }
 
+.draftEditor {
+    background: var(--surface-bg) !important;
+    border: 1px solid color-mix(in srgb, var(--interactive-accent) 38%, var(--surface-border)) !important;
+    color: var(--surface-text-main);
+}
+
+.draftForm {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.draftFieldGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.draftField {
+    min-width: 0;
+}
+
+.draftActions {
+    border-top: 1px solid color-mix(in srgb, var(--surface-border) 32%, transparent);
+    padding-top: 1rem;
+}
+
+.inheritedRow {
+    min-width: 0;
+    padding: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 18%, transparent);
+    border-radius: var(--card-radius);
+}
+
+.errorDetails {
+    margin-top: 0.5rem;
+}
+
+.errorDetails summary {
+    cursor: pointer;
+    color: var(--surface-text-muted);
+    font-size: 0.8rem;
+}
+
 @media (max-width: 58em) {
     .layout,
-    .summaryGrid {
+    .summaryGrid,
+    .draftFieldGrid {
         grid-template-columns: minmax(0, 1fr);
     }
 

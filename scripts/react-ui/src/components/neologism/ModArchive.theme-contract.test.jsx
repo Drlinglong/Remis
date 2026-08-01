@@ -9,6 +9,7 @@ const readSource = (fileName) => readFileSync(
 
 const setupSource = readSource('ModArchiveAnalysisSetup.jsx');
 const releaseSource = readSource('PublishedArchivePanel.jsx');
+const editorSource = readSource('ModArchiveOverrideEditor.jsx');
 const stylesSource = readSource('ModArchive.module.css');
 
 describe('Mod Archive semantic workbench contract', () => {
@@ -30,11 +31,16 @@ describe('Mod Archive semantic workbench contract', () => {
         expect(releaseSource).toContain('data-testid="mod-archive-release-panel"');
         expect(releaseSource).toContain('data-testid="mod-archive-release-stale"');
         expect(releaseSource).toContain('data-testid="mod-archive-load-traceability"');
+        expect(releaseSource).toContain('data-testid="mod-archive-start-draft"');
+        expect(editorSource).toContain('data-testid="mod-archive-draft-editor"');
+        expect(editorSource).toContain('data-testid="mod-archive-publish-confirm"');
         expect(releaseSource).toContain('data-remis-action="secondary"');
+        expect(editorSource).toContain('data-remis-action="primary"');
     });
 
     it('leaves vertical scrolling to the page tab panels', () => {
         expect(setupSource).not.toContain('ScrollArea');
         expect(releaseSource).not.toContain('ScrollArea');
+        expect(editorSource).not.toContain('ScrollArea');
     });
 });

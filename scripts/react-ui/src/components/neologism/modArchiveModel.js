@@ -3,6 +3,14 @@ export const ANALYSIS_SCOPES = Object.freeze({
     NARRATIVE_CONTEXT: 'narrative_context',
 });
 
+export const ARCHIVE_OVERRIDE_FIELD_KEYS = Object.freeze([
+    'summary',
+    'preferred_name',
+    'entity_type',
+    'event_membership',
+    'relationship_correction',
+]);
+
 const STATUS_DEFAULTS = Object.freeze({
     idle: { stage: 'idle', result: 'idle', nextStep: 'choose_project' },
     queued: { stage: 'queued', result: 'queued', nextStep: 'wait' },
@@ -173,6 +181,43 @@ export const getTraceabilityRows = (traceability = []) => (
             };
         });
     })
+);
+
+export const getContextErrorCode = (error) => {
+    const detail = error?.response?.data?.detail;
+    return typeof detail?.code === 'string' ? detail.code : 'context_request_failed';
+};
+
+export const getDraftOverride = (draft, contextKey) => (
+    (Array.isArray(draft?.overrides) ? draft.overrides : [])
+        .find((override) => override?.target_key === contextKey) || null
+);
+
+const asEditorText = (value) => {
+    if (value === undefined || value === null) return '';
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) return value.join(', ');
+    if (typeof value === 'object' && typeof value.summary === 'string') return value.summary;
+    return '';
+};
+
+export const getEditorValues = (entry, draftOverride) => {
+    const generatedValue = asObject(entry?.value);
+    const overrideValue = asObject(draftOverride?.value);
+    const combined = { ...generatedValue, ...overrideValue };
+    return Object.fromEntries(
+        ARCHIVE_OVERRIDE_FIELD_KEYS.map((key) => [key, asEditorText(combined[key])]),
+    );
+};
+
+export const buildOverrideDelta = (values, initialValues) => Object.fromEntries(
+    ARCHIVE_OVERRIDE_FIELD_KEYS.flatMap((key) => {
+        const value = typeof values?.[key] === 'string' ? values[key].trim() : '';
+        const initial = typeof initialValues?.[key] === 'string'
+            ? initialValues[key].trim()
+            : '';
+        return value && value !== initial ? [[key, value]] : [];
+    }),
 );
 
 export const getErrorMessage = (error, fallback = '') => {
