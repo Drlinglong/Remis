@@ -19,6 +19,7 @@ describe('Mod Archive semantic workbench contract', () => {
         expect(stylesSource).toContain('var(--paper-bg)');
         expect(stylesSource).toContain('var(--interactive-accent)');
         expect(stylesSource).toContain('--mantine-color-text: var(--surface-text-main)');
+        expect(stylesSource).toMatch(/\.metadataValue\s*\{[^}]*var\(--surface-text-main\)/s);
         expect(stylesSource).toContain('.mantine-InputWrapper-label');
         expect(stylesSource).toContain('.mantine-Radio-label');
         expect(stylesSource).not.toMatch(/data-theme|\.byzantine|\.victorian|\.scifi|\.wwii|\.medieval/);

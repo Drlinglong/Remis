@@ -156,6 +156,10 @@
     font-size: 0.75rem;
 }
 
+.metadataValue {
+    color: var(--surface-text-main) !important;
+}
+
 .metadataCell {
     padding: 0.625rem;
     border: 1px solid color-mix(in srgb, var(--surface-text-muted) 25%, transparent);

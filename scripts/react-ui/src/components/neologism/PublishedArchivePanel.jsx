@@ -336,7 +336,11 @@ const PublishedArchivePanel = ({ selectedProject, status }) => {
 const MetadataCell = ({ label, value, technical = false }) => (
     <div className={styles.metadataCell}>
         <Text className={styles.metadataLabel}>{label}</Text>
-        <Text className={technical ? styles.technical : undefined} size="sm" title={value || ''}>
+        <Text
+            className={`${styles.metadataValue} ${technical ? styles.technical : ''}`}
+            size="sm"
+            title={value || ''}
+        >
             {value || '—'}
         </Text>
     </div>
