@@ -1,5 +1,5 @@
 from typing import Optional, List, Literal
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from scripts.schemas.common import LanguageCode
 
 class CreateProjectRequest(BaseModel):
@@ -133,6 +133,7 @@ class IncrementalUpdateRequest(BaseModel):
     provider: Optional[str] = None # Alias for api_provider (for legacy/frontend compatibility)
     model: str = "gemini-pro"
     batch_size_limit: Optional[int] = None
+    source_context_overlap: int = Field(default=0, ge=0, le=100)
     concurrency_limit: Optional[int] = None
     rpm_limit: Optional[int] = None
     mod_context: Optional[str] = ""

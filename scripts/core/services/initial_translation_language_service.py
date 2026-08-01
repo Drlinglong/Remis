@@ -49,6 +49,7 @@ def run_language_translation(
     rpm_limit: Optional[int],
     batch_size_limit: Optional[int],
     embedded_workshop: Optional[dict],
+    source_context_overlap: int = 0,
 ) -> None:
     logging.info(i18n.t("translating_to_language", lang_name=target_lang["name"]))
 
@@ -104,8 +105,7 @@ def run_language_translation(
     )
 
     max_workers = resolve_max_workers(concurrency_limit, selected_provider)
-    processor = ParallelProcessor(max_workers=max_workers, chunk_size_override=effective_chunk_size)
-
+    processor = ParallelProcessor(max_workers=max_workers, chunk_size_override=effective_chunk_size, source_context_overlap=source_context_overlap)
     def translation_wrapper(batch_task):
         result = handler.translate_batch(batch_task)
         with progress_lock:

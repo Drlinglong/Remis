@@ -176,6 +176,7 @@ class BaseApiHandler(ABC):
             )
 
         punctuation_prompt_part = f"\nPUNCTUATION CONVERSION:\n{punctuation_prompt}\n" if punctuation_prompt else ""
+        source_context_prompt = self._build_source_context_prompt(task)
         
         # Add a "Final Warning" section for Victoria 3 specifically
         final_warning = ""
@@ -192,11 +193,30 @@ class BaseApiHandler(ABC):
             + context_prompt_part
             + custom_global_prompt_part
             + glossary_prompt_part
+            + source_context_prompt
             + format_prompt_part
             + punctuation_prompt_part
             + final_warning
         )
         return self._apply_model_prompt_adapter(prompt)
+
+    @staticmethod
+    def _build_source_context_prompt(task: BatchTask) -> str:
+        if not task.context_entries:
+            return ""
+
+        context_lines = []
+        for entry in task.context_entries:
+            key = entry.get("key", "")
+            source = mask_special_tokens(entry.get("source", ""))
+            context_lines.append(f'- {key}: "{source}"')
+        return (
+            "\nSOURCE-ONLY NEIGHBOR CONTEXT:\n"
+            "The following entries are context only. Do not translate them, do not include them in the output, "
+            "and do not change the required output count.\n"
+            + "\n".join(context_lines)
+            + "\nEND SOURCE-ONLY NEIGHBOR CONTEXT\n"
+        )
 
     def _parse_response(self, response: str, original_texts: list[str], target_lang_code: str) -> list[str] | None:
         """

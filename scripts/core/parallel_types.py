@@ -22,6 +22,8 @@ class FileTask:
     mod_name: str  # 添加mod_name字段
     loc_root: str = "" # Localization root path (e.g. mod/main_menu/localization)
     file_path: str = "" # Stable archive-relative path for this source file
+    source_entries: List[Dict[str, str]] = field(default_factory=list)
+    translation_entry_indices: List[int] = field(default_factory=list)
 
 
 @dataclass
@@ -36,3 +38,4 @@ class BatchTask:
     failed: bool = field(default=False, init=False)
     fell_back_to_source: bool = field(default=False, init=False)
     warnings: List[Dict[str, Any]] = field(default_factory=list, init=False)
+    context_entries: List[Dict[str, str]] = field(default_factory=list)

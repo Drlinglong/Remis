@@ -175,6 +175,7 @@ def run_translation_workflow_v2(
     use_resume: bool = True,
     clean_source: bool = False,
     batch_size_limit: Optional[int] = None,
+    source_context_overlap: int = 0,
     concurrency_limit: Optional[int] = None,
     rpm_limit: Optional[int] = 40,
     embedded_workshop: Optional[dict] = None,
@@ -196,9 +197,7 @@ def run_translation_workflow_v2(
             ))
         except Exception as e:
             logging.error(f"Failed to log activity (v2): {e}")
-
     task_state.init_progress(task_id)
-
     last_update_time = [0]
 
     def progress_callback(current, total, current_file, stage="Translating",
@@ -321,6 +320,7 @@ def run_translation_workflow_v2(
             model_name=model_name, use_glossary=True, progress_callback=progress_callback,
             override_path=override_path, project_id=project_id, use_resume=use_resume,
             clean_source=clean_source, batch_size_limit=batch_size_limit,
+            source_context_overlap=source_context_overlap,
             concurrency_limit=concurrency_limit, rpm_limit=rpm_limit,
             embedded_workshop=embedded_workshop
         )
@@ -444,6 +444,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         use_resume=request.use_resume,
         clean_source=request.clean_source,
         batch_size_limit=request.batch_size_limit,
+        source_context_overlap=request.source_context_overlap,
         concurrency_limit=request.concurrency_limit,
         rpm_limit=request.rpm_limit,
         embedded_workshop=request.embedded_workshop.model_dump() if request.embedded_workshop else None,

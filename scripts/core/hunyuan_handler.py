@@ -107,6 +107,7 @@ class HunyuanHandler(OpenAIHandler):
             context_prompt_part
             + custom_global_prompt_part
             + glossary_prompt_part
+            + self._build_source_context_prompt(task)
             + prompt
         )
         return self._apply_model_prompt_adapter(prompt)
@@ -198,7 +199,8 @@ class HunyuanHandler(OpenAIHandler):
                 file_task=task.file_task,
                 batch_index=task.batch_index + i,
                 start_index=task.start_index + i if hasattr(task, 'start_index') else 0, # Best effort or dummy
-                end_index=task.start_index + i + 1 if hasattr(task, 'start_index') else 1
+                end_index=task.start_index + i + 1 if hasattr(task, 'start_index') else 1,
+                context_entries=list(task.context_entries),
             )
             
             try:

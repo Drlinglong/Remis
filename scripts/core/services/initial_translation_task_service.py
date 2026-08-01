@@ -8,6 +8,19 @@ from scripts.core.services.initial_translation_progress_service import LanguageR
 from scripts.app_settings import SOURCE_DIR, DEST_DIR
 
 
+def _build_source_entries(texts: List[str], key_map: Any) -> List[dict]:
+    entries = []
+    for index, text in enumerate(texts):
+        key_info = key_map[index] if isinstance(key_map, list) and index < len(key_map) else {}
+        if isinstance(key_map, dict):
+            key_info = key_map.get(index, {})
+        entries.append({
+            "key": str(key_info.get("key", key_info.get("key_part", ""))),
+            "source": text,
+        })
+    return entries
+
+
 def build_file_task_iterator(
     all_files_content: List[dict],
     checkpoint_manager: CheckpointManager,
@@ -74,4 +87,6 @@ def build_file_task_iterator(
             mod_name=mod_name,
             loc_root=file_data.get("loc_root", ""),
             file_path=file_data.get("file_path", file_data["filename"]),
+            source_entries=file_data.get("source_entries") or _build_source_entries(texts, key_map),
+            translation_entry_indices=list(range(len(texts))),
         )

@@ -17,7 +17,6 @@ if TYPE_CHECKING:
 
 # Configure logger
 logger = logging.getLogger(__name__)
-
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.core.services.kanban_service import KanbanService
 from scripts.core.services.translation_archive_service import TranslationArchiveService
@@ -580,6 +579,7 @@ class ProjectManager:
             selected_provider=config.api_provider,
             model_name=config.model,
             batch_size_limit=config.batch_size_limit,
+            source_context_overlap=getattr(config, "source_context_overlap", 0),
             concurrency_limit=config.concurrency_limit,
             rpm_limit=config.rpm_limit,
             dry_run=config.dry_run,

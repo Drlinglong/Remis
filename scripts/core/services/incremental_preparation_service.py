@@ -54,7 +54,6 @@ class IncrementalPreparationService:
                     "total_files": num_files,
                     "target_lang": target_lang_code,
                 })
-
             texts_to_translate: List[str] = []
             key_delta_indices: List[int] = []
             full_file_entries: List[Dict[str, Any]] = []
@@ -99,7 +98,6 @@ class IncrementalPreparationService:
                 "key_delta_indices": key_delta_indices,
             })
             file_summaries.append(file_summary)
-
             if texts_to_translate:
                 file_tasks_for_ai.append(FileTask(
                     filename=filename,
@@ -118,6 +116,8 @@ class IncrementalPreparationService:
                     dest_dir=str(lang_dest_dir),
                     client=None,
                     mod_name="",
+                    source_entries=[{"key": entry["key"], "source": entry["source"]} for entry in full_file_entries],
+                    translation_entry_indices=key_delta_indices,
                 ))
 
         return {

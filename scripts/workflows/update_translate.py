@@ -47,6 +47,7 @@ async def run_incremental_update(
     selected_provider: str = "gemini",
     model_name: Optional[str] = None,
     batch_size_limit: Optional[int] = None,
+    source_context_overlap: int = 0,
     concurrency_limit: Optional[int] = None,
     rpm_limit: Optional[int] = None,
     mod_context: str = "",
@@ -65,12 +66,10 @@ async def run_incremental_update(
 
     source_path = custom_source_path or project['source_path']
     project_name = project['name']
-
     target_codes_str = ", ".join([lang['code'] for lang in target_lang_infos])
     logger.info(f"Starting incremental update for: {project_name} -> [{target_codes_str}]")
     logger.info(f"Scanning source path: {source_path}")
     workflow_started_at = perf_counter()
-
     snapshot_service = IncrementalSnapshotService()
     diff_service = IncrementalDiffService()
     build_service = IncrementalBuildService()
@@ -255,6 +254,7 @@ async def run_incremental_update(
                 model_name=model_name,
                 target_lang_code=target_lang_code,
                 batch_size_limit=batch_size_limit,
+                source_context_overlap=source_context_overlap,
                 concurrency_limit=concurrency_limit,
                 rpm_limit=rpm_limit,
                 progress_callback=(

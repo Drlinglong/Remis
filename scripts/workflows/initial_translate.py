@@ -41,6 +41,7 @@ def run(mod_name: str,
         use_resume: bool = True,
         clean_source: bool = False,
         batch_size_limit: Optional[int] = None,
+        source_context_overlap: int = 0,
         concurrency_limit: Optional[int] = None,
         rpm_limit: Optional[int] = 40,
         embedded_workshop: Optional[dict] = None):
@@ -56,13 +57,11 @@ def run(mod_name: str,
                  workflow_name=i18n.t("workflow_initial_translate_name"),
                  mod_name=mod_name))
     logging.info(i18n.t("log_selected_provider", provider=selected_provider))
-
     # ───────────── 2. 初始化客户端 ─────────────
     resolved_model_name = resolve_provider_model(selected_provider, model_name)
     handler = create_translation_handler(selected_provider, resolved_model_name)
     if not handler:
         return
-
     # ───────────── 2.5. 加载词典 ─────────────
     game_id = game_profile.get("id", "")
     load_glossaries_for_run(game_id, use_glossary, selected_glossary_ids)
@@ -136,6 +135,7 @@ def run(mod_name: str,
             concurrency_limit=concurrency_limit,
             rpm_limit=rpm_limit,
             batch_size_limit=batch_size_limit,
+            source_context_overlap=source_context_overlap,
             embedded_workshop=embedded_workshop,
         )
 

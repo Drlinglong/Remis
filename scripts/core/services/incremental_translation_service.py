@@ -26,6 +26,7 @@ class IncrementalTranslationService:
         model_name: Optional[str],
         target_lang_code: str,
         batch_size_limit: Optional[int] = None,
+        source_context_overlap: int = 0,
         concurrency_limit: Optional[int] = None,
         rpm_limit: Optional[int] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
@@ -50,6 +51,7 @@ class IncrementalTranslationService:
         processor = ParallelProcessor(
             max_workers=self._resolve_max_workers(selected_provider, concurrency_limit),
             chunk_size_override=batch_size_limit,
+            source_context_overlap=source_context_overlap,
         )
 
         def translate_batch(batch):

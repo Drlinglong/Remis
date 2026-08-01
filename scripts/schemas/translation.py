@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from scripts.schemas.common import LanguageCode
 
 
@@ -42,6 +42,7 @@ class InitialTranslationRequest(BaseModel):
     api_provider: str = "gemini"
     model: str = "gemini-pro"
     batch_size_limit: Optional[int] = None
+    source_context_overlap: int = Field(default=0, ge=0, le=100)
     concurrency_limit: Optional[int] = None
     rpm_limit: Optional[int] = 40
     mod_context: Optional[str] = ""
@@ -110,6 +111,7 @@ class IncrementalUpdateConfig(BaseModel):
     api_provider: str = "gemini"
     model: str = "gemini-pro"
     mod_context: Optional[str] = ""
+    source_context_overlap: int = Field(default=0, ge=0, le=100)
     dry_run: bool = False
     custom_source_path: Optional[str] = None
     use_resume: bool = True
