@@ -23,6 +23,11 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
         "description": "第一次使用 Remis、创建项目、初次汉化和完整新手流程。",
         "resources": ("zh/user-guides/getting-started.md",),
     },
+    "project_management": {
+        "title": "项目管理",
+        "description": "创建和维护长期 Mod 汉化项目，处理路径、归档、删除与工作流入口。",
+        "resources": ("zh/user-guides/project-management.md",),
+    },
     "provider_setup": {
         "title": "Provider 配置总览",
         "description": "选择 Provider，理解 API Key、Base URL、模型和配置入口。",
@@ -57,11 +62,6 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
         "title": "增量翻译",
         "description": "Mod 更新后只翻新增内容、归档基线和增量翻译流程。",
         "resources": ("zh/user-guides/incremental-update.md",),
-    },
-    "model_arena": {
-        "title": "模型竞技场",
-        "description": "正式翻译前匿名比较两个或三个模型的小样结果。",
-        "resources": ("zh/user-guides/model-arena.md",),
     },
     "import_translation": {
         "title": "导入已有译文",
@@ -117,6 +117,11 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
         "title": "缩略图生成器",
         "description": "使用工具生成 Mod 缩略图。",
         "resources": ("zh/user-guides/tools-thumbnail-generator.md",),
+    },
+    "steam_workshop": {
+        "title": "Steam 工坊发布",
+        "description": "创建发布工作区，准备工坊描述和封面，并管理候选版本。",
+        "resources": ("zh/user-guides/steam-workshop.md",),
     },
     "faq": {
         "title": "常见问题",

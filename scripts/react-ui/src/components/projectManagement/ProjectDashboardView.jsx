@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Badge, Button, Group, Menu, Paper, Tabs, Text, Title } from '@mantine/core';
-import { IconArrowLeft, IconChevronDown, IconLayoutKanban, IconVocabulary } from '@tabler/icons-react';
+import { IconArrowLeft, IconBrandSteam, IconChevronDown, IconLayoutKanban, IconVocabulary } from '@tabler/icons-react';
 
 import { FEATURES } from '../../config/features';
 import ProjectGlossaryPanel from '../project/ProjectGlossaryPanel';
@@ -8,6 +8,7 @@ import ProjectHistory from '../project/ProjectHistory';
 import ProjectValidation from '../project/ProjectValidation';
 import KanbanBoard from '../tools/KanbanBoard';
 import ProjectOverview from '../tools/ProjectOverview';
+import SteamWorkshopOverview from '../steamWorkshop/SteamWorkshopOverview';
 import styles from '../../pages/ProjectManagement.module.css';
 
 export function ProjectDashboardView({
@@ -73,7 +74,7 @@ export function ProjectDashboardView({
           <Menu position="bottom-start" withinPortal shadow="md">
             <Menu.Target>
               <Button
-                variant={['project_glossary', 'taskboard'].includes(activeTab) ? 'light' : 'subtle'}
+                variant={['project_glossary', 'taskboard', 'publishing_assets'].includes(activeTab) ? 'light' : 'subtle'}
                 size="compact-sm"
                 rightSection={<IconChevronDown size={14} />}
                 ml="xs"
@@ -87,6 +88,9 @@ export function ProjectDashboardView({
               </Menu.Item>
               <Menu.Item leftSection={<IconLayoutKanban size={16} />} onClick={() => setActiveTab('taskboard')}>
                 {t('project_management.tabs_kanban')}
+              </Menu.Item>
+              <Menu.Item leftSection={<IconBrandSteam size={16} />} onClick={() => setActiveTab('publishing_assets')}>
+                {t('project_management.tabs_publishing_assets', '发布素材管理')}
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
@@ -116,6 +120,13 @@ export function ProjectDashboardView({
 
         <Tabs.Panel value="project_glossary" style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
           <ProjectGlossaryPanel project={selectedProject} t={t} />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="publishing_assets" style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
+          <SteamWorkshopOverview
+            projectId={selectedProject.project_id}
+            projectName={selectedProject.name}
+          />
         </Tabs.Panel>
 
         <Tabs.Panel value="validation" style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>

@@ -43,6 +43,26 @@
     word-break: break-word;
 }
 
+.summaryCard:global(.mantine-Card-root) {
+    --summary-text-main: var(--paper-text-main, var(--surface-text-main));
+    --summary-text-muted: var(--paper-text-muted, var(--surface-text-muted));
+    --mantine-color-text: var(--summary-text-main) !important;
+    --mantine-color-dimmed: var(--summary-text-muted) !important;
+    color: var(--summary-text-main) !important;
+}
+
+.summaryLabel {
+    color: var(--summary-text-muted) !important;
+    -webkit-text-fill-color: currentColor !important;
+}
+
+.summaryValue {
+    color: var(--summary-text-main) !important;
+    background: none !important;
+    -webkit-text-fill-color: currentColor !important;
+    text-shadow: none !important;
+}
+
 .issuePaper {
     --mantine-color-text: var(--paper-text-main) !important;
     --mantine-color-dimmed: var(--paper-text-muted) !important;

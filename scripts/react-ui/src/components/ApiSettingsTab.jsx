@@ -473,7 +473,7 @@ const ApiSettingsTab = () => {
     );
 
     return (
-        <Stack gap="md">
+        <Stack data-remis-surface="surface" gap="md">
             <Text c="dimmed" size="sm">
                 {t('api_settings_description')}
             </Text>

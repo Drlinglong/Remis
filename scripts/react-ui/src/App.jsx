@@ -46,6 +46,7 @@ const TaskDetailPage = lazy(() => import('./pages/TaskDetailPage'));
 const TaskHistoryPage = lazy(() => import('./pages/TaskHistoryPage'));
 const GlossaryHealthReviewPage = lazy(() => import('./pages/GlossaryHealthReviewPage'));
 const ModelArenaPage = lazy(() => import('./pages/ModelArenaPage'));
+const SteamWorkshopPage = lazy(() => import('./pages/SteamWorkshopPage'));
 
 const RouteFallback = () => (
     <Center h="50vh">
@@ -69,6 +70,7 @@ const pageElements = {
     'neologism-review': <NeologismReviewPage />,
     archives: <ArchivesPage />,
     'agent-workshop': <AgentWorkshopPage />,
+    'steam-workshop': <SteamWorkshopPage />,
     copilot: <CopilotPage />,
     cicd: <CICDPage />,
     tools: <ToolsPage />,

@@ -16,5 +16,5 @@
 
 .headerTitle {
     font-family: var(--font-header);
-    color: var(--text-highlight);
+    color: var(--surface-text-main) !important;
 }

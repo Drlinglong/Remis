@@ -1,7 +1,7 @@
 from typing import Optional, List, Dict, Any, TYPE_CHECKING
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import Column, JSON
+from sqlalchemy import CheckConstraint, Column, JSON, UniqueConstraint
 
 class Glossary(SQLModel, table=True):
     __tablename__ = "glossaries"
@@ -108,3 +108,70 @@ class ActivityLog(SQLModel, table=True):
     type: str
     description: str
     timestamp: str
+
+
+class SteamWorkshopWorkspace(SQLModel, table=True):
+    __tablename__ = "steam_workshop_workspaces"
+
+    workspace_id: str = Field(primary_key=True)
+    name: str
+    game_id: Optional[str] = Field(default=None, index=True)
+    project_id: Optional[str] = Field(
+        default=None,
+        foreign_key="projects.project_id",
+        index=True,
+    )
+    workshop_item_id: Optional[str] = Field(default=None, index=True)
+    current_cover_version_id: Optional[str] = None
+    current_description_version_id: Optional[str] = None
+    created_at: str
+    updated_at: str
+
+
+class SteamWorkshopAssetVersion(SQLModel, table=True):
+    __tablename__ = "steam_workshop_asset_versions"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id",
+            "asset_type",
+            "sequence",
+            name="ux_steam_workshop_version_sequence",
+        ),
+        CheckConstraint(
+            "asset_type IN ('cover', 'description')",
+            name="ck_steam_workshop_asset_type",
+        ),
+        CheckConstraint(
+            "status IN ('candidate', 'selected')",
+            name="ck_steam_workshop_asset_status",
+        ),
+    )
+
+    version_id: str = Field(primary_key=True)
+    workspace_id: str = Field(
+        foreign_key="steam_workshop_workspaces.workspace_id",
+        index=True,
+    )
+    sequence: int
+    asset_type: str = Field(index=True)
+    status: str = Field(default="candidate", index=True)
+    parent_version_id: Optional[str] = None
+    sha256: str
+    metadata_json: Dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON),
+    )
+    source: str
+    created_at: str
+    description_bbcode: Optional[str] = None
+    description_language: Optional[str] = None
+    source_description: Optional[str] = None
+    source_description_sha256: Optional[str] = None
+    cover_file_ref: Optional[str] = None
+    cover_mime_type: Optional[str] = None
+    cover_width: Optional[int] = None
+    cover_height: Optional[int] = None
+    cover_canvas_json: Optional[Dict[str, Any]] = Field(
+        default=None,
+        sa_column=Column(JSON),
+    )

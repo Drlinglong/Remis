@@ -16,11 +16,13 @@ from scripts.core.db_models import (
     ProjectHistory,
     ProjectWatch,
     ProjectWatchFileSnapshot,
+    SteamWorkshopAssetVersion,
+    SteamWorkshopWorkspace,
 )
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 10
+MAIN_DB_TARGET_VERSION = 12
 
 
 class UnsupportedDatabaseVersionError(RuntimeError):
@@ -574,6 +576,81 @@ def _migration_010_enforce_status_contracts(db_path: str) -> None:
         conn.commit()
 
 
+def _migration_011_add_steam_workshop_assets(db_path: str) -> None:
+    """Create project-optional Steam Workshop publication asset storage."""
+    with _connect(db_path) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS steam_workshop_workspaces (
+                workspace_id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                game_id TEXT,
+                project_id TEXT,
+                workshop_item_id TEXT,
+                current_cover_version_id TEXT,
+                current_description_version_id TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(project_id) REFERENCES projects(project_id)
+            );
+            CREATE TABLE IF NOT EXISTS steam_workshop_asset_versions (
+                version_id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL,
+                sequence INTEGER NOT NULL CHECK(sequence > 0),
+                asset_type TEXT NOT NULL CHECK(asset_type IN ('cover', 'description')),
+                status TEXT NOT NULL DEFAULT 'candidate'
+                    CHECK(status IN ('candidate', 'selected')),
+                parent_version_id TEXT,
+                sha256 TEXT NOT NULL,
+                metadata_json JSON NOT NULL DEFAULT '{}',
+                source TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                description_bbcode TEXT,
+                description_language TEXT,
+                source_description TEXT,
+                source_description_sha256 TEXT,
+                cover_file_ref TEXT,
+                cover_mime_type TEXT,
+                cover_width INTEGER,
+                cover_height INTEGER,
+                cover_canvas_json JSON,
+                FOREIGN KEY(workspace_id)
+                    REFERENCES steam_workshop_workspaces(workspace_id),
+                FOREIGN KEY(parent_version_id)
+                    REFERENCES steam_workshop_asset_versions(version_id),
+                UNIQUE(workspace_id, asset_type, sequence)
+            );
+            CREATE INDEX IF NOT EXISTS ix_steam_workshop_workspaces_project
+                ON steam_workshop_workspaces (project_id, updated_at DESC);
+            CREATE INDEX IF NOT EXISTS ix_steam_workshop_workspaces_game
+                ON steam_workshop_workspaces (game_id, updated_at DESC);
+            CREATE INDEX IF NOT EXISTS ix_steam_workshop_workspaces_item
+                ON steam_workshop_workspaces (workshop_item_id);
+            CREATE INDEX IF NOT EXISTS ix_steam_workshop_versions_workspace_type
+                ON steam_workshop_asset_versions
+                    (workspace_id, asset_type, sequence DESC);
+            CREATE INDEX IF NOT EXISTS ix_steam_workshop_versions_status
+                ON steam_workshop_asset_versions (status, created_at DESC);
+            """
+        )
+        conn.commit()
+
+
+def _migration_012_track_bundled_seed_state(db_path: str) -> None:
+    """Record one-time bundled data hydration without overwriting later edits."""
+    with _connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bundled_seed_state (
+                seed_key TEXT PRIMARY KEY,
+                seed_version INTEGER NOT NULL,
+                applied_at TEXT NOT NULL
+            )
+            """
+        )
+        conn.commit()
+
+
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
@@ -585,6 +662,8 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (8, "pause_archived_project_watches", _migration_008_pause_archived_project_watches),
     (9, "add_model_arena_history", _migration_009_add_model_arena_history),
     (10, "enforce_status_contracts", _migration_010_enforce_status_contracts),
+    (11, "add_steam_workshop_assets", _migration_011_add_steam_workshop_assets),
+    (12, "track_bundled_seed_state", _migration_012_track_bundled_seed_state),
 ]
 
 

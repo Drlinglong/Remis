@@ -74,7 +74,7 @@ const SettingsPage = () => {
     return (
         <Box style={{ flex: 1, overflowY: 'auto', height: '100%' }}>
             <Container fluid py="xl">
-                <Paper withBorder p="xl" radius="md" className={styles.glassCard}>
+                <Paper data-remis-surface="surface" withBorder p="xl" radius="md" className={styles.glassCard}>
                     <Title order={2} mb="xl" className={styles.headerTitle}>{t('page_title_settings')}</Title>
 
                     <Tabs value={activeTab} onChange={setActiveTab}>

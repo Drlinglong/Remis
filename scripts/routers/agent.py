@@ -4,7 +4,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Optional
 
 import requests
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -21,6 +21,11 @@ from scripts.core import deploy_manager
 from scripts.core.agent_service import AGENT_API_VERSION, agent_registry
 from scripts.core.copilot.workflow import create_translation_plan
 from scripts.core.copilot.workflow import inspect_mod_folder
+from scripts.core.services.agent_validation_policy import (
+    classify_issues as _classify_issues,
+    repairable_issues,
+    validation_allowed_actions,
+)
 from scripts.core.services.validation_sidecar_service import ValidationSidecarService
 from scripts.routers.agent_workshop import FixRunRequest, start_fix_run
 from scripts.routers.translation import start_translation_project
@@ -260,45 +265,6 @@ def _validate_agent_import_path(folder_path: str) -> Dict[str, Any]:
     return inspection
 
 
-def _classify_issues(
-    issues: Iterable[Dict[str, Any]],
-) -> tuple[list[Dict[str, Any]], AgentValidationSummary]:
-    public_items = []
-    errors = 0
-    warnings = 0
-    human_review = 0
-    for raw in issues:
-        severity = str(raw.get("severity") or "").strip().lower()
-        error_code = str(raw.get("error_code") or raw.get("error_type") or "unknown")
-        if severity in {"critical", "error", "fatal"}:
-            category = "error"
-            errors += 1
-        elif severity in {"warning", "warn", "info"}:
-            category = "warning"
-            warnings += 1
-        else:
-            category = "human_review"
-            human_review += 1
-        public_items.append(
-            {
-                "category": category,
-                "code": error_code,
-                "file_id": raw.get("file_id"),
-                "file_name": raw.get("file_name"),
-                "key": raw.get("key"),
-                "line_number": raw.get("line_number"),
-                "details": raw.get("details") or raw.get("message"),
-                "status": raw.get("status", "detected"),
-            }
-        )
-    summary = AgentValidationSummary(
-        errors=errors,
-        warnings=warnings,
-        human_review_items=human_review,
-        total=len(public_items),
-        available=True,
-    )
-    return public_items, summary
 
 
 async def _validation_payload(
@@ -861,8 +827,9 @@ async def get_agent_job_validation(job_id: str):
         "items": payload["items"],
         "last_updated_at": payload.get("last_updated_at"),
         "scope": payload.get("scope"),
-        "allowed_actions": (
-            ["repair"] if payload["summary"].total else ["approve_export"]
+        "allowed_actions": validation_allowed_actions(
+            payload.get("_raw_items", []),
+            total=payload["summary"].total,
         ),
     }
 
@@ -930,9 +897,16 @@ async def repair_agent_job(
     validation = await _validation_payload(
         metadata["project_id"], include_items=True
     )
-    issues = validation["_raw_items"]
-    if not issues:
+    active_issues = validation["_raw_items"]
+    if not active_issues:
         raise _error(409, "no_repair_items", "No active validation items need repair")
+    issues = repairable_issues(active_issues)
+    if not issues:
+        raise _error(
+            409,
+            "no_repairable_items",
+            "Active validation items require manual review and cannot be sent to a model.",
+        )
     args = metadata.get("execution_args") or {}
     api_provider = request.api_provider or args.get("api_provider") or "lm_studio"
     api_model = request.api_model or args.get("model") or "local-model"

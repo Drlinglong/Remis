@@ -37,14 +37,16 @@ ECHO Project root: %PROJECT_ROOT%
 ECHO.
 
 if "%REMIS_BACKEND_PORT%"=="" set "REMIS_BACKEND_PORT=1453"
+
+if /i "%~1"=="--check" (
+    ECHO Target backend port: %REMIS_BACKEND_PORT%.
+    ECHO [OK] Development launcher paths are valid. No process or port was changed.
+    exit /b 0
+)
+
 for /f "usebackq delims=" %%P in (`python -m scripts.utils.system_utils --select-backend-port %REMIS_BACKEND_PORT%`) do set "REMIS_BACKEND_PORT=%%P"
 set "VITE_BACKEND_PORT=%REMIS_BACKEND_PORT%"
 ECHO Using backend port %REMIS_BACKEND_PORT%.
-
-if /i "%~1"=="--check" (
-    ECHO [OK] Development launcher paths and backend port selection are valid.
-    exit /b 0
-)
 
 ECHO Launching backend (FastAPI) and frontend (Tauri Desktop) in separate windows...
 

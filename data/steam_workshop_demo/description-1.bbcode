@@ -1,0 +1,153 @@
+[img]https://i.imgur.com/aWY4lUH.gif[/img]
+
+[h1]AI 驱动的 MOD 翻译工具 – 一键支持 10 种语言！[/h1]
+[h1]现已支持群星 (Stellaris) MOD[/h1]
+[hr]
+[b][u]重要提示：这不是一个内容 MOD！在启动器中加载它不会产生任何效果。[/u][/b]
+[b]这是一个面向 MOD 开发者和本地化者的独立 Python 翻译工具。请仔细阅读使用说明。[/b]
+[hr]
+
+[h1]这是一个什么工具？[/h1]
+是否曾想翻译你最喜欢的规模巨大的 MOD，却被数以万计的文本条目搞得心力交瘁？
+是否希望让自己的 MOD 走向多语言化，却缺乏时间或人力？
+
+[b]维多利亚 3 MOD 本地化工厂 (Victoria 3 MOD Localization Factory)[/b] 正是为了解决这些问题而生。
+
+它是一个基于 Python 和 Google Gemini API 构建的模块化自动化工作流，旨在完全自动化 MOD 本地化的初步翻译阶段。
+过去需要数小时手动完成的工作，现在几分钟即可搞定，让你能够专注于润色和质量提升。
+
+[b]本项目在 GitHub 上开源 – 欢迎贡献：[/b]
+[url=https://github.com/Drlinglong/V3_Mod_Localization_Factory]https://github.com/Drlinglong/V3_Mod_Localization_Factory[/url]
+基于 [url=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en]CC BY-NC-SA 4.0 协议[/url] 发布。
+
+[quote]
+从七丘之上的一个小村庄出发，
+我现在将其提供给所有寻求打破语言边界的先驱。
+或许，如果有人加入我，
+它有一天也能像罗马一样繁荣。
+[/quote]
+
+[hr]
+
+[h1]愿景：翻译不应成为障碍[/h1]
+并非每个人都能流利地使用八种语言。
+即使你能，在漫长的一天之后，你可能也不想手动解读 MOD 的风味文本。
+
+本项目旨在简化这一过程，从而实现：
+
+[quote]
+当你看到一个心爱的 MOD 时，只需点击几次，即可用你的母语享受它。
+[/quote]
+
+这并非追求完美的翻译 ——
+而是为了让翻译不再成为分享创意时的障碍。
+
+我们希望：
+
+[list]
+[*] 玩家可以一键本地化 Workshop 上的优秀 MOD（即使只是粗略翻译）并立即享受；
+[*] 多语言创作者可以快速生成初稿，随后进行润色，而不是陷入重复性的工作中；
+[*] 本地社区能够更轻松地参与构建全球 MOD 生态系统。
+[/list]
+
+这是一个为了创意自由而设计的工具 ——
+一个服务于表达、理解和共同创作的项目。
+
+利用 AI，它旨在一次一行地消除语言边界。
+
+[quote]
+在 AI 和大语言模型的时代，语言不应再将玩家和社区分隔开来。
+[/quote]
+
+[hr]
+
+[h1]核心功能[/h1]
+[list]
+[*] [b]多语言翻译：[/b] 支持维多利亚 3 的 11 种官方语言之间的互译；
+[*] [b]一键多语言模式：[/b] 通过单个命令将一种源语言翻译成其他 10 种语言；
+[*] [b]完整 MOD 包处理：[/b] 自动处理 .yml 文件（包括子文件夹），翻译 metadata.json，并复制 thumbnail.png；
+[*] [b]强大的解析器：[/b] 专门设计用于处理 PDX 风格的 .yml 语法并提取所有有效文本；
+[*] [b]智能批处理：[/b] 将大文件拆分为块，以确保更高的 API 成功率；
+[*] [b]国际化命令行界面 (CLI)：[/b] 命令行界面支持英文和简体中文；
+[*] [b]安全回退系统：[/b] 当翻译失败时，自动生成英文原件作为备份。
+[/list]
+
+[hr]
+
+[h1]适用人群[/h1]
+[list]
+[*] [b]MOD 本地化者[/b]：热爱翻译但时间或资源有限；
+[*] [b]MOD 创作者[/b]：希望快速构建多语言初稿；
+[*] [b]DIY MOD 玩家[/b]：了解基础 Python 知识并知道如何配置 API 密钥。
+[/list]
+
+[hr]
+
+[h1]使用方法[/h1]
+本工具在您的电脑上独立运行，并非游戏启动器的一部分。
+
+[b]第一步：准备工作[/b]
+[list]
+[*] [b]下载项目：[/b] [url=https://github.com/Drlinglong/V3_Mod_Localization_Factory]GitHub 链接[/url]
+[*] [b]安装 Python：[/b] 推荐 Python 3.8 或更高版本
+[*] [b]获取 API 密钥：[/b] 前往 [url=https://aistudio.google.com/app/apikey]Google AI Studio[/url] 创建您自己的 Gemini API 密钥
+[/list]
+
+[b]第二步：安装与设置[/b]
+[list]
+[*] 安装依赖：pip install --upgrade google-genai
+[*] 设置 API 密钥：添加名为 GEMINI_API_KEY 的系统环境变量
+[*] 放置 MOD 文件：将要翻译的 MOD 文件夹放入 source_mod 目录中
+[/list]
+
+[b]第三步：运行脚本[/b]
+[list]
+[*] 在项目根目录下打开终端 (CMD 或 PowerShell)
+[*] 运行：python scripts/main.py
+[*] 按照提示操作。翻译后的 MOD 将输出到 my_translation 文件夹中
+[/list]
+
+[hr]
+
+[h1]如何在游戏中使用翻译后的 MOD[/h1]
+
+1. 翻译完成后，在 my_translation 中找到输出文件夹。根据您的选择，文件夹名称可能是 ZH-、FR- 或 Multilanguage- 等。
+
+2. 将此文件夹复制到 Documents/Paradox Interactive/Victoria 3/mod 目录下。（如果 mod 文件夹不存在，请手动创建）
+
+3. 重启维多利亚 3 并打开启动器。编辑您想要使用的剧本/模组组合 (playset)。
+
+4. 在加载顺序中，将翻译 MOD 放在原 MOD 之下。
+
+5. 从该剧本启动游戏。
+
+6. 🎉 用您的语言享受游戏吧！
+
+[hr]
+
+[h1]项目状态[/h1]
+这是一个开源项目。核心功能已完成。未来的路线图包括：
+
+[list]
+[*] 自定义术语词典
+[*] 增量翻译更新
+[*] 支持其他 Paradox 游戏 MOD
+[/list]
+
+欢迎反馈和提交 PR！
+所有代码均由 LLM 生成。调试和测试由人工辅助。
+
+[hr]
+
+[h1]案例展示[/h1]
+[b]中文翻译 - #MODJAM2025[/b]
+https://steamcommunity.com/sharedfiles/filedetails/?id=3539371366
+
+[b]Project Utopia - 多语言补丁[/b]
+https://steamcommunity.com/sharedfiles/filedetails/?id=3538713092
+
+[b]Project Utopia - 扩展时间线 (简体中文)[/b]
+[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3537967277]https://steamcommunity.com/sharedfiles/filedetails/?id=3537967277[/url]
+
+[b]澳大利亚与新西兰风味包 (简体中文)[/b]
+[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3441144175]https://steamcommunity.com/sharedfiles/filedetails/?id=3441144175[/url]

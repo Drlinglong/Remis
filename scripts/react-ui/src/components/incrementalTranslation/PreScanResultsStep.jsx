@@ -131,9 +131,9 @@ export const PreScanResultsStep = ({
     }, [archiveInfo?.target_language, selectedLangs, t]);
 
     return (
-        <Stack mt="xl">
+        <Stack data-remis-surface="surface" mt="xl">
             {scanResults && (
-                <Paper id="incremental-prescan-summary" withBorder p="xl" radius="md" className={styles.glassCard}>
+                <Paper data-remis-surface="surface" id="incremental-prescan-summary" withBorder p="xl" radius="md" className={styles.glassCard}>
                     <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mb="lg">
                         <Select
                             label={t('translation_config.provider')}

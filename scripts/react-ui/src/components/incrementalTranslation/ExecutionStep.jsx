@@ -184,8 +184,8 @@ export const ExecutionStep = ({
     }, [logs, logViewportRef]);
 
     return (
-        <Stack mt="xl">
-            <Paper id="incremental-execution-panel" withBorder p="xl" radius="md" className={styles.glassCard}>
+        <Stack data-remis-surface="surface" mt="xl">
+            <Paper data-remis-surface="surface" id="incremental-execution-panel" withBorder p="xl" radius="md" className={styles.glassCard}>
                 <Title order={4} mb="md">{t('incremental_translation.execution_log')}</Title>
 
                 <Progress

@@ -1,0 +1,20 @@
+.summaryPanel {
+    background: var(--surface-bg-solid) !important;
+    border-color: var(--surface-border) !important;
+    color: var(--surface-text-main) !important;
+}
+
+.versionLabel {
+    color: var(--surface-text-main) !important;
+}
+
+.logHint {
+    background: color-mix(in srgb, var(--surface-text-main) 8%, var(--surface-bg-solid));
+    border: 1px solid var(--surface-border);
+    border-radius: 4px;
+}
+
+.footerPanel {
+    background: transparent !important;
+    color: var(--surface-text-muted) !important;
+}

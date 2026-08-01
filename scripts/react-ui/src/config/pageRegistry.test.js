@@ -14,6 +14,15 @@ import {
 } from './pageRegistry';
 
 describe('pageRegistry', () => {
+  it('registers Steam Workshop as a primary publishing page', () => {
+    const page = PAGE_REGISTRY.find((item) => item.id === 'steam-workshop');
+
+    expect(page.routePaths).toContain('/steam-workshop');
+    expect(page.routePaths).toContain('/steam-workshop/:workspaceId/:section');
+    expect(page.domain).toBe(PAGE_DOMAINS.PUBLISHING);
+    expect(page.navigation.entryMode).toBe(ENTRY_MODES.PRIMARY);
+  });
+
   it('keeps route ids and route paths unique', () => {
     const ids = PAGE_REGISTRY.map((page) => page.id);
     const paths = PAGE_REGISTRY.flatMap((page) => page.routePaths);
@@ -59,9 +68,14 @@ describe('pageRegistry', () => {
   });
 
   it('resolves route-aware Copilot context from the registry', () => {
-    expect(resolveRegisteredPage('/project-management/demo')?.id).toBe('project-management');
+    const projectManagement = resolveRegisteredPage('/project-management/demo');
+
+    expect(projectManagement?.id).toBe('project-management');
+    expect(projectManagement?.guide).toBe('docs/zh/user-guides/project-management.md');
+    expect(projectManagement?.copilot.helpSkillId).toBe('project_management');
     expect(resolveRegisteredPage('/tasks/task-1/glossary-health')?.id).toBe('glossary-health-review');
     expect(resolveRegisteredPage('/model-arena')?.copilot.pageName).toContain('Model Arena');
+    expect(resolveRegisteredPage('/steam-workshop/workspace-1/history')?.id).toBe('steam-workshop');
   });
 
   it('keeps declared navigation guides on disk', () => {

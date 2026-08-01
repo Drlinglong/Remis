@@ -6,6 +6,7 @@ import pytest
 import scripts.core.db_initializer as db_initializer
 from scripts import app_settings
 from scripts.core.db_migrations import (
+    MAIN_DB_TARGET_VERSION,
     UnsupportedDatabaseVersionError,
     migrate_main_database,
 )
@@ -87,6 +88,8 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (8, "pause_archived_project_watches"),
         (9, "add_model_arena_history"),
         (10, "enforce_status_contracts"),
+        (11, "add_steam_workshop_assets"),
+        (12, "track_bundled_seed_state"),
     ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
@@ -194,6 +197,8 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
         (8,),
         (9,),
         (10,),
+        (11,),
+        (12,),
     ]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")
@@ -247,9 +252,12 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
     assert cursor.fetchone()[0] == "Legacy"
     conn.close()
 
-    assert migrate_main_database(str(db_path)) == 10
+    assert migrate_main_database(str(db_path)) == MAIN_DB_TARGET_VERSION
     conn = sqlite3.connect(db_path)
-    assert conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0] == 10
+    assert (
+        conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0]
+        == MAIN_DB_TARGET_VERSION
+    )
     assert conn.execute("SELECT COUNT(*) FROM project_glossary_bindings").fetchone()[0] == 1
     conn.close()
 

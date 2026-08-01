@@ -300,7 +300,10 @@ html[data-theme] {
 html[data-theme] [data-remis-surface='canvas'] {
   --mantine-color-text: var(--canvas-text-main) !important;
   --mantine-color-dimmed: var(--canvas-text-muted) !important;
-  --remis-content-text: var(--canvas-text-main);
+  --remis-content-text: var(--canvas-text-main) !important;
+  --remis-content-muted: var(--canvas-text-muted) !important;
+  --remis-content-bg: var(--canvas-bg-solid) !important;
+  --remis-content-border: var(--surface-border) !important;
   color: var(--canvas-text-main);
 }
 
@@ -323,14 +326,39 @@ html[data-theme] [data-remis-surface='canvas'] .mantine-Title-root {
 html[data-theme] [data-remis-surface='surface'] {
   --mantine-color-text: var(--surface-text-main) !important;
   --mantine-color-dimmed: var(--surface-text-muted) !important;
-  --remis-content-text: var(--surface-text-main);
+  --remis-content-text: var(--surface-text-main) !important;
+  --remis-content-muted: var(--surface-text-muted) !important;
+  --remis-content-bg: var(--surface-bg-solid) !important;
+  --remis-content-border: var(--surface-border) !important;
   color: var(--surface-text-main);
+}
+
+html[data-theme] [data-remis-surface='surface'] .mantine-Title-root {
+  color: var(--remis-content-text) !important;
+  background: transparent !important;
+  -webkit-text-fill-color: currentColor !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/*
+ * Legacy theme sheets decorate every Paper and Card globally. A component that
+ * declares a surface must also paint that declared material, otherwise its
+ * inherited text contract can be applied to a contrasting legacy background.
+ */
+html[data-theme] [data-remis-surface='surface']:is(.mantine-Paper-root, .mantine-Card-root) {
+  background: var(--surface-bg-solid) !important;
+  border-color: var(--surface-border) !important;
 }
 
 html[data-theme] [data-remis-surface='paper'] {
   --mantine-color-text: var(--paper-text-main) !important;
   --mantine-color-dimmed: var(--paper-text-muted) !important;
-  --remis-content-text: var(--paper-text-main);
+  --remis-content-text: var(--paper-text-main) !important;
+  --remis-content-muted: var(--paper-text-muted) !important;
+  --remis-content-bg: var(--paper-bg) !important;
+  --remis-content-border: var(--paper-text-muted) !important;
   color: var(--paper-text-main);
 }
 
@@ -347,11 +375,58 @@ html[data-theme] [data-remis-surface='paper'] .mantine-Title-root {
   text-shadow: none !important;
 }
 
+html[data-theme] [data-remis-surface='paper']:is(.mantine-Paper-root, .mantine-Card-root) {
+  background: var(--paper-bg) !important;
+  border-color: var(--paper-text-muted) !important;
+}
+
 html[data-theme] [data-remis-surface='elevated'] {
   --mantine-color-text: var(--elevated-text-main) !important;
   --mantine-color-dimmed: var(--elevated-text-muted) !important;
-  --remis-content-text: var(--elevated-text-main);
+  --remis-content-text: var(--elevated-text-main) !important;
+  --remis-content-muted: var(--elevated-text-muted) !important;
+  --remis-content-bg: var(--elevated-bg) !important;
+  --remis-content-border: var(--surface-border) !important;
   color: var(--elevated-text-main);
+}
+
+/*
+ * Mantine renders Modal content in a portal. The modal root is therefore the
+ * semantic owner for its content, header, title, body, and close button; the
+ * inner Stack alone cannot provide the contract to those siblings. Modal
+ * content is also a Paper, so bind its own variables and background to the
+ * elevated material with enough specificity to win over theme Paper rules.
+ */
+html[data-theme] [data-remis-surface='elevated'] :is(
+  .mantine-Modal-content,
+  .mantine-Modal-header,
+  .mantine-Modal-body,
+  .mantine-Modal-title,
+  .mantine-Modal-close
+) {
+  --mantine-color-text: var(--elevated-text-main) !important;
+  --mantine-color-dimmed: var(--elevated-text-muted) !important;
+  --remis-content-text: var(--elevated-text-main) !important;
+  --remis-content-muted: var(--elevated-text-muted) !important;
+  color: var(--elevated-text-main) !important;
+}
+
+html[data-theme] [data-remis-surface='elevated'] .mantine-Modal-content {
+  background: var(--elevated-bg) !important;
+  background-image: none !important;
+}
+
+html[data-theme] [data-remis-surface='elevated'] .mantine-Modal-header {
+  background: transparent !important;
+}
+
+html[data-theme] [data-remis-surface='elevated'] .mantine-Title-root {
+  color: var(--remis-content-text) !important;
+  background: transparent !important;
+  -webkit-text-fill-color: currentColor !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
 }
 
 /*
@@ -360,11 +435,35 @@ html[data-theme] [data-remis-surface='elevated'] {
  * alerts against the nearest semantic material instead.
  */
 html[data-theme] [data-remis-surface] .mantine-Badge-root[data-variant='light'] {
+  background: color-mix(in srgb, var(--remis-content-text) 12%, var(--remis-content-bg)) !important;
   color: var(--remis-content-text) !important;
 }
 
+html[data-theme] [data-remis-surface] .mantine-Badge-root[data-variant='outline'] {
+  border-color: currentColor !important;
+  color: var(--remis-content-text) !important;
+}
+
+html[data-theme] [data-remis-surface] .mantine-Tabs-tab {
+  color: var(--remis-content-muted) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+html[data-theme] [data-remis-surface] .mantine-Tabs-tab:hover {
+  color: var(--remis-content-text) !important;
+  background: color-mix(in srgb, var(--remis-content-text) 12%, transparent) !important;
+}
+
+html[data-theme] [data-remis-surface] .mantine-Tabs-tab:is([data-active], [aria-selected='true']) {
+  background: var(--interactive-accent) !important;
+  border-color: var(--interactive-accent) !important;
+  color: var(--interactive-accent-text) !important;
+}
+
 html[data-theme] [data-remis-surface] .mantine-Alert-root {
-  --alert-color: var(--remis-content-text) !important;
+  background: var(--remis-content-bg) !important;
+  border: 1px solid var(--remis-content-border) !important;
   color: var(--remis-content-text) !important;
 }
 

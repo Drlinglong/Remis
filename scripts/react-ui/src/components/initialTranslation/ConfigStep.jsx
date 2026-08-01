@@ -20,16 +20,14 @@ import {
 import {
   IconAdjustments,
   IconAlertCircle,
-  IconCheck,
-  IconLanguage,
   IconSettings,
 } from '@tabler/icons-react';
 
 import EmbeddedWorkshopSettingsCard from './EmbeddedWorkshopSettingsCard';
+import LanguageTargetSelector from './LanguageTargetSelector';
 import ResumeSettingsCard from './ResumeSettingsCard';
 import CollapsibleSettingsCard from './CollapsibleSettingsCard';
 import layoutStyles from '../layout/Layout.module.css';
-import controlsStyles from './InitialTranslationControls.module.css';
 import { FEATURES } from '../../config/features';
 import { buildModelOptions, findLanguageByCode, resolveGameName } from '../../utils/initialTranslation';
 
@@ -109,24 +107,6 @@ export default function ConfigStep({
   );
 
   const sourceLanguageCode = selectedProject?.source_language;
-  const languageOptions = Object.values(config.languages)
-    .filter((language) => language.code !== sourceLanguageCode)
-    .map((language) => ({
-      value: language.code,
-      label: language.name,
-    }));
-
-  React.useEffect(() => {
-    if (!sourceLanguageCode) return;
-    const selectedTargets = form.values.target_lang_codes || [];
-    if (selectedTargets.includes(sourceLanguageCode)) {
-      form.setFieldValue(
-        'target_lang_codes',
-        selectedTargets.filter((code) => code !== sourceLanguageCode)
-      );
-    }
-  }, [form, sourceLanguageCode, form.values.target_lang_codes]);
-
   const providerOptions = config.api_providers
     .filter((provider) => provider.value !== 'hunyuan' || FEATURES.ENABLE_HUNYUAN_PROVIDER)
     .map((provider) => ({
@@ -158,25 +138,7 @@ export default function ConfigStep({
     label: `${language.name} (${language.key})`,
   }));
 
-  const toggleSelection = (field, itemValue) => {
-    const currentValues = form.values[field] || [];
-    if (currentValues.includes(itemValue)) {
-      form.setFieldValue(field, currentValues.filter((value) => value !== itemValue));
-      return;
-    }
-    form.clearFieldError(field);
-    form.setFieldValue(field, [...currentValues, itemValue]);
-  };
-
-  const selectedTargetCount = form.values.target_lang_codes.length;
   const [showAdvancedOptions, setShowAdvancedOptions] = React.useState(false);
-  const selectAllTargets = () => {
-    form.clearFieldError('target_lang_codes');
-    form.setFieldValue('target_lang_codes', languageOptions.map((language) => language.value));
-  };
-  const clearTargetSelection = () => {
-    form.setFieldValue('target_lang_codes', []);
-  };
 
   return (
     <form id="initial-translation-config-form" onSubmit={form.onSubmit(onSubmit)}>
@@ -238,75 +200,12 @@ export default function ConfigStep({
               )}
 
               {!form.values.english_disguise && (
-                <Box className={controlsStyles.targetLanguageSection}>
-                  <Group justify="space-between" align="flex-start" gap="sm">
-                    <Group gap="sm" align="flex-start">
-                      <ThemeIcon variant="light" color="cyan" radius="md">
-                        <IconLanguage size={18} />
-                      </ThemeIcon>
-                      <Box>
-                        <Text fw={700} c="var(--text-main)">
-                          {t('initial_translation_target_section_title')}
-                        </Text>
-                        <Text
-                          size="sm"
-                          c={selectedTargetCount > 0 ? 'cyan' : 'orange'}
-                          fw={600}
-                        >
-                          {selectedTargetCount > 0
-                            ? t('initial_translation_target_selected_count', { count: selectedTargetCount })
-                            : t('initial_translation_target_none')}
-                        </Text>
-                      </Box>
-                    </Group>
-                    <Group gap={4}>
-                      <Button
-                        size="compact-xs"
-                        variant="subtle"
-                        onClick={selectAllTargets}
-                        disabled={selectedTargetCount === languageOptions.length}
-                      >
-                        {t('initial_translation_select_all')}
-                      </Button>
-                      <Button
-                        size="compact-xs"
-                        variant="subtle"
-                        color="gray"
-                        onClick={clearTargetSelection}
-                        disabled={selectedTargetCount === 0}
-                      >
-                        {t('initial_translation_clear_all')}
-                      </Button>
-                    </Group>
-                  </Group>
-
-                  <Group gap="xs" mt="md">
-                    {languageOptions.map((language) => {
-                      const checked = form.values.target_lang_codes.includes(language.value);
-                      return (
-                        <Button
-                          key={language.value}
-                          type="button"
-                          size="compact-sm"
-                          variant={checked ? 'light' : 'default'}
-                          color={checked ? 'cyan' : 'gray'}
-                          rightSection={checked ? <IconCheck size={14} /> : null}
-                          aria-pressed={checked}
-                          className={controlsStyles.languageChip}
-                          onClick={() => toggleSelection('target_lang_codes', language.value)}
-                        >
-                          {language.label}
-                        </Button>
-                      );
-                    })}
-                  </Group>
-
-                  {selectedTargetCount === 0 && (
-                    <Text size="xs" c="orange" mt="sm" role="alert">
-                      {t('initial_translation_target_required')}
-                    </Text>
-                  )}
-                </Box>
+                <LanguageTargetSelector
+                  form={form}
+                  languages={config.languages}
+                  sourceLanguageCode={sourceLanguageCode}
+                  t={t}
+                />
               )}
 
               {renderNativeSelect({

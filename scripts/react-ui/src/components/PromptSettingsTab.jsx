@@ -266,7 +266,7 @@ const PromptSettingsTab = () => {
         : null;
 
     return (
-        <Stack gap="xl">
+        <Stack data-remis-surface="surface" gap="xl">
             {/* --- Warnings --- */}
             <Alert variant="light" color="orange" title={t('prompt_settings_warning_title')} icon={<IconAlertTriangle />}>
                 {t('prompt_settings_warning_desc')}
@@ -289,7 +289,7 @@ const PromptSettingsTab = () => {
                 <Grid gutter="xl">
                     {/* --- LEFT COLUMN: System Prompt --- */}
                     <Grid.Col span={6}>
-                        <Paper p="md" withBorder h="100%">
+                        <Paper data-remis-surface="surface" p="md" withBorder h="100%">
                             <Stack h="100%">
                                 <Title order={4}>{t('prompt_settings_system_title', 'System Prompt (Role & Context)')}</Title>
                                 <Text size="sm" c="dimmed">{t('prompt_settings_system_desc')}</Text>
@@ -358,7 +358,7 @@ const PromptSettingsTab = () => {
 
                     {/* --- RIGHT COLUMN: Format Prompt --- */}
                     <Grid.Col span={6}>
-                        <Paper p="md" withBorder h="100%">
+                        <Paper data-remis-surface="surface" p="md" withBorder h="100%">
                             <Stack h="100%">
                                 <Title order={4}>{t('prompt_formatting_rules', 'Formatting Rules (JSON Structure)')}</Title>
                                 <Text size="sm" c="dimmed">
@@ -438,7 +438,7 @@ const PromptSettingsTab = () => {
             )}
 
             {/* --- Custom Global Prompt Section (Full Width) --- */}
-            <Paper p="md" withBorder mt="xl">
+            <Paper data-remis-surface="surface" p="md" withBorder mt="xl">
                 <Title order={4} mb="sm">{t('prompt_settings_custom_title', 'Persistent Custom Prompt')}</Title>
                 <Alert icon={<IconInfoCircle size={16} />} color="green" variant="light" mb="md">
                     {t('prompt_settings_custom_desc', 'This prompt will be automatically pre-filled into the "Additional Prompt" field for every new translation task.')}

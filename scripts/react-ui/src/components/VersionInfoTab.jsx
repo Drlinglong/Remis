@@ -1,15 +1,16 @@
-/* global __APP_VERSION__ */
+/* global __APP_VERSION__, __APP_RELEASE_DATE__ */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Stack, Group, Text, Title, Paper, Anchor, Alert, ThemeIcon, Box, Divider, Button } from '@mantine/core';
 import { IconBrandGithub, IconStar, IconBug, IconFileCode, IconFolderOpen } from '@tabler/icons-react';
 import api from '../utils/api';
 import { notifications } from '@mantine/notifications';
+import styles from './VersionInfoTab.module.css';
 
 const VersionInfoTab = () => {
     const { t } = useTranslation();
     const REMIS_VERSION = __APP_VERSION__; // Injected from package.json by Vite.
-    const lastUpdated = "2026-05-20"; // Last updated date
+    const lastUpdated = __APP_RELEASE_DATE__; // Injected from package.json by Vite.
     const githubRepoUrl = "https://github.com/Drlinglong/Remis";
 
     const handleOpenLogs = async () => {
@@ -33,15 +34,15 @@ const VersionInfoTab = () => {
     };
 
     return (
-        <Stack gap="xl" py="md">
+        <Stack data-remis-surface="surface" gap="xl" py="md">
             {/* Project Summary */}
-            <Paper withBorder p="lg" radius="md" style={{ background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(10px)' }}>
+            <Paper data-remis-surface="surface" withBorder p="lg" radius="md" className={styles.summaryPanel}>
                 <Group justify="space-between" align="flex-start">
                     <Stack gap={0}>
                         <Title order={3}>{t('app_title')}</Title>
                         <Group gap="xs" mt="xs">
                             <Text size="sm" c="dimmed">{t('version_info.project_version')}:</Text>
-                            <Text size="sm" fw={700} c="cyan">{REMIS_VERSION}</Text>
+                            <Text size="sm" fw={700} className={styles.versionLabel}>{REMIS_VERSION}</Text>
                         </Group>
                         <Group gap="xs">
                             <Text size="sm" c="dimmed">{t('version_info.last_updated')}:</Text>
@@ -87,14 +88,7 @@ const VersionInfoTab = () => {
                     <Text size="sm">
                         {t('version_info.issue_desc')}
                     </Text>
-                    <Box
-                        p="xs"
-                        style={{
-                            background: 'rgba(0, 0, 0, 0.2)',
-                            borderRadius: '4px',
-                            border: '1px solid rgba(255, 255, 255, 0.1)'
-                        }}
-                    >
+                    <Box p="xs" className={styles.logHint}>
                         <Group gap="xs" align="flex-start">
                             <IconFileCode size={18} style={{ marginTop: 2 }} />
                             <Text size="xs" style={{ whiteSpace: 'pre-wrap' }}>
@@ -124,7 +118,7 @@ const VersionInfoTab = () => {
             </Alert>
 
             {/* Credits / Additional Links can go here */}
-            <Paper p="md" radius="md" style={{ background: 'transparent' }}>
+            <Paper data-remis-surface="surface" p="md" radius="md" className={styles.footerPanel}>
                 <Text size="xs" c="dimmed" ta="center">
                     {t('footer_text')}
                 </Text>

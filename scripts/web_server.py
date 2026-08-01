@@ -155,6 +155,7 @@ def setup_app_routers():
         projects, project_watches, translation, glossary, proofreading, docs, tools,
         neologism, validation, config, system, prompts, agent_workshop, agent, tasks,
         model_arena,
+        steam_workshop,
     )
     
     app.include_router(projects.router)
@@ -173,6 +174,7 @@ def setup_app_routers():
     app.include_router(agent.router)
     app.include_router(tasks.router)
     app.include_router(model_arena.router)
+    app.include_router(steam_workshop.router)
     if copilot_router_enabled():
         from scripts.routers import copilot
 

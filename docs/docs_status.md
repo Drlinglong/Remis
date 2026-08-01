@@ -34,6 +34,10 @@
 第一轮治理完成的核心模块以 3.1.0 为 `last_verified`：翻译主流程、部署、校对、术语表、
 Model Arena、Task Center、智能工坊，以及 Agent / Copilot 隐藏预览。
 
+第二轮功能覆盖以 2026-07-31 代码为 `last_verified`：项目管理、Mod 监控与封面图生成器。
+这三组文档已分别形成产品意图、用户指南和开发契约；契约中的“当前差距”不是当前能力，
+不得被 Copilot 当作已经实现。
+
 ## 建议优先阅读
 
 ### 当前入口
@@ -48,6 +52,8 @@ Model Arena、Task Center、智能工坊，以及 Agent / Copilot 隐藏预览�
 
 - `docs/zh/product-intent-template.md` — 产品负责人问答与 Agent 核验模板
 - `docs/zh/product-intent-project-file-discovery.md` — 已填写的文件发现示例
+- `docs/zh/product-intent-project-management.md` — 长期项目身份、生命周期、删除和 Agent 边界
+- `docs/zh/developer/project-management-contract.md` — 项目当前数据流、删除副作用与实现差距
 - `docs/zh/product-intent-translation-workflows.md` — 初次与增量翻译产品意图
 - `docs/zh/developer/translation-workflow-contract.md` — 当前代码事实、目标边界与测试门禁
 - `docs/zh/product-intent-deployment.md` — 部署目标、确认边界与明确非目标
@@ -62,6 +68,10 @@ Model Arena、Task Center、智能工坊，以及 Agent / Copilot 隐藏预览�
 - `docs/zh/developer/task-center-contract.md` — 持久化状态、详情摘要、历史与 Agent 消费契约
 - `docs/zh/product-intent-agent-workshop.md` — 格式安全护栏、自动写回、有限重试与明确非目标
 - `docs/zh/developer/agent-workshop-contract.md` — 扫描、模型修复、逐条写回、实现差距与测试门禁
+- `docs/zh/product-intent-project-tracking.md` — 本地化文件只读监控、告警与 Agent 边界
+- `docs/zh/developer/project-tracking-contract.md` — SHA 快照、调度、确认和生命周期差距
+- `docs/zh/product-intent-thumbnail-generator.md` — 封面编辑、项目资产与禁止写源目录
+- `docs/zh/developer/thumbnail-generator-contract.md` — 当前前端实现、输出格式与项目集成门禁
 
 ### 当前协作与维护
 
@@ -74,8 +84,8 @@ Model Arena、Task Center、智能工坊，以及 Agent / Copilot 隐藏预览�
 ### Remis Agent / Copilot 产品契约与隐藏工程预览（#132）
 
 面向普通用户的同一聊天入口：Copilot 负责帮助答疑，Agent 负责把自然语言目标整理成待批准
-的 Remis 工作流。它不是开发者编码助手，也不能直接改文件。3.1.0 保留代码与测试作为隐藏
-工程预览；下一版本目标是公开第一版，当前尚未支持通用多步骤编排和聊天内终态总结。
+的 Remis 工作流。它不是开发者编码助手，也不能直接改文件。3.1.1 保留代码与测试作为隐藏
+工程预览；公开版本仍需完成发布门禁，当前尚未支持通用多步骤编排和聊天内终态总结。
 
 - `docs/zh/product-intent-agent-copilot.md` — 用户价值、统一入口、确认、成功标准与公开目标
 - `docs/zh/user-guides/remis-assistant.md` — 普通用户如何提问、批准计划和判断真实完成
@@ -90,6 +100,7 @@ Model Arena、Task Center、智能工坊，以及 Agent / Copilot 隐藏预览�
 与 #132 Help 语料直接相关的用户短文（优先索引）：
 
 - `docs/zh/user-guides/getting-started.md`（项目制入门，先建项目再翻译）
+- `docs/zh/user-guides/project-management.md`
 - `docs/zh/user-guides/incremental-update.md`
 - `docs/zh/user-guides/import-existing-translations.md`
 - `docs/zh/user-guides/provider-setup-index.md`
@@ -101,6 +112,8 @@ Model Arena、Task Center、智能工坊，以及 Agent / Copilot 隐藏预览�
 - `docs/zh/user-guides/model-arena.md`
 - `docs/zh/user-guides/task-center.md`
 - `docs/zh/user-guides/remis-assistant.md`
+- `docs/zh/user-guides/project-tracking.md`
+- `docs/zh/user-guides/tools-thumbnail-generator.md`
 - `docs/zh/user-guides/logs-and-diagnostics.md`
 - `docs/zh/user-guides/error-catalog.md`
 - `docs/zh/user-guides/faq.md`（已按客户端工作流修订）

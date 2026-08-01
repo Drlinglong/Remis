@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,6 +21,22 @@ const localeFiles = {
 };
 
 const loadLocale = (filePath) => JSON.parse(readFileSync(filePath, 'utf8'));
+
+const steamWorkshopRoot = path.resolve(__dirname, '../../components/steamWorkshop');
+const steamWorkshopUiSources = readdirSync(steamWorkshopRoot, { recursive: true })
+  .filter((relativePath) => /\.[jt]sx?$/.test(relativePath))
+  .filter((relativePath) => !/\.(test|regression)\.[jt]sx?$/.test(relativePath))
+  .map((relativePath) => path.resolve(steamWorkshopRoot, relativePath))
+  // This module contains locale-name data (for example, the native Chinese
+  // name of Chinese), not rendered UI copy. Keep this exception exact.
+  .filter((filePath) => !filePath.endsWith(`${path.sep}coverEditorAssets.js`))
+  .concat([
+    path.resolve(__dirname, '../../pages/SteamWorkshopPage.jsx'),
+    path.resolve(__dirname, '../../components/tools/ThumbnailGenerator.jsx'),
+    path.resolve(__dirname, '../../components/tools/WorkshopGenerator.jsx'),
+  ]);
+
+const steamWorkshopKeyPattern = /t\(\s*['"]((?:steam_workshop|tutorial\.steam_workshop)\.[\w.]+)/g;
 
 const flattenKeys = (value, prefix = '') => {
   if (Array.isArray(value) || value === null || typeof value !== 'object') {
@@ -57,44 +73,40 @@ const releaseDuplicateValueAllowlist = new Set([
   'api_desc_minimax',
   'project_management.details.id',
   'incremental_translation.warning_validation_prefix',
+  // "Format Repair" is the fixed product identity outside Chinese. Keep these
+  // exact keys exempt instead of reopening a broad Agent Workshop pattern.
+  'page_title_agent_workshop',
+  'agent_workshop.title',
+  'task_center.kind.agent_workshop',
+  'task_center.kind.agent_workshop_batch',
+  'task_center.kind.repair',
+  // BBCode is a protected technical term and can legitimately remain the
+  // same in otherwise natural localized publishing copy.
+  'steam_workshop.bbcode',
 ]);
 
 const releaseDuplicateValueAllowlistPatterns = [
   /^game_name_/,
   /^theme_/,
   /^app_title$/,
-  /^thumbnail_generator\./,
-  /^log_viewer_/,
-  /^initial_translation_/,
-  /^workshop_generator\./,
-  /^proofreading\./,
-  /^select_game_profile$/,
-  /^stage_smart_workshop$/,
-  /^progress_smart_workshop_status$/,
-  /^page_title_agent_workshop$/,
-  /^task_center\.kind\.agent_workshop$/,
-  /^task_center\.kind\.agent_workshop_batch$/,
-  /^task_center\.kind\.repair$/,
-  /^agent_workshop\.title$/,
-  /^agent_workshop\.(issue_format_marker_parity|validation_format_marker_parity_mismatch|validation_format_marker_parity_details_localized)$/,
-  /^agent_workshop\.(table_|discard|regenerate|batch_size|model_label)/,
-  /^tutorial\.(home|settings|version|sidebar_tutorial_btn)/,
-  /^translation_page\./,
-  /^translation_config\./,
-  /^context_sidebar\./,
-  /^summary_/,
-  /^stage_initializing$/,
-  /^deploy_/,
-  /^incremental_translation\.(progress_stage_|project_|reused_short|telemetry_(title|total)|rpm_limit|validation_issue_export_item|warning_details_suffix|error_title)/,
-  /^project_management\.(repair_metadata|tooltip_repair_metadata|repair_metadata_success|repair_metadata_error)$/,
-  /^project_management\.(details|manage_paths|actions|file_list|file_type|file_status)\./,
-  /^model_arena\./,
-  /^page_title_model_arena$/,
 ];
 
 const isAllowedReleaseDuplicateKey = (key) => (
   releaseDuplicateValueAllowlist.has(key)
   || releaseDuplicateValueAllowlistPatterns.some((pattern) => pattern.test(key))
+);
+
+const steamWorkshopExactFallbackAllowlist = new Set([
+  // These values are structural or protected terms, not a source-language
+  // sentence. Every other Steam key must differ from both English and Chinese.
+  'steam_workshop.asset_version',
+  'steam_workshop.bbcode',
+  'steam_workshop.workshop_id_label',
+]);
+
+const isAllowedSteamWorkshopFallback = (locale, key) => (
+  steamWorkshopExactFallbackAllowlist.has(key)
+  || (locale === 'ja' && key === 'steam_workshop.save')
 );
 
 describe('locale consistency', () => {
@@ -116,6 +128,56 @@ describe('locale consistency', () => {
     });
 
     expect(mismatches, mismatches.join('\n')).toEqual([]);
+  });
+
+  it('does not allow the Steam publishing UI to bypass release locale entries', () => {
+    const localeEntries = Object.fromEntries(
+      Object.entries(localeFiles).map(([locale, filePath]) => [
+        locale,
+        Object.fromEntries(flattenEntries(loadLocale(filePath))),
+      ]),
+    );
+    const sources = steamWorkshopUiSources.map((filePath) => [
+      filePath,
+      readFileSync(filePath, 'utf8'),
+    ]);
+    const hardcodedChinese = sources.flatMap(([filePath, source]) => (
+      source.match(/[\u4e00-\u9fff]/g)
+        ? [`${path.relative(__dirname, filePath)} contains hard-coded Chinese UI text`]
+        : []
+    ));
+    const referencedKeys = new Set(
+      sources.flatMap(([, source]) => Array.from(source.matchAll(steamWorkshopKeyPattern), ([, key]) => key)),
+    );
+    const missing = Array.from(referencedKeys).flatMap((key) => (
+      Object.entries(localeEntries)
+        .filter(([, entries]) => typeof entries[key] !== 'string' || entries[key].trim() === '')
+        .map(([locale]) => `${locale}.${key} missing from release locale`)
+    ));
+    const copiedChinese = Array.from(referencedKeys).flatMap((key) => (
+      Object.entries(localeEntries)
+        .filter(([locale, entries]) => (
+          locale !== 'zh'
+          && entries[key] === localeEntries.zh[key]
+          && !isAllowedSteamWorkshopFallback(locale, key)
+        ))
+        .map(([locale]) => `${locale}.${key} still mirrors Chinese`)
+    ));
+    const copiedEnglish = Array.from(referencedKeys).flatMap((key) => (
+      Object.entries(localeEntries)
+        .filter(([locale, entries]) => (
+          locale !== 'en'
+          && locale !== 'zh'
+          && entries[key] === localeEntries.en[key]
+          && !isAllowedSteamWorkshopFallback(locale, key)
+        ))
+        .map(([locale]) => `${locale}.${key} still mirrors English`)
+    ));
+
+    expect(hardcodedChinese, hardcodedChinese.join('\n')).toEqual([]);
+    expect(missing, missing.join('\n')).toEqual([]);
+    expect(copiedChinese, copiedChinese.join('\n')).toEqual([]);
+    expect(copiedEnglish, copiedEnglish.join('\n')).toEqual([]);
   });
 
   it('keeps every release locale key populated and avoids identical values across all locales', () => {

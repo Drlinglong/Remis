@@ -191,9 +191,9 @@ const AgentWorkshopPage = () => {
                     />
                   </Card>
                   <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md" mb="lg">
-                    <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.total_entries')}</Text><Title order={3}>{archiveInfo?.source_entry_count ?? '--'}</Title></Card>
-                    <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.issue_entries')}</Text><Title order={3} c={issues.length ? 'orange' : 'green'}>{issues.length}</Title></Card>
-                    <Card withBorder p="md" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.cached_state')}</Text><Title order={5}>{isCached ? t('agent_workshop.cached_label') : t('agent_workshop.scanned_label')}</Title></Card>
+                    <Card withBorder p="md" radius="md" className={styles.summaryCard} data-remis-surface="paper" data-remis-summary-metric="total"><Text size="xs" className={styles.summaryLabel}>{t('agent_workshop.total_entries')}</Text><Title order={3} className={styles.summaryValue}>{archiveInfo?.source_entry_count ?? '--'}</Title></Card>
+                    <Card withBorder p="md" radius="md" className={styles.summaryCard} data-remis-surface="paper" data-remis-summary-metric="issues"><Text size="xs" className={styles.summaryLabel}>{t('agent_workshop.issue_entries')}</Text><Title order={3} className={styles.summaryValue}>{issues.length}</Title></Card>
+                    <Card withBorder p="md" radius="md" className={styles.summaryCard} data-remis-surface="paper" data-remis-summary-metric="source"><Text size="xs" className={styles.summaryLabel}>{t('agent_workshop.cached_state')}</Text><Title order={5} className={styles.summaryValue}>{isCached ? t('agent_workshop.cached_label') : t('agent_workshop.scanned_label')}</Title></Card>
                   </SimpleGrid>
                   <Alert icon={<IconAlertTriangle size={16} />} color={issues.length ? 'orange' : 'green'} radius="md">
                     {issues.length

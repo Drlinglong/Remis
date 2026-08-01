@@ -23,6 +23,7 @@ import {
     IconChevronRight,
     IconShieldCheck,
     IconTrophy,
+    IconBrandSteam,
 } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -50,6 +51,7 @@ const NAV_ICONS = {
     robot: IconRobot,
     radar: IconRadar,
     trophy: IconTrophy,
+    'brand-steam': IconBrandSteam,
     'shield-check': IconShieldCheck,
 };
 

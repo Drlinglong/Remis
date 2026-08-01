@@ -16,11 +16,23 @@
 
 Every release note must be written for ordinary users first and technical readers second.
 
-1. Begin both the English and Chinese sections with a short `Highlights` / `重点` section.
-2. Use two to five plain-language bullets to answer: What is new? What improved? What was removed or changed? Does the user need to take any action?
-3. Keep file names, function names, issue numbers, internal architecture, test commands, and other implementation details out of the opening highlights.
-4. Preserve those implementation details below under `Technical Details` / `技术细节`, followed by compatibility and validation information where applicable.
-5. Keep the English and Chinese summaries equivalent in meaning, even when their wording is adapted for readability.
+1. Begin both the English and Chinese sections with `Highlights` / `主要更新`.
+2. Reserve that section for important user-visible changes: a significant new
+   capability, a major workflow or UI/UX/HCI change, a major change in how Remis
+   is used, or a change that may affect an existing project or require action.
+3. Write Highlights so a non-developer can understand them without knowing
+   implementation terms. Describe outcomes—for example, that Workshop preview
+   accurately reproduces links, lists, and separators—not parser internals.
+4. Keep refactors, filenames, functions, issues, architecture, test commands,
+   security implementation, and similarly technical material under
+   `Engineering quality and reliability` / `工程质量与可靠性` below Highlights.
+5. Add compatibility, known boundaries, validation, and installer sections as
+   needed. Keep English and Chinese equivalent in meaning while writing each
+   naturally.
+6. Update `releaseDate` in `scripts/react-ui/package.json`, use the same date in
+   the release note's `Released on YYYY-MM-DD.` line, and confirm Settings >
+   Version Info > Last Updated displays it. The release metadata test is a
+   mandatory pre-package gate.
 
 Recommended structure:
 
@@ -32,21 +44,30 @@ Recommended structure:
 - **New or improved:** ...
 - **Removed or changed:** ...
 
-## Technical Details
+## Engineering quality and reliability
 
 ...
 
 ## 中文
 
-## 重点
+## 主要更新
 
 - **新增或改进：**……
 - **移除或变更：**……
 
-## 技术细节
+## 工程质量与可靠性
 
 ……
 ```
+
+Before packaging, run:
+
+```powershell
+python -m pytest -q tests/test_release_metadata.py
+```
+
+The canonical and complete convention is maintained in
+`archive/release_notes/README.md`.
 
 ## Usage
 
