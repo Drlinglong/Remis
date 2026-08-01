@@ -19,6 +19,8 @@ describe('Aventine benchmark charts', () => {
     expect(markup).toContain('role="group"')
     expect(markup).not.toContain('role="img"')
     expect(markup).toContain('class="aa-scatter__point"')
+    expect(markup).toContain('aria-label="Model key"')
+    expect(markup).toContain('Gemini 3.6 Flash')
     expect(markup).toContain('preserveAspectRatio="none"')
     expect(markup).toContain('<polyline')
   })

@@ -5,7 +5,7 @@ const PAIRWISE_DECISIONS_PER_RECIPE = 56
 
 const displayProfiles = {
   gemini36: {
-    shortName: 'Gemini 3.6',
+    shortName: 'Gemini 3.6 Flash',
     vendor: 'Google',
     vendorId: 'google',
     vendorMark: 'G',
@@ -60,8 +60,8 @@ const displayProfiles = {
     color: '#a676ff',
     costUsd: 0.13985,
     style: {
-      en: 'Fast and competitive, but less reliable under the frozen contract than Gemini 3.6. Its quality remains respectable while its list-price cost lands well above Luna and DeepSeek.',
-      zh: '速度快、总体有竞争力，但在冻结约束下不如 Gemini 3.6 稳定。质量仍然可观，不过标准价成本明显高于 Luna 与 DeepSeek。',
+      en: 'Fast and competitive, but less reliable under the frozen contract than Gemini 3.6 Flash. Its quality remains respectable while its list-price cost lands well above Luna and DeepSeek.',
+      zh: '速度快、总体有竞争力，但在冻结约束下不如 Gemini 3.6 Flash 稳定。质量仍然可观，不过标准价成本明显高于 Luna 与 DeepSeek。',
     },
   },
   gemma4: {

@@ -15,7 +15,7 @@ const chartCopy = {
     scatterLabel: 'Interactive Pilot Quality Score versus cost per 100 tasks chart', highQuality: 'HIGH QUALITY', lowCost: 'LOW COST',
     scoreAxis: 'Pilot Quality Score', costAxis: 'Cost per 100 Aventine tasks (USD)', freeTier: 'Free tier',
     freeTierMeaning: 'provider benefit used during this run', freeTierNote: 'Free-tier points represent the provider benefit used during this run—not permanent zero-cost inference.',
-    higher: 'Higher is better →', lower: '← Lower is better',
+    modelKey: 'Model key', higher: 'Higher is better →', lower: '← Lower is better',
   },
   zh: {
     nav: '基准图表', intelligence: '智力指数', speed: '速度', cost: '每 100 题成本', tradeoff: '智力指数 vs. 成本',
@@ -30,7 +30,7 @@ const chartCopy = {
     scatterLabel: 'Pilot Quality Score 与每 100 题成本的可交互图表', highQuality: '高质量', lowCost: '低成本',
     scoreAxis: 'Pilot Quality Score', costAxis: '每 100 个 Aventine 任务成本（美元）', freeTier: '免费档',
     freeTierMeaning: '本轮使用的服务商福利', freeTierNote: '免费档点位表示本轮使用了服务商福利，不代表永久零成本推理。',
-    higher: '越高越好 →', lower: '← 越低越好',
+    modelKey: '模型图例', higher: '越高越好 →', lower: '← 越低越好',
   },
 }
 
@@ -168,7 +168,7 @@ function IntelligenceCostScatter({ labels, onSelect }) {
               }}
               type="button"
             >
-              <span>{recipe.model}<small>{recipe.costUsd === null ? labels.freeTier : `$${recipe.costPer100.toFixed(3)}`}</small></span>
+              <span aria-hidden="true">{recipe.model}<small>{recipe.costUsd === null ? labels.freeTier : `$${recipe.costPer100.toFixed(3)}`}</small></span>
               <i />
             </button>
           )
@@ -179,6 +179,14 @@ function IntelligenceCostScatter({ labels, onSelect }) {
           <span>{labels.freeTier}</span><span>$0.50</span><span>$1.00</span><span>$1.50</span><span>$2.00</span>
         </div>
       </div>
+      <ul className="aa-scatter__model-key" aria-label={labels.modelKey}>
+        {pilotRecipes.map((recipe) => (
+          <li key={recipe.id}>
+            <span style={{ '--point-color': recipe.color }} />
+            {recipe.model}
+          </li>
+        ))}
+      </ul>
       <p className="aa-scatter__note">{labels.freeTierNote}</p>
     </div>
   )
