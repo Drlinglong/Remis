@@ -82,7 +82,20 @@ def test_issue_198_narrative_fixture_has_valid_coverage_and_cross_file_chain():
         for fact in branch["required_facts"]:
             assert fact in branch_text, f"{branch['branch']} missing {fact}"
 
-    assert len({provenance[key]["batch"] for key in key_files.values()}) >= 5
+    for conflict in manifest["mutually_exclusive_facts"]:
+        assert conflict["concord_fact"] in entries[conflict["concord_key"]]
+        assert conflict["warden_fact"] in entries[conflict["warden_key"]]
+        assert entries[conflict["concord_key"]] != entries[conflict["warden_key"]]
+
+    provenance_order = {item["path"]: index for index, item in enumerate(manifest["source_provenance"])}
+    for callback in manifest["long_distance_callbacks"]:
+        early_path = key_files[callback["early_key"]]
+        late_path = key_files[callback["late_key"]]
+        assert callback["term"] in entries[callback["early_key"]]
+        assert callback["term"] in entries[callback["late_key"]]
+        assert provenance_order[late_path] - provenance_order[early_path] >= callback["minimum_file_distance"]
+
+    assert len({provenance[key]["batch"] for key in key_files.values()}) >= manifest["expected_baseline"]["minimum_batches"]
 
 
 def test_issue_198_narrative_variant_has_explicit_changed_and_deleted_source_delta():

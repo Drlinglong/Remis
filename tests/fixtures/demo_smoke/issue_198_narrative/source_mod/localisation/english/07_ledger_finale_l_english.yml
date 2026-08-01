@@ -1,0 +1,13 @@
+l_english:
+ # Batch 07: a physical joke from the opening changes meaning at the end.
+ epilogue.420.t:0 "What the Red Cover Meant"
+ epilogue.420.desc:0 "Weeks later, Remis returns to Meridian Gate with the two sealed transcripts. The Cartographers' Guild has drawn a route; the Watch of Quiet Stars has drawn a target. Neither drawing contains the missing line from the first report."
+ epilogue.420.concord:0 "Under the Concord outcome, the missing line is the name of a refugee who never crossed the gate. The forty-eight were real, but the roster was incomplete."
+ epilogue.420.warden:0 "Under the Warden outcome, the missing line is a checksum from the stolen signatures. The Echo Decoy was real, but the patrol log was compromised."
+ epilogue.420.a:0 "Ask Remis to reopen the case."
+ epilogue.420.b:0 "Let the Meridian Council call the case closed."
+ remis_final_verdict:0 "The Ledger-Breaker refuses both verdicts. \"A closed case is not a solved case. It is a door with better paperwork.\""
+ remis_ledger_reveal:0 "The Red Ledger was never an account book."
+ remis_ledger_reveal_desc:0 "The Red Ledger's red cover was made from emergency marker cloth, and every page lists a person lost by a failing system. Remis's joke about state debts was literal: the state owed them a name."
+ remis_final_callback:0 "The clasp she used to sign the order was not a key. It was cut from the first rescue beacon, and it still carries one uncounted name."
+ meridian_gate_afterword:0 "Meridian Gate remains open in the maps and closed in the reports. Remis keeps walking between the two."

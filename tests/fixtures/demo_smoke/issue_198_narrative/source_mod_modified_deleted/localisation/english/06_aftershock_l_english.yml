@@ -1,0 +1,14 @@
+l_english:
+ # Batch 06: consequences make each branch materially different.
+ aftershock.410.t:0 "Forty-Eight Names"
+ aftershock.410.desc:0 "The first report from Kestrel Reach arrives without a title. It contains a count, a silence, and the Meridian Council's seal. Remis reads it twice before letting anyone else see which line is missing. The missing line is now signed in her handwriting."
+ aftershock.410.concord:0 "Concord consequence: the forty-eight refugees reach the archive alive, but one child insists the signal was answered by someone wearing Remis's voice."
+ aftershock.410.warden:0 "Warden consequence: the gate remains closed, but the burned signatures reappear in the Watch of Quiet Stars' own patrol logs."
+ aftershock.410.a:0 "Publish the Concord roster and accept the cost of being watched."
+ aftershock.410.b:0 "Keep the Warden report sealed until the patrol logs can be audited."
+ remis_aftershock_action:0 "Remis walks into the Meridian Archive before dawn."
+ remis_aftershock_action_desc:0 "She removes the archive's ceremonial locks, puts the Cartographers' Guild maps on the floor, and makes the Meridian Council staff sort names by hand. Her reform is tedious by design."
+ kestrel_convoy_name:0 "Kestrel Convoy"
+ kestrel_convoy_desc:0 "The Kestrel Convoy is the Concord name for the forty-eight life signs. The Watch of Quiet Stars refuses the name and calls it the Echo Decoy."
+ watch_report:0 "Watch of Quiet Stars Patrol Report"
+ council_cost:0 "Meridian Council Cost of Silence"
