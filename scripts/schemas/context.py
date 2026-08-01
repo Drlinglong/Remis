@@ -29,7 +29,12 @@ def _reject_credentials(value: Any) -> Any:
     if isinstance(value, dict):
         for key, nested in value.items():
             normalized = str(key).strip().lower().replace("-", "_")
-            if normalized in forbidden or normalized.endswith("_key"):
+            if (
+                normalized in forbidden
+                or normalized.endswith("_token")
+                or normalized.endswith("_secret")
+                or normalized in {"private_key", "credential"}
+            ):
                 raise ValueError("context analysis configuration cannot contain credentials")
             _reject_credentials(nested)
     elif isinstance(value, list):
@@ -82,6 +87,25 @@ class GeneratedSynthesis(BaseModel):
     aggregate_id: str = Field(min_length=1)
     context_key: str = Field(min_length=1)
     content: dict[str, Any] = Field(default_factory=dict)
+
+
+class ContextSynthesisItem(BaseModel):
+    """Validated model output for one aggregate summary."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    aggregate_id: str = Field(min_length=1)
+    context_key: str = Field(min_length=1)
+    summary: str = Field(min_length=1, max_length=1200)
+    evidence_source_item_ids: list[str] = Field(min_length=1, max_length=20)
+
+
+class ContextSynthesisResponse(BaseModel):
+    """The single structured response used by the context synthesizer."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    syntheses: list[ContextSynthesisItem] = Field(min_length=1, max_length=250)
 
 
 class HumanOverride(BaseModel):

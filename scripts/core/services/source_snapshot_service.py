@@ -78,17 +78,22 @@ def sha256_file(path: PathLike) -> str:
 class SourceItemIdentity:
     relative_path: str
     item_key: Optional[str] = None
+    source_order: Optional[int] = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "relative_path", normalize_relative_path(self.relative_path))
         object.__setattr__(self, "item_key", normalize_source_key(self.item_key))
+        if self.source_order is not None and self.source_order < 0:
+            raise ValueError("Source order cannot be negative")
 
     @property
     def canonical(self) -> str:
         """A length-delimited identity safe for deterministic sorting/hashing."""
 
         key = self.item_key or ""
-        return f"{len(self.relative_path)}:{self.relative_path}:{len(key)}:{key}"
+        if self.source_order is None:
+            return f"{len(self.relative_path)}:{self.relative_path}:{len(key)}:{key}"
+        return f"{len(self.relative_path)}:{self.relative_path}:{len(key)}:{key}:{self.source_order}"
 
 
 @dataclass(frozen=True)
@@ -98,6 +103,7 @@ class SourceItemInput:
     key: Optional[str]
     source_text: Optional[Content] = None
     source_sha256: Optional[str] = None
+    source_order: Optional[int] = None
 
     def __post_init__(self) -> None:
         if self.source_text is None and self.source_sha256 is None:
@@ -201,7 +207,9 @@ class SourceSnapshotDiff:
 
     @property
     def has_changes(self) -> bool:
-        return any(change.kind != SourceChangeKind.UNCHANGED for change in self.file_changes)
+        return any(change.kind != SourceChangeKind.UNCHANGED for change in self.file_changes) or any(
+            change.kind != SourceChangeKind.UNCHANGED for change in self.item_changes
+        )
 
     @property
     def files(self) -> tuple[SourceFileChange, ...]:
@@ -279,7 +287,9 @@ class SourceSnapshotService:
         source_sha256, size = self._file_fingerprint(file_input)
         items = tuple(
             SourceItemSnapshot(
-                identity=SourceItemIdentity(file_input.relative_path, item.key),
+                identity=SourceItemIdentity(
+                    file_input.relative_path, item.key, item.source_order
+                ),
                 source_sha256=self._item_fingerprint(item),
             )
             for item in file_input.items
@@ -319,7 +329,17 @@ class SourceSnapshotService:
     @staticmethod
     def _project_hash(files: tuple[SourceFileSnapshot, ...]) -> str:
         material = [
-            {"relative_path": item.relative_path, "sha256": item.source_sha256}
+            {
+                "relative_path": item.relative_path,
+                "sha256": item.source_sha256,
+                "items": [
+                    {
+                        "identity": source_item.identity.canonical,
+                        "sha256": source_item.source_sha256,
+                    }
+                    for source_item in item.items
+                ],
+            }
             for item in files
         ]
         encoded = json.dumps(material, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
@@ -362,9 +382,9 @@ class SourceSnapshotService:
             raise ValueError("A source snapshot cannot contain duplicate item identities")
 
     @staticmethod
-    def _identity_sort_key(identity: SourceItemIdentity) -> tuple[str, str]:
-        return identity.relative_path, identity.item_key or ""
+    def _identity_sort_key(identity: SourceItemIdentity) -> tuple[str, str, int]:
+        return identity.relative_path, identity.item_key or "", identity.source_order or -1
 
     @staticmethod
-    def _item_sort_key(item: SourceItemSnapshot) -> tuple[str, str]:
+    def _item_sort_key(item: SourceItemSnapshot) -> tuple[str, str, int]:
         return SourceSnapshotService._identity_sort_key(item.identity)
