@@ -28,6 +28,7 @@ ACTIVE_TASK_STATUSES = {
 }
 TERMINAL_TASK_STATUSES = {"completed", "complete", "success", "failed", "partial_failed", "cancelled", "canceled", "interrupted"}
 _repository: Optional[TaskRepository] = None
+RESTART_INTERRUPTED_KINDS = {"neologism_mining"}
 
 
 class DuplicateTaskError(RuntimeError):
@@ -89,6 +90,47 @@ def _ensure_task(task_id: str) -> Dict[str, Any]:
     return task
 
 
+def _cannot_resume_after_restart(task: Dict[str, Any]) -> bool:
+    checkpoint = task.get("checkpoint") or {}
+    return (
+        task.get("kind") in RESTART_INTERRUPTED_KINDS
+        or (
+            task.get("kind") in {"agent_workshop", "agent_workshop_batch"}
+            and checkpoint.get("resume_supported") is False
+        )
+    )
+
+
+def _mark_restart_interrupted(repository: TaskRepository, task: Dict[str, Any]) -> None:
+    now = _utc_now_iso()
+    is_workshop = task.get("kind") in {"agent_workshop", "agent_workshop_batch"}
+    task["status"] = "interrupted"
+    task["updated_at"] = now
+    task["finished_at"] = now
+    task["message"] = "The app restarted before this task finished."
+    task["attention_reason"] = (
+        "This Agent Workshop task cannot resume automatically. Return to the workflow "
+        "and review current validation results before retrying."
+        if is_workshop
+        else "This context-analysis task cannot resume automatically. Start it again."
+    )
+    task.setdefault("progress", {})["stage"] = "Interrupted"
+    checkpoint = task.get("checkpoint") or {}
+    if checkpoint:
+        checkpoint.update({"available": False, "stage": "interrupted", "updated_at": now})
+        task["checkpoint"] = checkpoint
+    repository.save_task(
+        task,
+        event={
+            "timestamp": now,
+            "level": "warning",
+            "event_type": "recovery_interrupted",
+            "audience": "user",
+            "message": task["attention_reason"],
+        },
+    )
+
+
 def _append_log(task: Dict[str, Any], message: Optional[str]) -> None:
     if not message:
         return
@@ -130,39 +172,12 @@ def configure_repository(
             task_id = str(task.get("task_id") or "")
             if not task_id:
                 continue
-            checkpoint = task.get("checkpoint") or {}
-            if (
-                task.get("kind") in {"agent_workshop", "agent_workshop_batch"}
-                and checkpoint.get("resume_supported") is False
-            ):
-                now = _utc_now_iso()
-                task["status"] = "interrupted"
-                task["updated_at"] = now
-                task["finished_at"] = now
-                task["message"] = "The app restarted before this repair task finished."
-                task["attention_reason"] = (
-                    "This Agent Workshop task cannot resume automatically. "
-                    "Return to the workflow and review current validation results before retrying."
-                )
-                task.setdefault("progress", {})["stage"] = "Interrupted"
-                checkpoint["available"] = False
-                checkpoint["stage"] = "interrupted"
-                checkpoint["updated_at"] = now
-                task["checkpoint"] = checkpoint
+            if _cannot_resume_after_restart(task):
                 try:
-                    repository.save_task(
-                        task,
-                        event={
-                            "timestamp": now,
-                            "level": "warning",
-                            "event_type": "recovery_interrupted",
-                            "audience": "user",
-                            "message": task["attention_reason"],
-                        },
-                    )
+                    _mark_restart_interrupted(repository, task)
                 except (OSError, sqlite3.Error, ValueError, KeyError) as exc:
                     logging.error(
-                        "Failed to mark non-resumable Agent Workshop task %s interrupted: %s",
+                        "Failed to mark non-resumable task %s interrupted: %s",
                         task_id,
                         exc,
                     )

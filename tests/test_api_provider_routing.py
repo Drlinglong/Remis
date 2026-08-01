@@ -125,6 +125,70 @@ def test_openrouter_chat_preserves_provider_failure():
         )
 
 
+def test_openrouter_luna_chat_uses_high_reasoning_with_bounded_output():
+    captured = {}
+
+    class Completions:
+        @staticmethod
+        def create(**kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="[]"))]
+            )
+
+    handler = OpenRouterHandler.__new__(OpenRouterHandler)
+    handler.provider_name = "openrouter"
+    handler.model_id = "openai/gpt-5.6-luna"
+    handler.logger = logging.getLogger("OpenRouterHandlerTest")
+    handler.client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
+
+    assert handler.generate_with_messages(
+        [{"role": "user", "content": "Analyze this text"}],
+        temperature=0.0,
+    ) == "[]"
+    assert captured["model"] == "openai/gpt-5.6-luna"
+    assert captured["max_tokens"] == 32768
+    assert captured["extra_body"] == {
+        "reasoning": {"effort": "high", "exclude": True}
+    }
+    assert "temperature" not in captured
+
+
+def test_openrouter_luna_structured_chat_sends_json_schema():
+    captured = {}
+
+    class Completions:
+        @staticmethod
+        def create(**kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content='{"items":[]}'))]
+            )
+
+    handler = OpenRouterHandler.__new__(OpenRouterHandler)
+    handler.provider_name = "openrouter"
+    handler.model_id = "openai/gpt-5.6-luna"
+    handler.logger = logging.getLogger("OpenRouterHandlerTest")
+    handler.client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
+    schema = {"type": "object", "properties": {"items": {"type": "array"}}}
+
+    result = handler.generate_structured_with_messages(
+        [{"role": "user", "content": "Return items"}],
+        schema=schema,
+        schema_name="items_response",
+    )
+
+    assert result == '{"items":[]}'
+    assert captured["response_format"] == {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "items_response",
+            "strict": False,
+            "schema": schema,
+        },
+    }
+
+
 @pytest.mark.parametrize("provider_id", TURNKEY_CLOUD_PROVIDER_IDS)
 def test_each_cloud_provider_initializes_with_only_its_declared_key(provider_id):
     declared_env = API_PROVIDERS[provider_id]["api_key_env"]

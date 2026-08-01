@@ -22,6 +22,8 @@ from scripts.schemas.context import (
 class ContextSynthesisService:
     """Make one structured synthesis call and allow one deterministic repair."""
 
+    MAX_AGGREGATES_PER_CALL = 12
+
     SYSTEM_PROMPT = """
 You summarize source-grounded localization context. Return only JSON matching
 the required schema. Make each summary concise and factual. Use only the
@@ -44,6 +46,23 @@ event chains, and the project summary describes the project-level pattern.
         aggregate_list = list(aggregates)
         if not aggregate_list:
             return []
+        synthesized: list[GeneratedSynthesis] = []
+        for start in range(0, len(aggregate_list), self.MAX_AGGREGATES_PER_CALL):
+            synthesized.extend(
+                self._synthesize_batch(
+                    aggregate_list[start:start + self.MAX_AGGREGATES_PER_CALL],
+                    contributions,
+                    sources,
+                )
+            )
+        return synthesized
+
+    def _synthesize_batch(
+        self,
+        aggregate_list: list[ContextAggregate],
+        contributions: dict[str, ContextContribution],
+        sources: dict[str, ContextSourceItem],
+    ) -> list[GeneratedSynthesis]:
         request = self._request_payload(aggregate_list, contributions, sources)
         messages = [
             {"role": "system", "content": self.SYSTEM_PROMPT},
@@ -66,7 +85,10 @@ event chains, and the project summary describes the project-level pattern.
             try:
                 parsed = self._parse_and_validate(repaired, aggregate_list, contributions, sources)
             except (json.JSONDecodeError, ValidationError, TypeError, ValueError) as second_error:
-                raise NeologismMiningError("Context synthesis failed after one repair") from second_error
+                category = self._validation_error_category(second_error)
+                raise NeologismMiningError(
+                    f"Context synthesis failed after one repair ({category})"
+                ) from second_error
         return [
             GeneratedSynthesis(
                 synthesis_id=str(uuid.uuid4()),
@@ -80,9 +102,36 @@ event chains, and the project summary describes the project-level pattern.
             for item in parsed.syntheses
         ]
 
+    @staticmethod
+    def _validation_error_category(error: Exception) -> str:
+        if isinstance(error, json.JSONDecodeError):
+            return "invalid_json"
+        if isinstance(error, ValidationError):
+            return "schema_validation"
+        message_categories = {
+            "Context synthesis must return exactly one item per aggregate": "aggregate_coverage",
+            "Context synthesis context_key does not match its aggregate": "context_key_mismatch",
+            "Context contribution referenced an unknown source item": "unknown_source_item",
+            "Context synthesis referenced evidence outside its aggregate": "evidence_scope",
+        }
+        return message_categories.get(str(error), "contract_validation")
+
     def _generate(self, messages: list[dict[str, str]]) -> str:
         try:
-            response = self.handler.generate_with_messages(messages, temperature=0.0)
+            structured_generate = getattr(
+                self.handler,
+                "generate_structured_with_messages",
+                None,
+            )
+            if structured_generate is not None:
+                response = structured_generate(
+                    messages,
+                    schema=ContextSynthesisResponse.model_json_schema(),
+                    schema_name="remis_context_synthesis",
+                    temperature=0.0,
+                )
+            else:
+                response = self.handler.generate_with_messages(messages, temperature=0.0)
         except Exception as exc:
             raise NeologismMiningError(f"Context synthesis request failed: {exc}") from exc
         if not response or not response.strip():

@@ -11,6 +11,7 @@ from scripts.core.repositories.context_repository import ContextRepository
 from scripts.core.services.context_workflow_service import ContextWorkflowService
 from scripts.shared.services import project_manager, glossary_manager
 from scripts.shared import task_state
+from scripts.shared.task_state import DuplicateTaskError
 from scripts.schemas.neologism import (
     ApproveNeologismRequest,
     ProjectGlossaryBindingRequest,
@@ -330,6 +331,16 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
             dedupe_key=f"neologism_mining:{payload.project_id}",
             reject_duplicate=True,
         )
+    except DuplicateTaskError as exc:
+        context_workflow_service.release_reservation(payload.project_id, task_id)
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "duplicate_task",
+                "message": "A neologism mining run is already active for this project",
+                "existing_task_id": exc.existing_task.get("task_id"),
+            },
+        ) from exc
     except Exception:
         context_workflow_service.release_reservation(payload.project_id, task_id)
         raise

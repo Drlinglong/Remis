@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Literal, Optional, Sequence
 
@@ -161,6 +162,8 @@ grounded source-level entities, facts, event-chain steps, and relationships.
 # Grounding and safety rules
 - Every evidence.source_item_id MUST be one of the supplied source_item_id values.
 - Every evidence.snippet MUST be copied exactly from that source item's source_text.
+- Prefer a short direct substring for evidence.snippet. Preserve its exact quote,
+  dash, capitalization, and spacing characters; do not paraphrase it.
 - Every term.original and entity.name MUST occur in an evidenced source item.
 - Do not invent facts, events, relationships, or entities that cannot be supported
   by an exact snippet. They are tentative model contributions, never script-derived
@@ -238,7 +241,20 @@ Return only this JSON shape, with no markdown:
 
     def _generate(self, messages: List[Dict[str, str]]) -> str:
         try:
-            response = self.handler.generate_with_messages(messages, temperature=0.0)
+            structured_generate = getattr(
+                self.handler,
+                "generate_structured_with_messages",
+                None,
+            )
+            if structured_generate is not None:
+                response = structured_generate(
+                    messages,
+                    schema=StructuredNeologismExtraction.model_json_schema(),
+                    schema_name="remis_context_extraction",
+                    temperature=0.0,
+                )
+            else:
+                response = self.handler.generate_with_messages(messages, temperature=0.0)
         except Exception as exc:
             raise NeologismMiningError(f"LLM request failed: {exc}") from exc
         if not response or not response.strip():
@@ -272,10 +288,87 @@ Return only this JSON shape, with no markdown:
             try:
                 return self._parse_and_validate(repaired, source_items, scope, allow_legacy_term_array)
             except (json.JSONDecodeError, ValidationError, TypeError, ValueError, NeologismMiningError) as second_error:
-                self.logger.error("Structured extraction failed after one repair")
+                category = self._validation_error_category(second_error)
+                self.logger.error(
+                    "Structured extraction failed after one repair (%s)",
+                    category,
+                )
                 raise NeologismMiningError(
-                    "LLM returned invalid structured extraction output after one repair"
+                    "LLM returned invalid structured extraction output after one repair "
+                    f"({category})"
                 ) from second_error
+
+    @staticmethod
+    def _validation_error_category(error: Exception) -> str:
+        if isinstance(error, json.JSONDecodeError):
+            return "invalid_json"
+        if isinstance(error, ValidationError):
+            return "schema_validation"
+        if isinstance(error, NeologismMiningError):
+            grounding_categories = {
+                "Structured extraction referenced an unknown source item": "unknown_source_item",
+                "Structured extraction contained an ungrounded evidence snippet": "ungrounded_snippet",
+                "Structured extraction contained an ungrounded term": "ungrounded_term",
+                "Structured extraction contained an ungrounded entity": "ungrounded_entity",
+            }
+            return grounding_categories.get(str(error), "grounding_validation")
+        return "contract_validation"
+
+    @staticmethod
+    def _normalize_evidence_snippet(
+        evidence: SourceEvidence,
+        source_text: str,
+        anchors: Sequence[str],
+    ) -> None:
+        if evidence.snippet in source_text:
+            return
+        quote_chars = "'\u2018\u2019\"\u201c\u201d"
+        dash_chars = "-\u2013\u2014"
+        parts: list[str] = []
+        previous_space = False
+        for char in evidence.snippet.strip():
+            if char.isspace():
+                if not previous_space:
+                    parts.append(r"\s+")
+                previous_space = True
+                continue
+            previous_space = False
+            if char in quote_chars:
+                parts.append(f"[{re.escape(quote_chars)}]")
+            elif char in dash_chars:
+                parts.append(f"[{re.escape(dash_chars)}]")
+            else:
+                parts.append(re.escape(char))
+        if not parts:
+            return
+        match = re.search("".join(parts), source_text, flags=re.IGNORECASE)
+        if match is not None:
+            evidence.snippet = source_text[match.start():match.end()]
+            return
+        folded_source = source_text.casefold()
+        for anchor in anchors:
+            normalized_anchor = str(anchor or "").strip()
+            if not normalized_anchor:
+                continue
+            start = folded_source.find(normalized_anchor.casefold())
+            if start < 0:
+                continue
+            if len(source_text) <= 2000:
+                evidence.snippet = source_text
+                return
+            window_start = max(0, start - 800)
+            window_end = min(len(source_text), window_start + 2000)
+            evidence.snippet = source_text[window_start:window_end]
+            return
+
+    @staticmethod
+    def _contribution_anchors(contribution: Any) -> list[str]:
+        anchors = [
+            getattr(contribution, field, None)
+            for field in ("original", "name", "subject", "object", "event", "relation", "consequence")
+        ]
+        anchors.extend(getattr(contribution, "participants", None) or [])
+        return [str(anchor) for anchor in anchors if anchor]
 
     def _parse_and_validate(
         self,
@@ -339,10 +432,12 @@ Return only this JSON shape, with no markdown:
         lookup = {item.source_item_id: item for item in source_items}
         contributions = [*extraction.terms, *extraction.entities, *extraction.facts, *extraction.events, *extraction.relationships]
         for contribution in contributions:
+            anchors = cls._contribution_anchors(contribution)
             for evidence in contribution.evidence:
                 item = lookup.get(evidence.source_item_id)
                 if item is None:
                     raise NeologismMiningError("Structured extraction referenced an unknown source item")
+                cls._normalize_evidence_snippet(evidence, item.source_text, anchors)
                 if evidence.snippet not in item.source_text:
                     raise NeologismMiningError("Structured extraction contained an ungrounded evidence snippet")
                 evidence.relative_path = item.relative_path

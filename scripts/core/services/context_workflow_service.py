@@ -43,7 +43,7 @@ class ContextWorkflowService:
     CHUNK_SIZE = 16
     REVIEW_BATCH_SIZE = ContextCandidateAdapter.REVIEW_BATCH_SIZE
     SCHEMA_VERSION = "context-v1"
-    PROMPT_VERSION = "context-synthesis-v1"
+    PROMPT_VERSION = "context-synthesis-v2"
     ACTIVE_STATUSES = ContextWorkflowStatusService.ACTIVE_STATUSES
 
     def __init__(
@@ -123,6 +123,12 @@ class ContextWorkflowService:
             if scope is AnalysisScope.TERMS_ONLY:
                 result = terms_result
             else:
+                self._task_update(
+                    task_id,
+                    progress={"stage": "Synthesizing"},
+                    fields={"stage_code": "synthesizing"},
+                    push=True,
+                )
                 result = self._finish_context(
                     project_id, parsed_files, snapshot, diff, parent, extractions,
                     handler, api_provider, model_name, upstream_version, analysis_config,

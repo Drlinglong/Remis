@@ -207,16 +207,30 @@ def test_hydration_interrupts_only_explicitly_non_resumable_workshop_tasks(tmp_p
             "created_at": "2026-07-24T00:00:00Z",
             "updated_at": "2026-07-24T00:01:00Z",
         })
+        repository.save_task({
+            "task_id": "context-running",
+            "kind": "neologism_mining",
+            "title": "Context analysis",
+            "status": "running",
+            "created_at": "2026-07-24T00:00:00Z",
+            "updated_at": "2026-07-24T00:01:00Z",
+        })
 
         task_state.configure_repository(repository, hydrate=True, replace=True)
 
         workshop = task_state.get_task("workshop-running")
         translation = task_state.get_task("translation-running")
+        context = task_state.get_task("context-running")
         assert workshop["status"] == "interrupted"
         assert workshop["checkpoint"]["stage"] == "interrupted"
         assert workshop["finished_at"]
         assert translation["status"] == "processing"
+        assert context["status"] == "interrupted"
+        assert context["attention_reason"] == (
+            "This context-analysis task cannot resume automatically. Start it again."
+        )
         assert task_state.get_task_events("workshop-running")[0]["event_type"] == "recovery_interrupted"
+        assert task_state.get_task_events("context-running")[0]["event_type"] == "recovery_interrupted"
     finally:
         task_state.configure_repository(None)
         task_state.tasks.clear()

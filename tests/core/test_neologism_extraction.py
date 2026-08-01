@@ -147,6 +147,54 @@ def test_ungrounded_evidence_is_rejected_after_one_repair():
     assert len(handler.calls) == 2
 
 
+def test_evidence_snippet_normalizes_only_source_preserving_typography():
+    item = source_item("Remis said, \u201cOpen the Meridian Gate\u2014now.\u201d")
+    payload = json.dumps({
+        "terms": [{
+            "original": "Meridian Gate",
+            "category": "place",
+            "evidence": [{
+                "source_item_id": "item-1",
+                "snippet": 'remis said, "open the meridian gate-now."',
+            }],
+        }],
+        "entities": [], "facts": [], "events": [], "relationships": [],
+    })
+    handler = FakeHandler([payload])
+
+    result = StructuredNeologismExtractor(handler).extract([item])
+
+    assert result.terms[0].evidence[0].snippet == (
+        "Remis said, \u201cOpen the Meridian Gate\u2014now.\u201d"
+    )
+
+
+def test_grounded_contribution_gets_deterministic_atomic_source_evidence():
+    text = "Remis opened the Meridian Gate after the council vote."
+    payload = json.dumps({
+        "terms": [],
+        "entities": [{
+            "name": "Meridian Gate",
+            "entity_type": "place",
+            "description": "A gate opened after a vote.",
+            "evidence": [{
+                "source_item_id": "item-1",
+                "snippet": "The gate was opened following the vote.",
+            }],
+            "provenance": "text_inferred",
+        }],
+        "facts": [], "events": [], "relationships": [],
+    })
+    handler = FakeHandler([payload])
+
+    result = StructuredNeologismExtractor(handler).extract(
+        [source_item(text)],
+        scope=AnalysisScope.NARRATIVE_CONTEXT,
+    )
+
+    assert result.entities[0].evidence[0].snippet == text
+
+
 def test_unknown_source_item_rejects_model_provenance():
     invalid = json.dumps({
         "terms": [{

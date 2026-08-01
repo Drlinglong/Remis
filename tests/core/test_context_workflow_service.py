@@ -312,7 +312,11 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
     assert release.metadata.provider_id == "local"
     assert release.metadata.model_id == "fake-model"
     assert release.metadata.schema_version == "context-v1"
-    assert release.metadata.prompt_version == "context-synthesis-v1"
+    assert release.metadata.prompt_version == "context-synthesis-v2"
+    assert any(
+        update[1].get("fields", {}).get("stage_code") == "synthesizing"
+        for update in service.task_backend.updates
+    )
     assert release.metadata.parent_release_id is None
     assert any(
         item.context_key == "project:summary"
@@ -370,3 +374,32 @@ def test_synthesis_repairs_at_most_once():
 
     assert len(handler.calls) == 2
     assert result[0].content["evidence_source_item_ids"] == ["source-1"]
+
+
+def test_synthesis_batches_large_aggregate_sets():
+    source = ContextSourceItem(
+        source_item_id="source-1", project_id="project-1", source_type="localization",
+        source_ref="main.yml::0:key", content="The Republic appoints a consul.", content_hash="hash-1",
+    )
+    contribution = ContextContribution(
+        contribution_id="contribution-1", source_item_id="source-1", contribution_type="fact",
+        subject_key="entity:republic", payload={"evidence": [{"source_item_id": "source-1"}]},
+        provenance="text_inferred",
+    )
+    aggregates = [
+        ContextAggregate(
+            aggregate_id=f"aggregate-{index}", project_id="project-1", aggregate_type="entity",
+            aggregate_key=f"entity:republic:{index}", contribution_ids=[contribution.contribution_id],
+        )
+        for index in range(13)
+    ]
+    handler = FakeHandler()
+
+    result = ContextSynthesisService(handler).synthesize(
+        aggregates,
+        {contribution.contribution_id: contribution},
+        {source.source_item_id: source},
+    )
+
+    assert len(handler.calls) == 2
+    assert [item.aggregate_id for item in result] == [item.aggregate_id for item in aggregates]
