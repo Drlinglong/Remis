@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS context_contributions (
     contribution_id TEXT PRIMARY KEY,
     source_item_id TEXT NOT NULL,
     contribution_type TEXT NOT NULL
-        CHECK(contribution_type IN ('mention', 'fact', 'event')),
+        CHECK(contribution_type IN ('mention', 'fact', 'event', 'relationship')),
     subject_key TEXT NOT NULL,
     payload_json JSON NOT NULL DEFAULT '{}',
     provenance TEXT NOT NULL
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS context_contributions (
 CREATE TABLE IF NOT EXISTS context_aggregates (
     aggregate_id TEXT PRIMARY KEY,
     project_id TEXT NOT NULL,
-    aggregate_type TEXT NOT NULL CHECK(aggregate_type IN ('entity', 'event')),
+    aggregate_type TEXT NOT NULL CHECK(aggregate_type IN ('entity', 'event', 'project')),
     aggregate_key TEXT NOT NULL,
     payload_json JSON NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL,
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS context_releases (
 CREATE TABLE IF NOT EXISTS context_release_aggregates (
     release_id TEXT NOT NULL,
     aggregate_id TEXT NOT NULL,
-    aggregate_type TEXT NOT NULL CHECK(aggregate_type IN ('entity', 'event')),
+    aggregate_type TEXT NOT NULL CHECK(aggregate_type IN ('entity', 'event', 'project')),
     aggregate_key TEXT NOT NULL,
     payload_json JSON NOT NULL DEFAULT '{}',
     contribution_ids_json JSON NOT NULL DEFAULT '[]',

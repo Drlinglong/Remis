@@ -9,8 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 Provenance = Literal["text_inferred", "script_derived", "user_confirmed"]
-ContributionType = Literal["mention", "fact", "event"]
-AggregateType = Literal["entity", "event"]
+ContributionType = Literal["mention", "fact", "event", "relationship"]
+AggregateType = Literal["entity", "event", "project"]
 
 
 def _now() -> str:

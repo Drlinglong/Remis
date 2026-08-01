@@ -156,6 +156,45 @@ def test_context_migration_creates_traceable_storage_and_provenance_checks(tmp_p
     ]
 
 
+def test_relationship_contributions_and_project_aggregates_are_first_class(tmp_path):
+    repository, _ = _repository(tmp_path)
+    repository.create_source_item(
+        ContextSourceItem(
+            source_item_id="source-project",
+            project_id="project-1",
+            source_type="localization",
+            source_ref="events/project.yml:project.summary",
+            content="The Republic protects the Meridian Gate.",
+            content_hash="hash-project",
+        )
+    )
+    relationship = repository.create_contribution(
+        ContextContribution(
+            contribution_id="relationship-1",
+            source_item_id="source-project",
+            contribution_type="relationship",
+            subject_key="republic",
+            payload={"relation": "protects", "object": "meridian-gate"},
+            provenance="text_inferred",
+        )
+    )
+    project_aggregate = repository.save_aggregate(
+        ContextAggregate(
+            aggregate_id="aggregate-project",
+            project_id="project-1",
+            aggregate_type="project",
+            aggregate_key="project:summary",
+            payload={"title": "Context Mod"},
+            contribution_ids=[relationship.contribution_id],
+        )
+    )
+
+    assert project_aggregate.aggregate_type == "project"
+    assert repository.get_aggregate("aggregate-project").contribution_ids == [
+        "relationship-1"
+    ]
+
+
 def test_publish_creates_effective_context_and_full_traceability(tmp_path):
     repository, _ = _repository(tmp_path)
     _seed_context(repository)
