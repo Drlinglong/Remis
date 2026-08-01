@@ -69,6 +69,7 @@
         "base_url": "https://api.deepseek.com",
         "default_model": "deepseek-chat",
         "available_models": [
+            "deepseek-v4-flash",
             "deepseek-chat",
             "deepseek-reasoner",
             "deepseek-v3.2",

@@ -47,6 +47,10 @@ def test_every_configured_default_model_is_in_its_available_catalog():
             assert config["default_model"] in available_models, provider_id
 
 
+def test_deepseek_v4_flash_is_selectable_for_context_smoke_tests():
+    assert "deepseek-v4-flash" in API_PROVIDERS["deepseek"]["available_models"]
+
+
 @pytest.mark.parametrize("provider_id", TURNKEY_CLOUD_PROVIDER_IDS)
 def test_each_cloud_provider_initializes_with_only_its_declared_key(provider_id):
     declared_env = API_PROVIDERS[provider_id]["api_key_env"]
