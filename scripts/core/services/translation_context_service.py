@@ -152,8 +152,12 @@ def _source_items(file_data: Mapping[str, Any]) -> list[SourceItemInput]:
                 "source": source,
             })
     return [
-        SourceItemInput(key=entry.get("key"), source_text=entry.get("source", ""))
-        for entry in entries
+        SourceItemInput(
+            key=entry.get("key"),
+            source_order=index,
+            source_text=entry.get("source", ""),
+        )
+        for index, entry in enumerate(entries)
         if entry.get("key") is not None
     ]
 
@@ -169,13 +173,15 @@ def build_translation_source_snapshot(
         relative_path = file_data.get("file_path") or file_data.get("filename")
         if not relative_path:
             continue
-        original_lines = file_data.get("original_lines")
-        if original_lines is not None:
-            content = "".join(original_lines)
-        elif file_data.get("full_path"):
-            content = Path(file_data["full_path"]).read_text(encoding="utf-8")
+        disk_path = file_data.get("path") or file_data.get("full_path")
+        if disk_path and Path(disk_path).is_file():
+            content = Path(disk_path).read_bytes()
         else:
-            content = ""
+            original_lines = file_data.get("original_lines")
+            if original_lines is not None:
+                content = "".join(original_lines)
+            else:
+                content = ""
         inputs.append(
             SourceFileInput(
                 relative_path=relative_path,

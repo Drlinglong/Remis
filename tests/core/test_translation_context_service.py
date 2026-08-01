@@ -8,6 +8,7 @@ from scripts.core.services.translation_context_service import (
     TranslationContextService,
     build_translation_source_snapshot,
 )
+from scripts.core.services.context_source_parser import ContextSourceParser
 from scripts.core.loc_parser import parse_loc_file_with_lines
 from scripts.core.services.source_snapshot_service import SourceFileInput, SourceItemInput, SourceSnapshotService
 
@@ -258,8 +259,8 @@ def test_real_parsed_localization_snapshot_matches_analysis_contract():
             relative_path="localization/english/workshop_demo_l_english.yml",
             content="".join(raw_lines),
             items=tuple(
-                SourceItemInput(key=key, source_text=source)
-                for key, source, _line_number in parsed_entries
+                SourceItemInput(key=key, source_order=index, source_text=source)
+                for index, (key, source, _line_number) in enumerate(parsed_entries)
             ),
         )
     ])
@@ -267,3 +268,27 @@ def test_real_parsed_localization_snapshot_matches_analysis_contract():
     assert parsed_entries
     assert translation_snapshot == analysis_snapshot
     assert translation_snapshot.source_snapshot_hash == analysis_snapshot.source_snapshot_hash
+
+
+def test_narrative_fixture_snapshot_matches_real_analysis_parser():
+    root = Path("tests/fixtures/demo_smoke/issue_198_narrative/source_mod").resolve()
+    paths = sorted((root / "localisation" / "english").glob("*.yml"))
+    parser = ContextSourceParser()
+    parsed_files = parser.parse_files([str(path) for path in paths], str(root))
+
+    analysis_snapshot = parser.build_snapshot(parsed_files)
+    translation_snapshot = build_translation_source_snapshot([
+        {
+            "path": str(source_file.path),
+            "file_path": source_file.relative_path,
+            "original_lines": source_file.content.decode("utf-8-sig").splitlines(keepends=True),
+            "source_entries": [
+                {"key": item.item_key, "source": item.source_text}
+                for item in source_file.items
+            ],
+        }
+        for source_file in parsed_files
+    ])
+
+    assert len(parsed_files) == 7
+    assert translation_snapshot == analysis_snapshot
