@@ -3,7 +3,7 @@ l_english:
  character_remis:0 "Remis"
  character_remis_desc:0 "Remis arrives with a red ledger chained to her wrist and the expression of someone who has already found the leak. The Cartographers' Guild calls her the Red Archivist; the Watch of Quiet Stars calls her the Ledger-Breaker."
  place_meridian_gate:0 "Meridian Gate"
- place_meridian_gate_desc:0 "Meridian Gate is a failing relay above Kestrel Reach. Its first builders wrote the Accord of Echoes as a promise to carry people, not armies."
+ place_meridian_gate_desc:0 "Meridian Gate is a failing relay on the last charted approach to Kestrel Reach. Its first builders wrote the Accord of Echoes as a promise to carry people, not armies."
  place_kestrel_reach:0 "Kestrel Reach"
  org_cartographers_guild:0 "Cartographers' Guild"
  org_meridian_council:0 "Meridian Council"

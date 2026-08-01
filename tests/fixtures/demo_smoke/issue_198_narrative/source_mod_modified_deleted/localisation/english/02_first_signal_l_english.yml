@@ -5,7 +5,7 @@ l_english:
  remis198_signal_choice.a:0 "Ask the Meridian Council to open the route under the Mercy Protocol."
  remis198_signal_choice.b:0 "Ask the Watch of Quiet Stars to seal Meridian Gate before the signal answers."
  meridian_gate.221.t:0 "The Ledger That Remembers"
- meridian_gate.221.desc:0 "The ledger places Kestrel Reach beyond the next jump, yet its margin bears Remis's other title: the Ledger-Breaker. The Cartographers' Guild denies drawing it, while Remis says the Accord of Echoes has been keeping accounts."
+ meridian_gate.221.desc:0 "The ledger places Kestrel Reach beyond the next jump from Meridian Gate, yet its margin bears Remis's other title: the Ledger-Breaker. The Cartographers' Guild denies drawing it, while Remis says the Accord of Echoes has been keeping accounts."
  meridian_gate.221.a:0 "Follow the Accord of Echoes into Kestrel Reach."
  meridian_gate.221.b:0 "Hold Meridian Gate until the Meridian Council agrees."
  remis_gate_action:0 "Remis opens the maintenance hatch with a hairpin."

@@ -71,6 +71,15 @@
   "aliases": [
     {"canonical": "Remis", "aliases": ["the Red Archivist", "the Ledger-Breaker"]}
   ],
+  "spatial_contract": {
+    "distinct_places": ["Meridian Gate", "Kestrel Reach"],
+    "relationship_keys": [
+      {"key": "place_meridian_gate_desc:0", "required_terms": ["Meridian Gate", "Kestrel Reach", "approach"]},
+      {"key": "meridian_gate.221.desc:0", "required_terms": ["Kestrel Reach", "Meridian Gate", "beyond", "jump"]},
+      {"key": "resolution.400.desc:0", "required_terms": ["Kestrel Reach", "Meridian Gate", "from", "route"]}
+    ],
+    "forbidden_patterns": ["at §y kestrel reach§!, meridian gate", "at kestrel reach, meridian gate"]
+  },
   "event_chain": [
     {
       "id": "signal_reaches_gate",

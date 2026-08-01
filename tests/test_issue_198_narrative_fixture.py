@@ -41,6 +41,18 @@ def _read_entries(root: Path) -> tuple[dict[str, str], dict[str, str]]:
     return entries, key_files
 
 
+def _assert_spatial_contract(entries: dict[str, str], manifest: dict) -> None:
+    spatial = manifest["spatial_contract"]
+    for relation in spatial["relationship_keys"]:
+        value = entries[relation["key"]]
+        normalized = value.casefold()
+        for term in relation["required_terms"]:
+            assert term.casefold() in normalized, f"{relation['key']} missing spatial term {term}"
+    all_text = "\n".join(entries.values()).casefold()
+    for pattern in spatial["forbidden_patterns"]:
+        assert pattern.casefold() not in all_text, f"spatial contradiction remains: {pattern}"
+
+
 def test_issue_198_narrative_fixture_has_valid_coverage_and_cross_file_chain():
     manifest = _manifest()
     baseline_root = FIXTURE_ROOT / manifest["baseline_root"]
@@ -54,6 +66,7 @@ def test_issue_198_narrative_fixture_has_valid_coverage_and_cross_file_chain():
     assert len(entries) == manifest["expected_baseline"]["entry_count"]
     assert {path.relative_to(baseline_root).as_posix() for path in paths} == set(provenance)
     assert len({item["batch"] for item in provenance.values()}) >= manifest["expected_baseline"]["minimum_batches"]
+    _assert_spatial_contract(entries, manifest)
 
     terms_text = "\n".join(entries.values())
     for item in manifest["recurring_terms"]:
@@ -107,6 +120,7 @@ def test_issue_198_narrative_variant_has_explicit_changed_and_deleted_source_del
     baseline_files = {path.relative_to(baseline_root).as_posix() for path in _localization_files(baseline_root)}
     variant_files = {path.relative_to(variant_root).as_posix() for path in _localization_files(variant_root)}
     delta = manifest["variant_delta"]
+    _assert_spatial_contract(variant_entries, manifest)
 
     deleted_files = sorted(baseline_files - variant_files)
     added_files = sorted(variant_files - baseline_files)
