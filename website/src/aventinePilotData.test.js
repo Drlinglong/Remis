@@ -11,7 +11,7 @@ describe('Aventine pilot website data', () => {
     })
     expect(pilotRecipes).toHaveLength(9)
     expect(pilotRecipes.map((recipe) => recipe.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
-    expect(pilotRecipes[0]).toMatchObject({ id: 'gemini36', score: 84.21, reasoning: 'high' })
+    expect(pilotRecipes[0]).toMatchObject({ id: 'gemini36', model: 'Gemini 3.6 Flash', score: 84.21, reasoning: 'high' })
   })
 
   it('keeps the published score formula reproducible', () => {

@@ -50,7 +50,7 @@ body {
   background: var(--ink);
   color: var(--text-on-ink);
   font-family: var(--font-mono);
-  font-size: 0.9rem;
+  font-size: 1rem;
   letter-spacing: 0.3em;
 }
 
@@ -3323,36 +3323,44 @@ img {
   z-index: 3;
   bottom: var(--y);
   left: var(--x);
-  width: 1px;
-  height: 1px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--benchmark-text);
   cursor: pointer;
+  transform: translate(-50%, 50%);
 }
 
 .aa-scatter__point > i {
   position: absolute;
-  top: -7px;
-  left: -7px;
+  top: 50%;
+  left: 50%;
   width: 14px;
   height: 14px;
   border: 2px solid var(--benchmark-panel);
   border-radius: 50%;
   background: var(--point-color);
   box-shadow: 0 0 0 1px rgba(237, 244, 245, 0.5), 0 0 14px color-mix(in srgb, var(--point-color), transparent 55%);
+  transform: translate(-50%, -50%);
   transition: transform 150ms ease;
 }
 
 .aa-scatter__point:hover > i,
 .aa-scatter__point:focus-visible > i {
-  transform: scale(1.45);
+  transform: translate(-50%, -50%) scale(1.45);
+}
+
+.aa-scatter__point:hover,
+.aa-scatter__point:focus,
+.aa-scatter__point:focus-visible {
+  z-index: 5;
 }
 
 .aa-scatter__point > span {
   position: absolute;
-  bottom: calc(12px + var(--label-rise));
+  bottom: calc(26px + var(--label-rise));
   left: 50%;
   min-width: 105px;
   padding: 0.35rem 0.42rem;
@@ -3364,8 +3372,20 @@ img {
   font-style: normal;
   font-weight: 650;
   line-height: 1.2;
+  opacity: 0;
+  pointer-events: none;
   text-align: center;
-  transform: translateX(calc(-50% + var(--label-shift)));
+  transform: translateX(calc(-50% + var(--label-shift))) translateY(4px);
+  transition: opacity 130ms ease, transform 130ms ease, visibility 130ms ease;
+  visibility: hidden;
+}
+
+.aa-scatter__point:hover > span,
+.aa-scatter__point:focus > span,
+.aa-scatter__point:focus-visible > span {
+  opacity: 1;
+  transform: translateX(calc(-50% + var(--label-shift))) translateY(0);
+  visibility: visible;
 }
 
 .aa-scatter__point > span small {
@@ -3429,8 +3449,39 @@ img {
   font-size: 0.62rem;
 }
 
+.aa-scatter__model-key {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 5rem 0 0;
+  padding: 0;
+  color: #b6c3c9;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  list-style: none;
+}
+
+.aa-scatter__model-key li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.36rem;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.aa-scatter__model-key li > span {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(237, 244, 245, 0.55);
+  border-radius: 50%;
+  background: var(--point-color);
+}
+
 .aa-scatter__note {
-  margin: 3.2rem 0 0;
+  margin: 1.35rem 0 0;
   color: var(--benchmark-muted);
   font-family: var(--font-mono);
   font-size: 0.67rem;
@@ -3452,6 +3503,113 @@ img {
 
 .aventine-benchmark .text-link {
   font-size: 0.84rem;
+}
+
+/* Aventine readability pass: preserve the hero statement, enlarge supporting type. */
+.aventine-benchmark .benchmark-title p,
+.aventine-benchmark .benchmark-positioning__grid > div:first-child > p {
+  font-size: 0.9rem;
+}
+
+.aventine-benchmark .benchmark-title > div:first-child > span,
+.aventine-benchmark .benchmark-section-title > div > span,
+.aventine-benchmark .benchmark-positioning__grid > div:first-child > span {
+  font-size: 1.3rem;
+}
+
+.aventine-benchmark .benchmark-title__version,
+.aventine-benchmark .benchmark-facts span,
+.aventine-benchmark .aa-chart-card__header > span,
+.aventine-benchmark .aa-chart-card__footer,
+.aventine-benchmark .aa-ranking-bar__value,
+.aventine-benchmark .aa-ranking-chart__direction,
+.aventine-benchmark .aa-scatter__legend,
+.aventine-benchmark .aa-scatter__attractive,
+.aventine-benchmark .aa-scatter__point > span,
+.aventine-benchmark .aa-scatter__x-label,
+.aventine-benchmark .aa-scatter__y-label,
+.aventine-benchmark .aa-scatter__x-ticks,
+.aventine-benchmark .aa-scatter__model-key,
+.aventine-benchmark .aa-scatter__note,
+.aventine-benchmark .recipe-voice > div small {
+  font-size: 0.92rem;
+}
+
+.aventine-benchmark .benchmark-board__head span,
+.aventine-benchmark .benchmark-board__legend,
+.aventine-benchmark .benchmark-axis,
+.aventine-benchmark .benchmark-bar__rank,
+.aventine-benchmark .benchmark-bar__record,
+.aventine-benchmark .benchmark-bar__identity small,
+.aventine-benchmark .benchmark-principles small,
+.aventine-benchmark .recipe-summary > span,
+.aventine-benchmark .recipe-parameters h3,
+.aventine-benchmark .recipe-summary__name p,
+.aventine-benchmark .recipe-summary dt,
+.aventine-benchmark .recipe-parameters dt,
+.aventine-benchmark .recipe-diagnostics__head span,
+.aventine-benchmark .recipe-kpis span,
+.aventine-benchmark .recipe-voice > span {
+  font-size: 1rem;
+}
+
+.aventine-benchmark .aa-ranking-bar__model small,
+.aventine-benchmark .aa-scatter__point > span small {
+  font-size: 0.84rem;
+}
+
+.aventine-benchmark .benchmark-bar__identity strong,
+.aventine-benchmark .aa-chart-card__header p,
+.aventine-benchmark .aa-section-nav a,
+.aventine-benchmark .aa-ranking-bar__model strong,
+.aventine-benchmark .recipe-tabs button,
+.aventine-benchmark .recipe-score span,
+.aventine-benchmark .recipe-metric > div,
+.aventine-benchmark .recipe-parameters dd,
+.aventine-benchmark .benchmark-principles span {
+  font-size: 1.08rem;
+}
+
+.aventine-benchmark .benchmark-board__head strong,
+.aventine-benchmark .benchmark-principles strong,
+.aventine-benchmark .recipe-summary dd,
+.aventine-benchmark .recipe-diagnostics__head h3,
+.aventine-benchmark .recipe-voice p,
+.aventine-benchmark .benchmark-method p,
+.aventine-benchmark .text-link {
+  font-size: 1.2rem;
+}
+
+.aventine-benchmark .benchmark-facts strong {
+  font-size: 1.9rem;
+}
+
+.aventine-benchmark .benchmark-bar__score {
+  font-size: 1.3rem;
+}
+
+.aventine-benchmark .recipe-summary h2 {
+  font-size: 1.9rem;
+}
+
+.aventine-benchmark .recipe-kpis strong {
+  font-size: 1.55rem;
+}
+
+.aventine-benchmark .benchmark-section-title p,
+.aventine-benchmark .aa-chart-card__header h2,
+.aventine-benchmark .benchmark-positioning h2,
+.aventine-benchmark .benchmark-method h2,
+.aventine-benchmark .recipe-score strong {
+  font-size: clamp(1.9rem, 3.35vw, 3.25rem);
+}
+
+.aventine-benchmark .benchmark-positioning h2 {
+  font-size: clamp(2.9rem, 5vw, 5rem);
+}
+
+.aventine-benchmark .recipe-score strong {
+  font-size: clamp(3.9rem, 6.4vw, 6rem);
 }
 
 .site-footer {
