@@ -40,7 +40,7 @@ const PROVIDER_GROUPS = {
     usa: {
         title_key: 'api_group_usa',
         icon: <IconWorld size={20} />,
-        providers: ['gemini', 'anthropic', 'openai', 'nvidia', 'grok']
+        providers: ['gemini', 'anthropic', 'openai', 'openrouter', 'nvidia', 'grok']
     },
     china: {
         title_key: 'api_group_china',

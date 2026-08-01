@@ -1619,6 +1619,7 @@
   "api_desc_anthropic": "Anthropic 官方接口 (Claude 4.5/3.5 Sonnet & Haiku)",
   "api_desc_qwen": "阿里云通义千问 (Qwen) - 北京节点",
   "api_desc_deepseek": "DeepSeek-V3/R1 (非思考模式) - 与OpenAI API兼容",
+  "api_desc_openrouter": "通过 OpenRouter API 统一调用多个模型供应商",
   "api_desc_kimi": "月之暗面 (Moonshot AI) Kimi 大模型 (包含最新 K2 系列)",
   "api_desc_minimax": "Minimax 海螺 M2 系列 (M2.1, M2.1-lightning)",
   "api_desc_zhipu": "智谱 AI (Zhipu AI) GLM-4 系列 (包含 4.7/4.6/4.5)",

@@ -86,6 +86,20 @@
         "enable_thinking": false,
         "description_key": "api_desc_deepseek"
     },
+    "openrouter": {
+        "api_key_env": "OPENROUTER_API_KEY",
+        "base_url": "https://openrouter.ai/api/v1",
+        "default_model": "deepseek/deepseek-v4-flash",
+        "available_models": [
+            "deepseek/deepseek-v4-flash",
+            "deepseek/deepseek-v4-pro",
+            "qwen/qwen3.6-flash",
+            "stepfun/step-3.7-flash",
+            "z-ai/glm-5.2"
+        ],
+        "name": "OpenRouter",
+        "description_key": "api_desc_openrouter"
+    },
     "ollama": {
         "base_url_env": "OLLAMA_BASE_URL",
         "base_url": "http://localhost:11434",

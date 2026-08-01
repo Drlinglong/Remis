@@ -45,6 +45,7 @@ describe('ApiSettingsTab Stability', () => {
         api.get.mockResolvedValue({
             data: [
                 { id: 'gemini', name: 'Gemini', has_key: false, description_key: 'api_desc_gemini' },
+                { id: 'openrouter', name: 'OpenRouter', has_key: false, description_key: 'api_desc_openrouter' },
                 { id: 'your_favourite_api', name: 'Custom', has_key: false, description_key: 'api_desc_custom' }
             ]
         });
@@ -62,6 +63,7 @@ describe('ApiSettingsTab Stability', () => {
         // Check for groups
         expect(screen.getByText(/api_group_usa/i)).toBeInTheDocument();
         expect(screen.getByText(/api_group_china/i)).toBeInTheDocument();
+        expect(screen.getByText('OpenRouter')).toBeInTheDocument();
     });
 
     it('tests a local provider using the URL currently in the edit form', async () => {

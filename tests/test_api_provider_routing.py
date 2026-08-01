@@ -1,11 +1,15 @@
 import os
+import logging
 from contextlib import ExitStack
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
 
 from scripts.app_settings import API_PROVIDERS
 from scripts.core import api_handler
+from scripts.core.deepseek_handler import DeepSeekHandler
+from scripts.core.openrouter_handler import OpenRouterHandler
 
 
 TURNKEY_CLOUD_PROVIDER_IDS = [
@@ -15,6 +19,7 @@ TURNKEY_CLOUD_PROVIDER_IDS = [
     "qwen",
     "grok",
     "deepseek",
+    "openrouter",
     "modelscope",
     "siliconflow",
     "kimi",
@@ -30,6 +35,7 @@ CLIENT_CONSTRUCTORS = [
     "scripts.core.qwen_handler.OpenAI",
     "scripts.core.grok_handler.OpenAI",
     "scripts.core.deepseek_handler.OpenAI",
+    "scripts.core.openrouter_handler.OpenAI",
     "scripts.core.modelscope_handler.OpenAI",
     "scripts.core.siliconflow_handler.OpenAI",
     "scripts.core.nvidia_handler.OpenAI",
@@ -46,6 +52,77 @@ def test_every_configured_default_model_is_in_its_available_catalog():
         if available_models:
             assert config["default_model"] in available_models, provider_id
 
+
+def test_deepseek_v4_flash_is_selectable_for_context_smoke_tests():
+    assert "deepseek-v4-flash" in API_PROVIDERS["deepseek"]["available_models"]
+
+
+def test_deepseek_request_uses_explicit_v4_flash_model():
+    captured = {}
+
+    class Completions:
+        @staticmethod
+        def create(**kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="{}"))]
+            )
+
+    handler = DeepSeekHandler.__new__(DeepSeekHandler)
+    handler.provider_name = "deepseek"
+    handler.model_id = "deepseek-v4-flash"
+    handler.logger = logging.getLogger("DeepSeekHandlerTest")
+    client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
+
+    assert handler._call_api(client, "Analyze this text") == "{}"
+    assert captured["model"] == "deepseek-v4-flash"
+
+
+def test_openrouter_adapter_uses_isolated_key_and_official_endpoint():
+    with (
+        patch(
+            "scripts.core.openrouter_handler.get_api_key",
+            return_value="openrouter-test-key",
+        ) as get_api_key,
+        patch("scripts.core.openrouter_handler.OpenAI") as client_class,
+    ):
+        handler = OpenRouterHandler(
+            "openrouter",
+            model_id="deepseek/deepseek-v4-flash",
+        )
+
+    get_api_key.assert_called_once_with("openrouter", "OPENROUTER_API_KEY")
+    assert handler.model_id == "deepseek/deepseek-v4-flash"
+    client_class.assert_called_once_with(
+        api_key="openrouter-test-key",
+        base_url="https://openrouter.ai/api/v1",
+        timeout=300.0,
+        default_headers={
+            "HTTP-Referer": "https://github.com/Drlinglong/Remis",
+            "X-OpenRouter-Title": "Remis",
+        },
+    )
+
+
+def test_openrouter_chat_preserves_provider_failure():
+    class FailingCompletions:
+        @staticmethod
+        def create(**_kwargs):
+            raise RuntimeError("openrouter unavailable")
+
+    handler = OpenRouterHandler.__new__(OpenRouterHandler)
+    handler.provider_name = "openrouter"
+    handler.model_id = "deepseek/deepseek-v4-flash"
+    handler.logger = logging.getLogger("OpenRouterHandlerTest")
+    handler.client = SimpleNamespace(
+        chat=SimpleNamespace(completions=FailingCompletions())
+    )
+
+    with pytest.raises(RuntimeError, match="openrouter unavailable"):
+        handler.generate_with_messages(
+            [{"role": "user", "content": "Analyze this text"}],
+            temperature=0.0,
+        )
 
 @pytest.mark.parametrize("provider_id", TURNKEY_CLOUD_PROVIDER_IDS)
 def test_each_cloud_provider_initializes_with_only_its_declared_key(provider_id):

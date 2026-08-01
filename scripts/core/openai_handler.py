@@ -92,4 +92,4 @@ class OpenAIHandler(BaseApiHandler):
             return response.choices[0].message.content.strip()
         except Exception as e:
             self.logger.exception(f"OpenAI chat generation failed: {e}")
-            return ""
+            raise
