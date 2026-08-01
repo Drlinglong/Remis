@@ -28,6 +28,7 @@ from scripts.core.services.agent_validation_policy import (
 )
 from scripts.core.services.validation_sidecar_service import ValidationSidecarService
 from scripts.routers.agent_workshop import FixRunRequest, start_fix_run
+from scripts.routers.agent_context import AGENT_CONTEXT_CAPABILITIES
 from scripts.routers.translation import start_translation_project
 from scripts.schemas.agent import (
     AgentExportRequest,
@@ -48,7 +49,6 @@ from scripts.shared import task_state
 from scripts.shared.services import project_manager
 from scripts.utils.system_utils import sanitize_for_json
 
-
 router = APIRouter(prefix="/api/agent", tags=["Agent API"])
 validation_sidecars = ValidationSidecarService()
 logger = logging.getLogger(__name__)
@@ -63,7 +63,6 @@ LOCAL_PROVIDER_IDS = {
 }
 TERMINAL_TASK_STATUSES = {"completed", "failed", "cancelled"}
 LATEST_RELEASE_URL = "https://api.github.com/repos/Drlinglong/Remis/releases/latest"
-
 
 def _persist_agent_task_snapshot(job_id: str, snapshot: Dict[str, Any]) -> None:
     """Persist Agent-owned task state independently of client polling."""
@@ -494,6 +493,7 @@ async def get_capabilities():
             },
             "repair": {"supported": True, "requires_approval": True},
             "export": {"supported": True, "requires_approval": True},
+            **AGENT_CONTEXT_CAPABILITIES,
         },
         "safety": {
             "api_keys_returned": False,
