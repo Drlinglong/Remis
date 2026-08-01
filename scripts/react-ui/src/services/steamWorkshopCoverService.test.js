@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import api from '../utils/api';
+import api, { resolveApiUrl } from '../utils/api';
 import steamWorkshopCoverService from './steamWorkshopCoverService';
 
-vi.mock('../utils/api', () => ({
+vi.mock('../utils/api', async (importOriginal) => ({
+    ...await importOriginal(),
     default: {
         get: vi.fn(),
         post: vi.fn(),
@@ -60,5 +61,14 @@ describe('steamWorkshopCoverService', () => {
         expect(steamWorkshopCoverService.getProjectThumbnailUrl('workspace-1')).toBe(
             '/api/steam-workshop/workspaces/workspace-1/project-thumbnail',
         );
+    });
+
+    it('resolves relative media paths against the packaged backend origin', () => {
+        expect(resolveApiUrl(
+            '/api/steam-workshop/versions/cover-v1/content',
+            'http://127.0.0.1:1453',
+        )).toBe('http://127.0.0.1:1453/api/steam-workshop/versions/cover-v1/content');
+        expect(resolveApiUrl('data:image/png;base64,cG5n', 'http://127.0.0.1:1453'))
+            .toBe('data:image/png;base64,cG5n');
     });
 });

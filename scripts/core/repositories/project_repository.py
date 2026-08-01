@@ -4,6 +4,7 @@ from typing import List, Optional, Dict, Any, Sequence
 from contextlib import asynccontextmanager
 from sqlmodel import select, col
 from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy import update
 from sqlalchemy.orm import selectinload
 from scripts.core.db_models import (
     ActivityLog,
@@ -13,6 +14,7 @@ from scripts.core.db_models import (
     ProjectHistory,
     ProjectWatch,
     ProjectWatchFileSnapshot,
+    SteamWorkshopWorkspace,
 )
 from scripts.app_settings import PROJECTS_DB_PATH, relativize_path, resolve_path
 import uuid
@@ -318,6 +320,11 @@ class ProjectRepository:
             try:
                 from sqlalchemy import delete
 
+                await session.execute(
+                    update(SteamWorkshopWorkspace)
+                    .where(SteamWorkshopWorkspace.project_id == project_id)
+                    .values(project_id=None)
+                )
                 watch_ids = select(ProjectWatch.watch_id).where(ProjectWatch.project_id == project_id)
                 await session.execute(
                     delete(ProjectWatchFileSnapshot).where(
