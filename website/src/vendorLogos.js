@@ -12,6 +12,7 @@ const definitions = {
   google: ['Google', 'google.png'],
   'hermes-agent': ['Hermes Agent', 'hermes-agent.png'],
   'inception-labs': ['Inception Labs', 'inception-labs.png'],
+  inclusionai: ['InclusionAI', 'inclusionai.png'],
   meta: ['Meta', 'meta.png'],
   minimax: ['MiniMax', 'minimax.png'],
   'mistral-ai': ['Mistral AI', 'mistral-ai.png'],
@@ -26,6 +27,7 @@ const definitions = {
   stepfun: ['StepFun', 'stepfun.png'],
   tencent: ['Tencent', 'tencent.png'],
   xai: ['xAI', 'xai.svg'],
+  xiaomi: ['Xiaomi', 'xiaomi.png'],
 }
 
 export const vendorLogos = Object.freeze(Object.fromEntries(

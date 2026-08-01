@@ -1,0 +1,695 @@
+{
+  "aggregate_id": "remis-nine-model-pilot-2026-08-01",
+  "entries": [
+    {
+      "hard_reliability": {
+        "hard_pass_count": 21,
+        "points": 21.0,
+        "policy_version": "stage-policy-v0.1",
+        "run_count": 3,
+        "sample_count": 21,
+        "value": 1.0
+      },
+      "label": "Gemini 3.6 Flash (high)",
+      "model_id": "gemini-3.6-flash",
+      "profile_id": "gemini36",
+      "provider": "Google AI Studio",
+      "rank": 1,
+      "reasoning_label": "high",
+      "recipe_id": "remis.google-ai-studio.gemini-3-6-flash.all",
+      "run_artifacts": [
+        {
+          "recipe_sha256": "eaa184b29fa23dbc917098ae647617bc320c7446f83fdaf14dd03021c9838916",
+          "run_id": "remis-20260801T075647Z-gemini-3-6-flash-high-repeat-01"
+        },
+        {
+          "recipe_sha256": "56dd5c2ad54f19805b1f3b6ebca0bdebc6c7c5f0ffaac0cf52509b4030d408e6",
+          "run_id": "remis-20260801T075825Z-gemini-3-6-flash-high-repeat-02"
+        },
+        {
+          "recipe_sha256": "239fd17ff412a1197da1615093e49bc3a601d6c739b491621a1231c0ab9e3ab4",
+          "run_id": "remis-20260801T075944Z-gemini-3-6-flash-high-repeat-03"
+        }
+      ],
+      "score": {
+        "hard_reliability": 1,
+        "raw_score": 84.210526,
+        "rounding": "ROUND_HALF_UP@0.01",
+        "score": 84.21,
+        "score_version": "pilot-score-v0.1",
+        "soft_preference": 0.736842,
+        "weights": {
+          "hard_reliability": 0.4,
+          "soft_preference": 0.6
+        }
+      },
+      "soft_preference": {
+        "coverage": {
+          "coverage": 0.678571,
+          "coverage_defined": true,
+          "coverage_percent": 67.86,
+          "denominator": 56,
+          "denominator_policy": "planned",
+          "eligible_decisions": 56,
+          "planned_decisions": 56,
+          "resolved_decisions": 38,
+          "score_version": "coverage-v0.1",
+          "unresolved_decisions": 18
+        },
+        "hard_veto_excluded_count": 2,
+        "losses": 5,
+        "resolved_count": 38,
+        "ties": 10,
+        "unresolved_count": 16,
+        "value": 0.7368421052631579,
+        "wins": 23
+      },
+      "telemetry": {
+        "elapsed_seconds": 251.077,
+        "usage": {
+          "input_tokens": 14811,
+          "output_tokens": 4016,
+          "reasoning_tokens": 48260,
+          "total_tokens": 67087
+        }
+      }
+    },
+    {
+      "hard_reliability": {
+        "hard_pass_count": 17,
+        "points": 19.01,
+        "policy_version": "stage-policy-v0.1",
+        "run_count": 3,
+        "sample_count": 21,
+        "value": 0.9052380952380953
+      },
+      "label": "HY3 (high)",
+      "model_id": "tencent/hy3",
+      "profile_id": "hy3",
+      "provider": "OpenRouter",
+      "rank": 2,
+      "reasoning_label": "high",
+      "recipe_id": "remis.openrouter.tencent-hy3.all",
+      "run_artifacts": [
+        {
+          "recipe_sha256": "1787b0888318766668c001c6f025f0f1c3785a6ed9f94b4723c0a16942c67661",
+          "run_id": "remis-20260801T080804Z-hy3-high-repeat-01"
+        },
+        {
+          "recipe_sha256": "97e125814f752cedba9dd607096e42f7194d17046a0d37c1ee20c26711ec9836",
+          "run_id": "remis-20260801T082018Z-hy3-high-repeat-02"
+        },
+        {
+          "recipe_sha256": "e06d455e8a76cbe47b2c9a04ed67cd970fd0aa92e92ef51a29c9d60cdaec1e4f",
+          "run_id": "remis-20260801T083445Z-hy3-high-repeat-03"
+        }
+      ],
+      "score": {
+        "hard_reliability": 0.905238,
+        "raw_score": 79.709524,
+        "rounding": "ROUND_HALF_UP@0.01",
+        "score": 79.71,
+        "score_version": "pilot-score-v0.1",
+        "soft_preference": 0.725,
+        "weights": {
+          "hard_reliability": 0.4,
+          "soft_preference": 0.6
+        }
+      },
+      "soft_preference": {
+        "coverage": {
+          "coverage": 0.714286,
+          "coverage_defined": true,
+          "coverage_percent": 71.43,
+          "denominator": 56,
+          "denominator_policy": "planned",
+          "eligible_decisions": 56,
+          "planned_decisions": 56,
+          "resolved_decisions": 40,
+          "score_version": "coverage-v0.1",
+          "unresolved_decisions": 16
+        },
+        "hard_veto_excluded_count": 9,
+        "losses": 6,
+        "resolved_count": 40,
+        "ties": 10,
+        "unresolved_count": 7,
+        "value": 0.725,
+        "wins": 24
+      },
+      "telemetry": {
+        "elapsed_seconds": 2421.603,
+        "usage": {
+          "input_tokens": 14694,
+          "output_tokens": 96607,
+          "reasoning_tokens": 98958,
+          "total_tokens": 111301
+        }
+      }
+    },
+    {
+      "hard_reliability": {
+        "hard_pass_count": 19,
+        "points": 19.67,
+        "policy_version": "stage-policy-v0.1",
+        "run_count": 3,
+        "sample_count": 21,
+        "value": 0.9366666666666666
+      },
+      "label": "DeepSeek V4 Flash (high)",
+      "model_id": "deepseek/deepseek-v4-flash-0731",
+      "profile_id": "deepseek",
+      "provider": "OpenRouter",
+      "rank": 3,
+      "reasoning_label": "high",
+      "recipe_id": "remis.openrouter.deepseek-deepseek-v4-flash-0731.all",
+      "run_artifacts": [
+        {
+          "recipe_sha256": "fea18a6b9db4b315db96e9f1b36a0af8aa841d7d946d5c0a214ee014ca6c3dd3",
+          "run_id": "remis-20260801T061957Z-openrouter-deepseek-v4-flash-0731-high-reasoning-repeat-01"
+        },
+        {
+          "recipe_sha256": "0b43aba452131c0a74467e6c693c0bc943b7483753d5e2bfd78b969a31f62e3a",
+          "run_id": "remis-20260801T062725Z-openrouter-deepseek-v4-flash-0731-high-reasoning-repeat-02"
+        },
+        {
+          "recipe_sha256": "2ff2d6ed9f6f0461670d789a656ec9baa9e4b1b3f5adf3dca80496d80607b4ef",
+          "run_id": "remis-20260801T062540Z-openrouter-deepseek-v4-flash-0731-high-reasoning-repeat-03"
+        }
+      ],
+      "score": {
+        "hard_reliability": 0.936667,
+        "raw_score": 73.048062,
+        "rounding": "ROUND_HALF_UP@0.01",
+        "score": 73.05,
+        "score_version": "pilot-score-v0.1",
+        "soft_preference": 0.593023,
+        "weights": {
+          "hard_reliability": 0.4,
+          "soft_preference": 0.6
+        }
+      },
+      "soft_preference": {
+        "coverage": {
+          "coverage": 0.767857,
+          "coverage_defined": true,
+          "coverage_percent": 76.79,
+          "denominator": 56,
+          "denominator_policy": "planned",
+          "eligible_decisions": 56,
+          "planned_decisions": 56,
+          "resolved_decisions": 43,
+          "score_version": "coverage-v0.1",
+          "unresolved_decisions": 13
+        },
+        "hard_veto_excluded_count": 2,
+        "losses": 12,
+        "resolved_count": 43,
+        "ties": 11,
+        "unresolved_count": 11,
+        "value": 0.5930232558139535,
+        "wins": 20
+      },
+      "telemetry": {
+        "elapsed_seconds": 1034.023,
+        "usage": {
+          "input_tokens": 15309,
+          "output_tokens": 86279,
+          "reasoning_tokens": 88329,
+          "total_tokens": 101588
+        }
+      }
+    },
+    {
+      "hard_reliability": {
+        "hard_pass_count": 17,
+        "points": 19.01,
+        "policy_version": "stage-policy-v0.1",
+        "run_count": 3,
+        "sample_count": 21,
+        "value": 0.9052380952380953
+      },
+      "label": "GPT-5.6 Luna (high)",
+      "model_id": "openai/gpt-5.6-luna",
+      "profile_id": "luna",
+      "provider": "OpenRouter",
+      "rank": 4,
+      "reasoning_label": "high",
+      "recipe_id": "remis.openrouter.openai-gpt-5-6-luna.all",
+      "run_artifacts": [
+        {
+          "recipe_sha256": "c36ad61d319e6caf7ad6c7368d45f6903035c0864d0e6007718518ebfcb3216d",
+          "run_id": "remis-20260801T061538Z-openrouter-gpt-5-6-luna-high-reasoning-repeat-01"
+        },
+        {
+          "recipe_sha256": "fd11b01dcd31aa4e1d09c6da69e163b7c6063c887341bef0c05df3a723c86fb8",
+          "run_id": "remis-20260801T062055Z-openrouter-gpt-5-6-luna-high-reasoning-repeat-02"
+        },
+        {
+          "recipe_sha256": "a013466b9081f4418acde2c6d8ad97a9d2f0fe6a1855c427705212546775d918",
+          "run_id": "remis-20260801T062207Z-openrouter-gpt-5-6-luna-high-reasoning-repeat-03"
+        }
+      ],
+      "score": {
+        "hard_reliability": 0.905238,
+        "raw_score": 72.79489,
+        "rounding": "ROUND_HALF_UP@0.01",
+        "score": 72.79,
+        "score_version": "pilot-score-v0.1",
+        "soft_preference": 0.609756,
+        "weights": {
+          "hard_reliability": 0.4,
+          "soft_preference": 0.6
+        }
+      },
+      "soft_preference": {
+        "coverage": {
+          "coverage": 0.732143,
+          "coverage_defined": true,
+          "coverage_percent": 73.21,
+          "denominator": 56,
+          "denominator_policy": "planned",
+          "eligible_decisions": 56,
+          "planned_decisions": 56,
+          "resolved_decisions": 41,
+          "score_version": "coverage-v0.1",
+          "unresolved_decisions": 15
+        },
+        "hard_veto_excluded_count": 2,
+        "losses": 12,
+        "resolved_count": 41,
+        "ties": 8,
+        "unresolved_count": 13,
+        "value": 0.6097560975609756,
+        "wins": 21
+      },
+      "telemetry": {
+        "elapsed_seconds": 174.272,
+        "usage": {
+          "input_tokens": 14997,
+          "output_tokens": 15269,
+          "reasoning_tokens": 10907,
+          "total_tokens": 30266
+        }
+      }
+    },
+    {
+      "hard_reliability": {
+        "hard_pass_count": 17,
+        "points": 18.34,
+        "policy_version": "stage-policy-v0.1",
+        "run_count": 3,
+        "sample_count": 21,
+        "value": 0.8733333333333333
+      },
+      "label": "Gemini 3.5 Flash Lite (high)",
+      "model_id": "gemini-3.5-flash-lite",
+      "profile_id": "gemini35",
+      "provider": "Google AI Studio",
+      "rank": 5,
+      "reasoning_label": "high",
+      "recipe_id": "remis.google-ai-studio.gemini-3-5-flash-lite.all",
+      "run_artifacts": [
+        {
+          "recipe_sha256": "b21605e57c6af98370eb80332dae0f7bd6cacebe09393945ffec649b7ab9a02f",
+          "run_id": "remis-20260801T075618Z-gemini-3-5-flash-lite-high-repeat-01"
+        },
+        {
+          "recipe_sha256": "73239d2da277da54fc4dc2d31acc97132c7c4712930102717d379c1496efb455",
+          "run_id": "remis-20260801T075717Z-gemini-3-5-flash-lite-high-repeat-02"
+        },
+        {
+          "recipe_sha256": "06a282378ee144fdf8df308666201299da5a4927657c49668a3a840e6e0de75e",
+          "run_id": "remis-20260801T075812Z-gemini-3-5-flash-lite-high-repeat-03"
+        }
+      ],
+      "score": {
+        "hard_reliability": 0.873333,
+        "raw_score": 70.387879,
+        "rounding": "ROUND_HALF_UP@0.01",
+        "score": 70.39,
+        "score_version": "pilot-score-v0.1",
+        "soft_preference": 0.590909,
+        "weights": {
+          "hard_reliability": 0.4,
+          "soft_preference": 0.6
+        }
+      },
+      "soft_preference": {
+        "coverage": {
+          "coverage": 0.785714,
+          "coverage_defined": true,
+          "coverage_percent": 78.57,
+          "denominator": 56,
+          "denominator_policy": "planned",
+          "eligible_decisions": 56,
+          "planned_decisions": 56,
+          "resolved_decisions": 44,
+          "score_version": "coverage-v0.1",
+          "unresolved_decisions": 12
+        },
+        "hard_veto_excluded_count": 2,
+        "losses": 13,
+        "resolved_count": 44,
+        "ties": 10,
+        "unresolved_count": 10,
+        "value": 0.5909090909090909,
+        "wins": 21
+      },
+      "telemetry": {
+        "elapsed_seconds": 158.453,
+        "usage": {
+          "input_tokens": 14811,
+          "output_tokens": 4011,
+          "reasoning_tokens": 50151,
+          "total_tokens": 68973
+        }
+      }
+    },
+    {
+      "hard_reliability": {
+        "hard_pass_count": 21,
+        "points": 21.0,
+        "policy_version": "stage-policy-v0.1",
+        "run_count": 3,
+        "sample_count": 21,
+        "value": 1.0
+      },
+      "label": "Gemma 4 31B (reasoning)",
+      "model_id": "gemma-4-31b-it",
+      "profile_id": "gemma4",
+      "provider": "Google AI Studio",
+      "rank": 6,
+      "reasoning_label": "reasoning",
+      "recipe_id": "remis.google-ai-studio.gemma-4-31b-it.all",
+      "run_artifacts": [
+        {
+          "recipe_sha256": "c649f3141bf911567b2539dfbd88fb5547c3ea99a5d30cf3de967e011295363a",
+          "run_id": "remis-20260801T080340Z-gemma-4-31b-reasoning-repeat-01"
+        },
+        {
+          "recipe_sha256": "45e062423c1eaff6ef8e53ef5f51766fb701e3f10552feafa453f3ca0ac6be53",
+          "run_id": "remis-20260801T081026Z-gemma-4-31b-reasoning-repeat-02"
+        },
+        {
+          "recipe_sha256": "982f97ea9a7748a166faf49dd37d843634f5bf2152d8ba86c61d51170502c1c5",
+          "run_id": "remis-20260801T081605Z-gemma-4-31b-reasoning-repeat-03"
+        }
+      ],
+      "score": {
+        "hard_reliability": 1,
+        "raw_score": 62.666667,
+        "rounding": "ROUND_HALF_UP@0.01",
+        "score": 62.67,
+        "score_version": "pilot-score-v0.1",
+        "soft_preference": 0.377778,
+        "weights": {
+          "hard_reliability": 0.4,
+          "soft_preference": 0.6
+        }
+      },
+      "soft_preference": {
+        "coverage": {
+          "coverage": 0.803571,
+          "coverage_defined": true,
+          "coverage_percent": 80.36,
+          "denominator": 56,
+          "denominator_policy": "planned",
+          "eligible_decisions": 56,
+          "planned_decisions": 56,
+          "resolved_decisions": 45,
+          "score_version": "coverage-v0.1",
+          "unresolved_decisions": 11
+        },
+        "hard_veto_excluded_count": 2,
+        "losses": 22,
+        "resolved_count": 45,
+        "ties": 12,
+        "unresolved_count": 9,
+        "value": 0.37777777777777777,
+        "wins": 11
+      },
+      "telemetry": {
+        "elapsed_seconds": 1105.616,
+        "usage": {
+          "input_tokens": 14811,
+          "output_tokens": 3914,
+          "reasoning_tokens": 34987,
+          "total_tokens": 53712
+        }
+      }
+    },
+    {
+      "hard_reliability": {
+        "hard_pass_count": 21,
+        "points": 21.0,
+        "policy_version": "stage-policy-v0.1",
+        "run_count": 3,
+        "sample_count": 21,
+        "value": 1.0
+      },
+      "label": "Nemotron 3 Ultra 550B A55B (high)",
+      "model_id": "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "profile_id": "nemotron",
+      "provider": "OpenRouter",
+      "rank": 7,
+      "reasoning_label": "high",
+      "recipe_id": "remis.openrouter.nvidia-nemotron-3-ultra-550b-a55b-free.all",
+      "run_artifacts": [
+        {
+          "recipe_sha256": "93b184056a0f338448ba2a0c3abd6d99b737b23f6f9a321d159a57f64fddce39",
+          "run_id": "remis-20260801T062216Z-openrouter-nemotron-3-ultra-550b-a55b-free-high-reasoning-repeat-01"
+        },
+        {
+          "recipe_sha256": "f2d8648deb4af4ca9e80c9fd2295831bb741b5f9e1840d75116f9c76b8e110c3",
+          "run_id": "remis-20260801T062643Z-openrouter-nemotron-3-ultra-550b-a55b-free-high-reasoning-repeat-02"
+        },
+        {
+          "recipe_sha256": "e30a4b46e3acf0a2ddfde7d593789bbe50ceb830ced2e79c4136d3bc8c3825ca",
+          "run_id": "remis-20260801T062618Z-openrouter-nemotron-3-ultra-550b-a55b-free-high-reasoning-repeat-03"
+        }
+      ],
+      "score": {
+        "hard_reliability": 1,
+        "raw_score": 59.787234,
+        "rounding": "ROUND_HALF_UP@0.01",
+        "score": 59.79,
+        "score_version": "pilot-score-v0.1",
+        "soft_preference": 0.329787,
+        "weights": {
+          "hard_reliability": 0.4,
+          "soft_preference": 0.6
+        }
+      },
+      "soft_preference": {
+        "coverage": {
+          "coverage": 0.839286,
+          "coverage_defined": true,
+          "coverage_percent": 83.93,
+          "denominator": 56,
+          "denominator_policy": "planned",
+          "eligible_decisions": 56,
+          "planned_decisions": 56,
+          "resolved_decisions": 47,
+          "score_version": "coverage-v0.1",
+          "unresolved_decisions": 9
+        },
+        "hard_veto_excluded_count": 2,
+        "losses": 28,
+        "resolved_count": 47,
+        "ties": 7,
+        "unresolved_count": 7,
+        "value": 0.32978723404255317,
+        "wins": 12
+      },
+      "telemetry": {
+        "elapsed_seconds": 586.09,
+        "usage": {
+          "input_tokens": 16095,
+          "output_tokens": 26616,
+          "reasoning_tokens": 21970,
+          "total_tokens": 42711
+        }
+      }
+    },
+    {
+      "hard_reliability": {
+        "hard_pass_count": 19,
+        "points": 20.34,
+        "policy_version": "stage-policy-v0.1",
+        "run_count": 3,
+        "sample_count": 21,
+        "value": 0.9685714285714285
+      },
+      "label": "Ling 3.0 Flash (reasoning)",
+      "model_id": "inclusionai/ling-3.0-flash:free",
+      "profile_id": "ling",
+      "provider": "OpenRouter",
+      "rank": 8,
+      "reasoning_label": "reasoning",
+      "recipe_id": "remis.openrouter.inclusionai-ling-3-0-flash-free.all",
+      "run_artifacts": [
+        {
+          "recipe_sha256": "4ec8810f2442a982728896d0607973bf03af1198258aa89d811087864b7fd937",
+          "run_id": "remis-20260801T062857Z-openrouter-ling-3-0-flash-free-reasoning-repeat-01"
+        },
+        {
+          "recipe_sha256": "6b77d52e853efbd0a62916aa22a2b5c415be53e2afa1fa058a6e00ccae86cb15",
+          "run_id": "remis-20260801T063011Z-openrouter-ling-3-0-flash-free-reasoning-repeat-02"
+        },
+        {
+          "recipe_sha256": "5faed6813a150a7f725a1dfbdd470d6366a2aeef826ceb05ce1e160995f811fb",
+          "run_id": "remis-20260801T063140Z-openrouter-ling-3-0-flash-free-reasoning-repeat-03"
+        }
+      ],
+      "score": {
+        "hard_reliability": 0.968571,
+        "raw_score": 57.6,
+        "rounding": "ROUND_HALF_UP@0.01",
+        "score": 57.6,
+        "score_version": "pilot-score-v0.1",
+        "soft_preference": 0.314286,
+        "weights": {
+          "hard_reliability": 0.4,
+          "soft_preference": 0.6
+        }
+      },
+      "soft_preference": {
+        "coverage": {
+          "coverage": 0.625,
+          "coverage_defined": true,
+          "coverage_percent": 62.5,
+          "denominator": 56,
+          "denominator_policy": "planned",
+          "eligible_decisions": 56,
+          "planned_decisions": 56,
+          "resolved_decisions": 35,
+          "score_version": "coverage-v0.1",
+          "unresolved_decisions": 21
+        },
+        "hard_veto_excluded_count": 9,
+        "losses": 20,
+        "resolved_count": 35,
+        "ties": 8,
+        "unresolved_count": 12,
+        "value": 0.3142857142857143,
+        "wins": 7
+      },
+      "telemetry": {
+        "elapsed_seconds": 218.063,
+        "usage": {
+          "input_tokens": 15105,
+          "output_tokens": 81720,
+          "reasoning_tokens": 84530,
+          "total_tokens": 96825
+        }
+      }
+    },
+    {
+      "hard_reliability": {
+        "hard_pass_count": 19,
+        "points": 20.34,
+        "policy_version": "stage-policy-v0.1",
+        "run_count": 3,
+        "sample_count": 21,
+        "value": 0.9685714285714285
+      },
+      "label": "MiMo V2.5 (reasoning)",
+      "model_id": "xiaomi/mimo-v2.5",
+      "profile_id": "mimo",
+      "provider": "OpenRouter",
+      "rank": 9,
+      "reasoning_label": "reasoning",
+      "recipe_id": "remis.openrouter.xiaomi-mimo-v2-5.all",
+      "run_artifacts": [
+        {
+          "recipe_sha256": "400914b9a574e15ae1d2aba76547c5395495d329c6cbe2702dc64b8702b157f8",
+          "run_id": "remis-20260801T075712Z-mimo-v2-5-reasoning-repeat-01"
+        },
+        {
+          "recipe_sha256": "07b1c922e240a6641fda1257f75c9f17c1bf6f6ef60f840d508c3e66082141dc",
+          "run_id": "remis-20260801T080018Z-mimo-v2-5-reasoning-repeat-02"
+        },
+        {
+          "recipe_sha256": "8cf4e889a45c44ef02756d42c0597a8f17eab011322c0112e0321f95b2aeec51",
+          "run_id": "remis-20260801T080147Z-mimo-v2-5-reasoning-repeat-03"
+        }
+      ],
+      "score": {
+        "hard_reliability": 0.968571,
+        "raw_score": 55.338602,
+        "rounding": "ROUND_HALF_UP@0.01",
+        "score": 55.34,
+        "score_version": "pilot-score-v0.1",
+        "soft_preference": 0.276596,
+        "weights": {
+          "hard_reliability": 0.4,
+          "soft_preference": 0.6
+        }
+      },
+      "soft_preference": {
+        "coverage": {
+          "coverage": 0.839286,
+          "coverage_defined": true,
+          "coverage_percent": 83.93,
+          "denominator": 56,
+          "denominator_policy": "planned",
+          "eligible_decisions": 56,
+          "planned_decisions": 56,
+          "resolved_decisions": 47,
+          "score_version": "coverage-v0.1",
+          "unresolved_decisions": 9
+        },
+        "hard_veto_excluded_count": 2,
+        "losses": 30,
+        "resolved_count": 47,
+        "ties": 8,
+        "unresolved_count": 7,
+        "value": 0.2765957446808511,
+        "wins": 9
+      },
+      "telemetry": {
+        "elapsed_seconds": 445.497,
+        "usage": {
+          "input_tokens": 14604,
+          "output_tokens": 21082,
+          "reasoning_tokens": 20103,
+          "total_tokens": 35686
+        }
+      }
+    }
+  ],
+  "fixture_sha256": "abb729a7322de12619994aa8de171d2d11d9bf392a697c0e94b49600c4321fe2",
+  "judge_configurations": [
+    {
+      "model": "deepseek-v4-flash",
+      "profile": "deepseek-v4-flash-thinking-low-8k",
+      "prompt_revision": "translation-judge-v2",
+      "provider": "deepseek-flash",
+      "reasoning_effort": "low"
+    }
+  ],
+  "judge_telemetry": {
+    "estimated_cost_rmb": 4.114365,
+    "failure_count": 4,
+    "http_attempt_count": 508,
+    "report_count": 36
+  },
+  "policies": {
+    "coverage": "coverage-v0.1",
+    "score": "pilot-score-v0.1",
+    "soft_preference": "judge-position-consistent-v0.1",
+    "stage": "stage-policy-v0.1",
+    "translation_failure_multiplier": 0.67
+  },
+  "preview": true,
+  "sample_design": {
+    "hard_cases_per_profile": 21,
+    "pairwise_repeat": 1,
+    "profile_count": 9,
+    "runs_per_profile": 3
+  },
+  "schema_version": 1,
+  "score_version": "pilot-score-v0.1",
+  "suite": "remis-pilot-aggregate"
+}
