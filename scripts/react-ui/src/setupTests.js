@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
+import i18n from './i18n/i18n';
+
+// Component tests render against the product's default Chinese locale unless a
+// test explicitly supplies another provider. This keeps translation-key tests
+// independent while preventing unconfigured hook fallbacks from masking copy.
+await i18n.changeLanguage('zh');
 
 Object.defineProperty(window, 'matchMedia', {
     writable: true,

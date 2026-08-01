@@ -34,7 +34,7 @@ export const CoverVersionPanel = ({
                 {labels.saveCandidate}
             </Button>
             {!workspaceId && <Text c="dimmed" size="xs">{labels.workspaceRequired}</Text>}
-            <Text c="dimmed" size="xs">已保存版本请前往独立的“版本历史”页面检视和采用。</Text>
+            <Text c="dimmed" size="xs">{labels.savedVersionsNotice}</Text>
         </Stack>
     </Paper>
 );

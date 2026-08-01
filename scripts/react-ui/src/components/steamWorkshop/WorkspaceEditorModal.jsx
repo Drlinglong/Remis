@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Group, Modal, Select, Stack, TextInput } from '@mantine/core';
+import { useTranslation } from 'react-i18next';
 
 const emptyValues = {
   name: '',
@@ -19,16 +20,20 @@ export default function WorkspaceEditorModal({
   projectName = '',
   projects = [],
 }) {
+  const { t } = useTranslation();
   const [values, setValues] = useState(emptyValues);
 
   useEffect(() => {
     if (!opened) return;
     setValues({
-      name: initialWorkspace?.name || (projectName ? `${projectName} 发布素材` : ''),
+      name: initialWorkspace?.name || (projectName ? t('steam_workshop.project_assets_name', { project: projectName }) : ''),
       gameId: initialWorkspace?.game_id || '',
       projectId: fixedProjectId || initialWorkspace?.project_id || '',
       workshopItemId: initialWorkspace?.workshop_item_id || '',
     });
+  // The name is initialized when this modal opens; it must not reset while a user edits it.
+  // `t` is stable in the application, but test doubles may not preserve that identity.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fixedProjectId, initialWorkspace, opened, projectName]);
 
   const update = (field, value) => {
@@ -51,21 +56,21 @@ export default function WorkspaceEditorModal({
       opened={opened}
       onClose={onClose}
       data-remis-surface="elevated"
-      title={initialWorkspace ? '编辑发布工作区' : '新建 Steam 发布工作区'}
+      title={initialWorkspace ? t('steam_workshop.edit_workspace') : t('steam_workshop.new_workspace')}
     >
       <Stack data-remis-surface="elevated">
         <TextInput
           required
-          label="工作区名称"
+          label={t('steam_workshop.workspace_name')}
           value={values.name}
           onChange={(event) => update('name', event.currentTarget.value)}
         />
         <Select
           clearable={!fixedProjectId}
           disabled={Boolean(fixedProjectId)}
-          label="绑定 Remis 项目（可选）"
-          description="工作区可以绑定已有 Mod 项目，也可以作为独立发布素材存在。"
-          placeholder="选择一个项目"
+          label={t('steam_workshop.bind_project')}
+          description={t('steam_workshop.bind_project_desc')}
+          placeholder={t('steam_workshop.select_project')}
           data={projects.map((project) => ({
             value: project.project_id,
             label: project.name,
@@ -76,27 +81,27 @@ export default function WorkspaceEditorModal({
         <Select
           clearable
           searchable
-          label="游戏（可选）"
-          description="从 Remis 当前支持的游戏中选择，工作区会保存稳定的游戏 ID。"
-          placeholder="选择游戏"
+          label={t('steam_workshop.game')}
+          description={t('steam_workshop.game_desc')}
+          placeholder={t('steam_workshop.select_game')}
           data={games}
           value={values.gameId || null}
           onChange={(value) => update('gameId', value)}
         />
         <TextInput
-          label="Steam Workshop ID（可选）"
-          description="首次上传前可以留空；它不会成为项目的必填字段。"
+          label={t('steam_workshop.workshop_id')}
+          description={t('steam_workshop.workshop_id_desc')}
           value={values.workshopItemId}
           onChange={(event) => update('workshopItemId', event.currentTarget.value)}
         />
         <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>取消</Button>
+          <Button variant="default" onClick={onClose}>{t('steam_workshop.cancel')}</Button>
           <Button
             disabled={!values.name.trim()}
             loading={isSaving}
             onClick={handleSave}
           >
-            {initialWorkspace ? '保存' : '创建工作区'}
+            {initialWorkspace ? t('steam_workshop.save') : t('steam_workshop.create_workspace_action')}
           </Button>
         </Group>
       </Stack>

@@ -16,6 +16,7 @@ import {
 } from '@mantine/core';
 import { IconAlertCircle, IconFileDescription, IconPhoto } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 
 import { BbcodePreview } from './description/BbcodePreview';
 import { usePublishingVersionHistory } from './usePublishingVersionHistory';
@@ -25,10 +26,13 @@ const formatTime = (value) => new Intl.DateTimeFormat(undefined, {
   timeStyle: 'short',
 }).format(new Date(value));
 
-const typeLabel = (assetType) => assetType === 'cover' ? '封面图' : '工坊描述';
+const typeLabel = (assetType, t) => assetType === 'cover'
+  ? t('steam_workshop.cover_label')
+  : t('steam_workshop.description');
 
 export default function PublishingVersionHistory({ workspaceId }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const history = usePublishingVersionHistory(workspaceId);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -39,14 +43,14 @@ export default function PublishingVersionHistory({ workspaceId }) {
   return (
     <Stack gap="lg" data-remis-surface="surface">
       <div>
-        <Title order={3}>版本历史</Title>
+        <Title order={3}>{t('steam_workshop.version_history')}</Title>
         <Text c="dimmed">
-          封面图和工坊描述的候选版本统一保存在这里；“打开”只检视内容，“设为采用”才会更新当前版本。
+          {t('steam_workshop.history_desc')}
         </Text>
       </div>
 
       {history.error && (
-        <Alert icon={<IconAlertCircle size={16} />} color="red" title="版本操作失败">
+        <Alert icon={<IconAlertCircle size={16} />} color="red" title={t('steam_workshop.version_operation_failed')}>
           {history.error}
         </Alert>
       )}
@@ -55,21 +59,21 @@ export default function PublishingVersionHistory({ workspaceId }) {
         value={history.filter}
         onChange={history.setFilter}
         data={[
-          { value: 'all', label: `全部 (${history.versions.length})` },
+          { value: 'all', label: t('steam_workshop.all_versions', { count: history.versions.length }) },
           {
             value: 'cover',
-            label: `封面图 (${history.versions.filter((item) => item.asset_type === 'cover').length})`,
+            label: t('steam_workshop.cover_versions', { count: history.versions.filter((item) => item.asset_type === 'cover').length }),
           },
           {
             value: 'description',
-            label: `工坊描述 (${history.versions.filter((item) => item.asset_type === 'description').length})`,
+            label: t('steam_workshop.description_versions', { count: history.versions.filter((item) => item.asset_type === 'description').length }),
           },
         ]}
       />
 
       {!history.filteredVersions.length ? (
-        <Alert color="blue" title="还没有匹配的版本">
-          在封面图或工坊描述页面保存候选版本后，它会出现在这里。
+        <Alert color="blue" title={t('steam_workshop.no_matching_versions')}>
+          {t('steam_workshop.no_matching_versions_desc')}
         </Alert>
       ) : (
         <Stack gap="sm">
@@ -90,9 +94,9 @@ export default function PublishingVersionHistory({ workspaceId }) {
                     <TypeIcon size={20} />
                     <div>
                       <Group gap="xs">
-                        <Text fw={600}>{typeLabel(version.asset_type)} #{version.sequence}</Text>
-                        {selected && <Badge color="green">当前采用</Badge>}
-                        {!selected && <Badge variant="light">候选</Badge>}
+                        <Text fw={600}>{t('steam_workshop.asset_version', { asset: typeLabel(version.asset_type, t), sequence: version.sequence })}</Text>
+                        {selected && <Badge color="green">{t('steam_workshop.adopted')}</Badge>}
+                        {!selected && <Badge variant="light">{t('steam_workshop.candidate')}</Badge>}
                       </Group>
                       <Text size="xs" c="dimmed">
                         {formatTime(version.created_at)} · {version.source}
@@ -110,7 +114,7 @@ export default function PublishingVersionHistory({ workspaceId }) {
                           `/steam-workshop/${workspaceId}/cover?coverVersionId=${encodeURIComponent(version.version_id)}`,
                         )}
                       >
-                        载入编辑
+                        {t('steam_workshop.load_for_editing')}
                       </Button>
                     )}
                     <Button
@@ -119,7 +123,7 @@ export default function PublishingVersionHistory({ workspaceId }) {
                       variant="subtle"
                       onClick={() => history.setOpenedVersion(version)}
                     >
-                      打开
+                      {t('steam_workshop.open')}
                     </Button>
                     <Button
                       data-remis-action="paper-primary"
@@ -128,7 +132,7 @@ export default function PublishingVersionHistory({ workspaceId }) {
                       loading={history.busyVersionId === version.version_id}
                       onClick={() => history.adoptVersion(version)}
                     >
-                      {selected ? '当前采用' : '设为采用'}
+                      {selected ? t('steam_workshop.adopted') : t('steam_workshop.adopt')}
                     </Button>
                     <Button
                       data-remis-action="paper-danger"
@@ -138,7 +142,7 @@ export default function PublishingVersionHistory({ workspaceId }) {
                       disabled={selected}
                       onClick={() => setDeleteTarget(version)}
                     >
-                      {selected ? '采用中，不可删除' : '删除'}
+                      {selected ? t('steam_workshop.adopted_cannot_delete') : t('steam_workshop.delete')}
                     </Button>
                   </Group>
                 </Group>
@@ -153,14 +157,14 @@ export default function PublishingVersionHistory({ workspaceId }) {
         onClose={() => history.setOpenedVersion(null)}
         data-remis-surface="elevated"
         title={history.openedVersion
-          ? `${typeLabel(history.openedVersion.asset_type)} #${history.openedVersion.sequence}`
-          : '版本内容'}
+          ? t('steam_workshop.asset_version', { asset: typeLabel(history.openedVersion.asset_type, t), sequence: history.openedVersion.sequence })
+          : t('steam_workshop.version_content')}
         size="xl"
       >
         <Stack data-remis-surface="elevated">
           {history.openedVersion?.asset_type === 'cover' ? (
             <Image
-              alt={`封面图版本 ${history.openedVersion.sequence}`}
+              alt={t('steam_workshop.cover_version_alt', { sequence: history.openedVersion.sequence })}
               fit="contain"
               mah="70vh"
               src={history.openedVersion.content_url}
@@ -175,16 +179,16 @@ export default function PublishingVersionHistory({ workspaceId }) {
         opened={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
         data-remis-surface="elevated"
-        title="删除历史版本"
+        title={t('steam_workshop.delete_version')}
       >
         <Stack data-remis-surface="elevated">
           <Text>
             {deleteTarget
-              ? `确定删除${typeLabel(deleteTarget.asset_type)} #${deleteTarget.sequence}？此操作无法撤销。`
+              ? t('steam_workshop.delete_confirmation', { asset: typeLabel(deleteTarget.asset_type, t), sequence: deleteTarget.sequence })
               : ''}
           </Text>
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setDeleteTarget(null)}>取消</Button>
+            <Button variant="default" onClick={() => setDeleteTarget(null)}>{t('steam_workshop.cancel')}</Button>
             <Button
               color="red"
               loading={history.busyVersionId === deleteTarget?.version_id}
@@ -194,7 +198,7 @@ export default function PublishingVersionHistory({ workspaceId }) {
                 }
               }}
             >
-              确认删除
+              {t('steam_workshop.confirm_delete')}
             </Button>
           </Group>
         </Stack>

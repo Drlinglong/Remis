@@ -11,6 +11,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import { IconAlertCircle, IconPencil, IconPlus } from '@tabler/icons-react';
+import { useTranslation } from 'react-i18next';
 
 import { WorkspaceCreateForm } from './description/WorkspaceCreateForm';
 
@@ -24,6 +25,7 @@ export default function WorkspaceSelector({
   workspace,
   workspaces,
 }) {
+  const { t } = useTranslation();
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState('');
@@ -58,7 +60,7 @@ export default function WorkspaceSelector({
   return (
     <>
       {error && (
-        <Alert icon={<IconAlertCircle size={16} />} color="red" title="发布工作区读取失败">
+        <Alert icon={<IconAlertCircle size={16} />} color="red" title={t('steam_workshop.workspace_load_failed')}>
           {error}
         </Alert>
       )}
@@ -66,8 +68,8 @@ export default function WorkspaceSelector({
         <Group align="flex-end">
           <Select
             flex={1}
-            label="发布工作区"
-            placeholder="选择或创建一个工作区"
+            label={t('steam_workshop.workspace')}
+            placeholder={t('steam_workshop.select_or_create_workspace')}
             data={options}
             value={workspace?.workspace_id || null}
             onChange={onSelect}
@@ -77,7 +79,7 @@ export default function WorkspaceSelector({
             leftSection={<IconPlus size={16} />}
             onClick={() => setCreateOpen(true)}
           >
-            新建工作区
+            {t('steam_workshop.create_workspace')}
           </Button>
           <Button
             variant="subtle"
@@ -85,18 +87,18 @@ export default function WorkspaceSelector({
             disabled={!workspace}
             onClick={openEdit}
           >
-            编辑绑定
+            {t('steam_workshop.edit_binding')}
           </Button>
         </Group>
         {workspace && (
           <Group gap="xs" mt="sm">
             <Badge variant="outline">
-              {workspace.project_id ? '已绑定项目' : '未绑定项目'}
+              {workspace.project_id ? t('steam_workshop.project_bound') : t('steam_workshop.project_unbound')}
             </Badge>
             <Badge variant="outline">
               {workspace.workshop_item_id
                 ? `Workshop ID: ${workspace.workshop_item_id}`
-                : '尚未绑定 Workshop ID'}
+                : t('steam_workshop.workshop_id_unbound')}
             </Badge>
           </Group>
         )}
@@ -104,11 +106,11 @@ export default function WorkspaceSelector({
       <Modal
         opened={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="新建 Steam 发布工作区"
+        title={t('steam_workshop.new_workspace')}
       >
         <div data-remis-surface="elevated">
           <WorkspaceCreateForm
-            defaultName={projectName ? `${projectName} 发布素材` : ''}
+            defaultName={projectName ? t('steam_workshop.project_assets_name', { project: projectName }) : ''}
             isSaving={isSaving}
             onCancel={() => setCreateOpen(false)}
             onCreate={handleCreate}
@@ -118,34 +120,34 @@ export default function WorkspaceSelector({
       <Modal
         opened={editOpen}
         onClose={() => setEditOpen(false)}
-        title="编辑发布工作区"
+        title={t('steam_workshop.edit_workspace')}
       >
         <Stack data-remis-surface="elevated">
           <TextInput
             required
-            label="工作区名称"
+            label={t('steam_workshop.workspace_name')}
             value={editName}
             onChange={(event) => setEditName(event.currentTarget.value)}
           />
           <TextInput
-            label="游戏 ID（可选）"
+            label={t('steam_workshop.game_id')}
             value={editGameId}
             onChange={(event) => setEditGameId(event.currentTarget.value)}
           />
           <TextInput
-            label="Steam Workshop ID（可选）"
-            description="可以稍后绑定、替换或清空；项目绑定不会因此改变。"
+            label={t('steam_workshop.workshop_id')}
+            description={t('steam_workshop.workshop_id_replace_desc')}
             value={editWorkshopItemId}
             onChange={(event) => setEditWorkshopItemId(event.currentTarget.value)}
           />
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setEditOpen(false)}>取消</Button>
+            <Button variant="default" onClick={() => setEditOpen(false)}>{t('steam_workshop.cancel')}</Button>
             <Button
               disabled={!editName.trim()}
               loading={isSaving}
               onClick={handleUpdate}
             >
-              保存
+              {t('steam_workshop.save')}
             </Button>
           </Group>
         </Stack>

@@ -8,6 +8,7 @@ import {
   Text,
   Textarea,
 } from '@mantine/core';
+import { useTranslation } from 'react-i18next';
 
 export function DescriptionGenerationSettings({
   hasLanguages,
@@ -30,52 +31,53 @@ export function DescriptionGenerationSettings({
   selectedLanguage,
   userTemplate,
 }) {
+  const { t } = useTranslation();
   return (
     <>
       {isConfigLoading && (
-        <Alert color="blue" title="正在读取 API 配置">
-          正在读取供应商、模型和描述语言选项…
+        <Alert color="blue" title={t('steam_workshop.loading_api_configuration')}>
+          {t('steam_workshop.loading_api_configuration_desc')}
         </Alert>
       )}
       {loadError && (
         <Alert
           color="red"
-          title="API 配置读取失败"
+          title={t('steam_workshop.api_configuration_load_failed')}
           withCloseButton={false}
         >
           <Group justify="space-between" align="center">
             <Text size="sm">{loadError}</Text>
             <Button variant="light" color="red" size="xs" onClick={loadConfig}>
-              重试
+              {t('steam_workshop.retry')}
             </Button>
           </Group>
         </Alert>
       )}
       {!isConfigLoading && !loadError && !hasProviders && (
-        <Alert color="blue" title="尚未配置 API 供应商">
-          请先前往设置中的 API 设置添加供应商和模型，再返回执行生成。
+        <Alert color="blue" title={t('steam_workshop.no_api_provider')}>
+          {t('steam_workshop.no_api_provider_desc')}
         </Alert>
       )}
       {!isConfigLoading && !loadError && hasProviders && provider && !hasModels && (
-        <Alert color="blue" title="当前供应商没有可用模型">
-          请在设置中的 API 设置为该供应商添加或选择模型。
+        <Alert color="blue" title={t('steam_workshop.no_models')}>
+          {t('steam_workshop.no_models_desc')}
         </Alert>
       )}
       {!isConfigLoading && !loadError && hasProviders && provider && hasModels && missingApiKey && (
-        <Alert color="yellow" title="尚未配置 API 密钥">
-          请先前往设置中的 API 设置保存该供应商的密钥，再执行模型生成。
+        <Alert color="yellow" title={t('steam_workshop.no_api_key')}>
+          {t('steam_workshop.no_api_key_desc')}
         </Alert>
       )}
       {!isConfigLoading && !loadError && !hasLanguages && (
-        <Alert color="blue" title="没有可用的描述语言">
-          Remis 没有返回可用的语言配置，请检查服务后重试。
+        <Alert color="blue" title={t('steam_workshop.no_description_languages')}>
+          {t('steam_workshop.no_description_languages_desc')}
         </Alert>
       )}
 
       <SimpleGrid cols={{ base: 1, sm: 3 }}>
         <Select
-          label="API 供应商"
-          placeholder={isConfigLoading ? '正在读取配置…' : '选择 API 供应商'}
+          label={t('steam_workshop.api_provider')}
+          placeholder={isConfigLoading ? t('steam_workshop.loading_configuration') : t('steam_workshop.select_api_provider')}
           data={providerOptions}
           value={provider || null}
           title={provider || undefined}
@@ -83,15 +85,15 @@ export function DescriptionGenerationSettings({
           onChange={onProviderChange}
         />
         <Select
-          label="模型"
+          label={t('steam_workshop.model')}
           placeholder={
             isConfigLoading
-              ? '正在读取配置…'
+              ? t('steam_workshop.loading_configuration')
               : !hasProviders
-                ? '请先配置 API 供应商'
+                ? t('steam_workshop.configure_api_provider_first')
                 : hasModels
-                  ? '选择模型'
-                  : '当前供应商没有可用模型'
+                  ? t('steam_workshop.select_model')
+                  : t('steam_workshop.no_models')
           }
           data={modelOptions}
           value={model || null}
@@ -100,9 +102,9 @@ export function DescriptionGenerationSettings({
           onChange={onModelChange}
         />
         <Select
-          label="描述语言"
-          description="使用该语言来生成创意工坊描述"
-          placeholder={isConfigLoading ? '正在读取配置…' : '选择描述语言'}
+          label={t('steam_workshop.description_language')}
+          description={t('steam_workshop.description_language_desc')}
+          placeholder={isConfigLoading ? t('steam_workshop.loading_configuration') : t('steam_workshop.select_description_language')}
           data={languageOptions}
           value={language || null}
           title={selectedLanguage?.label || undefined}
@@ -112,8 +114,8 @@ export function DescriptionGenerationSettings({
       </SimpleGrid>
 
       <Textarea
-        label="发布模板"
-        description="先在这里整理生成结果需要遵循的标题、结构和内容要求。"
+        label={t('steam_workshop.publishing_template')}
+        description={t('steam_workshop.publishing_template_desc')}
         minRows={8}
         value={userTemplate}
         onChange={onTemplateChange}

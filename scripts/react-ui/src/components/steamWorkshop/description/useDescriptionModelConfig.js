@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import i18n from '../../../i18n/i18n';
 
 import { FEATURES } from '../../../config/features';
 import api from '../../../utils/api';
@@ -58,7 +59,7 @@ export function useDescriptionModelConfig() {
       setApiProviders([]);
       setLanguages({});
       setProviderStatuses([]);
-      setLoadError('无法读取 API 配置。请检查 Remis 服务后重试。');
+      setLoadError(i18n.t('steam_workshop.api_configuration_unavailable'));
     } finally {
       if (requestId === requestIdRef.current) {
         setIsLoading(false);

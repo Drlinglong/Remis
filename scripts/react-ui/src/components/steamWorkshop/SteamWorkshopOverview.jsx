@@ -11,6 +11,7 @@ import {
 } from '@mantine/core';
 import { IconAlertCircle, IconPlus } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 
 import WorkspaceCard from './WorkspaceCard';
 import WorkspaceEditorModal from './WorkspaceEditorModal';
@@ -23,6 +24,7 @@ export default function SteamWorkshopOverview({
   showHeading = true,
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [editingWorkspace, setEditingWorkspace] = useState(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const catalog = usePublishingWorkspaceCatalog({ projectId });
@@ -46,23 +48,23 @@ export default function SteamWorkshopOverview({
     <Stack data-remis-surface="surface" gap="lg" className={styles.overview}>
       {showHeading && (
         <Stack gap="xs" className={styles.headerCopy}>
-          <Title order={2}>{projectId ? '发布素材管理' : 'Steam 工坊'}</Title>
+          <Title order={2}>{projectId ? t('steam_workshop.project_assets_title') : t('steam_workshop.title')}</Title>
           <Text c="dimmed">
             {projectId
-              ? `集中管理“${projectName || projectId}”的 Steam 发布工作区。`
-              : '创建并进入发布工作区，再分别处理封面图、工坊描述和版本历史。'}
+              ? t('steam_workshop.overview_project_desc', { project: projectName || projectId })
+              : t('steam_workshop.overview_desc')}
           </Text>
         </Stack>
       )}
 
       <div>
         <Button leftSection={<IconPlus size={16} />} onClick={openCreate}>
-          新建工作区
+          {t('steam_workshop.create_workspace')}
         </Button>
       </div>
 
       {catalog.error && (
-        <Alert icon={<IconAlertCircle size={16} />} color="red" title="工作区读取失败">
+        <Alert icon={<IconAlertCircle size={16} />} color="red" title={t('steam_workshop.workspace_load_failed')}>
           {catalog.error}
         </Alert>
       )}
@@ -86,10 +88,10 @@ export default function SteamWorkshopOverview({
           ))}
         </SimpleGrid>
       ) : (
-        <Alert color="blue" title="还没有发布工作区">
+        <Alert color="blue" title={t('steam_workshop.no_workspace')}>
           {projectId
-            ? '为当前项目创建工作区后，封面图、工坊描述和版本历史会集中在这里。'
-            : '发布工作区可以绑定已有 Remis 项目，也可以先作为独立素材工作区创建。'}
+            ? t('steam_workshop.no_workspace_project_desc')
+            : t('steam_workshop.no_workspace_desc')}
         </Alert>
       )}
 

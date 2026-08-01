@@ -39,23 +39,20 @@ const translationLabels = (t) => ({
     placeholder: t('thumbnail_generator.canvas_placeholder'),
     dragHint: t('thumbnail_generator.drag_hint'),
     download: t('thumbnail_generator.download_thumbnail'),
-    versionTitle: t('steam_workshop.cover.version_title', { defaultValue: '封面图版本' }),
-    workspaceContext: t('steam_workshop.cover.workspace_context', { defaultValue: '发布工作区：{id}' }),
-    projectDraft: t('steam_workshop.cover.project_draft', { defaultValue: '项目 {id} 的本机草稿' }),
-    unboundDraft: t('steam_workshop.cover.unbound_draft', { defaultValue: '未绑定的本机草稿' }),
-    draftSaved: t('steam_workshop.cover.draft_saved', { defaultValue: '草稿已于 {time} 自动保存' }),
-    saveCandidate: t('steam_workshop.cover.save_candidate', { defaultValue: '保存候选版本' }),
-    workspaceRequired: t('steam_workshop.cover.workspace_required', {
-        defaultValue: '选择或创建发布工作区后才能保存正式版本。',
-    }),
-    historyTitle: t('steam_workshop.cover.history_title', { defaultValue: '版本历史' }),
-    emptyHistory: t('steam_workshop.cover.empty_history', { defaultValue: '还没有封面图版本。' }),
-    selected: t('steam_workshop.cover.selected', { defaultValue: '当前采用' }),
-    loadForEditing: t('steam_workshop.cover.load_for_editing', { defaultValue: '载入编辑' }),
-    useVersion: t('steam_workshop.cover.use_version', { defaultValue: '设为采用' }),
-    requestFailed: t('steam_workshop.cover.request_failed', {
-        defaultValue: '封面图版本操作失败，草稿仍保存在本机。',
-    }),
+    versionTitle: t('steam_workshop.cover.version_title'),
+    workspaceContext: t('steam_workshop.cover.workspace_context'),
+    projectDraft: t('steam_workshop.cover.project_draft'),
+    unboundDraft: t('steam_workshop.cover.unbound_draft'),
+    draftSaved: t('steam_workshop.cover.draft_saved'),
+    saveCandidate: t('steam_workshop.cover.save_candidate'),
+    workspaceRequired: t('steam_workshop.cover.workspace_required'),
+    historyTitle: t('steam_workshop.cover.history_title'),
+    emptyHistory: t('steam_workshop.cover.empty_history'),
+    selected: t('steam_workshop.cover.selected'),
+    loadForEditing: t('steam_workshop.cover.load_for_editing'),
+    useVersion: t('steam_workshop.cover.use_version'),
+    savedVersionsNotice: t('steam_workshop.saved_versions_notice'),
+    requestFailed: t('steam_workshop.cover.request_failed'),
 });
 
 const dataUrlToBytes = (dataUrl) => {
@@ -76,7 +73,7 @@ export const downloadDataUrl = (dataUrl) => {
     URL.revokeObjectURL(url);
 };
 
-export const saveThumbnail = async (dataUrl) => {
+export const saveThumbnail = async (dataUrl, dialogTitle) => {
     if (!isTauri()) {
         downloadDataUrl(dataUrl);
         return;
@@ -84,7 +81,7 @@ export const saveThumbnail = async (dataUrl) => {
     const path = await save({
         defaultPath: 'thumbnail.png',
         filters: [{ name: 'PNG image', extensions: ['png'] }],
-        title: '保存封面图',
+        title: dialogTitle || 'Save cover image',
     });
     if (!path) return;
     await invoke('save_thumbnail_png', { path, contents: Array.from(dataUrlToBytes(dataUrl)) });
@@ -169,7 +166,7 @@ const ThumbnailGenerator = ({
             canvas: serializeCoverCanvas(editor.canvasState),
         });
     };
-    const handleDownload = async () => saveThumbnail(await capturePng());
+    const handleDownload = async () => saveThumbnail(await capturePng(), t('steam_workshop.save_cover_dialog'));
     const handleUseProjectThumbnail = async () => {
         if (!workspaceId || !projectId) return;
         try {
@@ -240,9 +237,7 @@ const ThumbnailGenerator = ({
                 labels={labels}
             />
             <Text c="dimmed" size="xs">
-                {t('steam_workshop.cover.local_draft_notice', {
-                    defaultValue: '草稿仅保存在本机；保存候选版本后才会进入项目发布资产。',
-                })}
+                {t('steam_workshop.cover.local_draft_notice')}
             </Text>
         </Stack>
     );

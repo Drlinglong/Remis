@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import i18n from '../../i18n/i18n';
 
 import {
   createPublishingWorkspace,
@@ -24,7 +25,7 @@ export function usePublishingWorkspaceSelection({ projectId }) {
       setIsLoading(true);
       setWorkspace(await getPublishingWorkspace(workspaceId));
     } catch (requestError) {
-      setError(requestError.response?.data?.detail || '无法读取发布工作区。');
+      setError(requestError.response?.data?.detail || i18n.t('steam_workshop.workspace_load_failed'));
     } finally {
       setIsLoading(false);
     }
@@ -44,7 +45,7 @@ export function usePublishingWorkspaceSelection({ projectId }) {
       const target = items.find((item) => item.workspace_id === currentId) || items[0];
       setWorkspace(await getPublishingWorkspace(target.workspace_id));
     } catch (requestError) {
-      setError(requestError.response?.data?.detail || '无法读取发布素材。');
+      setError(requestError.response?.data?.detail || i18n.t('steam_workshop.assets_load_failed'));
     } finally {
       setIsLoading(false);
     }
@@ -68,7 +69,7 @@ export function usePublishingWorkspaceSelection({ projectId }) {
       setWorkspace(created);
       return created;
     } catch (requestError) {
-      setError(requestError.response?.data?.detail || '无法创建发布工作区。');
+      setError(requestError.response?.data?.detail || i18n.t('steam_workshop.workspace_create_failed'));
       return null;
     } finally {
       setIsSaving(false);
@@ -91,7 +92,7 @@ export function usePublishingWorkspaceSelection({ projectId }) {
       setWorkspace(updated);
       return updated;
     } catch (requestError) {
-      setError(requestError.response?.data?.detail || '无法更新发布工作区。');
+      setError(requestError.response?.data?.detail || i18n.t('steam_workshop.workspace_update_failed'));
       return null;
     } finally {
       setIsSaving(false);

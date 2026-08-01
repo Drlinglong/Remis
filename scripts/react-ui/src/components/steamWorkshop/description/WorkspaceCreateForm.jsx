@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Button, Group, Stack, TextInput } from '@mantine/core';
+import { useTranslation } from 'react-i18next';
 
 export const WorkspaceCreateForm = ({ defaultName = '', isSaving, onCancel, onCreate }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState(defaultName);
   const [gameId, setGameId] = useState('');
   const [workshopItemId, setWorkshopItemId] = useState('');
@@ -20,24 +22,24 @@ export const WorkspaceCreateForm = ({ defaultName = '', isSaving, onCancel, onCr
     <Stack>
       <TextInput
         required
-        label="工作区名称"
+        label={t('steam_workshop.workspace_name')}
         value={name}
         onChange={(event) => setName(event.currentTarget.value)}
       />
       <TextInput
-        label="游戏 ID（可选）"
+        label={t('steam_workshop.game_id')}
         value={gameId}
         onChange={(event) => setGameId(event.currentTarget.value)}
       />
       <TextInput
-        label="Steam Workshop ID（可选）"
-        description="首次上传前可以留空；它不会成为项目的必填字段。"
+        label={t('steam_workshop.workshop_id')}
+        description={t('steam_workshop.workshop_id_desc')}
         value={workshopItemId}
         onChange={(event) => setWorkshopItemId(event.currentTarget.value)}
       />
       <Group justify="flex-end">
-        <Button variant="default" onClick={onCancel}>取消</Button>
-        <Button disabled={!name.trim()} loading={isSaving} onClick={submit}>创建工作区</Button>
+        <Button variant="default" onClick={onCancel}>{t('steam_workshop.cancel')}</Button>
+        <Button disabled={!name.trim()} loading={isSaving} onClick={submit}>{t('steam_workshop.create_workspace_action')}</Button>
       </Group>
     </Stack>
   );

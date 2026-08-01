@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import i18n from '../../../i18n/i18n';
 import {
   createDescriptionVersion,
   createPublishingWorkspace,
@@ -43,7 +44,7 @@ export const useDescriptionWorkspace = ({ projectId, requestedWorkspaceId }) => 
       setWorkspace(selectedWorkspace);
       await loadVersions(selectedWorkspace);
     } catch (loadError) {
-      setError(loadError.response?.data?.detail || '无法读取发布工作区。');
+      setError(loadError.response?.data?.detail || i18n.t('steam_workshop.workspace_load_failed'));
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +66,7 @@ export const useDescriptionWorkspace = ({ projectId, requestedWorkspaceId }) => 
         setVersions([]);
       }
     } catch (loadError) {
-      setError(loadError.response?.data?.detail || '无法读取发布素材。');
+      setError(loadError.response?.data?.detail || i18n.t('steam_workshop.assets_load_failed'));
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +92,7 @@ export const useDescriptionWorkspace = ({ projectId, requestedWorkspaceId }) => 
       setEditor(EMPTY_EDITOR);
       return created;
     } catch (createError) {
-      setError(createError.response?.data?.detail || '无法创建发布工作区。');
+      setError(createError.response?.data?.detail || i18n.t('steam_workshop.workspace_create_failed'));
       return null;
     } finally {
       setIsSaving(false);
@@ -114,7 +115,7 @@ export const useDescriptionWorkspace = ({ projectId, requestedWorkspaceId }) => 
       setEditor((current) => ({ ...current, parentVersionId: version.version_id }));
       return version;
     } catch (saveError) {
-      setError(saveError.response?.data?.detail || '候选版本保存失败。');
+      setError(saveError.response?.data?.detail || i18n.t('steam_workshop.candidate_save_failed'));
       return null;
     } finally {
       setIsSaving(false);
@@ -140,7 +141,7 @@ export const useDescriptionWorkspace = ({ projectId, requestedWorkspaceId }) => 
       await loadVersions(updatedWorkspace);
       return true;
     } catch (selectError) {
-      setError(selectError.response?.data?.detail || '无法选择当前采用版本。');
+      setError(selectError.response?.data?.detail || i18n.t('steam_workshop.version_adopt_failed'));
       return false;
     } finally {
       setIsSaving(false);
@@ -164,7 +165,7 @@ export const useDescriptionWorkspace = ({ projectId, requestedWorkspaceId }) => 
       });
       return version;
     } catch (generateError) {
-      setError(generateError.response?.data?.detail || '模型生成失败，未创建候选版本。');
+      setError(generateError.response?.data?.detail || i18n.t('steam_workshop.model_generation_failed'));
       return null;
     } finally {
       setIsGenerating(false);

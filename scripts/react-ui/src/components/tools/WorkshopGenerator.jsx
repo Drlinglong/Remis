@@ -19,20 +19,11 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconAlertCircle, IconCheck, IconCopy, IconDeviceFloppy } from '@tabler/icons-react';
+import { useTranslation } from 'react-i18next';
 import { BbcodePreview } from '../steamWorkshop/description/BbcodePreview';
 import { DescriptionGenerationPanel } from '../steamWorkshop/description/DescriptionGenerationPanel';
 import { useDescriptionWorkspace } from '../steamWorkshop/description/useDescriptionWorkspace';
 import { WorkspaceCreateForm } from '../steamWorkshop/description/WorkspaceCreateForm';
-
-const DEFAULT_TEMPLATE = `[h1]模组标题[/h1]
-
-[b]在这里编写 Steam 工坊描述。[/b]
-
-[h2]特色[/h2]
-[list]
-[*]特色一
-[*]特色二
-[/list]`;
 
 const editorStateForVersion = (version) => ({
   bbcode: version?.bbcode || '',
@@ -46,6 +37,7 @@ const WorkshopGenerator = ({
   workspaceId = null,
   manageWorkspace = true,
 }) => {
+  const { t } = useTranslation();
   const [createOpen, setCreateOpen] = useState(false);
   const {
     createWorkspace,
@@ -95,8 +87,8 @@ const WorkshopGenerator = ({
     const saved = await saveCandidate();
     if (!saved) return;
     notifications.show({
-      title: '候选版本已保存',
-      message: `版本 ${saved.sequence} 已持久化，但尚未设为当前采用。`,
+      title: t('steam_workshop.candidate_saved'),
+      message: t('steam_workshop.candidate_saved_desc', { sequence: saved.sequence }),
       color: 'green',
     });
   };
@@ -106,8 +98,8 @@ const WorkshopGenerator = ({
     if (!generated) return null;
 
     notifications.show({
-      title: '模型候选版本已保存',
-      message: `版本 ${generated.sequence} 已生成，尚未设为当前采用。`,
+      title: t('steam_workshop.model_candidate_saved'),
+      message: t('steam_workshop.model_candidate_saved_desc', { sequence: generated.sequence }),
       color: 'green',
     });
 
@@ -137,17 +129,17 @@ const WorkshopGenerator = ({
       <Stack gap="lg">
         <Group justify="space-between" align="flex-start">
           <div>
-            <Title order={2}>工坊描述</Title>
+            <Title order={2}>{t('steam_workshop.description')}</Title>
             <Text c="dimmed">
-              编辑安全可预览的 BBCode，并把成果保存为可回溯的候选版本。
+              {t('steam_workshop.description_intro')}
             </Text>
           </div>
-          {projectId && <Badge variant="light">已绑定项目：{projectName || projectId}</Badge>}
+          {projectId && <Badge variant="light">{t('steam_workshop.bound_project', { project: projectName || projectId })}</Badge>}
         </Group>
 
         {error && (
-          <Alert icon={<IconAlertCircle size={16} />} color="red" title="操作失败">
-            {typeof error === 'string' ? error : '请求失败，请稍后重试。'}
+          <Alert icon={<IconAlertCircle size={16} />} color="red" title={t('steam_workshop.operation_failed')}>
+            {typeof error === 'string' ? error : t('steam_workshop.request_failed')}
           </Alert>
         )}
 
@@ -155,15 +147,15 @@ const WorkshopGenerator = ({
           <Group align="flex-end">
             <Select
               flex={1}
-              label="发布工作区"
-              placeholder="选择工作区"
+              label={t('steam_workshop.workspace')}
+              placeholder={t('steam_workshop.select_workspace')}
               data={workspaceOptions}
               value={workspace?.workspace_id || null}
               onChange={selectWorkspace}
               disabled={Boolean(workspaceId)}
             />
             <Button variant="default" onClick={() => setCreateOpen(true)}>
-              新建工作区
+              {t('steam_workshop.create_workspace')}
             </Button>
           </Group>
           {workspace && (
@@ -171,18 +163,18 @@ const WorkshopGenerator = ({
               <Badge variant="outline">
                 {workspace.workshop_item_id
                   ? `Workshop ID: ${workspace.workshop_item_id}`
-                  : '尚未绑定 Workshop ID'}
+                  : t('steam_workshop.workshop_id_unbound')}
               </Badge>
               <Badge variant="outline">
-                {workspace.project_id ? '项目工作区' : '未绑定项目'}
+                {workspace.project_id ? t('steam_workshop.project_workspace') : t('steam_workshop.project_unbound')}
               </Badge>
             </Group>
           )}
         </Paper>}
 
         {!workspace && (
-          <Alert color="blue" title="先创建发布工作区">
-            工作区可以绑定当前项目，也可以不填写 Workshop ID。素材版本不会依赖远端物品存在。
+          <Alert color="blue" title={t('steam_workshop.create_workspace_first')}>
+            {t('steam_workshop.create_workspace_first_desc')}
           </Alert>
         )}
 
@@ -198,31 +190,31 @@ const WorkshopGenerator = ({
                 <Grid.Col span={{ base: 12, md: 6 }}>
                   <Stack>
                     <TextInput
-                      label="手工候选语言"
-                      description="手工保存时记录的版本语言；模型生成请使用上方的“描述语言”。"
+                      label={t('steam_workshop.manual_candidate_language')}
+                      description={t('steam_workshop.manual_candidate_language_desc')}
                       value={editor.language}
                       onChange={(event) => updateEditor('language', event.currentTarget.value)}
                     />
                     <Textarea
-                      label="Steam BBCode"
+                      label={t('steam_workshop.bbcode')}
                       minRows={20}
                       autosize
                       maxRows={32}
                       value={editor.bbcode}
-                      placeholder={DEFAULT_TEMPLATE}
+                      placeholder={t('steam_workshop.default_template')}
                       onChange={(event) => updateEditor('bbcode', event.currentTarget.value)}
                       styles={{ input: { fontFamily: 'monospace' } }}
                     />
                     <Group justify="space-between">
                       <CopyButton value={editor.bbcode}>
                         {({ copied, copy }) => (
-                          <Tooltip label={copied ? '已复制' : '复制 BBCode'}>
+                          <Tooltip label={copied ? t('steam_workshop.copied') : t('steam_workshop.copy_bbcode')}>
                             <Button
                               variant="default"
                               leftSection={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
                               onClick={copy}
                             >
-                              {copied ? '已复制' : '复制'}
+                              {copied ? t('steam_workshop.copied') : t('steam_workshop.copy')}
                             </Button>
                           </Tooltip>
                         )}
@@ -233,18 +225,18 @@ const WorkshopGenerator = ({
                         loading={isSaving}
                         onClick={handleSave}
                       >
-                        保存候选版本
+                        {t('steam_workshop.save_candidate')}
                       </Button>
                     </Group>
                   </Stack>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
-                  <Title order={4} mb="sm">安全预览</Title>
+                  <Title order={4} mb="sm">{t('steam_workshop.safe_preview')}</Title>
                   <BbcodePreview bbcode={editor.bbcode} />
                 </Grid.Col>
             </Grid>
             <Text c="dimmed" size="xs">
-              已保存版本请前往独立的“版本历史”页面检视和采用。
+              {t('steam_workshop.saved_versions_notice')}
             </Text>
           </>
         )}
@@ -253,11 +245,11 @@ const WorkshopGenerator = ({
       {manageWorkspace && <Modal
         opened={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="新建 Steam 发布工作区"
+        title={t('steam_workshop.new_workspace')}
       >
         <div data-remis-surface="elevated">
           <WorkspaceCreateForm
-            defaultName={projectName ? `${projectName} 发布素材` : ''}
+            defaultName={projectName ? t('steam_workshop.project_assets_name', { project: projectName }) : ''}
             isSaving={isSaving}
             onCancel={() => setCreateOpen(false)}
             onCreate={createWorkspace}

@@ -10,23 +10,25 @@ import {
   Text,
 } from '@mantine/core';
 import { IconSparkles } from '@tabler/icons-react';
+import { useTranslation } from 'react-i18next';
 
 import { DescriptionGenerationSettings } from './DescriptionGenerationSettings';
 import { useDescriptionModelConfig } from './useDescriptionModelConfig';
-
-const DEFAULT_TEMPLATE = `[h1]本地化标题[/h1]
-
-[b]请保留原作者信息，并为目标语言用户整理清晰的功能介绍、兼容性和使用说明。[/b]`;
 
 export function DescriptionGenerationPanel({
   isGenerating,
   onGenerate,
   workshopItemId,
 }) {
+  const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
   const [approved, setApproved] = useState(false);
   const [language, setLanguage] = useState('zh-CN');
-  const [userTemplate, setUserTemplate] = useState(DEFAULT_TEMPLATE);
+  // Initialize once so language changes and unrelated renders never overwrite
+  // a template the user has already edited.
+  const [userTemplate, setUserTemplate] = useState(
+    () => t('steam_workshop.generation_default_template'),
+  );
   const {
     isLoading: isConfigLoading,
     languageOptions,
@@ -117,11 +119,11 @@ export function DescriptionGenerationPanel({
     <Paper withBorder p="md" data-remis-surface="paper">
       <Group justify="space-between" align="flex-start">
         <div style={{ minWidth: 0 }}>
-          <Text fw={700}>从现有工坊描述生成候选版本</Text>
+          <Text fw={700}>{t('steam_workshop.generate_candidate_title')}</Text>
           <Text c="dimmed" size="sm">
             {workshopItemId
-              ? `将读取 Workshop ID ${workshopItemId}，调用所选模型并保存为候选版本。`
-              : '先在发布工作区中绑定 Workshop ID，才能读取现有描述。'}
+              ? t('steam_workshop.generate_candidate_desc', { workshopId: workshopItemId })
+              : t('steam_workshop.generate_candidate_requires_id')}
           </Text>
         </div>
         <Button
@@ -134,7 +136,7 @@ export function DescriptionGenerationPanel({
             setOpened(true);
           }}
         >
-          模型生成
+          {t('steam_workshop.model_generate')}
         </Button>
       </Group>
 
@@ -164,35 +166,34 @@ export function DescriptionGenerationPanel({
         opened={opened}
         onClose={closeModal}
         data-remis-surface="elevated"
-        title="确认模型生成"
+        title={t('steam_workshop.confirm_model_generation')}
         size="lg"
       >
         <Stack data-remis-surface="elevated">
-          <Alert color="yellow" title="本次调用摘要">
+          <Alert color="yellow" title={t('steam_workshop.model_call_summary')}>
             <Stack gap="xs">
-              <Text size="sm"><strong>Workshop ID：</strong>{workshopItemId}</Text>
-              <Text size="sm"><strong>API 供应商：</strong>{selectedProvider?.label || provider || '未选择'}</Text>
-              <Text size="sm"><strong>模型：</strong>{model || '未选择'}</Text>
-              <Text size="sm"><strong>描述语言：</strong>{selectedLanguage?.label || '未选择'}</Text>
+              <Text size="sm"><strong>{t('steam_workshop.workshop_id_label')}</strong>{workshopItemId}</Text>
+              <Text size="sm"><strong>{t('steam_workshop.api_provider_label')}</strong>{selectedProvider?.label || provider || t('steam_workshop.not_selected')}</Text>
+              <Text size="sm"><strong>{t('steam_workshop.model_label')}</strong>{model || t('steam_workshop.not_selected')}</Text>
+              <Text size="sm"><strong>{t('steam_workshop.description_language_label')}</strong>{selectedLanguage?.label || t('steam_workshop.not_selected')}</Text>
               <Text size="sm" c="dimmed">
-                Remis 将读取公开的 Steam 工坊描述，并把模板和源描述发送给所选模型。
-                结果只保存为候选版本，不会自动采用或上传 Steam。
+                {t('steam_workshop.model_call_notice')}
               </Text>
             </Stack>
           </Alert>
           <Checkbox
             checked={approved}
             onChange={(event) => setApproved(event.currentTarget.checked)}
-            label="我确认执行这次模型调用，并将结果保存为候选版本"
+            label={t('steam_workshop.model_call_approval')}
           />
           <Group justify="flex-end">
-            <Button variant="default" onClick={closeModal}>取消</Button>
+            <Button variant="default" onClick={closeModal}>{t('steam_workshop.cancel')}</Button>
             <Button
               loading={isGenerating}
               disabled={!approved || !canGenerate}
               onClick={handleGenerate}
             >
-              确认生成
+              {t('steam_workshop.confirm_generate')}
             </Button>
           </Group>
         </Stack>

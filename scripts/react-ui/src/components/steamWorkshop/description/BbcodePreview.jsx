@@ -1,5 +1,6 @@
 import React, { Fragment } from 'react';
 import { Blockquote, Code, Divider, List, Text, Title } from '@mantine/core';
+import { useTranslation } from 'react-i18next';
 
 const TOKEN_PATTERN = /(\[(?:\/)?(?:b|i|u|h1|h2|h3|quote|code|list|hr|\*|url(?:=[^\]\r\n]*)?)\])/gi;
 const TAG_PATTERN = /^\[(\/)?([a-z0-9*]+)(?:=([^\]\r\n]*))?\]$/i;
@@ -77,9 +78,11 @@ const parseTokens = (bbcode) => {
   return root.children;
 };
 
-export const BbcodePreview = ({ bbcode }) => (
+export const BbcodePreview = ({ bbcode }) => {
+  const { t } = useTranslation();
+  return (
   <div
-    aria-label="BBCode 预览"
+    aria-label={t('steam_workshop.bbcode_preview')}
     data-remis-surface="paper"
     style={{
       background: 'var(--paper-bg)',
@@ -92,6 +95,7 @@ export const BbcodePreview = ({ bbcode }) => (
       color: 'var(--remis-content-text, var(--paper-text-main))',
     }}
   >
-    {bbcode ? parseTokens(bbcode) : <Text c="dimmed">输入 BBCode 后在这里预览。</Text>}
+    {bbcode ? parseTokens(bbcode) : <Text c="dimmed">{t('steam_workshop.bbcode_preview_empty')}</Text>}
   </div>
-);
+  );
+};

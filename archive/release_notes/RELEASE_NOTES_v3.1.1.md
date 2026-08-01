@@ -25,6 +25,10 @@ release, led by a new local Steam Workshop preparation workflow.
   cover creation, description preparation, and version history. A ready-to-use
   demo workspace is included, and the game is selected from Remis-supported
   titles instead of entered manually.
+- **Use Steam publishing in every supported interface language.** The complete
+  Workshop workflow—including workspaces, cover preparation, descriptions,
+  history, guidance, errors, and confirmations—is now localized in all eleven
+  interface languages instead of falling back to Chinese.
 - **Clearer and more readable screens.** Steam publishing has a dedicated entry
   point and can also be opened from project management. Incremental translation,
   API settings, prompt settings, version information, and the tutorial are now
@@ -54,9 +58,11 @@ release, led by a new local Steam Workshop preparation workflow.
 - Documentation governance now distinguishes active user and developer guidance
   from historical implementation notes. Help content covers project management,
   project tracking, thumbnail generation, and Steam Workshop preparation.
-- The development launcher check is non-mutating, dependency automation keeps
-  security updates visible without forcing ordinary major upgrades, and all
-  eleven interface languages include the Workshop navigation.
+- The development launcher check is non-mutating, and dependency automation
+  keeps security updates visible without forcing ordinary major upgrades.
+- The locale release gate now follows the translation keys used by the actual
+  Steam production screens. It rejects missing keys, hard-coded Chinese UI,
+  and unintended English or Chinese fallbacks across all eleven locales.
 - The release date shown in Settings > Version Info now comes from release
   metadata. Packaging tests require the application version, release note date,
   and displayed Last Updated value to stay synchronized.
@@ -65,7 +71,7 @@ release, led by a new local Steam Workshop preparation workflow.
 
 - Backend: 669 tests passed and 1 was skipped; Python architecture and source
   compilation checks pass.
-- Desktop frontend: 550 tests across 145 files passed; locale and encoding
+- Desktop frontend: 552 tests across 146 files passed; locale and encoding
   checks, lint, and the production build pass. Product website validation from
   the integrated release candidate also passes.
 - Rust formatting and locked dependency compilation pass. Theme rendering was
@@ -93,6 +99,9 @@ release, led by a new local Steam Workshop preparation workflow.
 - **直接在 Remis 中学习新流程。** 新手引导会介绍工作区设置、封面制作、描述准备和
   版本历史；安装后还会提供一个可直接查看的演示工作区。创建工作区时，游戏改为从
   Remis 已支持的游戏中选择，无需手动填写 ID。
+- **使用任意受支持界面语言完成 Steam 发布准备。** 工作区、封面制作、工坊描述、
+  版本历史、新手引导、错误提示和确认操作现已完整支持全部 11 种界面语言，不再回退
+  显示中文。
 - **界面入口更清晰，各主题下也更易阅读。** Steam 发布既有独立入口，也可以从项目
   管理进入。增量翻译、API 设置、Prompt 设置、版本信息和新手引导在拜占庭、中世纪
   与二战主题下均恢复了清晰的可读性。
@@ -117,14 +126,16 @@ release, led by a new local Steam Workshop preparation workflow.
 - 文档治理区分了当前有效的用户／开发者指南与历史实现记录；帮助内容覆盖项目管理、
   项目跟踪、缩略图生成和 Steam 工坊准备流程。
 - 开发启动器检查现在不会修改运行状态；依赖自动化继续突出安全更新，但不会强制合入
-  普通主版本升级；全部十一种界面语言均包含工坊入口。
+  普通主版本升级。
+- 本地化发布门禁现在会追踪 Steam 生产界面实际使用的翻译键，并在 11 个语言包中拦截
+  缺失条目、硬编码中文，以及意外回退到英文或中文的内容。
 - 设置 > 版本信息中的“最后更新”现由发布元数据统一提供。发布门禁会检查应用版本、
   Release Note 日期与界面显示日期保持一致。
 
 ### 验证与安装包
 
 - 后端：669 项测试通过、1 项跳过；Python 架构检查和源码编译通过。
-- 桌面前端：145 个测试文件中的 550 项测试通过；语言包与编码检查、lint 和生产构建
+- 桌面前端：146 个测试文件中的 552 项测试通过；语言包与编码检查、lint 和生产构建
   通过。集成候选版本的产品官网验证也已通过。
 - Rust 格式检查和锁定依赖编译通过；增量翻译与设置页面已完成多主题渲染检查。
 - 桌面冒烟测试已确认原生“另存为”窗口和图片保存、画布文字选择／拖拽／编辑、Demo
@@ -135,8 +146,8 @@ release, led by a new local Steam Workshop preparation workflow.
 ## Final package / 最终安装包
 
 - File / 文件：`remis-mod-factory_3.1.1_x64-setup.exe`
-- Size / 大小：40,499,663 bytes (38.62 MiB)
-- SHA-256：`D7C1E7DE50646B241FDE0B29BC71F6260D10F554A74FA0725A4B7254E742B906`
+- Size / 大小：40,522,869 bytes (38.65 MiB)
+- SHA-256：`77642FEAC60EC91BA2E7525044D9D4FC91C922E3C485512724FA148D42EE4A7F`
 - Version resource / 版本资源：Product version `3.1.1`; file version `3.1.1`
 - Frozen backend smoke / 冻结后端冒烟：passed on an isolated localhost port
 - Code signing / 代码签名：not signed

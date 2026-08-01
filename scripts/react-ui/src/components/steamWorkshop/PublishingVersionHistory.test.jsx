@@ -61,8 +61,8 @@ describe('PublishingVersionHistory', () => {
       </MantineProvider>,
     );
 
-    expect(screen.getByText('封面图 #1')).toBeInTheDocument();
-    expect(screen.getByText('工坊描述 #2')).toBeInTheDocument();
+    expect(screen.getByText('封面图 第 1 版')).toBeInTheDocument();
+    expect(screen.getByText('工坊描述 第 2 版')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: '载入编辑' })).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: '载入编辑' }));
     expect(screen.getByTestId('location')).toHaveTextContent(

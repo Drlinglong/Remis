@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import i18n from '../../i18n/i18n';
 
 import steamWorkshopCoverService from '../../services/steamWorkshopCoverService';
 import {
@@ -29,7 +30,7 @@ export function usePublishingVersionHistory(workspaceId) {
       setWorkspace(loadedWorkspace);
       setVersions(loadedVersions);
     } catch (requestError) {
-      setError(requestError.response?.data?.detail || '无法读取版本历史。');
+      setError(requestError.response?.data?.detail || i18n.t('steam_workshop.history_load_failed'));
     } finally {
       setIsLoading(false);
     }
@@ -51,7 +52,7 @@ export function usePublishingVersionHistory(workspaceId) {
       await refresh();
       return true;
     } catch (requestError) {
-      setError(requestError.response?.data?.detail || '无法采用这个版本。');
+      setError(requestError.response?.data?.detail || i18n.t('steam_workshop.version_adopt_failed'));
       return false;
     } finally {
       setBusyVersionId(null);
@@ -69,7 +70,7 @@ export function usePublishingVersionHistory(workspaceId) {
       await refresh();
       return true;
     } catch (requestError) {
-      setError(requestError.response?.data?.detail || '无法删除这个版本。');
+      setError(requestError.response?.data?.detail || i18n.t('steam_workshop.version_delete_failed'));
       return false;
     } finally {
       setBusyVersionId(null);

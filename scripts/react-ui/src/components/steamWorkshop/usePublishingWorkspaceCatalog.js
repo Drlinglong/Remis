@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import i18n from '../../i18n/i18n';
 
 import configService from '../../services/configService';
 import projectService from '../../services/projectService';
@@ -49,7 +50,7 @@ export function usePublishingWorkspaceCatalog({ projectId = null } = {}) {
       ));
       setWorkspaces(workspaceItems.map(summarizeWorkspace));
     } catch (requestError) {
-      setError(requestError.response?.data?.detail || '无法读取 Steam 发布工作区。');
+      setError(requestError.response?.data?.detail || i18n.t('steam_workshop.workspace_load_failed'));
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +76,7 @@ export function usePublishingWorkspaceCatalog({ projectId = null } = {}) {
       await refresh();
       return workspace;
     } catch (requestError) {
-      setError(requestError.response?.data?.detail || '无法保存 Steam 发布工作区。');
+      setError(requestError.response?.data?.detail || i18n.t('steam_workshop.workspace_save_failed'));
       return null;
     } finally {
       setIsSaving(false);

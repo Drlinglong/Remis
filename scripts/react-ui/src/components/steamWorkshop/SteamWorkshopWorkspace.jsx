@@ -21,6 +21,7 @@ import {
   IconPhoto,
 } from '@tabler/icons-react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 
 import PublishingVersionHistory from './PublishingVersionHistory';
 import WorkspaceEditorModal from './WorkspaceEditorModal';
@@ -35,14 +36,14 @@ const EditorFallback = () => (
   </Center>
 );
 
-const sections = [
-  { value: 'cover', label: '封面图', icon: IconPhoto },
-  { value: 'description', label: '工坊描述', icon: IconFileDescription },
-  { value: 'history', label: '版本历史', icon: IconHistory },
-];
-
 export default function SteamWorkshopWorkspace({ activeSection, workspaceId }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const sections = [
+    { value: 'cover', label: t('steam_workshop.cover_label'), icon: IconPhoto },
+    { value: 'description', label: t('steam_workshop.description'), icon: IconFileDescription },
+    { value: 'history', label: t('steam_workshop.history'), icon: IconHistory },
+  ];
   const [searchParams] = useSearchParams();
   const [editOpen, setEditOpen] = useState(false);
   const detail = usePublishingWorkspaceDetail(workspaceId);
@@ -58,9 +59,9 @@ export default function SteamWorkshopWorkspace({ activeSection, workspaceId }) {
 
   if (!detail.isLoading && !workspace) {
     return (
-      <Alert color="red" title="找不到发布工作区">
+      <Alert color="red" title={t('steam_workshop.workspace_not_found')}>
         <Button mt="sm" variant="default" onClick={() => navigate('/steam-workshop')}>
-          返回工作区总览
+          {t('steam_workshop.back_to_overview')}
         </Button>
       </Alert>
     );
@@ -78,7 +79,7 @@ export default function SteamWorkshopWorkspace({ activeSection, workspaceId }) {
               <Group justify="space-between" align="flex-start">
                 <Group align="flex-start">
                   <Button
-                    aria-label="返回工作区总览"
+                    aria-label={t('steam_workshop.back_to_overview')}
                     variant="subtle"
                     onClick={() => navigate('/steam-workshop')}
                   >
@@ -86,7 +87,7 @@ export default function SteamWorkshopWorkspace({ activeSection, workspaceId }) {
                   </Button>
                   <div>
                     <Title order={2}>{workspace.name}</Title>
-                    <Text c="dimmed">选择一项发布素材工作，并在独立的版本历史中检视和采用成果。</Text>
+                    <Text c="dimmed">{t('steam_workshop.workspace_desc')}</Text>
                   </div>
                 </Group>
                 <Button
@@ -94,19 +95,19 @@ export default function SteamWorkshopWorkspace({ activeSection, workspaceId }) {
                   leftSection={<IconPencil size={16} />}
                   onClick={() => setEditOpen(true)}
                 >
-                  编辑绑定
+                  {t('steam_workshop.edit_binding')}
                 </Button>
               </Group>
               <Group gap="xs">
                 <Badge variant="light">
                   {workspace.project_id
-                    ? `项目：${detail.projectName || workspace.project_id}`
-                    : '独立工作区'}
+                    ? t('steam_workshop.project_context', { project: detail.projectName || workspace.project_id })
+                    : t('steam_workshop.independent_workspace')}
                 </Badge>
                 <Badge variant="outline">
                   {workspace.workshop_item_id
                     ? `Workshop ID: ${workspace.workshop_item_id}`
-                    : '尚未绑定 Workshop ID'}
+                    : t('steam_workshop.workshop_id_unbound')}
                 </Badge>
               </Group>
             </Stack>
