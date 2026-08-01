@@ -170,7 +170,7 @@ export function AventinePage() {
                 <div><strong>1</strong><span>{labels.directions}</span></div>
               </div>
             </header>
-            <AventineBenchmarkCharts onSelect={setSelectedId} />
+            <AventineBenchmarkCharts locale={locale} onSelect={setSelectedId} />
           </div>
         </section>
 

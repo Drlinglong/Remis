@@ -37,5 +37,7 @@ describe('Aventine pilot website data', () => {
     expect(gemini36.costPer100).toBeCloseTo(1.973, 3)
     expect(luna.costUsd).toBe(0.01066)
     expect(luna.costPer100).toBeCloseTo(0.051, 3)
+    expect(luna.style.en).toContain('second-fastest')
+    expect(luna.style.zh).toContain('第二快')
   })
 })

@@ -48,8 +48,8 @@ const displayProfiles = {
     color: '#ece9e2',
     costUsd: 0.01066,
     style: {
-      en: 'The clearest token-efficiency result in the pilot. Luna stays in the leading quality tier while using restrained reasoning, finishing fastest, and costing roughly one cent for all three runs.',
-      zh: '本轮最清晰的 Token 效率样本。Luna 以克制推理留在第一梯队，同时完成速度最快，三轮参赛推理成本约一美分。',
+      en: 'The clearest token-efficiency result in the pilot. Luna stays in the leading quality tier while using restrained reasoning, finishing second-fastest, and costing roughly one cent for all three runs.',
+      zh: '本轮最清晰的 Token 效率样本。Luna 以克制推理留在第一梯队，同时完成速度第二快，三轮参赛推理成本约一美分。',
     },
   },
   gemini35: {
