@@ -17,9 +17,12 @@
     color: var(--interactive-accent) !important;
 }
 
-.subtitle,
-.muted {
+.subtitle {
     color: var(--canvas-text-muted) !important;
+}
+
+.muted {
+    color: var(--surface-text-muted) !important;
 }
 
 .layout {
@@ -35,6 +38,8 @@
     background: var(--surface-bg) !important;
     border: 1px solid color-mix(in srgb, var(--surface-border) 42%, transparent) !important;
     color: var(--surface-text-main);
+    --mantine-color-text: var(--surface-text-main);
+    --mantine-color-dimmed: var(--surface-text-muted);
     box-shadow: none !important;
 }
 
@@ -42,6 +47,18 @@
     background: var(--paper-bg) !important;
     border: 1px solid color-mix(in srgb, var(--paper-text-main) 22%, transparent) !important;
     color: var(--paper-text-main);
+    --mantine-color-text: var(--paper-text-main);
+    --mantine-color-dimmed: var(--paper-text-muted);
+}
+
+.surface :global(.mantine-InputWrapper-label),
+.surface :global(.mantine-Checkbox-label),
+.surface :global(.mantine-Radio-label) {
+    color: var(--surface-text-main) !important;
+}
+
+.surface :global(.mantine-InputWrapper-description) {
+    color: var(--surface-text-muted) !important;
 }
 
 .scopeGroup {
