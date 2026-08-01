@@ -30,7 +30,7 @@ def source_item(text="The Curia Caelestis activates the Aether Engine."):
         item_key="curia.activation:0",
         source_order=7,
         source_text=text,
-        text_inferred=True,
+        provenance="text_inferred",
     )
 
 
@@ -145,7 +145,7 @@ def test_source_identity_is_normalized_and_model_cannot_override_it():
                 "relative_path": "forged.yml",
                 "item_key": "forged",
                 "source_order": 999,
-                "text_inferred": False,
+                "provenance": "text_inferred",
             }],
         }],
         "entities": [], "facts": [], "events": [], "relationships": [],
@@ -156,7 +156,7 @@ def test_source_identity_is_normalized_and_model_cannot_override_it():
     assert evidence.relative_path == "events/first.yml"
     assert evidence.item_key == "curia.activation:0"
     assert evidence.source_order == 7
-    assert evidence.text_inferred is True
+    assert evidence.provenance == "text_inferred"
 
 
 def test_invalid_json_gets_exactly_one_repair_attempt():

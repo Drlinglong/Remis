@@ -45,7 +45,7 @@ class SourceItem(BaseModel):
     item_key: Optional[str] = Field(default=None, max_length=300)
     source_order: Optional[int] = Field(default=None, ge=0)
     source_text: str = Field(min_length=1, max_length=20000)
-    text_inferred: bool = False
+    provenance: Literal["text_inferred"] = "text_inferred"
 
     @field_validator("relative_path")
     @classmethod
@@ -68,7 +68,7 @@ class SourceEvidence(BaseModel):
     relative_path: str = ""
     item_key: Optional[str] = None
     source_order: Optional[int] = Field(default=None, ge=0)
-    text_inferred: bool = False
+    provenance: Literal["text_inferred"] = "text_inferred"
 
 
 class TermContribution(BaseModel):
@@ -338,7 +338,7 @@ Return only this JSON shape, with no markdown:
                 evidence.relative_path = item.relative_path
                 evidence.item_key = item.item_key
                 evidence.source_order = item.source_order
-                evidence.text_inferred = item.text_inferred
+                evidence.provenance = item.provenance
             if isinstance(contribution, TermContribution) and not any(
                 contribution.original.casefold() in lookup[evidence.source_item_id].source_text.casefold()
                 for evidence in contribution.evidence

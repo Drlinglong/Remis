@@ -30,39 +30,11 @@ class NeologismReview(BaseModel):
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
 
 
-TERM_LIST_ADAPTER = TypeAdapter(List[NeologismTerm])
 REVIEW_LIST_ADAPTER = TypeAdapter(List[NeologismReview])
 
 
 class NeologismMiner:
     """LLM boundary for grounded extraction and context-aware terminology review."""
-
-    EXTRACTION_SYSTEM_PROMPT = """
-# Role
-You are a terminology analyst for game localization.
-
-# Task
-Extract potential proper nouns or author-created concepts from the supplied localization text.
-Return candidates only. Do not translate them in this stage.
-
-# Game
-{game_name}
-
-# Rules
-- Every `original` value MUST occur verbatim in the user text.
-- Include names, places, factions, fictional concepts, technologies, and coined phrases.
-- Exclude localization keys, variables, commands, formatting codes, generic words, and punctuation.
-- Prefer a complete phrase over overlapping fragments.
-- `category` MUST be exactly one of: "person", "place", "faction", "concept", "technology", or "other".
-- Map characters and named individuals to "person"; map events, units, and unmatched kinds to "other".
-- Confidence is a number from 0 to 1.
-
-# Output
-Output only a JSON array with this schema:
-[
-  {{"original": "Aetherophasic Engine", "category": "technology", "confidence": 0.95}}
-]
-"""
 
     REVIEW_SYSTEM_PROMPT = """
 # Role
@@ -177,7 +149,7 @@ Output only a JSON array with this schema:
                 relative_path="legacy-chunk.txt",
                 source_order=0,
                 source_text=text_chunk,
-                text_inferred=True,
+                provenance="text_inferred",
             )],
             scope=AnalysisScope.TERMS_ONLY,
             game_name=game_name,
