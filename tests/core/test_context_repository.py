@@ -213,6 +213,15 @@ def test_new_draft_publishes_child_release_without_mutating_parent(tmp_path):
     first = _publish(service)
 
     second_draft = service.start_draft("project-1", first.release_id)
+    inherited = repository.get_draft(second_draft.draft_id)
+    assert inherited is not None
+    assert inherited.overrides == [
+        HumanOverride(
+            target_key="republic",
+            value={"preferred_name": "共和国"},
+            note="human review",
+        )
+    ]
     service.save_override(
         second_draft.draft_id,
         HumanOverride(target_key="republic", value={"preferred_name": "共和国（修订）"}),
@@ -240,6 +249,56 @@ def test_new_draft_publishes_child_release_without_mutating_parent(tmp_path):
         "summary": "A revised republic context.",
         "preferred_name": "共和国（修订）",
     }
+
+
+def test_child_resynthesis_preserves_parent_overrides_without_new_edits(tmp_path):
+    repository, _ = _repository(tmp_path)
+    _seed_context(repository, include_second=False)
+    service = ContextService(repository)
+    first = _publish(service)
+    child_draft = service.start_draft("project-1", first.release_id)
+
+    child = service.publish_draft(
+        child_draft.draft_id,
+        _metadata(parent_release_id=first.release_id, source_hash="snapshot-resynthesized"),
+        ["aggregate-republic"],
+        [
+            GeneratedSynthesis(
+                synthesis_id="synthesis-resynthesized",
+                aggregate_id="aggregate-republic",
+                context_key="republic",
+                content={"summary": "A resynthesized republic context."},
+            )
+        ],
+    )
+
+    assert service.effective_context(child.release_id).effective_context["republic"] == {
+        "summary": "A resynthesized republic context.",
+        "preferred_name": "共和国",
+    }
+
+
+def test_publish_rejects_parent_metadata_that_contradicts_draft_base(tmp_path):
+    repository, _ = _repository(tmp_path)
+    _seed_context(repository, include_second=False)
+    service = ContextService(repository)
+    first = _publish(service)
+    child_draft = service.start_draft("project-1", first.release_id)
+
+    with pytest.raises(ValueError, match="must match the draft base_release_id"):
+        service.publish_draft(
+            child_draft.draft_id,
+            _metadata(parent_release_id="different-release"),
+            ["aggregate-republic"],
+            [
+                GeneratedSynthesis(
+                    synthesis_id="synthesis-invalid-lineage",
+                    aggregate_id="aggregate-republic",
+                    context_key="republic",
+                )
+            ],
+        )
+    assert repository.get_draft(child_draft.draft_id).status == "draft"
 
 
 def test_rebuild_from_remaining_contributions_omits_removed_evidence_only_in_new_release(

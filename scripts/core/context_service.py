@@ -27,7 +27,12 @@ class ContextService:
         return self.repository.create_draft(project_id, base_release_id)
 
     def save_override(self, draft_id: str, override: HumanOverride) -> HumanOverride:
-        """Persist a human edit as draft data; it never edits a release."""
+        """Persist a human edit as draft data; it never edits a release.
+
+        Inherited overrides are replaced by the same target key. Removing an
+        inherited override intentionally remains a future explicit tombstone
+        or delete API; ``null`` is not treated as deletion.
+        """
         return self.repository.save_draft_override(draft_id, override)
 
     def publish_draft(

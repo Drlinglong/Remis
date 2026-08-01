@@ -327,6 +327,16 @@ class ContextRepository:
                 """,
                 (draft.draft_id, project_id, base_release_id, draft.created_at, draft.updated_at),
             )
+            connection.execute(
+                """
+                INSERT INTO context_draft_overrides
+                    (draft_id, target_key, value_json, note, updated_at)
+                SELECT ?, target_key, value_json, note, ?
+                FROM context_release_overrides
+                WHERE release_id = ?
+                """,
+                (draft.draft_id, draft.updated_at, base_release_id),
+            )
             connection.commit()
         return draft
 
@@ -420,7 +430,14 @@ class ContextRepository:
         with self._lock, self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             draft = self._draft_row_for_publish(connection, draft_id)
-            parent_id = metadata.parent_release_id or draft["base_release_id"]
+            if (
+                metadata.parent_release_id is not None
+                and metadata.parent_release_id != draft["base_release_id"]
+            ):
+                raise ValueError(
+                    "metadata.parent_release_id must match the draft base_release_id"
+                )
+            parent_id = draft["base_release_id"]
             self._validate_parent_release(connection, draft["project_id"], parent_id)
             self._validate_syntheses(generated, aggregates)
             release_id = str(uuid.uuid4())
