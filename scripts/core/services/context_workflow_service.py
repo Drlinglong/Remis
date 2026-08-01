@@ -43,6 +43,7 @@ class ContextWorkflowService:
     REVIEW_BATCH_SIZE = 20
     SCHEMA_VERSION = "context-v1"
     PROMPT_VERSION = "context-synthesis-v1"
+    ACTIVE_STATUSES = {"queued", "starting", "running"}
 
     def __init__(
         self,
@@ -69,15 +70,23 @@ class ContextWorkflowService:
         self._status_lock = threading.RLock()
         self._statuses: dict[str, dict[str, Any]] = {}
 
-    def mark_queued(self, project_id: str, task_id: str, scope: AnalysisScope) -> None:
+    def reserve(self, project_id: str, task_id: str, scope: AnalysisScope) -> bool:
+        """Atomically reserve one context-analysis run for a project."""
         normalized = AnalysisScope(scope)
-        self._set_status(project_id, status="queued", task_id=task_id, analysis_scope=normalized.value)
-
-    def get_status(self, project_id: str) -> dict[str, Any]:
         with self._status_lock:
-            status = self._statuses.get(project_id)
-            if status is not None:
-                return dict(status)
+            current = self._statuses.get(project_id)
+            if current and current.get("status") in self.ACTIVE_STATUSES:
+                return False
+            self._statuses[project_id] = {
+                **self._idle_status(),
+                "status": "queued",
+                "task_id": task_id,
+                "analysis_scope": normalized.value,
+            }
+        return True
+
+    @staticmethod
+    def _idle_status() -> dict[str, Any]:
         return {
             "status": "idle",
             "processed_files": 0,
@@ -91,6 +100,24 @@ class ContextWorkflowService:
             "source_snapshot_hash": None,
             "context_release_id": None,
         }
+
+    def release_reservation(self, project_id: str, task_id: str) -> None:
+        """Release a queued reservation when task creation fails."""
+        with self._status_lock:
+            current = self._statuses.get(project_id)
+            if (
+                current
+                and current.get("task_id") == task_id
+                and current.get("status") == "queued"
+            ):
+                self._statuses[project_id] = self._idle_status()
+
+    def get_status(self, project_id: str) -> dict[str, Any]:
+        with self._status_lock:
+            status = self._statuses.get(project_id)
+            if status is not None:
+                return dict(status)
+        return self._idle_status()
 
     def run(
         self,

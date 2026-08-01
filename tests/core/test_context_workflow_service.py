@@ -181,6 +181,33 @@ def _service(repo, candidate_store=None, task_backend=None, handler=None):
     )
 
 
+def test_reservation_is_owned_and_released_by_context_workflow_status():
+    service = _service(FakeRepository())
+
+    assert service.reserve("project-1", "task-1", AnalysisScope.TERMS_ONLY) is True
+    assert service.reserve("project-1", "task-2", AnalysisScope.NARRATIVE_CONTEXT) is False
+
+    service._complete(
+        "project-1",
+        "task-1",
+        {"analysis_scope": "terms_only", "new_terms": 0, "duplicate_terms": 0},
+        0,
+    )
+
+    assert service.reserve("project-1", "task-2", AnalysisScope.NARRATIVE_CONTEXT) is True
+
+
+def test_failed_task_creation_can_release_only_its_queued_reservation():
+    service = _service(FakeRepository())
+    assert service.reserve("project-1", "task-1", AnalysisScope.TERMS_ONLY) is True
+
+    service.release_reservation("project-1", "another-task")
+    assert service.reserve("project-1", "task-2", AnalysisScope.TERMS_ONLY) is False
+
+    service.release_reservation("project-1", "task-1")
+    assert service.reserve("project-1", "task-2", AnalysisScope.TERMS_ONLY) is True
+
+
 def test_source_parser_preserves_utf8_key_order_and_normalized_path(tmp_path):
     root = tmp_path / "mod"
     root.mkdir()
