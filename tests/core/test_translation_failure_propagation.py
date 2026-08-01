@@ -54,6 +54,19 @@ def test_translate_batch_marks_retry_exhaustion_as_failed():
     assert result.warnings[-1]["type"] == "fallback_to_source"
 
 
+def test_generate_with_messages_preserves_provider_failure():
+    handler = AlwaysFailHandler("test")
+
+    with pytest.raises(RuntimeError, match="api unavailable"):
+        handler.generate_with_messages(
+            [
+                {"role": "system", "content": "Return JSON."},
+                {"role": "user", "content": "Analyze this text."},
+            ],
+            temperature=0.0,
+        )
+
+
 def test_stream_processor_treats_source_fallback_as_file_failure():
     processor = ParallelProcessor(max_workers=1, chunk_size_override=1)
     file_task = _file_task()

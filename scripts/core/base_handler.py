@@ -445,4 +445,4 @@ class BaseApiHandler(ABC):
             return self._call_api(self.client, full_prompt)
         except Exception as e:
             self.logger.exception(f"Generate with messages failed: {e}")
-            return ""
+            raise

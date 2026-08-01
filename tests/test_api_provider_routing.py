@@ -1,11 +1,14 @@
 import os
+import logging
 from contextlib import ExitStack
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
 
 from scripts.app_settings import API_PROVIDERS
 from scripts.core import api_handler
+from scripts.core.deepseek_handler import DeepSeekHandler
 
 
 TURNKEY_CLOUD_PROVIDER_IDS = [
@@ -49,6 +52,27 @@ def test_every_configured_default_model_is_in_its_available_catalog():
 
 def test_deepseek_v4_flash_is_selectable_for_context_smoke_tests():
     assert "deepseek-v4-flash" in API_PROVIDERS["deepseek"]["available_models"]
+
+
+def test_deepseek_request_uses_explicit_v4_flash_model():
+    captured = {}
+
+    class Completions:
+        @staticmethod
+        def create(**kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="{}"))]
+            )
+
+    handler = DeepSeekHandler.__new__(DeepSeekHandler)
+    handler.provider_name = "deepseek"
+    handler.model_id = "deepseek-v4-flash"
+    handler.logger = logging.getLogger("DeepSeekHandlerTest")
+    client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
+
+    assert handler._call_api(client, "Analyze this text") == "{}"
+    assert captured["model"] == "deepseek-v4-flash"
 
 
 @pytest.mark.parametrize("provider_id", TURNKEY_CLOUD_PROVIDER_IDS)
