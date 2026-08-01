@@ -117,6 +117,7 @@ const ModArchiveOverrideEditor = ({
         note,
         error,
         notice,
+        canPublish,
         inheritedOverrides,
         selectContextKey,
         updateField,
@@ -267,7 +268,7 @@ const ModArchiveOverrideEditor = ({
                             variant="outline"
                             leftSection={<IconGitBranch size={16} />}
                             onClick={() => setPublishConfirmationOpen(true)}
-                            disabled={isBusy}
+                            disabled={isBusy || !canPublish}
                             data-remis-action="secondary"
                             data-testid="mod-archive-open-publish"
                         >

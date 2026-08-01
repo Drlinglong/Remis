@@ -56,6 +56,8 @@ export const useModArchiveDraft = ({
     const [fieldValues, setFieldValues] = useState({});
     const [initialValues, setInitialValues] = useState({});
     const [note, setNote] = useState('');
+    const [initialNote, setInitialNote] = useState('');
+    const [hasSavedChange, setHasSavedChange] = useState(false);
     const [error, setError] = useState(emptyError);
     const [notice, setNotice] = useState(null);
     const [publishedRelease, setPublishedRelease] = useState(null);
@@ -74,6 +76,7 @@ export const useModArchiveDraft = ({
         setFieldValues(snapshot.values);
         setInitialValues(snapshot.values);
         setNote(snapshot.note);
+        setInitialNote(snapshot.note);
     }, [buildEditorSnapshot]);
 
     useEffect(() => {
@@ -83,6 +86,8 @@ export const useModArchiveDraft = ({
         setFieldValues({});
         setInitialValues({});
         setNote('');
+        setInitialNote('');
+        setHasSavedChange(false);
         setError(emptyError);
         setNotice(null);
         setPublishedRelease(null);
@@ -131,8 +136,13 @@ export const useModArchiveDraft = ({
 
     const saveOverride = useCallback(async () => {
         if (!selectedProject || !draft?.draft_id || !selectedKey || phase === 'saving') return false;
-        const value = buildOverrideDelta(fieldValues, initialValues);
-        if (Object.keys(value).length === 0) {
+        const delta = buildOverrideDelta(fieldValues, initialValues);
+        const existingValue = getDraftOverride(draft, selectedKey)?.value || {};
+        const value = { ...existingValue, ...delta };
+        const normalizedNote = note.trim();
+        const noteChanged = normalizedNote !== initialNote.trim();
+        const hasValue = Object.keys(value).length > 0;
+        if (Object.keys(delta).length === 0 && (!noteChanged || !hasValue)) {
             setError({
                 code: 'no_changes',
                 message: translate('mod_archive.release.draft.errors.no_changes'),
@@ -148,7 +158,7 @@ export const useModArchiveDraft = ({
                 {
                     context_key: selectedKey,
                     value,
-                    note: note.trim() || null,
+                    note: normalizedNote || null,
                 },
             );
             const nextDraft = unwrap(response.data, 'draft');
@@ -156,6 +166,7 @@ export const useModArchiveDraft = ({
             setDraft(nextDraft);
             applyEditorSnapshot(nextDraft, selectedKey);
             setPhase('ready');
+            setHasSavedChange(true);
             setNotice({ type: 'saved' });
             return true;
         } catch (requestError) {
@@ -163,10 +174,10 @@ export const useModArchiveDraft = ({
             setError(getContextError(requestError, translate));
             return false;
         }
-    }, [applyEditorSnapshot, draft, fieldValues, initialValues, note, phase, selectedKey, selectedProject, translate]);
+    }, [applyEditorSnapshot, draft, fieldValues, initialNote, initialValues, note, phase, selectedKey, selectedProject, translate]);
 
     const publishDraft = useCallback(async () => {
-        if (!selectedProject || !draft?.draft_id || phase === 'publishing') return null;
+        if (!selectedProject || !draft?.draft_id || !hasSavedChange || phase === 'publishing') return null;
         setPhase('publishing');
         setError(emptyError);
         setNotice(null);
@@ -191,7 +202,7 @@ export const useModArchiveDraft = ({
             setError(getContextError(requestError, translate));
             return null;
         }
-    }, [draft, phase, selectedProject, translate]);
+    }, [draft, hasSavedChange, phase, selectedProject, translate]);
 
     return {
         phase,
@@ -202,6 +213,7 @@ export const useModArchiveDraft = ({
         error,
         notice,
         publishedRelease,
+        canPublish: hasSavedChange,
         inheritedOverrides: Array.isArray(draft?.overrides) ? draft.overrides : [],
         startDraft,
         selectContextKey,

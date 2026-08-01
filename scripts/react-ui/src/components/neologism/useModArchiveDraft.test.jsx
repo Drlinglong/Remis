@@ -88,7 +88,7 @@ describe('useModArchiveDraft', () => {
             '/api/context/projects/project-1/drafts/draft-1/overrides',
             {
                 context_key: 'entity:republic',
-                value: { preferred_name: 'The Republic' },
+                value: { preferred_name: 'The Republic', unknown_field: 'preserved' },
                 note: 'Confirmed by the project glossary.',
             },
         );
@@ -147,11 +147,14 @@ describe('useModArchiveDraft', () => {
 
     it('publishes through the draft endpoint and hands the child release to the refresh controller', async () => {
         const onPublished = vi.fn().mockResolvedValue(undefined);
+        api.put.mockResolvedValue({ data: draft });
         api.post
             .mockResolvedValueOnce({ data: draft })
             .mockResolvedValueOnce({ data: childRelease });
         const { result } = renderDraft(onPublished);
         await act(async () => result.current.startDraft());
+        act(() => result.current.updateField('summary', 'Human correction'));
+        await act(async () => result.current.saveOverride());
 
         await act(async () => {
             await result.current.publishDraft();
@@ -179,5 +182,51 @@ describe('useModArchiveDraft', () => {
 
         expect(api.put).not.toHaveBeenCalled();
         expect(result.current.error.code).toBe('no_changes');
+    });
+
+    it('does not send a note without a structured override value', async () => {
+        api.post.mockResolvedValue({ data: { ...draft, overrides: [] } });
+        const { result } = renderDraft();
+        await act(async () => result.current.startDraft());
+
+        act(() => result.current.setNote('A note cannot stand alone.'));
+        await act(async () => result.current.saveOverride());
+
+        expect(api.put).not.toHaveBeenCalled();
+        expect(result.current.error.code).toBe('no_changes');
+    });
+
+    it('preserves earlier and unknown override fields across repeated saves', async () => {
+        api.post.mockResolvedValue({ data: draft });
+        api.put.mockImplementation((_url, payload) => Promise.resolve({
+            data: {
+                ...draft,
+                overrides: [{
+                    target_key: payload.context_key,
+                    value: payload.value,
+                    note: payload.note,
+                }],
+            },
+        }));
+        const { result } = renderDraft();
+        await act(async () => result.current.startDraft());
+
+        act(() => result.current.updateField('preferred_name', 'The Republic'));
+        await act(async () => result.current.saveOverride());
+        act(() => result.current.updateField('summary', 'A revised state summary'));
+        await act(async () => result.current.saveOverride());
+
+        expect(api.put).toHaveBeenLastCalledWith(
+            '/api/context/projects/project-1/drafts/draft-1/overrides',
+            {
+                context_key: 'entity:republic',
+                value: {
+                    preferred_name: 'The Republic',
+                    unknown_field: 'preserved',
+                    summary: 'A revised state summary',
+                },
+                note: 'Inherited note',
+            },
+        );
     });
 });

@@ -158,7 +158,10 @@ describe('PublishedArchivePanel', () => {
             ...inheritedDraft,
             overrides: [{
                 ...inheritedDraft.overrides[0],
-                value: { preferred_name: 'The Republic' },
+                value: {
+                    preferred_name: 'The Republic',
+                    legacy_alias: 'preserved-but-not-editable',
+                },
             }],
         };
         const childRelease = {
@@ -217,7 +220,11 @@ describe('PublishedArchivePanel', () => {
             '/api/context/projects/project-1/drafts/draft-1/overrides',
             expect.objectContaining({
                 context_key: 'entity:republic',
-                value: { preferred_name: 'The Republic' },
+                value: {
+                    preferred_name: 'The Republic',
+                    legacy_alias: 'preserved-but-not-editable',
+                },
+                note: 'Inherited from the previous release',
             }),
         ));
         expect(await screen.findByText('mod_archive.release.draft.save_success')).toBeInTheDocument();
