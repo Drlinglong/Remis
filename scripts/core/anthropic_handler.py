@@ -57,7 +57,7 @@ class AnthropicHandler(BaseApiHandler):
     ) -> str:
         provider_config = self.get_provider_config()
         payload = {
-            "model": provider_config.get("default_model", "claude-sonnet-4-5"),
+            "model": provider_config.get("default_model", "claude-sonnet-5"),
             "max_tokens": 4000,
             "system": system,
             "messages": messages,

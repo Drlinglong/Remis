@@ -27,7 +27,7 @@ class OpenAIHandler(BaseApiHandler):
 
         try:
             client = OpenAI(api_key=api_key, base_url=base_url, timeout=300.0)
-            model_name = provider_config.get("default_model", "gpt-3.5-turbo")
+            model_name = provider_config.get("default_model", "gpt-5.6-terra")
             self.logger.info(f"OpenAI client initialized successfully, using model: {model_name}")
             return client
         except Exception as e:
@@ -37,7 +37,7 @@ class OpenAIHandler(BaseApiHandler):
     def _call_api(self, client: OpenAI, prompt: str) -> str:
         """【必须由子类实现】执行对OpenAI API的调用并返回原始文本响应。"""
         provider_config = self.get_provider_config()
-        model_name = provider_config.get("default_model", "gpt-5-mini")
+        model_name = provider_config.get("default_model", "gpt-5.6-terra")
         
         enable_thinking = provider_config.get("enable_thinking", False)
         reasoning_effort_value = provider_config.get("reasoning_effort")
@@ -81,7 +81,7 @@ class OpenAIHandler(BaseApiHandler):
         Supports chat-like interaction for NeologismMiner.
         """
         provider_config = self.get_provider_config()
-        model_name = provider_config.get("default_model", "gpt-5-mini")
+        model_name = provider_config.get("default_model", "gpt-5.6-terra")
         
         try:
             response = self.client.chat.completions.create(

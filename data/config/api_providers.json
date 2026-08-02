@@ -2,10 +2,14 @@
     "gemini": {
         "api_key_env": "GEMINI_API_KEY",
         "name": "Google Gemini",
-        "default_model": "gemini-3-flash-preview",
+        "default_model": "gemini-3.6-flash",
         "available_models": [
-            "gemini-3-flash-preview",
-            "gemini-3-pro-preview"
+            "gemini-3.1-pro-preview",
+            "gemini-3.6-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite"
         ],
         "base_url": "https://generativelanguage.googleapis.com",
         "enable_thinking": false,
@@ -16,12 +20,14 @@
         "api_key_env": "ANTHROPIC_API_KEY",
         "base_url": "https://api.anthropic.com/v1",
         "name": "Anthropic Claude",
-        "default_model": "claude-sonnet-4-5",
+        "default_model": "claude-sonnet-5",
         "available_models": [
-            "claude-sonnet-4-5",
-            "claude-haiku-4-5",
-            "claude-3-5-sonnet-20241022",
-            "claude-3-5-haiku-20241022"
+            "claude-fable-5",
+            "claude-opus-5",
+            "claude-sonnet-5",
+            "claude-haiku-4-5-20251001",
+            "claude-opus-4-8",
+            "claude-sonnet-4-6"
         ],
         "description_key": "api_desc_anthropic"
     },
@@ -29,23 +35,27 @@
         "api_key_env": "OPENAI_API_KEY",
         "name": "OpenAI",
         "base_url": "https://api.openai.com/v1",
-        "default_model": "gpt-5-mini",
+        "default_model": "gpt-5.6-terra",
         "available_models": [
-            "gpt-5.2",
-            "gpt-5-mini",
-            "gpt-5-nano"
+            "gpt-5.6-sol",
+            "gpt-5.6-terra",
+            "gpt-5.6-luna",
+            "gpt-5.5",
+            "gpt-5.4",
+            "gpt-5.4-mini"
         ],
         "enable_thinking": false,
-        "reasoning_effort": "minimal",
+        "reasoning_effort": "low",
         "description_key": "api_desc_openai"
     },
     "qwen": {
         "api_key_env": "DASHSCOPE_API_KEY",
-        "default_model": "qwen-plus",
+        "default_model": "qwen3.7-plus",
         "available_models": [
-            "qwen-plus",
-            "qwen-max",
-            "qwen-flash"
+            "qwen3.7-max",
+            "qwen3.7-plus",
+            "qwen3.7-flash",
+            "qwen3.6-flash"
         ],
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "region": "beijing",
@@ -57,24 +67,20 @@
         "api_key_env": "XAI_API_KEY",
         "base_url": "https://api.x.ai/v1",
         "name": "Grok (xAI)",
-        "default_model": "grok-4-1-fast-reasoning",
+        "default_model": "grok-4.5",
         "available_models": [
-            "grok-4-1-fast-reasoning",
-            "grok-4-1-fast-non-reasoning"
+            "grok-4.5",
+            "grok-4.3"
         ],
         "description_key": "api_desc_grok"
     },
     "deepseek": {
         "api_key_env": "DEEPSEEK_API_KEY",
         "base_url": "https://api.deepseek.com",
-        "default_model": "deepseek-chat",
+        "default_model": "deepseek-v4-flash",
         "available_models": [
-            "deepseek-chat",
-            "deepseek-reasoner",
-            "deepseek-v3.2",
-            "deepseek-v3.2-speciale",
-            "deepseek-r2",
-            "deepseek-r1"
+            "deepseek-v4-pro",
+            "deepseek-v4-flash"
         ],
         "name": "DeepSeek (深度求索)",
         "enable_thinking": false,
@@ -104,19 +110,23 @@
     "modelscope": {
         "api_key_env": "MODELSCOPE_API_KEY",
         "base_url": "https://api-inference.modelscope.cn/v1/",
-        "default_model": "deepseek-ai/DeepSeek-V3.2-Exp",
+        "default_model": "zai-org/GLM-5.1",
+        "available_models": [
+            "zai-org/GLM-5.1",
+            "MiniMax/MiniMax-M3"
+        ],
         "name": "ModelScope (魔搭)",
         "description_key": "api_desc_modelscope"
     },
     "siliconflow": {
         "api_key_env": "SILICONFLOW_API_KEY",
         "base_url": "https://api.siliconflow.cn/v1",
-        "default_model": "DeepSeek-R1",
+        "default_model": "deepseek-ai/DeepSeek-V4-Pro",
         "available_models": [
-            "DeepSeek-R1",
-            "DeepSeek-V3",
-            "Qwen2.5-72B-Instruct",
-            "Llama-3.3-70B-Instruct"
+            "deepseek-ai/DeepSeek-V4-Pro",
+            "zai-org/GLM-5.1",
+            "moonshotai/Kimi-K2.6",
+            "MiniMaxAI/MiniMax-M2.5"
         ],
         "name": "SiliconFlow (硅基流动)",
         "description_key": "api_desc_siliconflow"
@@ -167,14 +177,13 @@
     },
     "kimi": {
         "api_key_env": "KIMI_API_KEY",
-        "base_url": "https://api.moonshot.cn/v1",
-        "default_model": "moonshot-v1-8k",
+        "base_url": "https://api.moonshot.ai/v1",
+        "default_model": "kimi-k3",
         "available_models": [
-            "kimi-k2.6",
-            "kimi-k2.5",
-            "moonshot-v1-8k",
-            "moonshot-v1-32k",
-            "moonshot-v1-128k"
+            "kimi-k3",
+            "kimi-k2.7-code",
+            "kimi-k2.7-code-highspeed",
+            "kimi-k2.6"
         ],
         "name": "Kimi (Moonshot AI)",
         "description_key": "api_desc_kimi"
@@ -182,15 +191,12 @@
     "minimax": {
         "api_key_env": "MINIMAX_API_KEY",
         "base_url": "https://api.minimaxi.com/v1",
-        "default_model": "MiniMax-M2.1",
+        "default_model": "MiniMax-M2.7",
         "available_models": [
             "MiniMax-M2.7",
             "MiniMax-M2.7-highspeed",
             "MiniMax-M2.5",
-            "MiniMax-M2.5-highspeed",
-            "MiniMax-M2.1",
-            "MiniMax-M2.1-highspeed",
-            "MiniMax-M2"
+            "MiniMax-M2.5-highspeed"
         ],
         "name": "Minimax (海螺)",
         "description_key": "api_desc_minimax"
@@ -198,16 +204,14 @@
     "zhipu": {
         "api_key_env": "ZHIPU_API_KEY",
         "base_url": "https://open.bigmodel.cn/api/paas/v4/",
-        "default_model": "glm-4-plus",
+        "default_model": "glm-5.2",
         "available_models": [
+            "glm-5.2",
+            "glm-5.1",
+            "glm-5-turbo",
             "glm-4.7",
             "glm-4.6",
-            "glm-4.5",
-            "glm-4.5-air",
-            "glm-4.5-flash",
-            "glm-4-plus",
-            "glm-4-air",
-            "glm-4-flash"
+            "glm-4.5-flash"
         ],
         "name": "ChatGLM (Zhipu AI)",
         "description_key": "api_desc_zhipu"
@@ -216,9 +220,10 @@
         "api_key_env": "NVIDIA_API_KEY",
         "name": "NVIDIA NIM",
         "base_url": "https://integrate.api.nvidia.com/v1",
-        "default_model": "minimaxai/minimax-m2.1",
+        "default_model": "minimaxai/minimax-m2.7",
         "available_models": [
-            "minimaxai/minimax-m2.1"
+            "minimaxai/minimax-m2.7",
+            "minimaxai/minimax-m2.5"
         ],
         "description_key": "api_desc_nvidia"
     },

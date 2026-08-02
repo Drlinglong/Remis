@@ -1615,7 +1615,7 @@
   },
   "api_desc_gemini": "Google Gemini (官方对接)",
   "api_desc_openai": "OpenAI 官方接口 (GPT-5/4o/mini)",
-  "api_desc_grok": "通过xAI官方API访问grok-4-fast-reasoning模型",
+  "api_desc_grok": "通过 xAI 官方 API 访问当前的 Grok 文本模型",
   "api_desc_anthropic": "Anthropic 官方接口 (Claude 4.5/3.5 Sonnet & Haiku)",
   "api_desc_qwen": "阿里云通义千问 (Qwen) - 北京节点",
   "api_desc_deepseek": "DeepSeek-V3/R1 (非思考模式) - 与OpenAI API兼容",

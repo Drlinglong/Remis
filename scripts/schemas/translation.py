@@ -40,7 +40,7 @@ class InitialTranslationRequest(BaseModel):
     source_lang_code: LanguageCode
     target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
     api_provider: str = "gemini"
-    model: str = "gemini-pro"
+    model: str = "gemini-3.6-flash"
     batch_size_limit: Optional[int] = None
     concurrency_limit: Optional[int] = None
     rpm_limit: Optional[int] = 40
@@ -108,7 +108,7 @@ class IncrementalUpdateConfig(BaseModel):
     project_id: str
     target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
     api_provider: str = "gemini"
-    model: str = "gemini-pro"
+    model: str = "gemini-3.6-flash"
     mod_context: Optional[str] = ""
     dry_run: bool = False
     custom_source_path: Optional[str] = None

@@ -25,7 +25,7 @@ class GrokHandler(BaseApiHandler):
                 base_url=base_url
             )
             
-            model_name = provider_config.get("default_model", "grok-4-fast-reasoning")
+            model_name = provider_config.get("default_model", "grok-4.5")
             self.logger.info(f"Grok client initialized successfully, using model: {model_name}")
             self.logger.info(f"Using base URL: {base_url}")
             return client
@@ -36,7 +36,7 @@ class GrokHandler(BaseApiHandler):
     def _call_api(self, client: OpenAI, prompt: str) -> str:
         """【必须由子类实现】执行对Grok API的调用并返回原始文本响应。"""
         provider_config = self.get_provider_config()
-        model_name = provider_config.get("default_model", "grok-4-fast-reasoning")
+        model_name = provider_config.get("default_model", "grok-4.5")
 
         try:
             response = client.chat.completions.create(
