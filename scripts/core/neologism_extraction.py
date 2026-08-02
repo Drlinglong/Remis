@@ -60,12 +60,12 @@ class SourceItem(BaseModel):
 
 
 class SourceEvidence(BaseModel):
-    """Grounded evidence returned with a contribution."""
+    """Source item reference with an optional, non-authoritative highlight."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     source_item_id: str = Field(min_length=1, max_length=240)
-    snippet: str = Field(min_length=1, max_length=2000)
+    snippet: Optional[str] = Field(default=None, max_length=2000)
     relative_path: str = ""
     item_key: Optional[str] = None
     source_order: Optional[int] = Field(default=None, ge=0)
@@ -78,6 +78,8 @@ class TermContribution(BaseModel):
     original: str = Field(min_length=1, max_length=200)
     category: TermCategory = "other"
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+    suggestion: Optional[str] = Field(default=None, max_length=500)
+    reasoning: Optional[str] = Field(default=None, max_length=2000)
     evidence: List[SourceEvidence] = Field(min_length=1, max_length=5)
 
 
@@ -145,6 +147,8 @@ class StructuredNeologismExtractor:
     """Make one deterministic structured extraction call for one source chunk."""
 
     MAX_TOTAL_CONTRIBUTIONS = 250
+    SOURCE_ALIAS_PREFIX = "source_"
+    _FORMAT_TAG_RE = re.compile(r"#[A-Za-z][\w.-]*|#!|§.")
 
     SYSTEM_PROMPT = """
 # Role
@@ -155,19 +159,24 @@ Analyze the supplied source items exactly once and return one JSON object. The
 analysis scope is `{scope}`. In `terms_only`, fill `terms` and leave every other
 array empty. In `narrative_context`, fill grounded term candidates and any
 grounded source-level entities, facts, event-chain steps, and relationships.
+For every term, include a canonical `suggestion` in {target_language} and concise
+`reasoning` in {reasoning_language} when those fields are requested by the caller.
 
 # Game
 {game_name}
 
 # Grounding and safety rules
-- Every evidence.source_item_id MUST be one of the supplied source_item_id values.
-- Every evidence.snippet MUST be copied exactly from that source item's source_text.
-- Prefer a short direct substring for evidence.snippet. Preserve its exact quote,
-  dash, capitalization, and spacing characters; do not paraphrase it.
+- Every evidence.source_item_id MUST be one of the supplied short source aliases.
+- The backend maps each valid alias to the stable source item identity. Never
+  invent an alias or use an alias from another call.
+- evidence.snippet is optional and is only a highlight hint. If supplied, it
+  must be a short direct quote from the source item; do not use it to cite a
+  paraphrase. The backend will discard an unsafe hint and derive a safe
+  highlight when possible.
 - Every term.original and entity.name MUST occur in an evidenced source item.
 - Do not invent facts, events, relationships, or entities that cannot be supported
-  by an exact snippet. They are tentative model contributions, never script-derived
-  or user-confirmed.
+  by the cited source item and grounded fields. They are tentative model
+  contributions, never script-derived or user-confirmed.
 - Events belong in `events` as event-chain objects, not inside entity descriptions.
 - Use only these entity_type values: "person", "place", "organization/faction",
   "technology/concept", "item/other".
@@ -179,19 +188,20 @@ grounded source-level entities, facts, event-chain steps, and relationships.
 Return only this JSON shape, with no markdown:
 {{
   "terms": [{{"original":"...","category":"technology","confidence":0.9,
-    "evidence":[{{"source_item_id":"...","snippet":"..."}}]}}],
+    "suggestion":"...","reasoning":"...",
+    "evidence":[{{"source_item_id":"source_0"}}]}}],
   "entities": [{{"name":"...","entity_type":"technology/concept",
-    "description":"...","evidence":[{{"source_item_id":"...","snippet":"..."}}],
+    "description":"...","evidence":[{{"source_item_id":"source_0"}}],
     "provenance":"text_inferred"}}],
   "facts": [{{"subject":"...","predicate":"...","object":"...",
-    "evidence":[{{"source_item_id":"...","snippet":"..."}}],
+    "evidence":[{{"source_item_id":"source_0"}}],
     "provenance":"text_inferred","tentative":true}}],
   "events": [{{"chain_id":"...","event":"...","sequence":0,
     "participants":[],"consequence":"...",
-    "evidence":[{{"source_item_id":"...","snippet":"..."}}],
+    "evidence":[{{"source_item_id":"source_0"}}],
     "provenance":"text_inferred","tentative":true}}],
   "relationships": [{{"subject":"...","relation":"...","object":"...",
-    "evidence":[{{"source_item_id":"...","snippet":"..."}}],
+    "evidence":[{{"source_item_id":"source_0"}}],
     "provenance":"text_inferred","tentative":true}}]
 }}
 """
@@ -207,26 +217,49 @@ Return only this JSON shape, with no markdown:
         scope: AnalysisScope = AnalysisScope.TERMS_ONLY,
         game_name: str = "Paradox Game",
         allow_legacy_term_array: bool = False,
+        target_language: str = "the configured target language",
+        reasoning_language: str = "the configured review language",
     ) -> StructuredNeologismExtraction:
         scope = AnalysisScope(scope)
         items = self._validate_source_items(source_items)
         if not items:
             raise NeologismMiningError("Cannot extract from an empty source chunk")
+        source_aliases = self._source_aliases(items)
         messages = [
             {
                 "role": "system",
-                "content": self.SYSTEM_PROMPT.format(scope=scope.value, game_name=game_name),
+                "content": self.SYSTEM_PROMPT.format(
+                    scope=scope.value,
+                    game_name=game_name,
+                    target_language=target_language,
+                    reasoning_language=reasoning_language,
+                ),
             },
             {
                 "role": "user",
                 "content": json.dumps(
-                    {"scope": scope.value, "source_items": [item.model_dump() for item in items]},
+                    {
+                        "scope": scope.value,
+                        "source_items": [
+                            {
+                                **item.model_dump(),
+                                "source_item_id": source_aliases[item.source_item_id],
+                            }
+                            for item in items
+                        ],
+                    },
                     ensure_ascii=False,
                     sort_keys=True,
                 ),
             },
         ]
-        return self._parse_with_one_repair(messages, items, scope, allow_legacy_term_array)
+        return self._parse_with_one_repair(
+            messages,
+            items,
+            scope,
+            allow_legacy_term_array,
+            source_aliases,
+        )
 
     def extract_chunks(
         self,
@@ -234,10 +267,21 @@ Return only this JSON shape, with no markdown:
         *,
         scope: AnalysisScope = AnalysisScope.TERMS_ONLY,
         game_name: str = "Paradox Game",
+        target_language: str = "the configured target language",
+        reasoning_language: str = "the configured review language",
     ) -> List[StructuredNeologismExtraction]:
         """Extract one response per already-read chunk; never reread or re-call a chunk."""
 
-        return [self.extract(chunk, scope=scope, game_name=game_name) for chunk in chunks]
+        return [
+            self.extract(
+                chunk,
+                scope=scope,
+                game_name=game_name,
+                target_language=target_language,
+                reasoning_language=reasoning_language,
+            )
+            for chunk in chunks
+        ]
 
     def _generate(self, messages: List[Dict[str, str]]) -> str:
         try:
@@ -267,10 +311,17 @@ Return only this JSON shape, with no markdown:
         source_items: Sequence[SourceItem],
         scope: AnalysisScope,
         allow_legacy_term_array: bool,
+        source_aliases: Dict[str, str],
     ) -> StructuredNeologismExtraction:
         response = self._generate(messages)
         try:
-            return self._parse_and_validate(response, source_items, scope, allow_legacy_term_array)
+            return self._parse_and_validate(
+                response,
+                source_items,
+                scope,
+                allow_legacy_term_array,
+                source_aliases,
+            )
         except (json.JSONDecodeError, ValidationError, TypeError, ValueError, NeologismMiningError) as first_error:
             repair_messages = messages + [
                 {"role": "assistant", "content": response},
@@ -286,7 +337,13 @@ Return only this JSON shape, with no markdown:
             ]
             repaired = self._generate(repair_messages)
             try:
-                return self._parse_and_validate(repaired, source_items, scope, allow_legacy_term_array)
+                return self._parse_and_validate(
+                    repaired,
+                    source_items,
+                    scope,
+                    allow_legacy_term_array,
+                    source_aliases,
+                )
             except (json.JSONDecodeError, ValidationError, TypeError, ValueError, NeologismMiningError) as second_error:
                 category = self._validation_error_category(second_error)
                 self.logger.error(
@@ -305,61 +362,192 @@ Return only this JSON shape, with no markdown:
         if isinstance(error, ValidationError):
             return "schema_validation"
         if isinstance(error, NeologismMiningError):
-            grounding_categories = {
-                "Structured extraction referenced an unknown source item": "unknown_source_item",
-                "Structured extraction contained an ungrounded evidence snippet": "ungrounded_snippet",
-                "Structured extraction contained an ungrounded term": "ungrounded_term",
-                "Structured extraction contained an ungrounded entity": "ungrounded_entity",
-            }
-            return grounding_categories.get(str(error), "grounding_validation")
+            message = str(error)
+            if message.startswith("Structured extraction referenced an unknown source item"):
+                return "unknown_source_item"
+            if message.startswith("Structured extraction contained an ungrounded term"):
+                return "ungrounded_term"
+            if message.startswith("Structured extraction contained an ungrounded entity"):
+                return "ungrounded_entity"
+            return "grounding_validation"
         return "contract_validation"
 
-    @staticmethod
+    @classmethod
+    def _source_aliases(cls, source_items: Sequence[SourceItem]) -> Dict[str, str]:
+        return {
+            item.source_item_id: f"{cls.SOURCE_ALIAS_PREFIX}{index}"
+            for index, item in enumerate(source_items)
+        }
+
+    @classmethod
     def _normalize_evidence_snippet(
+        cls,
         evidence: SourceEvidence,
         source_text: str,
         anchors: Sequence[str],
     ) -> None:
-        if evidence.snippet in source_text:
-            return
-        quote_chars = "'\u2018\u2019\"\u201c\u201d"
-        dash_chars = "-\u2013\u2014"
-        parts: list[str] = []
-        previous_space = False
-        for char in evidence.snippet.strip():
-            if char.isspace():
-                if not previous_space:
-                    parts.append(r"\s+")
-                previous_space = True
-                continue
-            previous_space = False
-            if char in quote_chars:
-                parts.append(f"[{re.escape(quote_chars)}]")
-            elif char in dash_chars:
-                parts.append(f"[{re.escape(dash_chars)}]")
-            else:
-                parts.append(re.escape(char))
-        if not parts:
-            return
-        match = re.search("".join(parts), source_text, flags=re.IGNORECASE)
-        if match is not None:
-            evidence.snippet = source_text[match.start():match.end()]
-            return
-        folded_source = source_text.casefold()
-        for anchor in anchors:
-            normalized_anchor = str(anchor or "").strip()
-            if not normalized_anchor:
-                continue
-            start = folded_source.find(normalized_anchor.casefold())
-            if start < 0:
-                continue
-            if len(source_text) <= 2000:
-                evidence.snippet = source_text
+        supplied = evidence.snippet
+        if supplied:
+            aligned = cls._align_source_substring(supplied, source_text)
+            if aligned is not None and any(
+                cls._align_source_substring(str(anchor), aligned) is not None
+                for anchor in anchors
+                if anchor
+            ):
+                evidence.snippet = aligned
                 return
-            window_start = max(0, start - 800)
-            window_end = min(len(source_text), window_start + 2000)
-            evidence.snippet = source_text[window_start:window_end]
-            return
+            logging.getLogger(__name__).warning(
+                "Ignored unsafe optional extraction highlight "
+                "(source_item_id=%s; snippet=%s)",
+                evidence.source_item_id,
+                cls._bounded_detail(supplied),
+            )
+        evidence.snippet = cls._derive_highlight(source_text, anchors)
+
+    @classmethod
+    def _derive_highlight(cls, source_text: str, anchors: Sequence[str]) -> Optional[str]:
+        for anchor in anchors:
+            if not anchor:
+                continue
+            aligned = cls._align_source_substring(str(anchor), source_text)
+            if aligned is not None and len(aligned) <= 2000:
+                return aligned
+        return None
+
+    @classmethod
+    def _align_source_substring(cls, candidate: str, source_text: str) -> Optional[str]:
+        if candidate in source_text:
+            return candidate
+        candidate_folded, _ = cls._canonical_text(candidate)
+        source_folded, spans = cls._canonical_text(source_text)
+        if not candidate_folded:
+            return None
+        start = source_folded.find(candidate_folded)
+        if start < 0:
+            return None
+        end = start + len(candidate_folded) - 1
+        return source_text[spans[start][0]:spans[end][1]]
+
+    @classmethod
+    def _canonical_text(cls, value: str) -> tuple[str, list[tuple[int, int]]]:
+        """Fold only formatting/typography while retaining source offsets."""
+
+        folded: list[str] = []
+        spans: list[tuple[int, int]] = []
+        index = 0
+        while index < len(value):
+            tag = cls._FORMAT_TAG_RE.match(value, index)
+            if tag:
+                index = tag.end()
+                continue
+            char_start = index
+            if value[index].isspace():
+                while index < len(value) and value[index].isspace():
+                    index += 1
+                normalized = " "
+            else:
+                index += 1
+                normalized = value[char_start:index]
+                normalized = {
+                    "'": "'",
+                    "\u2018": "'",
+                    "\u2019": "'",
+                    '"': '"',
+                    "\u201c": '"',
+                    "\u201d": '"',
+                    "-": "-",
+                    "\u2013": "-",
+                    "\u2014": "-",
+                }.get(normalized, normalized)
+            folded_value = normalized.casefold()
+            folded.extend(folded_value)
+            spans.extend((char_start, index) for _ in folded_value)
+        return "".join(folded), spans
+
+    @staticmethod
+    def _bounded_detail(value: str, limit: int = 160) -> str:
+        detail = " ".join(str(value).split())
+        if len(detail) <= limit:
+            return detail
+        return detail[: limit - 1] + "…"
+
+    @classmethod
+    def _required_grounding_anchors(cls, contribution: Any) -> list[tuple[str, str]]:
+        if isinstance(contribution, TermContribution):
+            return [("term", contribution.original)]
+        if isinstance(contribution, EntityContribution):
+            return [("entity", contribution.name)]
+        if isinstance(contribution, FactContribution):
+            return [
+                ("fact subject", contribution.subject),
+                ("fact predicate", contribution.predicate),
+                ("fact object", contribution.object),
+            ]
+        if isinstance(contribution, EventChainContribution):
+            if contribution.participants:
+                return [("event participant", participant) for participant in contribution.participants]
+            return [("event", contribution.event)]
+        return [
+            ("relationship subject", contribution.subject),
+            ("relationship relation", contribution.relation),
+            ("relationship object", contribution.object),
+        ]
+
+    @classmethod
+    def _contribution_is_grounded(
+        cls,
+        contribution: Any,
+        evidence: Sequence[SourceEvidence],
+        lookup: Dict[str, SourceItem],
+    ) -> bool:
+        for label, anchor in cls._required_grounding_anchors(contribution):
+            if not any(
+                cls._align_source_substring(anchor, lookup[item.source_item_id].source_text) is not None
+                for item in evidence
+            ):
+                logging.getLogger(__name__).warning(
+                    "Dropped extraction contribution with missing %s "
+                    "(source_item_id=%s; detail=%s)",
+                    label,
+                    evidence[0].source_item_id if evidence else "none",
+                    cls._bounded_detail(anchor),
+                )
+                return False
+        return True
+
+    @classmethod
+    def _filter_grounded_contributions(
+        cls,
+        contributions: Sequence[Any],
+        lookup: Dict[str, SourceItem],
+    ) -> list[Any]:
+        grounded: list[Any] = []
+        for contribution in contributions:
+            valid_evidence: list[SourceEvidence] = []
+            for evidence in contribution.evidence:
+                item = lookup.get(evidence.source_item_id)
+                if item is None:
+                    logging.getLogger(__name__).warning(
+                        "Dropped unknown extraction source reference "
+                        "(source_item_id=%s; detail=source alias not in batch)",
+                        cls._bounded_detail(evidence.source_item_id),
+                    )
+                    continue
+                anchors = cls._contribution_anchors(contribution)
+                cls._normalize_evidence_snippet(evidence, item.source_text, anchors)
+                evidence.relative_path = item.relative_path
+                evidence.item_key = item.item_key
+                evidence.source_order = item.source_order
+                evidence.provenance = item.provenance
+                valid_evidence.append(evidence)
+            if valid_evidence and cls._contribution_is_grounded(contribution, valid_evidence, lookup):
+                contribution.evidence = valid_evidence
+                grounded.append(contribution)
+            elif not valid_evidence:
+                logging.getLogger(__name__).warning(
+                    "Dropped extraction contribution without a valid source reference"
+                )
+        return grounded
 
     @staticmethod
     def _contribution_anchors(contribution: Any) -> list[str]:
@@ -376,16 +564,24 @@ Return only this JSON shape, with no markdown:
         source_items: Sequence[SourceItem],
         scope: AnalysisScope,
         allow_legacy_term_array: bool,
+        source_aliases: Dict[str, str],
     ) -> StructuredNeologismExtraction:
-        extraction = self._parse_payload(response, source_items, allow_legacy_term_array)
+        extraction = self._parse_payload(
+            response,
+            source_items,
+            allow_legacy_term_array,
+            source_aliases,
+        )
         self._validate_grounding(extraction, source_items, scope)
         return extraction
 
-    @staticmethod
+    @classmethod
     def _parse_payload(
+        cls,
         response: str,
         source_items: Sequence[SourceItem],
         allow_legacy_term_array: bool,
+        source_aliases: Optional[Dict[str, str]] = None,
     ) -> StructuredNeologismExtraction:
         cleaned = response.strip()
         if cleaned.startswith("```"):
@@ -408,7 +604,20 @@ Return only this JSON shape, with no markdown:
                     for term in payload
                 ]
             }
+        cls._remap_source_aliases(payload, source_aliases or {})
         return EXTRACTION_ADAPTER.validate_python(payload)
+
+    @staticmethod
+    def _remap_source_aliases(payload: Any, source_aliases: Dict[str, str]) -> None:
+        if not isinstance(payload, dict) or not source_aliases:
+            return
+        aliases = {alias: source_id for source_id, alias in source_aliases.items()}
+        for field in ("terms", "entities", "facts", "events", "relationships"):
+            for contribution in payload.get(field) or []:
+                for evidence in contribution.get("evidence") or []:
+                    source_alias = evidence.get("source_item_id")
+                    if source_alias in aliases:
+                        evidence["source_item_id"] = aliases[source_alias]
 
     @staticmethod
     def _validate_source_items(source_items: Sequence[SourceItem]) -> List[SourceItem]:
@@ -425,32 +634,21 @@ Return only this JSON shape, with no markdown:
         source_items: Sequence[SourceItem],
         scope: AnalysisScope,
     ) -> None:
-        if scope is AnalysisScope.TERMS_ONLY and any((extraction.entities, extraction.facts, extraction.events, extraction.relationships)):
-            raise NeologismMiningError("terms_only extraction returned narrative contributions")
+        if scope is AnalysisScope.TERMS_ONLY and any(
+            (extraction.entities, extraction.facts, extraction.events, extraction.relationships)
+        ):
+            logging.getLogger(__name__).warning(
+                "Dropped narrative contributions returned for terms_only extraction"
+            )
+            extraction.entities = []
+            extraction.facts = []
+            extraction.events = []
+            extraction.relationships = []
         if sum(len(getattr(extraction, field)) for field in ("terms", "entities", "facts", "events", "relationships")) > cls.MAX_TOTAL_CONTRIBUTIONS:
             raise NeologismMiningError("Structured extraction exceeded the contribution safety limit")
         lookup = {item.source_item_id: item for item in source_items}
-        contributions = [*extraction.terms, *extraction.entities, *extraction.facts, *extraction.events, *extraction.relationships]
-        for contribution in contributions:
-            anchors = cls._contribution_anchors(contribution)
-            for evidence in contribution.evidence:
-                item = lookup.get(evidence.source_item_id)
-                if item is None:
-                    raise NeologismMiningError("Structured extraction referenced an unknown source item")
-                cls._normalize_evidence_snippet(evidence, item.source_text, anchors)
-                if evidence.snippet not in item.source_text:
-                    raise NeologismMiningError("Structured extraction contained an ungrounded evidence snippet")
-                evidence.relative_path = item.relative_path
-                evidence.item_key = item.item_key
-                evidence.source_order = item.source_order
-                evidence.provenance = item.provenance
-            if isinstance(contribution, TermContribution) and not any(
-                contribution.original.casefold() in lookup[evidence.source_item_id].source_text.casefold()
-                for evidence in contribution.evidence
-            ):
-                raise NeologismMiningError("Structured extraction contained an ungrounded term")
-            if isinstance(contribution, EntityContribution) and not any(
-                contribution.name.casefold() in lookup[evidence.source_item_id].source_text.casefold()
-                for evidence in contribution.evidence
-            ):
-                raise NeologismMiningError("Structured extraction contained an ungrounded entity")
+        extraction.terms = cls._filter_grounded_contributions(extraction.terms, lookup)
+        extraction.entities = cls._filter_grounded_contributions(extraction.entities, lookup)
+        extraction.facts = cls._filter_grounded_contributions(extraction.facts, lookup)
+        extraction.events = cls._filter_grounded_contributions(extraction.events, lookup)
+        extraction.relationships = cls._filter_grounded_contributions(extraction.relationships, lookup)

@@ -46,26 +46,26 @@ def test_narrative_context_makes_one_call_and_keeps_contributions_separate():
             "name": "Curia Caelestis",
             "entity_type": "organization/faction",
             "description": "A faction in the source.",
-            "evidence": [{"source_item_id": "item-1", "snippet": "Curia Caelestis"}],
+            "evidence": [{"source_item_id": "item-1", "snippet": "A model summary that is not source text"}],
         }],
         "facts": [{
             "subject": "Curia Caelestis",
             "predicate": "activates",
             "object": "Aether Engine",
-            "evidence": [{"source_item_id": "item-1", "snippet": "Curia Caelestis activates the Aether Engine."}],
+            "evidence": [{"source_item_id": "item-1", "snippet": "A paraphrase that is not source text"}],
         }],
         "events": [{
             "chain_id": "activation-chain",
             "event": "Aether Engine activation",
             "sequence": 0,
             "participants": ["Curia Caelestis"],
-            "evidence": [{"source_item_id": "item-1", "snippet": "activates the Aether Engine"}],
+            "evidence": [{"source_item_id": "item-1", "snippet": "An omitted highlight"}],
         }],
         "relationships": [{
             "subject": "Curia Caelestis",
-            "relation": "controls",
+            "relation": "activates",
             "object": "Aether Engine",
-            "evidence": [{"source_item_id": "item-1", "snippet": "Curia Caelestis activates the Aether Engine."}],
+            "evidence": [{"source_item_id": "item-1", "snippet": "Another non-source paraphrase"}],
         }],
     })])
 
@@ -105,7 +105,7 @@ def test_terms_only_retains_terms_and_does_not_accept_narrative_arrays():
     assert '"scope": "terms_only"' in handler.calls[0][0][1]["content"]
 
 
-def test_ungrounded_evidence_gets_one_grounding_repair_attempt():
+def test_invalid_contribution_is_dropped_without_repairing_the_batch():
     invalid = json.dumps({
         "terms": [{
             "original": "Hallucinated Term",
@@ -114,24 +114,15 @@ def test_ungrounded_evidence_gets_one_grounding_repair_attempt():
         }],
         "entities": [], "facts": [], "events": [], "relationships": [],
     })
-    repaired = json.dumps({
-        "terms": [{
-            "original": "Aether Engine",
-            "category": "technology",
-            "evidence": [{"source_item_id": "item-1", "snippet": "Aether Engine"}],
-        }],
-        "entities": [], "facts": [], "events": [], "relationships": [],
-    })
-    handler = FakeHandler([invalid, repaired])
+    handler = FakeHandler([invalid])
 
     result = StructuredNeologismExtractor(handler).extract([source_item()])
 
-    assert result.terms[0].original == "Aether Engine"
-    assert len(handler.calls) == 2
-    assert "ungrounded evidence snippet" in handler.calls[1][0][-1]["content"]
+    assert result.terms == []
+    assert len(handler.calls) == 1
 
 
-def test_ungrounded_evidence_is_rejected_after_one_repair():
+def test_invalid_contribution_does_not_raise_after_one_bad_response():
     invalid = json.dumps({
         "terms": [{
             "original": "Hallucinated Term",
@@ -140,11 +131,10 @@ def test_ungrounded_evidence_is_rejected_after_one_repair():
         }],
         "entities": [], "facts": [], "events": [], "relationships": [],
     })
-    handler = FakeHandler([invalid, invalid])
+    handler = FakeHandler([invalid])
 
-    with pytest.raises(NeologismMiningError, match="after one repair"):
-        StructuredNeologismExtractor(handler).extract([source_item()])
-    assert len(handler.calls) == 2
+    assert StructuredNeologismExtractor(handler).extract([source_item()]).terms == []
+    assert len(handler.calls) == 1
 
 
 def test_evidence_snippet_normalizes_only_source_preserving_typography():
@@ -167,6 +157,83 @@ def test_evidence_snippet_normalizes_only_source_preserving_typography():
     assert result.terms[0].evidence[0].snippet == (
         "Remis said, \u201cOpen the Meridian Gate\u2014now.\u201d"
     )
+
+
+def test_evidence_highlight_can_align_paradox_formatting_tokens_to_source():
+    item = source_item("Open the Meridian#r Gate#! now.")
+    payload = json.dumps({
+        "terms": [{
+            "original": "Meridian Gate",
+            "category": "place",
+            "evidence": [{
+                "source_item_id": "item-1",
+                "snippet": "open the meridian gate now.",
+            }],
+        }],
+        "entities": [], "facts": [], "events": [], "relationships": [],
+    })
+    handler = FakeHandler([payload])
+
+    result = StructuredNeologismExtractor(handler).extract([item])
+
+    assert result.terms[0].evidence[0].snippet == "Open the Meridian#r Gate#! now."
+
+
+def test_terms_use_short_source_aliases_and_backend_restores_stable_identity():
+    item = source_item()
+    payload = json.dumps({
+        "terms": [{
+            "original": "Aether Engine",
+            "category": "technology",
+            "confidence": 0.9,
+            "suggestion": "以太引擎",
+            "reasoning": "A named technology; retain a consistent technical translation.",
+            "evidence": [{"source_item_id": "source_0"}],
+        }],
+        "entities": [], "facts": [], "events": [], "relationships": [],
+    })
+    handler = FakeHandler([payload])
+
+    result = StructuredNeologismExtractor(handler).extract(
+        [item], target_language="Chinese", reasoning_language="English"
+    )
+
+    request = json.loads(handler.calls[0][0][1]["content"])
+    prompt_item = request["source_items"][0]
+    assert prompt_item["source_item_id"] == "source_0"
+    assert prompt_item["item_key"] == "curia.activation:0"
+    assert prompt_item["relative_path"] == "events/first.yml"
+    assert prompt_item["source_order"] == 7
+    assert prompt_item["source_text"] == item.source_text
+    assert item.source_item_id not in handler.calls[0][0][1]["content"]
+    term = result.terms[0]
+    assert term.suggestion == "以太引擎"
+    assert term.reasoning.startswith("A named technology")
+    assert term.evidence[0].source_item_id == item.source_item_id
+    assert term.evidence[0].item_key == item.item_key
+    assert term.evidence[0].snippet == "Aether Engine"
+
+
+def test_missing_or_hallucinated_highlight_never_becomes_grounding_evidence(caplog):
+    hallucinated_highlight = "hallucinated detail " * 40
+    payload = json.dumps({
+        "terms": [{
+            "original": "Aether Engine",
+            "category": "technology",
+            "evidence": [{
+                "source_item_id": "source_0",
+                "snippet": hallucinated_highlight,
+            }],
+        }],
+        "entities": [], "facts": [], "events": [], "relationships": [],
+    })
+    handler = FakeHandler([payload])
+
+    result = StructuredNeologismExtractor(handler).extract([source_item()])
+
+    assert result.terms[0].evidence[0].snippet == "Aether Engine"
+    assert "hallucinated detail" in caplog.text
+    assert hallucinated_highlight not in caplog.text
 
 
 def test_grounded_contribution_gets_deterministic_atomic_source_evidence():
@@ -192,10 +259,34 @@ def test_grounded_contribution_gets_deterministic_atomic_source_evidence():
         scope=AnalysisScope.NARRATIVE_CONTEXT,
     )
 
-    assert result.entities[0].evidence[0].snippet == text
+    assert result.entities[0].evidence[0].snippet == "Meridian Gate"
 
 
-def test_unknown_source_item_rejects_model_provenance():
+def test_fact_without_snippet_still_requires_all_fact_anchors_in_source():
+    payload = json.dumps({
+        "terms": [],
+        "entities": [],
+        "facts": [{
+            "subject": "Curia Caelestis",
+            "predicate": "destroys",
+            "object": "Aether Engine",
+            "evidence": [{"source_item_id": "source_0"}],
+            "provenance": "text_inferred",
+            "tentative": True,
+        }],
+        "events": [], "relationships": [],
+    })
+    handler = FakeHandler([payload])
+
+    result = StructuredNeologismExtractor(handler).extract(
+        [source_item()], scope=AnalysisScope.NARRATIVE_CONTEXT
+    )
+
+    assert result.facts == []
+    assert len(handler.calls) == 1
+
+
+def test_unknown_source_item_drops_only_the_invalid_contribution():
     invalid = json.dumps({
         "terms": [{
             "original": "Curia Caelestis",
@@ -204,11 +295,10 @@ def test_unknown_source_item_rejects_model_provenance():
         }],
         "entities": [], "facts": [], "events": [], "relationships": [],
     })
-    handler = FakeHandler([invalid, invalid])
+    handler = FakeHandler([invalid])
 
-    with pytest.raises(NeologismMiningError, match="after one repair"):
-        StructuredNeologismExtractor(handler).extract([source_item()])
-    assert len(handler.calls) == 2
+    assert StructuredNeologismExtractor(handler).extract([source_item()]).terms == []
+    assert len(handler.calls) == 1
 
 
 def test_source_identity_is_normalized_and_model_cannot_override_it():
