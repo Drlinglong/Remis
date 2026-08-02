@@ -22,7 +22,7 @@ from scripts.core.db_models import (
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 13
+MAIN_DB_TARGET_VERSION = 14
 
 
 class UnsupportedDatabaseVersionError(RuntimeError):
@@ -657,6 +657,12 @@ def _migration_013_add_context_release_storage(db_path: str) -> None:
     migrate_context_release_storage(db_path)
 
 
+def _migration_014_add_context_analysis_batch_storage(db_path: str) -> None:
+    from scripts.core.context_analysis_migration import migrate_context_analysis_batch_storage
+
+    migrate_context_analysis_batch_storage(db_path)
+
+
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
@@ -671,6 +677,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (11, "add_steam_workshop_assets", _migration_011_add_steam_workshop_assets),
     (12, "track_bundled_seed_state", _migration_012_track_bundled_seed_state),
     (13, "add_context_release_storage", _migration_013_add_context_release_storage),
+    (14, "add_context_analysis_batch_storage", _migration_014_add_context_analysis_batch_storage),
 ]
 
 

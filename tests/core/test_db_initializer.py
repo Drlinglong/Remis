@@ -91,6 +91,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (11, "add_steam_workshop_assets"),
         (12, "track_bundled_seed_state"),
         (13, "add_context_release_storage"),
+        (14, "add_context_analysis_batch_storage"),
     ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
@@ -201,6 +202,7 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
         (11,),
         (12,),
         (13,),
+        (14,),
     ]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")
