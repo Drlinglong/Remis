@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Anchor, Divider, Group, List, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Divider, Group, List, Paper, Stack, Text, ThemeIcon } from '@mantine/core';
 import { IconBrandBilibili, IconBrandYoutube, IconInfoCircle, IconTrophy } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
@@ -34,14 +34,20 @@ const ApiResourceGuides = () => {
   const { t } = useTranslation();
   return (
     <>
-      <Alert variant="light" color="violet" title={t('api_aventine_title')} icon={<IconTrophy />}>
-        <Stack gap="xs">
-          <Text size="sm">{t('api_aventine_description')}</Text>
-          <ExternalLink url="https://drlinglong.github.io/Remis/aventine/">
-            {t('api_aventine_action')}
-          </ExternalLink>
-        </Stack>
-      </Alert>
+      <Paper data-remis-surface="paper" withBorder p="md" radius="md">
+        <Group align="flex-start" wrap="nowrap">
+          <ThemeIcon size="xl" radius="xl" variant="filled" color="violet">
+            <IconTrophy size={22} />
+          </ThemeIcon>
+          <Stack gap={4}>
+            <Text fw={700}>{t('api_aventine_title')}</Text>
+            <Text size="sm">{t('api_aventine_description')}</Text>
+            <ExternalLink url="https://drlinglong.github.io/Remis/aventine/">
+              {t('api_aventine_action')}
+            </ExternalLink>
+          </Stack>
+        </Group>
+      </Paper>
 
       <Alert id="api-storage-info" variant="light" color="blue" title={t('api_configuration_title')} icon={<IconInfoCircle />}>
         <Stack gap="xs">

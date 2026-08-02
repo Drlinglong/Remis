@@ -39,6 +39,12 @@ const renderModals = (actions) => render(
 );
 
 describe('DeployModals destructive action guard', () => {
+  it('binds the deploy dialog to the elevated theme surface', () => {
+    renderModals(createActions({ deployModalOpen: true }));
+
+    expect(screen.getByRole('dialog').closest('[data-remis-surface="elevated"]')).not.toBeNull();
+  });
+
   it('requires explicit overwrite confirmation before deploying over an existing target', () => {
     const actions = createActions({
       deployModalOpen: true,

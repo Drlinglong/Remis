@@ -20,6 +20,14 @@ describe('semantic material paint regressions', () => {
       "[data-remis-surface='paper']:is(.mantine-Paper-root, .mantine-Card-root)",
     );
     expect(definitionsCss).toContain('background: var(--paper-bg) !important;');
+    expect(definitionsCss).toContain('color: var(--surface-text-main) !important;');
+    expect(definitionsCss).toContain('color: var(--paper-text-main) !important;');
+  });
+
+  it('themes native select inputs and their operating-system option list', () => {
+    expect(definitionsCss).toContain('.mantine-NativeSelect-input');
+    expect(definitionsCss).toContain('.mantine-NativeSelect-input option');
+    expect(definitionsCss).toContain('background: var(--menu-surface-bg, var(--menu-bg));');
   });
 
   // Regression: ISSUE-008 — light badges and alerts inherited unreadable theme ink.

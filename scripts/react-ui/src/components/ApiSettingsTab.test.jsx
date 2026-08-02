@@ -65,6 +65,9 @@ describe('ApiSettingsTab Stability', () => {
         expect(screen.getByText(/api_group_china/i)).toBeInTheDocument();
         expect(screen.getByText('OpenRouter')).toBeInTheDocument();
         expect(screen.getByText('api_aventine_action')).toBeInTheDocument();
+        expect(
+            screen.getByText('api_aventine_title').closest('[data-remis-surface="paper"]'),
+        ).not.toBeNull();
     });
 
     it('tests a local provider using the URL currently in the edit form', async () => {
