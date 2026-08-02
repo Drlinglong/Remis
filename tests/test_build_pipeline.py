@@ -65,11 +65,18 @@ def test_verify_frozen_backend_accepts_healthy_packaged_process():
     response.status = 200
     response.__enter__.return_value = response
 
-    with patch("scripts.build_pipeline.subprocess.Popen", return_value=process), patch(
+    with patch(
+        "scripts.build_pipeline.subprocess.Popen", return_value=process
+    ) as popen, patch(
         "scripts.build_pipeline.urllib.request.urlopen", return_value=response
-    ), patch("scripts.build_pipeline.subprocess.run") as run:
+    ), patch(
+        "scripts.build_pipeline._verify_frozen_steam_workshop_demo"
+    ) as verify_demo, patch("scripts.build_pipeline.subprocess.run") as run:
         build_pipeline.verify_frozen_backend("C:/release/web_server.exe", timeout_seconds=1)
 
+    verify_demo.assert_called_once()
+    assert popen.call_args.kwargs["stdout"] is not build_pipeline.subprocess.PIPE
+    assert popen.call_args.kwargs["stderr"] is build_pipeline.subprocess.STDOUT
     run.assert_called_once_with(
         ["taskkill", "/PID", str(process.pid), "/T", "/F"],
         check=False,

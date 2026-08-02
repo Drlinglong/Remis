@@ -192,20 +192,27 @@ def ensure_min_google_genai(env_python):
     print(f"[INFO] google-genai version OK: {version}")
 
 
-def _verify_frozen_steam_workshop_demo(port):
+def _verify_frozen_steam_workshop_demo(port, request_timeout_seconds=15):
     workspace_url = (
         f"http://127.0.0.1:{port}/api/steam-workshop/workspaces/"
         f"{STEAM_WORKSHOP_DEMO_WORKSPACE_ID}"
     )
-    versions_url = f"{workspace_url}/versions"
+    versions_url = f"{workspace_url}/versions?asset_type=description"
     try:
-        with urllib.request.urlopen(workspace_url, timeout=3) as response:
+        with urllib.request.urlopen(
+            workspace_url,
+            timeout=request_timeout_seconds,
+        ) as response:
             workspace = json.load(response)
-        with urllib.request.urlopen(versions_url, timeout=3) as response:
+        with urllib.request.urlopen(
+            versions_url,
+            timeout=request_timeout_seconds,
+        ) as response:
             versions = json.load(response)
     except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
         raise RuntimeError(
-            "Packaged backend did not install the Steam Workshop demo resources."
+            "Packaged backend Steam Workshop demo verification failed: "
+            f"{type(exc).__name__}: {exc}"
         ) from exc
 
     descriptions = [
@@ -233,12 +240,13 @@ def verify_frozen_backend(executable, timeout_seconds=90):
         if platform.system().lower() == "windows"
         else 0
     )
+    backend_log = tempfile.TemporaryFile(mode="w+", encoding="utf-8")
     process = subprocess.Popen(
         [executable],
         cwd=os.path.dirname(executable),
         env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=backend_log,
+        stderr=subprocess.STDOUT,
         text=True,
         creationflags=creationflags,
     )
@@ -249,9 +257,9 @@ def verify_frozen_backend(executable, timeout_seconds=90):
         while time.monotonic() < deadline:
             exit_code = process.poll()
             if exit_code is not None:
-                stdout, stderr = process.communicate()
-                print(stdout)
-                print(stderr)
+                backend_log.flush()
+                backend_log.seek(0)
+                print(backend_log.read())
                 raise RuntimeError(
                     f"Packaged backend exited before health check (code {exit_code})."
                 )
@@ -284,6 +292,7 @@ def verify_frozen_backend(executable, timeout_seconds=90):
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait(timeout=10)
+        backend_log.close()
         shutil.rmtree(smoke_appdata, ignore_errors=True)
 
 

@@ -48,7 +48,20 @@ def test_frozen_smoke_requires_demo_workspace_and_two_descriptions():
             _response({"workspace_id": STEAM_WORKSHOP_DEMO_WORKSPACE_ID}),
             _response(versions),
         ],
-    ):
+    ) as urlopen:
+        _verify_frozen_steam_workshop_demo(1453)
+
+    assert [call.kwargs["timeout"] for call in urlopen.call_args_list] == [15, 15]
+    assert urlopen.call_args_list[1].args[0].endswith(
+        "/versions?asset_type=description"
+    )
+
+
+def test_frozen_smoke_reports_the_underlying_transport_failure():
+    with patch(
+        "scripts.build_pipeline.urllib.request.urlopen",
+        side_effect=TimeoutError("cold start"),
+    ), pytest.raises(RuntimeError, match="TimeoutError: cold start"):
         _verify_frozen_steam_workshop_demo(1453)
 
 
