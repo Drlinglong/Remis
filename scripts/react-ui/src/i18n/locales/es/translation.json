@@ -1200,6 +1200,21 @@
       "no_event_summary": "No event summaries are available.",
       "override_badge": "Human override",
       "effective_override": "Effective override value",
+      "term_status": {
+        "approved": "Project glossary",
+        "suggested": "Pending suggestion"
+      },
+      "provenance": {
+        "text_inferred": "Text-inferred",
+        "script_derived": "Script-derived structure",
+        "user_confirmed": "User-confirmed"
+      },
+      "contribution_type": {
+        "mention": "Mention",
+        "fact": "Fact",
+        "event": "Event",
+        "relationship": "Relationship"
+      },
       "traceability_title": "Source provenance and traceability",
       "traceability_desc": "Load source evidence only when you need to inspect how a published value was derived.",
       "load_traceability": "Load source traceability",

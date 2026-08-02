@@ -1232,6 +1232,21 @@
       "no_event_summary": "暂无事件摘要。",
       "override_badge": "人工覆盖",
       "effective_override": "有效覆盖值",
+      "term_status": {
+        "approved": "项目词典",
+        "suggested": "待审建议"
+      },
+      "provenance": {
+        "text_inferred": "文本推断",
+        "script_derived": "脚本结构推导",
+        "user_confirmed": "用户确认"
+      },
+      "contribution_type": {
+        "mention": "提及",
+        "fact": "事实",
+        "event": "事件",
+        "relationship": "关系"
+      },
       "traceability_title": "源文件来源依据与可追溯性",
       "traceability_desc": "需要检查发布值如何得出时，再加载源证据。",
       "load_traceability": "加载来源追踪",

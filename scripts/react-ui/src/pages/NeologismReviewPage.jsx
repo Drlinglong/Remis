@@ -148,6 +148,8 @@ const NeologismReviewPage = () => {
                     {activeTab === 'published' && (
                         <PublishedArchivePanel
                             selectedProject={selectedProject}
+                            onSelectedProjectChange={handleSelectedProjectChange}
+                            onOpenGlossary={handleOpenGlossary}
                             status={archiveStatus}
                         />
                     )}

@@ -12,6 +12,7 @@ import {
 
 const API_BASE_URL = '/api';
 const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '1453';
+const STATUS_POLL_INTERVAL_MS = 1000;
 
 export const TARGET_LANGUAGE_OPTIONS = [
     { value: 'zh-CN', label: 'Simplified Chinese (简体中文)' },
@@ -179,6 +180,27 @@ export const useModArchiveAnalysis = ({
     useEffect(() => {
         connectSocketRef.current = connectMiningSocket;
     }, [connectMiningSocket]);
+
+    useEffect(() => {
+        const taskId = status?.taskId;
+        const isActive = ['starting', 'running', 'queued'].includes(status?.status);
+        if (!taskId || !isActive) return undefined;
+
+        let cancelled = false;
+        const pollStatus = async () => {
+            try {
+                const response = await api.get(`${API_BASE_URL}/status/${encodeURIComponent(taskId)}`);
+                if (!cancelled) applyStatus(response.data);
+            } catch (error) {
+                if (!cancelled) console.error('Failed to poll Mod Archive task status', error);
+            }
+        };
+        const intervalId = window.setInterval(pollStatus, STATUS_POLL_INTERVAL_MS);
+        return () => {
+            cancelled = true;
+            window.clearInterval(intervalId);
+        };
+    }, [applyStatus, status?.status, status?.taskId]);
 
     const fetchMiningStatus = useCallback(async (projectId) => {
         try {

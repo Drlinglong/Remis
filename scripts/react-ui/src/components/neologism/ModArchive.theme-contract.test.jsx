@@ -11,6 +11,8 @@ const setupSource = readSource('ModArchiveAnalysisSetup.jsx');
 const releaseSource = readSource('PublishedArchivePanel.jsx');
 const editorSource = readSource('ModArchiveOverrideEditor.jsx');
 const stylesSource = readSource('ModArchive.module.css');
+const toolbarSource = readSource('ProjectGlossaryToolbar.jsx');
+const toolbarStylesSource = readSource('ProjectGlossaryToolbar.module.css');
 
 describe('Mod Archive semantic workbench contract', () => {
     it('uses semantic material tokens without theme-specific selectors or raw colors', () => {
@@ -22,8 +24,12 @@ describe('Mod Archive semantic workbench contract', () => {
         expect(stylesSource).toMatch(/\.metadataValue\s*\{[^}]*var\(--surface-text-main\)/s);
         expect(stylesSource).toContain('.mantine-InputWrapper-label');
         expect(stylesSource).toContain('.mantine-Radio-label');
+        expect(stylesSource).toMatch(/\.traceabilitySummary\s*\{[^}]*var\(--paper-text-main\)/s);
+        expect(stylesSource).toMatch(/\.traceabilityRow\s*\{[^}]*var\(--paper-bg\)/s);
         expect(stylesSource).not.toMatch(/data-theme|\.byzantine|\.victorian|\.scifi|\.wwii|\.medieval/);
         expect(stylesSource).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+        expect(toolbarStylesSource).not.toMatch(/data-theme|\.byzantine|\.victorian|\.scifi|\.wwii|\.medieval/);
+        expect(toolbarStylesSource).not.toMatch(/#[0-9a-f]{3,8}\b/i);
     });
 
     it('keeps stable visual QA hooks and semantic action roles', () => {
@@ -35,6 +41,8 @@ describe('Mod Archive semantic workbench contract', () => {
         expect(releaseSource).toContain('data-testid="mod-archive-release-panel"');
         expect(releaseSource).toContain('data-testid="mod-archive-release-stale"');
         expect(releaseSource).toContain('data-testid="mod-archive-load-traceability"');
+        expect(releaseSource).toContain('data-remis-action="paper-secondary"');
+        expect(toolbarSource).toContain('data-testid="neologism-project-toolbar"');
         expect(releaseSource).toContain('data-testid="mod-archive-start-draft"');
         expect(editorSource).toContain('data-testid="mod-archive-draft-editor"');
         expect(editorSource).toContain('data-testid="mod-archive-publish-confirm"');

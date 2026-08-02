@@ -185,18 +185,58 @@ const getEntryKind = (key) => {
 
 const getEntryLabel = (key) => key.replace(/^(project|entity|event)[:/]/, '');
 
-export const getArchiveEntries = (effectiveResponse) => {
+const normalizeTerm = (value) => String(value || '').normalize('NFKC').trim().toLocaleLowerCase();
+
+const glossaryTranslation = (entry, targetLanguage) => {
+    const translations = asObject(entry?.translations);
+    const configuredTarget = entry?.metadata?.target_lang || entry?.raw_metadata?.target_lang;
+    return firstValue(
+        translations[targetLanguage],
+        translations[configuredTarget],
+        Object.entries(translations).find(([language, value]) => (
+            language !== entry?.metadata?.source_lang && Boolean(value)
+        ))?.[1],
+    );
+};
+
+export const buildTerminologyIndex = ({
+    glossaryEntries = [],
+    candidates = [],
+    targetLanguage,
+} = {}) => {
+    const index = {};
+    glossaryEntries.forEach((entry) => {
+        const source = entry?.source || entry?.metadata?.source_text || entry?.raw_metadata?.source_text;
+        const translation = glossaryTranslation(entry, targetLanguage);
+        if (!source || !translation || normalizeTerm(source) === normalizeTerm(translation)) return;
+        index[normalizeTerm(source)] = { translation, status: 'approved' };
+    });
+    candidates.forEach((candidate) => {
+        const source = candidate?.original;
+        const translation = candidate?.suggestion;
+        const key = normalizeTerm(source);
+        if (!key || !translation || index[key] || candidate?.status !== 'pending') return;
+        index[key] = { translation, status: 'suggested' };
+    });
+    return index;
+};
+
+export const getArchiveEntries = (effectiveResponse, terminologyIndex = {}) => {
     const effectiveContext = asObject(effectiveResponse?.effective_context);
     const humanOverrides = asObject(effectiveResponse?.human_overrides);
     const keys = new Set([...Object.keys(effectiveContext), ...Object.keys(humanOverrides)]);
     return Array.from(keys)
-        .map((key) => ({
-            key,
-            kind: getEntryKind(key),
-            label: getEntryLabel(key),
-            value: asObject(effectiveContext[key] || humanOverrides[key]),
-            override: humanOverrides[key] || humanOverrides[getEntryLabel(key)] || null,
-        }))
+        .map((key) => {
+            const label = getEntryLabel(key);
+            return {
+                key,
+                kind: getEntryKind(key),
+                label,
+                termReference: terminologyIndex[normalizeTerm(label)] || null,
+                value: asObject(effectiveContext[key] || humanOverrides[key]),
+                override: humanOverrides[key] || humanOverrides[label] || null,
+            };
+        })
         .sort((left, right) => {
             const order = { project: 0, entity: 1, event: 2 };
             return (order[left.kind] - order[right.kind]) || left.label.localeCompare(right.label);

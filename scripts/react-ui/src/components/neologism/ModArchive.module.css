@@ -11,6 +11,10 @@
     margin-bottom: 1.25rem;
 }
 
+.projectToolbar {
+    margin-bottom: 1rem;
+}
+
 .headerIcon {
     flex: 0 0 auto;
     background: color-mix(in srgb, var(--interactive-accent) 14%, transparent) !important;
@@ -102,6 +106,13 @@
     background: transparent !important;
     border: 1px solid var(--surface-text-muted) !important;
     color: var(--surface-text-main) !important;
+    box-shadow: none !important;
+}
+
+.paperSecondaryAction {
+    background: transparent !important;
+    border: 1px solid var(--paper-text-muted) !important;
+    color: var(--paper-text-main) !important;
     box-shadow: none !important;
 }
 
@@ -207,13 +218,13 @@
 }
 
 .traceability {
-    border-top: 1px solid color-mix(in srgb, var(--surface-border) 32%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--paper-text-main) 24%, transparent);
     padding-top: 1rem;
 }
 
 .traceabilitySummary {
     cursor: pointer;
-    color: var(--surface-text-main);
+    color: var(--paper-text-main);
     font-weight: 600;
 }
 
@@ -226,8 +237,12 @@
 .traceabilityRow {
     min-width: 0;
     padding: 0.625rem;
-    border: 1px solid color-mix(in srgb, var(--surface-text-muted) 24%, transparent);
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 20%, transparent);
     border-radius: var(--card-radius);
+    background: var(--paper-bg) !important;
+    color: var(--paper-text-main);
+    --mantine-color-text: var(--paper-text-main);
+    --mantine-color-dimmed: var(--paper-text-muted);
 }
 
 .notice {

@@ -43,6 +43,19 @@ describe('useModArchiveAnalysis', () => {
             if (url === '/api/neologisms/status/project-1') {
                 return Promise.resolve({ data: { status: 'idle' } });
             }
+            if (url === '/api/status/task-1') {
+                return Promise.resolve({ data: {
+                    status: 'running',
+                    task_id: 'task-1',
+                    progress: {
+                        current: 4,
+                        total: 6,
+                        current_batch: 4,
+                        total_batches: 6,
+                        percent: 16,
+                    },
+                } });
+            }
             throw new Error(`Unexpected GET ${url}`);
         });
         api.post.mockResolvedValue({ data: { task_id: 'task-1', total_files: 1 } });
@@ -70,5 +83,34 @@ describe('useModArchiveAnalysis', () => {
             analysis_scope: 'narrative_context',
             upstream_version: '2.0',
         }));
+    });
+
+    it('polls persisted task progress when websocket pushes are quiet', async () => {
+        const { result, unmount } = renderHook(() => useModArchiveAnalysis({
+            selectedProject: 'project-1',
+            onSelectedProjectChange: vi.fn(),
+            onMiningComplete: vi.fn(),
+            onMiningStatusChange: vi.fn(),
+        }));
+
+        await waitFor(() => expect(result.current.status?.status).toBe('idle'));
+        vi.useFakeTimers();
+        try {
+            await act(async () => {
+                await result.current.startAnalysis();
+            });
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(1000);
+            });
+            expect(result.current.status).toMatchObject({
+                currentBatch: 4,
+                totalBatches: 6,
+                overallPercent: 16,
+            });
+            expect(api.get).toHaveBeenCalledWith('/api/status/task-1');
+        } finally {
+            unmount();
+            vi.useRealTimers();
+        }
     });
 });

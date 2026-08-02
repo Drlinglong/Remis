@@ -16,9 +16,17 @@ vi.mock('../../utils/api', () => ({
     default: { get: vi.fn(), post: vi.fn(), put: vi.fn() },
 }));
 
+const onSelectedProjectChange = vi.fn();
+const onOpenGlossary = vi.fn();
+
 const renderPanel = (status = null) => render(
     <MantineProvider>
-        <PublishedArchivePanel selectedProject="project-1" status={status} />
+        <PublishedArchivePanel
+            selectedProject="project-1"
+            onSelectedProjectChange={onSelectedProjectChange}
+            onOpenGlossary={onOpenGlossary}
+            status={status}
+        />
     </MantineProvider>,
 );
 
@@ -43,6 +51,10 @@ describe('PublishedArchivePanel', () => {
         api.post.mockResolvedValue({ data: {} });
         api.put.mockResolvedValue({ data: {} });
         api.get.mockImplementation((url) => {
+            if (url === '/api/projects') return Promise.resolve({ data: [{ project_id: 'project-1', name: 'Demo', game_id: 'stellaris' }] });
+            if (url === '/api/neologisms/project-glossary/project-1') return Promise.resolve({ data: { glossary_id: 7, name: 'Demo terminology', game_id: 'stellaris' } });
+            if (url === '/api/neologisms?project_id=project-1') return Promise.resolve({ data: [{ original: 'Republic', suggestion: '共和国候选', status: 'pending' }] });
+            if (url === '/api/glossary/content?glossary_id=7&page=1&pageSize=250') return Promise.resolve({ data: { entries: [], totalCount: 0 } });
             if (url === '/api/context/releases/project-1/latest') return Promise.resolve({ data: release });
             if (url === '/api/context/releases/release-1/effective') {
                 return Promise.resolve({ data: {
@@ -73,7 +85,7 @@ describe('PublishedArchivePanel', () => {
         renderPanel();
 
         expect(await screen.findByText('release-1')).toBeInTheDocument();
-        expect(screen.getByText('republic')).toBeInTheDocument();
+        expect(screen.getByText('republic（共和国候选）')).toBeInTheDocument();
         expect(screen.getByText('mod_archive.release.override_badge')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /edit|save|publish/i })).not.toBeInTheDocument();
         expect(api.get).toHaveBeenCalledWith('/api/context/releases/project-1/latest');
@@ -81,8 +93,20 @@ describe('PublishedArchivePanel', () => {
         expect(api.get).not.toHaveBeenCalledWith('/api/context/releases/release-1/traceability');
 
         fireEvent.click(screen.getByTestId('mod-archive-load-traceability'));
-        expect(await screen.findByText('text_inferred')).toBeInTheDocument();
+        expect(await screen.findByText('mod_archive.release.provenance.text_inferred')).toBeInTheDocument();
         expect(api.get).toHaveBeenCalledWith('/api/context/releases/release-1/traceability');
+    });
+
+    it('shows project context, glossary navigation, and pending terminology without claiming approval', async () => {
+        renderPanel();
+
+        expect(await screen.findByText('republic（共和国候选）')).toBeInTheDocument();
+        expect(screen.getByText('mod_archive.release.term_status.suggested')).toBeInTheDocument();
+        expect(screen.getByText('Demo terminology')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', {
+            name: 'neologism_review.court.inspect_project_glossary',
+        }));
+        expect(onOpenGlossary).toHaveBeenCalledWith({ glossaryId: 7, gameId: 'stellaris' });
     });
 
     it('shows the empty state when the project has no published release', async () => {

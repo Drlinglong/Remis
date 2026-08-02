@@ -22,6 +22,8 @@ import {
     isReleaseStale,
 } from './modArchiveModel';
 import ModArchiveOverrideEditor from './ModArchiveOverrideEditor';
+import ProjectGlossaryToolbar from './ProjectGlossaryToolbar';
+import { useArchiveProjectContext } from './useArchiveProjectContext';
 import { useModArchiveDraft } from './useModArchiveDraft';
 import { useModArchiveRelease } from './useModArchiveRelease';
 import styles from './ModArchive.module.css';
@@ -38,6 +40,25 @@ const scopeValue = (metadata) => {
     return scope?.mode || scope?.scope || '';
 };
 
+const CODE_LABELS = {
+    provenance: {
+        text_inferred: 'Text-inferred',
+        script_derived: 'Script-derived',
+        user_confirmed: 'User-confirmed',
+    },
+    contribution_type: {
+        mention: 'Mention',
+        fact: 'Fact',
+        event: 'Event',
+        relationship: 'Relationship',
+    },
+};
+
+const translateCode = (t, namespace, code) => t(
+    `mod_archive.release.${namespace}.${code}`,
+    { defaultValue: CODE_LABELS[namespace]?.[code] || code },
+);
+
 const SummarySection = ({ kind, title, entries, emptyLabel, t }) => (
     <section className={styles.summarySection} data-kind={kind}>
         <Group justify="space-between" mb="xs">
@@ -52,7 +73,19 @@ const SummarySection = ({ kind, title, entries, emptyLabel, t }) => (
                         key={entry.key}
                         data-remis-surface="paper"
                     >
-                        <Text fw={700} className={styles.technical}>{entry.label}</Text>
+                        <Group gap="xs" align="center">
+                            <Text fw={700} className={styles.technical}>
+                                {entry.label}
+                                {entry.termReference?.translation && `（${entry.termReference.translation}）`}
+                            </Text>
+                            {entry.termReference && (
+                                <Badge variant="light" size="xs">
+                                    {t(`mod_archive.release.term_status.${entry.termReference.status}`, {
+                                        defaultValue: entry.termReference.status,
+                                    })}
+                                </Badge>
+                            )}
+                        </Group>
                         <Text className={styles.entryValue} size="sm">
                             {formatValue(entry.value)}
                         </Text>
@@ -75,7 +108,12 @@ const SummarySection = ({ kind, title, entries, emptyLabel, t }) => (
     </section>
 );
 
-const PublishedArchivePanel = ({ selectedProject, status }) => {
+const PublishedArchivePanel = ({
+    selectedProject,
+    onSelectedProjectChange,
+    onOpenGlossary,
+    status,
+}) => {
     const { t } = useTranslation();
     const [publishedChildReleaseId, setPublishedChildReleaseId] = useState(null);
     const releaseState = useModArchiveRelease(selectedProject);
@@ -91,9 +129,32 @@ const PublishedArchivePanel = ({ selectedProject, status }) => {
         loadTraceability,
     } = releaseState;
     const stale = isReleaseStale(release, status);
-    const entries = useMemo(() => getArchiveEntries(effective), [effective]);
+    const targetLanguage = release?.metadata?.analysis_config?.description_language;
+    const projectContext = useArchiveProjectContext({
+        selectedProject,
+        onSelectedProjectChange,
+        targetLanguage,
+    });
+    const entries = useMemo(
+        () => getArchiveEntries(effective, projectContext.terminologyIndex),
+        [effective, projectContext.terminologyIndex],
+    );
     const counts = useMemo(() => getArchiveCounts(effective), [effective]);
     const rows = getTraceabilityRows(traceability);
+    const projectToolbar = (
+        <div className={styles.projectToolbar}>
+            <ProjectGlossaryToolbar
+                projects={projectContext.projects}
+                selectedProject={selectedProject}
+                onSelectedProjectChange={onSelectedProjectChange}
+                projectGlossary={projectContext.projectGlossary}
+                onOpenGlossary={onOpenGlossary ? () => onOpenGlossary({
+                    glossaryId: projectContext.projectGlossary?.glossary_id,
+                    gameId: projectContext.projectGlossary?.game_id || projectContext.currentProject?.game_id,
+                }) : undefined}
+            />
+        </div>
+    );
     const handlePublished = useCallback(async (nextRelease) => {
         setPublishedChildReleaseId(nextRelease?.release_id || null);
         await refresh();
@@ -108,6 +169,7 @@ const PublishedArchivePanel = ({ selectedProject, status }) => {
     if (!selectedProject) {
         return (
             <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
+                {projectToolbar}
                 <StateCard
                     icon={<IconArchive size={30} />}
                     title={t('mod_archive.release.no_project_title')}
@@ -121,6 +183,7 @@ const PublishedArchivePanel = ({ selectedProject, status }) => {
     if (phase === 'idle' || phase === 'loading') {
         return (
             <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
+                {projectToolbar}
                 <StateCard
                     icon={<Loader size="md" />}
                     title={t('mod_archive.release.loading_title')}
@@ -134,6 +197,7 @@ const PublishedArchivePanel = ({ selectedProject, status }) => {
     if (phase === 'empty') {
         return (
             <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
+                {projectToolbar}
                 <StateCard
                     icon={<IconArchive size={30} />}
                     title={t('mod_archive.release.empty_title')}
@@ -147,6 +211,7 @@ const PublishedArchivePanel = ({ selectedProject, status }) => {
     if (phase === 'error' && !release) {
         return (
             <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
+                {projectToolbar}
                 <StateCard
                     icon={<IconInfoCircle size={30} />}
                     title={t('mod_archive.release.error_title')}
@@ -171,6 +236,7 @@ const PublishedArchivePanel = ({ selectedProject, status }) => {
             data-testid="mod-archive-release-panel"
             data-remis-surface="canvas"
         >
+            {projectToolbar}
             <Group className={styles.header} wrap="nowrap">
                 <Badge className={styles.headerIcon} size="xl" radius="sm">
                     <IconArchive size={22} />
@@ -294,10 +360,10 @@ const PublishedArchivePanel = ({ selectedProject, status }) => {
                             <Text size="sm" c="dimmed">{t('mod_archive.release.traceability_desc')}</Text>
                             {traceabilityState === 'idle' && (
                                 <Button
-                                    className={styles.secondaryAction}
+                                    className={styles.paperSecondaryAction}
                                     variant="outline"
                                     onClick={loadTraceability}
-                                    data-remis-action="secondary"
+                                    data-remis-action="paper-secondary"
                                     data-testid="mod-archive-load-traceability"
                                 >
                                     {t('mod_archive.release.load_traceability')}
@@ -313,10 +379,14 @@ const PublishedArchivePanel = ({ selectedProject, status }) => {
                             {traceabilityState === 'ready' && rows.length > 0 && (
                                 <div className={styles.traceabilityList}>
                                     {rows.map((row, index) => (
-                                        <Paper className={styles.traceabilityRow} key={`${row.aggregateKey}-${row.sourceRef}-${index}`} data-remis-surface="surface">
+                                        <Paper className={styles.traceabilityRow} key={`${row.aggregateKey}-${row.sourceRef}-${index}`} data-remis-surface="paper">
                                             <Group gap="xs" mb={4}>
-                                                <Badge variant="outline">{row.provenance}</Badge>
-                                                <Badge variant="light">{row.contributionType}</Badge>
+                                                <Badge variant="outline">
+                                                    {translateCode(t, 'provenance', row.provenance)}
+                                                </Badge>
+                                                <Badge variant="light">
+                                                    {translateCode(t, 'contribution_type', row.contributionType)}
+                                                </Badge>
                                             </Group>
                                             <Text className={styles.technical} size="sm">{row.aggregateKey}</Text>
                                             <Text className={styles.technical} size="xs" c="dimmed">{row.sourceRef}</Text>

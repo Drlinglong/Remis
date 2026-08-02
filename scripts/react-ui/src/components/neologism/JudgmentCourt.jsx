@@ -8,12 +8,13 @@ import {
 import { notifications } from '@mantine/notifications';
 import {
     IconCheck, IconX, IconBulb, IconQuote,
-    IconGavel, IconSparkles, IconAlertTriangle, IconBook2, IconExternalLink,
+    IconGavel, IconSparkles, IconAlertTriangle,
     IconRestore
 } from '@tabler/icons-react';
 import api from '../../utils/api';
 import styles from './JudgmentCourt.module.css';
 import { normalizeArrayPayload } from '../../utils/payload';
+import ProjectGlossaryToolbar from './ProjectGlossaryToolbar';
 
 const API_BASE_URL = '/api';
 
@@ -708,78 +709,21 @@ const JudgmentCourt = ({
                     </Group>
                 </Stack>
             </Modal>
-            {/* Project Context Header */}
-            <Paper
-                p="sm"
-                mb="xs"
-                mx="md"
-                radius="md"
-                data-testid="neologism-project-toolbar"
-                data-remis-surface="surface"
-                className={styles.quietToolbar}
-                style={{
-                    background: 'var(--glass-bg)',
-                    flexShrink: 0
-                }}
-            >
-                <Group justify="space-between" gap="sm" wrap="wrap">
-                    <Group gap="xs" style={{ flex: '1 1 420px', minWidth: 0 }}>
-                        <Text size="xs" c="dimmed" tt="uppercase" fw={700} ls={1}>
-                            {t('neologism_review.court.current_project')}
-                        </Text>
-                        <Select
-                            aria-label={t('neologism_review.court.current_project')}
-                            data={projects.map(p => ({ value: p.project_id, label: p.name }))}
-                            value={selectedProject}
-                            onChange={onSelectedProjectChange}
-                            placeholder={t('neologism_review.court.select_project')}
-                            size="sm"
-                            classNames={{ input: styles.semanticField }}
-                            style={{ flex: '1 1 220px', maxWidth: 360 }}
-                        />
-                        {currentProject && (
-                            <Badge size="md" variant="light" color="blue" className={styles.surfaceBadge}>
-                                {t(
-                                    docketView === 'pending'
-                                        ? 'neologism_review.court.pending_terms'
-                                        : 'neologism_review.court.processed_terms',
-                                    { count: candidates.length },
-                                )}
-                            </Badge>
-                        )}
-                    </Group>
-                    <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
-                        <ThemeIcon color="teal" variant="light" size="md">
-                            <IconBook2 size={16} />
-                        </ThemeIcon>
-                        <Box style={{ minWidth: 0, maxWidth: 220 }}>
-                            <Text
-                                size="xs"
-                                tt="uppercase"
-                                fw={700}
-                                style={{ color: 'var(--surface-text-muted)' }}
-                            >
-                                {t('neologism_review.court.project_glossary')}
-                            </Text>
-                            <Text size="sm" fw={700} truncate>
-                                {projectGlossary?.name || t('neologism_review.court.project_glossary_pending')}
-                            </Text>
-                        </Box>
-                        <Button
-                            variant="light"
-                            color="teal"
-                            size="compact-sm"
-                            data-remis-action="secondary"
-                            className={styles.secondaryAction}
-                            leftSection={<IconExternalLink size={14} />}
-                            onClick={handleOpenProjectGlossary}
-                            disabled={!projectGlossary?.glossary_id || !onOpenGlossary}
-                        >
-                            {t('neologism_review.court.inspect_project_glossary')}
-                        </Button>
-                    </Group>
-                </Group>
-            </Paper>
+            <Box mx="md" mb="xs" style={{ flexShrink: 0 }}>
+                <ProjectGlossaryToolbar
+                    projects={projects}
+                    selectedProject={selectedProject}
+                    onSelectedProjectChange={onSelectedProjectChange}
+                    projectGlossary={projectGlossary}
+                    onOpenGlossary={handleOpenProjectGlossary}
+                    contextBadge={currentProject ? t(
+                        docketView === 'pending'
+                            ? 'neologism_review.court.pending_terms'
+                            : 'neologism_review.court.processed_terms',
+                        { count: candidates.length },
+                    ) : null}
+                />
+            </Box>
 
             <Grid
                 gutter={0}

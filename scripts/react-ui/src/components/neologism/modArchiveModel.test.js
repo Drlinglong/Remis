@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
     ANALYSIS_SCOPES,
     buildAnalysisPayload,
+    buildTerminologyIndex,
     getArchiveEntries,
     getTraceabilityRows,
     normalizeAnalysisStatus,
@@ -140,5 +141,39 @@ describe('Mod Archive contracts', () => {
             provenance: 'script_derived',
             sourceRef: 'common/characters.txt::1:republic',
         })]);
+    });
+
+    it('decorates archive entities with approved terms before pending suggestions', () => {
+        const terminology = buildTerminologyIndex({
+            targetLanguage: 'zh-CN',
+            glossaryEntries: [{
+                source: 'Galactic Republic',
+                translations: { 'zh-CN': '银河共和国' },
+                metadata: { source_lang: 'en', target_lang: 'zh-CN' },
+            }],
+            candidates: [
+                { original: 'Empress Remis', suggestion: '瑞米斯女皇', status: 'pending' },
+                { original: 'Galactic Republic', suggestion: '共和国候选', status: 'pending' },
+                { original: 'Rejected Term', suggestion: '不应显示', status: 'rejected' },
+            ],
+        });
+        const entries = getArchiveEntries({
+            effective_context: {
+                'entity:empress remis': { summary: 'A ruler' },
+                'entity:galactic republic': { summary: 'A state' },
+            },
+        }, terminology);
+
+        expect(entries).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                label: 'empress remis',
+                termReference: { translation: '瑞米斯女皇', status: 'suggested' },
+            }),
+            expect.objectContaining({
+                label: 'galactic republic',
+                termReference: { translation: '银河共和国', status: 'approved' },
+            }),
+        ]));
+        expect(terminology['rejected term']).toBeUndefined();
     });
 });
