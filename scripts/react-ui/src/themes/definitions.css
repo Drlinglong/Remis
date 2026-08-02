@@ -290,7 +290,7 @@
 html[data-theme] {
   --mantine-color-text: var(--canvas-text-main) !important;
   --mantine-color-dimmed: var(--canvas-text-muted) !important;
-  color: var(--canvas-text-main);
+  color: var(--canvas-text-main) !important;
 }
 
 /*
@@ -330,7 +330,7 @@ html[data-theme] [data-remis-surface='surface'] {
   --remis-content-muted: var(--surface-text-muted) !important;
   --remis-content-bg: var(--surface-bg-solid) !important;
   --remis-content-border: var(--surface-border) !important;
-  color: var(--surface-text-main);
+  color: var(--surface-text-main) !important;
 }
 
 html[data-theme] [data-remis-surface='surface'] .mantine-Title-root {
@@ -359,7 +359,7 @@ html[data-theme] [data-remis-surface='paper'] {
   --remis-content-muted: var(--paper-text-muted) !important;
   --remis-content-bg: var(--paper-bg) !important;
   --remis-content-border: var(--paper-text-muted) !important;
-  color: var(--paper-text-main);
+  color: var(--paper-text-main) !important;
 }
 
 /*
@@ -387,7 +387,7 @@ html[data-theme] [data-remis-surface='elevated'] {
   --remis-content-muted: var(--elevated-text-muted) !important;
   --remis-content-bg: var(--elevated-bg) !important;
   --remis-content-border: var(--surface-border) !important;
-  color: var(--elevated-text-main);
+  color: var(--elevated-text-main) !important;
 }
 
 /*
@@ -536,18 +536,23 @@ html[data-theme] :is(button, a, input, select, textarea, [role='button']):focus-
 }
 
 /* Mantine mounts dropdowns in a portal under body, outside page components. */
-html[data-theme] :is(.mantine-Select-input, .mantine-MultiSelect-input) {
+html[data-theme] :is(.mantine-Select-input, .mantine-MultiSelect-input, .mantine-NativeSelect-input) {
   background: var(--menu-bg) !important;
   border-color: var(--menu-border) !important;
   color: var(--menu-text) !important;
 }
 
-html[data-theme] :is(.mantine-Select-input, .mantine-MultiSelect-input)::placeholder {
+html[data-theme] :is(.mantine-Select-input, .mantine-MultiSelect-input, .mantine-NativeSelect-input)::placeholder {
   color: var(--menu-muted) !important;
   opacity: 1;
 }
 
-html[data-theme] :is(.mantine-Select-section, .mantine-MultiSelect-section) {
+html[data-theme] :is(.mantine-Select-section, .mantine-MultiSelect-section, .mantine-NativeSelect-section) {
+  color: var(--menu-text);
+}
+
+html[data-theme] .mantine-NativeSelect-input option {
+  background: var(--menu-surface-bg, var(--menu-bg));
   color: var(--menu-text);
 }
 

@@ -13,9 +13,6 @@ import {
     Tooltip,
     Box,
     ThemeIcon,
-    Alert,
-    Anchor,
-    List,
     Collapse,
     TagsInput,
     TextInput,
@@ -27,20 +24,23 @@ import {
 import {
     IconCheck, IconX, IconEdit, IconKey, IconInfoCircle, IconServer, IconRobot,
     IconWorld, IconHome, IconBuildingSkyscraper, IconSchool, IconAlertTriangle,
-    IconBrandYoutube, IconBrandBilibili, IconChevronDown, IconChevronRight, IconMessage
+    IconChevronDown, IconChevronRight, IconMessage
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
 import { normalizeArrayPayload } from '../utils/payload';
 import styles from './ApiSettingsTab.module.css';
+import ProviderReasoningSettings from './apiSettings/ProviderReasoningSettings';
+import { parseCustomParameters } from './apiSettings/reasoningForm';
+import ApiResourceGuides from './apiSettings/ApiResourceGuides';
 
 // Group Definitions
 const PROVIDER_GROUPS = {
     usa: {
         title_key: 'api_group_usa',
         icon: <IconWorld size={20} />,
-        providers: ['gemini', 'anthropic', 'openai', 'nvidia', 'grok']
+        providers: ['gemini', 'anthropic', 'openai', 'openrouter', 'nvidia', 'grok']
     },
     china: {
         title_key: 'api_group_china',
@@ -86,7 +86,10 @@ const ApiSettingsTab = () => {
         apiUrl: '',
         selectedModel: '',
         promptPrefix: '',
-        systemPromptSuffix: ''
+        systemPromptSuffix: '',
+        reasoningBuiltinEnabled: false,
+        reasoningPreset: 'medium',
+        customParametersText: ''
     });
 
     const [submitting, setSubmitting] = useState(false);
@@ -120,13 +123,18 @@ const ApiSettingsTab = () => {
             apiUrl: provider.api_url || '',
             selectedModel: provider.selected_model || '',
             promptPrefix: provider.prompt_prefix || '',
-            systemPromptSuffix: provider.system_prompt_suffix || ''
+            systemPromptSuffix: provider.system_prompt_suffix || '',
+            reasoningBuiltinEnabled: Boolean(provider.reasoning?.supported && provider.reasoning?.builtin_enabled),
+            reasoningPreset: provider.reasoning?.selected_preset || 'medium',
+            customParametersText: Object.keys(provider.reasoning?.custom_parameters || {}).length
+                ? JSON.stringify(provider.reasoning.custom_parameters, null, 2)
+                : ''
         });
     };
 
     const handleCancelEdit = () => {
         setEditingId(null);
-        setEditForm({ apiKey: '', models: [], apiUrl: '', selectedModel: '', promptPrefix: '', systemPromptSuffix: '' });
+        setEditForm({ apiKey: '', models: [], apiUrl: '', selectedModel: '', promptPrefix: '', systemPromptSuffix: '', reasoningBuiltinEnabled: false, reasoningPreset: 'medium', customParametersText: '' });
     };
 
     const handleSave = async (providerId) => {
@@ -141,13 +149,17 @@ const ApiSettingsTab = () => {
 
         setSubmitting(true);
         try {
+            const customParameters = parseCustomParameters(editForm.customParametersText);
             const payload = {
                 provider_id: providerId,
                 models: editForm.models,
                 api_url: editForm.apiUrl,
                 selected_model: editForm.selectedModel,
                 prompt_prefix: editForm.promptPrefix,
-                system_prompt_suffix: editForm.systemPromptSuffix
+                system_prompt_suffix: editForm.systemPromptSuffix,
+                reasoning_builtin_enabled: editForm.reasoningBuiltinEnabled,
+                reasoning_preset: editForm.reasoningPreset,
+                custom_parameters: customParameters
             };
 
             if (editForm.apiKey.trim()) {
@@ -219,6 +231,14 @@ const ApiSettingsTab = () => {
             : isLocalOpenAIProvider
                 ? t('api_url_openai_compatible_help')
                 : t('api_url_generic_help');
+        const selectedReasoningCapability = provider.reasoning_models?.[editForm.selectedModel];
+        const reasoningPresets = selectedReasoningCapability?.presets || {};
+        const effectiveReasoning = {
+            ...provider.reasoning,
+            supported: Boolean(selectedReasoningCapability),
+            available_presets: Object.keys(reasoningPresets),
+            mapping_preview: reasoningPresets[editForm.reasoningPreset] || {},
+        };
 
         return (
             <div key={provider.id} id={`api-provider-card-${provider.id}`} className={styles.card}>
@@ -297,7 +317,18 @@ const ApiSettingsTab = () => {
                                     ...(editForm.selectedModel ? [editForm.selectedModel] : [])
                                 ].filter((val, index, self) => val && self.indexOf(val) === index).map(m => ({ value: m, label: m }))}
                                 value={editForm.selectedModel}
-                                onChange={(val) => setEditForm({ ...editForm, selectedModel: val })}
+                                onChange={(val) => {
+                                    const capability = provider.reasoning_models?.[val];
+                                    const presets = Object.keys(capability?.presets || {});
+                                    setEditForm({
+                                        ...editForm,
+                                        selectedModel: val,
+                                        reasoningBuiltinEnabled: capability ? editForm.reasoningBuiltinEnabled : false,
+                                        reasoningPreset: presets.includes(editForm.reasoningPreset)
+                                            ? editForm.reasoningPreset
+                                            : (presets[0] || 'medium'),
+                                    });
+                                }}
                                 size="xs"
                                 leftSection={<IconRobot size={14} />}
                                 searchable
@@ -343,6 +374,13 @@ const ApiSettingsTab = () => {
                                 size="xs"
                                 autosize
                                 minRows={2}
+                            />
+
+                            <Divider label={t('api_reasoning_controls_label')} labelPosition="center" />
+                            <ProviderReasoningSettings
+                                reasoning={effectiveReasoning}
+                                form={editForm}
+                                onChange={(changes) => setEditForm((current) => ({ ...current, ...changes }))}
                             />
 
                             <Group grow mt="xs">
@@ -428,102 +466,13 @@ const ApiSettingsTab = () => {
     // Identify the "Custom" provider object
     const customProvider = providers.find(p => p.id === GLOBAL_CUSTOM_PROVIDER_ID);
 
-    const LinkButton = ({ url, children }) => (
-        <Anchor
-            component="button"
-            type="button"
-            onClick={async (e) => {
-                e.preventDefault();
-                console.log(`[LinkButton] Clicked: ${url}`);
-
-                // Strategy: Try Tauri Shell Open FIRST. 
-                // In Tauri v2, window.__TAURI__ is often not exposed by default, 
-                // so we shouldn't rely on it for detection.
-                try {
-                    console.log('[LinkButton] Attempting to import @tauri-apps/plugin-shell...');
-                    const { open } = await import('@tauri-apps/plugin-shell');
-
-                    console.log('[LinkButton] Calling shell.open()...');
-                    await open(url);
-                    console.log('[LinkButton] Success: Shell open command sent.');
-                } catch (err) {
-                    // This creates a robust fallback for standard web browsers (Chrome/Edge)
-                    // where the Tauri plugin might throw or fail to load.
-                    console.warn('[LinkButton] Tauri shell failed or not available. Falling back to window.open.', err);
-                    const newWindow = window.open(url, '_blank');
-                    if (!newWindow) {
-                        console.error('[LinkButton] window.open blocked!');
-                        notifications.show({
-                            title: t('error'),
-                            message: 'Popup blocked. Please copy the link manually.',
-                            color: 'red'
-                        });
-                    }
-                }
-            }}
-            size="sm"
-            style={{
-                cursor: 'pointer',
-                textAlign: 'left',
-                // Mantine Anchor defaults are usually fine, but ensuring specific overrides if needed
-            }}
-        >
-            {children}
-        </Anchor>
-    );
-
     return (
         <Stack data-remis-surface="surface" gap="md">
             <Text c="dimmed" size="sm">
                 {t('api_settings_description')}
             </Text>
 
-            <Alert id="api-storage-info" variant="light" color="blue" title="API Configuration" icon={<IconInfoCircle />}>
-                <Stack gap="xs">
-                    <Text size="sm">{t('api_settings_storage_info')}</Text>
-                    <Divider variant="dashed" />
-
-                    <Group gap="xs">
-                        <IconBrandBilibili size={16} />
-                        <Text size="sm" fw={500}>Bilibili {t('api_guide_video_tutorial')}:</Text>
-                    </Group>
-                    <List size="sm" type="ordered" withPadding>
-                        <List.Item>
-                            <LinkButton url="https://www.bilibili.com/video/BV1LEKMexEV7/">
-                                {t('api_guide_video_deepseek_title') || 'DeepSeek 技巧升级 2.0'}
-                            </LinkButton>
-                        </List.Item>
-                        <List.Item>
-                            <LinkButton url="https://www.bilibili.com/video/BV1FRuTzwEig/">
-                                {t('api_guide_video_beginner_title') || '零基础 API 调用教程'}
-                            </LinkButton>
-                        </List.Item>
-                    </List>
-
-                    <Divider variant="dashed" />
-
-                    <Group gap="xs">
-                        <IconBrandYoutube size={16} />
-                        <Text size="sm" fw={500}>YouTube {t('api_guide_video_tutorial')}:</Text>
-                    </Group>
-                    <List size="sm" type="ordered" withPadding>
-                        <List.Item>
-                            <LinkButton url="https://www.youtube.com/watch?v=OB99E7Y1cMA">
-                                {t('api_guide_video_desc_1') || 'How to Get an OpenAI/ChatGPT API Key'}
-                            </LinkButton>
-                        </List.Item>
-                        <List.Item>
-                            <LinkButton url="https://www.youtube.com/watch?v=6BRyynZkvf0">
-                                {t('api_guide_video_desc_2') || 'How To Get Your FREE Google Gemini API Key'}
-                            </LinkButton>
-                        </List.Item>
-                    </List>
-
-                    <Text size="xs" c="dimmed" mt="xs">
-                        {t('api_guide_disclaimer')}
-                    </Text>
-                </Stack>
-            </Alert>
+            <ApiResourceGuides />
 
             <Accordion id="api-providers-accordion" variant="separated" radius="md" multiple defaultValue={['usa', 'china', 'local']}>
                 {Object.entries(PROVIDER_GROUPS).map(([groupKey, groupDef]) => (

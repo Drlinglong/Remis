@@ -12,6 +12,7 @@ import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import styles from '../../pages/ProjectManagement.module.css';
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 
 const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, onProjectDataChanged }) => {
     const { t, i18n } = useTranslation();
@@ -193,7 +194,7 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
                 <SimpleGrid cols={{ base: 1, sm: 2, lg: 5 }} mb="md">
                     <Card data-remis-surface="surface" withBorder p="sm" radius="md" className={styles.surfaceInset}>
                         <Text size="xs" c="dimmed">{t('project_history.last_archive_time', 'Last Upload / Build')}</Text>
-                        <Text size="sm" fw={600}>{latestArchiveTime ? new Date(latestArchiveTime).toLocaleString() : t('project_history.no_archive_data', 'No archive data')}</Text>
+                        <Text size="sm" fw={600}>{latestArchiveTime ? formatLocalizedDateTime(latestArchiveTime, getResolvedInterfaceLocale(i18n)) : t('project_history.no_archive_data', 'No archive data')}</Text>
                     </Card>
                     <Card data-remis-surface="surface" withBorder p="sm" radius="md" className={styles.surfaceInset}>
                         <Text size="xs" c="dimmed">{t('project_history.source_entries', 'Source Entries')}</Text>
@@ -255,7 +256,7 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
                                 title={
                                     <Group justify="space-between">
                                         <Text fw={700}>{translateHistoryAction(event.action_type)}</Text>
-                                        <Text size="xs" c="dimmed">{new Date(event.timestamp).toLocaleString()}</Text>
+                                        <Text size="xs" c="dimmed">{formatLocalizedDateTime(event.timestamp, getResolvedInterfaceLocale(i18n))}</Text>
                                     </Group>
                                 }
                             >

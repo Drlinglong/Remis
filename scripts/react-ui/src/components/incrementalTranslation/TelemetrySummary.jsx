@@ -10,9 +10,10 @@ import {
     Text,
 } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 
 export const TelemetrySummary = ({ telemetry }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     const formatDuration = useCallback((ms) => {
         if (typeof ms !== 'number' || Number.isNaN(ms)) return '--';
@@ -24,8 +25,8 @@ export const TelemetrySummary = ({ telemetry }) => {
         if (!value) return '--';
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return value;
-        return date.toLocaleString();
-    }, []);
+        return formatLocalizedDateTime(date, getResolvedInterfaceLocale(i18n));
+    }, [i18n]);
 
     if (!telemetry) return null;
 

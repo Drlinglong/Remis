@@ -11,6 +11,7 @@ import {
   Title,
 } from '@mantine/core';
 import { IconEye, IconFileExport, IconHistory, IconTrash } from '@tabler/icons-react';
+import { formatCurrentLocalizedDateTime } from '../../utils/localizedDateTime';
 
 const statusColor = {
   draft: 'gray',
@@ -81,7 +82,7 @@ export default function ArenaHistory({
                 {' · '}
                 {t('model_arena.sample_count_value', { count: run.sample_size })}
                 {' · '}
-                {run.created_at ? new Date(run.created_at).toLocaleString() : ''}
+                {run.created_at ? formatCurrentLocalizedDateTime(run.created_at) : ''}
               </Text>
               {run.sample_seed && (
                 <Text size="xs" c="dimmed">{t('model_arena.seed', { seed: run.sample_seed })}</Text>

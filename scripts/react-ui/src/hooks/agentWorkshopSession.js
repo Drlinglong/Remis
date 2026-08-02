@@ -1,3 +1,5 @@
+import { formatCurrentLocalizedDateTime } from '../utils/localizedDateTime';
+
 export const AGENT_WORKSHOP_STORAGE_KEY = 'agent_workshop_state_v2';
 
 export const createAgentWorkshopSnapshot = (state, override = {}) => ({
@@ -45,7 +47,7 @@ export const appendAgentWorkshopLogSnapshot = (message, storage = sessionStorage
   const current = readAgentWorkshopSnapshot(storage);
   const nextLogs = [
     ...(Array.isArray(current.executionLogs) ? current.executionLogs : []),
-    `[${new Date().toLocaleTimeString()}] ${message}`,
+    `[${formatCurrentLocalizedDateTime(Date.now(), { timeStyle: 'medium' })}] ${message}`,
   ];
   writeAgentWorkshopSnapshot({ ...current, executionLogs: nextLogs }, storage);
   return nextLogs;

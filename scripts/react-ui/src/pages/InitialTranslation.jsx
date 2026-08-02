@@ -42,8 +42,9 @@ import { useTaskCenter } from '../context/TaskCenterContextCore';
 
 const formatModelSummary = (modelName = '') => {
   const knownModels = {
-    'gemini-3-flash-preview': 'Gemini 3 Flash',
-    'gemini-3-pro-preview': 'Gemini 3 Pro',
+    'gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
+    'gemini-3.6-flash': 'Gemini 3.6 Flash',
+    'gemini-3.5-flash-lite': 'Gemini 3.5 Flash-Lite',
   };
   return knownModels[modelName] || modelName || '—';
 };
@@ -184,7 +185,7 @@ const InitialTranslation = () => {
       source_lang_code: 'en',
       target_lang_codes: [],
       api_provider: 'gemini',
-      model_name: 'gemini-pro',
+      model_name: 'gemini-3.6-flash',
       mod_context: '',
       selected_glossary_ids: [],
       use_main_glossary: true,

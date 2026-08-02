@@ -7,6 +7,12 @@ import axios from 'axios';
 const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '1453';
 const baseURL = import.meta.env.DEV ? '' : `http://127.0.0.1:${BACKEND_PORT}`;
 
+export const resolveApiUrl = (path, backendOrigin = baseURL) => {
+    if (!path || /^(?:[a-z][a-z\d+.-]*:|data:|blob:)/i.test(path)) return path;
+    if (!backendOrigin) return path;
+    return new URL(path, `${backendOrigin.replace(/\/$/, '')}/`).toString();
+};
+
 console.log(`[API Config] Environment: ${import.meta.env.MODE}, BaseURL: ${baseURL}`);
 
 const api = axios.create({

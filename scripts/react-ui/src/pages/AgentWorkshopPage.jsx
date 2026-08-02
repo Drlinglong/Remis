@@ -17,6 +17,7 @@ import translationStyles from './Translation.module.css';
 import { buildProofreadingUrl } from '../utils/proofreadingLinks';
 import { taskDetailRoute } from '../utils/taskRoutes';
 import { isLocalAgentWorkshopProvider, isRepairableAgentWorkshopIssue } from '../services/agentWorkshopWorkflowService';
+import { formatCurrentLocalizedDateTime } from '../utils/localizedDateTime';
 
 const AgentWorkshopPage = () => {
   const logViewportRef = useRef(null);
@@ -158,7 +159,7 @@ const AgentWorkshopPage = () => {
                     <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('incremental_translation.project_source_language')}</Text><Text size="sm" fw={600}>{selectedProject.source_language || '--'}</Text></Card>
                     <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('incremental_translation.archived_target_languages')}</Text><Text size="sm" fw={600}>{(archiveInfo?.archived_languages || []).join(', ') || '--'}</Text></Card>
                     <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('incremental_translation.project_game')}</Text><Text size="sm" fw={600}>{selectedProject.game_id || '--'}</Text></Card>
-                    <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.last_translation_time')}</Text><Text size="sm" fw={600}>{latestTranslationTime ? new Date(latestTranslationTime).toLocaleString() : '--'}</Text></Card>
+                    <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.last_translation_time')}</Text><Text size="sm" fw={600}>{latestTranslationTime ? formatCurrentLocalizedDateTime(latestTranslationTime) : '--'}</Text></Card>
                     <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.source_entries')}</Text><Text size="sm" fw={600}>{archiveInfo?.source_entry_count ?? '--'}</Text></Card>
                     <Card withBorder p="sm" radius="md"><Text size="xs" c="dimmed">{t('agent_workshop.translation_entries')}</Text><Text size="sm" fw={600}>{archiveInfo?.total_translation_entries ?? '--'}</Text></Card>
                   </SimpleGrid>

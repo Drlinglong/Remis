@@ -5,10 +5,11 @@ import { useNavigate } from 'react-router';
 import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
 import { buildProofreadingUrl } from '../../utils/proofreadingLinks';
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 import styles from '../../pages/ProjectManagement.module.css';
 
 const ProjectValidation = ({ projectId }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -140,7 +141,7 @@ const ProjectValidation = ({ projectId }) => {
           </Card>
           <Card data-remis-surface="paper" withBorder p="sm" radius="md" className={styles.paperInset}>
             <Text size="xs" c="dimmed">{t('project_validation.last_updated')}</Text>
-            <Text size="sm" fw={600}>{status?.last_updated_at ? new Date(status.last_updated_at).toLocaleString() : '--'}</Text>
+            <Text size="sm" fw={600}>{status?.last_updated_at ? formatLocalizedDateTime(status.last_updated_at, getResolvedInterfaceLocale(i18n)) : '--'}</Text>
           </Card>
           <Card data-remis-surface="paper" withBorder p="sm" radius="md" className={styles.paperInset}>
             <Text size="xs" c="dimmed">{t('project_validation.report_count')}</Text>

@@ -44,12 +44,15 @@ class YourFavouriteHandler(BaseApiHandler):
             raise ValueError("Model name for your_favourite_api is not configured correctly.")
 
         try:
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[
+            request_kwargs = {
+                "model": model_name,
+                "messages": [
                     {"role": "system", "content": "You are a professional translator for game mods."},
                     {"role": "user", "content": prompt}
-                ]
+                ],
+            }
+            response = client.chat.completions.create(
+                **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
             return response.choices[0].message.content.strip()
         except openai.NotFoundError as e:

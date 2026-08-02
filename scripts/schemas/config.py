@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Any, Dict, Optional, List
 
 class UpdateConfigRequest(BaseModel):
     action: Optional[str] = None
@@ -19,6 +19,9 @@ class UpdateProviderConfigRequest(BaseModel):
     selected_model: Optional[str] = None # Currently selected model
     prompt_prefix: Optional[str] = None # Optional text prepended to user prompts, e.g. /no_think
     system_prompt_suffix: Optional[str] = None # Optional text appended to provider system prompts
+    reasoning_builtin_enabled: Optional[bool] = None
+    reasoning_preset: Optional[str] = None
+    custom_parameters: Optional[Dict[str, Any]] = None
 
 class TestProviderConnectionRequest(BaseModel):
     provider_id: str

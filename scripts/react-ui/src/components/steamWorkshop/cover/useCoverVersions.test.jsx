@@ -63,6 +63,44 @@ describe('useCoverVersions', () => {
 
         expect(onLoadCanvas).toHaveBeenCalledWith({ schema_version: 1, elements: [] });
         expect(steamWorkshopCoverService.selectVersion).not.toHaveBeenCalled();
+        expect(result.current.editingParentVersionId).toBe('cover-v2');
+    });
+
+    it('continues the loaded candidate lineage across repeated saves', async () => {
+        steamWorkshopCoverService.getVersion.mockResolvedValue({
+            version_id: 'cover-v2',
+            canvas: { schema_version: 1, elements: [] },
+        });
+        steamWorkshopCoverService.createVersion
+            .mockResolvedValueOnce({ version_id: 'cover-v3' })
+            .mockResolvedValueOnce({ version_id: 'cover-v4' });
+        const { result } = renderHook(() => useCoverVersions({
+            workspaceId: 'workspace-1',
+            currentVersionId: 'cover-v1',
+            onLoadCanvas: vi.fn(),
+        }));
+        await waitFor(() => expect(result.current.versions).toHaveLength(1));
+
+        await act(async () => {
+            await result.current.loadVersion('cover-v2');
+        });
+        await act(async () => {
+            await result.current.saveVersion({ pngDataUrl: 'data:image/png;base64,Mw==', canvas: {} });
+        });
+        expect(steamWorkshopCoverService.createVersion).toHaveBeenLastCalledWith(
+            'workspace-1',
+            expect.objectContaining({ parentVersionId: 'cover-v2' }),
+        );
+
+        await act(async () => {
+            await result.current.saveVersion({ pngDataUrl: 'data:image/png;base64,NA==', canvas: {} });
+        });
+        expect(steamWorkshopCoverService.createVersion).toHaveBeenLastCalledWith(
+            'workspace-1',
+            expect.objectContaining({ parentVersionId: 'cover-v3' }),
+        );
+        expect(result.current.selectedVersionId).toBe('cover-v1');
+        expect(result.current.editingParentVersionId).toBe('cover-v4');
     });
 
     it('selects a version only through the explicit selection action', async () => {

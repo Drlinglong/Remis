@@ -12,6 +12,7 @@ from .anthropic_handler import AnthropicHandler
 from .gemini_handler import GeminiHandler
 from .qwen_handler import QwenHandler
 from .deepseek_handler import DeepSeekHandler
+from .openrouter_handler import OpenRouterHandler
 from .grok_handler import GrokHandler
 # from .ollama_handler import OllamaHandler # REMOVED
 from .local_handler import LocalLLMHandler 
@@ -43,6 +44,7 @@ PROVIDER_HANDLER_CLASSES = {
     "gemini": GeminiHandler,
     "qwen": QwenHandler,
     "deepseek": DeepSeekHandler,
+    "openrouter": OpenRouterHandler,
     "grok": GrokHandler,
     "modelscope": ModelScopeHandler,
     "siliconflow": SiliconFlowHandler,

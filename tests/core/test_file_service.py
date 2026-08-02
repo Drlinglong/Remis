@@ -83,3 +83,23 @@ def test_discovery_is_transient_and_reports_unavailable_roots(tmp_path):
         }
     ]
     assert not (source_root / ".remis_project.json").exists()
+
+
+def test_discovery_deduplicates_case_variant_translation_roots(tmp_path, monkeypatch):
+    translation_root = tmp_path / "my_translation" / "en-Test_Project_Remis_Vic3"
+    translation_file = translation_root / "localization" / "english" / "ut_l_english.yml"
+    _write_loc(translation_file, "l_english", "ut.key", "Hello")
+
+    monkeypatch.setattr(os.path, "normcase", lambda value: value.lower())
+    service = FileService()
+    manifest = service.discover_files(
+        project_id="project-1",
+        source_path=str(tmp_path / "missing-source"),
+        translation_dirs=[str(translation_root), str(translation_root).lower()],
+        source_language="en",
+        game_id="victoria3",
+    )
+
+    assert manifest["file_count"] == 1
+    assert manifest["files"][0]["file_path"] == str(translation_file)
+    assert manifest["scanned_paths"] == [str(translation_root)]

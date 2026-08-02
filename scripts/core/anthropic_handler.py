@@ -57,13 +57,14 @@ class AnthropicHandler(BaseApiHandler):
     ) -> str:
         provider_config = self.get_provider_config()
         payload = {
-            "model": provider_config.get("default_model", "claude-sonnet-4-5"),
+            "model": provider_config.get("default_model", "claude-sonnet-5"),
             "max_tokens": 4000,
             "system": system,
             "messages": messages,
         }
         if temperature is not None:
             payload["temperature"] = temperature
+        payload.update(self._reasoning_request_parameters())
 
         response = client.post(
             f"{self.base_url}/messages",

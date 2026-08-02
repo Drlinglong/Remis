@@ -28,6 +28,7 @@ import {
     IconFolderOpen,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 import PerformanceControlPanel from '../shared/PerformanceControlPanel';
 import { resolveProviderModels } from '../../hooks/incrementalTranslationProviders';
 import styles from '../../pages/Translation.module.css';
@@ -84,14 +85,14 @@ export const ConfigStep = ({
     conflictingTaskId,
     onViewTask,
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     const formatDateTime = useCallback((value) => {
         if (!value) return '--';
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return value;
-        return date.toLocaleString();
-    }, []);
+        return formatLocalizedDateTime(date, getResolvedInterfaceLocale(i18n));
+    }, [i18n]);
 
     const getArchivedTargetLanguages = useCallback((info) => {
         if (!info) return [];
@@ -211,7 +212,11 @@ export const ConfigStep = ({
                                 <Badge color="green" leftSection={<IconCheck size={12} />}>
                                     {t('incremental_translation.archive_found', {
                                         version: String(archiveInfo.version_id ?? '').slice(0, 8),
-                                        date: new Date(archiveInfo.created_at).toLocaleDateString()
+                                        date: formatLocalizedDateTime(
+                                            archiveInfo.created_at,
+                                            getResolvedInterfaceLocale(i18n),
+                                            { dateStyle: 'short' },
+                                        )
                                     })}
                                 </Badge>
                             </Group>

@@ -160,7 +160,19 @@ class FileService:
         scanned_paths: List[str] = []
         files: List[Dict[str, Any]] = []
 
-        roots = [(source_path, "source"), *[(path, "translation") for path in translation_dirs]]
+        unique_translation_dirs: List[str] = []
+        seen_translation_dirs = set()
+        for path in translation_dirs:
+            canonical_path = os.path.normcase(os.path.abspath(path))
+            if canonical_path in seen_translation_dirs:
+                continue
+            seen_translation_dirs.add(canonical_path)
+            unique_translation_dirs.append(path)
+
+        roots = [
+            (source_path, "source"),
+            *[(path, "translation") for path in unique_translation_dirs],
+        ]
         for root_path, file_type in roots:
             if not os.path.isdir(root_path):
                 warnings.append(

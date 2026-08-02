@@ -46,6 +46,7 @@ export function DeployModals({ deployActions }) {
         <>
             {/* 0. 一键部署弹窗 */}
             <Modal
+                data-remis-surface="elevated"
                 opened={deployModalOpen}
                 onClose={() => setDeployModalOpen(false)}
                 title={<Text fw={700} size="lg">{t('button_auto_deploy')}</Text>}
@@ -124,6 +125,7 @@ export function DeployModals({ deployActions }) {
 
             {/* 1. 清理假本地化与部署 Modal */}
             <Modal
+                data-remis-surface="elevated"
                 opened={cleanModalOpen}
                 onClose={() => setCleanModalOpen(false)}
                 title={<Text fw={700} size="lg">{t('deploy_modal_title')}</Text>}
@@ -196,6 +198,7 @@ export function DeployModals({ deployActions }) {
 
             {/* 2. 高风险二次确认 Modal */}
             <Modal
+                data-remis-surface="elevated"
                 opened={confirmDeleteOpen}
                 onClose={() => setConfirmDeleteOpen(false)}
                 title={<Text fw={700} color="red">{t('deploy_clean_confirm_title')}</Text>}

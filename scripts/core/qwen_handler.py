@@ -25,7 +25,7 @@ class QwenHandler(BaseApiHandler):
                 base_url=base_url
             )
             
-            model_name = provider_config.get("default_model", "qwen-plus")
+            model_name = provider_config.get("default_model", "qwen3.7-plus")
             self.logger.info(f"Qwen client initialized successfully, using model: {model_name}")
             self.logger.info(f"Using base URL: {base_url}")
             return client
@@ -36,19 +36,18 @@ class QwenHandler(BaseApiHandler):
     def _call_api(self, client: OpenAI, prompt: str) -> str:
         """【必须由子类实现】执行对Qwen API的调用并返回原始文本响应。"""
         provider_config = self.get_provider_config()
-        model_name = provider_config.get("default_model", "qwen-plus")
-        enable_thinking = provider_config.get("enable_thinking", False)
-
+        model_name = provider_config.get("default_model", "qwen3.7-plus")
         try:
-            # Qwen的思考功能通过API参数控制，而不是修改prompt
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[
+            request_kwargs = {
+                "model": model_name,
+                "messages": [
                     {"role": "system", "content": "You are a professional translator for game mods."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.3,
-                extra_body={"enable_thinking": enable_thinking}
+                "temperature": 0.3,
+            }
+            response = client.chat.completions.create(
+                **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
             return response.choices[0].message.content.strip()
         except Exception as e:

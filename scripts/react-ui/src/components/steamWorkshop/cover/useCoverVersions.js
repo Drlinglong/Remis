@@ -6,6 +6,7 @@ const normalizeVersions = (payload) => Array.isArray(payload) ? payload : payloa
 export const useCoverVersions = ({ workspaceId, currentVersionId = null, onLoadCanvas }) => {
     const [versions, setVersions] = useState([]);
     const [selectedVersionId, setSelectedVersionId] = useState(currentVersionId);
+    const [editingParentVersionId, setEditingParentVersionId] = useState(currentVersionId);
     const [busyAction, setBusyAction] = useState(null);
     const [error, setError] = useState(null);
 
@@ -24,7 +25,8 @@ export const useCoverVersions = ({ workspaceId, currentVersionId = null, onLoadC
 
     useEffect(() => {
         setSelectedVersionId(currentVersionId);
-    }, [currentVersionId]);
+        setEditingParentVersionId(currentVersionId);
+    }, [currentVersionId, workspaceId]);
 
     useEffect(() => {
         refresh();
@@ -38,8 +40,9 @@ export const useCoverVersions = ({ workspaceId, currentVersionId = null, onLoadC
             const created = await steamWorkshopCoverService.createVersion(workspaceId, {
                 pngDataUrl,
                 canvas,
-                parentVersionId: selectedVersionId,
+                parentVersionId: editingParentVersionId,
             });
+            setEditingParentVersionId(created.version_id);
             await refresh();
             return created;
         } catch (requestError) {
@@ -48,7 +51,7 @@ export const useCoverVersions = ({ workspaceId, currentVersionId = null, onLoadC
         } finally {
             setBusyAction(null);
         }
-    }, [refresh, selectedVersionId, workspaceId]);
+    }, [editingParentVersionId, refresh, workspaceId]);
 
     const loadVersion = useCallback(async (versionId) => {
         setBusyAction(`load:${versionId}`);
@@ -56,6 +59,7 @@ export const useCoverVersions = ({ workspaceId, currentVersionId = null, onLoadC
         try {
             const version = await steamWorkshopCoverService.getVersion(versionId);
             await onLoadCanvas(version.canvas);
+            setEditingParentVersionId(version.version_id);
         } catch (requestError) {
             setError(requestError);
         } finally {
@@ -81,6 +85,7 @@ export const useCoverVersions = ({ workspaceId, currentVersionId = null, onLoadC
     return {
         versions,
         selectedVersionId,
+        editingParentVersionId,
         busyAction,
         error,
         refresh,

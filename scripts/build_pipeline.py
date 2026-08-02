@@ -5,12 +5,14 @@ import socket
 import subprocess
 import platform
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
 MIN_GOOGLE_GENAI_VERSION = (1, 68, 0)
+STEAM_WORKSHOP_DEMO_WORKSPACE_ID = "7e492e06-823d-4343-998e-f121db6e0ee1"
 
 RELEASE_DEMO_SOURCE_FILES = {
     "Test_Project_Remis_stellaris": (
@@ -115,6 +117,26 @@ def prepare_release_demo_assets(project_root, build_dir):
                     shutil.copy2(source_path, target_path)
     return staging_root
 
+
+def steam_workshop_demo_add_data_arg(project_root):
+    """Return the required PyInstaller data argument for publishing demo copy."""
+    demo_dir = Path(project_root) / "data" / "steam_workshop_demo"
+    required = [demo_dir / f"description-{index}.bbcode" for index in (1, 2)]
+    missing = [str(path) for path in required if not path.is_file()]
+    if missing:
+        raise FileNotFoundError(
+            "Required Steam Workshop demo resource not found: " + ", ".join(missing)
+        )
+    return f'--add-data "{demo_dir};data/steam_workshop_demo"'
+
+
+def backend_seed_add_data_args(project_root, seed_main, seed_projects):
+    """Build the required PyInstaller arguments for database and demo seeds."""
+    return (
+        f'--add-data "{seed_main};data" --add-data "{seed_projects};data" '
+        f'{steam_workshop_demo_add_data_arg(project_root)}'
+    )
+
 def print_step(step_name):
     print(f"\n{'='*60}")
     print(f"[INFO] {step_name}")
@@ -170,6 +192,39 @@ def ensure_min_google_genai(env_python):
     print(f"[INFO] google-genai version OK: {version}")
 
 
+def _verify_frozen_steam_workshop_demo(port, request_timeout_seconds=15):
+    workspace_url = (
+        f"http://127.0.0.1:{port}/api/steam-workshop/workspaces/"
+        f"{STEAM_WORKSHOP_DEMO_WORKSPACE_ID}"
+    )
+    versions_url = f"{workspace_url}/versions?asset_type=description"
+    try:
+        with urllib.request.urlopen(
+            workspace_url,
+            timeout=request_timeout_seconds,
+        ) as response:
+            workspace = json.load(response)
+        with urllib.request.urlopen(
+            versions_url,
+            timeout=request_timeout_seconds,
+        ) as response:
+            versions = json.load(response)
+    except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            "Packaged backend Steam Workshop demo verification failed: "
+            f"{type(exc).__name__}: {exc}"
+        ) from exc
+
+    descriptions = [
+        version for version in versions
+        if version.get("asset_type") == "description" and version.get("bbcode")
+    ]
+    if workspace.get("workspace_id") != STEAM_WORKSHOP_DEMO_WORKSPACE_ID:
+        raise RuntimeError("Packaged backend returned the wrong publishing demo workspace.")
+    if len(descriptions) != 2:
+        raise RuntimeError("Packaged backend publishing demo descriptions are incomplete.")
+
+
 def verify_frozen_backend(executable, timeout_seconds=90):
     """Fail the release build if the packaged backend cannot serve its health API."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
@@ -178,17 +233,20 @@ def verify_frozen_backend(executable, timeout_seconds=90):
 
     env = os.environ.copy()
     env["REMIS_BACKEND_PORT"] = str(port)
+    smoke_appdata = tempfile.mkdtemp(prefix="remis-frozen-smoke-")
+    env["APPDATA"] = smoke_appdata
     creationflags = (
         subprocess.CREATE_NO_WINDOW
         if platform.system().lower() == "windows"
         else 0
     )
+    backend_log = tempfile.TemporaryFile(mode="w+", encoding="utf-8")
     process = subprocess.Popen(
         [executable],
         cwd=os.path.dirname(executable),
         env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=backend_log,
+        stderr=subprocess.STDOUT,
         text=True,
         creationflags=creationflags,
     )
@@ -199,9 +257,9 @@ def verify_frozen_backend(executable, timeout_seconds=90):
         while time.monotonic() < deadline:
             exit_code = process.poll()
             if exit_code is not None:
-                stdout, stderr = process.communicate()
-                print(stdout)
-                print(stderr)
+                backend_log.flush()
+                backend_log.seek(0)
+                print(backend_log.read())
                 raise RuntimeError(
                     f"Packaged backend exited before health check (code {exit_code})."
                 )
@@ -209,6 +267,7 @@ def verify_frozen_backend(executable, timeout_seconds=90):
             try:
                 with urllib.request.urlopen(health_url, timeout=1) as response:
                     if response.status == 200:
+                        _verify_frozen_steam_workshop_demo(port)
                         print(f"[SUCCESS] Packaged backend health check passed on port {port}.")
                         return
             except (urllib.error.URLError, TimeoutError, OSError):
@@ -233,6 +292,8 @@ def verify_frozen_backend(executable, timeout_seconds=90):
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait(timeout=10)
+        backend_log.close()
+        shutil.rmtree(smoke_appdata, ignore_errors=True)
 
 
 def resolve_nsis_artifact_name(tauri_config_path, target_triple):
@@ -357,7 +418,7 @@ def main():
     # --hidden-import: Ensure dependencies are included
     # --add-data: Include seed data and demos
     
-    add_data_args = f'--add-data "{seed_main};data" --add-data "{seed_projects};data"'
+    add_data_args = backend_seed_add_data_args(project_root, seed_main, seed_projects)
 
     # Help Copilot skills are runtime resources, not repository reads. Bundle the
     # allowlisted user guides so RESOURCE_DIR/docs is available in frozen builds.

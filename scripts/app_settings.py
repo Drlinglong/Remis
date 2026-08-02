@@ -82,7 +82,7 @@ DEFAULT_BACKEND_PORT = 1453
 # --- 项目信息 ----------------------------------------------------
 PROJECT_NAME = "Paradox Mod 本地化工厂 - Paradox Mod Localization Factory"
 PROJECT_DISPLAY_NAME = "蕾姆丝计划 - Project Remis "
-VERSION = "3.1.1"
+VERSION = "3.1.2"
 LAST_UPDATE_DATE = "2026-07-31"
 COPYRIGHT = "© 2026 Project Remis Team"
 
@@ -206,12 +206,21 @@ def resolve_path(rel_path: str) -> str:
         
     return os.path.normpath(rel_path)
 
-# Data directory for static assets (in dev) or resources (in prod)
-# In dev: PROJECT_ROOT/data
-# In prod: RESOURCE_DIR/data (if we ship data folder) or just RESOURCE_DIR if flattened
-# For now, let's assume we ship a 'data' folder in resources
+def get_static_config_dir(resource_dir: str, project_root: str, *, frozen: bool) -> str:
+    """Return the versioned, read-only configuration bundled with this build."""
+    static_root = resource_dir if frozen else project_root
+    return os.path.join(static_root, 'data', 'config')
+
+
+# Static assets always come from the checked-out/bundled application version.
+# APP_DATA_DIR is reserved for writable user configuration and must not shadow a
+# newer provider catalogue after an upgrade.
 DATA_DIR = os.path.join(RESOURCE_DIR, 'data') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'data')
-CONFIG_DIR = os.path.join(APP_DATA_DIR, 'config') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'data', 'config')
+CONFIG_DIR = get_static_config_dir(
+    RESOURCE_DIR,
+    PROJECT_ROOT,
+    frozen=getattr(sys, 'frozen', False),
+)
 
 SOURCE_DIR = os.path.join(APP_DATA_DIR, 'source_mod') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'source_mod')
 DEST_DIR = os.path.join(APP_DATA_DIR, 'my_translation') if getattr(sys, 'frozen', False) else os.path.join(PROJECT_ROOT, 'my_translation')

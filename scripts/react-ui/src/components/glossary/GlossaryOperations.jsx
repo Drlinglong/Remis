@@ -32,7 +32,7 @@ import {
     resolveProviderModels,
 } from '../../hooks/incrementalTranslationProviders';
 import { taskDetailRoute } from '../../utils/taskRoutes';
-
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 const taskHealthReport = (task) => {
     const metadata = task?.result?.metadata || {};
     return metadata.preview || metadata;
@@ -670,10 +670,10 @@ const GlossaryOperations = ({
                                             </Group>
                                             <Text size="xs" c="dimmed">
                                                 {task.created_at
-                                                    ? new Intl.DateTimeFormat(i18n.language, {
+                                                    ? formatLocalizedDateTime(task.created_at, getResolvedInterfaceLocale(i18n), {
                                                         dateStyle: 'medium',
                                                         timeStyle: 'short',
-                                                    }).format(new Date(task.created_at))
+                                                    })
                                                     : task.task_id}
                                             </Text>
                                             {hasScore && (

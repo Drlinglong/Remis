@@ -97,4 +97,30 @@ describe('useProjectManagementData', () => {
       });
     });
   });
+
+  it('offers deployment when a translation file exists without a completed status or archive', async () => {
+    projectService.getProjectFiles.mockResolvedValue({
+      data: {
+        files: [{
+          file_id: 'translated-file',
+          file_path: 'localization/simp_chinese/demo_l_simp_chinese.yml',
+          file_type: 'translation',
+          line_count: 20,
+          status: 'todo',
+        }],
+      },
+    });
+    projectService.checkArchive.mockResolvedValue({ data: { exists: false } });
+
+    const { result } = renderHook(() => useProjectManagementData());
+    await waitFor(() => expect(result.current.projects).toHaveLength(1));
+
+    act(() => {
+      result.current.setSelectedProjectId('project-1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.projectDetails?.has_available_translation).toBe(true);
+    });
+  });
 });
