@@ -2,6 +2,7 @@
 集成测试：config 路由 /api/api-keys。
 测试保存 API Key 的完整路径，防止因 ConfigManager 接口变更而产生回归。
 """
+import os
 import pytest
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
@@ -177,6 +178,22 @@ class TestPostProviderConfig:
 
         assert response.status_code == 400
         assert "protected fields" in response.json()["detail"]
+
+    def test_validates_all_provider_settings_before_persisting_api_key(self, mock_config_env):
+        client = TestClient(app)
+        with patch.dict(os.environ, {"GOOGLE_API_KEY": "existing-key"}):
+            response = client.post("/api/providers/config", json={
+                "provider_id": "gemini",
+                "api_key": "rejected-new-key",
+                "selected_model": "gemini-1.5-pro",
+                "custom_parameters": {"system": "replace safeguards"},
+            })
+
+            assert response.status_code == 400
+            assert os.environ["GOOGLE_API_KEY"] == "existing-key"
+
+        mock_config_env.update_nested_value.assert_not_called()
+        mock_config_env.set_value.assert_not_called()
 
 
 class TestLocalProviderConnection:

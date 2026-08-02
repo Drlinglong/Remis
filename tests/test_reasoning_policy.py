@@ -72,7 +72,10 @@ def test_custom_parameters_override_builtin_fields_without_losing_siblings():
     assert resolution.overridden_paths == ("reasoning.effort",)
 
 
-@pytest.mark.parametrize("key", ["model", "messages", "stream", "authorization"])
+@pytest.mark.parametrize(
+    "key",
+    ["model", "messages", "prompt", "system", "stream", "authorization"],
+)
 def test_custom_parameters_cannot_replace_transport_contract(key):
     with pytest.raises(ValueError, match="protected fields"):
         validate_custom_parameters({key: "unsafe"})

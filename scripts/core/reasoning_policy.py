@@ -14,7 +14,9 @@ PROTECTED_CUSTOM_PARAMETER_KEYS = {
     "input",
     "messages",
     "model",
+    "prompt",
     "stream",
+    "system",
 }
 MAX_CUSTOM_PARAMETERS_BYTES = 16_384
 

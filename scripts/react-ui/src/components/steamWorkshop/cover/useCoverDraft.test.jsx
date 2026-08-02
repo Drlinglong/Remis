@@ -63,6 +63,70 @@ describe('useCoverDraft', () => {
         expect(readCoverDraft(storage, { projectId: 'project-1' })).toEqual(canvas);
     });
 
+    it('recovers autosave after a persisted image cannot be hydrated', async () => {
+        vi.useFakeTimers();
+        const OriginalImage = window.Image;
+        window.Image = class BrokenImage {
+            set src(_value) {
+                this.onerror?.();
+            }
+        };
+        const storage = memoryStorage();
+        const context = { projectId: 'project-1', workspaceId: null };
+        writeCoverDraft(storage, context, {
+            ...createEmptyCoverCanvas(),
+            backgroundImage: { src: 'missing://cover.png' },
+        });
+        const replaceCanvas = vi.fn();
+        const { result, rerender } = renderHook(({ canvasState }) => useCoverDraft({
+            ...context,
+            canvasState,
+            replaceCanvas,
+            storage,
+        }), {
+            initialProps: {
+                canvasState: {
+                    backgroundColor: '#ffffff',
+                    backgroundImage: null,
+                    elements: [],
+                },
+            },
+        });
+
+        try {
+            await act(async () => {
+                await Promise.resolve();
+                await Promise.resolve();
+            });
+
+            expect(result.current.restored).toBe(true);
+            expect(result.current.draftError).toMatchObject({
+                message: 'cover_image_restore_failed',
+            });
+            expect(replaceCanvas).toHaveBeenCalledWith(createEmptyCoverCanvas());
+
+            rerender({ canvasState: createEmptyCoverCanvas() });
+            rerender({
+                canvasState: {
+                    backgroundColor: '#222222',
+                    backgroundImage: null,
+                    elements: [],
+                },
+            });
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(601);
+            });
+
+            expect(readCoverDraft(storage, context)).toEqual({
+                ...createEmptyCoverCanvas(),
+                backgroundColor: '#222222',
+            });
+            expect(result.current.draftError).toBe(null);
+        } finally {
+            window.Image = OriginalImage;
+        }
+    });
+
     it('clears the editor and persisted draft immediately without a stale autosave', async () => {
         vi.useFakeTimers();
         const storage = memoryStorage();

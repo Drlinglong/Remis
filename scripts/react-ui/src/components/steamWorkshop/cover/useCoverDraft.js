@@ -47,7 +47,11 @@ export const useCoverDraft = ({
                 setRestored(true);
             } catch (error) {
                 if (restoreGeneration === restoreGenerationRef.current) {
+                    const fallbackCanvas = createEmptyCoverCanvas();
+                    awaitingRestoredCanvasRef.current = fallbackCanvas;
+                    replaceCanvasRef.current(fallbackCanvas);
                     setDraftError(error);
+                    setRestored(true);
                 }
             }
         };

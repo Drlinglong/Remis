@@ -177,17 +177,11 @@ def update_provider_config(payload: UpdateProviderConfigRequest):
     if provider_id not in API_PROVIDERS:
         raise HTTPException(status_code=400, detail="Invalid provider ID")
         
-    # 1. Handle API Key
-    if payload.api_key is not None:
-        # Reuse the logic from update_api_key or call it
-        # But here we just do it manually to avoid overhead
-        config = API_PROVIDERS[provider_id]
-        env_var = config.get("api_key_env")
-        if env_var:
-             config_manager.update_nested_value("api_keys", provider_id, payload.api_key)
-             os.environ[env_var] = payload.api_key
-    
-    # 2. Handle Custom Models & URL
+    config = API_PROVIDERS[provider_id]
+    env_var = config.get("api_key_env")
+
+    # Build and validate the complete provider update before any configuration
+    # or process-environment side effect occurs.
     # We store these in a separate "provider_config" dict in config.json
     # Structure: "provider_config": { "openai": { "models": [...], "api_url": "..." } }
     
@@ -258,7 +252,11 @@ def update_provider_config(payload: UpdateProviderConfigRequest):
             status_code=400,
             detail="The selected reasoning preset is not supported by this model.",
         )
-        
+
+    if payload.api_key is not None and env_var:
+        config_manager.update_nested_value("api_keys", provider_id, payload.api_key)
+        os.environ[env_var] = payload.api_key
+
     config_manager.set_value("provider_config", current_overrides)
     
     return {"status": "success"}
