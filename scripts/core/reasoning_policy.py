@@ -19,6 +19,7 @@ PROTECTED_CUSTOM_PARAMETER_KEYS = {
     "system",
 }
 MAX_CUSTOM_PARAMETERS_BYTES = 16_384
+REASONING_PRESET_ORDER = ("low", "medium", "high", "xhigh", "max")
 
 
 @dataclass(frozen=True)
@@ -26,6 +27,7 @@ class ReasoningResolution:
     supported: bool
     builtin_enabled: bool
     selected_preset: str
+    effective_preset: str | None
     available_presets: tuple[str, ...]
     builtin_parameters: dict[str, Any]
     custom_parameters: dict[str, Any]
@@ -71,6 +73,33 @@ def _deep_merge(
     return merged, conflicts
 
 
+def _resolve_effective_preset(
+    selected_preset: str,
+    presets: dict[str, Any],
+    default_preset: str,
+) -> str | None:
+    if selected_preset in presets:
+        return selected_preset
+
+    if selected_preset in REASONING_PRESET_ORDER:
+        selected_rank = REASONING_PRESET_ORDER.index(selected_preset)
+        ranked_candidates = [
+            preset
+            for preset in presets
+            if preset in REASONING_PRESET_ORDER
+            and REASONING_PRESET_ORDER.index(preset) <= selected_rank
+        ]
+        if ranked_candidates:
+            return max(
+                ranked_candidates,
+                key=REASONING_PRESET_ORDER.index,
+            )
+
+    if default_preset in presets:
+        return default_preset
+    return next(iter(presets), None)
+
+
 def resolve_reasoning_parameters(provider_config: dict[str, Any]) -> ReasoningResolution:
     model = str(provider_config.get("default_model") or "")
     reasoning = provider_config.get("reasoning") or {}
@@ -82,6 +111,11 @@ def resolve_reasoning_parameters(provider_config: dict[str, Any]) -> ReasoningRe
     selected_preset = str(
         provider_config.get("reasoning_preset") or default_preset
     )
+    effective_preset = _resolve_effective_preset(
+        selected_preset,
+        presets,
+        default_preset,
+    )
     builtin_enabled = bool(
         provider_config.get(
             "reasoning_builtin_enabled",
@@ -90,8 +124,8 @@ def resolve_reasoning_parameters(provider_config: dict[str, Any]) -> ReasoningRe
     )
 
     builtin_parameters: dict[str, Any] = {}
-    if builtin_enabled and supported:
-        preset_parameters = presets.get(selected_preset)
+    if builtin_enabled and supported and effective_preset:
+        preset_parameters = presets.get(effective_preset)
         if isinstance(preset_parameters, dict):
             builtin_parameters = copy.deepcopy(preset_parameters)
 
@@ -106,6 +140,7 @@ def resolve_reasoning_parameters(provider_config: dict[str, Any]) -> ReasoningRe
         supported=supported,
         builtin_enabled=builtin_enabled,
         selected_preset=selected_preset,
+        effective_preset=effective_preset,
         available_presets=available_presets,
         builtin_parameters=builtin_parameters,
         custom_parameters=custom_parameters,
@@ -122,6 +157,7 @@ def describe_reasoning_settings(provider_config: dict[str, Any]) -> dict[str, An
         "supported": resolution.supported,
         "builtin_enabled": resolution.builtin_enabled,
         "selected_preset": resolution.selected_preset,
+        "effective_preset": resolution.effective_preset,
         "available_presets": list(resolution.available_presets),
         "mapping_preview": resolution.builtin_parameters,
         "custom_parameters": resolution.custom_parameters,

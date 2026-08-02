@@ -72,6 +72,45 @@ def test_custom_parameters_override_builtin_fields_without_losing_siblings():
     assert resolution.overridden_paths == ("reasoning.effort",)
 
 
+def test_requested_model_falls_back_to_nearest_supported_reasoning_preset():
+    config = {
+        **API_PROVIDERS["openai"],
+        "default_model": "gpt-5.4",
+        "reasoning_builtin_enabled": True,
+        "reasoning_preset": "xhigh",
+    }
+
+    resolution = resolve_reasoning_parameters(config)
+
+    assert resolution.selected_preset == "xhigh"
+    assert resolution.effective_preset == "high"
+    assert resolution.builtin_parameters == {"reasoning_effort": "high"}
+
+
+def test_handler_warns_when_requested_model_uses_a_preset_fallback(caplog):
+    handler = OpenAIHandler.__new__(OpenAIHandler)
+    handler.provider_name = "openai"
+    handler.model_id = "gpt-5.4"
+    handler.logger = logging.getLogger("reasoning-preset-fallback-test")
+
+    with (
+        patch(
+            "scripts.app_settings.config_manager.get_value",
+            return_value={
+                "openai": {
+                    "reasoning_builtin_enabled": True,
+                    "reasoning_preset": "max",
+                }
+            },
+        ),
+        caplog.at_level(logging.WARNING),
+    ):
+        parameters = handler._reasoning_request_parameters()
+
+    assert parameters == {"reasoning_effort": "high"}
+    assert "using 'high'" in caplog.text
+
+
 @pytest.mark.parametrize(
     "key",
     ["model", "messages", "prompt", "system", "stream", "authorization"],

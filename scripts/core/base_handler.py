@@ -82,7 +82,18 @@ class BaseApiHandler(ABC):
     def _reasoning_request_parameters(self) -> dict:
         from scripts.core.reasoning_policy import resolve_reasoning_parameters
 
-        resolution = resolve_reasoning_parameters(self.get_provider_config())
+        provider_config = self.get_provider_config()
+        resolution = resolve_reasoning_parameters(provider_config)
+        if (
+            resolution.effective_preset
+            and resolution.effective_preset != resolution.selected_preset
+        ):
+            self.logger.warning(
+                "Reasoning preset '%s' is unavailable for model '%s'; using '%s'.",
+                resolution.selected_preset,
+                self.model_id or provider_config.get("default_model"),
+                resolution.effective_preset,
+            )
         if resolution.overridden_paths:
             self.logger.info(
                 "User custom parameters override built-in reasoning fields: %s",
