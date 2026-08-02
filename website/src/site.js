@@ -4,6 +4,7 @@ export const links = {
   github: 'https://github.com/Drlinglong/Remis',
   aventine: 'https://github.com/Drlinglong/remis-aventine',
   aventinePilotAggregate: 'https://github.com/Drlinglong/Remis/blob/main/website/src/aventinePilotAggregate.json',
+  aventineAnchoredAggregate: 'https://github.com/Drlinglong/Remis/blob/main/website/src/aventineAnchoredPlacement.json',
   aventineScoringRoadmap: 'https://github.com/Drlinglong/remis-aventine/issues/6',
   aventineTournament: 'https://github.com/Drlinglong/remis-aventine/blob/main/docs/zh/developer/first_remis_tournament_2026-07-16.md',
   aventineJudgeComparison: 'https://github.com/Drlinglong/remis-aventine/blob/main/docs/zh/developer/judge_provider_comparison_2026-07-15.md',
