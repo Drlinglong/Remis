@@ -1411,7 +1411,7 @@
       },
       "api_provider": {
         "title": "Настройка провайдера",
-        "desc": "Введите ваш ключ и выберите модель по умолчанию (например, gemini-1.5-flash). Не забудьте нажать Сохранить."
+        "desc": "Введите ключ и выберите актуальную модель по умолчанию. Не забудьте нажать Сохранить."
       },
       "api_cost": {
         "title": "Стоимость и квоты",
@@ -1452,7 +1452,7 @@
     },
     "api_provider": {
       "title": "Настройка провайдера",
-      "desc": "Введите ваш ключ и выберите модель по умолчанию (например, gemini-1.5-flash). Не забудьте нажать Сохранить."
+      "desc": "Введите ключ и выберите актуальную модель по умолчанию. Не забудьте нажать Сохранить."
     },
     "api_cost": {
       "title": "Стоимость и квоты",
@@ -1574,16 +1574,16 @@
     "open_logs_btn": "Открыть папку логов"
   },
   "api_desc_gemini": "Google Gemini (Официальный API)",
-  "api_desc_openai": "Официальный API OpenAI (GPT-4o/mini)",
+  "api_desc_openai": "Актуальные текстовые модели через официальный API OpenAI",
   "api_desc_grok": "Доступ к моделям xAI Grok через официальный API",
-  "api_desc_anthropic": "Официальный API Anthropic (Claude 3.5 Sonnet/Haiku)",
+  "api_desc_anthropic": "Актуальные текстовые модели Claude через официальный API Anthropic",
   "api_desc_qwen": "Alibaba Cloud Qwen (Tongyi Qianwen)",
-  "api_desc_deepseek": "DeepSeek-V3/R1 — OpenAI совместимый API",
+  "api_desc_deepseek": "Актуальные текстовые модели DeepSeek через OpenAI-совместимый API",
   "api_desc_openrouter": "Единый доступ к нескольким поставщикам моделей через API OpenRouter",
-  "api_desc_kimi": "Модели Moonshot AI Kimi",
-  "api_desc_minimax": "Серия Minimax Hailuo M2",
-  "api_desc_zhipu": "Серия Zhipu AI GLM-4",
-  "api_desc_nvidia": "API NVIDIA NIM — включает последние модели, такие как minimax-m2.1, glm-4.7",
+  "api_desc_kimi": "Актуальные текстовые модели Kimi от Moonshot AI",
+  "api_desc_minimax": "Актуальные текстовые модели MiniMax",
+  "api_desc_zhipu": "Актуальные текстовые модели GLM от Zhipu AI",
+  "api_desc_nvidia": "Актуальные текстовые модели через API NVIDIA NIM",
   "api_desc_siliconflow": "Модели ИИ через SiliconFlow",
   "api_desc_modelscope": "Модели ИИ через ModelScope",
   "api_desc_ollama": "Локальные модели Ollama, ключ API не требуется",

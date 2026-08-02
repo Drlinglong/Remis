@@ -455,7 +455,7 @@
   "gemini_cli_get_stats": "获取使用统计",
   "gemini_cli_translation_complete": "CLI翻译完成: {text}",
   "gemini_cli_translation_failed": "CLI翻译失败: {error}",
-  "setup_desc_gemini": "使用gemini-2.5-flash模型。在速度、质量和成本上表现均衡。",
+  "setup_desc_gemini": "使用当前的 Google Gemini 文本模型，兼顾速度、质量和成本。",
   "setup_desc_openai": "使用当前的 OpenAI 文本模型，适合要求较高的翻译任务。",
   "setup_desc_deepseek": "使用当前的 DeepSeek 文本模型，对中国用户友好。",
   "setup_desc_qwen": "使用当前的通义千问文本模型，对中国用户友好。",

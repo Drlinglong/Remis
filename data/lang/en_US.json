@@ -420,7 +420,7 @@
   "gemini_cli_get_stats": "Get usage statistics",
   "gemini_cli_translation_complete": "CLI translation complete: {text}",
   "gemini_cli_translation_failed": "CLI translation failed: {error}",
-  "setup_desc_gemini": "Uses the gemini-2.5-flash model. Balanced performance in speed, quality, and cost.",
+  "setup_desc_gemini": "Uses current Google Gemini text models with balanced speed, quality, and cost.",
   "setup_desc_openai": "Uses current OpenAI text models. Suitable for demanding translation tasks.",
   "setup_desc_deepseek": "Uses current DeepSeek text models. Friendly for users in China.",
   "setup_desc_qwen": "Uses current Qwen text models. Friendly for users in China.",
