@@ -269,7 +269,10 @@ class ReflexionFixAgent:
         """
         Builds the PROMPT for the batch fix, injecting dynamic Few-Shot examples based on the specific errors present in the batch.
         """
-        from scripts.config.validators.fixer_examples import get_examples_for_game
+        from scripts.config.validators.fixer_examples import (
+            get_examples_for_game,
+            get_repair_rules_for_game,
+        )
 
         target_lang_code = self._resolve_batch_target_lang(active_issues, target_lang_code)
         english_punctuation_rule = ""
@@ -298,6 +301,11 @@ class ReflexionFixAgent:
         if examples:
             examples_text = "--- 常见错误修正范例 (Few-Shot Examples) ---\n" + "\n".join(examples) + "\n----------------------------------------"
 
+        game_rules = get_repair_rules_for_game(game_id)
+        game_rules_text = ""
+        if game_rules:
+            game_rules_text = "### GAME-SPECIFIC RULES\n" + "\n".join(game_rules)
+
         # 3. Assemble the payload
         payload_items = []
         for i, issue in enumerate(active_issues):
@@ -324,7 +332,7 @@ class ReflexionFixAgent:
             f"{target_lang_code or 'unknown'}\n\n"
             f"{examples_text}\n\n"
             "### REPAIR GUIDELINES (GOLDEN RULES)\n"
-            "1. **ZERO TOLERANCE**: Do NOT translate or localize any variables inside $...$, [Concept...], [SCOPE...], or icons like @...! or £...£. Keep them exactly as they appear in the Source.\n"
+            "1. **ZERO TOLERANCE**: Preserve code identifiers and non-translatable parameters inside $...$, [SCOPE...], function or command syntax, and icons like @...! or £...£. Keep those protected tokens exactly as they appear in the Source.\n"
             "2. **TAG CLOSURE**: Ensure all color tags (e.g., §Y or #P) are correctly closed (e.g., §! or #!) as per the game's specific rule.\n"
             "3. **THREE REPAIR MODES**: Your repair task may include: (a) format repair, (b) failed-chunk recovery, and (c) limited source-aware revision of obviously bad translations. Always prioritize them in that order.\n"
             "4. **FAILED-CHUNK RECOVERY**: If the translation looks truncated, mechanically damaged, fallback-like, or structurally broken, you may reconstruct the missing content conservatively from the Source.\n"
@@ -334,8 +342,8 @@ class ReflexionFixAgent:
             "8. **OUTPUT FORMAT**: You must output a JSON array of strings. Return ONLY the JSON. No conversational filler, no markdown code blocks, just the raw JSON array.\n"
             f"9. **ITEM COUNT**: I will provide {len(active_issues)} items. You MUST provide exactly {len(active_issues)} repaired strings in the array.\n"
             "10. **DIAGNOSTIC REFLECTION**: Some items in this batch may contain a 'Diagnostic Reflection' providing deep analysis of why the previous repair attempt failed. You MUST treat this reflection as highly authoritative guidance to correct the specific tag mismatch or semantic error.\n"
-            "11. **PRESERVE PARADOX COLOR TAGS**: In Hearts of Iron IV (hoi4), color tags ALWAYS start with the section sign symbol '§' followed by a single letter (e.g., §Y, §g, §R, §P, §L, §G) and close with '§!'. If the bad translation corrupted '§' into '%' (e.g., %g, %Y, %P) or other characters, refer to the Source and IMMEDIATELY correct them back to '§' tags (e.g., change '%g' back to '§g'). Keep all colors from the Source exactly. Never lose color codes.\n"
             f"{english_punctuation_rule}\n"
+            f"{game_rules_text}\n\n"
             "### ITEMS TO REPAIR\n" +
             "\n\n".join(payload_items) + "\n\n"
             "### JSON OUTPUT PREVIEW\n"
