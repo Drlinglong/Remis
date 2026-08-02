@@ -94,10 +94,9 @@ class ContextSynthesisItem(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    aggregate_id: str = Field(min_length=1)
-    context_key: str = Field(min_length=1)
+    aggregate_alias: str = Field(pattern=r"^a\d+$")
     summary: str = Field(min_length=1, max_length=1200)
-    evidence_source_item_ids: list[str] = Field(min_length=1, max_length=20)
+    evidence_aliases: list[str] = Field(min_length=1, max_length=20)
 
 
 class ContextSynthesisResponse(BaseModel):

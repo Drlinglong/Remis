@@ -149,6 +149,19 @@ class StructuredNeologismExtractor:
     MAX_TOTAL_CONTRIBUTIONS = 250
     SOURCE_ALIAS_PREFIX = "source_"
     _FORMAT_TAG_RE = re.compile(r"#[A-Za-z][\w.-]*|#!|§.")
+    _BACKEND_METADATA_BY_DEFINITION = {
+        "SourceEvidence": ("provenance",),
+        "EntityContribution": ("provenance",),
+        "FactContribution": ("provenance", "tentative"),
+        "EventChainContribution": ("provenance", "tentative"),
+        "RelationshipContribution": ("provenance", "tentative"),
+    }
+    _BACKEND_METADATA_BY_COLLECTION = {
+        "entities": {"provenance": "text_inferred"},
+        "facts": {"provenance": "text_inferred", "tentative": True},
+        "events": {"provenance": "text_inferred", "tentative": True},
+        "relationships": {"provenance": "text_inferred", "tentative": True},
+    }
 
     SYSTEM_PROMPT = """
 # Role
@@ -182,6 +195,8 @@ do not defer ordinary translation recommendations to a later review call.
 - Do not invent facts, events, relationships, or entities that cannot be supported
   by the cited source item and grounded fields. They are tentative model
   contributions, never script-derived or user-confirmed.
+- Do not return `provenance` or `tentative` fields. The backend assigns this
+  fixed metadata after validating the model-authored content and evidence.
 - Events belong in `events` as event-chain objects, not inside entity descriptions.
 - Use only these entity_type values: "person", "place", "organization/faction",
   "technology/concept", "item/other".
@@ -196,18 +211,14 @@ Return only this JSON shape, with no markdown:
     "suggestion":"...","reasoning":"...",
     "evidence":[{{"source_item_id":"source_0"}}]}}],
   "entities": [{{"name":"...","entity_type":"technology/concept",
-    "description":"...","evidence":[{{"source_item_id":"source_0"}}],
-    "provenance":"text_inferred"}}],
+    "description":"...","evidence":[{{"source_item_id":"source_0"}}]}}],
   "facts": [{{"subject":"...","predicate":"...","object":"...",
-    "evidence":[{{"source_item_id":"source_0"}}],
-    "provenance":"text_inferred","tentative":true}}],
+    "evidence":[{{"source_item_id":"source_0"}}]}}],
   "events": [{{"chain_id":"...","event":"...","sequence":0,
     "participants":[],"consequence":"...",
-    "evidence":[{{"source_item_id":"source_0"}}],
-    "provenance":"text_inferred","tentative":true}}],
+    "evidence":[{{"source_item_id":"source_0"}}]}}],
   "relationships": [{{"subject":"...","relation":"...","object":"...",
-    "evidence":[{{"source_item_id":"source_0"}}],
-    "provenance":"text_inferred","tentative":true}}]
+    "evidence":[{{"source_item_id":"source_0"}}]}}]
 }}
 """
 
@@ -298,7 +309,7 @@ Return only this JSON shape, with no markdown:
             if structured_generate is not None:
                 response = structured_generate(
                     messages,
-                    schema=StructuredNeologismExtraction.model_json_schema(),
+                    schema=self._model_response_schema(),
                     schema_name="remis_context_extraction",
                     temperature=0.0,
                 )
@@ -309,6 +320,24 @@ Return only this JSON shape, with no markdown:
         if not response or not response.strip():
             raise NeologismMiningError("LLM returned an empty response")
         return response.strip()
+
+    @classmethod
+    def _model_response_schema(cls) -> Dict[str, Any]:
+        """Return the content schema without backend-owned fixed metadata."""
+
+        schema = StructuredNeologismExtraction.model_json_schema()
+        definitions = schema.get("$defs", {})
+        for definition_name, field_names in cls._BACKEND_METADATA_BY_DEFINITION.items():
+            definition = definitions.get(definition_name, {})
+            properties = definition.get("properties", {})
+            for field_name in field_names:
+                properties.pop(field_name, None)
+            required = definition.get("required")
+            if isinstance(required, list):
+                definition["required"] = [
+                    field_name for field_name in required if field_name not in field_names
+                ]
+        return schema
 
     def _parse_with_one_repair(
         self,
@@ -609,8 +638,31 @@ Return only this JSON shape, with no markdown:
                     for term in payload
                 ]
             }
+        cls._normalize_backend_metadata(payload)
         cls._remap_source_aliases(payload, source_aliases or {})
         return EXTRACTION_ADAPTER.validate_python(payload)
+
+    @classmethod
+    def _normalize_backend_metadata(cls, payload: Any) -> None:
+        """Overwrite fixed metadata before validating model-authored fields."""
+
+        if not isinstance(payload, dict):
+            return
+        for collection_name in ("terms", "entities", "facts", "events", "relationships"):
+            contributions = payload.get(collection_name)
+            if not isinstance(contributions, list):
+                continue
+            fixed_fields = cls._BACKEND_METADATA_BY_COLLECTION.get(collection_name, {})
+            for contribution in contributions:
+                if not isinstance(contribution, dict):
+                    continue
+                contribution.update(fixed_fields)
+                evidence_items = contribution.get("evidence")
+                if not isinstance(evidence_items, list):
+                    continue
+                for evidence in evidence_items:
+                    if isinstance(evidence, dict):
+                        evidence["provenance"] = "text_inferred"
 
     @staticmethod
     def _remap_source_aliases(payload: Any, source_aliases: Dict[str, str]) -> None:

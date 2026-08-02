@@ -377,12 +377,17 @@ class ContextWorkflowService:
             self.repository.save_aggregate(aggregate)
         source_item_ids = list(sources)
         synthesizer = self.synthesizer_factory(handler)
-        synthesis_batches = synthesizer.batch_count(len(aggregates))
+        planned_synthesis_batches = synthesizer.plan_batches(
+            aggregates,
+            contributions,
+            sources,
+            description_language,
+        )
         self.status_service.begin_stage(
             project_id,
             task_id,
             "synthesizing",
-            synthesis_batches,
+            len(planned_synthesis_batches),
             source_item_ids=source_item_ids,
         )
         syntheses = synthesizer.synthesize(
@@ -398,6 +403,7 @@ class ContextWorkflowService:
                 source_item_ids=self.release_assembler.aggregate_source_ids(batch, contributions),
                 **details,
             ),
+            planned_batches=planned_synthesis_batches,
         )
         metadata = self.release_assembler.metadata(
             snapshot, parsed_files, diff, parent, api_provider, model_name,

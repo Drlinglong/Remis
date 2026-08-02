@@ -23,6 +23,23 @@ class FakeHandler:
         return response
 
 
+class StructuredFakeHandler:
+    def __init__(self, response):
+        self.response = response
+        self.calls = []
+
+    def generate_structured_with_messages(
+        self,
+        messages,
+        *,
+        schema,
+        schema_name,
+        temperature,
+    ):
+        self.calls.append((messages, schema, schema_name, temperature))
+        return self.response
+
+
 def source_item(text="The Curia Caelestis activates the Aether Engine."):
     return SourceItem(
         source_item_id="item-1",
@@ -80,6 +97,70 @@ def test_narrative_context_makes_one_call_and_keeps_contributions_separate():
     assert result.facts[0].tentative is True
     assert result.relationships[0].provenance == "text_inferred"
     assert result.entities[0].evidence[0].relative_path == "events/first.yml"
+
+
+def test_model_schema_does_not_expose_backend_owned_metadata():
+    handler = StructuredFakeHandler(json.dumps({
+        "terms": [], "entities": [], "facts": [], "events": [], "relationships": [],
+    }))
+
+    StructuredNeologismExtractor(handler).extract([source_item()])
+
+    _, schema, schema_name, temperature = handler.calls[0]
+    definitions = schema["$defs"]
+    assert "provenance" not in definitions["SourceEvidence"]["properties"]
+    assert "provenance" not in definitions["EntityContribution"]["properties"]
+    for definition in ("FactContribution", "EventChainContribution", "RelationshipContribution"):
+        assert "provenance" not in definitions[definition]["properties"]
+        assert "tentative" not in definitions[definition]["properties"]
+    assert schema_name == "remis_context_extraction"
+    assert temperature == 0.0
+
+
+def test_false_or_missing_fixed_metadata_is_normalized_without_repair():
+    evidence = {"source_item_id": "source_0", "provenance": "user_confirmed"}
+    handler = FakeHandler([json.dumps({
+        "terms": [],
+        "entities": [{
+            "name": "Curia Caelestis",
+            "entity_type": "organization/faction",
+            "evidence": [evidence],
+            "provenance": "script_derived",
+        }],
+        "facts": [{
+            "subject": "Curia Caelestis",
+            "predicate": "activates",
+            "object": "Aether Engine",
+            "evidence": [evidence],
+            "tentative": False,
+        }],
+        "events": [{
+            "chain_id": "activation-chain",
+            "event": "Curia Caelestis activates the Aether Engine",
+            "sequence": 0,
+            "participants": ["Curia Caelestis"],
+            "evidence": [evidence],
+        }],
+        "relationships": [{
+            "subject": "Curia Caelestis",
+            "relation": "activates",
+            "object": "Aether Engine",
+            "evidence": [evidence],
+            "provenance": "user_confirmed",
+            "tentative": False,
+        }],
+    })])
+
+    result = StructuredNeologismExtractor(handler).extract(
+        [source_item()], scope=AnalysisScope.NARRATIVE_CONTEXT
+    )
+
+    assert len(handler.calls) == 1
+    assert result.entities[0].provenance == "text_inferred"
+    assert result.facts[0].tentative is True
+    assert result.events[0].tentative is True
+    assert result.relationships[0].tentative is True
+    assert result.entities[0].evidence[0].provenance == "text_inferred"
 
 
 def test_terms_only_retains_terms_and_does_not_accept_narrative_arrays():
@@ -368,6 +449,20 @@ def test_invalid_json_gets_exactly_one_repair_attempt():
     assert result.terms == []
     assert len(handler.calls) == 2
     assert "one deterministic retry" in handler.calls[1][0][-1]["content"]
+
+
+def test_invalid_json_does_not_get_a_second_repair_attempt():
+    handler = FakeHandler([
+        "not-json",
+        "still-not-json",
+        json.dumps({"terms": [], "entities": [], "facts": [], "events": [], "relationships": []}),
+    ])
+
+    with pytest.raises(NeologismMiningError, match=r"after one repair \(invalid_json\)"):
+        StructuredNeologismExtractor(handler).extract([source_item()])
+
+    assert len(handler.calls) == 2
+    assert len(handler.responses) == 1
 
 
 def test_safety_limit_rejects_more_than_one_hundred_terms_after_one_repair():

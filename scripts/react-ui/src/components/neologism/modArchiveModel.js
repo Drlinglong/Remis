@@ -99,6 +99,7 @@ export const normalizeAnalysisStatus = (rawStatus = {}) => {
         ),
         successfulBatches: firstValue(rawStatus.successful_batches, 0),
         failedBatches: firstValue(rawStatus.failed_batches, 0),
+        overallPercent: Number(firstValue(rawStatus.overall_percent, progress.percent, 0)),
         conflictReviewCount: firstValue(rawStatus.conflict_review_count, 0),
         newTerms: firstValue(rawStatus.new_terms, summary.new_terms, result.new_terms, 0),
         duplicateTerms: firstValue(

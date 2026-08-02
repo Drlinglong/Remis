@@ -19,6 +19,7 @@ class ContextWorkflowStatusService:
 
     ACTIVE_STATUSES = {"queued", "starting", "running"}
     STAGES = {"extracting", "reviewing", "synthesizing", "publishing", "completed", "failed"}
+    WORKFLOW_STAGE_ORDER = ("extracting", "reviewing", "synthesizing", "publishing")
     STAGE_LABELS = {
         "extracting": "Extracting",
         "reviewing": "Reviewing",
@@ -123,6 +124,8 @@ class ContextWorkflowStatusService:
             total_batches,
             context,
         )
+        progress = self._progress(checkpoint, current=0, total=total_batches)
+        checkpoint["metadata"]["last_progress"] = progress
         status_updates = {
             "status": "running",
             "stage": "extracting",
@@ -139,6 +142,7 @@ class ContextWorkflowStatusService:
             "source_snapshot_hash": source_snapshot_hash,
             "affected_source_item_count": len(affected_source_items or []),
             "checkpoint": checkpoint,
+            "progress": progress,
             **self._configuration_fields(context),
         }
         self._set_status(project_id, **status_updates)
@@ -147,7 +151,7 @@ class ContextWorkflowStatusService:
             task_id,
             status="running",
             message="Context analysis started.",
-            progress=self._progress(checkpoint, current=0, total=total_batches),
+            progress=progress,
             fields={"stage_code": "extracting", "workflow_context": context},
         )
 
@@ -269,9 +273,13 @@ class ContextWorkflowStatusService:
         checkpoint = self._checkpoint(project_id)
         successful, failed = self._terminal_batch_counts(checkpoint)
         checkpoint.update({"available": False, "stage": "completed", "cursor": None})
+        completed_progress = self._progress(
+            checkpoint, current=100, total=100, percent=100, stage="Completed",
+        )
         checkpoint.setdefault("metadata", {}).update({
             "terminal_status": "completed",
             "terminal_batch_counts": {"successful": successful, "failed": failed},
+            "last_progress": completed_progress,
         })
         self._set_status(
             project_id,
@@ -284,6 +292,7 @@ class ContextWorkflowStatusService:
             failed_batches=failed,
             error=None,
             checkpoint=checkpoint,
+            progress=completed_progress,
             **result,
         )
         self._save_checkpoint(task_id, checkpoint)
@@ -291,7 +300,7 @@ class ContextWorkflowStatusService:
             task_id,
             status="completed",
             message="Context analysis completed.",
-            progress=self._progress(checkpoint, current=100, total=100, percent=100, stage="Completed"),
+            progress=completed_progress,
             summary=result,
             fields={"stage_code": "completed"},
         )
@@ -306,6 +315,10 @@ class ContextWorkflowStatusService:
     ) -> None:
         message = str(error) or error.__class__.__name__
         checkpoint = self._checkpoint(project_id)
+        last_progress = _copy(
+            checkpoint.get("metadata", {}).get("last_progress")
+            or self._progress(checkpoint)
+        )
         successful, failed = self._terminal_batch_counts(checkpoint)
         failed_stage = checkpoint.get("stage")
         checkpoint.update({"available": True, "stage": "failed"})
@@ -325,13 +338,14 @@ class ContextWorkflowStatusService:
             failed_batches=failed,
             error=message,
             checkpoint=checkpoint,
+            progress={**last_progress, "stage": "Failed"},
         )
         self._save_checkpoint(task_id, checkpoint)
         self.update_task(
             task_id,
             status="failed",
             message=message,
-            progress=self._progress(checkpoint, stage="Failed"),
+            progress={**last_progress, "stage": "Failed"},
             fields={
                 "stage_code": "failed",
                 "attention_reason": message,
@@ -380,6 +394,8 @@ class ContextWorkflowStatusService:
     ) -> None:
         checkpoint["stage"] = stage
         checkpoint["updated_at"] = _now()
+        progress = self._progress(checkpoint, current=current_batch, total=total_batches)
+        checkpoint.setdefault("metadata", {})["last_progress"] = progress
         self._set_status(
             project_id,
             status="running",
@@ -390,11 +406,12 @@ class ContextWorkflowStatusService:
             failed_batches=failed_batches,
             conflict_review_count=conflict_review_count,
             checkpoint=checkpoint,
+            progress=progress,
         )
         self._save_checkpoint(task_id, checkpoint)
         self.update_task(
             task_id,
-            progress=self._progress(checkpoint, current=current_batch, total=total_batches),
+            progress=progress,
             fields={"stage_code": stage},
             push=False,
         )
@@ -426,7 +443,15 @@ class ContextWorkflowStatusService:
                     if resume_supported
                     else "inspection_only_until_batch_adapters_are_resumable"
                 ),
-                "stages": {},
+                "stages": {
+                    "extracting": {
+                        "total_batches": max(0, total_batches),
+                        "successful_batch_ids": [],
+                        "failed_batch_ids": [],
+                        "batches": {},
+                        "source_item_ids": [],
+                    },
+                },
             },
         }
 
@@ -482,10 +507,22 @@ class ContextWorkflowStatusService:
         current_value = int(current if current is not None else cls._current_batch(checkpoint))
         successful = len(record.get("successful_batch_ids") or [])
         failed = len(record.get("failed_batch_ids") or [])
+        workflow_stage = str(checkpoint.get("stage") or "")
+        if percent is None:
+            if workflow_stage == "completed":
+                percent = 100
+            elif workflow_stage == "failed":
+                percent = int((metadata.get("last_progress") or {}).get("percent") or 0)
+            elif workflow_stage in cls.WORKFLOW_STAGE_ORDER:
+                stage_index = cls.WORKFLOW_STAGE_ORDER.index(workflow_stage)
+                stage_fraction = current_value / total_value if total_value else 0.0
+                percent = min(99, int((stage_index + stage_fraction) / len(cls.WORKFLOW_STAGE_ORDER) * 100))
+            else:
+                percent = 0
         return {
             "current": current_value,
             "total": total_value,
-            "percent": percent if percent is not None else (int(current_value / total_value * 100) if total_value else 0),
+            "percent": percent,
             "current_batch": current_value,
             "total_batches": total_value,
             "successful_batches": successful,

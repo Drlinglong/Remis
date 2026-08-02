@@ -100,6 +100,19 @@ describe('Mod Archive contracts', () => {
         });
     });
 
+    it('keeps overall workflow percent separate from current-stage batches', () => {
+        expect(normalizeAnalysisStatus({
+            status: 'running',
+            current_batch: 6,
+            total_batches: 6,
+            progress: { current_batch: 6, total_batches: 6, percent: 25 },
+        })).toMatchObject({
+            currentBatch: 6,
+            totalBatches: 6,
+            overallPercent: 25,
+        });
+    });
+
     it('keeps effective overrides and provenance labels available to presentation', () => {
         const effective = {
             effective_context: {

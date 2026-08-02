@@ -72,8 +72,8 @@ const ModArchiveAnalysisSetup = ({ controller }) => {
     const progressTotal = status?.totalBatches || status?.currentBatch
         ? status.totalBatches
         : status?.totalFiles;
-    const progressValue = progressTotal
-        ? Math.min(100, (progressCurrent / progressTotal) * 100)
+    const progressValue = Number.isFinite(status?.overallPercent)
+        ? Math.min(100, Math.max(0, status.overallPercent))
         : 0;
     const provider = providers.find((item) => item.value === apiProvider);
 

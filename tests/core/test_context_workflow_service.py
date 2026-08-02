@@ -182,12 +182,10 @@ class FakeHandler:
         return json.dumps({
             "syntheses": [
                 {
-                    "aggregate_id": aggregate["aggregate_id"],
-                    "context_key": aggregate["context_key"],
-                    "summary": f"Grounded summary for {aggregate['context_key']}.",
-                    "evidence_source_item_ids": [
-                        contribution["source_items"][0]["source_item_id"]
-                        for contribution in aggregate["contributions"]
+                    "aggregate_alias": aggregate["aggregate_alias"],
+                    "summary": f"Grounded summary for {aggregate['aggregate_type']}.",
+                    "evidence_aliases": [
+                        aggregate["source_items"][0]["evidence_alias"]
                     ],
                 }
                 for aggregate in request["aggregates"]
@@ -626,6 +624,50 @@ def test_failed_checkpoint_preserves_prior_success_without_claiming_resume():
     assert status["checkpoint"]["resume_supported"] is False
 
 
+def test_context_progress_separates_current_stage_from_overall_workflow():
+    task_backend = FakeTaskBackend()
+    status_service = ContextWorkflowStatusService(
+        task_backend, checkpoint_port=FakeCheckpointPort(),
+    )
+    status_service.mark_running(
+        "project-1", "task-1", AnalysisScope.NARRATIVE_CONTEXT,
+        total_files=1, source_snapshot_hash="snapshot-1",
+        source_items=339, total_batches=6,
+    )
+
+    for index in range(1, 7):
+        status_service.record_batch(
+            "project-1", "task-1", "extracting", f"extracting:{index}",
+            success=True, source_item_ids=[f"source-{index}"],
+        )
+
+    extracting = status_service.get_status("project-1")
+    assert extracting["current_batch"] == 6
+    assert extracting["total_batches"] == 6
+    assert extracting["progress"]["percent"] == 25
+
+    status_service.begin_stage("project-1", "task-1", "reviewing", 1)
+    status_service.record_batch(
+        "project-1", "task-1", "reviewing", "reviewing:1", success=True,
+    )
+    status_service.begin_stage("project-1", "task-1", "synthesizing", 2)
+    status_service.record_batch(
+        "project-1", "task-1", "synthesizing", "synthesizing:1",
+        success=False, error="invalid json",
+    )
+    status_service.mark_failed(
+        "project-1", "task-1", 1, 0, RuntimeError("invalid json"),
+    )
+
+    failed = status_service.get_status("project-1")
+    assert failed["status"] == "failed"
+    assert failed["progress"]["percent"] == 62
+    assert failed["checkpoint"]["metadata"]["failed_stage"] == "synthesizing"
+    stages = failed["checkpoint"]["metadata"]["stages"]
+    assert len(stages["extracting"]["successful_batch_ids"]) == 6
+    assert len(stages["reviewing"]["successful_batch_ids"]) == 1
+
+
 def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp_path):
     root = tmp_path / "mod"
     root.mkdir()
@@ -700,9 +742,9 @@ def test_synthesis_repairs_at_most_once():
                 return "not-json"
             return json.dumps({
                 "syntheses": [{
-                    "aggregate_id": "aggregate-1", "context_key": "entity:republic",
+                    "aggregate_alias": "a0",
                     "summary": "The Republic appoints a consul.",
-                    "evidence_source_item_ids": ["source-1"],
+                    "evidence_aliases": ["e0"],
                 }]
             })
 
@@ -712,7 +754,130 @@ def test_synthesis_repairs_at_most_once():
     )
 
     assert len(handler.calls) == 2
+    assert len(handler.calls[1]) == 3
+    assert handler.calls[1][-1]["role"] == "user"
+    assert handler.calls[1][-1]["content"].endswith("Invalid response excerpt: not-json")
     assert result[0].content["evidence_source_item_ids"] == ["source-1"]
+
+
+def test_synthesis_keeps_real_ids_out_of_model_contract_and_maps_aliases_back():
+    source_id = "source-item-0d4f2ecb-0d99-4d48-a29d-8cf44f6d06f7"
+    aggregate_id = "aggregate-29a013eb-8770-40ef-81e3-601ec7044fad"
+    context_key = "entity:the-trickster:internal-context-key"
+    source = ContextSourceItem(
+        source_item_id=source_id, project_id="project-1", source_type="localization",
+        source_ref="main.yml::0:key", content="The Trickster deceives the council.",
+        content_hash="hash-1",
+    )
+    contribution = ContextContribution(
+        contribution_id="contribution-with-another-long-internal-id",
+        source_item_id=source_id,
+        contribution_type="fact",
+        subject_key=context_key,
+        payload={
+            "subject": "The Trickster",
+            "predicate": "deceives",
+            "object": "the council",
+            "evidence": [{"source_item_id": source_id}],
+        },
+        provenance="text_inferred",
+    )
+    aggregate = ContextAggregate(
+        aggregate_id=aggregate_id, project_id="project-1", aggregate_type="entity",
+        aggregate_key=context_key, contribution_ids=[contribution.contribution_id],
+    )
+
+    class AliasHandler:
+        def __init__(self):
+            self.messages = None
+            self.schema = None
+
+        def generate_structured_with_messages(
+            self, messages, *, schema, schema_name, temperature=0.0,
+        ):
+            self.messages = messages
+            self.schema = schema
+            request = json.loads(messages[-1]["content"])
+            item = request["aggregates"][0]
+            return json.dumps({
+                "syntheses": [{
+                    "aggregate_alias": item["aggregate_alias"],
+                    "summary": "The Trickster deceives the council.",
+                    "evidence_aliases": [item["source_items"][0]["evidence_alias"]],
+                }]
+            })
+
+    handler = AliasHandler()
+    result = ContextSynthesisService(handler).synthesize(
+        [aggregate], {contribution.contribution_id: contribution}, {source_id: source},
+    )
+
+    model_contract = json.dumps(
+        {"messages": handler.messages, "schema": handler.schema}, ensure_ascii=False,
+    )
+    assert aggregate_id not in model_contract
+    assert context_key not in model_contract
+    assert source_id not in model_contract
+    assert contribution.contribution_id not in model_contract
+    assert result[0].aggregate_id == aggregate_id
+    assert result[0].context_key == context_key
+    assert result[0].content["evidence_source_item_ids"] == [source_id]
+
+
+def test_synthesis_bisects_truncated_batch_without_replaying_large_fragment():
+    source = ContextSourceItem(
+        source_item_id="source-1", project_id="project-1", source_type="localization",
+        source_ref="main.yml::0:key", content="The Trickster deceives the council.",
+        content_hash="hash-1",
+    )
+    contribution = ContextContribution(
+        contribution_id="contribution-1", source_item_id=source.source_item_id,
+        contribution_type="fact", subject_key="entity:the-trickster",
+        payload={"evidence": [{"source_item_id": source.source_item_id}]},
+        provenance="text_inferred",
+    )
+    aggregates = [
+        ContextAggregate(
+            aggregate_id=f"aggregate-{index}", project_id="project-1",
+            aggregate_type="entity", aggregate_key=f"entity:the-trickster:{index}",
+            contribution_ids=[contribution.contribution_id],
+        )
+        for index in range(4)
+    ]
+
+    class TruncatingHandler:
+        TRUNCATED_FRAGMENT = "unfinished-output-fragment" * 300
+
+        def __init__(self):
+            self.calls = []
+
+        def generate_with_messages(self, messages, temperature=0.0):
+            self.calls.append(messages)
+            request = json.loads(messages[-1]["content"])
+            if len(request["aggregates"]) > 1:
+                return '{"syntheses":[{"aggregate_alias":"a0","summary":"' + self.TRUNCATED_FRAGMENT
+            aggregate = request["aggregates"][0]
+            return json.dumps({
+                "syntheses": [{
+                    "aggregate_alias": aggregate["aggregate_alias"],
+                    "summary": "Grounded Trickster summary.",
+                    "evidence_aliases": [aggregate["source_items"][0]["evidence_alias"]],
+                }]
+            })
+
+    handler = TruncatingHandler()
+    result = ContextSynthesisService(handler).synthesize(
+        aggregates,
+        {contribution.contribution_id: contribution},
+        {source.source_item_id: source},
+    )
+
+    assert len(handler.calls) == 7
+    assert [item.aggregate_id for item in result] == [item.aggregate_id for item in aggregates]
+    assert all(
+        TruncatingHandler.TRUNCATED_FRAGMENT[:100] not in json.dumps(messages)
+        for messages in handler.calls
+    )
 
 
 def test_synthesis_batches_large_aggregate_sets():
@@ -741,4 +906,40 @@ def test_synthesis_batches_large_aggregate_sets():
     )
 
     assert len(handler.calls) == 2
+    assert [item.aggregate_id for item in result] == [item.aggregate_id for item in aggregates]
+
+
+def test_synthesis_batches_by_payload_budget_before_count_cap():
+    sources = {}
+    contributions = {}
+    aggregates = []
+    for index in range(3):
+        source = ContextSourceItem(
+            source_item_id=f"source-{index}", project_id="project-1",
+            source_type="localization", source_ref=f"main.yml::{index}:key",
+            content="Grounded evidence. " * 1000, content_hash=f"hash-{index}",
+        )
+        contribution = ContextContribution(
+            contribution_id=f"contribution-{index}", source_item_id=source.source_item_id,
+            contribution_type="fact", subject_key=f"entity:{index}",
+            payload={"evidence": [{"source_item_id": source.source_item_id}]},
+            provenance="text_inferred",
+        )
+        aggregate = ContextAggregate(
+            aggregate_id=f"aggregate-{index}", project_id="project-1",
+            aggregate_type="entity", aggregate_key=f"entity:{index}",
+            contribution_ids=[contribution.contribution_id],
+        )
+        sources[source.source_item_id] = source
+        contributions[contribution.contribution_id] = contribution
+        aggregates.append(aggregate)
+    handler = FakeHandler()
+
+    result = ContextSynthesisService(handler).synthesize(aggregates, contributions, sources)
+
+    assert len(handler.calls) == 2
+    assert all(
+        len(json.loads(messages[-1]["content"])["aggregates"]) < len(aggregates)
+        for messages in handler.calls
+    )
     assert [item.aggregate_id for item in result] == [item.aggregate_id for item in aggregates]
