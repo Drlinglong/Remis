@@ -37,10 +37,49 @@ from scripts.schemas.context import (
 from scripts.shared import task_state
 
 
+class _ReviewProgressMiner:
+    """Keep candidate-adapter review calls observable without changing its API."""
+
+    def __init__(self, miner: Any, on_batch: Callable[..., None]):
+        self._miner = miner
+        self._on_batch = on_batch
+        self._batch_number = 0
+
+    @property
+    def batch_count(self) -> int:
+        return self._batch_number
+
+    def review_terms(self, candidates: Sequence[dict[str, Any]], **kwargs: Any) -> Any:
+        self._batch_number += 1
+        batch_id = f"reviewing:{self._batch_number}"
+        try:
+            result = self._miner.review_terms(candidates, **kwargs)
+        except Exception as exc:
+            self._on_batch(
+                batch_id,
+                success=False,
+                conflict_review_count=len(candidates),
+                error=str(exc),
+            )
+            raise
+        self._on_batch(
+            batch_id,
+            success=True,
+            conflict_review_count=len(candidates),
+        )
+        return result
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._miner, name)
+
+
 class ContextWorkflowService:
     """Own the maintained scan workflow while keeping domain ports injectable."""
 
-    CHUNK_SIZE = 16
+    DEFAULT_MAX_ITEMS = 64
+    MAX_ITEMS_LIMIT = 80
+    DEFAULT_MAX_SOURCE_CHARS = 12000
+    CHUNK_SIZE = DEFAULT_MAX_ITEMS
     REVIEW_BATCH_SIZE = ContextCandidateAdapter.REVIEW_BATCH_SIZE
     SCHEMA_VERSION = "context-v1"
     PROMPT_VERSION = "context-synthesis-v3"
@@ -114,27 +153,44 @@ class ContextWorkflowService:
             snapshot = self.source_parser.build_snapshot(parsed_files, self.snapshot_service)
             parent = self._latest_release(project_id) if scope is AnalysisScope.NARRATIVE_CONTEXT else None
             diff = self._source_diff(parent, snapshot)
-            self._running(project_id, task_id, scope, parsed_files, snapshot, diff)
+            source_items = [item for source_file in parsed_files for item in source_file.items]
+            chunk_config = self._chunk_config(analysis_config)
+            chunks = list(self._chunks(source_items, **chunk_config))
+            workflow_context = self._workflow_context(
+                scope,
+                api_provider,
+                model_name,
+                source_lang,
+                target_lang,
+                effective_description_language,
+                len(source_items),
+                chunk_config,
+            )
+            self._running(
+                project_id,
+                task_id,
+                scope,
+                parsed_files,
+                snapshot,
+                diff,
+                source_items=len(source_items),
+                total_batches=len(chunks),
+                workflow_context=workflow_context,
+            )
             handler = self.handler_factory(api_provider, model_name=model_name)
             miner = self.miner_factory(handler)
-            extractions = self._extract(miner, parsed_files, scope, game_name, task_id)
+            extractions = self._extract(miner, chunks, scope, game_name, project_id, task_id)
             terms_result = self._finish_terms_only(
                 project_id, parsed_files, extractions, miner, duplicate_index or {},
-                source_lang, target_lang, game_name, effective_description_language,
+                source_lang, target_lang, game_name, effective_description_language, task_id,
             )
             if scope is AnalysisScope.TERMS_ONLY:
                 result = terms_result
             else:
-                self._task_update(
-                    task_id,
-                    progress={"stage": "Synthesizing"},
-                    fields={"stage_code": "synthesizing"},
-                    push=True,
-                )
                 result = self._finish_context(
                     project_id, parsed_files, snapshot, diff, parent, extractions,
                     handler, api_provider, model_name, upstream_version, analysis_config,
-                    effective_description_language,
+                    effective_description_language, chunk_config, task_id,
                 )
                 result.update({"new_terms": terms_result["new_terms"], "duplicate_terms": terms_result["duplicate_terms"]})
             self._complete(project_id, task_id, result, len(parsed_files))
@@ -146,20 +202,37 @@ class ContextWorkflowService:
     def _extract(
         self,
         miner: Any,
-        parsed_files: Sequence[ParsedSourceFile],
+        chunks: Sequence[Sequence[SourceItem]],
         scope: AnalysisScope,
         game_name: str,
+        project_id: str,
         task_id: str | None,
     ) -> list[StructuredNeologismExtraction]:
-        chunks = list(self._chunks(item for source_file in parsed_files for item in source_file.items))
         results: list[StructuredNeologismExtraction] = []
         for index, chunk in enumerate(chunks, start=1):
-            results.append(miner.extract_structured(list(chunk), scope=scope, game_name=game_name))
-            self._task_update(
+            batch_id = f"extracting:{index}"
+            source_item_ids = [item.source_item_id for item in chunk]
+            try:
+                result = miner.extract_structured(list(chunk), scope=scope, game_name=game_name)
+            except Exception as exc:
+                self.status_service.record_batch(
+                    project_id,
+                    task_id,
+                    "extracting",
+                    batch_id,
+                    success=False,
+                    source_item_ids=source_item_ids,
+                    error=str(exc),
+                )
+                raise
+            results.append(result)
+            self.status_service.record_batch(
+                project_id,
                 task_id,
-                progress={"current_batch": index, "total_batches": len(chunks), "stage": "Extracting"},
-                fields={"stage_code": "extracting"},
-                push=False,
+                "extracting",
+                batch_id,
+                success=True,
+                source_item_ids=source_item_ids,
             )
         return results
 
@@ -174,18 +247,26 @@ class ContextWorkflowService:
         target_lang: str,
         game_name: str,
         review_language: str,
+        task_id: str | None,
     ) -> dict[str, Any]:
-        return self.candidate_adapter.process_terms(
-            project_id,
-            parsed_files,
-            extractions,
+        self.status_service.begin_stage(project_id, task_id, "reviewing", 0)
+        review_miner = _ReviewProgressMiner(
             miner,
-            duplicate_index,
-            source_lang,
-            target_lang,
-            game_name,
-            review_language,
+            lambda batch_id, **details: self.status_service.record_batch(
+                project_id, task_id, "reviewing", batch_id, **details
+            ),
         )
+        result = self.candidate_adapter.process_terms(
+            project_id, parsed_files, extractions, review_miner, duplicate_index,
+            source_lang, target_lang, game_name, review_language,
+        )
+        self.status_service.complete_stage(
+            project_id,
+            task_id,
+            "reviewing",
+            skipped=review_miner.batch_count == 0,
+        )
+        return result
 
     def _finish_context(
         self,
@@ -201,6 +282,8 @@ class ContextWorkflowService:
         upstream_version: str | None,
         analysis_config: dict[str, Any] | None,
         description_language: str,
+        chunk_config: dict[str, int],
+        task_id: str | None,
     ) -> dict[str, Any]:
         sources = self._persist_sources(project_id, parsed_files, snapshot.source_snapshot_hash)
         contributions = self._persist_contributions(extractions, sources)
@@ -215,19 +298,41 @@ class ContextWorkflowService:
         aggregates = self._build_aggregates(project_id, contributions)
         for aggregate in aggregates:
             self.repository.save_aggregate(aggregate)
-        syntheses = self.synthesizer_factory(handler).synthesize(
-            aggregates,
-            contributions,
-            sources,
-            description_language,
+        source_item_ids = list(sources)
+        self.status_service.begin_stage(project_id, task_id, "synthesizing", 1, source_item_ids=source_item_ids)
+        try:
+            syntheses = self.synthesizer_factory(handler).synthesize(
+                aggregates, contributions, sources, description_language,
+            )
+        except Exception as exc:
+            self.status_service.record_batch(
+                project_id, task_id, "synthesizing", "synthesizing:1",
+                success=False, source_item_ids=source_item_ids, error=str(exc),
+            )
+            raise
+        self.status_service.record_batch(
+            project_id, task_id, "synthesizing", "synthesizing:1",
+            success=True, source_item_ids=source_item_ids,
         )
         metadata = self._metadata(
             snapshot, parsed_files, diff, parent, api_provider, model_name,
-            upstream_version, analysis_config, description_language,
+            upstream_version, analysis_config, description_language, chunk_config,
         )
+        self.status_service.begin_stage(project_id, task_id, "publishing", 1, source_item_ids=source_item_ids)
         draft = self.context_service.start_draft(project_id, parent.release_id if parent else None)
-        release = self.context_service.publish_draft(
-            draft.draft_id, metadata, [item.aggregate_id for item in aggregates], syntheses
+        try:
+            release = self.context_service.publish_draft(
+                draft.draft_id, metadata, [item.aggregate_id for item in aggregates], syntheses
+            )
+        except Exception as exc:
+            self.status_service.record_batch(
+                project_id, task_id, "publishing", "publishing:1",
+                success=False, source_item_ids=source_item_ids, error=str(exc),
+            )
+            raise
+        self.status_service.record_batch(
+            project_id, task_id, "publishing", "publishing:1",
+            success=True, source_item_ids=source_item_ids,
         )
         return {
             "analysis_scope": AnalysisScope.NARRATIVE_CONTEXT.value,
@@ -340,11 +445,13 @@ class ContextWorkflowService:
         upstream_version: str | None,
         analysis_config: dict[str, Any] | None,
         description_language: str,
+        chunk_config: dict[str, int],
     ) -> ContextReleaseMetadata:
         config = dict(analysis_config or {})
         config.update({
             "reuse_strategy": "full_reextract",
             "description_language": description_language,
+            "chunking": dict(chunk_config),
             "source_items": [
                 {
                     "relative_path": item.identity.relative_path,
@@ -399,20 +506,156 @@ class ContextWorkflowService:
         releases = self.repository.list_releases(project_id)
         return releases[0] if releases else None
 
+    @classmethod
+    def _chunk_config(cls, analysis_config: dict[str, Any] | None) -> dict[str, int]:
+        config = analysis_config or {}
+        return {
+            "max_items": cls._safe_int(config.get("max_items"), cls.DEFAULT_MAX_ITEMS, 1, cls.MAX_ITEMS_LIMIT),
+            "max_source_chars": cls._safe_int(
+                config.get("max_source_chars"), cls.DEFAULT_MAX_SOURCE_CHARS, 1, 200000,
+            ),
+        }
+
     @staticmethod
-    def _chunks(items: Iterable[SourceItem]) -> Iterable[tuple[SourceItem, ...]]:
+    def _safe_int(value: Any, default: int, minimum: int, maximum: int) -> int:
+        try:
+            candidate = int(value)
+        except (TypeError, ValueError):
+            return default
+        return candidate if minimum <= candidate <= maximum else default
+
+    @staticmethod
+    def _workflow_context(
+        scope: AnalysisScope,
+        provider: str,
+        model: str | None,
+        source_lang: str,
+        target_lang: str,
+        description_language: str,
+        source_items: int,
+        chunk_config: dict[str, int],
+    ) -> dict[str, Any]:
+        return {
+            "analysis_scope": scope.value,
+            "scope": scope.value,
+            "provider": provider,
+            "model": model or f"{provider}-default",
+            "source_lang": source_lang,
+            "target_lang": target_lang,
+            "target": target_lang,
+            "description_language": description_language,
+            "description": description_language,
+            "source_items": source_items,
+            "chunking": dict(chunk_config),
+        }
+
+    @classmethod
+    def _chunks(
+        cls,
+        items: Iterable[SourceItem],
+        *,
+        max_items: int | None = None,
+        max_source_chars: int | None = None,
+        grouping_key: Callable[[SourceItem], str] | None = None,
+    ) -> Iterable[tuple[SourceItem, ...]]:
+        item_limit = max_items or cls.DEFAULT_MAX_ITEMS
+        char_limit = max_source_chars or cls.DEFAULT_MAX_SOURCE_CHARS
+        if not 1 <= item_limit <= cls.MAX_ITEMS_LIMIT:
+            raise ValueError(f"max_items must be between 1 and {cls.MAX_ITEMS_LIMIT}")
+        if char_limit < 1:
+            raise ValueError("max_source_chars must be positive")
+        key_function = grouping_key or cls._grouping_key
         current: list[SourceItem] = []
-        for item in items:
-            current.append(item)
-            if len(current) >= ContextWorkflowService.CHUNK_SIZE:
+        current_chars = 0
+        for group in cls._contiguous_groups(items, key_function):
+            group_chars = sum(len(item.source_text) for item in group)
+            if len(group) > item_limit or group_chars > char_limit or any(
+                len(item.source_text) > char_limit for item in group
+            ):
+                if current:
+                    yield tuple(current)
+                    current = []
+                    current_chars = 0
+                yield from cls._pack_group(group, item_limit, char_limit)
+                continue
+            if current and (
+                len(current) + len(group) > item_limit
+                or current_chars + group_chars > char_limit
+            ):
                 yield tuple(current)
                 current = []
+                current_chars = 0
+            current.extend(group)
+            current_chars += group_chars
         if current:
             yield tuple(current)
+
+    @classmethod
+    def _contiguous_groups(
+        cls,
+        items: Iterable[SourceItem],
+        grouping_key: Callable[[SourceItem], str],
+    ) -> Iterable[tuple[SourceItem, ...]]:
+        group: list[SourceItem] = []
+        previous_key: str | None = None
+        for item in items:
+            current_key = grouping_key(item)
+            if group and current_key != previous_key:
+                yield tuple(group)
+                group = []
+            group.append(item)
+            previous_key = current_key
+        if group:
+            yield tuple(group)
+
+    @staticmethod
+    def _pack_group(
+        group: Sequence[SourceItem], item_limit: int, char_limit: int,
+    ) -> Iterable[tuple[SourceItem, ...]]:
+        current: list[SourceItem] = []
+        current_chars = 0
+        for item in group:
+            item_chars = len(item.source_text)
+            if current and (len(current) >= item_limit or current_chars + item_chars > char_limit):
+                yield tuple(current)
+                current = []
+                current_chars = 0
+            if item_chars > char_limit:
+                if current:
+                    yield tuple(current)
+                    current = []
+                    current_chars = 0
+                yield (item,)
+                continue
+            current.append(item)
+            current_chars += item_chars
+            if len(current) >= item_limit or current_chars >= char_limit:
+                yield tuple(current)
+                current = []
+                current_chars = 0
+        if current:
+            yield tuple(current)
+
+    @staticmethod
+    def _grouping_key(item: SourceItem) -> str:
+        """Group adjacent event/name/description/options keys without reordering."""
+        raw_key = (item.item_key or "").split(":", 1)[0].strip().casefold()
+        segments = [segment for segment in raw_key.split(".") if segment]
+        if len(segments) >= 3:
+            family = ".".join(segments[:2])
+        elif len(segments) == 2:
+            family = segments[0]
+        else:
+            family = raw_key
+        return f"{item.relative_path.casefold()}::{family}"
 
     def _running(
         self, project_id: str, task_id: str | None, scope: AnalysisScope,
         parsed_files: Sequence[ParsedSourceFile], snapshot: SourceSnapshot, diff: Any,
+        *,
+        source_items: int,
+        total_batches: int,
+        workflow_context: dict[str, Any],
     ) -> None:
         self.status_service.mark_running(
             project_id,
@@ -420,7 +663,10 @@ class ContextWorkflowService:
             scope,
             len(parsed_files),
             snapshot.source_snapshot_hash,
-            self._affected_items(diff),
+            self._affected_items(diff) if scope is AnalysisScope.NARRATIVE_CONTEXT else None,
+            source_items=source_items,
+            total_batches=total_batches,
+            workflow_context=workflow_context,
         )
 
     def _complete(self, project_id: str, task_id: str | None, result: dict[str, Any], total_files: int) -> None:

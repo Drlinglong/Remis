@@ -18,6 +18,7 @@ from scripts.core.loc_parser import parse_loc_file
 from scripts.core.services.context_source_parser import ContextSourceParser
 from scripts.core.services.context_synthesis_service import ContextSynthesisService
 from scripts.core.services.context_workflow_service import ContextWorkflowService
+from scripts.core.services.context_workflow_status_service import ContextWorkflowStatusService
 from scripts.core.services.initial_translation_task_service import _build_source_entries
 from scripts.schemas.context import (
     ContextAggregate,
@@ -44,6 +45,20 @@ class FakeTaskBackend:
 
     def update_task(self, task_id, **payload):
         self.updates.append((task_id, payload))
+
+
+class FakeCheckpointPort:
+    def __init__(self):
+        self.saved = []
+
+    def save_checkpoint(self, task_id, checkpoint):
+        self.saved.append((task_id, checkpoint))
+
+    def load_checkpoint(self, task_id):
+        for saved_task_id, checkpoint in reversed(self.saved):
+            if saved_task_id == task_id:
+                return checkpoint
+        return None
 
 
 class FakeRepository:
@@ -223,7 +238,88 @@ def test_context_extraction_chunks_bound_structured_model_output():
     chunks = list(ContextWorkflowService._chunks(items))
 
     assert [len(chunk) for chunk in chunks] == [ContextWorkflowService.CHUNK_SIZE, 1]
-    assert ContextWorkflowService.CHUNK_SIZE == 16
+    assert ContextWorkflowService.CHUNK_SIZE == 64
+
+
+def test_context_chunks_use_item_and_source_character_budgets():
+    items = [
+        SourceItem(
+            source_item_id=f"item-{index}",
+            relative_path="localisation/english/main.yml",
+            item_key=f"key_{index}:0",
+            source_order=index,
+            source_text="x" * 6,
+        )
+        for index in range(4)
+    ]
+
+    chunks = list(ContextWorkflowService._chunks(items, max_items=3, max_source_chars=13))
+
+    assert [len(chunk) for chunk in chunks] == [2, 2]
+    assert [sum(len(item.source_text) for item in chunk) for chunk in chunks] == [12, 12]
+
+
+def test_context_chunks_keep_an_oversized_source_item_isolated():
+    items = [
+        SourceItem(
+            source_item_id="short",
+            relative_path="main.yml",
+            item_key="short:0",
+            source_order=0,
+            source_text="short",
+        ),
+        SourceItem(
+            source_item_id="long",
+            relative_path="main.yml",
+            item_key="long:0",
+            source_order=1,
+            source_text="l" * 20,
+        ),
+        SourceItem(
+            source_item_id="tail",
+            relative_path="main.yml",
+            item_key="tail:0",
+            source_order=2,
+            source_text="tail",
+        ),
+    ]
+
+    chunks = list(ContextWorkflowService._chunks(items, max_items=80, max_source_chars=10))
+
+    assert [[item.source_item_id for item in chunk] for chunk in chunks] == [
+        ["short"], ["long"], ["tail"]
+    ]
+
+
+def test_context_chunks_keep_adjacent_event_key_family_together_until_budget():
+    def item(item_id, key):
+        return SourceItem(
+            source_item_id=item_id,
+            relative_path="localisation/english/events.yml",
+            item_key=f"{key}:0",
+            source_order=0,
+            source_text=item_id,
+        )
+
+    items = [
+        item("event-name", "event.7130.name"),
+        item("event-desc", "event.7130.desc"),
+        item("event-options", "event.7130.options"),
+        item("next", "event.7131.name"),
+    ]
+
+    chunks = list(ContextWorkflowService._chunks(items, max_items=3, max_source_chars=1000))
+
+    assert [[item.source_item_id for item in chunk] for chunk in chunks] == [
+        ["event-name", "event-desc", "event-options"], ["next"]
+    ]
+    assert chunks[0][0].item_key == "event.7130.name:0"
+
+
+def test_context_chunk_config_rejects_unsafe_item_override_and_records_safe_budget():
+    config = ContextWorkflowService._chunk_config({"max_items": 0, "max_source_chars": "bad"})
+
+    assert config == {"max_items": 64, "max_source_chars": 12000}
 
 
 def test_source_parser_preserves_utf8_key_order_and_normalized_path(tmp_path):
@@ -290,6 +386,124 @@ def test_terms_only_uses_one_extraction_call_and_creates_no_release(tmp_path):
     assert len(miner.calls) == 1
     assert len(candidate_store.items) == 1
     assert any(update[1].get("status") == "completed" for update in task_backend.updates)
+
+
+def test_terms_only_status_projects_configuration_and_inspection_checkpoint(tmp_path):
+    root = tmp_path / "mod"
+    root.mkdir()
+    source = root / "main.yml"
+    source.write_text('l_english:\n key:0 "The Republic appoints a consul."\n', encoding="utf-8")
+    task_backend = FakeTaskBackend()
+    checkpoint_port = FakeCheckpointPort()
+    status_service = ContextWorkflowStatusService(
+        task_backend,
+        checkpoint_port=checkpoint_port,
+    )
+    service = ContextWorkflowService(
+        FakeRepository(),
+        handler_factory=lambda *args, **kwargs: FakeHandler(),
+        candidate_store=FakeCandidateStore(),
+        task_backend=task_backend,
+        status_service=status_service,
+        miner_factory=FakeMiner,
+        context_service=FakeContextService(FakeRepository()),
+    )
+
+    service.run(
+        "project-1", [str(source)], str(root), "local", task_id="task-1",
+        model_name="local-model", target_lang="ja", description_language="zh-CN",
+        analysis_config={"max_items": 2},
+    )
+
+    status = service.get_status("project-1")
+    assert status["status"] == "completed"
+    assert status["source_items"] == 1
+    assert status["provider"] == "local"
+    assert status["model"] == "local-model"
+    assert status["target_lang"] == "ja"
+    assert status["description_language"] == "zh-CN"
+    assert "affected_source_items" not in status
+    assert status["checkpoint"]["resume_supported"] is False
+    assert status["checkpoint"]["metadata"]["source_items"] == 1
+    assert checkpoint_port.saved
+    assert any(
+        batch_id == "extracting:1"
+        for batch_id in status["checkpoint"]["metadata"]["stages"]["extracting"]["successful_batch_ids"]
+    )
+
+
+def test_review_stage_can_be_skipped_without_fabricating_conflicts(tmp_path):
+    root = tmp_path / "mod"
+    root.mkdir()
+    source = root / "main.yml"
+    source.write_text('l_english:\n key:0 "The Republic appoints a consul."\n', encoding="utf-8")
+
+    class NoReviewAdapter:
+        def process_terms(self, project_id, parsed_files, extractions, miner, *args):
+            return {
+                "analysis_scope": "terms_only",
+                "new_terms": 0,
+                "duplicate_terms": 0,
+                "context_release_id": None,
+            }
+
+    service = ContextWorkflowService(
+        FakeRepository(),
+        handler_factory=lambda *args, **kwargs: FakeHandler(),
+        candidate_store=FakeCandidateStore(),
+        task_backend=FakeTaskBackend(),
+        candidate_adapter=NoReviewAdapter(),
+        miner_factory=FakeMiner,
+        context_service=FakeContextService(FakeRepository()),
+    )
+
+    service.run("project-1", [str(source)], str(root), "local", task_id="task-1")
+
+    status = service.get_status("project-1")
+    review = status["checkpoint"]["metadata"]["stages"]["reviewing"]
+    assert review["skipped"] is True
+    assert status["conflict_review_count"] == 0
+
+
+def test_failed_checkpoint_preserves_prior_success_without_claiming_resume():
+    task_backend = FakeTaskBackend()
+    checkpoint_port = FakeCheckpointPort()
+    status_service = ContextWorkflowStatusService(task_backend, checkpoint_port=checkpoint_port)
+
+    status_service.mark_running(
+        "project-1",
+        "task-1",
+        AnalysisScope.TERMS_ONLY,
+        total_files=1,
+        source_snapshot_hash="snapshot-1",
+        source_items=2,
+        total_batches=2,
+        workflow_context={
+            "analysis_scope": "terms_only",
+            "provider": "local",
+            "model": "local-model",
+            "target_lang": "zh-CN",
+            "description_language": "en",
+        },
+    )
+    status_service.record_batch(
+        "project-1", "task-1", "extracting", "extracting:1",
+        success=True, source_item_ids=["source-1"],
+    )
+    status_service.record_batch(
+        "project-1", "task-1", "extracting", "extracting:2",
+        success=False, source_item_ids=["source-2"], error="provider timeout",
+    )
+    status_service.mark_failed("project-1", "task-1", 1, 0, RuntimeError("provider timeout"))
+
+    status = status_service.get_status("project-1")
+    extracting = status["checkpoint"]["metadata"]["stages"]["extracting"]
+    assert extracting["successful_batch_ids"] == ["extracting:1"]
+    assert extracting["failed_batch_ids"] == ["extracting:2"]
+    assert status["successful_batches"] == 1
+    assert status["failed_batches"] == 1
+    assert status["checkpoint"]["available"] is True
+    assert status["checkpoint"]["resume_supported"] is False
 
 
 def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp_path):
