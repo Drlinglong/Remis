@@ -217,6 +217,7 @@ class ContextWorkflowStatusService:
         source_item_ids: list[str] | None = None,
         error: str | None = None,
         conflict_review_count: int = 0,
+        resumed: bool = False,
     ) -> None:
         self._validate_stage(stage)
         checkpoint = self._checkpoint(project_id)
@@ -226,6 +227,7 @@ class ContextWorkflowStatusService:
         batches[batch_id] = {
             "status": batch_status,
             "source_item_ids": _unique_strings(source_item_ids or []),
+            "resumed": bool(resumed),
             **({"error": (error or "")[:500]} if error else {}),
         }
         successful = _unique_strings(record.setdefault("successful_batch_ids", []))
@@ -306,7 +308,7 @@ class ContextWorkflowStatusService:
         checkpoint = self._checkpoint(project_id)
         successful, failed = self._terminal_batch_counts(checkpoint)
         failed_stage = checkpoint.get("stage")
-        checkpoint.update({"available": True, "resume_supported": False, "stage": "failed"})
+        checkpoint.update({"available": True, "stage": "failed"})
         checkpoint.setdefault("metadata", {}).update({
             "terminal_status": "failed",
             "error": message[:500],
@@ -405,9 +407,10 @@ class ContextWorkflowStatusService:
         total_batches: int,
         configuration: Mapping[str, Any],
     ) -> dict[str, Any]:
+        resume_supported = bool(configuration.get("resume_supported"))
         return {
             "available": True,
-            "resume_supported": False,
+            "resume_supported": resume_supported,
             "stage": "extracting",
             "cursor": "extracting:0",
             "updated_at": _now(),
@@ -418,7 +421,11 @@ class ContextWorkflowStatusService:
                 "source_items": source_items,
                 "total_batches": total_batches,
                 "configuration": dict(configuration),
-                "resume_contract": "inspection_only_until_batch_adapters_are_resumable",
+                "resume_contract": (
+                    "successful_extraction_and_review_batches_are_reused"
+                    if resume_supported
+                    else "inspection_only_until_batch_adapters_are_resumable"
+                ),
                 "stages": {},
             },
         }

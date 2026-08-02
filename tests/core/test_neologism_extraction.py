@@ -105,6 +105,37 @@ def test_terms_only_retains_terms_and_does_not_accept_narrative_arrays():
     assert '"scope": "terms_only"' in handler.calls[0][0][1]["content"]
 
 
+def test_model_input_keeps_original_key_while_evidence_uses_short_alias():
+    handler = FakeHandler([json.dumps({
+        "terms": [{
+            "original": "Aether Engine",
+            "category": "technology",
+            "suggestion": "以太引擎",
+            "reasoning": "事件标题和描述共同表明这是专名。",
+            "evidence": [{"source_item_id": "source_0"}],
+        }],
+        "entities": [], "facts": [], "events": [], "relationships": [],
+    })])
+
+    result = StructuredNeologismExtractor(handler).extract(
+        [source_item()],
+        target_language="zh-CN",
+        reasoning_language="zh-CN",
+    )
+
+    request = json.loads(handler.calls[0][0][1]["content"])
+    supplied = request["source_items"][0]
+    assert supplied["source_item_id"] == "source_0"
+    assert supplied["item_key"] == "curia.activation:0"
+    assert supplied["relative_path"] == "events/first.yml"
+    assert supplied["source_order"] == 7
+    assert supplied["source_text"] == source_item().source_text
+    assert result.terms[0].evidence[0].source_item_id == "item-1"
+    system_prompt = handler.calls[0][0][0]["content"]
+    assert "author-provided structure" in system_prompt
+    assert "zh-CN" in system_prompt
+
+
 def test_invalid_contribution_is_dropped_without_repairing_the_batch():
     invalid = json.dumps({
         "terms": [{

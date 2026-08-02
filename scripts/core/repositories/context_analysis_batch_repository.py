@@ -291,6 +291,15 @@ class ContextAnalysisBatchRepository:
         """Leave the run resumable until a separate candidate publish succeeds."""
         return self._update_run(run_id, phase="publishing", status="running", completed_at=None)
 
+    def mark_failed(self, run_id: str) -> ContextAnalysisRun:
+        """Keep successful batches resumable after any later workflow failure."""
+        run = self.get_run(run_id)
+        if run is None:
+            raise KeyError(f"unknown context analysis run: {run_id}")
+        if run.status == "complete":
+            return run
+        return self._update_run(run_id, status="failed", completed_at=None)
+
     def mark_published(self, run_id: str, candidate_ids: Sequence[str] = ()) -> ContextAnalysisRun:
         """Mark publication separately while preserving all batch rows."""
         return self._update_run(

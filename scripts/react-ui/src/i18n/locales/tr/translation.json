@@ -1126,6 +1126,9 @@
         "starting": "Starting",
         "running": "Reading source",
         "extracting": "Extracting evidence",
+        "reviewing": "Reviewing terminology",
+        "synthesizing": "Generating summaries",
+        "publishing": "Publishing archive",
         "completed": "Analysis complete",
         "failed": "Analysis stopped"
       },

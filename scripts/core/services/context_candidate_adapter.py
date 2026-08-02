@@ -62,7 +62,6 @@ class ContextCandidateAdapter:
             run_id,
         )
         terms, rejected = self._collect_terms(extractions)
-        self._save_extraction_batches(checkpoint_store, run, extractions, parsed_files, rejected)
         existing = self.candidate_store.load_candidates(project_id)
         existing_keys = {self._term_key(item.original) for item in existing}
         prepared = self._prepare_candidates(terms, parsed_files, duplicate_index, existing_keys, rejected)
@@ -75,8 +74,6 @@ class ContextCandidateAdapter:
         latest_keys = {self._term_key(item.original) for item in existing}
         added = [item for item in candidates if self._term_key(item.original) not in latest_keys]
         self.candidate_store.save_candidates(project_id, [*existing, *added])
-        if checkpoint_store is not None and run is not None:
-            checkpoint_store.mark_analysis_ready(run.run_id)
         return {
             "analysis_scope": AnalysisScope.TERMS_ONLY.value,
             "new_terms": len(added),
@@ -103,6 +100,11 @@ class ContextCandidateAdapter:
     ) -> Any | None:
         if checkpoint_store is None:
             return None
+        if run_id is not None:
+            run = checkpoint_store.get_run(run_id)
+            if run is None:
+                raise ValueError("Unknown context analysis run")
+            return run
         snapshot = ContextSourceParser.build_snapshot(parsed_files)
         scope = analysis_scope
         if isinstance(scope, AnalysisScope):
@@ -123,69 +125,6 @@ class ContextCandidateAdapter:
             config,
             run_id=run_id,
         )
-
-    def _save_extraction_batches(
-        self,
-        checkpoint_store: Any | None,
-        run: Any | None,
-        extractions: Sequence[StructuredNeologismExtraction],
-        parsed_files: Sequence[ParsedSourceFile],
-        rejected: list[dict[str, Any]],
-    ) -> None:
-        if checkpoint_store is None or run is None:
-            return
-        source_lookup = {
-            item.source_item_id: item
-            for source_file in parsed_files
-            for item in source_file.items
-        }
-        source_items = set(source_lookup)
-        for index, extraction in enumerate(extractions):
-            terms = []
-            source_ids: list[str] = []
-            for raw_term in getattr(extraction, "terms", ()):
-                try:
-                    term = self._validated_term(raw_term)
-                except ValidationError:
-                    continue
-                data = {key: value for key, value in self._term_data(term, raw_term).items() if key != "_batch_index"}
-                data["source_references"] = [
-                    {
-                        "source_item_id": entry.get("source_item_id"),
-                        "relative_path": source_lookup[entry["source_item_id"]].relative_path
-                        if entry.get("source_item_id") in source_lookup else entry.get("relative_path", ""),
-                        "item_key": source_lookup[entry["source_item_id"]].item_key
-                        if entry.get("source_item_id") in source_lookup else entry.get("item_key"),
-                        "source_order": source_lookup[entry["source_item_id"]].source_order
-                        if entry.get("source_item_id") in source_lookup else entry.get("source_order"),
-                    }
-                    for entry in data.get("evidence", [])
-                ]
-                terms.append(data)
-                source_ids.extend(
-                    evidence["source_item_id"]
-                    for evidence in data.get("evidence", [])
-                    if evidence.get("source_item_id") in source_items
-                )
-            source_rows = [
-                {
-                    "source_item_id": source_lookup[source_id].source_item_id,
-                    "relative_path": source_lookup[source_id].relative_path,
-                    "item_key": source_lookup[source_id].item_key,
-                    "source_order": source_lookup[source_id].source_order,
-                    "source_text": source_lookup[source_id].source_text,
-                }
-                for source_id in dict.fromkeys(source_ids)
-                if source_id in source_lookup
-            ]
-            batch_rejected = [item for item in rejected if item.get("batch_index") == index]
-            checkpoint_store.save_batch(
-                run.run_id,
-                "extraction",
-                index,
-                source_ids,
-                {"terms": terms, "source_items": source_rows, "rejected": batch_rejected},
-            )
 
     @staticmethod
     def rebuild_source_items(payload: Mapping[str, Any]) -> tuple[SourceItem, ...]:
@@ -238,8 +177,37 @@ class ContextCandidateAdapter:
                 data["_batch_index"] = batch_index
                 key = self._term_key(data["original"])
                 current = terms.get(key)
-                if current is None or data["confidence"] > current["confidence"]:
+                if current is None:
+                    data["suggestion_options"] = [data["suggestion"]] if data.get("suggestion") else []
                     terms[key] = data
+                    continue
+                evidence = {
+                    entry.get("source_item_id"): entry
+                    for entry in [*current.get("evidence", []), *data.get("evidence", [])]
+                    if entry.get("source_item_id")
+                }
+                options = {
+                    str(value).strip()
+                    for value in [
+                        *current.get("suggestion_options", []),
+                        current.get("suggestion"),
+                        data.get("suggestion"),
+                    ]
+                    if value and str(value).strip()
+                }
+                current_quality = (
+                    bool(current.get("suggestion") and current.get("reasoning")),
+                    current["confidence"],
+                )
+                new_quality = (
+                    bool(data.get("suggestion") and data.get("reasoning")),
+                    data["confidence"],
+                )
+                selected = data if new_quality > current_quality else current
+                selected["evidence"] = list(evidence.values())[:5]
+                selected["suggestion_options"] = sorted(options)
+                selected["needs_review"] = len({value.casefold() for value in options}) > 1
+                terms[key] = selected
         return terms, rejected
 
     @classmethod
@@ -365,7 +333,11 @@ class ContextCandidateAdapter:
             item
             for item in prepared
             if not self._target_suggestion(item["duplicate_matches"], target_lang)
-            and (not item.get("suggestion") or not item.get("reasoning"))
+            and (
+                item.get("needs_review")
+                or not item.get("suggestion")
+                or not item.get("reasoning")
+            )
         ]
         payloads = [
             {
@@ -373,6 +345,9 @@ class ContextCandidateAdapter:
                 "category": item["category"],
                 "frequency": item["frequency"],
                 "contexts": item["context_snippets"],
+                "source_references": item.get("source_references", []),
+                "suggestion_options": item.get("suggestion_options", []),
+                "needs_review": bool(item.get("needs_review")),
             }
             for item in review_items
         ]
@@ -459,12 +434,12 @@ class ContextCandidateAdapter:
                     project_id=project_id,
                     original=item["original"],
                     context_snippets=item["context_snippets"],
-                    suggestion=existing or item.get("suggestion") or review_suggestion,
+                    suggestion=existing or review_suggestion or item.get("suggestion") or "",
                     reasoning=(
                         "An existing glossary entry matches this source term. Review whether to reuse it, "
                         "create a project override, or mark a new meaning."
                         if existing
-                        else item.get("reasoning") or review_reasoning
+                        else review_reasoning or item.get("reasoning") or ""
                     ),
                     source_file=item["source_files"][0] if item["source_files"] else None,
                     source_files=item["source_files"],

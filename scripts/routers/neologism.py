@@ -8,6 +8,9 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from scripts.core.neologism_manager import neologism_manager
 from scripts.core.context_service import ContextService
 from scripts.core.repositories.context_repository import ContextRepository
+from scripts.core.repositories.context_analysis_batch_repository import (
+    ContextAnalysisBatchRepository,
+)
 from scripts.core.services.context_workflow_service import ContextWorkflowService
 from scripts.shared.services import project_manager, glossary_manager
 from scripts.shared import task_state
@@ -26,10 +29,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 context_repository = ContextRepository(PROJECTS_DB_PATH)
+context_analysis_batch_repository = ContextAnalysisBatchRepository(PROJECTS_DB_PATH)
 context_service = ContextService(context_repository)
 context_workflow_service = ContextWorkflowService(
     context_repository,
     candidate_store=neologism_manager,
+    analysis_batch_repository=context_analysis_batch_repository,
 )
 SUPPORTED_MINING_SUFFIXES = {".txt", ".yml", ".yaml", ".csv", ".json"}
 

@@ -54,6 +54,8 @@ Write every `reasoning` value in {review_language}, regardless of the source or 
 - Keep `original` exactly equal to the input value.
 - The suggestion must be non-empty and suitable for consistent glossary use.
 - Reasoning must be concise and grounded in the supplied contexts.
+- Use supplied source_references.item_key values as author-provided structural
+  context when resolving a conflict; never translate a localization key.
 - In the reasoning, name the translation strategy (transliteration, semantic translation, or mixed),
   mention any supplied glossary precedent, and state material uncertainty.
 - Do not translate the suggestion into the review language. The suggestion must remain in {target_lang}.
@@ -81,6 +83,8 @@ Output only a JSON array with this schema:
         *,
         scope: AnalysisScope = AnalysisScope.TERMS_ONLY,
         game_name: str = "Paradox Game",
+        target_language: str = "the configured target language",
+        reasoning_language: str = "the configured review language",
     ) -> StructuredNeologismExtraction:
         """Return the unified extraction contract for one already-read chunk."""
 
@@ -89,6 +93,8 @@ Output only a JSON array with this schema:
             scope=scope,
             game_name=game_name,
             allow_legacy_term_array=False,
+            target_language=target_language,
+            reasoning_language=reasoning_language,
         )
 
     def _generate(self, messages: List[Dict[str, str]]) -> str:
@@ -175,9 +181,13 @@ Output only a JSON array with this schema:
         diagnostics: Dict[str, List[str]],
     ) -> List[NeologismReview]:
         candidates_by_original = {candidate["original"]: candidate for candidate in candidates}
+        repair_originals = list(dict.fromkeys([
+            *diagnostics["missing"],
+            *diagnostics["duplicate"],
+        ]))
         repair_candidates = [
             candidates_by_original[original]
-            for original in diagnostics["missing"]
+            for original in repair_originals
             if original in candidates_by_original
         ]
         repair_prompt = (
@@ -274,18 +284,26 @@ Output only a JSON array with this schema:
         expected_originals = [candidate["original"] for candidate in review_candidates]
         expected_original_set = set(expected_originals)
         diagnostics = self._review_set_diagnostics(expected_originals, reviews)
+        repair_attempted = bool(diagnostics["missing"] or diagnostics["duplicate"])
         if diagnostics["missing"] or diagnostics["unexpected"] or diagnostics["duplicate"]:
             self.logger.warning(
-                "LLM review candidate-set mismatch; attempting one targeted repair (%s)",
+                "LLM review candidate-set mismatch; applying bounded recovery (%s)",
                 self._format_review_diagnostics(diagnostics),
             )
-            repaired_reviews = self._repair_review_set_mismatch(
-                review_candidates,
-                system_prompt=system_prompt,
-                diagnostics=diagnostics,
+            repaired_reviews = (
+                self._repair_review_set_mismatch(
+                    review_candidates,
+                    system_prompt=system_prompt,
+                    diagnostics=diagnostics,
+                )
+                if repair_attempted
+                else []
             )
+            duplicate_originals = set(diagnostics["duplicate"])
             valid_initial_reviews = [
-                review for review in reviews if review.original in expected_original_set
+                review for review in reviews
+                if review.original in expected_original_set
+                and review.original not in duplicate_originals
             ]
             reviews = valid_initial_reviews + repaired_reviews
 
@@ -299,6 +317,6 @@ Output only a JSON array with this schema:
             raise NeologismMiningError(
                 "LLM review output did not match the requested candidate set "
                 f"({self._format_review_diagnostics(final_diagnostics)}; repair_attempted="
-                f"{bool(diagnostics['missing'] or diagnostics['unexpected'] or diagnostics['duplicate'])})"
+                f"{repair_attempted})"
             )
         return {review.original: review for review in reviews}

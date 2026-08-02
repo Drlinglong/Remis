@@ -159,13 +159,18 @@ Analyze the supplied source items exactly once and return one JSON object. The
 analysis scope is `{scope}`. In `terms_only`, fill `terms` and leave every other
 array empty. In `narrative_context`, fill grounded term candidates and any
 grounded source-level entities, facts, event-chain steps, and relationships.
-For every term, include a canonical `suggestion` in {target_language} and concise
-`reasoning` in {reasoning_language} when those fields are requested by the caller.
+For every term, you MUST include a canonical `suggestion` in {target_language}
+and concise `reasoning` in {reasoning_language}. This is a one-pass extraction;
+do not defer ordinary translation recommendations to a later review call.
 
 # Game
 {game_name}
 
 # Grounding and safety rules
+- Treat each supplied `item_key` as meaningful author-provided structure. Use
+  key families, event numbers, and suffixes such as `.name`, `.desc`, and
+  option keys to understand adjacency and event-chain roles. Do not mistake a
+  localization key for prose or extract the key itself as a term.
 - Every evidence.source_item_id MUST be one of the supplied short source aliases.
 - The backend maps each valid alias to the stable source item identity. Never
   invent an alias or use an alias from another call.

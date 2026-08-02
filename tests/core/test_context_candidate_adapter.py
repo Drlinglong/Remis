@@ -22,9 +22,11 @@ class FakeReviewMiner:
     def __init__(self, fail_on_call=None):
         self.calls = 0
         self.fail_on_call = fail_on_call
+        self.last_candidates = []
 
     def review_terms(self, candidates, **kwargs):
         self.calls += 1
+        self.last_candidates = list(candidates)
         if self.calls == self.fail_on_call:
             raise TimeoutError("review unavailable")
         return {
@@ -62,7 +64,7 @@ def _term(item, original=None, direct=False):
     return payload
 
 
-def test_extraction_payload_preserves_direct_fields_and_stable_source_mapping(tmp_path):
+def test_direct_extraction_fields_skip_review_and_preserve_candidate_source(tmp_path):
     _, parsed = _parsed(tmp_path)
     item = parsed[0].items[0]
     candidate_store = FakeCandidateStore()
@@ -85,24 +87,10 @@ def test_extraction_payload_preserves_direct_fields_and_stable_source_mapping(tm
         "project-1", parsed, [extraction], FakeReviewMiner(), {}, "en", "zh-CN", "Vic3", "en",
         batch_store=batch_store,
     )
-    saved = batch_store.get_batch(result["run_id"], "extraction", 0)
-
     assert result["new_terms"] == 1
     assert candidate_store.items[0].suggestion == "直接译文"
-    term = saved.payload["terms"][0]
-    assert term["suggestion"] == "直接译文"
-    assert term["reasoning"] == "extraction evidence"
-    assert term["source_references"] == [{
-        "source_item_id": item.source_item_id,
-        "relative_path": item.relative_path,
-        "item_key": item.item_key,
-        "source_order": item.source_order,
-    }]
-    restored = adapter.rebuild_source_items(saved.payload)
-    assert [(source.source_item_id, source.relative_path, source.item_key, source.source_order, source.source_text)
-            for source in restored] == [
-        (item.source_item_id, item.relative_path, item.item_key, item.source_order, item.source_text)
-    ]
+    assert candidate_store.items[0].reasoning == "extraction evidence"
+    assert candidate_store.items[0].source_file == item.relative_path
 
 
 def test_review_failure_retains_previous_review_batch_and_retry_reuses_it(tmp_path):
@@ -146,3 +134,32 @@ def test_review_failure_retains_previous_review_batch_and_retry_reuses_it(tmp_pa
     )
     assert result["run_id"] == failed_run.run_id
     assert len(batch_store.list_batches(failed_run.run_id, "review")) == 2
+
+
+def test_conflicting_direct_suggestions_trigger_one_review_and_use_its_decision(tmp_path):
+    _, parsed = _parsed(tmp_path)
+    item = parsed[0].items[0]
+    first = _term(item, direct=True)
+    second = _term(item, direct=True)
+    first.update({"suggestion": "术语甲", "reasoning": "first batch"})
+    second.update({"suggestion": "术语乙", "reasoning": "second batch"})
+    store = FakeCandidateStore()
+    miner = FakeReviewMiner()
+
+    result = ContextCandidateAdapter(store).process_terms(
+        "project-1",
+        parsed,
+        [SimpleNamespace(terms=[first]), SimpleNamespace(terms=[second])],
+        miner,
+        {},
+        "en",
+        "zh-CN",
+        "Vic3",
+        "zh-CN",
+    )
+
+    assert result["new_terms"] == 1
+    assert miner.calls == 1
+    assert miner.last_candidates[0]["source_references"][0]["item_key"] == "key_0:0"
+    assert store.items[0].suggestion == "译-Term 0"
+    assert store.items[0].reasoning == "review fallback"

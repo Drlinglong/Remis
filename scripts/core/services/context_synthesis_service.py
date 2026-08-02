@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 from pydantic import ValidationError
 
@@ -22,7 +22,7 @@ from scripts.schemas.context import (
 class ContextSynthesisService:
     """Make one structured synthesis call and allow one deterministic repair."""
 
-    MAX_AGGREGATES_PER_CALL = 12
+    MAX_AGGREGATES_PER_CALL = 32
 
     SYSTEM_PROMPT = """
 You summarize source-grounded localization context. Return only JSON matching
@@ -58,21 +58,38 @@ event chains, and the project summary describes the project-level pattern.
         contributions: dict[str, ContextContribution],
         sources: dict[str, ContextSourceItem],
         description_language: str = "en",
+        on_batch: Callable[..., None] | None = None,
     ) -> list[GeneratedSynthesis]:
         aggregate_list = list(aggregates)
         if not aggregate_list:
             return []
         synthesized: list[GeneratedSynthesis] = []
-        for start in range(0, len(aggregate_list), self.MAX_AGGREGATES_PER_CALL):
-            synthesized.extend(
-                self._synthesize_batch(
-                    aggregate_list[start:start + self.MAX_AGGREGATES_PER_CALL],
+        for batch_index, start in enumerate(
+            range(0, len(aggregate_list), self.MAX_AGGREGATES_PER_CALL),
+            start=1,
+        ):
+            batch = aggregate_list[start:start + self.MAX_AGGREGATES_PER_CALL]
+            try:
+                result = self._synthesize_batch(
+                    batch,
                     contributions,
                     sources,
                     description_language,
                 )
-            )
+            except Exception as exc:
+                if on_batch is not None:
+                    on_batch(batch_index, batch, success=False, error=str(exc))
+                raise
+            synthesized.extend(result)
+            if on_batch is not None:
+                on_batch(batch_index, batch, success=True)
         return synthesized
+
+    @classmethod
+    def batch_count(cls, aggregate_count: int) -> int:
+        if aggregate_count <= 0:
+            return 0
+        return (aggregate_count + cls.MAX_AGGREGATES_PER_CALL - 1) // cls.MAX_AGGREGATES_PER_CALL
 
     def _synthesize_batch(
         self,

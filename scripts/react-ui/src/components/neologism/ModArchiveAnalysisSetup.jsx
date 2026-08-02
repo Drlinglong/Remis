@@ -66,8 +66,14 @@ const ModArchiveAnalysisSetup = ({ controller }) => {
     } = controller;
 
     const isActive = ['starting', 'running', 'queued'].includes(status?.status);
-    const progressValue = status?.totalFiles
-        ? Math.min(100, (status.processedFiles / status.totalFiles) * 100)
+    const progressCurrent = status?.totalBatches || status?.currentBatch
+        ? status.currentBatch
+        : status?.processedFiles;
+    const progressTotal = status?.totalBatches || status?.currentBatch
+        ? status.totalBatches
+        : status?.totalFiles;
+    const progressValue = progressTotal
+        ? Math.min(100, (progressCurrent / progressTotal) * 100)
         : 0;
     const provider = providers.find((item) => item.value === apiProvider);
 
@@ -251,8 +257,8 @@ const ModArchiveAnalysisSetup = ({ controller }) => {
                                                 {translateStatus(t, 'result', status.resultCode)}
                                             </Text>
                                         </div>
-                                        <Badge variant="outline">
-                                            {status.processedFiles} / {status.totalFiles}
+                                        <Badge variant="outline" data-testid="mod-archive-batch-progress">
+                                            {progressCurrent || 0} / {progressTotal || 0}
                                         </Badge>
                                     </Group>
                                     <Progress value={progressValue} size="sm" />
@@ -293,6 +299,20 @@ const ModArchiveAnalysisSetup = ({ controller }) => {
                                             {status.contextReleaseId && (
                                                 <Text className={styles.technical} size="xs">
                                                     {t('mod_archive.status.context_release')}: {status.contextReleaseId}
+                                                </Text>
+                                            )}
+                                            {(status.provider || status.model) && (
+                                                <Text className={styles.technical} size="xs">
+                                                    {t('neologism_review.mining.select_provider')}: {status.provider || '—'}
+                                                    {' · '}
+                                                    {t('neologism_review.mining.model')}: {status.model || '—'}
+                                                </Text>
+                                            )}
+                                            {(status.targetLang || status.descriptionLanguage) && (
+                                                <Text className={styles.technical} size="xs">
+                                                    {t('neologism_review.mining.target_language')}: {status.targetLang || '—'}
+                                                    {' · '}
+                                                    {t('mod_archive.analysis.description_language')}: {status.descriptionLanguage || '—'}
                                                 </Text>
                                             )}
                                         </Stack>

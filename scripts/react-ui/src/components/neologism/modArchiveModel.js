@@ -61,6 +61,11 @@ export const normalizeAnalysisStatus = (rawStatus = {}) => {
     const status = rawValue === 'processing' ? 'running' : rawValue;
     const defaults = STATUS_DEFAULTS[status] || STATUS_DEFAULTS.idle;
     const workflowContext = asObject(rawStatus.workflow_context);
+    const checkpoint = asObject(rawStatus.checkpoint);
+    const checkpointMetadata = asObject(checkpoint.metadata);
+    const checkpointConfiguration = asObject(checkpointMetadata.configuration);
+    const checkpointStages = asObject(checkpointMetadata.stages);
+    const checkpointStage = asObject(checkpointStages[checkpoint.stage]);
 
     return {
         status,
@@ -78,6 +83,23 @@ export const normalizeAnalysisStatus = (rawStatus = {}) => {
             0,
         ),
         totalFiles: firstValue(rawStatus.total_files, progress.total, progress.total_files, 0),
+        sourceItems: firstValue(rawStatus.source_items, checkpointMetadata.source_items, 0),
+        currentBatch: firstValue(
+            rawStatus.current_batch,
+            checkpointStage.successful_batch_ids?.length,
+            progress.current_batch,
+            0,
+        ),
+        totalBatches: firstValue(
+            rawStatus.total_batches,
+            checkpointStage.total_batches,
+            checkpointMetadata.total_batches,
+            progress.total_batches,
+            0,
+        ),
+        successfulBatches: firstValue(rawStatus.successful_batches, 0),
+        failedBatches: firstValue(rawStatus.failed_batches, 0),
+        conflictReviewCount: firstValue(rawStatus.conflict_review_count, 0),
         newTerms: firstValue(rawStatus.new_terms, summary.new_terms, result.new_terms, 0),
         duplicateTerms: firstValue(
             rawStatus.duplicate_terms,
@@ -100,6 +122,7 @@ export const normalizeAnalysisStatus = (rawStatus = {}) => {
         stageCode: firstValue(
             rawStatus.stage_code,
             rawStatus.stage,
+            checkpoint.stage,
             progress.stage_code,
             progress.stage,
             defaults.stage,
@@ -116,6 +139,27 @@ export const normalizeAnalysisStatus = (rawStatus = {}) => {
             rawStatus.attention_reason_code,
             defaults.nextStep,
         ),
+        provider: firstValue(rawStatus.provider, workflowContext.provider, checkpointConfiguration.provider, null),
+        model: firstValue(rawStatus.model, workflowContext.model, checkpointConfiguration.model, null),
+        targetLang: firstValue(
+            rawStatus.target_lang,
+            workflowContext.target_lang,
+            checkpointConfiguration.target_lang,
+            null,
+        ),
+        descriptionLanguage: firstValue(
+            rawStatus.description_language,
+            workflowContext.description_language,
+            checkpointConfiguration.description_language,
+            null,
+        ),
+        analysisRunId: firstValue(
+            rawStatus.analysis_run_id,
+            workflowContext.analysis_run_id,
+            checkpointConfiguration.analysis_run_id,
+            null,
+        ),
+        resumeSupported: Boolean(checkpoint.resume_supported),
     };
 };
 

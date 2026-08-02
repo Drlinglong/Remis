@@ -1162,6 +1162,9 @@
         "starting": "正在启动",
         "running": "正在读取源文件",
         "extracting": "正在提取证据",
+        "reviewing": "正在审校冲突术语",
+        "synthesizing": "正在生成档案摘要",
+        "publishing": "正在发布只读档案",
         "completed": "分析完成",
         "failed": "分析已停止"
       },

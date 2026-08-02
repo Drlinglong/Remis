@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from scripts.core.neologism_extraction import (
     AnalysisScope,
     EntityContribution,
@@ -124,8 +126,18 @@ class FakeMiner:
     def __init__(self, handler):
         self.calls = []
 
-    def extract_structured(self, source_items, *, scope, game_name):
-        self.calls.append((list(source_items), scope, game_name))
+    def extract_structured(
+        self,
+        source_items,
+        *,
+        scope,
+        game_name,
+        target_language,
+        reasoning_language,
+    ):
+        self.calls.append(
+            (list(source_items), scope, game_name, target_language, reasoning_language)
+        )
         terms = []
         entities = []
         facts = []
@@ -316,6 +328,31 @@ def test_context_chunks_keep_adjacent_event_key_family_together_until_budget():
     assert chunks[0][0].item_key == "event.7130.name:0"
 
 
+def test_context_chunks_treat_bare_two_segment_event_key_as_its_family_root():
+    items = [
+        SourceItem(
+            source_item_id=f"item-{index}",
+            relative_path="localisation/toxoids.yml",
+            item_key=key,
+            source_order=index,
+            source_text=text,
+        )
+        for index, (key, text) in enumerate([
+            ("toxoids.7130:0", "The Toxic God answers."),
+            ("toxoids.7130.name:0", "The Answer"),
+            ("toxoids.7130.desc:0", "The knight hears the answer."),
+            ("toxoids.7131:0", "A different event begins."),
+        ])
+    ]
+
+    groups = list(ContextWorkflowService._contiguous_groups(items, ContextWorkflowService._grouping_key))
+
+    assert [[item.item_key for item in group] for group in groups] == [
+        ["toxoids.7130:0", "toxoids.7130.name:0", "toxoids.7130.desc:0"],
+        ["toxoids.7131:0"],
+    ]
+
+
 def test_context_chunk_config_rejects_unsafe_item_override_and_records_safe_budget():
     config = ContextWorkflowService._chunk_config({"max_items": 0, "max_source_chars": "bad"})
 
@@ -388,6 +425,89 @@ def test_terms_only_uses_one_extraction_call_and_creates_no_release(tmp_path):
     assert any(update[1].get("status") == "completed" for update in task_backend.updates)
 
 
+def test_failed_extraction_retry_reuses_successful_sqlite_batches(tmp_path):
+    import sqlite3
+
+    from scripts.core.db_migrations import migrate_main_database
+    from scripts.core.repositories.context_analysis_batch_repository import (
+        ContextAnalysisBatchRepository,
+    )
+
+    root = tmp_path / "mod"
+    root.mkdir()
+    source = root / "main.yml"
+    source.write_text(
+        'l_english:\n key_0:0 "Term Zero"\n key_1:0 "Term One"\n key_2:0 "Term Two"\n',
+        encoding="utf-8",
+    )
+    db_path = tmp_path / "projects.sqlite"
+    migrate_main_database(str(db_path))
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """INSERT INTO projects
+               (project_id, name, game_id, source_path, source_language, status)
+               VALUES ('project-1', 'Resume Mod', 'vic3', ?, 'english', 'active')""",
+            (str(root),),
+        )
+
+    class ResumeMiner:
+        calls = 0
+        failed_once = False
+
+        def __init__(self, handler):
+            del handler
+
+        def extract_structured(self, source_items, **kwargs):
+            del kwargs
+            ResumeMiner.calls += 1
+            if source_items[0].item_key == "key_1:0" and not ResumeMiner.failed_once:
+                ResumeMiner.failed_once = True
+                raise TimeoutError("temporary local-model failure")
+            item = source_items[0]
+            return StructuredNeologismExtraction(terms=[TermContribution(
+                original=item.source_text,
+                category="concept",
+                suggestion=f"译-{item.source_text}",
+                reasoning="直接抽取结果",
+                evidence=[SourceEvidence(source_item_id=item.source_item_id)],
+            )])
+
+        def review_terms(self, candidates, **kwargs):
+            raise AssertionError("complete extraction candidates must not be reviewed")
+
+    batch_repository = ContextAnalysisBatchRepository(str(db_path))
+    service = ContextWorkflowService(
+        FakeRepository(),
+        handler_factory=lambda *args, **kwargs: FakeHandler(),
+        candidate_store=FakeCandidateStore(),
+        task_backend=FakeTaskBackend(),
+        miner_factory=ResumeMiner,
+        context_service=FakeContextService(FakeRepository()),
+        analysis_batch_repository=batch_repository,
+    )
+
+    with pytest.raises(TimeoutError):
+        service.run(
+            "project-1", [str(source)], str(root), "local", task_id="task-1",
+            analysis_config={"max_items": 1},
+        )
+    with sqlite3.connect(db_path) as connection:
+        run_id = connection.execute("SELECT run_id FROM context_analysis_runs").fetchone()[0]
+    failed_batches = batch_repository.list_batches(run_id)
+    assert [batch.status for batch in failed_batches] == ["succeeded", "failed"]
+
+    result = service.run(
+        "project-1", [str(source)], str(root), "local", task_id="task-2",
+        analysis_config={"max_items": 1},
+    )
+
+    assert ResumeMiner.calls == 4
+    assert result["new_terms"] == 3
+    assert result["analysis_run_id"]
+    assert batch_repository.get_run(result["analysis_run_id"]).status == "complete"
+    assert service.get_status("project-1")["checkpoint"]["resume_supported"] is True
+
+
 def test_terms_only_status_projects_configuration_and_inspection_checkpoint(tmp_path):
     root = tmp_path / "mod"
     root.mkdir()
@@ -439,7 +559,7 @@ def test_review_stage_can_be_skipped_without_fabricating_conflicts(tmp_path):
     source.write_text('l_english:\n key:0 "The Republic appoints a consul."\n', encoding="utf-8")
 
     class NoReviewAdapter:
-        def process_terms(self, project_id, parsed_files, extractions, miner, *args):
+        def process_terms(self, project_id, parsed_files, extractions, miner, *args, **kwargs):
             return {
                 "analysis_scope": "terms_only",
                 "new_terms": 0,
@@ -610,7 +730,7 @@ def test_synthesis_batches_large_aggregate_sets():
             aggregate_id=f"aggregate-{index}", project_id="project-1", aggregate_type="entity",
             aggregate_key=f"entity:republic:{index}", contribution_ids=[contribution.contribution_id],
         )
-        for index in range(13)
+        for index in range(ContextSynthesisService.MAX_AGGREGATES_PER_CALL + 1)
     ]
     handler = FakeHandler()
 

@@ -154,7 +154,7 @@ def test_review_repairs_only_missing_candidate_when_similar_names_are_merged():
     assert "The Trickster" not in repair_content
 
 
-def test_review_duplicate_response_remains_strict_after_targeted_repair():
+def test_review_duplicate_response_remains_strict_after_incomplete_targeted_repair():
     duplicate_review = {
         "original": "Pax Remisia",
         "suggestion": "帕克斯·雷米西亚",
@@ -171,7 +171,7 @@ def test_review_duplicate_response_remains_strict_after_targeted_repair():
         }], ensure_ascii=False),
     ])
 
-    with pytest.raises(NeologismMiningError, match=r"duplicate=\['Pax Remisia'\]"):
+    with pytest.raises(NeologismMiningError, match=r"missing=\['Pax Remisia'\]"):
         NeologismMiner(client).review_terms(
             [
                 {"original": "Pax Remisia", "contexts": ["Pax Remisia endures."], "frequency": 2},
@@ -183,6 +183,33 @@ def test_review_duplicate_response_remains_strict_after_targeted_repair():
         )
 
     assert len(client.calls) == 2
+
+
+def test_review_discards_unexpected_extra_without_spending_a_repair_call():
+    client = FakeClient([json.dumps([
+        {
+            "original": "Pax Remisia",
+            "suggestion": "雷米西亚和平",
+            "reasoning": "语义翻译。",
+            "confidence": 0.8,
+        },
+        {
+            "original": "Invented Extra",
+            "suggestion": "额外项",
+            "reasoning": "不应保留。",
+            "confidence": 0.2,
+        },
+    ], ensure_ascii=False)])
+
+    reviews = NeologismMiner(client).review_terms(
+        [{"original": "Pax Remisia", "contexts": ["Pax Remisia endures."], "frequency": 2}],
+        source_lang="en",
+        target_lang="zh-CN",
+        game_name="Stellaris",
+    )
+
+    assert set(reviews) == {"Pax Remisia"}
+    assert len(client.calls) == 1
 
 
 def test_review_mismatch_error_has_bounded_set_diagnostics_after_one_repair():

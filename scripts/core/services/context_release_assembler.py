@@ -1,0 +1,193 @@
+"""Persist source contributions and assemble immutable Context Release inputs."""
+
+from __future__ import annotations
+
+import hashlib
+import uuid
+from collections import defaultdict
+from typing import Any, Sequence
+
+from scripts.core.neologism_extraction import AnalysisScope, StructuredNeologismExtraction
+from scripts.core.services.context_source_parser import ParsedSourceFile
+from scripts.core.services.source_snapshot_service import SourceChangeKind, SourceSnapshot
+from scripts.schemas.context import (
+    ContextAggregate,
+    ContextContribution,
+    ContextRelease,
+    ContextReleaseMetadata,
+    ContextSourceItem,
+)
+
+
+class ContextReleaseAssembler:
+    """Own the evidence-to-aggregate persistence boundary for published archives."""
+
+    def __init__(self, repository: Any):
+        self.repository = repository
+
+    def persist_sources(
+        self, project_id: str, parsed_files: Sequence[ParsedSourceFile], snapshot_hash: str,
+    ) -> dict[str, ContextSourceItem]:
+        sources: dict[str, ContextSourceItem] = {}
+        for source_file in parsed_files:
+            for item in source_file.items:
+                source = ContextSourceItem(
+                    source_item_id=item.source_item_id,
+                    project_id=project_id,
+                    source_type="localization",
+                    source_ref=f"{item.relative_path}::{item.source_order}:{item.item_key or ''}",
+                    content=item.source_text,
+                    content_hash=hashlib.sha256(item.source_text.encode("utf-8")).hexdigest(),
+                    metadata={
+                        "relative_path": item.relative_path,
+                        "item_key": item.item_key,
+                        "source_order": item.source_order,
+                        "source_snapshot_hash": snapshot_hash,
+                    },
+                )
+                existing = self.repository.get_source_item(source.source_item_id)
+                sources[source.source_item_id] = existing or self.repository.create_source_item(source)
+        return sources
+
+    def persist_contributions(
+        self,
+        extractions: Sequence[StructuredNeologismExtraction],
+        sources: dict[str, ContextSourceItem],
+    ) -> dict[str, ContextContribution]:
+        contributions: dict[str, ContextContribution] = {}
+        for extraction in extractions:
+            for item in self._all_contributions(extraction):
+                evidence = [entry.model_dump() for entry in item.evidence]
+                source_item_id = evidence[0]["source_item_id"]
+                if source_item_id not in sources:
+                    raise ValueError("Extraction evidence referenced a source outside the parsed snapshot")
+                contribution = ContextContribution(
+                    contribution_id=str(uuid.uuid4()),
+                    source_item_id=source_item_id,
+                    contribution_type=self._contribution_type(item),
+                    subject_key=self._subject_key(item),
+                    payload={**item.model_dump(), "evidence": evidence},
+                    provenance="text_inferred",
+                )
+                self.repository.create_contribution(contribution)
+                contributions[contribution.contribution_id] = contribution
+        return contributions
+
+    @staticmethod
+    def _all_contributions(extraction: StructuredNeologismExtraction) -> list[Any]:
+        return [
+            *extraction.terms,
+            *extraction.entities,
+            *extraction.facts,
+            *extraction.events,
+            *extraction.relationships,
+        ]
+
+    @staticmethod
+    def _contribution_type(item: Any) -> str:
+        return {
+            "TermContribution": "mention",
+            "EntityContribution": "mention",
+            "FactContribution": "fact",
+            "EventChainContribution": "event",
+            "RelationshipContribution": "relationship",
+        }[item.__class__.__name__]
+
+    @staticmethod
+    def _subject_key(item: Any) -> str:
+        if item.__class__.__name__ == "EventChainContribution":
+            return f"event:{item.chain_id.strip().casefold()}"
+        value = getattr(item, "original", None) or getattr(item, "name", None) or getattr(item, "subject", None)
+        return f"entity:{str(value).strip().casefold()}"
+
+    def build_aggregates(
+        self, project_id: str, contributions: dict[str, ContextContribution],
+    ) -> list[ContextAggregate]:
+        groups: dict[str, list[str]] = defaultdict(list)
+        for contribution in contributions.values():
+            groups[contribution.subject_key].append(contribution.contribution_id)
+        groups["project:summary"] = list(contributions)
+        aggregates = []
+        for aggregate_key, contribution_ids in sorted(groups.items()):
+            aggregate_type = "project" if aggregate_key == "project:summary" else (
+                "event" if aggregate_key.startswith("event:") else "entity"
+            )
+            aggregates.append(ContextAggregate(
+                aggregate_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"remis:{project_id}:{aggregate_key}")),
+                project_id=project_id,
+                aggregate_type=aggregate_type,
+                aggregate_key=aggregate_key,
+                payload={"active_contribution_count": len(contribution_ids)},
+                contribution_ids=contribution_ids,
+            ))
+        return aggregates
+
+    @staticmethod
+    def aggregate_source_ids(
+        aggregates: Sequence[ContextAggregate],
+        contributions: dict[str, ContextContribution],
+    ) -> list[str]:
+        return list(dict.fromkeys(
+            contributions[contribution_id].source_item_id
+            for aggregate in aggregates
+            for contribution_id in aggregate.contribution_ids
+        ))
+
+    @classmethod
+    def metadata(
+        cls,
+        snapshot: SourceSnapshot,
+        parsed_files: Sequence[ParsedSourceFile],
+        diff: Any,
+        parent: ContextRelease | None,
+        api_provider: str,
+        model_name: str | None,
+        upstream_version: str | None,
+        analysis_config: dict[str, Any] | None,
+        description_language: str,
+        chunk_config: dict[str, int],
+        schema_version: str,
+        prompt_version: str,
+    ) -> ContextReleaseMetadata:
+        config = dict(analysis_config or {})
+        config.update({
+            "reuse_strategy": "full_reextract",
+            "description_language": description_language,
+            "chunking": dict(chunk_config),
+            "source_items": [
+                {
+                    "relative_path": item.identity.relative_path,
+                    "item_key": item.identity.item_key,
+                    "source_order": item.identity.source_order,
+                    "source_sha256": item.source_sha256,
+                }
+                for item in snapshot.items
+            ],
+            "affected_source_items": cls.affected_items(diff),
+        })
+        return ContextReleaseMetadata(
+            source_snapshot_hash=snapshot.source_snapshot_hash,
+            analysis_scope={
+                "mode": AnalysisScope.NARRATIVE_CONTEXT.value,
+                "files": [item.relative_path for item in parsed_files],
+            },
+            schema_version=schema_version,
+            prompt_version=prompt_version,
+            provider_id=api_provider,
+            model_id=model_name or f"{api_provider}-default",
+            analysis_config=config,
+            parent_release_id=parent.release_id if parent else None,
+            upstream_version=upstream_version,
+        )
+
+    @staticmethod
+    def affected_items(diff: Any) -> list[dict[str, str]]:
+        return [
+            {
+                "relative_path": item.identity.relative_path,
+                "item_key": item.identity.item_key or "",
+                "kind": item.kind.value,
+            }
+            for item in diff.item_changes
+            if item.kind is not SourceChangeKind.UNCHANGED
+        ]

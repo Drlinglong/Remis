@@ -69,6 +69,37 @@ describe('Mod Archive contracts', () => {
         });
     });
 
+    it('prefers observable batch progress and preserves the resumable run configuration', () => {
+        expect(normalizeAnalysisStatus({
+            status: 'running',
+            current_batch: 9,
+            total_batches: 18,
+            source_items: 275,
+            checkpoint: {
+                stage: 'extracting',
+                resume_supported: true,
+                metadata: {
+                    configuration: {
+                        provider: 'lm_studio',
+                        model: 'gemma-4-31b',
+                        target_lang: 'zh-CN',
+                        description_language: 'zh-CN',
+                        analysis_run_id: 'run-7',
+                    },
+                },
+            },
+        })).toMatchObject({
+            currentBatch: 9,
+            totalBatches: 18,
+            sourceItems: 275,
+            stageCode: 'extracting',
+            provider: 'lm_studio',
+            model: 'gemma-4-31b',
+            descriptionLanguage: 'zh-CN',
+            resumeSupported: true,
+        });
+    });
+
     it('keeps effective overrides and provenance labels available to presentation', () => {
         const effective = {
             effective_context: {
