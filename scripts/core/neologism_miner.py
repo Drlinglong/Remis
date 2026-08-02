@@ -1,5 +1,6 @@
 import json
 import logging
+from collections import Counter
 from typing import Any, Dict, List, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
@@ -135,6 +136,79 @@ Output only a JSON array with this schema:
                     f"LLM returned invalid structured {stage} output after one repair"
                 ) from second_error
 
+    @staticmethod
+    def _review_set_diagnostics(
+        expected_originals: List[str], reviews: List[NeologismReview]
+    ) -> Dict[str, List[str]]:
+        expected_counts = Counter(expected_originals)
+        received_counts = Counter(review.original for review in reviews)
+        return {
+            "missing": list((expected_counts - received_counts).elements()),
+            "unexpected": list((received_counts - expected_counts).elements()),
+            "duplicate": sorted(
+                original for original, count in received_counts.items() if count > 1
+            ),
+        }
+
+    @staticmethod
+    def _format_review_diagnostics(diagnostics: Dict[str, List[str]]) -> str:
+        def bounded(values: List[str]) -> List[str]:
+            limit = 10
+            bounded_values = [
+                value[:117] + "..." if len(value) > 120 else value
+                for value in values[:limit]
+            ]
+            if len(values) > limit:
+                bounded_values.append("...")
+            return bounded_values
+
+        return "; ".join(
+            f"{name}={bounded(diagnostics[name])}"
+            for name in ("missing", "unexpected", "duplicate")
+        )
+
+    def _repair_review_set_mismatch(
+        self,
+        candidates: List[Dict[str, Any]],
+        *,
+        system_prompt: str,
+        diagnostics: Dict[str, List[str]],
+    ) -> List[NeologismReview]:
+        candidates_by_original = {candidate["original"]: candidate for candidate in candidates}
+        repair_candidates = [
+            candidates_by_original[original]
+            for original in diagnostics["missing"]
+            if original in candidates_by_original
+        ]
+        repair_prompt = (
+            "The previous review response was rejected because its candidate set did not match. "
+            "Return exactly one review for each repair candidate below, and return no other originals. "
+            "Preserve each repair candidate's `original` exactly. Unexpected previous rows are discarded. "
+            "Output only the raw JSON array.\n\n"
+            f"Bounded mismatch diagnostics: {self._format_review_diagnostics(diagnostics)}\n"
+            f"Repair candidates:\n{json.dumps(repair_candidates, ensure_ascii=False)}"
+        )
+        try:
+            response = self._generate([
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": repair_prompt},
+            ])
+            return REVIEW_LIST_ADAPTER.validate_python(
+                json.loads(self._strip_code_fence(response))
+            )
+        except (json.JSONDecodeError, ValidationError, TypeError, NeologismMiningError) as error:
+            raise NeologismMiningError(
+                "LLM review candidate-set mismatch repair failed "
+                f"({self._format_review_diagnostics(diagnostics)}; invalid repair output/request)"
+            ) from error
+
+    @staticmethod
+    def _candidate_requires_review(candidate: Dict[str, Any]) -> bool:
+        explicit = candidate.get("needs_review", candidate.get("review_required"))
+        if explicit is not None:
+            return bool(explicit)
+        return not (candidate.get("suggestion") and candidate.get("reasoning"))
+
     def extract_terms(
         self,
         text_chunk: str,
@@ -170,7 +244,18 @@ Output only a JSON array with this schema:
         game_name: str,
         review_language: str = "en",
     ) -> Dict[str, NeologismReview]:
-        if not candidates:
+        """Review only incomplete or explicitly flagged fallback candidates.
+
+        The normal extraction contract may already provide suggestion and
+        reasoning.  Such candidates are skipped unless ``needs_review`` or
+        ``review_required`` is explicitly true; legacy candidates without
+        those fields remain reviewable for compatibility.
+        """
+
+        review_candidates = [
+            candidate for candidate in candidates if self._candidate_requires_review(candidate)
+        ]
+        if not review_candidates:
             return {}
         system_prompt = self.REVIEW_SYSTEM_PROMPT.format(
             source_lang=source_lang,
@@ -181,13 +266,39 @@ Output only a JSON array with this schema:
         reviews = self._parse_with_repair(
             [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": json.dumps(candidates, ensure_ascii=False)},
+                {"role": "user", "content": json.dumps(review_candidates, ensure_ascii=False)},
             ],
             REVIEW_LIST_ADAPTER,
             "review",
         )
-        expected = {candidate["original"] for candidate in candidates}
-        received = {review.original for review in reviews}
-        if received != expected or len(reviews) != len(candidates):
-            raise NeologismMiningError("LLM review output did not match the requested candidate set")
+        expected_originals = [candidate["original"] for candidate in review_candidates]
+        expected_original_set = set(expected_originals)
+        diagnostics = self._review_set_diagnostics(expected_originals, reviews)
+        if diagnostics["missing"] or diagnostics["unexpected"] or diagnostics["duplicate"]:
+            self.logger.warning(
+                "LLM review candidate-set mismatch; attempting one targeted repair (%s)",
+                self._format_review_diagnostics(diagnostics),
+            )
+            repaired_reviews = self._repair_review_set_mismatch(
+                review_candidates,
+                system_prompt=system_prompt,
+                diagnostics=diagnostics,
+            )
+            valid_initial_reviews = [
+                review for review in reviews if review.original in expected_original_set
+            ]
+            reviews = valid_initial_reviews + repaired_reviews
+
+        final_diagnostics = self._review_set_diagnostics(expected_originals, reviews)
+        if (
+            final_diagnostics["missing"]
+            or final_diagnostics["unexpected"]
+            or final_diagnostics["duplicate"]
+            or len(reviews) != len(review_candidates)
+        ):
+            raise NeologismMiningError(
+                "LLM review output did not match the requested candidate set "
+                f"({self._format_review_diagnostics(final_diagnostics)}; repair_attempted="
+                f"{bool(diagnostics['missing'] or diagnostics['unexpected'] or diagnostics['duplicate'])})"
+            )
         return {review.original: review for review in reviews}
