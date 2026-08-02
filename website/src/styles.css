@@ -3224,7 +3224,7 @@ img {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--bar-color), transparent 82%);
 }
 
-.aa-ranking-bar.is-local-hardware .aa-ranking-bar__plot > span {
+.aa-ranking-bar.is-unranked-cost .aa-ranking-bar__plot > span {
   background: repeating-linear-gradient(90deg, #fbbc04 0 6px, #5f6f77 6px 10px);
   box-shadow: 0 0 0 4px rgba(251, 188, 4, 0.12);
 }
@@ -3492,6 +3492,15 @@ img {
   border: 1px solid rgba(237, 244, 245, 0.55);
   border-radius: 50%;
   background: var(--point-color);
+}
+
+.aa-scatter__model-key li.is-unranked-cost {
+  color: #8fa0a8;
+}
+
+.aa-scatter__model-key li.is-unranked-cost > span {
+  border-radius: 1px;
+  background: repeating-linear-gradient(90deg, #fbbc04 0 4px, #5f6f77 4px 7px);
 }
 
 .aa-scatter__note {

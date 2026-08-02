@@ -13,7 +13,7 @@ const chartCopy = {
     scatterTitle: 'Intelligence Index vs. Cost per 100 Tasks', scatterDesc: 'Pilot Quality Score · Estimated inference cost (USD) per 100 tasks',
     attractiveMeta: 'Most attractive = upper left', attractiveLegend: 'Most attractive quadrant', paretoLegend: 'Pareto frontier',
     scatterLabel: 'Interactive Pilot Quality Score versus cost per 100 tasks chart', highQuality: 'HIGH QUALITY', lowCost: 'LOW COST',
-    scoreAxis: 'Pilot Quality Score', costAxis: 'Cost per 100 Aventine tasks (USD)', freeTier: 'Free tier', localHardware: 'Local GPU',
+    scoreAxis: 'Pilot Quality Score', costAxis: 'Cost per 100 Aventine tasks (USD)', freeTier: 'Free tier', localHardware: 'Local GPU', unrankedCost: 'cost unranked',
     freeTierMeaning: 'provider benefit used during this run', freeTierNote: 'Free tier is a run-date provider benefit—not permanent zero-cost inference. Local GPU excludes electricity and hardware amortization.',
     modelKey: 'Model key', higher: 'Higher is better →', lower: '← Lower is better',
   },
@@ -28,7 +28,7 @@ const chartCopy = {
     scatterTitle: '智力指数 vs. 每 100 题成本', scatterDesc: 'Pilot Quality Score · 每 100 题模型推理估算成本（美元）',
     attractiveMeta: '越靠左上越有吸引力', attractiveLegend: '高质量低成本区', paretoLegend: '帕累托前沿',
     scatterLabel: 'Pilot Quality Score 与每 100 题成本的可交互图表', highQuality: '高质量', lowCost: '低成本',
-    scoreAxis: 'Pilot Quality Score', costAxis: '每 100 个 Aventine 任务成本（美元）', freeTier: '免费档', localHardware: '本地 GPU',
+    scoreAxis: 'Pilot Quality Score', costAxis: '每 100 个 Aventine 任务成本（美元）', freeTier: '免费档', localHardware: '本地 GPU', unrankedCost: '成本未排名',
     freeTierMeaning: '本轮使用的服务商福利', freeTierNote: '免费档表示测试当日的服务商福利，不代表永久零成本推理；本地 GPU 未计入电费与硬件折旧。',
     modelKey: '模型图例', higher: '越高越好 →', lower: '← 越低越好',
   },
@@ -80,7 +80,7 @@ function RankingBars({ recipes, getValue, formatValue, label, labels, lowerIsBet
         return (
           <button
             aria-label={`${recipe.model}: ${valueLabel}`}
-            className={`aa-ranking-bar ${value === null ? 'is-free-tier' : ''} ${recipe.costKind === 'local-hardware' ? 'is-local-hardware' : ''}`}
+            className={`aa-ranking-bar ${value === null && recipe.costKind !== 'local-hardware' ? 'is-free-tier' : ''} ${recipe.costKind === 'local-hardware' ? 'is-unranked-cost' : ''}`}
             key={recipe.id}
             onClick={() => onSelect(recipe.id)}
             role="listitem"
@@ -107,10 +107,12 @@ function RankingBars({ recipes, getValue, formatValue, label, labels, lowerIsBet
 }
 
 function getParetoFrontier(recipes) {
-  const byCost = [...recipes].sort((left, right) => {
-    const costDelta = (left.costPer100 ?? 0) - (right.costPer100 ?? 0)
-    return costDelta || right.score - left.score
-  })
+  const byCost = recipes
+    .filter((recipe) => recipe.costKind !== 'local-hardware')
+    .sort((left, right) => {
+      const costDelta = (left.costPer100 ?? 0) - (right.costPer100 ?? 0)
+      return costDelta || right.score - left.score
+    })
   let bestScore = -Infinity
   return byCost.filter((recipe) => {
     if (recipe.score <= bestScore) return false
@@ -144,6 +146,7 @@ function ParetoFrontier() {
 }
 
 function IntelligenceCostScatter({ labels, onSelect }) {
+  const pricedRecipes = pilotRecipes.filter((recipe) => recipe.costKind !== 'local-hardware')
   return (
     <div className="aa-scatter-wrap">
       <div className="aa-scatter__legend">
@@ -153,11 +156,11 @@ function IntelligenceCostScatter({ labels, onSelect }) {
       <div className="aa-scatter" role="group" aria-label={labels.scatterLabel}>
         <div className="aa-scatter__attractive">{labels.highQuality}<br />{labels.lowCost}</div>
         <ParetoFrontier />
-        {pilotRecipes.map((recipe, index) => {
+        {pricedRecipes.map((recipe, index) => {
           const position = scatterPosition(recipe)
-          const costLabel = recipe.costKind === 'local-hardware'
-            ? labels.localHardware
-            : (recipe.costUsd === null ? labels.freeTier : formatPilotCost(recipe, true))
+          const costLabel = recipe.costUsd === null
+            ? labels.freeTier
+            : formatPilotCost(recipe, true)
           return (
             <button
               aria-label={`${recipe.model}: ${recipe.score} score, ${costLabel}`}
@@ -186,9 +189,9 @@ function IntelligenceCostScatter({ labels, onSelect }) {
       </div>
       <ul className="aa-scatter__model-key" aria-label={labels.modelKey}>
         {pilotRecipes.map((recipe) => (
-          <li key={recipe.id}>
+          <li className={recipe.costKind === 'local-hardware' ? 'is-unranked-cost' : ''} key={recipe.id}>
             <span style={{ '--point-color': recipe.color }} />
-            {recipe.model}
+            {recipe.model}{recipe.costKind === 'local-hardware' ? ` · ${labels.unrankedCost}` : ''}
           </li>
         ))}
       </ul>
@@ -201,6 +204,8 @@ export function AventineBenchmarkCharts({ locale = 'en', onSelect }) {
   const labels = chartCopy[locale] ?? chartCopy.en
   const bySpeed = [...pilotRecipes].sort((left, right) => right.tasksPerHour - left.tasksPerHour)
   const byCost = [...pilotRecipes].sort((left, right) => {
+    if (left.costKind === 'local-hardware') return 1
+    if (right.costKind === 'local-hardware') return -1
     if (left.costUsd === null && right.costUsd !== null) return -1
     if (left.costUsd !== null && right.costUsd === null) return 1
     return (left.costPer100 ?? 0) - (right.costPer100 ?? 0)

@@ -13,6 +13,8 @@ describe('Aventine benchmark charts', () => {
     expect(markup).toContain('Qwen 3.7 Plus')
     expect(markup).toContain('TranslateGemma 27B')
     expect(markup).toContain('本地 GPU')
+    expect(markup).toContain('TranslateGemma 27B · 成本未排名')
+    expect(markup).not.toContain('aria-label="TranslateGemma 27B: 39.29 score')
     expect(markup).not.toContain('Most attractive quadrant')
   })
 
