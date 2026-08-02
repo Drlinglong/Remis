@@ -2748,6 +2748,15 @@ img {
   font-size: 0.82rem;
 }
 
+.recipe-score small {
+  display: block;
+  margin-top: 0.55rem;
+  color: #8fa0a8;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .recipe-summary dl {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -3136,7 +3145,7 @@ img {
   position: relative;
   display: grid;
   min-width: 960px;
-  grid-template-columns: repeat(9, minmax(88px, 1fr));
+  grid-template-columns: repeat(var(--recipe-count, 9), minmax(78px, 1fr));
   gap: 0.35rem;
   min-height: 495px;
   padding: 2.2rem 1.4rem 1.2rem;
@@ -3213,6 +3222,11 @@ img {
   height: 5px;
   border-radius: 999px;
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--bar-color), transparent 82%);
+}
+
+.aa-ranking-bar.is-local-hardware .aa-ranking-bar__plot > span {
+  background: repeating-linear-gradient(90deg, #fbbc04 0 6px, #5f6f77 6px 10px);
+  box-shadow: 0 0 0 4px rgba(251, 188, 4, 0.12);
 }
 
 @keyframes aa-bar-grow {
@@ -3451,7 +3465,7 @@ img {
 
 .aa-scatter__model-key {
   display: grid;
-  grid-template-columns: repeat(9, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 0.55rem;
   margin: 5rem 0 0;
   padding: 0;
@@ -5108,7 +5122,7 @@ img {
 
   .aa-ranking-chart {
     min-height: 440px;
-    grid-template-columns: repeat(9, 92px);
+    grid-template-columns: repeat(var(--recipe-count, 9), 92px);
   }
 
   .aa-ranking-bar {

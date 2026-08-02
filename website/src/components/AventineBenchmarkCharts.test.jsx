@@ -9,7 +9,10 @@ describe('Aventine benchmark charts', () => {
     expect(markup).toContain('智力指数')
     expect(markup).toContain('每 100 题成本')
     expect(markup).toContain('端到端耗时包含服务商排队与网络传输')
-    expect(markup).toContain('免费档点位表示本轮使用了服务商福利')
+    expect(markup).toContain('免费档表示测试当日的服务商福利')
+    expect(markup).toContain('Qwen 3.7 Plus')
+    expect(markup).toContain('TranslateGemma 27B')
+    expect(markup).toContain('本地 GPU')
     expect(markup).not.toContain('Most attractive quadrant')
   })
 

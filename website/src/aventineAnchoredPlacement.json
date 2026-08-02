@@ -1,0 +1,87 @@
+{
+  "aggregate_id": "remis-anchor-panel-placement-2026-08-02",
+  "entries": [
+    {
+      "hard_reliability": {"hard_pass_count": 18, "points": 19.34, "policy_version": "stage-policy-v0.1", "run_count": 3, "sample_count": 21, "value": 0.920952380952381},
+      "label": "Qwen 3.7 Plus (high)",
+      "model_id": "qwen/qwen3.7-plus",
+      "model_provenance": {"developer": "Qwen / Alibaba Cloud", "gateway": "OpenRouter", "max_output_tokens": 16000, "reasoning_effort": "high"},
+      "profile_id": "qwen37",
+      "provider": "OpenRouter",
+      "rank": 1,
+      "reasoning_label": "high",
+      "recipe_id": "remis.openrouter.qwen-qwen3-7-plus.all",
+      "run_artifacts": [
+        {"recipe_sha256": "c4a6255f2d3c1d95e6e09d1eef4832cac64c48eb985a349223cc57e11ac8c97c", "run_id": "remis-20260802T081032Z-qwen-3-7-plus-high"},
+        {"recipe_sha256": "c4a6255f2d3c1d95e6e09d1eef4832cac64c48eb985a349223cc57e11ac8c97c", "run_id": "remis-20260802T080957Z-qwen-3-7-plus-high"},
+        {"recipe_sha256": "c4a6255f2d3c1d95e6e09d1eef4832cac64c48eb985a349223cc57e11ac8c97c", "run_id": "remis-20260802T080930Z-qwen-3-7-plus-high"}
+      ],
+      "score": {"hard_reliability": 0.920952, "raw_score": 71.12381, "rounding": "ROUND_HALF_UP@0.01", "score": 71.12, "score_version": "pilot-score-v0.2-anchored", "soft_preference": 0.571429, "weights": {"hard_reliability": 0.4, "soft_preference": 0.6}},
+      "soft_preference": {
+        "confidence_interval": {"confidence": 0.95, "lower": 0.325903, "sample_count": 14, "upper": 0.786195},
+        "coverage": {"coverage": 0.777778, "coverage_defined": true, "coverage_percent": 77.78, "denominator": 18, "denominator_policy": "planned", "eligible_decisions": 18, "planned_decisions": 18, "resolved_decisions": 14, "score_version": "coverage-v0.1", "unresolved_decisions": 4},
+        "hard_veto_excluded_count": 3,
+        "losses": 4,
+        "opponents": ["gemini35", "gemini36", "mimo"],
+        "resolved_count": 14,
+        "status": "provisional",
+        "ties": 4,
+        "unresolved_count": 4,
+        "value": 0.5714285714285714,
+        "wins": 6
+      },
+      "telemetry": {"elapsed_seconds": 857.046, "usage": {"input_tokens": 14184, "output_tokens": 46136, "reasoning_tokens": 42438, "total_tokens": 60320}}
+    },
+    {
+      "hard_reliability": {"hard_pass_count": 12, "points": 16.69, "policy_version": "stage-policy-v0.1", "run_count": 3, "sample_count": 21, "value": 0.7947619047619048},
+      "label": "TranslateGemma 27B IT Q6_K (none)",
+      "model_id": "translategemma-27b-it",
+      "model_provenance": {"developer": "Google Translate", "gguf_publisher": "mradermacher", "gguf_repository": "mradermacher/translategemma-27b-it-GGUF", "loaded_context_length": 16128, "quantization": "Q6_K", "runtime": "LM Studio / llama.cpp", "upstream_model": "google/translategemma-27b-it"},
+      "profile_id": "translategemma",
+      "provider": "LM Studio",
+      "rank": 2,
+      "reasoning_label": "none",
+      "recipe_id": "remis.lm-studio.google-translategemma-27b-it.q6-k.generic-prompt",
+      "run_artifacts": [
+        {"recipe_sha256": "84ec1753a46c593b24d7817a9f5a45462d3e3f806df9d701aa492a538d2c4cac", "run_id": "remis-20260802T075021Z-translategemma-27b-it-q6-k-none"},
+        {"recipe_sha256": "84ec1753a46c593b24d7817a9f5a45462d3e3f806df9d701aa492a538d2c4cac", "run_id": "remis-20260802T075104Z-translategemma-27b-it-q6-k-none"},
+        {"recipe_sha256": "84ec1753a46c593b24d7817a9f5a45462d3e3f806df9d701aa492a538d2c4cac", "run_id": "remis-20260802T075147Z-translategemma-27b-it-q6-k-none"}
+      ],
+      "score": {"hard_reliability": 0.794762, "raw_score": 39.290476, "rounding": "ROUND_HALF_UP@0.01", "score": 39.29, "score_version": "pilot-score-v0.2-anchored", "soft_preference": 0.125, "weights": {"hard_reliability": 0.4, "soft_preference": 0.6}},
+      "soft_preference": {
+        "confidence_interval": {"confidence": 0.95, "lower": 0.022417, "sample_count": 8, "upper": 0.470895},
+        "coverage": {"coverage": 0.888889, "coverage_defined": true, "coverage_percent": 88.89, "denominator": 9, "denominator_policy": "planned", "eligible_decisions": 9, "planned_decisions": 9, "resolved_decisions": 8, "score_version": "coverage-v0.1", "unresolved_decisions": 1},
+        "hard_veto_excluded_count": 12,
+        "losses": 7,
+        "opponents": ["gemini35", "gemini36", "mimo"],
+        "resolved_count": 8,
+        "status": "provisional",
+        "ties": 0,
+        "unresolved_count": 1,
+        "value": 0.125,
+        "wins": 1
+      },
+      "telemetry": {"elapsed_seconds": 110.487, "usage": {"input_tokens": 0, "output_tokens": 0, "reasoning_tokens": 0, "total_tokens": 0}}
+    }
+  ],
+  "fixture_sha256": "abb729a7322de12619994aa8de171d2d11d9bf392a697c0e94b49600c4321fe2",
+  "judge_configurations": [{"model": "deepseek-v4-flash", "profile": "deepseek-v4-flash-thinking-low-8k", "prompt_revision": "translation-judge-v2", "provider": "deepseek-flash", "reasoning_effort": "low"}],
+  "judge_telemetry": {"estimated_cost_rmb": 0.506786, "failure_count": 0, "http_attempt_count": 61, "report_count": 6},
+  "policies": {"coverage": "coverage-v0.1", "score": "pilot-score-v0.2-anchored", "soft_preference": "judge-position-consistent-anchor-panel-v0.2", "stage": "stage-policy-v0.1", "translation_failure_multiplier": 0.67},
+  "preview": true,
+  "sample_design": {"anchor_count": 3, "challenger_count": 2, "hard_cases_per_profile": 21, "pairwise_repeat": 1, "profile_count": 5, "runs_per_profile": 3, "scored_profile_count": 2},
+  "schema_version": 1,
+  "score_version": "pilot-score-v0.2-anchored",
+  "selection_policy": {
+    "anchors": [
+      {"label": "Gemini 3.6 Flash (high)", "profile_id": "gemini36", "recipe_id": "remis.google-ai-studio.gemini-3-6-flash.all", "recipe_sha256": "eaa184b29fa23dbc917098ae647617bc320c7446f83fdaf14dd03021c9838916"},
+      {"label": "Gemini 3.5 Flash Lite (high)", "profile_id": "gemini35", "recipe_id": "remis.google-ai-studio.gemini-3-5-flash-lite.all", "recipe_sha256": "b21605e57c6af98370eb80332dae0f7bd6cacebe09393945ffec649b7ab9a02f"},
+      {"label": "MiMo V2.5 (reasoning)", "profile_id": "mimo", "recipe_id": "remis.openrouter.xiaomi-mimo-v2-5.all", "recipe_sha256": "400914b9a574e15ae1d2aba76547c5395495d329c6cbe2702dc64b8702b157f8"}
+    ],
+    "challengers": ["qwen37", "translategemma"],
+    "mode": "anchor-panel",
+    "placement_scope": "challengers-only",
+    "revision": "remis-three-tier-2026-08-v1"
+  },
+  "suite": "remis-pilot-aggregate"
+}
