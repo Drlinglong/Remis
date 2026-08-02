@@ -6,14 +6,42 @@
         "available_models": [
             "gemini-3.1-pro-preview",
             "gemini-3.6-flash",
-            "gemini-3.5-flash-lite",
-            "gemini-2.5-pro",
-            "gemini-2.5-flash",
-            "gemini-2.5-flash-lite"
+            "gemini-3.5-flash-lite"
         ],
         "base_url": "https://generativelanguage.googleapis.com",
-        "enable_thinking": false,
-        "thinking_budget": 0,
+        "reasoning": {
+            "default_enabled": false,
+            "default_preset": "medium",
+            "models": {
+                "gemini-3.1-pro-preview": {
+                    "presets": {
+                        "low": {"thinking_config": {"thinking_level": "low"}},
+                        "medium": {"thinking_config": {"thinking_level": "medium"}},
+                        "high": {"thinking_config": {"thinking_level": "high"}}
+                    },
+                    "source_url": "https://ai.google.dev/gemini-api/docs/generate-content/thinking",
+                    "reviewed_at": "2026-08-02"
+                },
+                "gemini-3.6-flash": {
+                    "presets": {
+                        "low": {"thinking_config": {"thinking_level": "low"}},
+                        "medium": {"thinking_config": {"thinking_level": "medium"}},
+                        "high": {"thinking_config": {"thinking_level": "high"}}
+                    },
+                    "source_url": "https://ai.google.dev/gemini-api/docs/generate-content/thinking",
+                    "reviewed_at": "2026-08-02"
+                },
+                "gemini-3.5-flash-lite": {
+                    "presets": {
+                        "low": {"thinking_config": {"thinking_level": "low"}},
+                        "medium": {"thinking_config": {"thinking_level": "medium"}},
+                        "high": {"thinking_config": {"thinking_level": "high"}}
+                    },
+                    "source_url": "https://ai.google.dev/gemini-api/docs/generate-content/thinking",
+                    "reviewed_at": "2026-08-02"
+                }
+            }
+        },
         "description_key": "api_desc_gemini"
     },
     "anthropic": {
@@ -29,6 +57,18 @@
             "claude-opus-4-8",
             "claude-sonnet-4-6"
         ],
+        "reasoning": {
+            "default_enabled": false,
+            "default_preset": "medium",
+            "models": {
+                "claude-fable-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-08-02"},
+                "claude-opus-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-08-02"},
+                "claude-sonnet-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-08-02"},
+                "claude-haiku-4-5-20251001": null,
+                "claude-opus-4-8": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-08-02"},
+                "claude-sonnet-4-6": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-08-02"}
+            }
+        },
         "description_key": "api_desc_anthropic"
     },
     "openai": {
@@ -44,8 +84,18 @@
             "gpt-5.4",
             "gpt-5.4-mini"
         ],
-        "enable_thinking": false,
-        "reasoning_effort": "low",
+        "reasoning": {
+            "default_enabled": true,
+            "default_preset": "low",
+            "models": {
+                "gpt-5.6-sol": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}, "max": {"reasoning_effort": "max"}}, "source_url": "https://developers.openai.com/api/docs/guides/latest-model", "reviewed_at": "2026-08-02"},
+                "gpt-5.6-terra": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}, "max": {"reasoning_effort": "max"}}, "source_url": "https://developers.openai.com/api/docs/guides/latest-model", "reviewed_at": "2026-08-02"},
+                "gpt-5.6-luna": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}, "max": {"reasoning_effort": "max"}}, "source_url": "https://developers.openai.com/api/docs/guides/latest-model", "reviewed_at": "2026-08-02"},
+                "gpt-5.5": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}}, "source_url": "https://developers.openai.com/api/docs/models", "reviewed_at": "2026-08-02"},
+                "gpt-5.4": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}}, "source_url": "https://developers.openai.com/api/docs/models", "reviewed_at": "2026-08-02"},
+                "gpt-5.4-mini": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}}, "source_url": "https://developers.openai.com/api/docs/models", "reviewed_at": "2026-08-02"}
+            }
+        },
         "description_key": "api_desc_openai"
     },
     "qwen": {
@@ -60,7 +110,16 @@
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "region": "beijing",
         "name": "Qwen (通义千问)",
-        "enable_thinking": false,
+        "reasoning": {
+            "default_enabled": false,
+            "default_preset": "medium",
+            "models": {
+                "qwen3.7-max": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}}, "source_url": "https://help.aliyun.com/en/model-studio/deep-thinking", "reviewed_at": "2026-08-02"},
+                "qwen3.7-plus": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}}, "source_url": "https://help.aliyun.com/en/model-studio/deep-thinking", "reviewed_at": "2026-08-02"},
+                "qwen3.7-flash": null,
+                "qwen3.6-flash": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}}, "source_url": "https://help.aliyun.com/en/model-studio/deep-thinking", "reviewed_at": "2026-08-02"}
+            }
+        },
         "description_key": "api_desc_qwen"
     },
     "grok": {
@@ -72,6 +131,7 @@
             "grok-4.5",
             "grok-4.3"
         ],
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"grok-4.5": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}}, "source_url": "https://docs.x.ai/developers/model-capabilities/text/reasoning", "reviewed_at": "2026-08-02"}, "grok-4.3": null}},
         "description_key": "api_desc_grok"
     },
     "deepseek": {
@@ -83,7 +143,7 @@
             "deepseek-v4-flash"
         ],
         "name": "DeepSeek (深度求索)",
-        "enable_thinking": false,
+        "reasoning": {"default_enabled": false, "default_preset": "high", "models": {"deepseek-v4-pro": {"presets": {"high": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "max": {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}}, "source_url": "https://api-docs.deepseek.com/guides/thinking_mode", "reviewed_at": "2026-08-02"}, "deepseek-v4-flash": {"presets": {"high": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "max": {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}}, "source_url": "https://api-docs.deepseek.com/guides/thinking_mode", "reviewed_at": "2026-08-02"}}},
         "description_key": "api_desc_deepseek"
     },
     "openrouter": {
@@ -98,6 +158,13 @@
             "z-ai/glm-5.2"
         ],
         "name": "OpenRouter",
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {
+            "deepseek/deepseek-v4-flash": {"presets": {"low": {"reasoning": {"effort": "low"}}, "medium": {"reasoning": {"effort": "medium"}}, "high": {"reasoning": {"effort": "high"}}}, "source_url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens", "reviewed_at": "2026-08-02"},
+            "deepseek/deepseek-v4-pro": {"presets": {"low": {"reasoning": {"effort": "low"}}, "medium": {"reasoning": {"effort": "medium"}}, "high": {"reasoning": {"effort": "high"}}}, "source_url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens", "reviewed_at": "2026-08-02"},
+            "qwen/qwen3.6-flash": {"presets": {"low": {"reasoning": {"effort": "low"}}, "medium": {"reasoning": {"effort": "medium"}}, "high": {"reasoning": {"effort": "high"}}}, "source_url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens", "reviewed_at": "2026-08-02"},
+            "stepfun/step-3.7-flash": {"presets": {"low": {"reasoning": {"effort": "low"}}, "medium": {"reasoning": {"effort": "medium"}}, "high": {"reasoning": {"effort": "high"}}}, "source_url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens", "reviewed_at": "2026-08-02"},
+            "z-ai/glm-5.2": {"presets": {"low": {"reasoning": {"effort": "low"}}, "medium": {"reasoning": {"effort": "medium"}}, "high": {"reasoning": {"effort": "high"}}}, "source_url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens", "reviewed_at": "2026-08-02"}
+        }},
         "description_key": "api_desc_openrouter"
     },
     "ollama": {
@@ -129,6 +196,7 @@
             "zai-org/GLM-5.1",
             "MiniMax/MiniMax-M3"
         ],
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"zai-org/GLM-5.1": null, "MiniMax/MiniMax-M3": null}},
         "name": "ModelScope (魔搭)",
         "description_key": "api_desc_modelscope"
     },
@@ -142,6 +210,7 @@
             "moonshotai/Kimi-K2.6",
             "MiniMaxAI/MiniMax-M2.5"
         ],
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"deepseek-ai/DeepSeek-V4-Pro": null, "zai-org/GLM-5.1": null, "moonshotai/Kimi-K2.6": null, "MiniMaxAI/MiniMax-M2.5": null}},
         "name": "SiliconFlow (硅基流动)",
         "description_key": "api_desc_siliconflow"
     },
@@ -199,6 +268,7 @@
             "kimi-k2.7-code-highspeed",
             "kimi-k2.6"
         ],
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"kimi-k3": null, "kimi-k2.7-code": null, "kimi-k2.7-code-highspeed": null, "kimi-k2.6": null}},
         "name": "Kimi (Moonshot AI)",
         "description_key": "api_desc_kimi"
     },
@@ -212,6 +282,7 @@
             "MiniMax-M2.5",
             "MiniMax-M2.5-highspeed"
         ],
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"MiniMax-M2.7": null, "MiniMax-M2.7-highspeed": null, "MiniMax-M2.5": null, "MiniMax-M2.5-highspeed": null}},
         "name": "Minimax (海螺)",
         "description_key": "api_desc_minimax"
     },
@@ -228,6 +299,7 @@
             "glm-4.5-flash"
         ],
         "name": "ChatGLM (Zhipu AI)",
+        "reasoning": {"default_enabled": false, "default_preset": "high", "models": {"glm-5.2": {"presets": {"low": {"thinking": {"type": "enabled"}, "reasoning_effort": "low"}, "medium": {"thinking": {"type": "enabled"}, "reasoning_effort": "medium"}, "high": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "max": {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}}, "source_url": "https://docs.bigmodel.cn/cn/guide/capabilities/thinking", "reviewed_at": "2026-08-02"}, "glm-5.1": null, "glm-5-turbo": null, "glm-4.7": null, "glm-4.6": null, "glm-4.5-flash": null}},
         "description_key": "api_desc_zhipu"
     },
     "nvidia": {
@@ -239,6 +311,7 @@
             "minimaxai/minimax-m2.7",
             "minimaxai/minimax-m2.5"
         ],
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"minimaxai/minimax-m2.7": null, "minimaxai/minimax-m2.5": null}},
         "description_key": "api_desc_nvidia"
     },
     "hunyuan": {

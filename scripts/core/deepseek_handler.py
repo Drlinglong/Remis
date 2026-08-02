@@ -37,16 +37,16 @@ class DeepSeekHandler(BaseApiHandler):
         """【必须由子类实现】执行对DeepSeek API的调用并返回原始文本响应。"""
         provider_config = self.get_provider_config()
         model_name = provider_config.get("default_model", "deepseek-v4-flash")
-        enable_thinking = provider_config.get("enable_thinking", False)
-
         try:
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[
+            request_kwargs = {
+                "model": model_name,
+                "messages": [
                     {"role": "system", "content": "You are a professional translator for game mods."},
                     {"role": "user", "content": prompt}
                 ],
-                extra_body={"enable_thinking": enable_thinking}
+            }
+            response = client.chat.completions.create(
+                **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
             return response.choices[0].message.content.strip()
         except Exception as e:

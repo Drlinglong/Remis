@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import copy
 import requests
 from fastapi import APIRouter, HTTPException
 from dotenv import load_dotenv
@@ -9,6 +10,11 @@ from scripts.app_settings import API_PROVIDERS, get_api_key, get_appdata_config_
 from scripts.schemas.config import TestProviderConnectionRequest, UpdateApiKeyRequest, UpdateProviderConfigRequest
 from scripts.app_settings import config_manager
 from scripts.utils.system_utils import sanitize_for_json
+from scripts.core.reasoning_policy import (
+    describe_reasoning_settings,
+    resolve_reasoning_parameters,
+    validate_custom_parameters,
+)
 
 router = APIRouter()
 
@@ -105,6 +111,17 @@ def get_api_keys():
         # Get overrides
         override = provider_overrides.get(provider_id, {})
             
+        selected_model = override.get("selected_model", config.get("default_model"))
+        effective_config = config.copy()
+        effective_config["default_model"] = selected_model
+        for key in (
+            "reasoning_builtin_enabled",
+            "reasoning_preset",
+            "custom_parameters",
+        ):
+            if key in override:
+                effective_config[key] = override[key]
+
         providers.append({
             "id": provider_id,
             "name": config.get("name", provider_id.replace("_", " ").title()),
@@ -114,11 +131,13 @@ def get_api_keys():
             "has_key": has_key,
             "masked_key": masked_key,
             "available_models": config.get("available_models", []),
-            "selected_model": override.get("selected_model", config.get("default_model")),
+            "selected_model": selected_model,
             "custom_models": override.get("models", []),
             "api_url": override.get("api_url", config.get("base_url", "")),
             "prompt_prefix": override.get("prompt_prefix", ""),
             "system_prompt_suffix": override.get("system_prompt_suffix", ""),
+            "reasoning": describe_reasoning_settings(effective_config),
+            "reasoning_models": (config.get("reasoning") or {}).get("models", {}),
         })
     return sanitize_for_json(providers)
 
@@ -172,7 +191,7 @@ def update_provider_config(payload: UpdateProviderConfigRequest):
     # We store these in a separate "provider_config" dict in config.json
     # Structure: "provider_config": { "openai": { "models": [...], "api_url": "..." } }
     
-    current_overrides = config_manager.get_value("provider_config", {})
+    current_overrides = copy.deepcopy(config_manager.get_value("provider_config", {}))
     if provider_id not in current_overrides:
         current_overrides[provider_id] = {}
         
@@ -191,6 +210,54 @@ def update_provider_config(payload: UpdateProviderConfigRequest):
 
     if payload.system_prompt_suffix is not None:
         current_overrides[provider_id]["system_prompt_suffix"] = payload.system_prompt_suffix
+
+    if payload.reasoning_builtin_enabled is not None:
+        current_overrides[provider_id]["reasoning_builtin_enabled"] = (
+            payload.reasoning_builtin_enabled
+        )
+
+    if payload.reasoning_preset is not None:
+        current_overrides[provider_id]["reasoning_preset"] = payload.reasoning_preset
+
+    if payload.custom_parameters is not None:
+        try:
+            current_overrides[provider_id]["custom_parameters"] = (
+                validate_custom_parameters(payload.custom_parameters)
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    effective_config = API_PROVIDERS[provider_id].copy()
+    effective_config["default_model"] = current_overrides[provider_id].get(
+        "selected_model",
+        effective_config.get("default_model"),
+    )
+    effective_config.update({
+        key: current_overrides[provider_id][key]
+        for key in (
+            "reasoning_builtin_enabled",
+            "reasoning_preset",
+            "custom_parameters",
+        )
+        if key in current_overrides[provider_id]
+    })
+    resolution = resolve_reasoning_parameters(effective_config)
+    if resolution.builtin_enabled and not resolution.supported:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "The selected model has no verified built-in reasoning mapping. "
+                "Disable built-in reasoning and use custom parameters instead."
+            ),
+        )
+    if (
+        resolution.builtin_enabled
+        and resolution.selected_preset not in resolution.available_presets
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="The selected reasoning preset is not supported by this model.",
+        )
         
     config_manager.set_value("provider_config", current_overrides)
     

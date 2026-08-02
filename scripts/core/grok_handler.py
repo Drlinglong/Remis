@@ -39,12 +39,15 @@ class GrokHandler(BaseApiHandler):
         model_name = provider_config.get("default_model", "grok-4.5")
 
         try:
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[
+            request_kwargs = {
+                "model": model_name,
+                "messages": [
                     {"role": "system", "content": "You are a professional translator for game mods."},
                     {"role": "user", "content": prompt}
-                ]
+                ],
+            }
+            response = client.chat.completions.create(
+                **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
             return response.choices[0].message.content.strip()
         except Exception as e:

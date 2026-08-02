@@ -174,10 +174,13 @@ class LocalLLMHandler(BaseApiHandler):
                     message["content"] = _append_system_suffix(message.get("content", ""), provider_config)
                     break
         try:
+            request_kwargs = {
+                "model": model_name,
+                "messages": prepared_messages,
+                "temperature": temperature,
+            }
             response = self.client.chat.completions.create(
-                model=model_name,
-                messages=prepared_messages,
-                temperature=temperature,
+                **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
             return self._extract_chat_content(response, model_name, self.base_url)
         except APIConnectionError as exc:
@@ -209,6 +212,7 @@ class LocalLLMHandler(BaseApiHandler):
                 "prompt": user_prompt,
                 "stream": False,
             }
+            payload.update(self._reasoning_request_parameters())
 
             response = requests.post(
                 f"{self.base_url}/api/generate",
@@ -250,13 +254,13 @@ class LocalLLMHandler(BaseApiHandler):
                 {"role": "user", "content": prompt}
             ]
             
+            request_kwargs = {
+                "model": model_name,
+                "messages": messages,
+                "temperature": 0.3,
+            }
             response = client.chat.completions.create(
-                model=model_name,
-                messages=messages,
-                temperature=0.3,
-                # top_p=1.0, 
-                # presence_penalty=0.0,
-                # frequency_penalty=0.0
+                **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
             return self._extract_chat_content(response, model_name, self.base_url)
         except APIConnectionError as e:

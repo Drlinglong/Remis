@@ -66,11 +66,37 @@ class BaseApiHandler(ABC):
                 base_config["prompt_prefix"] = user_overrides.get("prompt_prefix") or ""
             if "system_prompt_suffix" in user_overrides:
                 base_config["system_prompt_suffix"] = user_overrides.get("system_prompt_suffix") or ""
+            for key in (
+                "reasoning_builtin_enabled",
+                "reasoning_preset",
+                "custom_parameters",
+            ):
+                if key in user_overrides:
+                    base_config[key] = user_overrides[key]
         elif self.model_id:
             # If no overrides but we have a request model, use it
             base_config["default_model"] = self.model_id
             
         return base_config
+
+    def _reasoning_request_parameters(self) -> dict:
+        from scripts.core.reasoning_policy import resolve_reasoning_parameters
+
+        resolution = resolve_reasoning_parameters(self.get_provider_config())
+        if resolution.overridden_paths:
+            self.logger.info(
+                "User custom parameters override built-in reasoning fields: %s",
+                ", ".join(resolution.overridden_paths),
+            )
+        return resolution.parameters
+
+    def _apply_reasoning_to_openai_kwargs(self, kwargs: dict) -> dict:
+        parameters = self._reasoning_request_parameters()
+        if not parameters:
+            return kwargs
+        existing_extra_body = kwargs.get("extra_body") or {}
+        kwargs["extra_body"] = {**existing_extra_body, **parameters}
+        return kwargs
 
     def _build_custom_global_prompt_part(self, existing_context: str = "") -> str:
         """Build persistent user instructions once, without duplicating UI defaults."""

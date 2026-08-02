@@ -64,6 +64,7 @@ class AnthropicHandler(BaseApiHandler):
         }
         if temperature is not None:
             payload["temperature"] = temperature
+        payload.update(self._reasoning_request_parameters())
 
         response = client.post(
             f"{self.base_url}/messages",

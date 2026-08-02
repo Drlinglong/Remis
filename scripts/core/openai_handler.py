@@ -39,22 +39,17 @@ class OpenAIHandler(BaseApiHandler):
         provider_config = self.get_provider_config()
         model_name = provider_config.get("default_model", "gpt-5.6-terra")
         
-        enable_thinking = provider_config.get("enable_thinking", False)
-        reasoning_effort_value = provider_config.get("reasoning_effort")
-
-        extra_params = {}
-        if not enable_thinking and reasoning_effort_value:
-            extra_params["reasoning_effort"] = reasoning_effort_value
-
         try:
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[
+            request_kwargs = {
+                "model": model_name,
+                "messages": [
                     {"role": "system", "content": "You are a professional translator for game mods."},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=4000,  # 保持较大的token以适应大批次
-                **extra_params
+                "max_completion_tokens": 4000,
+            }
+            response = client.chat.completions.create(
+                **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
             return response.choices[0].message.content.strip()
         except openai.NotFoundError as e:
@@ -84,10 +79,13 @@ class OpenAIHandler(BaseApiHandler):
         model_name = provider_config.get("default_model", "gpt-5.6-terra")
         
         try:
+            request_kwargs = {
+                "model": model_name,
+                "messages": messages,
+                "temperature": temperature,
+            }
             response = self.client.chat.completions.create(
-                model=model_name,
-                messages=messages,
-                temperature=temperature
+                **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
