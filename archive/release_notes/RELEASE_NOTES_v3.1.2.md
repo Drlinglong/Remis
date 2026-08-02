@@ -25,12 +25,13 @@ model configuration introduced around the 3.1.1 release.
 
 ### Validation
 
-- Backend policy, routing, provider, and configuration regression tests pass.
+- All 703 backend tests pass, with 1 environment-dependent test skipped.
 - Desktop frontend tests, locale/encoding gates, lint, and the production build
   pass. Python architecture and source-compilation checks pass.
 - No paid provider call, installation, deployment, or project-file overwrite
   was performed while preparing this hotfix pull request.
-- Windows installer: pending review approval and final release build.
+- The frozen backend passed its localhost health smoke test. The bundled cloud
+  provider catalogs were verified against all 20 packaged provider lists.
 
 ## 中文
 
@@ -49,8 +50,17 @@ model configuration introduced around the 3.1.1 release.
 
 ### 验证
 
-- 后端推理策略、路由、供应商和配置聚焦回归测试通过。
+- 后端 703 项测试全部通过，另有 1 项依赖运行环境的测试跳过。
 - 桌面前端测试、语言包与编码门禁、lint 和生产构建通过；Python 架构与源码编译
   检查通过。
 - 准备本热修复 PR 时未调用付费模型、安装、部署或覆盖项目文件。
-- Windows 安装包：等待审查通过后再进行最终构建。
+- 冻结后端已通过 localhost 健康冒烟测试；安装包内 20 个云端供应商模型清单均已
+  与内置新版清单逐项核对。
+
+## Final package / 最终安装包
+
+- File / 文件：`remis-mod-factory_3.1.2_x64-setup.exe`
+- Size / 大小：40,547,208 bytes (38.67 MiB)
+- SHA-256：`8AEA7C7B5A554B4A13A96BF272BFBABD6A6AAE772983A320E264D0FCB5E9DC09`
+- Frozen backend smoke / 冻结后端冒烟：passed on an isolated localhost port
+- Code signing / 代码签名：not signed
