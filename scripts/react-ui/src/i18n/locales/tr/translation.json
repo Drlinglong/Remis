@@ -1175,6 +1175,15 @@
       "summary_error": "The published archive summary could not be loaded.",
       "traceability_error": "Source provenance could not be loaded.",
       "retry": "Retry",
+      "removal": {
+        "open": "Remove project archive", "title": "Remove project archive",
+        "warning_title": "This removes all generated archive data",
+        "warning_desc": "Published releases, drafts, evidence aggregates, and resumable analysis checkpoints for this project will be permanently removed.",
+        "confirm": "Remove the complete archive for {{project}}? You can rebuild it by running full archive analysis again.",
+        "preserved": "The Mod source files, project, project glossary, and neologism candidates are preserved.",
+        "cancel": "Keep archive", "confirm_action": "Remove archive",
+        "error": "The project archive could not be removed."
+      },
       "title": "Published archive",
       "subtitle": "Inspect the latest immutable archive release for the selected mod.",
       "stale_title": "This archive is stale",

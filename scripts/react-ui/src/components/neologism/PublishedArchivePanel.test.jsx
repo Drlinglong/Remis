@@ -14,7 +14,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('../../utils/api', () => ({
-    default: { get: vi.fn(), post: vi.fn(), put: vi.fn() },
+    default: { delete: vi.fn(), get: vi.fn(), post: vi.fn(), put: vi.fn() },
 }));
 
 const onSelectedProjectChange = vi.fn();
@@ -53,6 +53,7 @@ describe('PublishedArchivePanel', () => {
         vi.clearAllMocks();
         api.post.mockResolvedValue({ data: {} });
         api.put.mockResolvedValue({ data: {} });
+        api.delete.mockResolvedValue({ data: { status: 'removed' } });
         api.get.mockImplementation((url) => {
             if (url === '/api/projects') return Promise.resolve({ data: [{ project_id: 'project-1', name: 'Demo', game_id: 'stellaris' }] });
             if (url === '/api/neologisms/project-glossary/project-1') return Promise.resolve({ data: { glossary_id: 7, name: 'Demo terminology', game_id: 'stellaris' } });
@@ -186,6 +187,20 @@ describe('PublishedArchivePanel', () => {
             name: 'neologism_review.court.inspect_project_glossary',
         }));
         expect(onOpenGlossary).toHaveBeenCalledWith({ glossaryId: 7, gameId: 'stellaris' });
+    });
+
+    it('removes the selected project archive only after explicit confirmation', async () => {
+        renderPanel();
+
+        await screen.findByText('release-1');
+        fireEvent.click(screen.getByTestId('mod-archive-remove'));
+        expect(await screen.findByRole('dialog')).toHaveTextContent('Demo');
+        fireEvent.click(screen.getByTestId('mod-archive-confirm-remove'));
+
+        await waitFor(() => expect(api.delete).toHaveBeenCalledWith(
+            '/api/context/projects/project-1/archive',
+            { data: { project_name: 'Demo', approved: true } },
+        ));
     });
 
     it('shows the empty state when the project has no published release', async () => {

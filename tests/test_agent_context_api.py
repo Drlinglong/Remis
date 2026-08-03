@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock
 
 from scripts.core.services.agent_context_service import AgentContextService
 from scripts.routers import agent_context as agent_context_router
@@ -199,6 +200,7 @@ def test_agent_context_routes_have_structured_selection_errors(monkeypatch):
     assert latest.json()["allowed_actions"] == [
         "read_effective_context",
         "read_context_traceability",
+        "remove_context_archive",
     ]
 
     effective = client.get("/api/agent/context/releases/release-1/effective")
@@ -218,7 +220,7 @@ def test_agent_context_routes_have_structured_selection_errors(monkeypatch):
     }
 
 
-def test_agent_context_capabilities_are_read_only_and_do_not_claim_execution():
+def test_agent_context_capabilities_separate_reads_from_approved_removal():
     import asyncio
 
     from scripts.routers import agent as agent_router
@@ -228,3 +230,47 @@ def test_agent_context_capabilities_are_read_only_and_do_not_claim_execution():
     assert capabilities["actions"]["read_context_release"]["read_only"] is True
     assert capabilities["actions"]["context_analysis"]["supported"] is False
     assert capabilities["actions"]["context_analysis"]["requires_approval"] is True
+    assert capabilities["actions"]["remove_context_archive"] == {
+        "supported": True,
+        "read_only": False,
+        "requires_approval": True,
+        "preflight_required": True,
+        "endpoints": ["/api/agent/context/projects/{project_id}/archive"],
+    }
+
+
+def test_agent_context_removal_is_approval_gated_and_structured(monkeypatch):
+    from scripts.web_server import app
+
+    monkeypatch.setattr(
+        agent_context_router.project_manager,
+        "get_project",
+        AsyncMock(return_value={"project_id": "project-1", "name": "Horizon"}),
+    )
+    monkeypatch.setattr(
+        agent_context_router.task_state,
+        "find_active_task_by_dedupe_key",
+        lambda _key: None,
+    )
+    monkeypatch.setattr(
+        agent_context_router.context_archive_removal_service,
+        "remove",
+        lambda _project_id: {"removed": True, "counts": {"releases": 1}},
+    )
+    client = TestClient(app)
+
+    refused = client.request(
+        "DELETE",
+        "/api/agent/context/projects/project-1/archive",
+        json={"project_name": "Horizon", "approved": False},
+    )
+    removed = client.request(
+        "DELETE",
+        "/api/agent/context/projects/project-1/archive",
+        json={"project_name": "Horizon", "approved": True},
+    )
+
+    assert refused.status_code == 409
+    assert refused.json()["detail"]["code"] == "approval_required"
+    assert removed.status_code == 200
+    assert removed.json()["allowed_actions"] == ["analyze_context_archive"]

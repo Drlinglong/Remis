@@ -62,6 +62,12 @@ Use this sequence:
 15. Show overwrite and deployment risks. Obtain explicit approval before
     `POST /api/agent/jobs/{job_id}/approve-export`.
 
+Published Mod Archives can be removed through the approval-gated Agent endpoint
+documented in the API reference. Archive removal deletes only regenerable
+context releases, drafts, evidence aggregates, and analysis checkpoints. It
+must preserve the project, source files, project glossary, and neologism
+candidates.
+
 Read [references/api-workflow.md](references/api-workflow.md) for payloads,
 response fields, status handling, and error semantics.
 
@@ -73,6 +79,7 @@ Stop and ask before:
 - running model-backed repair;
 - exporting or deploying files;
 - overwriting an existing localization folder.
+- removing a published Mod Archive and its resumable analysis checkpoints.
 
 Approval is specific to the displayed plan or preview. Do not reuse a past
 approval for a changed path, provider, model, target language, or overwrite.

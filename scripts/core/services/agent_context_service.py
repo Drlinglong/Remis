@@ -159,12 +159,19 @@ class AgentContextService:
         release = self._release_metadata(releases[0])
         return AgentContextLatestReleaseResponse(
             **release.model_dump(),
-            allowed_actions=["read_effective_context", "read_context_traceability"],
+            allowed_actions=[
+                "read_effective_context",
+                "read_context_traceability",
+                "remove_context_archive",
+            ],
             links={
                 "effective": f"/api/agent/context/releases/{release.release_id}/effective",
                 "traceability": (
                     f"/api/agent/context/releases/{release.release_id}/traceability"
                     "?aggregate_key={aggregate_key}&context_key={context_key}"
+                ),
+                "remove_archive": (
+                    f"/api/agent/context/projects/{release.project_id}/archive"
                 ),
             },
         )
@@ -179,12 +186,15 @@ class AgentContextService:
             generated_synthesis=_bounded_mapping(effective.generated_synthesis),
             human_overrides=_bounded_mapping(effective.human_overrides),
             effective_context=_bounded_mapping(effective.effective_context),
-            allowed_actions=["read_context_traceability"],
+            allowed_actions=["read_context_traceability", "remove_context_archive"],
             links={
                 "traceability": (
                     f"/api/agent/context/releases/{release_id}/traceability"
                     "?aggregate_key={aggregate_key}&context_key={context_key}"
-                )
+                ),
+                "remove_archive": (
+                    f"/api/agent/context/projects/{release.project_id}/archive"
+                ),
             },
         )
 

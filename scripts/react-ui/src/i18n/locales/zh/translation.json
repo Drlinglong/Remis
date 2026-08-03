@@ -1216,6 +1216,17 @@
       "summary_error": "无法加载已发布档案摘要。",
       "traceability_error": "无法加载源文件来源依据。",
       "retry": "重试",
+      "removal": {
+        "open": "移除项目档案",
+        "title": "移除项目档案",
+        "warning_title": "这会移除所有已生成的档案数据",
+        "warning_desc": "该项目的发布版本、草稿、证据聚合和可续传分析检查点都会被永久移除。",
+        "confirm": "确定移除“{{project}}”的完整档案吗？之后可以重新运行完整档案分析来重建。",
+        "preserved": "Mod 源文件、项目、项目词典和新词候选会保留。",
+        "cancel": "保留档案",
+        "confirm_action": "确认移除档案",
+        "error": "无法移除项目档案。"
+      },
       "title": "已发布档案",
       "subtitle": "查看所选模组最近的不可变档案版本。",
       "stale_title": "档案已过期",

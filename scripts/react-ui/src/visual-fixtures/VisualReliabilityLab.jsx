@@ -26,6 +26,7 @@ import {
   ArchiveSummary,
   ReleaseMetadata,
 } from '../components/neologism/PublishedArchiveContent';
+import RemoveModArchiveControl from '../components/neologism/RemoveModArchiveControl';
 import styles from './VisualReliabilityLab.module.css';
 
 const longProjectName = 'Project Remis — Demo Mod — Stellaris — 超长项目身份验证';
@@ -134,6 +135,15 @@ const archiveTranslations = {
   'mod_archive.release.evidence_membership_count': '摘要证据：{{count}}',
   'mod_archive.release.delivery_membership_count': '翻译覆盖：{{count}}',
   'mod_archive.release.traceability_empty': '此版本没有可用的追踪记录。',
+  'mod_archive.release.removal.open': '移除项目档案',
+  'mod_archive.release.removal.title': '移除项目档案',
+  'mod_archive.release.removal.warning_title': '这会移除所有已生成的档案数据',
+  'mod_archive.release.removal.warning_desc': '该项目的发布版本、草稿、证据聚合和可续传分析检查点都会被永久移除。',
+  'mod_archive.release.removal.confirm': '确定移除“{{project}}”的完整档案吗？之后可以重新运行完整档案分析来重建。',
+  'mod_archive.release.removal.preserved': 'Mod 源文件、项目、项目词典和新词候选会保留。',
+  'mod_archive.release.removal.cancel': '保留档案',
+  'mod_archive.release.removal.confirm_action': '确认移除档案',
+  'mod_archive.release.removal.error': '无法移除项目档案。',
 };
 
 const archiveT = (key, options = {}) => String(archiveTranslations[key] || key).replace(
@@ -189,6 +199,14 @@ function PublishedArchiveVisualFixture() {
       data-testid="published-archive-visual-fixture"
       data-visual-ready="true"
     >
+      <Group justify="flex-end" mb="md">
+        <RemoveModArchiveControl
+          projectId="project-remis-demo"
+          projectName={longProjectName}
+          onRemoved={() => {}}
+          t={archiveT}
+        />
+      </Group>
       <ReleaseMetadata
         release={{
           release_id: 'release-2026-08-03',

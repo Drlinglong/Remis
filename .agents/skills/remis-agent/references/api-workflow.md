@@ -171,6 +171,29 @@ $repair = Invoke-RestMethod -Method Post `
 
 Never send ambiguous human-review items through a forced automatic repair.
 
+## Remove a Mod Archive
+
+Archive removal is project-scoped, destructive, and approval-gated. First read
+the project from `GET /api/agent/projects` and display its exact name and ID.
+After the user approves that exact project, send both values:
+
+```powershell
+$body = @{
+  project_name = 'My Victoria 3 Mod'
+  approved = $true
+} | ConvertTo-Json
+
+$result = Invoke-RestMethod -Method Delete `
+  -Uri 'http://127.0.0.1:1453/api/agent/context/projects/project-id/archive' `
+  -ContentType application/json -Body $body
+```
+
+The response reports `removed_counts`, `preserved`, and `allowed_actions`.
+Verify that the latest-release endpoint now returns `404
+context_release_not_found`. The project, source files, project glossary, and
+neologism candidates must remain available. A running context analysis returns
+`409 context_analysis_active`; do not cancel or bypass it.
+
 ## Preview and approve export
 
 ```powershell

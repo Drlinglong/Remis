@@ -83,6 +83,22 @@ for (const themeId of themes) {
     await expect(page.getByText('openrouter', { exact: true })).toBeVisible();
     await expect(page.getByText('openai/gpt-5.6-luna', { exact: true })).toBeVisible();
 
+    await page.getByTestId('mod-archive-remove').click();
+    const removalDialog = page.getByRole('dialog');
+    await expect(removalDialog).toBeVisible();
+    const removalSamples = [
+      removalDialog.getByText('移除项目档案', { exact: true }),
+      removalDialog.getByText('这会移除所有已生成的档案数据', { exact: true }),
+      removalDialog.getByText('Mod 源文件、项目、项目词典和新词候选会保留。', { exact: true }),
+    ];
+    for (const sample of removalSamples) {
+      await expect(sample).toBeVisible();
+      expect(await renderedContrast(sample)).toBeGreaterThanOrEqual(4.5);
+    }
+    await expect(page).toHaveScreenshot(`published-archive-removal-${themeId}.png`, { fullPage: true });
+    await removalDialog.getByRole('button', { name: '保留档案' }).click();
+    await expect(removalDialog).toBeHidden();
+
     await metadataDetails.locator('summary').click();
     await expect(page.getByText('完整档案分析', { exact: true })).toBeVisible();
     await expect(page.getByText('v0.0.2', { exact: true })).toBeVisible();
@@ -137,6 +153,18 @@ for (const themeId of themes) {
     expect(overflowOffenders).toEqual([]);
 
     await expect(page).toHaveScreenshot(`published-archive-${themeId}.png`, { fullPage: true });
+
+    await page.setViewportSize({ width: 720, height: 1100 });
+    await page.getByTestId('mod-archive-remove').click();
+    await expect(removalDialog).toBeVisible();
+    const dialogBox = await removalDialog.boundingBox();
+    expect(dialogBox.x).toBeGreaterThanOrEqual(0);
+    expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(720);
+    await expect(page).toHaveScreenshot(
+      `published-archive-removal-${themeId}-compact.png`,
+      { fullPage: true },
+    );
+    await removalDialog.getByRole('button', { name: '保留档案' }).click();
   });
 
   test(`${themeId} project glossary paper content remains readable`, async ({ page }) => {

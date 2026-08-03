@@ -23,6 +23,7 @@ import {
 import ModArchiveOverrideEditor from './ModArchiveOverrideEditor';
 import { ArchiveSummary, ReleaseMetadata } from './PublishedArchiveContent';
 import ProjectGlossaryToolbar from './ProjectGlossaryToolbar';
+import RemoveModArchiveControl from './RemoveModArchiveControl';
 import { useArchiveProjectContext } from './useArchiveProjectContext';
 import { useModArchiveDraft } from './useModArchiveDraft';
 import { useModArchiveRelease } from './useModArchiveRelease';
@@ -163,16 +164,22 @@ const PublishedArchivePanel = ({
             data-remis-surface="canvas"
         >
             {projectToolbar}
-            <Group className={styles.header} wrap="nowrap">
+            <Group className={styles.header} wrap="wrap">
                 <Badge className={styles.headerIcon} size="xl" radius="sm">
                     <IconArchive size={22} />
                 </Badge>
-                <Stack gap={2} style={{ minWidth: 0 }}>
+                <Stack gap={2} style={{ flex: '1 1 20rem', minWidth: 0 }}>
                     <Title order={2}>{t('mod_archive.release.title')}</Title>
                     <Text className={styles.subtitle} size="sm">
                         {t('mod_archive.release.subtitle')}
                     </Text>
                 </Stack>
+                <RemoveModArchiveControl
+                    projectId={selectedProject}
+                    projectName={projectContext.currentProject?.name || selectedProject}
+                    onRemoved={refresh}
+                    t={t}
+                />
             </Group>
 
             {stale && (

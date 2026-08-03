@@ -113,6 +113,69 @@
     box-shadow: none !important;
 }
 
+.dangerSecondaryAction {
+    margin-left: auto;
+    flex: 0 0 auto;
+    background: transparent !important;
+    border: 1px solid var(--canvas-text-muted) !important;
+    color: var(--canvas-text-main) !important;
+    box-shadow: inset 3px 0 0 var(--mantine-color-red-6) !important;
+}
+
+.removalModalContent,
+.removalModalHeader,
+.removalModalBody {
+    --mantine-color-text: var(--elevated-text-main) !important;
+    --mantine-color-dimmed: var(--elevated-text-muted) !important;
+    background: var(--elevated-bg) !important;
+    color: var(--elevated-text-main) !important;
+}
+
+.removalModalContent {
+    border: 1px solid color-mix(in srgb, var(--elevated-text-main) 36%, transparent) !important;
+}
+
+.removalModalTitle,
+.removalModalClose {
+    color: var(--elevated-text-main) !important;
+}
+
+.removalModalClose {
+    background: transparent !important;
+}
+
+.removalModalClose:hover {
+    background: color-mix(in srgb, var(--elevated-text-main) 10%, transparent) !important;
+}
+
+.removalWarning {
+    background: color-mix(in srgb, var(--elevated-text-main) 8%, var(--elevated-bg)) !important;
+    border: 1px solid var(--elevated-text-muted) !important;
+    color: var(--elevated-text-main) !important;
+}
+
+.removalWarning :global(.mantine-Alert-icon),
+.removalWarning :global(.mantine-Alert-title),
+.removalWarning :global(.mantine-Alert-message) {
+    color: var(--elevated-text-main) !important;
+}
+
+.removalProjectName {
+    background: color-mix(in srgb, var(--elevated-text-main) 10%, var(--elevated-bg)) !important;
+    color: var(--elevated-text-main) !important;
+    overflow-wrap: anywhere;
+}
+
+.removalMuted {
+    color: var(--elevated-text-muted) !important;
+}
+
+.removalCancel {
+    background: transparent !important;
+    border: 1px solid var(--elevated-text-muted) !important;
+    color: var(--elevated-text-main) !important;
+}
+
 .paperSecondaryAction {
     background: transparent !important;
     border: 1px solid var(--paper-text-muted) !important;
