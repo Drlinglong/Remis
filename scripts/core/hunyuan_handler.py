@@ -165,15 +165,18 @@ class HunyuanHandler(OpenAIHandler):
         }
 
         try:
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[
+            request_kwargs = {
+                "model": model_name,
+                "messages": [
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.7,
-                top_p=0.6,
-                max_tokens=2048,
-                extra_body=extra_body
+                "temperature": 0.7,
+                "top_p": 0.6,
+                "max_tokens": 2048,
+                "extra_body": extra_body,
+            }
+            response = client.chat.completions.create(
+                **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
             self._record_model_response(response)
             return response.choices[0].message.content.strip()

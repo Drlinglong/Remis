@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     createEmptyCoverCanvas,
+    hydrateCoverCanvas,
+    readCoverDraft,
     serializeCoverCanvas,
     writeCoverDraft,
 } from './coverCanvasState';
+
+const sameCanvas = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 
 export const useCoverDraft = ({
     workspaceId,
@@ -12,35 +16,65 @@ export const useCoverDraft = ({
     replaceCanvas,
     storage = window.localStorage,
 }) => {
-    const restored = true;
+    const [restored, setRestored] = useState(false);
     const [draftSavedAt, setDraftSavedAt] = useState(null);
     const [draftError, setDraftError] = useState(null);
     const replaceCanvasRef = useRef(replaceCanvas);
     const saveGenerationRef = useRef(0);
+    const restoreGenerationRef = useRef(0);
+    const awaitingRestoredCanvasRef = useRef(null);
     const clearPendingRef = useRef(false);
-    const hasMountedRef = useRef(false);
     replaceCanvasRef.current = replaceCanvas;
 
     useEffect(() => {
-        if (!hasMountedRef.current) {
-            hasMountedRef.current = true;
-            return undefined;
-        }
-
+        const restoreGeneration = restoreGenerationRef.current + 1;
+        restoreGenerationRef.current = restoreGeneration;
         saveGenerationRef.current += 1;
-        clearPendingRef.current = true;
-        replaceCanvasRef.current(createEmptyCoverCanvas());
-        return undefined;
+        awaitingRestoredCanvasRef.current = null;
+        clearPendingRef.current = false;
+        setRestored(false);
+        setDraftSavedAt(null);
+
+        const restoreDraft = async () => {
+            try {
+                const persisted = readCoverDraft(storage, { workspaceId, projectId });
+                const serialized = persisted || createEmptyCoverCanvas();
+                const hydrated = await hydrateCoverCanvas(serialized);
+                if (restoreGeneration !== restoreGenerationRef.current) return;
+                awaitingRestoredCanvasRef.current = serialized;
+                replaceCanvasRef.current(hydrated);
+                setDraftError(null);
+                setRestored(true);
+            } catch (error) {
+                if (restoreGeneration === restoreGenerationRef.current) {
+                    const fallbackCanvas = createEmptyCoverCanvas();
+                    awaitingRestoredCanvasRef.current = fallbackCanvas;
+                    replaceCanvasRef.current(fallbackCanvas);
+                    setDraftError(error);
+                    setRestored(true);
+                }
+            }
+        };
+
+        restoreDraft();
+        return () => {
+            if (restoreGeneration === restoreGenerationRef.current) {
+                restoreGenerationRef.current += 1;
+            }
+        };
     }, [projectId, storage, workspaceId]);
 
     const clearCanvas = useCallback(() => {
         const emptyCanvas = createEmptyCoverCanvas();
+        restoreGenerationRef.current += 1;
         saveGenerationRef.current += 1;
+        awaitingRestoredCanvasRef.current = null;
         clearPendingRef.current = true;
         try {
             writeCoverDraft(storage, { workspaceId, projectId }, emptyCanvas);
             setDraftSavedAt(new Date());
             setDraftError(null);
+            setRestored(true);
         } catch (error) {
             setDraftError(error);
         }
@@ -50,6 +84,10 @@ export const useCoverDraft = ({
     useEffect(() => {
         if (!restored) return undefined;
         const canvas = serializeCoverCanvas(canvasState);
+        if (awaitingRestoredCanvasRef.current) {
+            if (!sameCanvas(canvas, awaitingRestoredCanvasRef.current)) return undefined;
+            awaitingRestoredCanvasRef.current = null;
+        }
         const isBlank = canvas.backgroundColor === '#ffffff'
             && !canvas.backgroundImage
             && canvas.elements.length === 0;

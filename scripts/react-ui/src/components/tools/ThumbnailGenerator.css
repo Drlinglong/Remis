@@ -98,6 +98,21 @@
     flex: 0 0 auto;
 }
 
+.cover-toolbox-project-thumbnail,
+.cover-toolbox-project-thumbnail .mantine-Button-inner,
+.cover-toolbox-project-thumbnail .mantine-Button-label {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.cover-toolbox-project-thumbnail .mantine-Button-label {
+    overflow: hidden;
+}
+
+#thumbnail-toolbox .overflow-aware-control {
+    width: 100%;
+}
+
 .cover-version-panel {
     color: var(--paper-text-main, inherit);
     background: var(--paper-bg, inherit);

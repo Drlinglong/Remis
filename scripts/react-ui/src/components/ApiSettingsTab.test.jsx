@@ -64,6 +64,10 @@ describe('ApiSettingsTab Stability', () => {
         expect(screen.getByText(/api_group_usa/i)).toBeInTheDocument();
         expect(screen.getByText(/api_group_china/i)).toBeInTheDocument();
         expect(screen.getByText('OpenRouter')).toBeInTheDocument();
+        expect(screen.getByText('api_aventine_action')).toBeInTheDocument();
+        expect(
+            screen.getByText('api_aventine_title').closest('[data-remis-surface="paper"]'),
+        ).not.toBeNull();
     });
 
     it('tests a local provider using the URL currently in the edit form', async () => {
@@ -122,5 +126,48 @@ describe('ApiSettingsTab Stability', () => {
 
         expect(await screen.findByText('api_settings_description')).toBeInTheDocument();
         expect(screen.getByText('api_group_local')).toBeInTheDocument();
+    });
+
+    it('saves verified reasoning controls and advanced custom JSON', async () => {
+        api.get.mockResolvedValue({
+            data: [{
+                id: 'openai',
+                name: 'OpenAI',
+                selected_model: 'gpt-5.6-terra',
+                available_models: ['gpt-5.6-terra'],
+                reasoning: {
+                    supported: true,
+                    builtin_enabled: true,
+                    selected_preset: 'low',
+                    custom_parameters: {},
+                },
+                reasoning_models: {
+                    'gpt-5.6-terra': {
+                        presets: {
+                            low: { reasoning_effort: 'low' },
+                            high: { reasoning_effort: 'high' },
+                        },
+                    },
+                },
+            }],
+        });
+        api.post.mockResolvedValue({ data: { status: 'success' } });
+
+        renderWithProvider(<ApiSettingsTab />);
+        await screen.findByText('OpenAI');
+        fireEvent.click(screen.getByRole('button', { name: 'settings_api_label_configure' }));
+        fireEvent.change(screen.getByLabelText('api_custom_parameters_label'), {
+            target: { value: '{"reasoning":{"exclude":true}}' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'save' }));
+
+        await waitFor(() => {
+            expect(api.post).toHaveBeenCalledWith('/api/providers/config', expect.objectContaining({
+                provider_id: 'openai',
+                reasoning_builtin_enabled: true,
+                reasoning_preset: 'low',
+                custom_parameters: { reasoning: { exclude: true } },
+            }));
+        });
     });
 });

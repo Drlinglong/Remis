@@ -127,7 +127,7 @@ def test_openrouter_chat_preserves_provider_failure():
         )
 
 
-def test_openrouter_luna_chat_uses_high_reasoning_with_bounded_output():
+def test_openrouter_unverified_model_uses_bounded_output_without_builtin_reasoning():
     captured = {}
 
     class Completions:
@@ -150,9 +150,7 @@ def test_openrouter_luna_chat_uses_high_reasoning_with_bounded_output():
     ) == "[]"
     assert captured["model"] == "openai/gpt-5.6-luna"
     assert captured["max_tokens"] == 32768
-    assert captured["extra_body"] == {
-        "reasoning": {"effort": "high", "exclude": True}
-    }
+    assert "extra_body" not in captured
     assert "temperature" not in captured
 
 
@@ -202,7 +200,6 @@ def test_openrouter_luna_structured_chat_sends_json_schema():
         },
     }
     assert captured["extra_body"] == {
-        "reasoning": {"effort": "high", "exclude": True},
         "provider": {"require_parameters": True},
         "plugins": [{"id": "response-healing"}],
     }

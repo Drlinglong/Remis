@@ -1,3 +1,5 @@
+import { formatLocalizedDateTime } from './localizedDateTime';
+
 const TERMINAL_STATUSES = new Set(['completed', 'partial_failed', 'failed', 'interrupted', 'cancelled']);
 const ARCHIVE_STAGE_CODES = new Set([
   'idle', 'queued', 'starting', 'running', 'extracting', 'reviewing',
@@ -13,7 +15,7 @@ export const formatTaskTimestamp = (value, locale) => {
   if (!value) return '--';
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return String(value);
-  return parsed.toLocaleString(locale);
+  return formatLocalizedDateTime(parsed, locale);
 };
 
 export const getTaskStageLabel = (task, t) => {

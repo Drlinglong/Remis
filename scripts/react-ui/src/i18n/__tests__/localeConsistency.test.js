@@ -89,10 +89,12 @@ const releaseDuplicateValueAllowlistPatterns = [
   /^game_name_/,
   /^theme_/,
   /^app_title$/,
-  // Mod Archive is newly introduced in the current release. Keep the key
-  // contract aligned while non-primary locales use the approved English
-  // fallback until native translations are supplied.
+  // The #198 archive branch still carries approved English fallbacks outside
+  // the primary locale; native copy is tracked separately from this merge.
   /^mod_archive\./,
+  // Short standardized effort labels (for example, "low" or "max") can
+  // legitimately have the same spelling in otherwise distinct locales.
+  /^api_reasoning_preset_/,
 ];
 
 const isAllowedReleaseDuplicateKey = (key) => (
@@ -259,7 +261,7 @@ describe('locale consistency', () => {
     expect(zhLocale.common.browse).not.toBe(enLocale.common.browse);
   });
 
-  it('separates the Format Repair product name from the internal Remis Agent identity', () => {
+  it('localizes the Format Repair menu label and keeps the internal Remis Agent distinct', () => {
     const enLocale = loadLocale(localeFiles.en);
     const zhLocale = loadLocale(localeFiles.zh);
     const legacyProductNamePattern = (
@@ -294,10 +296,23 @@ describe('locale consistency', () => {
     ));
     expect(offenders, offenders.join('\n')).toEqual([]);
 
+    const localizedMenuLabels = {
+      de: 'Formatreparatur',
+      en: 'Format Repair',
+      es: 'Reparación de formato',
+      fr: 'Réparation du format',
+      ja: 'フォーマット修復',
+      ko: '형식 복구',
+      pl: 'Naprawa formatowania',
+      'pt-BR': 'Reparo de formatação',
+      ru: 'Исправление формата',
+      tr: 'Biçim Onarımı',
+      zh: '格式修复台',
+    };
     Object.entries(localeFiles).forEach(([locale, filePath]) => {
       const localeData = loadLocale(filePath);
       const productName = locale === 'zh' ? '格式修复台' : 'Format Repair';
-      expect(localeData.page_title_agent_workshop).toBe(productName);
+      expect(localeData.page_title_agent_workshop).toBe(localizedMenuLabels[locale]);
       expect(localeData.agent_workshop.title).toBe(productName);
       expect(localeData.task_center.kind.agent_workshop).toBe(
         productName,

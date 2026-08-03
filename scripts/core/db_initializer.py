@@ -6,6 +6,10 @@ import shutil
 import sqlite3
 
 from scripts import app_settings
+from scripts.core.bundled_seed_service import (
+    bundled_main_seed_applied,
+    seed_main_database,
+)
 from scripts.core.db_migrations import migrate_main_database
 
 
@@ -46,80 +50,6 @@ def is_main_db_fresh(db_path):
         return table_count == 0
     except Exception:
         return True
-
-
-def import_seed_inserts(conn, seed_path, allowed_tables):
-    if not os.path.exists(seed_path):
-        init_logger.warning("[SEED] Missing seed file: %s", seed_path)
-        return 0
-
-    import re
-
-    inserted = 0
-    statement_lines = []
-
-    def flush_statement():
-        nonlocal inserted
-        if not statement_lines:
-            return
-
-        statement = "\n".join(statement_lines).strip()
-        statement_lines.clear()
-
-        if not statement.upper().startswith("INSERT INTO"):
-            return
-
-        match = re.match(r"INSERT INTO\s+([A-Za-z_][A-Za-z0-9_]*)", statement, re.IGNORECASE)
-        if not match:
-            return
-
-        table_name = match.group(1)
-        if table_name not in allowed_tables:
-            return
-
-        safe_statement = re.sub(r"^INSERT INTO", "INSERT OR IGNORE INTO", statement, flags=re.IGNORECASE)
-        conn.execute(safe_statement)
-        inserted += 1
-
-    with open(seed_path, "r", encoding="utf-8") as handle:
-        for raw_line in handle:
-            stripped = raw_line.strip()
-            if not stripped or stripped.startswith("--"):
-                continue
-
-            statement_lines.append(raw_line.rstrip("\n"))
-            if stripped.endswith(";"):
-                flush_statement()
-
-    flush_statement()
-    return inserted
-
-
-def seed_main_database(db_path, resource_dir):
-    data_dir = os.path.join(resource_dir, "data")
-    seed_main = os.path.join(data_dir, "seed_data_main.sql")
-    seed_projects = os.path.join(data_dir, "seed_data_projects.sql")
-
-    conn = sqlite3.connect(db_path)
-    try:
-        main_count = import_seed_inserts(conn, seed_main, {"glossaries", "entries"})
-        project_count = import_seed_inserts(
-            conn,
-            seed_projects,
-            {
-                "projects",
-                "project_files",
-                "project_glossary_bindings",
-            },
-        )
-        conn.commit()
-        init_logger.info(
-            "[SEED] Imported %s main statements and %s project statements.",
-            main_count,
-            project_count,
-        )
-    finally:
-        conn.close()
 
 
 def fix_demo_paths(conn, persistent_demo_root, persistent_translation_root):
@@ -492,13 +422,14 @@ def initialize_database():
 
     run_projects_db_migrations(remis_db_path)
 
-    if main_db_is_fresh:
+    seed_attempted = main_db_is_fresh or not bundled_main_seed_applied(remis_db_path)
+    if seed_attempted:
         try:
             seed_main_database(remis_db_path, resource_dir)
         except Exception as e:
             init_logger.error("[SEED] Failed to import main DB seed data: %s", e)
 
-    if demo_extracted or trans_extracted or main_db_is_fresh:
+    if demo_extracted or trans_extracted or main_db_is_fresh or seed_attempted:
         try:
             conn = sqlite3.connect(remis_db_path)
             fix_demo_paths(conn, p_demos, p_trans)

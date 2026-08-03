@@ -1,7 +1,6 @@
 """OpenRouter provider adapter built on its OpenAI-compatible chat API."""
 
 import json
-
 from openai import OpenAI
 
 from scripts.app_settings import get_api_key
@@ -19,18 +18,11 @@ class OpenRouterHandler(OpenAIHandler):
         options = {
             "model": provider_config.get("default_model"),
             "max_tokens": int(provider_config.get("max_tokens", 32768)),
-            "extra_body": {
-                "reasoning": {
-                    "effort": provider_config.get("reasoning_effort", "high"),
-                    "exclude": True,
-                }
-            },
         }
         model_name = str(options["model"] or "")
         if temperature is not None and not model_name.startswith("openai/gpt-5.6"):
             options["temperature"] = temperature
-        return options
-
+        return self._apply_reasoning_to_openai_kwargs(options)
     def initialize_client(self):
         provider_config = self.get_provider_config()
         api_key_env = provider_config.get("api_key_env", "OPENROUTER_API_KEY")

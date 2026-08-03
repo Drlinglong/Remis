@@ -218,7 +218,13 @@ const TaskRunner = ({ task, onRestart, onDashboard, translationDetails }) => {
             });
         return (
             <Stack gap="xl" mt="xl">
-                <Paper p="xl" radius="lg" withBorder bg={theme.colors.dark[7]}>
+                <Paper
+                    p="xl"
+                    radius="lg"
+                    withBorder
+                    bg={theme.colors.dark[7]}
+                    data-remis-surface="elevated"
+                >
                     <Stack align="center" gap="lg">
                         <ThemeIcon size={80} radius="xl" color={statusColor} variant="light">
                             {isPartiallyFailed ? <IconAlertCircle size={50} /> : <IconCircleCheck size={50} />}

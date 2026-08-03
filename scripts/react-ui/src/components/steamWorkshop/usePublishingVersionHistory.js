@@ -28,7 +28,10 @@ export function usePublishingVersionHistory(workspaceId) {
         listPublishingVersions(workspaceId),
       ]);
       setWorkspace(loadedWorkspace);
-      setVersions(loadedVersions);
+      setVersions(loadedVersions.map((version) => ({
+        ...version,
+        content_url: steamWorkshopCoverService.resolveMediaUrl(version.content_url),
+      })));
     } catch (requestError) {
       setError(requestError.response?.data?.detail || i18n.t('steam_workshop.history_load_failed'));
     } finally {

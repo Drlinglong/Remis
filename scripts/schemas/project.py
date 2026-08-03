@@ -131,7 +131,7 @@ class IncrementalUpdateRequest(BaseModel):
     target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
     api_provider: str = "gemini"
     provider: Optional[str] = None # Alias for api_provider (for legacy/frontend compatibility)
-    model: str = "gemini-pro"
+    model: str = "gemini-3.6-flash"
     batch_size_limit: Optional[int] = None
     source_context_overlap: int = Field(default=0, ge=0, le=100)
     use_project_context: bool = True

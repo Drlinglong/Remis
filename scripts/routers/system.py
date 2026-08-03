@@ -7,6 +7,11 @@ from pydantic import BaseModel
 
 from scripts.shared.services import project_manager, glossary_manager
 from scripts.app_settings import APP_DATA_DIR, PROJECT_ROOT, REMIS_DB_PATH, resolve_path
+from scripts.schemas.system import (
+    DatabaseFolderResponse,
+    SystemActionResponse,
+    SystemStatsResponse,
+)
 from scripts.utils.system_utils import sanitize_for_json
 from scripts.core.paradox_localization_parser import escape_value, parse_text, patch_text
 
@@ -69,7 +74,7 @@ def _remove_sqlite_family(db_path: str):
         if os.path.exists(candidate):
             os.remove(candidate)
 
-@router.get("/stats")
+@router.get("/stats", response_model=SystemStatsResponse)
 async def get_system_stats():
     """
     Returns aggregate statistics for the homepage dashboard.
@@ -120,7 +125,11 @@ async def get_system_stats():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/reset-db")
+@router.post(
+    "/reset-db",
+    response_model=SystemActionResponse,
+    response_model_exclude_none=True,
+)
 async def reset_database():
     """
     Rebuilds the main Remis database from its default skeleton.
@@ -159,7 +168,11 @@ async def reset_database():
         raise HTTPException(status_code=500, detail=f"Failed to reset database: {str(e)}")
 
 
-@router.post("/open-database-folder")
+@router.post(
+    "/open-database-folder",
+    response_model=DatabaseFolderResponse,
+    response_model_exclude_none=True,
+)
 async def open_database_folder():
     """Open the folder containing the main Remis SQLite database."""
     database_path = os.path.abspath(REMIS_DB_PATH)
@@ -223,7 +236,11 @@ async def open_folder(request: OpenFolderRequest):
         logger.error(f"Failed to open path {path}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to open path: {str(e)}")
 
-@router.post("/open-logs")
+@router.post(
+    "/open-logs",
+    response_model=SystemActionResponse,
+    response_model_exclude_none=True,
+)
 async def open_logs_folder():
     """
     Opens the application logs directory in the file explorer.

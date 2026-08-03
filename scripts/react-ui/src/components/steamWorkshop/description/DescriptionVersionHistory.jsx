@@ -2,12 +2,14 @@ import React from 'react';
 import { Badge, Button, Group, Paper, Stack, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
-const formatTime = (value, t) => {
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../../utils/localizedDateTime';
+
+const formatTime = (value, t, language) => {
   if (!value) return t('steam_workshop.unknown_time');
-  return new Intl.DateTimeFormat(undefined, {
+  return formatLocalizedDateTime(value, language, {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(new Date(value));
+  });
 };
 
 export const DescriptionVersionHistory = ({
@@ -17,7 +19,7 @@ export const DescriptionVersionHistory = ({
   onOpen,
   versions,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
   <Stack gap="sm" data-remis-surface="surface">
       {versions.length === 0 && <Text c="dimmed">{t('steam_workshop.no_saved_versions')}</Text>}
@@ -33,7 +35,7 @@ export const DescriptionVersionHistory = ({
                   {!isCurrent && <Badge variant="light">{t('steam_workshop.candidate')}</Badge>}
                 </Group>
                 <Text size="xs" c="dimmed">
-                  {formatTime(version.created_at, t)} · {version.language} · {version.source}
+                  {formatTime(version.created_at, t, getResolvedInterfaceLocale(i18n))} · {version.language} · {version.source}
                 </Text>
               </div>
               <Group gap="xs">

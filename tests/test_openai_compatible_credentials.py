@@ -9,7 +9,7 @@ from scripts.core.openai_handler import OpenAIHandler
     ("provider_id", "api_key_env", "base_url"),
     [
         ("openai", "OPENAI_API_KEY", "https://api.openai.com/v1"),
-        ("kimi", "KIMI_API_KEY", "https://api.moonshot.cn/v1"),
+        ("kimi", "KIMI_API_KEY", "https://api.moonshot.ai/v1"),
         ("minimax", "MINIMAX_API_KEY", "https://api.minimaxi.com/v1"),
         ("zhipu", "ZHIPU_API_KEY", "https://open.bigmodel.cn/api/paas/v4/"),
     ],

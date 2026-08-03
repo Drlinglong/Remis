@@ -16,6 +16,7 @@ from scripts.core.db_models import (
     ProjectHistory,
     ProjectWatch,
     ProjectWatchFileSnapshot,
+    SteamWorkshopWorkspace,
 )
 from scripts.core.db_manager import DatabaseConnectionManager, db_manager
 
@@ -205,6 +206,13 @@ async def test_delete_project_removes_foreign_key_dependents(repo):
             mtime_ns=1,
             last_seen_at=datetime.now().isoformat(),
         ))
+        session.add(SteamWorkshopWorkspace(
+            workspace_id="bound-workspace",
+            name="Bound Workspace",
+            project_id=project_id,
+            created_at=datetime.now().isoformat(),
+            updated_at=datetime.now().isoformat(),
+        ))
         await session.commit()
         break
 
@@ -222,6 +230,9 @@ async def test_delete_project_removes_foreign_key_dependents(repo):
         ):
             result = await session.execute(select(model))
             assert result.scalars().all() == []
+        workspace = await session.get(SteamWorkshopWorkspace, "bound-workspace")
+        assert workspace is not None
+        assert workspace.project_id is None
         break
 
 

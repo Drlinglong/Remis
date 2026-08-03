@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router';
 import { useDeployActions } from '../../hooks/useDeployActions';
 import styles from '../../pages/ProjectManagement.module.css';
 import { getProjectPrimaryAction } from '../../utils/projectPrimaryAction';
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 import { DeployModals } from '../deploy/DeployModals';
 
 const ProjectHeader = ({
@@ -30,7 +31,7 @@ const ProjectHeader = ({
     onRepairMetadata,
     repairingMetadata,
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const overview = projectDetails.overview || {};
     const translated = Number(overview.translated || 0);
@@ -177,7 +178,7 @@ const ProjectHeader = ({
                             <Text size="xs" c="dimmed">{t('incremental_translation.archived_target_languages')}</Text>
                             <Text size="sm" fw={600}>{Array.isArray(projectDetails.archived_languages) && projectDetails.archived_languages.length > 0 ? projectDetails.archived_languages.join(', ') : t('incremental_translation.none_archived')}</Text>
                             <Text size="xs" c="dimmed" mt="xs">{t('project_history.last_archive_time', 'Last Upload / Build')}</Text>
-                            <Text size="xs">{latestArchiveTime ? new Date(latestArchiveTime).toLocaleString() : t('project_history.no_archive_data', 'No archive data')}</Text>
+                            <Text size="xs">{latestArchiveTime ? formatLocalizedDateTime(latestArchiveTime, getResolvedInterfaceLocale(i18n)) : t('project_history.no_archive_data', 'No archive data')}</Text>
                         </Stack>
                     </Card>
                 </Grid.Col>

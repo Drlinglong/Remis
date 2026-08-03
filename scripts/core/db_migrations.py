@@ -22,7 +22,7 @@ from scripts.core.db_models import (
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 16
+MAIN_DB_TARGET_VERSION = 17
 
 
 class UnsupportedDatabaseVersionError(RuntimeError):
@@ -276,9 +276,19 @@ def _migration_004_add_background_task_ledger(db_path: str) -> None:
 def _migration_005_make_glossary_bindings_many_to_many(db_path: str) -> None:
     """Allow every project and glossary to participate in multiple bindings."""
     with _connect(db_path) as conn:
+        # Migration DDL is committed before the version row is written by the
+        # runner.  A restart after that boundary must therefore be safe.  In
+        # particular, a process can leave the staging table behind while the
+        # old table is still present.
+        legacy_exists = _table_exists(conn, "project_glossary_bindings")
+        staging_exists = _table_exists(conn, "project_glossary_bindings_v2")
+        if not legacy_exists and not staging_exists:
+            raise RuntimeError(
+                "Migration 5 cannot find project_glossary_bindings or its staging table"
+            )
         conn.execute(
             """
-            CREATE TABLE project_glossary_bindings_v2 (
+            CREATE TABLE IF NOT EXISTS project_glossary_bindings_v2 (
                 project_id TEXT NOT NULL,
                 glossary_id INTEGER NOT NULL,
                 created_at TEXT,
@@ -289,15 +299,16 @@ def _migration_005_make_glossary_bindings_many_to_many(db_path: str) -> None:
             )
             """
         )
-        conn.execute(
-            """
-            INSERT OR IGNORE INTO project_glossary_bindings_v2
-                (project_id, glossary_id, created_at, updated_at)
-            SELECT project_id, glossary_id, created_at, updated_at
-            FROM project_glossary_bindings
-            """
-        )
-        conn.execute("DROP TABLE project_glossary_bindings")
+        if legacy_exists:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO project_glossary_bindings_v2
+                    (project_id, glossary_id, created_at, updated_at)
+                SELECT project_id, glossary_id, created_at, updated_at
+                FROM project_glossary_bindings
+                """
+            )
+            conn.execute("DROP TABLE project_glossary_bindings")
         conn.execute(
             "ALTER TABLE project_glossary_bindings_v2 RENAME TO project_glossary_bindings"
         )
@@ -644,32 +655,74 @@ def _migration_012_track_bundled_seed_state(db_path: str) -> None:
             CREATE TABLE IF NOT EXISTS bundled_seed_state (
                 seed_key TEXT PRIMARY KEY,
                 seed_version INTEGER NOT NULL,
-                applied_at TEXT NOT NULL
+                applied_at TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'applied',
+                last_error TEXT,
+                attempt_count INTEGER NOT NULL DEFAULT 0,
+                last_attempt_at TEXT
             )
             """
         )
         conn.commit()
 
 
-def _migration_013_add_context_release_storage(db_path: str) -> None:
+def _migration_013_harden_bundled_seed_state(db_path: str) -> None:
+    """Make bundled seed attempts observable and retryable on older DBs."""
+    with _connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bundled_seed_state (
+                seed_key TEXT PRIMARY KEY,
+                seed_version INTEGER NOT NULL,
+                applied_at TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'applied',
+                last_error TEXT,
+                attempt_count INTEGER NOT NULL DEFAULT 0,
+                last_attempt_at TEXT
+            )
+            """
+        )
+        _ensure_column(
+            conn,
+            "bundled_seed_state",
+            "status",
+            "status TEXT NOT NULL DEFAULT 'applied'",
+        )
+        _ensure_column(conn, "bundled_seed_state", "last_error", "last_error TEXT")
+        _ensure_column(
+            conn,
+            "bundled_seed_state",
+            "attempt_count",
+            "attempt_count INTEGER NOT NULL DEFAULT 0",
+        )
+        _ensure_column(
+            conn,
+            "bundled_seed_state",
+            "last_attempt_at",
+            "last_attempt_at TEXT",
+        )
+        conn.commit()
+
+
+def _migration_014_add_context_release_storage(db_path: str) -> None:
     from scripts.core.context_migration import migrate_context_release_storage
 
     migrate_context_release_storage(db_path)
 
 
-def _migration_014_add_context_analysis_batch_storage(db_path: str) -> None:
+def _migration_015_add_context_analysis_batch_storage(db_path: str) -> None:
     from scripts.core.context_analysis_migration import migrate_context_analysis_batch_storage
 
     migrate_context_analysis_batch_storage(db_path)
 
 
-def _migration_015_add_context_delivery_memberships(db_path: str) -> None:
+def _migration_016_add_context_delivery_memberships(db_path: str) -> None:
     from scripts.core.context_migration import migrate_context_release_storage
 
     migrate_context_release_storage(db_path)
 
 
-def _migration_016_add_context_aggregation_phase(db_path: str) -> None:
+def _migration_017_add_context_aggregation_phase(db_path: str) -> None:
     from scripts.core.context_analysis_migration import migrate_context_analysis_aggregation_phase
 
     migrate_context_analysis_aggregation_phase(db_path)
@@ -688,14 +741,26 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (10, "enforce_status_contracts", _migration_010_enforce_status_contracts),
     (11, "add_steam_workshop_assets", _migration_011_add_steam_workshop_assets),
     (12, "track_bundled_seed_state", _migration_012_track_bundled_seed_state),
-    (13, "add_context_release_storage", _migration_013_add_context_release_storage),
-    (14, "add_context_analysis_batch_storage", _migration_014_add_context_analysis_batch_storage),
-    (15, "add_context_delivery_memberships", _migration_015_add_context_delivery_memberships),
-    (16, "add_context_aggregation_phase", _migration_016_add_context_aggregation_phase),
+    (13, "harden_bundled_seed_state", _migration_013_harden_bundled_seed_state),
+    (14, "add_context_release_storage", _migration_014_add_context_release_storage),
+    (15, "add_context_analysis_batch_storage", _migration_015_add_context_analysis_batch_storage),
+    (16, "add_context_delivery_memberships", _migration_016_add_context_delivery_memberships),
+    (17, "add_context_aggregation_phase", _migration_017_add_context_aggregation_phase),
 ]
 
 
-def migrate_main_database(db_path: str) -> int:
+def migrate_main_database(
+    db_path: str,
+    *,
+    after_migration: Callable[[int, str], None] | None = None,
+) -> int:
+    """Apply managed migrations, with restart-safe per-migration commits.
+
+    The legacy SQLModel migrations open their own SQLAlchemy connections, so a
+    single transaction cannot cover both their DDL and the ledger write.  The
+    runner consequently requires each migration to be restart-safe and offers
+    a narrow post-DDL hook for crash-window regression tests.
+    """
     with _connect(db_path) as conn:
         _ensure_migrations_table(conn)
         applied_versions = _applied_versions(conn)
@@ -716,9 +781,12 @@ def migrate_main_database(db_path: str) -> int:
 
         logger.info("[DB] Applying main DB migration %s: %s", version, name)
         migration(db_path)
+        if after_migration is not None:
+            after_migration(version, name)
 
         with _connect(db_path) as conn:
             _record_migration(conn, version, name)
             conn.commit()
+        applied_versions.add(version)
 
     return MAIN_DB_TARGET_VERSION

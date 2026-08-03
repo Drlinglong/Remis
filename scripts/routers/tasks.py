@@ -6,7 +6,18 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 
 from scripts.core.agent_service import agent_registry
-from scripts.schemas.tasks import TaskCheckpoint, TaskChildAggregate, TaskCreator, TaskDetail, TaskEvent, TaskProjectContext, TaskResult, TaskSummary, TaskSummaryList
+from scripts.schemas.tasks import (
+    TaskCheckpoint,
+    TaskChildAggregate,
+    TaskCreator,
+    TaskDetail,
+    TaskEvent,
+    TaskPersistenceFailure,
+    TaskProjectContext,
+    TaskResult,
+    TaskSummary,
+    TaskSummaryList,
+)
 from scripts.shared import task_state
 from scripts.shared.services import project_manager
 
@@ -162,6 +173,11 @@ def _from_live_task(task: Dict[str, Any], agent_job: Optional[Dict[str, Any]]) -
         attention_reason_code=task.get("attention_reason_code"),
         checkpoint=TaskCheckpoint.model_validate(checkpoint),
         result=TaskResult.model_validate(result),
+        persistence_failure=(
+            TaskPersistenceFailure.model_validate(task["persistence_failure"])
+            if task.get("persistence_failure")
+            else None
+        ),
         blocking=blocking,
         blocking_reason=(
             task.get("blocking_reason")

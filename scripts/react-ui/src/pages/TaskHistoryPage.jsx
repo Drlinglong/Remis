@@ -27,6 +27,7 @@ import { useNavigate } from 'react-router';
 import api from '../utils/api';
 import { taskDayBounds } from '../utils/taskDates';
 import { taskDetailRoute } from '../utils/taskRoutes';
+import { formatLocalizedDateTime } from '../utils/localizedDateTime';
 import { formatTaskDuration, taskDurationMs } from '../utils/taskTime';
 import { useTutorial } from '../context/TutorialContextCore';
 import styles from './TaskHistoryPage.module.css';
@@ -61,7 +62,7 @@ const formatTaskTime = (task, locale) => {
   if (!value) return '--:--';
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return formatLocalizedDateTime(parsed, locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 };
 
 export default function TaskHistoryPage() {

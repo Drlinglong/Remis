@@ -46,6 +46,7 @@ import GlossaryHealthPenaltyBreakdown from '../components/glossary/GlossaryHealt
 import ContextAnalysisReportPanel from '../components/tasks/ContextAnalysisReportPanel';
 import api from '../utils/api';
 import { getGameBadgeColor } from '../utils/gamePresentation';
+import { formatLocalizedDateTime } from '../utils/localizedDateTime';
 import { buildProofreadingUrl } from '../utils/proofreadingLinks';
 import { ACTIVE_TASK_STATUSES, formatTaskDuration, taskDurationMs } from '../utils/taskTime';
 import {
@@ -57,7 +58,6 @@ import {
 } from '../utils/taskPresentation';
 import { glossaryHealthReviewRoute, taskDetailRoute, taskWorkflowTarget } from '../utils/taskRoutes';
 import styles from './TaskDetailPage.module.css';
-
 const STATUS_COLORS = {
   queued: 'gray',
   running: 'blue',
@@ -83,7 +83,7 @@ const formatTimestamp = (value, locale) => {
   if (!value) return '--';
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleString(locale);
+  return formatLocalizedDateTime(parsed, locale);
 };
 
 const localizeGlossaryHealthEvent = (event, t, isPartial) => {

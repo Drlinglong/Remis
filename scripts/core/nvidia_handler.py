@@ -42,12 +42,15 @@ class NvidiaHandler(BaseApiHandler):
         self.last_completion_source = "assistant_content"
 
         try:
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[
+            request_kwargs = {
+                "model": model_name,
+                "messages": [
                     {"role": "system", "content": "You are a professional translator for game mods."},
                     {"role": "user", "content": prompt}
-                ]
+                ],
+            }
+            response = client.chat.completions.create(
+                **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
             self._record_model_response(response)
             

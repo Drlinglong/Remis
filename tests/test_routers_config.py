@@ -2,6 +2,7 @@
 集成测试：config 路由 /api/api-keys。
 测试保存 API Key 的完整路径，防止因 ConfigManager 接口变更而产生回归。
 """
+import os
 import pytest
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
@@ -14,6 +15,18 @@ MOCK_API_PROVIDERS = {
         "api_key_env": "GOOGLE_API_KEY",
         "available_models": ["gemini-1.5-pro"],
         "default_model": "gemini-1.5-pro",
+        "reasoning": {
+            "default_enabled": False,
+            "default_preset": "medium",
+            "models": {
+                "gemini-1.5-pro": {
+                    "presets": {
+                        "low": {"thinking_config": {"thinking_level": "low"}},
+                        "medium": {"thinking_config": {"thinking_level": "medium"}},
+                    }
+                }
+            },
+        },
     },
     "lm_studio": {
         "name": "LM Studio",
@@ -123,6 +136,64 @@ class TestPostProviderConfig:
         assert saved_config["lm_studio"]["api_url"] == "http://localhost:1234/v1"
         assert saved_config["lm_studio"]["prompt_prefix"] == "/no_think"
         assert saved_config["lm_studio"]["system_prompt_suffix"] == "/no_think"
+
+    def test_saves_verified_reasoning_preset_and_custom_parameters(self, mock_config_env):
+        client = TestClient(app)
+        response = client.post("/api/providers/config", json={
+            "provider_id": "gemini",
+            "selected_model": "gemini-1.5-pro",
+            "reasoning_builtin_enabled": True,
+            "reasoning_preset": "medium",
+            "custom_parameters": {"thinking_config": {"include_thoughts": False}},
+        })
+
+        assert response.status_code == 200
+        saved = mock_config_env.set_value.call_args.args[1]["gemini"]
+        assert saved["reasoning_builtin_enabled"] is True
+        assert saved["reasoning_preset"] == "medium"
+        assert saved["custom_parameters"] == {
+            "thinking_config": {"include_thoughts": False}
+        }
+
+    def test_rejects_builtin_reasoning_for_an_unverified_custom_model(self, mock_config_env):
+        client = TestClient(app)
+        response = client.post("/api/providers/config", json={
+            "provider_id": "gemini",
+            "selected_model": "custom-gemini",
+            "reasoning_builtin_enabled": True,
+            "reasoning_preset": "medium",
+        })
+
+        assert response.status_code == 400
+        assert "no verified" in response.json()["detail"]
+        mock_config_env.set_value.assert_not_called()
+
+    def test_rejects_custom_parameters_that_replace_messages(self, mock_config_env):
+        client = TestClient(app)
+        response = client.post("/api/providers/config", json={
+            "provider_id": "gemini",
+            "selected_model": "gemini-1.5-pro",
+            "custom_parameters": {"messages": []},
+        })
+
+        assert response.status_code == 400
+        assert "protected fields" in response.json()["detail"]
+
+    def test_validates_all_provider_settings_before_persisting_api_key(self, mock_config_env):
+        client = TestClient(app)
+        with patch.dict(os.environ, {"GOOGLE_API_KEY": "existing-key"}):
+            response = client.post("/api/providers/config", json={
+                "provider_id": "gemini",
+                "api_key": "rejected-new-key",
+                "selected_model": "gemini-1.5-pro",
+                "custom_parameters": {"system": "replace safeguards"},
+            })
+
+            assert response.status_code == 400
+            assert os.environ["GOOGLE_API_KEY"] == "existing-key"
+
+        mock_config_env.update_nested_value.assert_not_called()
+        mock_config_env.set_value.assert_not_called()
 
 
 class TestLocalProviderConnection:

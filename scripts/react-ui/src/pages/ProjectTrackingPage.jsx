@@ -37,8 +37,8 @@ import { useTutorial } from '../context/TutorialContextCore';
 import projectService from '../services/projectService';
 import projectWatchService from '../services/projectWatchService';
 import { taskDetailRoute } from '../utils/taskRoutes';
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../utils/localizedDateTime';
 import styles from './ProjectTrackingPage.module.css';
-
 const PAGE_REFRESH_INTERVAL_MS = 60 * 1000;
 
 const emptyForm = {
@@ -94,7 +94,7 @@ const fromScanIntervalMinutes = (minutes = 30) => {
 };
 
 const ProjectTrackingPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { setPageContext } = useTutorial();
   const [watches, setWatches] = useState([]);
@@ -493,7 +493,7 @@ const ProjectTrackingPage = () => {
                           {watch.enabled && watch.scan_interval_minutes ? formatInterval(watch.scan_interval_minutes) : '-'}
                         </Badge>
                       </Table.Td>
-                      <Table.Td><Text size="xs">{watch.last_scan_at ? new Date(watch.last_scan_at).toLocaleString() : '-'}</Text></Table.Td>
+                      <Table.Td><Text size="xs">{watch.last_scan_at ? formatLocalizedDateTime(watch.last_scan_at, getResolvedInterfaceLocale(i18n)) : '-'}</Text></Table.Td>
                       <Table.Td>
                         <Group gap={4}>
                           <Tooltip label={text.scanNow}>

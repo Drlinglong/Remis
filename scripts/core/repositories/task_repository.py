@@ -43,6 +43,9 @@ class TaskRepository:
     ) -> None:
         snapshot = deepcopy(task)
         snapshot.pop("log", None)
+        # This is an in-process degradation marker, not a successful ledger
+        # field.  Do not persist it after a later write recovers.
+        snapshot.pop("persistence_failure", None)
         with self._lock, self._connect() as connection:
             connection.execute(
                 """

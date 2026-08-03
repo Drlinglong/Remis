@@ -5,6 +5,7 @@ import { MantineProvider } from '@mantine/core';
 import { describe, expect, it, vi } from 'vitest';
 import { CoverInspector } from './CoverInspector';
 import { CoverToolbox } from './CoverToolbox';
+import { expandPseudoLocale } from '../../../test/pseudoLocalization';
 
 const toolboxSource = readFileSync(
     resolve(process.cwd(), 'src/components/steamWorkshop/cover/CoverToolbox.jsx'),
@@ -78,6 +79,26 @@ describe('cover editor material contract', () => {
         expect(screen.getByRole('heading', { name: '属性检查器' })).toBeInTheDocument();
         expect(screen.getByText('背景颜色')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: '使用项目封面图' })).toBeEnabled();
+    });
+
+    it('keeps a long Russian project-cover action in the overflow-aware button path', () => {
+        const editor = createEditor();
+        const russianLabel = expandPseudoLocale('Использовать обложку проекта');
+        const { container } = render(
+            <MantineProvider>
+                <CoverToolbox
+                    canLoadProjectThumbnail
+                    editor={editor}
+                    labels={{ ...labels, useProjectThumbnail: russianLabel }}
+                    onLoadProjectThumbnail={vi.fn()}
+                />
+            </MantineProvider>,
+        );
+
+        const button = screen.getByRole('button', { name: russianLabel });
+        expect(button).toHaveClass('cover-toolbox-project-thumbnail');
+        expect(container.querySelector('.overflow-aware-label')).toHaveClass('overflow-aware-label');
+        expect(button).toHaveAttribute('data-variant', 'light');
     });
 
     it('keeps the source bound to paper semantics instead of surface tokens', () => {

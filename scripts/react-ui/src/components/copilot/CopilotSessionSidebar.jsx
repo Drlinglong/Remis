@@ -2,13 +2,14 @@ import React from 'react';
 import { ActionIcon, Button, Group, ScrollArea, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { IconMessagePlus, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 import styles from './CopilotSessionSidebar.module.css';
 
-function formatTime(iso) {
+function formatTime(iso, language) {
   if (!iso) return '';
   try {
     const d = new Date(iso);
-    return d.toLocaleString(undefined, {
+    return formatLocalizedDateTime(d, language, {
       month: 'numeric',
       day: 'numeric',
       hour: '2-digit',
@@ -26,7 +27,7 @@ export default function CopilotSessionSidebar({
   onCreate,
   onDelete,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   return (
     <div className={styles.sidebar}>
@@ -67,7 +68,7 @@ export default function CopilotSessionSidebar({
                     {title}
                   </Text>
                   <Text size="xs" c="dimmed">
-                    {formatTime(session.updatedAt || session.createdAt)}
+                    {formatTime(session.updatedAt || session.createdAt, getResolvedInterfaceLocale(i18n))}
                   </Text>
                 </UnstyledButton>
                 <Tooltip label={t('copilot.delete_chat', '删除会话')}>

@@ -2,97 +2,169 @@
     "gemini": {
         "api_key_env": "GEMINI_API_KEY",
         "name": "Google Gemini",
-        "default_model": "gemini-3-flash-preview",
+        "default_model": "gemini-3.6-flash",
         "available_models": [
-            "gemini-3-flash-preview",
-            "gemini-3-pro-preview"
+            "gemini-3.1-pro-preview",
+            "gemini-3.6-flash",
+            "gemini-3.5-flash-lite"
         ],
         "base_url": "https://generativelanguage.googleapis.com",
-        "enable_thinking": false,
-        "thinking_budget": 0,
+        "reasoning": {
+            "default_enabled": false,
+            "default_preset": "medium",
+            "models": {
+                "gemini-3.1-pro-preview": {
+                    "presets": {
+                        "low": {"thinking_config": {"thinking_level": "low"}},
+                        "medium": {"thinking_config": {"thinking_level": "medium"}},
+                        "high": {"thinking_config": {"thinking_level": "high"}}
+                    },
+                    "source_url": "https://ai.google.dev/gemini-api/docs/generate-content/thinking",
+                    "reviewed_at": "2026-08-02"
+                },
+                "gemini-3.6-flash": {
+                    "presets": {
+                        "low": {"thinking_config": {"thinking_level": "low"}},
+                        "medium": {"thinking_config": {"thinking_level": "medium"}},
+                        "high": {"thinking_config": {"thinking_level": "high"}}
+                    },
+                    "source_url": "https://ai.google.dev/gemini-api/docs/generate-content/thinking",
+                    "reviewed_at": "2026-08-02"
+                },
+                "gemini-3.5-flash-lite": {
+                    "presets": {
+                        "low": {"thinking_config": {"thinking_level": "low"}},
+                        "medium": {"thinking_config": {"thinking_level": "medium"}},
+                        "high": {"thinking_config": {"thinking_level": "high"}}
+                    },
+                    "source_url": "https://ai.google.dev/gemini-api/docs/generate-content/thinking",
+                    "reviewed_at": "2026-08-02"
+                }
+            }
+        },
         "description_key": "api_desc_gemini"
     },
     "anthropic": {
         "api_key_env": "ANTHROPIC_API_KEY",
         "base_url": "https://api.anthropic.com/v1",
         "name": "Anthropic Claude",
-        "default_model": "claude-sonnet-4-5",
+        "default_model": "claude-sonnet-5",
         "available_models": [
-            "claude-sonnet-4-5",
-            "claude-haiku-4-5",
-            "claude-3-5-sonnet-20241022",
-            "claude-3-5-haiku-20241022"
+            "claude-fable-5",
+            "claude-opus-5",
+            "claude-sonnet-5",
+            "claude-haiku-4-5-20251001",
+            "claude-opus-4-8",
+            "claude-sonnet-4-6"
         ],
+        "reasoning": {
+            "default_enabled": false,
+            "default_preset": "medium",
+            "models": {
+                "claude-fable-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-08-02"},
+                "claude-opus-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-08-02"},
+                "claude-sonnet-5": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-08-02"},
+                "claude-haiku-4-5-20251001": null,
+                "claude-opus-4-8": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-08-02"},
+                "claude-sonnet-4-6": {"presets": {"low": {"output_config": {"effort": "low"}}, "medium": {"output_config": {"effort": "medium"}}, "high": {"output_config": {"effort": "high"}}}, "source_url": "https://platform.claude.com/docs/en/build-with-claude/effort", "reviewed_at": "2026-08-02"}
+            }
+        },
         "description_key": "api_desc_anthropic"
     },
     "openai": {
         "api_key_env": "OPENAI_API_KEY",
         "name": "OpenAI",
         "base_url": "https://api.openai.com/v1",
-        "default_model": "gpt-5-mini",
+        "default_model": "gpt-5.6-terra",
         "available_models": [
-            "gpt-5.2",
-            "gpt-5-mini",
-            "gpt-5-nano"
+            "gpt-5.6-sol",
+            "gpt-5.6-terra",
+            "gpt-5.6-luna",
+            "gpt-5.5",
+            "gpt-5.4",
+            "gpt-5.4-mini"
         ],
-        "enable_thinking": false,
-        "reasoning_effort": "minimal",
+        "reasoning": {
+            "default_enabled": true,
+            "default_preset": "low",
+            "models": {
+                "gpt-5.6-sol": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}, "max": {"reasoning_effort": "max"}}, "source_url": "https://developers.openai.com/api/docs/guides/latest-model", "reviewed_at": "2026-08-02"},
+                "gpt-5.6-terra": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}, "max": {"reasoning_effort": "max"}}, "source_url": "https://developers.openai.com/api/docs/guides/latest-model", "reviewed_at": "2026-08-02"},
+                "gpt-5.6-luna": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}, "xhigh": {"reasoning_effort": "xhigh"}, "max": {"reasoning_effort": "max"}}, "source_url": "https://developers.openai.com/api/docs/guides/latest-model", "reviewed_at": "2026-08-02"},
+                "gpt-5.5": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}}, "source_url": "https://developers.openai.com/api/docs/models", "reviewed_at": "2026-08-02"},
+                "gpt-5.4": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}}, "source_url": "https://developers.openai.com/api/docs/models", "reviewed_at": "2026-08-02"},
+                "gpt-5.4-mini": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}}, "source_url": "https://developers.openai.com/api/docs/models", "reviewed_at": "2026-08-02"}
+            }
+        },
         "description_key": "api_desc_openai"
     },
     "qwen": {
         "api_key_env": "DASHSCOPE_API_KEY",
-        "default_model": "qwen-plus",
+        "default_model": "qwen3.7-plus",
         "available_models": [
-            "qwen-plus",
-            "qwen-max",
-            "qwen-flash"
+            "qwen3.7-max",
+            "qwen3.7-plus",
+            "qwen3.7-flash",
+            "qwen3.6-flash"
         ],
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "region": "beijing",
         "name": "Qwen (通义千问)",
-        "enable_thinking": false,
+        "reasoning": {
+            "default_enabled": false,
+            "default_preset": "medium",
+            "models": {
+                "qwen3.7-max": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}}, "source_url": "https://help.aliyun.com/en/model-studio/deep-thinking", "reviewed_at": "2026-08-02"},
+                "qwen3.7-plus": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}}, "source_url": "https://help.aliyun.com/en/model-studio/deep-thinking", "reviewed_at": "2026-08-02"},
+                "qwen3.7-flash": null,
+                "qwen3.6-flash": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}}, "source_url": "https://help.aliyun.com/en/model-studio/deep-thinking", "reviewed_at": "2026-08-02"}
+            }
+        },
         "description_key": "api_desc_qwen"
     },
     "grok": {
         "api_key_env": "XAI_API_KEY",
         "base_url": "https://api.x.ai/v1",
         "name": "Grok (xAI)",
-        "default_model": "grok-4-1-fast-reasoning",
+        "default_model": "grok-4.5",
         "available_models": [
-            "grok-4-1-fast-reasoning",
-            "grok-4-1-fast-non-reasoning"
+            "grok-4.5",
+            "grok-4.3"
         ],
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"grok-4.5": {"presets": {"low": {"reasoning_effort": "low"}, "medium": {"reasoning_effort": "medium"}, "high": {"reasoning_effort": "high"}}, "source_url": "https://docs.x.ai/developers/model-capabilities/text/reasoning", "reviewed_at": "2026-08-02"}, "grok-4.3": null}},
         "description_key": "api_desc_grok"
     },
     "deepseek": {
         "api_key_env": "DEEPSEEK_API_KEY",
         "base_url": "https://api.deepseek.com",
-        "default_model": "deepseek-chat",
+        "default_model": "deepseek-v4-flash",
         "available_models": [
-            "deepseek-v4-flash",
-            "deepseek-chat",
-            "deepseek-reasoner",
-            "deepseek-v3.2",
-            "deepseek-v3.2-speciale",
-            "deepseek-r2",
-            "deepseek-r1"
+            "deepseek-v4-pro",
+            "deepseek-v4-flash"
         ],
         "name": "DeepSeek (深度求索)",
-        "enable_thinking": false,
+        "reasoning": {"default_enabled": false, "default_preset": "high", "models": {"deepseek-v4-pro": {"presets": {"high": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "max": {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}}, "source_url": "https://api-docs.deepseek.com/guides/thinking_mode", "reviewed_at": "2026-08-02"}, "deepseek-v4-flash": {"presets": {"high": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "max": {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}}, "source_url": "https://api-docs.deepseek.com/guides/thinking_mode", "reviewed_at": "2026-08-02"}}},
         "description_key": "api_desc_deepseek"
     },
     "openrouter": {
         "api_key_env": "OPENROUTER_API_KEY",
         "base_url": "https://openrouter.ai/api/v1",
-        "default_model": "openai/gpt-5.6-luna",
+        "default_model": "deepseek/deepseek-v4-flash",
         "available_models": [
-            "openai/gpt-5.6-luna",
             "deepseek/deepseek-v4-flash",
-            "deepseek/deepseek-v4-pro"
+            "deepseek/deepseek-v4-pro",
+            "qwen/qwen3.6-flash",
+            "stepfun/step-3.7-flash",
+            "z-ai/glm-5.2"
         ],
-        "reasoning_effort": "high",
-        "max_tokens": 32768,
         "name": "OpenRouter",
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {
+            "deepseek/deepseek-v4-flash": {"presets": {"low": {"reasoning": {"effort": "low"}}, "medium": {"reasoning": {"effort": "medium"}}, "high": {"reasoning": {"effort": "high"}}}, "source_url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens", "reviewed_at": "2026-08-02"},
+            "deepseek/deepseek-v4-pro": {"presets": {"low": {"reasoning": {"effort": "low"}}, "medium": {"reasoning": {"effort": "medium"}}, "high": {"reasoning": {"effort": "high"}}}, "source_url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens", "reviewed_at": "2026-08-02"},
+            "qwen/qwen3.6-flash": {"presets": {"low": {"reasoning": {"effort": "low"}}, "medium": {"reasoning": {"effort": "medium"}}, "high": {"reasoning": {"effort": "high"}}}, "source_url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens", "reviewed_at": "2026-08-02"},
+            "stepfun/step-3.7-flash": {"presets": {"low": {"reasoning": {"effort": "low"}}, "medium": {"reasoning": {"effort": "medium"}}, "high": {"reasoning": {"effort": "high"}}}, "source_url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens", "reviewed_at": "2026-08-02"},
+            "z-ai/glm-5.2": {"presets": {"low": {"reasoning": {"effort": "low"}}, "medium": {"reasoning": {"effort": "medium"}}, "high": {"reasoning": {"effort": "high"}}}, "source_url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens", "reviewed_at": "2026-08-02"}
+        }},
         "description_key": "api_desc_openrouter"
     },
     "ollama": {
@@ -119,20 +191,26 @@
     "modelscope": {
         "api_key_env": "MODELSCOPE_API_KEY",
         "base_url": "https://api-inference.modelscope.cn/v1/",
-        "default_model": "deepseek-ai/DeepSeek-V3.2-Exp",
+        "default_model": "zai-org/GLM-5.1",
+        "available_models": [
+            "zai-org/GLM-5.1",
+            "MiniMax/MiniMax-M3"
+        ],
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"zai-org/GLM-5.1": null, "MiniMax/MiniMax-M3": null}},
         "name": "ModelScope (魔搭)",
         "description_key": "api_desc_modelscope"
     },
     "siliconflow": {
         "api_key_env": "SILICONFLOW_API_KEY",
         "base_url": "https://api.siliconflow.cn/v1",
-        "default_model": "DeepSeek-R1",
+        "default_model": "deepseek-ai/DeepSeek-V4-Pro",
         "available_models": [
-            "DeepSeek-R1",
-            "DeepSeek-V3",
-            "Qwen2.5-72B-Instruct",
-            "Llama-3.3-70B-Instruct"
+            "deepseek-ai/DeepSeek-V4-Pro",
+            "zai-org/GLM-5.1",
+            "moonshotai/Kimi-K2.6",
+            "MiniMaxAI/MiniMax-M2.5"
         ],
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"deepseek-ai/DeepSeek-V4-Pro": null, "zai-org/GLM-5.1": null, "moonshotai/Kimi-K2.6": null, "MiniMaxAI/MiniMax-M2.5": null}},
         "name": "SiliconFlow (硅基流动)",
         "description_key": "api_desc_siliconflow"
     },
@@ -182,59 +260,58 @@
     },
     "kimi": {
         "api_key_env": "KIMI_API_KEY",
-        "base_url": "https://api.moonshot.cn/v1",
-        "default_model": "moonshot-v1-8k",
+        "base_url": "https://api.moonshot.ai/v1",
+        "default_model": "kimi-k3",
         "available_models": [
-            "kimi-k2.6",
-            "kimi-k2.5",
-            "moonshot-v1-8k",
-            "moonshot-v1-32k",
-            "moonshot-v1-128k"
+            "kimi-k3",
+            "kimi-k2.7-code",
+            "kimi-k2.7-code-highspeed",
+            "kimi-k2.6"
         ],
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"kimi-k3": null, "kimi-k2.7-code": null, "kimi-k2.7-code-highspeed": null, "kimi-k2.6": null}},
         "name": "Kimi (Moonshot AI)",
         "description_key": "api_desc_kimi"
     },
     "minimax": {
         "api_key_env": "MINIMAX_API_KEY",
         "base_url": "https://api.minimaxi.com/v1",
-        "default_model": "MiniMax-M2.1",
+        "default_model": "MiniMax-M2.7",
         "available_models": [
             "MiniMax-M2.7",
             "MiniMax-M2.7-highspeed",
             "MiniMax-M2.5",
-            "MiniMax-M2.5-highspeed",
-            "MiniMax-M2.1",
-            "MiniMax-M2.1-highspeed",
-            "MiniMax-M2"
+            "MiniMax-M2.5-highspeed"
         ],
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"MiniMax-M2.7": null, "MiniMax-M2.7-highspeed": null, "MiniMax-M2.5": null, "MiniMax-M2.5-highspeed": null}},
         "name": "Minimax (海螺)",
         "description_key": "api_desc_minimax"
     },
     "zhipu": {
         "api_key_env": "ZHIPU_API_KEY",
         "base_url": "https://open.bigmodel.cn/api/paas/v4/",
-        "default_model": "glm-4-plus",
+        "default_model": "glm-5.2",
         "available_models": [
+            "glm-5.2",
+            "glm-5.1",
+            "glm-5-turbo",
             "glm-4.7",
             "glm-4.6",
-            "glm-4.5",
-            "glm-4.5-air",
-            "glm-4.5-flash",
-            "glm-4-plus",
-            "glm-4-air",
-            "glm-4-flash"
+            "glm-4.5-flash"
         ],
         "name": "ChatGLM (Zhipu AI)",
+        "reasoning": {"default_enabled": false, "default_preset": "high", "models": {"glm-5.2": {"presets": {"low": {"thinking": {"type": "enabled"}, "reasoning_effort": "low"}, "medium": {"thinking": {"type": "enabled"}, "reasoning_effort": "medium"}, "high": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}, "max": {"thinking": {"type": "enabled"}, "reasoning_effort": "max"}}, "source_url": "https://docs.bigmodel.cn/cn/guide/capabilities/thinking", "reviewed_at": "2026-08-02"}, "glm-5.1": null, "glm-5-turbo": null, "glm-4.7": null, "glm-4.6": null, "glm-4.5-flash": null}},
         "description_key": "api_desc_zhipu"
     },
     "nvidia": {
         "api_key_env": "NVIDIA_API_KEY",
         "name": "NVIDIA NIM",
         "base_url": "https://integrate.api.nvidia.com/v1",
-        "default_model": "minimaxai/minimax-m2.1",
+        "default_model": "minimaxai/minimax-m2.7",
         "available_models": [
-            "minimaxai/minimax-m2.1"
+            "minimaxai/minimax-m2.7",
+            "minimaxai/minimax-m2.5"
         ],
+        "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {"minimaxai/minimax-m2.7": null, "minimaxai/minimax-m2.5": null}},
         "description_key": "api_desc_nvidia"
     },
     "hunyuan": {

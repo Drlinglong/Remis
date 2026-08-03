@@ -1,37 +1,53 @@
 # scripts/utils/logger.py
-import os
-import sys
 import logging
+import os
 import platform
+from typing import Mapping, Optional
 from logging.handlers import RotatingFileHandler
 
-def get_logs_dir():
-    """Returns the absolute path to the logs directory."""
-    if getattr(sys, 'frozen', False):
-        if platform.system() == "Windows":
-            base = os.getenv('APPDATA')
-        else:
-            base = os.path.expanduser("~/.local/share")
-        if not base:
-            base = os.path.expanduser("~")
-        return os.path.join(base, "RemisModFactory", "logs")
+def get_logs_dir(
+    app_data_dir: Optional[str] = None,
+    *,
+    environ: Optional[Mapping[str, str]] = None,
+) -> str:
+    """Return a writable user log directory, with test/runtime overrides."""
+    environment = environ if environ is not None else os.environ
+    override = environment.get("REMIS_LOG_DIR")
+    if override:
+        return os.path.abspath(os.path.expanduser(override))
+
+    if app_data_dir is None:
+        try:
+            from scripts import app_settings
+
+            app_data_dir = app_settings.APP_DATA_DIR
+        except (ImportError, AttributeError):
+            app_data_dir = None
+    if app_data_dir:
+        return os.path.join(os.path.abspath(app_data_dir), "logs")
+
+    if platform.system() == "Windows":
+        base = environment.get("APPDATA")
     else:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
-        return os.path.join(project_root, "logs")
+        base = os.path.join(os.path.expanduser("~"), ".local", "share")
+    return os.path.join(base or os.path.expanduser("~"), "RemisModFactory", "logs")
 
 LOGS_DIR = get_logs_dir()
 
-def setup_logger():
+def setup_logger(logs_dir: Optional[str] = None):
     """
     Configures the global root logger for the entire project.
     Implements smart path resolution (AppData vs Dev) and log rotation.
     """
-    os.makedirs(LOGS_DIR, exist_ok=True)
-    print(f"[LOGGER] Writing logs to: {LOGS_DIR}")
+    target_dir = os.path.abspath(logs_dir or LOGS_DIR)
+    try:
+        os.makedirs(target_dir, exist_ok=True)
+    except OSError as error:
+        print(f"[LOGGER] Failed to create log directory {target_dir}: {error}")
+    print(f"[LOGGER] Writing logs to: {target_dir}")
 
     # 2. 飞行记录仪模式 (Rotating File Handler)
-    log_filename = os.path.join(LOGS_DIR, "remis_backend.log")
+    log_filename = os.path.join(target_dir, "remis_backend.log")
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -70,7 +86,7 @@ def setup_logger():
     except Exception as e:
         print(f"[LOGGER] Safe StreamHandler failed: {e}")
 
-    logging.info(f"Logger initialized. Writing to: {LOGS_DIR}")
+    logging.info(f"Logger initialized. Writing to: {target_dir}")
     
     # Try to log i18n message if available
     try:

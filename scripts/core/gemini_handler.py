@@ -40,35 +40,9 @@ class GeminiHandler(BaseApiHandler):
     def _call_api(self, client: Any, prompt: str) -> str:
         """【必须由子类实现】执行对Gemini API的调用并返回原始文本响应。"""
         provider_config = self.get_provider_config()
-        model_name = provider_config.get("default_model", "gemini-1.5-flash")
+        model_name = provider_config.get("default_model", "gemini-3.6-flash")
         
-        enable_thinking = provider_config.get("enable_thinking", False)
-        thinking_budget = provider_config.get("thinking_budget", 0)
-
-        generation_config = {}
-        if enable_thinking:
-            # According to latest google-genai docs:
-            # Gemini 3 models support thinking_level ('low', 'high', 'medium', 'minimal')
-            # Gemini 2.5 models use thinking_budget
-            
-            # Map user's desire: For Gemini 3, 'low' is requested.
-            is_gemini_3 = "gemini-3" in model_name
-            
-            if is_gemini_3:
-                # The SDK uses ThinkingConfig for both.
-                generation_config["thinking_config"] = types.ThinkingConfig(
-                    include_thoughts=True,
-                    thinking_level="low" # User specifically requested 'low' for Gemini 3
-                )
-            elif thinking_budget != 0:
-                generation_config["thinking_config"] = types.ThinkingConfig(
-                    include_thoughts=True
-                )
-                # For Gemini 2.x, thinking_budget is the field. 
-                # Note: If the SDK supports setting budget on ThinkingConfig, we'd do it here.
-                # Many implementations pass thinking_budget as a top-level field in GenerateContentConfig.
-                if thinking_budget > 0:
-                    generation_config["thinking_budget"] = thinking_budget
+        generation_config = self._reasoning_request_parameters()
 
         try:
             # Pass the generation_config to the API call
@@ -98,7 +72,7 @@ class GeminiHandler(BaseApiHandler):
         Supports chat-like interaction for NeologismMiner.
         """
         provider_config = API_PROVIDERS.get(self.provider_name, {})
-        model_name = provider_config.get("default_model", "gemini-1.5-flash")
+        model_name = provider_config.get("default_model", "gemini-3.6-flash")
         
         # Convert messages to Gemini format if needed, or just concatenate for now
         # Gemini client supports chat history, but for single turn we can just use generate_content
@@ -128,9 +102,9 @@ class GeminiHandler(BaseApiHandler):
                 self.client,
                 model=model_name,
                 contents=full_prompt,
-                config={
-                    'temperature': temperature
-                },
+                config=types.GenerateContentConfig(
+                    **{"temperature": temperature, **self._reasoning_request_parameters()}
+                ),
             )
             self._record_model_response(response)
             return response.text.strip()
