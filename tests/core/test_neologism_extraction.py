@@ -116,27 +116,104 @@ def test_narrative_context_makes_one_call_and_keeps_contributions_separate():
     assert "never prove story-chain membership" in system_prompt
 
 
-def test_missing_delivery_assignment_requires_repair_to_explicit_unassigned():
+def test_missing_local_delivery_hint_does_not_trigger_repair():
     missing = {
         "terms": [], "entities": [], "facts": [], "events": [], "relationships": [],
     }
-    repaired = {
-        **missing,
-        "delivery_assignments": [{
-            "local_unit_id": "unit_0",
-            "links": [],
-            "assignment_state": "unassigned",
-        }],
-    }
-    handler = FakeHandler([json.dumps(missing), json.dumps(repaired)])
+    handler = FakeHandler([json.dumps(missing)])
 
     result = StructuredNeologismExtractor(handler).extract(
         [source_item()], scope=AnalysisScope.NARRATIVE_CONTEXT
     )
 
-    assert len(handler.calls) == 2
-    assert result.delivery_assignments[0].assignment_state == "unassigned"
-    assert result.delivery_assignments[0].source_item_ids == ["item-1"]
+    assert len(handler.calls) == 1
+    assert result.delivery_assignments == []
+    assert result.diagnostics["local_hint_omitted_unit_ids"] == ["unit_0"]
+    assert result.diagnostics["repair_count"] == 0
+
+
+def test_unknown_local_chain_link_is_dropped_without_losing_valid_extraction():
+    handler = FakeHandler([json.dumps({
+        "terms": [{
+            "original": "Aether Engine",
+            "category": "technology",
+            "suggestion": "以太引擎",
+            "reasoning": "专有科技名",
+            "evidence": [{"source_item_id": "source_0"}],
+        }],
+        "entities": [], "facts": [], "events": [], "relationships": [],
+        "delivery_assignments": [{
+            "local_unit_id": "unit_0",
+            "links": [{
+                "event_chain_id": "invented-chain",
+                "relation": "primary_member",
+                "confidence": 0.9,
+            }],
+            "assignment_state": "assigned",
+        }],
+    })])
+
+    result = StructuredNeologismExtractor(handler).extract(
+        [source_item()], scope=AnalysisScope.NARRATIVE_CONTEXT
+    )
+
+    assert len(handler.calls) == 1
+    assert [term.original for term in result.terms] == ["Aether Engine"]
+    assert result.delivery_assignments == []
+    assert result.diagnostics["dropped_unknown_local_chain_links"] == [
+        "unit_0:invented-chain"
+    ]
+
+
+def test_partial_hints_for_nineteen_units_preserve_the_successful_nine():
+    items = [
+        SourceItem(
+            source_item_id=f"item-{index}",
+            relative_path="events/horizon.yml",
+            item_key=f"akx.{9000 + index}.name",
+            source_order=index,
+            source_text=f"Horizon Signal scene {index}",
+        )
+        for index in range(19)
+    ]
+    units = ContextLocalUnitBuilder.build(items)
+    payload = {
+        "terms": [], "entities": [], "facts": [], "relationships": [],
+        "events": [{
+            "chain_id": "horizon_signal",
+            "event": "The signal changes the empire.",
+            "sequence": 0,
+            "participants": [],
+            "evidence": [{"source_item_id": "source_10"}],
+        }],
+        "delivery_assignments": [
+            {
+                "local_unit_id": unit.unit_id,
+                "links": [{
+                    "event_chain_id": "horizon_signal",
+                    "relation": "primary_member",
+                    "confidence": 0.9,
+                }],
+                "assignment_state": "assigned",
+            }
+            for unit in units[10:]
+        ],
+    }
+    handler = FakeHandler([json.dumps(payload)])
+
+    result = StructuredNeologismExtractor(handler).extract(
+        items,
+        scope=AnalysisScope.NARRATIVE_CONTEXT,
+        core_units=units,
+    )
+
+    assert len(handler.calls) == 1
+    assert [item.local_unit_id for item in result.delivery_assignments] == [
+        unit.unit_id for unit in units[10:]
+    ]
+    assert result.diagnostics["local_hint_omitted_unit_ids"] == [
+        unit.unit_id for unit in units[:10]
+    ]
 
 
 def test_model_schema_does_not_expose_backend_owned_metadata():
@@ -171,11 +248,7 @@ def test_edge_units_are_visible_but_only_core_units_require_assignments():
     units = ContextLocalUnitBuilder.build([edge_item, core_item])
     response = json.dumps({
         "terms": [], "entities": [], "facts": [], "events": [], "relationships": [],
-        "delivery_assignments": [{
-            "local_unit_id": units[1].unit_id,
-            "links": [],
-            "assignment_state": "unassigned",
-        }],
+        "delivery_assignments": [],
     })
     handler = FakeHandler([response])
 
@@ -189,7 +262,8 @@ def test_edge_units_are_visible_but_only_core_units_require_assignments():
     request = json.loads(handler.calls[0][0][1]["content"])
     assert request["core_unit_ids"] == [units[1].unit_id]
     assert [item["context_role"] for item in request["local_text_units"]] == ["core", "edge"]
-    assert [item.local_unit_id for item in result.delivery_assignments] == [units[1].unit_id]
+    assert result.delivery_assignments == []
+    assert result.diagnostics["local_hint_omitted_unit_ids"] == [units[1].unit_id]
 
 
 def test_false_or_missing_fixed_metadata_is_normalized_without_repair():

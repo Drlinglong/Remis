@@ -1,80 +1,78 @@
-"""Deterministic contract for exhaustive local-unit delivery assignments."""
+"""Deterministic normalization for model-authored local delivery hints."""
 
 from __future__ import annotations
 
-from collections import Counter
 from typing import Iterable, Sequence
 
 from scripts.core.context_local_units import DeliveryAssignment, DeliveryLink, LocalTextUnit
 
 
-def normalize_delivery_assignments(
+def normalize_sparse_delivery_hints(
     assignments: Iterable[DeliveryAssignment],
     core_units: Sequence[LocalTextUnit],
     valid_chain_ids: Iterable[str],
-) -> list[DeliveryAssignment]:
-    """Require exactly one model decision per core unit, then expand source IDs."""
+) -> tuple[list[DeliveryAssignment], dict[str, list[str]]]:
+    """Keep grounded positive local hints without pretending they are final coverage."""
 
-    received = list(assignments)
-    expected_ids = [unit.unit_id for unit in core_units]
-    received_ids = [assignment.local_unit_id for assignment in received]
-    diagnostics = _assignment_diagnostics(expected_ids, received_ids)
-    if any(diagnostics.values()):
-        raise ValueError(_format_diagnostics(diagnostics))
-
+    expected_units = {unit.unit_id: unit for unit in core_units}
     canonical_chains = {chain_id.casefold(): chain_id for chain_id in valid_chain_ids}
-    by_unit = {assignment.local_unit_id: assignment for assignment in received}
+    grouped: dict[str, list[DeliveryAssignment]] = {}
+    unexpected: list[str] = []
+    for assignment in assignments:
+        if assignment.local_unit_id not in expected_units:
+            unexpected.append(assignment.local_unit_id)
+            continue
+        grouped.setdefault(assignment.local_unit_id, []).append(assignment)
+
     normalized: list[DeliveryAssignment] = []
+    unknown_links: list[str] = []
+    duplicate_units: list[str] = []
     for unit in core_units:
-        assignment = by_unit[unit.unit_id]
-        links = _normalize_links(assignment.links, canonical_chains)
-        if assignment.assignment_state == "assigned" and not links:
-            raise ValueError(f"assigned local unit has no valid links: {unit.unit_id}")
-        if assignment.assignment_state == "unassigned" and assignment.links:
-            raise ValueError(f"unassigned local unit returned links: {unit.unit_id}")
+        candidates = grouped.get(unit.unit_id, [])
+        if len(candidates) > 1:
+            duplicate_units.append(unit.unit_id)
+        links = _merge_sparse_links(candidates, canonical_chains, unknown_links)
+        if not links:
+            continue
         normalized.append(DeliveryAssignment(
             local_unit_id=unit.unit_id,
             links=links,
-            assignment_state=assignment.assignment_state,
+            assignment_state="assigned",
             source_item_ids=[item.source_item_id for item in unit.items],
         ))
-    return normalized
+
+    hinted_ids = {assignment.local_unit_id for assignment in normalized}
+    diagnostics = {
+        "local_hint_omitted_unit_ids": [
+            unit.unit_id for unit in core_units if unit.unit_id not in hinted_ids
+        ],
+        "local_hint_unexpected_unit_ids": sorted(set(unexpected)),
+        "local_hint_duplicate_unit_ids": duplicate_units,
+        "dropped_unknown_local_chain_links": unknown_links,
+    }
+    return normalized, diagnostics
 
 
-def _normalize_links(
-    links: Iterable[DeliveryLink],
+def _merge_sparse_links(
+    assignments: Sequence[DeliveryAssignment],
     canonical_chains: dict[str, str],
+    unknown_links: list[str],
 ) -> list[DeliveryLink]:
     normalized: list[DeliveryLink] = []
     seen: set[tuple[str, str]] = set()
-    for link in links:
-        chain_id = canonical_chains.get(link.event_chain_id.casefold())
-        if chain_id is None:
-            raise ValueError(f"delivery link references unknown local chain: {link.event_chain_id}")
-        identity = (chain_id.casefold(), link.relation)
-        if identity in seen:
-            raise ValueError(
-                f"duplicate delivery link: {chain_id}/{link.relation}"
-            )
-        seen.add(identity)
-        normalized.append(link.model_copy(update={"event_chain_id": chain_id}))
+    for assignment in assignments:
+        if assignment.assignment_state != "assigned":
+            continue
+        for link in assignment.links:
+            chain_id = canonical_chains.get(link.event_chain_id.casefold())
+            if chain_id is None:
+                unknown_links.append(
+                    f"{assignment.local_unit_id}:{link.event_chain_id}"
+                )
+                continue
+            identity = (chain_id.casefold(), link.relation)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            normalized.append(link.model_copy(update={"event_chain_id": chain_id}))
     return normalized
-
-
-def _assignment_diagnostics(
-    expected_ids: Sequence[str], received_ids: Sequence[str],
-) -> dict[str, list[str]]:
-    expected = Counter(expected_ids)
-    received = Counter(received_ids)
-    return {
-        "missing": list((expected - received).elements()),
-        "unexpected": list((received - expected).elements()),
-        "duplicate": sorted(unit_id for unit_id, count in received.items() if count > 1),
-    }
-
-
-def _format_diagnostics(diagnostics: dict[str, list[str]]) -> str:
-    detail = "; ".join(
-        f"{name}={values[:10]}" for name, values in diagnostics.items()
-    )
-    return f"delivery assignment set mismatch ({detail})"

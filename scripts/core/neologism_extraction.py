@@ -19,7 +19,7 @@ from scripts.core.context_local_units import (
     DeliveryAssignment,
     LocalTextUnit,
 )
-from scripts.core.services.context_assignment_contract import normalize_delivery_assignments
+from scripts.core.services.context_assignment_contract import normalize_sparse_delivery_hints
 from scripts.core.prompts.context_extraction_prompt import CONTEXT_EXTRACTION_SYSTEM_PROMPT
 from scripts.core.services.source_snapshot_service import normalize_relative_path, normalize_source_key
 
@@ -365,7 +365,7 @@ class StructuredNeologismExtractor:
                 source_aliases,
                 local_units,
             )
-            result.diagnostics = {"repair_count": 0}
+            result.diagnostics = {**result.diagnostics, "repair_count": 0}
             return result
         except (json.JSONDecodeError, ValidationError, TypeError, ValueError, NeologismMiningError) as first_error:
             repair_messages = messages + [
@@ -391,8 +391,10 @@ class StructuredNeologismExtractor:
                     local_units,
                 )
                 result.diagnostics = {
+                    **result.diagnostics,
                     "repair_count": 1,
                     "repair_reason": self._validation_error_category(first_error),
+                    "first_validation_error": self._validation_error_detail(first_error),
                 }
                 return result
             except (json.JSONDecodeError, ValidationError, TypeError, ValueError, NeologismMiningError) as second_error:
@@ -775,17 +777,10 @@ class StructuredNeologismExtractor:
         extraction.events = cls._filter_grounded_contributions(extraction.events, lookup)
         extraction.relationships = cls._filter_grounded_contributions(extraction.relationships, lookup)
         if scope is AnalysisScope.NARRATIVE_CONTEXT:
-            extraction.delivery_assignments = cls._normalized_delivery_assignments(
-                extraction, local_units,
+            assignments, diagnostics = normalize_sparse_delivery_hints(
+                extraction.delivery_assignments,
+                local_units,
+                (event.chain_id for event in extraction.events),
             )
-
-    @staticmethod
-    def _normalized_delivery_assignments(
-        extraction: StructuredNeologismExtraction,
-        local_units: Sequence[LocalTextUnit],
-    ) -> list[DeliveryAssignment]:
-        return normalize_delivery_assignments(
-            extraction.delivery_assignments,
-            local_units,
-            (event.chain_id for event in extraction.events),
-        )
+            extraction.delivery_assignments = assignments
+            extraction.diagnostics.update(diagnostics)

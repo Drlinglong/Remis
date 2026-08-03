@@ -29,7 +29,7 @@ class DeliveryLink(BaseModel):
 
 
 class DeliveryAssignment(BaseModel):
-    """One exhaustive local-unit assignment returned by the extraction model."""
+    """One unit-to-chain record; only the final global stage is exhaustive."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 

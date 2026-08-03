@@ -25,9 +25,10 @@ do not defer ordinary translation recommendations to a later review call.
   Suffix conventions vary between games and authors; similar keys, adjacency,
   comments, and file boundaries are useful clues but never prove story-chain
   membership without supporting text semantics.
-- `core_unit_ids` is the exhaustive set you must classify. Units marked `edge`
-  are read-only neighbouring context: use them to detect continuation across a
-  chunk boundary, but never emit contributions or assignments for them.
+- `core_unit_ids` is the set eligible for positive local event-chain hints.
+  Units marked `edge` are read-only neighbouring context: use them to detect
+  continuation across a chunk boundary, but never emit contributions or links
+  for them.
 - Every evidence.source_item_id MUST be one of the supplied short source aliases.
 - The backend maps each valid alias to the stable source item identity. Never
   invent an alias or use an alias from another call.
@@ -49,17 +50,19 @@ do not defer ordinary translation recommendations to a later review call.
   causal dependency, branching decision, or direct outcome. Multiple `events`
   entries may reuse the same `chain_id` when they are ordered steps in that one
   local chain; the backend will fold those steps into one chain card.
-- Exhaustive assignment means exactly one `delivery_assignments` record for
-  every `core_unit_ids` value, with no missing, duplicate, unexpected, or edge
-  IDs. It does NOT mean every unit belongs to an event chain. `unassigned` with
-  an empty `links` array is a valid and expected classification.
+- `delivery_assignments` is a sparse set of high-confidence local hints, not the
+  final exhaustive delivery table. Return a record only when a core unit has at
+  least one positive link to a chain proposed in this response. Omit units with
+  no confident local link; do not emit `unassigned` placeholder records. A later
+  global stage sees the final chain catalog and performs strict one-to-one
+  classification for every project unit.
 - Do not create a chain merely to classify context-free buttons, generic UI
   labels or tooltips, names, titles, or static technology, building, modifier,
   trait, resource, ambient-object, or catalog descriptions. Groups that only
   share terminology, characters, factions, imagery, motifs, or worldbuilding
   themes are not event chains. Put their semantics in terms, entities, or facts,
-  and leave them unassigned or theme-related as appropriate. Never invent a
-  chain ID merely to avoid `unassigned`.
+  and omit their local event link or mark a genuine existing relationship as
+  theme-related. Never invent a chain ID merely to classify a unit.
 - Each assigned unit has one or more directional links. Every event_chain_id in
   a link must match a chain_id returned in this response's `events` array.
   `primary_member` means the unit is genuinely part of that local causal or
