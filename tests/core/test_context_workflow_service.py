@@ -756,8 +756,71 @@ def test_synthesis_repairs_at_most_once():
     assert len(handler.calls) == 2
     assert len(handler.calls[1]) == 3
     assert handler.calls[1][-1]["role"] == "user"
-    assert handler.calls[1][-1]["content"].endswith("Invalid response excerpt: not-json")
+    repair_instruction = handler.calls[1][-1]["content"]
+    assert '"syntheses":[' in repair_instruction
+    assert "Do not create entities, events, or project_summary" in repair_instruction
+    assert repair_instruction.endswith("Invalid response excerpt: not-json")
     assert result[0].content["evidence_source_item_ids"] == ["source-1"]
+
+
+def test_synthesis_repairs_categorized_object_shape_with_explicit_flat_contract():
+    source = ContextSourceItem(
+        source_item_id="source-1", project_id="project-1", source_type="localization",
+        source_ref="main.yml::0:key", content="The Republic appoints a consul.",
+        content_hash="hash-1",
+    )
+    contribution = ContextContribution(
+        contribution_id="contribution-1", source_item_id=source.source_item_id,
+        contribution_type="fact", subject_key="entity:republic",
+        payload={"evidence": [{"source_item_id": source.source_item_id}]},
+        provenance="text_inferred",
+    )
+    aggregate = ContextAggregate(
+        aggregate_id="aggregate-1", project_id="project-1", aggregate_type="entity",
+        aggregate_key="entity:republic", contribution_ids=[contribution.contribution_id],
+    )
+
+    class CategorizedShapeHandler:
+        def __init__(self):
+            self.calls = []
+
+        def generate_with_messages(self, messages, temperature=0.0):
+            self.calls.append(messages)
+            if len(self.calls) == 1:
+                system_prompt = messages[0]["content"]
+                assert '"syntheses":[' in system_prompt
+                assert "syntheses value MUST be a JSON array" in system_prompt
+                return json.dumps({
+                    "syntheses": {
+                        "entities": [{
+                            "aggregate_alias": "a0",
+                            "summary": "The Republic appoints a consul.",
+                            "evidence_aliases": ["e0"],
+                        }],
+                        "events": [],
+                        "project_summary": "A republican project.",
+                    }
+                })
+            repair_prompt = messages[-1]["content"]
+            assert '"syntheses":[' in repair_prompt
+            assert "Do not create entities, events, or project_summary" in repair_prompt
+            return json.dumps({
+                "syntheses": [{
+                    "aggregate_alias": "a0",
+                    "summary": "The Republic appoints a consul.",
+                    "evidence_aliases": ["e0"],
+                }]
+            })
+
+    handler = CategorizedShapeHandler()
+    result = ContextSynthesisService(handler).synthesize(
+        [aggregate],
+        {contribution.contribution_id: contribution},
+        {source.source_item_id: source},
+    )
+
+    assert len(handler.calls) == 2
+    assert result[0].content["summary"] == "The Republic appoints a consul."
 
 
 def test_synthesis_keeps_real_ids_out_of_model_contract_and_maps_aliases_back():

@@ -38,9 +38,19 @@ class ContextSynthesisService:
     REPAIR_RESPONSE_EXCERPT_CHARS = 1_200
     REPAIR_ERROR_EXCERPT_CHARS = 600
 
+    OUTPUT_CONTRACT = """
+Return exactly one flat synthesis item for every aggregate in the request using
+this JSON shape:
+{"syntheses":[{"aggregate_alias":"a0","summary":"...","evidence_aliases":["e0"]}]}
+The syntheses value MUST be a JSON array, never an object. Keep every item at
+the same array level. Do not create entities, events, or project_summary
+grouping fields. The aggregate_type in each request item already identifies
+whether it is an entity, event, or project summary.
+"""
+
     SYSTEM_PROMPT = """
-You summarize source-grounded localization context. Return only JSON matching
-the required schema. Make each summary concise and factual. Use only the
+You summarize source-grounded localization context. Return only valid JSON.
+Make each summary concise and factual. Use only the
 provided contributions and source evidence; do not add unsupported details.
 Copy only the short aggregate_alias and evidence_alias values supplied in the
 request. Every evidence_aliases value must identify source text used by that
@@ -241,7 +251,9 @@ event chains, and the project summary describes the project-level pattern.
         instruction = (
             "Replace the invalid response exactly once. Return only valid JSON matching "
             f"the schema and alias grounding rules. Error category: {category}. "
-            f"Validation detail: {error_excerpt}. Invalid response excerpt: {response_excerpt}"
+            f"Validation detail: {error_excerpt}.\n"
+            f"{self.OUTPUT_CONTRACT.strip()}\n"
+            f"Invalid response excerpt: {response_excerpt}"
         )
         return [*messages, {"role": "user", "content": instruction}]
 
@@ -273,6 +285,7 @@ event chains, and the project summary describes the project-level pattern.
         language_name = cls.LANGUAGE_NAMES.get(language_code.casefold(), language_code)
         return (
             f"{cls.SYSTEM_PROMPT.strip()}\n"
+            f"{cls.OUTPUT_CONTRACT.strip()}\n"
             f"Write every summary in {language_name} ({language_code}). "
             "Keep source evidence unchanged and preserve proper names when no approved localized "
             "name is provided."
