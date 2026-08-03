@@ -64,7 +64,10 @@ def extract_translatable_content(
         key_map (dict): A map to reconstruct the file: {index: {key_part, original_value_part, line_num}}.
     """
     # 使用统一的引号提取工具类
-    original_lines, texts_to_translate, key_map = QuoteExtractor.extract_from_file(file_path)
+    original_lines, texts_to_translate, key_map = QuoteExtractor.extract_from_file(
+        file_path,
+        strict=True,
+    )
     
     # --- (The Hook system logic remains the same) ---
     if HOOKS:

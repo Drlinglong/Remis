@@ -2,7 +2,8 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from scripts.core.loc_parser import parse_loc_file, parse_loc_file_with_lines
+from scripts.core.loc_parser import parse_loc_file
+from scripts.core.paradox_localization_parser import parse_text, patch_text
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.utils.post_process_validator import PostProcessValidator
 
@@ -101,30 +102,23 @@ def resolve_output_translation_target(
 
 def apply_translation_fix_to_file(file_path: Path, key_to_fix: str, new_value: str) -> bool:
     try:
-        entries = parse_loc_file_with_lines(file_path)
-        target_line = -1
-        for key, _value, line_number in entries:
-            if key == key_to_fix or key.split(":")[0] == key_to_fix.split(":")[0]:
-                target_line = line_number
-                break
-
-        if target_line == -1:
+        with open(file_path, "r", encoding="utf-8-sig", newline="") as handle:
+            source_text = handle.read()
+        report = parse_text(source_text)
+        target = next(
+            (
+                entry
+                for entry in report.eligible_entries
+                if entry.key == key_to_fix
+                or entry.base_key == key_to_fix.split(":")[0]
+            ),
+            None,
+        )
+        if target is None:
             return False
-
-        with open(file_path, "r", encoding="utf-8-sig") as handle:
-            lines = handle.readlines()
-
-        index = target_line - 1
-        old_line = lines[index]
-        first_quote = old_line.find('"')
-        last_quote = old_line.rfind('"', first_quote + 1)
-        if first_quote == -1 or last_quote == -1:
-            return False
-
-        safe_value = new_value.replace('"', r"\"")
-        lines[index] = old_line[:first_quote + 1] + safe_value + old_line[last_quote:]
-        with open(file_path, "w", encoding="utf-8-sig") as handle:
-            handle.writelines(lines)
+        patched_text = patch_text(source_text, [(target, new_value)])
+        with open(file_path, "w", encoding="utf-8-sig", newline="") as handle:
+            handle.write(patched_text)
         return True
     except Exception as exc:
         logger.error("Failed to apply workshop fix to %s: %s", file_path, exc)

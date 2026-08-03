@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.core.archive_manager import archive_manager
-from scripts.core.loc_parser import parse_loc_file
+from scripts.core.loc_parser import parse_loc_file_report
 from scripts.schemas.common import LanguageCode
 
 logger = logging.getLogger(__name__)
@@ -133,7 +133,15 @@ class TranslationArchiveService:
 
                 full_path = Path(os.path.join(root, file_name))
                 try:
-                    entries = parse_loc_file(full_path)
+                    report = parse_loc_file_report(full_path)
+                    if report.diagnostics:
+                        logger.error(
+                            "Skipping source file with canonical parse errors %s: %s",
+                            full_path,
+                            ", ".join(d.code for d in report.diagnostics),
+                        )
+                        continue
+                    entries = [(entry.key, entry.value) for entry in report.eligible_entries]
                 except Exception as e:
                     logger.error(f"Failed to parse source file {full_path}: {e}")
                     continue
@@ -188,7 +196,15 @@ class TranslationArchiveService:
                         continue
 
                     try:
-                        entries = parse_loc_file(full_path)
+                        report = parse_loc_file_report(full_path)
+                        if report.diagnostics:
+                            logger.error(
+                                "Skipping translation file with canonical parse errors %s: %s",
+                                full_path,
+                                ", ".join(d.code for d in report.diagnostics),
+                            )
+                            continue
+                        entries = [(entry.key, entry.value) for entry in report.eligible_entries]
                     except Exception as e:
                         logger.error(f"Failed to parse translation file {full_path}: {e}")
                         continue
