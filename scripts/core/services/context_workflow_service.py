@@ -29,6 +29,7 @@ from scripts.core.services.context_analysis_checkpoint_service import (
 from scripts.core.services.context_analysis_report_service import ContextAnalysisReportService
 from scripts.core.services.context_chunking_policy import ContextChunkingPolicy, ContextUnitChunk
 from scripts.core.services.context_delivery_membership_service import (
+    ContextDeliveryMembershipError,
     ContextDeliveryMembershipService,
 )
 from scripts.core.services.context_extraction_execution_service import (
@@ -345,6 +346,7 @@ class ContextWorkflowService:
             description_language, chunk_config, task_id, effective_concurrency,
             analysis_report, governance, usage_ledger,
             analysis_run_id=analysis_run.run_id if analysis_run is not None else None,
+            expected_local_unit_ids=[unit.unit_id for unit in local_units],
         )
         result["analysis_report"] = analysis_report
         result.update({
@@ -477,6 +479,7 @@ class ContextWorkflowService:
         governance: Any,
         usage_ledger: ContextModelUsageLedger,
         analysis_run_id: str | None = None,
+        expected_local_unit_ids: Sequence[str] | None = None,
     ) -> dict[str, Any]:
         sources = self.release_assembler.persist_sources(
             project_id, parsed_files, snapshot.source_snapshot_hash,
@@ -500,9 +503,8 @@ class ContextWorkflowService:
             contributions,
             governance if governance_available else None,
         )
-        delivery_memberships = ContextDeliveryMembershipService.build(
-            extractions, aggregates, sources,
-        )
+        delivery_memberships = self._validated_delivery_memberships(
+            extractions, aggregates, sources, expected_local_unit_ids, analysis_report)
         for aggregate in aggregates:
             self.repository.save_aggregate(aggregate)
         source_item_ids = list(sources)
@@ -576,6 +578,25 @@ class ContextWorkflowService:
             "delivery_membership_count": len(delivery_memberships),
             "candidate_governance": governance.counts(),
         }
+
+    @staticmethod
+    def _validated_delivery_memberships(
+        extractions: Sequence[StructuredNeologismExtraction],
+        aggregates: Sequence[Any],
+        sources: dict[str, Any],
+        expected_local_unit_ids: Sequence[str] | None,
+        analysis_report: dict[str, Any],
+    ) -> list[Any]:
+        result = ContextDeliveryMembershipService.build(
+            extractions,
+            aggregates,
+            sources,
+            expected_local_unit_ids=expected_local_unit_ids,
+        )
+        if result.has_blockers:
+            raise ContextDeliveryMembershipError(result)
+        analysis_report["delivery_membership"] = result.as_dict()
+        return list(result.memberships)
 
     def _publish_context_release(
         self,

@@ -27,9 +27,17 @@ from scripts.utils.system_utils import slugify_to_ascii
 from scripts.core.checkpoint_manager import CheckpointManager
 from scripts.core.services.translation_context_service import context_workflow_kwargs
 from scripts.core.services.translation_resource_policy import resolve_translation_run_resources
+from scripts.core.services.translation_context_readiness_service import (
+    TranslationContextReadinessService,
+)
+from scripts.core.neologism_manager import neologism_manager
 import asyncio
 from scripts.shared.ws_manager import ws_manager
 router = APIRouter()
+translation_context_readiness = TranslationContextReadinessService(
+    glossary_manager,
+    neologism_manager,
+)
 
 
 def _run_async(coro):
@@ -346,7 +354,7 @@ def run_translation_workflow_v2(
                 "use_project_context": resource_policy.include_project_context,
                 "context_release_id": context_release_id,
                 "context_character_budget": context_character_budget,
-            }),
+            }, translation_context_mode=translation_context_mode),
         )
         _record_context_metadata(task_id, workflow_result); logging.info("Returned from initial_translate.run")
         task_state.update_task(
@@ -407,6 +415,30 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     project = await project_manager.get_project(request.project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+
+    if request.translation_context_mode == "archive":
+        readiness = await translation_context_readiness.inspect(
+            request.project_id,
+            request.translation_context_mode,
+            {
+                "project_id": request.project_id,
+                "project_name": project.get("name"),
+                "game_id": project.get("game_id"),
+                "source_path": project.get("source_path"),
+                "source_language": request.source_lang_code,
+            },
+            requested_release_id=request.context_release_id,
+        )
+        if not readiness["can_start"]:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "project_context_not_ready",
+                    "message": "The requested translation context is not ready for translation.",
+                    "retryable": False,
+                    "context_readiness": readiness,
+                },
+            )
 
     task_id = str(uuid.uuid4())
     try:
@@ -477,7 +509,6 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         concurrency_limit=request.concurrency_limit,
         rpm_limit=request.rpm_limit,
         embedded_workshop=request.embedded_workshop.model_dump() if request.embedded_workshop else None,
-        translation_context_mode=request.translation_context_mode,
         **context_workflow_kwargs(request),
     )
 

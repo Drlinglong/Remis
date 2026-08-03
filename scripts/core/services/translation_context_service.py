@@ -27,6 +27,9 @@ from scripts.core.services.source_snapshot_service import (
     normalize_relative_path,
     normalize_source_key,
 )
+from scripts.core.services.translation_context_gate import (
+    TranslationContextGate,
+)
 
 
 DEFAULT_CONTEXT_CHARACTER_BUDGET = 4000
@@ -44,6 +47,7 @@ def context_workflow_kwargs(source: Any = None, **overrides: Any) -> dict[str, A
 
     return {
         "use_project_context": overrides.get("use_project_context", read("use_project_context", True)),
+        "translation_context_mode": overrides.get("translation_context_mode", read("translation_context_mode", None)),
         "context_release_id": overrides.get("context_release_id", read("context_release_id", None)),
         "context_character_budget": overrides.get("context_character_budget", read("context_character_budget", 4000)),
     }
@@ -56,6 +60,7 @@ def prepare_translation_context(
     enabled: bool,
     requested_release_id: str | None,
     character_budget: int,
+    mode: str | None = None,
     context_service: Any = None,
     snapshot_service: Any = None,
 ) -> "ContextSelection":
@@ -68,29 +73,60 @@ def prepare_translation_context(
         files_data=files_data,
         enabled=enabled,
         requested_release_id=requested_release_id,
+        mode=mode,
     )
+    effective_mode = mode or ("archive" if enabled else "none")
+    TranslationContextGate.require_ready(effective_mode, selection)
     if selection.warning:
         logging.warning(
-            "Translation context unavailable (%s); continuing without stale context.",
+            "Translation context unavailable (%s).",
             selection.warning["code"],
         )
     return selection
 
 
-def prepare_workflow_context(project_id, files_data, enabled, release_id, budget, context_service=None, snapshot_service=None):
+def prepare_workflow_context(
+    project_id,
+    files_data,
+    enabled,
+    release_id,
+    budget,
+    context_service=None,
+    snapshot_service=None,
+    mode=None,
+):
     return prepare_translation_context(
         project_id=project_id,
         files_data=files_data,
         enabled=enabled,
         requested_release_id=release_id,
         character_budget=budget,
+        mode=mode,
         context_service=context_service,
         snapshot_service=snapshot_service,
     )
 
 
-def prepare_context_with_warnings(project_id, files_data, enabled, release_id, budget, context_service=None, snapshot_service=None):
-    selection = prepare_workflow_context(project_id, files_data, enabled, release_id, budget, context_service, snapshot_service)
+def prepare_context_with_warnings(
+    project_id,
+    files_data,
+    enabled,
+    release_id,
+    budget,
+    context_service=None,
+    snapshot_service=None,
+    mode=None,
+):
+    selection = prepare_workflow_context(
+        project_id,
+        files_data,
+        enabled,
+        release_id,
+        budget,
+        context_service,
+        snapshot_service,
+        mode,
+    )
     return selection, [selection.warning] if selection.warning else []
 
 
@@ -278,38 +314,83 @@ class TranslationContextService:
         files_data: Iterable[Mapping[str, Any]],
         enabled: bool = True,
         requested_release_id: str | None = None,
+        mode: str | None = None,
     ) -> ContextSelection:
-        if not enabled or not project_id:
+        materialized_files = list(files_data)
+        if not enabled and mode != "archive":
             return ContextSelection(enabled=False, status="disabled", release_id=None, source_snapshot_hash=None, release_source_snapshot_hash=None)
 
-        snapshot = self._build_snapshot(files_data)
+        if not project_id:
+            if mode == "archive":
+                return self._warning_selection(
+                    "blocked",
+                    "context_release_unverified",
+                    None,
+                    requested_release_id,
+                )
+            return ContextSelection(enabled=False, status="disabled", release_id=None, source_snapshot_hash=None, release_source_snapshot_hash=None)
+
+        snapshot = self._build_snapshot(materialized_files)
         current_hash = snapshot.source_snapshot_hash
         service = self._get_context_service()
-        effective = None
-        release_id = requested_release_id
-        if requested_release_id:
-            effective = service.effective_context(requested_release_id)
-        else:
-            releases = service.list_releases(project_id)
-            latest = releases[0] if releases else None
-            release_id = latest.release_id if latest else None
-            if release_id:
-                effective = service.effective_context(release_id)
+        release_id, effective, release_is_project, release_hash, effective_is_project = (
+            self._release_metadata(service, project_id, requested_release_id)
+        )
+        source_match = (
+            None if release_hash is None else release_hash == current_hash
+        )
+        effective_items = (
+            len((effective.effective_context or {}))
+            if effective_is_project
+            else None
+        )
+        if mode == "archive":
+            decision = TranslationContextGate.decide(
+                mode,
+                release_id=(release_id if release_is_project else None),
+                source_snapshot_match=source_match,
+                effective_context_items=effective_items,
+            )
+            if decision.blocked:
+                return self._warning_selection(
+                    "blocked",
+                    decision.reason_code or "context_release_unverified",
+                    current_hash,
+                    release_id,
+                    release_hash,
+                    warning={
+                        "type": "context_release_blocked",
+                        "code": decision.reason_code,
+                        "message": (
+                            "Project context was not injected: "
+                            f"{decision.reason_code}."
+                        ),
+                        "allowed_actions": decision.allowed_actions,
+                    },
+                )
 
         if effective is None or effective.release.project_id != project_id:
             return self._warning_selection("missing", "context_release_missing", current_hash, release_id)
 
-        release_hash = effective.release.metadata.source_snapshot_hash
         if release_hash != current_hash:
             return self._warning_selection("stale", "context_release_stale", current_hash, release_id, release_hash)
 
+        effective_context = effective.effective_context or {}
+        if not effective_context:
+            return self._warning_selection(
+                "empty",
+                "context_release_empty",
+                current_hash,
+                release_id,
+                release_hash,
+            )
         traceability = service.traceability(release_id)
         memberships = (
             service.delivery_memberships(release_id)
             if hasattr(service, "delivery_memberships") else []
         )
         project_summary, direct_index = self._build_index(
-            effective.effective_context, traceability, memberships,
+            effective_context, traceability, memberships,
         )
         return ContextSelection(
             enabled=True,
@@ -334,6 +415,36 @@ class TranslationContextService:
             return self.snapshot_service.build_snapshot(files_data)
         return build_translation_source_snapshot(files_data, self.snapshot_service)
 
+    @staticmethod
+    def _release_metadata(service: Any, project_id: str, requested_release_id: str | None):
+        releases = service.list_releases(project_id)
+        release_id = requested_release_id
+        effective = None
+        if requested_release_id:
+            release = next(
+                (item for item in releases if item.release_id == requested_release_id),
+                None,
+            )
+            if release is not None:
+                effective = service.effective_context(requested_release_id)
+        else:
+            release = releases[0] if releases else None
+            release_id = release.release_id if release else None
+            if release_id:
+                effective = service.effective_context(release_id)
+        release_is_project = release is not None and release.project_id == project_id
+        release_hash = (
+            release.metadata.source_snapshot_hash
+            if release_is_project
+            else (
+                effective.release.metadata.source_snapshot_hash
+                if effective is not None and effective.release.project_id == project_id
+                else None
+            )
+        )
+        effective_is_project = effective is not None and effective.release.project_id == project_id
+        return release_id, effective, release_is_project, release_hash, effective_is_project
+
     def _warning_selection(
         self,
         status: str,
@@ -341,8 +452,9 @@ class TranslationContextService:
         current_hash: str,
         release_id: str | None,
         release_hash: str | None = None,
+        warning: dict[str, Any] | None = None,
     ) -> ContextSelection:
-        warning = {
+        warning = warning or {
             "type": "context_release_warning",
             "code": code,
             "message": f"Project context was not injected: {code}.",
@@ -351,7 +463,7 @@ class TranslationContextService:
         return ContextSelection(
             enabled=True,
             status=status,
-            release_id=None,
+            release_id=release_id,
             source_snapshot_hash=current_hash,
             release_source_snapshot_hash=release_hash,
             character_budget=self.character_budget,

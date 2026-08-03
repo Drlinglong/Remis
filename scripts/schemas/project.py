@@ -135,6 +135,7 @@ class IncrementalUpdateRequest(BaseModel):
     batch_size_limit: Optional[int] = None
     source_context_overlap: int = Field(default=0, ge=0, le=100)
     use_project_context: bool = True
+    translation_context_mode: Optional[Literal["none", "glossaries", "archive"]] = None
     context_release_id: Optional[str] = None
     context_character_budget: int = Field(default=4000, ge=0, le=20000)
     concurrency_limit: Optional[int] = None

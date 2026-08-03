@@ -18,6 +18,9 @@ from scripts.core.services.incremental_translation_service import IncrementalTra
 from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService, resolve_dynamic_valid_tags
 from scripts.core.services.embedded_workshop_service import run_embedded_workshop
 from scripts.core.services.translation_context_service import prepare_context_with_warnings
+from scripts.core.services.translation_context_gate import (
+    prepare_and_require_workflow_context,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +59,7 @@ async def run_incremental_update(
     custom_source_path: Optional[str] = None,
     use_resume: bool = True,
     embedded_workshop: Optional[Dict[str, Any]] = None,
-    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None, use_project_context: bool = True, context_release_id: Optional[str] = None, context_character_budget: int = 4000, context_service: Any = None, snapshot_service: Any = None,
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None, use_project_context: bool = True, context_release_id: Optional[str] = None, context_character_budget: int = 4000, context_service: Any = None, snapshot_service: Any = None, translation_context_mode: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Runs the incremental translation workflow for multiple target languages.
@@ -93,7 +96,7 @@ async def run_incremental_update(
             "summary": {"total": 0, "new": 0, "changed": 0, "unchanged": 0}
         }
 
-    context_selection, overall_warnings = prepare_context_with_warnings(project_id, current_files_data, use_project_context, context_release_id, context_character_budget, context_service, snapshot_service)
+    context_selection, overall_warnings = prepare_and_require_workflow_context(prepare_context_with_warnings, (project_id, current_files_data, use_project_context or translation_context_mode == "archive", context_release_id, context_character_budget, context_service, snapshot_service), translation_context_mode)
     is_multilang = len(target_lang_infos) > 1
     shared_output_dir = None
     shared_output_folder_name = None

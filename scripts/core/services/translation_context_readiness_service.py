@@ -2,32 +2,44 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from scripts.app_settings import PROJECTS_DB_PATH
 from scripts.core.context_service import ContextService
 from scripts.core.repositories.context_repository import ContextRepository
-from scripts.core.services.context_source_parser import ContextSourceParser
+from scripts.core.services.incremental_snapshot_service import IncrementalSnapshotService
 from scripts.core.services.source_snapshot_service import SourceSnapshotService
+from scripts.core.services.translation_context_gate import (
+    TranslationContextGate,
+    archive_readiness_payload,
+)
+from scripts.core.services.translation_context_service import (
+    build_translation_source_snapshot,
+)
 
 
 class TranslationContextReadinessService:
     """Describe exactly which context resources an Agent plan can consume."""
 
-    def __init__(self, glossary_manager: Any, candidate_store: Any):
+    def __init__(
+        self,
+        glossary_manager: Any,
+        candidate_store: Any,
+        source_inventory_service: Any | None = None,
+    ):
         self.glossary_manager = glossary_manager
         self.candidate_store = candidate_store
         self.repository = ContextRepository(PROJECTS_DB_PATH)
         self.context_service = ContextService(self.repository)
-        self.source_parser = ContextSourceParser()
         self.snapshot_service = SourceSnapshotService()
+        self.source_inventory_service = source_inventory_service or IncrementalSnapshotService()
 
     async def inspect(
         self,
         project_id: str,
         mode: str,
         inspection: dict[str, Any] | None,
+        requested_release_id: str | None = None,
     ) -> dict[str, Any]:
         if mode == "none":
             return self._base(mode, status="ready", can_start=True)
@@ -36,35 +48,37 @@ class TranslationContextReadinessService:
         if not game_id:
             result = self._base(mode, status="blocked", can_start=False)
             result["warnings"] = ["project_context_readiness_unavailable"]
+            result["allowed_actions"] = ["analyze_context", "update_context_archive"]
             return result
 
         main, project_glossary = await self._glossaries(project_id, game_id, project)
         pending_count = len(self.candidate_store.get_pending_candidates(project_id))
         project_entries = await self._project_entry_count(project_glossary)
-        release_details = self._release_details(project_id, project)
+        release_details = self._release_details(
+            project_id,
+            project,
+            requested_release_id=requested_release_id,
+        )
         warnings = []
         if project_entries == 0:
             warnings.append("project_glossary_empty")
         if pending_count:
             warnings.append("pending_term_review")
-        if mode == "archive" and not release_details.get("release_id"):
-            warnings.append("context_release_missing")
-        if mode == "archive" and release_details.get("source_snapshot_match") is False:
-            warnings.append("context_release_stale")
-        if (
-            mode == "archive"
-            and release_details.get("release_id")
-            and release_details.get("source_snapshot_match") is None
-        ):
-            warnings.append("context_release_unverified")
-        if mode == "archive" and release_details.get("effective_context_items") == 0:
-            warnings.append("context_release_empty")
-        blocking = {
-            "context_release_missing",
-            "context_release_stale",
-            "context_release_unverified",
-            "context_release_empty",
-        }.intersection(warnings)
+        archive_decision = TranslationContextGate.decide(
+            mode,
+            release_id=release_details.get("release_id"),
+            source_snapshot_match=release_details.get("source_snapshot_match"),
+            effective_context_items=release_details.get("effective_context_items"),
+        )
+        if archive_decision.reason_code:
+            warnings.append(archive_decision.reason_code)
+        blocking = {archive_decision.reason_code} if archive_decision.blocked else set()
+        release_details["readiness"] = archive_readiness_payload(
+            mode,
+            release_id=release_details.get("release_id"),
+            source_snapshot_match=release_details.get("source_snapshot_match"),
+            effective_context_items=release_details.get("effective_context_items"),
+        )
         return {
             **self._base(
                 mode,
@@ -79,6 +93,7 @@ class TranslationContextReadinessService:
             },
             "archive": release_details,
             "warnings": warnings,
+            "allowed_actions": archive_decision.allowed_actions,
         }
 
     @staticmethod
@@ -95,6 +110,7 @@ class TranslationContextReadinessService:
             "glossaries": {},
             "archive": {},
             "warnings": [],
+            "allowed_actions": [],
         }
 
     async def _glossaries(
@@ -123,34 +139,73 @@ class TranslationContextReadinessService:
         self,
         project_id: str,
         project: dict[str, Any],
+        *,
+        requested_release_id: str | None = None,
     ) -> dict[str, Any]:
         releases = self.repository.list_releases(project_id)
         if not releases:
             return {}
-        release = releases[0]
+        release = next(
+            (
+                item for item in releases
+                if not requested_release_id or item.release_id == requested_release_id
+            ),
+            None,
+        )
+        if release is None:
+            return {}
         effective = self.context_service.effective_context(release.release_id)
         config = release.metadata.analysis_config
+        current_snapshot_hash, current_file_count = self._current_snapshot(project)
+        release_hash = release.metadata.source_snapshot_hash
         return {
             "release_id": release.release_id,
-            "source_snapshot_hash": release.metadata.source_snapshot_hash,
-            "source_snapshot_match": self._snapshot_matches(release, project),
-            "effective_context_items": len((effective.effective_context if effective else {}) or {}),
+            "source_snapshot_hash": release_hash,
+            "current_source_snapshot_hash": current_snapshot_hash,
+            "source_snapshot_match": (
+                None
+                if current_snapshot_hash is None
+                else current_snapshot_hash == release_hash
+            ),
+            "source_inventory_file_count": current_file_count,
+            "effective_context_items": (
+                None
+                if effective is None
+                else len((effective.effective_context or {}))
+            ),
             "description_language": config.get("description_language"),
             "prompt_version": release.metadata.prompt_version,
         }
 
-    def _snapshot_matches(self, release: Any, project: dict[str, Any]) -> bool | None:
+    def _current_snapshot(self, project: dict[str, Any]) -> tuple[str | None, int]:
         source_root = project.get("source_path")
-        files = (release.metadata.analysis_scope or {}).get("files") or []
-        if not source_root or not files:
-            return None
-        root = Path(source_root).resolve()
-        paths = [(root / relative_path).resolve() for relative_path in files]
-        if any(not path.is_relative_to(root) or not path.is_file() for path in paths):
-            return False
+        if not source_root:
+            return None, 0
         try:
-            parsed = self.source_parser.parse_files([str(path) for path in paths], str(root))
-            snapshot = self.source_parser.build_snapshot(parsed, self.snapshot_service)
-        except (OSError, UnicodeError, ValueError):
-            return None
-        return snapshot.source_snapshot_hash == release.metadata.source_snapshot_hash
+            files = self.source_inventory_service.build_snapshot(
+                str(source_root), self._source_language_info(project),
+            )
+            if not files:
+                return None, 0
+            snapshot = build_translation_source_snapshot(files, self.snapshot_service)
+        except (OSError, UnicodeError, ValueError, TypeError):
+            return None, 0
+        return snapshot.source_snapshot_hash, len(files)
+
+    @staticmethod
+    def _source_language_info(project: dict[str, Any]) -> dict[str, str]:
+        language = str(
+            project.get("source_language")
+            or project.get("source_lang")
+            or "english"
+        ).strip()
+        normalized = language.casefold()
+        names = {
+            "en": "English",
+            "en-us": "English",
+            "english": "English",
+            "zh": "Chinese",
+            "zh-cn": "Simplified Chinese",
+            "zh-hans": "Simplified Chinese",
+        }
+        return {"name_en": names.get(normalized, language), "code": language}

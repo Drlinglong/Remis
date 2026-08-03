@@ -151,6 +151,7 @@ class IncrementalUpdateConfig(BaseModel):
     mod_context: Optional[str] = ""
     source_context_overlap: int = Field(default=0, ge=0, le=100)
     use_project_context: bool = True
+    translation_context_mode: Optional[Literal["none", "glossaries", "archive"]] = None
     context_release_id: Optional[str] = None
     context_character_budget: int = Field(default=4000, ge=0, le=20000)
     dry_run: bool = False
