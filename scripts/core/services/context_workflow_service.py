@@ -9,6 +9,8 @@ from scripts.core.context_service import ContextService
 from scripts.core.context_local_units import ContextLocalUnitBuilder
 from scripts.core.neologism_extraction import (
     AnalysisScope,
+    MAX_DELIVERY_ASSIGNMENTS_PER_EXTRACTION,
+    MAX_EVENTS_PER_EXTRACTION,
     SourceItem,
     StructuredNeologismExtraction,
     StructuredNeologismExtractor,
@@ -392,11 +394,7 @@ class ContextWorkflowService:
         )
         saved = self.analysis_checkpoints.restore_aggregation(analysis_run, source_ids)
         if saved is not None:
-            result = EventReconciliationResult(
-                events=saved.events,
-                delivery_assignments=saved.delivery_assignments,
-                diagnostics=saved.diagnostics,
-            )
+            result = saved
             self.status_service.record_batch(
                 project_id, task_id, "aggregating", "aggregating:1",
                 success=True, source_item_ids=source_ids, resumed=True,
@@ -413,13 +411,8 @@ class ContextWorkflowService:
                 success=False, source_item_ids=source_ids, error=str(exc),
             )
             raise
-        checkpoint = StructuredNeologismExtraction(
-            events=result.events,
-            delivery_assignments=result.delivery_assignments,
-            diagnostics=result.diagnostics,
-        )
         self.analysis_checkpoints.save_aggregation(
-            analysis_run, source_ids, checkpoint,
+            analysis_run, source_ids, result,
         )
         self.status_service.record_batch(
             project_id, task_id, "aggregating", "aggregating:1",
@@ -436,14 +429,32 @@ class ContextWorkflowService:
             extraction.model_copy(update={"events": [], "delivery_assignments": []})
             for extraction in extractions
         ]
-        return [
-            *local,
+        global_batch_count = max(
+            1,
+            (len(reconciled.events) + MAX_EVENTS_PER_EXTRACTION - 1)
+            // MAX_EVENTS_PER_EXTRACTION,
+            (
+                len(reconciled.delivery_assignments)
+                + MAX_DELIVERY_ASSIGNMENTS_PER_EXTRACTION
+                - 1
+            )
+            // MAX_DELIVERY_ASSIGNMENTS_PER_EXTRACTION,
+        )
+        global_batches = [
             StructuredNeologismExtraction(
-                events=reconciled.events,
-                delivery_assignments=reconciled.delivery_assignments,
-                diagnostics=reconciled.diagnostics,
-            ),
+                events=reconciled.events[
+                    index * MAX_EVENTS_PER_EXTRACTION:
+                    (index + 1) * MAX_EVENTS_PER_EXTRACTION
+                ],
+                delivery_assignments=reconciled.delivery_assignments[
+                    index * MAX_DELIVERY_ASSIGNMENTS_PER_EXTRACTION:
+                    (index + 1) * MAX_DELIVERY_ASSIGNMENTS_PER_EXTRACTION
+                ],
+                diagnostics=reconciled.diagnostics if index == 0 else {},
+            )
+            for index in range(global_batch_count)
         ]
+        return [*local, *global_batches]
 
     def _finish_terms_only(
         self,

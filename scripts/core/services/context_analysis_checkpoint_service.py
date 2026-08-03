@@ -4,11 +4,27 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
+from pydantic import BaseModel, ConfigDict, Field
+
+from scripts.core.context_local_units import DeliveryAssignment
+
 from scripts.core.neologism_extraction import (
     AnalysisScope,
+    EventChainContribution,
     SourceItem,
     StructuredNeologismExtraction,
 )
+from scripts.core.services.context_event_reconciliation_service import EventReconciliationResult
+
+
+class _AggregationCheckpoint(BaseModel):
+    """Durable global result, independent from per-chunk extraction limits."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    events: list[EventChainContribution] = Field(default_factory=list, max_length=80)
+    delivery_assignments: list[DeliveryAssignment] = Field(default_factory=list, max_length=500)
+    diagnostics: dict[str, Any] = Field(default_factory=dict)
 
 
 class ContextAnalysisCheckpointService:
@@ -93,7 +109,7 @@ class ContextAnalysisCheckpointService:
         self,
         run: Any | None,
         source_item_ids: Sequence[str],
-    ) -> StructuredNeologismExtraction | None:
+    ) -> EventReconciliationResult | None:
         if self.repository is None or run is None:
             return None
         saved = self.repository.get_batch(run.run_id, "aggregation", 0)
@@ -101,22 +117,33 @@ class ContextAnalysisCheckpointService:
             return None
         if tuple(source_item_ids) != saved.source_item_ids:
             raise ValueError("Saved aggregation does not match the current local units")
-        return StructuredNeologismExtraction.model_validate(saved.payload["extraction"])
+        payload = saved.payload.get("reconciliation") or saved.payload.get("extraction")
+        checkpoint = _AggregationCheckpoint.model_validate(payload)
+        return EventReconciliationResult(
+            events=checkpoint.events,
+            delivery_assignments=checkpoint.delivery_assignments,
+            diagnostics=checkpoint.diagnostics,
+        )
 
     def save_aggregation(
         self,
         run: Any | None,
         source_item_ids: Sequence[str],
-        extraction: StructuredNeologismExtraction,
+        reconciliation: EventReconciliationResult,
     ) -> None:
         if self.repository is None or run is None:
             return
+        checkpoint = _AggregationCheckpoint(
+            events=reconciliation.events,
+            delivery_assignments=reconciliation.delivery_assignments,
+            diagnostics=reconciliation.diagnostics,
+        )
         self.repository.save_batch(
             run.run_id,
             "aggregation",
             0,
             source_item_ids,
-            {"extraction": extraction.model_dump()},
+            {"reconciliation": checkpoint.model_dump()},
         )
 
     def mark_failed(self, run: Any | None) -> None:

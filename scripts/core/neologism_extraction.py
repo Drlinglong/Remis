@@ -147,6 +147,10 @@ class RelationshipContribution(BaseModel):
     tentative: Literal[True] = True
 
 
+MAX_EVENTS_PER_EXTRACTION = 50
+MAX_DELIVERY_ASSIGNMENTS_PER_EXTRACTION = 80
+
+
 class StructuredNeologismExtraction(BaseModel):
     """The one response contract for both analysis scopes."""
 
@@ -155,9 +159,15 @@ class StructuredNeologismExtraction(BaseModel):
     terms: List[TermContribution] = Field(default_factory=list, max_length=100)
     entities: List[EntityContribution] = Field(default_factory=list, max_length=50)
     facts: List[FactContribution] = Field(default_factory=list, max_length=50)
-    events: List[EventChainContribution] = Field(default_factory=list, max_length=50)
+    events: List[EventChainContribution] = Field(
+        default_factory=list,
+        max_length=MAX_EVENTS_PER_EXTRACTION,
+    )
     relationships: List[RelationshipContribution] = Field(default_factory=list, max_length=100)
-    delivery_assignments: List[DeliveryAssignment] = Field(default_factory=list, max_length=80)
+    delivery_assignments: List[DeliveryAssignment] = Field(
+        default_factory=list,
+        max_length=MAX_DELIVERY_ASSIGNMENTS_PER_EXTRACTION,
+    )
     diagnostics: Dict[str, Any] = Field(default_factory=dict)
 
 

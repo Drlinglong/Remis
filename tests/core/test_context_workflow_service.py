@@ -813,6 +813,41 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
     assert all(repo.contributions[item].source_item_id in first_sources for item in second_contributions)
 
 
+def test_global_reconciliation_is_rebatched_for_local_extraction_containers():
+    evidence = [SourceEvidence(source_item_id="source-0")]
+    reconciled = EventReconciliationResult(
+        events=[
+            EventChainContribution(
+                chain_id=f"chain-{index}",
+                event=f"Event {index}",
+                sequence=index,
+                evidence=evidence,
+            )
+            for index in range(55)
+        ],
+        delivery_assignments=[
+            DeliveryAssignment(
+                local_unit_id=f"unit_{index}",
+                assignment_state="unassigned",
+                source_item_ids=[f"source-{index}"],
+            )
+            for index in range(95)
+        ],
+        diagnostics={"repair_count": 0},
+    )
+
+    result = ContextWorkflowService._replace_local_events(
+        [StructuredNeologismExtraction()],
+        reconciled,
+    )
+
+    assert len(result) == 3
+    assert [len(item.events) for item in result] == [0, 50, 5]
+    assert [len(item.delivery_assignments) for item in result] == [0, 80, 15]
+    assert result[1].diagnostics == {"repair_count": 0}
+    assert result[2].diagnostics == {}
+
+
 def test_synthesis_repairs_at_most_once():
     source = ContextSourceItem(
         source_item_id="source-1", project_id="project-1", source_type="localization",
