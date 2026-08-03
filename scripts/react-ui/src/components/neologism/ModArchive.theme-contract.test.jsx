@@ -9,6 +9,7 @@ const readSource = (fileName) => readFileSync(
 
 const setupSource = readSource('ModArchiveAnalysisSetup.jsx');
 const releaseSource = readSource('PublishedArchivePanel.jsx');
+const releaseContentSource = readSource('PublishedArchiveContent.jsx');
 const editorSource = readSource('ModArchiveOverrideEditor.jsx');
 const stylesSource = readSource('ModArchive.module.css');
 const toolbarSource = readSource('ProjectGlossaryToolbar.jsx');
@@ -40,13 +41,13 @@ describe('Mod Archive semantic workbench contract', () => {
         expect(setupSource).toContain('data-remis-action="primary"');
         expect(releaseSource).toContain('data-testid="mod-archive-release-panel"');
         expect(releaseSource).toContain('data-testid="mod-archive-release-stale"');
-        expect(releaseSource).toContain('data-testid="mod-archive-load-traceability"');
-        expect(releaseSource).toContain('data-remis-action="paper-secondary"');
+        expect(releaseContentSource).toContain('data-testid="mod-archive-load-traceability"');
+        expect(releaseContentSource).toContain('data-remis-action="paper-secondary"');
         expect(toolbarSource).toContain('data-testid="neologism-project-toolbar"');
-        expect(releaseSource).toContain('data-testid="mod-archive-start-draft"');
+        expect(releaseContentSource).toContain('data-testid="mod-archive-start-draft"');
         expect(editorSource).toContain('data-testid="mod-archive-draft-editor"');
         expect(editorSource).toContain('data-testid="mod-archive-publish-confirm"');
-        expect(releaseSource).toContain('data-remis-action="secondary"');
+        expect(releaseContentSource).toContain('data-remis-action="secondary"');
         expect(editorSource).toContain('data-remis-action="primary"');
     });
 

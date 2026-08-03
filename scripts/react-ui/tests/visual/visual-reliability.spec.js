@@ -69,6 +69,68 @@ async function renderedContrast(locator) {
 }
 
 for (const themeId of themes) {
+  test(`${themeId} published archive preserves hierarchy and readability`, async ({ page }) => {
+    await page.goto(`/visual-fixtures.html?theme=${themeId}&contract=published-archive`);
+    const fixture = page.getByTestId('published-archive-visual-fixture');
+    await expect(fixture).toHaveAttribute('data-visual-ready', 'true');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', themeId);
+
+    const metadataDetails = page.getByTestId('mod-archive-metadata-details');
+    const traceability = page.getByTestId('mod-archive-traceability');
+    await expect(metadataDetails).not.toHaveAttribute('open', '');
+    await expect(traceability).not.toHaveAttribute('open', '');
+    await expect(page.getByText('2026-08-03 11:25', { exact: true })).toBeVisible();
+    await expect(page.getByText('openrouter', { exact: true })).toBeVisible();
+    await expect(page.getByText('openai/gpt-5.6-luna', { exact: true })).toBeVisible();
+
+    const summaryKinds = await page.locator('[class*="summarySection"]').evaluateAll((sections) => (
+      sections.map((section) => section.getAttribute('data-kind'))
+    ));
+    expect(summaryKinds).toEqual(['project', 'event', 'entity']);
+
+    const entityList = page.locator('[data-kind="entity"] [class*="entryList"]');
+    const entityColumns = await entityList.evaluate((element) => (
+      getComputedStyle(element).gridTemplateColumns.split(' ').length
+    ));
+    expect(entityColumns).toBe(2);
+
+    await traceability.locator('summary').first().click();
+    const evidenceGroups = traceability.locator('details[class*="evidenceGroup"]');
+    await expect(evidenceGroups).toHaveCount(6);
+    for (const group of await evidenceGroups.all()) {
+      await expect(group).not.toHaveAttribute('open', '');
+    }
+    await evidenceGroups.nth(1).locator('summary').click();
+
+    const readableSamples = [
+      page.getByText('源文件来源依据与可追溯性', { exact: true }),
+      page.getByText('按项目、事件与实体检查每个展示对象的来源证据。', { exact: true }),
+      page.getByText('remis_crisis', { exact: true }).first(),
+    ];
+    for (const sample of readableSamples) {
+      await expect(sample).toBeVisible();
+      expect(await renderedContrast(sample)).toBeGreaterThanOrEqual(4.5);
+    }
+
+    const overflowOffenders = await fixture.evaluate((root) => (
+      [...root.querySelectorAll('*')]
+        .filter((element) => {
+          const style = getComputedStyle(element);
+          const clipsOrScrolls = ['auto', 'scroll', 'hidden', 'clip'].includes(style.overflowX);
+          return !clipsOrScrolls && element.scrollWidth > element.clientWidth + 1;
+        })
+        .map((element) => ({
+          tag: element.tagName,
+          className: typeof element.className === 'string' ? element.className : '',
+          clientWidth: element.clientWidth,
+          scrollWidth: element.scrollWidth,
+        }))
+    ));
+    expect(overflowOffenders).toEqual([]);
+
+    await expect(page).toHaveScreenshot(`published-archive-${themeId}.png`, { fullPage: true });
+  });
+
   test(`${themeId} project glossary paper content remains readable`, async ({ page }) => {
     await page.goto(`/visual-fixtures.html?theme=${themeId}&contract=project-glossary`);
     const fixture = page.getByTestId('project-glossary-contrast-fixture');

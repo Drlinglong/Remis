@@ -85,6 +85,12 @@ describe('PublishedArchivePanel', () => {
         renderPanel();
 
         expect(await screen.findByText('release-1')).toBeInTheDocument();
+        const metadataDetails = screen.getByTestId('mod-archive-metadata-details');
+        expect(metadataDetails).not.toHaveAttribute('open');
+        expect(screen.getByText(/2026-08-01 \d{2}:00/)).toBeInTheDocument();
+        expect(screen.getByText('local')).toBeInTheDocument();
+        expect(screen.getByText('model-1')).toBeInTheDocument();
+        expect(screen.queryByText('summary')).not.toBeInTheDocument();
         expect(screen.getByText('republic（共和国候选）')).toBeInTheDocument();
         expect(screen.getByText('mod_archive.release.override_badge')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /edit|save|publish/i })).not.toBeInTheDocument();
@@ -94,7 +100,62 @@ describe('PublishedArchivePanel', () => {
 
         fireEvent.click(screen.getByTestId('mod-archive-load-traceability'));
         expect(await screen.findByText('mod_archive.release.provenance.text_inferred')).toBeInTheDocument();
+        const evidenceGroup = screen.getAllByText('republic（共和国候选）')
+            .find((node) => node.tagName === 'SPAN')
+            .closest('details');
+        expect(evidenceGroup).not.toHaveAttribute('open');
         expect(api.get).toHaveBeenCalledWith('/api/context/releases/release-1/traceability');
+    });
+
+    it('orders summary and evidence sections as project, event, then entity', async () => {
+        const defaultGet = api.get.getMockImplementation();
+        api.get.mockImplementation((url) => {
+            if (url === '/api/context/releases/release-1/traceability') {
+                return Promise.resolve({ data: [
+                    {
+                        aggregate: { aggregate_key: 'entity:republic', aggregate_type: 'entity' },
+                        contributions: [{
+                            contribution: { contribution_type: 'fact', provenance: 'text_inferred' },
+                            source_item: { source_ref: 'entity.yml::republic', content: 'The Republic' },
+                        }],
+                    },
+                    {
+                        aggregate: { aggregate_key: 'project:summary', aggregate_type: 'project' },
+                        contributions: [{
+                            contribution: { contribution_type: 'fact', provenance: 'text_inferred' },
+                            source_item: { source_ref: 'project.yml::intro', content: 'A project' },
+                        }],
+                    },
+                    {
+                        aggregate: { aggregate_key: 'event:war', aggregate_type: 'event' },
+                        contributions: [{
+                            contribution: { contribution_type: 'event', provenance: 'text_inferred' },
+                            source_item: { source_ref: 'events.yml::war', content: 'A war' },
+                        }],
+                    },
+                ] });
+            }
+            return defaultGet(url);
+        });
+        renderPanel();
+
+        await screen.findByText('A project summary');
+        const summaryHeadings = screen.getAllByRole('heading', { level: 4 }).slice(0, 3);
+        expect(summaryHeadings.map((node) => node.textContent)).toEqual([
+            'mod_archive.release.project_summary',
+            'mod_archive.release.event_summary:1',
+            'mod_archive.release.entity_summary:1',
+        ]);
+
+        fireEvent.click(screen.getByTestId('mod-archive-load-traceability'));
+        await screen.findByText('project.yml::intro');
+        const traceability = screen.getByTestId('mod-archive-traceability');
+        const evidenceHeadings = Array.from(traceability.querySelectorAll('h4'));
+        expect(evidenceHeadings.map((node) => node.textContent)).toEqual([
+            'mod_archive.release.project_summary:1',
+            'mod_archive.release.event_summary:1',
+            'mod_archive.release.entity_summary:1',
+        ]);
     });
 
     it('shows project context, glossary navigation, and pending terminology without claiming approval', async () => {

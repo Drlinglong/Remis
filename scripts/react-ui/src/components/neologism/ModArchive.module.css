@@ -29,6 +29,10 @@
     color: var(--surface-text-muted) !important;
 }
 
+.paperMuted {
+    color: var(--paper-text-muted) !important;
+}
+
 .layout {
     display: grid;
     grid-template-columns: minmax(18rem, 0.72fr) minmax(0, 1.28fr);
@@ -150,10 +154,15 @@
 }
 
 .statusGrid,
-.metadataGrid {
+.metadataGrid,
+.primaryMetadataGrid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
+}
+
+.primaryMetadataGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .statusCell,
@@ -184,9 +193,8 @@
     text-align: center;
 }
 
-.summaryGrid {
+.summaryFlow {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
 }
 
@@ -194,13 +202,13 @@
     min-width: 0;
 }
 
-.summarySection[data-kind='project'] {
-    grid-column: 1 / -1;
-}
-
 .entryList {
     display: grid;
     gap: 0.625rem;
+}
+
+.summarySection[data-kind='entity'] .entryList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .entryCard {
@@ -228,6 +236,21 @@
     font-weight: 600;
 }
 
+.metadataDetails {
+    border-top: 1px solid color-mix(in srgb, var(--surface-text-muted) 25%, transparent);
+    padding-top: 0.75rem;
+}
+
+.metadataSummary {
+    cursor: pointer;
+    color: var(--surface-text-main);
+    font-weight: 600;
+}
+
+.metadataDetails .metadataGrid {
+    margin-top: 0.75rem;
+}
+
 .traceabilityList {
     display: grid;
     gap: 0.625rem;
@@ -243,6 +266,28 @@
     color: var(--paper-text-main);
     --mantine-color-text: var(--paper-text-main);
     --mantine-color-dimmed: var(--paper-text-muted);
+}
+
+.evidenceGroup {
+    min-width: 0;
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 20%, transparent);
+    border-radius: var(--card-radius);
+    padding: 0.625rem 0.75rem;
+}
+
+.evidenceGroupSummary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-width: 0;
+    cursor: pointer;
+    color: var(--paper-text-main);
+    font-weight: 600;
+}
+
+.evidenceGroupSummary > span {
+    min-width: 0;
 }
 
 .notice {
@@ -294,13 +339,13 @@
 
 @media (max-width: 58em) {
     .layout,
-    .summaryGrid,
     .draftFieldGrid {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .summarySection[data-kind='project'] {
-        grid-column: auto;
+    .primaryMetadataGrid,
+    .summarySection[data-kind='entity'] .entryList {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
