@@ -76,8 +76,13 @@ class UnitResult:
     relation_verdict: str
 
 
-def parse_gold(path: Path, overrides: dict[str, str]) -> dict[str, GoldAssignment]:
+def parse_gold(
+    path: Path,
+    relation_overrides: dict[str, str],
+    note_overrides: dict[str, str] | None = None,
+) -> dict[str, GoldAssignment]:
     text = path.read_text(encoding="utf-8-sig")
+    note_overrides = note_overrides or {}
     rows: dict[str, GoldAssignment] = {}
     for raw_line in text.splitlines():
         match = GOLD_ROW.match(raw_line)
@@ -91,8 +96,8 @@ def parse_gold(path: Path, overrides: dict[str, str]) -> dict[str, GoldAssignmen
             unit_id=unit_id,
             key_hint=_clean_markdown(data["keys"]),
             chain_id=data["chain"].strip(),
-            relation=overrides.get(unit_id, data["relation"].strip()),
-            note=_clean_markdown(data["note"]),
+            relation=relation_overrides.get(unit_id, data["relation"].strip()),
+            note=note_overrides.get(unit_id, _clean_markdown(data["note"])),
             confidence=data["confidence"].strip(),
         )
     expected = {f"unit_{index}" for index in range(len(rows))}
@@ -322,7 +327,10 @@ def _ratio(numerator: float, denominator: float) -> float:
 
 
 def build_snapshot(
-    release_id: str, gold_path: Path, overrides: dict[str, str]
+    release_id: str,
+    gold_path: Path,
+    relation_overrides: dict[str, str],
+    note_overrides: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     repository = ContextRepository(PROJECTS_DB_PATH)
     release = repository.get_release(release_id)
@@ -330,7 +338,8 @@ def build_snapshot(
         raise ValueError(f"Unknown Context Release: {release_id}")
     source_items = _release_source_items(repository, release)
     units = ContextLocalUnitBuilder.build(source_items)
-    gold = parse_gold(gold_path, overrides)
+    note_overrides = note_overrides or {}
+    gold = parse_gold(gold_path, relation_overrides, note_overrides)
     if len(units) != len(gold):
         raise ValueError(f"Local unit count mismatch: release={len(units)}, gold={len(gold)}")
     predicted = _membership_links(
@@ -354,7 +363,8 @@ def build_snapshot(
         },
         "gold": {
             "path": str(gold_path.resolve()),
-            "relation_overrides": overrides,
+            "relation_overrides": relation_overrides,
+            "note_overrides": note_overrides,
         },
         "predicted_to_gold_chain_mapping": mapping,
         "metrics": _metrics(results),
@@ -440,6 +450,16 @@ def _parse_overrides(values: list[str]) -> dict[str, str]:
     return overrides
 
 
+def _parse_note_overrides(values: list[str]) -> dict[str, str]:
+    overrides: dict[str, str] = {}
+    for value in values:
+        unit_id, separator, note = value.partition("=")
+        if not separator or not re.fullmatch(r"unit_\d+", unit_id) or not note.strip():
+            raise ValueError(f"Invalid note override: {value}")
+        overrides[unit_id] = note.strip()
+    return overrides
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--release-id", required=True)
@@ -452,11 +472,18 @@ def main() -> int:
         default=[],
         metavar="UNIT=RELATION",
     )
+    parser.add_argument(
+        "--note-override",
+        action="append",
+        default=[],
+        metavar="UNIT=NOTE",
+    )
     args = parser.parse_args()
     snapshot = build_snapshot(
         args.release_id,
         args.gold,
         _parse_overrides(args.relation_override),
+        _parse_note_overrides(args.note_override),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

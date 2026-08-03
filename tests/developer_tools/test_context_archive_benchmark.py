@@ -27,10 +27,15 @@ def test_parse_gold_accepts_contiguous_project_sized_unit_set(tmp_path: Path):
         encoding="utf-8",
     )
 
-    rows = parse_gold(gold, {"unit_1": "supporting_context"})
+    rows = parse_gold(
+        gold,
+        {"unit_1": "supporting_context"},
+        {"unit_1": "人工确认其为事件链推进所需的 supporting context。"},
+    )
 
     assert list(rows) == ["unit_0", "unit_1"]
     assert rows["unit_1"].relation == "supporting_context"
+    assert rows["unit_1"].note == "人工确认其为事件链推进所需的 supporting context。"
 
 
 def test_best_chain_mapping_allows_multiple_predictions_to_one_gold_chain():
