@@ -39,11 +39,13 @@ class ContextEventReconciliationExecutionService:
         reconciler_factory: Callable[[Any], Any],
         checkpoints: ContextAnalysisCheckpointService,
         status_service: Any,
+        usage_ledger: Any | None = None,
     ) -> None:
         self.handler_factory = handler_factory
         self.reconciler_factory = reconciler_factory
         self.checkpoints = checkpoints
         self.status_service = status_service
+        self.usage_ledger = usage_ledger
 
     def execute(
         self,
@@ -112,11 +114,15 @@ class ContextEventReconciliationExecutionService:
             return saved
         try:
             service = self._service(context["api_provider"], context["model_name"])
-            catalog = service.build_catalog(
-                units,
-                extractions,
-                description_language=context["description_language"],
-            )
+            try:
+                catalog = service.build_catalog(
+                    units,
+                    extractions,
+                    description_language=context["description_language"],
+                )
+            finally:
+                if self.usage_ledger is not None:
+                    self.usage_ledger.capture(getattr(service, "handler", None), "event_catalog")
             self.checkpoints.save_catalog(context["analysis_run"], source_ids, catalog)
         except Exception as error:
             self.checkpoints.save_aggregation_failure(
@@ -154,11 +160,15 @@ class ContextEventReconciliationExecutionService:
 
         def worker(item: _PendingAssignmentBatch) -> EventAssignmentBatchResult:
             service = self._service(context["api_provider"], context["model_name"])
-            return service.assign_batch(
-                item.units,
-                catalog,
-                description_language=context["description_language"],
-            )
+            try:
+                return service.assign_batch(
+                    item.units,
+                    catalog,
+                    description_language=context["description_language"],
+                )
+            finally:
+                if self.usage_ledger is not None:
+                    self.usage_ledger.capture(getattr(service, "handler", None), "event_assignment")
 
         persistence_errors: list[BaseException] = []
 

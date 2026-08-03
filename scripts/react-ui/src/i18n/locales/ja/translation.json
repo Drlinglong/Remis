@@ -1,4 +1,7 @@
 {
+  "context_report": {
+    "title": "Project archive smoke report", "subtitle": "Deterministic integrity, coverage, boundary, repair, and model-usage evidence.", "gates_passed": "Integrity gates passed", "gates_failed": "Integrity gates failed", "raw_keys": "Raw keys", "source_items": "Source items", "local_units": "Local units", "chunks": "Chunks", "delivery_coverage": "Delivery coverage", "supporting_context": "Supporting context", "assignment_integrity": "Assignment integrity", "missing": "Missing", "duplicate": "Duplicate", "unexpected": "Unexpected", "unassigned": "Unassigned", "multi_linked": "Multi-linked", "model_execution": "Model execution", "calls": "Calls", "reasoning": "Reasoning profile", "tokens": "Tokens", "cost": "Cost", "repairs": "Repairs", "no_repairs": "No repair was required.", "final_chains": "Final delivery chains", "boundary_impact": "Chunk-boundary impact", "cross_chunk_merges": "Cross-chunk merges", "membership_added": "Membership added", "membership_removed": "Membership removed", "boundary_unassigned": "Boundary units left unassigned", "unassigned_units": "Units requiring human audit"
+  },
   "settings_system_maintenance": "システムメンテナンス",
   "settings_reset_db_title": "プロジェクトデータベースをリセット",
   "settings_reset_db_desc": "破損または停止したデータベース用の復旧ツールです。デモ Mod を含む既定のスケルトンから Remis 内部データベースを再構築します。プロジェクトフォルダーは変更されません。",
@@ -2532,6 +2535,7 @@
       "agent_workshop_batch": "Format Repair batch",
       "repair": "Format repair",
       "neologism_mining": "新語の抽出",
+      "context_archive_analysis": "Project archive analysis",
       "dry_run": "エージェント試行",
       "task": "バックグラウンド処理",
       "glossary_health_check": "用語集ヘルスチェック",

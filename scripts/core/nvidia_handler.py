@@ -49,6 +49,7 @@ class NvidiaHandler(BaseApiHandler):
                     {"role": "user", "content": prompt}
                 ]
             )
+            self._record_model_response(response)
             
             # Robust extraction of content
             message = response.choices[0].message

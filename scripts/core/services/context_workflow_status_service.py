@@ -308,8 +308,30 @@ class ContextWorkflowStatusService:
             message="Context analysis completed.",
             progress=completed_progress,
             summary=result,
+            result=self._task_result(result),
             fields={"stage_code": "completed"},
         )
+
+    @staticmethod
+    def _task_result(result: Mapping[str, Any]) -> dict[str, Any]:
+        report = result.get("analysis_report")
+        if report:
+            return {
+                "types": ["context_analysis_report"],
+                "summary": "Project archive analysis completed.",
+                "metadata": {
+                    "analysis_report": report,
+                    "context_release_id": result.get("context_release_id"),
+                },
+            }
+        return {
+            "types": ["glossary_entries"],
+            "summary": f"{int(result.get('new_terms') or 0)} new term(s)",
+            "metadata": {
+                "new_terms": int(result.get("new_terms") or 0),
+                "duplicate_terms": int(result.get("duplicate_terms") or 0),
+            },
+        }
 
     def mark_failed(
         self,

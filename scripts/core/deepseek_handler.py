@@ -47,6 +47,7 @@ class DeepSeekHandler(BaseApiHandler):
                 ],
                 extra_body={"enable_thinking": enable_thinking}
             )
+            self._record_model_response(response)
             return response.choices[0].message.content.strip()
         except Exception as e:
             self.logger.exception(f"DeepSeek API call failed: {e}")

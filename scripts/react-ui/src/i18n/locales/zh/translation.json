@@ -1,4 +1,11 @@
 {
+  "context_report": {
+    "title": "项目档案冒烟报告", "subtitle": "展示确定性的完整性、覆盖率、分块边界、修复和模型用量证据。", "gates_passed": "完整性门禁通过", "gates_failed": "完整性门禁失败",
+    "raw_keys": "原始 Key", "source_items": "源文本条目", "local_units": "局部文本单元", "chunks": "分块", "delivery_coverage": "投递覆盖率", "supporting_context": "辅助语境",
+    "assignment_integrity": "逐单元归属完整性", "missing": "缺失", "duplicate": "重复", "unexpected": "意外条目", "unassigned": "未归属", "multi_linked": "多链归属",
+    "model_execution": "模型执行", "calls": "调用次数", "reasoning": "推理档", "tokens": "Token", "cost": "费用", "repairs": "格式修复", "no_repairs": "本次没有触发格式修复。",
+    "final_chains": "最终投递事件链", "boundary_impact": "分块边界影响", "cross_chunk_merges": "跨分块合并", "membership_added": "聚合后新增归属", "membership_removed": "聚合后移除归属", "boundary_unassigned": "边界处遗留未归属单元", "unassigned_units": "需要人工审计的未归属单元"
+  },
   "settings_system_maintenance": "系统维护",
   "settings_reset_db_title": "重置项目数据库",
   "settings_reset_db_desc": "用于数据库损坏或卡死时的恢复工具。它会清空 Remis 内部数据库，并按包含 DEMO Mod 的默认骨架重建；您的项目文件夹不会被删除。",
@@ -136,6 +143,7 @@
       "agent_workshop_batch": "格式修复批次",
       "repair": "格式修复",
       "neologism_mining": "新词挖掘",
+      "context_archive_analysis": "项目档案分析",
       "dry_run": "Agent 预演",
       "task": "后台任务",
       "glossary_health_check": "词典巡检",

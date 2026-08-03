@@ -76,7 +76,10 @@ do not defer ordinary translation recommendations to a later review call.
 - Static resources must not originate a new event chain. They may link as
   `supporting_context` to an already established chain only when a direct and
   specific narrative dependency means they should receive that chain summary.
-  Shared vocabulary or theme alone is insufficient. A short title, option,
+  "Do not create a chain" is not the same as "leave the unit unassigned": a
+  named aftermath object, unique location, project, modifier, technology, or
+  memorial whose meaning depends on an event may be supporting context for that
+  existing chain. Shared vocabulary or theme alone is insufficient. A short title, option,
   button, or tooltip already grouped inside a numbered local event unit inherits
   the classification of that unit and must not be detached merely for being UI-like.
 - Evidence is a small representative subset that supports a summary. Primary

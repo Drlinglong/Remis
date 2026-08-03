@@ -50,6 +50,7 @@ class QwenHandler(BaseApiHandler):
                 temperature=0.3,
                 extra_body={"enable_thinking": enable_thinking}
             )
+            self._record_model_response(response)
             return response.choices[0].message.content.strip()
         except Exception as e:
             self.logger.exception(f"Qwen API call failed: {e}")

@@ -28,6 +28,8 @@ class ContextAnalysisReportService:
         model: str | None,
         effective_concurrency: int,
         prompt_version: str,
+        parsed_files: Sequence[Any] = (),
+        model_execution: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         unit_chunk = cls._unit_chunk_index(chunks)
         final_assignments = reconciled.delivery_assignments
@@ -41,11 +43,13 @@ class ContextAnalysisReportService:
             item for item in final_assignments
             if len({link.event_chain_id for link in item.links}) > 1
         ]
+        execution = model_execution or cls._empty_model_execution()
         return {
             "input_and_chunking": cls._input_report(
                 source_items, local_units, chunks, provider, model,
-                effective_concurrency, prompt_version,
+                effective_concurrency, prompt_version, execution,
             ),
+            "source_integrity": cls._source_integrity_report(parsed_files, source_items),
             "unit_assignment_integrity": {
                 "input_units": len(input_unit_ids),
                 "assignment_records": len(assignment_ids),
@@ -60,6 +64,9 @@ class ContextAnalysisReportService:
                     int(item.diagnostics.get("repair_count") or 0)
                     for item in local_extractions
                 ) + int(reconciled.diagnostics.get("repair_count") or 0),
+                "repair_reasons": cls._repair_reasons(
+                    local_extractions, reconciled,
+                ),
                 "one_to_one_after_repair": (
                     len(assignment_ids) == len(input_unit_ids)
                     and set(assignment_ids) == set(input_unit_ids)
@@ -78,6 +85,7 @@ class ContextAnalysisReportService:
             "unassigned_units": cls._unassigned_report(
                 local_units, unassigned, unit_chunk,
             ),
+            "model_execution": execution,
         }
 
     @staticmethod
@@ -89,6 +97,7 @@ class ContextAnalysisReportService:
         model: str | None,
         concurrency: int,
         prompt_version: str,
+        model_execution: dict[str, Any],
     ) -> dict[str, Any]:
         core_occurrences = Counter(
             unit.unit_id for chunk in chunks for unit in chunk.core_units
@@ -107,12 +116,66 @@ class ContextAnalysisReportService:
             "provider": provider,
             "model": model or f"{provider}-default",
             "structured_output_mode": structured_output_mode(provider),
-            "reasoning_profile": "unavailable_from_provider_adapter",
+            "reasoning_profile": model_execution.get("reasoning_profile"),
             "prompt_version": prompt_version,
             "effective_concurrency": concurrency,
+            "token_usage": model_execution.get("token_usage"),
+            "cost": model_execution.get("cost"),
+            "usage_note": model_execution.get("usage_note"),
+        }
+
+    @staticmethod
+    def _source_integrity_report(
+        parsed_files: Sequence[Any], source_items: Sequence[SourceItem],
+    ) -> dict[str, Any]:
+        files = []
+        for source_file in parsed_files:
+            summary = dict(getattr(source_file, "parse_summary", {}) or {})
+            files.append({
+                "relative_path": str(getattr(source_file, "relative_path", "")),
+                **summary,
+            })
+        totals = {
+            key: sum(int(item.get(key) or 0) for item in files)
+            for key in (
+                "raw", "syntax_parsed", "policy_excluded", "eligible",
+                "parse_errors", "source_items",
+            )
+        }
+        totals["workflow_source_items"] = len(source_items)
+        totals["gate_passed"] = bool(
+            totals["parse_errors"] == 0
+            and totals["eligible"] == totals["source_items"] == len(source_items)
+        )
+        return {"totals": totals, "files": files}
+
+    @staticmethod
+    def _repair_reasons(
+        local_extractions: Sequence[StructuredNeologismExtraction],
+        reconciled: EventReconciliationResult,
+    ) -> list[dict[str, Any]]:
+        reasons = [
+            {
+                "stage": "extraction",
+                "batch_index": index,
+                "reason": extraction.diagnostics.get("repair_reason"),
+                "detail": extraction.diagnostics.get("first_validation_error"),
+            }
+            for index, extraction in enumerate(local_extractions)
+            if int(extraction.diagnostics.get("repair_count") or 0)
+        ]
+        reasons.extend(reconciled.diagnostics.get("repair_reasons") or [])
+        return reasons
+
+    @staticmethod
+    def _empty_model_execution() -> dict[str, Any]:
+        return {
+            "call_count": 0,
+            "reasoning_profile": None,
             "token_usage": None,
             "cost": None,
-            "usage_note": "Provider adapter did not expose authoritative usage for this report.",
+            "usage_note": "No provider usage records were captured for this run.",
+            "by_phase": {},
         }
 
     @classmethod

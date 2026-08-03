@@ -12,6 +12,7 @@ from typing import Iterable
 
 from scripts.core.file_parser import extract_translatable_content
 from scripts.core.neologism_extraction import SourceItem
+from scripts.core.paradox_localization_parser import parse_text
 from scripts.core.services.source_snapshot_service import (
     SourceFileInput,
     SourceItemInput,
@@ -27,6 +28,7 @@ class ParsedSourceFile:
     relative_path: str
     content: bytes
     items: tuple[SourceItem, ...]
+    parse_summary: dict[str, int]
 
     def snapshot_input(self) -> SourceFileInput:
         return SourceFileInput(
@@ -58,22 +60,54 @@ class ContextSourceParser:
         relative_path = normalize_relative_path(str(resolved.relative_to(source_root)))
         content = resolved.read_bytes()
         text = content.decode("utf-8-sig")
+        parse_summary: dict[str, int]
         if resolved.suffix.lower() == ".json":
             raw_items = self._parse_json(text)
+            parse_summary = self._simple_parse_summary(raw_items)
         elif resolved.suffix.lower() == ".csv":
             raw_items = self._parse_csv(text)
+            parse_summary = self._simple_parse_summary(raw_items)
         else:
             _, texts, key_map = extract_translatable_content(str(resolved))
             raw_items = [
                 (key_map.get(index, {}).get("key_part"), value)
                 for index, value in enumerate(texts)
             ]
+            if resolved.suffix.lower() in {".yml", ".yaml"}:
+                report = parse_text(text)
+                parse_summary = dict(report.summary)
+                if len(raw_items) != parse_summary["eligible"]:
+                    raise ValueError(
+                        "Context source integrity failed: canonical eligible entry count "
+                        f"({parse_summary['eligible']}) does not match extracted values "
+                        f"({len(raw_items)}) for {relative_path}"
+                    )
+            else:
+                parse_summary = self._simple_parse_summary(raw_items)
         items = tuple(
             self._source_item(relative_path, order, key, value)
             for order, (key, value) in enumerate(raw_items)
             if str(value).strip()
         )
-        return ParsedSourceFile(resolved, relative_path, content, items)
+        if len(items) != parse_summary["eligible"]:
+            raise ValueError(
+                "Context source integrity failed: eligible entry count "
+                f"({parse_summary['eligible']}) does not match source items "
+                f"({len(items)}) for {relative_path}"
+            )
+        parse_summary["source_items"] = len(items)
+        return ParsedSourceFile(resolved, relative_path, content, items, parse_summary)
+
+    @staticmethod
+    def _simple_parse_summary(raw_items: list[tuple[str, str]]) -> dict[str, int]:
+        eligible = sum(1 for _, value in raw_items if str(value).strip())
+        return {
+            "raw": len(raw_items),
+            "syntax_parsed": len(raw_items),
+            "policy_excluded": len(raw_items) - eligible,
+            "eligible": eligible,
+            "parse_errors": 0,
+        }
 
     @staticmethod
     def _parse_json(text: str) -> list[tuple[str, str]]:

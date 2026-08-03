@@ -1,4 +1,7 @@
 {
+  "context_report": {
+    "title": "Project archive smoke report", "subtitle": "Deterministic integrity, coverage, boundary, repair, and model-usage evidence.", "gates_passed": "Integrity gates passed", "gates_failed": "Integrity gates failed", "raw_keys": "Raw keys", "source_items": "Source items", "local_units": "Local units", "chunks": "Chunks", "delivery_coverage": "Delivery coverage", "supporting_context": "Supporting context", "assignment_integrity": "Assignment integrity", "missing": "Missing", "duplicate": "Duplicate", "unexpected": "Unexpected", "unassigned": "Unassigned", "multi_linked": "Multi-linked", "model_execution": "Model execution", "calls": "Calls", "reasoning": "Reasoning profile", "tokens": "Tokens", "cost": "Cost", "repairs": "Repairs", "no_repairs": "No repair was required.", "final_chains": "Final delivery chains", "boundary_impact": "Chunk-boundary impact", "cross_chunk_merges": "Cross-chunk merges", "membership_added": "Membership added", "membership_removed": "Membership removed", "boundary_unassigned": "Boundary units left unassigned", "unassigned_units": "Units requiring human audit"
+  },
   "settings_system_maintenance": "Maintenance du système",
   "settings_reset_db_title": "Réinitialiser la base de données du projet",
   "settings_reset_db_desc": "Outil de récupération pour une base de données endommagée ou bloquée. Reconstruit la base interne de Remis depuis son squelette par défaut, avec les mods de démonstration. Vos dossiers de projet restent intacts.",
@@ -2529,6 +2532,7 @@
       "agent_workshop_batch": "Format Repair batch",
       "repair": "Format repair",
       "neologism_mining": "Recherche de néologismes",
+      "context_archive_analysis": "Project archive analysis",
       "dry_run": "Essai à blanc de l’agent",
       "task": "Travail en arrière-plan",
       "glossary_health_check": "Vérification du glossaire",

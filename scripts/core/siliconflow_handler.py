@@ -46,6 +46,7 @@ class SiliconFlowHandler(BaseApiHandler):
                     {"role": "user", "content": prompt}
                 ]
             )
+            self._record_model_response(response)
             return response.choices[0].message.content.strip()
         except Exception as e:
             self.logger.exception(f"SiliconFlow API call failed: {e}")

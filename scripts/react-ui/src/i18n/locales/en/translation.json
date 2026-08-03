@@ -1,4 +1,11 @@
 {
+  "context_report": {
+    "title": "Project archive smoke report", "subtitle": "Deterministic integrity, coverage, boundary, repair, and model-usage evidence.", "gates_passed": "Integrity gates passed", "gates_failed": "Integrity gates failed",
+    "raw_keys": "Raw keys", "source_items": "Source items", "local_units": "Local units", "chunks": "Chunks", "delivery_coverage": "Delivery coverage", "supporting_context": "Supporting context",
+    "assignment_integrity": "Assignment integrity", "missing": "Missing", "duplicate": "Duplicate", "unexpected": "Unexpected", "unassigned": "Unassigned", "multi_linked": "Multi-linked",
+    "model_execution": "Model execution", "calls": "Calls", "reasoning": "Reasoning profile", "tokens": "Tokens", "cost": "Cost", "repairs": "Repairs", "no_repairs": "No repair was required.",
+    "final_chains": "Final delivery chains", "boundary_impact": "Chunk-boundary impact", "cross_chunk_merges": "Cross-chunk merges", "membership_added": "Membership added", "membership_removed": "Membership removed", "boundary_unassigned": "Boundary units left unassigned", "unassigned_units": "Units requiring human audit"
+  },
   "settings_system_maintenance": "System Maintenance",
   "settings_reset_db_title": "Reset Project Database",
   "settings_reset_db_desc": "Recovery tool for a damaged or stuck database. Rebuilds the internal Remis database from its default skeleton, including demo mods. Your project folders remain untouched.",
@@ -89,6 +96,7 @@
       "agent_workshop_batch": "Format Repair batch",
       "repair": "Format repair",
       "neologism_mining": "Neologism mining",
+      "context_archive_analysis": "Project archive analysis",
       "dry_run": "Agent dry run",
       "task": "Background task",
       "glossary_health_check": "Glossary health check",

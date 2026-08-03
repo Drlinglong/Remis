@@ -785,7 +785,7 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
     assert release.metadata.provider_id == "local"
     assert release.metadata.model_id == "fake-model"
     assert release.metadata.schema_version == "context-v3"
-    assert release.metadata.prompt_version == "context-archive-v7"
+    assert release.metadata.prompt_version == "context-archive-v8"
     assert release.metadata.analysis_config["description_language"] == "zh-CN"
     assert "Simplified Chinese (zh-CN)" in handler.calls[0][0]["content"]
     assert any(
@@ -801,10 +801,13 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
     report = first["analysis_report"]
     assert report["input_and_chunking"]["source_items"] == 2
     assert report["input_and_chunking"]["local_units"] == 2
+    assert report["source_integrity"]["totals"]["raw"] == 2
+    assert report["source_integrity"]["totals"]["gate_passed"] is True
     assert report["unit_assignment_integrity"]["missing"] == []
     assert report["unit_assignment_integrity"]["one_to_one_after_repair"] is True
     assert report["coverage_and_contamination"]["theme_related_injection_count"] == 0
     assert report["coverage_and_contamination"]["parent_story_automatic_inheritance_count"] == 0
+    assert release.metadata.analysis_config["analysis_report"] == report
     assert len(service.context_service.snapshots["release-1"]["delivery_memberships"]) == 2
     first_sources = set(repo.sources)
 

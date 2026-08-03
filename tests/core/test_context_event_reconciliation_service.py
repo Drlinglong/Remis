@@ -156,6 +156,8 @@ def test_catalog_repairs_invalid_folded_card_disposition_once(mutation, detail):
     )
 
     assert catalog.repair_count == 1
+    assert catalog.repair_reason == "coverage_validation"
+    assert catalog.repair_detail
     assert detail in handler.calls[1][-1]["content"]
 
 
@@ -208,6 +210,8 @@ def test_assignment_repair_is_limited_to_the_failed_unit_batch():
     result = service.assign_batch(units, catalog)
 
     assert result.repair_count == 1
+    assert result.repair_reason == "coverage_validation"
+    assert "missing=" in result.repair_detail
     assert "Assignment coverage invalid" in handler.calls[2][-1]["content"]
     assert len(handler.calls[2][0]["content"]) < len(handler.calls[0][0]["content"]) + 3000
 
@@ -372,6 +376,8 @@ def test_prompts_make_unassigned_normal_and_static_resources_non_originating():
     assert "does NOT mean every unit belongs" in assignment_prompt
     assert "must not be forced into a chain" in assignment_prompt
     assert "A static resource may receive" in assignment_prompt
+    assert "Do not skip step (2)" in assignment_prompt
+    assert "Do not create a chain" in local_prompt
     assert "supporting_context" in assignment_prompt
     assert "inherits classification with that unit" in assignment_prompt
     assert "Never invent a" in local_prompt

@@ -73,6 +73,13 @@ def _is_supported_mining_path(path: Path) -> bool:
 def _normalize_term(term: str) -> str:
     return " ".join((term or "").casefold().split())
 
+
+def _mining_task_identity(payload: MineNeologismsRequest, project: dict) -> tuple[str, str]:
+    project_name = project.get("name") or payload.project_id
+    if payload.analysis_scope == "narrative_context":
+        return "context_archive_analysis", f"Build project archive for {project_name}"
+    return "neologism_mining", f"Mine neologisms for {project_name}"
+
 async def _build_glossary_duplicate_index(
     game_id: str,
     source_lang: str,
@@ -323,6 +330,7 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
     )
 
     task_id = str(uuid.uuid4())
+    task_kind, task_title = _mining_task_identity(payload, project)
     if not context_workflow_service.reserve(
         payload.project_id,
         task_id,
@@ -335,9 +343,9 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
             status="queued",
             log_message="Neologism mining queued.",
             fields={
-                "kind": "neologism_mining",
+                "kind": task_kind,
                 "project_id": payload.project_id,
-                "title": f"Mine neologisms for {project.get('name') or payload.project_id}",
+                "title": task_title,
                 "source_route": "/neologism-review",
                 "created_by": {"type": "user"},
                 "blocking": True,
@@ -378,7 +386,7 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
             "analysis_scope": payload.analysis_scope,
             "description_language": payload.effective_description_language,
         },
-        fields={"kind": "neologism_mining", "stage_code": "queued"},
+        fields={"kind": task_kind, "stage_code": "queued"},
         push=True,
     )
     background_tasks.add_task(

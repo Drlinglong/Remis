@@ -66,6 +66,7 @@ class OpenRouterHandler(OpenAIHandler):
             ],
             **self._chat_options(),
         )
+        self._record_model_response(response)
         return response.choices[0].message.content.strip()
 
     def generate_with_messages(
@@ -77,6 +78,7 @@ class OpenRouterHandler(OpenAIHandler):
             messages=messages,
             **self._chat_options(temperature),
         )
+        self._record_model_response(response)
         return response.choices[0].message.content.strip()
 
     def generate_structured_with_messages(
@@ -107,6 +109,7 @@ class OpenRouterHandler(OpenAIHandler):
             **options,
         }
         response = self._create_structured_completion(request)
+        self._record_model_response(response)
         return response.choices[0].message.content.strip()
 
     def _create_structured_completion(self, request: dict):

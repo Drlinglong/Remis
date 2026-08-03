@@ -51,6 +51,7 @@ class YourFavouriteHandler(BaseApiHandler):
                     {"role": "user", "content": prompt}
                 ]
             )
+            self._record_model_response(response)
             return response.choices[0].message.content.strip()
         except openai.NotFoundError as e:
             # 捕获 404 错误 (Model Not Found)

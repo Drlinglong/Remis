@@ -1,4 +1,7 @@
 {
+  "context_report": {
+    "title": "Project archive smoke report", "subtitle": "Deterministic integrity, coverage, boundary, repair, and model-usage evidence.", "gates_passed": "Integrity gates passed", "gates_failed": "Integrity gates failed", "raw_keys": "Raw keys", "source_items": "Source items", "local_units": "Local units", "chunks": "Chunks", "delivery_coverage": "Delivery coverage", "supporting_context": "Supporting context", "assignment_integrity": "Assignment integrity", "missing": "Missing", "duplicate": "Duplicate", "unexpected": "Unexpected", "unassigned": "Unassigned", "multi_linked": "Multi-linked", "model_execution": "Model execution", "calls": "Calls", "reasoning": "Reasoning profile", "tokens": "Tokens", "cost": "Cost", "repairs": "Repairs", "no_repairs": "No repair was required.", "final_chains": "Final delivery chains", "boundary_impact": "Chunk-boundary impact", "cross_chunk_merges": "Cross-chunk merges", "membership_added": "Membership added", "membership_removed": "Membership removed", "boundary_unassigned": "Boundary units left unassigned", "unassigned_units": "Units requiring human audit"
+  },
   "settings_system_maintenance": "Manutenção do Sistema",
   "settings_reset_db_title": "Redefinir Banco de Dados do Projeto",
   "settings_reset_db_desc": "Ferramenta de recuperação para um banco de dados danificado ou travado. Reconstrói o banco interno do Remis a partir do esqueleto padrão, incluindo mods de demonstração. Suas pastas de projeto permanecem intactas.",
@@ -2528,6 +2531,7 @@
       "agent_workshop_scan": "Verificação de formato",
       "repair": "Format repair",
       "neologism_mining": "Mineração de neologismos",
+      "context_archive_analysis": "Project archive analysis",
       "dry_run": "Teste do agente",
       "task": "Processo em segundo plano",
       "glossary_health_check": "Verificação do glossário",

@@ -56,6 +56,7 @@ class OpenAIHandler(BaseApiHandler):
                 max_completion_tokens=4000,  # 保持较大的token以适应大批次
                 **extra_params
             )
+            self._record_model_response(response)
             return response.choices[0].message.content.strip()
         except openai.NotFoundError as e:
             # 捕获 404 错误 (Model Not Found) - 特别针对本地 LLM 用户
@@ -89,6 +90,7 @@ class OpenAIHandler(BaseApiHandler):
                 messages=messages,
                 temperature=temperature
             )
+            self._record_model_response(response)
             return response.choices[0].message.content.strip()
         except Exception as e:
             self.logger.exception(f"OpenAI chat generation failed: {e}")

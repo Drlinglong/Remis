@@ -1,4 +1,7 @@
 {
+  "context_report": {
+    "title": "Project archive smoke report", "subtitle": "Deterministic integrity, coverage, boundary, repair, and model-usage evidence.", "gates_passed": "Integrity gates passed", "gates_failed": "Integrity gates failed", "raw_keys": "Raw keys", "source_items": "Source items", "local_units": "Local units", "chunks": "Chunks", "delivery_coverage": "Delivery coverage", "supporting_context": "Supporting context", "assignment_integrity": "Assignment integrity", "missing": "Missing", "duplicate": "Duplicate", "unexpected": "Unexpected", "unassigned": "Unassigned", "multi_linked": "Multi-linked", "model_execution": "Model execution", "calls": "Calls", "reasoning": "Reasoning profile", "tokens": "Tokens", "cost": "Cost", "repairs": "Repairs", "no_repairs": "No repair was required.", "final_chains": "Final delivery chains", "boundary_impact": "Chunk-boundary impact", "cross_chunk_merges": "Cross-chunk merges", "membership_added": "Membership added", "membership_removed": "Membership removed", "boundary_unassigned": "Boundary units left unassigned", "unassigned_units": "Units requiring human audit"
+  },
   "settings_system_maintenance": "시스템 점검",
   "settings_reset_db_title": "프로젝트 데이터베이스 초기화",
   "settings_reset_db_desc": "손상되거나 멈춘 데이터베이스를 위한 복구 도구입니다. 데모 Mod가 포함된 기본 골격에서 Remis 내부 데이터베이스를 다시 만듭니다. 프로젝트 폴더는 변경되지 않습니다.",
@@ -2532,6 +2535,7 @@
       "agent_workshop_batch": "Format Repair batch",
       "repair": "Format repair",
       "neologism_mining": "신조어 탐색",
+      "context_archive_analysis": "Project archive analysis",
       "dry_run": "에이전트 시험 실행",
       "task": "백그라운드 작업",
       "glossary_health_check": "용어집 상태 점검",

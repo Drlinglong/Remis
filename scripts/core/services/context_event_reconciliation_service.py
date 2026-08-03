@@ -99,6 +99,8 @@ class EventChainCatalogResult(BaseModel):
     )
     local_chain_cards: list[dict[str, Any]] = Field(default_factory=list, max_length=500)
     repair_count: int = Field(default=0, ge=0, le=1)
+    repair_reason: str | None = None
+    repair_detail: str | None = None
 
 
 class EventAssignmentBatchResult(BaseModel):
@@ -108,6 +110,8 @@ class EventAssignmentBatchResult(BaseModel):
 
     assignments: list[DeliveryAssignment] = Field(default_factory=list, max_length=80)
     repair_count: int = Field(default=0, ge=0, le=1)
+    repair_reason: str | None = None
+    repair_detail: str | None = None
 
 
 @dataclass(frozen=True)
@@ -202,6 +206,21 @@ descriptions must not be forced into a chain. A static resource may receive
 supporting_context from an existing chain when specific narrative evidence
 supports that dependency. Shared vocabulary or theme is insufficient.
 
+Before returning unassigned for a static unit, test whether it names a unique
+artifact, aftermath state, memorial, location, project, technology, modifier,
+or institution whose intended meaning depends on one catalog chain. If yes,
+use supporting_context: the unit is not an event step, but its translator needs
+that chain summary. For example, "Ruins of the Expedition" should support the
+expedition chain when the catalog identifies those ruins as its aftermath;
+"Research Speed +5%" remains unassigned. A recurring person or god without a
+specific dependency is only theme_related, never supporting_context.
+
+Decision order for every unit: (1) direct process step -> primary_member;
+(2) specific dependent background/aftermath needed for translation ->
+supporting_context; (3) broad thematic overlap only -> theme_related; (4) no
+grounded relationship -> unassigned. Do not skip step (2) merely because the
+unit is static or distant from the chain's event text.
+
 A short option, title, button, or tooltip already grouped inside a numbered
 local event unit inherits classification with that unit; do not detach it merely
 because one entry is UI-like. Each link has its own relation and confidence.
@@ -228,7 +247,7 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
         messages = self._messages(
             self._catalog_prompt(description_language), payload
         )
-        parsed, repair_count = self._parse_with_one_repair(
+        parsed, repair_count, repair_reason, repair_detail = self._parse_with_one_repair(
             messages,
             _CatalogResponse,
             "remis_event_chain_catalog",
@@ -240,6 +259,8 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
             proposal_resolutions=parsed.proposal_resolutions,
             local_chain_cards=cards,
             repair_count=repair_count,
+            repair_reason=repair_reason,
+            repair_detail=repair_detail,
         )
 
     def assign_batch(
@@ -259,7 +280,7 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
         messages = self._messages(
             self._assignment_prompt(description_language), payload
         )
-        parsed, repair_count = self._parse_with_one_repair(
+        parsed, repair_count, repair_reason, repair_detail = self._parse_with_one_repair(
             messages,
             _AssignmentResponse,
             "remis_event_chain_assignments",
@@ -279,7 +300,10 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
             for item in parsed.assignments
         ]
         return EventAssignmentBatchResult(
-            assignments=assignments, repair_count=repair_count
+            assignments=assignments,
+            repair_count=repair_count,
+            repair_reason=repair_reason,
+            repair_detail=repair_detail,
         )
 
     def reconcile(
@@ -394,6 +418,23 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
         cls._validate_final_assignments(units, catalog, assignments)
         unit_by_id = {unit.unit_id: unit for unit in units}
         events = [cls._event_contribution(chain, unit_by_id) for chain in catalog.final_chains]
+        repair_reasons = []
+        if catalog.repair_count:
+            repair_reasons.append({
+                "stage": "catalog",
+                "reason": catalog.repair_reason,
+                "detail": catalog.repair_detail,
+            })
+        repair_reasons.extend(
+            {
+                "stage": "assignment",
+                "batch_index": index,
+                "reason": result.repair_reason,
+                "detail": result.repair_detail,
+            }
+            for index, result in enumerate(assignment_results)
+            if result.repair_count
+        )
         return EventReconciliationResult(
             events=events,
             delivery_assignments=assignments,
@@ -406,6 +447,7 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
                     result.repair_count for result in assignment_results
                 ),
                 "assignment_batch_count": len(assignment_results),
+                "repair_reasons": repair_reasons,
                 "proposal_resolutions": [
                     item.model_dump() for item in catalog.proposal_resolutions
                 ],
@@ -602,13 +644,15 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
         schema_name: str,
         validator: Any,
         stage_label: str,
-    ) -> tuple[Any, int]:
+    ) -> tuple[Any, int, str | None, str | None]:
         response = self._generate(messages, response_model, schema_name, stage_label)
         try:
             parsed = response_model.model_validate(json.loads(self._clean_json(response)))
             validator(parsed)
-            return parsed, 0
+            return parsed, 0, None, None
         except (json.JSONDecodeError, ValidationError, ValueError) as first_error:
+            repair_reason = self._error_category(first_error)
+            repair_detail = str(first_error)[: self.REPAIR_ERROR_CHARS]
             repair_messages = [
                 *messages,
                 {"role": "assistant", "content": response},
@@ -620,7 +664,7 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
             try:
                 parsed = response_model.model_validate(json.loads(self._clean_json(repaired)))
                 validator(parsed)
-                return parsed, 1
+                return parsed, 1, repair_reason, repair_detail
             except (json.JSONDecodeError, ValidationError, ValueError) as second_error:
                 detail = str(second_error)[: self.REPAIR_ERROR_CHARS]
                 raise NeologismMiningError(

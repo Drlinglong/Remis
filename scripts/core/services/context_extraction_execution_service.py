@@ -19,11 +19,13 @@ class ContextExtractionExecutionService:
         miner_factory: Callable[[Any], Any],
         checkpoints: Any,
         status_service: Any,
+        usage_ledger: Any | None = None,
     ) -> None:
         self.handler_factory = handler_factory
         self.miner_factory = miner_factory
         self.checkpoints = checkpoints
         self.status_service = status_service
+        self.usage_ledger = usage_ledger
 
     def execute(
         self,
@@ -47,18 +49,21 @@ class ContextExtractionExecutionService:
 
         def worker(item: tuple[int, ContextUnitChunk]) -> StructuredNeologismExtraction:
             _, chunk = item
-            miner = self.miner_factory(
-                self.handler_factory(api_provider, model_name=model_name)
-            )
-            return miner.extract_structured(
-                list(chunk.source_items),
-                scope=scope,
-                game_name=game_name,
-                target_language=target_language,
-                reasoning_language=reasoning_language,
-                core_units=chunk.core_units,
-                edge_units=chunk.edge_units,
-            )
+            handler = self.handler_factory(api_provider, model_name=model_name)
+            miner = self.miner_factory(handler)
+            try:
+                return miner.extract_structured(
+                    list(chunk.source_items),
+                    scope=scope,
+                    game_name=game_name,
+                    target_language=target_language,
+                    reasoning_language=reasoning_language,
+                    core_units=chunk.core_units,
+                    edge_units=chunk.edge_units,
+                )
+            finally:
+                if self.usage_ledger is not None:
+                    self.usage_ledger.capture(handler, "extraction")
 
         def record_completion(outcome: Any) -> None:
             index, chunk = outcome.item

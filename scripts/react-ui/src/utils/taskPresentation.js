@@ -23,7 +23,7 @@ export const getTaskStageLabel = (task, t) => {
 
   const raw = String(task.stage || task.message || '').trim();
   const stageCode = task.stage_code || task.progress?.stage_code;
-  if (task.kind === 'neologism_mining' && ARCHIVE_STAGE_CODES.has(stageCode)) {
+  if (['neologism_mining', 'context_archive_analysis'].includes(task.kind) && ARCHIVE_STAGE_CODES.has(stageCode)) {
     return t(`mod_archive.status.stage.${stageCode}`);
   }
   if (task.kind !== 'incremental_translation') return raw || statusLabel;

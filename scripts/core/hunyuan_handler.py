@@ -175,6 +175,7 @@ class HunyuanHandler(OpenAIHandler):
                 max_tokens=2048,
                 extra_body=extra_body
             )
+            self._record_model_response(response)
             return response.choices[0].message.content.strip()
         except Exception as e:
             self.logger.exception(f"Hunyuan-MT API call failed: {e}")

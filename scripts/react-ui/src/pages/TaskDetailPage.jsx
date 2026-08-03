@@ -40,10 +40,10 @@ import {
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
-
 import { useTaskCenter } from '../context/TaskCenterContextCore';
 import { useTutorial } from '../context/TutorialContextCore';
 import GlossaryHealthPenaltyBreakdown from '../components/glossary/GlossaryHealthPenaltyBreakdown';
+import ContextAnalysisReportPanel from '../components/tasks/ContextAnalysisReportPanel';
 import api from '../utils/api';
 import { getGameBadgeColor } from '../utils/gamePresentation';
 import { buildProofreadingUrl } from '../utils/proofreadingLinks';
@@ -112,7 +112,6 @@ const localizeGlossaryHealthEvent = (event, t, isPartial) => {
   }
   return message;
 };
-
 function useLiveClock(active) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -122,7 +121,6 @@ function useLiveClock(active) {
   }, [active]);
   return now;
 }
-
 export default function TaskDetailPage() {
   const { taskId = '' } = useParams();
   const decodedTaskId = taskId;
@@ -694,6 +692,8 @@ export default function TaskDetailPage() {
                   )}
                 </Card>
               )}
+
+              <ContextAnalysisReportPanel report={resultMetadata.analysis_report} />
 
               {task.checkpoint?.available && (
                 <Card withBorder radius="md" p="lg" data-remis-surface="surface">

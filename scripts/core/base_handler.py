@@ -27,7 +27,82 @@ class BaseApiHandler(ABC):
         self.provider_name = provider_name
         self.model_id = model_id
         self.logger = logging.getLogger(self.__class__.__name__)
+        self._model_call_records = []
         self.client = self.initialize_client()
+
+    def _record_model_response(self, response) -> None:
+        """Retain bounded provider usage metadata for the owning workflow."""
+
+        response_mapping = response if isinstance(response, dict) else {}
+        usage = (
+            response_mapping.get("usage")
+            or response_mapping.get("usage_metadata")
+            or getattr(response, "usage", None)
+            or getattr(response, "usage_metadata", None)
+        )
+        if not usage and response_mapping:
+            usage = {
+                "prompt_tokens": response_mapping.get("prompt_eval_count"),
+                "completion_tokens": response_mapping.get("eval_count"),
+            }
+        if hasattr(usage, "model_dump"):
+            usage = usage.model_dump()
+        elif usage is not None and not isinstance(usage, dict):
+            try:
+                usage = vars(usage)
+            except TypeError:
+                usage = {
+                    key: getattr(usage, key, None)
+                    for key in (
+                        "prompt_tokens", "input_tokens", "prompt_token_count",
+                        "completion_tokens", "output_tokens", "candidates_token_count",
+                        "reasoning_tokens", "thoughts_token_count", "total_tokens",
+                        "total_token_count", "cost", "completion_tokens_details",
+                    )
+                }
+        usage = {key: value for key, value in dict(usage or {}).items() if value is not None}
+        details = usage.get("completion_tokens_details") or {}
+        if hasattr(details, "model_dump"):
+            details = details.model_dump()
+        record = {
+            "model": (
+                response_mapping.get("model")
+                or getattr(response, "model", None)
+                or getattr(response, "model_version", None)
+            ),
+            "input_tokens": self._first_usage_value(
+                usage, "prompt_tokens", "input_tokens", "prompt_token_count"
+            ),
+            "output_tokens": self._first_usage_value(
+                usage, "completion_tokens", "output_tokens", "candidates_token_count"
+            ),
+            "reasoning_tokens": self._first_usage_value(
+                details if isinstance(details, dict) else {}, "reasoning_tokens"
+            ) or self._first_usage_value(usage, "reasoning_tokens", "thoughts_token_count"),
+            "total_tokens": self._first_usage_value(usage, "total_tokens", "total_token_count"),
+            "cost": usage.get("cost"),
+            "usage_reported": bool(usage),
+        }
+        if not record["total_tokens"] and usage:
+            record["total_tokens"] = record["input_tokens"] + record["output_tokens"]
+        records = getattr(self, "_model_call_records", None)
+        if records is None:
+            records = []
+            self._model_call_records = records
+        records.append(record)
+
+    @staticmethod
+    def _first_usage_value(usage, *keys):
+        for key in keys:
+            if usage.get(key) is not None:
+                return int(usage[key])
+        return 0
+
+    def consume_model_call_records(self):
+        stored = getattr(self, "_model_call_records", [])
+        records = list(stored)
+        stored.clear()
+        return records
 
     def get_provider_config(self) -> dict:
         """

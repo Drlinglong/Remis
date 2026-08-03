@@ -71,7 +71,9 @@ class AnthropicHandler(BaseApiHandler):
             timeout=300,
         )
         response.raise_for_status()
-        return self._extract_text(response.json())
+        response_payload = response.json()
+        self._record_model_response(response_payload)
+        return self._extract_text(response_payload)
 
     def _call_api(self, client: requests.Session, prompt: str) -> str:
         return self._create_message(

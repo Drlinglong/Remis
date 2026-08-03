@@ -179,6 +179,7 @@ class LocalLLMHandler(BaseApiHandler):
                 messages=prepared_messages,
                 temperature=temperature,
             )
+            self._record_model_response(response)
             return self._extract_chat_content(response, model_name, self.base_url)
         except APIConnectionError as exc:
             message = self._connection_error_message()
@@ -224,7 +225,9 @@ class LocalLLMHandler(BaseApiHandler):
                  except: pass
 
             response.raise_for_status()
-            return response.json().get("response", "").strip()
+            response_payload = response.json()
+            self._record_model_response(response_payload)
+            return response_payload.get("response", "").strip()
 
         except requests.ConnectionError as e:
             message = self._connection_error_message()
@@ -258,6 +261,7 @@ class LocalLLMHandler(BaseApiHandler):
                 # presence_penalty=0.0,
                 # frequency_penalty=0.0
             )
+            self._record_model_response(response)
             return self._extract_chat_content(response, model_name, self.base_url)
         except APIConnectionError as e:
             message = self._connection_error_message()

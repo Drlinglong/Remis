@@ -41,6 +41,7 @@ from scripts.core.services.context_parallel_execution_service import (
     map_context_calls_ordered,
     resolve_context_concurrency,
 )
+from scripts.core.services.context_model_usage import ContextModelUsageLedger
 from scripts.core.services.context_release_assembler import ContextReleaseAssembler
 from scripts.core.services.context_source_parser import ContextSourceParser, ParsedSourceFile
 from scripts.core.services.context_synthesis_service import ContextSynthesisService
@@ -58,10 +59,14 @@ from scripts.shared import task_state
 class _ReviewProgressMiner:
     """Keep candidate-adapter review calls observable without changing its API."""
 
-    def __init__(self, miner: Any, on_batch: Callable[..., None]):
+    def __init__(
+        self, miner: Any, on_batch: Callable[..., None],
+        usage_ledger: ContextModelUsageLedger | None = None,
+    ):
         self._miner = miner
         self._on_batch = on_batch
         self._batch_number = 0
+        self._usage_ledger = usage_ledger
 
     @property
     def batch_count(self) -> int:
@@ -80,6 +85,9 @@ class _ReviewProgressMiner:
                 error=str(exc),
             )
             raise
+        finally:
+            if self._usage_ledger is not None:
+                self._usage_ledger.capture(getattr(self._miner, "client", None), "term_review")
         self._on_batch(
             batch_id,
             success=True,
@@ -100,7 +108,7 @@ class ContextWorkflowService:
     CHUNK_SIZE = DEFAULT_MAX_ITEMS
     REVIEW_BATCH_SIZE = ContextCandidateAdapter.REVIEW_BATCH_SIZE
     SCHEMA_VERSION = "context-v3"
-    PROMPT_VERSION = "context-archive-v7"
+    PROMPT_VERSION = "context-archive-v8"
     ACTIVE_STATUSES = ContextWorkflowStatusService.ACTIVE_STATUSES
 
     def __init__(
@@ -190,7 +198,7 @@ class ContextWorkflowService:
         effective_description_language = description_language or review_language
         parsed_files: tuple[ParsedSourceFile, ...] = ()
         processed_files = 0
-        analysis_run = None
+        analysis_run, usage_ledger = None, ContextModelUsageLedger()
         try:
             parsed_files = self.source_parser.parse_files(file_paths, source_root)
             snapshot = self.source_parser.build_snapshot(parsed_files, self.snapshot_service)
@@ -267,6 +275,7 @@ class ContextWorkflowService:
                 api_provider,
                 model_name,
                 effective_concurrency,
+                usage_ledger,
             )
             result = self._finish_scope(
                 project_id, task_id, scope, parsed_files, snapshot, diff, parent,
@@ -274,6 +283,7 @@ class ContextWorkflowService:
                 source_lang, target_lang, game_name, effective_description_language,
                 duplicate_index or {}, workflow_context, analysis_run, upstream_version,
                 analysis_config, chunk_config, effective_concurrency,
+                usage_ledger,
             )
             if analysis_run is not None:
                 self.analysis_checkpoints.mark_published(analysis_run)
@@ -311,6 +321,7 @@ class ContextWorkflowService:
         analysis_config: dict[str, Any] | None,
         chunk_config: dict[str, int],
         effective_concurrency: int,
+        usage_ledger: ContextModelUsageLedger,
     ) -> dict[str, Any]:
         review_miner = self.miner_factory(
             self.handler_factory(api_provider, model_name=model_name)
@@ -320,25 +331,31 @@ class ContextWorkflowService:
             source_lang, target_lang, game_name, description_language, task_id,
             snapshot.source_snapshot_hash, scope, workflow_context,
             analysis_run.run_id if analysis_run is not None else None,
+            usage_ledger,
         )
         if scope is AnalysisScope.TERMS_ONLY:
             return terms
         reconciled = self._reconcile_events(
             project_id, task_id, local_units, extractions, api_provider,
             model_name, description_language, analysis_run, effective_concurrency,
+            usage_ledger,
         )
         final_extractions = self._replace_local_events(extractions, reconciled)
-        result = self._finish_context(
-            project_id, parsed_files, snapshot, diff, parent, final_extractions,
-            api_provider, model_name, upstream_version, analysis_config,
-            description_language, chunk_config, task_id, effective_concurrency,
-        )
-        result["analysis_report"] = self._analysis_report(
+        analysis_report = self._analysis_report(
             source_items, local_units, chunks, extractions, reconciled,
             provider=api_provider, model=model_name,
             effective_concurrency=effective_concurrency,
             prompt_version=self.PROMPT_VERSION,
+            parsed_files=parsed_files,
+            model_execution=usage_ledger.summary(),
         )
+        result = self._finish_context(
+            project_id, parsed_files, snapshot, diff, parent, final_extractions,
+            api_provider, model_name, upstream_version, analysis_config,
+            description_language, chunk_config, task_id, effective_concurrency,
+            analysis_report, usage_ledger,
+        )
+        result["analysis_report"] = analysis_report
         result.update({
             "new_terms": terms["new_terms"],
             "duplicate_terms": terms["duplicate_terms"],
@@ -358,12 +375,14 @@ class ContextWorkflowService:
         api_provider: str,
         model_name: str | None,
         concurrency: int,
+        usage_ledger: ContextModelUsageLedger,
     ) -> list[StructuredNeologismExtraction]:
         return ContextExtractionExecutionService(
             handler_factory=self.handler_factory,
             miner_factory=self.miner_factory,
             checkpoints=self.analysis_checkpoints,
             status_service=self.status_service,
+            usage_ledger=usage_ledger,
         ).execute(
             chunks,
             scope=scope,
@@ -389,12 +408,14 @@ class ContextWorkflowService:
         description_language: str,
         analysis_run: Any | None,
         concurrency: int,
+        usage_ledger: ContextModelUsageLedger,
     ) -> EventReconciliationResult:
         return ContextEventReconciliationExecutionService(
             handler_factory=self.handler_factory,
             reconciler_factory=self.reconciler_factory,
             checkpoints=self.analysis_checkpoints,
             status_service=self.status_service,
+            usage_ledger=usage_ledger,
         ).execute(
             local_units,
             extractions,
@@ -459,6 +480,7 @@ class ContextWorkflowService:
         analysis_scope: AnalysisScope,
         analysis_config: dict[str, Any],
         run_id: str | None,
+        usage_ledger: ContextModelUsageLedger,
     ) -> dict[str, Any]:
         self.status_service.begin_stage(project_id, task_id, "reviewing", 0)
         review_miner = _ReviewProgressMiner(
@@ -466,6 +488,7 @@ class ContextWorkflowService:
             lambda batch_id, **details: self.status_service.record_batch(
                 project_id, task_id, "reviewing", batch_id, **details
             ),
+            usage_ledger,
         )
         result = self.candidate_adapter.process_terms(
             project_id, parsed_files, extractions, review_miner, duplicate_index,
@@ -501,6 +524,8 @@ class ContextWorkflowService:
         chunk_config: dict[str, int],
         task_id: str | None,
         concurrency: int,
+        analysis_report: dict[str, Any],
+        usage_ledger: ContextModelUsageLedger,
     ) -> dict[str, Any]:
         sources = self.release_assembler.persist_sources(
             project_id, parsed_files, snapshot.source_snapshot_hash,
@@ -540,9 +565,19 @@ class ContextWorkflowService:
         syntheses = self._synthesize_parallel(
             planned_synthesis_batches, contributions, sources, description_language,
             project_id, task_id, api_provider, model_name, concurrency,
+            usage_ledger,
         )
+        model_execution = usage_ledger.summary()
+        analysis_report["model_execution"] = model_execution
+        analysis_report["input_and_chunking"].update({
+            "reasoning_profile": model_execution.get("reasoning_profile"),
+            "token_usage": model_execution.get("token_usage"),
+            "cost": model_execution.get("cost"),
+            "usage_note": model_execution.get("usage_note"),
+        })
         metadata_config = dict(analysis_config or {})
         metadata_config["effective_concurrency"] = concurrency
+        metadata_config["analysis_report"] = analysis_report
         metadata = self.release_assembler.metadata(
             snapshot, parsed_files, diff, parent, api_provider, model_name,
             upstream_version, metadata_config, description_language, chunk_config,
@@ -589,19 +624,23 @@ class ContextWorkflowService:
         api_provider: str,
         model_name: str | None,
         concurrency: int,
+        usage_ledger: ContextModelUsageLedger,
     ) -> list[Any]:
         materialized = [list(batch) for batch in batches]
 
         def worker(batch: list[Any]) -> list[Any]:
             handler = self.handler_factory(api_provider, model_name=model_name)
             synthesizer = self.synthesizer_factory(handler)
-            return synthesizer.synthesize(
-                batch,
-                contributions,
-                sources,
-                description_language,
-                planned_batches=[batch],
-            )
+            try:
+                return synthesizer.synthesize(
+                    batch,
+                    contributions,
+                    sources,
+                    description_language,
+                    planned_batches=[batch],
+                )
+            finally:
+                usage_ledger.capture(handler, "synthesis")
 
         def record_completion(outcome: Any) -> None:
             source_ids = self.release_assembler.aggregate_source_ids(

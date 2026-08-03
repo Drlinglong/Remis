@@ -28,7 +28,7 @@ ACTIVE_TASK_STATUSES = {
 }
 TERMINAL_TASK_STATUSES = {"completed", "complete", "success", "failed", "partial_failed", "cancelled", "canceled", "interrupted"}
 _repository: Optional[TaskRepository] = None
-RESTART_INTERRUPTED_KINDS = {"neologism_mining"}
+RESTART_INTERRUPTED_KINDS = {"neologism_mining", "context_archive_analysis"}
 
 
 class DuplicateTaskError(RuntimeError):

@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from scripts.routers import neologism
 from scripts.schemas.neologism import ApproveNeologismRequest
+from scripts.schemas.neologism import MineNeologismsRequest
 
 
 def test_approval_requires_translation_unless_reusing_duplicate():
@@ -18,6 +19,19 @@ def test_approval_requires_translation_unless_reusing_duplicate():
         final_translation="",
     )
     assert payload.final_translation == ""
+
+
+def test_full_archive_task_identity_does_not_reuse_neologism_copy():
+    payload = MineNeologismsRequest(
+        project_id="project-1",
+        api_provider="openrouter",
+        analysis_scope="narrative_context",
+    )
+
+    kind, title = neologism._mining_task_identity(payload, {"name": "Horizon Signal"})
+
+    assert kind == "context_archive_analysis"
+    assert title == "Build project archive for Horizon Signal"
 
 
 @pytest.mark.asyncio
