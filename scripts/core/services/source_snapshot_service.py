@@ -78,22 +78,23 @@ def sha256_file(path: PathLike) -> str:
 class SourceItemIdentity:
     relative_path: str
     item_key: Optional[str] = None
-    source_order: Optional[int] = None
+    duplicate_key_ordinal: int = 0
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "relative_path", normalize_relative_path(self.relative_path))
         object.__setattr__(self, "item_key", normalize_source_key(self.item_key))
-        if self.source_order is not None and self.source_order < 0:
-            raise ValueError("Source order cannot be negative")
+        if self.duplicate_key_ordinal < 0:
+            raise ValueError("Duplicate key ordinal cannot be negative")
 
     @property
     def canonical(self) -> str:
         """A length-delimited identity safe for deterministic sorting/hashing."""
 
         key = self.item_key or ""
-        if self.source_order is None:
-            return f"{len(self.relative_path)}:{self.relative_path}:{len(key)}:{key}"
-        return f"{len(self.relative_path)}:{self.relative_path}:{len(key)}:{key}:{self.source_order}"
+        identity = f"{len(self.relative_path)}:{self.relative_path}:{len(key)}:{key}"
+        if self.duplicate_key_ordinal:
+            identity += f":{self.duplicate_key_ordinal}"
+        return identity
 
 
 @dataclass(frozen=True)
@@ -104,12 +105,17 @@ class SourceItemInput:
     source_text: Optional[Content] = None
     source_sha256: Optional[str] = None
     source_order: Optional[int] = None
+    duplicate_key_ordinal: Optional[int] = None
 
     def __post_init__(self) -> None:
         if self.source_text is None and self.source_sha256 is None:
             raise ValueError("Source item requires source_text or source_sha256")
         if self.source_text is not None and self.source_sha256 is not None:
             raise ValueError("Provide source_text or source_sha256, not both")
+        if self.source_order is not None and self.source_order < 0:
+            raise ValueError("Source order cannot be negative")
+        if self.duplicate_key_ordinal is not None and self.duplicate_key_ordinal < 0:
+            raise ValueError("Duplicate key ordinal cannot be negative")
 
 
 @dataclass(frozen=True)
@@ -143,6 +149,7 @@ class SourceFileInput:
 class SourceItemSnapshot:
     identity: SourceItemIdentity
     source_sha256: str
+    source_order: Optional[int] = None
 
 
 @dataclass(frozen=True)
@@ -285,20 +292,32 @@ class SourceSnapshotService:
 
     def _build_file_snapshot(self, file_input: SourceFileInput) -> SourceFileSnapshot:
         source_sha256, size = self._file_fingerprint(file_input)
-        items = tuple(
-            SourceItemSnapshot(
-                identity=SourceItemIdentity(
-                    file_input.relative_path, item.key, item.source_order
-                ),
-                source_sha256=self._item_fingerprint(item),
+        duplicate_ordinals: dict[Optional[str], int] = {}
+        item_snapshots: list[SourceItemSnapshot] = []
+        for item in file_input.items:
+            normalized_key = normalize_source_key(item.key)
+            ordinal = item.duplicate_key_ordinal
+            if ordinal is None:
+                ordinal = duplicate_ordinals.get(normalized_key, 0)
+            duplicate_ordinals[normalized_key] = max(
+                duplicate_ordinals.get(normalized_key, 0), ordinal + 1
             )
-            for item in file_input.items
-        )
+            item_snapshots.append(
+                SourceItemSnapshot(
+                    identity=SourceItemIdentity(
+                        file_input.relative_path,
+                        normalized_key,
+                        ordinal,
+                    ),
+                    source_sha256=self._item_fingerprint(item),
+                    source_order=item.source_order,
+                )
+            )
         return SourceFileSnapshot(
             relative_path=file_input.relative_path,
             source_sha256=source_sha256,
             size=size,
-            items=items,
+            items=tuple(item_snapshots),
         )
 
     @staticmethod
@@ -336,6 +355,7 @@ class SourceSnapshotService:
                     {
                         "identity": source_item.identity.canonical,
                         "sha256": source_item.source_sha256,
+                        "source_order": source_item.source_order,
                     }
                     for source_item in item.items
                 ],
@@ -383,8 +403,13 @@ class SourceSnapshotService:
 
     @staticmethod
     def _identity_sort_key(identity: SourceItemIdentity) -> tuple[str, str, int]:
-        return identity.relative_path, identity.item_key or "", identity.source_order or -1
+        return identity.relative_path, identity.item_key or "", identity.duplicate_key_ordinal
 
     @staticmethod
-    def _item_sort_key(item: SourceItemSnapshot) -> tuple[str, str, int]:
-        return SourceSnapshotService._identity_sort_key(item.identity)
+    def _item_sort_key(item: SourceItemSnapshot) -> tuple[str, int, str, int]:
+        return (
+            item.identity.relative_path,
+            item.source_order if item.source_order is not None else -1,
+            item.identity.item_key or "",
+            item.identity.duplicate_key_ordinal,
+        )

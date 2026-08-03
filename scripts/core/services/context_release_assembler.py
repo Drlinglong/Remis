@@ -8,13 +8,18 @@ from collections import defaultdict
 from typing import Any, Callable, Sequence
 
 from scripts.core.neologism_extraction import AnalysisScope, StructuredNeologismExtraction
+from scripts.core.context_local_units import LocalTextUnit
 from scripts.core.services.context_source_parser import ParsedSourceFile
 from scripts.core.services.source_snapshot_service import SourceChangeKind, SourceSnapshot
 from scripts.schemas.context import (
     ContextAggregate,
     ContextContribution,
     ContextRelease,
+    ContextReleaseFile,
+    ContextReleaseLocalUnit,
+    ContextReleaseManifest,
     ContextReleaseMetadata,
+    ContextReleaseSourceItem,
     ContextSourceItem,
 )
 
@@ -42,11 +47,19 @@ class ContextReleaseAssembler:
                         "relative_path": item.relative_path,
                         "item_key": item.item_key,
                         "source_order": item.source_order,
+                        "duplicate_key_ordinal": item.duplicate_key_ordinal,
                         "source_snapshot_hash": snapshot_hash,
                     },
                 )
                 existing = self.repository.get_source_item(source.source_item_id)
-                sources[source.source_item_id] = existing or self.repository.create_source_item(source)
+                if existing is None:
+                    current = self.repository.create_source_item(source)
+                elif existing.content_hash == source.content_hash:
+                    current = existing
+                else:
+                    updater = getattr(self.repository, "upsert_source_item", None)
+                    current = updater(source) if updater else source
+                sources[source.source_item_id] = current
         return sources
 
     def persist_contributions(
@@ -190,18 +203,45 @@ class ContextReleaseAssembler:
         prompt_version: str,
     ) -> ContextReleaseMetadata:
         config = dict(analysis_config or {})
+        source_ids = {
+            (
+                source_file.relative_path,
+                item.item_key,
+                item.duplicate_key_ordinal,
+                item.source_order,
+            ): item.source_item_id
+            for source_file in parsed_files
+            for item in source_file.items
+        }
         config.update({
             "reuse_strategy": "full_reextract",
             "description_language": description_language,
             "chunking": dict(chunk_config),
             "source_items": [
                 {
+                    "source_item_id": source_ids.get(
+                        (
+                            item.identity.relative_path,
+                            item.identity.item_key,
+                            item.identity.duplicate_key_ordinal,
+                            item.source_order,
+                        )
+                    ),
                     "relative_path": item.identity.relative_path,
                     "item_key": item.identity.item_key,
-                    "source_order": item.identity.source_order,
+                    "source_order": item.source_order,
+                    "duplicate_key_ordinal": item.identity.duplicate_key_ordinal,
                     "source_sha256": item.source_sha256,
                 }
                 for item in snapshot.items
+            ],
+            "source_files": [
+                {
+                    "relative_path": item.relative_path,
+                    "source_sha256": item.source_sha256,
+                    "size": item.size,
+                }
+                for item in snapshot.files
             ],
             "affected_source_items": cls.affected_items(diff),
         })
@@ -219,6 +259,82 @@ class ContextReleaseAssembler:
             parent_release_id=parent.release_id if parent else None,
             upstream_version=upstream_version,
         )
+
+    @classmethod
+    def build_manifest(
+        cls,
+        parsed_files: Sequence[ParsedSourceFile],
+        snapshot: SourceSnapshot,
+        local_units: Sequence[LocalTextUnit],
+    ) -> ContextReleaseManifest:
+        """Materialize the source/unit snapshot before publication."""
+
+        snapshot_items = {
+            (
+                item.identity.relative_path,
+                item.identity.item_key,
+                item.identity.duplicate_key_ordinal,
+                item.source_order,
+            ): item
+            for item in snapshot.items
+        }
+        source_items = []
+        for source_file in parsed_files:
+            for item in source_file.items:
+                snapshot_item = snapshot_items[
+                    (
+                        item.relative_path,
+                        item.item_key,
+                        item.duplicate_key_ordinal,
+                        item.source_order,
+                    )
+                ]
+                content_hash = hashlib.sha256(item.source_text.encode("utf-8")).hexdigest()
+                source_items.append(
+                    ContextReleaseSourceItem(
+                        source_item_id=item.source_item_id,
+                        source_revision_id=cls._source_revision_id(
+                            item.source_item_id, content_hash,
+                        ),
+                        relative_path=item.relative_path,
+                        item_key=item.item_key,
+                        duplicate_key_ordinal=item.duplicate_key_ordinal,
+                        source_order=item.source_order,
+                        source_ref=(
+                            f"{item.relative_path}::{item.source_order}:{item.item_key or ''}"
+                        ),
+                        content=item.source_text,
+                        content_hash=content_hash,
+                    )
+                )
+                if snapshot_item.source_sha256 != content_hash:
+                    raise ValueError("Release source item hash does not match its content")
+        return ContextReleaseManifest(
+            files=[
+                ContextReleaseFile(
+                    relative_path=item.relative_path,
+                    source_sha256=item.source_sha256,
+                    size=item.size,
+                )
+                for item in snapshot.files
+            ],
+            source_items=source_items,
+            local_units=[
+                ContextReleaseLocalUnit(
+                    local_unit_id=unit.unit_id,
+                    unit_key=unit.unit_key,
+                    unit_order=index,
+                    source_item_ids=[item.source_item_id for item in unit.items],
+                )
+                for index, unit in enumerate(local_units)
+            ],
+        )
+
+    @staticmethod
+    def _source_revision_id(source_item_id: str, content_hash: str) -> str:
+        return hashlib.sha256(
+            f"{source_item_id}\x00{content_hash}".encode("utf-8")
+        ).hexdigest()
 
     @staticmethod
     def affected_items(diff: Any) -> list[dict[str, str]]:

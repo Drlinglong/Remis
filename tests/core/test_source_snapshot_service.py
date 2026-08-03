@@ -2,6 +2,8 @@ import hashlib
 
 import pytest
 
+from scripts.core.context_local_units import ContextLocalUnitBuilder
+from scripts.core.services.context_release_assembler import ContextReleaseAssembler
 from scripts.core.services.source_snapshot_service import (
     SourceChangeKind,
     SourceFileInput,
@@ -10,6 +12,7 @@ from scripts.core.services.source_snapshot_service import (
     normalize_relative_path,
     sha256_bytes,
 )
+from scripts.core.services.context_source_parser import ContextSourceParser
 
 
 def file(path, content, *items):
@@ -107,3 +110,72 @@ def test_file_sha256_matches_existing_sha256_definition(tmp_path):
 
     assert snapshot.files[0].source_sha256 == hashlib.sha256(source.read_bytes()).hexdigest()
     assert sha256_bytes(source.read_bytes()) == snapshot.files[0].source_sha256
+
+
+def test_prepend_localization_entry_preserves_existing_logical_identities(tmp_path):
+    root = tmp_path / "mod"
+    path = root / "localisation" / "main.yml"
+    path.parent.mkdir(parents=True)
+    parser = ContextSourceParser()
+    path.write_text(
+        'l_english:\n old_key:0 "Old text"\n later_key:0 "Later text"\n',
+        encoding="utf-8",
+    )
+    previous = parser.parse_files([str(path)], str(root))[0]
+    path.write_text(
+        'l_english:\n new_key:0 "New text"\n old_key:0 "Old text"\n'
+        ' later_key:0 "Later text"\n',
+        encoding="utf-8",
+    )
+    current = parser.parse_files([str(path)], str(root))[0]
+
+    previous_ids = {item.item_key: item.source_item_id for item in previous.items}
+    current_ids = {item.item_key: item.source_item_id for item in current.items}
+    assert current_ids["old_key:0"] == previous_ids["old_key:0"]
+    assert current_ids["later_key:0"] == previous_ids["later_key:0"]
+    assert [item.source_order for item in current.items] == [0, 1, 2]
+    assert [item.item_key for item in current.items] == [
+        "new_key:0", "old_key:0", "later_key:0"
+    ]
+
+
+def test_duplicate_localization_keys_use_ordinal_in_logical_identity(tmp_path):
+    root = tmp_path / "mod"
+    path = root / "localisation" / "main.yml"
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        'l_english:\n repeated:0 "First"\n repeated:0 "Second"\n',
+        encoding="utf-8",
+    )
+
+    parsed = ContextSourceParser().parse_files([str(path)], str(root))[0]
+
+    assert [item.duplicate_key_ordinal for item in parsed.items] == [0, 1]
+    assert parsed.items[0].source_item_id != parsed.items[1].source_item_id
+
+
+def test_content_change_keeps_logical_identity_but_creates_new_revision(tmp_path):
+    root = tmp_path / "mod"
+    path = root / "localisation" / "main.yml"
+    path.parent.mkdir(parents=True)
+    parser = ContextSourceParser()
+    path.write_text('l_english:\n key:0 "Old text"\n', encoding="utf-8")
+    previous = parser.parse_files([str(path)], str(root))
+    previous_snapshot = parser.build_snapshot(previous)
+    previous_manifest = ContextReleaseAssembler(None).build_manifest(
+        previous,
+        previous_snapshot,
+        ContextLocalUnitBuilder.build(previous[0].items),
+    )
+    path.write_text('l_english:\n key:0 "New text"\n', encoding="utf-8")
+    current = parser.parse_files([str(path)], str(root))
+    current_snapshot = parser.build_snapshot(current)
+    current_manifest = ContextReleaseAssembler(None).build_manifest(
+        current,
+        current_snapshot,
+        ContextLocalUnitBuilder.build(current[0].items),
+    )
+
+    assert previous[0].items[0].source_item_id == current[0].items[0].source_item_id
+    assert previous_manifest.source_items[0].content_hash != current_manifest.source_items[0].content_hash
+    assert previous_manifest.source_items[0].source_revision_id != current_manifest.source_items[0].source_revision_id

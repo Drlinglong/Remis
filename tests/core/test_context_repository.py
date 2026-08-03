@@ -3,11 +3,14 @@ import sqlite3
 import pytest
 
 from scripts.core.context_service import ContextService
+from scripts.core.context_local_units import ContextLocalUnitBuilder
 from scripts.core.db_migrations import MAIN_DB_TARGET_VERSION, migrate_main_database
 from scripts.core.repositories.context_repository import (
     ContextRepository,
     ImmutableContextReleaseError,
 )
+from scripts.core.services.context_release_assembler import ContextReleaseAssembler
+from scripts.core.services.context_source_parser import ContextSourceParser
 from scripts.schemas.context import (
     ContextAggregate,
     ContextContribution,
@@ -151,11 +154,78 @@ def test_context_migration_creates_traceable_storage_and_provenance_checks(tmp_p
             "context_release_syntheses",
             "context_release_delivery_memberships",
             "context_release_overrides",
+            "context_release_files",
+            "context_release_source_items",
+            "context_release_local_units",
+            "context_release_local_unit_members",
         } <= tables
     assert repository.get_aggregate("aggregate-republic").contribution_ids == [
         "contribution-1",
         "contribution-2",
     ]
+
+
+def test_second_release_reuses_unchanged_source_items_without_manifest_loss(tmp_path):
+    repository, _ = _repository(tmp_path)
+    root = tmp_path / "mod"
+    path = root / "localisation" / "main.yml"
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        'l_english:\n first_key:0 "First sentence"\n'
+        ' second_key:0 "Second sentence"\n',
+        encoding="utf-8",
+    )
+
+    parser = ContextSourceParser()
+    parsed = parser.parse_files([str(path)], str(root))
+    snapshot = parser.build_snapshot(parsed)
+    assembler = ContextReleaseAssembler(repository)
+    first_sources = assembler.persist_sources(
+        "project-1", parsed, snapshot.source_snapshot_hash
+    )
+    first_manifest = assembler.build_manifest(
+        parsed, snapshot, ContextLocalUnitBuilder.build(parsed[0].items)
+    )
+    service = ContextService(repository)
+    first_draft = service.start_draft("project-1")
+    first = service.publish_draft(
+        first_draft.draft_id,
+        _metadata(source_hash=snapshot.source_snapshot_hash),
+        [],
+        [],
+        release_manifest=first_manifest,
+    )
+
+    second_sources = assembler.persist_sources(
+        "project-1", parsed, snapshot.source_snapshot_hash
+    )
+    second_manifest = assembler.build_manifest(
+        parsed, snapshot, ContextLocalUnitBuilder.build(parsed[0].items)
+    )
+    second_draft = service.start_draft("project-1", first.release_id)
+    second = service.publish_draft(
+        second_draft.draft_id,
+        _metadata(parent_release_id=first.release_id, source_hash=snapshot.source_snapshot_hash),
+        [],
+        [],
+        release_manifest=second_manifest,
+    )
+
+    assert set(first_sources) == set(second_sources)
+    assert {
+        source_id: source.source_item_id for source_id, source in first_sources.items()
+    } == {
+        source_id: source.source_item_id for source_id, source in second_sources.items()
+    }
+    assert repository.get_release_manifest(first.release_id) == first_manifest
+    assert repository.get_release_manifest(second.release_id) == second_manifest
+    assert repository.get_release_manifest(second.release_id).source_items == (
+        repository.get_release_manifest(first.release_id).source_items
+    )
+    assert repository.get_release_manifest(second.release_id).local_units == (
+        repository.get_release_manifest(first.release_id).local_units
+    )
+    assert len(repository.list_source_items("project-1")) == len(first_sources)
 
 
 def test_relationship_contributions_and_project_aggregates_are_first_class(tmp_path):

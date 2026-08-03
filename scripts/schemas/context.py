@@ -146,6 +146,53 @@ class ContextReleaseMetadata(BaseModel):
     _validate_analysis_config = field_validator("analysis_config")(_reject_credentials)
 
 
+class ContextReleaseFile(BaseModel):
+    """One source file captured by an immutable Context Release manifest."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    relative_path: str = Field(min_length=1)
+    source_sha256: str = Field(min_length=1)
+    size: int = Field(ge=0)
+
+
+class ContextReleaseSourceItem(BaseModel):
+    """One logical source item and its content revision in a release."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    source_item_id: str = Field(min_length=1)
+    source_revision_id: str = Field(min_length=1)
+    relative_path: str = Field(min_length=1)
+    item_key: str | None = None
+    duplicate_key_ordinal: int = Field(default=0, ge=0)
+    source_order: int | None = Field(default=None, ge=0)
+    source_ref: str = Field(min_length=1)
+    content: str
+    content_hash: str = Field(min_length=1)
+
+
+class ContextReleaseLocalUnit(BaseModel):
+    """A persisted local-unit grouping with ordered source-item members."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    local_unit_id: str = Field(min_length=1)
+    unit_key: str = Field(min_length=1)
+    unit_order: int = Field(ge=0)
+    source_item_ids: list[str] = Field(default_factory=list)
+
+
+class ContextReleaseManifest(BaseModel):
+    """Self-contained source and unit snapshot owned by one release."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    files: list[ContextReleaseFile] = Field(default_factory=list)
+    source_items: list[ContextReleaseSourceItem] = Field(default_factory=list)
+    local_units: list[ContextReleaseLocalUnit] = Field(default_factory=list)
+
+
 class ContextDraft(BaseModel):
     model_config = ConfigDict(frozen=True)
 

@@ -22,6 +22,10 @@ _RELEASE_DELETE_TRIGGERS = (
     "trg_context_release_syntheses_no_delete",
     "trg_context_release_delivery_no_delete",
     "trg_context_release_overrides_no_delete",
+    "trg_context_release_files_no_delete",
+    "trg_context_release_source_items_no_delete",
+    "trg_context_release_local_units_no_delete",
+    "trg_context_release_unit_members_no_delete",
 )
 
 
@@ -147,6 +151,10 @@ class ContextArchiveRepository:
         source_filter = "SELECT source_item_id FROM context_source_items WHERE project_id = ?"
         connection.execute("DELETE FROM context_drafts WHERE project_id = ?", (project_id,))
         for table in (
+            "context_release_local_unit_members",
+            "context_release_local_units",
+            "context_release_source_items",
+            "context_release_files",
             "context_release_overrides",
             "context_release_delivery_memberships",
             "context_release_syntheses",

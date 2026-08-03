@@ -3,13 +3,21 @@ from pathlib import Path
 import pytest
 
 from scripts.developer_tools.context_archive_benchmark import (
+    BenchmarkSourceItem,
     GoldAssignment,
     PredictedLink,
     UnitResult,
     _best_chain_mapping,
+    _release_local_units,
+    _release_source_items,
     _metrics,
     parse_gold,
     render_markdown,
+)
+from scripts.schemas.context import (
+    ContextReleaseLocalUnit,
+    ContextReleaseManifest,
+    ContextReleaseSourceItem,
 )
 
 
@@ -99,6 +107,79 @@ def test_render_markdown_keeps_gold_prediction_and_editable_review_fields():
     assert "Human verdict: `未审核`" in report
     assert "unit_0: text" not in report
     assert "text" in report
+
+
+def test_historical_benchmark_uses_persisted_unit_manifest_after_builder_change(
+    monkeypatch,
+):
+    manifest_source_items = [
+        ContextReleaseSourceItem(
+            source_item_id="source-1",
+            source_revision_id="revision-source-1",
+            relative_path="localisation/main.yml",
+            item_key="first",
+            source_order=0,
+            source_ref="localisation/main.yml::0",
+            content="Persisted first",
+            content_hash="hash-source-1",
+        ),
+        ContextReleaseSourceItem(
+            source_item_id="source-2",
+            source_revision_id="revision-source-2",
+            relative_path="localisation/main.yml",
+            item_key="second",
+            source_order=1,
+            source_ref="localisation/main.yml::1",
+            content="Persisted second",
+            content_hash="hash-source-2",
+        ),
+    ]
+    manifest = ContextReleaseManifest(
+        source_items=manifest_source_items,
+        local_units=[
+            ContextReleaseLocalUnit(
+                local_unit_id="persisted-unit",
+                unit_key="persisted-key",
+                unit_order=0,
+                source_item_ids=["source-2", "source-1"],
+            )
+        ],
+    )
+
+    def fail_if_builder_runs(_items):
+        pytest.fail("historical benchmark rebuilt a persisted local-unit manifest")
+
+    monkeypatch.setattr(
+        "scripts.developer_tools.context_archive_benchmark.ContextLocalUnitBuilder.build",
+        fail_if_builder_runs,
+    )
+
+    class ManifestOnlyRepository:
+        def get_release_manifest(self, _release_id):
+            return manifest
+
+        def list_source_items(self, _project_id):
+            pytest.fail("historical benchmark consulted mutable project source rows")
+
+    release = type(
+        "Release",
+        (),
+        {
+            "release_id": "release-1",
+            "project_id": "project-1",
+            "metadata": type("Metadata", (), {"analysis_config": {}})(),
+        },
+    )()
+    source_items = _release_source_items(ManifestOnlyRepository(), release)
+    units = _release_local_units(source_items, manifest)
+
+    assert [unit.unit_id for unit in units] == ["persisted-unit"]
+    assert [item.content for item in source_items] == [
+        "Persisted first", "Persisted second"
+    ]
+    assert [item.source_item_id for item in units[0].items] == [
+        "source-2", "source-1"
+    ]
 
 
 def _result(unit_id: str, gold_chain: str, predicted_chain: str) -> UnitResult:

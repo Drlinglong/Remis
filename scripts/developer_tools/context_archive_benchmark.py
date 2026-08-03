@@ -120,19 +120,60 @@ def _unit_number(unit_id: str) -> int:
 
 
 def _release_source_items(
-    repository: ContextRepository, release: Any
+    repository: ContextRepository,
+    release: Any,
+    manifest: Any | None = None,
 ) -> list[BenchmarkSourceItem]:
-    snapshot = release.metadata.source_snapshot_hash
+    manifest = manifest if manifest is not None else repository.get_release_manifest(release.release_id)
+    if manifest is not None:
+        source_items = [
+            BenchmarkSourceItem(
+                source_item_id=item.source_item_id,
+                relative_path=item.relative_path,
+                item_key=item.item_key or "",
+                source_order=item.source_order if item.source_order is not None else 0,
+                content=item.content,
+            )
+            for item in manifest.source_items
+        ]
+        source_items.sort(
+            key=lambda item: (
+                item.relative_path.casefold(),
+                item.source_order,
+                item.item_key.casefold(),
+            )
+        )
+        return source_items
+
+    audit_items = release.metadata.analysis_config.get("source_items", [])
+    if not isinstance(audit_items, list) or not audit_items:
+        raise ValueError(
+            "Context Release has no persisted source manifest; run the release manifest migration"
+        )
+    project_items = repository.list_source_items(release.project_id)
     source_items = [
         BenchmarkSourceItem(
-            source_item_id=item.source_item_id,
-            relative_path=str(item.metadata.get("relative_path") or ""),
-            item_key=str(item.metadata.get("item_key") or ""),
-            source_order=int(item.metadata.get("source_order") or 0),
-            content=item.content,
+            source_item_id=source.source_item_id,
+            relative_path=str(audit.get("relative_path") or ""),
+            item_key=str(audit.get("item_key") or ""),
+            source_order=int(audit.get("source_order") or 0),
+            content=source.content,
         )
-        for item in repository.list_source_items(release.project_id)
-        if item.metadata.get("source_snapshot_hash") == snapshot
+        for audit in audit_items
+        for source in project_items
+        if (
+            source.source_item_id == audit.get("source_item_id")
+            and (
+                not audit.get("source_sha256")
+                or source.content_hash == audit.get("source_sha256")
+            )
+        )
+        or (
+            source.metadata.get("relative_path") == audit.get("relative_path")
+            and source.metadata.get("item_key") == audit.get("item_key")
+            and source.metadata.get("source_order") == audit.get("source_order")
+            and source.content_hash == audit.get("source_sha256")
+        )
     ]
     source_items.sort(
         key=lambda item: (
@@ -152,6 +193,22 @@ def _release_source_items(
             f"expected={expected}, reconstructed={len(source_items)}"
         )
     return source_items
+
+
+def _release_local_units(
+    source_items: list[BenchmarkSourceItem], manifest: Any | None,
+) -> tuple[LocalTextUnit, ...]:
+    if manifest is None:
+        return ContextLocalUnitBuilder.build(source_items)
+    by_source_id = {item.source_item_id: item for item in source_items}
+    return tuple(
+        LocalTextUnit(
+            unit_id=unit.local_unit_id,
+            unit_key=unit.unit_key,
+            items=tuple(by_source_id[source_id] for source_id in unit.source_item_ids),
+        )
+        for unit in sorted(manifest.local_units, key=lambda item: item.unit_order)
+    )
 
 
 def _membership_links(
@@ -336,8 +393,9 @@ def build_snapshot(
     release = repository.get_release(release_id)
     if release is None:
         raise ValueError(f"Unknown Context Release: {release_id}")
-    source_items = _release_source_items(repository, release)
-    units = ContextLocalUnitBuilder.build(source_items)
+    manifest = repository.get_release_manifest(release_id)
+    source_items = _release_source_items(repository, release, manifest)
+    units = _release_local_units(source_items, manifest)
     note_overrides = note_overrides or {}
     gold = parse_gold(gold_path, relation_overrides, note_overrides)
     if len(units) != len(gold):

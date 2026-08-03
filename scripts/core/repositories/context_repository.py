@@ -17,11 +17,19 @@ from scripts.core.repositories.context_delivery_membership_repository import (
     list_memberships,
     validate_memberships,
 )
+from scripts.core.repositories.context_release_manifest_repository import (
+    insert_release_manifest,
+    load_release_manifest,
+    load_release_traceability_source,
+    upsert_source_item as persist_source_item,
+    validate_release_manifest,
+)
 from scripts.schemas.context import (
     ContextAggregate,
     ContextContribution,
     ContextDeliveryMembership,
     ContextDraft,
+    ContextReleaseManifest,
     ContextRelease,
     ContextReleaseMetadata,
     ContextSourceItem,
@@ -172,6 +180,9 @@ class ContextRepository:
             connection.commit()
         return item
 
+    def upsert_source_item(self, item: ContextSourceItem) -> ContextSourceItem:
+        with self._lock, self._connect() as connection: persist_source_item(connection, item)
+        return item
     def get_source_item(self, source_item_id: str) -> ContextSourceItem | None:
         with self._lock, self._connect() as connection:
             row = connection.execute(
@@ -430,6 +441,7 @@ class ContextRepository:
         aggregate_ids: Iterable[str],
         syntheses: Iterable[GeneratedSynthesis],
         delivery_memberships: Iterable[ContextDeliveryMembership] = (),
+        release_manifest: ContextReleaseManifest | None = None,
     ) -> ContextRelease:
         aggregates = list(dict.fromkeys(aggregate_ids))
         generated = list(syntheses)
@@ -457,6 +469,9 @@ class ContextRepository:
             self._snapshot_aggregates(connection, release_id, aggregates, draft["project_id"])
             self._insert_syntheses(connection, release_id, generated)
             insert_memberships(connection, release_id, membership_values)
+            if release_manifest is not None:
+                validate_release_manifest(connection, release_manifest, draft["project_id"])
+                insert_release_manifest(connection, release_id, release_manifest)
             self._copy_draft_overrides(connection, draft_id, release_id)
             connection.execute(
                 "UPDATE context_drafts SET status = 'published', updated_at = ? WHERE draft_id = ?",
@@ -611,6 +626,9 @@ class ContextRepository:
             ).fetchone()
         return self._release_from_row(row) if row else None
 
+    def get_release_manifest(self, release_id: str) -> ContextReleaseManifest | None:
+        with self._lock, self._connect() as connection: return load_release_manifest(connection, release_id)
+
     def list_releases(self, project_id: str) -> list[ContextRelease]:
         with self._lock, self._connect() as connection:
             rows = connection.execute(
@@ -671,25 +689,20 @@ class ContextRepository:
                 contributions = []
                 for contribution_id in contribution_ids:
                     row = connection.execute(
-                        """
-                        SELECT contribution.*, source.source_item_id AS joined_source_item_id,
-                               source.project_id AS source_project_id,
-                               source.source_type, source.source_ref, source.content,
-                               source.content_hash, source.metadata_json AS source_metadata_json,
-                               source.created_at AS source_created_at
-                        FROM context_contributions AS contribution
-                        JOIN context_source_items AS source
-                          ON source.source_item_id = contribution.source_item_id
-                        WHERE contribution.contribution_id = ?
-                        """,
+                        "SELECT * FROM context_contributions WHERE contribution_id = ?",
                         (contribution_id,),
                     ).fetchone()
                     if row is None:
                         continue
+                    source = load_release_traceability_source(
+                        connection, release_id, row["source_item_id"]
+                    )
+                    if source is None:
+                        continue
                     contributions.append(
                         {
                             "contribution": self._contribution_from_row(row).model_dump(),
-                            "source_item": self._source_from_joined_row(row).model_dump(),
+                            "source_item": source.model_dump(),
                         }
                     )
                 synthesis_rows = connection.execute(
@@ -728,19 +741,6 @@ class ContextRepository:
     def list_release_delivery_memberships(self, release_id: str) -> list[dict[str, Any]]:
         with self._lock, self._connect() as connection:
             return list_memberships(connection, release_id)
-
-    @classmethod
-    def _source_from_joined_row(cls, row: sqlite3.Row) -> ContextSourceItem:
-        return ContextSourceItem(
-            source_item_id=row["joined_source_item_id"],
-            project_id=row["source_project_id"],
-            source_type=row["source_type"],
-            source_ref=row["source_ref"],
-            content=row["content"],
-            content_hash=row["content_hash"],
-            metadata=cls._decode(row["source_metadata_json"], {}),
-            created_at=row["source_created_at"],
-        )
 
     def update_release(self, release_id: str, **changes: Any) -> None:
         del release_id, changes

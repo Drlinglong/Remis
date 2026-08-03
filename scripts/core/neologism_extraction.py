@@ -53,6 +53,7 @@ class SourceItem(BaseModel):
     relative_path: str = Field(min_length=1, max_length=500)
     item_key: Optional[str] = Field(default=None, max_length=300)
     source_order: Optional[int] = Field(default=None, ge=0)
+    duplicate_key_ordinal: int = Field(default=0, ge=0)
     source_text: str = Field(min_length=1, max_length=20000)
     provenance: Literal["text_inferred"] = "text_inferred"
 

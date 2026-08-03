@@ -38,6 +38,7 @@ class ParsedSourceFile:
                 SourceItemInput(
                     key=item.item_key,
                     source_order=item.source_order,
+                    duplicate_key_ordinal=item.duplicate_key_ordinal,
                     source_text=item.source_text,
                 )
                 for item in self.items
@@ -84,11 +85,20 @@ class ContextSourceParser:
                     )
             else:
                 parse_summary = self._simple_parse_summary(raw_items)
-        items = tuple(
-            self._source_item(relative_path, order, key, value)
-            for order, (key, value) in enumerate(raw_items)
-            if str(value).strip()
-        )
+        duplicate_ordinals: dict[str | None, int] = {}
+        parsed_items: list[SourceItem] = []
+        for order, (key, value) in enumerate(raw_items):
+            if not str(value).strip():
+                continue
+            normalized_key = str(key).strip() if key else None
+            ordinal = duplicate_ordinals.get(normalized_key, 0)
+            duplicate_ordinals[normalized_key] = ordinal + 1
+            parsed_items.append(
+                self._source_item(
+                    relative_path, order, normalized_key, value, ordinal,
+                )
+            )
+        items = tuple(parsed_items)
         if len(items) != parse_summary["eligible"]:
             raise ValueError(
                 "Context source integrity failed: eligible entry count "
@@ -127,11 +137,15 @@ class ContextSourceParser:
 
     @staticmethod
     def _source_item(
-        relative_path: str, source_order: int, item_key: str | None, source_text: str
+        relative_path: str,
+        source_order: int,
+        item_key: str | None,
+        source_text: str,
+        duplicate_key_ordinal: int,
     ) -> SourceItem:
         normalized_key = str(item_key).strip() if item_key else None
         identity = json.dumps(
-            [relative_path, normalized_key, source_order, source_text],
+            [relative_path, normalized_key, duplicate_key_ordinal],
             ensure_ascii=False,
             separators=(",", ":"),
         ).encode("utf-8")
@@ -140,6 +154,7 @@ class ContextSourceParser:
             relative_path=relative_path,
             item_key=normalized_key,
             source_order=source_order,
+            duplicate_key_ordinal=duplicate_key_ordinal,
             source_text=source_text,
             provenance="text_inferred",
         )

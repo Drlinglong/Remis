@@ -8,6 +8,7 @@ from scripts.core.repositories.context_repository import ContextRepository
 from scripts.schemas.context import (
     ContextDraft,
     ContextDeliveryMembership,
+    ContextReleaseManifest,
     ContextRelease,
     ContextReleaseMetadata,
     EffectiveContext,
@@ -43,6 +44,7 @@ class ContextService:
         aggregate_ids: Iterable[str],
         generated_syntheses: Iterable[GeneratedSynthesis],
         delivery_memberships: Iterable[ContextDeliveryMembership] = (),
+        release_manifest: ContextReleaseManifest | None = None,
     ) -> ContextRelease:
         """Create a new immutable release from current aggregate snapshots and draft edits."""
         return self.repository.publish_draft(
@@ -51,6 +53,7 @@ class ContextService:
             aggregate_ids,
             generated_syntheses,
             delivery_memberships,
+            release_manifest,
         )
 
     def effective_context(self, release_id: str) -> EffectiveContext | None:

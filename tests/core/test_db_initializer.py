@@ -1,4 +1,5 @@
 import os
+import json
 import sqlite3
 
 import pytest
@@ -95,6 +96,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (15, "add_context_analysis_batch_storage"),
         (16, "add_context_delivery_memberships"),
         (17, "add_context_aggregation_phase"),
+        (18, "add_context_release_manifests"),
     ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
@@ -359,6 +361,7 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
         (15,),
         (16,),
         (17,),
+        (18,),
     ]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")
@@ -521,6 +524,109 @@ def test_existing_v14_database_adds_context_delivery_memberships(tmp_path):
             "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' "
             "AND name LIKE 'trg_context_release_delivery_%'"
         ).fetchone()[0] == 2
+
+
+def test_existing_v16_database_hydrates_persisted_release_manifest(tmp_path):
+    db_path = tmp_path / "context-manifest-upgrade.sqlite"
+    migrate_main_database(str(db_path))
+    relative_path = "localisation/main.yml"
+    content_hash = "hash-legacy"
+    source_metadata = {
+        "relative_path": relative_path,
+        "item_key": "legacy_key:0",
+        "source_order": 0,
+        "source_snapshot_hash": "legacy-snapshot",
+    }
+    analysis_config = {
+        "source_items": [
+            {
+                "relative_path": relative_path,
+                "item_key": "legacy_key:0",
+                "source_order": 0,
+                "source_sha256": content_hash,
+            }
+        ]
+    }
+    with sqlite3.connect(db_path) as connection:
+        for table in (
+            "context_release_local_unit_members",
+            "context_release_local_units",
+            "context_release_source_items",
+            "context_release_files",
+        ):
+            connection.execute(f"DROP TABLE {table}")
+        connection.execute(
+            "DELETE FROM schema_migrations WHERE version = 18"
+        )
+        connection.execute(
+            """
+            INSERT INTO projects
+                (project_id, name, game_id, source_path, source_language, status)
+            VALUES ('legacy-project', 'Legacy Context', 'vic3', '/legacy', 'english', 'active')
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO context_source_items
+                (source_item_id, project_id, source_type, source_ref, content,
+                 content_hash, metadata_json, created_at)
+            VALUES (?, 'legacy-project', 'localization', ?, ?, ?, ?, '2026-01-01T00:00:00+00:00')
+            """,
+            (
+                "legacy-source",
+                f"{relative_path}::0:legacy_key:0",
+                "Legacy text",
+                content_hash,
+                json.dumps(source_metadata),
+            ),
+        )
+        connection.execute(
+            """
+            INSERT INTO context_releases
+                (release_id, project_id, source_snapshot_hash, analysis_scope_json,
+                 schema_version, prompt_version, provider_id, model_id,
+                 analysis_config_json, created_at, parent_release_id, upstream_version)
+            VALUES (?, 'legacy-project', 'legacy-snapshot', ?, 'context-v1', 'prompt-v1',
+                    'local', 'local-model', ?, '2026-01-01T00:00:00+00:00', NULL, NULL)
+            """,
+            (
+                "legacy-release",
+                json.dumps({"files": [relative_path]}),
+                json.dumps(analysis_config),
+            ),
+        )
+
+    assert migrate_main_database(str(db_path)) == MAIN_DB_TARGET_VERSION
+
+    with sqlite3.connect(db_path) as connection:
+        tables = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            )
+        }
+        assert {
+            "context_release_files",
+            "context_release_source_items",
+            "context_release_local_units",
+            "context_release_local_unit_members",
+        } <= tables
+        assert connection.execute(
+            "SELECT COUNT(*) FROM context_release_source_items "
+            "WHERE release_id = 'legacy-release'"
+        ).fetchone()[0] == 1
+        assert connection.execute(
+            "SELECT COUNT(*) FROM context_release_local_unit_members "
+            "WHERE release_id = 'legacy-release'"
+        ).fetchone()[0] == 1
+
+    from scripts.core.repositories.context_repository import ContextRepository
+
+    manifest = ContextRepository(str(db_path)).get_release_manifest("legacy-release")
+    assert manifest is not None
+    assert manifest.source_items[0].source_item_id == "legacy-source"
+    assert manifest.source_items[0].content == "Legacy text"
+    assert manifest.local_units[0].source_item_ids == ["legacy-source"]
 
 
 def test_status_contract_triggers_reject_unknown_values(tmp_path):

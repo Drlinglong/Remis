@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from typing import Any, Callable, Sequence
 
 from scripts.core.api_handler import get_handler
@@ -47,11 +48,10 @@ from scripts.core.services.context_parallel_execution_service import (
 from scripts.core.services.context_model_usage import ContextModelUsageLedger
 from scripts.core.services.context_release_assembler import ContextReleaseAssembler
 from scripts.core.services.context_source_parser import ContextSourceParser, ParsedSourceFile
+from scripts.core.services.context_source_diff import build_context_source_diff
 from scripts.core.services.context_synthesis_service import ContextSynthesisService
 from scripts.core.services.context_workflow_status_service import ContextWorkflowStatusService
 from scripts.core.services.source_snapshot_service import (
-    SourceItemIdentity,
-    SourceItemSnapshot,
     SourceSnapshot,
     SourceSnapshotService,
 )
@@ -336,7 +336,7 @@ class ContextWorkflowService:
             terms["candidate_governance"] = governance.counts()
             return terms
         result = self._finish_context(
-            project_id, parsed_files, snapshot, diff, parent, final_extractions,
+            project_id, parsed_files, snapshot, diff, parent, local_units, final_extractions,
             api_provider, model_name, upstream_version, analysis_config,
             description_language, chunk_config, task_id, effective_concurrency,
             analysis_report, governance, usage_ledger,
@@ -458,6 +458,7 @@ class ContextWorkflowService:
         snapshot: SourceSnapshot,
         diff: Any,
         parent: ContextRelease | None,
+        local_units: Sequence[Any],
         extractions: Sequence[StructuredNeologismExtraction],
         api_provider: str,
         model_name: str | None,
@@ -543,12 +544,10 @@ class ContextWorkflowService:
         self.status_service.begin_stage(project_id, task_id, "publishing", 1, source_item_ids=source_item_ids)
         draft = self.context_service.start_draft(project_id, parent.release_id if parent else None)
         try:
-            release = self.context_service.publish_draft(
-                draft.draft_id,
-                metadata,
-                [item.aggregate_id for item in aggregates],
-                syntheses,
+            release = self._publish_context_release(
+                draft.draft_id, metadata, aggregates, syntheses,
                 delivery_memberships,
+                self.release_assembler.build_manifest(parsed_files, snapshot, local_units),
             )
         except Exception as exc:
             self.status_service.record_batch(
@@ -570,6 +569,34 @@ class ContextWorkflowService:
             "delivery_membership_count": len(delivery_memberships),
             "candidate_governance": governance.counts(),
         }
+
+    def _publish_context_release(
+        self,
+        draft_id: str,
+        metadata: Any,
+        aggregates: Sequence[Any],
+        syntheses: Sequence[Any],
+        delivery_memberships: Sequence[Any],
+        release_manifest: Any,
+    ) -> Any:
+        publish_parameters = inspect.signature(
+            self.context_service.publish_draft,
+        ).parameters
+        synthesis_key = (
+            "generated_syntheses"
+            if "generated_syntheses" in publish_parameters
+            else "syntheses"
+        )
+        publish_arguments: dict[str, Any] = {
+            "draft_id": draft_id,
+            "metadata": metadata,
+            "aggregate_ids": [item.aggregate_id for item in aggregates],
+            synthesis_key: syntheses,
+            "delivery_memberships": delivery_memberships,
+        }
+        if "release_manifest" in publish_parameters:
+            publish_arguments["release_manifest"] = release_manifest
+        return self.context_service.publish_draft(**publish_arguments)
 
     def _synthesize_parallel(
         self,
@@ -623,21 +650,8 @@ class ContextWorkflowService:
             raise errors[0]
         return [item for outcome in outcomes for item in (outcome.value or [])]
 
-    @staticmethod
-    def _source_diff(parent: ContextRelease | None, current: SourceSnapshot) -> Any:
-        if not parent:
-            return current.diff(None)
-        previous_items = tuple(
-            SourceItemSnapshot(
-                identity=SourceItemIdentity(
-                    item["relative_path"], item.get("item_key"), item.get("source_order")
-                ),
-                source_sha256=item["source_sha256"],
-            )
-            for item in parent.metadata.analysis_config.get("source_items", [])
-        )
-        previous = SourceSnapshot(files=(), source_snapshot_hash=parent.metadata.source_snapshot_hash, items=previous_items)
-        return current.diff(previous)
+    def _source_diff(self, parent: ContextRelease | None, current: SourceSnapshot) -> Any:
+        return build_context_source_diff(self.repository, parent, current)
 
     @staticmethod
     def _affected_items(diff: Any) -> list[dict[str, str]]:
