@@ -42,7 +42,6 @@
     "scripts/routers/tools.py::deploy_mod": 228,
     "scripts/routers/translation.py::run_translation_workflow_v2": 196,
     "scripts/run_dev_servers.py::run_servers": 155,
-    "scripts/utils/quote_extractor.py::QuoteExtractor.extract_from_file": 195,
     "scripts/workflows/initial_translate.py::run": 131,
     "scripts/workflows/update_translate.py::run_incremental_update": 444
   },
@@ -56,7 +55,6 @@
     "scripts/routers/tools.py::deploy_mod": 21,
     "scripts/routers/translation.py::run_translation_workflow_v2": 21,
     "scripts/run_dev_servers.py::run_servers": 28,
-    "scripts/utils/quote_extractor.py::QuoteExtractor.extract_from_file": 37,
     "scripts/utils/system_utils.py::force_free_port": 23,
     "scripts/workflows/update_translate.py::run_incremental_update": 27
   }

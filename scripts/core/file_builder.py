@@ -1,6 +1,77 @@
 import re
 import logging
 
+from scripts.core.paradox_localization_parser import LocalizationEntry, patch_lines
+
+
+def _patch_canonical_spans(
+    original_lines: list[str],
+    translated_texts: list[str],
+    key_map: dict[int, dict],
+) -> list[str] | None:
+    replacements: list[tuple[LocalizationEntry, str]] = []
+    for index, translated_text in enumerate(translated_texts):
+        line_info = key_map.get(index)
+        entry = line_info.get("entry") if isinstance(line_info, dict) else None
+        if not isinstance(entry, LocalizationEntry):
+            return None
+        replacements.append((entry, str(translated_text)))
+    return patch_lines(original_lines, replacements)
+
+
+def _patch_legacy_lines(
+    original_lines: list[str],
+    texts_to_translate: list[str],
+    translated_texts: list[str],
+    key_map: dict[int, dict],
+) -> list[str]:
+    """Keep the public adapter usable for custom hooks with old key maps."""
+
+    new_lines = list(original_lines)
+    for index, original_text in enumerate(texts_to_translate):
+        if index >= len(translated_texts) or index not in key_map:
+            break
+        line_info = key_map[index]
+        line_num = line_info["line_num"]
+        key_part = line_info["key_part"]
+        original_line = original_lines[line_num]
+        key_pos = original_line.find(key_part)
+        first_quote = original_line.find('"', key_pos + len(key_part))
+        if key_pos < 0 or first_quote < 0:
+            logging.warning("Could not locate localization span for '%s'", key_part)
+            continue
+        closing_quote = original_line.rfind('"')
+        if closing_quote <= first_quote:
+            logging.warning("Could not locate closing quote for '%s'", key_part)
+            continue
+        safe_value = str(translated_texts[index]).replace('"', r'\"')
+        new_lines[line_num] = (
+            original_line[: first_quote + 1]
+            + safe_value
+            + original_line[closing_quote:]
+        )
+    return new_lines
+
+
+def _replace_language_header(lines: list[str], target_lang_key: str) -> list[str]:
+    header_pattern = re.compile(r"^\s*l_[\w-]+:\s*")
+    first_header_index = -1
+    duplicate_indices: list[int] = []
+    for index, line in enumerate(lines):
+        if not header_pattern.match(line):
+            continue
+        if first_header_index < 0:
+            first_header_index = index
+        else:
+            duplicate_indices.append(index)
+    for index in reversed(duplicate_indices):
+        lines.pop(index)
+    if first_header_index >= 0:
+        lines[first_header_index] = f"{target_lang_key}:\n"
+    else:
+        lines.insert(0, f"{target_lang_key}:\n")
+    return lines
+
 def patch_file_content(
     original_lines: list[str],
     texts_to_translate: list[str],
@@ -14,96 +85,13 @@ def patch_file_content(
     Preserves comments, indentation, and structure.
     Replaces the language header.
     """
-    new_lines = list(original_lines)
-
-    for i, original_text in enumerate(texts_to_translate):
-        if i >= len(translated_texts):
-            break
-            
-        translated_text = translated_texts[i]
-        line_info = key_map[i]
-        line_num = line_info["line_num"]
-        key_part = line_info["key_part"]
-        
-        original_line_content = original_lines[line_num]
-        
-        # 1. Find key position
-        key_pos = original_line_content.find(key_part)
-        if key_pos == -1:
-            logging.warning(f"Could not find key '{key_part}' in line {line_num}: {original_line_content.strip()}")
-            continue
-            
-        # 2. Find the first quote after the key
-        search_start_pos = key_pos + len(key_part)
-        first_quote_pos = original_line_content.find('"', search_start_pos)
-        
-        if first_quote_pos == -1:
-             logging.warning(f"Could not find opening quote in line {line_num}: {original_line_content.strip()}")
-             continue
-             
-        # 3. Find the last quote and real comment position
-        # We need to iterate to find the first # that is NOT inside quotes
-        comment_pos = -1
-        in_quotes = False
-        escape_next = False
-        
-        # We start from the key position to be safe
-        for idx in range(key_pos, len(original_line_content)):
-            char = original_line_content[idx]
-            if escape_next:
-                escape_next = False
-                continue
-            if char == '\\':
-                escape_next = True
-                continue
-            if char == '"':
-                in_quotes = not in_quotes
-            elif char == '#' and not in_quotes:
-                comment_pos = idx
-                break
-        
-        search_end_pos = comment_pos if comment_pos != -1 else len(original_line_content)
-        last_quote_pos = original_line_content.rfind('"', first_quote_pos + 1, search_end_pos)
-        
-        if last_quote_pos == -1:
-            logging.warning(f"Could not find closing quote (ignoring tags) in line {line_num}: {original_line_content.strip()}")
-            continue
-            
-        # 4. Replace content between quotes
-        # Escape the new value for quotes
-        safe_translated_text = translated_text.replace('"', r'\"')
-        prefix = original_line_content[:first_quote_pos + 1]
-        suffix = original_line_content[last_quote_pos:]
-        new_lines[line_num] = f"{prefix}{safe_translated_text}{suffix}"
-
-    # --- Replace the language header ---
-    # Robustly find any language header (e.g. l_english:, l_simp_chinese:, l_zh-CN:)
-    # We look for lines starting with l_ followed by word chars and maybe hyphens, ending with colon
-    header_pattern = re.compile(r"^\s*l_[\w-]+:\s*")
-    
-    first_header_index = -1
-    indices_to_remove = []
-    
-    for i, line in enumerate(new_lines):
-        if header_pattern.match(line):
-            if first_header_index == -1:
-                first_header_index = i
-            else:
-                # Found a duplicate header, mark for removal
-                indices_to_remove.append(i)
-    
-    # Remove duplicate headers (in reverse order to keep indices valid)
-    for i in reversed(indices_to_remove):
-        new_lines.pop(i)
-        
-    # Replace or Insert the correct header
-    if first_header_index != -1:
-        new_lines[first_header_index] = f"{target_lang_key}:\n"
-    else:
-        # No header found, insert at top
-        new_lines.insert(0, f"{target_lang_key}:\n")
-        
-    return new_lines
+    canonical_lines = _patch_canonical_spans(
+        original_lines, translated_texts, key_map
+    )
+    new_lines = canonical_lines or _patch_legacy_lines(
+        original_lines, texts_to_translate, translated_texts, key_map
+    )
+    return _replace_language_header(new_lines, target_lang_key)
 
 def rebuild_and_write_file(
     original_lines: list[str],

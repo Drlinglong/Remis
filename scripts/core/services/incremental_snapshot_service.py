@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from scripts.core.loc_parser import parse_loc_file_with_lines
+from scripts.core.loc_parser import parse_loc_file_report
 from scripts.utils import read_text_bom
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,14 @@ class IncrementalSnapshotService:
 
                 full_path = Path(os.path.join(root, file_name))
                 try:
-                    parsed_entries = parse_loc_file_with_lines(full_path)
+                    report = parse_loc_file_report(full_path)
+                    if report.diagnostics:
+                        raise ValueError(
+                            "Canonical localization parse errors: "
+                            + ", ".join(d.code for d in report.diagnostics)
+                        )
+                    canonical_entries = report.eligible_entries
+                    parsed_entries = [entry.as_legacy_tuple() for entry in canonical_entries]
                     if not parsed_entries:
                         continue
 
@@ -73,6 +80,8 @@ class IncrementalSnapshotService:
                         "root": root,
                         "original_lines": original_lines,
                         "parsed_entries": parsed_entries,
+                        "canonical_entries": canonical_entries,
+                        "parse_summary": report.summary,
                     })
                 except Exception as e:
                     logger.error(f"Failed to parse {full_path}: {e}")

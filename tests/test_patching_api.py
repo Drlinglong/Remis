@@ -101,3 +101,22 @@ def test_patch_file_invalid_line_number(temp_loc_file):
     # Code: if entry.line_number is not None and 1 <= entry.line_number <= len(modified_lines): ... else: new_entries.append(entry)
     # So yes, it appends.
     assert any('key_1:0 "Patched Value 1"' in line for line in lines)
+
+
+def test_patch_file_handles_raw_internal_quotes(temp_loc_file):
+    temp_loc_file.write_text(
+        'l_english:\n key_1:0 "The ship "Syzygy" has returned." # keep\n',
+        encoding="utf-8-sig",
+    )
+    response = client.post(
+        "/api/system/patch_file",
+        json={
+            "file_path": str(temp_loc_file.absolute()),
+            "entries": [
+                {"key": "key_1:0", "value": 'Translated "name"', "line_number": 2}
+            ],
+        },
+    )
+    assert response.status_code == 200
+    content = temp_loc_file.read_text(encoding="utf-8-sig")
+    assert 'key_1:0 "Translated \\"name\\"" # keep' in content
