@@ -211,6 +211,7 @@ class ContextRelease(BaseModel):
     release_id: str
     project_id: str
     metadata: ContextReleaseMetadata
+    analysis_run_id: str | None = None
 
 
 class EffectiveContext(BaseModel):

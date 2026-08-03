@@ -305,6 +305,7 @@ class ContextOverrideRepository:
                     for row in parent_syntheses
                 ],
             )
+            self._copy_parent_memberships(connection, parent_id, release_id)
             connection.execute(
                 """
                 INSERT INTO context_release_overrides (release_id, target_key, value_json, note)
@@ -316,6 +317,10 @@ class ContextOverrideRepository:
             connection.execute(
                 "UPDATE context_drafts SET status = 'published', updated_at = ? WHERE draft_id = ?",
                 (created_at, draft_id),
+            )
+            connection.execute(
+                "INSERT INTO context_release_seals (release_id, sealed_at) VALUES (?, ?)",
+                (release_id, created_at),
             )
             connection.commit()
         return ContextRelease(
@@ -333,4 +338,24 @@ class ContextOverrideRepository:
                 parent_release_id=parent_id,
                 upstream_version=parent["upstream_version"],
             ),
+        )
+
+    @staticmethod
+    def _copy_parent_memberships(
+        connection: sqlite3.Connection,
+        parent_release_id: str,
+        release_id: str,
+    ) -> None:
+        connection.execute(
+            """
+            INSERT INTO context_release_delivery_memberships (
+                release_id, aggregate_id, source_item_id, role,
+                confidence, provenance, reasoning
+            )
+            SELECT ?, aggregate_id, source_item_id, role,
+                   confidence, provenance, reasoning
+            FROM context_release_delivery_memberships
+            WHERE release_id = ?
+            """,
+            (release_id, parent_release_id),
         )

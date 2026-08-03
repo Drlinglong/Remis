@@ -134,6 +134,12 @@ CREATE TABLE IF NOT EXISTS context_release_overrides (
     FOREIGN KEY(release_id) REFERENCES context_releases(release_id)
 );
 
+CREATE TABLE IF NOT EXISTS context_release_seals (
+    release_id TEXT PRIMARY KEY,
+    sealed_at TEXT NOT NULL,
+    FOREIGN KEY(release_id) REFERENCES context_releases(release_id)
+);
+
 CREATE INDEX IF NOT EXISTS ix_context_source_items_project
     ON context_source_items(project_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS ix_context_contributions_source
@@ -146,6 +152,8 @@ CREATE INDEX IF NOT EXISTS ix_context_release_delivery_source
     ON context_release_delivery_memberships(release_id, source_item_id);
 CREATE INDEX IF NOT EXISTS ix_context_drafts_project_status
     ON context_drafts(project_id, status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS ix_context_release_seals_release
+    ON context_release_seals(release_id);
 
 CREATE TRIGGER IF NOT EXISTS trg_context_releases_no_update
 BEFORE UPDATE ON context_releases
@@ -154,6 +162,15 @@ BEGIN
 END;
 CREATE TRIGGER IF NOT EXISTS trg_context_releases_no_delete
 BEFORE DELETE ON context_releases
+BEGIN
+    SELECT RAISE(ABORT, 'published context releases are immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS trg_context_release_aggregates_no_insert_after_seal
+BEFORE INSERT ON context_release_aggregates
+WHEN EXISTS (
+    SELECT 1 FROM context_release_seals
+    WHERE release_id = NEW.release_id
+)
 BEGIN
     SELECT RAISE(ABORT, 'published context releases are immutable');
 END;
@@ -177,6 +194,24 @@ BEFORE DELETE ON context_release_syntheses
 BEGIN
     SELECT RAISE(ABORT, 'published context releases are immutable');
 END;
+CREATE TRIGGER IF NOT EXISTS trg_context_release_syntheses_no_insert_after_seal
+BEFORE INSERT ON context_release_syntheses
+WHEN EXISTS (
+    SELECT 1 FROM context_release_seals
+    WHERE release_id = NEW.release_id
+)
+BEGIN
+    SELECT RAISE(ABORT, 'published context releases are immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS trg_context_release_delivery_no_insert_after_seal
+BEFORE INSERT ON context_release_delivery_memberships
+WHEN EXISTS (
+    SELECT 1 FROM context_release_seals
+    WHERE release_id = NEW.release_id
+)
+BEGIN
+    SELECT RAISE(ABORT, 'published context releases are immutable');
+END;
 CREATE TRIGGER IF NOT EXISTS trg_context_release_delivery_no_update
 BEFORE UPDATE ON context_release_delivery_memberships
 BEGIN
@@ -196,6 +231,25 @@ CREATE TRIGGER IF NOT EXISTS trg_context_release_overrides_no_delete
 BEFORE DELETE ON context_release_overrides
 BEGIN
     SELECT RAISE(ABORT, 'published context releases are immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS trg_context_release_overrides_no_insert_after_seal
+BEFORE INSERT ON context_release_overrides
+WHEN EXISTS (
+    SELECT 1 FROM context_release_seals
+    WHERE release_id = NEW.release_id
+)
+BEGIN
+    SELECT RAISE(ABORT, 'published context releases are immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS trg_context_release_seals_no_update
+BEFORE UPDATE ON context_release_seals
+BEGIN
+    SELECT RAISE(ABORT, 'published context release seals are immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS trg_context_release_seals_no_delete
+BEFORE DELETE ON context_release_seals
+BEGIN
+    SELECT RAISE(ABORT, 'published context release seals are immutable');
 END;
 """
 

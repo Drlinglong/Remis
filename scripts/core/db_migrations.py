@@ -19,10 +19,9 @@ from scripts.core.db_models import (
     SteamWorkshopAssetVersion,
     SteamWorkshopWorkspace,
 )
-
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 18
+MAIN_DB_TARGET_VERSION = 19
 
 
 class UnsupportedDatabaseVersionError(RuntimeError):
@@ -706,25 +705,21 @@ def _migration_013_harden_bundled_seed_state(db_path: str) -> None:
 
 def _migration_014_add_context_release_storage(db_path: str) -> None:
     from scripts.core.context_migration import migrate_context_release_storage
-
     migrate_context_release_storage(db_path)
 
 
 def _migration_015_add_context_analysis_batch_storage(db_path: str) -> None:
     from scripts.core.context_analysis_migration import migrate_context_analysis_batch_storage
-
     migrate_context_analysis_batch_storage(db_path)
 
 
 def _migration_016_add_context_delivery_memberships(db_path: str) -> None:
     from scripts.core.context_migration import migrate_context_release_storage
-
     migrate_context_release_storage(db_path)
 
 
 def _migration_017_add_context_aggregation_phase(db_path: str) -> None:
     from scripts.core.context_analysis_migration import migrate_context_analysis_aggregation_phase
-
     migrate_context_analysis_aggregation_phase(db_path)
 
 
@@ -732,8 +727,12 @@ def _migration_018_add_context_release_manifests(db_path: str) -> None:
     from scripts.core.context_release_manifest_migration import (
         migrate_context_release_manifest_storage,
     )
-
     migrate_context_release_manifest_storage(db_path)
+
+
+def _migration_019_add_atomic_context_publication(db_path: str) -> None:
+    from scripts.core.context_publication_migration import migrate_context_publication_storage
+    migrate_context_publication_storage(db_path)
 
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
@@ -754,6 +753,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (16, "add_context_delivery_memberships", _migration_016_add_context_delivery_memberships),
     (17, "add_context_aggregation_phase", _migration_017_add_context_aggregation_phase),
     (18, "add_context_release_manifests", _migration_018_add_context_release_manifests),
+    (19, "add_atomic_context_publication", _migration_019_add_atomic_context_publication),
 ]
 
 

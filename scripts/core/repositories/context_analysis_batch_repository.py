@@ -157,14 +157,18 @@ class ContextAnalysisBatchRepository:
                 ).fetchone()
                 if row and not self._identity_matches(row, project_id, source_snapshot_hash, scope_json, fingerprint):
                     raise ContextAnalysisBatchConflictError("requested run identity does not match current analysis")
-                if row and row["status"] == "complete":
+                if (
+                    row
+                    and row["status"] == "complete"
+                    and row["publication_status"] != "published"
+                ):
                     raise ContextAnalysisBatchConflictError("completed analysis runs cannot be resumed")
             if row is None:
                 row = connection.execute(
                     """SELECT * FROM context_analysis_runs
                        WHERE project_id = ? AND source_snapshot_hash = ?
                          AND analysis_scope_json = ? AND config_fingerprint = ?
-                         AND status != 'complete'
+                         AND (status != 'complete' OR publication_status = 'published')
                        ORDER BY updated_at DESC LIMIT 1""",
                     (project_id, source_snapshot_hash, scope_json, fingerprint),
                 ).fetchone()

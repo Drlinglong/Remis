@@ -45,6 +45,8 @@ class ContextService:
         generated_syntheses: Iterable[GeneratedSynthesis],
         delivery_memberships: Iterable[ContextDeliveryMembership] = (),
         release_manifest: ContextReleaseManifest | None = None,
+        *,
+        analysis_run_id: str | None = None,
     ) -> ContextRelease:
         """Create a new immutable release from current aggregate snapshots and draft edits."""
         return self.repository.publish_draft(
@@ -54,6 +56,7 @@ class ContextService:
             generated_syntheses,
             delivery_memberships,
             release_manifest,
+            analysis_run_id=analysis_run_id,
         )
 
     def effective_context(self, release_id: str) -> EffectiveContext | None:

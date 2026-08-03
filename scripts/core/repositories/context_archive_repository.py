@@ -26,6 +26,7 @@ _RELEASE_DELETE_TRIGGERS = (
     "trg_context_release_source_items_no_delete",
     "trg_context_release_local_units_no_delete",
     "trg_context_release_unit_members_no_delete",
+    "trg_context_release_seals_no_delete",
 )
 
 
@@ -163,6 +164,10 @@ class ContextArchiveRepository:
             connection.execute(
                 f"DELETE FROM {table} WHERE release_id IN ({release_filter})", (project_id,)
             )
+        connection.execute(
+            f"DELETE FROM context_release_seals WHERE release_id IN ({release_filter})",
+            (project_id,),
+        )
         connection.execute("DELETE FROM context_releases WHERE project_id = ?", (project_id,))
         connection.execute(
             f"DELETE FROM context_aggregate_contributions "

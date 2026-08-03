@@ -253,14 +253,18 @@ class ContextWorkflowService:
                 usage_ledger,
             )
             if analysis_run is not None:
-                self.analysis_checkpoints.mark_published(analysis_run)
-                result["analysis_run_id"] = analysis_run.run_id
+                self._finalize_analysis_run(analysis_run, result)
             self._complete(project_id, task_id, result, len(parsed_files))
             return result
         except Exception as exc:
             self.analysis_checkpoints.mark_failed(analysis_run)
             self._failed(project_id, task_id, len(parsed_files), processed_files, exc)
             raise
+
+    def _finalize_analysis_run(self, analysis_run: Any, result: dict[str, Any]) -> None:
+        if result.get("context_release_id") is None:
+            self.analysis_checkpoints.mark_complete(analysis_run)
+        result["analysis_run_id"] = analysis_run.run_id
 
     def _finish_scope(
         self,
@@ -340,6 +344,7 @@ class ContextWorkflowService:
             api_provider, model_name, upstream_version, analysis_config,
             description_language, chunk_config, task_id, effective_concurrency,
             analysis_report, governance, usage_ledger,
+            analysis_run_id=analysis_run.run_id if analysis_run is not None else None,
         )
         result["analysis_report"] = analysis_report
         result.update({
@@ -471,6 +476,7 @@ class ContextWorkflowService:
         analysis_report: dict[str, Any],
         governance: Any,
         usage_ledger: ContextModelUsageLedger,
+        analysis_run_id: str | None = None,
     ) -> dict[str, Any]:
         sources = self.release_assembler.persist_sources(
             project_id, parsed_files, snapshot.source_snapshot_hash,
@@ -548,6 +554,7 @@ class ContextWorkflowService:
                 draft.draft_id, metadata, aggregates, syntheses,
                 delivery_memberships,
                 self.release_assembler.build_manifest(parsed_files, snapshot, local_units),
+                analysis_run_id=analysis_run_id,
             )
         except Exception as exc:
             self.status_service.record_batch(
@@ -578,6 +585,8 @@ class ContextWorkflowService:
         syntheses: Sequence[Any],
         delivery_memberships: Sequence[Any],
         release_manifest: Any,
+        *,
+        analysis_run_id: str | None = None,
     ) -> Any:
         publish_parameters = inspect.signature(
             self.context_service.publish_draft,
@@ -596,6 +605,8 @@ class ContextWorkflowService:
         }
         if "release_manifest" in publish_parameters:
             publish_arguments["release_manifest"] = release_manifest
+        if "analysis_run_id" in publish_parameters:
+            publish_arguments["analysis_run_id"] = analysis_run_id
         return self.context_service.publish_draft(**publish_arguments)
 
     def _synthesize_parallel(

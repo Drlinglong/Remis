@@ -13,9 +13,10 @@ from typing import Any, Iterable
 
 from scripts.core.repositories.context_delivery_membership_repository import (
     counts_by_aggregate,
-    insert_memberships,
     list_memberships,
-    validate_memberships,
+)
+from scripts.core.repositories.context_publication_repository import (
+    ContextPublicationRepository,
 )
 from scripts.core.repositories.context_release_manifest_repository import (
     insert_release_manifest,
@@ -155,6 +156,11 @@ class ContextRepository:
             release_id=row["release_id"],
             project_id=row["project_id"],
             metadata=metadata,
+            analysis_run_id=(
+                row["analysis_run_id"]
+                if "analysis_run_id" in row.keys()
+                else None
+            ),
         )
 
     def create_source_item(self, item: ContextSourceItem) -> ContextSourceItem:
@@ -442,181 +448,17 @@ class ContextRepository:
         syntheses: Iterable[GeneratedSynthesis],
         delivery_memberships: Iterable[ContextDeliveryMembership] = (),
         release_manifest: ContextReleaseManifest | None = None,
+        *,
+        analysis_run_id: str | None = None,
     ) -> ContextRelease:
-        aggregates = list(dict.fromkeys(aggregate_ids))
-        generated = list(syntheses)
-        membership_values = list(delivery_memberships)
-        if len({item.context_key for item in generated}) != len(generated):
-            raise ValueError("Generated synthesis context_key values must be unique")
-        with self._lock, self._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
-            draft = self._draft_row_for_publish(connection, draft_id)
-            if (
-                metadata.parent_release_id is not None
-                and metadata.parent_release_id != draft["base_release_id"]
-            ):
-                raise ValueError(
-                    "metadata.parent_release_id must match the draft base_release_id"
-                )
-            parent_id = draft["base_release_id"]
-            self._validate_parent_release(connection, draft["project_id"], parent_id)
-            self._validate_syntheses(generated, aggregates)
-            membership_values = validate_memberships(
-                connection, membership_values, set(aggregates), draft["project_id"],
-            )
-            release_id = str(uuid.uuid4())
-            self._insert_release(connection, release_id, draft["project_id"], metadata, parent_id)
-            self._snapshot_aggregates(connection, release_id, aggregates, draft["project_id"])
-            self._insert_syntheses(connection, release_id, generated)
-            insert_memberships(connection, release_id, membership_values)
-            if release_manifest is not None:
-                validate_release_manifest(connection, release_manifest, draft["project_id"])
-                insert_release_manifest(connection, release_id, release_manifest)
-            self._copy_draft_overrides(connection, draft_id, release_id)
-            connection.execute(
-                "UPDATE context_drafts SET status = 'published', updated_at = ? WHERE draft_id = ?",
-                (self._now(), draft_id),
-            )
-            connection.commit()
-        release = self.get_release(release_id)
-        if release is None:  # pragma: no cover - guarded by the transaction
-            raise RuntimeError("Published context release could not be reloaded")
-        return release
-
-    @staticmethod
-    def _draft_row_for_publish(
-        connection: sqlite3.Connection, draft_id: str
-    ) -> sqlite3.Row:
-        row = connection.execute(
-            "SELECT * FROM context_drafts WHERE draft_id = ?", (draft_id,)
-        ).fetchone()
-        if row is None:
-            raise KeyError(f"Unknown context draft: {draft_id}")
-        if row["status"] != "draft":
-            raise ValueError("Only an open context draft can be published")
-        return row
-
-    @staticmethod
-    def _validate_syntheses(
-        syntheses: list[GeneratedSynthesis], aggregate_ids: list[str]
-    ) -> None:
-        allowed = set(aggregate_ids)
-        missing = sorted({item.aggregate_id for item in syntheses} - allowed)
-        if missing:
-            raise ValueError(
-                "Generated synthesis references aggregates outside the release: "
-                + ", ".join(missing)
-            )
-
-    def _insert_release(
-        self,
-        connection: sqlite3.Connection,
-        release_id: str,
-        project_id: str,
-        metadata: ContextReleaseMetadata,
-        parent_id: str | None,
-    ) -> None:
-        connection.execute(
-            """
-            INSERT INTO context_releases (
-                release_id, project_id, source_snapshot_hash, analysis_scope_json,
-                schema_version, prompt_version, provider_id, model_id,
-                analysis_config_json, created_at, parent_release_id, upstream_version
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                release_id,
-                project_id,
-                metadata.source_snapshot_hash,
-                self._json(metadata.analysis_scope),
-                metadata.schema_version,
-                metadata.prompt_version,
-                metadata.provider_id,
-                metadata.model_id,
-                self._json(metadata.analysis_config),
-                metadata.created_at,
-                parent_id,
-                metadata.upstream_version,
-            ),
-        )
-
-    def _snapshot_aggregates(
-        self,
-        connection: sqlite3.Connection,
-        release_id: str,
-        aggregate_ids: list[str],
-        project_id: str,
-    ) -> None:
-        for aggregate_id in aggregate_ids:
-            row = connection.execute(
-                "SELECT * FROM context_aggregates WHERE aggregate_id = ?",
-                (aggregate_id,),
-            ).fetchone()
-            if row is None:
-                raise KeyError(f"Unknown context aggregate: {aggregate_id}")
-            if row["project_id"] != project_id:
-                raise ValueError("All release aggregates must belong to the draft project")
-            contribution_ids = [
-                item["contribution_id"]
-                for item in connection.execute(
-                    """
-                    SELECT contribution_id FROM context_aggregate_contributions
-                    WHERE aggregate_id = ? ORDER BY contribution_id
-                    """,
-                    (aggregate_id,),
-                ).fetchall()
-            ]
-            connection.execute(
-                """
-                INSERT INTO context_release_aggregates (
-                    release_id, aggregate_id, aggregate_type, aggregate_key,
-                    payload_json, contribution_ids_json
-                ) VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    release_id,
-                    aggregate_id,
-                    row["aggregate_type"],
-                    row["aggregate_key"],
-                    row["payload_json"],
-                    self._json(contribution_ids),
-                ),
-            )
-
-    def _insert_syntheses(
-        self,
-        connection: sqlite3.Connection,
-        release_id: str,
-        syntheses: list[GeneratedSynthesis],
-    ) -> None:
-        connection.executemany(
-            """
-            INSERT INTO context_release_syntheses
-                (synthesis_id, release_id, aggregate_id, context_key, content_json)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            [
-                (
-                    item.synthesis_id,
-                    release_id,
-                    item.aggregate_id,
-                    item.context_key,
-                    self._json(item.content),
-                )
-                for item in syntheses
-            ],
-        )
-
-    def _copy_draft_overrides(
-        self, connection: sqlite3.Connection, draft_id: str, release_id: str
-    ) -> None:
-        connection.execute(
-            """
-            INSERT INTO context_release_overrides (release_id, target_key, value_json, note)
-            SELECT ?, target_key, value_json, note
-            FROM context_draft_overrides WHERE draft_id = ?
-            """,
-            (release_id, draft_id),
+        return ContextPublicationRepository(self.db_path).publish_draft(
+            draft_id,
+            metadata,
+            aggregate_ids,
+            syntheses,
+            delivery_memberships,
+            release_manifest,
+            analysis_run_id=analysis_run_id,
         )
 
     def get_release(self, release_id: str) -> ContextRelease | None:

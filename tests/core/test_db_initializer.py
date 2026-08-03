@@ -97,6 +97,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (16, "add_context_delivery_memberships"),
         (17, "add_context_aggregation_phase"),
         (18, "add_context_release_manifests"),
+        (19, "add_atomic_context_publication"),
     ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
@@ -362,6 +363,7 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
         (16,),
         (17,),
         (18,),
+        (19,),
     ]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")
@@ -523,7 +525,7 @@ def test_existing_v14_database_adds_context_delivery_memberships(tmp_path):
         assert conn.execute(
             "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' "
             "AND name LIKE 'trg_context_release_delivery_%'"
-        ).fetchone()[0] == 2
+        ).fetchone()[0] == 3
 
 
 def test_existing_v16_database_hydrates_persisted_release_manifest(tmp_path):
