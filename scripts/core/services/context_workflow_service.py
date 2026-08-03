@@ -19,6 +19,9 @@ from scripts.core.neologism_manager import neologism_manager
 from scripts.core.neologism_miner import NeologismMiner
 from scripts.core.provider_structured_output import structured_output_mode
 from scripts.core.services.context_candidate_adapter import ContextCandidateAdapter
+from scripts.core.services.context_candidate_governance_flow_service import (
+    ContextCandidateGovernanceFlowService,
+)
 from scripts.core.services.context_analysis_checkpoint_service import (
     ContextAnalysisCheckpointService,
 )
@@ -56,49 +59,6 @@ from scripts.schemas.context import ContextRelease
 from scripts.shared import task_state
 
 
-class _ReviewProgressMiner:
-    """Keep candidate-adapter review calls observable without changing its API."""
-
-    def __init__(
-        self, miner: Any, on_batch: Callable[..., None],
-        usage_ledger: ContextModelUsageLedger | None = None,
-    ):
-        self._miner = miner
-        self._on_batch = on_batch
-        self._batch_number = 0
-        self._usage_ledger = usage_ledger
-
-    @property
-    def batch_count(self) -> int:
-        return self._batch_number
-
-    def review_terms(self, candidates: Sequence[dict[str, Any]], **kwargs: Any) -> Any:
-        self._batch_number += 1
-        batch_id = f"reviewing:{self._batch_number}"
-        try:
-            result = self._miner.review_terms(candidates, **kwargs)
-        except Exception as exc:
-            self._on_batch(
-                batch_id,
-                success=False,
-                conflict_review_count=len(candidates),
-                error=str(exc),
-            )
-            raise
-        finally:
-            if self._usage_ledger is not None:
-                self._usage_ledger.capture(getattr(self._miner, "client", None), "term_review")
-        self._on_batch(
-            batch_id,
-            success=True,
-            conflict_review_count=len(candidates),
-        )
-        return result
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._miner, name)
-
-
 class ContextWorkflowService:
     """Own the maintained scan workflow while keeping domain ports injectable."""
 
@@ -107,8 +67,8 @@ class ContextWorkflowService:
     DEFAULT_MAX_SOURCE_CHARS = ContextChunkingPolicy.DEFAULT_MAX_SOURCE_CHARS
     CHUNK_SIZE = DEFAULT_MAX_ITEMS
     REVIEW_BATCH_SIZE = ContextCandidateAdapter.REVIEW_BATCH_SIZE
-    SCHEMA_VERSION = "context-v3"
-    PROMPT_VERSION = "context-archive-v8"
+    SCHEMA_VERSION = "context-v4"
+    PROMPT_VERSION = "context-archive-v9"
     ACTIVE_STATUSES = ContextWorkflowStatusService.ACTIVE_STATUSES
 
     def __init__(
@@ -127,6 +87,7 @@ class ContextWorkflowService:
         candidate_adapter: ContextCandidateAdapter | None = None,
         status_service: ContextWorkflowStatusService | None = None,
         analysis_batch_repository: Any | None = None,
+        governance_service: Any | None = None,
     ):
         self.repository = repository
         self.context_service = context_service or ContextService(repository)
@@ -136,6 +97,12 @@ class ContextWorkflowService:
         self.candidate_adapter = candidate_adapter or ContextCandidateAdapter(candidate_store)
         self.status_service = status_service or ContextWorkflowStatusService(task_backend)
         self.analysis_checkpoints = ContextAnalysisCheckpointService(analysis_batch_repository)
+        self.governance_flow = ContextCandidateGovernanceFlowService(
+            candidate_adapter=self.candidate_adapter,
+            status_service=self.status_service,
+            batch_store=self.analysis_checkpoints.repository,
+            governance_service=governance_service,
+        )
         self.release_assembler = ContextReleaseAssembler(repository)
         self.source_parser = source_parser or ContextSourceParser()
         self.snapshot_service = snapshot_service or SourceSnapshotService()
@@ -323,42 +290,62 @@ class ContextWorkflowService:
         effective_concurrency: int,
         usage_ledger: ContextModelUsageLedger,
     ) -> dict[str, Any]:
-        review_miner = self.miner_factory(
-            self.handler_factory(api_provider, model_name=model_name)
+        reconciled = None
+        final_extractions = list(extractions)
+        if scope is AnalysisScope.NARRATIVE_CONTEXT:
+            reconciled = self._reconcile_events(
+                project_id, task_id, local_units, extractions, api_provider,
+                model_name, description_language, analysis_run, effective_concurrency,
+                usage_ledger,
+            )
+            final_extractions = self._replace_local_events(extractions, reconciled)
+        review_miner = self.miner_factory(self.handler_factory(api_provider, model_name=model_name))
+        governance, terms = self.governance_flow.govern_and_process_terms(
+            governance_kwargs={
+                "project_id": project_id, "extractions": final_extractions,
+                "analysis_scope": scope, "source_items": source_items,
+                "local_units": local_units, "reconciled": reconciled,
+                "duplicate_index": duplicate_index, "source_language": source_lang,
+            },
+            process_kwargs={
+                "project_id": project_id, "parsed_files": parsed_files,
+                "extractions": final_extractions, "miner": review_miner,
+                "duplicate_index": duplicate_index, "source_lang": source_lang,
+                "target_lang": target_lang, "game_name": game_name,
+                "review_language": description_language, "task_id": task_id,
+                "source_snapshot_hash": snapshot.source_snapshot_hash,
+                "analysis_scope": scope, "analysis_config": analysis_config,
+                "run_id": analysis_run.run_id if analysis_run is not None else None,
+                "usage_ledger": usage_ledger,
+            },
         )
-        terms = self._finish_terms_only(
-            project_id, parsed_files, extractions, review_miner, duplicate_index,
-            source_lang, target_lang, game_name, description_language, task_id,
-            snapshot.source_snapshot_hash, scope, workflow_context,
-            analysis_run.run_id if analysis_run is not None else None,
-            usage_ledger,
-        )
-        if scope is AnalysisScope.TERMS_ONLY:
+        if reconciled is None:
+            analysis_report = None
+        else:
+            analysis_report = self._analysis_report(
+                source_items, local_units, chunks, extractions, reconciled,
+                provider=api_provider, model=model_name,
+                effective_concurrency=effective_concurrency,
+                prompt_version=self.PROMPT_VERSION,
+                parsed_files=parsed_files,
+                model_execution=usage_ledger.summary(),
+                governance=governance,
+            )
+        if reconciled is None:
+            terms["analysis_report"] = ContextAnalysisReportService.governance_only(governance)
+            terms["candidate_governance"] = governance.counts()
             return terms
-        reconciled = self._reconcile_events(
-            project_id, task_id, local_units, extractions, api_provider,
-            model_name, description_language, analysis_run, effective_concurrency,
-            usage_ledger,
-        )
-        final_extractions = self._replace_local_events(extractions, reconciled)
-        analysis_report = self._analysis_report(
-            source_items, local_units, chunks, extractions, reconciled,
-            provider=api_provider, model=model_name,
-            effective_concurrency=effective_concurrency,
-            prompt_version=self.PROMPT_VERSION,
-            parsed_files=parsed_files,
-            model_execution=usage_ledger.summary(),
-        )
         result = self._finish_context(
             project_id, parsed_files, snapshot, diff, parent, final_extractions,
             api_provider, model_name, upstream_version, analysis_config,
             description_language, chunk_config, task_id, effective_concurrency,
-            analysis_report, usage_ledger,
+            analysis_report, governance, usage_ledger,
         )
         result["analysis_report"] = analysis_report
         result.update({
             "new_terms": terms["new_terms"],
             "duplicate_terms": terms["duplicate_terms"],
+            "candidate_governance": governance.counts(),
         })
         return result
 
@@ -464,50 +451,6 @@ class ContextWorkflowService:
         ]
         return [*local, *global_batches]
 
-    def _finish_terms_only(
-        self,
-        project_id: str,
-        parsed_files: Sequence[ParsedSourceFile],
-        extractions: Sequence[StructuredNeologismExtraction],
-        miner: Any,
-        duplicate_index: dict[str, list[dict[str, Any]]],
-        source_lang: str,
-        target_lang: str,
-        game_name: str,
-        review_language: str,
-        task_id: str | None,
-        source_snapshot_hash: str,
-        analysis_scope: AnalysisScope,
-        analysis_config: dict[str, Any],
-        run_id: str | None,
-        usage_ledger: ContextModelUsageLedger,
-    ) -> dict[str, Any]:
-        self.status_service.begin_stage(project_id, task_id, "reviewing", 0)
-        review_miner = _ReviewProgressMiner(
-            miner,
-            lambda batch_id, **details: self.status_service.record_batch(
-                project_id, task_id, "reviewing", batch_id, **details
-            ),
-            usage_ledger,
-        )
-        result = self.candidate_adapter.process_terms(
-            project_id, parsed_files, extractions, review_miner, duplicate_index,
-            source_lang, target_lang, game_name, review_language,
-            task_id=task_id,
-            source_snapshot_hash=source_snapshot_hash,
-            analysis_scope=analysis_scope,
-            analysis_config=analysis_config,
-            run_id=run_id,
-            batch_store=self.analysis_checkpoints.repository,
-        )
-        self.status_service.complete_stage(
-            project_id,
-            task_id,
-            "reviewing",
-            skipped=review_miner.batch_count == 0,
-        )
-        return result
-
     def _finish_context(
         self,
         project_id: str,
@@ -525,12 +468,18 @@ class ContextWorkflowService:
         task_id: str | None,
         concurrency: int,
         analysis_report: dict[str, Any],
+        governance: Any,
         usage_ledger: ContextModelUsageLedger,
     ) -> dict[str, Any]:
         sources = self.release_assembler.persist_sources(
             project_id, parsed_files, snapshot.source_snapshot_hash,
         )
-        contributions = self.release_assembler.persist_contributions(extractions, sources)
+        governance_available = bool(getattr(governance, "available", False))
+        contributions = self.release_assembler.persist_contributions(
+            extractions,
+            sources,
+            governance.aggregate_key_for_surface if governance_available else None,
+        )
         if not contributions:
             return {
                 "analysis_scope": AnalysisScope.NARRATIVE_CONTEXT.value,
@@ -539,7 +488,11 @@ class ContextWorkflowService:
                 "source_snapshot_hash": snapshot.source_snapshot_hash,
                 "affected_source_items": self._affected_items(diff),
             }
-        aggregates = self.release_assembler.build_aggregates(project_id, contributions)
+        aggregates = self.release_assembler.build_aggregates(
+            project_id,
+            contributions,
+            governance if governance_available else None,
+        )
         delivery_memberships = ContextDeliveryMembershipService.build(
             extractions, aggregates, sources,
         )
@@ -549,8 +502,11 @@ class ContextWorkflowService:
         synthesizer = self.synthesizer_factory(
             self.handler_factory(api_provider, model_name=model_name)
         )
+        synthesis_aggregates = self.governance_flow.synthesis_eligible_aggregates(
+            aggregates, governance,
+        )
         planned_synthesis_batches = synthesizer.plan_batches(
-            aggregates,
+            synthesis_aggregates,
             contributions,
             sources,
             description_language,
@@ -577,6 +533,7 @@ class ContextWorkflowService:
         })
         metadata_config = dict(analysis_config or {})
         metadata_config["effective_concurrency"] = concurrency
+        metadata_config["candidate_governance"] = governance.counts()
         metadata_config["analysis_report"] = analysis_report
         metadata = self.release_assembler.metadata(
             snapshot, parsed_files, diff, parent, api_provider, model_name,
@@ -611,6 +568,7 @@ class ContextWorkflowService:
             "affected_source_items": self._affected_items(diff),
             "parent_release_id": parent.release_id if parent else None,
             "delivery_membership_count": len(delivery_memberships),
+            "candidate_governance": governance.counts(),
         }
 
     def _synthesize_parallel(

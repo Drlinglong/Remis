@@ -45,6 +45,7 @@ class ContextCandidateAdapter:
         analysis_config: Mapping[str, Any] | None = None,
         run_id: str | None = None,
         batch_store: Any | None = None,
+        governance: Any | None = None,
     ) -> dict[str, Any]:
         checkpoint_store = batch_store or self.batch_store
         run = self._start_run(
@@ -61,7 +62,19 @@ class ContextCandidateAdapter:
             review_language,
             run_id,
         )
-        terms, rejected = self._collect_terms(extractions)
+        governed_extractions = self._governed_extractions(extractions, governance)
+        allowed_match_keys = self._glossary_eligible_match_keys(governance)
+        allowed_aggregate_keys = self._glossary_eligible_aggregate_keys(governance)
+        terms, rejected = self._collect_terms(
+            governed_extractions,
+            allowed_match_keys=allowed_match_keys,
+            allowed_aggregate_keys=allowed_aggregate_keys,
+            aggregate_key_for_surface=(
+                governance.aggregate_key_for_surface
+                if governance is not None and getattr(governance, "available", False)
+                else None
+            ),
+        )
         existing = self.candidate_store.load_candidates(project_id)
         existing_keys = {self._term_key(item.original) for item in existing}
         prepared = self._prepare_candidates(terms, parsed_files, duplicate_index, existing_keys, rejected)
@@ -150,7 +163,10 @@ class ContextCandidateAdapter:
     @staticmethod
     def _term_data(term: TermContribution, raw_term: Any | None = None) -> dict[str, Any]:
         data = term.model_dump()
-        for name in ("suggestion", "reasoning", "source_key", "source_key_refs", "source_aliases", "aliases"):
+        for name in (
+            "suggestion", "reasoning", "source_key", "source_key_refs",
+            "source_aliases", "aliases", "normalized_match_key",
+        ):
             if isinstance(raw_term, Mapping) and name in raw_term:
                 data[name] = raw_term[name]
             elif raw_term is not None and hasattr(raw_term, name):
@@ -158,7 +174,12 @@ class ContextCandidateAdapter:
         return data
 
     def _collect_terms(
-        self, extractions: Sequence[StructuredNeologismExtraction]
+        self,
+        extractions: Sequence[StructuredNeologismExtraction],
+        *,
+        allowed_match_keys: set[str] | None = None,
+        allowed_aggregate_keys: set[str] | None = None,
+        aggregate_key_for_surface: Any | None = None,
     ) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
         terms: dict[str, dict[str, Any]] = {}
         rejected: list[dict[str, Any]] = []
@@ -174,6 +195,21 @@ class ContextCandidateAdapter:
                     })
                     continue
                 data = self._term_data(term, raw_term)
+                if allowed_match_keys is not None:
+                    term_match_keys = {
+                        self._term_key(data["original"]),
+                        self._term_key(data.get("normalized_match_key")),
+                    }
+                    aggregate_key = (
+                        aggregate_key_for_surface(data["original"])
+                        if aggregate_key_for_surface is not None
+                        else None
+                    )
+                    if (
+                        not term_match_keys & (allowed_match_keys or set())
+                        and aggregate_key not in (allowed_aggregate_keys or set())
+                    ):
+                        continue
                 data["_batch_index"] = batch_index
                 key = self._term_key(data["original"])
                 current = terms.get(key)
@@ -209,6 +245,37 @@ class ContextCandidateAdapter:
                 selected["needs_review"] = len({value.casefold() for value in options}) > 1
                 terms[key] = selected
         return terms, rejected
+
+    @staticmethod
+    def _governed_extractions(
+        extractions: Sequence[StructuredNeologismExtraction],
+        governance: Any | None,
+    ) -> Sequence[StructuredNeologismExtraction]:
+        if governance is None or not getattr(governance, "available", False):
+            return extractions
+        return tuple(
+            getattr(governance, "governed_extractions", ()) or ()
+        )
+
+    @classmethod
+    def _glossary_eligible_match_keys(
+        cls, governance: Any | None,
+    ) -> set[str] | None:
+        if governance is None or not getattr(governance, "available", False):
+            return None
+        values = getattr(governance, "glossary_eligible_match_keys", ())
+        return {cls._term_key(value) for value in values}
+
+    @staticmethod
+    def _glossary_eligible_aggregate_keys(
+        governance: Any | None,
+    ) -> set[str] | None:
+        if governance is None or not getattr(governance, "available", False):
+            return None
+        resolver = getattr(governance, "glossary_eligible_aggregate_keys", None)
+        if not callable(resolver):
+            return set()
+        return {str(value) for value in resolver()}
 
     @classmethod
     def _merge_terms(

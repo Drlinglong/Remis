@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import uuid
 from collections import defaultdict
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 from scripts.core.neologism_extraction import AnalysisScope, StructuredNeologismExtraction
 from scripts.core.services.context_source_parser import ParsedSourceFile
@@ -53,6 +53,7 @@ class ContextReleaseAssembler:
         self,
         extractions: Sequence[StructuredNeologismExtraction],
         sources: dict[str, ContextSourceItem],
+        aggregate_key_for_surface: Callable[[Any], str] | None = None,
     ) -> dict[str, ContextContribution]:
         contributions: dict[str, ContextContribution] = {}
         for extraction in extractions:
@@ -61,11 +62,19 @@ class ContextReleaseAssembler:
                 source_item_id = evidence[0]["source_item_id"]
                 if source_item_id not in sources:
                     raise ValueError("Extraction evidence referenced a source outside the parsed snapshot")
+                subject_key = self._subject_key(item)
+                if (
+                    aggregate_key_for_surface is not None
+                    and item.__class__.__name__ != "EventChainContribution"
+                ):
+                    governed_key = aggregate_key_for_surface(self._surface(item))
+                    if governed_key:
+                        subject_key = str(governed_key)
                 contribution = ContextContribution(
                     contribution_id=str(uuid.uuid4()),
                     source_item_id=source_item_id,
                     contribution_type=self._contribution_type(item),
-                    subject_key=self._subject_key(item),
+                    subject_key=subject_key,
                     payload={**item.model_dump(), "evidence": evidence},
                     provenance="text_inferred",
                 )
@@ -100,24 +109,55 @@ class ContextReleaseAssembler:
         value = getattr(item, "original", None) or getattr(item, "name", None) or getattr(item, "subject", None)
         return f"entity:{str(value).strip().casefold()}"
 
+    @staticmethod
+    def _surface(item: Any) -> str:
+        return str(
+            getattr(item, "original", None)
+            or getattr(item, "name", None)
+            or getattr(item, "subject", None)
+            or ""
+        )
+
     def build_aggregates(
-        self, project_id: str, contributions: dict[str, ContextContribution],
+        self,
+        project_id: str,
+        contributions: dict[str, ContextContribution],
+        governance: Any | None = None,
     ) -> list[ContextAggregate]:
+        governance_available = bool(getattr(governance, "available", False))
         groups: dict[str, list[str]] = defaultdict(list)
         for contribution in contributions.values():
             groups[contribution.subject_key].append(contribution.contribution_id)
-        groups["project:summary"] = list(contributions)
+        project_contribution_ids = [
+            contribution.contribution_id
+            for contribution in contributions.values()
+            if governance is None
+            or not governance_available
+            or not governance.is_audit_only(contribution.subject_key)
+        ]
+        if project_contribution_ids:
+            groups["project:summary"] = project_contribution_ids
+        candidate_keys = (
+            governance.candidate_aggregate_keys()
+            if governance_available
+            else frozenset()
+        )
         aggregates = []
         for aggregate_key, contribution_ids in sorted(groups.items()):
             aggregate_type = "project" if aggregate_key == "project:summary" else (
                 "event" if aggregate_key.startswith("event:") else "entity"
             )
+            payload = {"active_contribution_count": len(contribution_ids)}
+            if aggregate_key in candidate_keys:
+                payload = governance.payload_for_aggregate(
+                    aggregate_key, len(contribution_ids),
+                )
             aggregates.append(ContextAggregate(
                 aggregate_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"remis:{project_id}:{aggregate_key}")),
                 project_id=project_id,
                 aggregate_type=aggregate_type,
                 aggregate_key=aggregate_key,
-                payload={"active_contribution_count": len(contribution_ids)},
+                payload=payload,
                 contribution_ids=contribution_ids,
             ))
         return aggregates

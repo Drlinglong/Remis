@@ -30,6 +30,7 @@ class ContextAnalysisReportService:
         prompt_version: str,
         parsed_files: Sequence[Any] = (),
         model_execution: dict[str, Any] | None = None,
+        governance: Any | None = None,
     ) -> dict[str, Any]:
         unit_chunk = cls._unit_chunk_index(chunks)
         final_assignments = reconciled.delivery_assignments
@@ -85,7 +86,31 @@ class ContextAnalysisReportService:
             "unassigned_units": cls._unassigned_report(
                 local_units, unassigned, unit_chunk,
             ),
+            "candidate_governance": cls._candidate_governance_report(governance),
             "model_execution": execution,
+        }
+
+    @classmethod
+    def governance_only(cls, governance: Any | None) -> dict[str, Any]:
+        """Return the same governance report shape for terms-only workflows."""
+
+        return {"candidate_governance": cls._candidate_governance_report(governance)}
+
+    @staticmethod
+    def _candidate_governance_report(governance: Any | None) -> dict[str, Any]:
+        if governance is None:
+            return {
+                "available": False,
+                "counts": {},
+                "report": {},
+            }
+        report_payload = getattr(governance, "report_payload", None)
+        if callable(report_payload):
+            return dict(report_payload())
+        return {
+            "available": bool(getattr(governance, "available", False)),
+            "counts": dict(getattr(governance, "counts", {}) or {}),
+            "report": dict(getattr(governance, "report", {}) or {}),
         }
 
     @staticmethod

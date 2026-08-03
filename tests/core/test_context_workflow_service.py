@@ -784,8 +784,8 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
     release = repo.releases["release-1"]
     assert release.metadata.provider_id == "local"
     assert release.metadata.model_id == "fake-model"
-    assert release.metadata.schema_version == "context-v3"
-    assert release.metadata.prompt_version == "context-archive-v8"
+    assert release.metadata.schema_version == "context-v4"
+    assert release.metadata.prompt_version == "context-archive-v9"
     assert release.metadata.analysis_config["description_language"] == "zh-CN"
     assert "Simplified Chinese (zh-CN)" in handler.calls[0][0]["content"]
     assert any(
