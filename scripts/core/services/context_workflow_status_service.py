@@ -308,8 +308,7 @@ class ContextWorkflowStatusService:
             message="Context analysis completed.",
             progress=completed_progress,
             summary=result,
-            result=self._task_result(result),
-            fields={"stage_code": "completed"},
+            fields={"stage_code": "completed", "result": self._task_result(result)},
         )
 
     @staticmethod
