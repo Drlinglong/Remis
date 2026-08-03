@@ -36,6 +36,96 @@ const asObject = (value) => (
 
 const firstValue = (...values) => values.find((value) => value !== undefined && value !== null && value !== '');
 
+const CANDIDATE_POLICY_KEYS = Object.freeze([
+    'canonical_display_name',
+    'normalized_match_key',
+    'aliases',
+    'candidate_kind',
+    'tier',
+    'mention_count',
+    'source_item_coverage',
+    'local_unit_coverage',
+    'event_chain_coverage',
+    'policy_reasons',
+    'summary_eligible',
+    'glossary_eligible',
+    'audit_only',
+]);
+
+const asStringList = (value) => {
+    const values = Array.isArray(value) ? value : [value];
+    return [...new Set(values
+        .filter((item) => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter(Boolean))];
+};
+
+const asOptionalBoolean = (value) => {
+    if (value === undefined || value === null || value === '') return null;
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    return ['1', 'true', 'yes'].includes(String(value).trim().toLowerCase());
+};
+
+const asMetric = (value) => {
+    if (value === undefined || value === null || value === '') return null;
+    if (typeof value === 'string' && Number.isFinite(Number(value.trim()))) return Number(value.trim());
+    return value;
+};
+
+const TIER_GROUPS = Object.freeze({
+    a: 'core',
+    b: 'secondary',
+    c: 'incidental',
+    core: 'core',
+    secondary: 'secondary',
+    incidental: 'incidental',
+});
+
+const normalizeToken = (value) => String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+
+const normalizeTier = (value) => {
+    if (value === undefined || value === null || value === '') return null;
+    const normalized = normalizeToken(value).replace(/^tier_/, '');
+    return TIER_GROUPS[normalized] || normalized;
+};
+
+const normalizeCandidatePolicy = (aggregate = {}) => {
+    const nestedPolicy = asObject(aggregate.candidate_policy);
+    const source = { ...aggregate, ...nestedPolicy };
+    const hasPolicy = CANDIDATE_POLICY_KEYS.some((key) => (
+        source[key] !== undefined && source[key] !== null
+    ));
+    if (!hasPolicy) return null;
+    return {
+        canonicalDisplayName: firstValue(source.canonical_display_name, '') || '',
+        normalizedMatchKey: firstValue(source.normalized_match_key, '') || '',
+        aliases: asStringList(source.aliases),
+        candidateKind: normalizeToken(firstValue(source.candidate_kind, '') || ''),
+        tier: normalizeTier(source.tier),
+        mentionCount: asMetric(source.mention_count),
+        sourceItemCoverage: asMetric(source.source_item_coverage),
+        localUnitCoverage: asMetric(source.local_unit_coverage),
+        eventChainCoverage: asMetric(source.event_chain_coverage),
+        policyReasons: asStringList(source.policy_reasons),
+        summaryEligible: asOptionalBoolean(source.summary_eligible),
+        glossaryEligible: asOptionalBoolean(source.glossary_eligible),
+        auditOnly: asOptionalBoolean(source.audit_only) || false,
+    };
+};
+
+const candidateGroupFor = (candidatePolicy) => {
+    const kind = normalizeToken(candidatePolicy?.candidateKind);
+    if (candidatePolicy?.auditOnly || kind === 'incidental_concept' || kind === 'incidental') {
+        return 'incidental';
+    }
+    const tier = normalizeTier(candidatePolicy?.tier);
+    return TIER_GROUPS[tier] || 'core';
+};
+
 export const buildAnalysisPayload = ({
     selectedProject,
     apiProvider,
@@ -282,6 +372,10 @@ export const getTraceabilityRows = (traceability = []) => (
     (Array.isArray(traceability) ? traceability : []).flatMap((record) => {
         const aggregate = asObject(record?.aggregate);
         const delivery = asObject(record?.delivery_membership);
+        const candidatePolicy = normalizeCandidatePolicy({
+            ...aggregate,
+            candidate_policy: record?.candidate_policy || aggregate.candidate_policy,
+        });
         const contributions = Array.isArray(record?.contributions) ? record.contributions : [];
         const rows = contributions.map((item) => {
             const contribution = asObject(item?.contribution);
@@ -294,6 +388,7 @@ export const getTraceabilityRows = (traceability = []) => (
                 sourceRef: source.source_ref || source.source_item_id || '',
                 sourceContent: source.content || '',
                 deliveryMembershipCount: Number(delivery.count || 0),
+                candidatePolicy,
             };
         });
         return rows.length > 0 ? rows : [{
@@ -305,9 +400,34 @@ export const getTraceabilityRows = (traceability = []) => (
             sourceContent: '',
             deliveryMembershipCount: Number(delivery.count || 0),
             placeholder: true,
+            candidatePolicy,
         }];
     })
 );
+
+export const getCandidateGovernanceGroups = (rows = []) => {
+    const groups = { core: [], secondary: [], incidental: [] };
+    const candidates = new Map();
+    (Array.isArray(rows) ? rows : []).forEach((row, index) => {
+        const candidatePolicy = row?.candidatePolicy;
+        if (!candidatePolicy) return;
+        const group = candidateGroupFor(candidatePolicy);
+        const identity = candidatePolicy.normalizedMatchKey
+            || candidatePolicy.canonicalDisplayName
+            || row.aggregateKey
+            || `candidate:${index}`;
+        const key = `${group}:${identity}`;
+        if (candidates.has(key)) return;
+        const candidate = {
+            ...candidatePolicy,
+            aggregateKey: row.aggregateKey || '',
+            group,
+        };
+        candidates.set(key, candidate);
+        groups[group].push(candidate);
+    });
+    return groups;
+};
 
 export const getContextErrorCode = (error) => {
     const detail = error?.response?.data?.detail;

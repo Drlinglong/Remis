@@ -12,6 +12,7 @@ import {
 } from '@mantine/core';
 import { IconRefresh } from '@tabler/icons-react';
 
+import CandidateGovernanceSection from './CandidateGovernanceSection';
 import styles from './ModArchive.module.css';
 
 const CODE_LABELS = {
@@ -278,6 +279,7 @@ const TraceabilityContent = ({ rows, entries, t }) => {
     const entriesByKey = useMemo(() => new Map(entries.map((entry) => [entry.key, entry])), [entries]);
     return (
         <Stack gap="lg">
+            <CandidateGovernanceSection rows={rows} t={t} />
             {['project', 'event', 'entity'].map((kind) => {
                 const kindGroups = groups.filter((group) => group.kind === kind);
                 if (kindGroups.length === 0) return null;

@@ -1283,6 +1283,42 @@
       "delivery_membership_count": "翻译覆盖：{{count}}",
       "load_traceability": "加载来源追踪",
         "traceability_empty": "此版本没有可用的追踪记录。",
+        "candidate_governance_title": "候选治理",
+        "candidate_governance_desc": "候选策略和程序计算的覆盖指标只在追溯区域显示；上方摘要只包含有效档案值。",
+        "candidate_group": {
+          "core": "核心候选",
+          "secondary": "次要候选",
+          "incidental": "低优先级审计候选"
+        },
+        "candidate_kind": {
+          "entity": "实体",
+          "glossary_term": "词典术语",
+          "named_phrase": "专名短语",
+          "incidental_concept": "偶发概念"
+        },
+        "candidate_tier": {
+          "core": "A 级·核心",
+          "secondary": "B 级·次要",
+          "incidental": "C 级·偶发",
+          "not_recorded": "等级未记录"
+        },
+        "candidate_aliases": "别名",
+        "candidate_match_key": "规范化匹配键",
+        "candidate_coverage": {
+          "mention_count": "提及次数",
+          "source_item_coverage": "源条目覆盖",
+          "local_unit_coverage": "本地化单元覆盖",
+          "event_chain_coverage": "事件链覆盖"
+        },
+        "candidate_policy_reasons": "策略原因",
+        "candidate_summary_eligible": "可进入摘要",
+        "candidate_glossary_eligible": "可进入词典",
+        "candidate_eligibility": {
+          "yes": "是",
+          "no": "否"
+        },
+        "candidate_not_recorded": "未记录",
+        "candidate_audit_only": "仅审计",
         "parent_release": "父版本",
         "start_draft": "从此版本开始草稿",
         "draft": {

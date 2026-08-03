@@ -1244,6 +1244,42 @@
       "delivery_membership_count": "Translation coverage: {{count}}",
       "load_traceability": "Load source traceability",
         "traceability_empty": "No traceability records are available for this release.",
+        "candidate_governance_title": "Candidate governance",
+        "candidate_governance_desc": "Candidate policy and program-computed coverage are shown only in traceability; the summary above contains effective archive values.",
+        "candidate_group": {
+          "core": "Core candidates",
+          "secondary": "Secondary candidates",
+          "incidental": "Low-priority audit candidates"
+        },
+        "candidate_kind": {
+          "entity": "Entity",
+          "glossary_term": "Glossary term",
+          "named_phrase": "Named phrase",
+          "incidental_concept": "Incidental concept"
+        },
+        "candidate_tier": {
+          "core": "Tier A · Core",
+          "secondary": "Tier B · Secondary",
+          "incidental": "Tier C · Incidental",
+          "not_recorded": "Tier not recorded"
+        },
+        "candidate_aliases": "Aliases",
+        "candidate_match_key": "Normalized match key",
+        "candidate_coverage": {
+          "mention_count": "Mentions",
+          "source_item_coverage": "Source-item coverage",
+          "local_unit_coverage": "Local-unit coverage",
+          "event_chain_coverage": "Event-chain coverage"
+        },
+        "candidate_policy_reasons": "Policy reasons",
+        "candidate_summary_eligible": "Summary eligible",
+        "candidate_glossary_eligible": "Glossary eligible",
+        "candidate_eligibility": {
+          "yes": "Yes",
+          "no": "No"
+        },
+        "candidate_not_recorded": "Not recorded",
+        "candidate_audit_only": "Audit only",
         "parent_release": "Parent release",
         "start_draft": "Start a draft from this release",
         "draft": {

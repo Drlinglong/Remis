@@ -4,6 +4,7 @@ import {
     ANALYSIS_SCOPES,
     buildAnalysisPayload,
     buildTerminologyIndex,
+    getCandidateGovernanceGroups,
     getArchiveEntries,
     getTraceabilityRows,
     normalizeAnalysisStatus,
@@ -148,6 +149,68 @@ describe('Mod Archive contracts', () => {
             provenance: 'script_derived',
             sourceRef: 'common/characters.txt::1:republic',
         })]);
+    });
+
+    it('groups governed candidates by tier while preserving their actual kinds', () => {
+        const rows = getTraceabilityRows([
+            {
+                aggregate: {
+                    aggregate_key: 'entity:signal',
+                    aggregate_type: 'entity',
+                    canonical_display_name: 'Signal',
+                    normalized_match_key: 'signal',
+                    aliases: ['Signal'],
+                    candidate_kind: 'entity',
+                    tier: 'A',
+                },
+                contributions: [{ source_item: { source_ref: 'source::1' } }],
+            },
+            {
+                aggregate: {
+                    aggregate_key: 'entity:term',
+                    aggregate_type: 'entity',
+                    canonical_display_name: 'Admiralty',
+                    normalized_match_key: 'admiralty',
+                    aliases: ['Admiralty'],
+                    candidate_kind: 'glossary_term',
+                    tier: 'secondary',
+                },
+                contributions: [{ source_item: { source_ref: 'source::2' } }],
+            },
+            {
+                aggregate: {
+                    aggregate_key: 'entity:concept',
+                    aggregate_type: 'entity',
+                    canonical_display_name: 'Background concept',
+                    normalized_match_key: 'background concept',
+                    aliases: ['Background concept'],
+                    candidate_kind: 'incidental_concept',
+                    tier: 'core',
+                },
+                contributions: [{ source_item: { source_ref: 'source::3' } }],
+            },
+        ]);
+
+        const groups = getCandidateGovernanceGroups(rows);
+        expect(groups.core).toEqual([
+            expect.objectContaining({ candidateKind: 'entity', tier: 'core' }),
+        ]);
+        expect(groups.secondary).toEqual([
+            expect.objectContaining({ candidateKind: 'glossary_term', tier: 'secondary' }),
+        ]);
+        expect(groups.incidental).toEqual([
+            expect.objectContaining({ candidateKind: 'incidental_concept', tier: 'incidental' }),
+        ]);
+    });
+
+    it('leaves old traceability records without candidate policy fields unchanged', () => {
+        const rows = getTraceabilityRows([{
+            aggregate: { aggregate_key: 'entity:legacy', aggregate_type: 'entity' },
+            contributions: [{ source_item: { source_ref: 'legacy::1' } }],
+        }]);
+
+        expect(rows[0].candidatePolicy).toBeNull();
+        expect(getCandidateGovernanceGroups(rows)).toEqual({ core: [], secondary: [], incidental: [] });
     });
 
     it('decorates archive entities with approved terms before pending suggestions', () => {

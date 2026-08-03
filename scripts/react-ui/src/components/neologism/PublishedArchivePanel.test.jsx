@@ -189,6 +189,39 @@ describe('PublishedArchivePanel', () => {
         expect(onOpenGlossary).toHaveBeenCalledWith({ glossaryId: 7, gameId: 'stellaris' });
     });
 
+    it('keeps audit-only candidates out of effective entity summaries', async () => {
+        const defaultGet = api.get.getMockImplementation();
+        api.get.mockImplementation((url) => {
+            if (url === '/api/context/releases/release-1/traceability') {
+                return Promise.resolve({ data: [{
+                    aggregate: {
+                        aggregate_key: 'entity:audit-only',
+                        aggregate_type: 'entity',
+                        canonical_display_name: 'Audit-only concept',
+                        normalized_match_key: 'audit-only concept',
+                        aliases: ['Audit-only concept'],
+                        candidate_kind: 'incidental_concept',
+                        tier: 'core',
+                        audit_only: true,
+                    },
+                    contributions: [{ source_item: { source_ref: 'audit::1', content: 'An incidental concept' } }],
+                }] });
+            }
+            return defaultGet(url);
+        });
+        renderPanel();
+
+        await screen.findByText('A state');
+        const summaryEntityHeading = screen.getAllByRole('heading', { level: 4 })
+            .find((node) => node.textContent === 'mod_archive.release.entity_summary:1');
+        const summaryEntitySection = summaryEntityHeading.closest('section');
+        expect(summaryEntitySection).not.toHaveTextContent('Audit-only concept');
+
+        fireEvent.click(screen.getByTestId('mod-archive-load-traceability'));
+        expect(await screen.findByText('Audit-only concept')).toBeInTheDocument();
+        expect(screen.getByTestId('mod-archive-candidate-audit')).not.toHaveAttribute('open');
+    });
+
     it('removes the selected project archive only after explicit confirmation', async () => {
         renderPanel();
 
