@@ -140,6 +140,80 @@ def test_reconcile_folds_same_batch_chain_steps_then_assigns_all_units():
     assert "source_item_ids" not in assignment_schema["$defs"]["_ModelAssignment"]["properties"]
 
 
+def test_catalog_normalizes_prose_tainted_evidence_ids_without_a_repair_call():
+    units = _units(95)
+    response = _catalog_response(units)
+    base_chain = response["final_chains"][0]
+    response["final_chains"] = [
+        {**base_chain, "chain_id": "chain_56", "evidence_unit_ids": [
+            "unit_56开始从这里提供，unit_57、unit_58、unit_59、unit_60。",
+        ]},
+        {**base_chain, "chain_id": "chain_75", "evidence_unit_ids": [
+            "unit_75各项内容由unit_75提供，unit_76和unit_77提供。",
+        ]},
+        {**base_chain, "chain_id": "chain_92", "evidence_unit_ids": [
+            "unit_92分析、unit_93、unit_94。",
+        ]},
+    ]
+    response["proposal_resolutions"][0].update(
+        resolution="split_across",
+        final_chain_ids=["chain_56", "chain_75", "chain_92"],
+    )
+    handler = FakeHandler([json.dumps(response, ensure_ascii=False)])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [_extraction(units)]
+    )
+
+    assert catalog.final_chains[0].evidence_unit_ids == [
+        "unit_56", "unit_57", "unit_58", "unit_59", "unit_60",
+    ]
+    assert catalog.final_chains[1].evidence_unit_ids == ["unit_75", "unit_76", "unit_77"]
+    assert catalog.final_chains[2].evidence_unit_ids == ["unit_92", "unit_93", "unit_94"]
+    assert catalog.repair_count == 0
+
+
+def test_catalog_schema_constrains_each_evidence_item_to_one_bare_unit_id():
+    units = _units()
+    handler = FakeHandler([json.dumps(_catalog_response(units))])
+
+    ContextEventReconciliationService(handler).build_catalog(units, [_extraction(units)])
+
+    evidence_schema = handler.schemas[0][0]["$defs"]["EventChainDefinition"]["properties"][
+        "evidence_unit_ids"
+    ]
+    assert evidence_schema["items"]["pattern"] == r"^unit_\d+$"
+
+
+def test_catalog_still_repairs_a_real_unknown_unit_after_normalization():
+    units = _units()
+    invalid = _catalog_response(units)
+    invalid["final_chains"][0]["evidence_unit_ids"] = ["unit_0以及unit_999。"]
+    handler = FakeHandler([json.dumps(invalid), json.dumps(_catalog_response(units))])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [_extraction(units)]
+    )
+
+    assert catalog.repair_count == 1
+    assert catalog.repair_reason == "contract_validation"
+    assert "unit_999" in catalog.repair_detail
+
+
+def test_catalog_malformed_non_string_evidence_uses_normal_schema_repair():
+    units = _units()
+    invalid = _catalog_response(units)
+    invalid["final_chains"][0]["evidence_unit_ids"] = [{"id": "unit_0"}]
+    handler = FakeHandler([json.dumps(invalid), json.dumps(_catalog_response(units))])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [_extraction(units)]
+    )
+
+    assert catalog.repair_count == 1
+    assert catalog.repair_reason == "schema_validation"
+
+
 @pytest.mark.parametrize("mutation, detail", [
     (lambda data: data["proposal_resolutions"].clear(), "missing="),
     (lambda data: data["proposal_resolutions"].append(data["proposal_resolutions"][0]), "duplicate="),

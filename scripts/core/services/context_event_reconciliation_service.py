@@ -17,6 +17,7 @@ from typing import Any, Iterable, Sequence
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from scripts.core.context_local_units import DeliveryAssignment, DeliveryLink, LocalTextUnit
+from scripts.core.context_unit_id_contract import EvidenceUnitIds
 from scripts.core.neologism_extraction import (
     EventChainContribution,
     NeologismMiningError,
@@ -55,7 +56,7 @@ class EventChainDefinition(BaseModel):
     sequence: int = Field(ge=0)
     participants: list[str] = Field(default_factory=list, max_length=20)
     consequence: str | None = Field(default=None, max_length=500)
-    evidence_unit_ids: list[str] = Field(min_length=1, max_length=5)
+    evidence_unit_ids: EvidenceUnitIds = Field(min_length=1, max_length=5)
 
 
 class LocalChainDisposition(BaseModel):
@@ -183,7 +184,8 @@ Return exactly one compact proposal_resolution for every proposal_id. Use
 reject_non_event for a card that is only a static/theme collection. Do not omit
 a card silently and do not write long rationales. Evidence is representative;
 every evidence_unit_id must name a supplied unit. Write descriptive fields in
-the requested description language.
+the requested description language. In evidence_unit_ids, put exactly one bare
+ID such as "unit_56" in each array item; never join IDs or add explanatory prose.
 """
 
     ASSIGNMENT_SYSTEM_PROMPT = """
