@@ -9,6 +9,7 @@ from scripts.developer_tools.context_archive_benchmark import (
     _best_chain_mapping,
     _metrics,
     parse_gold,
+    render_markdown,
 )
 
 
@@ -63,6 +64,36 @@ def test_metrics_separate_delivery_recall_from_strict_clustering():
     assert strict["false_positive_pairs"] == 2
     assert strict["false_negative_pairs"] == 0
     assert strict["precision"] == pytest.approx(1 / 3)
+
+
+def test_render_markdown_keeps_gold_prediction_and_editable_review_fields():
+    result = _result("unit_0", "arc_a", "predicted_a")
+    snapshot = {
+        "release": {
+            "release_id": "release-1",
+            "source_snapshot_hash": "sha256",
+            "model_id": "model",
+            "prompt_version": "prompt-v1",
+        },
+        "metrics": {
+            **_metrics([result]),
+        },
+        "predicted_to_gold_chain_mapping": {"predicted_a": "arc_a"},
+        "units": [
+            {
+                **result.__dict__,
+                "predicted_links": [result.predicted_links[0].__dict__],
+            }
+        ],
+    }
+
+    report = render_markdown(snapshot)
+
+    assert "Context Release: `release-1`" in report
+    assert "`predicted_a` | `arc_a`" in report
+    assert "Human verdict: `未审核`" in report
+    assert "unit_0: text" not in report
+    assert "text" in report
 
 
 def _result(unit_id: str, gold_chain: str, predicted_chain: str) -> UnitResult:

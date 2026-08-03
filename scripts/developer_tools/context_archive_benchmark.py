@@ -362,6 +362,69 @@ def build_snapshot(
     }
 
 
+def render_markdown(snapshot: dict[str, Any]) -> str:
+    metrics = snapshot["metrics"]
+    strict = metrics["strict_clustering_pairwise"]
+    lines = [
+        "# Context Archive 金标审核报告",
+        "",
+        f"- Context Release: `{snapshot['release']['release_id']}`",
+        f"- Source snapshot: `{snapshot['release']['source_snapshot_hash']}`",
+        f"- Model: `{snapshot['release']['model_id']}`",
+        f"- Prompt: `{snapshot['release']['prompt_version']}`",
+        "",
+        "## 总体指标",
+        "",
+        "| 指标 | 结果 |",
+        "|---|---:|",
+        f"| Unit | {metrics['unit_count']} |",
+        f"| 投递精确率 | {metrics['delivery_precision']:.2%} |",
+        f"| 投递召回率 | {metrics['delivery_recall']:.2%} |",
+        f"| 投递 F1 | {metrics['delivery_f1']:.2%} |",
+        f"| 宽松事件链正确率 | {metrics['relaxed_chain_accuracy']:.2%} |",
+        f"| 严格聚类 Pairwise F1 | {strict['f1']:.2%} |",
+        f"| 关系类型完全正确率 | {metrics['exact_relation_accuracy']:.2%} |",
+        "",
+        "## Remis 事件链映射",
+        "",
+        "| Remis chain | 默认接受的 Gold chain |",
+        "|---|---|",
+    ]
+    for predicted, gold in sorted(snapshot["predicted_to_gold_chain_mapping"].items()):
+        lines.append(f"| `{predicted}` | `{gold}` |")
+    lines.extend(["", "## 逐单元审核", ""])
+    for unit in snapshot["units"]:
+        links = unit["predicted_links"]
+        predicted = "; ".join(
+            f"{link['chain_id']} / {link['relation']} / {link['confidence']:.2f}"
+            for link in links
+        ) or "unassigned"
+        lines.extend(
+            [
+                f"### `{unit['unit_id']}` · `{', '.join(unit['item_keys'])}`",
+                "",
+                f"- Gold: `{unit['gold_chain']}` / `{unit['gold_relation']}` / "
+                f"`{unit['gold_confidence']}`",
+                f"- Remis: `{predicted}`",
+                f"- Verdict: `{unit['delivery_verdict']}` / "
+                f"`{unit['relaxed_chain_verdict']}` / `{unit['relation_verdict']}`",
+                f"- Gold note: {unit['gold_note'] or '—'}",
+                "- Human verdict: `未审核`",
+                "- Human notes:",
+                "",
+                "<details><summary>展开英文原文</summary>",
+                "",
+                "```text",
+                unit["source_text"].replace("```", "` ` `"),
+                "```",
+                "",
+                "</details>",
+                "",
+            ]
+        )
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def _parse_overrides(values: list[str]) -> dict[str, str]:
     overrides: dict[str, str] = {}
     for value in values:
@@ -382,6 +445,7 @@ def main() -> int:
     parser.add_argument("--release-id", required=True)
     parser.add_argument("--gold", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--markdown-output", type=Path)
     parser.add_argument(
         "--relation-override",
         action="append",
@@ -398,6 +462,11 @@ def main() -> int:
     args.output.write_text(
         json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    if args.markdown_output:
+        args.markdown_output.parent.mkdir(parents=True, exist_ok=True)
+        args.markdown_output.write_text(
+            render_markdown(snapshot), encoding="utf-8"
+        )
     print(json.dumps(snapshot["metrics"], ensure_ascii=False, indent=2))
     return 0
 
