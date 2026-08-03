@@ -25,7 +25,11 @@ import {
     IconRadar2,
 } from '@tabler/icons-react';
 
-import { ANALYSIS_SCOPES, getStatusTone } from './modArchiveModel';
+import {
+    ANALYSIS_CONCURRENCY_OPTIONS,
+    ANALYSIS_SCOPES,
+    getStatusTone,
+} from './modArchiveModel';
 import { TARGET_LANGUAGE_OPTIONS } from './useModArchiveAnalysis';
 import styles from './ModArchive.module.css';
 
@@ -55,6 +59,8 @@ const ModArchiveAnalysisSetup = ({ controller }) => {
         setAnalysisScope,
         upstreamVersion,
         setUpstreamVersion,
+        concurrencyLimit,
+        setConcurrencyLimit,
         scanning,
         status,
         loadError,
@@ -200,6 +206,18 @@ const ModArchiveAnalysisSetup = ({ controller }) => {
                         />
 
                         <Select
+                            label={t('mod_archive.analysis.concurrency_label')}
+                            description={t('mod_archive.analysis.concurrency_desc')}
+                            data={ANALYSIS_CONCURRENCY_OPTIONS.map((option) => ({
+                                value: option.value,
+                                label: option.labelKey ? t(option.labelKey) : option.label,
+                            }))}
+                            value={concurrencyLimit}
+                            onChange={(value) => setConcurrencyLimit(value || 'auto')}
+                            data-testid="mod-archive-concurrency"
+                        />
+
+                        <Select
                             label={t('neologism_review.mining.select_provider')}
                             data={providers}
                             value={apiProvider}
@@ -313,6 +331,11 @@ const ModArchiveAnalysisSetup = ({ controller }) => {
                                                     {t('neologism_review.mining.target_language')}: {status.targetLang || '—'}
                                                     {' · '}
                                                     {t('mod_archive.analysis.description_language')}: {status.descriptionLanguage || '—'}
+                                                </Text>
+                                            )}
+                                            {status.effectiveConcurrency && (
+                                                <Text className={styles.technical} size="xs">
+                                                    {t('mod_archive.analysis.concurrency_label')}: {status.effectiveConcurrency}
                                                 </Text>
                                             )}
                                         </Stack>

@@ -49,6 +49,7 @@ class MineNeologismsRequest(BaseModel):
     file_paths: Optional[List[str]] = None
     analysis_scope: Literal["terms_only", "narrative_context"] = "terms_only"
     upstream_version: Optional[str] = Field(default=None, max_length=200)
+    concurrency_limit: Optional[int] = Field(default=None, ge=1, le=50)
 
     @property
     def effective_description_language(self) -> str:

@@ -122,6 +122,13 @@ describe('MiningDashboard', () => {
     expect(screen.queryByText('form_label_model')).not.toBeInTheDocument();
   });
 
+  it('shows automatic archive-analysis concurrency by default', async () => {
+    renderDashboard();
+
+    const concurrency = await screen.findByTestId('mod-archive-concurrency');
+    expect(concurrency).toHaveValue('mod_archive.analysis.concurrency_auto');
+  });
+
   it('excludes the project source language and corrects an invalid default target', async () => {
     projectSourceLanguage = 'zh-CN';
     renderDashboard();

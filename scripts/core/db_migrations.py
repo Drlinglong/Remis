@@ -22,7 +22,7 @@ from scripts.core.db_models import (
 
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 15
+MAIN_DB_TARGET_VERSION = 16
 
 
 class UnsupportedDatabaseVersionError(RuntimeError):
@@ -669,6 +669,12 @@ def _migration_015_add_context_delivery_memberships(db_path: str) -> None:
     migrate_context_release_storage(db_path)
 
 
+def _migration_016_add_context_aggregation_phase(db_path: str) -> None:
+    from scripts.core.context_analysis_migration import migrate_context_analysis_aggregation_phase
+
+    migrate_context_analysis_aggregation_phase(db_path)
+
+
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
@@ -685,6 +691,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (13, "add_context_release_storage", _migration_013_add_context_release_storage),
     (14, "add_context_analysis_batch_storage", _migration_014_add_context_analysis_batch_storage),
     (15, "add_context_delivery_memberships", _migration_015_add_context_delivery_memberships),
+    (16, "add_context_aggregation_phase", _migration_016_add_context_aggregation_phase),
 ]
 
 

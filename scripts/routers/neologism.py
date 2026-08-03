@@ -12,7 +12,6 @@ from scripts.core.repositories.context_analysis_batch_repository import (
     ContextAnalysisBatchRepository,
 )
 from scripts.core.services.context_workflow_service import ContextWorkflowService
-from scripts.core.services.context_synthesis_service import ContextSynthesisService
 from scripts.shared.services import project_manager, glossary_manager
 from scripts.shared import task_state
 from scripts.shared.task_state import DuplicateTaskError
@@ -44,7 +43,7 @@ def _context_release_presentation(release):
     payload = release.model_dump()
     metadata = payload["metadata"]
     config = metadata.get("analysis_config") or {}
-    metadata["prompt_example"] = ContextSynthesisService.prompt_example(
+    metadata["prompt_example"] = ContextWorkflowService.prompt_example(
         str(config.get("description_language") or "en")
     )
     return payload
@@ -398,6 +397,7 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
         description_language=payload.effective_description_language,
         analysis_scope=payload.analysis_scope,
         upstream_version=payload.upstream_version,
+        concurrency_limit=payload.concurrency_limit,
     )
     return {
         "task_id": task_id,

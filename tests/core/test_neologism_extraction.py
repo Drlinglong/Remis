@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+from scripts.core.context_local_units import ContextLocalUnitBuilder
 from scripts.core.neologism_extraction import (
     AnalysisScope,
     NeologismMiningError,
@@ -86,10 +87,13 @@ def test_narrative_context_makes_one_call_and_keeps_contributions_separate():
         }],
         "delivery_assignments": [{
             "local_unit_id": "unit_0",
-            "event_chain_ids": ["activation-chain"],
-            "role": "primary_member",
-            "confidence": 0.94,
-            "reasoning": "The event unit directly narrates the activation.",
+            "links": [{
+                "event_chain_id": "activation-chain",
+                "relation": "primary_member",
+                "confidence": 0.94,
+                "reasoning": "The event unit directly narrates the activation.",
+            }],
+            "assignment_state": "assigned",
         }],
     })])
 
@@ -105,24 +109,33 @@ def test_narrative_context_makes_one_call_and_keeps_contributions_separate():
     assert result.relationships[0].provenance == "text_inferred"
     assert result.entities[0].evidence[0].relative_path == "events/first.yml"
     assert result.delivery_assignments[0].source_item_ids == ["item-1"]
-    assert result.delivery_assignments[0].event_chain_ids == ["activation-chain"]
+    assert result.delivery_assignments[0].links[0].event_chain_id == "activation-chain"
     prompt = json.loads(handler.calls[0][0][1]["content"])
     assert prompt["local_text_units"][0]["item_keys"] == ["curia.activation:0"]
     system_prompt = " ".join(handler.calls[0][0][0]["content"].split())
     assert "never prove story-chain membership" in system_prompt
 
 
-def test_missing_delivery_assignment_becomes_explicit_unassigned_without_repair():
-    handler = FakeHandler([json.dumps({
+def test_missing_delivery_assignment_requires_repair_to_explicit_unassigned():
+    missing = {
         "terms": [], "entities": [], "facts": [], "events": [], "relationships": [],
-    })])
+    }
+    repaired = {
+        **missing,
+        "delivery_assignments": [{
+            "local_unit_id": "unit_0",
+            "links": [],
+            "assignment_state": "unassigned",
+        }],
+    }
+    handler = FakeHandler([json.dumps(missing), json.dumps(repaired)])
 
     result = StructuredNeologismExtractor(handler).extract(
         [source_item()], scope=AnalysisScope.NARRATIVE_CONTEXT
     )
 
-    assert len(handler.calls) == 1
-    assert result.delivery_assignments[0].role == "unassigned"
+    assert len(handler.calls) == 2
+    assert result.delivery_assignments[0].assignment_state == "unassigned"
     assert result.delivery_assignments[0].source_item_ids == ["item-1"]
 
 
@@ -135,6 +148,7 @@ def test_model_schema_does_not_expose_backend_owned_metadata():
 
     _, schema, schema_name, temperature = handler.calls[0]
     definitions = schema["$defs"]
+    assert "diagnostics" not in schema["properties"]
     assert "provenance" not in definitions["SourceEvidence"]["properties"]
     assert "provenance" not in definitions["EntityContribution"]["properties"]
     assert "source_item_ids" not in definitions["DeliveryAssignment"]["properties"]
@@ -143,6 +157,39 @@ def test_model_schema_does_not_expose_backend_owned_metadata():
         assert "tentative" not in definitions[definition]["properties"]
     assert schema_name == "remis_context_extraction"
     assert temperature == 0.0
+
+
+def test_edge_units_are_visible_but_only_core_units_require_assignments():
+    edge_item = SourceItem(
+        source_item_id="edge-1", relative_path="events/first.yml",
+        item_key="story.1.title", source_order=0, source_text="Earlier scene",
+    )
+    core_item = SourceItem(
+        source_item_id="core-1", relative_path="events/first.yml",
+        item_key="story.2.title", source_order=1, source_text="Current scene",
+    )
+    units = ContextLocalUnitBuilder.build([edge_item, core_item])
+    response = json.dumps({
+        "terms": [], "entities": [], "facts": [], "events": [], "relationships": [],
+        "delivery_assignments": [{
+            "local_unit_id": units[1].unit_id,
+            "links": [],
+            "assignment_state": "unassigned",
+        }],
+    })
+    handler = FakeHandler([response])
+
+    result = StructuredNeologismExtractor(handler).extract(
+        [edge_item, core_item],
+        scope=AnalysisScope.NARRATIVE_CONTEXT,
+        core_units=[units[1]],
+        edge_units=[units[0]],
+    )
+
+    request = json.loads(handler.calls[0][0][1]["content"])
+    assert request["core_unit_ids"] == [units[1].unit_id]
+    assert [item["context_role"] for item in request["local_text_units"]] == ["core", "edge"]
+    assert [item.local_unit_id for item in result.delivery_assignments] == [units[1].unit_id]
 
 
 def test_false_or_missing_fixed_metadata_is_normalized_without_repair():
@@ -176,6 +223,9 @@ def test_false_or_missing_fixed_metadata_is_normalized_without_repair():
             "evidence": [evidence],
             "provenance": "user_confirmed",
             "tentative": False,
+        }],
+        "delivery_assignments": [{
+            "local_unit_id": "unit_0", "links": [], "assignment_state": "unassigned",
         }],
     })])
 
@@ -391,6 +441,9 @@ def test_grounded_contribution_gets_deterministic_atomic_source_evidence():
             "provenance": "text_inferred",
         }],
         "facts": [], "events": [], "relationships": [],
+        "delivery_assignments": [{
+            "local_unit_id": "unit_0", "links": [], "assignment_state": "unassigned",
+        }],
     })
     handler = FakeHandler([payload])
 
@@ -402,7 +455,7 @@ def test_grounded_contribution_gets_deterministic_atomic_source_evidence():
     assert result.entities[0].evidence[0].snippet == "Meridian Gate"
 
 
-def test_fact_without_snippet_still_requires_all_fact_anchors_in_source():
+def test_fact_predicate_may_be_semantic_when_subject_and_object_are_grounded():
     payload = json.dumps({
         "terms": [],
         "entities": [],
@@ -415,6 +468,9 @@ def test_fact_without_snippet_still_requires_all_fact_anchors_in_source():
             "tentative": True,
         }],
         "events": [], "relationships": [],
+        "delivery_assignments": [{
+            "local_unit_id": "unit_0", "links": [], "assignment_state": "unassigned",
+        }],
     })
     handler = FakeHandler([payload])
 
@@ -422,7 +478,39 @@ def test_fact_without_snippet_still_requires_all_fact_anchors_in_source():
         [source_item()], scope=AnalysisScope.NARRATIVE_CONTEXT
     )
 
-    assert result.facts == []
+    assert result.facts[0].predicate == "destroys"
+    assert len(handler.calls) == 1
+
+
+def test_event_without_literal_participant_uses_valid_evidence_reference():
+    payload = json.dumps({
+        "terms": [], "entities": [], "facts": [], "relationships": [],
+        "events": [{
+            "chain_id": "quiet_revolt",
+            "event": "A hidden revolt changes the balance of power.",
+            "sequence": 0,
+            "participants": [],
+            "evidence": [{"source_item_id": "source_0"}],
+        }],
+        "delivery_assignments": [{
+            "local_unit_id": "unit_0",
+            "assignment_state": "assigned",
+            "links": [{
+                "event_chain_id": "quiet_revolt",
+                "relation": "primary_member",
+                "confidence": 0.9,
+                "reasoning": "This unit narrates the revolt.",
+            }],
+        }],
+    })
+    handler = FakeHandler([payload])
+
+    result = StructuredNeologismExtractor(handler).extract(
+        [source_item("The ministers met in secret and the old order fell overnight.")],
+        scope=AnalysisScope.NARRATIVE_CONTEXT,
+    )
+
+    assert result.events[0].chain_id == "quiet_revolt"
     assert len(handler.calls) == 1
 
 

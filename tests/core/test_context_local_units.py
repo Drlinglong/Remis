@@ -54,3 +54,21 @@ def test_non_numbered_title_description_pairs_are_conservative_local_units():
     ])
 
     assert [len(unit.items) for unit in units] == [2, 2]
+
+
+def test_numbered_event_membership_expands_to_title_description_and_options():
+    units = ContextLocalUnitBuilder.build([
+        _item("toxoids.7255.name", 0),
+        _item("toxoids.7255.desc", 1),
+        _item("toxoids.7255.a", 2),
+        _item("toxoids.7255.b", 3),
+    ])
+
+    assert len(units) == 1
+    assert units[0].unit_id == "unit_0"
+    assert [item.item_key for item in units[0].items] == [
+        "toxoids.7255.name",
+        "toxoids.7255.desc",
+        "toxoids.7255.a",
+        "toxoids.7255.b",
+    ]

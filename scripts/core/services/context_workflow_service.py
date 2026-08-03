@@ -6,10 +6,12 @@ from typing import Any, Callable, Sequence
 
 from scripts.core.api_handler import get_handler
 from scripts.core.context_service import ContextService
+from scripts.core.context_local_units import ContextLocalUnitBuilder
 from scripts.core.neologism_extraction import (
     AnalysisScope,
     SourceItem,
     StructuredNeologismExtraction,
+    StructuredNeologismExtractor,
 )
 from scripts.core.neologism_manager import neologism_manager
 from scripts.core.neologism_miner import NeologismMiner
@@ -17,9 +19,21 @@ from scripts.core.services.context_candidate_adapter import ContextCandidateAdap
 from scripts.core.services.context_analysis_checkpoint_service import (
     ContextAnalysisCheckpointService,
 )
-from scripts.core.services.context_chunking_policy import ContextChunkingPolicy
+from scripts.core.services.context_analysis_report_service import ContextAnalysisReportService
+from scripts.core.services.context_chunking_policy import ContextChunkingPolicy, ContextUnitChunk
 from scripts.core.services.context_delivery_membership_service import (
     ContextDeliveryMembershipService,
+)
+from scripts.core.services.context_extraction_execution_service import (
+    ContextExtractionExecutionService,
+)
+from scripts.core.services.context_event_reconciliation_service import (
+    ContextEventReconciliationService,
+    EventReconciliationResult,
+)
+from scripts.core.services.context_parallel_execution_service import (
+    map_context_calls_ordered,
+    resolve_context_concurrency,
 )
 from scripts.core.services.context_release_assembler import ContextReleaseAssembler
 from scripts.core.services.context_source_parser import ContextSourceParser, ParsedSourceFile
@@ -79,8 +93,8 @@ class ContextWorkflowService:
     DEFAULT_MAX_SOURCE_CHARS = ContextChunkingPolicy.DEFAULT_MAX_SOURCE_CHARS
     CHUNK_SIZE = DEFAULT_MAX_ITEMS
     REVIEW_BATCH_SIZE = ContextCandidateAdapter.REVIEW_BATCH_SIZE
-    SCHEMA_VERSION = "context-v2"
-    PROMPT_VERSION = "context-synthesis-v5"
+    SCHEMA_VERSION = "context-v3"
+    PROMPT_VERSION = "context-archive-v6"
     ACTIVE_STATUSES = ContextWorkflowStatusService.ACTIVE_STATUSES
 
     def __init__(
@@ -94,6 +108,7 @@ class ContextWorkflowService:
         snapshot_service: SourceSnapshotService | None = None,
         miner_factory: Callable[[Any], Any] = NeologismMiner,
         synthesizer_factory: Callable[[Any], Any] = ContextSynthesisService,
+        reconciler_factory: Callable[[Any], Any] = ContextEventReconciliationService,
         context_service: ContextService | None = None,
         candidate_adapter: ContextCandidateAdapter | None = None,
         status_service: ContextWorkflowStatusService | None = None,
@@ -112,6 +127,7 @@ class ContextWorkflowService:
         self.snapshot_service = snapshot_service or SourceSnapshotService()
         self.miner_factory = miner_factory
         self.synthesizer_factory = synthesizer_factory
+        self.reconciler_factory = reconciler_factory
 
     def reserve(self, project_id: str, task_id: str, scope: AnalysisScope) -> bool:
         return self.status_service.reserve(project_id, task_id, scope)
@@ -125,6 +141,24 @@ class ContextWorkflowService:
 
     def get_status(self, project_id: str) -> dict[str, Any]:
         return self.status_service.get_status(project_id)
+
+    @staticmethod
+    def prompt_example(description_language: str) -> str:
+        extraction = StructuredNeologismExtractor.SYSTEM_PROMPT.format(
+            scope=AnalysisScope.NARRATIVE_CONTEXT.value,
+            game_name="Paradox Game",
+            target_language="the configured target language",
+            reasoning_language=description_language,
+        ).strip()
+        reconciliation = ContextEventReconciliationService._system_prompt(
+            description_language,
+        )
+        synthesis = ContextSynthesisService.prompt_example(description_language)
+        return (
+            f"[Local extraction]\n{extraction}\n\n"
+            f"[Global event reconciliation]\n{reconciliation}\n\n"
+            f"[Archive synthesis]\n{synthesis}"
+        )
 
     def run(
         self,
@@ -144,6 +178,7 @@ class ContextWorkflowService:
         analysis_scope: AnalysisScope = AnalysisScope.TERMS_ONLY,
         upstream_version: str | None = None,
         analysis_config: dict[str, Any] | None = None,
+        concurrency_limit: int | None = None,
     ) -> dict[str, Any]:
         scope = AnalysisScope(analysis_scope)
         effective_description_language = description_language or review_language
@@ -157,7 +192,17 @@ class ContextWorkflowService:
             diff = self._source_diff(parent, snapshot)
             source_items = [item for source_file in parsed_files for item in source_file.items]
             chunk_config = self._chunk_config(analysis_config)
-            chunks = list(self._chunks(source_items, **chunk_config))
+            local_units = ContextLocalUnitBuilder.build(source_items)
+            edge_units = (
+                ContextChunkingPolicy.DEFAULT_EDGE_UNITS
+                if scope is AnalysisScope.NARRATIVE_CONTEXT else 0
+            )
+            chunks = ContextChunkingPolicy.unit_chunks(
+                local_units, **chunk_config, edge_units=edge_units,
+            )
+            effective_concurrency = resolve_context_concurrency(
+                concurrency_limit, api_provider,
+            )
             workflow_context = self._workflow_context(
                 scope,
                 api_provider,
@@ -167,7 +212,10 @@ class ContextWorkflowService:
                 effective_description_language,
                 len(source_items),
                 chunk_config,
+                effective_concurrency,
+                concurrency_limit,
             )
+            workflow_context.update(self._chunk_diagnostics(local_units, chunks))
             analysis_run = self.analysis_checkpoints.start(
                 project_id,
                 task_id,
@@ -181,6 +229,8 @@ class ContextWorkflowService:
                     "description_language": effective_description_language,
                     "game_name": game_name,
                     "chunking": dict(chunk_config),
+                    "concurrency_limit": concurrency_limit,
+                    "effective_concurrency": effective_concurrency,
                 },
             )
             if analysis_run is not None:
@@ -199,10 +249,7 @@ class ContextWorkflowService:
                 total_batches=len(chunks),
                 workflow_context=workflow_context,
             )
-            handler = self.handler_factory(api_provider, model_name=model_name)
-            miner = self.miner_factory(handler)
             extractions = self._extract(
-                miner,
                 chunks,
                 scope,
                 game_name,
@@ -211,22 +258,17 @@ class ContextWorkflowService:
                 target_lang,
                 effective_description_language,
                 analysis_run,
+                api_provider,
+                model_name,
+                effective_concurrency,
             )
-            terms_result = self._finish_terms_only(
-                project_id, parsed_files, extractions, miner, duplicate_index or {},
-                source_lang, target_lang, game_name, effective_description_language, task_id,
-                snapshot.source_snapshot_hash, scope, workflow_context,
-                analysis_run.run_id if analysis_run is not None else None,
+            result = self._finish_scope(
+                project_id, task_id, scope, parsed_files, snapshot, diff, parent,
+                source_items, local_units, chunks, extractions, api_provider, model_name,
+                source_lang, target_lang, game_name, effective_description_language,
+                duplicate_index or {}, workflow_context, analysis_run, upstream_version,
+                analysis_config, chunk_config, effective_concurrency,
             )
-            if scope is AnalysisScope.TERMS_ONLY:
-                result = terms_result
-            else:
-                result = self._finish_context(
-                    project_id, parsed_files, snapshot, diff, parent, extractions,
-                    handler, api_provider, model_name, upstream_version, analysis_config,
-                    effective_description_language, chunk_config, task_id,
-                )
-                result.update({"new_terms": terms_result["new_terms"], "duplicate_terms": terms_result["duplicate_terms"]})
             if analysis_run is not None:
                 self.analysis_checkpoints.mark_published(analysis_run)
                 result["analysis_run_id"] = analysis_run.run_id
@@ -237,10 +279,69 @@ class ContextWorkflowService:
             self._failed(project_id, task_id, len(parsed_files), processed_files, exc)
             raise
 
+    def _finish_scope(
+        self,
+        project_id: str,
+        task_id: str | None,
+        scope: AnalysisScope,
+        parsed_files: Sequence[ParsedSourceFile],
+        snapshot: SourceSnapshot,
+        diff: Any,
+        parent: ContextRelease | None,
+        source_items: Sequence[SourceItem],
+        local_units: Sequence[Any],
+        chunks: Sequence[ContextUnitChunk],
+        extractions: Sequence[StructuredNeologismExtraction],
+        api_provider: str,
+        model_name: str | None,
+        source_lang: str,
+        target_lang: str,
+        game_name: str,
+        description_language: str,
+        duplicate_index: dict[str, list[dict[str, Any]]],
+        workflow_context: dict[str, Any],
+        analysis_run: Any | None,
+        upstream_version: str | None,
+        analysis_config: dict[str, Any] | None,
+        chunk_config: dict[str, int],
+        effective_concurrency: int,
+    ) -> dict[str, Any]:
+        review_miner = self.miner_factory(
+            self.handler_factory(api_provider, model_name=model_name)
+        )
+        terms = self._finish_terms_only(
+            project_id, parsed_files, extractions, review_miner, duplicate_index,
+            source_lang, target_lang, game_name, description_language, task_id,
+            snapshot.source_snapshot_hash, scope, workflow_context,
+            analysis_run.run_id if analysis_run is not None else None,
+        )
+        if scope is AnalysisScope.TERMS_ONLY:
+            return terms
+        reconciled = self._reconcile_events(
+            project_id, task_id, local_units, extractions, api_provider,
+            model_name, description_language, analysis_run,
+        )
+        final_extractions = self._replace_local_events(extractions, reconciled)
+        result = self._finish_context(
+            project_id, parsed_files, snapshot, diff, parent, final_extractions,
+            api_provider, model_name, upstream_version, analysis_config,
+            description_language, chunk_config, task_id, effective_concurrency,
+        )
+        result["analysis_report"] = self._analysis_report(
+            source_items, local_units, chunks, extractions, reconciled,
+            provider=api_provider, model=model_name,
+            effective_concurrency=effective_concurrency,
+            prompt_version=self.PROMPT_VERSION,
+        )
+        result.update({
+            "new_terms": terms["new_terms"],
+            "duplicate_terms": terms["duplicate_terms"],
+        })
+        return result
+
     def _extract(
         self,
-        miner: Any,
-        chunks: Sequence[Sequence[SourceItem]],
+        chunks: Sequence[ContextUnitChunk],
         scope: AnalysisScope,
         game_name: str,
         project_id: str,
@@ -248,61 +349,100 @@ class ContextWorkflowService:
         target_language: str,
         reasoning_language: str,
         analysis_run: Any | None,
+        api_provider: str,
+        model_name: str | None,
+        concurrency: int,
     ) -> list[StructuredNeologismExtraction]:
-        results: list[StructuredNeologismExtraction] = []
-        for index, chunk in enumerate(chunks, start=1):
-            batch_id = f"extracting:{index}"
-            source_item_ids = [item.source_item_id for item in chunk]
-            result = self.analysis_checkpoints.restore_extraction(
-                analysis_run, index - 1, source_item_ids,
+        return ContextExtractionExecutionService(
+            handler_factory=self.handler_factory,
+            miner_factory=self.miner_factory,
+            checkpoints=self.analysis_checkpoints,
+            status_service=self.status_service,
+        ).execute(
+            chunks,
+            scope=scope,
+            game_name=game_name,
+            project_id=project_id,
+            task_id=task_id,
+            target_language=target_language,
+            reasoning_language=reasoning_language,
+            analysis_run=analysis_run,
+            api_provider=api_provider,
+            model_name=model_name,
+            concurrency=concurrency,
+        )
+
+    def _reconcile_events(
+        self,
+        project_id: str,
+        task_id: str | None,
+        local_units: Sequence[Any],
+        extractions: Sequence[StructuredNeologismExtraction],
+        api_provider: str,
+        model_name: str | None,
+        description_language: str,
+        analysis_run: Any | None,
+    ) -> EventReconciliationResult:
+        source_ids = [
+            item.source_item_id for unit in local_units for item in unit.items
+        ]
+        self.status_service.begin_stage(
+            project_id, task_id, "aggregating", 1, source_item_ids=source_ids,
+        )
+        saved = self.analysis_checkpoints.restore_aggregation(analysis_run, source_ids)
+        if saved is not None:
+            result = EventReconciliationResult(
+                events=saved.events,
+                delivery_assignments=saved.delivery_assignments,
+                diagnostics=saved.diagnostics,
             )
-            if result is not None:
-                results.append(result)
-                self.status_service.record_batch(
-                    project_id,
-                    task_id,
-                    "extracting",
-                    batch_id,
-                    success=True,
-                    source_item_ids=source_item_ids,
-                    resumed=True,
-                )
-                continue
-            try:
-                result = miner.extract_structured(
-                    list(chunk),
-                    scope=scope,
-                    game_name=game_name,
-                    target_language=target_language,
-                    reasoning_language=reasoning_language,
-                )
-            except Exception as exc:
-                self.analysis_checkpoints.save_extraction_failure(
-                    analysis_run, index - 1, source_item_ids, exc,
-                )
-                self.status_service.record_batch(
-                    project_id,
-                    task_id,
-                    "extracting",
-                    batch_id,
-                    success=False,
-                    source_item_ids=source_item_ids,
-                    error=str(exc),
-                )
-                raise
-            self.analysis_checkpoints.save_extraction(
-                analysis_run, index - 1, chunk, result,
-            )
-            results.append(result)
             self.status_service.record_batch(
-                project_id,
-                task_id,
-                "extracting",
-                batch_id,
-                success=True,
-                source_item_ids=source_item_ids,
+                project_id, task_id, "aggregating", "aggregating:1",
+                success=True, source_item_ids=source_ids, resumed=True,
             )
-        return results
+            return result
+        try:
+            handler = self.handler_factory(api_provider, model_name=model_name)
+            result = self.reconciler_factory(handler).reconcile(
+                local_units, extractions, description_language=description_language,
+            )
+        except Exception as exc:
+            self.status_service.record_batch(
+                project_id, task_id, "aggregating", "aggregating:1",
+                success=False, source_item_ids=source_ids, error=str(exc),
+            )
+            raise
+        checkpoint = StructuredNeologismExtraction(
+            events=result.events,
+            delivery_assignments=result.delivery_assignments,
+            diagnostics=result.diagnostics,
+        )
+        self.analysis_checkpoints.save_aggregation(
+            analysis_run, source_ids, checkpoint,
+        )
+        self.status_service.record_batch(
+            project_id, task_id, "aggregating", "aggregating:1",
+            success=True, source_item_ids=source_ids,
+        )
+        return result
+
+    @staticmethod
+    def _replace_local_events(
+        extractions: Sequence[StructuredNeologismExtraction],
+        reconciled: EventReconciliationResult,
+    ) -> list[StructuredNeologismExtraction]:
+        local = [
+            extraction.model_copy(update={"events": [], "delivery_assignments": []})
+            for extraction in extractions
+        ]
+        return [
+            *local,
+            StructuredNeologismExtraction(
+                events=reconciled.events,
+                delivery_assignments=reconciled.delivery_assignments,
+                diagnostics=reconciled.diagnostics,
+            ),
+        ]
 
     def _finish_terms_only(
         self,
@@ -354,7 +494,6 @@ class ContextWorkflowService:
         diff: Any,
         parent: ContextRelease | None,
         extractions: Sequence[StructuredNeologismExtraction],
-        handler: Any,
         api_provider: str,
         model_name: str | None,
         upstream_version: str | None,
@@ -362,6 +501,7 @@ class ContextWorkflowService:
         description_language: str,
         chunk_config: dict[str, int],
         task_id: str | None,
+        concurrency: int,
     ) -> dict[str, Any]:
         sources = self.release_assembler.persist_sources(
             project_id, parsed_files, snapshot.source_snapshot_hash,
@@ -382,7 +522,9 @@ class ContextWorkflowService:
         for aggregate in aggregates:
             self.repository.save_aggregate(aggregate)
         source_item_ids = list(sources)
-        synthesizer = self.synthesizer_factory(handler)
+        synthesizer = self.synthesizer_factory(
+            self.handler_factory(api_provider, model_name=model_name)
+        )
         planned_synthesis_batches = synthesizer.plan_batches(
             aggregates,
             contributions,
@@ -396,24 +538,15 @@ class ContextWorkflowService:
             len(planned_synthesis_batches),
             source_item_ids=source_item_ids,
         )
-        syntheses = synthesizer.synthesize(
-            aggregates,
-            contributions,
-            sources,
-            description_language,
-            on_batch=lambda index, batch, **details: self.status_service.record_batch(
-                project_id,
-                task_id,
-                "synthesizing",
-                f"synthesizing:{index}",
-                source_item_ids=self.release_assembler.aggregate_source_ids(batch, contributions),
-                **details,
-            ),
-            planned_batches=planned_synthesis_batches,
+        syntheses = self._synthesize_parallel(
+            planned_synthesis_batches, contributions, sources, description_language,
+            project_id, task_id, api_provider, model_name, concurrency,
         )
+        metadata_config = dict(analysis_config or {})
+        metadata_config["effective_concurrency"] = concurrency
         metadata = self.release_assembler.metadata(
             snapshot, parsed_files, diff, parent, api_provider, model_name,
-            upstream_version, analysis_config, description_language, chunk_config,
+            upstream_version, metadata_config, description_language, chunk_config,
             self.SCHEMA_VERSION, self.PROMPT_VERSION,
         )
         self.status_service.begin_stage(project_id, task_id, "publishing", 1, source_item_ids=source_item_ids)
@@ -446,6 +579,54 @@ class ContextWorkflowService:
             "delivery_membership_count": len(delivery_memberships),
         }
 
+    def _synthesize_parallel(
+        self,
+        batches: Sequence[Sequence[Any]],
+        contributions: dict[str, Any],
+        sources: dict[str, Any],
+        description_language: str,
+        project_id: str,
+        task_id: str | None,
+        api_provider: str,
+        model_name: str | None,
+        concurrency: int,
+    ) -> list[Any]:
+        materialized = [list(batch) for batch in batches]
+
+        def worker(batch: list[Any]) -> list[Any]:
+            handler = self.handler_factory(api_provider, model_name=model_name)
+            synthesizer = self.synthesizer_factory(handler)
+            return synthesizer.synthesize(
+                batch,
+                contributions,
+                sources,
+                description_language,
+                planned_batches=[batch],
+            )
+
+        def record_completion(outcome: Any) -> None:
+            source_ids = self.release_assembler.aggregate_source_ids(
+                outcome.item, contributions,
+            )
+            self.status_service.record_batch(
+                project_id, task_id, "synthesizing",
+                f"synthesizing:{outcome.index + 1}",
+                success=outcome.succeeded,
+                source_item_ids=source_ids,
+                error=str(outcome.error) if outcome.error else None,
+            )
+
+        outcomes = map_context_calls_ordered(
+            materialized,
+            worker,
+            max_workers=concurrency,
+            on_completed=record_completion,
+        )
+        errors = [outcome.error for outcome in outcomes if outcome.error is not None]
+        if errors:
+            raise errors[0]
+        return [item for outcome in outcomes for item in (outcome.value or [])]
+
     @staticmethod
     def _source_diff(parent: ContextRelease | None, current: SourceSnapshot) -> Any:
         if not parent:
@@ -471,6 +652,18 @@ class ContextWorkflowService:
         return releases[0] if releases else None
 
     _chunk_config = ContextChunkingPolicy.config
+    _analysis_report = staticmethod(ContextAnalysisReportService.build)
+
+    @staticmethod
+    def _chunk_diagnostics(
+        local_units: Sequence[Any], chunks: Sequence[ContextUnitChunk],
+    ) -> dict[str, Any]:
+        return {
+            "local_units": len(local_units),
+            "chunks": len(chunks),
+            "core_units_per_chunk": [len(chunk.core_units) for chunk in chunks],
+            "edge_units_per_chunk": [len(chunk.edge_units) for chunk in chunks],
+        }
 
     @staticmethod
     def _workflow_context(
@@ -482,6 +675,8 @@ class ContextWorkflowService:
         description_language: str,
         source_items: int,
         chunk_config: dict[str, int],
+        effective_concurrency: int,
+        concurrency_limit: int | None,
     ) -> dict[str, Any]:
         return {
             "analysis_scope": scope.value,
@@ -495,6 +690,8 @@ class ContextWorkflowService:
             "description": description_language,
             "source_items": source_items,
             "chunking": dict(chunk_config),
+            "concurrency_limit": concurrency_limit,
+            "effective_concurrency": effective_concurrency,
         }
 
     _chunks = ContextChunkingPolicy.chunks

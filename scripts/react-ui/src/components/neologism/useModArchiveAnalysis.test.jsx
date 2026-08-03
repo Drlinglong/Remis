@@ -73,6 +73,7 @@ describe('useModArchiveAnalysis', () => {
         act(() => {
             result.current.setAnalysisScope(ANALYSIS_SCOPES.NARRATIVE_CONTEXT);
             result.current.setUpstreamVersion('  2.0  ');
+            result.current.setConcurrencyLimit('5');
         });
         await act(async () => {
             await result.current.startAnalysis();
@@ -82,6 +83,7 @@ describe('useModArchiveAnalysis', () => {
             project_id: 'project-1',
             analysis_scope: 'narrative_context',
             upstream_version: '2.0',
+            concurrency_limit: 5,
         }));
     });
 

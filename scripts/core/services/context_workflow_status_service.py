@@ -18,11 +18,17 @@ class ContextWorkflowStatusService:
     """Own reservations and project a truthful, batch-aware workflow state."""
 
     ACTIVE_STATUSES = {"queued", "starting", "running"}
-    STAGES = {"extracting", "reviewing", "synthesizing", "publishing", "completed", "failed"}
-    WORKFLOW_STAGE_ORDER = ("extracting", "reviewing", "synthesizing", "publishing")
+    STAGES = {
+        "extracting", "reviewing", "aggregating", "synthesizing", "publishing",
+        "completed", "failed",
+    }
+    WORKFLOW_STAGE_ORDER = (
+        "extracting", "reviewing", "aggregating", "synthesizing", "publishing",
+    )
     STAGE_LABELS = {
         "extracting": "Extracting",
         "reviewing": "Reviewing",
+        "aggregating": "Reconciling event chains",
         "synthesizing": "Synthesizing",
         "publishing": "Publishing",
         "completed": "Completed",
@@ -473,7 +479,7 @@ class ContextWorkflowStatusService:
         if terminal:
             return int(terminal.get("successful") or 0), int(terminal.get("failed") or 0)
         stages = metadata.get("stages") or {}
-        for stage in ("publishing", "synthesizing", "reviewing", "extracting"):
+        for stage in ("publishing", "synthesizing", "aggregating", "reviewing", "extracting"):
             record = stages.get(stage) or {}
             successful = len(record.get("successful_batch_ids") or [])
             failed = len(record.get("failed_batch_ids") or [])
@@ -508,15 +514,20 @@ class ContextWorkflowStatusService:
         successful = len(record.get("successful_batch_ids") or [])
         failed = len(record.get("failed_batch_ids") or [])
         workflow_stage = str(checkpoint.get("stage") or "")
+        stage_order = (
+            ("extracting", "reviewing")
+            if metadata.get("analysis_scope") == AnalysisScope.TERMS_ONLY.value
+            else cls.WORKFLOW_STAGE_ORDER
+        )
         if percent is None:
             if workflow_stage == "completed":
                 percent = 100
             elif workflow_stage == "failed":
                 percent = int((metadata.get("last_progress") or {}).get("percent") or 0)
-            elif workflow_stage in cls.WORKFLOW_STAGE_ORDER:
-                stage_index = cls.WORKFLOW_STAGE_ORDER.index(workflow_stage)
+            elif workflow_stage in stage_order:
+                stage_index = stage_order.index(workflow_stage)
                 stage_fraction = current_value / total_value if total_value else 0.0
-                percent = min(99, int((stage_index + stage_fraction) / len(cls.WORKFLOW_STAGE_ORDER) * 100))
+                percent = min(99, int((stage_index + stage_fraction) / len(stage_order) * 100))
             else:
                 percent = 0
         return {

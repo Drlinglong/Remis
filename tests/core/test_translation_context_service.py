@@ -199,6 +199,23 @@ def test_event_delivery_membership_injects_summary_beyond_sparse_evidence():
     ]
 
 
+def test_theme_related_membership_is_audit_only_and_never_injected():
+    source_hash = build_translation_source_snapshot(SOURCE_FILES).source_snapshot_hash
+    context = FakeContextService(source_hash)
+    memberships = context.delivery_memberships("release-1")
+    memberships[0]["membership"]["role"] = "theme_related"
+    context.delivery_memberships = lambda release_id: memberships
+    selection = TranslationContextService(context_service=context).prepare(
+        project_id="project-1", files_data=SOURCE_FILES,
+    )
+
+    summaries, _ = selection.select_for_batch(
+        SOURCE_FILES[0]["file_path"], [SOURCE_FILES[0]["source_entries"][1]],
+    )
+
+    assert [item["context_key"] for item in summaries] == ["project:summary"]
+
+
 def test_stale_and_missing_releases_warn_without_context():
     source_hash = build_translation_source_snapshot(SOURCE_FILES).source_snapshot_hash
     stale_context = FakeContextService("different-hash")

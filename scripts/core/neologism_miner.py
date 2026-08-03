@@ -1,7 +1,7 @@
 import json
 import logging
 from collections import Counter
-from typing import Any, Dict, List, Literal
+from typing import Any, Dict, List, Literal, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
@@ -12,6 +12,7 @@ from scripts.core.neologism_extraction import (
     StructuredNeologismExtraction,
     StructuredNeologismExtractor,
 )
+from scripts.core.context_local_units import LocalTextUnit
 
 
 class NeologismTerm(BaseModel):
@@ -85,6 +86,8 @@ Output only a JSON array with this schema:
         game_name: str = "Paradox Game",
         target_language: str = "the configured target language",
         reasoning_language: str = "the configured review language",
+        core_units: Sequence[LocalTextUnit] | None = None,
+        edge_units: Sequence[LocalTextUnit] = (),
     ) -> StructuredNeologismExtraction:
         """Return the unified extraction contract for one already-read chunk."""
 
@@ -95,6 +98,8 @@ Output only a JSON array with this schema:
             allow_legacy_term_array=False,
             target_language=target_language,
             reasoning_language=reasoning_language,
+            core_units=core_units,
+            edge_units=edge_units,
         )
 
     def _generate(self, messages: List[Dict[str, str]]) -> str:

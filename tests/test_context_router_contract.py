@@ -27,3 +27,16 @@ def test_mining_request_rejects_unknown_analysis_scope():
         MineNeologismsRequest(
             project_id="project-1", api_provider="local", analysis_scope="script_context"
         )
+
+
+def test_mining_request_accepts_bounded_explicit_concurrency():
+    payload = MineNeologismsRequest(
+        project_id="project-1", api_provider="openrouter", concurrency_limit=20,
+    )
+
+    assert payload.concurrency_limit == 20
+
+    with pytest.raises(ValidationError, match="concurrency_limit"):
+        MineNeologismsRequest(
+            project_id="project-1", api_provider="openrouter", concurrency_limit=51,
+        )

@@ -2,16 +2,35 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Sequence
 
-from scripts.core.context_local_units import ContextLocalUnitBuilder
+from scripts.core.context_local_units import ContextLocalUnitBuilder, LocalTextUnit
 from scripts.core.neologism_extraction import SourceItem
+
+
+@dataclass(frozen=True)
+class ContextUnitChunk:
+    """Whole core units plus read-only neighbouring units for boundary context."""
+
+    core_units: tuple[LocalTextUnit, ...]
+    edge_units: tuple[LocalTextUnit, ...]
+
+    @property
+    def source_items(self) -> tuple[SourceItem, ...]:
+        items = {
+            item.source_item_id: item
+            for unit in (*self.core_units, *self.edge_units)
+            for item in unit.items
+        }
+        return tuple(sorted(items.values(), key=lambda item: item.source_order))
 
 
 class ContextChunkingPolicy:
     DEFAULT_MAX_ITEMS = 64
     MAX_ITEMS_LIMIT = 80
     DEFAULT_MAX_SOURCE_CHARS = 12000
+    DEFAULT_EDGE_UNITS = 3
 
     @classmethod
     def config(cls, analysis_config: dict[str, Any] | None) -> dict[str, int]:
@@ -76,6 +95,57 @@ class ContextChunkingPolicy:
             current_chars += group_chars
         if current:
             yield tuple(current)
+
+    @classmethod
+    def unit_chunks(
+        cls,
+        units: Sequence[LocalTextUnit],
+        *,
+        max_items: int | None = None,
+        max_source_chars: int | None = None,
+        edge_units: int = DEFAULT_EDGE_UNITS,
+    ) -> tuple[ContextUnitChunk, ...]:
+        """Chunk globally stable units without ever splitting a local unit."""
+
+        item_limit = max_items or cls.DEFAULT_MAX_ITEMS
+        char_limit = max_source_chars or cls.DEFAULT_MAX_SOURCE_CHARS
+        if not 1 <= item_limit <= cls.MAX_ITEMS_LIMIT:
+            raise ValueError(f"max_items must be between 1 and {cls.MAX_ITEMS_LIMIT}")
+        if char_limit < 1:
+            raise ValueError("max_source_chars must be positive")
+        if not 0 <= edge_units <= 4:
+            raise ValueError("edge_units must be between 0 and 4")
+
+        core_groups: list[tuple[LocalTextUnit, ...]] = []
+        current: list[LocalTextUnit] = []
+        current_items = 0
+        current_chars = 0
+        for unit in units:
+            unit_items = len(unit.items)
+            unit_chars = sum(len(item.source_text) for item in unit.items)
+            if current and (
+                current_items + unit_items > item_limit
+                or current_chars + unit_chars > char_limit
+            ):
+                core_groups.append(tuple(current))
+                current = []
+                current_items = 0
+                current_chars = 0
+            current.append(unit)
+            current_items += unit_items
+            current_chars += unit_chars
+        if current:
+            core_groups.append(tuple(current))
+
+        unit_positions = {unit.unit_id: index for index, unit in enumerate(units)}
+        planned: list[ContextUnitChunk] = []
+        for core in core_groups:
+            first = unit_positions[core[0].unit_id]
+            last = unit_positions[core[-1].unit_id]
+            before = units[max(0, first - edge_units):first]
+            after = units[last + 1:last + 1 + edge_units]
+            planned.append(ContextUnitChunk(core_units=core, edge_units=tuple((*before, *after))))
+        return tuple(planned)
 
     @staticmethod
     def contiguous_groups(

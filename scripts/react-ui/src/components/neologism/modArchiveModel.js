@@ -3,6 +3,16 @@ export const ANALYSIS_SCOPES = Object.freeze({
     NARRATIVE_CONTEXT: 'narrative_context',
 });
 
+export const ANALYSIS_CONCURRENCY_OPTIONS = Object.freeze([
+    { value: 'auto', labelKey: 'mod_archive.analysis.concurrency_auto' },
+    { value: '1', label: '1' },
+    { value: '3', label: '3' },
+    { value: '5', label: '5' },
+    { value: '10', label: '10' },
+    { value: '20', label: '20' },
+    { value: '50', label: '50' },
+]);
+
 export const ARCHIVE_OVERRIDE_FIELD_KEYS = Object.freeze([
     'summary',
     'preferred_name',
@@ -35,6 +45,7 @@ export const buildAnalysisPayload = ({
     selectedFiles,
     analysisScope,
     upstreamVersion,
+    concurrencyLimit,
 }) => {
     const payload = {
         project_id: selectedProject,
@@ -50,6 +61,10 @@ export const buildAnalysisPayload = ({
         ? upstreamVersion.trim()
         : '';
     if (normalizedUpstreamVersion) payload.upstream_version = normalizedUpstreamVersion;
+    const normalizedConcurrency = Number(concurrencyLimit);
+    if (Number.isInteger(normalizedConcurrency) && normalizedConcurrency > 0) {
+        payload.concurrency_limit = normalizedConcurrency;
+    }
     return payload;
 };
 
@@ -152,6 +167,18 @@ export const normalizeAnalysisStatus = (rawStatus = {}) => {
             rawStatus.description_language,
             workflowContext.description_language,
             checkpointConfiguration.description_language,
+            null,
+        ),
+        concurrencyLimit: firstValue(
+            rawStatus.concurrency_limit,
+            workflowContext.concurrency_limit,
+            checkpointConfiguration.concurrency_limit,
+            null,
+        ),
+        effectiveConcurrency: firstValue(
+            rawStatus.effective_concurrency,
+            workflowContext.effective_concurrency,
+            checkpointConfiguration.effective_concurrency,
             null,
         ),
         analysisRunId: firstValue(

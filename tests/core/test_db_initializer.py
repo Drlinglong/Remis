@@ -93,6 +93,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (13, "add_context_release_storage"),
         (14, "add_context_analysis_batch_storage"),
         (15, "add_context_delivery_memberships"),
+        (16, "add_context_aggregation_phase"),
     ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
@@ -205,6 +206,7 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
         (13,),
         (14,),
         (15,),
+        (16,),
     ]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")
@@ -355,7 +357,7 @@ def test_existing_v14_database_adds_context_delivery_memberships(tmp_path):
         conn.execute("DROP TRIGGER trg_context_release_delivery_no_update")
         conn.execute("DROP TRIGGER trg_context_release_delivery_no_delete")
         conn.execute("DROP TABLE context_release_delivery_memberships")
-        conn.execute("DELETE FROM schema_migrations WHERE version = 15")
+        conn.execute("DELETE FROM schema_migrations WHERE version IN (15, 16)")
 
     assert migrate_main_database(str(db_path)) == MAIN_DB_TARGET_VERSION
     with sqlite3.connect(db_path) as conn:

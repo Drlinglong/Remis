@@ -20,6 +20,7 @@ describe('Mod Archive contracts', () => {
             selectedFiles: [],
             analysisScope: ANALYSIS_SCOPES.TERMS_ONLY,
             upstreamVersion: '   ',
+            concurrencyLimit: 'auto',
         })).toEqual({
             project_id: 'project-1',
             api_provider: 'local',
@@ -42,11 +43,13 @@ describe('Mod Archive contracts', () => {
             selectedFiles: ['common/characters.txt'],
             analysisScope: ANALYSIS_SCOPES.NARRATIVE_CONTEXT,
             upstreamVersion: '  1.2.0  ',
+            concurrencyLimit: '5',
         });
 
         expect(payload.analysis_scope).toBe('narrative_context');
         expect(payload.upstream_version).toBe('1.2.0');
         expect(payload.file_paths).toEqual(['common/characters.txt']);
+        expect(payload.concurrency_limit).toBe(5);
     });
 
     it('normalizes task progress while retaining task and release identity', () => {
@@ -86,6 +89,8 @@ describe('Mod Archive contracts', () => {
                         target_lang: 'zh-CN',
                         description_language: 'zh-CN',
                         analysis_run_id: 'run-7',
+                        concurrency_limit: 5,
+                        effective_concurrency: 5,
                     },
                 },
             },
@@ -97,6 +102,8 @@ describe('Mod Archive contracts', () => {
             provider: 'lm_studio',
             model: 'gemma-4-31b',
             descriptionLanguage: 'zh-CN',
+            concurrencyLimit: 5,
+            effectiveConcurrency: 5,
             resumeSupported: true,
         });
     });

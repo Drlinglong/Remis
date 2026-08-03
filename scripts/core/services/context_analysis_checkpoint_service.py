@@ -89,6 +89,36 @@ class ContextAnalysisCheckpointService:
             error={"type": type(error).__name__, "message": str(error)[:1000]},
         )
 
+    def restore_aggregation(
+        self,
+        run: Any | None,
+        source_item_ids: Sequence[str],
+    ) -> StructuredNeologismExtraction | None:
+        if self.repository is None or run is None:
+            return None
+        saved = self.repository.get_batch(run.run_id, "aggregation", 0)
+        if saved is None or saved.status != "succeeded":
+            return None
+        if tuple(source_item_ids) != saved.source_item_ids:
+            raise ValueError("Saved aggregation does not match the current local units")
+        return StructuredNeologismExtraction.model_validate(saved.payload["extraction"])
+
+    def save_aggregation(
+        self,
+        run: Any | None,
+        source_item_ids: Sequence[str],
+        extraction: StructuredNeologismExtraction,
+    ) -> None:
+        if self.repository is None or run is None:
+            return
+        self.repository.save_batch(
+            run.run_id,
+            "aggregation",
+            0,
+            source_item_ids,
+            {"extraction": extraction.model_dump()},
+        )
+
     def mark_failed(self, run: Any | None) -> None:
         if self.repository is not None and run is not None:
             self.repository.mark_failed(run.run_id)

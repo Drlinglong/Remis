@@ -9,12 +9,23 @@ from typing import Any, Literal, Sequence
 from pydantic import BaseModel, ConfigDict, Field
 
 
-DeliveryRole = Literal[
+DeliveryRelation = Literal[
     "primary_member",
     "supporting_context",
     "theme_related",
-    "unassigned",
 ]
+AssignmentState = Literal["assigned", "unassigned"]
+
+
+class DeliveryLink(BaseModel):
+    """One directional local-unit to event-chain relationship."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    event_chain_id: str = Field(min_length=1, max_length=200)
+    relation: DeliveryRelation
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+    reasoning: str | None = Field(default=None, max_length=500)
 
 
 class DeliveryAssignment(BaseModel):
@@ -23,10 +34,8 @@ class DeliveryAssignment(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     local_unit_id: str = Field(pattern=r"^unit_\d+$")
-    event_chain_ids: list[str] = Field(default_factory=list, max_length=5)
-    role: DeliveryRole
-    confidence: float = Field(default=0.5, ge=0.0, le=1.0)
-    reasoning: str | None = Field(default=None, max_length=500)
+    links: list[DeliveryLink] = Field(default_factory=list, max_length=8)
+    assignment_state: AssignmentState
     source_item_ids: list[str] = Field(default_factory=list, max_length=80)
 
 
@@ -38,12 +47,18 @@ class LocalTextUnit:
     unit_key: str
     items: tuple[Any, ...]
 
-    def prompt_payload(self, source_aliases: dict[str, str]) -> dict[str, Any]:
+    def prompt_payload(
+        self,
+        source_aliases: dict[str, str],
+        *,
+        context_role: Literal["core", "edge"] = "core",
+    ) -> dict[str, Any]:
         return {
             "local_unit_id": self.unit_id,
             "derived_unit_key": self.unit_key.split("::", 1)[-1],
             "source_item_ids": [source_aliases[item.source_item_id] for item in self.items],
             "item_keys": [item.item_key for item in self.items if item.item_key],
+            "context_role": context_role,
         }
 
 

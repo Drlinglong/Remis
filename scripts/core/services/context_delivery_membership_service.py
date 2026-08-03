@@ -32,10 +32,12 @@ class ContextDeliveryMembershipService:
         edges: dict[tuple[str, str], ContextDeliveryMembership] = {}
         for extraction in extractions:
             for assignment in extraction.delivery_assignments:
-                if assignment.role == "unassigned":
+                if assignment.assignment_state == "unassigned":
                     continue
-                for chain_id in assignment.event_chain_ids:
-                    aggregate = aggregates_by_key.get(f"event:{chain_id.strip().casefold()}")
+                for link in assignment.links:
+                    aggregate = aggregates_by_key.get(
+                        f"event:{link.event_chain_id.strip().casefold()}"
+                    )
                     if aggregate is None:
                         continue
                     for source_item_id in assignment.source_item_ids:
@@ -44,9 +46,9 @@ class ContextDeliveryMembershipService:
                         candidate = ContextDeliveryMembership(
                             aggregate_id=aggregate.aggregate_id,
                             source_item_id=source_item_id,
-                            role=assignment.role,
-                            confidence=assignment.confidence,
-                            reasoning=assignment.reasoning,
+                            role=link.relation,
+                            confidence=link.confidence,
+                            reasoning=link.reasoning,
                         )
                         key = (aggregate.aggregate_id, source_item_id)
                         current = edges.get(key)

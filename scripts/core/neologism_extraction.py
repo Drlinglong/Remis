@@ -19,6 +19,8 @@ from scripts.core.context_local_units import (
     DeliveryAssignment,
     LocalTextUnit,
 )
+from scripts.core.services.context_assignment_contract import normalize_delivery_assignments
+from scripts.core.prompts.context_extraction_prompt import CONTEXT_EXTRACTION_SYSTEM_PROMPT
 from scripts.core.services.source_snapshot_service import normalize_relative_path, normalize_source_key
 
 
@@ -113,10 +115,22 @@ class EventChainContribution(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     chain_id: str = Field(min_length=1, max_length=200)
+    chain_level: Literal["delivery_chain", "parent_story"] = "delivery_chain"
+    parent_story_id: Optional[str] = Field(default=None, max_length=200)
     event: str = Field(min_length=1, max_length=500)
     sequence: int = Field(ge=0)
     participants: List[str] = Field(default_factory=list, max_length=20)
     consequence: Optional[str] = Field(default=None, max_length=500)
+    boundary_status: Literal[
+        "complete_in_chunk",
+        "continues_before",
+        "continues_after",
+        "continues_both",
+        "uncertain",
+    ] = "uncertain"
+    boundary_includes: Optional[str] = Field(default=None, max_length=500)
+    boundary_excludes: Optional[str] = Field(default=None, max_length=500)
+    continuation_cues: Optional[str] = Field(default=None, max_length=500)
     evidence: List[SourceEvidence] = Field(min_length=1, max_length=5)
     provenance: Literal["text_inferred"] = "text_inferred"
     tentative: Literal[True] = True
@@ -144,6 +158,7 @@ class StructuredNeologismExtraction(BaseModel):
     events: List[EventChainContribution] = Field(default_factory=list, max_length=50)
     relationships: List[RelationshipContribution] = Field(default_factory=list, max_length=100)
     delivery_assignments: List[DeliveryAssignment] = Field(default_factory=list, max_length=80)
+    diagnostics: Dict[str, Any] = Field(default_factory=dict)
 
 
 EXTRACTION_ADAPTER = TypeAdapter(StructuredNeologismExtraction)
@@ -169,82 +184,9 @@ class StructuredNeologismExtractor:
         "events": {"provenance": "text_inferred", "tentative": True},
         "relationships": {"provenance": "text_inferred", "tentative": True},
     }
+    _BACKEND_ROOT_FIELDS = ("diagnostics",)
 
-    SYSTEM_PROMPT = """
-# Role
-You are a source-grounded terminology and narrative analyst for game localization.
-
-# Task
-Analyze the supplied source items exactly once and return one JSON object. The
-analysis scope is `{scope}`. In `terms_only`, fill `terms` and leave every other
-array empty. In `narrative_context`, fill grounded term candidates and any
-grounded source-level entities, facts, event-chain steps, and relationships.
-For every term, you MUST include a canonical `suggestion` in {target_language}
-and concise `reasoning` in {reasoning_language}. This is a one-pass extraction;
-do not defer ordinary translation recommendations to a later review call.
-
-# Game
-{game_name}
-
-# Grounding and safety rules
-- Treat each supplied `item_key` as meaningful author-provided structure. Use
-  key families, event numbers, and suffixes such as `.name`, `.desc`, and
-  option keys to understand adjacency and event-chain roles. Do not mistake a
-  localization key for prose or extract the key itself as a term.
-- Treat each supplied local_text_unit only as a conservative local grouping.
-  Suffix conventions vary between games and authors; similar keys, adjacency,
-  comments, and file boundaries are useful clues but never prove story-chain
-  membership without supporting text semantics.
-- Every evidence.source_item_id MUST be one of the supplied short source aliases.
-- The backend maps each valid alias to the stable source item identity. Never
-  invent an alias or use an alias from another call.
-- evidence.snippet is optional and is only a highlight hint. If supplied, it
-  must be a short direct quote from the source item; do not use it to cite a
-  paraphrase. The backend will discard an unsafe hint and derive a safe
-  highlight when possible.
-- Every term.original and entity.name MUST occur in an evidenced source item.
-- Do not invent facts, events, relationships, or entities that cannot be supported
-  by the cited source item and grounded fields. They are tentative model
-  contributions, never script-derived or user-confirmed.
-- Do not return `provenance` or `tentative` fields. The backend assigns this
-  fixed metadata after validating the model-authored content and evidence.
-- Events belong in `events` as event-chain objects, not inside entity descriptions.
-- In `narrative_context`, return exactly one `delivery_assignments` item for
-  every supplied local_text_unit. Use the supplied local_unit_id unchanged.
-  Each assignment identifies which event-chain summaries should be delivered
-  when any source item in that unit is translated. This is broader than sparse
-  evidence: every unit must be assigned or explicitly marked `unassigned`.
-- Every non-empty event_chain_ids value must exactly match a chain_id returned
-  in this response's `events` array. Use `primary_member` for event prose,
-  `supporting_context` for directly related projects/modifiers/resources, and
-  `theme_related` only for broad background. Use `unassigned` with an empty
-  event_chain_ids array when the batch does not support a reliable decision.
-- Use only these entity_type values: "person", "place", "organization/faction",
-  "technology/concept", "item/other".
-- For term categories use exactly: "person", "place", "faction", "concept", "technology", or "other".
-- Keep all arrays bounded and omit generic words, keys, variables, commands,
-  formatting codes, and punctuation-only values.
-
-# Output
-Return only this JSON shape, with no markdown:
-{{
-  "terms": [{{"original":"...","category":"technology","confidence":0.9,
-    "suggestion":"...","reasoning":"...",
-    "evidence":[{{"source_item_id":"source_0"}}]}}],
-  "entities": [{{"name":"...","entity_type":"technology/concept",
-    "description":"...","evidence":[{{"source_item_id":"source_0"}}]}}],
-  "facts": [{{"subject":"...","predicate":"...","object":"...",
-    "evidence":[{{"source_item_id":"source_0"}}]}}],
-  "events": [{{"chain_id":"...","event":"...","sequence":0,
-    "participants":[],"consequence":"...",
-    "evidence":[{{"source_item_id":"source_0"}}]}}],
-  "relationships": [{{"subject":"...","relation":"...","object":"...",
-    "evidence":[{{"source_item_id":"source_0"}}]}}],
-  "delivery_assignments": [{{"local_unit_id":"unit_0",
-    "event_chain_ids":["example_chain"],"role":"primary_member",
-    "confidence":0.9,"reasoning":"..."}}]
-}}
-"""
+    SYSTEM_PROMPT = CONTEXT_EXTRACTION_SYSTEM_PROMPT
 
     def __init__(self, handler: Any):
         self.handler = handler
@@ -259,13 +201,20 @@ Return only this JSON shape, with no markdown:
         allow_legacy_term_array: bool = False,
         target_language: str = "the configured target language",
         reasoning_language: str = "the configured review language",
+        core_units: Sequence[LocalTextUnit] | None = None,
+        edge_units: Sequence[LocalTextUnit] = (),
     ) -> StructuredNeologismExtraction:
         scope = AnalysisScope(scope)
         items = self._validate_source_items(source_items)
         if not items:
             raise NeologismMiningError("Cannot extract from an empty source chunk")
         source_aliases = self._source_aliases(items)
-        local_units = ContextLocalUnitBuilder.build(items)
+        local_units = tuple(core_units) if core_units is not None else ContextLocalUnitBuilder.build(items)
+        contextual_units = (*local_units, *edge_units)
+        self._validate_local_units(contextual_units, items)
+        core_items = [item for unit in local_units for item in unit.items]
+        if not core_items:
+            core_items = items
         messages = [
             {
                 "role": "system",
@@ -289,7 +238,17 @@ Return only this JSON shape, with no markdown:
                             for item in items
                         ],
                         "local_text_units": [
-                            unit.prompt_payload(source_aliases) for unit in local_units
+                            *(
+                                unit.prompt_payload(source_aliases, context_role="core")
+                                for unit in local_units
+                            ),
+                            *(
+                                unit.prompt_payload(source_aliases, context_role="edge")
+                                for unit in edge_units
+                            ),
+                        ] if scope is AnalysisScope.NARRATIVE_CONTEXT else [],
+                        "core_unit_ids": [
+                            unit.unit_id for unit in local_units
                         ] if scope is AnalysisScope.NARRATIVE_CONTEXT else [],
                     },
                     ensure_ascii=False,
@@ -299,7 +258,7 @@ Return only this JSON shape, with no markdown:
         ]
         return self._parse_with_one_repair(
             messages,
-            items,
+            core_items,
             scope,
             allow_legacy_term_array,
             source_aliases,
@@ -366,6 +325,14 @@ Return only this JSON shape, with no markdown:
                 definition["required"] = [
                     field_name for field_name in required if field_name not in field_names
                 ]
+        properties = schema.get("properties", {})
+        for field_name in cls._BACKEND_ROOT_FIELDS:
+            properties.pop(field_name, None)
+        required = schema.get("required")
+        if isinstance(required, list):
+            schema["required"] = [
+                field_name for field_name in required if field_name not in cls._BACKEND_ROOT_FIELDS
+            ]
         return schema
 
     def _parse_with_one_repair(
@@ -379,7 +346,7 @@ Return only this JSON shape, with no markdown:
     ) -> StructuredNeologismExtraction:
         response = self._generate(messages)
         try:
-            return self._parse_and_validate(
+            result = self._parse_and_validate(
                 response,
                 source_items,
                 scope,
@@ -387,6 +354,8 @@ Return only this JSON shape, with no markdown:
                 source_aliases,
                 local_units,
             )
+            result.diagnostics = {"repair_count": 0}
+            return result
         except (json.JSONDecodeError, ValidationError, TypeError, ValueError, NeologismMiningError) as first_error:
             repair_messages = messages + [
                 {"role": "assistant", "content": response},
@@ -402,7 +371,7 @@ Return only this JSON shape, with no markdown:
             ]
             repaired = self._generate(repair_messages)
             try:
-                return self._parse_and_validate(
+                result = self._parse_and_validate(
                     repaired,
                     source_items,
                     scope,
@@ -410,6 +379,11 @@ Return only this JSON shape, with no markdown:
                     source_aliases,
                     local_units,
                 )
+                result.diagnostics = {
+                    "repair_count": 1,
+                    "repair_reason": self._validation_error_category(first_error),
+                }
+                return result
             except (json.JSONDecodeError, ValidationError, TypeError, ValueError, NeologismMiningError) as second_error:
                 category = self._validation_error_category(second_error)
                 self.logger.error(
@@ -546,16 +520,15 @@ Return only this JSON shape, with no markdown:
         if isinstance(contribution, FactContribution):
             return [
                 ("fact subject", contribution.subject),
-                ("fact predicate", contribution.predicate),
                 ("fact object", contribution.object),
             ]
         if isinstance(contribution, EventChainContribution):
-            if contribution.participants:
-                return [("event participant", participant) for participant in contribution.participants]
-            return [("event", contribution.event)]
+            return [
+                ("event participant", participant)
+                for participant in contribution.participants
+            ]
         return [
             ("relationship subject", contribution.subject),
-            ("relationship relation", contribution.relation),
             ("relationship object", contribution.object),
         ]
 
@@ -566,20 +539,33 @@ Return only this JSON shape, with no markdown:
         evidence: Sequence[SourceEvidence],
         lookup: Dict[str, SourceItem],
     ) -> bool:
-        for label, anchor in cls._required_grounding_anchors(contribution):
-            if not any(
-                cls._align_source_substring(anchor, lookup[item.source_item_id].source_text) is not None
+        anchors = cls._required_grounding_anchors(contribution)
+        if isinstance(contribution, EventChainContribution) and not anchors:
+            return True
+        matches = [
+            (label, anchor)
+            for label, anchor in anchors
+            if any(
+                cls._align_source_substring(anchor, lookup[item.source_item_id].source_text)
+                is not None
                 for item in evidence
-            ):
-                logging.getLogger(__name__).warning(
-                    "Dropped extraction contribution with missing %s "
-                    "(source_item_id=%s; detail=%s)",
-                    label,
-                    evidence[0].source_item_id if evidence else "none",
-                    cls._bounded_detail(anchor),
-                )
-                return False
-        return True
+            )
+        ]
+        strict_literal = isinstance(contribution, (TermContribution, EntityContribution))
+        if matches and (not strict_literal or len(matches) == len(anchors)):
+            return True
+        missing_label, missing_anchor = next(
+            ((label, anchor) for label, anchor in anchors if (label, anchor) not in matches),
+            ("semantic anchor", "none"),
+        )
+        logging.getLogger(__name__).warning(
+            "Dropped extraction contribution without a literal semantic anchor; missing %s "
+            "(source_item_id=%s; detail=%s)",
+            missing_label,
+            evidence[0].source_item_id if evidence else "none",
+            cls._bounded_detail(missing_anchor),
+        )
+        return False
 
     @classmethod
     def _filter_grounded_contributions(
@@ -681,6 +667,8 @@ Return only this JSON shape, with no markdown:
 
         if not isinstance(payload, dict):
             return
+        for field_name in cls._BACKEND_ROOT_FIELDS:
+            payload.pop(field_name, None)
         for collection_name in ("terms", "entities", "facts", "events", "relationships"):
             contributions = payload.get(collection_name)
             if not isinstance(contributions, list):
@@ -716,6 +704,20 @@ Return only this JSON shape, with no markdown:
         if len(ids) != len(set(ids)):
             raise NeologismMiningError("Source item identities must be unique within one chunk")
         return items
+
+    @staticmethod
+    def _validate_local_units(
+        local_units: Sequence[LocalTextUnit], source_items: Sequence[SourceItem],
+    ) -> None:
+        supplied_ids = {item.source_item_id for item in source_items}
+        unit_ids = [unit.unit_id for unit in local_units]
+        if len(unit_ids) != len(set(unit_ids)):
+            raise NeologismMiningError("Local unit identities must be unique within one call")
+        referenced_ids = {
+            item.source_item_id for unit in local_units for item in unit.items
+        }
+        if not referenced_ids.issubset(supplied_ids):
+            raise NeologismMiningError("Local units referenced source items outside the call")
 
     @classmethod
     def _validate_grounding(
@@ -754,23 +756,8 @@ Return only this JSON shape, with no markdown:
         extraction: StructuredNeologismExtraction,
         local_units: Sequence[LocalTextUnit],
     ) -> list[DeliveryAssignment]:
-        valid_chains = {item.chain_id.casefold(): item.chain_id for item in extraction.events}
-        received = {item.local_unit_id: item for item in extraction.delivery_assignments}
-        normalized = []
-        for unit in local_units:
-            assignment = received.get(unit.unit_id)
-            chains = list(dict.fromkeys(
-                valid_chains[chain.casefold()]
-                for chain in (assignment.event_chain_ids if assignment else [])
-                if chain.casefold() in valid_chains
-            ))
-            role = assignment.role if assignment and chains else "unassigned"
-            normalized.append(DeliveryAssignment(
-                local_unit_id=unit.unit_id,
-                event_chain_ids=chains,
-                role=role,
-                confidence=assignment.confidence if assignment else 0.0,
-                reasoning=assignment.reasoning if assignment else "No model assignment returned.",
-                source_item_ids=[item.source_item_id for item in unit.items],
-            ))
-        return normalized
+        return normalize_delivery_assignments(
+            extraction.delivery_assignments,
+            local_units,
+            (event.chain_id for event in extraction.events),
+        )

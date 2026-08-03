@@ -88,6 +88,7 @@ export const useModArchiveAnalysis = ({
     const [descriptionLanguage, setDescriptionLanguage] = useState(interfaceLanguage);
     const [analysisScope, setAnalysisScope] = useState(ANALYSIS_SCOPES.TERMS_ONLY);
     const [upstreamVersion, setUpstreamVersion] = useState('');
+    const [concurrencyLimit, setConcurrencyLimit] = useState('auto');
     const [scanning, setScanning] = useState(false);
     const [status, setStatus] = useState(null);
     const [loadError, setLoadError] = useState(null);
@@ -333,6 +334,7 @@ export const useModArchiveAnalysis = ({
             selectedFiles,
             analysisScope,
             upstreamVersion,
+            concurrencyLimit,
         });
         try {
             const response = await api.post(`${API_BASE_URL}/neologisms/mine`, payload);
@@ -364,6 +366,7 @@ export const useModArchiveAnalysis = ({
         apiProvider,
         connectMiningSocket,
         currentProject?.sourceLanguage,
+        concurrencyLimit,
         files.length,
         modelName,
         descriptionLanguage,
@@ -394,6 +397,8 @@ export const useModArchiveAnalysis = ({
         setAnalysisScope,
         upstreamVersion,
         setUpstreamVersion,
+        concurrencyLimit,
+        setConcurrencyLimit,
         scanning,
         status,
         loadError,

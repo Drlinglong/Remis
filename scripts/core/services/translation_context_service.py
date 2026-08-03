@@ -395,6 +395,9 @@ class TranslationContextService:
                 "summary": summary,
             })
         for membership in delivery_memberships:
+            role = (membership.get("membership") or {}).get("role") or membership.get("role")
+            if role and role not in {"primary_member", "supporting_context"}:
+                continue
             aggregate = membership.get("aggregate") or {}
             context_key = str(aggregate.get("aggregate_key") or "")
             identity = _source_identity(membership.get("source_item") or {})

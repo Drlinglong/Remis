@@ -4,7 +4,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from scripts.core.context_local_units import ContextLocalUnitBuilder, DeliveryAssignment
+from scripts.core.context_local_units import (
+    ContextLocalUnitBuilder,
+    DeliveryAssignment,
+    DeliveryLink,
+)
 from scripts.core.neologism_extraction import (
     AnalysisScope,
     EntityContribution,
@@ -19,6 +23,7 @@ from scripts.core.neologism_extraction import (
 from scripts.core.file_parser import extract_translatable_content
 from scripts.core.loc_parser import parse_loc_file
 from scripts.core.services.context_source_parser import ContextSourceParser
+from scripts.core.services.context_event_reconciliation_service import EventReconciliationResult
 from scripts.core.services.context_synthesis_service import ContextSynthesisService
 from scripts.core.services.context_workflow_service import ContextWorkflowService
 from scripts.core.services.context_workflow_status_service import ContextWorkflowStatusService
@@ -138,7 +143,10 @@ class FakeMiner:
         game_name,
         target_language,
         reasoning_language,
+        core_units=None,
+        edge_units=(),
     ):
+        del edge_units
         self.calls.append(
             (list(source_items), scope, game_name, target_language, reasoning_language)
         )
@@ -147,7 +155,11 @@ class FakeMiner:
         facts = []
         events = []
         relationships = []
-        for item in source_items:
+        extraction_items = (
+            [item for unit in core_units for item in unit.items]
+            if core_units is not None else source_items
+        )
+        for item in extraction_items:
             evidence = SourceEvidence(source_item_id=item.source_item_id, snippet=item.source_text)
             terms.append(TermContribution(original="Republic", category="faction", evidence=[evidence]))
             entities.append(EntityContribution(
@@ -166,12 +178,15 @@ class FakeMiner:
         assignments = [
             DeliveryAssignment(
                 local_unit_id=unit.unit_id,
-                event_chain_ids=["republic-chain"],
-                role="primary_member",
-                confidence=0.9,
+                links=[DeliveryLink(
+                    event_chain_id="republic-chain",
+                    relation="primary_member",
+                    confidence=0.9,
+                )],
+                assignment_state="assigned",
                 source_item_ids=[item.source_item_id for item in unit.items],
             )
-            for unit in ContextLocalUnitBuilder.build(source_items)
+            for unit in (core_units or ContextLocalUnitBuilder.build(source_items))
         ]
         return StructuredNeologismExtraction(
             terms=terms, entities=entities, facts=facts, events=events,
@@ -208,6 +223,45 @@ class FakeHandler:
         })
 
 
+class FakeReconciler:
+    def reconcile(self, local_units, extractions, *, description_language):
+        del description_language
+        evidence = SourceEvidence(source_item_id=local_units[0].items[0].source_item_id)
+        event = EventChainContribution(
+            chain_id="republic-chain",
+            event="Republic affairs",
+            sequence=0,
+            evidence=[evidence],
+        )
+        assignments = [
+            DeliveryAssignment(
+                local_unit_id=unit.unit_id,
+                assignment_state="assigned",
+                links=[DeliveryLink(
+                    event_chain_id="republic-chain",
+                    relation="primary_member",
+                    confidence=0.9,
+                )],
+                source_item_ids=[item.source_item_id for item in unit.items],
+            )
+            for unit in local_units
+        ]
+        proposal_resolutions = [
+            {
+                "proposal_id": f"b{batch_index}_e{event_index}",
+                "resolution": "merge_into",
+                "final_chain_ids": ["republic-chain"],
+            }
+            for batch_index, extraction in enumerate(extractions)
+            for event_index, _ in enumerate(extraction.events)
+        ]
+        return EventReconciliationResult(
+            events=[event],
+            delivery_assignments=assignments,
+            diagnostics={"repair_count": 0, "proposal_resolutions": proposal_resolutions},
+        )
+
+
 def _service(repo, candidate_store=None, task_backend=None, handler=None):
     fake_handler = handler or FakeHandler()
     return ContextWorkflowService(
@@ -217,6 +271,7 @@ def _service(repo, candidate_store=None, task_backend=None, handler=None):
         task_backend=task_backend or FakeTaskBackend(),
         miner_factory=FakeMiner,
         synthesizer_factory=ContextSynthesisService,
+        reconciler_factory=lambda handler: FakeReconciler(),
         context_service=FakeContextService(repo),
     )
 
@@ -235,6 +290,15 @@ def test_reservation_is_owned_and_released_by_context_workflow_status():
     )
 
     assert service.reserve("project-1", "task-2", AnalysisScope.NARRATIVE_CONTEXT) is True
+
+
+def test_prompt_example_exposes_all_three_model_stages():
+    example = ContextWorkflowService.prompt_example("zh-CN")
+
+    assert "[Local extraction]" in example
+    assert "[Global event reconciliation]" in example
+    assert "[Archive synthesis]" in example
+    assert "Description language: zh-CN" in example
 
 
 def test_failed_task_creation_can_release_only_its_queued_reservation():
@@ -507,7 +571,7 @@ def test_failed_extraction_retry_reuses_successful_sqlite_batches(tmp_path):
     with sqlite3.connect(db_path) as connection:
         run_id = connection.execute("SELECT run_id FROM context_analysis_runs").fetchone()[0]
     failed_batches = batch_repository.list_batches(run_id)
-    assert [batch.status for batch in failed_batches] == ["succeeded", "failed"]
+    assert [batch.status for batch in failed_batches] == ["succeeded", "failed", "succeeded"]
 
     result = service.run(
         "project-1", [str(source)], str(root), "local", task_id="task-2",
@@ -659,11 +723,15 @@ def test_context_progress_separates_current_stage_from_overall_workflow():
     extracting = status_service.get_status("project-1")
     assert extracting["current_batch"] == 6
     assert extracting["total_batches"] == 6
-    assert extracting["progress"]["percent"] == 25
+    assert extracting["progress"]["percent"] == 20
 
     status_service.begin_stage("project-1", "task-1", "reviewing", 1)
     status_service.record_batch(
         "project-1", "task-1", "reviewing", "reviewing:1", success=True,
+    )
+    status_service.begin_stage("project-1", "task-1", "aggregating", 1)
+    status_service.record_batch(
+        "project-1", "task-1", "aggregating", "aggregating:1", success=True,
     )
     status_service.begin_stage("project-1", "task-1", "synthesizing", 2)
     status_service.record_batch(
@@ -676,11 +744,12 @@ def test_context_progress_separates_current_stage_from_overall_workflow():
 
     failed = status_service.get_status("project-1")
     assert failed["status"] == "failed"
-    assert failed["progress"]["percent"] == 62
+    assert failed["progress"]["percent"] == 70
     assert failed["checkpoint"]["metadata"]["failed_stage"] == "synthesizing"
     stages = failed["checkpoint"]["metadata"]["stages"]
     assert len(stages["extracting"]["successful_batch_ids"]) == 6
     assert len(stages["reviewing"]["successful_batch_ids"]) == 1
+    assert len(stages["aggregating"]["successful_batch_ids"]) == 1
 
 
 def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp_path):
@@ -704,8 +773,8 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
     release = repo.releases["release-1"]
     assert release.metadata.provider_id == "local"
     assert release.metadata.model_id == "fake-model"
-    assert release.metadata.schema_version == "context-v2"
-    assert release.metadata.prompt_version == "context-synthesis-v5"
+    assert release.metadata.schema_version == "context-v3"
+    assert release.metadata.prompt_version == "context-archive-v6"
     assert release.metadata.analysis_config["description_language"] == "zh-CN"
     assert "Simplified Chinese (zh-CN)" in handler.calls[0][0]["content"]
     assert any(
@@ -718,6 +787,13 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
         for item in service.context_service.snapshots["release-1"]["syntheses"]
     )
     assert first["delivery_membership_count"] == 2
+    report = first["analysis_report"]
+    assert report["input_and_chunking"]["source_items"] == 2
+    assert report["input_and_chunking"]["local_units"] == 2
+    assert report["unit_assignment_integrity"]["missing"] == []
+    assert report["unit_assignment_integrity"]["one_to_one_after_repair"] is True
+    assert report["coverage_and_contamination"]["theme_related_injection_count"] == 0
+    assert report["coverage_and_contamination"]["parent_story_automatic_inheritance_count"] == 0
     assert len(service.context_service.snapshots["release-1"]["delivery_memberships"]) == 2
     first_sources = set(repo.sources)
 

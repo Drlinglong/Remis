@@ -90,7 +90,7 @@ config_fingerprint = analysis_config_fingerprint
 class ContextAnalysisBatchRepository:
     """SQLite store for run identity, per-batch output, and resume checkpoints."""
 
-    VALID_PHASES = {"extraction", "review"}
+    VALID_PHASES = {"extraction", "review", "aggregation"}
 
     def __init__(self, db_path: str):
         self.db_path = str(Path(db_path))
@@ -271,7 +271,11 @@ class ContextAnalysisBatchRepository:
                     (batch_id, run_id, phase, batch_index, ids_json, payload_json, status, error_json, now, now),
                 )
             if status == "succeeded":
-                run_phase = "review" if phase == "review" else "extraction"
+                run_phase = {
+                    "extraction": "extraction",
+                    "review": "review",
+                    "aggregation": "aggregation",
+                }[phase]
                 connection.execute(
                     "UPDATE context_analysis_runs SET phase = ?, status = 'running', updated_at = ? WHERE run_id = ?",
                     (run_phase, now, run_id),
