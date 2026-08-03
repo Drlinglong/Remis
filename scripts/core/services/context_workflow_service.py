@@ -34,6 +34,9 @@ from scripts.core.services.context_event_reconciliation_service import (
     ContextEventReconciliationService,
     EventReconciliationResult,
 )
+from scripts.core.services.context_event_reconciliation_execution_service import (
+    ContextEventReconciliationExecutionService,
+)
 from scripts.core.services.context_parallel_execution_service import (
     map_context_calls_ordered,
     resolve_context_concurrency,
@@ -97,7 +100,7 @@ class ContextWorkflowService:
     CHUNK_SIZE = DEFAULT_MAX_ITEMS
     REVIEW_BATCH_SIZE = ContextCandidateAdapter.REVIEW_BATCH_SIZE
     SCHEMA_VERSION = "context-v3"
-    PROMPT_VERSION = "context-archive-v6"
+    PROMPT_VERSION = "context-archive-v7"
     ACTIVE_STATUSES = ContextWorkflowStatusService.ACTIVE_STATUSES
 
     def __init__(
@@ -232,8 +235,8 @@ class ContextWorkflowService:
                     "description_language": effective_description_language,
                     "game_name": game_name,
                     "chunking": dict(chunk_config),
-                    "concurrency_limit": concurrency_limit,
-                    "effective_concurrency": effective_concurrency,
+                    "schema_version": self.SCHEMA_VERSION,
+                    "prompt_version": self.PROMPT_VERSION,
                 },
             )
             if analysis_run is not None:
@@ -322,7 +325,7 @@ class ContextWorkflowService:
             return terms
         reconciled = self._reconcile_events(
             project_id, task_id, local_units, extractions, api_provider,
-            model_name, description_language, analysis_run,
+            model_name, description_language, analysis_run, effective_concurrency,
         )
         final_extractions = self._replace_local_events(extractions, reconciled)
         result = self._finish_context(
@@ -385,40 +388,24 @@ class ContextWorkflowService:
         model_name: str | None,
         description_language: str,
         analysis_run: Any | None,
+        concurrency: int,
     ) -> EventReconciliationResult:
-        source_ids = [
-            item.source_item_id for unit in local_units for item in unit.items
-        ]
-        self.status_service.begin_stage(
-            project_id, task_id, "aggregating", 1, source_item_ids=source_ids,
+        return ContextEventReconciliationExecutionService(
+            handler_factory=self.handler_factory,
+            reconciler_factory=self.reconciler_factory,
+            checkpoints=self.analysis_checkpoints,
+            status_service=self.status_service,
+        ).execute(
+            local_units,
+            extractions,
+            project_id=project_id,
+            task_id=task_id,
+            analysis_run=analysis_run,
+            api_provider=api_provider,
+            model_name=model_name,
+            description_language=description_language,
+            concurrency=concurrency,
         )
-        saved = self.analysis_checkpoints.restore_aggregation(analysis_run, source_ids)
-        if saved is not None:
-            result = saved
-            self.status_service.record_batch(
-                project_id, task_id, "aggregating", "aggregating:1",
-                success=True, source_item_ids=source_ids, resumed=True,
-            )
-            return result
-        try:
-            handler = self.handler_factory(api_provider, model_name=model_name)
-            result = self.reconciler_factory(handler).reconcile(
-                local_units, extractions, description_language=description_language,
-            )
-        except Exception as exc:
-            self.status_service.record_batch(
-                project_id, task_id, "aggregating", "aggregating:1",
-                success=False, source_item_ids=source_ids, error=str(exc),
-            )
-            raise
-        self.analysis_checkpoints.save_aggregation(
-            analysis_run, source_ids, result,
-        )
-        self.status_service.record_batch(
-            project_id, task_id, "aggregating", "aggregating:1",
-            success=True, source_item_ids=source_ids,
-        )
-        return result
 
     @staticmethod
     def _replace_local_events(

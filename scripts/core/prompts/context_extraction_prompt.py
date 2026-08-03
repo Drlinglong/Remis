@@ -44,11 +44,22 @@ do not defer ordinary translation recommendations to a later review call.
 - Do not return `provenance` or `tentative` fields. The backend assigns this
   fixed metadata after validating the model-authored content and evidence.
 - Events belong in `events` as event-chain objects, not inside entity descriptions.
-- First propose bounded local event chains and their narrative boundaries. Then
-  return exactly one `delivery_assignments` item for every `core_unit_ids`
-  value, with no missing, duplicate, unexpected, or edge unit IDs. Use the ID
-  unchanged. If no reliable relationship exists, return `assignment_state` as
-  `unassigned` and an empty `links` array.
+- First propose bounded local event chains and their narrative boundaries. A
+  chain requires a concrete occurrence, temporal progression, state transition,
+  causal dependency, branching decision, or direct outcome. Multiple `events`
+  entries may reuse the same `chain_id` when they are ordered steps in that one
+  local chain; the backend will fold those steps into one chain card.
+- Exhaustive assignment means exactly one `delivery_assignments` record for
+  every `core_unit_ids` value, with no missing, duplicate, unexpected, or edge
+  IDs. It does NOT mean every unit belongs to an event chain. `unassigned` with
+  an empty `links` array is a valid and expected classification.
+- Do not create a chain merely to classify context-free buttons, generic UI
+  labels or tooltips, names, titles, or static technology, building, modifier,
+  trait, resource, ambient-object, or catalog descriptions. Groups that only
+  share terminology, characters, factions, imagery, motifs, or worldbuilding
+  themes are not event chains. Put their semantics in terms, entities, or facts,
+  and leave them unassigned or theme-related as appropriate. Never invent a
+  chain ID merely to avoid `unassigned`.
 - Each assigned unit has one or more directional links. Every event_chain_id in
   a link must match a chain_id returned in this response's `events` array.
   `primary_member` means the unit is genuinely part of that local causal or
@@ -59,6 +70,12 @@ do not defer ordinary translation recommendations to a later review call.
   delivered during translation. Shared background alone never proves chain
   membership. A parent story organizes child chains; it is not an automatic
   delivery super-chain.
+- Static resources must not originate a new event chain. They may link as
+  `supporting_context` to an already established chain only when a direct and
+  specific narrative dependency means they should receive that chain summary.
+  Shared vocabulary or theme alone is insufficient. A short title, option,
+  button, or tooltip already grouped inside a numbered local event unit inherits
+  the classification of that unit and must not be detached merely for being UI-like.
 - Evidence is a small representative subset that supports a summary. Primary
   membership is exhaustive delivery coverage and is broader than evidence.
   Select event evidence only from units linked as `primary_member` to that
@@ -87,6 +104,6 @@ Return only this JSON shape, with no markdown:
     "evidence":[{{"source_item_id":"source_0"}}]}}],
   "delivery_assignments": [{{"local_unit_id":"unit_0",
     "links":[{{"event_chain_id":"example_chain","relation":"primary_member",
-      "confidence":0.9,"reasoning":"..."}}],"assignment_state":"assigned"}}]
+      "confidence":0.9}}],"assignment_state":"assigned"}}]
 }}
 """

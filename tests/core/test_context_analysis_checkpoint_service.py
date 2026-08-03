@@ -5,12 +5,19 @@ from scripts.core.neologism_extraction import EventChainContribution, SourceEvid
 from scripts.core.services.context_analysis_checkpoint_service import (
     ContextAnalysisCheckpointService,
 )
-from scripts.core.services.context_event_reconciliation_service import EventReconciliationResult
+from scripts.core.services.context_event_reconciliation_service import (
+    EventAssignmentBatchResult,
+    EventChainCatalogResult,
+    EventChainDefinition,
+    EventReconciliationResult,
+    LocalChainDisposition,
+)
 
 
 class _Repository:
     def __init__(self):
         self.saved = None
+        self.batches = {}
 
     def save_batch(
         self,
@@ -28,16 +35,10 @@ class _Repository:
             payload=payload,
             status="succeeded",
         )
+        self.batches[(run_id, phase, batch_index)] = self.saved
 
     def get_batch(self, run_id, phase, batch_index):
-        if self.saved is None:
-            return None
-        assert (run_id, phase, batch_index) == (
-            self.saved.run_id,
-            self.saved.phase,
-            self.saved.batch_index,
-        )
-        return self.saved
+        return self.batches.get((run_id, phase, batch_index))
 
 
 def _reconciliation(assignment_count=95, event_count=55):
@@ -77,3 +78,38 @@ def test_global_aggregation_checkpoint_is_not_limited_by_local_extraction_batch(
     assert len(restored.events) == 55
     assert len(restored.delivery_assignments) == 95
     assert restored.diagnostics == {"repair_count": 0}
+
+
+def test_catalog_and_assignment_batches_have_independent_checkpoint_slots():
+    repository = _Repository()
+    service = ContextAnalysisCheckpointService(repository)
+    run = SimpleNamespace(run_id="run-1")
+    catalog = EventChainCatalogResult(
+        final_chains=[EventChainDefinition(
+            chain_id="chain-1",
+            event="A bounded chain.",
+            sequence=0,
+            evidence_unit_ids=["unit_0"],
+        )],
+        proposal_resolutions=[LocalChainDisposition(
+            proposal_id="b0_c0",
+            resolution="merge_into",
+            final_chain_ids=["chain-1"],
+        )],
+        local_chain_cards=[{"proposal_id": "b0_c0"}],
+    )
+    assignment = EventAssignmentBatchResult(assignments=[DeliveryAssignment(
+        local_unit_id="unit_0",
+        assignment_state="unassigned",
+        source_item_ids=["source-0"],
+    )])
+
+    service.save_catalog(run, ["source-0", "source-1"], catalog)
+    service.save_assignment_batch(run, 0, ["source-0"], assignment)
+
+    assert service.restore_catalog(run, ["source-0", "source-1"]) == catalog
+    assert service.restore_assignment_batch(run, 0, ["source-0"]) == assignment
+    assert set(repository.batches) == {
+        ("run-1", "aggregation", 0),
+        ("run-1", "aggregation", 1),
+    }

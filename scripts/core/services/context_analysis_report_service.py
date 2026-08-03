@@ -143,7 +143,7 @@ class ContextAnalysisReportService:
                 }),
                 "local_proposals": proposal_ids,
                 "split": any(
-                    item.get("resolution") == "split_required"
+                    item.get("resolution") in {"split_required", "split_across"}
                     for item in resolutions_for_chain
                 ),
                 "primary_members": links_by_chain[event.chain_id]["primary_member"],
@@ -161,7 +161,7 @@ class ContextAnalysisReportService:
         local_extractions: Sequence[StructuredNeologismExtraction],
         reconciled: EventReconciliationResult,
     ) -> dict[str, Any]:
-        proposals = cls._local_proposals(local_extractions)
+        proposals = cls._local_proposals(local_extractions, reconciled)
         final_chains = cls._chain_report(local_extractions, reconciled)
         final_links = cls._membership_set(reconciled.delivery_assignments)
         mapped_local_links = cls._mapped_local_memberships(local_extractions, reconciled)
@@ -260,7 +260,19 @@ class ContextAnalysisReportService:
     @staticmethod
     def _local_proposals(
         extractions: Sequence[StructuredNeologismExtraction],
+        reconciled: EventReconciliationResult,
     ) -> list[dict[str, Any]]:
+        cards = reconciled.diagnostics.get("local_chain_cards") or []
+        if cards:
+            return [
+                {
+                    "proposal_id": card["proposal_id"],
+                    "boundary_status": ContextAnalysisReportService._card_boundary_status(
+                        card.get("steps") or []
+                    ),
+                }
+                for card in cards
+            ]
         return [
             {
                 "proposal_id": f"b{batch_index}_e{event_index}",
@@ -269,6 +281,21 @@ class ContextAnalysisReportService:
             for batch_index, extraction in enumerate(extractions)
             for event_index, event in enumerate(extraction.events)
         ]
+
+    @staticmethod
+    def _card_boundary_status(steps: Sequence[dict[str, Any]]) -> str:
+        statuses = {str(step.get("boundary_status") or "uncertain") for step in steps}
+        before = bool(statuses & {"continues_before", "continues_both"})
+        after = bool(statuses & {"continues_after", "continues_both"})
+        if before and after:
+            return "continues_both"
+        if before:
+            return "continues_before"
+        if after:
+            return "continues_after"
+        if statuses == {"complete_in_chunk"}:
+            return "complete_in_chunk"
+        return "uncertain"
 
     @staticmethod
     def _membership_set(assignments: Sequence[Any]) -> set[tuple[str, str, str]]:
@@ -287,13 +314,39 @@ class ContextAnalysisReportService:
         for resolution in reconciled.diagnostics.get("proposal_resolutions") or []:
             resolution_map[resolution["proposal_id"]] = resolution.get("final_chain_ids") or []
         mapped: set[tuple[str, str, str]] = set()
+        final_chains_by_unit = {
+            assignment.local_unit_id: {
+                link.event_chain_id for link in assignment.links
+            }
+            for assignment in reconciled.delivery_assignments
+        }
+        cards = reconciled.diagnostics.get("local_chain_cards") or []
+        card_by_local_chain = {
+            (int(card.get("batch_index") or 0), str(card["local_chain_id"]).casefold()):
+                card["proposal_id"]
+            for card in cards
+        }
         for batch_index, extraction in enumerate(extractions):
             proposals = {
-                event.chain_id: resolution_map.get(f"b{batch_index}_e{event_index}", [])
+                event.chain_id.casefold(): resolution_map.get(
+                    card_by_local_chain.get(
+                        (batch_index, event.chain_id.casefold()),
+                        f"b{batch_index}_e{event_index}",
+                    ),
+                    [],
+                )
                 for event_index, event in enumerate(extraction.events)
             }
             for assignment in extraction.delivery_assignments:
                 for link in assignment.links:
-                    for final_chain in proposals.get(link.event_chain_id, []):
+                    final_candidates = proposals.get(link.event_chain_id.casefold(), [])
+                    if len(final_candidates) > 1:
+                        final_candidates = [
+                            chain_id for chain_id in final_candidates
+                            if chain_id in final_chains_by_unit.get(
+                                assignment.local_unit_id, set()
+                            )
+                        ]
+                    for final_chain in final_candidates:
                         mapped.add((assignment.local_unit_id, final_chain, link.relation))
         return mapped

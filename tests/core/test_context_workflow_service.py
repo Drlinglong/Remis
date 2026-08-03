@@ -23,7 +23,14 @@ from scripts.core.neologism_extraction import (
 from scripts.core.file_parser import extract_translatable_content
 from scripts.core.loc_parser import parse_loc_file
 from scripts.core.services.context_source_parser import ContextSourceParser
-from scripts.core.services.context_event_reconciliation_service import EventReconciliationResult
+from scripts.core.services.context_event_reconciliation_service import (
+    ContextEventReconciliationService,
+    EventAssignmentBatchResult,
+    EventChainCatalogResult,
+    EventChainDefinition,
+    EventReconciliationResult,
+    LocalChainDisposition,
+)
 from scripts.core.services.context_synthesis_service import ContextSynthesisService
 from scripts.core.services.context_workflow_service import ContextWorkflowService
 from scripts.core.services.context_workflow_status_service import ContextWorkflowStatusService
@@ -224,15 +231,32 @@ class FakeHandler:
 
 
 class FakeReconciler:
-    def reconcile(self, local_units, extractions, *, description_language):
+    def build_catalog(self, local_units, extractions, *, description_language):
         del description_language
-        evidence = SourceEvidence(source_item_id=local_units[0].items[0].source_item_id)
-        event = EventChainContribution(
+        cards = ContextEventReconciliationService.compact_local_chain_cards(
+            local_units, extractions,
+        )
+        event = EventChainDefinition(
             chain_id="republic-chain",
             event="Republic affairs",
             sequence=0,
-            evidence=[evidence],
+            evidence_unit_ids=[local_units[0].unit_id],
         )
+        return EventChainCatalogResult(
+            final_chains=[event],
+            proposal_resolutions=[
+                LocalChainDisposition(
+                    proposal_id=card["proposal_id"],
+                    resolution="merge_into",
+                    final_chain_ids=["republic-chain"],
+                )
+                for card in cards
+            ],
+            local_chain_cards=cards,
+        )
+
+    def assign_batch(self, local_units, catalog, *, description_language):
+        del catalog, description_language
         assignments = [
             DeliveryAssignment(
                 local_unit_id=unit.unit_id,
@@ -246,20 +270,7 @@ class FakeReconciler:
             )
             for unit in local_units
         ]
-        proposal_resolutions = [
-            {
-                "proposal_id": f"b{batch_index}_e{event_index}",
-                "resolution": "merge_into",
-                "final_chain_ids": ["republic-chain"],
-            }
-            for batch_index, extraction in enumerate(extractions)
-            for event_index, _ in enumerate(extraction.events)
-        ]
-        return EventReconciliationResult(
-            events=[event],
-            delivery_assignments=assignments,
-            diagnostics={"repair_count": 0, "proposal_resolutions": proposal_resolutions},
-        )
+        return EventAssignmentBatchResult(assignments=assignments)
 
 
 def _service(repo, candidate_store=None, task_backend=None, handler=None):
@@ -566,7 +577,7 @@ def test_failed_extraction_retry_reuses_successful_sqlite_batches(tmp_path):
     with pytest.raises(TimeoutError):
         service.run(
             "project-1", [str(source)], str(root), "local", task_id="task-1",
-            analysis_config={"max_items": 1},
+            analysis_config={"max_items": 1}, concurrency_limit=3,
         )
     with sqlite3.connect(db_path) as connection:
         run_id = connection.execute("SELECT run_id FROM context_analysis_runs").fetchone()[0]
@@ -575,7 +586,7 @@ def test_failed_extraction_retry_reuses_successful_sqlite_batches(tmp_path):
 
     result = service.run(
         "project-1", [str(source)], str(root), "local", task_id="task-2",
-        analysis_config={"max_items": 1},
+        analysis_config={"max_items": 1}, concurrency_limit=1,
     )
 
     assert ResumeMiner.calls == 4
@@ -774,7 +785,7 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
     assert release.metadata.provider_id == "local"
     assert release.metadata.model_id == "fake-model"
     assert release.metadata.schema_version == "context-v3"
-    assert release.metadata.prompt_version == "context-archive-v6"
+    assert release.metadata.prompt_version == "context-archive-v7"
     assert release.metadata.analysis_config["description_language"] == "zh-CN"
     assert "Simplified Chinese (zh-CN)" in handler.calls[0][0]["content"]
     assert any(

@@ -186,6 +186,7 @@ class StructuredNeologismExtractor:
         "FactContribution": ("provenance", "tentative"),
         "EventChainContribution": ("provenance", "tentative"),
         "RelationshipContribution": ("provenance", "tentative"),
+        "DeliveryLink": ("reasoning",),
         "DeliveryAssignment": ("source_item_ids",),
     }
     _BACKEND_METADATA_BY_COLLECTION = {

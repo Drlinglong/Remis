@@ -1,17 +1,18 @@
-"""Global, validated reconciliation of locally proposed delivery event chains.
+"""Two-stage global reconciliation for narrative delivery event chains.
 
-The extraction pass intentionally works on bounded chunks.  This service is a
-separate second pass: it sees stable project-wide local units and the compact
-event proposals from every extraction chunk, then decides the final delivery
-chains and the membership of *every* local unit.  It does not persist anything
-or decide how a caller schedules the model request.
+Local extraction returns event-chain *steps*.  This module first folds steps
+with the same batch-local chain identity into compact cards, asks the model for
+one project-wide chain catalog, and then classifies bounded batches of local
+units against that immutable catalog.  No model call owns the whole project
+assignment table.
 """
 
 from __future__ import annotations
 
 import json
+from collections import Counter
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any, Iterable, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -24,29 +25,26 @@ from scripts.core.neologism_extraction import (
 )
 
 
-class _ModelAssignment(BaseModel):
-    """Model-facing assignment; source IDs are intentionally backend-owned."""
-
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-
-    local_unit_id: str = Field(pattern=r"^unit_\d+$")
-    assignment_state: str = Field(pattern=r"^(assigned|unassigned)$")
-    links: list["_ModelLink"] = Field(default_factory=list, max_length=8)
-
-
 class _ModelLink(BaseModel):
-    """Strict model-facing form; persisted links allow optional rationale."""
+    """Small model-facing link. Long free-text reasoning is intentionally absent."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     event_chain_id: str = Field(min_length=1, max_length=200)
     relation: str = Field(pattern=r"^(primary_member|supporting_context|theme_related)$")
     confidence: float = Field(ge=0.0, le=1.0)
-    reasoning: str = Field(min_length=1, max_length=500)
 
 
-class _FinalChainResponse(BaseModel):
-    """Model-facing final delivery-chain shape without backend evidence IDs."""
+class _ModelAssignment(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    local_unit_id: str = Field(pattern=r"^unit_\d+$")
+    assignment_state: str = Field(pattern=r"^(assigned|unassigned)$")
+    links: list[_ModelLink] = Field(default_factory=list, max_length=8)
+
+
+class EventChainDefinition(BaseModel):
+    """One immutable chain definition produced before unit assignment."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
@@ -60,22 +58,56 @@ class _FinalChainResponse(BaseModel):
     evidence_unit_ids: list[str] = Field(min_length=1, max_length=5)
 
 
-class _ProposalResolution(BaseModel):
+class LocalChainDisposition(BaseModel):
+    """Exhaustive, compact accounting for one folded local chain card."""
+
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     proposal_id: str = Field(min_length=1, max_length=80)
     resolution: str = Field(
-        pattern=r"^(merge_into|keep_separate|split_required|parent_story_only|unresolved)$"
+        pattern=(
+            r"^(merge_into|keep_as_delivery_chain|promote_to_parent_story|"
+            r"reject_non_event|split_across|unresolved)$"
+        )
     )
     final_chain_ids: list[str] = Field(default_factory=list, max_length=8)
 
 
-class _ReconciliationResponse(BaseModel):
+class _CatalogResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    final_chains: list[_FinalChainResponse] = Field(default_factory=list, max_length=80)
-    assignments: list[_ModelAssignment] = Field(default_factory=list, max_length=500)
-    proposal_resolutions: list[_ProposalResolution] = Field(default_factory=list, max_length=500)
+    final_chains: list[EventChainDefinition] = Field(default_factory=list, max_length=80)
+    proposal_resolutions: list[LocalChainDisposition] = Field(
+        default_factory=list, max_length=500
+    )
+
+
+class _AssignmentResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    assignments: list[_ModelAssignment] = Field(default_factory=list, max_length=80)
+
+
+class EventChainCatalogResult(BaseModel):
+    """Checkpoint-safe output of the project-wide chain catalog stage."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    final_chains: list[EventChainDefinition] = Field(default_factory=list, max_length=80)
+    proposal_resolutions: list[LocalChainDisposition] = Field(
+        default_factory=list, max_length=500
+    )
+    local_chain_cards: list[dict[str, Any]] = Field(default_factory=list, max_length=500)
+    repair_count: int = Field(default=0, ge=0, le=1)
+
+
+class EventAssignmentBatchResult(BaseModel):
+    """Checkpoint-safe output for one bounded assignment batch."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    assignments: list[DeliveryAssignment] = Field(default_factory=list, max_length=80)
+    repair_count: int = Field(default=0, ge=0, le=1)
 
 
 @dataclass(frozen=True)
@@ -87,52 +119,168 @@ class EventReconciliationResult:
     diagnostics: dict[str, Any]
 
 
+class ContextAssignmentBatchingPolicy:
+    """Pack whole local units using both count and prompt-size budgets."""
+
+    DEFAULT_MAX_UNITS = 40
+    DEFAULT_MAX_SOURCE_CHARS = 12_000
+
+    @classmethod
+    def batches(
+        cls,
+        local_units: Sequence[LocalTextUnit],
+        *,
+        max_units: int = DEFAULT_MAX_UNITS,
+        max_source_chars: int = DEFAULT_MAX_SOURCE_CHARS,
+    ) -> list[list[LocalTextUnit]]:
+        if max_units < 1 or max_source_chars < 1:
+            raise ValueError("Assignment batch limits must be positive")
+        batches: list[list[LocalTextUnit]] = []
+        current: list[LocalTextUnit] = []
+        current_chars = 0
+        for unit in local_units:
+            unit_chars = sum(len(str(getattr(item, "source_text", ""))) for item in unit.items)
+            over_budget = current and (
+                len(current) >= max_units or current_chars + unit_chars > max_source_chars
+            )
+            if over_budget:
+                batches.append(current)
+                current = []
+                current_chars = 0
+            current.append(unit)
+            current_chars += unit_chars
+        if current:
+            batches.append(current)
+        return batches
+
+
 class ContextEventReconciliationService:
-    """Call an LLM once (plus at most one repair) to reconcile event chains."""
+    """Build a chain catalog, then classify bounded unit batches against it."""
 
     MAX_UNIT_TEXT_CHARS = 900
     MAX_PROPOSALS = 500
-    REPAIR_ERROR_CHARS = 1_200
+    REPAIR_ERROR_CHARS = 1_500
 
-    SYSTEM_PROMPT = """
-You reconcile localization narrative event proposals into final *delivery
-chains*. Return only valid JSON matching the supplied schema.
+    CATALOG_SYSTEM_PROMPT = """
+You build the immutable project-wide catalog of narrative delivery chains from
+batch-local chain cards. Return only JSON matching the supplied schema.
 
-First decide clear, narrow candidate delivery-chain boundaries. A delivery
-chain is a coherent causal or narrative sequence whose summary should be sent
-to translations of its formal members. Do not flatten unrelated scenes into a
-single chain merely because they share a faction, god, ruler, variable, broad
-theme, or similar wording.
+Each card contains steps[] from one extraction batch. Multiple steps in a card
+already represent one local chain hypothesis; do not treat them as duplicate
+chains. Merge or split cards only when their chronology, state transitions,
+causality, branches, participants, and explicit consequences support it.
 
-Parent stories can organize several child scenes, but they are NOT automatic
-delivery chains. Record a broader story only as a delivery chain's optional
-parent_story_id. It is an organizational label and never creates inherited
-delivery membership.
+A delivery chain is a concrete narrative process. Shared characters, factions,
+gods, terminology, imagery, worldbuilding, resource type, or broad theme alone
+do not form a delivery chain. Parent stories may organize child chains through
+parent_story_id, but parent stories never inherit delivery membership.
 
-Then return exactly one assignment for every supplied local_unit_id. Use:
-- primary_member: the unit is part of the chain's actual event process; its
-  translation receives the chain summary.
-- supporting_context: the unit is outside the process, but needs that chain's
-  background for translation; this is directional and does not merge chains.
-- theme_related: shared theme only; it is archival/audit information and does
-  not cause automatic summary delivery.
-- unassigned: no meaningful link. It must have assignment_state=unassigned
-  and an empty links array.
+Return exactly one compact proposal_resolution for every proposal_id. Use
+reject_non_event for a card that is only a static/theme collection. Do not omit
+a card silently and do not write long rationales. Evidence is representative;
+every evidence_unit_id must name a supplied unit. Write descriptive fields in
+the requested description language.
+"""
 
-An assigned unit must have at least one link. Each link may use a different
-relation. Evidence is representative, but every evidence_unit_id MUST be a
-primary_member of that same chain. Write event, consequence, and reasoning in
-the requested description language. The proposal cards are leads, not proof:
-resolve chunk boundaries using the supplied unit text and keys.
+    ASSIGNMENT_SYSTEM_PROMPT = """
+Classify only the supplied local units against the immutable final chain
+catalog. Return only JSON matching the supplied schema. Never create a chain ID.
 
-Every final chain has chain_level=delivery_chain. Return exactly one
-proposal_resolution for every supplied proposal_id. A proposal may merge,
-remain separate, require a split, be parent-story-only, or remain unresolved.
-Every final_chain_id referenced by a resolution must exist.
+Exhaustive assignment means every supplied local_unit_id receives exactly one
+record. It does NOT mean every unit belongs to a chain. `unassigned` with an
+empty links array is valid and expected.
+
+Use primary_member only for a unit that directly describes a step, branch,
+state transition, or outcome in that chain. Use supporting_context for a unit
+outside the process that has a direct, specific dependency on that established
+chain and should receive its summary during translation. Use theme_related for
+broad shared theme only; it is audit-only and is never delivered.
+
+Context-free buttons, generic UI labels or tooltips, names, titles, and static
+technology, building, modifier, trait, resource, ambient-object, or catalog
+descriptions must not be forced into a chain. A static resource may receive
+supporting_context from an existing chain when specific narrative evidence
+supports that dependency. Shared vocabulary or theme is insufficient.
+
+A short option, title, button, or tooltip already grouped inside a numbered
+local event unit inherits classification with that unit; do not detach it merely
+because one entry is UI-like. Each link has its own relation and confidence.
+Do not return source_item_ids, reasoning, prose, or new chain definitions.
 """
 
     def __init__(self, handler: Any):
         self.handler = handler
+
+    def build_catalog(
+        self,
+        local_units: Sequence[LocalTextUnit],
+        extractions: Sequence[StructuredNeologismExtraction],
+        *,
+        description_language: str = "en",
+    ) -> EventChainCatalogResult:
+        units = self._validate_units(local_units)
+        cards = self.compact_local_chain_cards(units, extractions)
+        payload = {
+            "description_language": description_language,
+            "local_chain_cards": cards,
+            "valid_local_unit_ids": [unit.unit_id for unit in units],
+        }
+        messages = self._messages(
+            self._catalog_prompt(description_language), payload
+        )
+        parsed, repair_count = self._parse_with_one_repair(
+            messages,
+            _CatalogResponse,
+            "remis_event_chain_catalog",
+            lambda result: self._validate_catalog(result, cards, units),
+            "Event-chain catalog",
+        )
+        return EventChainCatalogResult(
+            final_chains=parsed.final_chains,
+            proposal_resolutions=parsed.proposal_resolutions,
+            local_chain_cards=cards,
+            repair_count=repair_count,
+        )
+
+    def assign_batch(
+        self,
+        local_units: Sequence[LocalTextUnit],
+        catalog: EventChainCatalogResult,
+        *,
+        description_language: str = "en",
+    ) -> EventAssignmentBatchResult:
+        units = self._validate_units(local_units)
+        payload = {
+            "description_language": description_language,
+            "final_chain_catalog": [item.model_dump() for item in catalog.final_chains],
+            "required_local_unit_ids": [unit.unit_id for unit in units],
+            "local_units": [self._unit_payload(unit) for unit in units],
+        }
+        messages = self._messages(
+            self._assignment_prompt(description_language), payload
+        )
+        parsed, repair_count = self._parse_with_one_repair(
+            messages,
+            _AssignmentResponse,
+            "remis_event_chain_assignments",
+            lambda result: self._validate_assignment_batch(result, units, catalog),
+            "Event-chain assignment",
+        )
+        unit_by_id = {unit.unit_id: unit for unit in units}
+        assignments = [
+            DeliveryAssignment(
+                local_unit_id=item.local_unit_id,
+                assignment_state=item.assignment_state,
+                links=[DeliveryLink(**link.model_dump()) for link in item.links],
+                source_item_ids=[
+                    str(source.source_item_id) for source in unit_by_id[item.local_unit_id].items
+                ],
+            )
+            for item in parsed.assignments
+        ]
+        return EventAssignmentBatchResult(
+            assignments=assignments, repair_count=repair_count
+        )
 
     def reconcile(
         self,
@@ -141,201 +289,271 @@ Every final_chain_id referenced by a resolution must exist.
         *,
         description_language: str = "en",
     ) -> EventReconciliationResult:
-        """Return validated final chains and exactly one assignment per unit."""
+        """Sequential convenience path; the workflow executor parallelizes batches."""
 
         units = self._validate_units(local_units)
-        payload = self._request_payload(units, extractions, description_language)
-        proposal_ids = [item["proposal_id"] for item in payload["local_event_proposals"]]
-        messages = [
-            {"role": "system", "content": self._system_prompt(description_language)},
-            {"role": "user", "content": json.dumps(payload, ensure_ascii=False, sort_keys=True)},
+        catalog = self.build_catalog(
+            units, extractions, description_language=description_language
+        )
+        assignment_results = [
+            self.assign_batch(batch, catalog, description_language=description_language)
+            for batch in ContextAssignmentBatchingPolicy.batches(units)
         ]
-        response = self._generate(messages)
-        try:
-            parsed = self._parse_and_validate(response, units, proposal_ids)
-            repair_count = 0
-        except (json.JSONDecodeError, ValidationError, ValueError) as first_error:
-            repair_messages = [
-                *messages,
-                {"role": "assistant", "content": response},
-                {"role": "user", "content": self._repair_instruction(first_error)},
-            ]
-            repaired = self._generate(repair_messages)
-            try:
-                parsed = self._parse_and_validate(repaired, units, proposal_ids)
-                repair_count = 1
-            except (json.JSONDecodeError, ValidationError, ValueError) as second_error:
-                raise NeologismMiningError(
-                    "Event-chain reconciliation failed after one repair "
-                    f"({self._error_category(second_error)})"
-                ) from second_error
-        return self._result(parsed, units, repair_count=repair_count)
-
-    @staticmethod
-    def _validate_units(local_units: Sequence[LocalTextUnit]) -> list[LocalTextUnit]:
-        units = list(local_units)
-        unit_ids = [unit.unit_id for unit in units]
-        if len(unit_ids) != len(set(unit_ids)):
-            raise ValueError("Global local-unit identities must be unique")
-        source_ids = [
-            str(item.source_item_id)
-            for unit in units
-            for item in unit.items
-        ]
-        if len(source_ids) != len(set(source_ids)):
-            raise ValueError("A source item must belong to exactly one global local unit")
-        return units
+        return self.finalize(units, catalog, assignment_results)
 
     @classmethod
-    def _request_payload(
+    def compact_local_chain_cards(
         cls,
         local_units: Sequence[LocalTextUnit],
         extractions: Sequence[StructuredNeologismExtraction],
-        description_language: str,
-    ) -> dict[str, Any]:
+    ) -> list[dict[str, Any]]:
         source_to_unit = {
             str(item.source_item_id): unit.unit_id
             for unit in local_units
             for item in unit.items
         }
-        return {
-            "description_language": description_language,
-            "local_units": [cls._unit_payload(unit) for unit in local_units],
-            "local_event_proposals": cls._proposal_cards(extractions, source_to_unit),
-        }
-
-    @classmethod
-    def _unit_payload(cls, unit: LocalTextUnit) -> dict[str, Any]:
-        entries = []
-        for item in unit.items:
-            text = str(getattr(item, "source_text", ""))
-            entries.append({
-                "item_key": getattr(item, "item_key", None),
-                "text": text[:cls.MAX_UNIT_TEXT_CHARS],
-            })
-        return {
-            "local_unit_id": unit.unit_id,
-            "derived_unit_key": unit.unit_key.split("::", 1)[-1],
-            "entries": entries,
-        }
-
-    @classmethod
-    def _proposal_cards(
-        cls,
-        extractions: Sequence[StructuredNeologismExtraction],
-        source_to_unit: dict[str, str],
-    ) -> list[dict[str, Any]]:
-        proposals = []
+        cards: list[dict[str, Any]] = []
         for batch_index, extraction in enumerate(extractions):
-            assignment_by_chain: dict[str, list[str]] = {}
-            for assignment in extraction.delivery_assignments:
-                for link in assignment.links:
-                    if link.relation == "primary_member":
-                        assignment_by_chain.setdefault(link.event_chain_id.casefold(), []).append(
-                            assignment.local_unit_id
-                        )
+            grouped: dict[str, list[tuple[int, EventChainContribution]]] = {}
+            display_ids: dict[str, str] = {}
             for event_index, event in enumerate(extraction.events):
-                evidence_units = [
-                    source_to_unit[evidence.source_item_id]
-                    for evidence in event.evidence
-                    if evidence.source_item_id in source_to_unit
-                ]
-                proposals.append({
-                    "proposal_id": f"b{batch_index}_e{event_index}",
-                    "local_chain_id": event.chain_id,
-                    "event": event.event,
-                    "sequence": event.sequence,
-                    "participants": event.participants,
-                    "consequence": event.consequence,
-                    "primary_unit_ids": list(dict.fromkeys(
-                        assignment_by_chain.get(event.chain_id.casefold(), [])
+                normalized = event.chain_id.casefold()
+                grouped.setdefault(normalized, []).append((event_index, event))
+                display_ids.setdefault(normalized, event.chain_id)
+            primary_by_chain = cls._primary_units_by_chain(extraction)
+            for card_index, (normalized, indexed_steps) in enumerate(grouped.items()):
+                ordered = sorted(indexed_steps, key=lambda item: (item[1].sequence, item[0]))
+                steps = [cls._step_payload(event, source_to_unit) for _, event in ordered]
+                cards.append({
+                    "proposal_id": f"b{batch_index}_c{card_index}",
+                    "batch_index": batch_index,
+                    "local_chain_id": display_ids[normalized],
+                    "steps": steps,
+                    "primary_unit_ids": list(dict.fromkeys(primary_by_chain.get(normalized, []))),
+                    "evidence_unit_ids": list(dict.fromkeys(
+                        unit_id
+                        for step in steps
+                        for unit_id in step["evidence_unit_ids"]
                     )),
-                    "evidence_unit_ids": list(dict.fromkeys(evidence_units)),
                 })
-                if len(proposals) >= cls.MAX_PROPOSALS:
-                    return proposals
-        return proposals
-
-    def _generate(self, messages: list[dict[str, str]]) -> str:
-        try:
-            structured_generate = getattr(self.handler, "generate_structured_with_messages", None)
-            if structured_generate is not None:
-                response = structured_generate(
-                    messages,
-                    schema=_ReconciliationResponse.model_json_schema(),
-                    schema_name="remis_event_chain_reconciliation",
-                    temperature=0.0,
-                )
-            else:
-                response = self.handler.generate_with_messages(messages, temperature=0.0)
-        except Exception as exc:
-            raise NeologismMiningError(f"Event-chain reconciliation request failed: {exc}") from exc
-        if not response or not response.strip():
-            raise NeologismMiningError("Event-chain reconciliation returned an empty response")
-        return response.strip()
-
-    @classmethod
-    def _parse_and_validate(
-        cls,
-        response: str,
-        local_units: Sequence[LocalTextUnit],
-        proposal_ids: Sequence[str],
-    ) -> _ReconciliationResponse:
-        parsed = _ReconciliationResponse.model_validate(json.loads(cls._clean_json(response)))
-        expected_ids = {unit.unit_id for unit in local_units}
-        received_ids = [assignment.local_unit_id for assignment in parsed.assignments]
-        unknown_ids = set(received_ids) - expected_ids
-        missing_ids = expected_ids - set(received_ids)
-        duplicate_ids = {item for item in received_ids if received_ids.count(item) > 1}
-        if unknown_ids or missing_ids or duplicate_ids:
-            raise ValueError(
-                "Assignment coverage invalid: "
-                f"missing={sorted(missing_ids)}, unexpected={sorted(unknown_ids)}, "
-                f"duplicate={sorted(duplicate_ids)}"
-            )
-        chain_ids = [chain.chain_id for chain in parsed.final_chains]
-        duplicate_chains = {item for item in chain_ids if chain_ids.count(item) > 1}
-        if duplicate_chains:
-            raise ValueError(f"Final chain identities must be unique: {sorted(duplicate_chains)}")
-        valid_chains = set(chain_ids)
-        cls._validate_proposal_resolutions(parsed, proposal_ids, valid_chains)
-        primary_units_by_chain: dict[str, set[str]] = {chain_id: set() for chain_id in valid_chains}
-        for assignment in parsed.assignments:
-            cls._validate_assignment(assignment, valid_chains)
-            for link in assignment.links:
-                if link.relation == "primary_member":
-                    primary_units_by_chain[link.event_chain_id].add(assignment.local_unit_id)
-        for chain in parsed.final_chains:
-            evidence = set(chain.evidence_unit_ids)
-            if not evidence <= primary_units_by_chain[chain.chain_id]:
-                raise ValueError(
-                    f"Evidence units for {chain.chain_id} must be primary members of that chain"
-                )
-        return parsed
+                if len(cards) > cls.MAX_PROPOSALS:
+                    raise ValueError(
+                        "Folded local chain cards exceed the catalog contract limit; "
+                        "refusing to silently truncate project context"
+                    )
+        return cards
 
     @staticmethod
-    def _validate_proposal_resolutions(
-        parsed: _ReconciliationResponse,
-        proposal_ids: Sequence[str],
-        valid_chains: set[str],
+    def _primary_units_by_chain(
+        extraction: StructuredNeologismExtraction,
+    ) -> dict[str, list[str]]:
+        result: dict[str, list[str]] = {}
+        for assignment in extraction.delivery_assignments:
+            for link in assignment.links:
+                if link.relation == "primary_member":
+                    result.setdefault(link.event_chain_id.casefold(), []).append(
+                        assignment.local_unit_id
+                    )
+        return result
+
+    @staticmethod
+    def _step_payload(
+        event: EventChainContribution,
+        source_to_unit: dict[str, str],
+    ) -> dict[str, Any]:
+        evidence_units = [
+            source_to_unit[item.source_item_id]
+            for item in event.evidence
+            if item.source_item_id in source_to_unit
+        ]
+        return {
+            "event": event.event,
+            "sequence": event.sequence,
+            "participants": event.participants,
+            "consequence": event.consequence,
+            "boundary_status": event.boundary_status,
+            "boundary_includes": event.boundary_includes,
+            "boundary_excludes": event.boundary_excludes,
+            "continuation_cues": event.continuation_cues,
+            "evidence_unit_ids": list(dict.fromkeys(evidence_units)),
+        }
+
+    @classmethod
+    def finalize(
+        cls,
+        local_units: Sequence[LocalTextUnit],
+        catalog: EventChainCatalogResult,
+        assignment_results: Sequence[EventAssignmentBatchResult],
+    ) -> EventReconciliationResult:
+        units = cls._validate_units(local_units)
+        assignments = [
+            assignment
+            for result in assignment_results
+            for assignment in result.assignments
+        ]
+        cls._validate_final_assignments(units, catalog, assignments)
+        unit_by_id = {unit.unit_id: unit for unit in units}
+        events = [cls._event_contribution(chain, unit_by_id) for chain in catalog.final_chains]
+        return EventReconciliationResult(
+            events=events,
+            delivery_assignments=assignments,
+            diagnostics={
+                "repair_count": catalog.repair_count + sum(
+                    result.repair_count for result in assignment_results
+                ),
+                "catalog_repair_count": catalog.repair_count,
+                "assignment_repair_count": sum(
+                    result.repair_count for result in assignment_results
+                ),
+                "assignment_batch_count": len(assignment_results),
+                "proposal_resolutions": [
+                    item.model_dump() for item in catalog.proposal_resolutions
+                ],
+                "final_chains": [item.model_dump() for item in catalog.final_chains],
+                "local_chain_cards": catalog.local_chain_cards,
+            },
+        )
+
+    @classmethod
+    def _validate_catalog(
+        cls,
+        parsed: _CatalogResponse,
+        cards: Sequence[dict[str, Any]],
+        units: Sequence[LocalTextUnit],
     ) -> None:
-        expected = set(proposal_ids)
+        chain_ids = [chain.chain_id for chain in parsed.final_chains]
+        duplicate_chains = cls._duplicates(chain_id.casefold() for chain_id in chain_ids)
+        if duplicate_chains:
+            raise ValueError(f"Final chain identities must be unique: {duplicate_chains}")
+        valid_chains = set(chain_ids)
+        valid_units = {unit.unit_id for unit in units}
+        bad_evidence = {
+            unit_id
+            for chain in parsed.final_chains
+            for unit_id in chain.evidence_unit_ids
+            if unit_id not in valid_units
+        }
+        if bad_evidence:
+            raise ValueError(f"Catalog contains unknown evidence units: {sorted(bad_evidence)}")
+        expected = {card["proposal_id"] for card in cards}
         received = [item.proposal_id for item in parsed.proposal_resolutions]
-        missing = expected - set(received)
-        unexpected = set(received) - expected
-        duplicate = {item for item in received if received.count(item) > 1}
-        unknown_chains = {
+        unknown_references = {
             chain_id
             for item in parsed.proposal_resolutions
             for chain_id in item.final_chain_ids
             if chain_id not in valid_chains
         }
-        if missing or unexpected or duplicate or unknown_chains:
+        missing = expected - set(received)
+        unexpected = set(received) - expected
+        duplicate = cls._duplicates(received)
+        if missing or unexpected or duplicate or unknown_references:
             raise ValueError(
-                "Proposal resolution coverage invalid: "
+                "Local chain disposition coverage invalid: "
                 f"missing={sorted(missing)}, unexpected={sorted(unexpected)}, "
-                f"duplicate={sorted(duplicate)}, unknown_chains={sorted(unknown_chains)}"
+                f"duplicate={duplicate}, unknown_chains={sorted(unknown_references)}"
             )
+        invalid_dispositions = [
+            item.proposal_id
+            for item in parsed.proposal_resolutions
+            if (
+                item.resolution in {"merge_into", "keep_as_delivery_chain"}
+                and len(item.final_chain_ids) != 1
+            ) or (
+                item.resolution == "split_across"
+                and (
+                    len(item.final_chain_ids) < 2
+                    or len(item.final_chain_ids) != len(set(item.final_chain_ids))
+                )
+            ) or (
+                item.resolution in {
+                    "promote_to_parent_story", "reject_non_event", "unresolved"
+                }
+                and item.final_chain_ids
+            )
+        ]
+        if invalid_dispositions:
+            raise ValueError(
+                "Local chain dispositions conflict with their final_chain_ids: "
+                f"{sorted(invalid_dispositions)}"
+            )
+        delivery_sources = {
+            chain_id
+            for item in parsed.proposal_resolutions
+            if item.resolution in {
+                "merge_into", "keep_as_delivery_chain", "split_across"
+            }
+            for chain_id in item.final_chain_ids
+        }
+        orphan_chains = valid_chains - delivery_sources
+        if orphan_chains:
+            raise ValueError(
+                "Final delivery chains require a local chain-card source: "
+                f"{sorted(orphan_chains)}"
+            )
+
+    @classmethod
+    def _validate_assignment_batch(
+        cls,
+        parsed: _AssignmentResponse,
+        units: Sequence[LocalTextUnit],
+        catalog: EventChainCatalogResult,
+    ) -> None:
+        expected = {unit.unit_id for unit in units}
+        received = [item.local_unit_id for item in parsed.assignments]
+        missing = expected - set(received)
+        unexpected = set(received) - expected
+        duplicate = cls._duplicates(received)
+        if missing or unexpected or duplicate:
+            raise ValueError(
+                "Assignment coverage invalid: "
+                f"missing={sorted(missing)}, unexpected={sorted(unexpected)}, duplicate={duplicate}"
+            )
+        valid_chains = {chain.chain_id for chain in catalog.final_chains}
+        primary_by_chain: dict[str, set[str]] = {chain_id: set() for chain_id in valid_chains}
+        for assignment in parsed.assignments:
+            cls._validate_assignment(assignment, valid_chains)
+            for link in assignment.links:
+                if link.relation == "primary_member":
+                    primary_by_chain[link.event_chain_id].add(assignment.local_unit_id)
+        for chain in catalog.final_chains:
+            required = set(chain.evidence_unit_ids) & expected
+            if not required <= primary_by_chain[chain.chain_id]:
+                raise ValueError(
+                    f"Evidence units for {chain.chain_id} must be primary members: "
+                    f"{sorted(required - primary_by_chain[chain.chain_id])}"
+                )
+
+    @classmethod
+    def _validate_final_assignments(
+        cls,
+        units: Sequence[LocalTextUnit],
+        catalog: EventChainCatalogResult,
+        assignments: Sequence[DeliveryAssignment],
+    ) -> None:
+        expected = {unit.unit_id for unit in units}
+        received = [item.local_unit_id for item in assignments]
+        if set(received) != expected or cls._duplicates(received):
+            raise ValueError(
+                "Final assignment coverage invalid: "
+                f"missing={sorted(expected - set(received))}, "
+                f"unexpected={sorted(set(received) - expected)}, "
+                f"duplicate={cls._duplicates(received)}"
+            )
+        primary = {
+            (item.local_unit_id, link.event_chain_id)
+            for item in assignments
+            for link in item.links
+            if link.relation == "primary_member"
+        }
+        for chain in catalog.final_chains:
+            missing = [
+                unit_id for unit_id in chain.evidence_unit_ids
+                if (unit_id, chain.chain_id) not in primary
+            ]
+            if missing:
+                raise ValueError(
+                    f"Evidence units for {chain.chain_id} lack primary membership: {missing}"
+                )
 
     @staticmethod
     def _validate_assignment(
@@ -346,92 +564,169 @@ Every final_chain_id referenced by a resolution must exist.
             raise ValueError("Unassigned local units must have no delivery links")
         if assignment.assignment_state == "assigned" and not assignment.links:
             raise ValueError("Assigned local units must have at least one delivery link")
-        links = [(link.event_chain_id, link.relation) for link in assignment.links]
-        if len(links) != len(set(links)):
+        linked_chain_ids = [link.event_chain_id for link in assignment.links]
+        if len(linked_chain_ids) != len(set(linked_chain_ids)):
             raise ValueError(f"Duplicate delivery links for {assignment.local_unit_id}")
-        unknown_chains = {link.event_chain_id for link in assignment.links} - valid_chains
-        if unknown_chains:
+        unknown = {link.event_chain_id for link in assignment.links} - valid_chains
+        if unknown:
             raise ValueError(
-                f"Assignment {assignment.local_unit_id} referenced unknown chains: "
-                f"{sorted(unknown_chains)}"
+                f"Assignment {assignment.local_unit_id} referenced unknown chains: {sorted(unknown)}"
             )
+
+    @classmethod
+    def _event_contribution(
+        cls,
+        chain: EventChainDefinition,
+        unit_by_id: dict[str, LocalTextUnit],
+    ) -> EventChainContribution:
+        evidence = [
+            SourceEvidence(source_item_id=str(unit_by_id[unit_id].items[0].source_item_id))
+            for unit_id in chain.evidence_unit_ids
+            if unit_by_id[unit_id].items
+        ]
+        return EventChainContribution(
+            chain_id=chain.chain_id,
+            chain_level="delivery_chain",
+            parent_story_id=chain.parent_story_id,
+            event=chain.event,
+            sequence=chain.sequence,
+            participants=chain.participants,
+            consequence=chain.consequence,
+            evidence=evidence,
+        )
+
+    def _parse_with_one_repair(
+        self,
+        messages: list[dict[str, str]],
+        response_model: type[BaseModel],
+        schema_name: str,
+        validator: Any,
+        stage_label: str,
+    ) -> tuple[Any, int]:
+        response = self._generate(messages, response_model, schema_name, stage_label)
+        try:
+            parsed = response_model.model_validate(json.loads(self._clean_json(response)))
+            validator(parsed)
+            return parsed, 0
+        except (json.JSONDecodeError, ValidationError, ValueError) as first_error:
+            repair_messages = [
+                *messages,
+                {"role": "assistant", "content": response},
+                {"role": "user", "content": self._repair_instruction(first_error)},
+            ]
+            repaired = self._generate(
+                repair_messages, response_model, schema_name, stage_label
+            )
+            try:
+                parsed = response_model.model_validate(json.loads(self._clean_json(repaired)))
+                validator(parsed)
+                return parsed, 1
+            except (json.JSONDecodeError, ValidationError, ValueError) as second_error:
+                detail = str(second_error)[: self.REPAIR_ERROR_CHARS]
+                raise NeologismMiningError(
+                    f"{stage_label} failed after one repair "
+                    f"({self._error_category(second_error)}): {detail}"
+                ) from second_error
+
+    def _generate(
+        self,
+        messages: list[dict[str, str]],
+        response_model: type[BaseModel],
+        schema_name: str,
+        stage_label: str,
+    ) -> str:
+        try:
+            structured = getattr(self.handler, "generate_structured_with_messages", None)
+            if structured is not None:
+                response = structured(
+                    messages,
+                    schema=response_model.model_json_schema(),
+                    schema_name=schema_name,
+                    temperature=0.0,
+                )
+            else:
+                response = self.handler.generate_with_messages(messages, temperature=0.0)
+        except Exception as exc:
+            raise NeologismMiningError(f"{stage_label} request failed: {exc}") from exc
+        if not response or not response.strip():
+            raise NeologismMiningError(f"{stage_label} returned an empty response")
+        return response.strip()
+
+    @classmethod
+    def _unit_payload(cls, unit: LocalTextUnit) -> dict[str, Any]:
+        return {
+            "local_unit_id": unit.unit_id,
+            "derived_unit_key": unit.unit_key.split("::", 1)[-1],
+            "entries": [
+                {
+                    "item_key": getattr(item, "item_key", None),
+                    "text": str(getattr(item, "source_text", ""))[: cls.MAX_UNIT_TEXT_CHARS],
+                }
+                for item in unit.items
+            ],
+        }
+
+    @staticmethod
+    def _validate_units(local_units: Sequence[LocalTextUnit]) -> list[LocalTextUnit]:
+        units = list(local_units)
+        unit_ids = [unit.unit_id for unit in units]
+        if len(unit_ids) != len(set(unit_ids)):
+            raise ValueError("Global local-unit identities must be unique")
+        source_ids = [str(item.source_item_id) for unit in units for item in unit.items]
+        if len(source_ids) != len(set(source_ids)):
+            raise ValueError("A source item must belong to exactly one global local unit")
+        return units
+
+    @staticmethod
+    def _duplicates(values: Iterable[str]) -> list[str]:
+        return sorted(value for value, count in Counter(values).items() if count > 1)
+
+    @staticmethod
+    def _messages(system_prompt: str, payload: dict[str, Any]) -> list[dict[str, str]]:
+        return [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": json.dumps(payload, ensure_ascii=False, sort_keys=True)},
+        ]
+
+    @classmethod
+    def _catalog_prompt(cls, description_language: str) -> str:
+        return (
+            f"{cls.CATALOG_SYSTEM_PROMPT.strip()}\n"
+            f"Description language: {description_language}."
+        )
+
+    @classmethod
+    def _assignment_prompt(cls, description_language: str) -> str:
+        return (
+            f"{cls.ASSIGNMENT_SYSTEM_PROMPT.strip()}\n"
+            f"Description language: {description_language}."
+        )
+
+    @classmethod
+    def _system_prompt(cls, description_language: str) -> str:
+        """Human-facing full prompt example retained for the published metadata UI."""
+
+        return (
+            f"[Chain catalog]\n{cls._catalog_prompt(description_language)}\n\n"
+            f"[Unit assignment]\n{cls._assignment_prompt(description_language)}"
+        )
+
+    @classmethod
+    def _repair_instruction(cls, error: Exception) -> str:
+        return (
+            "The previous response violates the JSON or stage contract. Replace it "
+            "exactly once with a complete corrected JSON object for this stage only. "
+            "Preserve valid records, correct the reported fields, and return JSON only. "
+            f"Validation detail: {str(error)[: cls.REPAIR_ERROR_CHARS]}"
+        )
 
     @staticmethod
     def _clean_json(response: str) -> str:
         cleaned = response.strip()
         if cleaned.startswith("```"):
             newline = cleaned.find("\n")
-            cleaned = cleaned[newline + 1:] if newline >= 0 else ""
+            cleaned = cleaned[newline + 1 :] if newline >= 0 else ""
         return cleaned[:-3] if cleaned.endswith("```") else cleaned
-
-    @classmethod
-    def _result(
-        cls,
-        parsed: _ReconciliationResponse,
-        local_units: Sequence[LocalTextUnit],
-        *,
-        repair_count: int,
-    ) -> EventReconciliationResult:
-        unit_by_id = {unit.unit_id: unit for unit in local_units}
-        assignments = [
-            DeliveryAssignment(
-                local_unit_id=assignment.local_unit_id,
-                assignment_state=assignment.assignment_state,
-                links=[DeliveryLink(**link.model_dump()) for link in assignment.links],
-                source_item_ids=[
-                    str(item.source_item_id)
-                    for item in unit_by_id[assignment.local_unit_id].items
-                ],
-            )
-            for assignment in parsed.assignments
-        ]
-        events = []
-        for chain in parsed.final_chains:
-            evidence = [
-                SourceEvidence(source_item_id=str(unit_by_id[unit_id].items[0].source_item_id))
-                for unit_id in chain.evidence_unit_ids
-                if unit_by_id[unit_id].items
-            ]
-            events.append(EventChainContribution(
-                chain_id=chain.chain_id,
-                chain_level="delivery_chain",
-                parent_story_id=chain.parent_story_id,
-                event=chain.event,
-                sequence=chain.sequence,
-                participants=chain.participants,
-                consequence=chain.consequence,
-                evidence=evidence,
-            ))
-        return EventReconciliationResult(
-            events=events,
-            delivery_assignments=assignments,
-            diagnostics=cls._diagnostics(parsed, repair_count),
-        )
-
-    @staticmethod
-    def _diagnostics(parsed: _ReconciliationResponse, repair_count: int) -> dict[str, Any]:
-        return {
-            "repair_count": repair_count,
-            "proposal_resolutions": [item.model_dump() for item in parsed.proposal_resolutions],
-            "final_chains": [chain.model_dump() for chain in parsed.final_chains],
-        }
-
-    @classmethod
-    def _system_prompt(cls, description_language: str) -> str:
-        return (
-            f"{cls.SYSTEM_PROMPT.strip()}\n"
-            f"Description language: {description_language}."
-        )
-
-    @classmethod
-    def _repair_instruction(cls, error: Exception) -> str:
-        return (
-            "The previous response violates the JSON or reconciliation contract. "
-            "Replace it exactly once with a complete corrected JSON object. "
-            "Keep every valid assignment, but correct the reported issue. "
-            "Return JSON only. Validation detail: "
-            f"{str(error)[:cls.REPAIR_ERROR_CHARS]}"
-        )
 
     @staticmethod
     def _error_category(error: Exception) -> str:
@@ -439,8 +734,8 @@ Every final_chain_id referenced by a resolution must exist.
             return "invalid_json"
         if isinstance(error, ValidationError):
             return "schema_validation"
-        if "Assignment coverage invalid" in str(error):
-            return "assignment_coverage"
+        if "coverage invalid" in str(error):
+            return "coverage_validation"
         if "unknown chains" in str(error):
             return "unknown_chain"
         if "Evidence units" in str(error):
