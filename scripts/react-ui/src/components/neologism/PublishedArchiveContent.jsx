@@ -29,6 +29,7 @@ const CODE_LABELS = {
 };
 
 const KIND_ORDER = { project: 0, event: 1, entity: 2 };
+const SCHEMA_VERSION_LABELS = { 'context-v1': 'v0.0.1' };
 
 const formatValue = (value) => {
     if (typeof value === 'string') return value;
@@ -78,8 +79,14 @@ export const ReleaseMetadata = ({
     draftState,
     refresh,
     t,
-}) => (
-    <Paper className={styles.releaseHeader} p="lg" withBorder data-remis-surface="surface">
+}) => {
+    const scopeLabel = t(`mod_archive.release.analysis_scopes.${scope}`, {
+        defaultValue: scope,
+    });
+    const schemaLabel = SCHEMA_VERSION_LABELS[release.metadata?.schema_version]
+        || release.metadata?.schema_version;
+    return (
+        <Paper className={styles.releaseHeader} p="lg" withBorder data-remis-surface="surface">
         <Stack gap="md">
             <Group justify="space-between" align="flex-start">
                 <Text className={styles.muted} size="sm">
@@ -125,24 +132,27 @@ export const ReleaseMetadata = ({
                 <div className={styles.metadataGrid}>
                     <MetadataCell label={t('mod_archive.release.release_id')} value={release.release_id} technical />
                     <MetadataCell label={t('mod_archive.release.project_id')} value={release.project_id || selectedProject} technical />
-                    <MetadataCell label={t('mod_archive.release.analysis_scope')} value={scope} />
-                    <MetadataCell label={t('mod_archive.release.schema_version')} value={release.metadata?.schema_version} technical />
-                    <MetadataCell label={t('mod_archive.release.prompt_version')} value={release.metadata?.prompt_version} technical />
-                    <MetadataCell
-                        label={t('mod_archive.release.analysis_config')}
-                        value={JSON.stringify(release.metadata?.analysis_config || {}, null, 2)}
-                        technical
-                    />
+                    <MetadataCell label={t('mod_archive.release.analysis_scope')} value={scopeLabel} />
+                    <MetadataCell label={t('mod_archive.release.schema_version')} value={schemaLabel} technical />
                     <MetadataCell label={t('mod_archive.release.source_snapshot')} value={release.metadata?.source_snapshot_hash} technical />
                     <MetadataCell label={t('mod_archive.release.upstream_version')} value={release.metadata?.upstream_version || t('mod_archive.release.not_available')} />
                     {release.metadata?.parent_release_id && (
                         <MetadataCell label={t('mod_archive.release.parent_release')} value={release.metadata.parent_release_id} technical />
                     )}
                 </div>
+                <div className={styles.promptExample}>
+                    <Text className={styles.metadataLabel}>
+                        {t('mod_archive.release.prompt_example')}
+                    </Text>
+                    <pre className={styles.promptExampleText} data-testid="mod-archive-prompt-example">
+                        {release.metadata?.prompt_example || t('mod_archive.release.prompt_example_unavailable')}
+                    </pre>
+                </div>
             </details>
         </Stack>
-    </Paper>
-);
+        </Paper>
+    );
+};
 
 const SummarySection = ({ kind, title, entries, emptyLabel, hideEntryLabel = false, t }) => (
     <section className={styles.summarySection} data-kind={kind}>

@@ -690,7 +690,7 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
     assert release.metadata.provider_id == "local"
     assert release.metadata.model_id == "fake-model"
     assert release.metadata.schema_version == "context-v1"
-    assert release.metadata.prompt_version == "context-synthesis-v3"
+    assert release.metadata.prompt_version == "context-synthesis-v4"
     assert release.metadata.analysis_config["description_language"] == "zh-CN"
     assert "Simplified Chinese (zh-CN)" in handler.calls[0][0]["content"]
     assert any(
@@ -761,6 +761,17 @@ def test_synthesis_repairs_at_most_once():
     assert "Do not create entities, events, or project_summary" in repair_instruction
     assert repair_instruction.endswith("Invalid response excerpt: not-json")
     assert result[0].content["evidence_source_item_ids"] == ["source-1"]
+
+
+def test_synthesis_prompt_example_uses_the_real_contract_and_requested_language():
+    example = ContextSynthesisService.prompt_example("zh-CN")
+
+    assert "System message:" in example
+    assert "User message:" in example
+    assert '"syntheses":[' in example
+    assert "Simplified Chinese (zh-CN)" in example
+    assert '"aggregate_alias": "a0"' in example
+    assert "example_l_english.yml::example.1.desc" in example
 
 
 def test_synthesis_repairs_categorized_object_shape_with_explicit_flat_contract():

@@ -73,6 +73,27 @@ event chains, and the project summary describes the project-level pattern.
         "tr": "Turkish",
     }
 
+    PROMPT_EXAMPLE_REQUEST = {
+        "aggregates": [{
+            "aggregate_alias": "a0",
+            "aggregate_type": "event",
+            "contributions": [{
+                "contribution_type": "event",
+                "details": {
+                    "chain_id": "example_event_chain",
+                    "event": "Example Event",
+                    "sequence": 0,
+                },
+                "evidence_aliases": ["e0"],
+            }],
+            "source_items": [{
+                "evidence_alias": "e0",
+                "content": "Example source text used to ground this event summary.",
+                "source_ref": "localisation/english/example_l_english.yml::example.1.desc",
+            }],
+        }],
+    }
+
     def __init__(self, handler: Any):
         self.handler = handler
         self.logger = logging.getLogger(__name__)
@@ -290,6 +311,16 @@ event chains, and the project summary describes the project-level pattern.
             "Keep source evidence unchanged and preserve proper names when no approved localized "
             "name is provided."
         )
+
+    @classmethod
+    def prompt_example(cls, description_language: str = "en") -> str:
+        """Return the complete model-facing synthesis prompt with safe sample evidence."""
+        request = json.dumps(
+            cls.PROMPT_EXAMPLE_REQUEST,
+            ensure_ascii=False,
+            indent=2,
+        )
+        return f"System message:\n{cls._system_prompt(description_language)}\n\nUser message:\n{request}"
 
     @staticmethod
     def _validation_error_category(error: Exception) -> str:

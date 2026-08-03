@@ -12,6 +12,7 @@ from scripts.core.repositories.context_analysis_batch_repository import (
     ContextAnalysisBatchRepository,
 )
 from scripts.core.services.context_workflow_service import ContextWorkflowService
+from scripts.core.services.context_synthesis_service import ContextSynthesisService
 from scripts.shared.services import project_manager, glossary_manager
 from scripts.shared import task_state
 from scripts.shared.task_state import DuplicateTaskError
@@ -37,6 +38,16 @@ context_workflow_service = ContextWorkflowService(
     analysis_batch_repository=context_analysis_batch_repository,
 )
 SUPPORTED_MINING_SUFFIXES = {".txt", ".yml", ".yaml", ".csv", ".json"}
+
+
+def _context_release_presentation(release):
+    payload = release.model_dump()
+    metadata = payload["metadata"]
+    config = metadata.get("analysis_config") or {}
+    metadata["prompt_example"] = ContextSynthesisService.prompt_example(
+        str(config.get("description_language") or "en")
+    )
+    return payload
 
 
 def _normalize_language_code(value: str) -> str:
@@ -472,7 +483,7 @@ def get_latest_context_release(project_id: str):
     release = context_repository.list_releases(project_id)
     if not release:
         raise HTTPException(status_code=404, detail="No context release exists for this project")
-    return release[0].model_dump()
+    return _context_release_presentation(release[0])
 
 
 @router.get("/api/context/releases/{release_id}/effective")

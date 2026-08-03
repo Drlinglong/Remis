@@ -252,6 +252,23 @@
     margin-top: 0.75rem;
 }
 
+.promptExample {
+    margin-top: 0.75rem;
+    min-width: 0;
+}
+
+.promptExampleText {
+    margin: 0.375rem 0 0;
+    padding: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--surface-text-muted) 25%, transparent);
+    border-radius: var(--card-radius);
+    color: var(--surface-text-main);
+    background: color-mix(in srgb, var(--surface-text-main) 4%, transparent);
+    font: 0.75rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
 .traceabilityList {
     display: grid;
     gap: 0.625rem;

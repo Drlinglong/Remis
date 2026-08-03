@@ -83,6 +83,13 @@ for (const themeId of themes) {
     await expect(page.getByText('openrouter', { exact: true })).toBeVisible();
     await expect(page.getByText('openai/gpt-5.6-luna', { exact: true })).toBeVisible();
 
+    await metadataDetails.locator('summary').click();
+    await expect(page.getByText('完整档案分析', { exact: true })).toBeVisible();
+    await expect(page.getByText('v0.0.1', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('mod-archive-prompt-example')).toContainText('System message:');
+    await expect(page.getByText('context-synthesis-v3', { exact: true })).toHaveCount(0);
+    await metadataDetails.locator('summary').click();
+
     const summaryKinds = await page.locator('[class*="summarySection"]').evaluateAll((sections) => (
       sections.map((section) => section.getAttribute('data-kind'))
     ));

@@ -1217,9 +1217,13 @@
       "project_id": "项目 ID",
       "created_at": "发布时间",
       "analysis_scope": "范围",
-      "schema_version": "数据结构版本",
-      "prompt_version": "提示词版本",
-      "analysis_config": "分析配置",
+      "analysis_scopes": {
+        "terms_only": "仅挖掘新词",
+        "narrative_context": "完整档案分析"
+      },
+      "schema_version": "档案格式版本",
+      "prompt_example": "分析提示词示例",
+      "prompt_example_unavailable": "此旧版本没有可用的提示词示例。",
       "source_snapshot": "源快照",
       "upstream_version": "上游版本",
       "provider": "供应商",

@@ -1163,9 +1163,13 @@
       "project_id": "Project ID",
       "created_at": "Published at",
       "analysis_scope": "Scope",
-      "schema_version": "Schema version",
-      "prompt_version": "Prompt version",
-      "analysis_config": "Analysis configuration",
+      "analysis_scopes": {
+        "terms_only": "Term mining only",
+        "narrative_context": "Full archive analysis"
+      },
+      "schema_version": "Archive format version",
+      "prompt_example": "Analysis prompt example",
+      "prompt_example_unavailable": "No prompt example is available for this older release.",
       "source_snapshot": "Source snapshot",
       "upstream_version": "Upstream version",
       "provider": "Provider",

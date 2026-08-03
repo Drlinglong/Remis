@@ -77,7 +77,7 @@ class ContextWorkflowService:
     CHUNK_SIZE = DEFAULT_MAX_ITEMS
     REVIEW_BATCH_SIZE = ContextCandidateAdapter.REVIEW_BATCH_SIZE
     SCHEMA_VERSION = "context-v1"
-    PROMPT_VERSION = "context-synthesis-v3"
+    PROMPT_VERSION = "context-synthesis-v4"
     ACTIVE_STATUSES = ContextWorkflowStatusService.ACTIVE_STATUSES
 
     def __init__(
