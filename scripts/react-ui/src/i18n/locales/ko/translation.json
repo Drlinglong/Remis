@@ -1135,7 +1135,7 @@
         "running": "Reading source",
         "extracting": "Extracting evidence",
         "reviewing": "Reviewing terminology",
-        "aggregating": "Reconciling event chains",
+        "aggregating": "이벤트 체인 조정 중",
         "synthesizing": "Generating summaries",
         "publishing": "Publishing archive",
         "completed": "Analysis complete",

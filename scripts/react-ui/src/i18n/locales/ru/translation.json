@@ -1196,7 +1196,7 @@
         "running": "Reading source",
         "extracting": "Extracting evidence",
         "reviewing": "Reviewing terminology",
-        "aggregating": "Reconciling event chains",
+        "aggregating": "Согласование цепочек событий",
         "synthesizing": "Generating summaries",
         "publishing": "Publishing archive",
         "completed": "Analysis complete",

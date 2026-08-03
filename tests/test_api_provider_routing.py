@@ -1,3 +1,4 @@
+import json
 import os
 import logging
 from contextlib import ExitStack
@@ -205,6 +206,88 @@ def test_openrouter_luna_structured_chat_sends_json_schema():
         "provider": {"require_parameters": True},
         "plugins": [{"id": "response-healing"}],
     }
+
+
+def test_openrouter_structured_chat_retries_invalid_response_envelope_once():
+    calls = 0
+
+    class Completions:
+        @staticmethod
+        def create(**_kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise json.JSONDecodeError("Expecting value", "", 0)
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content='{"items":[]}'))]
+            )
+
+    handler = OpenRouterHandler.__new__(OpenRouterHandler)
+    handler.provider_name = "openrouter"
+    handler.model_id = "openai/gpt-5.6-luna"
+    handler.logger = logging.getLogger("OpenRouterHandlerTest")
+    handler.client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
+
+    result = handler.generate_structured_with_messages(
+        [{"role": "user", "content": "Return items"}],
+        schema={"type": "object", "properties": {}},
+        schema_name="items_response",
+    )
+
+    assert result == '{"items":[]}'
+    assert calls == 2
+
+
+def test_openrouter_structured_chat_does_not_retry_other_failures():
+    calls = 0
+
+    class Completions:
+        @staticmethod
+        def create(**_kwargs):
+            nonlocal calls
+            calls += 1
+            raise RuntimeError("openrouter unavailable")
+
+    handler = OpenRouterHandler.__new__(OpenRouterHandler)
+    handler.provider_name = "openrouter"
+    handler.model_id = "openai/gpt-5.6-luna"
+    handler.logger = logging.getLogger("OpenRouterHandlerTest")
+    handler.client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
+
+    with pytest.raises(RuntimeError, match="openrouter unavailable"):
+        handler.generate_structured_with_messages(
+            [{"role": "user", "content": "Return items"}],
+            schema={"type": "object", "properties": {}},
+            schema_name="items_response",
+        )
+
+    assert calls == 1
+
+
+def test_openrouter_structured_chat_stops_after_second_invalid_envelope():
+    calls = 0
+
+    class Completions:
+        @staticmethod
+        def create(**_kwargs):
+            nonlocal calls
+            calls += 1
+            raise json.JSONDecodeError("Expecting value", "", 0)
+
+    handler = OpenRouterHandler.__new__(OpenRouterHandler)
+    handler.provider_name = "openrouter"
+    handler.model_id = "openai/gpt-5.6-luna"
+    handler.logger = logging.getLogger("OpenRouterHandlerTest")
+    handler.client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
+
+    with pytest.raises(json.JSONDecodeError):
+        handler.generate_structured_with_messages(
+            [{"role": "user", "content": "Return items"}],
+            schema={"type": "object", "properties": {}},
+            schema_name="items_response",
+        )
+
+    assert calls == 2
 
 
 def test_provider_structured_output_capability_is_not_inferred_from_json_prompts():

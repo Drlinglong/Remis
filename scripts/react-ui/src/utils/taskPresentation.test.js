@@ -43,6 +43,18 @@ describe('task presentation', () => {
     expect(getTaskNextStep(failedTask, t)).not.toContain('Return to Incremental');
   });
 
+  it('localizes archive analysis stages from stable codes', () => {
+    const label = getTaskStageLabel({
+      kind: 'neologism_mining',
+      status: 'running',
+      stage: 'Reconciling event chains',
+      stage_code: 'aggregating',
+    }, t);
+
+    expect(label).toContain('mod_archive.status.stage.aggregating');
+    expect(label).not.toContain('Reconciling event chains');
+  });
+
   it('localizes persisted incremental summaries and deterministic format scans', () => {
     expect(getTaskResultSummary({
       result: { summary: '2 file(s) processed; 0 runtime warning(s).' },

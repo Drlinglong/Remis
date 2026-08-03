@@ -1,5 +1,7 @@
 """OpenRouter provider adapter built on its OpenAI-compatible chat API."""
 
+import json
+
 from openai import OpenAI
 
 from scripts.app_settings import get_api_key
@@ -9,6 +11,8 @@ from scripts.core.strict_json_schema import strict_json_schema
 
 class OpenRouterHandler(OpenAIHandler):
     """Use OpenRouter with explicit Remis attribution and isolated credentials."""
+
+    STRUCTURED_RESPONSE_ATTEMPTS = 2
 
     def _chat_options(self, temperature: float | None = None) -> dict:
         provider_config = self.get_provider_config()
@@ -90,9 +94,9 @@ class OpenRouterHandler(OpenAIHandler):
             "plugins": [{"id": "response-healing"}],
         })
         options["extra_body"] = extra_body
-        response = self.client.chat.completions.create(
-            messages=messages,
-            response_format={
+        request = {
+            "messages": messages,
+            "response_format": {
                 "type": "json_schema",
                 "json_schema": {
                     "name": schema_name,
@@ -101,5 +105,30 @@ class OpenRouterHandler(OpenAIHandler):
                 },
             },
             **options,
-        )
+        }
+        response = self._create_structured_completion(request)
         return response.choices[0].message.content.strip()
+
+    def _create_structured_completion(self, request: dict):
+        """Retry once when the provider's outer response envelope is invalid JSON."""
+
+        for attempt in range(1, self.STRUCTURED_RESPONSE_ATTEMPTS + 1):
+            try:
+                return self.client.chat.completions.create(**request)
+            except Exception as exc:
+                if not self._is_response_envelope_decode_error(exc):
+                    raise
+                if attempt >= self.STRUCTURED_RESPONSE_ATTEMPTS:
+                    raise
+                self.logger.warning(
+                    "OpenRouter returned an invalid JSON response envelope; "
+                    "retrying structured request once (line=%s, column=%s, position=%s)",
+                    getattr(exc, "lineno", "unknown"),
+                    getattr(exc, "colno", "unknown"),
+                    getattr(exc, "pos", "unknown"),
+                )
+        raise RuntimeError("Structured response retry loop ended unexpectedly")
+
+    @staticmethod
+    def _is_response_envelope_decode_error(exc: Exception) -> bool:
+        return isinstance(exc, json.JSONDecodeError) or exc.__class__.__name__ == "JSONDecodeError"
