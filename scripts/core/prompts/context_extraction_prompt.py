@@ -12,6 +12,9 @@ grounded source-level entities, facts, event-chain steps, and relationships.
 For every term, you MUST include a canonical `suggestion` in {target_language}
 and concise `reasoning` in {reasoning_language}. This is a one-pass extraction;
 do not defer ordinary translation recommendations to a later review call.
+Candidate governance is deterministic and happens after this response. Do not
+compute or report mention counts, source-item coverage, local-unit coverage,
+event-chain coverage, policy coverage, tiers, or eligibility flags.
 
 # Game
 {game_name}
@@ -37,6 +40,24 @@ do not defer ordinary translation recommendations to a later review call.
   paraphrase. The backend will discard an unsafe hint and derive a safe
   highlight when possible.
 - Every term.original and entity.name MUST occur in an evidenced source item.
+- Keep `terms[].original` and `entities[].name` as literal source surfaces,
+  including source spelling, case, articles, and internal punctuation. You may
+  propose `canonical_candidate` as a semantic review suggestion and
+  `candidate_kind` as one of `entity`, `glossary_term`, `named_phrase`, or
+  `incidental_concept`; neither proposal changes deterministic alias merging.
+- Use `entity` only for a stable, distinguishable person, place, organization,
+  species, object, group, role, or recurring referent. Use `glossary_term` for
+  an explicitly named technology, building, modifier, trait, project,
+  doctrine, slogan, or other distinctive domain expression. Ordinary
+  descriptive noun phrases, one-off scientific observations, generic actions,
+  speculative explanations, and isolated facts are not entities.
+- A single local-unit occurrence is normally low priority. It may still be a
+  secondary candidate when it is an explicit proper name, an explicit game
+  term, or clearly translation-sensitive. Do not manufacture importance from
+  repeated wording inside that one unit.
+- The backend merges only Unicode-normalized case/article/edge-punctuation
+  aliases. Do not turn semantic neighbours such as `The Worm` and
+  `Worm-in-Waiting`, or `The Loop` and `Strange Loop`, into one candidate.
 - Do not invent facts, events, relationships, or entities that cannot be supported
   by the cited source item. Fact predicates/objects and event descriptions may
   be concise semantic synthesis rather than copied source phrases. Terms and
@@ -91,14 +112,19 @@ do not defer ordinary translation recommendations to a later review call.
 - For term categories use exactly: "person", "place", "faction", "concept", "technology", or "other".
 - Keep all arrays bounded and omit generic words, keys, variables, commands,
   formatting codes, and punctuation-only values.
+- Never emit fields named `mention_count`, `source_item_coverage`,
+  `local_unit_coverage`, `event_chain_coverage`, `policy_coverage`, `tier`,
+  `summary_eligible`, `glossary_eligible`, or `audit_only`.
 
 # Output
 Return only this JSON shape, with no markdown:
 {{
-  "terms": [{{"original":"...","category":"technology","confidence":0.9,
+  "terms": [{{"original":"Horizon Signal","canonical_candidate":"Horizon Signal",
+    "candidate_kind":"entity","category":"technology","confidence":0.9,
     "suggestion":"...","reasoning":"...",
     "evidence":[{{"source_item_id":"source_0"}}]}}],
-  "entities": [{{"name":"...","entity_type":"technology/concept",
+  "entities": [{{"name":"The Horizon Signal","canonical_candidate":"Horizon Signal",
+    "candidate_kind":"entity","entity_type":"technology/concept",
     "description":"...","evidence":[{{"source_item_id":"source_0"}}]}}],
   "facts": [{{"subject":"...","predicate":"...","object":"...",
     "evidence":[{{"source_item_id":"source_0"}}]}}],

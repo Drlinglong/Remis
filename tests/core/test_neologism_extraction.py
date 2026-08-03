@@ -114,6 +114,13 @@ def test_narrative_context_makes_one_call_and_keeps_contributions_separate():
     assert prompt["local_text_units"][0]["item_keys"] == ["curia.activation:0"]
     system_prompt = " ".join(handler.calls[0][0][0]["content"].split())
     assert "never prove story-chain membership" in system_prompt
+    assert "stable, distinguishable person" in system_prompt
+    assert "one-off scientific observations" in system_prompt
+    assert "generic actions" in system_prompt
+    assert "speculative explanations" in system_prompt
+    assert "isolated facts" in system_prompt
+    assert "Ordinary descriptive noun phrases" in system_prompt
+    assert '"candidate_kind":"entity"' in system_prompt
 
 
 def test_missing_local_delivery_hint_does_not_trigger_repair():
@@ -234,6 +241,48 @@ def test_model_schema_does_not_expose_backend_owned_metadata():
         assert "tentative" not in definitions[definition]["properties"]
     assert schema_name == "remis_context_extraction"
     assert temperature == 0.0
+
+
+def test_candidate_contract_keeps_literal_surface_and_rejects_model_coverage_fields():
+    valid = json.dumps({
+        "terms": [{
+            "original": "Horizon Signal",
+            "canonical_candidate": "Horizon Signal",
+            "candidate_kind": "entity",
+            "category": "technology",
+            "evidence": [{"source_item_id": "source_0"}],
+        }],
+        "entities": [], "facts": [], "events": [], "relationships": [],
+    })
+    handler = StructuredFakeHandler(valid)
+
+    result = StructuredNeologismExtractor(handler).extract([
+        source_item("The Horizon Signal activates the Aether Engine.")
+    ])
+
+    term_schema = handler.calls[0][1]["$defs"]["TermContribution"]["properties"]
+    assert {item.get("type") for item in term_schema["canonical_candidate"]["anyOf"]} >= {"string", "null"}
+    assert "candidate_kind" in term_schema
+    assert "mention_count" not in term_schema
+    assert "source_item_coverage" not in term_schema
+    assert result.terms[0].original == "Horizon Signal"
+    assert result.terms[0].canonical_candidate == "Horizon Signal"
+
+    invalid = json.dumps({
+        "terms": [{
+            "original": "Horizon Signal",
+            "candidate_kind": "entity",
+            "mention_count": 99,
+            "evidence": [{"source_item_id": "source_0"}],
+        }],
+        "entities": [], "facts": [], "events": [], "relationships": [],
+    })
+    rejecting = StructuredFakeHandler(invalid)
+    with pytest.raises(NeologismMiningError, match=r"after one repair \(schema_validation\)"):
+        StructuredNeologismExtractor(rejecting).extract([
+            source_item("The Horizon Signal activates the Aether Engine.")
+        ])
+    assert len(rejecting.calls) == 2
 
 
 def test_edge_units_are_visible_but_only_core_units_require_assignments():

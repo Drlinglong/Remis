@@ -22,6 +22,7 @@ from scripts.core.context_local_units import (
 from scripts.core.services.context_assignment_contract import normalize_sparse_delivery_hints
 from scripts.core.prompts.context_extraction_prompt import CONTEXT_EXTRACTION_SYSTEM_PROMPT
 from scripts.core.services.source_snapshot_service import normalize_relative_path, normalize_source_key
+from scripts.schemas.context_candidate import CandidateKind
 
 
 class NeologismMiningError(RuntimeError):
@@ -83,6 +84,8 @@ class TermContribution(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     original: str = Field(min_length=1, max_length=200)
+    canonical_candidate: Optional[str] = Field(default=None, max_length=500)
+    candidate_kind: Optional[CandidateKind] = None
     category: TermCategory = "other"
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     suggestion: Optional[str] = Field(default=None, max_length=500)
@@ -94,6 +97,8 @@ class EntityContribution(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     name: str = Field(min_length=1, max_length=200)
+    canonical_candidate: Optional[str] = Field(default=None, max_length=500)
+    candidate_kind: Optional[CandidateKind] = None
     entity_type: EntityType
     description: Optional[str] = Field(default=None, max_length=1000)
     evidence: List[SourceEvidence] = Field(min_length=1, max_length=5)
