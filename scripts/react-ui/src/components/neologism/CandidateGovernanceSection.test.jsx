@@ -52,16 +52,17 @@ describe('CandidateGovernanceSection', () => {
     it('shows the actual candidate kind separately from the secondary tier group', () => {
         renderSection();
 
-        expect(screen.getByTestId('mod-archive-candidate-secondary-0')).toHaveAttribute(
+        const secondaryCard = screen.getByTestId('mod-archive-candidate-secondary-0');
+        expect(secondaryCard).toHaveAttribute(
             'data-candidate-group',
             'secondary',
         );
         expect(screen.getByText('mod_archive.release.candidate_kind.glossary_term')).toBeInTheDocument();
         expect(screen.getByText('mod_archive.release.candidate_tier.secondary')).toBeInTheDocument();
         expect(screen.getByText('Admiralty, The Admiralty')).toBeInTheDocument();
-        expect(screen.getByText('mod_archive.release.candidate_coverage.source_item_coverage')).toBeInTheDocument();
-        expect(screen.getByText('mod_archive.release.candidate_coverage.local_unit_coverage')).toBeInTheDocument();
-        expect(screen.getByText('mod_archive.release.candidate_coverage.event_chain_coverage')).toBeInTheDocument();
+        expect(secondaryCard).toHaveTextContent('mod_archive.release.candidate_coverage.source_item_coverage');
+        expect(secondaryCard).toHaveTextContent('mod_archive.release.candidate_coverage.local_unit_coverage');
+        expect(secondaryCard).toHaveTextContent('mod_archive.release.candidate_coverage.event_chain_coverage');
     });
 
     it('keeps incidental and audit-only candidates in a collapsed low-priority section', () => {
@@ -82,7 +83,7 @@ describe('CandidateGovernanceSection', () => {
             contributions: [{ source_item: { source_ref: 'legacy::1' } }],
         }]);
 
-        const { container } = renderSection(rows);
-        expect(container).toBeEmptyDOMElement();
+        renderSection(rows);
+        expect(screen.queryByTestId('mod-archive-candidate-governance')).not.toBeInTheDocument();
     });
 });

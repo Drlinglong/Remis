@@ -218,7 +218,9 @@ describe('PublishedArchivePanel', () => {
         expect(summaryEntitySection).not.toHaveTextContent('Audit-only concept');
 
         fireEvent.click(screen.getByTestId('mod-archive-load-traceability'));
-        expect(await screen.findByText('Audit-only concept')).toBeInTheDocument();
+        expect(await screen.findByTestId('mod-archive-candidate-incidental-0')).toHaveTextContent(
+            'Audit-only concept',
+        );
         expect(screen.getByTestId('mod-archive-candidate-audit')).not.toHaveAttribute('open');
     });
 

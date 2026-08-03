@@ -194,13 +194,12 @@ describe('Mod Archive contracts', () => {
         const groups = getCandidateGovernanceGroups(rows);
         expect(groups.core).toEqual([
             expect.objectContaining({ candidateKind: 'entity', tier: 'core' }),
+            expect.objectContaining({ candidateKind: 'incidental_concept', tier: 'core' }),
         ]);
         expect(groups.secondary).toEqual([
             expect.objectContaining({ candidateKind: 'glossary_term', tier: 'secondary' }),
         ]);
-        expect(groups.incidental).toEqual([
-            expect.objectContaining({ candidateKind: 'incidental_concept', tier: 'incidental' }),
-        ]);
+        expect(groups.incidental).toEqual([]);
     });
 
     it('leaves old traceability records without candidate policy fields unchanged', () => {

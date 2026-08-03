@@ -119,11 +119,12 @@ const normalizeCandidatePolicy = (aggregate = {}) => {
 
 const candidateGroupFor = (candidatePolicy) => {
     const kind = normalizeToken(candidatePolicy?.candidateKind);
-    if (candidatePolicy?.auditOnly || kind === 'incidental_concept' || kind === 'incidental') {
+    if (candidatePolicy?.auditOnly) {
         return 'incidental';
     }
     const tier = normalizeTier(candidatePolicy?.tier);
-    return TIER_GROUPS[tier] || 'core';
+    if (TIER_GROUPS[tier]) return TIER_GROUPS[tier];
+    return kind === 'incidental_concept' || kind === 'incidental' ? 'incidental' : 'core';
 };
 
 export const buildAnalysisPayload = ({
