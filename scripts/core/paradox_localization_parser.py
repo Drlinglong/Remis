@@ -19,6 +19,9 @@ ENTRY_PREFIX_RE = re.compile(
     r"^(?P<indent>[ \t]*)(?P<base_key>[^:\s]+)\s*:\s*"
     r"(?P<version>\d*)\s*\""
 )
+ENTRY_CANDIDATE_RE = re.compile(
+    r"^(?P<indent>[ \t]*)(?P<base_key>[^:\s]+)\s*:\s*(?P<rest>.*)$"
+)
 LANGUAGE_HEADER_RE = re.compile(r"^\s*l_[\w-]+:\s*(?:#.*)?$")
 PURE_VARIABLE_RE = re.compile(r"^\$[^$\r\n]+\$")
 
@@ -267,6 +270,18 @@ def parse_text(text: str) -> ParseReport:
 
         match = ENTRY_PREFIX_RE.match(line)
         if not match:
+            candidate = ENTRY_CANDIDATE_RE.match(line)
+            if candidate:
+                diagnostics.append(
+                    ParseDiagnostic(
+                        code="invalid_entry_syntax",
+                        message=(
+                            "Localization entry has a key but does not use the "
+                            "expected optional numeric version and quoted value syntax."
+                        ),
+                        line_number=line_index + 1,
+                    )
+                )
             line_index += 1
             continue
 

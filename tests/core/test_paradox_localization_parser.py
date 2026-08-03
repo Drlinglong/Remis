@@ -85,6 +85,28 @@ def test_unterminated_value_is_not_silently_dropped():
     assert report.summary["parse_errors"] == 1
 
 
+def test_key_like_row_with_invalid_value_syntax_is_not_silently_dropped(tmp_path: Path):
+    source = "l_english:\n broken:0 noquote\n valid:0 \"value\"\n"
+    report = parse_text(source)
+
+    assert [(entry.key, entry.value) for entry in report.entries] == [("valid:0", "value")]
+    assert [(item.code, item.line_number) for item in report.diagnostics] == [
+        ("invalid_entry_syntax", 2)
+    ]
+    assert report.summary == {
+        "raw": 2,
+        "syntax_parsed": 1,
+        "policy_excluded": 0,
+        "eligible": 1,
+        "parse_errors": 1,
+    }
+
+    path = tmp_path / "broken_l_english.yml"
+    path.write_text(source, encoding="utf-8-sig")
+    with pytest.raises(ValueError, match="invalid_entry_syntax"):
+        QuoteExtractor.extract_from_file(str(path), strict=True)
+
+
 def test_span_patch_round_trip_preserves_keys_comments_and_structure():
     source = (
         "l_english:\n"
