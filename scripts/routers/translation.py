@@ -10,7 +10,16 @@ from fastapi.responses import FileResponse
 from scripts.shared.state import tasks
 from scripts.shared.services import project_manager, glossary_manager, archive_manager
 from scripts.shared import task_state
-from scripts.schemas.translation import InitialTranslationRequest, TranslationRequestV2, CustomLangConfig, CheckpointStatusRequest
+from scripts.schemas.translation import (
+    CheckpointDeleteResponse,
+    CheckpointStatusRequest,
+    CheckpointStatusResponse,
+    InitialTranslationRequest,
+    SourceModResponse,
+    TranslationRequestV2,
+    TranslationTaskResponse,
+    CustomLangConfig,
+)
 from scripts.app_settings import GAME_PROFILES, LANGUAGES, API_PROVIDERS, SOURCE_DIR, DEST_DIR
 from scripts.workflows import initial_translate
 from scripts.utils import i18n
@@ -371,7 +380,11 @@ def run_translation_workflow_v2(
             except Exception as e:
                 logging.error(f"Failed to log failure activity (v2): {e}")
 
-@router.post("/api/translate/start")
+@router.post(
+    "/api/translate/start",
+    response_model=TranslationTaskResponse,
+    response_model_exclude_none=True,
+)
 async def start_translation_project(request: InitialTranslationRequest, background_tasks: BackgroundTasks):
     """
     Starts the initial translation workflow for a project.
@@ -464,7 +477,11 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
 
     return {"task_id": task_id, "status": "started", "message": f"Translation started for project {project['name']}"}
 
-@router.post("/api/translate")
+@router.post(
+    "/api/translate",
+    response_model=TranslationTaskResponse,
+    response_model_exclude_none=True,
+)
 async def start_translation(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -530,7 +547,11 @@ async def start_translation(
 
     return {"task_id": task_id, "message": "Translation task started."}
 
-@router.post("/api/translate_v2")
+@router.post(
+    "/api/translate_v2",
+    response_model=TranslationTaskResponse,
+    response_model_exclude_none=True,
+)
 async def start_translation_v2(
     background_tasks: BackgroundTasks,
     payload: TranslationRequestV2
@@ -585,7 +606,7 @@ async def start_translation_v2(
 
     return {"task_id": task_id, "message": "Translation task started."}
 
-@router.get("/api/source-mods")
+@router.get("/api/source-mods", response_model=List[SourceModResponse])
 def get_source_mods():
     """
     Returns a list of directories in the SOURCE_DIR.
@@ -637,7 +658,10 @@ async def websocket_status(websocket: WebSocket, task_id: str):
 def get_result(task_id: str):
     raise HTTPException(status_code=410, detail="ZIP result downloads have been removed. Open the output folder instead.")
 
-@router.post("/api/translation/checkpoint-status")
+@router.post(
+    "/api/translation/checkpoint-status",
+    response_model=CheckpointStatusResponse,
+)
 def check_checkpoint_status(payload: CheckpointStatusRequest):
     """Checks if a checkpoint exists for the given configuration."""
     try:
@@ -675,7 +699,10 @@ def check_checkpoint_status(payload: CheckpointStatusRequest):
         logging.error(f"Error checking checkpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/api/translation/checkpoint")
+@router.delete(
+    "/api/translation/checkpoint",
+    response_model=CheckpointDeleteResponse,
+)
 def delete_checkpoint(payload: CheckpointStatusRequest):
     """Deletes the checkpoint file for the given configuration."""
     try:

@@ -17,6 +17,11 @@ from scripts import app_settings
 from scripts.core.services.model_arena_service import ModelArenaRunClaimError
 from scripts.schemas.model_arena import (
     CreateModelArenaRunRequest,
+    ModelArenaExportPreview,
+    ModelArenaRunResponse,
+    ModelArenaRunListResponse,
+    ModelArenaTaskPreparationResponse,
+    ModelArenaVote,
     ModelArenaVoteRequest,
     StartModelArenaRunRequest,
 )
@@ -114,7 +119,12 @@ def _run_arena_task(run_id: str, task_id: str, retry: bool = False) -> None:
         )
 
 
-@router.post("/runs", status_code=201)
+@router.post(
+    "/runs",
+    status_code=201,
+    response_model=ModelArenaRunResponse,
+    response_model_exclude_none=True,
+)
 async def create_model_arena_run(request: CreateModelArenaRunRequest):
     try:
         return await model_arena_service.create_run(request)
@@ -122,7 +132,11 @@ async def create_model_arena_run(request: CreateModelArenaRunRequest):
         raise _http_error(exc) from exc
 
 
-@router.post("/runs/{run_id}/resample")
+@router.post(
+    "/runs/{run_id}/resample",
+    response_model=ModelArenaRunResponse,
+    response_model_exclude_none=True,
+)
 async def resample_model_arena_run(run_id: str):
     try:
         return await model_arena_service.resample(run_id)
@@ -130,7 +144,11 @@ async def resample_model_arena_run(run_id: str):
         raise _http_error(exc) from exc
 
 
-@router.post("/runs/{run_id}/start")
+@router.post(
+    "/runs/{run_id}/start",
+    response_model=ModelArenaTaskPreparationResponse,
+    response_model_exclude_none=True,
+)
 def start_model_arena_run(
     run_id: str,
     request: StartModelArenaRunRequest,
@@ -177,7 +195,11 @@ def start_model_arena_run(
     return prepared
 
 
-@router.post("/runs/{run_id}/retry-failures")
+@router.post(
+    "/runs/{run_id}/retry-failures",
+    response_model=ModelArenaTaskPreparationResponse,
+    response_model_exclude_none=True,
+)
 def retry_model_arena_failures(
     run_id: str,
     request: StartModelArenaRunRequest,
@@ -226,7 +248,11 @@ def retry_model_arena_failures(
     return prepared
 
 
-@router.get("/runs/{run_id}")
+@router.get(
+    "/runs/{run_id}",
+    response_model=ModelArenaRunResponse,
+    response_model_exclude_none=True,
+)
 def get_model_arena_run(run_id: str):
     try:
         return model_arena_service.get_run(run_id)
@@ -234,7 +260,11 @@ def get_model_arena_run(run_id: str):
         raise _http_error(exc) from exc
 
 
-@router.put("/runs/{run_id}/samples/{sample_id}/vote")
+@router.put(
+    "/runs/{run_id}/samples/{sample_id}/vote",
+    response_model=ModelArenaVote,
+    response_model_exclude_none=True,
+)
 def vote_model_arena_sample(
     run_id: str, sample_id: str, request: ModelArenaVoteRequest
 ):
@@ -244,7 +274,11 @@ def vote_model_arena_sample(
         raise _http_error(exc) from exc
 
 
-@router.post("/runs/{run_id}/complete")
+@router.post(
+    "/runs/{run_id}/complete",
+    response_model=ModelArenaRunResponse,
+    response_model_exclude_none=True,
+)
 def complete_model_arena_run(run_id: str):
     try:
         return model_arena_service.complete_run(run_id)
@@ -252,7 +286,11 @@ def complete_model_arena_run(run_id: str):
         raise _http_error(exc) from exc
 
 
-@router.get("/runs")
+@router.get(
+    "/runs",
+    response_model=ModelArenaRunListResponse,
+    response_model_exclude_none=True,
+)
 def list_model_arena_runs(
     project_id: Optional[str] = None,
     status: Optional[str] = None,
@@ -276,7 +314,11 @@ def list_model_arena_runs(
     )
 
 
-@router.get("/runs/{run_id}/export-preview")
+@router.get(
+    "/runs/{run_id}/export-preview",
+    response_model=ModelArenaExportPreview,
+    response_model_exclude_none=True,
+)
 def preview_model_arena_export(
     run_id: str,
     mode: Literal["evidence", "summary-only"] = "evidence",

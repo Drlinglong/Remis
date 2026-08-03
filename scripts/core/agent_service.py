@@ -58,11 +58,11 @@ class AgentRegistry:
         return {"version": 1, "plans": {}, "jobs": {}, "audit": []}
 
     def _load(self) -> Dict[str, Any]:
-        if not self.path.exists():
-            return self._empty()
         try:
+            if not self.path.exists():
+                return self._empty()
             payload = json.loads(self.path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        except (OSError, json.JSONDecodeError, ValueError):
             return self._empty()
         if not isinstance(payload, dict):
             return self._empty()

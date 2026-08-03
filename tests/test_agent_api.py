@@ -346,6 +346,7 @@ async def test_project_import_is_approval_gated(
     monkeypatch,
     isolated_registry,
 ):
+    monkeypatch.setenv("REMIS_AGENT_IMPORT_ROOTS", str(tmp_path))
     mod_root = tmp_path / "fixture-mod"
     loc_root = mod_root / "localization" / "english"
     loc_root.mkdir(parents=True)
@@ -657,6 +658,20 @@ def test_agent_registry_recovers_non_secret_job_metadata(tmp_path):
     assert job["execution_args"]["model"] == "local-model"
     assert "api_key" not in path.read_text(encoding="utf-8")
     assert "must-not-persist" not in path.read_text(encoding="utf-8")
+
+
+def test_agent_registry_permission_error_during_exists_degrades_to_empty(
+    tmp_path,
+    monkeypatch,
+):
+    def deny_exists(_path):
+        raise PermissionError("registry parent is inaccessible")
+
+    monkeypatch.setattr(Path, "exists", deny_exists)
+
+    registry = AgentRegistry(str(tmp_path / "registry.json"))
+
+    assert registry.list_jobs() == []
 
 
 @pytest.mark.asyncio

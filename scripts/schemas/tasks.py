@@ -25,6 +25,13 @@ class TaskResult(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
+class TaskPersistenceFailure(BaseModel):
+    code: Literal["task_persistence_failed"]
+    retryable: bool = True
+    error_type: str
+    last_attempt_at: str
+
+
 class TaskProjectContext(BaseModel):
     name: str
     game_id: Optional[str] = None
@@ -69,6 +76,7 @@ class TaskSummary(BaseModel):
     attention_reason_code: Optional[str] = None
     checkpoint: TaskCheckpoint = Field(default_factory=TaskCheckpoint)
     result: TaskResult = Field(default_factory=TaskResult)
+    persistence_failure: Optional[TaskPersistenceFailure] = None
     blocking: bool = False
     blocking_reason: Optional[str] = None
     blocking_reason_code: Optional[str] = None
