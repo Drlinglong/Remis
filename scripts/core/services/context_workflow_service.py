@@ -15,6 +15,7 @@ from scripts.core.neologism_extraction import (
 )
 from scripts.core.neologism_manager import neologism_manager
 from scripts.core.neologism_miner import NeologismMiner
+from scripts.core.provider_structured_output import structured_output_mode
 from scripts.core.services.context_candidate_adapter import ContextCandidateAdapter
 from scripts.core.services.context_analysis_checkpoint_service import (
     ContextAnalysisCheckpointService,
@@ -692,6 +693,7 @@ class ContextWorkflowService:
             "chunking": dict(chunk_config),
             "concurrency_limit": concurrency_limit,
             "effective_concurrency": effective_concurrency,
+            "structured_output_mode": structured_output_mode(provider),
         }
 
     _chunks = ContextChunkingPolicy.chunks

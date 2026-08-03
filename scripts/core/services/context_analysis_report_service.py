@@ -7,6 +7,7 @@ from typing import Any, Sequence
 
 from scripts.core.context_local_units import LocalTextUnit
 from scripts.core.neologism_extraction import SourceItem, StructuredNeologismExtraction
+from scripts.core.provider_structured_output import structured_output_mode
 from scripts.core.services.context_chunking_policy import ContextUnitChunk
 from scripts.core.services.context_event_reconciliation_service import EventReconciliationResult
 
@@ -105,6 +106,7 @@ class ContextAnalysisReportService:
             "project_unique_unit_ids": len({unit.unit_id for unit in local_units}) == len(local_units),
             "provider": provider,
             "model": model or f"{provider}-default",
+            "structured_output_mode": structured_output_mode(provider),
             "reasoning_profile": "unavailable_from_provider_adapter",
             "prompt_version": prompt_version,
             "effective_concurrency": concurrency,

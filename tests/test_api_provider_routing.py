@@ -10,6 +10,7 @@ from scripts.app_settings import API_PROVIDERS
 from scripts.core import api_handler
 from scripts.core.deepseek_handler import DeepSeekHandler
 from scripts.core.openrouter_handler import OpenRouterHandler
+from scripts.core.provider_structured_output import structured_output_mode
 
 
 TURNKEY_CLOUD_PROVIDER_IDS = [
@@ -170,7 +171,12 @@ def test_openrouter_luna_structured_chat_sends_json_schema():
     handler.model_id = "openai/gpt-5.6-luna"
     handler.logger = logging.getLogger("OpenRouterHandlerTest")
     handler.client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
-    schema = {"type": "object", "properties": {"items": {"type": "array"}}}
+    schema = {
+        "type": "object",
+        "properties": {
+            "items": {"type": "array", "items": {"type": "string"}, "default": []},
+        },
+    }
 
     result = handler.generate_structured_with_messages(
         [{"role": "user", "content": "Return items"}],
@@ -183,10 +189,31 @@ def test_openrouter_luna_structured_chat_sends_json_schema():
         "type": "json_schema",
         "json_schema": {
             "name": "items_response",
-            "strict": False,
-            "schema": schema,
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "items": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["items"],
+                "additionalProperties": False,
+            },
         },
     }
+    assert captured["extra_body"] == {
+        "reasoning": {"effort": "high", "exclude": True},
+        "provider": {"require_parameters": True},
+        "plugins": [{"id": "response-healing"}],
+    }
+
+
+def test_provider_structured_output_capability_is_not_inferred_from_json_prompts():
+    assert structured_output_mode("openrouter") == "strict_json_schema"
+    for provider_id in (
+        "openai", "gemini", "anthropic", "deepseek", "grok", "qwen",
+        "siliconflow", "nvidia", "lm_studio", "ollama", "vllm",
+    ):
+        assert structured_output_mode(provider_id) == "prompt_json_with_local_validation"
 
 
 @pytest.mark.parametrize("provider_id", TURNKEY_CLOUD_PROVIDER_IDS)

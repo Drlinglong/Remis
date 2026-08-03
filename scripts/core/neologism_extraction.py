@@ -386,13 +386,15 @@ class StructuredNeologismExtractor:
                 return result
             except (json.JSONDecodeError, ValidationError, TypeError, ValueError, NeologismMiningError) as second_error:
                 category = self._validation_error_category(second_error)
+                detail = self._validation_error_detail(second_error)
                 self.logger.error(
-                    "Structured extraction failed after one repair (%s)",
+                    "Structured extraction failed after one repair (%s): %s",
                     category,
+                    detail,
                 )
                 raise NeologismMiningError(
                     "LLM returned invalid structured extraction output after one repair "
-                    f"({category})"
+                    f"({category}); detail={detail}"
                 ) from second_error
 
     @staticmethod
@@ -411,6 +413,16 @@ class StructuredNeologismExtractor:
                 return "ungrounded_entity"
             return "grounding_validation"
         return "contract_validation"
+
+    @staticmethod
+    def _validation_error_detail(error: Exception) -> str:
+        if isinstance(error, ValidationError):
+            details = []
+            for item in error.errors()[:5]:
+                location = ".".join(str(part) for part in item.get("loc") or ()) or "root"
+                details.append(f"{location}:{item.get('type', 'invalid')}")
+            return ", ".join(details) or "unknown schema mismatch"
+        return str(error).replace("\n", " ")[:500]
 
     @classmethod
     def _source_aliases(cls, source_items: Sequence[SourceItem]) -> Dict[str, str]:
@@ -667,6 +679,11 @@ class StructuredNeologismExtractor:
 
         if not isinstance(payload, dict):
             return
+        for collection_name in (
+            "terms", "entities", "facts", "events", "relationships", "delivery_assignments",
+        ):
+            if payload.get(collection_name) is None:
+                payload[collection_name] = []
         for field_name in cls._BACKEND_ROOT_FIELDS:
             payload.pop(field_name, None)
         for collection_name in ("terms", "entities", "facts", "events", "relationships"):

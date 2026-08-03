@@ -4,6 +4,7 @@ from openai import OpenAI
 
 from scripts.app_settings import get_api_key
 from scripts.core.openai_handler import OpenAIHandler
+from scripts.core.strict_json_schema import strict_json_schema
 
 
 class OpenRouterHandler(OpenAIHandler):
@@ -82,16 +83,23 @@ class OpenRouterHandler(OpenAIHandler):
         schema_name: str,
         temperature: float = 0.0,
     ) -> str:
+        options = self._chat_options(temperature)
+        extra_body = dict(options.get("extra_body") or {})
+        extra_body.update({
+            "provider": {"require_parameters": True},
+            "plugins": [{"id": "response-healing"}],
+        })
+        options["extra_body"] = extra_body
         response = self.client.chat.completions.create(
             messages=messages,
             response_format={
                 "type": "json_schema",
                 "json_schema": {
                     "name": schema_name,
-                    "strict": False,
-                    "schema": schema,
+                    "strict": True,
+                    "schema": strict_json_schema(schema),
                 },
             },
-            **self._chat_options(temperature),
+            **options,
         )
         return response.choices[0].message.content.strip()
