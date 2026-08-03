@@ -178,6 +178,7 @@
 
 .metadataValue {
     color: var(--surface-text-main) !important;
+    white-space: pre-wrap;
 }
 
 .metadataCell {

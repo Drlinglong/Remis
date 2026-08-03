@@ -38,6 +38,7 @@ const release = {
         analysis_scope: { mode: 'narrative_context', files: ['common/characters.txt'] },
         schema_version: 'context-v1',
         prompt_version: 'context-synthesis-v1',
+        analysis_config: { description_language: 'zh-CN', temperature: 0 },
         provider_id: 'local',
         model_id: 'model-1',
         created_at: '2026-08-01T00:00:00Z',
@@ -87,6 +88,9 @@ describe('PublishedArchivePanel', () => {
         expect(await screen.findByText('release-1')).toBeInTheDocument();
         const metadataDetails = screen.getByTestId('mod-archive-metadata-details');
         expect(metadataDetails).not.toHaveAttribute('open');
+        expect(screen.getByText('context-v1')).toBeInTheDocument();
+        expect(screen.getByText('context-synthesis-v1')).toBeInTheDocument();
+        expect(screen.getByText(/"description_language": "zh-CN"/)).toBeInTheDocument();
         expect(screen.getByText(/2026-08-01 \d{2}:00/)).toBeInTheDocument();
         expect(screen.getByText('local')).toBeInTheDocument();
         expect(screen.getByText('model-1')).toBeInTheDocument();

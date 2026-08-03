@@ -126,6 +126,13 @@ export const ReleaseMetadata = ({
                     <MetadataCell label={t('mod_archive.release.release_id')} value={release.release_id} technical />
                     <MetadataCell label={t('mod_archive.release.project_id')} value={release.project_id || selectedProject} technical />
                     <MetadataCell label={t('mod_archive.release.analysis_scope')} value={scope} />
+                    <MetadataCell label={t('mod_archive.release.schema_version')} value={release.metadata?.schema_version} technical />
+                    <MetadataCell label={t('mod_archive.release.prompt_version')} value={release.metadata?.prompt_version} technical />
+                    <MetadataCell
+                        label={t('mod_archive.release.analysis_config')}
+                        value={JSON.stringify(release.metadata?.analysis_config || {}, null, 2)}
+                        technical
+                    />
                     <MetadataCell label={t('mod_archive.release.source_snapshot')} value={release.metadata?.source_snapshot_hash} technical />
                     <MetadataCell label={t('mod_archive.release.upstream_version')} value={release.metadata?.upstream_version || t('mod_archive.release.not_available')} />
                     {release.metadata?.parent_release_id && (
