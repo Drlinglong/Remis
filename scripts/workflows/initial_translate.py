@@ -48,7 +48,7 @@ def run(mod_name: str,
         source_context_overlap: int = 0,
         concurrency_limit: Optional[int] = None,
         rpm_limit: Optional[int] = 40,
-        embedded_workshop: Optional[dict] = None, use_project_context: bool = True, context_release_id: Optional[str] = None, context_character_budget: int = 4000, context_service: Any = None, snapshot_service: Any = None, translation_context_mode: Optional[str] = None):
+        embedded_workshop: Optional[dict] = None, use_project_context: bool = False, context_release_id: Optional[str] = None, context_character_budget: int = 4000, context_service: Any = None, snapshot_service: Any = None, translation_context_mode: Optional[str] = None):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info("Entered initial_translate.run")
     logging.info(f"--- Starting 'Initial Translation' workflow for: {mod_name} ---")

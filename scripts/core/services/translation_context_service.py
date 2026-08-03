@@ -43,10 +43,17 @@ def context_workflow_kwargs(source: Any = None, **overrides: Any) -> dict[str, A
             return default
         if isinstance(source, Mapping):
             return source.get(key, default)
-        return getattr(source, key, default)
+        value = getattr(source, key, default)
+        if isinstance(default, bool):
+            return value if isinstance(value, bool) else default
+        if isinstance(default, int):
+            return value if isinstance(value, int) and not isinstance(value, bool) else default
+        if default is None:
+            return value if value is None or isinstance(value, str) else default
+        return value
 
     return {
-        "use_project_context": overrides.get("use_project_context", read("use_project_context", True)),
+        "use_project_context": overrides.get("use_project_context", read("use_project_context", False)),
         "translation_context_mode": overrides.get("translation_context_mode", read("translation_context_mode", None)),
         "context_release_id": overrides.get("context_release_id", read("context_release_id", None)),
         "context_character_budget": overrides.get("context_character_budget", read("context_character_budget", 4000)),

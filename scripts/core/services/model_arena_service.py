@@ -188,9 +188,9 @@ class _ProductionArenaHandler:
 
 class _NeutralPromptBuilder:
     """Reuse the production prompt contract without provider-specific prefixes."""
-
     _build_custom_global_prompt_part = BaseApiHandler._build_custom_global_prompt_part
-
+    _build_source_context_prompt = staticmethod(BaseApiHandler._build_source_context_prompt)
+    _build_context_release_prompt = staticmethod(BaseApiHandler._build_context_release_prompt)
     def __init__(self) -> None:
         import logging
 

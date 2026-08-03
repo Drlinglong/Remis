@@ -28,6 +28,11 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
         "description": "创建和维护长期 Mod 汉化项目，处理路径、归档、删除与工作流入口。",
         "resources": ("zh/user-guides/project-management.md",),
     },
+    "mod_archive": {
+        "title": "Mod 项目档案",
+        "description": "分析项目叙事上下文，审核候选，并发布供翻译使用的不可变档案。",
+        "resources": ("zh/user-guides/mod-archive.md",),
+    },
     "provider_setup": {
         "title": "Provider 配置总览",
         "description": "选择 Provider，理解 API Key、Base URL、模型和配置入口。",

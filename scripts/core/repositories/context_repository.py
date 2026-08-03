@@ -19,11 +19,9 @@ from scripts.core.repositories.context_publication_repository import (
     ContextPublicationRepository,
 )
 from scripts.core.repositories.context_release_manifest_repository import (
-    insert_release_manifest,
     load_release_manifest,
     load_release_traceability_source,
     upsert_source_item as persist_source_item,
-    validate_release_manifest,
 )
 from scripts.schemas.context import (
     ContextAggregate,

@@ -1,9 +1,9 @@
 import React from 'react';
 import { Badge, Card, Code, Group, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
+import { getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 
 const percent = (value) => `${(Number(value || 0) * 100).toFixed(2)}%`;
-const count = (value) => Number(value || 0).toLocaleString();
 
 function Metric({ label, value }) {
   return (
@@ -24,8 +24,10 @@ function DetailSection({ title, children, open = false }) {
 }
 
 export default function ContextAnalysisReportPanel({ report }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   if (!report) return null;
+
+  const count = (value) => Number(value || 0).toLocaleString(getResolvedInterfaceLocale(i18n));
 
   const input = report.input_and_chunking || {};
   const integrity = report.source_integrity?.totals || {};

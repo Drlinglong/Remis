@@ -242,6 +242,7 @@ def test_initial_translation_path_fails_closed_before_translation(monkeypatch):
             "",
             selected_provider="local",
             project_id="project-1",
+            use_project_context=True,
             context_service=FakeContextService(),
         )
 

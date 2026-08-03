@@ -59,7 +59,7 @@ async def run_incremental_update(
     custom_source_path: Optional[str] = None,
     use_resume: bool = True,
     embedded_workshop: Optional[Dict[str, Any]] = None,
-    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None, use_project_context: bool = True, context_release_id: Optional[str] = None, context_character_budget: int = 4000, context_service: Any = None, snapshot_service: Any = None, translation_context_mode: Optional[str] = None,
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None, use_project_context: bool = False, context_release_id: Optional[str] = None, context_character_budget: int = 4000, context_service: Any = None, snapshot_service: Any = None, translation_context_mode: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Runs the incremental translation workflow for multiple target languages.
