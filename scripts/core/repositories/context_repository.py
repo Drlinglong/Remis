@@ -11,9 +11,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+from scripts.core.repositories.context_delivery_membership_repository import (
+    counts_by_aggregate,
+    insert_memberships,
+    list_memberships,
+    validate_memberships,
+)
 from scripts.schemas.context import (
     ContextAggregate,
     ContextContribution,
+    ContextDeliveryMembership,
     ContextDraft,
     ContextRelease,
     ContextReleaseMetadata,
@@ -422,9 +429,11 @@ class ContextRepository:
         metadata: ContextReleaseMetadata,
         aggregate_ids: Iterable[str],
         syntheses: Iterable[GeneratedSynthesis],
+        delivery_memberships: Iterable[ContextDeliveryMembership] = (),
     ) -> ContextRelease:
         aggregates = list(dict.fromkeys(aggregate_ids))
         generated = list(syntheses)
+        membership_values = list(delivery_memberships)
         if len({item.context_key for item in generated}) != len(generated):
             raise ValueError("Generated synthesis context_key values must be unique")
         with self._lock, self._connect() as connection:
@@ -440,10 +449,14 @@ class ContextRepository:
             parent_id = draft["base_release_id"]
             self._validate_parent_release(connection, draft["project_id"], parent_id)
             self._validate_syntheses(generated, aggregates)
+            membership_values = validate_memberships(
+                connection, membership_values, set(aggregates), draft["project_id"],
+            )
             release_id = str(uuid.uuid4())
             self._insert_release(connection, release_id, draft["project_id"], metadata, parent_id)
             self._snapshot_aggregates(connection, release_id, aggregates, draft["project_id"])
             self._insert_syntheses(connection, release_id, generated)
+            insert_memberships(connection, release_id, membership_values)
             self._copy_draft_overrides(connection, draft_id, release_id)
             connection.execute(
                 "UPDATE context_drafts SET status = 'published', updated_at = ? WHERE draft_id = ?",
@@ -644,6 +657,7 @@ class ContextRepository:
 
     def get_release_traceability(self, release_id: str) -> list[dict[str, Any]]:
         with self._lock, self._connect() as connection:
+            membership_counts = counts_by_aggregate(connection, release_id)
             aggregate_rows = connection.execute(
                 """
                 SELECT * FROM context_release_aggregates
@@ -704,9 +718,16 @@ class ContextRepository:
                             }
                             for row in synthesis_rows
                         ],
+                        "delivery_membership": membership_counts.get(
+                            aggregate["aggregate_id"], {"count": 0, "role_counts": {}},
+                        ),
                     }
                 )
             return result
+
+    def list_release_delivery_memberships(self, release_id: str) -> list[dict[str, Any]]:
+        with self._lock, self._connect() as connection:
+            return list_memberships(connection, release_id)
 
     @classmethod
     def _source_from_joined_row(cls, row: sqlite3.Row) -> ContextSourceItem:

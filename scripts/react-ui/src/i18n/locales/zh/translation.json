@@ -1256,6 +1256,8 @@
       },
       "traceability_title": "源文件来源依据与可追溯性",
       "traceability_desc": "需要检查发布值如何得出时，再加载源证据。",
+      "evidence_membership_count": "摘要证据：{{count}}",
+      "delivery_membership_count": "翻译覆盖：{{count}}",
       "load_traceability": "加载来源追踪",
         "traceability_empty": "此版本没有可用的追踪记录。",
         "parent_release": "父版本",

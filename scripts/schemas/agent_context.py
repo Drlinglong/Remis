@@ -97,6 +97,8 @@ class AgentContextTraceabilityItem(BaseModel):
     source_evidence: list[AgentContextSourceEvidence] = Field(
         default_factory=list, max_length=50
     )
+    delivery_membership_count: int = Field(default=0, ge=0)
+    delivery_role_counts: dict[str, int] = Field(default_factory=dict, max_length=3)
 
 
 class AgentContextSelection(BaseModel):

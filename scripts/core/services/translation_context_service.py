@@ -304,7 +304,13 @@ class TranslationContextService:
             return self._warning_selection("stale", "context_release_stale", current_hash, release_id, release_hash)
 
         traceability = service.traceability(release_id)
-        project_summary, direct_index = self._build_index(effective.effective_context, traceability)
+        memberships = (
+            service.delivery_memberships(release_id)
+            if hasattr(service, "delivery_memberships") else []
+        )
+        project_summary, direct_index = self._build_index(
+            effective.effective_context, traceability, memberships,
+        )
         return ContextSelection(
             enabled=True,
             status="ready",
@@ -356,6 +362,7 @@ class TranslationContextService:
     def _build_index(
         effective_context: Mapping[str, Mapping[str, Any]],
         traceability: Iterable[Mapping[str, Any]],
+        delivery_memberships: Iterable[Mapping[str, Any]] = (),
     ) -> tuple[list[dict[str, Any]], dict[tuple[str, str], list[dict[str, Any]]]]:
         project_summary: list[dict[str, Any]] = []
         direct_index: dict[tuple[str, str], list[dict[str, Any]]] = {}
@@ -387,7 +394,19 @@ class TranslationContextService:
                 "aggregate_type": "project",
                 "summary": summary,
             })
+        for membership in delivery_memberships:
+            aggregate = membership.get("aggregate") or {}
+            context_key = str(aggregate.get("aggregate_key") or "")
+            identity = _source_identity(membership.get("source_item") or {})
+            if not identity or context_key not in effective_context:
+                continue
+            direct_index.setdefault(identity, []).append({
+                "context_key": context_key,
+                "aggregate_type": str(aggregate.get("aggregate_type") or "event"),
+                "summary": effective_context[context_key],
+            })
         project_summary.sort(key=lambda item: str(item["context_key"]))
         for items in direct_index.values():
-            items.sort(key=lambda item: str(item["context_key"]))
+            unique = {str(item["context_key"]): item for item in items}
+            items[:] = sorted(unique.values(), key=lambda item: str(item["context_key"]))
         return project_summary, direct_index

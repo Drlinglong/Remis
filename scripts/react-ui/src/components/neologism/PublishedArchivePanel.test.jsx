@@ -119,6 +119,7 @@ describe('PublishedArchivePanel', () => {
             .find((node) => node.tagName === 'SPAN')
             .closest('details');
         expect(evidenceGroup).not.toHaveAttribute('open');
+        expect(screen.getByText('mod_archive.release.evidence_membership_count:1')).toBeInTheDocument();
         expect(api.get).toHaveBeenCalledWith('/api/context/releases/release-1/traceability');
     });
 
@@ -147,6 +148,7 @@ describe('PublishedArchivePanel', () => {
                             contribution: { contribution_type: 'event', provenance: 'text_inferred' },
                             source_item: { source_ref: 'events.yml::war', content: 'A war' },
                         }],
+                        delivery_membership: { count: 12, role_counts: { primary_member: 12 } },
                     },
                 ] });
             }
@@ -171,6 +173,7 @@ describe('PublishedArchivePanel', () => {
             'mod_archive.release.event_summary:1',
             'mod_archive.release.entity_summary:1',
         ]);
+        expect(screen.getByText('mod_archive.release.delivery_membership_count:12')).toBeInTheDocument();
     });
 
     it('shows project context, glossary navigation, and pending terminology without claiming approval', async () => {
@@ -331,7 +334,7 @@ describe('PublishedArchivePanel', () => {
 
         fireEvent.click(screen.getByTestId('mod-archive-open-publish'));
         expect(await screen.findByTestId('mod-archive-publish-modal')).toBeInTheDocument();
-        expect(screen.getByText('mod_archive.release.draft.publish_base')).toBeInTheDocument();
+        expect(await screen.findByText('mod_archive.release.draft.publish_base')).toBeInTheDocument();
         fireEvent.click(screen.getByTestId('mod-archive-publish-confirm'));
 
         expect(await screen.findByTestId('mod-archive-published-notice')).toBeInTheDocument();

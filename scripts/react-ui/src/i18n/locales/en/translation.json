@@ -1202,6 +1202,8 @@
       },
       "traceability_title": "Source provenance and traceability",
       "traceability_desc": "Load source evidence only when you need to inspect how a published value was derived.",
+      "evidence_membership_count": "Evidence: {{count}}",
+      "delivery_membership_count": "Translation coverage: {{count}}",
       "load_traceability": "Load source traceability",
         "traceability_empty": "No traceability records are available for this release.",
         "parent_release": "Parent release",

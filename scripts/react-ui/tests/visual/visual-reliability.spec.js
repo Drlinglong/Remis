@@ -85,7 +85,7 @@ for (const themeId of themes) {
 
     await metadataDetails.locator('summary').click();
     await expect(page.getByText('完整档案分析', { exact: true })).toBeVisible();
-    await expect(page.getByText('v0.0.1', { exact: true })).toBeVisible();
+    await expect(page.getByText('v0.0.2', { exact: true })).toBeVisible();
     await expect(page.getByTestId('mod-archive-prompt-example')).toContainText('System message:');
     await expect(page.getByText('context-synthesis-v3', { exact: true })).toHaveCount(0);
     await metadataDetails.locator('summary').click();
@@ -108,6 +108,7 @@ for (const themeId of themes) {
       await expect(group).not.toHaveAttribute('open', '');
     }
     await evidenceGroups.nth(1).locator('summary').click();
+    await expect(page.getByText('翻译覆盖：42', { exact: true })).toBeVisible();
 
     const readableSamples = [
       page.getByText('源文件来源依据与可追溯性', { exact: true }),

@@ -50,6 +50,7 @@ class FakeContextService:
                     "preferred_name": "共和国",
                 },
                 "unmatched": {"summary": "Never injected."},
+                "event:war": {"summary": "A war spans several localization entries."},
             },
         )
 
@@ -85,7 +86,27 @@ class FakeContextService:
                     }
                 ],
             },
+            {
+                "aggregate": {"aggregate_type": "event", "aggregate_key": "event:war"},
+                "contributions": [{
+                    "source_item": {
+                        "source_ref": "localisation/english/events.yml::war.1.desc",
+                        "metadata": {},
+                    },
+                }],
+            },
         ]
+
+    def delivery_memberships(self, release_id):
+        self.calls.append(("delivery_memberships", release_id))
+        return [{
+            "aggregate": {"aggregate_type": "event", "aggregate_key": "event:war"},
+            "source_item": {
+                "source_ref": "localisation/english/foo_l_english.yml::other",
+                "metadata": {},
+            },
+            "membership": {"role": "primary_member"},
+        }]
 
 
 def _selection(character_budget=4000):
@@ -113,6 +134,7 @@ def test_matching_release_injects_project_and_direct_key_with_human_override_pre
         ("list_releases", "project-1"),
         ("effective_context", "release-1"),
         ("traceability", "release-1"),
+        ("delivery_memberships", "release-1"),
     ]
 
 
@@ -126,7 +148,9 @@ def test_deterministic_order_and_character_budget():
     )[0]
 
     assert first == second
-    assert [item["context_key"] for item in first] == ["project:summary", "republic"]
+    assert [item["context_key"] for item in first] == [
+        "project:summary", "event:war", "republic",
+    ]
     assert sum(len(str(item)) for item in first) < 500
 
 
@@ -160,7 +184,19 @@ def test_no_match_only_has_project_summary_and_never_changes_output_count():
     )
     batches = ParallelProcessor(chunk_size_override=1, context_selector=selection)._create_batch_tasks([file_task])
     assert [len(batch.texts) for batch in batches] == [1, 1]
-    assert all(len(batch.context_summaries) == 1 for batch in batches)
+    assert [len(batch.context_summaries) for batch in batches] == [1, 2]
+
+
+def test_event_delivery_membership_injects_summary_beyond_sparse_evidence():
+    selection, _ = _selection()
+
+    summaries, _ = selection.select_for_batch(
+        SOURCE_FILES[0]["file_path"], [SOURCE_FILES[0]["source_entries"][1]]
+    )
+
+    assert [item["context_key"] for item in summaries] == [
+        "project:summary", "event:war",
+    ]
 
 
 def test_stale_and_missing_releases_warn_without_context():

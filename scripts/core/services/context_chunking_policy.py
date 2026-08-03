@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Iterable, Sequence
 
+from scripts.core.context_local_units import ContextLocalUnitBuilder
 from scripts.core.neologism_extraction import SourceItem
 
 
@@ -123,8 +124,5 @@ class ContextChunkingPolicy:
 
     @staticmethod
     def grouping_key(item: SourceItem) -> str:
-        """Group adjacent event/name/description/options keys without reordering."""
-        raw_key = (item.item_key or "").split(":", 1)[0].strip().casefold()
-        segments = [segment for segment in raw_key.split(".") if segment]
-        family = ".".join(segments[:2]) if len(segments) >= 2 else raw_key
-        return f"{item.relative_path.casefold()}::{family}"
+        """Keep conservative local text units together without reordering."""
+        return ContextLocalUnitBuilder.grouping_key(item)

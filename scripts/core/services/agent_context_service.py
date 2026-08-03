@@ -265,6 +265,7 @@ class AgentContextService:
 
     def _traceability_item(self, item: dict[str, Any]) -> AgentContextTraceabilityItem:
         aggregate = item.get("aggregate") or {}
+        delivery = item.get("delivery_membership") or {}
         raw_contributions = item.get("contributions") or []
         contributions: list[AgentContextContribution] = []
         evidence: list[AgentContextSourceEvidence] = []
@@ -321,4 +322,9 @@ class AgentContextService:
             contributions=contributions,
             syntheses=syntheses,
             source_evidence=evidence,
+            delivery_membership_count=int(delivery.get("count") or 0),
+            delivery_role_counts={
+                str(key): int(value)
+                for key, value in (delivery.get("role_counts") or {}).items()
+            },
         )

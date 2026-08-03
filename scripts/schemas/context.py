@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 Provenance = Literal["text_inferred", "script_derived", "user_confirmed"]
 ContributionType = Literal["mention", "fact", "event", "relationship"]
 AggregateType = Literal["entity", "event", "project"]
+DeliveryRole = Literal["primary_member", "supporting_context", "theme_related"]
 
 
 def _now() -> str:
@@ -78,6 +79,19 @@ class ContextAggregate(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
     contribution_ids: list[str] = Field(min_length=1)
     created_at: str = Field(default_factory=_now)
+
+
+class ContextDeliveryMembership(BaseModel):
+    """One immutable event-summary delivery edge captured in a release."""
+
+    model_config = ConfigDict(frozen=True)
+
+    aggregate_id: str = Field(min_length=1)
+    source_item_id: str = Field(min_length=1)
+    role: DeliveryRole
+    confidence: float = Field(ge=0.0, le=1.0)
+    provenance: Provenance = "text_inferred"
+    reasoning: str | None = Field(default=None, max_length=500)
 
 
 class GeneratedSynthesis(BaseModel):

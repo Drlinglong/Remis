@@ -208,9 +208,18 @@ const groupTraceabilityRows = (rows) => {
     rows.forEach((row) => {
         const key = row.aggregateKey || `${row.aggregateType}:unknown`;
         if (!groups.has(key)) {
-            groups.set(key, { key, kind: row.aggregateType || 'entity', rows: [] });
+            groups.set(key, {
+                key,
+                kind: row.aggregateType || 'entity',
+                rows: [],
+                deliveryMembershipCount: 0,
+            });
         }
         groups.get(key).rows.push(row);
+        groups.get(key).deliveryMembershipCount = Math.max(
+            groups.get(key).deliveryMembershipCount,
+            row.deliveryMembershipCount || 0,
+        );
     });
     return Array.from(groups.values()).sort((left, right) => (
         (KIND_ORDER[left.kind] - KIND_ORDER[right.kind]) || left.key.localeCompare(right.key)
@@ -222,14 +231,26 @@ const EvidenceGroup = ({ group, entry, t }) => {
     const displayLabel = group.kind === 'project'
         ? t('mod_archive.release.project_summary')
         : (entry ? entryDisplayLabel(entry) : fallbackLabel);
+    const evidenceRows = group.rows.filter((row) => !row.placeholder);
     return (
         <details className={styles.evidenceGroup}>
             <summary className={styles.evidenceGroupSummary}>
                 <span className={styles.technical}>{displayLabel}</span>
-                <Badge variant="outline" size="sm">{group.rows.length}</Badge>
+                <Group gap="xs">
+                    <Badge variant="outline" size="sm">
+                        {t('mod_archive.release.evidence_membership_count', { count: evidenceRows.length })}
+                    </Badge>
+                    {group.kind === 'event' && (
+                        <Badge variant="light" size="sm">
+                            {t('mod_archive.release.delivery_membership_count', {
+                                count: group.deliveryMembershipCount,
+                            })}
+                        </Badge>
+                    )}
+                </Group>
             </summary>
             <div className={styles.traceabilityList}>
-                {group.rows.map((row, index) => (
+                {evidenceRows.map((row, index) => (
                     <Paper
                         className={styles.traceabilityRow}
                         key={`${row.sourceRef}-${index}`}

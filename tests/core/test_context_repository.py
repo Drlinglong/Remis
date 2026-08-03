@@ -11,6 +11,7 @@ from scripts.core.repositories.context_repository import (
 from scripts.schemas.context import (
     ContextAggregate,
     ContextContribution,
+    ContextDeliveryMembership,
     ContextReleaseMetadata,
     ContextSourceItem,
     GeneratedSynthesis,
@@ -148,6 +149,7 @@ def test_context_migration_creates_traceable_storage_and_provenance_checks(tmp_p
             "context_releases",
             "context_drafts",
             "context_release_syntheses",
+            "context_release_delivery_memberships",
             "context_release_overrides",
         } <= tables
     assert repository.get_aggregate("aggregate-republic").contribution_ids == [
@@ -221,6 +223,46 @@ def test_publish_creates_effective_context_and_full_traceability(tmp_path):
     assert traceability[0]["contributions"][0]["source_item"]["source_ref"] == (
         "common/characters.txt:10"
     )
+
+
+def test_release_snapshots_delivery_membership_counts_without_expanding_traceability(tmp_path):
+    repository, _ = _repository(tmp_path)
+    _seed_context(repository, include_second=False)
+    repository.save_aggregate(ContextAggregate(
+        aggregate_id="aggregate-event",
+        project_id="project-1",
+        aggregate_type="event",
+        aggregate_key="event:republic-chain",
+        contribution_ids=["contribution-1"],
+    ))
+    service = ContextService(repository)
+    draft = service.start_draft("project-1")
+    release = service.publish_draft(
+        draft.draft_id,
+        _metadata(),
+        ["aggregate-event"],
+        [GeneratedSynthesis(
+            synthesis_id="synthesis-event",
+            aggregate_id="aggregate-event",
+            context_key="event:republic-chain",
+            content={"summary": "A republic event chain."},
+        )],
+        [ContextDeliveryMembership(
+            aggregate_id="aggregate-event",
+            source_item_id="source-1",
+            role="primary_member",
+            confidence=0.9,
+        )],
+    )
+
+    traceability = service.traceability(release.release_id)
+    assert traceability[0]["delivery_membership"] == {
+        "count": 1,
+        "role_counts": {"primary_member": 1},
+    }
+    memberships = service.delivery_memberships(release.release_id)
+    assert memberships[0]["aggregate"]["aggregate_key"] == "event:republic-chain"
+    assert memberships[0]["source_item"]["source_item_id"] == "source-1"
 
 
 def test_published_release_and_children_are_immutable(tmp_path):

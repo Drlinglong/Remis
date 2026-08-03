@@ -89,6 +89,21 @@ CREATE TABLE IF NOT EXISTS context_release_syntheses (
     UNIQUE(release_id, context_key)
 );
 
+CREATE TABLE IF NOT EXISTS context_release_delivery_memberships (
+    release_id TEXT NOT NULL,
+    aggregate_id TEXT NOT NULL,
+    source_item_id TEXT NOT NULL,
+    role TEXT NOT NULL
+        CHECK(role IN ('primary_member', 'supporting_context', 'theme_related')),
+    confidence REAL NOT NULL CHECK(confidence >= 0.0 AND confidence <= 1.0),
+    provenance TEXT NOT NULL
+        CHECK(provenance IN ('text_inferred', 'script_derived', 'user_confirmed')),
+    reasoning TEXT,
+    PRIMARY KEY(release_id, aggregate_id, source_item_id),
+    FOREIGN KEY(release_id) REFERENCES context_releases(release_id),
+    FOREIGN KEY(source_item_id) REFERENCES context_source_items(source_item_id)
+);
+
 CREATE TABLE IF NOT EXISTS context_drafts (
     draft_id TEXT PRIMARY KEY,
     project_id TEXT NOT NULL,
@@ -127,6 +142,8 @@ CREATE INDEX IF NOT EXISTS ix_context_aggregates_project
     ON context_aggregates(project_id, aggregate_type, aggregate_key);
 CREATE INDEX IF NOT EXISTS ix_context_releases_project
     ON context_releases(project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_context_release_delivery_source
+    ON context_release_delivery_memberships(release_id, source_item_id);
 CREATE INDEX IF NOT EXISTS ix_context_drafts_project_status
     ON context_drafts(project_id, status, updated_at DESC);
 
@@ -157,6 +174,16 @@ BEGIN
 END;
 CREATE TRIGGER IF NOT EXISTS trg_context_release_syntheses_no_delete
 BEFORE DELETE ON context_release_syntheses
+BEGIN
+    SELECT RAISE(ABORT, 'published context releases are immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS trg_context_release_delivery_no_update
+BEFORE UPDATE ON context_release_delivery_memberships
+BEGIN
+    SELECT RAISE(ABORT, 'published context releases are immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS trg_context_release_delivery_no_delete
+BEFORE DELETE ON context_release_delivery_memberships
 BEGIN
     SELECT RAISE(ABORT, 'published context releases are immutable');
 END;

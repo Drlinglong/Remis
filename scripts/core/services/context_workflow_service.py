@@ -18,6 +18,9 @@ from scripts.core.services.context_analysis_checkpoint_service import (
     ContextAnalysisCheckpointService,
 )
 from scripts.core.services.context_chunking_policy import ContextChunkingPolicy
+from scripts.core.services.context_delivery_membership_service import (
+    ContextDeliveryMembershipService,
+)
 from scripts.core.services.context_release_assembler import ContextReleaseAssembler
 from scripts.core.services.context_source_parser import ContextSourceParser, ParsedSourceFile
 from scripts.core.services.context_synthesis_service import ContextSynthesisService
@@ -76,8 +79,8 @@ class ContextWorkflowService:
     DEFAULT_MAX_SOURCE_CHARS = ContextChunkingPolicy.DEFAULT_MAX_SOURCE_CHARS
     CHUNK_SIZE = DEFAULT_MAX_ITEMS
     REVIEW_BATCH_SIZE = ContextCandidateAdapter.REVIEW_BATCH_SIZE
-    SCHEMA_VERSION = "context-v1"
-    PROMPT_VERSION = "context-synthesis-v4"
+    SCHEMA_VERSION = "context-v2"
+    PROMPT_VERSION = "context-synthesis-v5"
     ACTIVE_STATUSES = ContextWorkflowStatusService.ACTIVE_STATUSES
 
     def __init__(
@@ -373,6 +376,9 @@ class ContextWorkflowService:
                 "affected_source_items": self._affected_items(diff),
             }
         aggregates = self.release_assembler.build_aggregates(project_id, contributions)
+        delivery_memberships = ContextDeliveryMembershipService.build(
+            extractions, aggregates, sources,
+        )
         for aggregate in aggregates:
             self.repository.save_aggregate(aggregate)
         source_item_ids = list(sources)
@@ -414,7 +420,11 @@ class ContextWorkflowService:
         draft = self.context_service.start_draft(project_id, parent.release_id if parent else None)
         try:
             release = self.context_service.publish_draft(
-                draft.draft_id, metadata, [item.aggregate_id for item in aggregates], syntheses
+                draft.draft_id,
+                metadata,
+                [item.aggregate_id for item in aggregates],
+                syntheses,
+                delivery_memberships,
             )
         except Exception as exc:
             self.status_service.record_batch(
@@ -433,6 +443,7 @@ class ContextWorkflowService:
             "source_snapshot_hash": snapshot.source_snapshot_hash,
             "affected_source_items": self._affected_items(diff),
             "parent_release_id": parent.release_id if parent else None,
+            "delivery_membership_count": len(delivery_memberships),
         }
 
     @staticmethod

@@ -84,6 +84,13 @@ def test_narrative_context_makes_one_call_and_keeps_contributions_separate():
             "object": "Aether Engine",
             "evidence": [{"source_item_id": "item-1", "snippet": "Another non-source paraphrase"}],
         }],
+        "delivery_assignments": [{
+            "local_unit_id": "unit_0",
+            "event_chain_ids": ["activation-chain"],
+            "role": "primary_member",
+            "confidence": 0.94,
+            "reasoning": "The event unit directly narrates the activation.",
+        }],
     })])
 
     result = StructuredNeologismExtractor(handler).extract(
@@ -97,6 +104,26 @@ def test_narrative_context_makes_one_call_and_keeps_contributions_separate():
     assert result.facts[0].tentative is True
     assert result.relationships[0].provenance == "text_inferred"
     assert result.entities[0].evidence[0].relative_path == "events/first.yml"
+    assert result.delivery_assignments[0].source_item_ids == ["item-1"]
+    assert result.delivery_assignments[0].event_chain_ids == ["activation-chain"]
+    prompt = json.loads(handler.calls[0][0][1]["content"])
+    assert prompt["local_text_units"][0]["item_keys"] == ["curia.activation:0"]
+    system_prompt = " ".join(handler.calls[0][0][0]["content"].split())
+    assert "never prove story-chain membership" in system_prompt
+
+
+def test_missing_delivery_assignment_becomes_explicit_unassigned_without_repair():
+    handler = FakeHandler([json.dumps({
+        "terms": [], "entities": [], "facts": [], "events": [], "relationships": [],
+    })])
+
+    result = StructuredNeologismExtractor(handler).extract(
+        [source_item()], scope=AnalysisScope.NARRATIVE_CONTEXT
+    )
+
+    assert len(handler.calls) == 1
+    assert result.delivery_assignments[0].role == "unassigned"
+    assert result.delivery_assignments[0].source_item_ids == ["item-1"]
 
 
 def test_model_schema_does_not_expose_backend_owned_metadata():
@@ -110,6 +137,7 @@ def test_model_schema_does_not_expose_backend_owned_metadata():
     definitions = schema["$defs"]
     assert "provenance" not in definitions["SourceEvidence"]["properties"]
     assert "provenance" not in definitions["EntityContribution"]["properties"]
+    assert "source_item_ids" not in definitions["DeliveryAssignment"]["properties"]
     for definition in ("FactContribution", "EventChainContribution", "RelationshipContribution"):
         assert "provenance" not in definitions[definition]["properties"]
         assert "tentative" not in definitions[definition]["properties"]

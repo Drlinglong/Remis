@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from scripts.core.context_local_units import ContextLocalUnitBuilder, DeliveryAssignment
 from scripts.core.neologism_extraction import (
     AnalysisScope,
     EntityContribution,
@@ -102,7 +103,9 @@ class FakeContextService:
         self.drafts[draft.draft_id] = draft
         return draft
 
-    def publish_draft(self, draft_id, metadata, aggregate_ids, syntheses):
+    def publish_draft(
+        self, draft_id, metadata, aggregate_ids, syntheses, delivery_memberships=(),
+    ):
         draft = self.drafts[draft_id]
         release_id = f"release-{len(self.repository.releases) + 1}"
         release = ContextRelease(
@@ -114,6 +117,7 @@ class FakeContextService:
         self.snapshots[release_id] = {
             "aggregate_ids": list(aggregate_ids),
             "syntheses": list(syntheses),
+            "delivery_memberships": list(delivery_memberships),
             "contribution_ids": {
                 aggregate_id: list(self.repository.aggregates[aggregate_id].contribution_ids)
                 for aggregate_id in aggregate_ids
@@ -159,8 +163,19 @@ class FakeMiner:
             relationships.append(RelationshipContribution(
                 subject="Republic", relation="protects", object="gate", evidence=[evidence]
             ))
+        assignments = [
+            DeliveryAssignment(
+                local_unit_id=unit.unit_id,
+                event_chain_ids=["republic-chain"],
+                role="primary_member",
+                confidence=0.9,
+                source_item_ids=[item.source_item_id for item in unit.items],
+            )
+            for unit in ContextLocalUnitBuilder.build(source_items)
+        ]
         return StructuredNeologismExtraction(
-            terms=terms, entities=entities, facts=facts, events=events, relationships=relationships
+            terms=terms, entities=entities, facts=facts, events=events,
+            relationships=relationships, delivery_assignments=assignments,
         )
 
     def review_terms(self, candidates, **kwargs):
@@ -689,8 +704,8 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
     release = repo.releases["release-1"]
     assert release.metadata.provider_id == "local"
     assert release.metadata.model_id == "fake-model"
-    assert release.metadata.schema_version == "context-v1"
-    assert release.metadata.prompt_version == "context-synthesis-v4"
+    assert release.metadata.schema_version == "context-v2"
+    assert release.metadata.prompt_version == "context-synthesis-v5"
     assert release.metadata.analysis_config["description_language"] == "zh-CN"
     assert "Simplified Chinese (zh-CN)" in handler.calls[0][0]["content"]
     assert any(
@@ -702,6 +717,8 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
         item.context_key == "project:summary"
         for item in service.context_service.snapshots["release-1"]["syntheses"]
     )
+    assert first["delivery_membership_count"] == 2
+    assert len(service.context_service.snapshots["release-1"]["delivery_memberships"]) == 2
     first_sources = set(repo.sources)
 
     source.write_text('l_english:\n first_key:0 "The Republic appoints a consul."\n', encoding="utf-8")

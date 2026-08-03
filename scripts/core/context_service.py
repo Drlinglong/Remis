@@ -7,6 +7,7 @@ from typing import Iterable
 from scripts.core.repositories.context_repository import ContextRepository
 from scripts.schemas.context import (
     ContextDraft,
+    ContextDeliveryMembership,
     ContextRelease,
     ContextReleaseMetadata,
     EffectiveContext,
@@ -41,6 +42,7 @@ class ContextService:
         metadata: ContextReleaseMetadata,
         aggregate_ids: Iterable[str],
         generated_syntheses: Iterable[GeneratedSynthesis],
+        delivery_memberships: Iterable[ContextDeliveryMembership] = (),
     ) -> ContextRelease:
         """Create a new immutable release from current aggregate snapshots and draft edits."""
         return self.repository.publish_draft(
@@ -48,6 +50,7 @@ class ContextService:
             metadata,
             aggregate_ids,
             generated_syntheses,
+            delivery_memberships,
         )
 
     def effective_context(self, release_id: str) -> EffectiveContext | None:
@@ -59,3 +62,6 @@ class ContextService:
 
     def traceability(self, release_id: str) -> list[dict]:
         return self.repository.get_release_traceability(release_id)
+
+    def delivery_memberships(self, release_id: str) -> list[dict]:
+        return self.repository.list_release_delivery_memberships(release_id)

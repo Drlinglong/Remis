@@ -14,6 +14,11 @@ from typing import Any, Dict, Iterable, List, Literal, Optional, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, field_validator
 
+from scripts.core.context_local_units import (
+    ContextLocalUnitBuilder,
+    DeliveryAssignment,
+    LocalTextUnit,
+)
 from scripts.core.services.source_snapshot_service import normalize_relative_path, normalize_source_key
 
 
@@ -138,6 +143,7 @@ class StructuredNeologismExtraction(BaseModel):
     facts: List[FactContribution] = Field(default_factory=list, max_length=50)
     events: List[EventChainContribution] = Field(default_factory=list, max_length=50)
     relationships: List[RelationshipContribution] = Field(default_factory=list, max_length=100)
+    delivery_assignments: List[DeliveryAssignment] = Field(default_factory=list, max_length=80)
 
 
 EXTRACTION_ADAPTER = TypeAdapter(StructuredNeologismExtraction)
@@ -155,6 +161,7 @@ class StructuredNeologismExtractor:
         "FactContribution": ("provenance", "tentative"),
         "EventChainContribution": ("provenance", "tentative"),
         "RelationshipContribution": ("provenance", "tentative"),
+        "DeliveryAssignment": ("source_item_ids",),
     }
     _BACKEND_METADATA_BY_COLLECTION = {
         "entities": {"provenance": "text_inferred"},
@@ -184,6 +191,10 @@ do not defer ordinary translation recommendations to a later review call.
   key families, event numbers, and suffixes such as `.name`, `.desc`, and
   option keys to understand adjacency and event-chain roles. Do not mistake a
   localization key for prose or extract the key itself as a term.
+- Treat each supplied local_text_unit only as a conservative local grouping.
+  Suffix conventions vary between games and authors; similar keys, adjacency,
+  comments, and file boundaries are useful clues but never prove story-chain
+  membership without supporting text semantics.
 - Every evidence.source_item_id MUST be one of the supplied short source aliases.
 - The backend maps each valid alias to the stable source item identity. Never
   invent an alias or use an alias from another call.
@@ -198,6 +209,16 @@ do not defer ordinary translation recommendations to a later review call.
 - Do not return `provenance` or `tentative` fields. The backend assigns this
   fixed metadata after validating the model-authored content and evidence.
 - Events belong in `events` as event-chain objects, not inside entity descriptions.
+- In `narrative_context`, return exactly one `delivery_assignments` item for
+  every supplied local_text_unit. Use the supplied local_unit_id unchanged.
+  Each assignment identifies which event-chain summaries should be delivered
+  when any source item in that unit is translated. This is broader than sparse
+  evidence: every unit must be assigned or explicitly marked `unassigned`.
+- Every non-empty event_chain_ids value must exactly match a chain_id returned
+  in this response's `events` array. Use `primary_member` for event prose,
+  `supporting_context` for directly related projects/modifiers/resources, and
+  `theme_related` only for broad background. Use `unassigned` with an empty
+  event_chain_ids array when the batch does not support a reliable decision.
 - Use only these entity_type values: "person", "place", "organization/faction",
   "technology/concept", "item/other".
 - For term categories use exactly: "person", "place", "faction", "concept", "technology", or "other".
@@ -218,7 +239,10 @@ Return only this JSON shape, with no markdown:
     "participants":[],"consequence":"...",
     "evidence":[{{"source_item_id":"source_0"}}]}}],
   "relationships": [{{"subject":"...","relation":"...","object":"...",
-    "evidence":[{{"source_item_id":"source_0"}}]}}]
+    "evidence":[{{"source_item_id":"source_0"}}]}}],
+  "delivery_assignments": [{{"local_unit_id":"unit_0",
+    "event_chain_ids":["example_chain"],"role":"primary_member",
+    "confidence":0.9,"reasoning":"..."}}]
 }}
 """
 
@@ -241,6 +265,7 @@ Return only this JSON shape, with no markdown:
         if not items:
             raise NeologismMiningError("Cannot extract from an empty source chunk")
         source_aliases = self._source_aliases(items)
+        local_units = ContextLocalUnitBuilder.build(items)
         messages = [
             {
                 "role": "system",
@@ -263,6 +288,9 @@ Return only this JSON shape, with no markdown:
                             }
                             for item in items
                         ],
+                        "local_text_units": [
+                            unit.prompt_payload(source_aliases) for unit in local_units
+                        ] if scope is AnalysisScope.NARRATIVE_CONTEXT else [],
                     },
                     ensure_ascii=False,
                     sort_keys=True,
@@ -275,6 +303,7 @@ Return only this JSON shape, with no markdown:
             scope,
             allow_legacy_term_array,
             source_aliases,
+            local_units,
         )
 
     def extract_chunks(
@@ -346,6 +375,7 @@ Return only this JSON shape, with no markdown:
         scope: AnalysisScope,
         allow_legacy_term_array: bool,
         source_aliases: Dict[str, str],
+        local_units: Sequence[LocalTextUnit],
     ) -> StructuredNeologismExtraction:
         response = self._generate(messages)
         try:
@@ -355,6 +385,7 @@ Return only this JSON shape, with no markdown:
                 scope,
                 allow_legacy_term_array,
                 source_aliases,
+                local_units,
             )
         except (json.JSONDecodeError, ValidationError, TypeError, ValueError, NeologismMiningError) as first_error:
             repair_messages = messages + [
@@ -377,6 +408,7 @@ Return only this JSON shape, with no markdown:
                     scope,
                     allow_legacy_term_array,
                     source_aliases,
+                    local_units,
                 )
             except (json.JSONDecodeError, ValidationError, TypeError, ValueError, NeologismMiningError) as second_error:
                 category = self._validation_error_category(second_error)
@@ -599,6 +631,7 @@ Return only this JSON shape, with no markdown:
         scope: AnalysisScope,
         allow_legacy_term_array: bool,
         source_aliases: Dict[str, str],
+        local_units: Sequence[LocalTextUnit],
     ) -> StructuredNeologismExtraction:
         extraction = self._parse_payload(
             response,
@@ -606,7 +639,7 @@ Return only this JSON shape, with no markdown:
             allow_legacy_term_array,
             source_aliases,
         )
-        self._validate_grounding(extraction, source_items, scope)
+        self._validate_grounding(extraction, source_items, scope, local_units)
         return extraction
 
     @classmethod
@@ -690,6 +723,7 @@ Return only this JSON shape, with no markdown:
         extraction: StructuredNeologismExtraction,
         source_items: Sequence[SourceItem],
         scope: AnalysisScope,
+        local_units: Sequence[LocalTextUnit],
     ) -> None:
         if scope is AnalysisScope.TERMS_ONLY and any(
             (extraction.entities, extraction.facts, extraction.events, extraction.relationships)
@@ -701,6 +735,7 @@ Return only this JSON shape, with no markdown:
             extraction.facts = []
             extraction.events = []
             extraction.relationships = []
+            extraction.delivery_assignments = []
         if sum(len(getattr(extraction, field)) for field in ("terms", "entities", "facts", "events", "relationships")) > cls.MAX_TOTAL_CONTRIBUTIONS:
             raise NeologismMiningError("Structured extraction exceeded the contribution safety limit")
         lookup = {item.source_item_id: item for item in source_items}
@@ -709,3 +744,33 @@ Return only this JSON shape, with no markdown:
         extraction.facts = cls._filter_grounded_contributions(extraction.facts, lookup)
         extraction.events = cls._filter_grounded_contributions(extraction.events, lookup)
         extraction.relationships = cls._filter_grounded_contributions(extraction.relationships, lookup)
+        if scope is AnalysisScope.NARRATIVE_CONTEXT:
+            extraction.delivery_assignments = cls._normalized_delivery_assignments(
+                extraction, local_units,
+            )
+
+    @staticmethod
+    def _normalized_delivery_assignments(
+        extraction: StructuredNeologismExtraction,
+        local_units: Sequence[LocalTextUnit],
+    ) -> list[DeliveryAssignment]:
+        valid_chains = {item.chain_id.casefold(): item.chain_id for item in extraction.events}
+        received = {item.local_unit_id: item for item in extraction.delivery_assignments}
+        normalized = []
+        for unit in local_units:
+            assignment = received.get(unit.unit_id)
+            chains = list(dict.fromkeys(
+                valid_chains[chain.casefold()]
+                for chain in (assignment.event_chain_ids if assignment else [])
+                if chain.casefold() in valid_chains
+            ))
+            role = assignment.role if assignment and chains else "unassigned"
+            normalized.append(DeliveryAssignment(
+                local_unit_id=unit.unit_id,
+                event_chain_ids=chains,
+                role=role,
+                confidence=assignment.confidence if assignment else 0.0,
+                reasoning=assignment.reasoning if assignment else "No model assignment returned.",
+                source_item_ids=[item.source_item_id for item in unit.items],
+            ))
+        return normalized

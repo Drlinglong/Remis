@@ -254,7 +254,9 @@ export const getArchiveCounts = (effectiveResponse) => {
 export const getTraceabilityRows = (traceability = []) => (
     (Array.isArray(traceability) ? traceability : []).flatMap((record) => {
         const aggregate = asObject(record?.aggregate);
-        return (Array.isArray(record?.contributions) ? record.contributions : []).map((item) => {
+        const delivery = asObject(record?.delivery_membership);
+        const contributions = Array.isArray(record?.contributions) ? record.contributions : [];
+        const rows = contributions.map((item) => {
             const contribution = asObject(item?.contribution);
             const source = asObject(item?.source_item);
             return {
@@ -264,8 +266,19 @@ export const getTraceabilityRows = (traceability = []) => (
                 provenance: contribution.provenance || 'text_inferred',
                 sourceRef: source.source_ref || source.source_item_id || '',
                 sourceContent: source.content || '',
+                deliveryMembershipCount: Number(delivery.count || 0),
             };
         });
+        return rows.length > 0 ? rows : [{
+            aggregateKey: aggregate.aggregate_key || '',
+            aggregateType: aggregate.aggregate_type || 'entity',
+            contributionType: 'mention',
+            provenance: 'text_inferred',
+            sourceRef: '',
+            sourceContent: '',
+            deliveryMembershipCount: Number(delivery.count || 0),
+            placeholder: true,
+        }];
     })
 );
 

@@ -131,10 +131,15 @@ const archiveTranslations = {
   'mod_archive.release.contribution_type.event': '事件',
   'mod_archive.release.traceability_title': '源文件来源依据与可追溯性',
   'mod_archive.release.traceability_desc': '按项目、事件与实体检查每个展示对象的来源证据。',
+  'mod_archive.release.evidence_membership_count': '摘要证据：{{count}}',
+  'mod_archive.release.delivery_membership_count': '翻译覆盖：{{count}}',
   'mod_archive.release.traceability_empty': '此版本没有可用的追踪记录。',
 };
 
-const archiveT = (key) => archiveTranslations[key] || key;
+const archiveT = (key, options = {}) => String(archiveTranslations[key] || key).replace(
+  /\{\{(\w+)\}\}/g,
+  (_match, name) => String(options[name] ?? `{{${name}}}`),
+);
 
 function PublishedArchiveVisualFixture() {
   const entries = [
@@ -175,6 +180,7 @@ function PublishedArchiveVisualFixture() {
     provenance: index % 2 === 0 ? 'text_inferred' : 'script_derived',
     sourceRef: `localisation/english/remis_crisis_l_english.yml::${index + 1}:${entry.label}`,
     sourceContent: `Source evidence for ${entry.label}.`,
+    deliveryMembershipCount: entry.kind === 'event' ? 42 : 0,
   }]));
   return (
     <Box
@@ -192,7 +198,7 @@ function PublishedArchiveVisualFixture() {
             provider_id: 'openrouter',
             model_id: 'openai/gpt-5.6-luna',
             source_snapshot_hash: 'a5b118aa79b335e36bb456a19f4e8300d484b2ca0d8d1288ef6136aa51c737ba',
-            schema_version: 'context-v1',
+            schema_version: 'context-v2',
             prompt_version: 'context-synthesis-v3',
             analysis_config: { description_language: 'zh-CN', temperature: 0 },
             prompt_example: 'System message:\nSummarize source-grounded localization context in Simplified Chinese.\n\nUser message:\nExample source evidence.',

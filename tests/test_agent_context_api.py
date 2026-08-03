@@ -90,6 +90,10 @@ class FakeContextService:
                         },
                     }
                 ],
+                "delivery_membership": {
+                    "count": 12,
+                    "role_counts": {"primary_member": 10, "supporting_context": 2},
+                },
             }
         ]
 
@@ -165,6 +169,8 @@ def test_agent_context_effective_and_traceability_are_selected_and_bounded():
     assert item.syntheses[0].context_key == "context.remis"
     assert item.source_evidence[0].source_ref == "localization/events.yml::0:remis_name"
     assert item.source_evidence[0].content_excerpt == "Remis enters the Meridian Gate."
+    assert item.delivery_membership_count == 12
+    assert item.delivery_role_counts == {"primary_member": 10, "supporting_context": 2}
     assert "never-return" not in trace.model_dump_json()
     assert "C:/private" not in trace.model_dump_json()
 

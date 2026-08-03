@@ -92,6 +92,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (12, "track_bundled_seed_state"),
         (13, "add_context_release_storage"),
         (14, "add_context_analysis_batch_storage"),
+        (15, "add_context_delivery_memberships"),
     ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
@@ -203,6 +204,7 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
         (12,),
         (13,),
         (14,),
+        (15,),
     ]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")
@@ -344,6 +346,27 @@ def test_migration_rejects_future_schema_version(tmp_path):
 
     with pytest.raises(UnsupportedDatabaseVersionError, match="newer than this Remis build"):
         migrate_main_database(str(db_path))
+
+
+def test_existing_v14_database_adds_context_delivery_memberships(tmp_path):
+    db_path = tmp_path / "context-delivery-upgrade.sqlite"
+    migrate_main_database(str(db_path))
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("DROP TRIGGER trg_context_release_delivery_no_update")
+        conn.execute("DROP TRIGGER trg_context_release_delivery_no_delete")
+        conn.execute("DROP TABLE context_release_delivery_memberships")
+        conn.execute("DELETE FROM schema_migrations WHERE version = 15")
+
+    assert migrate_main_database(str(db_path)) == MAIN_DB_TARGET_VERSION
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' "
+            "AND name = 'context_release_delivery_memberships'"
+        ).fetchone()[0] == 1
+        assert conn.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' "
+            "AND name LIKE 'trg_context_release_delivery_%'"
+        ).fetchone()[0] == 2
 
 
 def test_status_contract_triggers_reject_unknown_values(tmp_path):
