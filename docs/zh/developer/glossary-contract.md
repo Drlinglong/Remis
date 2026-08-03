@@ -141,6 +141,12 @@ Issue [#30](https://github.com/Drlinglong/Remis/issues/30) 定义的原始问题
 
 “自动准备一本空项目词典”与“自动接受新词”是不同副作用，文档和 UI 不得混淆。
 
+模组档案的候选治理会在全局别名归并与程序化覆盖计算后给出 `glossary_eligible`。该字段
+只允许候选进入 review/save 管线，不能跳过审判庭审批。`incidental_concept` 默认
+`audit_only`，不会进入候选 sidecar；核心或次要的 `glossary_term`、`named_phrase` 可以
+进入候选池，但即使属于核心档也不会因此生成实体摘要。详见
+[项目档案候选治理契约](context-candidate-governance.md)。
+
 模型健康审查器只返回建议；任何模型建议要改变词条，仍需走明确的人类确认和写入入口。
 
 产品要求新词挖掘机作为建议的译前步骤，审判庭作为所有 AI 候选的强制人工关口，项目
