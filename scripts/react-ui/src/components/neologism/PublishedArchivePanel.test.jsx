@@ -4,6 +4,7 @@ import { MantineProvider } from '@mantine/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import api from '../../utils/api';
+import { formatContextSchemaVersion } from './PublishedArchiveContent';
 import PublishedArchivePanel from './PublishedArchivePanel';
 
 vi.mock('react-i18next', () => ({
@@ -81,6 +82,12 @@ describe('PublishedArchivePanel', () => {
             }
             throw new Error(`Unexpected GET ${url}`);
         });
+    });
+
+    it('derives a readable semantic label from future context schema revisions', () => {
+        expect(formatContextSchemaVersion('context-v2')).toBe('v0.0.2');
+        expect(formatContextSchemaVersion('context-v27')).toBe('v0.0.27');
+        expect(formatContextSchemaVersion('custom-schema')).toBe('custom-schema');
     });
 
     it('renders immutable metadata, effective overrides, and summaries without edit controls', async () => {

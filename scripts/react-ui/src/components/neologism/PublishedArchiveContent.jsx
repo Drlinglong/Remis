@@ -29,7 +29,11 @@ const CODE_LABELS = {
 };
 
 const KIND_ORDER = { project: 0, event: 1, entity: 2 };
-const SCHEMA_VERSION_LABELS = { 'context-v1': 'v0.0.1' };
+
+export const formatContextSchemaVersion = (value) => {
+    const match = /^context-v(\d+)$/.exec(value || '');
+    return match ? `v0.0.${match[1]}` : value;
+};
 
 const formatValue = (value) => {
     if (typeof value === 'string') return value;
@@ -83,8 +87,7 @@ export const ReleaseMetadata = ({
     const scopeLabel = t(`mod_archive.release.analysis_scopes.${scope}`, {
         defaultValue: scope,
     });
-    const schemaLabel = SCHEMA_VERSION_LABELS[release.metadata?.schema_version]
-        || release.metadata?.schema_version;
+    const schemaLabel = formatContextSchemaVersion(release.metadata?.schema_version);
     return (
         <Paper className={styles.releaseHeader} p="lg" withBorder data-remis-surface="surface">
         <Stack gap="md">
