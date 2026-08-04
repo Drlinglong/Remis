@@ -97,11 +97,14 @@ ID and can never receive delivery membership.
 
 Every final chain must merge its positive and negative boundaries from the
 source cards into boundary_includes and boundary_excludes. anchor_unit_ids are
-the small set of primary units that establish the chain's identity; choose them
-from the source cards' primary_unit_ids. evidence_unit_ids remain a separate,
-representative subset for synthesis and may overlap anchors. A final chain that
-collapses several sibling quests, or lacks a concrete negative boundary, is
-invalid. Do not rewrite boundaries as generic theme descriptions.
+the small set of grounded units that establish the chain's identity; choose
+them only from the source cards' primary_unit_ids or evidence_unit_ids. Local
+delivery hints are deliberately sparse, so grounded event evidence remains a
+valid anchor when the same unit was omitted from primary_unit_ids.
+evidence_unit_ids remain a separate, representative subset for synthesis and
+may overlap anchors. A final chain that collapses several sibling quests, or
+lacks a concrete negative boundary, is invalid. Do not rewrite boundaries as
+generic theme descriptions.
 
 Return exactly one compact proposal_resolution for every proposal_id. Use
 reject_non_event for a card that is only a static/theme collection. Do not omit

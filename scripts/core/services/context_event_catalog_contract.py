@@ -188,13 +188,16 @@ def validate_anchor_sources(
     dispositions: Sequence[LocalChainDisposition],
     cards: Sequence[dict[str, Any]],
 ) -> None:
-    """Require final chain identities to retain local primary anchors."""
+    """Require final chain identities to retain grounded local anchors."""
 
     card_by_id = {card["proposal_id"]: card for card in cards}
     allowed: dict[str, set[str]] = {}
     for disposition in dispositions:
         card = card_by_id[disposition.proposal_id]
-        source_units = set(card.get("primary_unit_ids", ()))
+        source_units = {
+            *card.get("primary_unit_ids", ()),
+            *card.get("evidence_unit_ids", ()),
+        }
         for chain_id in disposition.final_chain_ids:
             allowed.setdefault(chain_id, set()).update(source_units)
     invalid = {
@@ -203,7 +206,10 @@ def validate_anchor_sources(
         if not set(chain.anchor_unit_ids) <= allowed.get(chain.chain_id, set())
     }
     if invalid:
-        raise ValueError(f"Final chain anchors must come from local primary hints: {invalid}")
+        raise ValueError(
+            "Final chain anchors must come from local primary hints or grounded event "
+            f"evidence: {invalid}"
+        )
 
 
 def _duplicates(values: Any) -> list[str]:

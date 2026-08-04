@@ -445,6 +445,41 @@ def test_parent_story_can_be_grounded_by_child_chains_without_a_promotion_card()
     assert [story.story_id for story in catalog.parent_stories] == ["toxic_story"]
 
 
+def test_grounded_event_evidence_can_anchor_when_sparse_primary_hint_is_omitted():
+    units = _units(3)
+    extraction = _extraction(units)
+    extraction.delivery_assignments = extraction.delivery_assignments[:1]
+    response = _catalog_response(units)
+    response["final_chains"][0]["anchor_unit_ids"] = [units[1].unit_id]
+    handler = FakeHandler([json.dumps(response)])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [extraction]
+    )
+
+    assert catalog.repair_count == 0
+    assert catalog.final_chains[0].anchor_unit_ids == [units[1].unit_id]
+    assert catalog.local_chain_cards[0]["primary_unit_ids"] == [units[0].unit_id]
+    assert units[1].unit_id in catalog.local_chain_cards[0]["evidence_unit_ids"]
+
+
+def test_anchor_cannot_use_unrelated_valid_unit_outside_card_sources():
+    units = _units(3)
+    invalid = _catalog_response(units)
+    invalid["final_chains"][0]["anchor_unit_ids"] = [units[2].unit_id]
+    handler = FakeHandler([
+        json.dumps(invalid),
+        json.dumps(_catalog_response(units)),
+    ])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [_extraction(units)]
+    )
+
+    assert catalog.repair_count == 1
+    assert "primary hints or grounded event evidence" in handler.calls[1][-1]["content"]
+
+
 def test_assignment_repair_is_limited_to_the_failed_unit_batch():
     units = _units()
     invalid = _assignment_response(units)
