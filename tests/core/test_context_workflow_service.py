@@ -351,6 +351,39 @@ def test_reservation_is_owned_and_released_by_context_workflow_status():
     assert service.reserve("project-1", "task-2", AnalysisScope.NARRATIVE_CONTEXT) is True
 
 
+def test_tree_v2_receives_resolved_context_concurrency():
+    service = _service(FakeRepository())
+    captured = {}
+    service.tree_v2_workflow = SimpleNamespace(
+        run=lambda **kwargs: captured.update(kwargs) or {},
+    )
+    service._complete = lambda *_args, **_kwargs: None
+
+    service._execute_tree_v2({
+        "project_id": "project-1",
+        "project_title": "Project",
+        "task_id": "task-1",
+        "snapshot": SimpleNamespace(source_snapshot_hash="snapshot-1"),
+        "source_items": (),
+        "local_units": (),
+        "chunks": (),
+        "scope": AnalysisScope.NARRATIVE_CONTEXT,
+        "api_provider": "openrouter",
+        "model_name": "openai/gpt-5.6-luna",
+        "source_lang": "en",
+        "target_lang": "zh-CN",
+        "game_name": "Stellaris",
+        "effective_description_language": "zh-CN",
+        "duplicate_index": {},
+        "analysis_run": None,
+        "usage_ledger": ContextModelUsageLedger(),
+        "effective_concurrency": 5,
+        "parsed_files": (),
+    })
+
+    assert captured["concurrency"] == 5
+
+
 def test_prompt_example_exposes_all_three_model_stages():
     example = ContextWorkflowService.prompt_example("zh-CN")
 

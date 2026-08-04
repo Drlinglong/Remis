@@ -134,15 +134,11 @@ class ContextTreeV2WorkflowService:
             catalog,
             expected_unit_ids=expected_unit_ids,
         )
-        reference_assets = [
-            route.local_unit_id for route in routes if route.route == "reference_asset"
-        ]
         translation_contexts = ContextTreeV2ContextService.project_all_translation_contexts(
             projection,
             catalog.catalog,
             fragments,
             project_summary=project_summary,
-            related_reference_asset_unit_ids=reference_assets,
         )
         catalog_calls = int(catalog.diagnostics.get("model_call_count", 0))
         return ContextTreeV2WorkflowResult(

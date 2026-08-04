@@ -279,6 +279,35 @@ def test_program_projection_and_context_assembly_do_not_synthesize_or_order_sibl
     assert reference_context.route == "reference_asset"
 
 
+def test_project_with_many_reference_assets_keeps_them_out_of_per_unit_context():
+    routes = [
+        UnitRoute(local_unit_id=f"unit_{index}", route="reference_asset")
+        for index in range(111)
+    ]
+    catalog = ContextTreeCatalog()
+    projection = ContextTreeV2ProjectionService.project(
+        routes,
+        catalog,
+        expected_unit_ids=[route.local_unit_id for route in routes],
+    )
+
+    contexts = ContextTreeV2ContextService.project_all_translation_contexts(
+        projection,
+        catalog,
+        (),
+        project_summary="Project overview",
+    )
+
+    assert len(contexts) == 111
+    assert all(context.route == "reference_asset" for context in contexts)
+    assert all(context.event_groups == [] for context in contexts)
+    assert all(context.project_summary == "Project overview" for context in contexts)
+    assert all(
+        "related_reference_asset_unit_ids" not in context.model_dump()
+        for context in contexts
+    )
+
+
 def test_terms_only_v2_skips_catalog_and_assignment_or_synthesis_calls():
     handler = StructuredFakeHandler([json.dumps({
         **_extraction_payload(),

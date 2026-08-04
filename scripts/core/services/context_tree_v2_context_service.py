@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Sequence
+from typing import Sequence
 
 from scripts.core.services.context_tree_v2_contract import (
     ContextTreeCatalog,
@@ -64,7 +64,6 @@ class ContextTreeV2ContextService:
         group_contexts: Sequence[EventGroupContext],
         *,
         project_summary: str = "",
-        related_reference_asset_unit_ids: Iterable[str] = (),
     ) -> TranslationContextProjection:
         contexts_by_id = {context.group_id: context for context in group_contexts}
         missing_groups = {
@@ -80,15 +79,11 @@ class ContextTreeV2ContextService:
             if projected_route.receives_event_context
             else []
         )
-        reference_assets = tuple(dict.fromkeys(
-            str(unit_id) for unit_id in related_reference_asset_unit_ids
-        ))
         return TranslationContextProjection(
             local_unit_id=projected_route.local_unit_id,
             route=projected_route.route,
             project_summary=project_summary,
             event_groups=event_groups,
-            related_reference_asset_unit_ids=list(reference_assets),
             unresolved_fragment_ids=list(projected_route.unresolved_fragment_ids),
         )
 
@@ -100,7 +95,6 @@ class ContextTreeV2ContextService:
         fragments: Sequence[LocalFragment],
         *,
         project_summary: str = "",
-        related_reference_asset_unit_ids: Iterable[str] = (),
     ) -> tuple[TranslationContextProjection, ...]:
         groups = cls.build_group_contexts(catalog, fragments)
         return tuple(
@@ -108,7 +102,6 @@ class ContextTreeV2ContextService:
                 route,
                 groups,
                 project_summary=project_summary,
-                related_reference_asset_unit_ids=related_reference_asset_unit_ids,
             )
             for route in projection.unit_routes
         )

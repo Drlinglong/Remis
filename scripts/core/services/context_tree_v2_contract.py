@@ -281,7 +281,6 @@ class TranslationContextProjection(BaseModel):
     route: TreeRoute
     project_summary: str = ""
     event_groups: list[EventGroupContext] = Field(default_factory=list, max_length=80)
-    related_reference_asset_unit_ids: list[str] = Field(default_factory=list, max_length=80)
     unresolved_fragment_ids: list[str] = Field(default_factory=list, max_length=8)
 
     @property

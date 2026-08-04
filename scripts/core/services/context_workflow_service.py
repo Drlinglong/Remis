@@ -295,6 +295,7 @@ class ContextWorkflowService:
             description_language=values["effective_description_language"],
             duplicate_index=values["duplicate_index"] or {},
             analysis_run=values["analysis_run"], usage_ledger=values["usage_ledger"],
+            concurrency=values["effective_concurrency"],
         )
         if values["analysis_run"] is not None:
             self._finalize_analysis_run(values["analysis_run"], result)

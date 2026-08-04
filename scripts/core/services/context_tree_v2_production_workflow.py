@@ -31,8 +31,8 @@ from scripts.core.services.context_tree_v2_context_service import (
 from scripts.core.services.context_tree_v2_entity_digest import (
     ContextTreeV2EntityDigestService,
 )
-from scripts.core.services.context_tree_v2_extraction_service import (
-    ContextTreeV2ExtractionService,
+from scripts.core.services.context_tree_v2_extraction_execution_service import (
+    ContextTreeV2ExtractionExecutionService,
 )
 from scripts.core.services.context_tree_v2_projection_service import (
     ContextTreeV2ProjectionService,
@@ -87,12 +87,26 @@ class ContextTreeV2ProductionWorkflowService:
         duplicate_index: dict[str, list[dict[str, Any]]],
         analysis_run: Any | None,
         usage_ledger: ContextModelUsageLedger,
+        concurrency: int,
     ) -> dict[str, Any]:
         scope = AnalysisScope(scope)
-        extractions = self._extract(
-            project_id, task_id, chunks, scope, api_provider, model_name,
-            game_name, target_language, description_language, usage_ledger,
-            analysis_run,
+        extractions = ContextTreeV2ExtractionExecutionService(
+            handler_factory=self.handler_factory,
+            checkpoints=self.checkpoints,
+            status_service=self.status_service,
+            usage_ledger=usage_ledger,
+        ).execute(
+            chunks,
+            scope=scope,
+            game_name=game_name,
+            project_id=project_id,
+            task_id=task_id,
+            target_language=target_language,
+            reasoning_language=description_language,
+            analysis_run=analysis_run,
+            api_provider=api_provider,
+            model_name=model_name,
+            concurrency=concurrency,
         )
         term_result = self._term_result(extractions, source_language)
         if scope is AnalysisScope.TERMS_ONLY:
@@ -125,67 +139,6 @@ class ContextTreeV2ProductionWorkflowService:
             analysis_run=analysis_run,
             usage_ledger=usage_ledger,
         )
-
-    def _extract(
-        self,
-        project_id: str,
-        task_id: str | None,
-        chunks: Sequence[ContextUnitChunk],
-        scope: AnalysisScope,
-        api_provider: str,
-        model_name: str | None,
-        game_name: str,
-        target_language: str,
-        description_language: str,
-        ledger: ContextModelUsageLedger,
-        analysis_run: Any | None,
-    ) -> tuple[Any, ...]:
-        self.status_service.begin_stage(project_id, task_id, "extracting", len(chunks))
-        results = []
-        for index, chunk in enumerate(chunks):
-            batch_id = f"tree-v2-extraction-{index}"
-            source_ids = [item.source_item_id for item in chunk.source_items]
-            restored = self.checkpoints.restore_extraction(
-                analysis_run, index, source_ids,
-            )
-            if restored is not None:
-                results.append(restored)
-                self.status_service.record_batch(
-                    project_id, task_id, "extracting", batch_id, success=True,
-                    source_item_ids=source_ids, resumed=True,
-                )
-                continue
-            handler = self.handler_factory(api_provider, model_name=model_name)
-            try:
-                result = ContextTreeV2ExtractionService(handler).extract_structured(
-                    list(chunk.source_items),
-                    scope=scope,
-                    game_name=game_name,
-                    target_language=target_language,
-                    reasoning_language=description_language,
-                    core_units=chunk.core_units,
-                    edge_units=chunk.edge_units,
-                    chunk_edge_metadata=chunk.edge_metadata,
-                )
-                results.append(result)
-                self.checkpoints.save_extraction(
-                    analysis_run, index, source_ids, result,
-                )
-                self.status_service.record_batch(
-                    project_id, task_id, "extracting", batch_id, success=True,
-                    source_item_ids=source_ids,
-                )
-            except Exception as error:
-                self.status_service.record_batch(
-                    project_id, task_id, "extracting", batch_id, success=False,
-                    source_item_ids=source_ids,
-                    error=str(error),
-                )
-                raise
-            finally:
-                ledger.capture(handler, "tree_v2_extraction")
-        self.status_service.complete_stage(project_id, task_id, "extracting")
-        return tuple(results)
 
     @staticmethod
     def _term_result(extractions: Sequence[Any], source_language: str) -> Any:
@@ -309,10 +262,6 @@ class ContextTreeV2ProductionWorkflowService:
         )
         contexts = ContextTreeV2ContextService.project_all_translation_contexts(
             projection, catalog.catalog, fragments, project_summary="",
-            related_reference_asset_unit_ids=[
-                route.local_unit_id for route in routes
-                if route.route == "reference_asset"
-            ],
         )
         self.status_service.record_batch(
             values["project_id"], values["task_id"], "aggregating",
