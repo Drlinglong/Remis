@@ -78,12 +78,16 @@ def _extraction(units):
 
 def _catalog_response(units):
     return {
+        "parent_stories": [],
         "final_chains": [{
             "chain_id": "knight_returns",
             "event": "A hunted knight seeks aid and returns.",
             "sequence": 0,
             "participants": ["knight"],
             "consequence": "The knight survives.",
+            "boundary_includes": "The hunted knight seeks aid and returns.",
+            "boundary_excludes": "Other knight quests and generic knight mechanics.",
+            "anchor_unit_ids": [units[0].unit_id],
             "evidence_unit_ids": [units[0].unit_id],
         }],
         "proposal_resolutions": [{
@@ -129,6 +133,9 @@ def test_reconcile_folds_same_batch_chain_steps_then_assigns_all_units():
     assert cards[0]["primary_unit_ids"] == ["unit_0", "unit_1"]
     assert cards[0]["evidence_unit_ids"] == ["unit_0", "unit_1"]
     assert [event.chain_id for event in result.events] == ["knight_returns"]
+    assert result.events[0].boundary_excludes == (
+        "Other knight quests and generic knight mechanics."
+    )
     assert len(result.delivery_assignments) == len(units)
     assert result.delivery_assignments[0].source_item_ids == ["source-0"]
     assert [name for _, name in handler.schemas] == [
@@ -269,6 +276,75 @@ def test_static_project_cannot_create_an_orphan_delivery_chain():
     assert "require a local chain-card source" in handler.calls[1][-1]["content"]
 
 
+def test_parent_story_is_hierarchical_only_and_cannot_receive_assignments():
+    units = _units()
+    response = _catalog_response(units)
+    base = response["final_chains"][0]
+    response["final_chains"] = [
+        {**base, "chain_id": "quest_one", "parent_story_id": "toxic_story"},
+        {**base, "chain_id": "quest_two", "parent_story_id": "toxic_story"},
+    ]
+    response["parent_stories"] = [{
+        "story_id": "toxic_story",
+        "summary": "Several bounded knight quests form one origin story.",
+        "child_chain_ids": ["quest_one", "quest_two"],
+        "evidence_unit_ids": [units[0].unit_id],
+    }]
+    response["proposal_resolutions"][0].update(
+        resolution="promote_to_parent_story",
+        final_chain_ids=[],
+        parent_story_id="toxic_story",
+    )
+    # Child delivery chains still need a local proposal source. Reuse the one
+    # folded card through a split disposition and add a second broad card for
+    # the parent-story promotion.
+    extraction = _extraction(units)
+    broad = EventChainContribution(
+        chain_id="all-knight-quests",
+        event="The order pursues its overall origin story.",
+        sequence=0,
+        evidence=[SourceEvidence(source_item_id="source-0")],
+    )
+    extraction.events.append(broad)
+    response["proposal_resolutions"] = [
+        {
+            "proposal_id": "b0_c0",
+            "resolution": "split_across",
+            "final_chain_ids": ["quest_one", "quest_two"],
+        },
+        {
+            "proposal_id": "b0_c1",
+            "resolution": "promote_to_parent_story",
+            "final_chain_ids": [],
+            "parent_story_id": "toxic_story",
+        },
+    ]
+    assignment = _assignment_response(units)
+    assignment["assignments"][0]["links"][0]["event_chain_id"] = "toxic_story"
+    valid_assignment = _assignment_response(units)
+    for item in valid_assignment["assignments"]:
+        for link in item["links"]:
+            link["event_chain_id"] = "quest_one"
+    valid_assignment["assignments"][0]["links"].append({
+        "event_chain_id": "quest_two",
+        "relation": "primary_member",
+        "confidence": 0.96,
+    })
+    handler = FakeHandler([
+        json.dumps(response),
+        json.dumps(assignment),
+        json.dumps(valid_assignment),
+    ])
+    service = ContextEventReconciliationService(handler)
+    catalog = service.build_catalog(units, [extraction])
+
+    assert [story.story_id for story in catalog.parent_stories] == ["toxic_story"]
+    assert {chain.chain_id for chain in catalog.final_chains} == {"quest_one", "quest_two"}
+    result = service.assign_batch(units, catalog)
+    assert result.repair_count == 1
+    assert "unknown chains" in handler.calls[2][-1]["content"]
+
+
 def test_assignment_repair_is_limited_to_the_failed_unit_batch():
     units = _units()
     invalid = _assignment_response(units)
@@ -333,6 +409,9 @@ def test_each_link_keeps_its_own_relation_without_reasoning_output():
         "sequence": 1,
         "participants": [],
         "consequence": None,
+        "boundary_includes": "The related established scene only.",
+        "boundary_excludes": "The hunted knight's return and unrelated scenes.",
+        "anchor_unit_ids": [units[1].unit_id],
         "evidence_unit_ids": [units[1].unit_id],
     })
     catalog["proposal_resolutions"][0].update(

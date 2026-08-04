@@ -11,117 +11,30 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from dataclasses import dataclass
 from typing import Any, Iterable, Sequence
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ValidationError
 
 from scripts.core.context_local_units import DeliveryAssignment, DeliveryLink, LocalTextUnit
-from scripts.core.context_unit_id_contract import EvidenceUnitIds
 from scripts.core.neologism_extraction import (
     EventChainContribution,
     NeologismMiningError,
     SourceEvidence,
     StructuredNeologismExtraction,
 )
-
-
-class _ModelLink(BaseModel):
-    """Small model-facing link. Long free-text reasoning is intentionally absent."""
-
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-
-    event_chain_id: str = Field(min_length=1, max_length=200)
-    relation: str = Field(pattern=r"^(primary_member|supporting_context|theme_related)$")
-    confidence: float = Field(ge=0.0, le=1.0)
-
-
-class _ModelAssignment(BaseModel):
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-
-    local_unit_id: str = Field(pattern=r"^unit_\d+$")
-    assignment_state: str = Field(pattern=r"^(assigned|unassigned)$")
-    links: list[_ModelLink] = Field(default_factory=list, max_length=8)
-
-
-class EventChainDefinition(BaseModel):
-    """One immutable chain definition produced before unit assignment."""
-
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-
-    chain_id: str = Field(min_length=1, max_length=200)
-    chain_level: str = Field(default="delivery_chain", pattern=r"^delivery_chain$")
-    parent_story_id: str | None = Field(default=None, max_length=200)
-    event: str = Field(min_length=1, max_length=500)
-    sequence: int = Field(ge=0)
-    participants: list[str] = Field(default_factory=list, max_length=20)
-    consequence: str | None = Field(default=None, max_length=500)
-    evidence_unit_ids: EvidenceUnitIds = Field(min_length=1, max_length=5)
-
-
-class LocalChainDisposition(BaseModel):
-    """Exhaustive, compact accounting for one folded local chain card."""
-
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-
-    proposal_id: str = Field(min_length=1, max_length=80)
-    resolution: str = Field(
-        pattern=(
-            r"^(merge_into|keep_as_delivery_chain|promote_to_parent_story|"
-            r"reject_non_event|split_across|unresolved)$"
-        )
-    )
-    final_chain_ids: list[str] = Field(default_factory=list, max_length=8)
-
-
-class _CatalogResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    final_chains: list[EventChainDefinition] = Field(default_factory=list, max_length=80)
-    proposal_resolutions: list[LocalChainDisposition] = Field(
-        default_factory=list, max_length=500
-    )
-
-
-class _AssignmentResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    assignments: list[_ModelAssignment] = Field(default_factory=list, max_length=80)
-
-
-class EventChainCatalogResult(BaseModel):
-    """Checkpoint-safe output of the project-wide chain catalog stage."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    final_chains: list[EventChainDefinition] = Field(default_factory=list, max_length=80)
-    proposal_resolutions: list[LocalChainDisposition] = Field(
-        default_factory=list, max_length=500
-    )
-    local_chain_cards: list[dict[str, Any]] = Field(default_factory=list, max_length=500)
-    repair_count: int = Field(default=0, ge=0, le=1)
-    repair_reason: str | None = None
-    repair_detail: str | None = None
-
-
-class EventAssignmentBatchResult(BaseModel):
-    """Checkpoint-safe output for one bounded assignment batch."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    assignments: list[DeliveryAssignment] = Field(default_factory=list, max_length=80)
-    repair_count: int = Field(default=0, ge=0, le=1)
-    repair_reason: str | None = None
-    repair_detail: str | None = None
-
-
-@dataclass(frozen=True)
-class EventReconciliationResult:
-    """Final in-memory contributions and their exhaustive link assignments."""
-
-    events: list[EventChainContribution]
-    delivery_assignments: list[DeliveryAssignment]
-    diagnostics: dict[str, Any]
+from scripts.core.services.context_event_catalog_contract import (
+    EventAssignmentBatchResult,
+    EventChainCatalogResult,
+    EventChainDefinition,
+    EventReconciliationResult,
+    LocalChainDisposition,
+    ParentStoryDefinition,
+    _AssignmentResponse,
+    _CatalogResponse,
+    _ModelAssignment,
+    validate_anchor_sources,
+    validate_parent_stories,
+)
 
 
 class ContextAssignmentBatchingPolicy:
@@ -177,8 +90,18 @@ causality, branches, participants, and explicit consequences support it.
 
 A delivery chain is a concrete narrative process. Shared characters, factions,
 gods, terminology, imagery, worldbuilding, resource type, or broad theme alone
-do not form a delivery chain. Parent stories may organize child chains through
-parent_story_id, but parent stories never inherit delivery membership.
+do not form a delivery chain. Put a broad umbrella that organizes multiple
+sibling quests in parent_stories, never in final_chains. A parent story may
+organize child chains through parent_story_id, but its story_id is not a chain
+ID and can never receive delivery membership.
+
+Every final chain must merge its positive and negative boundaries from the
+source cards into boundary_includes and boundary_excludes. anchor_unit_ids are
+the small set of primary units that establish the chain's identity; choose them
+from the source cards' primary_unit_ids. evidence_unit_ids remain a separate,
+representative subset for synthesis and may overlap anchors. A final chain that
+collapses several sibling quests, or lacks a concrete negative boundary, is
+invalid. Do not rewrite boundaries as generic theme descriptions.
 
 Return exactly one compact proposal_resolution for every proposal_id. Use
 reject_non_event for a card that is only a static/theme collection. Do not omit
@@ -201,6 +124,10 @@ state transition, or outcome in that chain. Use supporting_context for a unit
 outside the process that has a direct, specific dependency on that established
 chain and should receive its summary during translation. Use theme_related for
 broad shared theme only; it is audit-only and is never delivered.
+
+Treat each chain's boundary_includes as its positive scope and
+boundary_excludes as explicit rejection evidence. Anchor units establish chain
+identity; shared participants or words do not override a negative boundary.
 
 Context-free buttons, generic UI labels or tooltips, names, titles, and static
 technology, building, modifier, trait, resource, ambient-object, or catalog
@@ -257,6 +184,7 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
             "Event-chain catalog",
         )
         return EventChainCatalogResult(
+            parent_stories=parsed.parent_stories,
             final_chains=parsed.final_chains,
             proposal_resolutions=parsed.proposal_resolutions,
             local_chain_cards=cards,
@@ -453,6 +381,9 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
                 "proposal_resolutions": [
                     item.model_dump() for item in catalog.proposal_resolutions
                 ],
+                "parent_stories": [
+                    item.model_dump() for item in catalog.parent_stories
+                ],
                 "final_chains": [item.model_dump() for item in catalog.final_chains],
                 "local_chain_cards": catalog.local_chain_cards,
             },
@@ -470,15 +401,27 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
         if duplicate_chains:
             raise ValueError(f"Final chain identities must be unique: {duplicate_chains}")
         valid_chains = set(chain_ids)
+        valid_parents = validate_parent_stories(
+            parsed.parent_stories, parsed.final_chains, {unit.unit_id for unit in units},
+        )
         valid_units = {unit.unit_id for unit in units}
         bad_evidence = {
             unit_id
             for chain in parsed.final_chains
-            for unit_id in chain.evidence_unit_ids
+            for unit_id in (*chain.evidence_unit_ids, *chain.anchor_unit_ids)
             if unit_id not in valid_units
         }
         if bad_evidence:
-            raise ValueError(f"Catalog contains unknown evidence units: {sorted(bad_evidence)}")
+            raise ValueError(f"Catalog contains unknown evidence or anchor units: {sorted(bad_evidence)}")
+        incomplete_boundaries = [
+            chain.chain_id for chain in parsed.final_chains
+            if not chain.boundary_includes or not chain.boundary_excludes or not chain.anchor_unit_ids
+        ]
+        if incomplete_boundaries:
+            raise ValueError(
+                "Final delivery chains require includes, excludes, and anchor units: "
+                f"{sorted(incomplete_boundaries)}"
+            )
         expected = {card["proposal_id"] for card in cards}
         received = [item.proposal_id for item in parsed.proposal_resolutions]
         unknown_references = {
@@ -487,14 +430,20 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
             for chain_id in item.final_chain_ids
             if chain_id not in valid_chains
         }
+        unknown_parent_references = {
+            item.parent_story_id
+            for item in parsed.proposal_resolutions
+            if item.parent_story_id and item.parent_story_id not in valid_parents
+        }
         missing = expected - set(received)
         unexpected = set(received) - expected
         duplicate = cls._duplicates(received)
-        if missing or unexpected or duplicate or unknown_references:
+        if missing or unexpected or duplicate or unknown_references or unknown_parent_references:
             raise ValueError(
                 "Local chain disposition coverage invalid: "
                 f"missing={sorted(missing)}, unexpected={sorted(unexpected)}, "
-                f"duplicate={duplicate}, unknown_chains={sorted(unknown_references)}"
+                f"duplicate={duplicate}, unknown_chains={sorted(unknown_references)}, "
+                f"unknown_parent_stories={sorted(unknown_parent_references)}"
             )
         invalid_dispositions = [
             item.proposal_id
@@ -513,6 +462,12 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
                     "promote_to_parent_story", "reject_non_event", "unresolved"
                 }
                 and item.final_chain_ids
+            ) or (
+                item.resolution == "promote_to_parent_story"
+                and not item.parent_story_id
+            ) or (
+                item.resolution != "promote_to_parent_story"
+                and item.parent_story_id is not None
             )
         ]
         if invalid_dispositions:
@@ -534,6 +489,18 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
                 "Final delivery chains require a local chain-card source: "
                 f"{sorted(orphan_chains)}"
             )
+        parent_sources = {
+            item.parent_story_id
+            for item in parsed.proposal_resolutions
+            if item.resolution == "promote_to_parent_story" and item.parent_story_id
+        }
+        orphan_parents = valid_parents - parent_sources
+        if orphan_parents:
+            raise ValueError(
+                "Parent stories require a promoted local chain-card source: "
+                f"{sorted(orphan_parents)}"
+            )
+        validate_anchor_sources(parsed.final_chains, parsed.proposal_resolutions, cards)
 
     @classmethod
     def _validate_assignment_batch(
@@ -636,6 +603,8 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
             sequence=chain.sequence,
             participants=chain.participants,
             consequence=chain.consequence,
+            boundary_includes=chain.boundary_includes,
+            boundary_excludes=chain.boundary_excludes,
             evidence=evidence,
         )
 
