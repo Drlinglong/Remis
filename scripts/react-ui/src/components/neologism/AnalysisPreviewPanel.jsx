@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { filterAnalysisPreviewEntries } from './contextAnalysisPreviewModel';
 import { useContextAnalysisPreview } from './useContextAnalysisPreview';
 import styles from './ModArchive.module.css';
+import EntityEvidenceDetails from './archiveTreeV2/EntityEvidenceDetails';
 import ContextArchiveTreeReview from './archiveTreeV2/ContextArchiveTreeReview';
 
 const StateCard = ({ icon, title, description, action, testId }) => (
@@ -29,7 +30,7 @@ const Metric = ({ label, value }) => (
     </div>
 );
 
-const EntityCard = ({ entry, t, advanced = false }) => {
+const EntityCard = ({ entry, preview, t, advanced = false }) => {
     const payload = entry.payload || {};
     return (
         <Paper className={styles.previewCard} p="md" withBorder data-remis-surface="paper">
@@ -83,6 +84,7 @@ const EntityCard = ({ entry, t, advanced = false }) => {
                         <Text size="sm" mt="xs">{payload.aliases.join(' · ')}</Text>
                     </details>
                 )}
+                {advanced && <EntityEvidenceDetails entry={entry} preview={preview} t={t} />}
             </Stack>
         </Paper>
     );
@@ -259,7 +261,7 @@ const PreviewContent = ({ preview, refresh, projectToolbar, t }) => {
                         <div className={styles.previewList}>
                             {entries.map((entry) => (
                                 section === 'entity'
-                                    ? <EntityCard advanced entry={entry} key={entry.aggregate_id} t={t} />
+                                    ? <EntityCard advanced entry={entry} key={entry.aggregate_id} preview={preview} t={t} />
                                     : <EventCard advanced entry={entry} key={entry.aggregate_id} t={t} />
                             ))}
                         </div>

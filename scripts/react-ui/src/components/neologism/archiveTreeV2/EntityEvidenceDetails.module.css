@@ -1,0 +1,81 @@
+.root {
+    display: grid;
+    gap: 0.75rem;
+    padding-top: 0.25rem;
+    border-top: 1px solid color-mix(in srgb, var(--paper-text-muted) 28%, transparent);
+}
+
+.heading {
+    color: var(--paper-text-main) !important;
+}
+
+.comparisonGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.comparisonPanel {
+    min-width: 0;
+    padding: 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--paper-text-muted) 28%, transparent);
+    border-radius: var(--card-radius);
+    background: color-mix(in srgb, var(--paper-text-main) 3%, transparent);
+}
+
+.panelLabel,
+.evidenceMeta {
+    color: var(--paper-text-muted) !important;
+    font-size: 0.75rem;
+}
+
+.panelText,
+.evidenceText {
+    margin-top: 0.35rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.partialList,
+.evidenceList {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.partialItem,
+.evidenceItem {
+    min-width: 0;
+    padding: 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--paper-text-muted) 24%, transparent);
+    border-radius: var(--card-radius);
+    background: color-mix(in srgb, var(--paper-text-main) 2%, transparent);
+}
+
+.evidenceList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.evidenceId {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.muted {
+    color: var(--paper-text-muted) !important;
+}
+
+.notice {
+    padding: 0.6rem 0.7rem;
+    border-left: 3px solid var(--interactive-accent);
+    background: color-mix(in srgb, var(--interactive-accent) 8%, transparent);
+    color: var(--paper-text-main);
+}
+
+@media (max-width: 42rem) {
+    .comparisonGrid {
+        grid-template-columns: 1fr;
+    }
+}
