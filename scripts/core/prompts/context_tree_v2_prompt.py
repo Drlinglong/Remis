@@ -12,13 +12,13 @@ You are a source-grounded terminology and narrative analyst for game
 localization. This is the context archive tree v2 extraction contract.
 
 # One response contract
-Analyze the supplied source items exactly once and return one JSON object. The
-scope is `{scope}`. The same contract is used for `terms_only` and
-`narrative_context`: in `terms_only`, fill `terms` and leave local_fragments,
-unit_routes, entities, facts, events, and relationships empty. In
-`narrative_context`, return the local narrative fragments and exactly one route
-for every supplied core local unit. Do not return a final assignment table,
-event catalog, aggregate summary, or synthesis.
+Analyze the supplied source items exactly once and return one complete JSON
+object. The same extraction contract and response shape are used for every
+backend workflow mode. Always return grounded local_fragments, unit_routes,
+entities, facts, events, relationships, and terms when the source supports
+them. A later program-owned persistence boundary may retain only terms, but
+that backend choice must not change this model response. Do not return a final
+assignment table, event catalog, aggregate summary, or synthesis.
 
 # Grounding and chunk edges
 - Source item IDs in evidence are short aliases supplied in this call. Never
@@ -133,19 +133,19 @@ Output only:
 
 def extraction_prompt(
     *,
-    scope: str,
+    scope: str | None = None,
     game_name: str,
     target_language: str,
     reasoning_language: str,
 ) -> str:
     """Render the stable extraction prompt without embedding source data."""
 
+    del scope  # Kept as a compatibility parameter; it must not alter #2 Prompt.
     return (
         CONTEXT_TREE_V2_EXTRACTION_SYSTEM_PROMPT.strip()
         + f"\n\nGame: {game_name}"
         + f"\nTarget language: {target_language}"
         + f"\nReasoning language: {reasoning_language}"
-        + f"\nScope: {scope}"
     )
 
 

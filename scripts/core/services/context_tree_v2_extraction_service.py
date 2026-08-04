@@ -123,7 +123,7 @@ class ContextTreeV2ExtractionService:
             self.SCHEMA_NAME,
             "Context tree v2 extraction",
         )
-        extraction = self._parse_response(response, items, source_aliases, scope)
+        extraction = self._parse_response(response, items, source_aliases)
         if scope is AnalysisScope.TERMS_ONLY:
             return self._terms_only_result(extraction)
         expected_unit_ids = [unit.unit_id for unit in local_units]
@@ -227,7 +227,6 @@ class ContextTreeV2ExtractionService:
         response: str,
         source_items: Sequence[SourceItem],
         source_aliases: Dict[str, str],
-        scope: AnalysisScope,
     ) -> ContextTreeV2Extraction:
         payload = json.loads(cls._clean_json(response))
         if not isinstance(payload, dict):
@@ -254,8 +253,6 @@ class ContextTreeV2ExtractionService:
         extraction.relationships = StructuredNeologismExtractor._filter_grounded_contributions(
             extraction.relationships, lookup,
         )
-        if scope is AnalysisScope.TERMS_ONLY:
-            return cls._terms_only_result(extraction)
         return extraction
 
     @classmethod
@@ -327,8 +324,8 @@ class ContextTreeV2ExtractionService:
         reasoning_language: str,
         source_aliases: Dict[str, str],
     ) -> list[dict[str, str]]:
+        del scope  # The backend mode is intentionally absent from the model payload.
         payload = {
-            "scope": scope.value,
             "source_items": [
                 {**item.model_dump(), "source_item_id": source_aliases[item.source_item_id]}
                 for item in items
@@ -342,13 +339,12 @@ class ContextTreeV2ExtractionService:
                     unit.prompt_payload(source_aliases, context_role="edge")
                     for unit in edge_units
                 ),
-            ] if scope is AnalysisScope.NARRATIVE_CONTEXT else [],
+            ],
             "core_unit_ids": [unit.unit_id for unit in core_units],
             "chunk_edge_metadata": metadata.model_dump(),
         }
         return messages(
             extraction_prompt(
-                scope=scope.value,
                 game_name=game_name,
                 target_language=target_language,
                 reasoning_language=reasoning_language,

@@ -94,6 +94,46 @@ def _extraction_payload(fragment_id="fragment_c1_1"):
     }
 
 
+def _full_extraction_payload():
+    payload = _extraction_payload()
+    evidence = [{"source_item_id": "source_1"}]
+    payload.update({
+        "terms": [{
+            "original": "envoy",
+            "category": "person",
+            "suggestion": "使者",
+            "reasoning": "A named narrative participant.",
+            "evidence": evidence,
+        }],
+        "entities": [{
+            "name": "envoy",
+            "entity_type": "person",
+            "description": "The participant making the road choice.",
+            "evidence": evidence,
+        }],
+        "facts": [{
+            "subject": "envoy",
+            "predicate": "chooses",
+            "object": "road",
+            "evidence": evidence,
+        }],
+        "events": [{
+            "chain_id": "envoy-choice",
+            "event": "The envoy chooses the northern road.",
+            "sequence": 0,
+            "participants": ["envoy"],
+            "evidence": evidence,
+        }],
+        "relationships": [{
+            "subject": "envoy",
+            "relation": "chooses",
+            "object": "road",
+            "evidence": evidence,
+        }],
+    })
+    return payload
+
+
 def test_chunk_edge_metadata_is_explicit_and_reaches_the_v2_prompt():
     chunk = _chunk()
     handler = StructuredFakeHandler([json.dumps(_extraction_payload())])
@@ -265,6 +305,55 @@ def test_terms_only_v2_skips_catalog_and_assignment_or_synthesis_calls():
         "assignment": 0,
         "synthesis": 0,
     }
+
+
+def test_term_only_and_full_use_identical_extraction_prompt_and_schema_then_discard():
+    handler = StructuredFakeHandler([
+        json.dumps(_full_extraction_payload()),
+        json.dumps(_full_extraction_payload()),
+    ])
+    service = ContextTreeV2ExtractionService(handler)
+    chunk = _chunk()
+
+    full = service.extract_structured(
+        list(chunk.source_items),
+        scope=AnalysisScope.NARRATIVE_CONTEXT,
+        core_units=chunk.core_units,
+        edge_units=chunk.edge_units,
+        chunk_edge_metadata=chunk.edge_metadata,
+    )
+    terms_only = service.extract_structured(
+        list(chunk.source_items),
+        scope=AnalysisScope.TERMS_ONLY,
+        core_units=chunk.core_units,
+        edge_units=chunk.edge_units,
+        chunk_edge_metadata=chunk.edge_metadata,
+    )
+
+    assert handler.calls[0][0]["content"] == handler.calls[1][0]["content"]
+    assert handler.calls[0][1]["content"] == handler.calls[1][1]["content"]
+    assert handler.schemas[0][0] == handler.schemas[1][0]
+    assert set(json.loads(handler.calls[0][1]["content"])) == {
+        "source_items", "local_text_units", "core_unit_ids", "chunk_edge_metadata"
+    }
+    assert len(json.loads(handler.calls[1][1]["content"])["local_text_units"]) == 2
+    assert full.entities and full.events and full.facts and full.relationships
+    assert terms_only.entities == []
+    assert terms_only.events == []
+    assert terms_only.facts == []
+    assert terms_only.relationships == []
+    assert terms_only.local_fragments == []
+    assert terms_only.unit_routes == []
+    assert terms_only.terms and terms_only.terms[0].original == "envoy"
+    assert terms_only.diagnostics["terms_only_discarded_fields"] == {
+        "local_fragments": 1,
+        "unit_routes": 1,
+        "entities": 1,
+        "facts": 1,
+        "events": 1,
+        "relationships": 1,
+    }
+    assert terms_only.diagnostics["complete"] is True
 
 
 def test_narrative_v2_uses_one_catalog_call_and_program_projection_only():
