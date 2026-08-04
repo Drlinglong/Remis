@@ -71,7 +71,8 @@ class ContextWorkflowService:
     CHUNK_SIZE = DEFAULT_MAX_ITEMS
     REVIEW_BATCH_SIZE = ContextCandidateAdapter.REVIEW_BATCH_SIZE
     SCHEMA_VERSION = "context-v4"
-    PROMPT_VERSION = "context-archive-v9"
+    PROMPT_VERSION = "context-archive-v10"
+    CHECKPOINT_COMPATIBILITY_VERSION = "context-analysis-v2"
     ACTIVE_STATUSES = ContextWorkflowStatusService.ACTIVE_STATUSES
 
     def __init__(
@@ -205,17 +206,10 @@ class ContextWorkflowService:
                 task_id,
                 snapshot.source_snapshot_hash,
                 scope,
-                {
-                    "provider": api_provider,
-                    "model": model_name or f"{api_provider}-default",
-                    "source_lang": source_lang,
-                    "target_lang": target_lang,
-                    "description_language": effective_description_language,
-                    "game_name": game_name,
-                    "chunking": dict(chunk_config),
-                    "schema_version": self.SCHEMA_VERSION,
-                    "prompt_version": self.PROMPT_VERSION,
-                },
+                self._checkpoint_config(
+                    api_provider, model_name, source_lang, target_lang,
+                    effective_description_language, game_name, chunk_config,
+                ),
             )
             if analysis_run is not None:
                 workflow_context.update({
@@ -676,6 +670,30 @@ class ContextWorkflowService:
             "concurrency_limit": concurrency_limit,
             "effective_concurrency": effective_concurrency,
             "structured_output_mode": structured_output_mode(provider),
+        }
+
+    @classmethod
+    def _checkpoint_config(
+        cls,
+        provider: str,
+        model: str | None,
+        source_lang: str,
+        target_lang: str,
+        description_language: str,
+        game_name: str,
+        chunk_config: dict[str, int],
+    ) -> dict[str, Any]:
+        return {
+            "provider": provider,
+            "model": model or f"{provider}-default",
+            "source_lang": source_lang,
+            "target_lang": target_lang,
+            "description_language": description_language,
+            "game_name": game_name,
+            "chunking": dict(chunk_config),
+            "schema_version": cls.SCHEMA_VERSION,
+            "prompt_version": cls.PROMPT_VERSION,
+            "checkpoint_compatibility_version": cls.CHECKPOINT_COMPATIBILITY_VERSION,
         }
 
     _chunks = ContextChunkingPolicy.chunks

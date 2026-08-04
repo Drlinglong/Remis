@@ -639,7 +639,12 @@ def test_failed_extraction_retry_reuses_successful_sqlite_batches(tmp_path):
     assert ResumeMiner.calls == 4
     assert result["new_terms"] == 3
     assert result["analysis_run_id"]
-    assert batch_repository.get_run(result["analysis_run_id"]).status == "complete"
+    persisted_run = batch_repository.get_run(result["analysis_run_id"])
+    assert persisted_run.status == "complete"
+    assert (
+        persisted_run.config["checkpoint_compatibility_version"]
+        == ContextWorkflowService.CHECKPOINT_COMPATIBILITY_VERSION
+    )
     assert service.get_status("project-1")["checkpoint"]["resume_supported"] is True
 
 
@@ -832,7 +837,7 @@ def test_narrative_release_has_metadata_traceability_summary_and_parent_diff(tmp
     assert release.metadata.provider_id == "local"
     assert release.metadata.model_id == "fake-model"
     assert release.metadata.schema_version == "context-v4"
-    assert release.metadata.prompt_version == "context-archive-v9"
+    assert release.metadata.prompt_version == "context-archive-v10"
     assert release.metadata.analysis_config["description_language"] == "zh-CN"
     assert "Simplified Chinese (zh-CN)" in handler.calls[0][0]["content"]
     assert any(
