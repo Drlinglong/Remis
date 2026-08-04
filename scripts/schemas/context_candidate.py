@@ -18,6 +18,9 @@ def normalized_match_key(surface: str, source_language: str = "en") -> str:
     """Normalize only deterministic literal aliases for candidate matching."""
 
     value = unicodedata.normalize("NFKC", str(surface)).casefold()
+    name_reference = re.fullmatch(r"\$name_([^$]+)\$", value.strip())
+    if name_reference:
+        value = name_reference.group(1).replace("_", " ")
     value = re.sub(r"\s+", " ", value).strip()
     value = _strip_edge_punctuation(value)
     if _is_english(source_language):

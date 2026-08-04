@@ -108,6 +108,7 @@ def test_normalization_and_article_aliases_share_one_entity_namespace():
     candidate = _candidate(result, "horizon signal")
     assert normalized_match_key("  ‘ The  HORIZON Signal ’! ") == "horizon signal"
     assert normalized_match_key("The Horizon Signal", "de") == "the horizon signal"
+    assert normalized_match_key("$NAME_Sinople$") == "sinople"
     assert candidate.aggregate_key == "entity:horizon signal"
     assert result.aggregate_key_for_surface("The Horizon Signal") == "entity:horizon signal"
     assert candidate.aliases == ("Horizon Signal", "The Horizon Signal")
