@@ -609,6 +609,69 @@ def test_parent_story_can_be_grounded_by_child_chains_without_a_promotion_card()
     assert [story.story_id for story in catalog.parent_stories] == ["toxic_story"]
 
 
+def test_duplicate_parent_child_is_normalized_to_the_chain_declared_owner():
+    units = _units(2)
+    response = _catalog_response(units)
+    base = response["final_chains"][0]
+    response["final_chains"] = [
+        {
+            **base,
+            "chain_id": "chain_order_funding",
+            "parent_story_id": "order_operations",
+            "anchor_unit_ids": [units[0].unit_id],
+            "evidence_unit_ids": [units[0].unit_id],
+        },
+        {
+            **base,
+            "chain_id": "chain_order_logistics",
+            "parent_story_id": "order_operations",
+            "anchor_unit_ids": [units[1].unit_id],
+            "evidence_unit_ids": [units[1].unit_id],
+        },
+        {
+            **base,
+            "chain_id": "chain_order_morale",
+            "parent_story_id": None,
+            "anchor_unit_ids": [units[1].unit_id],
+            "evidence_unit_ids": [units[1].unit_id],
+        },
+    ]
+    response["parent_stories"] = [
+        {
+            "story_id": "order_operations",
+            "story_scope": "cross_quest_macro",
+            "summary": "The order coordinates its concrete child quests.",
+            "child_chain_ids": ["chain_order_funding", "chain_order_logistics"],
+            "evidence_unit_ids": [units[0].unit_id],
+        },
+        {
+            "story_id": "order_culture",
+            "story_scope": "parent_story",
+            "summary": "The order's culture frames one concrete child quest.",
+            "child_chain_ids": ["chain_order_funding", "chain_order_morale"],
+            "evidence_unit_ids": [units[1].unit_id],
+        },
+    ]
+    response["proposal_resolutions"][0].update(
+        resolution="split_across",
+        final_chain_ids=[
+            "chain_order_funding", "chain_order_logistics", "chain_order_morale",
+        ],
+    )
+    handler = FakeHandler([json.dumps(response)])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [_extraction(units)]
+    )
+
+    assert catalog.repair_count == 0
+    assert catalog.final_chains[2].parent_story_id == "order_culture"
+    assert catalog.parent_stories[0].child_chain_ids == [
+        "chain_order_funding", "chain_order_logistics",
+    ]
+    assert catalog.parent_stories[1].child_chain_ids == ["chain_order_morale"]
+
+
 def test_grounded_event_evidence_can_anchor_when_sparse_primary_hint_is_omitted():
     units = _units(3)
     extraction = _extraction(units)

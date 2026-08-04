@@ -11,6 +11,7 @@ from scripts.core.services.context_event_reconciliation_service import (
     EventChainDefinition,
     EventReconciliationResult,
     LocalChainDisposition,
+    ParentStoryDefinition,
 )
 from scripts.schemas.context import GeneratedSynthesis
 
@@ -86,9 +87,17 @@ def test_catalog_and_assignment_batches_have_independent_checkpoint_slots():
     service = ContextAnalysisCheckpointService(repository)
     run = SimpleNamespace(run_id="run-1")
     catalog = EventChainCatalogResult(
+        parent_stories=[ParentStoryDefinition(
+            story_id="story-1",
+            story_scope="parent_story",
+            summary="One surviving child after deterministic ownership normalization.",
+            child_chain_ids=["chain-1"],
+            evidence_unit_ids=["unit_0"],
+        )],
         final_chains=[EventChainDefinition(
             chain_id="chain-1",
             story_scope="concrete_child_quest",
+            parent_story_id="story-1",
             event="A bounded chain.",
             sequence=0,
             evidence_unit_ids=["unit_0"],

@@ -84,8 +84,50 @@ class ParentStoryDefinition(BaseModel):
         pattern=r"^(parent_story|origin_level_story|cross_quest_macro)$",
     )
     summary: str = Field(min_length=1, max_length=800)
-    child_chain_ids: list[str] = Field(min_length=2, max_length=40)
+    child_chain_ids: list[str] = Field(min_length=1, max_length=40)
     evidence_unit_ids: EvidenceUnitIds = Field(min_length=1, max_length=10)
+
+
+def normalize_parent_story_ownership(
+    parents: list[ParentStoryDefinition],
+    chains: list[EventChainDefinition],
+) -> None:
+    """Resolve harmless one-child/multi-parent drift without changing delivery."""
+
+    parent_by_id = {parent.story_id: parent for parent in parents}
+    chain_by_id = {chain.chain_id: chain for chain in chains}
+    claims: dict[str, list[str]] = {}
+    for parent in parents:
+        for child_id in parent.child_chain_ids:
+            owners = claims.setdefault(child_id, [])
+            if parent.story_id not in owners:
+                owners.append(parent.story_id)
+
+    owner_by_child: dict[str, str] = {}
+    for chain in chains:
+        declared = chain.parent_story_id
+        if declared in parent_by_id:
+            owner_by_child[chain.chain_id] = declared
+        elif declared is None and claims.get(chain.chain_id):
+            owner = claims[chain.chain_id][0]
+            owner_by_child[chain.chain_id] = owner
+            chain.parent_story_id = owner
+
+    for parent in parents:
+        normalized = [
+            child_id
+            for child_id in dict.fromkeys(parent.child_chain_ids)
+            if child_id not in chain_by_id
+            or owner_by_child.get(child_id, parent.story_id) == parent.story_id
+        ]
+        normalized.extend(
+            chain.chain_id
+            for chain in chains
+            if owner_by_child.get(chain.chain_id) == parent.story_id
+            and chain.chain_id not in normalized
+        )
+        parent.child_chain_ids = normalized
+    parents[:] = [parent for parent in parents if parent.child_chain_ids]
 
 
 class LocalChainDisposition(BaseModel):
@@ -154,6 +196,11 @@ class _CatalogResponse(BaseModel):
                 f"final_chains={missing_final}, parent_stories={missing_parent}"
             )
         return value
+
+    @model_validator(mode="after")
+    def normalize_parent_ownership(self) -> "_CatalogResponse":
+        normalize_parent_story_ownership(self.parent_stories, self.final_chains)
+        return self
 
 
 class _AssignmentResponse(BaseModel):

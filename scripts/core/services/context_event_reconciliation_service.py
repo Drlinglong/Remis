@@ -102,6 +102,8 @@ appear in parent_stories; they can never appear in final_chains or become
 delivery targets. An overall origin history, an order-wide mission, or a quest
 umbrella spanning sibling tasks remains hierarchy-only even if it contains
 real events. final_chains may use only concrete_child_quest or standalone_event.
+Each child chain belongs to at most one parent story. Its parent_story_id and
+that parent's child_chain_ids must agree; never list one child under two parents.
 
 A candidate grounded by only one local unit must normally merge_into the
 specific concrete child quest that directly causes or explains it. Keep it as
