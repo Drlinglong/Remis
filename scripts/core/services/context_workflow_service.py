@@ -54,6 +54,10 @@ from scripts.core.services.context_synthesis_execution_service import (
     ContextSynthesisExecutionService,
 )
 from scripts.core.services.context_workflow_status_service import ContextWorkflowStatusService
+from scripts.core.services.context_tree_v2_workflow_service import (
+    ContextTreeV2WorkflowResult,
+    ContextTreeV2WorkflowService,
+)
 from scripts.core.services.source_snapshot_service import (
     SourceSnapshot,
     SourceSnapshotService,
@@ -126,6 +130,37 @@ class ContextWorkflowService:
 
     def get_status(self, project_id: str) -> dict[str, Any]:
         return self.status_service.get_status(project_id)
+
+    def run_tree_v2_preview(
+        self,
+        chunks: Sequence[ContextUnitChunk],
+        *,
+        scope: AnalysisScope = AnalysisScope.NARRATIVE_CONTEXT,
+        api_provider: str = "local",
+        model_name: str | None = None,
+        game_name: str = "Paradox Game",
+        target_language: str = "the configured target language",
+        reasoning_language: str = "the configured review language",
+        description_language: str = "en",
+        project_summary: str = "",
+        usage_ledger: ContextModelUsageLedger | None = None,
+    ) -> ContextTreeV2WorkflowResult:
+        """Expose the v2 pure pipeline without changing the v10 release path."""
+
+        return ContextTreeV2WorkflowService(
+            handler_factory=self.handler_factory,
+            usage_ledger=usage_ledger,
+        ).run(
+            chunks,
+            scope=scope,
+            api_provider=api_provider,
+            model_name=model_name,
+            game_name=game_name,
+            target_language=target_language,
+            reasoning_language=reasoning_language,
+            description_language=description_language,
+            project_summary=project_summary,
+        )
 
     @staticmethod
     def prompt_example(description_language: str) -> str:

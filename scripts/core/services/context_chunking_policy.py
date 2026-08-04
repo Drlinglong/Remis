@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Sequence
 
 from scripts.core.context_local_units import ContextLocalUnitBuilder, LocalTextUnit
 from scripts.core.neologism_extraction import SourceItem
+from scripts.core.services.context_tree_v2_contract import ChunkEdgeMetadata
 
 
 @dataclass(frozen=True)
@@ -15,6 +17,8 @@ class ContextUnitChunk:
 
     core_units: tuple[LocalTextUnit, ...]
     edge_units: tuple[LocalTextUnit, ...]
+    chunk_index: int = 0
+    chunk_count: int = 1
 
     @property
     def source_items(self) -> tuple[SourceItem, ...]:
@@ -24,6 +28,48 @@ class ContextUnitChunk:
             for item in unit.items
         }
         return tuple(sorted(items.values(), key=lambda item: item.source_order))
+
+    @property
+    def edge_metadata(self) -> ChunkEdgeMetadata:
+        """Expose boundary facts without making callers infer them from tuples."""
+
+        core_ids = [unit.unit_id for unit in self.core_units]
+        before_ids = [
+            unit.unit_id for unit in self.edge_units
+            if unit.unit_id not in core_ids
+            and self._unit_order(unit) < self._first_core_order()
+        ]
+        after_ids = [
+            unit.unit_id for unit in self.edge_units
+            if unit.unit_id not in core_ids
+            and self._unit_order(unit) > self._last_core_order()
+        ]
+        return ChunkEdgeMetadata(
+            chunk_index=self.chunk_index,
+            chunk_count=self.chunk_count,
+            core_unit_ids=core_ids,
+            edge_before_unit_ids=before_ids,
+            edge_after_unit_ids=after_ids,
+            has_previous_core_chunk=self.chunk_index > 0,
+            has_next_core_chunk=self.chunk_index + 1 < self.chunk_count,
+        )
+
+    def _first_core_order(self) -> int:
+        return min(self._unit_order(unit) for unit in self.core_units)
+
+    def _last_core_order(self) -> int:
+        return max(self._unit_order(unit) for unit in self.core_units)
+
+    @staticmethod
+    def _unit_order(unit: LocalTextUnit) -> int:
+        match = re.fullmatch(r"unit_(\d+)", unit.unit_id)
+        if match:
+            return int(match.group(1))
+        orders = [
+            int(getattr(item, "source_order", 0) or 0)
+            for item in unit.items
+        ]
+        return min(orders, default=0)
 
 
 class ContextChunkingPolicy:
@@ -139,12 +185,18 @@ class ContextChunkingPolicy:
 
         unit_positions = {unit.unit_id: index for index, unit in enumerate(units)}
         planned: list[ContextUnitChunk] = []
-        for core in core_groups:
+        chunk_count = len(core_groups)
+        for chunk_index, core in enumerate(core_groups):
             first = unit_positions[core[0].unit_id]
             last = unit_positions[core[-1].unit_id]
             before = units[max(0, first - edge_units):first]
             after = units[last + 1:last + 1 + edge_units]
-            planned.append(ContextUnitChunk(core_units=core, edge_units=tuple((*before, *after))))
+            planned.append(ContextUnitChunk(
+                core_units=core,
+                edge_units=tuple((*before, *after)),
+                chunk_index=chunk_index,
+                chunk_count=chunk_count,
+            ))
         return tuple(planned)
 
     @staticmethod
