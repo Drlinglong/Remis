@@ -81,3 +81,6 @@ The Horizon Signal  ┴→ entity:horizon signal
 4. core glossary term 不生成实体摘要；
 5. audit-only candidate 持久化可追溯，但不进入词典候选、project summary 或翻译上下文；
 6. 人工 tier/eligibility override 在工作流和 UI 中保持一致。
+
+视界信号与毒圣骑士的冻结回归口径、身份门禁和单命令用法见
+[Context Archive Demo 金标评分](context-archive-demo-benchmark.md)。

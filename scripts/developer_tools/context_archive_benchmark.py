@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sqlite3
 import sys
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
@@ -383,42 +384,32 @@ def _ratio(numerator: float, denominator: float) -> float:
     return numerator / denominator if denominator else 0.0
 
 
-def build_snapshot(
-    release_id: str,
+def _score_snapshot(
+    *,
+    target: dict[str, Any],
+    units: tuple[LocalTextUnit, ...],
+    gold: dict[str, GoldAssignment],
+    predicted: dict[str, tuple[PredictedLink, ...]],
     gold_path: Path,
     relation_overrides: dict[str, str],
-    note_overrides: dict[str, str] | None = None,
+    note_overrides: dict[str, str],
 ) -> dict[str, Any]:
-    repository = ContextRepository(PROJECTS_DB_PATH)
-    release = repository.get_release(release_id)
-    if release is None:
-        raise ValueError(f"Unknown Context Release: {release_id}")
-    manifest = repository.get_release_manifest(release_id)
-    source_items = _release_source_items(repository, release, manifest)
-    units = _release_local_units(source_items, manifest)
-    note_overrides = note_overrides or {}
-    gold = parse_gold(gold_path, relation_overrides, note_overrides)
     if len(units) != len(gold):
-        raise ValueError(f"Local unit count mismatch: release={len(units)}, gold={len(gold)}")
-    predicted = _membership_links(
-        repository.list_release_delivery_memberships(release_id), units
-    )
+        raise ValueError(f"Local unit count mismatch: target={len(units)}, gold={len(gold)}")
+    unit_ids = {unit.unit_id for unit in units}
+    if unit_ids != set(gold):
+        missing = sorted(set(gold) - unit_ids, key=_unit_number)
+        unexpected = sorted(unit_ids - set(gold), key=_unit_number)
+        raise ValueError(
+            f"Local unit identity mismatch: missing={missing}, unexpected={unexpected}"
+        )
     mapping = _best_chain_mapping(gold, predicted)
     results = [
         _unit_result(unit, gold[unit.unit_id], predicted.get(unit.unit_id, ()), mapping)
         for unit in units
     ]
-    return {
-        "release": {
-            "release_id": release.release_id,
-            "project_id": release.project_id,
-            "source_snapshot_hash": release.metadata.source_snapshot_hash,
-            "provider_id": release.metadata.provider_id,
-            "model_id": release.metadata.model_id,
-            "prompt_version": release.metadata.prompt_version,
-            "schema_version": release.metadata.schema_version,
-            "created_at": release.metadata.created_at,
-        },
+    snapshot = {
+        "target": target,
         "gold": {
             "path": str(gold_path.resolve()),
             "relation_overrides": relation_overrides,
@@ -428,18 +419,257 @@ def build_snapshot(
         "metrics": _metrics(results),
         "units": [asdict(result) for result in results],
     }
+    if target["kind"] == "release":
+        snapshot["release"] = {
+            "release_id": target["id"],
+            "project_id": target["project_id"],
+            "source_snapshot_hash": target["source_snapshot_hash"],
+            "provider_id": target["provider_id"],
+            "model_id": target["model_id"],
+            "prompt_version": target["prompt_version"],
+            "schema_version": target["schema_version"],
+            "created_at": target["created_at"],
+        }
+    return snapshot
+
+
+def build_snapshot(
+    release_id: str,
+    gold_path: Path,
+    relation_overrides: dict[str, str],
+    note_overrides: dict[str, str] | None = None,
+    *,
+    database_path: str | Path = PROJECTS_DB_PATH,
+) -> dict[str, Any]:
+    repository = ContextRepository(str(database_path))
+    release = repository.get_release(release_id)
+    if release is None:
+        raise ValueError(f"Unknown Context Release: {release_id}")
+    manifest = repository.get_release_manifest(release_id)
+    source_items = _release_source_items(repository, release, manifest)
+    units = _release_local_units(source_items, manifest)
+    note_overrides = note_overrides or {}
+    gold = parse_gold(gold_path, relation_overrides, note_overrides)
+    predicted = _membership_links(
+        repository.list_release_delivery_memberships(release_id), units
+    )
+    return _score_snapshot(
+        target={
+            "kind": "release",
+            "id": release.release_id,
+            "project_id": release.project_id,
+            "source_snapshot_hash": release.metadata.source_snapshot_hash,
+            "provider_id": release.metadata.provider_id,
+            "model_id": release.metadata.model_id,
+            "prompt_version": release.metadata.prompt_version,
+            "schema_version": release.metadata.schema_version,
+            "created_at": release.metadata.created_at,
+            "status": "published",
+            "source_item_count": len(source_items),
+            "local_unit_count": len(units),
+        },
+        units=units,
+        gold=gold,
+        predicted=predicted,
+        gold_path=gold_path,
+        relation_overrides=relation_overrides,
+        note_overrides=note_overrides,
+    )
+
+
+def build_analysis_run_snapshot(
+    run_id: str,
+    gold_path: Path,
+    relation_overrides: dict[str, str],
+    note_overrides: dict[str, str] | None = None,
+    *,
+    database_path: str | Path = PROJECTS_DB_PATH,
+) -> dict[str, Any]:
+    """Score persisted final assignments even when publication did not finish."""
+
+    database = Path(database_path).resolve()
+    connection = sqlite3.connect(database.as_uri() + "?mode=ro", uri=True)
+    connection.row_factory = sqlite3.Row
+    try:
+        run = connection.execute(
+            """
+            SELECT run_id, project_id, source_snapshot_hash, config_json,
+                   status, publication_status, created_at, updated_at
+            FROM context_analysis_runs
+            WHERE run_id = ?
+            """,
+            (run_id,),
+        ).fetchone()
+        if run is None:
+            raise ValueError(f"Unknown Context Analysis Run: {run_id}")
+        assignments = _analysis_run_assignments(connection, run_id)
+        units, predicted, source_item_count = _analysis_units_and_predictions(
+            connection,
+            str(run["project_id"]),
+            str(run["source_snapshot_hash"]),
+            assignments,
+        )
+    finally:
+        connection.close()
+
+    note_overrides = note_overrides or {}
+    gold = parse_gold(gold_path, relation_overrides, note_overrides)
+    config = json.loads(run["config_json"] or "{}")
+    return _score_snapshot(
+        target={
+            "kind": "analysis_run",
+            "id": str(run["run_id"]),
+            "project_id": str(run["project_id"]),
+            "source_snapshot_hash": str(run["source_snapshot_hash"]),
+            "provider_id": str(config.get("provider") or ""),
+            "model_id": str(config.get("model") or ""),
+            "prompt_version": str(config.get("prompt_version") or ""),
+            "schema_version": str(config.get("schema_version") or ""),
+            "created_at": str(run["created_at"]),
+            "updated_at": str(run["updated_at"]),
+            "status": str(run["status"]),
+            "publication_status": str(run["publication_status"]),
+            "source_item_count": source_item_count,
+            "local_unit_count": len(units),
+        },
+        units=units,
+        gold=gold,
+        predicted=predicted,
+        gold_path=gold_path,
+        relation_overrides=relation_overrides,
+        note_overrides=note_overrides,
+    )
+
+
+def _analysis_run_assignments(
+    connection: sqlite3.Connection, run_id: str
+) -> list[dict[str, Any]]:
+    rows = connection.execute(
+        """
+        SELECT batch_index, payload_json
+        FROM context_analysis_batches
+        WHERE run_id = ? AND phase = 'aggregation' AND status = 'succeeded'
+        ORDER BY batch_index
+        """,
+        (run_id,),
+    ).fetchall()
+    assignments: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        payload = json.loads(row["payload_json"] or "{}")
+        for assignment in payload.get("assignment_batch", {}).get("assignments", []):
+            unit_id = str(assignment.get("local_unit_id") or "")
+            if not unit_id:
+                raise ValueError("Aggregation assignment is missing local_unit_id")
+            if unit_id in assignments:
+                raise ValueError(f"Duplicate final assignment: {unit_id}")
+            assignments[unit_id] = assignment
+    if not assignments:
+        raise ValueError(
+            f"Context Analysis Run has no persisted final assignments: {run_id}"
+        )
+    return sorted(
+        assignments.values(),
+        key=lambda item: _unit_number(str(item["local_unit_id"])),
+    )
+
+
+def _analysis_units_and_predictions(
+    connection: sqlite3.Connection,
+    project_id: str,
+    source_snapshot_hash: str,
+    assignments: list[dict[str, Any]],
+) -> tuple[
+    tuple[LocalTextUnit, ...], dict[str, tuple[PredictedLink, ...]], int
+]:
+    source_ids = {
+        str(source_id)
+        for assignment in assignments
+        for source_id in assignment.get("source_item_ids", [])
+    }
+    rows = connection.execute(
+        """
+        SELECT source_item_id, source_ref, content, metadata_json
+        FROM context_source_items
+        WHERE project_id = ?
+        """,
+        (project_id,),
+    ).fetchall()
+    source_items: dict[str, BenchmarkSourceItem] = {}
+    for row in rows:
+        source_id = str(row["source_item_id"])
+        if source_id not in source_ids:
+            continue
+        metadata = json.loads(row["metadata_json"] or "{}")
+        item_snapshot = str(metadata.get("source_snapshot_hash") or "")
+        if item_snapshot and item_snapshot != source_snapshot_hash:
+            raise ValueError(
+                f"Analysis source snapshot mismatch for {source_id}: "
+                f"run={source_snapshot_hash}, item={item_snapshot}"
+            )
+        source_items[source_id] = BenchmarkSourceItem(
+            source_item_id=source_id,
+            relative_path=str(metadata.get("relative_path") or ""),
+            item_key=str(metadata.get("item_key") or ""),
+            source_order=int(metadata.get("source_order") or 0),
+            content=str(row["content"]),
+        )
+    missing_sources = sorted(source_ids - set(source_items))
+    if missing_sources:
+        raise ValueError(
+            f"Analysis assignments reference missing source items: {missing_sources}"
+        )
+
+    units: list[LocalTextUnit] = []
+    predicted: dict[str, tuple[PredictedLink, ...]] = {}
+    for assignment in assignments:
+        unit_id = str(assignment["local_unit_id"])
+        unit_source_ids = tuple(str(value) for value in assignment.get("source_item_ids", []))
+        if not unit_source_ids:
+            raise ValueError(f"Analysis assignment has no source items: {unit_id}")
+        units.append(
+            LocalTextUnit(
+                unit_id=unit_id,
+                unit_key=unit_id,
+                items=tuple(source_items[source_id] for source_id in unit_source_ids),
+            )
+        )
+        predicted[unit_id] = tuple(
+            PredictedLink(
+                chain_id=str(link["event_chain_id"]),
+                relation=str(link["relation"]),
+                confidence=float(link["confidence"]),
+                source_item_count=len(unit_source_ids),
+            )
+            for link in assignment.get("links", [])
+        )
+    return tuple(units), predicted, len(source_items)
 
 
 def render_markdown(snapshot: dict[str, Any]) -> str:
     metrics = snapshot["metrics"]
     strict = metrics["strict_clustering_pairwise"]
+    target = snapshot.get("target")
+    if target is None:
+        release = snapshot["release"]
+        target = {
+            "kind": "release",
+            "id": release["release_id"],
+            "source_snapshot_hash": release["source_snapshot_hash"],
+            "model_id": release["model_id"],
+            "prompt_version": release["prompt_version"],
+            "status": "published",
+        }
+    target_label = (
+        "Context Release" if target["kind"] == "release" else "Context Analysis Run"
+    )
     lines = [
         "# Context Archive 金标审核报告",
         "",
-        f"- Context Release: `{snapshot['release']['release_id']}`",
-        f"- Source snapshot: `{snapshot['release']['source_snapshot_hash']}`",
-        f"- Model: `{snapshot['release']['model_id']}`",
-        f"- Prompt: `{snapshot['release']['prompt_version']}`",
+        f"- {target_label}: `{target['id']}`",
+        f"- Target status: `{target.get('status', '')}`",
+        f"- Source snapshot: `{target['source_snapshot_hash']}`",
+        f"- Model: `{target['model_id']}`",
+        f"- Prompt: `{target['prompt_version']}`",
         "",
         "## 总体指标",
         "",
@@ -520,7 +750,10 @@ def _parse_note_overrides(values: list[str]) -> dict[str, str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--release-id", required=True)
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--release-id")
+    target.add_argument("--analysis-run-id")
+    parser.add_argument("--database", type=Path, default=Path(PROJECTS_DB_PATH))
     parser.add_argument("--gold", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--markdown-output", type=Path)
@@ -537,12 +770,24 @@ def main() -> int:
         metavar="UNIT=NOTE",
     )
     args = parser.parse_args()
-    snapshot = build_snapshot(
-        args.release_id,
-        args.gold,
-        _parse_overrides(args.relation_override),
-        _parse_note_overrides(args.note_override),
-    )
+    relation_overrides = _parse_overrides(args.relation_override)
+    note_overrides = _parse_note_overrides(args.note_override)
+    if args.release_id:
+        snapshot = build_snapshot(
+            args.release_id,
+            args.gold,
+            relation_overrides,
+            note_overrides,
+            database_path=args.database,
+        )
+    else:
+        snapshot = build_analysis_run_snapshot(
+            args.analysis_run_id,
+            args.gold,
+            relation_overrides,
+            note_overrides,
+            database_path=args.database,
+        )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
