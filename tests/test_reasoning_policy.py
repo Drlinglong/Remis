@@ -72,6 +72,23 @@ def test_custom_parameters_override_builtin_fields_without_losing_siblings():
     assert resolution.overridden_paths == ("reasoning.effort",)
 
 
+def test_openrouter_luna_has_verified_reasoning_presets():
+    assert API_PROVIDERS["openrouter"]["default_model"] == "openai/gpt-5.6-luna"
+    assert API_PROVIDERS["openrouter"]["available_models"][0] == "openai/gpt-5.6-luna"
+    config = {
+        **API_PROVIDERS["openrouter"],
+        "default_model": "openai/gpt-5.6-luna",
+        "reasoning_builtin_enabled": True,
+        "reasoning_preset": "high",
+    }
+
+    resolution = resolve_reasoning_parameters(config)
+
+    assert resolution.supported is True
+    assert resolution.available_presets == ("low", "medium", "high")
+    assert resolution.parameters == {"reasoning": {"effort": "high"}}
+
+
 def test_requested_model_falls_back_to_nearest_supported_reasoning_preset():
     config = {
         **API_PROVIDERS["openai"],

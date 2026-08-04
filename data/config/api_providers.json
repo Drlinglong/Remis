@@ -149,8 +149,9 @@
     "openrouter": {
         "api_key_env": "OPENROUTER_API_KEY",
         "base_url": "https://openrouter.ai/api/v1",
-        "default_model": "deepseek/deepseek-v4-flash",
+        "default_model": "openai/gpt-5.6-luna",
         "available_models": [
+            "openai/gpt-5.6-luna",
             "deepseek/deepseek-v4-flash",
             "deepseek/deepseek-v4-pro",
             "qwen/qwen3.6-flash",
@@ -159,6 +160,7 @@
         ],
         "name": "OpenRouter",
         "reasoning": {"default_enabled": false, "default_preset": "medium", "models": {
+            "openai/gpt-5.6-luna": {"presets": {"low": {"reasoning": {"effort": "low"}}, "medium": {"reasoning": {"effort": "medium"}}, "high": {"reasoning": {"effort": "high"}}}, "source_url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens", "reviewed_at": "2026-08-04"},
             "deepseek/deepseek-v4-flash": {"presets": {"low": {"reasoning": {"effort": "low"}}, "medium": {"reasoning": {"effort": "medium"}}, "high": {"reasoning": {"effort": "high"}}}, "source_url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens", "reviewed_at": "2026-08-02"},
             "deepseek/deepseek-v4-pro": {"presets": {"low": {"reasoning": {"effort": "low"}}, "medium": {"reasoning": {"effort": "medium"}}, "high": {"reasoning": {"effort": "high"}}}, "source_url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens", "reviewed_at": "2026-08-02"},
             "qwen/qwen3.6-flash": {"presets": {"low": {"reasoning": {"effort": "low"}}, "medium": {"reasoning": {"effort": "medium"}}, "high": {"reasoning": {"effort": "high"}}}, "source_url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens", "reviewed_at": "2026-08-02"},
