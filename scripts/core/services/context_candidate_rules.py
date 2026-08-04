@@ -105,6 +105,16 @@ class ContextCandidateRules:
     def candidate_kind(
         contribution: TermContribution | EntityContribution,
     ) -> CandidateKind:
+        if (
+            isinstance(contribution, TermContribution)
+            and contribution.category in {"person", "place", "faction"}
+            and contribution.candidate_kind
+            not in {CandidateKind.INCIDENTAL_CONCEPT, CandidateKind.NAMED_PHRASE}
+        ):
+            # These categories identify recurring narrative referents rather
+            # than mechanics.  Models sometimes label roles such as Knight or
+            # Squire as glossary terms despite the entity contract.
+            return CandidateKind.ENTITY
         if contribution.candidate_kind is not None:
             return CandidateKind(contribution.candidate_kind)
         if isinstance(contribution, EntityContribution):
@@ -267,7 +277,7 @@ class ContextCandidateRules:
         text: str,
         aliases: Sequence[str],
     ) -> list[tuple[int, int]]:
-        normalized_text = unicodedata.normalize("NFKC", text).casefold()
+        normalized_text = _scan_text(text)
         matches: list[tuple[int, int]] = []
         for alias in aliases:
             tokens = [token for token in re.split(r"\s+", alias) if token]
@@ -437,7 +447,10 @@ class ContextCandidateRules:
     ) -> bool:
         if override.get("summary_eligible") is not None:
             return bool(override["summary_eligible"])
-        return tier is CandidateTier.CORE and kind is CandidateKind.ENTITY
+        return (
+            tier in {CandidateTier.CORE, CandidateTier.SECONDARY}
+            and kind is CandidateKind.ENTITY
+        )
 
     @staticmethod
     def glossary_eligible(
@@ -572,6 +585,14 @@ class ContextCandidateRules:
 
 def scan_surface(surface: str) -> str:
     return normalized_match_key(surface, "und")
+
+
+def _scan_text(value: str) -> str:
+    """Normalize source prose while exposing Paradox display references."""
+
+    normalized = unicodedata.normalize("NFKC", value).casefold()
+    normalized = re.sub(r"§[0-9a-z]", "", normalized)
+    return re.sub(r"[\[\]$_.:/]+", " ", normalized)
 
 
 def remove_leading_article(value: str) -> str:

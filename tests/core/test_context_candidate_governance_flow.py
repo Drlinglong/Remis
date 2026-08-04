@@ -5,6 +5,7 @@ from scripts.core.context_local_units import DeliveryAssignment, DeliveryLink
 from scripts.core.neologism_extraction import (
     AnalysisScope,
     EventChainContribution,
+    FactContribution,
     SourceEvidence,
     SourceItem,
     StructuredNeologismExtraction,
@@ -299,6 +300,42 @@ def test_all_governed_aggregates_persist_aliases_merge_and_audit_is_excluded_fro
     assert required <= set(by_key["candidate:incidental"].payload)
     assert by_key["candidate:incidental"].payload["audit_only"] is True
     assert by_key["candidate:named-phrase"].payload["summary_eligible"] is False
+
+
+def test_ungoverned_fact_subject_stays_in_project_audit_without_entity_aggregate():
+    items = _source_items()
+    sources = {
+        item.source_item_id: ContextSourceItem(
+            source_item_id=item.source_item_id,
+            project_id="project-1",
+            source_type="localization",
+            source_ref=item.item_key or item.relative_path,
+            content=item.source_text,
+            content_hash=f"hash-{item.source_item_id}",
+        )
+        for item in items
+    }
+    extraction = _extraction(items)
+    extraction.facts.append(FactContribution(
+        subject="a passing observer",
+        predicate="notices",
+        object="the Republic",
+        evidence=[SourceEvidence(source_item_id=items[0].source_item_id)],
+    ))
+    governance = _governance([extraction])
+    assembler = ContextReleaseAssembler(MemoryRepository())
+    contributions = assembler.persist_contributions(
+        [extraction], sources, governance.aggregate_key_for_surface,
+    )
+    aggregates = assembler.build_aggregates("project-1", contributions, governance)
+    by_key = {aggregate.aggregate_key: aggregate for aggregate in aggregates}
+    residual = next(
+        item for item in contributions.values()
+        if item.payload.get("subject") == "a passing observer"
+    )
+
+    assert residual.contribution_id in by_key["project:summary"].contribution_ids
+    assert residual.subject_key not in by_key
 
 
 def test_only_explicit_synthesis_eligible_candidates_reach_the_context_prompt():

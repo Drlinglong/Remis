@@ -260,6 +260,59 @@ def test_ungrounded_evidence_does_not_extend_literal_source_coverage():
     assert candidate.local_unit_coverage == 1
 
 
+def test_paradox_formatting_and_name_references_preserve_grounded_coverage():
+    items = [
+        _item(0, "Take control of the §YColossus§!.", item_key="event.1.desc"),
+        _item(1, "I am known as $NAME_Sinople$.", item_key="event.2.desc"),
+    ]
+    result = ContextCandidateGovernanceService().govern(
+        [_extraction(terms=[
+            _term("Colossus", ["source-0"], CandidateKind.GLOSSARY_TERM),
+            _term("Sinople", ["source-1"], CandidateKind.ENTITY),
+        ])],
+        items,
+        ContextLocalUnitBuilder.build(items),
+    )
+
+    assert _candidate(result, "colossus").source_item_coverage == 1
+    assert _candidate(result, "sinople").source_item_coverage == 1
+
+
+def test_person_role_terms_are_entities_and_secondary_entities_receive_summaries():
+    items = [
+        _item(0, "The Knight takes a Squire.", item_key="event.1.desc"),
+        _item(1, "The Knight returns.", item_key="event.2.desc"),
+    ]
+    units = ContextLocalUnitBuilder.build(items)
+    result = ContextCandidateGovernanceService().govern(
+        [_extraction(terms=[
+            TermContribution(
+                original="Knight",
+                candidate_kind=CandidateKind.GLOSSARY_TERM,
+                category="person",
+                evidence=[SourceEvidence(source_item_id="source-0")],
+            ),
+            TermContribution(
+                original="Squire",
+                candidate_kind=CandidateKind.GLOSSARY_TERM,
+                category="person",
+                evidence=[SourceEvidence(source_item_id="source-0")],
+            ),
+        ])],
+        items,
+        units,
+    )
+
+    knight = _candidate(result, "knight")
+    squire = _candidate(result, "squire")
+    assert knight.candidate_kind is CandidateKind.ENTITY
+    assert knight.tier is CandidateTier.SECONDARY
+    assert knight.summary_eligible is True
+    assert squire.candidate_kind is CandidateKind.ENTITY
+    assert squire.tier is CandidateTier.SECONDARY
+    assert squire.summary_eligible is True
+
+
 def test_kind_tiering_and_glossary_summary_boundaries_are_explicit():
     items = [
         _item(0, "Horizon Signal activates the Temporal Coil."),

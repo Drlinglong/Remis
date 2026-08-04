@@ -51,6 +51,10 @@ event-chain coverage, policy coverage, tiers, or eligibility flags.
   doctrine, slogan, or other distinctive domain expression. Ordinary
   descriptive noun phrases, one-off scientific observations, generic actions,
   speculative explanations, and isolated facts are not entities.
+- A recurring narrative role or group that participates across event steps is
+  an `entity`, even when its translation also needs consistency. For example,
+  recurring Knights and Squires are entity referents; a named job modifier,
+  building, policy, doctrine, or resource remains a `glossary_term`.
 - A single local-unit occurrence is normally low priority. It may still be a
   secondary candidate when it is an explicit proper name, an explicit game
   term, or clearly translation-sensitive. Do not manufacture importance from

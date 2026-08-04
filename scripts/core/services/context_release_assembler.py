@@ -138,8 +138,23 @@ class ContextReleaseAssembler:
         governance: Any | None = None,
     ) -> list[ContextAggregate]:
         governance_available = bool(getattr(governance, "available", False))
+        candidate_keys = (
+            governance.candidate_aggregate_keys()
+            if governance_available
+            else frozenset()
+        )
         groups: dict[str, list[str]] = defaultdict(list)
         for contribution in contributions.values():
+            if (
+                governance_available
+                and not contribution.subject_key.startswith("event:")
+                and contribution.subject_key not in candidate_keys
+            ):
+                # Facts and relationships may name free-form subjects that
+                # were never governed as candidates. Keep those contributions
+                # in the project summary/audit trail without manufacturing an
+                # unclassified zero-coverage entity aggregate.
+                continue
             groups[contribution.subject_key].append(contribution.contribution_id)
         project_contribution_ids = [
             contribution.contribution_id
@@ -150,11 +165,6 @@ class ContextReleaseAssembler:
         ]
         if project_contribution_ids:
             groups["project:summary"] = project_contribution_ids
-        candidate_keys = (
-            governance.candidate_aggregate_keys()
-            if governance_available
-            else frozenset()
-        )
         aggregates = []
         for aggregate_key, contribution_ids in sorted(groups.items()):
             aggregate_type = "project" if aggregate_key == "project:summary" else (
