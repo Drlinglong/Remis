@@ -245,4 +245,22 @@ describe('Mod Archive contracts', () => {
         ]));
         expect(terminology['rejected term']).toBeUndefined();
     });
+
+    it('sorts archive entities by governed tier and then alphabetically', () => {
+        const entries = getArchiveEntries({
+            effective_context: {
+                'entity:zeta': { summary: 'Z' },
+                'entity:beta': { summary: 'B' },
+                'entity:alpha': { summary: 'A' },
+            },
+            aggregate_metadata: {
+                'entity:zeta': { tier: 'secondary', candidate_kind: 'entity' },
+                'entity:beta': { tier: 'core', candidate_kind: 'entity' },
+                'entity:alpha': { tier: 'core', candidate_kind: 'entity' },
+            },
+        });
+
+        expect(entries.map((entry) => entry.label)).toEqual(['alpha', 'beta', 'zeta']);
+        expect(entries[0].metadata.tier).toBe('core');
+    });
 });

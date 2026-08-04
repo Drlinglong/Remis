@@ -70,6 +70,12 @@ describe('PublishedArchivePanel', () => {
                         'entity:republic': { summary: 'A state', preferred_name: '共和国' },
                         'event:war': { summary: 'A conflict' },
                     },
+                    aggregate_metadata: {
+                        'entity:republic': {
+                            candidate_kind: 'entity', tier: 'core', mention_count: 9,
+                            event_chain_coverage: 3,
+                        },
+                    },
                 } });
             }
             if (url === '/api/context/releases/release-1/traceability') {
@@ -94,7 +100,9 @@ describe('PublishedArchivePanel', () => {
     it('renders immutable metadata, effective overrides, and summaries without edit controls', async () => {
         renderPanel();
 
-        expect(await screen.findByText('release-1')).toBeInTheDocument();
+        expect(await screen.findByText('A project summary')).toBeInTheDocument();
+        expect(screen.queryByTestId('mod-archive-metadata-details')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByTestId('mod-archive-advanced-toggle'));
         const metadataDetails = screen.getByTestId('mod-archive-metadata-details');
         expect(metadataDetails).not.toHaveAttribute('open');
         expect(screen.getByText('v0.0.1')).toBeInTheDocument();
@@ -109,6 +117,8 @@ describe('PublishedArchivePanel', () => {
         expect(screen.queryByText('summary')).not.toBeInTheDocument();
         expect(screen.getByText('republic（共和国候选）')).toBeInTheDocument();
         expect(screen.getByText('mod_archive.release.override_badge')).toBeInTheDocument();
+        expect(screen.getByText('mod_archive.release.candidate_tier.core')).toBeInTheDocument();
+        expect(screen.getByText(/mention_count.*9/)).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /edit|save|publish/i })).not.toBeInTheDocument();
         expect(api.get).toHaveBeenCalledWith(
             '/api/context/releases/project-1/latest?optional=true',
@@ -167,6 +177,7 @@ describe('PublishedArchivePanel', () => {
             'mod_archive.release.entity_summary:1',
         ]);
 
+        fireEvent.click(screen.getByTestId('mod-archive-advanced-toggle'));
         fireEvent.click(screen.getByTestId('mod-archive-load-traceability'));
         await screen.findByText('project.yml::intro');
         const traceability = screen.getByTestId('mod-archive-traceability');
@@ -219,6 +230,7 @@ describe('PublishedArchivePanel', () => {
         const summaryEntitySection = summaryEntityHeading.closest('section');
         expect(summaryEntitySection).not.toHaveTextContent('Audit-only concept');
 
+        fireEvent.click(screen.getByTestId('mod-archive-advanced-toggle'));
         fireEvent.click(screen.getByTestId('mod-archive-load-traceability'));
         expect(await screen.findByTestId('mod-archive-candidate-incidental-0')).toHaveTextContent(
             'Audit-only concept',
@@ -229,8 +241,7 @@ describe('PublishedArchivePanel', () => {
     it('removes the selected project archive only after explicit confirmation', async () => {
         renderPanel();
 
-        await screen.findByText('release-1');
-        fireEvent.click(screen.getByTestId('mod-archive-remove'));
+        fireEvent.click(await screen.findByTestId('mod-archive-remove'));
         expect(await screen.findByRole('dialog')).toHaveTextContent('Demo');
         fireEvent.click(screen.getByTestId('mod-archive-confirm-remove'));
 
@@ -366,7 +377,7 @@ describe('PublishedArchivePanel', () => {
         renderPanel();
 
         expect(await screen.findByTestId('mod-archive-release-partial')).toBeInTheDocument();
-        expect(screen.getByText('release-1')).toBeInTheDocument();
+        expect(screen.getByText('local')).toBeInTheDocument();
     });
 
     it('reports a traceability error without adding edit controls', async () => {
@@ -378,7 +389,8 @@ describe('PublishedArchivePanel', () => {
         ));
         renderPanel();
 
-        await screen.findByText('release-1');
+        await screen.findByText('A project summary');
+        fireEvent.click(screen.getByTestId('mod-archive-advanced-toggle'));
         fireEvent.click(screen.getByTestId('mod-archive-load-traceability'));
 
         expect(await screen.findByText('traceability unavailable')).toBeInTheDocument();
@@ -450,7 +462,7 @@ describe('PublishedArchivePanel', () => {
         api.put.mockResolvedValue({ data: savedDraft });
 
         renderPanel();
-        await screen.findByText('release-1');
+        await screen.findByText('A state');
         fireEvent.click(screen.getByTestId('mod-archive-start-draft'));
 
         expect(await screen.findByTestId('mod-archive-draft-editor')).toBeInTheDocument();
@@ -483,6 +495,7 @@ describe('PublishedArchivePanel', () => {
         expect(screen.getAllByText('release-2').length).toBeGreaterThan(0);
         expect(api.post).toHaveBeenCalledWith('/api/context/projects/project-1/drafts/draft-1/publish');
         expect(api.get.mock.calls.filter(([url]) => url === '/api/context/releases/project-1/latest?optional=true')).toHaveLength(2);
+        fireEvent.click(screen.getByTestId('mod-archive-advanced-toggle'));
         expect(screen.getByText('release-1')).toBeInTheDocument();
         expect(screen.getByText('mod_archive.release.parent_release')).toBeInTheDocument();
         expect(screen.queryByTestId('mod-archive-draft-editor')).not.toBeInTheDocument();

@@ -8,6 +8,7 @@ import {
     Group,
     Loader,
     Paper,
+    Switch,
     Stack,
     Text,
     Title,
@@ -44,6 +45,7 @@ const PublishedArchivePanel = ({
 }) => {
     const { t } = useTranslation();
     const [publishedChildReleaseId, setPublishedChildReleaseId] = useState(null);
+    const [showAdvanced, setShowAdvanced] = useState(false);
     const releaseState = useModArchiveRelease(selectedProject);
     const {
         phase,
@@ -176,6 +178,12 @@ const PublishedArchivePanel = ({
                     onRemoved={refresh}
                     t={t}
                 />
+                <Switch
+                    checked={showAdvanced}
+                    onChange={(event) => setShowAdvanced(event.currentTarget.checked)}
+                    label={t('advanced_options')}
+                    data-testid="mod-archive-advanced-toggle"
+                />
             </Group>
 
             {stale && (
@@ -197,6 +205,7 @@ const PublishedArchivePanel = ({
                 scope={scopeValue(release.metadata)}
                 draftState={draftState}
                 refresh={refresh}
+                showAdvanced={showAdvanced}
                 t={t}
             />
 
@@ -221,6 +230,7 @@ const PublishedArchivePanel = ({
                 traceabilityState={traceabilityState}
                 traceabilityError={traceabilityError}
                 loadTraceability={loadTraceability}
+                showAdvanced={showAdvanced}
                 t={t}
             />
         </Container>

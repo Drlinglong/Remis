@@ -342,6 +342,7 @@ export const buildTerminologyIndex = ({
 export const getArchiveEntries = (effectiveResponse, terminologyIndex = {}) => {
     const effectiveContext = asObject(effectiveResponse?.effective_context);
     const humanOverrides = asObject(effectiveResponse?.human_overrides);
+    const aggregateMetadata = asObject(effectiveResponse?.aggregate_metadata);
     const keys = new Set([...Object.keys(effectiveContext), ...Object.keys(humanOverrides)]);
     return Array.from(keys)
         .map((key) => {
@@ -353,11 +354,17 @@ export const getArchiveEntries = (effectiveResponse, terminologyIndex = {}) => {
                 termReference: terminologyIndex[normalizeTerm(label)] || null,
                 value: asObject(effectiveContext[key] || humanOverrides[key]),
                 override: humanOverrides[key] || humanOverrides[label] || null,
+                metadata: asObject(aggregateMetadata[key]),
             };
         })
         .sort((left, right) => {
             const order = { project: 0, entity: 1, event: 2 };
-            return (order[left.kind] - order[right.kind]) || left.label.localeCompare(right.label);
+            const tierOrder = { core: 0, secondary: 1, incidental: 2 };
+            const leftTier = tierOrder[left.metadata?.tier] ?? 3;
+            const rightTier = tierOrder[right.metadata?.tier] ?? 3;
+            return (order[left.kind] - order[right.kind])
+                || (left.kind === 'entity' ? leftTier - rightTier : 0)
+                || left.label.localeCompare(right.label);
         });
 };
 

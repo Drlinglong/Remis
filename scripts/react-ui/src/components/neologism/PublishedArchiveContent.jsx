@@ -83,6 +83,7 @@ export const ReleaseMetadata = ({
     scope,
     draftState,
     refresh,
+    showAdvanced,
     t,
 }) => {
     const scopeLabel = t(`mod_archive.release.analysis_scopes.${scope}`, {
@@ -129,7 +130,7 @@ export const ReleaseMetadata = ({
                 <MetadataCell label={t('mod_archive.release.provider')} value={release.metadata?.provider_id} />
                 <MetadataCell label={t('mod_archive.release.model')} value={release.metadata?.model_id} />
             </div>
-            <details className={styles.metadataDetails} data-testid="mod-archive-metadata-details">
+            {showAdvanced && <details className={styles.metadataDetails} data-testid="mod-archive-metadata-details">
                 <summary className={styles.metadataSummary}>
                     {t('mod_archive.release.metadata_title')}
                 </summary>
@@ -152,7 +153,7 @@ export const ReleaseMetadata = ({
                         {release.metadata?.prompt_example || t('mod_archive.release.prompt_example_unavailable')}
                     </pre>
                 </div>
-            </details>
+            </details>}
         </Stack>
         </Paper>
     );
@@ -180,11 +181,28 @@ const SummarySection = ({ kind, title, entries, emptyLabel, hideEntryLabel = fal
                                         })}
                                     </Badge>
                                 )}
+                                {entry.metadata?.tier && (
+                                    <Badge variant="outline" size="xs">
+                                        {t(`mod_archive.release.candidate_tier.${entry.metadata.tier}`, {
+                                            defaultValue: entry.metadata.tier,
+                                        })}
+                                    </Badge>
+                                )}
                             </Group>
                         )}
                         <Text className={styles.entryValue} size="sm">
                             {formatValue(entry.value)}
                         </Text>
+                        {kind === 'entity' && entry.metadata?.candidate_kind === 'entity' && (
+                            <Group gap="xs" mt="xs">
+                                <Badge variant="light" size="xs">
+                                    {t('mod_archive.release.candidate_coverage.mention_count')}: {entry.metadata.mention_count ?? 0}
+                                </Badge>
+                                <Badge variant="light" size="xs">
+                                    {t('mod_archive.release.candidate_coverage.event_chain_coverage')}: {entry.metadata.event_chain_coverage ?? 0}
+                                </Badge>
+                            </Group>
+                        )}
                         {entry.override && (
                             <Stack gap={2} mt="xs">
                                 <Badge variant="light" w="fit-content">
@@ -312,8 +330,15 @@ export const ArchiveSummary = ({
     traceabilityState,
     traceabilityError,
     loadTraceability,
+    showAdvanced = false,
     t,
-}) => (
+}) => {
+    const entityEntries = entries.filter((entry) => entry.kind === 'entity');
+    const primaryEntities = entityEntries.filter((entry) => (
+        entry.metadata?.tier === 'core' || entry.metadata?.tier === 'secondary'
+    ));
+    const lowerEntities = entityEntries.filter((entry) => !primaryEntities.includes(entry));
+    return (
     <Paper className={styles.paper} p="lg" mt="md" withBorder data-remis-surface="paper">
         <Stack gap="md">
             <div>
@@ -341,14 +366,29 @@ export const ArchiveSummary = ({
                 <SummarySection
                     kind="entity"
                     title={t('mod_archive.release.entity_summary', { count: counts.entity })}
-                    entries={entries.filter((entry) => entry.kind === 'entity')}
+                    entries={primaryEntities}
                     emptyLabel={t('mod_archive.release.no_entity_summary')}
                     t={t}
                 />
+                {lowerEntities.length > 0 && (
+                    <details className={styles.previewDetails} data-testid="mod-archive-lower-priority-entities">
+                        <summary>
+                            {t('mod_archive.release.candidate_tier.incidental', { defaultValue: 'C / Unclassified' })}
+                            {' · '}{lowerEntities.length}
+                        </summary>
+                        <SummarySection
+                            kind="entity"
+                            title={t('mod_archive.release.entity_summary', { count: lowerEntities.length })}
+                            entries={lowerEntities}
+                            emptyLabel={t('mod_archive.release.no_entity_summary')}
+                            t={t}
+                        />
+                    </details>
+                )}
             </div>
 
-            <Divider />
-            <details className={styles.traceability} data-testid="mod-archive-traceability">
+            {showAdvanced && <Divider />}
+            {showAdvanced && <details className={styles.traceability} data-testid="mod-archive-traceability">
                 <summary className={styles.traceabilitySummary}>
                     {t('mod_archive.release.traceability_title')}
                 </summary>
@@ -378,7 +418,8 @@ export const ArchiveSummary = ({
                         <TraceabilityContent rows={rows} entries={entries} t={t} />
                     )}
                 </Stack>
-            </details>
+            </details>}
         </Stack>
     </Paper>
-);
+    );
+};
