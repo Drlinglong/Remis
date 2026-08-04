@@ -728,7 +728,11 @@ class StructuredNeologismExtractor:
         aliases = {alias: source_id for source_id, alias in source_aliases.items()}
         for field in ("terms", "entities", "facts", "events", "relationships"):
             for contribution in payload.get(field) or []:
+                if not isinstance(contribution, dict):
+                    continue
                 for evidence in contribution.get("evidence") or []:
+                    if not isinstance(evidence, dict):
+                        continue
                     source_alias = evidence.get("source_item_id")
                     if source_alias in aliases:
                         evidence["source_item_id"] = aliases[source_alias]

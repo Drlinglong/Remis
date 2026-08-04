@@ -4,9 +4,23 @@ import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
 
+from scripts.core.services.context_workflow_status_service import ContextWorkflowStatusService
 from scripts.routers import neologism
 from scripts.schemas.neologism import ApproveNeologismRequest
 from scripts.schemas.neologism import MineNeologismsRequest
+
+
+class _RecordingTaskBackend:
+    def __init__(self):
+        self.updates = []
+
+    def update_task(self, task_id, **payload):
+        self.updates.append((task_id, payload))
+
+
+class _RecordingCheckpointPort:
+    def save_checkpoint(self, task_id, checkpoint):
+        pass
 
 
 def test_approval_requires_translation_unless_reusing_duplicate():
@@ -32,6 +46,45 @@ def test_full_archive_task_identity_does_not_reuse_neologism_copy():
 
     assert kind == "context_archive_analysis"
     assert title == "Build project archive for Horizon Signal"
+
+
+def test_context_failure_projects_the_real_error_into_the_user_log():
+    backend = _RecordingTaskBackend()
+    service = ContextWorkflowStatusService(
+        backend,
+        checkpoint_port=_RecordingCheckpointPort(),
+    )
+
+    service.mark_failed(
+        "project-1",
+        "task-1",
+        total_files=1,
+        processed_files=0,
+        error=RuntimeError("invalid model contribution"),
+    )
+
+    task_id, update = backend.updates[-1]
+    assert task_id == "task-1"
+    assert update["append_log"] == (
+        "Context analysis failed: invalid model contribution"
+    )
+    assert update["fields"]["attention_reason"] == "invalid model contribution"
+
+
+def test_background_context_failure_does_not_escape_into_asgi(monkeypatch, caplog):
+    def fail_after_recording_terminal_state(*args, **kwargs):
+        raise RuntimeError("invalid model contribution")
+
+    monkeypatch.setattr(
+        neologism.context_workflow_service,
+        "run",
+        fail_after_recording_terminal_state,
+    )
+
+    result = neologism._run_context_workflow_background("project-1", ["source.yml"])
+
+    assert result is None
+    assert "invalid model contribution" in caplog.text
 
 
 @pytest.mark.asyncio

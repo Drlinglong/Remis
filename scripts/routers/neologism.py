@@ -39,6 +39,20 @@ context_workflow_service = ContextWorkflowService(
 SUPPORTED_MINING_SUFFIXES = {".txt", ".yml", ".yaml", ".csv", ".json"}
 
 
+def _run_context_workflow_background(*args, **kwargs):
+    """Keep an already-persisted workflow failure out of the ASGI response path."""
+
+    try:
+        return context_workflow_service.run(*args, **kwargs)
+    except Exception as exc:
+        logger.error(
+            "Context archive analysis ended in a persisted failed state: %s",
+            exc,
+            exc_info=True,
+        )
+        return None
+
+
 def _context_release_presentation(release):
     payload = release.model_dump()
     metadata = payload["metadata"]
@@ -390,7 +404,7 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
         push=True,
     )
     background_tasks.add_task(
-        context_workflow_service.run,
+        _run_context_workflow_background,
         payload.project_id,
         files,
         project["source_path"],

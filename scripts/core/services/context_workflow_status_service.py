@@ -372,6 +372,7 @@ class ContextWorkflowStatusService:
             task_id,
             status="failed",
             message=message,
+            append_log=f"Context analysis failed: {message[:500]}",
             progress={**last_progress, "stage": "Failed"},
             fields={
                 "stage_code": "failed",

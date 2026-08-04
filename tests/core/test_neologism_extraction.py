@@ -450,6 +450,40 @@ def test_invalid_contribution_does_not_raise_after_one_bad_response():
     assert len(handler.calls) == 1
 
 
+@pytest.mark.parametrize(
+    "malformed_terms",
+    [
+        ["Aether Engine"],
+        [{
+            "original": "Aether Engine",
+            "category": "technology",
+            "evidence": ["source_0"],
+        }],
+    ],
+)
+def test_non_object_nested_items_use_the_bounded_repair_path(malformed_terms):
+    malformed = json.dumps({
+        "terms": malformed_terms,
+        "entities": [], "facts": [], "events": [], "relationships": [],
+    })
+    repaired = json.dumps({
+        "terms": [{
+            "original": "Aether Engine",
+            "category": "technology",
+            "evidence": [{"source_item_id": "source_0"}],
+        }],
+        "entities": [], "facts": [], "events": [], "relationships": [],
+    })
+    handler = FakeHandler([malformed, repaired])
+
+    result = StructuredNeologismExtractor(handler).extract([source_item()])
+
+    assert [term.original for term in result.terms] == ["Aether Engine"]
+    assert result.diagnostics["repair_count"] == 1
+    assert result.diagnostics["repair_reason"] == "schema_validation"
+    assert len(handler.calls) == 2
+
+
 def test_evidence_snippet_normalizes_only_source_preserving_typography():
     item = source_item("Remis said, \u201cOpen the Meridian Gate\u2014now.\u201d")
     payload = json.dumps({
