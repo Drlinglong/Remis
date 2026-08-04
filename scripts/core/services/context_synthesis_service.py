@@ -232,6 +232,14 @@ event chains, and the project summary describes the project-level pattern.
                         aggregate_list, contributions, sources, description_language,
                     )
                 category = self._validation_error_category(second_error)
+                if category == "evidence_scope" and len(aggregate_list) > 1:
+                    return self._synthesize_split(
+                        aggregate_list,
+                        contributions,
+                        sources,
+                        description_language,
+                        reason=category,
+                    )
                 raise NeologismMiningError(
                     f"Context synthesis failed after one repair ({category})"
                 ) from second_error
@@ -243,13 +251,18 @@ event chains, and the project summary describes the project-level pattern.
         contributions: dict[str, ContextContribution],
         sources: dict[str, ContextSourceItem],
         description_language: str,
+        *,
+        reason: str = "length_boundary",
     ) -> list[GeneratedSynthesis]:
         midpoint = len(aggregates) // 2
+        boundary = (
+            "mixed evidence across aggregates"
+            if reason == "evidence_scope"
+            else "hit a length boundary"
+        )
         self.logger.warning(
-            "Context synthesis hit a length boundary; retrying %d aggregates as %d and %d",
-            len(aggregates),
-            midpoint,
-            len(aggregates) - midpoint,
+            "Context synthesis %s; retrying %d aggregates as %d and %d",
+            boundary, len(aggregates), midpoint, len(aggregates) - midpoint,
         )
         return [
             *self._synthesize_batch(
@@ -269,9 +282,15 @@ event chains, and the project summary describes the project-level pattern.
         category = self._validation_error_category(error)
         error_excerpt = str(error)[:self.REPAIR_ERROR_EXCERPT_CHARS]
         response_excerpt = response[:self.REPAIR_RESPONSE_EXCERPT_CHARS]
+        scope_instruction = (
+            " For each synthesis item, copy evidence aliases only from the source_items "
+            "inside that item's own aggregate; never borrow an alias from a sibling aggregate."
+            if category == "evidence_scope"
+            else ""
+        )
         instruction = (
             "Replace the invalid response exactly once. Return only valid JSON matching "
-            f"the schema and alias grounding rules. Error category: {category}. "
+            f"the schema and alias grounding rules.{scope_instruction} Error category: {category}. "
             f"Validation detail: {error_excerpt}.\n"
             f"{self.OUTPUT_CONTRACT.strip()}\n"
             f"Invalid response excerpt: {response_excerpt}"

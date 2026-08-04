@@ -958,6 +958,89 @@ def test_synthesis_repairs_at_most_once():
     assert result[0].content["evidence_source_item_ids"] == ["source-1"]
 
 
+def test_synthesis_bisects_persistent_cross_aggregate_evidence_scope_errors():
+    sources = {
+        f"source-{index}": ContextSourceItem(
+            source_item_id=f"source-{index}",
+            project_id="project-1",
+            source_type="localization",
+            source_ref=f"main.yml::{index}:key",
+            content=f"Grounded evidence {index}.",
+            content_hash=f"hash-{index}",
+        )
+        for index in range(2)
+    }
+    contributions = {
+        f"contribution-{index}": ContextContribution(
+            contribution_id=f"contribution-{index}",
+            source_item_id=f"source-{index}",
+            contribution_type="fact",
+            subject_key=f"entity:{index}",
+            payload={"evidence": [{"source_item_id": f"source-{index}"}]},
+            provenance="text_inferred",
+        )
+        for index in range(2)
+    }
+    aggregates = [
+        ContextAggregate(
+            aggregate_id=f"aggregate-{index}",
+            project_id="project-1",
+            aggregate_type="entity",
+            aggregate_key=f"entity:{index}",
+            contribution_ids=[f"contribution-{index}"],
+        )
+        for index in range(2)
+    ]
+
+    class CrossAggregateEvidenceHandler:
+        def __init__(self):
+            self.calls = []
+
+        def generate_with_messages(self, messages, temperature=0.0):
+            self.calls.append(messages)
+            request = json.loads(messages[1]["content"])
+            requested = request["aggregates"]
+            if len(requested) > 1:
+                first_alias = requested[0]["source_items"][0]["evidence_alias"]
+                second_alias = requested[1]["source_items"][0]["evidence_alias"]
+                return json.dumps({
+                    "syntheses": [
+                        {
+                            "aggregate_alias": requested[0]["aggregate_alias"],
+                            "summary": "Grounded summary 0.",
+                            "evidence_aliases": [second_alias],
+                        },
+                        {
+                            "aggregate_alias": requested[1]["aggregate_alias"],
+                            "summary": "Grounded summary 1.",
+                            "evidence_aliases": [first_alias],
+                        },
+                    ],
+                })
+            aggregate = requested[0]
+            return json.dumps({
+                "syntheses": [{
+                    "aggregate_alias": aggregate["aggregate_alias"],
+                    "summary": "Grounded singleton summary.",
+                    "evidence_aliases": [
+                        aggregate["source_items"][0]["evidence_alias"],
+                    ],
+                }],
+            })
+
+    handler = CrossAggregateEvidenceHandler()
+    result = ContextSynthesisService(handler).synthesize(
+        aggregates, contributions, sources,
+    )
+
+    assert len(handler.calls) == 4
+    assert "never borrow an alias from a sibling aggregate" in handler.calls[1][-1]["content"]
+    assert [item.aggregate_id for item in result] == ["aggregate-0", "aggregate-1"]
+    assert [item.content["evidence_source_item_ids"] for item in result] == [
+        ["source-0"], ["source-1"],
+    ]
+
+
 def test_synthesis_prompt_example_uses_the_real_contract_and_requested_language():
     example = ContextSynthesisService.prompt_example("zh-CN")
 
