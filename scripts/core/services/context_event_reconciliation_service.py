@@ -109,6 +109,16 @@ a card silently and do not write long rationales. Evidence is representative;
 every evidence_unit_id must name a supplied unit. Write descriptive fields in
 the requested description language. In evidence_unit_ids, put exactly one bare
 ID such as "unit_56" in each array item; never join IDs or add explanatory prose.
+
+Resolution field contract:
+- merge_into and keep_as_delivery_chain: exactly one final_chain_id and no
+  disposition parent_story_id.
+- split_across: at least two unique final_chain_ids and no disposition
+  parent_story_id.
+- promote_to_parent_story: no final_chain_ids and one parent_story_id.
+- reject_non_event and unresolved: no final_chain_ids and no parent_story_id.
+Hierarchy belongs on final_chain.parent_story_id. A parent story does not need a
+separate broad local card when its child chains and evidence already ground it.
 """
 
     ASSIGNMENT_SYSTEM_PROMPT = """
@@ -458,16 +468,8 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
                     or len(item.final_chain_ids) != len(set(item.final_chain_ids))
                 )
             ) or (
-                item.resolution in {
-                    "promote_to_parent_story", "reject_non_event", "unresolved"
-                }
-                and item.final_chain_ids
-            ) or (
                 item.resolution == "promote_to_parent_story"
                 and not item.parent_story_id
-            ) or (
-                item.resolution != "promote_to_parent_story"
-                and item.parent_story_id is not None
             )
         ]
         if invalid_dispositions:
@@ -488,17 +490,6 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
             raise ValueError(
                 "Final delivery chains require a local chain-card source: "
                 f"{sorted(orphan_chains)}"
-            )
-        parent_sources = {
-            item.parent_story_id
-            for item in parsed.proposal_resolutions
-            if item.resolution == "promote_to_parent_story" and item.parent_story_id
-        }
-        orphan_parents = valid_parents - parent_sources
-        if orphan_parents:
-            raise ValueError(
-                "Parent stories require a promoted local chain-card source: "
-                f"{sorted(orphan_parents)}"
             )
         validate_anchor_sources(parsed.final_chains, parsed.proposal_resolutions, cards)
 

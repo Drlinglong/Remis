@@ -16,6 +16,7 @@ from scripts.core.services.context_event_reconciliation_service import (
     ContextEventReconciliationService,
     EventReconciliationResult,
 )
+from scripts.core.services.context_event_catalog_contract import LocalChainDisposition
 from scripts.core.services.context_analysis_report_service import ContextAnalysisReportService
 
 
@@ -242,11 +243,65 @@ def test_catalog_repairs_invalid_folded_card_disposition_once(mutation, detail):
     assert detail in handler.calls[1][-1]["content"]
 
 
-@pytest.mark.parametrize("resolution", ["promote_to_parent_story", "unresolved"])
-def test_non_delivery_dispositions_cannot_reference_delivery_chains(resolution):
+def test_parent_story_promotion_requires_parent_identity():
     units = _units()
     invalid = _catalog_response(units)
-    invalid["proposal_resolutions"][0]["resolution"] = resolution
+    invalid["proposal_resolutions"][0]["resolution"] = "promote_to_parent_story"
+    handler = FakeHandler([
+        json.dumps(invalid),
+        json.dumps(_catalog_response(units)),
+    ])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [_extraction(units)]
+    )
+
+    assert catalog.repair_count == 1
+    assert "conflict with their final_chain_ids" in handler.calls[1][-1]["content"]
+
+
+def test_disposition_resolution_normalizes_redundant_target_fields():
+    delivery = LocalChainDisposition(
+        proposal_id="delivery",
+        resolution="merge_into",
+        final_chain_ids=["quest_one"],
+        parent_story_id="toxic_story",
+    )
+    parent = LocalChainDisposition(
+        proposal_id="parent",
+        resolution="promote_to_parent_story",
+        final_chain_ids=["quest_one", "quest_two"],
+        parent_story_id="toxic_story",
+    )
+    rejected = LocalChainDisposition(
+        proposal_id="rejected",
+        resolution="reject_non_event",
+        final_chain_ids=["quest_one"],
+        parent_story_id="toxic_story",
+    )
+
+    assert delivery.final_chain_ids == ["quest_one"]
+    assert delivery.parent_story_id is None
+    assert parent.final_chain_ids == []
+    assert parent.parent_story_id == "toxic_story"
+    assert rejected.final_chain_ids == []
+    assert rejected.parent_story_id is None
+
+
+@pytest.mark.parametrize(("resolution", "final_chain_ids"), [
+    ("merge_into", []),
+    ("keep_as_delivery_chain", ["knight_returns", "knight_returns"]),
+    ("split_across", ["knight_returns"]),
+])
+def test_unsafe_delivery_cardinality_still_requires_repair(
+    resolution, final_chain_ids,
+):
+    units = _units()
+    invalid = _catalog_response(units)
+    invalid["proposal_resolutions"][0].update(
+        resolution=resolution,
+        final_chain_ids=final_chain_ids,
+    )
     handler = FakeHandler([
         json.dumps(invalid),
         json.dumps(_catalog_response(units)),
@@ -343,6 +398,51 @@ def test_parent_story_is_hierarchical_only_and_cannot_receive_assignments():
     result = service.assign_batch(units, catalog)
     assert result.repair_count == 1
     assert "unknown chains" in handler.calls[2][-1]["content"]
+
+
+def test_parent_story_can_be_grounded_by_child_chains_without_a_promotion_card():
+    units = _units(2)
+    response = _catalog_response(units)
+    base = response["final_chains"][0]
+    response["final_chains"] = [
+        {
+            **base,
+            "chain_id": "quest_one",
+            "parent_story_id": "toxic_story",
+            "anchor_unit_ids": [units[0].unit_id],
+            "evidence_unit_ids": [units[0].unit_id],
+        },
+        {
+            **base,
+            "chain_id": "quest_two",
+            "parent_story_id": "toxic_story",
+            "anchor_unit_ids": [units[1].unit_id],
+            "evidence_unit_ids": [units[1].unit_id],
+        },
+    ]
+    response["parent_stories"] = [{
+        "story_id": "toxic_story",
+        "summary": "Two bounded quests belong to one origin story.",
+        "child_chain_ids": ["quest_one", "quest_two"],
+        "evidence_unit_ids": [units[0].unit_id, units[1].unit_id],
+    }]
+    response["proposal_resolutions"] = [
+        {
+            "proposal_id": "b0_c0",
+            "resolution": "split_across",
+            "final_chain_ids": ["quest_one", "quest_two"],
+            "parent_story_id": "toxic_story",
+        },
+    ]
+    handler = FakeHandler([json.dumps(response)])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [_extraction(units)]
+    )
+
+    assert catalog.repair_count == 0
+    assert catalog.proposal_resolutions[0].parent_story_id is None
+    assert [story.story_id for story in catalog.parent_stories] == ["toxic_story"]
 
 
 def test_assignment_repair_is_limited_to_the_failed_unit_batch():

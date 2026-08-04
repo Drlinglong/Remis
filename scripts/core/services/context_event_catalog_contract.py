@@ -6,7 +6,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Sequence
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from scripts.core.context_local_units import DeliveryAssignment
 from scripts.core.context_unit_id_contract import EvidenceUnitIds
@@ -70,6 +70,26 @@ class LocalChainDisposition(BaseModel):
     )
     final_chain_ids: list[str] = Field(default_factory=list, max_length=8)
     parent_story_id: str | None = Field(default=None, max_length=200)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_exclusive_targets(cls, value: Any) -> Any:
+        """Honor the explicit resolution when optional target fields conflict."""
+
+        if not isinstance(value, dict):
+            return value
+        normalized = dict(value)
+        resolution = normalized.get("resolution")
+        delivery_resolutions = {
+            "merge_into", "keep_as_delivery_chain", "split_across",
+        }
+        if resolution in delivery_resolutions:
+            normalized["parent_story_id"] = None
+        else:
+            normalized["final_chain_ids"] = []
+            if resolution != "promote_to_parent_story":
+                normalized["parent_story_id"] = None
+        return normalized
 
 
 class _CatalogResponse(BaseModel):
