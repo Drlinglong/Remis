@@ -32,6 +32,10 @@ from scripts.core.services.context_event_reconciliation_service import (
     LocalChainDisposition,
 )
 from scripts.core.services.context_synthesis_service import ContextSynthesisService
+from scripts.core.services.context_synthesis_execution_service import (
+    ContextSynthesisExecutionService,
+)
+from scripts.core.services.context_model_usage import ContextModelUsageLedger
 from scripts.core.services.context_workflow_service import ContextWorkflowService
 from scripts.core.services.context_workflow_status_service import ContextWorkflowStatusService
 from scripts.core.services.initial_translation_task_service import _build_source_entries
@@ -40,6 +44,7 @@ from scripts.schemas.context import (
     ContextContribution,
     ContextRelease,
     ContextSourceItem,
+    GeneratedSynthesis,
 )
 
 
@@ -74,6 +79,48 @@ class FakeCheckpointPort:
             if saved_task_id == task_id:
                 return checkpoint
         return None
+
+
+def test_parallel_synthesis_restores_checkpoint_without_calling_provider():
+    generated = GeneratedSynthesis(
+        synthesis_id="synthesis-1",
+        aggregate_id="aggregate-1",
+        context_key="entity:republic",
+        content={"summary": "Recovered summary."},
+    )
+    def unexpected_handler(*args, **kwargs):
+        pytest.fail("provider must not be called for a restored synthesis batch")
+
+    service = ContextSynthesisExecutionService(
+        handler_factory=unexpected_handler,
+        synthesizer_factory=ContextSynthesisService,
+        checkpoints=SimpleNamespace(
+            restore_synthesis=lambda run, index, source_ids: [generated],
+            save_synthesis=lambda *args, **kwargs: None,
+            save_synthesis_failure=lambda *args, **kwargs: None,
+        ),
+        status_service=SimpleNamespace(record_batch=lambda *args, **kwargs: None),
+        release_assembler=SimpleNamespace(
+            aggregate_source_ids=lambda batch, contributions: ["source-1"],
+        ),
+        governance_flow=SimpleNamespace(),
+        usage_ledger=ContextModelUsageLedger(),
+    )
+
+    restored = service.execute_batches(
+        [[SimpleNamespace(aggregate_id="aggregate-1")]],
+        {},
+        {},
+        "en",
+        "project-1",
+        "task-1",
+        SimpleNamespace(run_id="run-1"),
+        "openrouter",
+        "openai/gpt-5.6-luna",
+        1,
+    )
+
+    assert restored == [generated]
 
 
 class FakeRepository:

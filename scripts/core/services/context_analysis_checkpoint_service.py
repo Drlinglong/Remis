@@ -19,6 +19,7 @@ from scripts.core.services.context_event_reconciliation_service import (
     EventAssignmentBatchResult,
     EventChainCatalogResult,
 )
+from scripts.schemas.context import GeneratedSynthesis
 
 
 class _AggregationCheckpoint(BaseModel):
@@ -226,6 +227,60 @@ class ContextAnalysisCheckpointService:
         self.repository.save_batch(
             run.run_id,
             "aggregation",
+            batch_index,
+            source_item_ids,
+            {},
+            status="failed",
+            error={"type": type(error).__name__, "message": str(error)[:1500]},
+        )
+
+    def restore_synthesis(
+        self,
+        run: Any | None,
+        batch_index: int,
+        source_item_ids: Sequence[str],
+    ) -> list[GeneratedSynthesis] | None:
+        if self.repository is None or run is None:
+            return None
+        saved = self.repository.get_batch(run.run_id, "synthesis", batch_index)
+        if saved is None or saved.status != "succeeded":
+            return None
+        if tuple(source_item_ids) != saved.source_item_ids:
+            raise ValueError("Saved synthesis batch does not match the current source items")
+        return [
+            GeneratedSynthesis.model_validate(item)
+            for item in saved.payload.get("syntheses", [])
+        ]
+
+    def save_synthesis(
+        self,
+        run: Any | None,
+        batch_index: int,
+        source_item_ids: Sequence[str],
+        syntheses: Sequence[GeneratedSynthesis],
+    ) -> None:
+        if self.repository is None or run is None:
+            return
+        self.repository.save_batch(
+            run.run_id,
+            "synthesis",
+            batch_index,
+            source_item_ids,
+            {"syntheses": [item.model_dump() for item in syntheses]},
+        )
+
+    def save_synthesis_failure(
+        self,
+        run: Any | None,
+        batch_index: int,
+        source_item_ids: Sequence[str],
+        error: Exception,
+    ) -> None:
+        if self.repository is None or run is None:
+            return
+        self.repository.save_batch(
+            run.run_id,
+            "synthesis",
             batch_index,
             source_item_ids,
             {},

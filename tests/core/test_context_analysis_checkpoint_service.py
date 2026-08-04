@@ -12,6 +12,7 @@ from scripts.core.services.context_event_reconciliation_service import (
     EventReconciliationResult,
     LocalChainDisposition,
 )
+from scripts.schemas.context import GeneratedSynthesis
 
 
 class _Repository:
@@ -113,3 +114,21 @@ def test_catalog_and_assignment_batches_have_independent_checkpoint_slots():
         ("run-1", "aggregation", 0),
         ("run-1", "aggregation", 1),
     }
+
+
+def test_synthesis_batch_round_trips_without_another_model_call():
+    repository = _Repository()
+    service = ContextAnalysisCheckpointService(repository)
+    run = SimpleNamespace(run_id="run-1")
+    syntheses = [GeneratedSynthesis(
+        synthesis_id="synthesis-1",
+        aggregate_id="aggregate-1",
+        context_key="entity:republic",
+        content={"summary": "A durable summary."},
+    )]
+
+    service.save_synthesis(run, 0, ["source-1"], syntheses)
+    restored = service.restore_synthesis(run, 0, ["source-1"])
+
+    assert restored == syntheses
+    assert repository.saved.phase == "synthesis"

@@ -262,10 +262,15 @@ def migrate_context_publication_storage(db_path: str) -> None:
             """
         )
         _create_guards(connection)
-        foreign_key_errors = connection.execute("PRAGMA foreign_key_check").fetchall()
+        foreign_key_errors = [
+            row
+            for row in connection.execute("PRAGMA foreign_key_check").fetchall()
+            if str(row[0]).startswith("context_release")
+        ]
         if foreign_key_errors:
             raise sqlite3.IntegrityError(
-                f"context publication migration found invalid foreign keys: {foreign_key_errors}"
+                "context publication migration found invalid context foreign keys: "
+                f"{foreign_key_errors}"
             )
         connection.commit()
     except Exception:

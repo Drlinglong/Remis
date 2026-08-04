@@ -43,7 +43,6 @@ from scripts.core.services.context_event_reconciliation_execution_service import
     ContextEventReconciliationExecutionService,
 )
 from scripts.core.services.context_parallel_execution_service import (
-    map_context_calls_ordered,
     resolve_context_concurrency,
 )
 from scripts.core.services.context_model_usage import ContextModelUsageLedger
@@ -51,6 +50,9 @@ from scripts.core.services.context_release_assembler import ContextReleaseAssemb
 from scripts.core.services.context_source_parser import ContextSourceParser, ParsedSourceFile
 from scripts.core.services.context_source_diff import build_context_source_diff
 from scripts.core.services.context_synthesis_service import ContextSynthesisService
+from scripts.core.services.context_synthesis_execution_service import (
+    ContextSynthesisExecutionService,
+)
 from scripts.core.services.context_workflow_status_service import ContextWorkflowStatusService
 from scripts.core.services.source_snapshot_service import (
     SourceSnapshot,
@@ -345,6 +347,7 @@ class ContextWorkflowService:
             api_provider, model_name, upstream_version, analysis_config,
             description_language, chunk_config, task_id, effective_concurrency,
             analysis_report, governance, usage_ledger,
+            analysis_run=analysis_run,
             analysis_run_id=analysis_run.run_id if analysis_run is not None else None,
             expected_local_unit_ids=[unit.unit_id for unit in local_units],
         )
@@ -478,6 +481,7 @@ class ContextWorkflowService:
         analysis_report: dict[str, Any],
         governance: Any,
         usage_ledger: ContextModelUsageLedger,
+        analysis_run: Any | None = None,
         analysis_run_id: str | None = None,
         expected_local_unit_ids: Sequence[str] | None = None,
     ) -> dict[str, Any]:
@@ -508,29 +512,18 @@ class ContextWorkflowService:
         for aggregate in aggregates:
             self.repository.save_aggregate(aggregate)
         source_item_ids = list(sources)
-        synthesizer = self.synthesizer_factory(
-            self.handler_factory(api_provider, model_name=model_name)
-        )
-        synthesis_aggregates = self.governance_flow.synthesis_eligible_aggregates(
-            aggregates, governance,
-        )
-        planned_synthesis_batches = synthesizer.plan_batches(
-            synthesis_aggregates,
-            contributions,
-            sources,
-            description_language,
-        )
-        self.status_service.begin_stage(
-            project_id,
-            task_id,
-            "synthesizing",
-            len(planned_synthesis_batches),
-            source_item_ids=source_item_ids,
-        )
-        syntheses = self._synthesize_parallel(
-            planned_synthesis_batches, contributions, sources, description_language,
-            project_id, task_id, api_provider, model_name, concurrency,
-            usage_ledger,
+        syntheses = ContextSynthesisExecutionService(
+            handler_factory=self.handler_factory,
+            synthesizer_factory=self.synthesizer_factory,
+            checkpoints=self.analysis_checkpoints,
+            status_service=self.status_service,
+            release_assembler=self.release_assembler,
+            governance_flow=self.governance_flow,
+            usage_ledger=usage_ledger,
+        ).execute(
+            aggregates, contributions, sources, governance, description_language,
+            project_id, task_id, analysis_run, api_provider, model_name, concurrency,
+            source_item_ids,
         )
         model_execution = usage_ledger.summary()
         analysis_report["model_execution"] = model_execution
@@ -629,58 +622,6 @@ class ContextWorkflowService:
         if "analysis_run_id" in publish_parameters:
             publish_arguments["analysis_run_id"] = analysis_run_id
         return self.context_service.publish_draft(**publish_arguments)
-
-    def _synthesize_parallel(
-        self,
-        batches: Sequence[Sequence[Any]],
-        contributions: dict[str, Any],
-        sources: dict[str, Any],
-        description_language: str,
-        project_id: str,
-        task_id: str | None,
-        api_provider: str,
-        model_name: str | None,
-        concurrency: int,
-        usage_ledger: ContextModelUsageLedger,
-    ) -> list[Any]:
-        materialized = [list(batch) for batch in batches]
-
-        def worker(batch: list[Any]) -> list[Any]:
-            handler = self.handler_factory(api_provider, model_name=model_name)
-            synthesizer = self.synthesizer_factory(handler)
-            try:
-                return synthesizer.synthesize(
-                    batch,
-                    contributions,
-                    sources,
-                    description_language,
-                    planned_batches=[batch],
-                )
-            finally:
-                usage_ledger.capture(handler, "synthesis")
-
-        def record_completion(outcome: Any) -> None:
-            source_ids = self.release_assembler.aggregate_source_ids(
-                outcome.item, contributions,
-            )
-            self.status_service.record_batch(
-                project_id, task_id, "synthesizing",
-                f"synthesizing:{outcome.index + 1}",
-                success=outcome.succeeded,
-                source_item_ids=source_ids,
-                error=str(outcome.error) if outcome.error else None,
-            )
-
-        outcomes = map_context_calls_ordered(
-            materialized,
-            worker,
-            max_workers=concurrency,
-            on_completed=record_completion,
-        )
-        errors = [outcome.error for outcome in outcomes if outcome.error is not None]
-        if errors:
-            raise errors[0]
-        return [item for outcome in outcomes for item in (outcome.value or [])]
 
     def _source_diff(self, parent: ContextRelease | None, current: SourceSnapshot) -> Any:
         return build_context_source_diff(self.repository, parent, current)

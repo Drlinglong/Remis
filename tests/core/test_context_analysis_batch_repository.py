@@ -89,6 +89,25 @@ def test_global_aggregation_is_a_first_class_resumable_phase(tmp_path):
     assert repository.resume_checkpoint(run.run_id)["last_successful_batch"]["aggregation"] == 0
 
 
+def test_synthesis_is_a_first_class_resumable_phase(tmp_path):
+    repository, _ = _repository(tmp_path)
+    run = repository.start_or_resume_run(
+        "project-1", "task-1", "snapshot-a", {"mode": "narrative_context"}
+    )
+
+    saved = repository.save_batch(
+        run.run_id,
+        "synthesis",
+        0,
+        ["source-1"],
+        {"syntheses": [{"synthesis_id": "synthesis-1"}]},
+    )
+
+    assert saved.phase == "synthesis"
+    assert repository.get_run(run.run_id).phase == "synthesis"
+    assert repository.resume_checkpoint(run.run_id)["last_successful_batch"]["synthesis"] == 0
+
+
 def test_failed_review_keeps_previous_success_and_can_resume(tmp_path):
     repository, _ = _repository(tmp_path)
     run = repository.start_or_resume_run("project-1", "task-1", "snapshot-a", {"mode": "terms_only"})

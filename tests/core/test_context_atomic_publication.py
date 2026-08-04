@@ -295,7 +295,7 @@ def test_legacy_v16_database_upgrade_adds_publication_constraints(tmp_path):
         connection.execute(
             "CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)"
         )
-    for version, name, migration in MAIN_DB_MIGRATIONS[:-1]:
+    for version, name, migration in MAIN_DB_MIGRATIONS[:-2]:
         migration(str(db_path))
         with sqlite3.connect(db_path) as connection:
             connection.execute(
@@ -317,3 +317,39 @@ def test_legacy_v16_database_upgrade_adds_publication_constraints(tmp_path):
         assert connection.execute(
             "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'context_release_seals'"
         ).fetchone()[0] == 1
+
+
+def test_publication_migration_preserves_preexisting_unrelated_fk_debt(tmp_path):
+    db_path = tmp_path / "legacy-with-orphan.sqlite"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            "CREATE TABLE schema_migrations "
+            "(version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)"
+        )
+    for version, name, migration in MAIN_DB_MIGRATIONS[:-1]:
+        migration(str(db_path))
+        with sqlite3.connect(db_path) as connection:
+            connection.execute(
+                "INSERT INTO schema_migrations (version, name, applied_at) "
+                "VALUES (?, ?, 'now')",
+                (version, name),
+            )
+    with sqlite3.connect(db_path) as connection:
+        connection.execute("CREATE TABLE legacy_parent (id TEXT PRIMARY KEY)")
+        connection.execute(
+            "CREATE TABLE legacy_child ("
+            "id TEXT PRIMARY KEY, parent_id TEXT REFERENCES legacy_parent(id))"
+        )
+        connection.execute(
+            "INSERT INTO legacy_child (id, parent_id) VALUES ('child-1', 'missing-parent')"
+        )
+
+    assert migrate_main_database(str(db_path)) == MAIN_DB_TARGET_VERSION
+
+    with sqlite3.connect(db_path) as connection:
+        columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(context_releases)")
+        }
+        assert "analysis_run_id" in columns
+        assert connection.execute("PRAGMA foreign_key_check(legacy_child)").fetchall()
