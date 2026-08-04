@@ -129,8 +129,9 @@ Classify only the supplied local units against the immutable final chain
 catalog. Return only JSON matching the supplied schema. Never create a chain ID.
 
 Exhaustive assignment means every supplied local_unit_id receives exactly one
-record. It does NOT mean every unit belongs to a chain. `unassigned` with an
-empty links array is valid and expected.
+record. It does NOT mean every unit belongs to a chain. Return an empty links
+array when no grounded relationship exists. The backend derives assignment
+state from whether links is empty; do not return assignment_state.
 
 Use primary_member only for a unit that directly describes a step, branch,
 state transition, or outcome in that chain. Use supporting_context for a unit
@@ -148,19 +149,19 @@ descriptions must not be forced into a chain. A static resource may receive
 supporting_context from an existing chain when specific narrative evidence
 supports that dependency. Shared vocabulary or theme is insufficient.
 
-Before returning unassigned for a static unit, test whether it names a unique
+Before returning empty links for a static unit, test whether it names a unique
 artifact, aftermath state, memorial, location, project, technology, modifier,
 or institution whose intended meaning depends on one catalog chain. If yes,
 use supporting_context: the unit is not an event step, but its translator needs
 that chain summary. For example, "Ruins of the Expedition" should support the
 expedition chain when the catalog identifies those ruins as its aftermath;
-"Research Speed +5%" remains unassigned. A recurring person or god without a
+"Research Speed +5%" keeps empty links. A recurring person or god without a
 specific dependency is only theme_related, never supporting_context.
 
 Decision order for every unit: (1) direct process step -> primary_member;
 (2) specific dependent background/aftermath needed for translation ->
 supporting_context; (3) broad thematic overlap only -> theme_related; (4) no
-grounded relationship -> unassigned. Do not skip step (2) merely because the
+grounded relationship -> empty links. Do not skip step (2) merely because the
 unit is static or distant from the chain's event text.
 
 A short option, title, button, or tooltip already grouped inside a numbered
@@ -234,7 +235,7 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
         assignments = [
             DeliveryAssignment(
                 local_unit_id=item.local_unit_id,
-                assignment_state=item.assignment_state,
+                assignment_state="assigned" if item.links else "unassigned",
                 links=[DeliveryLink(**link.model_dump()) for link in item.links],
                 source_item_ids=[
                     str(source.source_item_id) for source in unit_by_id[item.local_unit_id].items
@@ -565,10 +566,6 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
         assignment: _ModelAssignment,
         valid_chains: set[str],
     ) -> None:
-        if assignment.assignment_state == "unassigned" and assignment.links:
-            raise ValueError("Unassigned local units must have no delivery links")
-        if assignment.assignment_state == "assigned" and not assignment.links:
-            raise ValueError("Assigned local units must have at least one delivery link")
         linked_chain_ids = [link.event_chain_id for link in assignment.links]
         if len(linked_chain_ids) != len(set(linked_chain_ids)):
             raise ValueError(f"Duplicate delivery links for {assignment.local_unit_id}")

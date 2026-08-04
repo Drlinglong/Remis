@@ -25,8 +25,18 @@ class _ModelAssignment(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     local_unit_id: str = Field(pattern=r"^unit_\d+$")
-    assignment_state: str = Field(pattern=r"^(assigned|unassigned)$")
-    links: list[_ModelLink] = Field(default_factory=list, max_length=8)
+    links: list[_ModelLink] = Field(max_length=8)
+
+    @model_validator(mode="before")
+    @classmethod
+    def discard_legacy_assignment_state(cls, value: Any) -> Any:
+        """State is backend-derived from links, not an independent model claim."""
+
+        if not isinstance(value, dict) or "assignment_state" not in value:
+            return value
+        normalized = dict(value)
+        normalized.pop("assignment_state", None)
+        return normalized
 
 
 class EventChainDefinition(BaseModel):

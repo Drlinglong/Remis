@@ -501,6 +501,28 @@ def test_assignment_repair_is_limited_to_the_failed_unit_batch():
     assert len(handler.calls[2][0]["content"]) < len(handler.calls[0][0]["content"]) + 3000
 
 
+def test_assignment_state_is_backend_derived_from_links():
+    units = _units()
+    response = _assignment_response(units)
+    response["assignments"][0]["assignment_state"] = "unassigned"
+    response["assignments"][-1]["assignment_state"] = "assigned"
+    handler = FakeHandler([
+        json.dumps(_catalog_response(units)),
+        json.dumps(response),
+    ])
+    service = ContextEventReconciliationService(handler)
+    catalog = service.build_catalog(units, [_extraction(units)])
+
+    result = service.assign_batch(units, catalog)
+
+    assignment_schema = handler.schemas[1][0]["$defs"]["_ModelAssignment"]
+    assert "assignment_state" not in assignment_schema["properties"]
+    assert set(assignment_schema["required"]) == {"local_unit_id", "links"}
+    assert result.repair_count == 0
+    assert result.assignments[0].assignment_state == "assigned"
+    assert result.assignments[-1].assignment_state == "unassigned"
+
+
 def test_invalid_assignment_after_one_repair_reports_validation_detail():
     units = _units()
     catalog_handler = FakeHandler([json.dumps(_catalog_response(units))])
