@@ -10,6 +10,7 @@ const readSource = (fileName) => readFileSync(
 const setupSource = readSource('ModArchiveAnalysisSetup.jsx');
 const releaseSource = readSource('PublishedArchivePanel.jsx');
 const releaseContentSource = readSource('PublishedArchiveContent.jsx');
+const previewSource = readSource('AnalysisPreviewPanel.jsx');
 const editorSource = readSource('ModArchiveOverrideEditor.jsx');
 const stylesSource = readSource('ModArchive.module.css');
 const toolbarSource = readSource('ProjectGlossaryToolbar.jsx');
@@ -40,6 +41,7 @@ describe('Mod Archive semantic workbench contract', () => {
         expect(setupSource).toContain('data-testid="mod-archive-start-analysis"');
         expect(setupSource).toContain('data-remis-action="primary"');
         expect(releaseSource).toContain('data-testid="mod-archive-release-panel"');
+        expect(previewSource).toContain('data-testid="mod-archive-analysis-preview"');
         expect(releaseSource).toContain('data-testid="mod-archive-release-stale"');
         expect(releaseContentSource).toContain('data-testid="mod-archive-load-traceability"');
         expect(releaseContentSource).toContain('data-remis-action="paper-secondary"');
@@ -54,6 +56,7 @@ describe('Mod Archive semantic workbench contract', () => {
     it('leaves vertical scrolling to the page tab panels', () => {
         expect(setupSource).not.toContain('ScrollArea');
         expect(releaseSource).not.toContain('ScrollArea');
+        expect(previewSource).not.toContain('ScrollArea');
         expect(editorSource).not.toContain('ScrollArea');
     });
 });

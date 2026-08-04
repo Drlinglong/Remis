@@ -204,6 +204,17 @@ class ContextAnalysisBatchRepository:
             row = connection.execute("SELECT * FROM context_analysis_runs WHERE run_id = ?", (run_id,)).fetchone()
             return self._run_from_row(row) if row else None
 
+    def list_runs(self, project_id: str) -> list[ContextAnalysisRun]:
+        """Return project analysis runs from newest to oldest."""
+        with self._lock, self._connect() as connection:
+            rows = connection.execute(
+                """SELECT * FROM context_analysis_runs
+                   WHERE project_id = ?
+                   ORDER BY updated_at DESC, created_at DESC, run_id DESC""",
+                (project_id,),
+            ).fetchall()
+            return [self._run_from_row(row) for row in rows]
+
     def get_batch(self, run_id: str, phase: str, batch_index: int) -> ContextAnalysisBatch | None:
         if phase not in self.VALID_PHASES or batch_index < 0:
             raise ValueError("invalid analysis batch identity")

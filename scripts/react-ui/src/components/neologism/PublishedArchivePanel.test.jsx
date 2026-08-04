@@ -59,7 +59,7 @@ describe('PublishedArchivePanel', () => {
             if (url === '/api/neologisms/project-glossary/project-1') return Promise.resolve({ data: { glossary_id: 7, name: 'Demo terminology', game_id: 'stellaris' } });
             if (url === '/api/neologisms?project_id=project-1') return Promise.resolve({ data: [{ original: 'Republic', suggestion: '共和国候选', status: 'pending' }] });
             if (url === '/api/glossary/content?glossary_id=7&page=1&pageSize=250') return Promise.resolve({ data: { entries: [], totalCount: 0 } });
-            if (url === '/api/context/releases/project-1/latest') return Promise.resolve({ data: release });
+            if (url === '/api/context/releases/project-1/latest?optional=true') return Promise.resolve({ data: release });
             if (url === '/api/context/releases/release-1/effective') {
                 return Promise.resolve({ data: {
                     release,
@@ -110,7 +110,9 @@ describe('PublishedArchivePanel', () => {
         expect(screen.getByText('republic（共和国候选）')).toBeInTheDocument();
         expect(screen.getByText('mod_archive.release.override_badge')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /edit|save|publish/i })).not.toBeInTheDocument();
-        expect(api.get).toHaveBeenCalledWith('/api/context/releases/project-1/latest');
+        expect(api.get).toHaveBeenCalledWith(
+            '/api/context/releases/project-1/latest?optional=true',
+        );
         expect(api.get).toHaveBeenCalledWith('/api/context/releases/release-1/effective');
         expect(api.get).not.toHaveBeenCalledWith('/api/context/releases/release-1/traceability');
 
@@ -239,11 +241,101 @@ describe('PublishedArchivePanel', () => {
     });
 
     it('shows the empty state when the project has no published release', async () => {
-        api.get.mockRejectedValueOnce({ response: { status: 404 } });
+        const defaultGet = api.get.getMockImplementation();
+        api.get.mockImplementation((url) => {
+            if (url === '/api/context/releases/project-1/latest?optional=true') {
+                return Promise.resolve({ data: { release: null } });
+            }
+            if (url === '/api/context/projects/project-1/analysis-preview?optional=true') {
+                return Promise.resolve({ data: { preview: null } });
+            }
+            return defaultGet(url);
+        });
         renderPanel();
 
         expect(await screen.findByTestId('mod-archive-release-empty')).toBeInTheDocument();
         expect(screen.getByText('mod_archive.release.empty_title')).toBeInTheDocument();
+    });
+
+    it('previews persisted entities and event chains when publication failed', async () => {
+        const defaultGet = api.get.getMockImplementation();
+        api.get.mockImplementation((url) => {
+            if (url === '/api/context/releases/project-1/latest?optional=true') {
+                return Promise.resolve({ data: { release: null } });
+            }
+            if (url === '/api/context/projects/project-1/analysis-preview?optional=true') {
+                return Promise.resolve({ data: {
+                    project_id: 'project-1',
+                    published: false,
+                    warning_code: 'unpublished_analysis_preview',
+                    run: {
+                        run_id: 'run-failed',
+                        status: 'failed',
+                        provider_id: 'openrouter',
+                        model_id: 'openai/gpt-5.6-luna',
+                    },
+                    counts: {
+                        entities: 2,
+                        events: 1,
+                        entity_summaries: 1,
+                        event_summaries: 1,
+                    },
+                    entries: [{
+                        aggregate_id: 'entity-1',
+                        aggregate_key: 'entity:toxic god',
+                        aggregate_type: 'entity',
+                        label: 'Toxic God',
+                        summary: 'A recurring godlike toxic entity.',
+                        payload: {
+                            candidate_kind: 'entity',
+                            tier: 'core',
+                            aliases: ['The Toxic God'],
+                            mention_count: 8,
+                            source_item_coverage: 4,
+                            local_unit_coverage: 4,
+                            event_chain_coverage: 2,
+                            summary_eligible: true,
+                        },
+                    }, {
+                        aggregate_id: 'entity-2',
+                        aggregate_key: 'entity:field equations',
+                        aggregate_type: 'entity',
+                        label: 'advanced field equations',
+                        summary: null,
+                        payload: {
+                            candidate_kind: 'incidental_concept',
+                            tier: 'incidental',
+                            aliases: [],
+                            audit_only: true,
+                        },
+                    }, {
+                        aggregate_id: 'event-1',
+                        aggregate_key: 'event:chain_toxic_god',
+                        aggregate_type: 'event',
+                        label: 'chain_toxic_god',
+                        summary: 'The order begins its quest.',
+                        payload: {
+                            event: 'The Toxic God visits the homeworld.',
+                            consequence: 'The order is founded.',
+                            participants: ['Toxic God', 'Order'],
+                            delivery_coverage: { local_unit_coverage: 12 },
+                        },
+                    }],
+                } });
+            }
+            return defaultGet(url);
+        });
+        renderPanel();
+
+        expect(await screen.findByTestId('mod-archive-analysis-preview')).toBeInTheDocument();
+        expect(screen.getByText('Toxic God')).toBeInTheDocument();
+        expect(screen.getByText('A recurring godlike toxic entity.')).toBeInTheDocument();
+        expect(screen.getByText('mod_archive.release.preview.warning_title')).toBeInTheDocument();
+        expect(screen.queryByTestId('mod-archive-start-draft')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('mod_archive.release.preview.event_tab:1'));
+        expect(await screen.findByText('chain_toxic_god')).toBeInTheDocument();
+        expect(screen.getByText('The order begins its quest.')).toBeInTheDocument();
     });
 
     it('shows an error state for unavailable release metadata', async () => {
@@ -263,7 +355,7 @@ describe('PublishedArchivePanel', () => {
 
     it('keeps metadata visible while reporting a partial effective summary', async () => {
         api.get.mockImplementation((url) => {
-            if (url === '/api/context/releases/project-1/latest') return Promise.resolve({ data: release });
+            if (url === '/api/context/releases/project-1/latest?optional=true') return Promise.resolve({ data: release });
             return Promise.resolve({ data: {
                 release,
                 generated_synthesis: {},
@@ -324,7 +416,7 @@ describe('PublishedArchivePanel', () => {
         };
         let latestCalls = 0;
         api.get.mockImplementation((url) => {
-            if (url === '/api/context/releases/project-1/latest') {
+            if (url === '/api/context/releases/project-1/latest?optional=true') {
                 latestCalls += 1;
                 return Promise.resolve({ data: latestCalls === 1 ? release : childRelease });
             }
@@ -390,7 +482,7 @@ describe('PublishedArchivePanel', () => {
         expect(await screen.findByTestId('mod-archive-published-notice')).toBeInTheDocument();
         expect(screen.getAllByText('release-2').length).toBeGreaterThan(0);
         expect(api.post).toHaveBeenCalledWith('/api/context/projects/project-1/drafts/draft-1/publish');
-        expect(api.get.mock.calls.filter(([url]) => url === '/api/context/releases/project-1/latest')).toHaveLength(2);
+        expect(api.get.mock.calls.filter(([url]) => url === '/api/context/releases/project-1/latest?optional=true')).toHaveLength(2);
         expect(screen.getByText('release-1')).toBeInTheDocument();
         expect(screen.getByText('mod_archive.release.parent_release')).toBeInTheDocument();
         expect(screen.queryByTestId('mod-archive-draft-editor')).not.toBeInTheDocument();

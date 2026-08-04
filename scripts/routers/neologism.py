@@ -12,6 +12,9 @@ from scripts.core.repositories.context_analysis_batch_repository import (
     ContextAnalysisBatchRepository,
 )
 from scripts.core.services.context_workflow_service import ContextWorkflowService
+from scripts.core.services.context_analysis_preview_service import (
+    ContextAnalysisPreviewService,
+)
 from scripts.shared.services import project_manager, glossary_manager
 from scripts.shared import task_state
 from scripts.shared.task_state import DuplicateTaskError
@@ -31,6 +34,10 @@ router = APIRouter()
 context_repository = ContextRepository(PROJECTS_DB_PATH)
 context_analysis_batch_repository = ContextAnalysisBatchRepository(PROJECTS_DB_PATH)
 context_service = ContextService(context_repository)
+context_analysis_preview_service = ContextAnalysisPreviewService(
+    context_repository,
+    context_analysis_batch_repository,
+)
 context_workflow_service = ContextWorkflowService(
     context_repository,
     candidate_store=neologism_manager,
@@ -501,11 +508,26 @@ def get_mining_status(project_id: str):
 
 
 @router.get("/api/context/releases/{project_id}/latest")
-def get_latest_context_release(project_id: str):
+def get_latest_context_release(project_id: str, optional: bool = False):
     release = context_repository.list_releases(project_id)
     if not release:
+        if optional:
+            return {"release": None}
         raise HTTPException(status_code=404, detail="No context release exists for this project")
     return _context_release_presentation(release[0])
+
+
+@router.get("/api/context/projects/{project_id}/analysis-preview")
+def get_context_analysis_preview(project_id: str, optional: bool = False):
+    preview = context_analysis_preview_service.latest(project_id)
+    if preview is None:
+        if optional:
+            return {"preview": None}
+        raise HTTPException(
+            status_code=404,
+            detail="No persisted context analysis preview exists for this project",
+        )
+    return preview.model_dump()
 
 
 @router.get("/api/context/releases/{release_id}/effective")

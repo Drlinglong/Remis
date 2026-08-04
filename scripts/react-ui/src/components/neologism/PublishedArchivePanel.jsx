@@ -20,6 +20,7 @@ import {
     getTraceabilityRows,
     isReleaseStale,
 } from './modArchiveModel';
+import AnalysisPreviewPanel from './AnalysisPreviewPanel';
 import ModArchiveOverrideEditor from './ModArchiveOverrideEditor';
 import { ArchiveSummary, ReleaseMetadata } from './PublishedArchiveContent';
 import ProjectGlossaryToolbar from './ProjectGlossaryToolbar';
@@ -123,15 +124,10 @@ const PublishedArchivePanel = ({
 
     if (phase === 'empty') {
         return (
-            <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
-                {projectToolbar}
-                <StateCard
-                    icon={<IconArchive size={30} />}
-                    title={t('mod_archive.release.empty_title')}
-                    description={t('mod_archive.release.empty_desc')}
-                    testId="mod-archive-release-empty"
-                />
-            </Container>
+            <AnalysisPreviewPanel
+                selectedProject={selectedProject}
+                projectToolbar={projectToolbar}
+            />
         );
     }
 

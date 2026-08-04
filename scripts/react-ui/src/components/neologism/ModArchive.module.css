@@ -419,6 +419,57 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.previewFilters {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(9rem, 1fr));
+    gap: 0.625rem;
+}
+
+.previewList {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.previewCard {
+    min-width: 0;
+    border-color: color-mix(in srgb, var(--paper-text-main) 20%, transparent) !important;
+    background: var(--paper-bg) !important;
+    color: var(--paper-text-main);
+    --mantine-color-text: var(--paper-text-main);
+    --mantine-color-dimmed: var(--paper-text-muted);
+}
+
+.previewSummary {
+    padding-left: 0.75rem;
+    border-left: 3px solid var(--interactive-accent);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.55;
+}
+
+.previewMetric {
+    min-width: 0;
+    padding: 0.5rem;
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 18%, transparent);
+    border-radius: var(--card-radius);
+}
+
+.surface .previewMetric {
+    border-color: color-mix(in srgb, var(--surface-text-muted) 25%, transparent);
+}
+
+.previewDetails {
+    min-width: 0;
+    border-top: 1px solid color-mix(in srgb, var(--paper-text-main) 20%, transparent);
+    padding-top: 0.625rem;
+}
+
+.previewDetails summary {
+    cursor: pointer;
+    color: var(--paper-text-main);
+    font-weight: 600;
+}
+
 .candidateField {
     min-width: 0;
 }
@@ -500,7 +551,8 @@
 
     .primaryMetadataGrid,
     .summarySection[data-kind='entity'] .entryList,
-    .candidateMetricGrid {
+    .candidateMetricGrid,
+    .previewFilters {
         grid-template-columns: minmax(0, 1fr);
     }
 }

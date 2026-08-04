@@ -39,8 +39,12 @@ export const useModArchiveRelease = (selectedProject) => {
         setState({ ...initialState, phase: 'loading' });
         try {
             const releaseResponse = await api.get(
-                `${API_BASE_URL}/context/releases/${encodeURIComponent(selectedProject)}/latest`,
+                `${API_BASE_URL}/context/releases/${encodeURIComponent(selectedProject)}/latest?optional=true`,
             );
+            if (releaseResponse.data?.release === null) {
+                setState({ ...initialState, phase: 'empty' });
+                return;
+            }
             const release = unwrap(releaseResponse.data, 'release');
             if (!release?.release_id) {
                 throw new Error(translate('mod_archive.release.incomplete_error'));
