@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from typing import Any, Literal, Mapping, Sequence
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from scripts.core.context_local_units import DeliveryAssignment
 
@@ -35,12 +35,14 @@ class _AggregationCheckpoint(BaseModel):
 class _CatalogCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    contract_version: Literal["event-catalog-v2"]
     catalog: EventChainCatalogResult
 
 
 class _AssignmentCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    contract_version: Literal["event-catalog-v2"]
     assignment_batch: EventAssignmentBatchResult
 
 
@@ -173,7 +175,10 @@ class ContextAnalysisCheckpointService:
         saved = self._successful_aggregation_batch(run, 0, source_item_ids)
         if saved is None or "catalog" not in saved.payload:
             return None
-        return _CatalogCheckpoint.model_validate(saved.payload).catalog
+        try:
+            return _CatalogCheckpoint.model_validate(saved.payload).catalog
+        except ValidationError:
+            return None
 
     def save_catalog(
         self,
@@ -185,7 +190,9 @@ class ContextAnalysisCheckpointService:
             run,
             0,
             source_item_ids,
-            _CatalogCheckpoint(catalog=catalog).model_dump(),
+            _CatalogCheckpoint(
+                contract_version="event-catalog-v2", catalog=catalog
+            ).model_dump(),
         )
 
     def restore_assignment_batch(
@@ -199,7 +206,10 @@ class ContextAnalysisCheckpointService:
         )
         if saved is None or "assignment_batch" not in saved.payload:
             return None
-        return _AssignmentCheckpoint.model_validate(saved.payload).assignment_batch
+        try:
+            return _AssignmentCheckpoint.model_validate(saved.payload).assignment_batch
+        except ValidationError:
+            return None
 
     def save_assignment_batch(
         self,
@@ -212,7 +222,9 @@ class ContextAnalysisCheckpointService:
             run,
             batch_index + 1,
             source_item_ids,
-            _AssignmentCheckpoint(assignment_batch=result).model_dump(),
+            _AssignmentCheckpoint(
+                contract_version="event-catalog-v2", assignment_batch=result
+            ).model_dump(),
         )
 
     def save_aggregation_failure(

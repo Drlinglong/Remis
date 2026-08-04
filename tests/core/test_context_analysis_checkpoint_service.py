@@ -88,6 +88,7 @@ def test_catalog_and_assignment_batches_have_independent_checkpoint_slots():
     catalog = EventChainCatalogResult(
         final_chains=[EventChainDefinition(
             chain_id="chain-1",
+            story_scope="concrete_child_quest",
             event="A bounded chain.",
             sequence=0,
             evidence_unit_ids=["unit_0"],
@@ -114,6 +115,29 @@ def test_catalog_and_assignment_batches_have_independent_checkpoint_slots():
         ("run-1", "aggregation", 0),
         ("run-1", "aggregation", 1),
     }
+
+
+def test_legacy_event_catalog_checkpoints_are_not_resumed():
+    repository = _Repository()
+    service = ContextAnalysisCheckpointService(repository)
+    run = SimpleNamespace(run_id="run-1")
+    repository.save_batch(
+        run.run_id,
+        "aggregation",
+        0,
+        ["source-0"],
+        {"catalog": {"final_chains": [], "proposal_resolutions": []}},
+    )
+    repository.save_batch(
+        run.run_id,
+        "aggregation",
+        1,
+        ["source-0"],
+        {"assignment_batch": {"assignments": []}},
+    )
+
+    assert service.restore_catalog(run, ["source-0"]) is None
+    assert service.restore_assignment_batch(run, 0, ["source-0"]) is None
 
 
 def test_synthesis_batch_round_trips_without_another_model_call():

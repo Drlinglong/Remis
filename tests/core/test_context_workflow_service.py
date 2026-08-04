@@ -285,6 +285,7 @@ class FakeReconciler:
         )
         event = EventChainDefinition(
             chain_id="republic-chain",
+            story_scope="concrete_child_quest",
             event="Republic affairs",
             sequence=0,
             evidence_unit_ids=[local_units[0].unit_id],

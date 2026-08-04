@@ -82,6 +82,7 @@ def _catalog_response(units):
         "parent_stories": [],
         "final_chains": [{
             "chain_id": "knight_returns",
+            "story_scope": "concrete_child_quest",
             "event": "A hunted knight seeks aid and returns.",
             "sequence": 0,
             "participants": ["knight"],
@@ -114,6 +115,49 @@ def _assignment_response(units):
             for index, unit in enumerate(units)
         ]
     }
+
+
+def _extraction_with_singleton(units):
+    extraction = _extraction(units)
+    extraction.events.append(EventChainContribution(
+        chain_id="local-aftermath",
+        event="The rescued knight makes one consequential choice.",
+        sequence=0,
+        consequence="The child quest changes state.",
+        evidence=[SourceEvidence(source_item_id="source-2")],
+    ))
+    extraction.delivery_assignments.append(DeliveryAssignment(
+        local_unit_id=units[2].unit_id,
+        assignment_state="assigned",
+        links=[DeliveryLink(
+            event_chain_id="local-aftermath",
+            relation="primary_member",
+            confidence=0.9,
+        )],
+    ))
+    return extraction
+
+
+def _catalog_with_singleton(units):
+    response = _catalog_response(units)
+    response["final_chains"].append({
+        "chain_id": "knight_aftermath",
+        "story_scope": "concrete_child_quest",
+        "event": "The rescued knight makes one consequential choice.",
+        "sequence": 1,
+        "participants": ["knight"],
+        "consequence": "The child quest changes state.",
+        "boundary_includes": "Only the rescued knight's consequential choice.",
+        "boundary_excludes": "The rest of the rescue quest and unrelated choices.",
+        "anchor_unit_ids": [units[2].unit_id],
+        "evidence_unit_ids": [units[2].unit_id],
+    })
+    response["proposal_resolutions"].append({
+        "proposal_id": "b0_c1",
+        "resolution": "keep_as_delivery_chain",
+        "final_chain_ids": ["knight_aftermath"],
+    })
+    return response
 
 
 def test_reconcile_folds_same_batch_chain_steps_then_assigns_all_units():
@@ -331,6 +375,124 @@ def test_static_project_cannot_create_an_orphan_delivery_chain():
     assert "require a local chain-card source" in handler.calls[1][-1]["content"]
 
 
+def test_catalog_requires_explicit_story_scope_from_the_model():
+    units = _units()
+    invalid = _catalog_response(units)
+    invalid["final_chains"][0].pop("story_scope")
+    handler = FakeHandler([
+        json.dumps(invalid),
+        json.dumps(_catalog_response(units)),
+    ])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [_extraction(units)]
+    )
+
+    assert catalog.repair_count == 1
+    assert "explicit story_scope" in handler.calls[1][-1]["content"]
+
+
+@pytest.mark.parametrize("story_scope", [
+    "parent_story", "origin_level_story", "cross_quest_macro",
+])
+def test_macro_story_scopes_cannot_become_delivery_targets(story_scope):
+    units = _units()
+    invalid = _catalog_response(units)
+    invalid["final_chains"][0]["story_scope"] = story_scope
+    handler = FakeHandler([
+        json.dumps(invalid),
+        json.dumps(_catalog_response(units)),
+    ])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [_extraction(units)]
+    )
+
+    assert catalog.repair_count == 1
+    assert "cannot be delivery targets" in handler.calls[1][-1]["content"]
+
+
+def test_single_unit_chain_defaults_to_merging_into_its_child_quest():
+    units = _units()
+    invalid = _catalog_with_singleton(units)
+    repaired = _catalog_response(units)
+    repaired["proposal_resolutions"].append({
+        "proposal_id": "b0_c1",
+        "resolution": "merge_into",
+        "final_chain_ids": ["knight_returns"],
+    })
+    handler = FakeHandler([json.dumps(invalid), json.dumps(repaired)])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [_extraction_with_singleton(units)]
+    )
+
+    assert catalog.repair_count == 1
+    assert [chain.chain_id for chain in catalog.final_chains] == ["knight_returns"]
+    assert catalog.proposal_resolutions[-1].final_chain_ids == ["knight_returns"]
+    assert "directly causal concrete child quest" in handler.calls[1][-1]["content"]
+
+
+def test_single_unit_chain_can_survive_with_a_grounded_standalone_exception():
+    units = _units(1)
+    extraction = StructuredNeologismExtraction(
+        events=[EventChainContribution(
+            chain_id="local-choice",
+            event="The envoy accepts or rejects a binding pact.",
+            sequence=0,
+            consequence="The pact changes the envoy's allegiance.",
+            evidence=[SourceEvidence(source_item_id="source-0")],
+        )],
+        delivery_assignments=[DeliveryAssignment(
+            local_unit_id=units[0].unit_id,
+            assignment_state="assigned",
+            links=[DeliveryLink(
+                event_chain_id="local-choice",
+                relation="primary_member",
+                confidence=0.95,
+            )],
+        )],
+    )
+    response = {
+        "parent_stories": [],
+        "final_chains": [{
+            "chain_id": "binding_pact_choice",
+            "story_scope": "standalone_event",
+            "event": "The envoy accepts or rejects a binding pact.",
+            "sequence": 0,
+            "participants": ["envoy"],
+            "consequence": "The pact changes the envoy's allegiance.",
+            "boundary_includes": "The pact choice and its immediate outcome.",
+            "boundary_excludes": "Other diplomatic negotiations.",
+            "anchor_unit_ids": [units[0].unit_id],
+            "evidence_unit_ids": [units[0].unit_id],
+            "standalone_justification": {
+                "unit_id": units[0].unit_id,
+                "independent_event_basis": (
+                    "The unit contains a complete choice and consequence."
+                ),
+                "translation_value": (
+                    "A separate summary disambiguates whether the pact is accepted."
+                ),
+            },
+        }],
+        "proposal_resolutions": [{
+            "proposal_id": "b0_c0",
+            "resolution": "keep_as_delivery_chain",
+            "final_chain_ids": ["binding_pact_choice"],
+        }],
+    }
+    handler = FakeHandler([json.dumps(response)])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [extraction]
+    )
+
+    assert catalog.repair_count == 0
+    assert catalog.final_chains[0].story_scope == "standalone_event"
+    assert catalog.final_chains[0].standalone_justification.unit_id == "unit_0"
+
+
 def test_parent_story_is_hierarchical_only_and_cannot_receive_assignments():
     units = _units()
     response = _catalog_response(units)
@@ -341,6 +503,7 @@ def test_parent_story_is_hierarchical_only_and_cannot_receive_assignments():
     ]
     response["parent_stories"] = [{
         "story_id": "toxic_story",
+        "story_scope": "origin_level_story",
         "summary": "Several bounded knight quests form one origin story.",
         "child_chain_ids": ["quest_one", "quest_two"],
         "evidence_unit_ids": [units[0].unit_id],
@@ -422,6 +585,7 @@ def test_parent_story_can_be_grounded_by_child_chains_without_a_promotion_card()
     ]
     response["parent_stories"] = [{
         "story_id": "toxic_story",
+        "story_scope": "origin_level_story",
         "summary": "Two bounded quests belong to one origin story.",
         "child_chain_ids": ["quest_one", "quest_two"],
         "evidence_unit_ids": [units[0].unit_id, units[1].unit_id],
@@ -562,6 +726,7 @@ def test_each_link_keeps_its_own_relation_without_reasoning_output():
     catalog = _catalog_response(units)
     catalog["final_chains"].append({
         "chain_id": "parent_scene",
+        "story_scope": "concrete_child_quest",
         "event": "A related established scene.",
         "sequence": 1,
         "participants": [],
@@ -681,8 +846,13 @@ def test_split_card_report_does_not_cross_join_every_unit_to_every_final_chain()
 
 def test_prompts_make_unassigned_normal_and_static_resources_non_originating():
     local_prompt = StructuredNeologismExtractor.SYSTEM_PROMPT
+    catalog_prompt = ContextEventReconciliationService.CATALOG_SYSTEM_PROMPT
     assignment_prompt = ContextEventReconciliationService.ASSIGNMENT_SYSTEM_PROMPT
 
+    assert "origin_level_story" in catalog_prompt
+    assert "cross_quest_macro" in catalog_prompt
+    assert "standalone_justification" in catalog_prompt
+    assert "directly causes or explains" in catalog_prompt
     assert "does NOT mean every unit belongs" in assignment_prompt
     assert "must not be forced into a chain" in assignment_prompt
     assert "A static resource may receive" in assignment_prompt
@@ -694,3 +864,9 @@ def test_prompts_make_unassigned_normal_and_static_resources_non_originating():
     assert "Static resources must not originate" in local_prompt
     local_schema = StructuredNeologismExtractor._model_response_schema()
     assert "reasoning" not in local_schema["$defs"]["DeliveryLink"]["properties"]
+    catalog_handler = FakeHandler([json.dumps(_catalog_response(_units()))])
+    ContextEventReconciliationService(catalog_handler).build_catalog(
+        _units(), [_extraction(_units())]
+    )
+    chain_schema = catalog_handler.schemas[0][0]["$defs"]["EventChainDefinition"]
+    assert "story_scope" in chain_schema["required"]

@@ -33,6 +33,7 @@ from scripts.core.services.context_event_catalog_contract import (
     _CatalogResponse,
     _ModelAssignment,
     validate_anchor_sources,
+    validate_delivery_chain_scopes,
     validate_parent_stories,
 )
 
@@ -94,6 +95,21 @@ do not form a delivery chain. Put a broad umbrella that organizes multiple
 sibling quests in parent_stories, never in final_chains. A parent story may
 organize child chains through parent_story_id, but its story_id is not a chain
 ID and can never receive delivery membership.
+
+Classify every catalog node explicitly with story_scope. parent_story,
+origin_level_story, and cross_quest_macro are hierarchy-only scopes and must
+appear in parent_stories; they can never appear in final_chains or become
+delivery targets. An overall origin history, an order-wide mission, or a quest
+umbrella spanning sibling tasks remains hierarchy-only even if it contains
+real events. final_chains may use only concrete_child_quest or standalone_event.
+
+A candidate grounded by only one local unit must normally merge_into the
+specific concrete child quest that directly causes or explains it. Keep it as
+a standalone_event only when that unit itself describes an independent event
+process, choice, or consequence AND its separate summary resolves a concrete
+translation ambiguity. In that exception, return standalone_justification with
+the exact unit_id, the independent event basis, and the specific translation
+value. Generic statements such as "helps consistency" are not sufficient.
 
 Every final chain must merge its positive and negative boundaries from the
 source cards into boundary_includes and boundary_excludes. anchor_unit_ids are
@@ -495,6 +511,9 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
                 "Final delivery chains require a local chain-card source: "
                 f"{sorted(orphan_chains)}"
             )
+        validate_delivery_chain_scopes(
+            parsed.final_chains, parsed.proposal_resolutions, cards
+        )
         validate_anchor_sources(parsed.final_chains, parsed.proposal_resolutions, cards)
 
     @classmethod

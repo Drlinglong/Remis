@@ -70,6 +70,7 @@ class ConcurrentFakeReconciler:
         del extractions, description_language
         return EventChainCatalogResult(final_chains=[EventChainDefinition(
             chain_id="chain",
+            story_scope="concrete_child_quest",
             event="A chain.",
             sequence=0,
             evidence_unit_ids=[units[0].unit_id],

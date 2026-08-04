@@ -39,6 +39,16 @@ class _ModelAssignment(BaseModel):
         return normalized
 
 
+class StandaloneDeliveryJustification(BaseModel):
+    """Evidence that a one-unit event merits its own translation summary."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    unit_id: str = Field(pattern=r"^unit_\d+$")
+    independent_event_basis: str = Field(min_length=1, max_length=500)
+    translation_value: str = Field(min_length=1, max_length=500)
+
+
 class EventChainDefinition(BaseModel):
     """One concrete delivery chain, never a parent-story umbrella."""
 
@@ -46,6 +56,12 @@ class EventChainDefinition(BaseModel):
 
     chain_id: str = Field(min_length=1, max_length=200)
     chain_level: str = Field(default="delivery_chain", pattern=r"^delivery_chain$")
+    story_scope: str = Field(
+        pattern=(
+            r"^(concrete_child_quest|standalone_event|parent_story|"
+            r"origin_level_story|cross_quest_macro)$"
+        ),
+    )
     parent_story_id: str | None = Field(default=None, max_length=200)
     event: str = Field(min_length=1, max_length=500)
     sequence: int = Field(ge=0)
@@ -55,6 +71,7 @@ class EventChainDefinition(BaseModel):
     boundary_excludes: str | None = Field(default=None, max_length=500)
     anchor_unit_ids: EvidenceUnitIds = Field(default_factory=list, max_length=8)
     evidence_unit_ids: EvidenceUnitIds = Field(min_length=1, max_length=5)
+    standalone_justification: StandaloneDeliveryJustification | None = None
 
 
 class ParentStoryDefinition(BaseModel):
@@ -63,6 +80,9 @@ class ParentStoryDefinition(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     story_id: str = Field(min_length=1, max_length=200)
+    story_scope: str = Field(
+        pattern=r"^(parent_story|origin_level_story|cross_quest_macro)$",
+    )
     summary: str = Field(min_length=1, max_length=800)
     child_chain_ids: list[str] = Field(min_length=2, max_length=40)
     evidence_unit_ids: EvidenceUnitIds = Field(min_length=1, max_length=10)
@@ -110,6 +130,30 @@ class _CatalogResponse(BaseModel):
     proposal_resolutions: list[LocalChainDisposition] = Field(
         default_factory=list, max_length=500
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def require_explicit_story_scopes(cls, value: Any) -> Any:
+        """Prevent model output from inheriting a permissive internal default."""
+
+        if not isinstance(value, dict):
+            return value
+        missing_final = [
+            str(item.get("chain_id") or "<unknown>")
+            for item in value.get("final_chains", [])
+            if isinstance(item, dict) and "story_scope" not in item
+        ]
+        missing_parent = [
+            str(item.get("story_id") or "<unknown>")
+            for item in value.get("parent_stories", [])
+            if isinstance(item, dict) and "story_scope" not in item
+        ]
+        if missing_final or missing_parent:
+            raise ValueError(
+                "Catalog nodes require explicit story_scope classification: "
+                f"final_chains={missing_final}, parent_stories={missing_parent}"
+            )
+        return value
 
 
 class _AssignmentResponse(BaseModel):
@@ -219,6 +263,64 @@ def validate_anchor_sources(
         raise ValueError(
             "Final chain anchors must come from local primary hints or grounded event "
             f"evidence: {invalid}"
+        )
+
+
+def validate_delivery_chain_scopes(
+    chains: Sequence[EventChainDefinition],
+    dispositions: Sequence[LocalChainDisposition],
+    cards: Sequence[dict[str, Any]],
+) -> None:
+    """Keep macro stories out of delivery and gate one-unit exceptions."""
+
+    prohibited_scopes = {"parent_story", "origin_level_story", "cross_quest_macro"}
+    invalid_macro = {
+        chain.chain_id: chain.story_scope
+        for chain in chains
+        if chain.story_scope in prohibited_scopes
+    }
+    if invalid_macro:
+        raise ValueError(
+            "Parent, origin-level, and cross-quest macro stories cannot be delivery "
+            f"targets: {invalid_macro}"
+        )
+
+    card_by_id = {card["proposal_id"]: card for card in cards}
+    grounded_units: dict[str, set[str]] = {}
+    for disposition in dispositions:
+        card = card_by_id.get(disposition.proposal_id, {})
+        source_units = {
+            *card.get("primary_unit_ids", ()),
+            *card.get("evidence_unit_ids", ()),
+        }
+        for chain_id in disposition.final_chain_ids:
+            grounded_units.setdefault(chain_id, set()).update(source_units)
+
+    invalid_singletons: dict[str, str] = {}
+    for chain in chains:
+        units = grounded_units.get(chain.chain_id, set())
+        if len(units) != 1:
+            continue
+        justification = chain.standalone_justification
+        unit_id = next(iter(units))
+        if chain.story_scope != "standalone_event":
+            invalid_singletons[chain.chain_id] = (
+                "single-unit chain must merge into its causally related concrete child "
+                "quest or declare standalone_event"
+            )
+        elif justification is None:
+            invalid_singletons[chain.chain_id] = (
+                "standalone_event requires independent_event_basis and translation_value"
+            )
+        elif justification.unit_id != unit_id:
+            invalid_singletons[chain.chain_id] = (
+                f"standalone justification names {justification.unit_id}, expected {unit_id}"
+            )
+    if invalid_singletons:
+        raise ValueError(
+            "Single-unit delivery chains require a grounded standalone exception; "
+            "otherwise merge them into the directly causal concrete child quest: "
+            f"{invalid_singletons}"
         )
 
 
