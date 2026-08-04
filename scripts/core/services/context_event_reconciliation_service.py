@@ -32,10 +32,7 @@ from scripts.core.services.context_event_catalog_contract import (
     _AssignmentResponse,
     _CatalogResponse,
     _ModelAssignment,
-    validate_anchor_sources,
-    validate_chain_merge_boundaries,
-    validate_delivery_chain_scopes,
-    validate_parent_stories,
+    validate_catalog_response,
 )
 
 
@@ -225,7 +222,9 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
             messages,
             _CatalogResponse,
             "remis_event_chain_catalog",
-            lambda result: self._validate_catalog(result, cards, units),
+            lambda result: validate_catalog_response(
+                result, cards, {unit.unit_id for unit in units}
+            ),
             "Event-chain catalog",
         )
         return EventChainCatalogResult(
@@ -437,109 +436,6 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
                 "local_chain_cards": catalog.local_chain_cards,
             },
         )
-
-    @classmethod
-    def _validate_catalog(
-        cls,
-        parsed: _CatalogResponse,
-        cards: Sequence[dict[str, Any]],
-        units: Sequence[LocalTextUnit],
-    ) -> None:
-        chain_ids = [chain.chain_id for chain in parsed.final_chains]
-        duplicate_chains = cls._duplicates(chain_id.casefold() for chain_id in chain_ids)
-        if duplicate_chains:
-            raise ValueError(f"Final chain identities must be unique: {duplicate_chains}")
-        valid_chains = set(chain_ids)
-        valid_parents = validate_parent_stories(
-            parsed.parent_stories, parsed.final_chains, {unit.unit_id for unit in units},
-        )
-        valid_units = {unit.unit_id for unit in units}
-        bad_evidence = {
-            unit_id
-            for chain in parsed.final_chains
-            for unit_id in (*chain.evidence_unit_ids, *chain.anchor_unit_ids)
-            if unit_id not in valid_units
-        }
-        if bad_evidence:
-            raise ValueError(f"Catalog contains unknown evidence or anchor units: {sorted(bad_evidence)}")
-        incomplete_boundaries = [
-            chain.chain_id for chain in parsed.final_chains
-            if not chain.boundary_includes or not chain.boundary_excludes or not chain.anchor_unit_ids
-        ]
-        if incomplete_boundaries:
-            raise ValueError(
-                "Final delivery chains require includes, excludes, and anchor units: "
-                f"{sorted(incomplete_boundaries)}"
-            )
-        expected = {card["proposal_id"] for card in cards}
-        received = [item.proposal_id for item in parsed.proposal_resolutions]
-        unknown_references = {
-            chain_id
-            for item in parsed.proposal_resolutions
-            for chain_id in item.final_chain_ids
-            if chain_id not in valid_chains
-        }
-        unknown_parent_references = {
-            item.parent_story_id
-            for item in parsed.proposal_resolutions
-            if item.parent_story_id and item.parent_story_id not in valid_parents
-        }
-        missing = expected - set(received)
-        unexpected = set(received) - expected
-        duplicate = cls._duplicates(received)
-        if missing or unexpected or duplicate or unknown_references or unknown_parent_references:
-            raise ValueError(
-                "Local chain disposition coverage invalid: "
-                f"missing={sorted(missing)}, unexpected={sorted(unexpected)}, "
-                f"duplicate={duplicate}, unknown_chains={sorted(unknown_references)}, "
-                f"unknown_parent_stories={sorted(unknown_parent_references)}"
-            )
-        invalid_dispositions = [
-            item.proposal_id
-            for item in parsed.proposal_resolutions
-            if (
-                item.resolution in {"merge_into", "keep_as_delivery_chain"}
-                and len(item.final_chain_ids) != 1
-            ) or (
-                item.resolution == "split_across"
-                and (
-                    len(item.final_chain_ids) < 2
-                    or len(item.final_chain_ids) != len(set(item.final_chain_ids))
-                )
-            ) or (
-                item.resolution == "promote_to_parent_story"
-                and not item.parent_story_id
-            )
-        ]
-        if invalid_dispositions:
-            raise ValueError(
-                "Local chain dispositions conflict with their final_chain_ids: "
-                f"{sorted(invalid_dispositions)}"
-            )
-        delivery_sources = {
-            chain_id
-            for item in parsed.proposal_resolutions
-            if item.resolution in {
-                "merge_into", "keep_as_delivery_chain", "split_across"
-            }
-            for chain_id in item.final_chain_ids
-        }
-        orphan_chains = valid_chains - delivery_sources
-        if orphan_chains:
-            raise ValueError(
-                "Final delivery chains require a local chain-card source: "
-                f"{sorted(orphan_chains)}"
-            )
-        validate_delivery_chain_scopes(
-            parsed.final_chains, parsed.proposal_resolutions, cards
-        )
-        validate_chain_merge_boundaries(
-            parsed.final_chains,
-            parsed.proposal_resolutions,
-            cards,
-            parsed.chain_merge_boundary_audits,
-        )
-        validate_anchor_sources(parsed.final_chains, parsed.proposal_resolutions, cards)
 
     @classmethod
     def _validate_assignment_batch(

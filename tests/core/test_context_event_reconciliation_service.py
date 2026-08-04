@@ -580,6 +580,49 @@ def test_single_unit_child_quest_can_survive_with_a_grounded_exception():
     assert catalog.final_chains[0].standalone_justification.unit_id == "unit_0"
 
 
+def test_catalog_repair_reports_parent_and_single_unit_errors_together():
+    units = _units()
+    extraction = _extraction_with_singleton(units)
+    extraction.events.append(EventChainContribution(
+        chain_id="local-origin-umbrella",
+        event="The order pursues its broad origin story.",
+        sequence=0,
+        evidence=[SourceEvidence(source_item_id="source-3")],
+    ))
+    invalid = _catalog_with_singleton(units)
+    invalid["proposal_resolutions"].append({
+        "proposal_id": "b0_c2",
+        "resolution": "promote_to_parent_story",
+        "final_chain_ids": [],
+        "parent_story_id": "missing_origin_story",
+    })
+
+    repaired = _catalog_response(units)
+    repaired["proposal_resolutions"].extend([
+        {
+            "proposal_id": "b0_c1",
+            "resolution": "merge_into",
+            "final_chain_ids": ["knight_returns"],
+        },
+        {
+            "proposal_id": "b0_c2",
+            "resolution": "reject_non_event",
+            "final_chain_ids": [],
+        },
+    ])
+    _refresh_boundary_audits(repaired)
+    handler = FakeHandler([json.dumps(invalid), json.dumps(repaired)])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [extraction]
+    )
+
+    repair_instruction = handler.calls[1][-1]["content"]
+    assert catalog.repair_count == 1
+    assert "unknown_parent_stories" in repair_instruction
+    assert "Single-unit delivery chains" in repair_instruction
+
+
 def test_catalog_rejects_a_merge_that_violates_a_local_negative_boundary():
     units = _units()
     extraction = _extraction_with_singleton(units)
