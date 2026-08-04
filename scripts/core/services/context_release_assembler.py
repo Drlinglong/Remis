@@ -165,6 +165,17 @@ class ContextReleaseAssembler:
                 payload = governance.payload_for_aggregate(
                     aggregate_key, len(contribution_ids),
                 )
+            if governance_available:
+                payload = {
+                    **payload,
+                    "synthesis_required": (
+                        aggregate_type in {"event", "project"}
+                        or (
+                            aggregate_key in candidate_keys
+                            and governance.is_summary_eligible(aggregate_key)
+                        )
+                    ),
+                }
             aggregates.append(ContextAggregate(
                 aggregate_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"remis:{project_id}:{aggregate_key}")),
                 project_id=project_id,

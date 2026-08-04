@@ -10,9 +10,9 @@
 
 ## 结论
 
-本次任务确实死在最后的发布步骤，而不是抽取或摘要阶段。绝大多数付费分析结果仍在 SQLite 中，可在相同输入和配置下恢复使用；已经完成但只存在于进程内存中的 4 批摘要正文无法原样取回，需要重新调用模型生成。
+第一次发布任务确实死在最后的发布步骤，而不是抽取或摘要阶段。第一次只存在于进程内存中的 4 批摘要正文无法原样取回；13:13 的恢复任务已经重新生成并持久化了完整的 29 条治理内摘要。
 
-修复后的恢复边界是：下一次相同配置重试会复用 8 个抽取批次、1 个审核批次和 9 个聚合批次，只重新执行 4 个摘要批次。新的摘要结果会先持久化，再进入原子发布；即使发布再次失败，也不会再次丢失摘要或重复调用供应商。
+当前恢复边界是：下一次相同配置重试会复用 8 个抽取批次、1 个审核批次、9 个聚合批次和 4 个摘要批次。29 条摘要已经有在线数据库和独立救援快照两份副本，不需要再次调用供应商。
 
 ## 失败时间线
 
@@ -21,6 +21,8 @@
 - 12:39:31：任务 `b06faa43-e5dd-4a32-a189-43dbe84cff6c` 使用同一分析运行恢复执行。
 - 12:41:31：4 个摘要请求均返回 HTTP 200。
 - 12:41:39：进度 99%，在 `publishing:1` 失败，错误为 `no such column: analysis_run_id`。
+- 13:13:50：任务 `8a05a832-79d4-4a34-94db-94a10abc5e14` 恢复到发布阶段；4 个摘要批次保存 10 + 16 + 2 + 1 条，共 29 条，随后因发布层未识别治理排除项而失败。
+- 13:16:40：创建一致性 SQLite 救援快照，SHA-256 为 `58E252DBBA4AA989F763E80D03F58A26D11E49704D7AC17FEAAB3E2939293969`。
 
 第二次任务从连接到失败约 2 分 9 秒，但它复用了前一次中间结果，不能作为完整端到端性能数据。
 
@@ -39,8 +41,8 @@
 | Event aggregates | 已持久化 | 16 |
 | Project aggregate | 已持久化 | 1 |
 | 术语候选缓存 | 已持久化 | 77 |
-| 未发布草稿 | 已持久化 | 1 |
-| 摘要正文 | 未持久化，无法原样恢复 | 4 批 |
+| 未发布草稿 | 已持久化 | 2 |
+| 摘要正文 | 已持久化、可恢复 | 4 批；29 条 |
 | Context release | 未创建，事务已回滚 | 0 |
 
 77 个候选目前全部为 `pending`；其中频次为 1 的有 65 个，频次至少为 2 的有 12 个。候选缓存分类为 concept 25、place 16、faction 12、person 11、technology 11、other 2。
@@ -71,9 +73,17 @@ Migration 19 负责为 `context_releases` 增加 `analysis_run_id` 并建立原�
 - `context_releases.analysis_run_id` 已存在
 - 原有 8 + 1 + 9 个成功批次和 111 个 aggregates 在迁移后保持不变
 
+## 第二次发布失败根因
+
+模型返回是完整的。治理层要求摘要的对象恰好为 29 个：12 个实体、16 个事件和 1 个项目；SQLite 中保存的结果也是 29/29，没有缺失、重复或越界引用。
+
+其余 82 个 entity aggregates 本来就不应生成摘要，其中 71 个明确为 `summary_eligible=false`，11 个不是候选治理对象。`ContextReleaseAssembler` 没有把这项排除决定写入 aggregate payload，发布器沿用旧默认，把 82 个对象误报为“缺少摘要”。修复后每个 aggregate 都携带显式 `synthesis_required`，发布校验与发送给模型的名单使用同一契约。
+
+救援快照：`recovery\issue-198\remis-synthesis-rescue-20260804-131640.sqlite`，14,667,776 bytes。
+
 ## 验证
 
-- Context / Neologism 回归：147 passed。
+- Context / Neologism 回归：148 passed。
 - 迁移、发布、工作流聚焦回归：58 passed。
 - Python architecture guard：passed。
 - `python -m compileall -q scripts tests`：passed。
@@ -83,7 +93,7 @@ Migration 19 负责为 `context_releases` 增加 `analysis_run_id` 并建立原�
 
 ## 恢复操作与限制
 
-没有自动发起重试，因为恢复剩余部分需要 4 次 OpenRouter / `openai/gpt-5.6-luna` 模型调用，属于可能计费的模型操作。用户从 Remis 重新运行同一项目、同一源文件、同一模型和同一分析配置即可触发恢复。
+没有自动发起下一次重试。相同配置下 4 个摘要批次已经持久化，工作流应直接恢复 29 条摘要并重新发布；若项目、source snapshot、scope 或配置指纹变化，Remis 会创建新运行并可能再次调用模型，因此仍由用户在 UI 中决定是否启动。
 
 恢复成立的身份条件包括：项目、source snapshot、analysis scope 和配置指纹完全一致。若源文件或关键配置发生变化，Remis 会创建新运行并重新分析，这是数据安全行为。
 
@@ -95,4 +105,4 @@ Migration 19 负责为 `context_releases` 增加 `analysis_run_id` 并建立原�
 - 恢复运行沿用了分析 run，但 `context_analysis_runs.task_id` 仍指向第一次任务 `270b010d-...`，任务追踪关系未更新。
 - 数据库中保留一个失败事务前创建的 open draft；它没有发布内容，不影响恢复，但后续应增加失败草稿复用或清理策略。
 - 历史 `activity_log` / `project_history` 外键债务仍存在。本次修复有意不在项目档案迁移中跨域删除旧数据。
-- 旧的 4 批摘要正文无法逐字恢复，只能从已保存的 aggregates 和 contributions 重新生成。
+- 12:41 的旧摘要正文无法逐字恢复；13:13 的替代摘要已经完整持久化并独立备份。

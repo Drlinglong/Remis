@@ -331,6 +331,18 @@ def test_only_explicit_synthesis_eligible_candidates_reach_the_context_prompt():
     assert [aggregate.aggregate_key for aggregate in eligible] == [
         "candidate:republic", "event:republic-chain", "project:summary",
     ]
+    eligibility = {
+        aggregate.aggregate_key: aggregate.payload.get("synthesis_required")
+        for aggregate in aggregates
+    }
+    assert eligibility == {
+        "candidate:core-term": False,
+        "candidate:incidental": False,
+        "candidate:named-phrase": False,
+        "candidate:republic": True,
+        "event:republic-chain": True,
+        "project:summary": True,
+    }
     assert "Incidental" not in prompt
     assert "Republic" in prompt
     assert "candidate:incidental" not in {

@@ -261,7 +261,14 @@ def test_published_release_rejects_new_child_insert(tmp_path):
                 connection.execute(statement, parameters)
 
 
-def test_audit_only_aggregate_can_publish_without_synthesis(tmp_path):
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"audit_only": True},
+        {"synthesis_required": False},
+    ],
+)
+def test_non_synthesized_aggregate_can_publish_without_synthesis(tmp_path, payload):
     db_path, repository, run, draft, metadata, _ = _setup(tmp_path)
     repository.save_aggregate(
         ContextAggregate(
@@ -269,7 +276,7 @@ def test_audit_only_aggregate_can_publish_without_synthesis(tmp_path):
             project_id="project-1",
             aggregate_type="event",
             aggregate_key="event:audit",
-            payload={"audit_only": True},
+            payload=payload,
             contribution_ids=["contribution-1"],
         )
     )
