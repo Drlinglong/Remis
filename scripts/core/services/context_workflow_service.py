@@ -72,7 +72,7 @@ class ContextWorkflowService:
     REVIEW_BATCH_SIZE = ContextCandidateAdapter.REVIEW_BATCH_SIZE
     SCHEMA_VERSION = "context-v4"
     PROMPT_VERSION = "context-archive-v10"
-    CHECKPOINT_COMPATIBILITY_VERSION = "context-analysis-v2"
+    CHECKPOINT_COMPATIBILITY_VERSION = "context-analysis-v3"
     ACTIVE_STATUSES = ContextWorkflowStatusService.ACTIVE_STATUSES
 
     def __init__(

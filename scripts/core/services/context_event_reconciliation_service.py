@@ -33,6 +33,7 @@ from scripts.core.services.context_event_catalog_contract import (
     _CatalogResponse,
     _ModelAssignment,
     validate_anchor_sources,
+    validate_chain_merge_boundaries,
     validate_delivery_chain_scopes,
     validate_parent_stories,
 )
@@ -123,6 +124,16 @@ evidence_unit_ids remain a separate, representative subset for synthesis and
 may overlap anchors. A final chain that collapses several sibling quests, or
 lacks a concrete negative boundary, is invalid. Do not rewrite boundaries as
 generic theme descriptions.
+
+For every final chain, return exactly one chain_merge_boundary_audit. Its
+source_proposal_ids must exactly list every local proposal routed into that
+chain. Read each source card's boundary_excludes and list every such proposal
+in reviewed_boundary_proposal_ids. If one source card excludes the event,
+stage, consequence, or later/earlier process described by another source card,
+record that pair in conflicts. A chain with any conflict is invalid and must be
+split before returning the repaired catalog. Direct causality or chronological
+continuation does not override a negative boundary and does not by itself make
+two processes one translation-delivery chain.
 
 Return exactly one compact proposal_resolution for every proposal_id. Use
 reject_non_event for a card that is only a static/theme collection. Do not omit
@@ -219,6 +230,7 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
             parent_stories=parsed.parent_stories,
             final_chains=parsed.final_chains,
             proposal_resolutions=parsed.proposal_resolutions,
+            chain_merge_boundary_audits=parsed.chain_merge_boundary_audits,
             local_chain_cards=cards,
             repair_count=repair_count,
             repair_reason=repair_reason,
@@ -413,6 +425,9 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
                 "proposal_resolutions": [
                     item.model_dump() for item in catalog.proposal_resolutions
                 ],
+                "chain_merge_boundary_audits": [
+                    item.model_dump() for item in catalog.chain_merge_boundary_audits
+                ],
                 "parent_stories": [
                     item.model_dump() for item in catalog.parent_stories
                 ],
@@ -515,6 +530,12 @@ Do not return source_item_ids, reasoning, prose, or new chain definitions.
             )
         validate_delivery_chain_scopes(
             parsed.final_chains, parsed.proposal_resolutions, cards
+        )
+        validate_chain_merge_boundaries(
+            parsed.final_chains,
+            parsed.proposal_resolutions,
+            cards,
+            parsed.chain_merge_boundary_audits,
         )
         validate_anchor_sources(parsed.final_chains, parsed.proposal_resolutions, cards)
 

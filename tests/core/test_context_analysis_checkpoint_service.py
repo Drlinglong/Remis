@@ -118,6 +118,14 @@ def test_catalog_and_assignment_batches_have_independent_checkpoint_slots():
     service.save_catalog(run, ["source-0", "source-1"], catalog)
     service.save_assignment_batch(run, 0, ["source-0"], assignment)
 
+    assert (
+        repository.batches[("run-1", "aggregation", 0)].payload["contract_version"]
+        == "event-catalog-v3"
+    )
+    assert (
+        repository.batches[("run-1", "aggregation", 1)].payload["contract_version"]
+        == "event-catalog-v3"
+    )
     assert service.restore_catalog(run, ["source-0", "source-1"]) == catalog
     assert service.restore_assignment_batch(run, 0, ["source-0"]) == assignment
     assert set(repository.batches) == {
@@ -147,6 +155,27 @@ def test_legacy_event_catalog_checkpoints_are_not_resumed():
 
     assert service.restore_catalog(run, ["source-0"]) is None
     assert service.restore_assignment_batch(run, 0, ["source-0"]) is None
+
+
+def test_v2_event_catalog_checkpoints_are_not_resumed_under_v3_contract():
+    repository = _Repository()
+    service = ContextAnalysisCheckpointService(repository)
+    run = SimpleNamespace(run_id="run-1")
+    repository.save_batch(
+        run.run_id,
+        "aggregation",
+        0,
+        ["source-0"],
+        {
+            "contract_version": "event-catalog-v2",
+            "catalog": {
+                "final_chains": [],
+                "proposal_resolutions": [],
+            },
+        },
+    )
+
+    assert service.restore_catalog(run, ["source-0"]) is None
 
 
 def test_synthesis_batch_round_trips_without_another_model_call():

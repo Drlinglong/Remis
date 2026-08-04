@@ -35,14 +35,14 @@ class _AggregationCheckpoint(BaseModel):
 class _CatalogCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    contract_version: Literal["event-catalog-v2"]
+    contract_version: Literal["event-catalog-v3"]
     catalog: EventChainCatalogResult
 
 
 class _AssignmentCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    contract_version: Literal["event-catalog-v2"]
+    contract_version: Literal["event-catalog-v3"]
     assignment_batch: EventAssignmentBatchResult
 
 
@@ -191,7 +191,7 @@ class ContextAnalysisCheckpointService:
             0,
             source_item_ids,
             _CatalogCheckpoint(
-                contract_version="event-catalog-v2", catalog=catalog
+                contract_version="event-catalog-v3", catalog=catalog
             ).model_dump(),
         )
 
@@ -223,7 +223,7 @@ class ContextAnalysisCheckpointService:
             batch_index + 1,
             source_item_ids,
             _AssignmentCheckpoint(
-                contract_version="event-catalog-v2", assignment_batch=result
+                contract_version="event-catalog-v3", assignment_batch=result
             ).model_dump(),
         )
 

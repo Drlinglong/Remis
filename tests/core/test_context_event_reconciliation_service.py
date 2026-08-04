@@ -97,7 +97,36 @@ def _catalog_response(units):
             "resolution": "merge_into",
             "final_chain_ids": ["knight_returns"],
         }],
+        "chain_merge_boundary_audits": [{
+            "chain_id": "knight_returns",
+            "source_proposal_ids": ["b0_c0"],
+            "reviewed_boundary_proposal_ids": [],
+            "conflicts": [],
+        }],
     }
+
+
+def _refresh_boundary_audits(response, *, reviewed_proposal_ids=()):
+    sources_by_chain = {
+        chain["chain_id"]: [] for chain in response.get("final_chains", [])
+    }
+    for disposition in response.get("proposal_resolutions", []):
+        for chain_id in disposition.get("final_chain_ids", []):
+            sources_by_chain.setdefault(chain_id, []).append(disposition["proposal_id"])
+    reviewed = set(reviewed_proposal_ids)
+    response["chain_merge_boundary_audits"] = [
+        {
+            "chain_id": chain_id,
+            "source_proposal_ids": list(dict.fromkeys(proposal_ids)),
+            "reviewed_boundary_proposal_ids": [
+                proposal_id for proposal_id in dict.fromkeys(proposal_ids)
+                if proposal_id in reviewed
+            ],
+            "conflicts": [],
+        }
+        for chain_id, proposal_ids in sources_by_chain.items()
+    ]
+    return response
 
 
 def _assignment_response(units):
@@ -157,6 +186,12 @@ def _catalog_with_singleton(units):
         "resolution": "keep_as_delivery_chain",
         "final_chain_ids": ["knight_aftermath"],
     })
+    response["chain_merge_boundary_audits"].append({
+        "chain_id": "knight_aftermath",
+        "source_proposal_ids": ["b0_c1"],
+        "reviewed_boundary_proposal_ids": [],
+        "conflicts": [],
+    })
     return response
 
 
@@ -211,6 +246,7 @@ def test_catalog_normalizes_prose_tainted_evidence_ids_without_a_repair_call():
         resolution="split_across",
         final_chain_ids=["chain_56", "chain_75", "chain_92"],
     )
+    _refresh_boundary_audits(response)
     handler = FakeHandler([json.dumps(response, ensure_ascii=False)])
 
     catalog = ContextEventReconciliationService(handler).build_catalog(
@@ -421,6 +457,7 @@ def test_single_unit_chain_defaults_to_merging_into_its_child_quest():
         "resolution": "merge_into",
         "final_chain_ids": ["knight_returns"],
     })
+    _refresh_boundary_audits(repaired)
     handler = FakeHandler([json.dumps(invalid), json.dumps(repaired)])
 
     catalog = ContextEventReconciliationService(handler).build_catalog(
@@ -481,6 +518,12 @@ def test_single_unit_chain_can_survive_with_a_grounded_standalone_exception():
             "resolution": "keep_as_delivery_chain",
             "final_chain_ids": ["binding_pact_choice"],
         }],
+        "chain_merge_boundary_audits": [{
+            "chain_id": "binding_pact_choice",
+            "source_proposal_ids": ["b0_c0"],
+            "reviewed_boundary_proposal_ids": [],
+            "conflicts": [],
+        }],
     }
     handler = FakeHandler([json.dumps(response)])
 
@@ -491,6 +534,46 @@ def test_single_unit_chain_can_survive_with_a_grounded_standalone_exception():
     assert catalog.repair_count == 0
     assert catalog.final_chains[0].story_scope == "standalone_event"
     assert catalog.final_chains[0].standalone_justification.unit_id == "unit_0"
+
+
+def test_catalog_rejects_a_merge_that_violates_a_local_negative_boundary():
+    units = _units()
+    extraction = _extraction_with_singleton(units)
+    extraction.events[0].boundary_excludes = "The later aftermath choice."
+    invalid = _catalog_response(units)
+    invalid["proposal_resolutions"].append({
+        "proposal_id": "b0_c1",
+        "resolution": "merge_into",
+        "final_chain_ids": ["knight_returns"],
+    })
+    _refresh_boundary_audits(invalid, reviewed_proposal_ids=["b0_c0"])
+    invalid["chain_merge_boundary_audits"][0]["conflicts"] = [{
+        "excluded_by_proposal_id": "b0_c0",
+        "conflicting_proposal_id": "b0_c1",
+        "reason": "The first card explicitly excludes the later aftermath choice.",
+    }]
+
+    repaired = _catalog_with_singleton(units)
+    repaired["final_chains"][1].update(
+        story_scope="standalone_event",
+        standalone_justification={
+            "unit_id": units[2].unit_id,
+            "independent_event_basis": "The unit contains a complete consequential choice.",
+            "translation_value": "The separate summary disambiguates that choice's outcome.",
+        },
+    )
+    _refresh_boundary_audits(repaired, reviewed_proposal_ids=["b0_c0"])
+    handler = FakeHandler([json.dumps(invalid), json.dumps(repaired)])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [extraction]
+    )
+
+    assert catalog.repair_count == 1
+    assert {chain.chain_id for chain in catalog.final_chains} == {
+        "knight_returns", "knight_aftermath",
+    }
+    assert "must be split" in handler.calls[1][-1]["content"]
 
 
 def test_parent_story_is_hierarchical_only_and_cannot_receive_assignments():
@@ -537,6 +620,7 @@ def test_parent_story_is_hierarchical_only_and_cannot_receive_assignments():
             "parent_story_id": "toxic_story",
         },
     ]
+    _refresh_boundary_audits(response)
     assignment = _assignment_response(units)
     assignment["assignments"][0]["links"][0]["event_chain_id"] = "toxic_story"
     valid_assignment = _assignment_response(units)
@@ -598,6 +682,7 @@ def test_parent_story_can_be_grounded_by_child_chains_without_a_promotion_card()
             "parent_story_id": "toxic_story",
         },
     ]
+    _refresh_boundary_audits(response)
     handler = FakeHandler([json.dumps(response)])
 
     catalog = ContextEventReconciliationService(handler).build_catalog(
@@ -658,6 +743,7 @@ def test_duplicate_parent_child_is_normalized_to_the_chain_declared_owner():
             "chain_order_funding", "chain_order_logistics", "chain_order_morale",
         ],
     )
+    _refresh_boundary_audits(response)
     handler = FakeHandler([json.dumps(response)])
 
     catalog = ContextEventReconciliationService(handler).build_catalog(
@@ -803,6 +889,7 @@ def test_each_link_keeps_its_own_relation_without_reasoning_output():
         resolution="split_across",
         final_chain_ids=["knight_returns", "parent_scene"],
     )
+    _refresh_boundary_audits(catalog)
     assignment = {"assignments": [
         {
             "local_unit_id": units[0].unit_id,

@@ -164,6 +164,27 @@ class LocalChainDisposition(BaseModel):
         return normalized
 
 
+class ChainMergeBoundaryConflict(BaseModel):
+    """One local negative boundary that forbids a proposed catalog merge."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    excluded_by_proposal_id: str = Field(min_length=1, max_length=80)
+    conflicting_proposal_id: str = Field(min_length=1, max_length=80)
+    reason: str = Field(min_length=1, max_length=500)
+
+
+class ChainMergeBoundaryAudit(BaseModel):
+    """Explicit proof that a final chain reviewed every source-card boundary."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    chain_id: str = Field(min_length=1, max_length=200)
+    source_proposal_ids: list[str] = Field(min_length=1, max_length=80)
+    reviewed_boundary_proposal_ids: list[str] = Field(default_factory=list, max_length=80)
+    conflicts: list[ChainMergeBoundaryConflict] = Field(default_factory=list, max_length=80)
+
+
 class _CatalogResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -171,6 +192,9 @@ class _CatalogResponse(BaseModel):
     final_chains: list[EventChainDefinition] = Field(default_factory=list, max_length=80)
     proposal_resolutions: list[LocalChainDisposition] = Field(
         default_factory=list, max_length=500
+    )
+    chain_merge_boundary_audits: list[ChainMergeBoundaryAudit] = Field(
+        default_factory=list, max_length=80
     )
 
     @model_validator(mode="before")
@@ -216,6 +240,9 @@ class EventChainCatalogResult(BaseModel):
     final_chains: list[EventChainDefinition] = Field(default_factory=list, max_length=80)
     proposal_resolutions: list[LocalChainDisposition] = Field(
         default_factory=list, max_length=500
+    )
+    chain_merge_boundary_audits: list[ChainMergeBoundaryAudit] = Field(
+        default_factory=list, max_length=80
     )
     local_chain_cards: list[dict[str, Any]] = Field(default_factory=list, max_length=500)
     repair_count: int = Field(default=0, ge=0, le=1)
@@ -368,6 +395,83 @@ def validate_delivery_chain_scopes(
             "Single-unit delivery chains require a grounded standalone exception; "
             "otherwise merge them into the directly causal concrete child quest: "
             f"{invalid_singletons}"
+        )
+
+
+def validate_chain_merge_boundaries(
+    chains: Sequence[EventChainDefinition],
+    dispositions: Sequence[LocalChainDisposition],
+    cards: Sequence[dict[str, Any]],
+    audits: Sequence[ChainMergeBoundaryAudit],
+) -> None:
+    """Make negative-boundary review an executable catalog obligation."""
+
+    sources_by_chain: dict[str, set[str]] = {chain.chain_id: set() for chain in chains}
+    for disposition in dispositions:
+        for chain_id in disposition.final_chain_ids:
+            sources_by_chain.setdefault(chain_id, set()).add(disposition.proposal_id)
+    audit_ids = [audit.chain_id for audit in audits]
+    missing = set(sources_by_chain) - set(audit_ids)
+    unexpected = set(audit_ids) - set(sources_by_chain)
+    duplicate = _duplicates(audit_ids)
+    if missing or unexpected or duplicate:
+        raise ValueError(
+            "Chain merge boundary audit coverage invalid: "
+            f"missing={sorted(missing)}, unexpected={sorted(unexpected)}, duplicate={duplicate}"
+        )
+
+    card_by_id = {str(card["proposal_id"]): card for card in cards}
+    invalid: dict[str, dict[str, list[str]]] = {}
+    conflicts: dict[str, list[dict[str, str]]] = {}
+    for audit in audits:
+        expected_sources = sources_by_chain[audit.chain_id]
+        received_sources = set(audit.source_proposal_ids)
+        expected_reviews = {
+            proposal_id for proposal_id in expected_sources
+            if any(
+                str(step.get("boundary_excludes") or "").strip()
+                for step in card_by_id.get(proposal_id, {}).get("steps", ())
+                if isinstance(step, dict)
+            )
+        }
+        received_reviews = set(audit.reviewed_boundary_proposal_ids)
+        if (
+            received_sources != expected_sources
+            or len(received_sources) != len(audit.source_proposal_ids)
+            or received_reviews != expected_reviews
+            or len(received_reviews) != len(audit.reviewed_boundary_proposal_ids)
+        ):
+            invalid[audit.chain_id] = {
+                "missing_sources": sorted(expected_sources - received_sources),
+                "unexpected_sources": sorted(received_sources - expected_sources),
+                "missing_reviews": sorted(expected_reviews - received_reviews),
+                "unexpected_reviews": sorted(received_reviews - expected_reviews),
+            }
+        chain_conflicts = [item.model_dump() for item in audit.conflicts]
+        bad_conflict_ids = {
+            proposal_id
+            for item in audit.conflicts
+            for proposal_id in (
+                item.excluded_by_proposal_id, item.conflicting_proposal_id,
+            )
+            if proposal_id not in expected_sources
+        }
+        self_conflicts = [
+            item.excluded_by_proposal_id for item in audit.conflicts
+            if item.excluded_by_proposal_id == item.conflicting_proposal_id
+        ]
+        if bad_conflict_ids or self_conflicts:
+            invalid.setdefault(audit.chain_id, {})["invalid_conflicts"] = sorted(
+                bad_conflict_ids | set(self_conflicts)
+            )
+        elif chain_conflicts:
+            conflicts[audit.chain_id] = chain_conflicts
+    if invalid:
+        raise ValueError(f"Chain merge boundary audit does not match catalog sources: {invalid}")
+    if conflicts:
+        raise ValueError(
+            "Final chains violate local boundary_excludes and must be split: "
+            f"{conflicts}"
         )
 
 
