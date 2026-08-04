@@ -377,14 +377,10 @@ def validate_delivery_chain_scopes(
             continue
         justification = chain.standalone_justification
         unit_id = next(iter(units))
-        if chain.story_scope != "standalone_event":
+        if justification is None:
             invalid_singletons[chain.chain_id] = (
                 "single-unit chain must merge into its causally related concrete child "
-                "quest or declare standalone_event"
-            )
-        elif justification is None:
-            invalid_singletons[chain.chain_id] = (
-                "standalone_event requires independent_event_basis and translation_value"
+                "quest or provide independent_event_basis and translation_value"
             )
         elif justification.unit_id != unit_id:
             invalid_singletons[chain.chain_id] = (
@@ -392,8 +388,9 @@ def validate_delivery_chain_scopes(
             )
     if invalid_singletons:
         raise ValueError(
-            "Single-unit delivery chains require a grounded standalone exception; "
-            "otherwise merge them into the directly causal concrete child quest: "
+            "Single-unit delivery chains require a grounded single-unit exception; "
+            "the chain may remain concrete_child_quest or standalone_event, but without "
+            "that evidence it must merge into the directly causal child quest: "
             f"{invalid_singletons}"
         )
 

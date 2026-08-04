@@ -467,7 +467,7 @@ def test_single_unit_chain_defaults_to_merging_into_its_child_quest():
     assert catalog.repair_count == 1
     assert [chain.chain_id for chain in catalog.final_chains] == ["knight_returns"]
     assert catalog.proposal_resolutions[-1].final_chain_ids == ["knight_returns"]
-    assert "directly causal concrete child quest" in handler.calls[1][-1]["content"]
+    assert "causally related concrete child quest" in handler.calls[1][-1]["content"]
 
 
 def test_single_unit_chain_can_survive_with_a_grounded_standalone_exception():
@@ -533,6 +533,50 @@ def test_single_unit_chain_can_survive_with_a_grounded_standalone_exception():
 
     assert catalog.repair_count == 0
     assert catalog.final_chains[0].story_scope == "standalone_event"
+    assert catalog.final_chains[0].standalone_justification.unit_id == "unit_0"
+
+
+def test_single_unit_child_quest_can_survive_with_a_grounded_exception():
+    units = _units(1)
+    extraction = StructuredNeologismExtraction(
+        events=[EventChainContribution(
+            chain_id="local-last-trick",
+            event="The knight resolves the trickster's final test.",
+            sequence=0,
+            consequence="The quest advances to its next bounded stage.",
+            evidence=[SourceEvidence(source_item_id="source-0")],
+        )],
+        delivery_assignments=[DeliveryAssignment(
+            local_unit_id=units[0].unit_id,
+            assignment_state="assigned",
+            links=[DeliveryLink(
+                event_chain_id="local-last-trick",
+                relation="primary_member",
+                confidence=0.95,
+            )],
+        )],
+    )
+    response = _catalog_response(units)
+    response["final_chains"][0].update(
+        chain_id="last_trick",
+        event="The knight resolves the trickster's final test.",
+        consequence="The quest advances to its next bounded stage.",
+        standalone_justification={
+            "unit_id": units[0].unit_id,
+            "independent_event_basis": "The unit contains a complete quest-stage outcome.",
+            "translation_value": "Its summary distinguishes this test from later encounters.",
+        },
+    )
+    response["proposal_resolutions"][0]["final_chain_ids"] = ["last_trick"]
+    _refresh_boundary_audits(response)
+    handler = FakeHandler([json.dumps(response)])
+
+    catalog = ContextEventReconciliationService(handler).build_catalog(
+        units, [extraction]
+    )
+
+    assert catalog.repair_count == 0
+    assert catalog.final_chains[0].story_scope == "concrete_child_quest"
     assert catalog.final_chains[0].standalone_justification.unit_id == "unit_0"
 
 

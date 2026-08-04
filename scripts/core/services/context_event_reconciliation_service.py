@@ -108,11 +108,13 @@ that parent's child_chain_ids must agree; never list one child under two parents
 
 A candidate grounded by only one local unit must normally merge_into the
 specific concrete child quest that directly causes or explains it. Keep it as
-a standalone_event only when that unit itself describes an independent event
+an independent delivery chain only when that unit itself describes an event
 process, choice, or consequence AND its separate summary resolves a concrete
 translation ambiguity. In that exception, return standalone_justification with
 the exact unit_id, the independent event basis, and the specific translation
-value. Generic statements such as "helps consistency" are not sufficient.
+value. Keep story_scope=concrete_child_quest when it is a bounded quest or quest
+step; use standalone_event only for an event outside a child quest. Generic
+statements such as "helps consistency" are not sufficient.
 
 Every final chain must merge its positive and negative boundaries from the
 source cards into boundary_includes and boundary_excludes. anchor_unit_ids are
