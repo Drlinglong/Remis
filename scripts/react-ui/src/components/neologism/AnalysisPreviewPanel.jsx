@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { filterAnalysisPreviewEntries } from './contextAnalysisPreviewModel';
 import { useContextAnalysisPreview } from './useContextAnalysisPreview';
 import styles from './ModArchive.module.css';
+import ContextArchiveTreeReview from './archiveTreeV2/ContextArchiveTreeReview';
 
 const StateCard = ({ icon, title, description, action, testId }) => (
     <Paper className={`${styles.surface} ${styles.stateCard}`} p="xl" withBorder data-testid={testId} data-remis-surface="surface">
@@ -265,6 +266,14 @@ const PreviewContent = ({ preview, refresh, projectToolbar, t }) => {
                     )}
                 </Stack>
             </Paper>}
+            {advanced && (
+                <ContextArchiveTreeReview
+                    projectId={preview.project_id}
+                    releaseId={preview.release_id}
+                    mode="preview"
+                    treeData={preview.context_tree_v2 || preview.context_tree || preview.archive_tree || preview.tree || null}
+                />
+            )}
         </Container>
     );
 };

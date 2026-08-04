@@ -1,0 +1,294 @@
+.review {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, var(--surface-border) 48%, transparent);
+    border-radius: 0.75rem;
+    background: var(--surface-bg);
+    color: var(--surface-text-main);
+    --mantine-color-text: var(--surface-text-main);
+    --mantine-color-dimmed: var(--surface-text-muted);
+}
+
+.reviewHeader,
+.canvasHeader,
+.storyHeader,
+.groupHeader,
+.fragmentHeader,
+.previewHeader,
+.referenceHeader {
+    align-items: flex-start;
+    gap: 0.65rem;
+}
+
+.reviewHeader {
+    margin-bottom: 1rem;
+}
+
+.reviewTitle {
+    flex: 1 1 20rem;
+    min-width: 0;
+}
+
+.reviewSubtitle,
+.muted,
+.summaryText,
+.helperText {
+    color: var(--surface-text-muted) !important;
+}
+
+.status {
+    align-items: center;
+    color: var(--surface-text-muted);
+}
+
+.draftStatus {
+    color: var(--interactive-accent);
+}
+
+.canvas {
+    display: grid;
+    grid-template-columns: minmax(18rem, 1fr) minmax(19rem, 0.92fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.treePanel,
+.previewPanel,
+.referencePanel,
+.emptyPanel {
+    background: var(--paper-bg) !important;
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 22%, transparent) !important;
+    color: var(--paper-text-main);
+    --mantine-color-text: var(--paper-text-main);
+    --mantine-color-dimmed: var(--paper-text-muted);
+}
+
+.treePanel {
+    min-width: 0;
+}
+
+.treeRoot,
+.groupList,
+.fragmentList {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.story {
+    display: grid;
+    gap: 0.7rem;
+    padding: 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 16%, transparent);
+    border-radius: 0.6rem;
+    background: color-mix(in srgb, var(--paper-bg) 82%, var(--interactive-accent));
+}
+
+.storyTitle,
+.groupTitle {
+    flex: 1 1 10rem;
+    min-width: 7rem;
+}
+
+.containerActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.group {
+    display: grid;
+    gap: 0.6rem;
+    padding: 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 14%, transparent);
+    border-radius: 0.55rem;
+    background: color-mix(in srgb, var(--paper-bg) 92%, var(--interactive-accent));
+}
+
+.dropTarget {
+    min-height: 3.2rem;
+    padding: 0.25rem;
+    border: 1px dashed color-mix(in srgb, var(--interactive-accent) 54%, transparent);
+    border-radius: 0.45rem;
+}
+
+.dropTarget:focus-within,
+.dropTarget:hover {
+    background: color-mix(in srgb, var(--interactive-accent) 8%, transparent);
+}
+
+.fragment {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.6rem;
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 16%, transparent);
+    border-radius: 0.45rem;
+    background: var(--paper-bg);
+}
+
+.fragment[draggable='true'] {
+    cursor: grab;
+}
+
+.fragment:active {
+    cursor: grabbing;
+}
+
+.dragHandle {
+    display: inline-flex;
+    width: 1.25rem;
+    justify-content: center;
+    color: var(--paper-text-muted);
+    user-select: none;
+}
+
+.fragmentLabel {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.fragmentSummary {
+    margin: 0;
+    color: var(--paper-text-main);
+    white-space: pre-wrap;
+}
+
+.fragmentActions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.fragmentRoute,
+.fragmentGroup {
+    min-width: 10rem;
+    flex: 1 1 10rem;
+}
+
+.inlineForm {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    padding-top: 0.25rem;
+}
+
+.inlineInput {
+    flex: 1 1 12rem;
+}
+
+.unresolved {
+    padding: 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--status-warning) 42%, transparent);
+    border-radius: 0.6rem;
+    background: color-mix(in srgb, var(--status-warning) 8%, var(--paper-bg));
+}
+
+.unresolvedTitle {
+    color: var(--status-warning);
+}
+
+.previewPanel {
+    display: grid;
+    gap: 0.8rem;
+    min-width: 0;
+}
+
+.previewHeader {
+    margin-bottom: 0.1rem;
+}
+
+.previewSelect {
+    width: 100%;
+}
+
+.contextNotice {
+    padding: 0.75rem;
+    border-left: 3px solid var(--interactive-accent);
+    color: var(--paper-text-muted);
+    background: color-mix(in srgb, var(--interactive-accent) 7%, transparent);
+}
+
+.contextGroup {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 15%, transparent);
+    border-radius: 0.5rem;
+}
+
+.contextBullets {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    padding-left: 1.2rem;
+}
+
+.contextBullet {
+    color: var(--paper-text-main);
+}
+
+.referencePanel {
+    margin-top: 1rem;
+}
+
+.referenceDetails {
+    border-top: 1px solid color-mix(in srgb, var(--paper-text-main) 13%, transparent);
+}
+
+.referenceSummary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.65rem 0;
+    cursor: pointer;
+    list-style: none;
+}
+
+.referenceSummary::-webkit-details-marker {
+    display: none;
+}
+
+.referenceList {
+    display: grid;
+    gap: 0.5rem;
+    padding-bottom: 0.65rem;
+}
+
+.referenceAsset {
+    padding: 0.6rem;
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 14%, transparent);
+    border-radius: 0.45rem;
+}
+
+.sourceEvidence {
+    color: var(--paper-text-muted);
+    overflow-wrap: anywhere;
+}
+
+.emptyPanel {
+    margin-top: 0.75rem;
+}
+
+@media (max-width: 900px) {
+    .canvas {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .fragmentActions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .fragmentRoute,
+    .fragmentGroup {
+        min-width: 0;
+        width: 100%;
+    }
+}

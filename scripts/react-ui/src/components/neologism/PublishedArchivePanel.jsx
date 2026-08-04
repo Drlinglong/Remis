@@ -26,6 +26,7 @@ import ModArchiveOverrideEditor from './ModArchiveOverrideEditor';
 import { ArchiveSummary, ReleaseMetadata } from './PublishedArchiveContent';
 import ProjectGlossaryToolbar from './ProjectGlossaryToolbar';
 import RemoveModArchiveControl from './RemoveModArchiveControl';
+import ContextArchiveTreeReview from './archiveTreeV2/ContextArchiveTreeReview';
 import { useArchiveProjectContext } from './useArchiveProjectContext';
 import { useModArchiveDraft } from './useModArchiveDraft';
 import { useModArchiveRelease } from './useModArchiveRelease';
@@ -71,6 +72,14 @@ const PublishedArchivePanel = ({
     );
     const counts = useMemo(() => getArchiveCounts(effective), [effective]);
     const rows = getTraceabilityRows(traceability);
+    const treeData = effective?.context_tree_v2
+        || effective?.context_tree
+        || effective?.archive_tree
+        || effective?.tree
+        || release?.context_tree_v2
+        || release?.context_tree
+        || release?.tree
+        || null;
     const projectToolbar = (
         <div className={styles.projectToolbar}>
             <ProjectGlossaryToolbar
@@ -233,6 +242,14 @@ const PublishedArchivePanel = ({
                 showAdvanced={showAdvanced}
                 t={t}
             />
+
+            {showAdvanced && (
+                <ContextArchiveTreeReview
+                    projectId={selectedProject}
+                    releaseId={release.release_id}
+                    treeData={treeData}
+                />
+            )}
         </Container>
     );
 };
