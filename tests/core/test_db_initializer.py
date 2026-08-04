@@ -100,6 +100,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (19, "add_atomic_context_publication"),
         (20, "add_context_synthesis_checkpoints"),
         (21, "add_context_tree_v2_storage"),
+        (22, "extend_context_tree_v2_results"),
     ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
@@ -368,6 +369,7 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
         (19,),
         (20,),
         (21,),
+        (22,),
     ]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")

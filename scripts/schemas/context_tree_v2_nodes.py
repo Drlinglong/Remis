@@ -269,7 +269,7 @@ class SiblingGroup(_ExternalContract):
     story_id: Identifier | None = None
     fragment_ids: tuple[Identifier, ...] = Field(default=(), max_length=MAX_FRAGMENT_COUNT)
     title: LabelText | None = None
-    summary: ShortText | None = None
+    summary: str | None = Field(default=None, max_length=100_000)
 
     @field_validator("fragment_ids")
     @classmethod

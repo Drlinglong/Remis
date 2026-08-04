@@ -109,6 +109,47 @@ class FakeContextService:
         }]
 
 
+class FakeTreeV2Repository:
+    def __init__(self, source_hash):
+        self.source_hash = source_hash
+
+    def get_release_tree(self, project_id, release_id):
+        assert project_id == "project-1"
+        assert release_id == "tree-release-1"
+        payload = {
+            "project_id": project_id,
+            "release_id": release_id,
+            "source_snapshot_hash": self.source_hash,
+            "project_summary": "The project follows a dangerous quest.",
+            "local_fragments": [{
+                "fragment_id": "fragment-1",
+                "summary": "The republic begins the quest.",
+                "source_evidence_refs": [{
+                    "local_unit_id": "unit-1",
+                    "source_ref": SOURCE_FILES[0]["file_path"],
+                    "item_key": "republic",
+                }],
+            }],
+            "groups": [{
+                "group_id": "group-1", "fragment_ids": ["fragment-1"],
+            }],
+            "unit_routes": [
+                {"local_unit_id": "unit-1", "route": "narrative", "fragment_ids": ["fragment-1"]},
+                {"local_unit_id": "unit-2", "route": "reference_asset", "fragment_ids": []},
+            ],
+            "entity_digests": [{
+                "entity_id": "entity:other", "level": "A",
+                "final_digest": "Other is a named reference asset.",
+            }],
+            "entity_evidence": [{
+                "entity_id": "entity:other",
+                "source_ref": SOURCE_FILES[0]["file_path"],
+                "item_key": "other",
+            }],
+        }
+        return SimpleNamespace(model_dump=lambda **_kwargs: payload)
+
+
 def _selection(character_budget=4000):
     source_hash = build_translation_source_snapshot(SOURCE_FILES).source_snapshot_hash
     context = FakeContextService(source_hash)
@@ -197,6 +238,36 @@ def test_event_delivery_membership_injects_summary_beyond_sparse_evidence():
     assert [item["context_key"] for item in summaries] == [
         "project:summary", "event:war",
     ]
+
+
+def test_tree_v2_release_routes_event_and_entity_context_without_cross_injection():
+    source_hash = build_translation_source_snapshot(SOURCE_FILES).source_snapshot_hash
+    selection = TranslationContextService(
+        context_service=FakeContextService(source_hash),
+        tree_v2_repository=FakeTreeV2Repository(source_hash),
+    ).prepare(
+        project_id="project-1", files_data=SOURCE_FILES,
+        requested_release_id="tree-release-1", mode="archive",
+    )
+
+    narrative, _ = selection.select_for_batch(
+        SOURCE_FILES[0]["file_path"], [SOURCE_FILES[0]["source_entries"][0]],
+    )
+    reference, _ = selection.select_for_batch(
+        SOURCE_FILES[0]["file_path"], [SOURCE_FILES[0]["source_entries"][1]],
+    )
+    no_context, _ = selection.select_for_batch(
+        SOURCE_FILES[0]["file_path"], [{"key": "missing", "source": "Missing"}],
+    )
+
+    assert selection.status == "ready"
+    assert [item["context_key"] for item in narrative] == [
+        "project:project-1", "event_group:group-1",
+    ]
+    assert [item["context_key"] for item in reference] == [
+        "project:project-1", "entity:other",
+    ]
+    assert [item["context_key"] for item in no_context] == ["project:project-1"]
 
 
 def test_theme_related_membership_is_audit_only_and_never_injected():

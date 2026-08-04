@@ -340,6 +340,10 @@ class ContextAnalysisCheckpointService:
         if self.repository is not None and run is not None:
             self.repository.mark_complete(run.run_id)
 
+    def mark_analysis_ready(self, run: Any | None) -> None:
+        if self.repository is not None and run is not None:
+            self.repository.mark_analysis_ready(run.run_id)
+
     def mark_published(self, run: Any | None) -> None:
         if self.repository is not None and run is not None:
             self.repository.mark_published(run.run_id)

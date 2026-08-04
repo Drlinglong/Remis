@@ -9,6 +9,11 @@ from scripts.core.services.context_tree_v2_entity_digest import (
     DigestCandidate,
     DigestLocalUnit,
 )
+from scripts.core.services.context_tree_v2_candidate_governance import (
+    ContextTreeV2CandidateGovernanceService,
+)
+from scripts.core.neologism_extraction import EntityContribution, SourceEvidence, SourceItem, StructuredNeologismExtraction
+from scripts.core.context_local_units import ContextLocalUnitBuilder
 
 
 def _candidate(
@@ -109,6 +114,45 @@ def test_ab_candidates_call_independently_and_c_only_stays_compact():
     assert "aliases" not in gamma_payload
     assert "local_unit_ids" not in gamma_payload
     assert any(item.code == "c_candidate_digest_skipped" for item in result.diagnostics)
+
+
+def test_governed_candidate_contract_flows_into_entity_digest():
+    items = [
+        SourceItem(
+            source_item_id=f"source-{index}",
+            relative_path="events.yml",
+            source_order=index,
+            source_text=f"The Knight appears in scene {index}.",
+        )
+        for index in range(2)
+    ]
+    extraction = StructuredNeologismExtraction(entities=[
+        EntityContribution(
+            name="The Knight",
+            entity_type="person",
+            description="A recurring order member.",
+            evidence=[SourceEvidence(source_item_id=item.source_item_id) for item in items],
+        ),
+    ])
+    units = ContextLocalUnitBuilder.build(items)
+    governed = ContextTreeV2CandidateGovernanceService().govern(
+        [extraction], items, units,
+    )
+
+    result = ContextTreeV2EntityDigestService(_FakeHandler()).run(
+        governed.candidates,
+        [
+            DigestLocalUnit(
+                unit_id=unit.unit_id,
+                unit_order=index,
+                source_text="\n".join(item.source_text for item in unit.items),
+            )
+            for index, unit in enumerate(units)
+        ],
+    )
+
+    assert result.digests[0].candidate_id == governed.candidates[0].candidate_id
+    assert result.digests[0].digest_status == "complete"
 
 
 def test_sampling_is_deterministic_and_respects_unit_char_and_group_budgets():

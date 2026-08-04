@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import AliasChoices, Field, model_validator
 
@@ -153,6 +153,8 @@ class ReadTreeResponse(_ExternalContract):
     unresolved_references: tuple[UnresolvedReference, ...] = Field(default=(), max_length=MAX_EDGE_COUNT)
     entity_evidence: tuple[EntityEvidenceReference, ...] = ()
     entity_digests: tuple[EntityDigest, ...] = ()
+    candidates: tuple[dict[str, Any], ...] = ()
+    term_variants: tuple[dict[str, Any], ...] = ()
     draft_operations: tuple[TreeDraftOverrideOperation, ...] = Field(default=(), max_length=MAX_OPERATION_COUNT)
 
 
@@ -199,8 +201,12 @@ class PrePublicationValidationResult(_ExternalContract):
         return self
 
 
+class PublishTreeDraftRequest(_ExternalContract):
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=240)
+
+
 __all__ = [
     "DraftOperationKind", "PrePublicationValidationIssue", "PrePublicationValidationRequest",
     "PrePublicationValidationResult", "ReadTreeResponse", "TreeDraft", "TreeDraftOverrideOperation",
-    "ValidationSeverity", "MAX_OPERATION_COUNT",
+    "PublishTreeDraftRequest", "ValidationSeverity", "MAX_OPERATION_COUNT",
 ]

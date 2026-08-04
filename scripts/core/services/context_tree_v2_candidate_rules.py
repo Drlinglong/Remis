@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
+import hashlib
 import re
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -30,6 +31,7 @@ from scripts.schemas.context_tree_v2_candidates import (
 
 
 _WORD_OR_HYPHEN = r"[\w-]"
+_MAX_V2_CANDIDATE_ID_LENGTH = 180
 
 
 @dataclass(frozen=True)
@@ -88,9 +90,20 @@ def collect_aggregates(
             if item is None:
                 dropped.append({"batch_index": batch_index, "reason": "empty_or_ungrounded_candidate"})
                 continue
-            candidate_id = candidate_aggregate_key(item.surface, language)
+            candidate_id = bounded_candidate_id(item.surface, language)
             aggregates.setdefault(candidate_id, CandidateAggregate(candidate_id)).contributions.append(item)
     return aggregates, dropped
+
+
+def bounded_candidate_id(surface: str, language: str) -> str:
+    """Leave room for digest segment suffixes in the 200-char storage IDs."""
+
+    raw = candidate_aggregate_key(surface, language)
+    if len(raw) <= _MAX_V2_CANDIDATE_ID_LENGTH:
+        return raw
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
+    prefix = raw[: _MAX_V2_CANDIDATE_ID_LENGTH - len(digest) - 1].rstrip()
+    return f"{prefix}:{digest}"
 
 
 def to_contribution(

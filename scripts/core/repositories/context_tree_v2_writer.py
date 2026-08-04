@@ -6,7 +6,11 @@ import sqlite3
 import uuid
 from typing import Any, Iterable, Mapping
 
-from scripts.core.context_tree_v2_projection import TreeProjectionError, apply_draft_overrides
+from scripts.core.context_tree_v2_projection import (
+    TreeProjectionError,
+    apply_draft_overrides,
+    validate_tree,
+)
 from scripts.core.repositories.context_tree_v2_reader import ContextTreeV2Reader
 from scripts.core.repositories.context_tree_v2_storage import (
     ContextTreeV2ConflictError,
@@ -57,6 +61,8 @@ class ContextTreeV2Writer(TreeV2StorageSupport):
             "project_summary": payload.get("project_summary"),
             "entity_evidence_json": self._json(payload.get("entity_evidence", [])),
             "entity_digests_json": self._json(payload.get("entity_digests", [])),
+            "candidates_json": self._json(payload.get("candidates", [])),
+            "term_variants_json": self._json(payload.get("term_variants", [])),
         }
         existing = connection.execute(
             "SELECT * FROM context_tree_v2_trees WHERE tree_id = ?", (tree_id,)
@@ -73,8 +79,9 @@ class ContextTreeV2Writer(TreeV2StorageSupport):
             INSERT INTO context_tree_v2_trees
                 (tree_id, project_id, source_snapshot_hash, schema_version,
                  prompt_version, project_title, entity_evidence_json,
-                 entity_digests_json, project_summary, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 entity_digests_json, candidates_json, term_variants_json,
+                 project_summary, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 tree_id,
@@ -85,6 +92,8 @@ class ContextTreeV2Writer(TreeV2StorageSupport):
                 values["project_title"],
                 values["entity_evidence_json"],
                 values["entity_digests_json"],
+                values["candidates_json"],
+                values["term_variants_json"],
                 values["project_summary"],
                 now,
             ),
@@ -294,9 +303,15 @@ class ContextTreeV2Writer(TreeV2StorageSupport):
     start_draft = create_draft
 
     def save_draft_operation(self, project_id: str, draft_id: str, operation: Any) -> Any:
-        value = self._dump(operation)
-        target_type, target_id, db_operation, projection = self._operation_projection(value)
+        return self.save_draft_overrides(project_id, draft_id, [operation])
+
+    save_draft_override = save_draft_operation
+    save_override = save_draft_operation
+
+    def save_draft_overrides(self, project_id: str, draft_id: str, overrides: Iterable[Any]) -> Any:
+        values = [self._dump(operation) for operation in overrides]
         with self._lock, self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             draft = self._draft_row(connection, draft_id)
             self._check_draft_project(draft, project_id)
             self._check_open_draft(draft)
@@ -304,26 +319,20 @@ class ContextTreeV2Writer(TreeV2StorageSupport):
                 "SELECT COALESCE(MAX(sequence), -1) + 1 FROM context_tree_v2_draft_overrides WHERE draft_id = ?",
                 (draft_id,),
             ).fetchone()[0]
-            stored = {"projection": projection, "operation_payload": value}
             try:
-                connection.execute(
-                    """
-                    INSERT INTO context_tree_v2_draft_overrides
-                        (draft_id, sequence, target_type, target_id, operation,
-                         value_json, note, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        draft_id,
-                        sequence,
-                        target_type,
-                        target_id,
-                        db_operation,
-                        self._json(stored),
-                        value.get("note"),
-                        self._now(),
-                    ),
-                )
+                for offset, value in enumerate(values):
+                    target_type, target_id, db_operation, projection = self._operation_projection(value)
+                    stored = {"projection": projection, "operation_payload": value}
+                    connection.execute(
+                        """INSERT INTO context_tree_v2_draft_overrides
+                           (draft_id, sequence, target_type, target_id, operation,
+                            value_json, note, created_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            draft_id, sequence + offset, target_type, target_id,
+                            db_operation, self._json(stored), value.get("note"), self._now(),
+                        ),
+                    )
                 base = ContextTreeV2Reader(self.db_path)._tree_payload(
                     connection, project_id, draft["tree_id"]
                 )
@@ -338,15 +347,6 @@ class ContextTreeV2Writer(TreeV2StorageSupport):
             )
             connection.commit()
         return ContextTreeV2Reader(self.db_path).get_draft(project_id, draft_id)
-
-    save_draft_override = save_draft_operation
-    save_override = save_draft_operation
-
-    def save_draft_overrides(self, project_id: str, draft_id: str, overrides: Iterable[Any]) -> Any:
-        result = ContextTreeV2Reader(self.db_path).get_draft(project_id, draft_id)
-        for override in overrides:
-            result = self.save_draft_operation(project_id, draft_id, override)
-        return result
 
     @classmethod
     def _operation_projection(cls, value: Mapping[str, Any]) -> tuple[str, str, str, dict[str, Any]]:
@@ -414,12 +414,27 @@ class ContextTreeV2Writer(TreeV2StorageSupport):
         return {}
 
     def publish_draft(self, project_id: str, draft_id: str, *, idempotency_key: str | None = None) -> Any:
-        validation = ContextTreeV2Reader(self.db_path).validate_draft(project_id, draft_id)
-        if not self._dump(validation).get("valid"):
-            raise ContextTreeV2ValidationError("Context tree v2 draft is not publishable")
         with self._lock, self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             draft = self._draft_row(connection, draft_id)
             self._check_draft_project(draft, project_id)
+            payload = apply_draft_overrides(
+                ContextTreeV2Reader(self.db_path)._tree_payload(
+                    connection, project_id, draft["tree_id"],
+                ),
+                ContextTreeV2Reader(self.db_path)._overrides(connection, draft_id),
+            )
+            issues = list(validate_tree(payload))
+            if payload.get("unresolved_references"):
+                issues.append({
+                    "code": "unresolved_reference",
+                    "message": "Unresolved references must be repaired before publication",
+                })
+            if issues:
+                connection.rollback()
+                raise ContextTreeV2ValidationError(
+                    "Context tree v2 draft is not publishable", issues=issues,
+                )
             existing = None
             if idempotency_key:
                 existing = connection.execute(

@@ -68,6 +68,8 @@ class ContextTreeV2Reader(TreeV2StorageSupport):
             "unresolved_references": [cls._unresolved_payload(row) for row in unresolved],
             "entity_evidence": cls._decode(root["entity_evidence_json"], []),
             "entity_digests": cls._decode(root["entity_digests_json"], []),
+            "candidates": cls._decode(root["candidates_json"], []),
+            "term_variants": cls._decode(root["term_variants_json"], []),
         }
 
     @classmethod
@@ -210,13 +212,25 @@ class ContextTreeV2Reader(TreeV2StorageSupport):
     def get_release_tree(self, project_id: str, release_id: str) -> Any:
         with self._lock, self._connect() as connection:
             row = connection.execute(
-                "SELECT tree_id FROM context_tree_v2_releases "
+                "SELECT tree_id, draft_id, release_id FROM context_tree_v2_releases "
                 "WHERE project_id = ? AND release_id = ?",
                 (project_id, release_id),
             ).fetchone()
         if row is None:
             raise ContextTreeV2NotFoundError("Context tree v2 release not found")
-        return self.get_tree(project_id, row["tree_id"])
+        result = self.get_tree(project_id, row["tree_id"], row["draft_id"])
+        return result.model_copy(update={"release_id": row["release_id"]})
+
+    def get_latest_release_tree(self, project_id: str) -> Any:
+        with self._lock, self._connect() as connection:
+            row = connection.execute(
+                "SELECT release_id FROM context_tree_v2_releases "
+                "WHERE project_id = ? ORDER BY created_at DESC, release_id DESC LIMIT 1",
+                (project_id,),
+            ).fetchone()
+        if row is None:
+            raise ContextTreeV2NotFoundError("No published context tree v2 exists for this project")
+        return self.get_release_tree(project_id, row["release_id"])
 
     def _to_read_model(self, payload: dict[str, Any]) -> Any:
         groups = payload.get("groups", [])
@@ -241,6 +255,8 @@ class ContextTreeV2Reader(TreeV2StorageSupport):
             ],
             "entity_evidence": payload.get("entity_evidence", []),
             "entity_digests": payload.get("entity_digests", []),
+            "candidates": payload.get("candidates", []),
+            "term_variants": payload.get("term_variants", []),
             "draft_operations": [
                 self._operation_model(item) for item in payload.get("draft_operations", [])
             ],

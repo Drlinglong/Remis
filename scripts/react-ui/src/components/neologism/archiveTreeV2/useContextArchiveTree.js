@@ -21,6 +21,7 @@ const initialState = (initialTree) => ({
     phase: initialTree ? (normalizeArchiveTree(initialTree).available ? 'ready' : 'empty') : 'empty',
     tree: initialTree ? normalizeArchiveTree(initialTree) : createEmptyArchiveTree(),
     dirty: false,
+    pendingOperations: [],
     saving: false,
     error: null,
 });
@@ -52,6 +53,7 @@ export const useContextArchiveTree = ({
             phase: tree.available ? 'ready' : 'empty',
             tree,
             dirty: false,
+            pendingOperations: [],
             saving: false,
             error: null,
         });
@@ -70,6 +72,7 @@ export const useContextArchiveTree = ({
                 phase: tree.available ? 'ready' : 'empty',
                 tree,
                 dirty: false,
+                pendingOperations: [],
                 saving: false,
                 error: null,
             });
@@ -89,14 +92,20 @@ export const useContextArchiveTree = ({
         if (adapter?.load && enabled) load();
     }, [adapter, enabled, load]);
 
-    const apply = useCallback((operation) => {
-        setState((current) => ({
-            ...current,
-            tree: operation(current.tree),
-            phase: 'ready',
-            dirty: true,
-            error: null,
-        }));
+    const apply = useCallback((operation, operationBuilder) => {
+        setState((current) => {
+            const tree = operation(current.tree);
+            const built = operationBuilder?.(current.tree, tree) || [];
+            const operations = Array.isArray(built) ? built : [built];
+            return {
+                ...current,
+                tree,
+                phase: 'ready',
+                dirty: true,
+                pendingOperations: [...current.pendingOperations, ...operations.filter(Boolean)],
+                error: null,
+            };
+        });
     }, []);
 
     const save = useCallback(async () => {
@@ -109,12 +118,15 @@ export const useContextArchiveTree = ({
                 draftId,
                 mode,
                 tree: serializeArchiveTree(state.tree),
+                operations: state.pendingOperations,
             });
             const responseTree = unwrapLoadedTree(response);
             const nextTree = responseTree && normalizeArchiveTree(responseTree).available
                 ? normalizeArchiveTree(responseTree)
                 : state.tree;
-            setState((current) => ({ ...current, tree: nextTree, dirty: false, saving: false }));
+            setState((current) => ({
+                ...current, tree: nextTree, dirty: false, saving: false, pendingOperations: [],
+            }));
             return true;
         } catch (error) {
             setState((current) => ({
@@ -124,7 +136,7 @@ export const useContextArchiveTree = ({
             }));
             return false;
         }
-    }, [adapter, draftId, mode, projectId, releaseId, state.dirty, state.saving, state.tree]);
+    }, [adapter, draftId, mode, projectId, releaseId, state.dirty, state.pendingOperations, state.saving, state.tree]);
 
     const reset = useCallback(() => {
         const tree = initialTree ? normalizeArchiveTree(initialTree) : createEmptyArchiveTree();
@@ -132,23 +144,72 @@ export const useContextArchiveTree = ({
             phase: tree.available ? 'ready' : 'empty',
             tree,
             dirty: false,
+            pendingOperations: [],
             saving: false,
             error: null,
         });
     }, [initialTree]);
 
     const actions = {
-        createStory: (options) => apply((tree) => createStory(tree, options)),
-        renameStory: (storyId, label) => apply((tree) => renameStory(tree, storyId, label)),
-        deleteStory: (storyId) => apply((tree) => deleteStory(tree, storyId)),
-        createGroup: (options) => apply((tree) => createGroup(tree, options)),
-        renameGroup: (groupId, label) => apply((tree) => renameGroup(tree, groupId, label)),
-        deleteGroup: (groupId) => apply((tree) => deleteGroup(tree, groupId)),
-        moveFragment: (options) => apply((tree) => moveFragment(tree, options)),
-        reorderFragment: (options) => apply((tree) => reorderFragment(tree, options)),
-        setFragmentDisposition: (fragmentId, route, options) => apply((tree) => (
-            setFragmentDisposition(tree, fragmentId, route, options)
-        )),
+        createStory: (options) => apply(
+            (tree) => createStory(tree, options),
+            (before, after) => {
+                const item = after.stories.find((story) => !before.stories.some((old) => old.id === story.id));
+                return item && { operation: 'create_story', story_id: item.id, new_name: item.label };
+            },
+        ),
+        renameStory: (storyId, label) => apply(
+            (tree) => renameStory(tree, storyId, label),
+            () => ({ operation: 'rename_story', story_id: storyId, new_name: label }),
+        ),
+        deleteStory: (storyId) => apply(
+            (tree) => deleteStory(tree, storyId),
+            () => ({ operation: 'delete_story', story_id: storyId }),
+        ),
+        createGroup: (options) => apply(
+            (tree) => createGroup(tree, options),
+            (before, after) => {
+                const item = after.groups.find((group) => !before.groups.some((old) => old.id === group.id));
+                return item && { operation: 'create_group', group_id: item.id, story_id: item.storyId, new_name: item.label };
+            },
+        ),
+        renameGroup: (groupId, label) => apply(
+            (tree) => renameGroup(tree, groupId, label),
+            () => ({ operation: 'rename_group', group_id: groupId, new_name: label }),
+        ),
+        deleteGroup: (groupId) => apply(
+            (tree) => deleteGroup(tree, groupId),
+            () => ({ operation: 'delete_group', group_id: groupId }),
+        ),
+        moveFragment: (options) => apply(
+            (tree) => moveFragment(tree, options),
+            () => ({
+                operation: 'move_fragment', fragment_id: options.fragmentId,
+                target_group_id: options.targetGroupId,
+                before_fragment_id: options.overFragmentId || undefined,
+            }),
+        ),
+        reorderFragment: (options) => apply(
+            (tree) => reorderFragment(tree, options),
+            () => ({
+                operation: 'reorder_fragment', group_id: options.groupId,
+                fragment_id: options.fragmentId,
+                before_fragment_id: options.overFragmentId || undefined,
+            }),
+        ),
+        setFragmentDisposition: (fragmentId, route, options) => apply(
+            (tree) => setFragmentDisposition(tree, fragmentId, route, options),
+            (before, after) => (before.fragments[fragmentId]?.unitIds || []).map((unitId) => ({
+                operation: 'set_unit_route',
+                local_unit_id: unitId,
+                route: route === 'unresolved' ? 'no_context' : route,
+                fragment_ids: route === 'narrative'
+                    ? Object.values(after.fragments)
+                        .filter((fragment) => fragment.route === 'narrative' && fragment.unitIds.includes(unitId))
+                        .map((fragment) => fragment.id)
+                    : [],
+            })),
+        ),
     };
 
     return {

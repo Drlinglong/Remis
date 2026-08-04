@@ -19,6 +19,10 @@ from typing import Any, Iterable, Mapping, Optional
 from scripts.app_settings import PROJECTS_DB_PATH
 from scripts.core.context_service import ContextService
 from scripts.core.repositories.context_repository import ContextRepository
+from scripts.core.repositories.context_tree_v2_repository import ContextTreeV2Repository
+from scripts.core.services.context_tree_v2_translation_adapter import (
+    ContextTreeV2TranslationAdapter,
+)
 from scripts.core.services.source_snapshot_service import (
     SourceFileInput,
     SourceItemInput,
@@ -309,8 +313,11 @@ class TranslationContextService:
         context_service: Any | None = None,
         snapshot_service: SourceSnapshotService | None = None,
         character_budget: int = DEFAULT_CONTEXT_CHARACTER_BUDGET,
+        tree_v2_repository: Any | None = None,
     ):
         self.context_service = context_service
+        self.tree_v2_repository = tree_v2_repository
+        self.tree_v2_enabled = tree_v2_repository is not None or context_service is None
         self.snapshot_service = snapshot_service or SourceSnapshotService()
         self.character_budget = max(0, int(character_budget))
 
@@ -339,6 +346,11 @@ class TranslationContextService:
 
         snapshot = self._build_snapshot(materialized_files)
         current_hash = snapshot.source_snapshot_hash
+        tree_selection = self._tree_v2_selection(
+            project_id, requested_release_id, current_hash,
+        )
+        if tree_selection is not None:
+            return tree_selection
         service = self._get_context_service()
         release_id, effective, release_is_project, release_hash, effective_is_project = (
             self._release_metadata(service, project_id, requested_release_id)
@@ -414,6 +426,37 @@ class TranslationContextService:
         if self.context_service is None:
             self.context_service = ContextService(ContextRepository(PROJECTS_DB_PATH))
         return self.context_service
+
+    def _tree_v2_selection(
+        self,
+        project_id: str,
+        requested_release_id: str | None,
+        current_hash: str,
+    ) -> ContextSelection | None:
+        if not self.tree_v2_enabled:
+            return None
+        if self.tree_v2_repository is None:
+            self.tree_v2_repository = ContextTreeV2Repository(PROJECTS_DB_PATH)
+        projected = ContextTreeV2TranslationAdapter(
+            self.tree_v2_repository
+        ).resolve(project_id, requested_release_id)
+        if projected is None:
+            return None
+        if projected.source_snapshot_hash != current_hash:
+            return self._warning_selection(
+                "stale", "context_release_stale", current_hash,
+                projected.release_id, projected.source_snapshot_hash,
+            )
+        return ContextSelection(
+            enabled=True,
+            status="ready",
+            release_id=projected.release_id,
+            source_snapshot_hash=current_hash,
+            release_source_snapshot_hash=projected.source_snapshot_hash,
+            project_summary=projected.project_summary,
+            direct_index=MappingProxyType(projected.direct_index),
+            character_budget=self.character_budget,
+        )
 
     def _build_snapshot(self, files_data: Iterable[Mapping[str, Any]]) -> SourceSnapshot:
         # The injected service is intentionally used when tests or callers need

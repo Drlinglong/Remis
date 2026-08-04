@@ -149,3 +149,19 @@ def test_publication_flag_is_separate_from_batch_checkpoint(tmp_path):
     assert published.status == "complete"
     assert published.publication_status == "published"
     assert len(repository.list_batches(run.run_id)) == 1
+
+
+def test_published_run_is_not_reused_for_a_deliberate_rerun(tmp_path):
+    repository, _ = _repository(tmp_path)
+    first = repository.start_or_resume_run(
+        "project-1", "task-1", "snapshot-a", {"mode": "narrative_context"},
+        {"workflow_version": "context-tree-v2"},
+    )
+    repository.mark_published(first.run_id)
+
+    rerun = repository.start_or_resume_run(
+        "project-1", "task-2", "snapshot-a", {"mode": "narrative_context"},
+        {"workflow_version": "context-tree-v2"},
+    )
+
+    assert rerun.run_id != first.run_id

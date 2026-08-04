@@ -18,6 +18,7 @@ from scripts.core.repositories.context_tree_v2_repository import (
 from scripts.schemas.context_tree_v2 import (
     PrePublicationValidationRequest,
     PrePublicationValidationResult,
+    PublishTreeDraftRequest,
     ReadTreeResponse,
     TreeDraft,
     TreeDraftOverrideOperation,
@@ -74,6 +75,17 @@ def read_context_tree_v2(
 def read_latest_context_tree_v2(project_id: str):
     try:
         return repository.get_latest_tree(project_id)
+    except Exception as error:
+        raise _map_error(error, validation_status=400) from error
+
+
+@router.get(
+    "/projects/{project_id}/latest-release",
+    response_model=ReadTreeResponse,
+)
+def read_latest_context_tree_v2_release(project_id: str):
+    try:
+        return repository.get_latest_release_tree(project_id)
     except Exception as error:
         raise _map_error(error, validation_status=400) from error
 
@@ -140,6 +152,21 @@ def save_context_tree_v2_operation(
 
 
 @router.post(
+    "/projects/{project_id}/drafts/{draft_id}/operations/batch",
+    response_model=TreeDraft,
+)
+def save_context_tree_v2_operations(
+    project_id: str,
+    draft_id: str,
+    operations: list[TreeDraftOverrideOperation],
+):
+    try:
+        return repository.save_draft_overrides(project_id, draft_id, operations)
+    except Exception as error:
+        raise _map_error(error) from error
+
+
+@router.post(
     "/projects/{project_id}/drafts/{draft_id}/validate",
     response_model=PrePublicationValidationResult,
 )
@@ -162,6 +189,25 @@ def validate_context_tree_v2_draft(
         )
     except Exception as error:
         raise _map_error(error, validation_status=400) from error
+
+
+@router.post(
+    "/projects/{project_id}/drafts/{draft_id}/publish",
+    status_code=status.HTTP_201_CREATED,
+)
+def publish_context_tree_v2_draft(
+    project_id: str,
+    draft_id: str,
+    request: PublishTreeDraftRequest | None = Body(default=None),
+):
+    try:
+        return repository.publish_draft(
+            project_id,
+            draft_id,
+            idempotency_key=request.idempotency_key if request else None,
+        )
+    except Exception as error:
+        raise _map_error(error) from error
 
 
 __all__ = ["repository", "router"]

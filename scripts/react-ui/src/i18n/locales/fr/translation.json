@@ -1,6 +1,6 @@
 {
   "context_report": {
-    "title": "Project archive smoke report", "subtitle": "Deterministic integrity, coverage, boundary, repair, and model-usage evidence.", "gates_passed": "Integrity gates passed", "gates_failed": "Integrity gates failed", "raw_keys": "Raw keys", "source_items": "Source items", "local_units": "Local units", "chunks": "Chunks", "delivery_coverage": "Delivery coverage", "supporting_context": "Supporting context", "assignment_integrity": "Assignment integrity", "missing": "Missing", "duplicate": "Duplicate", "unexpected": "Unexpected", "unassigned": "Unassigned", "multi_linked": "Multi-linked", "model_execution": "Model execution", "calls": "Calls", "reasoning": "Reasoning profile", "tokens": "Tokens", "cost": "Cost", "repairs": "Repairs", "no_repairs": "No repair was required.", "final_chains": "Final delivery chains", "boundary_impact": "Chunk-boundary impact", "cross_chunk_merges": "Cross-chunk merges", "membership_added": "Membership added", "membership_removed": "Membership removed", "boundary_unassigned": "Boundary units left unassigned", "unassigned_units": "Units requiring human audit"
+    "title": "Rapport de contrôle de l’archive du projet", "subtitle": "Preuves déterministes d’intégrité, de couverture, de limites, de réparation et d’utilisation du modèle.", "gates_passed": "Contrôles d’intégrité réussis", "gates_failed": "Échec des contrôles d’intégrité", "raw_keys": "Clés brutes", "source_items": "Éléments sources", "local_units": "Unités locales", "chunks": "Lots découpés", "delivery_coverage": "Couverture de diffusion", "supporting_context": "Contexte d’appui", "assignment_integrity": "Intégrité des affectations", "missing": "Manquants", "duplicate": "Doublons", "unexpected": "Inattendus", "unassigned": "Non affectés", "multi_linked": "Liés plusieurs fois", "model_execution": "Exécution du modèle", "calls": "Appels", "reasoning": "Profil de raisonnement", "tokens": "Jetons", "cost": "Coût", "repairs": "Réparations", "no_repairs": "Aucune réparation n’était nécessaire.", "final_chains": "Chaînes de diffusion finales", "boundary_impact": "Impact des limites de lot", "cross_chunk_merges": "Fusions entre lots", "membership_added": "Appartenance ajoutée", "membership_removed": "Appartenance retirée", "boundary_unassigned": "Unités de bord non affectées", "unassigned_units": "Unités nécessitant un contrôle humain"
   },
   "api_configuration_title": "Configuration de l’API",
   "api_external_link_blocked": "Impossible d’ouvrir le lien. Copiez l’adresse dans votre navigateur.",
@@ -1197,6 +1197,25 @@
       "summary_error": "The published archive summary could not be loaded.",
       "traceability_error": "Source provenance could not be loaded.",
       "retry": "Retry",
+      "preview": {
+        "title": "Aperçu de l’analyse non publiée",
+        "subtitle": "Examinez les entités et chaînes d’événements enregistrées lors de la dernière analyse.",
+        "warning_title": "Aperçu uniquement — ce n’est pas une archive publiée",
+        "warning_desc": "Ces valeurs servent uniquement au contrôle qualité et ne seront pas injectées dans la traduction.",
+        "loading_title": "Chargement de l’aperçu", "loading_desc": "Recherche des candidats et chaînes d’événements enregistrés.",
+        "error_title": "Aperçu indisponible", "error_desc": "Impossible de charger l’aperçu enregistré.",
+        "entities": "Entités et termes", "events": "Chaînes d’événements", "entity_summaries": "Résumés d’entités", "event_summaries": "Résumés d’événements",
+        "entity_tab": "Entités et termes ({{count}})", "event_tab": "Chaînes d’événements ({{count}})", "run_metadata": "Métadonnées de l’analyse",
+        "search": "Rechercher noms, alias, résumés ou participants", "visible_count": "{{count}} affichés", "no_matches": "Aucune entrée ne correspond aux filtres.",
+        "no_summary": "La politique actuelle n’exige pas de résumé long.", "summary_missing": "Le résumé de cette entité A/B manque ; relancez l’analyse.",
+        "summary_eligible": "Résumé admissible", "glossary_eligible": "Glossaire admissible", "parent_chain": "Chaîne parente", "local_units": "{{count}} unités liées",
+        "primary": "Principal", "supporting": "Contexte d’appui", "theme": "Lié au thème", "evidence_units": "Unités de preuve",
+        "chain_details": "Événement, conséquence et participants", "event": "Événement :", "consequence": "Conséquence :", "participants": "Participants :",
+        "kind_filter": { "all": "Tous les types", "entity": "Entités", "glossary_term": "Termes du glossaire", "named_phrase": "Expressions nommées", "incidental_concept": "Concepts ponctuels" },
+        "tier_filter": { "all": "Tous les niveaux", "core": "Niveau A · Cœur", "secondary": "Niveau B · Secondaire", "incidental": "Niveau C · Ponctuel", "not_recorded": "Non classé" },
+        "policy_filter": { "all": "Toutes les politiques", "summary_eligible": "Résumé admissible", "glossary_eligible": "Glossaire admissible", "audit_only": "Audit uniquement" },
+        "summary_filter": { "all": "Avec ou sans résumé", "with_summary": "Avec résumé", "without_summary": "Sans résumé" }
+      },
       "removal": {
         "open": "Remove project archive", "title": "Remove project archive",
         "warning_title": "This removes all generated archive data",
@@ -2595,7 +2614,7 @@
       "agent_workshop_batch": "Format Repair batch",
       "repair": "Format repair",
       "neologism_mining": "Recherche de néologismes",
-      "context_archive_analysis": "Project archive analysis",
+      "context_archive_analysis": "Analyse de l’archive du projet",
       "dry_run": "Essai à blanc de l’agent",
       "task": "Travail en arrière-plan",
       "glossary_health_check": "Vérification du glossaire",

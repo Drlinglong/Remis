@@ -42,6 +42,7 @@ context_workflow_service = ContextWorkflowService(
     context_repository,
     candidate_store=neologism_manager,
     analysis_batch_repository=context_analysis_batch_repository,
+    workflow_version="tree_v2",
 )
 SUPPORTED_MINING_SUFFIXES = {".txt", ".yml", ".yaml", ".csv", ".json"}
 
@@ -290,13 +291,26 @@ async def reject_neologism(candidate_id: str, payload: dict):
 
 @router.patch("/api/neologisms/{candidate_id}")
 async def update_neologism_suggestion(candidate_id: str, payload: UpdateNeologismRequest):
-    """Update a candidate's suggestion."""
+    """Update a candidate manually or select one retained AI variant."""
     if not await project_manager.get_project(payload.project_id):
         raise HTTPException(status_code=404, detail="Project not found")
-    if neologism_manager.update_candidate_suggestion(payload.project_id, candidate_id, payload.suggestion):
+    updated = (
+        neologism_manager.select_candidate_variant(
+            payload.project_id,
+            candidate_id,
+            payload.variant_id,
+        )
+        if payload.variant_id is not None
+        else neologism_manager.update_candidate_suggestion(
+            payload.project_id,
+            candidate_id,
+            payload.suggestion or "",
+        )
+    )
+    if updated:
         logger.info(f"Updated neologism candidate {candidate_id} suggestion for project {payload.project_id}")
         return {"status": "success"}
-    raise HTTPException(status_code=404, detail="Candidate not found")
+    raise HTTPException(status_code=404, detail="Candidate or variant not found")
 
 @router.post("/api/neologisms/{candidate_id}/restore")
 async def restore_neologism(candidate_id: str, payload: RestoreNeologismRequest):
@@ -427,6 +441,7 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
         analysis_scope=payload.analysis_scope,
         upstream_version=payload.upstream_version,
         concurrency_limit=payload.concurrency_limit,
+        project_title=project.get("name") or payload.project_id,
     )
     return {
         "task_id": task_id,

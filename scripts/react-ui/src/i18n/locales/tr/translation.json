@@ -1,6 +1,6 @@
 {
   "context_report": {
-    "title": "Project archive smoke report", "subtitle": "Deterministic integrity, coverage, boundary, repair, and model-usage evidence.", "gates_passed": "Integrity gates passed", "gates_failed": "Integrity gates failed", "raw_keys": "Raw keys", "source_items": "Source items", "local_units": "Local units", "chunks": "Chunks", "delivery_coverage": "Delivery coverage", "supporting_context": "Supporting context", "assignment_integrity": "Assignment integrity", "missing": "Missing", "duplicate": "Duplicate", "unexpected": "Unexpected", "unassigned": "Unassigned", "multi_linked": "Multi-linked", "model_execution": "Model execution", "calls": "Calls", "reasoning": "Reasoning profile", "tokens": "Tokens", "cost": "Cost", "repairs": "Repairs", "no_repairs": "No repair was required.", "final_chains": "Final delivery chains", "boundary_impact": "Chunk-boundary impact", "cross_chunk_merges": "Cross-chunk merges", "membership_added": "Membership added", "membership_removed": "Membership removed", "boundary_unassigned": "Boundary units left unassigned", "unassigned_units": "Units requiring human audit"
+    "title": "Proje arşivi denetim raporu", "subtitle": "Bütünlük, kapsam, sınırlar, onarımlar ve model kullanımı için belirlenimci kanıtlar.", "gates_passed": "Bütünlük denetimleri geçti", "gates_failed": "Bütünlük denetimleri başarısız", "raw_keys": "Ham anahtarlar", "source_items": "Kaynak öğeleri", "local_units": "Yerel birimler", "chunks": "Metin parçaları", "delivery_coverage": "Teslim kapsamı", "supporting_context": "Destek bağlamı", "assignment_integrity": "Atama bütünlüğü", "missing": "Eksik olanlar", "duplicate": "Yinelenenler", "unexpected": "Beklenmeyenler", "unassigned": "Atanmayanlar", "multi_linked": "Çoklu bağlantılı", "model_execution": "Model çalıştırması", "calls": "Çağrı sayısı", "reasoning": "Akıl yürütme profili", "tokens": "Belirteç sayısı", "cost": "Maliyet", "repairs": "Onarımlar", "no_repairs": "Onarım gerekmedi.", "final_chains": "Son teslim zincirleri", "boundary_impact": "Parça sınırı etkisi", "cross_chunk_merges": "Parçalar arası birleştirmeler", "membership_added": "Üyelik eklendi", "membership_removed": "Üyelik kaldırıldı", "boundary_unassigned": "Atanmamış sınır birimleri", "unassigned_units": "İnsan denetimi gereken birimler"
   },
   "api_configuration_title": "API yapılandırması",
   "api_external_link_blocked": "Bağlantı açılamadı. Adresi tarayıcınıza kopyalayın.",
@@ -1193,6 +1193,25 @@
       "summary_error": "The published archive summary could not be loaded.",
       "traceability_error": "Source provenance could not be loaded.",
       "retry": "Retry",
+      "preview": {
+        "title": "Yayımlanmamış analiz önizlemesi",
+        "subtitle": "Son analizde kaydedilen varlıkları ve olay zincirlerini inceleyin.",
+        "warning_title": "Yalnızca önizleme — yayımlanmış arşiv değildir",
+        "warning_desc": "Bu değerler yalnızca kalite incelemesi içindir ve çeviri bağlamına eklenmez.",
+        "loading_title": "Analiz önizlemesi yükleniyor", "loading_desc": "Kaydedilmiş adaylar ve olay zincirleri aranıyor.",
+        "error_title": "Analiz önizlemesi kullanılamıyor", "error_desc": "Kaydedilmiş analiz önizlemesi yüklenemedi.",
+        "entities": "Varlıklar ve terimler", "events": "Olay zincirleri", "entity_summaries": "Varlık özetleri", "event_summaries": "Olay özetleri",
+        "entity_tab": "Varlıklar ve terimler ({{count}})", "event_tab": "Olay zincirleri ({{count}})", "run_metadata": "Analiz çalışması meta verileri",
+        "search": "Ad, takma ad, özet veya katılımcı ara", "visible_count": "{{count}} gösteriliyor", "no_matches": "Geçerli filtrelerle eşleşen kayıt yok.",
+        "no_summary": "Geçerli aday politikası uzun özet gerektirmiyor.", "summary_missing": "Bu A/B varlığının özeti eksik; analizi yeniden çalıştırın.",
+        "summary_eligible": "Özetlenebilir", "glossary_eligible": "Sözlüğe uygun", "parent_chain": "Üst zincir", "local_units": "{{count}} bağlantılı birim",
+        "primary": "Birincil", "supporting": "Destekleyici", "theme": "Tema ilişkili", "evidence_units": "Kanıt birimleri",
+        "chain_details": "Olay, sonuç ve katılımcılar", "event": "Olay:", "consequence": "Sonuç:", "participants": "Katılımcılar:",
+        "kind_filter": { "all": "Tüm türler", "entity": "Varlıklar", "glossary_term": "Sözlük terimleri", "named_phrase": "Adlandırılmış ifadeler", "incidental_concept": "Tek seferlik kavramlar" },
+        "tier_filter": { "all": "Tüm seviyeler", "core": "A seviyesi · Çekirdek", "secondary": "B seviyesi · İkincil", "incidental": "C seviyesi · Tek seferlik", "not_recorded": "Sınıflandırılmamış" },
+        "policy_filter": { "all": "Tüm politikalar", "summary_eligible": "Özetlenebilir", "glossary_eligible": "Sözlüğe uygun", "audit_only": "Yalnızca denetim" },
+        "summary_filter": { "all": "Özetli veya özetsiz", "with_summary": "Özet var", "without_summary": "Özet yok" }
+      },
       "removal": {
         "open": "Remove project archive", "title": "Remove project archive",
         "warning_title": "This removes all generated archive data",
@@ -2593,7 +2612,7 @@
       "agent_workshop_scan": "Biçim taraması",
       "repair": "Format repair",
       "neologism_mining": "Yeni sözcük taraması",
-      "context_archive_analysis": "Project archive analysis",
+      "context_archive_analysis": "Proje arşivi analizi",
       "dry_run": "Aracı deneme çalışması",
       "task": "Arka plan işlemi",
       "glossary_health_check": "Sözlük sağlık denetimi",

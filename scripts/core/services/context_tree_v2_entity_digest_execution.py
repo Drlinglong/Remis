@@ -47,6 +47,9 @@ from scripts.schemas.context_tree_v2_entity_digest import (
     SamplingMetadata,
     SamplingResult,
 )
+MAX_DIGEST_CATALOG_ITEMS = 120
+MAX_DIGEST_CATALOG_NAME_CHARS = 160
+MAX_DIGEST_CATALOG_DESCRIPTION_CHARS = 240
 class EntityDigestExecutionEngine:
     """Execute short entities once and long entities by partials plus reduction."""
 
@@ -439,14 +442,17 @@ class EntityDigestExecutionEngine:
 
     @staticmethod
     def _catalog(candidates: Sequence[DigestCandidate]) -> list[dict[str, Any]]:
+        eligible = [
+            item for item in candidates
+            if item.kind is CandidateKind.ENTITY
+        ]
         return [{
             "candidate_id": item.candidate_id,
-            "compact_name": item.compact_name,
-            "local_description": item.local_description,
+            "compact_name": item.compact_name[:MAX_DIGEST_CATALOG_NAME_CHARS],
+            "local_description": item.local_description[:MAX_DIGEST_CATALOG_DESCRIPTION_CHARS],
             "candidate_grade": item.grade.value,
             "kind": item.kind.value,
-            **({"aliases": list(item.aliases), "local_unit_ids": list(item.local_unit_ids)} if item.grade is not CandidateGrade.C else {}),
-        } for item in candidates]
+        } for item in eligible[:MAX_DIGEST_CATALOG_ITEMS]]
 
     @staticmethod
     def _payload(candidate: DigestCandidate, catalog: Sequence[Mapping[str, Any]], overview: ProjectOverview, sampling: SamplingResult, project_title: str, phase: str) -> dict[str, Any]:

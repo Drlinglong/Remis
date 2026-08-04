@@ -27,6 +27,8 @@ import { ArchiveSummary, ReleaseMetadata } from './PublishedArchiveContent';
 import ProjectGlossaryToolbar from './ProjectGlossaryToolbar';
 import RemoveModArchiveControl from './RemoveModArchiveControl';
 import ContextArchiveTreeReview from './archiveTreeV2/ContextArchiveTreeReview';
+import ContextTreeV2ArchiveSummary from './archiveTreeV2/ContextTreeV2ArchiveSummary';
+import { useContextTreeV2Archive } from './archiveTreeV2/useContextTreeV2Archive';
 import { useArchiveProjectContext } from './useArchiveProjectContext';
 import { useModArchiveDraft } from './useModArchiveDraft';
 import { useModArchiveRelease } from './useModArchiveRelease';
@@ -48,6 +50,7 @@ const PublishedArchivePanel = ({
     const [publishedChildReleaseId, setPublishedChildReleaseId] = useState(null);
     const [showAdvanced, setShowAdvanced] = useState(false);
     const releaseState = useModArchiveRelease(selectedProject);
+    const treeV2State = useContextTreeV2Archive(selectedProject, 'published');
     const {
         phase,
         release,
@@ -115,6 +118,15 @@ const PublishedArchivePanel = ({
                     description={t('mod_archive.release.no_project_desc')}
                     testId="mod-archive-release-empty"
                 />
+            </Container>
+        );
+    }
+
+    if (treeV2State.phase === 'ready' && treeV2State.tree) {
+        return (
+            <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
+                {projectToolbar}
+                <ContextTreeV2ArchiveSummary tree={treeV2State.tree} mode="published" />
             </Container>
         );
     }

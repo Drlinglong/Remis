@@ -60,7 +60,7 @@ __all__ = [
     "EntityAliasDescription", "EntityDigest", "EntityDigestSegment", "EntityEvidenceReference",
     "DraftOperationKind", "FragmentCard", "FragmentEdge", "LocalFragmentCard",
     "OrderedFragmentEdge", "PrePublicationValidationIssue", "PrePublicationValidationRequest",
-    "PrePublicationValidationResult", "ReadTreeResponse", "SiblingGroup",
+    "PrePublicationValidationResult", "PublishTreeDraftRequest", "ReadTreeResponse", "SiblingGroup",
     "SourceEvidenceReference", "Story", "TreeDraft", "TreeDraftOverrideOperation", "UnitRoute",
     "TreeGroup", "TreeStory", "TreeValidationResult", "UnitRouteKind", "UnresolvedReference",
     "UnresolvedReferenceKind",

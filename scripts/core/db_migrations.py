@@ -21,19 +21,14 @@ from scripts.core.db_models import (
 )
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 21
-
+MAIN_DB_TARGET_VERSION = 22
 class UnsupportedDatabaseVersionError(RuntimeError):
     """Raised when this Remis build encounters a newer managed schema."""
-
-
 def _connect(db_path: str) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
     return conn
-
-
 def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
     cursor = conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name = ?",
@@ -732,6 +727,9 @@ def _migration_020_add_context_synthesis_checkpoints(db_path: str) -> None:
 def _migration_021_add_context_tree_v2_storage(db_path: str) -> None:
     from scripts.core.context_tree_v2_migration import migrate_context_tree_v2_storage
     migrate_context_tree_v2_storage(db_path)
+def _migration_022_extend_context_tree_v2_results(db_path: str) -> None:
+    from scripts.core.context_tree_v2_migration import migrate_context_tree_v2_storage
+    migrate_context_tree_v2_storage(db_path)
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
@@ -754,6 +752,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (19, "add_atomic_context_publication", _migration_019_add_atomic_context_publication),
     (20, "add_context_synthesis_checkpoints", _migration_020_add_context_synthesis_checkpoints),
     (21, "add_context_tree_v2_storage", _migration_021_add_context_tree_v2_storage),
+    (22, "extend_context_tree_v2_results", _migration_022_extend_context_tree_v2_results),
 ]
 
 

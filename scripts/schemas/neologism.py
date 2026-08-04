@@ -27,7 +27,18 @@ class ApproveNeologismRequest(BaseModel):
 
 class UpdateNeologismRequest(BaseModel):
     project_id: str
-    suggestion: str = Field(min_length=1)
+    suggestion: Optional[str] = Field(default=None, min_length=1)
+    variant_id: Optional[str] = Field(default=None, min_length=1, max_length=500)
+
+    @model_validator(mode="after")
+    def validate_update(self):
+        if (self.suggestion is None) == (self.variant_id is None):
+            raise ValueError("Provide exactly one of suggestion or variant_id")
+        if self.suggestion is not None:
+            self.suggestion = self.suggestion.strip()
+            if not self.suggestion:
+                raise ValueError("suggestion must not be blank")
+        return self
 
 class MineNeologismsRequest(BaseModel):
     project_id: str = Field(min_length=1)

@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS context_tree_v2_trees (
     project_summary TEXT,
     entity_evidence_json JSON NOT NULL DEFAULT '[]',
     entity_digests_json JSON NOT NULL DEFAULT '[]',
+    candidates_json JSON NOT NULL DEFAULT '[]',
+    term_variants_json JSON NOT NULL DEFAULT '[]',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(tree_id, project_id)
 );
@@ -296,6 +298,16 @@ def migrate_context_tree_v2_storage(db_path: str) -> None:
             connection.execute(
                 "ALTER TABLE context_tree_v2_trees ADD COLUMN "
                 "entity_digests_json JSON NOT NULL DEFAULT '[]'"
+            )
+        if "candidates_json" not in columns:
+            connection.execute(
+                "ALTER TABLE context_tree_v2_trees ADD COLUMN "
+                "candidates_json JSON NOT NULL DEFAULT '[]'"
+            )
+        if "term_variants_json" not in columns:
+            connection.execute(
+                "ALTER TABLE context_tree_v2_trees ADD COLUMN "
+                "term_variants_json JSON NOT NULL DEFAULT '[]'"
             )
         connection.commit()
     except Exception:

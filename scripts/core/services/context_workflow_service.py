@@ -54,9 +54,9 @@ from scripts.core.services.context_synthesis_execution_service import (
     ContextSynthesisExecutionService,
 )
 from scripts.core.services.context_workflow_status_service import ContextWorkflowStatusService
-from scripts.core.services.context_tree_v2_workflow_service import (
-    ContextTreeV2WorkflowResult,
-    ContextTreeV2WorkflowService,
+from scripts.core.repositories.context_tree_v2_repository import ContextTreeV2Repository
+from scripts.core.services.context_tree_v2_production_workflow import (
+    ContextTreeV2ProductionWorkflowService,
 )
 from scripts.core.services.source_snapshot_service import (
     SourceSnapshot,
@@ -96,8 +96,13 @@ class ContextWorkflowService:
         status_service: ContextWorkflowStatusService | None = None,
         analysis_batch_repository: Any | None = None,
         governance_service: Any | None = None,
+        workflow_version: str = "v10",
+        tree_repository: Any | None = None,
     ):
+        if workflow_version not in {"v10", "tree_v2"}:
+            raise ValueError("workflow_version must be v10 or tree_v2")
         self.repository = repository
+        self.workflow_version = workflow_version
         self.context_service = context_service or ContextService(repository)
         self.handler_factory = handler_factory
         self.candidate_store = candidate_store
@@ -117,50 +122,25 @@ class ContextWorkflowService:
         self.miner_factory = miner_factory
         self.synthesizer_factory = synthesizer_factory
         self.reconciler_factory = reconciler_factory
+        resolved_tree_repository = tree_repository
+        if resolved_tree_repository is None and workflow_version == "tree_v2":
+            resolved_tree_repository = ContextTreeV2Repository(repository.db_path)
+        self.tree_v2_workflow = ContextTreeV2ProductionWorkflowService(
+            handler_factory=handler_factory,
+            tree_repository=resolved_tree_repository,
+            candidate_store=candidate_store,
+            status_service=self.status_service,
+            checkpoint_repository=self.analysis_checkpoints.repository,
+        )
 
     def reserve(self, project_id: str, task_id: str, scope: AnalysisScope) -> bool:
         return self.status_service.reserve(project_id, task_id, scope)
-
-    @staticmethod
-    def _idle_status() -> dict[str, Any]:
-        return ContextWorkflowStatusService._idle_status()
 
     def release_reservation(self, project_id: str, task_id: str) -> None:
         self.status_service.release_reservation(project_id, task_id)
 
     def get_status(self, project_id: str) -> dict[str, Any]:
         return self.status_service.get_status(project_id)
-
-    def run_tree_v2_preview(
-        self,
-        chunks: Sequence[ContextUnitChunk],
-        *,
-        scope: AnalysisScope = AnalysisScope.NARRATIVE_CONTEXT,
-        api_provider: str = "local",
-        model_name: str | None = None,
-        game_name: str = "Paradox Game",
-        target_language: str = "the configured target language",
-        reasoning_language: str = "the configured review language",
-        description_language: str = "en",
-        project_summary: str = "",
-        usage_ledger: ContextModelUsageLedger | None = None,
-    ) -> ContextTreeV2WorkflowResult:
-        """Expose the v2 pure pipeline without changing the v10 release path."""
-
-        return ContextTreeV2WorkflowService(
-            handler_factory=self.handler_factory,
-            usage_ledger=usage_ledger,
-        ).run(
-            chunks,
-            scope=scope,
-            api_provider=api_provider,
-            model_name=model_name,
-            game_name=game_name,
-            target_language=target_language,
-            reasoning_language=reasoning_language,
-            description_language=description_language,
-            project_summary=project_summary,
-        )
 
     @staticmethod
     def prompt_example(description_language: str) -> str:
@@ -199,6 +179,7 @@ class ContextWorkflowService:
         upstream_version: str | None = None,
         analysis_config: dict[str, Any] | None = None,
         concurrency_limit: int | None = None,
+        project_title: str = "",
     ) -> dict[str, Any]:
         scope = AnalysisScope(analysis_scope)
         effective_description_language = description_language or review_language
@@ -236,21 +217,26 @@ class ContextWorkflowService:
                 concurrency_limit,
             )
             workflow_context.update(self._chunk_diagnostics(local_units, chunks))
+            checkpoint_config = self._checkpoint_config(
+                api_provider, model_name, source_lang, target_lang,
+                effective_description_language, game_name, chunk_config,
+            )
+            if self.workflow_version == "tree_v2":
+                checkpoint_config.update({
+                    "workflow_version": "context-tree-v2",
+                    "schema_version": "context-tree-v2",
+                    "prompt_version": "context-archive-tree-v2",
+                    "checkpoint_compatibility_version": "context-analysis-tree-v2",
+                })
             analysis_run = self.analysis_checkpoints.start(
                 project_id,
                 task_id,
                 snapshot.source_snapshot_hash,
                 scope,
-                self._checkpoint_config(
-                    api_provider, model_name, source_lang, target_lang,
-                    effective_description_language, game_name, chunk_config,
-                ),
+                checkpoint_config,
             )
             if analysis_run is not None:
-                workflow_context.update({
-                    "analysis_run_id": analysis_run.run_id,
-                    "resume_supported": True,
-                })
+                workflow_context.update({"analysis_run_id": analysis_run.run_id, "resume_supported": True})
             self._running(
                 project_id,
                 task_id,
@@ -262,6 +248,8 @@ class ContextWorkflowService:
                 total_batches=len(chunks),
                 workflow_context=workflow_context,
             )
+            if self.workflow_version == "tree_v2":
+                return self._execute_tree_v2(locals())
             extractions = self._extract(
                 chunks,
                 scope,
@@ -293,8 +281,35 @@ class ContextWorkflowService:
             self._failed(project_id, task_id, len(parsed_files), processed_files, exc)
             raise
 
+    def _execute_tree_v2(self, values: dict[str, Any]) -> dict[str, Any]:
+        result = self.tree_v2_workflow.run(
+            project_id=values["project_id"],
+            project_title=values["project_title"] or values["project_id"],
+            task_id=values["task_id"],
+            source_snapshot_hash=values["snapshot"].source_snapshot_hash,
+            source_items=values["source_items"], local_units=values["local_units"],
+            chunks=values["chunks"], scope=values["scope"],
+            api_provider=values["api_provider"], model_name=values["model_name"],
+            source_language=values["source_lang"], target_language=values["target_lang"],
+            game_name=values["game_name"],
+            description_language=values["effective_description_language"],
+            duplicate_index=values["duplicate_index"] or {},
+            analysis_run=values["analysis_run"], usage_ledger=values["usage_ledger"],
+        )
+        if values["analysis_run"] is not None:
+            self._finalize_analysis_run(values["analysis_run"], result)
+        self._complete(
+            values["project_id"], values["task_id"], result,
+            len(values["parsed_files"]),
+        )
+        return result
+
     def _finalize_analysis_run(self, analysis_run: Any, result: dict[str, Any]) -> None:
-        if result.get("context_release_id") is None:
+        if result.get("context_release_id") is not None:
+            self.analysis_checkpoints.mark_published(analysis_run)
+        elif result.get("publication_status") == "review_required":
+            self.analysis_checkpoints.mark_analysis_ready(analysis_run)
+        else:
             self.analysis_checkpoints.mark_complete(analysis_run)
         result["analysis_run_id"] = analysis_run.run_id
 
@@ -761,9 +776,3 @@ class ContextWorkflowService:
 
     def _failed(self, project_id: str, task_id: str | None, total_files: int, processed_files: int, error: Exception) -> None:
         self.status_service.mark_failed(project_id, task_id, total_files, processed_files, error)
-
-    def _set_status(self, project_id: str, **updates: Any) -> None:
-        self.status_service.set_status(project_id, **updates)
-
-    def _task_update(self, task_id: str | None, **updates: Any) -> None:
-        self.status_service.update_task(task_id, **updates)

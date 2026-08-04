@@ -192,7 +192,9 @@ export const assignFragmentToGroup = (tree, fragmentId, targetGroupId, options =
 export const serializeArchiveTree = (tree) => ({
     schema_version: tree.version || 'context-tree-v2',
     project_id: tree.projectId || null,
+    tree_id: tree.treeId || null,
     release_id: tree.releaseId || null,
+    draft_id: tree.draftId || null,
     project_summary: tree.projectSummary || '',
     stories: tree.stories.map((story) => ({
         story_id: story.id,

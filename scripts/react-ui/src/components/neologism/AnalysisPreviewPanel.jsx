@@ -11,6 +11,8 @@ import { useContextAnalysisPreview } from './useContextAnalysisPreview';
 import styles from './ModArchive.module.css';
 import EntityEvidenceDetails from './archiveTreeV2/EntityEvidenceDetails';
 import ContextArchiveTreeReview from './archiveTreeV2/ContextArchiveTreeReview';
+import ContextTreeV2ArchiveSummary from './archiveTreeV2/ContextTreeV2ArchiveSummary';
+import { useContextTreeV2Archive } from './archiveTreeV2/useContextTreeV2Archive';
 
 const StateCard = ({ icon, title, description, action, testId }) => (
     <Paper className={`${styles.surface} ${styles.stateCard}`} p="xl" withBorder data-testid={testId} data-remis-surface="surface">
@@ -283,6 +285,15 @@ const PreviewContent = ({ preview, refresh, projectToolbar, t }) => {
 const AnalysisPreviewPanel = ({ selectedProject, projectToolbar }) => {
     const { t } = useTranslation();
     const { phase, preview, error, refresh } = useContextAnalysisPreview(selectedProject);
+    const treeV2State = useContextTreeV2Archive(selectedProject, 'preview');
+    if (treeV2State.phase === 'ready' && treeV2State.tree) {
+        return (
+            <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
+                {projectToolbar}
+                <ContextTreeV2ArchiveSummary tree={treeV2State.tree} mode="preview" />
+            </Container>
+        );
+    }
     if (phase === 'ready' && preview) {
         return <PreviewContent preview={preview} refresh={refresh} projectToolbar={projectToolbar} t={t} />;
     }

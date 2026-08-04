@@ -1,6 +1,6 @@
 {
   "context_report": {
-    "title": "Project archive smoke report", "subtitle": "Deterministic integrity, coverage, boundary, repair, and model-usage evidence.", "gates_passed": "Integrity gates passed", "gates_failed": "Integrity gates failed", "raw_keys": "Raw keys", "source_items": "Source items", "local_units": "Local units", "chunks": "Chunks", "delivery_coverage": "Delivery coverage", "supporting_context": "Supporting context", "assignment_integrity": "Assignment integrity", "missing": "Missing", "duplicate": "Duplicate", "unexpected": "Unexpected", "unassigned": "Unassigned", "multi_linked": "Multi-linked", "model_execution": "Model execution", "calls": "Calls", "reasoning": "Reasoning profile", "tokens": "Tokens", "cost": "Cost", "repairs": "Repairs", "no_repairs": "No repair was required.", "final_chains": "Final delivery chains", "boundary_impact": "Chunk-boundary impact", "cross_chunk_merges": "Cross-chunk merges", "membership_added": "Membership added", "membership_removed": "Membership removed", "boundary_unassigned": "Boundary units left unassigned", "unassigned_units": "Units requiring human audit"
+    "title": "Raport kontrolny archiwum projektu", "subtitle": "Deterministyczne dowody integralności, pokrycia, granic, napraw i użycia modelu.", "gates_passed": "Kontrole integralności zaliczone", "gates_failed": "Kontrole integralności niezaliczone", "raw_keys": "Klucze źródłowe", "source_items": "Elementy źródłowe", "local_units": "Jednostki lokalne", "chunks": "Partie tekstu", "delivery_coverage": "Pokrycie dostarczania", "supporting_context": "Kontekst wspierający", "assignment_integrity": "Integralność przypisań", "missing": "Brakujące", "duplicate": "Powtórzone", "unexpected": "Nieoczekiwane", "unassigned": "Nieprzypisane", "multi_linked": "Wielokrotnie połączone", "model_execution": "Wykonanie modelu", "calls": "Wywołania", "reasoning": "Profil rozumowania", "tokens": "Liczba tokenów", "cost": "Koszt", "repairs": "Naprawy", "no_repairs": "Naprawa nie była wymagana.", "final_chains": "Końcowe łańcuchy dostarczania", "boundary_impact": "Wpływ granic partii", "cross_chunk_merges": "Scalenia między partiami", "membership_added": "Dodane członkostwo", "membership_removed": "Usunięte członkostwo", "boundary_unassigned": "Nieprzypisane jednostki graniczne", "unassigned_units": "Jednostki wymagające kontroli człowieka"
   },
   "api_configuration_title": "Konfiguracja API",
   "api_external_link_blocked": "Nie udało się otworzyć odnośnika. Skopiuj adres do przeglądarki.",
@@ -1193,6 +1193,25 @@
       "summary_error": "The published archive summary could not be loaded.",
       "traceability_error": "Source provenance could not be loaded.",
       "retry": "Retry",
+      "preview": {
+        "title": "Podgląd nieopublikowanej analizy",
+        "subtitle": "Sprawdź zapisane encje i łańcuchy zdarzeń z ostatniej analizy.",
+        "warning_title": "Tylko podgląd — to nie jest opublikowane archiwum",
+        "warning_desc": "Te wartości służą wyłącznie do kontroli jakości i nie trafią do kontekstu tłumaczenia.",
+        "loading_title": "Wczytywanie podglądu", "loading_desc": "Wyszukiwanie zapisanych kandydatów i łańcuchów zdarzeń.",
+        "error_title": "Podgląd analizy niedostępny", "error_desc": "Nie udało się wczytać zapisanego podglądu analizy.",
+        "entities": "Encje i terminy", "events": "Łańcuchy zdarzeń", "entity_summaries": "Podsumowania encji", "event_summaries": "Podsumowania zdarzeń",
+        "entity_tab": "Encje i terminy ({{count}})", "event_tab": "Łańcuchy zdarzeń ({{count}})", "run_metadata": "Metadane przebiegu analizy",
+        "search": "Szukaj nazw, aliasów, podsumowań lub uczestników", "visible_count": "Wyświetlono {{count}}", "no_matches": "Brak wpisów pasujących do filtrów.",
+        "no_summary": "Obecna reguła kandydatów nie wymaga długiego podsumowania.", "summary_missing": "Brakuje podsumowania encji A/B; uruchom analizę ponownie.",
+        "summary_eligible": "Może mieć podsumowanie", "glossary_eligible": "Może trafić do glosariusza", "parent_chain": "Łańcuch nadrzędny", "local_units": "Połączone jednostki: {{count}}",
+        "primary": "Główne", "supporting": "Wspierające", "theme": "Tematyczne", "evidence_units": "Jednostki dowodowe",
+        "chain_details": "Zdarzenie, skutek i uczestnicy", "event": "Zdarzenie:", "consequence": "Skutek:", "participants": "Uczestnicy:",
+        "kind_filter": { "all": "Wszystkie typy", "entity": "Encje", "glossary_term": "Terminy glosariusza", "named_phrase": "Nazwane zwroty", "incidental_concept": "Pojęcia incydentalne" },
+        "tier_filter": { "all": "Wszystkie poziomy", "core": "Poziom A · Rdzeń", "secondary": "Poziom B · Drugorzędne", "incidental": "Poziom C · Incydentalne", "not_recorded": "Niesklasyfikowane" },
+        "policy_filter": { "all": "Wszystkie reguły", "summary_eligible": "Może mieć podsumowanie", "glossary_eligible": "Może trafić do glosariusza", "audit_only": "Tylko audyt" },
+        "summary_filter": { "all": "Z podsumowaniem lub bez", "with_summary": "Ma podsumowanie", "without_summary": "Bez podsumowania" }
+      },
       "removal": {
         "open": "Remove project archive", "title": "Remove project archive",
         "warning_title": "This removes all generated archive data",
@@ -2593,7 +2612,7 @@
       "agent_workshop_scan": "Skanowanie formatu",
       "repair": "Format repair",
       "neologism_mining": "Wyszukiwanie neologizmów",
-      "context_archive_analysis": "Project archive analysis",
+      "context_archive_analysis": "Analiza archiwum projektu",
       "dry_run": "Próba agenta",
       "task": "Zadanie działające w tle",
       "glossary_health_check": "Kontrola glosariusza",

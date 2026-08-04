@@ -1,6 +1,6 @@
 {
   "context_report": {
-    "title": "Project archive smoke report", "subtitle": "Deterministic integrity, coverage, boundary, repair, and model-usage evidence.", "gates_passed": "Integrity gates passed", "gates_failed": "Integrity gates failed", "raw_keys": "Raw keys", "source_items": "Source items", "local_units": "Local units", "chunks": "Chunks", "delivery_coverage": "Delivery coverage", "supporting_context": "Supporting context", "assignment_integrity": "Assignment integrity", "missing": "Missing", "duplicate": "Duplicate", "unexpected": "Unexpected", "unassigned": "Unassigned", "multi_linked": "Multi-linked", "model_execution": "Model execution", "calls": "Calls", "reasoning": "Reasoning profile", "tokens": "Tokens", "cost": "Cost", "repairs": "Repairs", "no_repairs": "No repair was required.", "final_chains": "Final delivery chains", "boundary_impact": "Chunk-boundary impact", "cross_chunk_merges": "Cross-chunk merges", "membership_added": "Membership added", "membership_removed": "Membership removed", "boundary_unassigned": "Boundary units left unassigned", "unassigned_units": "Units requiring human audit"
+    "title": "Проверочный отчёт архива проекта", "subtitle": "Детерминированные данные о целостности, покрытии, границах, исправлениях и использовании модели.", "gates_passed": "Проверки целостности пройдены", "gates_failed": "Проверки целостности не пройдены", "raw_keys": "Исходные ключи", "source_items": "Исходные элементы", "local_units": "Локальные единицы", "chunks": "Пакеты фрагментов", "delivery_coverage": "Покрытие доставки", "supporting_context": "Вспомогательный контекст", "assignment_integrity": "Целостность назначений", "missing": "Недостающие", "duplicate": "Повторяющиеся", "unexpected": "Непредвиденные", "unassigned": "Неназначенные", "multi_linked": "С несколькими связями", "model_execution": "Выполнение модели", "calls": "Вызовы", "reasoning": "Профиль рассуждений", "tokens": "Число токенов", "cost": "Затраты", "repairs": "Исправления", "no_repairs": "Исправления не потребовались.", "final_chains": "Итоговые цепочки доставки", "boundary_impact": "Влияние границ пакета", "cross_chunk_merges": "Слияния между пакетами", "membership_added": "Членство добавлено", "membership_removed": "Членство удалено", "boundary_unassigned": "Граничные единицы без назначения", "unassigned_units": "Единицы для ручной проверки"
   },
   "api_configuration_title": "Настройка API",
   "api_external_link_blocked": "Не удалось открыть ссылку. Скопируйте адрес в браузер.",
@@ -1259,6 +1259,25 @@
       "summary_error": "The published archive summary could not be loaded.",
       "traceability_error": "Source provenance could not be loaded.",
       "retry": "Retry",
+      "preview": {
+        "title": "Предпросмотр неопубликованного анализа",
+        "subtitle": "Проверьте сохранённые сущности и цепочки событий последнего запуска.",
+        "warning_title": "Только предпросмотр — это не опубликованный архив",
+        "warning_desc": "Эти данные предназначены для проверки качества и не будут добавлены в контекст перевода.",
+        "loading_title": "Загрузка предпросмотра", "loading_desc": "Поиск сохранённых кандидатов и цепочек событий.",
+        "error_title": "Предпросмотр недоступен", "error_desc": "Не удалось загрузить сохранённый предпросмотр анализа.",
+        "entities": "Сущности и термины", "events": "Цепочки событий", "entity_summaries": "Сводки сущностей", "event_summaries": "Сводки событий",
+        "entity_tab": "Сущности и термины ({{count}})", "event_tab": "Цепочки событий ({{count}})", "run_metadata": "Метаданные запуска анализа",
+        "search": "Поиск имён, псевдонимов, сводок или участников", "visible_count": "Показано: {{count}}", "no_matches": "Нет записей, соответствующих фильтрам.",
+        "no_summary": "Текущая политика кандидатов не требует длинной сводки.", "summary_missing": "Для сущности A/B нет сводки; запустите анализ повторно.",
+        "summary_eligible": "Подходит для сводки", "glossary_eligible": "Подходит для глоссария", "parent_chain": "Родительская цепочка", "local_units": "Связано единиц: {{count}}",
+        "primary": "Основные", "supporting": "Вспомогательные", "theme": "Тематические", "evidence_units": "Единицы доказательств",
+        "chain_details": "Событие, последствие и участники", "event": "Событие:", "consequence": "Последствие:", "participants": "Участники:",
+        "kind_filter": { "all": "Все типы", "entity": "Сущности", "glossary_term": "Термины глоссария", "named_phrase": "Именованные фразы", "incidental_concept": "Случайные понятия" },
+        "tier_filter": { "all": "Все уровни", "core": "Уровень A · Ядро", "secondary": "Уровень B · Вторичный", "incidental": "Уровень C · Случайный", "not_recorded": "Без классификации" },
+        "policy_filter": { "all": "Все политики", "summary_eligible": "Подходит для сводки", "glossary_eligible": "Подходит для глоссария", "audit_only": "Только аудит" },
+        "summary_filter": { "all": "Со сводкой или без", "with_summary": "Есть сводка", "without_summary": "Без сводки" }
+      },
       "removal": {
         "open": "Remove project archive", "title": "Remove project archive",
         "warning_title": "This removes all generated archive data",
@@ -2616,7 +2635,7 @@
       "agent_workshop_scan": "Сканирование формата",
       "repair": "Format repair",
       "neologism_mining": "Поиск неологизмов",
-      "context_archive_analysis": "Project archive analysis",
+      "context_archive_analysis": "Анализ архива проекта",
       "dry_run": "Пробный запуск агента",
       "task": "Фоновое задание",
       "glossary_health_check": "Проверка словаря",

@@ -334,4 +334,25 @@ def validate_tree(tree: Mapping[str, Any]) -> list[dict[str, Any]]:
         for unit_id in fragment.get("unit_ids") or []:
             if str(unit_id) not in route_ids:
                 issues.append(_issue("missing_unit_route", "Fragment references a unit without a route", fragment_id=fragment.get("fragment_id"), unit_id=unit_id))
+    issues.extend(_validate_required_digests(tree))
+    return issues
+
+
+def _validate_required_digests(tree: Mapping[str, Any]) -> list[dict[str, Any]]:
+    digests = {
+        str(item.get("entity_id") or ""): item
+        for item in map(_as_dict, tree.get("entity_digests", []))
+    }
+    issues: list[dict[str, Any]] = []
+    for candidate in map(_as_dict, tree.get("candidates", [])):
+        if not candidate.get("summary_eligible"):
+            continue
+        candidate_id = str(candidate.get("candidate_id") or "")
+        digest = digests.get(candidate_id, {})
+        if not digest.get("final_digest") or digest.get("digest_provenance") != "final":
+            issues.append(_issue(
+                "required_entity_digest_incomplete",
+                "Every A/B entity must have a complete final digest before publication",
+                reference_id=candidate_id,
+            ))
     return issues

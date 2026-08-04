@@ -168,7 +168,7 @@ class ContextAnalysisBatchRepository:
                     """SELECT * FROM context_analysis_runs
                        WHERE project_id = ? AND source_snapshot_hash = ?
                          AND analysis_scope_json = ? AND config_fingerprint = ?
-                         AND (status != 'complete' OR publication_status = 'published')
+                         AND status != 'complete'
                        ORDER BY updated_at DESC LIMIT 1""",
                     (project_id, source_snapshot_hash, scope_json, fingerprint),
                 ).fetchone()

@@ -6,6 +6,7 @@ from scripts.core.context_tree_v2_migration import (
     CONTEXT_TREE_V2_SCHEMA_VERSION,
     migrate_context_tree_v2_storage,
 )
+from scripts.core.db_migrations import MAIN_DB_TARGET_VERSION, migrate_main_database
 
 
 V2_TABLES = {
@@ -70,6 +71,40 @@ def test_migration_creates_v2_schema_and_is_idempotent(tmp_path):
         ).fetchone() == ("A local event",)
         assert _objects(connection, "index") == indexes_before
         assert _objects(connection, "trigger") == triggers_before
+
+
+def test_global_migration_22_extends_a_database_that_already_recorded_v21(tmp_path):
+    db_path = tmp_path / "context-tree-v2-old-v21.sqlite"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            "CREATE TABLE schema_migrations "
+            "(version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)"
+        )
+        connection.execute(
+            "INSERT INTO schema_migrations VALUES (21, 'add_context_tree_v2_storage', 'earlier')"
+        )
+        connection.execute(
+            """CREATE TABLE context_tree_v2_trees (
+                tree_id TEXT PRIMARY KEY, project_id TEXT NOT NULL,
+                source_snapshot_hash TEXT NOT NULL, schema_version TEXT NOT NULL,
+                prompt_version TEXT NOT NULL, project_title TEXT,
+                project_summary TEXT, entity_evidence_json JSON NOT NULL DEFAULT '[]',
+                entity_digests_json JSON NOT NULL DEFAULT '[]', created_at TEXT NOT NULL
+            )"""
+        )
+
+    assert migrate_main_database(str(db_path)) == MAIN_DB_TARGET_VERSION
+    with sqlite3.connect(db_path) as connection:
+        columns = {
+            row[1] for row in connection.execute(
+                "PRAGMA table_info(context_tree_v2_trees)"
+            )
+        }
+        versions = {
+            row[0] for row in connection.execute("SELECT version FROM schema_migrations")
+        }
+    assert {"candidates_json", "term_variants_json"} <= columns
+    assert {21, 22} <= versions
 
 
 def test_v2_schema_does_not_touch_existing_v10_release_objects(tmp_path):

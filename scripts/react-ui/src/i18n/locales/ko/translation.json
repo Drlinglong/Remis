@@ -1,6 +1,6 @@
 {
   "context_report": {
-    "title": "Project archive smoke report", "subtitle": "Deterministic integrity, coverage, boundary, repair, and model-usage evidence.", "gates_passed": "Integrity gates passed", "gates_failed": "Integrity gates failed", "raw_keys": "Raw keys", "source_items": "Source items", "local_units": "Local units", "chunks": "Chunks", "delivery_coverage": "Delivery coverage", "supporting_context": "Supporting context", "assignment_integrity": "Assignment integrity", "missing": "Missing", "duplicate": "Duplicate", "unexpected": "Unexpected", "unassigned": "Unassigned", "multi_linked": "Multi-linked", "model_execution": "Model execution", "calls": "Calls", "reasoning": "Reasoning profile", "tokens": "Tokens", "cost": "Cost", "repairs": "Repairs", "no_repairs": "No repair was required.", "final_chains": "Final delivery chains", "boundary_impact": "Chunk-boundary impact", "cross_chunk_merges": "Cross-chunk merges", "membership_added": "Membership added", "membership_removed": "Membership removed", "boundary_unassigned": "Boundary units left unassigned", "unassigned_units": "Units requiring human audit"
+    "title": "프로젝트 아카이브 점검 보고서", "subtitle": "무결성, 범위, 경계, 복구 및 모델 사용량에 대한 결정론적 근거입니다.", "gates_passed": "무결성 검사 통과", "gates_failed": "무결성 검사 실패", "raw_keys": "원본 키", "source_items": "소스 항목", "local_units": "로컬 유닛", "chunks": "분할 묶음", "delivery_coverage": "전달 범위", "supporting_context": "지원 컨텍스트", "assignment_integrity": "할당 무결성", "missing": "누락", "duplicate": "중복", "unexpected": "예상 밖", "unassigned": "미할당", "multi_linked": "다중 연결", "model_execution": "모델 실행", "calls": "호출 횟수", "reasoning": "추론 프로필", "tokens": "토큰 수", "cost": "비용", "repairs": "복구 작업", "no_repairs": "복구가 필요하지 않았습니다.", "final_chains": "최종 전달 체인", "boundary_impact": "분할 경계 영향", "cross_chunk_merges": "분할 간 병합", "membership_added": "소속 추가", "membership_removed": "소속 제거", "boundary_unassigned": "할당되지 않은 경계 유닛", "unassigned_units": "사람의 검토가 필요한 유닛"
   },
   "api_configuration_title": "API 설정",
   "api_external_link_blocked": "링크를 열 수 없습니다. 주소를 브라우저에 복사하세요.",
@@ -1198,6 +1198,25 @@
       "summary_error": "The published archive summary could not be loaded.",
       "traceability_error": "Source provenance could not be loaded.",
       "retry": "Retry",
+      "preview": {
+        "title": "미게시 분석 미리보기",
+        "subtitle": "최근 분석에서 저장된 엔터티와 이벤트 체인을 검토합니다.",
+        "warning_title": "미리보기 전용 — 게시된 아카이브가 아닙니다",
+        "warning_desc": "이 값은 품질 검토용이며 번역 컨텍스트에 주입되지 않습니다.",
+        "loading_title": "분석 미리보기 불러오는 중", "loading_desc": "저장된 후보와 이벤트 체인을 확인하고 있습니다.",
+        "error_title": "분석 미리보기를 사용할 수 없음", "error_desc": "저장된 분석 미리보기를 불러오지 못했습니다.",
+        "entities": "엔터티와 용어", "events": "이벤트 체인", "entity_summaries": "엔터티 요약", "event_summaries": "이벤트 요약",
+        "entity_tab": "엔터티와 용어 ({{count}})", "event_tab": "이벤트 체인 ({{count}})", "run_metadata": "분석 실행 메타데이터",
+        "search": "이름, 별칭, 요약 또는 참여자 검색", "visible_count": "{{count}}개 표시", "no_matches": "현재 필터와 일치하는 항목이 없습니다.",
+        "no_summary": "현재 후보 정책에서는 긴 요약이 필요하지 않습니다.", "summary_missing": "이 A/B 엔터티 요약이 없습니다. 분석을 다시 실행하세요.",
+        "summary_eligible": "요약 대상", "glossary_eligible": "용어집 대상", "parent_chain": "상위 체인", "local_units": "연결된 유닛 {{count}}개",
+        "primary": "주요", "supporting": "지원", "theme": "주제 관련", "evidence_units": "근거 유닛",
+        "chain_details": "이벤트, 결과 및 참여자", "event": "이벤트:", "consequence": "결과:", "participants": "참여자:",
+        "kind_filter": { "all": "모든 종류", "entity": "엔터티", "glossary_term": "용어집 용어", "named_phrase": "고유 구문", "incidental_concept": "일회성 개념" },
+        "tier_filter": { "all": "모든 등급", "core": "A급 · 핵심", "secondary": "B급 · 보조", "incidental": "C급 · 일회성", "not_recorded": "미분류" },
+        "policy_filter": { "all": "모든 정책", "summary_eligible": "요약 대상", "glossary_eligible": "용어집 대상", "audit_only": "감사 전용" },
+        "summary_filter": { "all": "요약 유무 전체", "with_summary": "요약 있음", "without_summary": "요약 없음" }
+      },
       "removal": {
         "open": "Remove project archive", "title": "Remove project archive",
         "warning_title": "This removes all generated archive data",
@@ -2598,7 +2617,7 @@
       "agent_workshop_batch": "Format Repair batch",
       "repair": "Format repair",
       "neologism_mining": "신조어 탐색",
-      "context_archive_analysis": "Project archive analysis",
+      "context_archive_analysis": "프로젝트 아카이브 분석",
       "dry_run": "에이전트 시험 실행",
       "task": "백그라운드 작업",
       "glossary_health_check": "용어집 상태 점검",

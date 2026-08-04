@@ -15,6 +15,9 @@ import api from '../../utils/api';
 import styles from './JudgmentCourt.module.css';
 import { normalizeArrayPayload } from '../../utils/payload';
 import ProjectGlossaryToolbar from './ProjectGlossaryToolbar';
+import TermVariantPicker from './TermVariantPicker';
+import { sortTermCandidates } from './termCandidatePresentation';
+import { useTermVariantSelection } from './useTermVariantSelection';
 
 const API_BASE_URL = '/api';
 
@@ -114,8 +117,9 @@ const JudgmentCourt = ({
                 response.data,
                 ['candidates', 'neologisms', 'items', 'data', 'results'],
             );
-            setCandidates(candidateList);
-            setSelectedId(candidateList[0]?.id || null);
+            const sortedCandidates = sortTermCandidates(candidateList);
+            setCandidates(sortedCandidates);
+            setSelectedId(sortedCandidates[0]?.id || null);
             setBatchSelectedIds((current) => current.filter(
                 (candidateId) => candidateList.some((candidate) => candidate.id === candidateId),
             ));
@@ -533,6 +537,15 @@ const JudgmentCourt = ({
         }));
     };
 
+    const handleSelectVariant = useTermVariantSelection({
+        candidate: selectedCandidate,
+        projectId: selectedProject,
+        setCandidates,
+        setProcessing,
+        updateEditSuggestion,
+        t,
+    });
+
     const handleOpenProjectGlossary = () => {
         if (!projectGlossary?.glossary_id || !onOpenGlossary) return;
         onOpenGlossary({
@@ -874,6 +887,16 @@ const JudgmentCourt = ({
                                             }}
                                         >
                                             <Text size="sm" fw={600} lineClamp={1}>{c.original}</Text>
+                                            {c.tier && (
+                                                <Badge
+                                                    color={c.tier === 'A' ? 'green' : (c.tier === 'B' ? 'blue' : 'gray')}
+                                                    variant="light"
+                                                    size="xs"
+                                                    className={styles.surfaceBadge}
+                                                >
+                                                    {c.tier}
+                                                </Badge>
+                                            )}
                                             {(c.duplicate_matches || []).length > 0 && (
                                                 <Badge
                                                     color="orange"
@@ -1035,6 +1058,12 @@ const JudgmentCourt = ({
                                                     )}
                                                 </Paper>
                                             )}
+                                            <TermVariantPicker
+                                                candidate={selectedCandidate}
+                                                disabled={processing}
+                                                onSelect={handleSelectVariant}
+                                                t={t}
+                                            />
                                             </Stack>
                                         </Grid.Col>
 
