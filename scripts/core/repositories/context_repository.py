@@ -492,6 +492,14 @@ class ContextRepository:
                 """,
                 (release_id,),
             ).fetchall()
+            aggregates = connection.execute(
+                """
+                SELECT aggregate_key, aggregate_type, payload_json
+                FROM context_release_aggregates
+                WHERE release_id = ? ORDER BY aggregate_key
+                """,
+                (release_id,),
+            ).fetchall()
             overrides = connection.execute(
                 """
                 SELECT target_key, value_json FROM context_release_overrides
@@ -506,11 +514,19 @@ class ContextRepository:
             row["target_key"]: self._decode(row["value_json"], {}) for row in overrides
         }
         effective = self._merge_context(generated, human)
+        aggregate_metadata = {
+            row["aggregate_key"]: {
+                "aggregate_type": row["aggregate_type"],
+                **self._decode(row["payload_json"], {}),
+            }
+            for row in aggregates
+        }
         return EffectiveContext(
             release=release,
             generated_synthesis=generated,
             human_overrides=human,
             effective_context=effective,
+            aggregate_metadata=aggregate_metadata,
         )
 
     def get_release_traceability(self, release_id: str) -> list[dict[str, Any]]:

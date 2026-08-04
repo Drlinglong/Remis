@@ -283,6 +283,10 @@ def test_publish_creates_effective_context_and_full_traceability(tmp_path):
         "summary": "A republic appoints a consul.",
         "preferred_name": "共和国",
     }
+    assert effective.aggregate_metadata["republic"] == {
+        "aggregate_type": "entity",
+        "name": "Republic",
+    }
 
     traceability = service.traceability(release.release_id)
     assert traceability[0]["aggregate"]["aggregate_key"] == "republic"

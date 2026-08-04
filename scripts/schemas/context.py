@@ -221,3 +221,4 @@ class EffectiveContext(BaseModel):
     generated_synthesis: dict[str, dict[str, Any]]
     human_overrides: dict[str, dict[str, Any]]
     effective_context: dict[str, dict[str, Any]]
+    aggregate_metadata: dict[str, dict[str, Any]] = Field(default_factory=dict)
