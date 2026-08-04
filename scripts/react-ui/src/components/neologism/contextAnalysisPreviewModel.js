@@ -61,7 +61,9 @@ export const filterAnalysisPreviewEntries = (
         .filter((entry) => section !== 'entity' || matchesPolicy(entry, policy))
         .sort((left, right) => (
             section === 'entity'
-                ? entityCoverage(right) - entityCoverage(left) || left.label.localeCompare(right.label)
+                ? ({ core: 0, secondary: 1, incidental: 2 }[left.payload?.tier] ?? 3)
+                    - ({ core: 0, secondary: 1, incidental: 2 }[right.payload?.tier] ?? 3)
+                    || left.label.localeCompare(right.label)
                 : numberValue(right.payload?.delivery_coverage?.local_unit_coverage)
                     - numberValue(left.payload?.delivery_coverage?.local_unit_coverage)
                     || left.label.localeCompare(right.label)

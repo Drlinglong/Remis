@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
     Alert, Badge, Button, Container, Group, Loader, Paper, SegmentedControl,
-    Select, SimpleGrid, Stack, Text, TextInput, Title,
+    Select, SimpleGrid, Stack, Switch, Text, TextInput, Title,
 } from '@mantine/core';
 import { IconArchive, IconInfoCircle, IconRefresh, IconSearch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -28,7 +28,7 @@ const Metric = ({ label, value }) => (
     </div>
 );
 
-const EntityCard = ({ entry, t }) => {
+const EntityCard = ({ entry, t, advanced = false }) => {
     const payload = entry.payload || {};
     return (
         <Paper className={styles.previewCard} p="md" withBorder data-remis-surface="paper">
@@ -36,14 +36,14 @@ const EntityCard = ({ entry, t }) => {
                 <Group justify="space-between" align="flex-start" wrap="wrap">
                     <div>
                         <Text fw={700} className={styles.candidateName}>{entry.label}</Text>
-                        <Text size="xs" className={styles.candidateMatchKey}>{entry.aggregate_key}</Text>
+                        {advanced && <Text size="xs" className={styles.candidateMatchKey}>{entry.aggregate_key}</Text>}
                     </div>
                     <Group gap="xs">
-                        <Badge variant="light">
+                        {advanced && <Badge variant="light">
                             {t(`mod_archive.release.candidate_kind.${payload.candidate_kind}`, {
                                 defaultValue: payload.candidate_kind || '—',
                             })}
-                        </Badge>
+                        </Badge>}
                         <Badge variant="outline">
                             {t(`mod_archive.release.candidate_tier.${payload.tier}`, {
                                 defaultValue: payload.tier || '—',
@@ -55,21 +55,28 @@ const EntityCard = ({ entry, t }) => {
                     <Text size="sm" className={styles.previewSummary}>{entry.summary}</Text>
                 ) : (
                     <Text size="sm" className={styles.paperMuted}>
-                        {t('mod_archive.release.preview.no_summary')}
+                        {t(
+                            payload.summary_eligible
+                                ? 'mod_archive.release.preview.summary_missing'
+                                : 'mod_archive.release.preview.no_summary',
+                            { defaultValue: payload.summary_eligible
+                                ? 'This A/B entity summary is missing; rerun analysis to regenerate it.'
+                                : 'No long summary is required by the current candidate policy.' },
+                        )}
                     </Text>
                 )}
-                <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="xs">
+                <SimpleGrid cols={{ base: 2, sm: advanced ? 4 : 2 }} spacing="xs">
                     <Metric label={t('mod_archive.release.candidate_coverage.mention_count')} value={payload.mention_count} />
-                    <Metric label={t('mod_archive.release.candidate_coverage.source_item_coverage')} value={payload.source_item_coverage} />
-                    <Metric label={t('mod_archive.release.candidate_coverage.local_unit_coverage')} value={payload.local_unit_coverage} />
+                    {advanced && <Metric label={t('mod_archive.release.candidate_coverage.source_item_coverage')} value={payload.source_item_coverage} />}
+                    {advanced && <Metric label={t('mod_archive.release.candidate_coverage.local_unit_coverage')} value={payload.local_unit_coverage} />}
                     <Metric label={t('mod_archive.release.candidate_coverage.event_chain_coverage')} value={payload.event_chain_coverage} />
                 </SimpleGrid>
-                <Group gap="xs">
+                {advanced && <Group gap="xs">
                     {payload.summary_eligible && <Badge color="green" variant="light">{t('mod_archive.release.preview.summary_eligible')}</Badge>}
                     {payload.glossary_eligible && <Badge color="blue" variant="light">{t('mod_archive.release.preview.glossary_eligible')}</Badge>}
                     {payload.audit_only && <Badge color="gray" variant="outline">{t('mod_archive.release.candidate_audit_only')}</Badge>}
-                </Group>
-                {(payload.aliases || []).length > 0 && (
+                </Group>}
+                {advanced && (payload.aliases || []).length > 0 && (
                     <details className={styles.previewDetails}>
                         <summary>{t('mod_archive.release.candidate_aliases')} · {payload.aliases.length}</summary>
                         <Text size="sm" mt="xs">{payload.aliases.join(' · ')}</Text>
@@ -80,7 +87,7 @@ const EntityCard = ({ entry, t }) => {
     );
 };
 
-const EventCard = ({ entry, t }) => {
+const EventCard = ({ entry, t, advanced = false }) => {
     const payload = entry.payload || {};
     const coverage = payload.delivery_coverage || {};
     return (
@@ -88,8 +95,10 @@ const EventCard = ({ entry, t }) => {
             <Stack gap="sm">
                 <Group justify="space-between" align="flex-start" wrap="wrap">
                     <div>
-                        <Text fw={700} className={styles.technical}>{entry.label}</Text>
-                        {payload.parent_story_id && (
+                        <Text fw={700} className={advanced ? styles.technical : undefined}>
+                            {advanced ? entry.label : (payload.event || entry.label)}
+                        </Text>
+                        {advanced && payload.parent_story_id && (
                             <Text size="xs" className={styles.paperMuted}>
                                 {t('mod_archive.release.preview.parent_chain')}: {payload.parent_story_id}
                             </Text>
@@ -108,14 +117,14 @@ const EventCard = ({ entry, t }) => {
                     <Metric label={t('mod_archive.release.preview.theme')} value={coverage.theme_related} />
                     <Metric label={t('mod_archive.release.preview.evidence_units')} value={(payload.evidence_unit_ids || []).length} />
                 </SimpleGrid>
-                <details className={styles.previewDetails}>
+                {advanced && <details className={styles.previewDetails}>
                     <summary>{t('mod_archive.release.preview.chain_details')}</summary>
                     <Stack gap="xs" mt="xs">
                         <Text size="sm"><strong>{t('mod_archive.release.preview.event')}</strong> {payload.event || '—'}</Text>
                         <Text size="sm"><strong>{t('mod_archive.release.preview.consequence')}</strong> {payload.consequence || '—'}</Text>
                         <Text size="sm"><strong>{t('mod_archive.release.preview.participants')}</strong> {(payload.participants || []).join(' · ') || '—'}</Text>
                     </Stack>
-                </details>
+                </details>}
             </Stack>
         </Paper>
     );
@@ -126,7 +135,51 @@ const filterOptions = (t, namespace, values) => values.map((value) => ({
     label: t(`mod_archive.release.preview.${namespace}.${value}`),
 }));
 
+const SimplePreview = ({ preview, t }) => {
+    const events = filterAnalysisPreviewEntries(preview.entries, { section: 'event' });
+    const entities = filterAnalysisPreviewEntries(preview.entries, { section: 'entity' })
+        .filter((entry) => !entry.payload?.candidate_kind || entry.payload.candidate_kind === 'entity');
+    const primary = entities.filter((entry) => ['core', 'secondary'].includes(entry.payload?.tier));
+    const lower = entities.filter((entry) => !primary.includes(entry));
+    return (
+        <Paper className={styles.paper} p="lg" mt="md" withBorder data-remis-surface="paper">
+            <Stack gap="xl">
+                <section>
+                    <Group justify="space-between" mb="xs">
+                        <Title order={3}>{t('mod_archive.release.preview.events')}</Title>
+                        <Badge variant="outline">{events.length}</Badge>
+                    </Group>
+                    <div className={styles.previewList}>
+                        {events.map((entry) => <EventCard entry={entry} key={entry.aggregate_id} t={t} />)}
+                    </div>
+                </section>
+                <section>
+                    <Group justify="space-between" mb="xs">
+                        <Title order={3}>{t('mod_archive.release.preview.entities')}</Title>
+                        <Badge variant="outline">{entities.length}</Badge>
+                    </Group>
+                    <div className={styles.previewList}>
+                        {primary.map((entry) => <EntityCard entry={entry} key={entry.aggregate_id} t={t} />)}
+                    </div>
+                    {lower.length > 0 && (
+                        <details className={styles.previewDetails} data-testid="mod-archive-preview-lower-entities">
+                            <summary>
+                                {t('mod_archive.release.candidate_tier.incidental', { defaultValue: 'C / Unclassified' })}
+                                {' · '}{lower.length}
+                            </summary>
+                            <div className={styles.previewList}>
+                                {lower.map((entry) => <EntityCard entry={entry} key={entry.aggregate_id} t={t} />)}
+                            </div>
+                        </details>
+                    )}
+                </section>
+            </Stack>
+        </Paper>
+    );
+};
+
 const PreviewContent = ({ preview, refresh, projectToolbar, t }) => {
+    const [advanced, setAdvanced] = useState(false);
     const [section, setSection] = useState('entity');
     const [search, setSearch] = useState('');
     const [kind, setKind] = useState('all');
@@ -150,11 +203,17 @@ const PreviewContent = ({ preview, refresh, projectToolbar, t }) => {
                 <Button className={styles.secondaryAction} variant="outline" onClick={refresh} leftSection={<IconRefresh size={15} />}>
                     {t('mod_archive.release.refresh')}
                 </Button>
+                <Switch
+                    checked={advanced}
+                    onChange={(event) => setAdvanced(event.currentTarget.checked)}
+                    label={t('advanced_options')}
+                    data-testid="mod-archive-preview-advanced-toggle"
+                />
             </Group>
             <Alert className={styles.statusSurface} data-tone="error" mb="md" title={t('mod_archive.release.preview.warning_title')}>
                 {t('mod_archive.release.preview.warning_desc')}
             </Alert>
-            <Paper className={styles.surface} p="lg" withBorder data-remis-surface="surface">
+            {advanced && <Paper className={styles.surface} p="lg" withBorder data-remis-surface="surface">
                 <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
                     <Metric label={t('mod_archive.release.preview.entities')} value={counts.entities} />
                     <Metric label={t('mod_archive.release.preview.events')} value={counts.events} />
@@ -166,8 +225,9 @@ const PreviewContent = ({ preview, refresh, projectToolbar, t }) => {
                     <Text size="xs" mt="xs" className={styles.technical}>{preview.run.run_id}</Text>
                     <Text size="sm" mt="xs">{preview.run.provider_id || '—'} · {preview.run.model_id || '—'} · {preview.run.status}</Text>
                 </details>
-            </Paper>
-            <Paper className={styles.paper} p="lg" mt="md" withBorder data-remis-surface="paper">
+            </Paper>}
+            {!advanced && <SimplePreview preview={preview} t={t} />}
+            {advanced && <Paper className={styles.paper} p="lg" mt="md" withBorder data-remis-surface="paper">
                 <Stack gap="md">
                     <SegmentedControl
                         value={section}
@@ -198,13 +258,13 @@ const PreviewContent = ({ preview, refresh, projectToolbar, t }) => {
                         <div className={styles.previewList}>
                             {entries.map((entry) => (
                                 section === 'entity'
-                                    ? <EntityCard entry={entry} key={entry.aggregate_id} t={t} />
-                                    : <EventCard entry={entry} key={entry.aggregate_id} t={t} />
+                                    ? <EntityCard advanced entry={entry} key={entry.aggregate_id} t={t} />
+                                    : <EventCard advanced entry={entry} key={entry.aggregate_id} t={t} />
                             ))}
                         </div>
                     )}
                 </Stack>
-            </Paper>
+            </Paper>}
         </Container>
     );
 };

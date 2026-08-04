@@ -60,4 +60,14 @@ describe('context analysis preview model', () => {
             tier: 'incidental',
         }).map((entry) => entry.aggregate_id)).toEqual(['event-1']);
     });
+
+    it('orders entities by tier and alphabetically within each tier', () => {
+        const unordered = [
+            { aggregate_type: 'entity', label: 'Zulu', payload: { tier: 'secondary' } },
+            { aggregate_type: 'entity', label: 'Beta', payload: { tier: 'core' } },
+            { aggregate_type: 'entity', label: 'Alpha', payload: { tier: 'core' } },
+        ];
+        expect(filterAnalysisPreviewEntries(unordered, { section: 'entity' })
+            .map((entry) => entry.label)).toEqual(['Alpha', 'Beta', 'Zulu']);
+    });
 });

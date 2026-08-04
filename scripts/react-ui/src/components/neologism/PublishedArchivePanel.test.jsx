@@ -344,9 +344,13 @@ describe('PublishedArchivePanel', () => {
         expect(screen.getByText('mod_archive.release.preview.warning_title')).toBeInTheDocument();
         expect(screen.queryByTestId('mod-archive-start-draft')).not.toBeInTheDocument();
 
+        expect(screen.getByText('The Toxic God visits the homeworld.')).toBeInTheDocument();
+        expect(screen.getByText('The order begins its quest.')).toBeInTheDocument();
+        expect(screen.queryByText('advanced field equations')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByTestId('mod-archive-preview-advanced-toggle'));
         fireEvent.click(screen.getByText('mod_archive.release.preview.event_tab:1'));
         expect(await screen.findByText('chain_toxic_god')).toBeInTheDocument();
-        expect(screen.getByText('The order begins its quest.')).toBeInTheDocument();
     });
 
     it('shows an error state for unavailable release metadata', async () => {
