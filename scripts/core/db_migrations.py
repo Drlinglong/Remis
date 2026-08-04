@@ -21,7 +21,7 @@ from scripts.core.db_models import (
 )
 logger = logging.getLogger("remis_init")
 
-MAIN_DB_TARGET_VERSION = 20
+MAIN_DB_TARGET_VERSION = 21
 
 class UnsupportedDatabaseVersionError(RuntimeError):
     """Raised when this Remis build encounters a newer managed schema."""
@@ -720,19 +720,18 @@ def _migration_016_add_context_delivery_memberships(db_path: str) -> None:
 def _migration_017_add_context_aggregation_phase(db_path: str) -> None:
     from scripts.core.context_analysis_migration import migrate_context_analysis_aggregation_phase
     migrate_context_analysis_aggregation_phase(db_path)
-
-
 def _migration_018_add_context_release_manifests(db_path: str) -> None:
     from scripts.core.context_release_manifest_migration import migrate_context_release_manifest_storage
     migrate_context_release_manifest_storage(db_path)
-
 def _migration_019_add_atomic_context_publication(db_path: str) -> None:
     from scripts.core.context_publication_migration import migrate_context_publication_storage
     migrate_context_publication_storage(db_path)
-
 def _migration_020_add_context_synthesis_checkpoints(db_path: str) -> None:
     from scripts.core.context_analysis_migration import migrate_context_analysis_synthesis_phase
     migrate_context_analysis_synthesis_phase(db_path)
+def _migration_021_add_context_tree_v2_storage(db_path: str) -> None:
+    from scripts.core.context_tree_v2_migration import migrate_context_tree_v2_storage
+    migrate_context_tree_v2_storage(db_path)
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
@@ -754,6 +753,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (18, "add_context_release_manifests", _migration_018_add_context_release_manifests),
     (19, "add_atomic_context_publication", _migration_019_add_atomic_context_publication),
     (20, "add_context_synthesis_checkpoints", _migration_020_add_context_synthesis_checkpoints),
+    (21, "add_context_tree_v2_storage", _migration_021_add_context_tree_v2_storage),
 ]
 
 
