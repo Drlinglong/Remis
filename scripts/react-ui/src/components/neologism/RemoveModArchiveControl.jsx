@@ -13,7 +13,14 @@ const modalClassNames = {
     close: styles.removalModalClose,
 };
 
-const RemoveModArchiveControl = ({ projectId, projectName, onRemoved, t }) => {
+const RemoveModArchiveControl = ({
+    projectId,
+    projectName,
+    onRemoved,
+    t,
+    buttonLabel,
+    disabled = false,
+}) => {
     const removal = useRemoveModArchive({ projectId, projectName, onRemoved, t });
 
     return (
@@ -22,10 +29,11 @@ const RemoveModArchiveControl = ({ projectId, projectName, onRemoved, t }) => {
                 className={styles.dangerSecondaryAction}
                 leftSection={<IconTrash size={16} />}
                 onClick={removal.open}
+                disabled={disabled}
                 variant="default"
                 data-testid="mod-archive-remove"
             >
-                {t('mod_archive.release.removal.open')}
+                {buttonLabel || t('mod_archive.release.removal.open')}
             </Button>
             <Modal
                 opened={removal.opened}

@@ -20,7 +20,7 @@ const isNotFound = (error) => error?.response?.status === 404;
 
 const unwrap = (data, key) => data?.[key] || data;
 
-export const useModArchiveRelease = (selectedProject) => {
+export const useModArchiveRelease = (selectedProject, selectedReleaseId = null) => {
     const { t } = useTranslation();
     const translationRef = useRef(t);
     translationRef.current = t;
@@ -38,9 +38,10 @@ export const useModArchiveRelease = (selectedProject) => {
         requestVersionRef.current = requestVersion;
         setState({ ...initialState, phase: 'loading' });
         try {
-            const releaseResponse = await api.get(
-                `${API_BASE_URL}/context/releases/${encodeURIComponent(selectedProject)}/latest?optional=true`,
-            );
+            const releasePath = selectedReleaseId
+                ? `${API_BASE_URL}/context/releases/${encodeURIComponent(selectedReleaseId)}`
+                : `${API_BASE_URL}/context/releases/${encodeURIComponent(selectedProject)}/latest?optional=true`;
+            const releaseResponse = await api.get(releasePath);
             if (releaseResponse.data?.release === null) {
                 setState({ ...initialState, phase: 'empty' });
                 return;
@@ -90,7 +91,7 @@ export const useModArchiveRelease = (selectedProject) => {
                 });
             }
         }
-    }, [selectedProject, translate]);
+    }, [selectedProject, selectedReleaseId, translate]);
 
     useEffect(() => {
         loadRelease();

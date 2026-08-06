@@ -42,7 +42,9 @@ describe('Mod Archive semantic workbench contract', () => {
         expect(setupSource).toContain('data-remis-action="primary"');
         expect(releaseSource).toContain('data-testid="mod-archive-release-panel"');
         expect(previewSource).toContain('data-testid="mod-archive-analysis-preview"');
-        expect(releaseSource).toContain('data-testid="mod-archive-release-stale"');
+        expect(releaseSource).toContain('data-testid="published-archive-workbench"');
+        expect(releaseSource).toContain('ContextTreeV2ArchiveSummary');
+        expect(releaseSource).not.toContain('mod-archive-release-stale');
         expect(releaseContentSource).toContain('data-testid="mod-archive-load-traceability"');
         expect(releaseContentSource).toContain('data-remis-action="paper-secondary"');
         expect(toolbarSource).toContain('data-testid="neologism-project-toolbar"');

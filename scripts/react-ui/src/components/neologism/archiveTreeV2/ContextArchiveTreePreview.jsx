@@ -18,13 +18,41 @@ import styles from './ContextArchiveTree.module.css';
 
 const label = (t, key, fallback, options = {}) => t(key, { ...options, defaultValue: fallback });
 
+const SelectedFragmentPanel = ({ fragment, t }) => {
+    if (!fragment) {
+        return (
+            <div className={styles.selectionEmpty} data-testid="context-tree-selected-fragment-empty">
+                {label(t, 'mod_archive.tree.select_fragment', 'Select a fragment in the map to inspect its evidence and delivery route.')}
+            </div>
+        );
+    }
+    return (
+        <Paper className={styles.selectedFragment} p="sm" withBorder data-remis-surface="paper" data-testid="context-tree-selected-fragment">
+            <Text className={styles.summaryEyebrow}>{label(t, 'mod_archive.tree.selected_fragment_eyebrow', 'SELECTED FRAGMENT')}</Text>
+            <Text fw={700} className={styles.selectedFragmentTitle}>{fragment.label}</Text>
+            <Text size="sm" className={styles.selectedFragmentSummary}>
+                {label(t, 'mod_archive.tree.fragment_summary', 'Summary')} · {fragment.summary}
+            </Text>
+            <Group className={styles.selectedFragmentMeta} gap="xs" wrap="wrap">
+                <Badge size="xs" variant="outline">{fragment.route || '—'}</Badge>
+                <Badge size="xs" variant="light">{fragment.tier || '—'}</Badge>
+                <Text size="xs" className={styles.muted}>
+                    {label(t, 'mod_archive.tree.units', 'Units')}: {fragment.unitIds?.length || 0}
+                    {' · '}
+                    {label(t, 'mod_archive.tree.evidence', 'Evidence')}: {fragment.evidenceIds?.length || 0}
+                </Text>
+            </Group>
+        </Paper>
+    );
+};
+
 const ReferenceAssetPanel = ({ tree, t }) => {
     const groups = useMemo(
         () => groupReferenceAssetsByTier(tree.referenceAssets),
         [tree.referenceAssets],
     );
     return (
-        <Paper className={styles.referencePanel} p="md" withBorder data-testid="context-tree-reference-assets">
+        <Paper className={styles.referencePanel} p="md" withBorder data-remis-surface="paper" data-testid="context-tree-reference-assets">
             <Group className={styles.referenceHeader} justify="space-between">
                 <div>
                     <Title order={4}>{label(t, 'mod_archive.tree.reference_assets', 'Related reference assets')}</Title>
@@ -51,7 +79,7 @@ const ReferenceAssetPanel = ({ tree, t }) => {
                     </summary>
                     <div className={styles.referenceList}>
                         {group.assets.map((asset) => (
-                            <Paper className={styles.referenceAsset} key={asset.id} withBorder>
+                            <Paper className={styles.referenceAsset} key={asset.id} withBorder data-remis-surface="paper">
                                 <Group justify="space-between" align="flex-start" gap="xs">
                                     <Text fw={700} className={styles.fragmentLabel}>{asset.label}</Text>
                                     <Badge size="xs" variant="outline">{asset.tier}</Badge>
@@ -100,25 +128,31 @@ const ContextGroups = ({ preview, t }) => {
     );
 };
 
-export const ContextArchiveTreePreview = ({ tree, selectedUnitId, onUnitChange, t }) => {
+export const ContextArchiveTreePreview = ({ tree, selectedUnitId, onUnitChange, selectedFragmentId, t }) => {
     const unitOptions = useMemo(() => getTreeUnitOptions(tree), [tree]);
     const unitId = selectedUnitId || unitOptions[0]?.id || null;
     const preview = useMemo(
         () => buildNarrativeUnitPreview(tree, unitId),
         [tree, unitId],
     );
+    const selectedFragment = selectedFragmentId ? tree.fragments?.[selectedFragmentId] : null;
     const options = unitOptions.map((unit) => ({ value: unit.id, label: unit.label }));
     return (
-        <Paper className={styles.previewPanel} p="md" withBorder data-testid="context-tree-preview">
-            <Group className={styles.previewHeader} justify="space-between">
+        <Paper className={styles.previewPanel} p="md" withBorder data-remis-surface="paper" data-testid="context-tree-preview">
+            <div className={styles.previewHeader}>
                 <div>
+                    <Text className={styles.summaryEyebrow}>{label(t, 'mod_archive.tree.preview_eyebrow', 'DELIVERY PREVIEW')}</Text>
                     <Title order={4}>{label(t, 'mod_archive.tree.preview_title', 'Final narrative-unit context')}</Title>
                     <Text className={styles.muted} size="sm">
                         {label(t, 'mod_archive.tree.preview_desc', 'Preview the ordered event context delivered to one narrative unit.')}
                     </Text>
                 </div>
-                <Badge variant="light">{tree.version}</Badge>
-            </Group>
+                <Group gap="xs" wrap="wrap">
+                    {preview && <Badge variant="light">{preview.groups.length} {label(t, 'mod_archive.tree.groups_short', 'groups')}</Badge>}
+                    <Badge variant="outline">{tree.version}</Badge>
+                </Group>
+            </div>
+            <SelectedFragmentPanel fragment={selectedFragment} t={t} />
             {options.length === 0 ? (
                 <Text className={styles.muted} size="sm">
                     {label(t, 'mod_archive.tree.no_narrative_units', 'No narrative units are available for preview.')}
@@ -138,7 +172,7 @@ export const ContextArchiveTreePreview = ({ tree, selectedUnitId, onUnitChange, 
             {preview && (
                 <>
                     {tree.projectSummary && (
-                        <div className={styles.contextNotice}>
+                        <div className={styles.contextNotice} data-remis-surface="paper">
                             <Text fw={600}>{label(t, 'mod_archive.tree.project_summary', 'Project summary')}</Text>
                             <Text size="sm">{tree.projectSummary}</Text>
                         </div>

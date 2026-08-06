@@ -1,113 +1,88 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    Alert,
-    Badge,
     Button,
     Container,
-    Group,
     Loader,
     Paper,
-    Switch,
     Stack,
     Text,
     Title,
 } from '@mantine/core';
 import { IconArchive, IconInfoCircle, IconRefresh } from '@tabler/icons-react';
 
-import {
-    getArchiveCounts,
-    getArchiveEntries,
-    getTraceabilityRows,
-    isReleaseStale,
-} from './modArchiveModel';
 import AnalysisPreviewPanel from './AnalysisPreviewPanel';
-import ModArchiveOverrideEditor from './ModArchiveOverrideEditor';
-import { ArchiveSummary, ReleaseMetadata } from './PublishedArchiveContent';
-import ProjectGlossaryToolbar from './ProjectGlossaryToolbar';
-import RemoveModArchiveControl from './RemoveModArchiveControl';
-import ContextArchiveTreeReview from './archiveTreeV2/ContextArchiveTreeReview';
 import ContextTreeV2ArchiveSummary from './archiveTreeV2/ContextTreeV2ArchiveSummary';
+import PublishedArchiveToolbar from './PublishedArchiveToolbar';
+import {
+    PUBLISHED_ARCHIVE_DEMO_PROJECT_ID,
+    publishedArchiveDemoProject,
+    publishedArchiveDemoRelease,
+    publishedArchiveDemoTree,
+} from './archiveTreeV2/publishedArchiveDemoFixture';
 import { useContextTreeV2Archive } from './archiveTreeV2/useContextTreeV2Archive';
 import { useArchiveProjectContext } from './useArchiveProjectContext';
-import { useModArchiveDraft } from './useModArchiveDraft';
 import { useModArchiveRelease } from './useModArchiveRelease';
 import styles from './ModArchive.module.css';
-
-const scopeValue = (metadata) => {
-    const scope = metadata?.analysis_scope;
-    if (typeof scope === 'string') return scope;
-    return scope?.mode || scope?.scope || '';
-};
 
 const PublishedArchivePanel = ({
     selectedProject,
     onSelectedProjectChange,
-    onOpenGlossary,
-    status,
 }) => {
     const { t } = useTranslation();
-    const [publishedChildReleaseId, setPublishedChildReleaseId] = useState(null);
-    const [showAdvanced, setShowAdvanced] = useState(false);
-    const releaseState = useModArchiveRelease(selectedProject);
-    const treeV2State = useContextTreeV2Archive(selectedProject, 'published');
+    const isDemoProject = selectedProject === PUBLISHED_ARCHIVE_DEMO_PROJECT_ID;
+    const archiveProjectId = isDemoProject ? null : selectedProject;
+    const [selectedReleaseId, setSelectedReleaseId] = useState(null);
+    const [releaseVersions, setReleaseVersions] = useState([]);
+    const releaseState = useModArchiveRelease(archiveProjectId, isDemoProject ? null : selectedReleaseId);
+    const treeV2State = useContextTreeV2Archive(archiveProjectId, 'published', isDemoProject ? null : selectedReleaseId);
     const {
-        phase,
         release,
-        effective,
         error,
-        traceability,
-        traceabilityState,
-        traceabilityError,
         refresh,
-        loadTraceability,
     } = releaseState;
-    const stale = isReleaseStale(release, status);
-    const targetLanguage = release?.metadata?.analysis_config?.description_language;
+    const displayRelease = isDemoProject ? publishedArchiveDemoRelease : release;
+    const availableVersions = displayRelease?.versions;
+    const currentReleaseId = displayRelease?.release_id;
+    useEffect(() => {
+        setSelectedReleaseId(null);
+        setReleaseVersions([]);
+    }, [selectedProject]);
+    useEffect(() => {
+        if (Array.isArray(availableVersions) && availableVersions.length > 0) {
+            setReleaseVersions(availableVersions);
+        } else if (currentReleaseId && releaseVersions.length === 0 && displayRelease) {
+            setReleaseVersions([displayRelease]);
+        }
+    }, [availableVersions, currentReleaseId, displayRelease, releaseVersions.length]);
+    const targetLanguage = displayRelease?.metadata?.analysis_config?.description_language;
     const projectContext = useArchiveProjectContext({
         selectedProject,
         onSelectedProjectChange,
         targetLanguage,
+        skipGlossary: isDemoProject,
     });
-    const entries = useMemo(
-        () => getArchiveEntries(effective, projectContext.terminologyIndex),
-        [effective, projectContext.terminologyIndex],
-    );
-    const counts = useMemo(() => getArchiveCounts(effective), [effective]);
-    const rows = getTraceabilityRows(traceability);
-    const treeData = effective?.context_tree_v2
-        || effective?.context_tree
-        || effective?.archive_tree
-        || effective?.tree
-        || release?.context_tree_v2
-        || release?.context_tree
-        || release?.tree
-        || null;
+    const toolbarProjects = useMemo(() => {
+        if (projectContext.projects.some((project) => project.project_id === PUBLISHED_ARCHIVE_DEMO_PROJECT_ID)) {
+            return projectContext.projects;
+        }
+        return [...projectContext.projects, publishedArchiveDemoProject];
+    }, [projectContext.projects]);
     const projectToolbar = (
-        <div className={styles.projectToolbar}>
-            <ProjectGlossaryToolbar
-                projects={projectContext.projects}
-                selectedProject={selectedProject}
-                onSelectedProjectChange={onSelectedProjectChange}
-                projectGlossary={projectContext.projectGlossary}
-                onOpenGlossary={onOpenGlossary ? () => onOpenGlossary({
-                    glossaryId: projectContext.projectGlossary?.glossary_id,
-                    gameId: projectContext.projectGlossary?.game_id || projectContext.currentProject?.game_id,
-                }) : undefined}
-            />
-        </div>
+        <PublishedArchiveToolbar
+            projects={toolbarProjects}
+            selectedProject={selectedProject}
+            onSelectedProjectChange={onSelectedProjectChange}
+            versions={isDemoProject ? [publishedArchiveDemoRelease] : releaseVersions}
+            currentRelease={displayRelease}
+            selectedReleaseId={isDemoProject ? publishedArchiveDemoRelease.release_id : selectedReleaseId}
+            onReleaseChange={isDemoProject ? undefined : setSelectedReleaseId}
+            projectName={projectContext.currentProject?.name || (isDemoProject ? publishedArchiveDemoProject.name : selectedProject)}
+            onRemoved={isDemoProject ? undefined : refresh}
+            disableDelete={isDemoProject}
+            t={t}
+        />
     );
-    const handlePublished = useCallback(async (nextRelease) => {
-        setPublishedChildReleaseId(nextRelease?.release_id || null);
-        await refresh();
-    }, [refresh]);
-    const draftState = useModArchiveDraft({
-        selectedProject,
-        baseReleaseId: release?.release_id,
-        contextEntries: entries,
-        onPublished: handlePublished,
-    });
-
     if (!selectedProject) {
         return (
             <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
@@ -122,16 +97,30 @@ const PublishedArchivePanel = ({
         );
     }
 
-    if (treeV2State.phase === 'ready' && treeV2State.tree) {
+    if (isDemoProject) {
         return (
             <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
                 {projectToolbar}
-                <ContextTreeV2ArchiveSummary tree={treeV2State.tree} mode="published" />
+                <div data-testid="published-archive-workbench">
+                    <ContextTreeV2ArchiveSummary tree={publishedArchiveDemoTree} mode="published" />
+                </div>
             </Container>
         );
     }
 
-    if (phase === 'idle' || phase === 'loading') {
+    if (treeV2State.phase === 'ready' && treeV2State.tree) {
+        return (
+            <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
+                {projectToolbar}
+                <div data-testid="published-archive-workbench">
+                    <ContextTreeV2ArchiveSummary tree={treeV2State.tree} mode="published" />
+                </div>
+            </Container>
+        );
+    }
+
+    if (releaseState.phase === 'idle' || releaseState.phase === 'loading'
+        || treeV2State.phase === 'loading') {
         return (
             <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
                 {projectToolbar}
@@ -145,7 +134,7 @@ const PublishedArchivePanel = ({
         );
     }
 
-    if (phase === 'empty') {
+    if (releaseState.phase === 'empty') {
         return (
             <AnalysisPreviewPanel
                 selectedProject={selectedProject}
@@ -154,14 +143,14 @@ const PublishedArchivePanel = ({
         );
     }
 
-    if (phase === 'error' && !release) {
+    if ((releaseState.phase === 'error' || treeV2State.phase === 'error') && !release) {
         return (
             <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
                 {projectToolbar}
                 <StateCard
                     icon={<IconInfoCircle size={30} />}
                     title={t('mod_archive.release.error_title')}
-                    description={error || t('mod_archive.release.error_desc')}
+                    description={treeV2State.error || error || t('mod_archive.release.error_desc')}
                     testId="mod-archive-release-error"
                     action={(
                         <Button className={styles.secondaryAction} leftSection={<IconRefresh size={16} />} onClick={refresh}>
@@ -173,7 +162,6 @@ const PublishedArchivePanel = ({
         );
     }
 
-    const showPartialNotice = phase === 'partial' || Boolean(error);
     return (
         <Container
             className={styles.page}
@@ -183,85 +171,13 @@ const PublishedArchivePanel = ({
             data-remis-surface="canvas"
         >
             {projectToolbar}
-            <Group className={styles.header} wrap="wrap">
-                <Badge className={styles.headerIcon} size="xl" radius="sm">
-                    <IconArchive size={22} />
-                </Badge>
-                <Stack gap={2} style={{ flex: '1 1 20rem', minWidth: 0 }}>
-                    <Title order={2}>{t('mod_archive.release.title')}</Title>
-                    <Text className={styles.subtitle} size="sm">
-                        {t('mod_archive.release.subtitle')}
-                    </Text>
-                </Stack>
-                <RemoveModArchiveControl
-                    projectId={selectedProject}
-                    projectName={projectContext.currentProject?.name || selectedProject}
-                    onRemoved={refresh}
-                    t={t}
-                />
-                <Switch
-                    checked={showAdvanced}
-                    onChange={(event) => setShowAdvanced(event.currentTarget.checked)}
-                    label={t('advanced_options')}
-                    data-testid="mod-archive-advanced-toggle"
-                />
-            </Group>
-
-            {stale && (
-                <Alert className={styles.surface} mb="md" data-testid="mod-archive-release-stale" data-remis-surface="surface">
-                    <Text fw={700}>{t('mod_archive.release.stale_title')}</Text>
-                    <Text size="sm">{t('mod_archive.release.stale_desc')}</Text>
-                </Alert>
-            )}
-            {showPartialNotice && (
-                <Alert className={styles.surface} mb="md" data-testid="mod-archive-release-partial" data-remis-surface="surface">
-                    <Text fw={700}>{t('mod_archive.release.partial_title')}</Text>
-                    <Text size="sm">{error || t('mod_archive.release.partial_desc')}</Text>
-                </Alert>
-            )}
-
-            <ReleaseMetadata
-                release={release}
-                selectedProject={selectedProject}
-                scope={scopeValue(release.metadata)}
-                draftState={draftState}
-                refresh={refresh}
-                showAdvanced={showAdvanced}
-                t={t}
+            <StateCard
+                icon={<IconArchive size={30} />}
+                title={t('mod_archive.release.context_tree_unavailable_title', { defaultValue: 'Context map unavailable' })}
+                description={error || t('mod_archive.release.context_tree_unavailable_desc', { defaultValue: 'This release does not contain a published context map yet.' })}
+                testId="published-archive-context-map-unavailable"
+                action={<Button className={styles.secondaryAction} onClick={refresh}>{t('mod_archive.release.retry')}</Button>}
             />
-
-            {publishedChildReleaseId === release.release_id && (
-                <Alert className={styles.statusSurface} mt="md" data-tone="success" data-testid="mod-archive-published-notice">
-                    <Text fw={700}>{t('mod_archive.release.draft.publish_success')}</Text>
-                    <Text size="sm">{publishedChildReleaseId}</Text>
-                </Alert>
-            )}
-
-            <ModArchiveOverrideEditor
-                draftState={draftState}
-                contextEntries={entries}
-                baseReleaseId={release.release_id}
-                t={t}
-            />
-
-            <ArchiveSummary
-                entries={entries}
-                counts={counts}
-                rows={rows}
-                traceabilityState={traceabilityState}
-                traceabilityError={traceabilityError}
-                loadTraceability={loadTraceability}
-                showAdvanced={showAdvanced}
-                t={t}
-            />
-
-            {showAdvanced && (
-                <ContextArchiveTreeReview
-                    projectId={selectedProject}
-                    releaseId={release.release_id}
-                    treeData={treeData}
-                />
-            )}
         </Container>
     );
 };

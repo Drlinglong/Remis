@@ -1,0 +1,66 @@
+.toolbar {
+    background: var(--surface-bg) !important;
+    border-color: var(--surface-border) !important;
+    color: var(--surface-text-main);
+    --mantine-color-text: var(--surface-text-main);
+    --mantine-color-dimmed: var(--surface-text-muted);
+}
+
+.projectField {
+    flex: 1 1 24rem;
+    min-width: min(100%, 18rem);
+}
+
+.releaseControls {
+    flex: 1 1 30rem;
+    justify-content: flex-end;
+    min-width: min(100%, 24rem);
+}
+
+.versionField {
+    min-width: min(100%, 18rem);
+}
+
+.label {
+    color: var(--surface-text-muted) !important;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.field {
+    min-width: 14rem;
+    background: var(--surface-bg) !important;
+    border-color: var(--surface-border) !important;
+    color: var(--surface-text-main) !important;
+}
+
+.field::placeholder {
+    color: var(--surface-text-muted) !important;
+}
+
+@media (max-width: 58em) {
+    .projectField,
+    .releaseControls {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .releaseControls {
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 36em) {
+    .projectField,
+    .releaseControls {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .versionField,
+    .field {
+        width: 100%;
+        min-width: 0;
+    }
+}

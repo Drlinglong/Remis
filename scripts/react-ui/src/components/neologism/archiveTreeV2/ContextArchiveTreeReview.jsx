@@ -20,7 +20,7 @@ import styles from './ContextArchiveTree.module.css';
 const label = (t, key, fallback, options = {}) => t(key, { ...options, defaultValue: fallback });
 
 const EmptyTree = ({ t }) => (
-    <Paper className={styles.emptyPanel} p="md" withBorder data-testid="context-tree-unavailable">
+    <Paper className={styles.emptyPanel} p="md" withBorder data-remis-surface="paper" data-testid="context-tree-unavailable">
         <Group align="flex-start" wrap="nowrap">
             <IconInfoCircle size={22} aria-hidden="true" />
             <div>
@@ -53,26 +53,37 @@ export const ContextArchiveTreeReview = ({
         mode,
     });
     const [selectedUnitId, setSelectedUnitId] = useState(null);
+    const [selectedFragmentId, setSelectedFragmentId] = useState(null);
     const unitOptions = useMemo(() => getTreeUnitOptions(treeState.tree), [treeState.tree]);
+    const fragmentIds = useMemo(
+        () => Object.values(treeState.tree.fragments || {}).map((fragment) => fragment.id).filter(Boolean),
+        [treeState.tree.fragments],
+    );
     useEffect(() => {
         if (!unitOptions.some((unit) => unit.id === selectedUnitId)) {
             setSelectedUnitId(getFirstNarrativeUnitId(treeState.tree));
         }
     }, [selectedUnitId, treeState.tree, unitOptions]);
+    useEffect(() => {
+        if (!fragmentIds.includes(selectedFragmentId)) {
+            setSelectedFragmentId(fragmentIds[0] || null);
+        }
+    }, [fragmentIds, selectedFragmentId]);
 
     return (
-        <section className={styles.review} data-testid="context-tree-review">
-            <Group className={styles.reviewHeader} justify="space-between" wrap="wrap">
+        <section className={styles.review} data-remis-surface="surface" data-testid="context-tree-review">
+            <header className={styles.reviewHeader}>
                 <div className={styles.reviewTitle}>
+                    <Text className={styles.summaryEyebrow}>{label(t, 'mod_archive.tree.editor_eyebrow', 'RELATIONSHIP EDITOR')}</Text>
                     <Group gap="xs" align="center">
-                        <Title order={3}>{label(t, 'mod_archive.tree.title', 'Context archive tree v2')}</Title>
+                        <Title order={2}>{label(t, 'mod_archive.tree.title', 'Context archive tree v2')}</Title>
                         <Badge variant="outline">{label(t, 'mod_archive.tree.relationship_draft', 'Relationship draft')}</Badge>
                     </Group>
                     <Text className={styles.reviewSubtitle} size="sm">
                         {label(t, 'mod_archive.tree.subtitle', 'Review stories, sibling event groups, and ordered fragments. Source evidence stays read-only.')}
                     </Text>
                 </div>
-                <Group gap="xs">
+                <Group className={styles.reviewActions} gap="xs">
                     {treeState.canSave && (
                         <Button
                             size="sm"
@@ -96,8 +107,8 @@ export const ContextArchiveTreeReview = ({
                         {label(t, 'mod_archive.tree.reset', 'Reset')}
                     </Button>
                 </Group>
-            </Group>
-            <Group className={styles.status} gap="xs" mb="sm">
+            </header>
+            <div className={styles.status} role="status" aria-live="polite">
                 <Badge variant="light">{treeState.tree.version}</Badge>
                 {treeState.dirty && <Text className={styles.draftStatus} size="xs">{label(t, 'mod_archive.tree.unsaved', 'Unsaved local relationship changes')}</Text>}
                 {!treeState.canSave && (
@@ -106,9 +117,32 @@ export const ContextArchiveTreeReview = ({
                     </Text>
                 )}
                 {treeState.error && <Text c="red" size="xs">{treeState.error}</Text>}
-            </Group>
+            </div>
+            <div className={styles.reviewGuide} role="list">
+                <div className={styles.guideStep} role="listitem">
+                    <span className={styles.guideNumber}>01</span>
+                    <div>
+                        <Text fw={700} size="sm">{label(t, 'mod_archive.tree.guide_groups', 'Arrange groups')}</Text>
+                        <Text className={styles.helperText} size="xs">{label(t, 'mod_archive.tree.guide_groups_desc', 'Keep sibling groups independent.')}</Text>
+                    </div>
+                </div>
+                <div className={styles.guideStep} role="listitem">
+                    <span className={styles.guideNumber}>02</span>
+                    <div>
+                        <Text fw={700} size="sm">{label(t, 'mod_archive.tree.guide_routes', 'Set delivery routes')}</Text>
+                        <Text className={styles.helperText} size="xs">{label(t, 'mod_archive.tree.guide_routes_desc', 'Use the fragment inspector when needed.')}</Text>
+                    </div>
+                </div>
+                <div className={styles.guideStep} role="listitem">
+                    <span className={styles.guideNumber}>03</span>
+                    <div>
+                        <Text fw={700} size="sm">{label(t, 'mod_archive.tree.guide_preview', 'Preview context')}</Text>
+                        <Text className={styles.helperText} size="xs">{label(t, 'mod_archive.tree.guide_preview_desc', 'Confirm the final narrative delivery.')}</Text>
+                    </div>
+                </div>
+            </div>
             {treeState.phase === 'loading' && (
-                <Paper className={styles.emptyPanel} p="md" withBorder>
+                <Paper className={styles.emptyPanel} p="md" withBorder data-remis-surface="paper">
                     <Group><Loader size="sm" /><Text>{label(t, 'mod_archive.tree.loading', 'Loading relationship draft…')}</Text></Group>
                 </Paper>
             )}
@@ -127,12 +161,15 @@ export const ContextArchiveTreeReview = ({
                         onMoveFragment={treeState.moveFragment}
                         onReorderFragment={treeState.reorderFragment}
                         onSetFragmentDisposition={treeState.setFragmentDisposition}
+                        selectedFragmentId={selectedFragmentId}
+                        onSelectFragment={setSelectedFragmentId}
                         onOpenDetails={onOpenDetails}
                     />
                     <ContextArchiveTreePreview
                         tree={treeState.tree}
                         selectedUnitId={selectedUnitId}
                         onUnitChange={setSelectedUnitId}
+                        selectedFragmentId={selectedFragmentId}
                         t={t}
                     />
                 </div>

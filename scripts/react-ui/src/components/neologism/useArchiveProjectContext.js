@@ -30,6 +30,7 @@ export const useArchiveProjectContext = ({
     selectedProject,
     onSelectedProjectChange,
     targetLanguage,
+    skipGlossary = false,
 }) => {
     const [projects, setProjects] = useState([]);
     const [projectGlossary, setProjectGlossary] = useState(null);
@@ -63,6 +64,7 @@ export const useArchiveProjectContext = ({
         setProjectGlossary(null);
         setGlossaryEntries([]);
         setCandidates([]);
+        if (skipGlossary) return () => { cancelled = true; };
         if (!selectedProject) return () => { cancelled = true; };
 
         const load = async () => {
@@ -90,7 +92,7 @@ export const useArchiveProjectContext = ({
         };
         load();
         return () => { cancelled = true; };
-    }, [selectedProject]);
+    }, [selectedProject, skipGlossary]);
 
     const terminologyIndex = useMemo(() => buildTerminologyIndex({
         glossaryEntries,

@@ -13,6 +13,7 @@ import {
 import {
     IconArrowDown,
     IconArrowUp,
+    IconAdjustmentsHorizontal,
     IconGripVertical,
     IconPlus,
     IconTrash,
@@ -96,6 +97,8 @@ const FragmentNode = ({
     onMoveFragment,
     onReorderFragment,
     onSetFragmentDisposition,
+    selectedFragmentId,
+    onSelectFragment,
     onOpenDetails,
     onDrop,
 }) => {
@@ -106,6 +109,8 @@ const FragmentNode = ({
     return (
         <li
             className={styles.fragment}
+            role="treeitem"
+            aria-label={fragment.label}
             draggable
             onDragStart={(event) => {
                 event.dataTransfer?.setData(FRAGMENT_MIME, fragment.id);
@@ -114,11 +119,24 @@ const FragmentNode = ({
             }}
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => onDrop(event, groupId, fragment.id)}
+            onClick={() => onSelectFragment?.(fragment.id)}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelectFragment?.(fragment.id);
+                }
+            }}
+            tabIndex={0}
+            aria-selected={selectedFragmentId === fragment.id}
+            data-selected={selectedFragmentId === fragment.id || undefined}
             data-testid={`context-tree-fragment-${fragment.id}`}
         >
             <Group className={styles.fragmentHeader} justify="space-between" wrap="nowrap">
                 <Group gap="xs" wrap="nowrap" className={styles.fragmentLabel}>
                     <IconGripVertical className={styles.dragHandle} size={16} aria-hidden="true" />
+                    <span className={styles.fragmentOrder} aria-label={`${label(t, 'mod_archive.tree.fragment_order', 'Fragment order')} ${groupId ? index + 1 : '—'}`}>
+                        {groupId ? String(index + 1).padStart(2, '0') : '—'}
+                    </span>
                     <Text fw={700} className={styles.fragmentLabel}>{fragment.label}</Text>
                 </Group>
                 <Group gap="xs" wrap="wrap">
@@ -134,60 +152,68 @@ const FragmentNode = ({
                 {' · '}
                 {label(t, 'mod_archive.tree.units', 'Units')}: {fragment.unitIds.length}
             </Text>
-            <div className={styles.fragmentActions}>
-                <Select
-                    className={styles.fragmentGroup}
-                    size="xs"
-                    label={label(t, 'mod_archive.tree.move_group', 'Move to group')}
-                    value={groupId || null}
-                    data={groupOptions}
-                    placeholder={label(t, 'mod_archive.tree.choose_group', 'Choose a group')}
-                    onChange={(targetGroupId) => targetGroupId && onMoveFragment({
-                        fragmentId: fragment.id,
-                        targetGroupId,
-                    })}
-                    searchable
-                    clearable={false}
-                />
-                <Select
-                    className={styles.fragmentRoute}
-                    size="xs"
-                    label={label(t, 'mod_archive.tree.route', 'Route')}
-                    value={fragment.route === TREE_ROUTE.NO_CONTEXT ? TREE_ROUTE.UNRESOLVED : fragment.route}
-                    data={routeOptions(t)}
-                    onChange={(route) => route && onSetFragmentDisposition(fragment.id, route, {
-                        targetGroupId: groupId,
-                    })}
-                    clearable={false}
-                />
-                {groupId && (
-                    <Group gap={2} wrap="nowrap">
-                        <Button
-                            size="compact-xs"
-                            variant="subtle"
-                            aria-label={label(t, 'mod_archive.tree.move_up', 'Move fragment up')}
-                            onClick={() => onReorderFragment({ fragmentId: fragment.id, groupId, index: index - 1 })}
-                            disabled={index <= 0}
-                        >
-                            <IconArrowUp size={14} aria-hidden="true" />
-                        </Button>
-                        <Button
-                            size="compact-xs"
-                            variant="subtle"
-                            aria-label={label(t, 'mod_archive.tree.move_down', 'Move fragment down')}
-                            onClick={() => onReorderFragment({ fragmentId: fragment.id, groupId, index: index + 1 })}
-                            disabled={index >= groupLength - 1}
-                        >
-                            <IconArrowDown size={14} aria-hidden="true" />
-                        </Button>
+            <details className={styles.fragmentControls}>
+                <summary>
+                    <IconAdjustmentsHorizontal size={14} aria-hidden="true" />
+                    {label(t, 'mod_archive.tree.adjust_relationship', 'Adjust relationship')}
+                </summary>
+                <div className={styles.fragmentActions}>
+                    <Select
+                        className={styles.fragmentGroup}
+                        size="xs"
+                        label={label(t, 'mod_archive.tree.move_group', 'Move to group')}
+                        value={groupId || null}
+                        data={groupOptions}
+                        placeholder={label(t, 'mod_archive.tree.choose_group', 'Choose a group')}
+                        onChange={(targetGroupId) => targetGroupId && onMoveFragment({
+                            fragmentId: fragment.id,
+                            targetGroupId,
+                        })}
+                        searchable
+                        clearable={false}
+                    />
+                    <Select
+                        className={styles.fragmentRoute}
+                        size="xs"
+                        label={label(t, 'mod_archive.tree.route', 'Route')}
+                        value={fragment.route === TREE_ROUTE.NO_CONTEXT ? TREE_ROUTE.UNRESOLVED : fragment.route}
+                        data={routeOptions(t)}
+                        onChange={(route) => route && onSetFragmentDisposition(fragment.id, route, {
+                            targetGroupId: groupId,
+                        })}
+                        clearable={false}
+                    />
+                    <Group className={styles.fragmentToolRow} gap="xs" wrap="wrap">
+                        {groupId && (
+                            <Group gap={2} wrap="nowrap">
+                                <Button
+                                    size="compact-xs"
+                                    variant="subtle"
+                                    aria-label={label(t, 'mod_archive.tree.move_up', 'Move fragment up')}
+                                    onClick={() => onReorderFragment({ fragmentId: fragment.id, groupId, index: index - 1 })}
+                                    disabled={index <= 0}
+                                >
+                                    <IconArrowUp size={14} aria-hidden="true" />
+                                </Button>
+                                <Button
+                                    size="compact-xs"
+                                    variant="subtle"
+                                    aria-label={label(t, 'mod_archive.tree.move_down', 'Move fragment down')}
+                                    onClick={() => onReorderFragment({ fragmentId: fragment.id, groupId, index: index + 1 })}
+                                    disabled={index >= groupLength - 1}
+                                >
+                                    <IconArrowDown size={14} aria-hidden="true" />
+                                </Button>
+                            </Group>
+                        )}
+                        {onOpenDetails && (
+                            <Button size="xs" variant="subtle" onClick={() => onOpenDetails(fragment)}>
+                                {label(t, 'mod_archive.tree.open_details', 'Open details')}
+                            </Button>
+                        )}
                     </Group>
-                )}
-                {onOpenDetails && (
-                    <Button size="xs" variant="subtle" onClick={() => onOpenDetails(fragment)}>
-                        {label(t, 'mod_archive.tree.open_details', 'Open details')}
-                    </Button>
-                )}
-            </div>
+                </div>
+            </details>
         </li>
     );
 };
@@ -202,6 +228,8 @@ const GroupNode = ({
     onMoveFragment,
     onReorderFragment,
     onSetFragmentDisposition,
+    selectedFragmentId,
+    onSelectFragment,
     onOpenDetails,
     onDrop,
 }) => (
@@ -245,6 +273,8 @@ const GroupNode = ({
                         onMoveFragment={onMoveFragment}
                         onReorderFragment={onReorderFragment}
                         onSetFragmentDisposition={onSetFragmentDisposition}
+                        selectedFragmentId={selectedFragmentId}
+                        onSelectFragment={onSelectFragment}
                         onOpenDetails={onOpenDetails}
                         onDrop={onDrop}
                     />
@@ -272,6 +302,8 @@ const StoryNode = ({
     onMoveFragment,
     onReorderFragment,
     onSetFragmentDisposition,
+    selectedFragmentId,
+    onSelectFragment,
     onOpenDetails,
     onDrop,
 }) => {
@@ -333,6 +365,8 @@ const StoryNode = ({
                         onMoveFragment={onMoveFragment}
                         onReorderFragment={onReorderFragment}
                         onSetFragmentDisposition={onSetFragmentDisposition}
+                        selectedFragmentId={selectedFragmentId}
+                        onSelectFragment={onSelectFragment}
                         onOpenDetails={onOpenDetails}
                         onDrop={onDrop}
                     />
@@ -354,6 +388,8 @@ export const ContextArchiveTreeCanvas = ({
     onMoveFragment,
     onReorderFragment,
     onSetFragmentDisposition,
+    selectedFragmentId,
+    onSelectFragment,
     onOpenDetails,
 }) => {
     const [creatingStory, setCreatingStory] = useState(false);
@@ -380,7 +416,7 @@ export const ContextArchiveTreeCanvas = ({
         onMoveFragment({ fragmentId, targetGroupId, overFragmentId });
     };
     return (
-        <Paper className={styles.treePanel} p="md" withBorder data-testid="context-tree-canvas">
+      <Paper className={styles.treePanel} p="md" withBorder data-remis-surface="paper" data-testid="context-tree-canvas">
             <Group className={styles.canvasHeader} justify="space-between" wrap="wrap">
                 <div>
                     <Title order={4}>{label(t, 'mod_archive.tree.relationships_title', 'Stories and event groups')}</Title>
@@ -423,6 +459,8 @@ export const ContextArchiveTreeCanvas = ({
                         onMoveFragment={onMoveFragment}
                         onReorderFragment={onReorderFragment}
                         onSetFragmentDisposition={onSetFragmentDisposition}
+                        selectedFragmentId={selectedFragmentId}
+                        onSelectFragment={onSelectFragment}
                         onOpenDetails={onOpenDetails}
                         onDrop={handleDrop}
                     />
@@ -454,6 +492,8 @@ export const ContextArchiveTreeCanvas = ({
                                 onMoveFragment={onMoveFragment}
                                 onReorderFragment={onReorderFragment}
                                 onSetFragmentDisposition={onSetFragmentDisposition}
+                                selectedFragmentId={selectedFragmentId}
+                                onSelectFragment={onSelectFragment}
                                 onOpenDetails={onOpenDetails}
                                 onDrop={handleDrop}
                             />

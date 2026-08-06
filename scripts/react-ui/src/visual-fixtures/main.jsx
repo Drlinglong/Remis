@@ -6,6 +6,7 @@ import '@mantine/core/styles.css';
 import '../index.css';
 import '../themes/index.css';
 import '../themes/definitions.css';
+import '../i18n/i18n';
 import { theme as customTheme } from '../theme';
 import VisualReliabilityLab from './VisualReliabilityLab';
 

@@ -71,6 +71,18 @@ def _context_release_presentation(release):
     return payload
 
 
+def _context_release_version_summary(release):
+    metadata = release.metadata
+    return {
+        "release_id": release.release_id,
+        "project_id": release.project_id,
+        "created_at": metadata.created_at,
+        "parent_release_id": metadata.parent_release_id,
+        "upstream_version": metadata.upstream_version,
+        "analysis_scope": metadata.analysis_scope,
+    }
+
+
 def _normalize_language_code(value: str) -> str:
     try:
         return LanguageCode.from_str(value).value
@@ -529,7 +541,17 @@ def get_latest_context_release(project_id: str, optional: bool = False):
         if optional:
             return {"release": None}
         raise HTTPException(status_code=404, detail="No context release exists for this project")
-    return _context_release_presentation(release[0])
+    payload = _context_release_presentation(release[0])
+    payload["versions"] = [_context_release_version_summary(item) for item in release]
+    return payload
+
+
+@router.get("/api/context/releases/{release_id}")
+def get_context_release(release_id: str):
+    release = context_repository.get_release(release_id)
+    if release is None:
+        raise HTTPException(status_code=404, detail="Context release not found")
+    return _context_release_presentation(release)
 
 
 @router.get("/api/context/projects/{project_id}/analysis-preview")

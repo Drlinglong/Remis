@@ -45,6 +45,44 @@ def test_latest_context_release_includes_model_facing_prompt_example(monkeypatch
     assert "User message:" in metadata["prompt_example"]
 
 
+def test_context_release_versions_can_be_listed_and_selected(monkeypatch):
+    release_1 = ContextRelease(
+        release_id="release-1",
+        project_id="project-1",
+        metadata=ContextReleaseMetadata(
+            source_snapshot_hash="snapshot-1",
+            analysis_scope={"mode": "narrative_context"},
+            schema_version="context-tree-v2",
+            prompt_version="context-synthesis-v4",
+            provider_id="local",
+            model_id="model-1",
+        ),
+    )
+    release_2 = release_1.model_copy(
+        update={"release_id": "release-2", "metadata": release_1.metadata.model_copy(
+            update={"parent_release_id": "release-1", "created_at": "2026-08-05T00:00:00Z"},
+        )},
+    )
+    monkeypatch.setattr(
+        neologism_router.context_repository,
+        "list_releases",
+        lambda project_id: [release_2, release_1] if project_id == "project-1" else [],
+    )
+    monkeypatch.setattr(
+        neologism_router.context_repository,
+        "get_release",
+        lambda release_id: {"release-1": release_1, "release-2": release_2}.get(release_id),
+    )
+
+    latest = client.get("/api/context/releases/project-1/latest")
+    selected = client.get("/api/context/releases/release-1")
+
+    assert latest.status_code == 200
+    assert [item["release_id"] for item in latest.json()["versions"]] == ["release-2", "release-1"]
+    assert selected.status_code == 200
+    assert selected.json()["release_id"] == "release-1"
+
+
 def test_unpublished_context_analysis_preview_is_read_only_and_explicit(monkeypatch):
     preview = ContextAnalysisPreview(
         project_id="project-1",

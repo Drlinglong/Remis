@@ -21,12 +21,22 @@
 }
 
 .reviewHeader {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.reviewHeader {
     margin-bottom: 1rem;
 }
 
 .reviewTitle {
     flex: 1 1 20rem;
     min-width: 0;
+}
+
+.reviewActions {
+    flex: 0 0 auto;
 }
 
 .reviewSubtitle,
@@ -37,7 +47,12 @@
 }
 
 .status {
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    gap: 0.5rem;
+    min-height: 1.75rem;
+    margin-bottom: 1rem;
     color: var(--surface-text-muted);
 }
 
@@ -47,8 +62,8 @@
 
 .canvas {
     display: grid;
-    grid-template-columns: minmax(18rem, 1fr) minmax(19rem, 0.92fr);
-    gap: 1rem;
+    grid-template-columns: minmax(0, 1.12fr) minmax(20rem, 0.88fr);
+    gap: 1.25rem;
     align-items: start;
 }
 
@@ -65,6 +80,7 @@
 
 .treePanel {
     min-width: 0;
+    min-height: 100%;
 }
 
 .treeRoot,
@@ -77,13 +93,25 @@
     list-style: none;
 }
 
+.groupList {
+    position: relative;
+    margin-left: 0.35rem;
+    padding-left: 0.9rem;
+    border-left: 1px solid color-mix(in srgb, var(--paper-text-main) 18%, transparent);
+}
+
+.fragmentList {
+    padding-left: 0.65rem;
+    border-left: 1px solid color-mix(in srgb, var(--paper-text-main) 13%, transparent);
+}
+
 .story {
     display: grid;
     gap: 0.7rem;
     padding: 0.8rem;
-    border: 1px solid color-mix(in srgb, var(--paper-text-main) 16%, transparent);
-    border-radius: 0.6rem;
-    background: color-mix(in srgb, var(--paper-bg) 82%, var(--interactive-accent));
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 22%, transparent);
+    border-radius: 0.7rem;
+    background: var(--paper-bg);
 }
 
 .storyTitle,
@@ -99,12 +127,22 @@
 }
 
 .group {
+    position: relative;
     display: grid;
     gap: 0.6rem;
     padding: 0.7rem;
     border: 1px solid color-mix(in srgb, var(--paper-text-main) 14%, transparent);
     border-radius: 0.55rem;
-    background: color-mix(in srgb, var(--paper-bg) 92%, var(--interactive-accent));
+    background: color-mix(in srgb, var(--paper-bg) 96%, var(--interactive-accent));
+}
+
+.group::before {
+    position: absolute;
+    top: 1.2rem;
+    left: -0.9rem;
+    width: 0.9rem;
+    border-top: 1px solid color-mix(in srgb, var(--paper-text-main) 18%, transparent);
+    content: '';
 }
 
 .dropTarget {
@@ -122,10 +160,11 @@
 .fragment {
     display: grid;
     gap: 0.35rem;
-    padding: 0.6rem;
+    padding: 0.65rem 0.7rem;
     border: 1px solid color-mix(in srgb, var(--paper-text-main) 16%, transparent);
-    border-radius: 0.45rem;
+    border-radius: 0.5rem;
     background: var(--paper-bg);
+    transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
 
 .fragment[draggable='true'] {
@@ -136,12 +175,37 @@
     cursor: grabbing;
 }
 
+.fragment:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 3px;
+}
+
+.fragment[data-selected='true'] {
+    border-color: var(--interactive-accent);
+    background: color-mix(in srgb, var(--interactive-accent) 8%, var(--paper-bg));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 14%, transparent);
+}
+
+.fragment:hover,
+.fragment:focus-within {
+    border-color: color-mix(in srgb, var(--interactive-accent) 52%, var(--paper-text-main));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 10%, transparent);
+}
+
 .dragHandle {
     display: inline-flex;
     width: 1.25rem;
     justify-content: center;
     color: var(--paper-text-muted);
     user-select: none;
+}
+
+.fragmentOrder {
+    min-width: 1.75rem;
+    color: var(--paper-text-muted);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
 }
 
 .fragmentLabel {
@@ -160,6 +224,49 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 0.35rem;
+}
+
+.fragmentControls {
+    border-top: 1px solid color-mix(in srgb, var(--paper-text-main) 12%, transparent);
+    padding-top: 0.45rem;
+}
+
+.fragmentControls summary,
+.evidenceDetails summary,
+.lowerEntities summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
+    color: var(--paper-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.fragmentControls summary:hover,
+.fragmentControls summary:focus-visible,
+.evidenceDetails summary:hover,
+.evidenceDetails summary:focus-visible,
+.lowerEntities summary:hover,
+.lowerEntities summary:focus-visible {
+    color: var(--paper-text-main);
+}
+
+.fragmentControls summary:focus-visible,
+.evidenceDetails summary:focus-visible,
+.lowerEntities summary:focus-visible,
+.referenceSummary:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 3px;
+}
+
+.fragmentControls[open] summary {
+    color: var(--paper-text-main);
+    margin-bottom: 0.55rem;
+}
+
+.fragmentToolRow {
+    flex: 1 1 100%;
 }
 
 .fragmentRoute,
@@ -195,10 +302,45 @@
     display: grid;
     gap: 0.8rem;
     min-width: 0;
+    position: sticky;
+    top: 1rem;
 }
 
 .previewHeader {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
     margin-bottom: 0.1rem;
+}
+
+.selectedFragment {
+    min-width: 0;
+    border-color: color-mix(in srgb, var(--interactive-accent) 38%, var(--paper-text-main)) !important;
+    background: color-mix(in srgb, var(--interactive-accent) 7%, var(--paper-bg)) !important;
+}
+
+.selectedFragmentTitle,
+.selectedFragmentSummary {
+    overflow-wrap: anywhere;
+}
+
+.selectedFragmentSummary {
+    margin-top: 0.35rem;
+    color: var(--paper-text-main);
+    line-height: 1.5;
+}
+
+.selectedFragmentMeta {
+    margin-top: 0.55rem;
+}
+
+.selectionEmpty {
+    padding: 0.75rem;
+    border: 1px dashed color-mix(in srgb, var(--paper-text-main) 22%, transparent);
+    border-radius: 0.5rem;
+    color: var(--paper-text-muted);
+    font-size: 0.8rem;
+    line-height: 1.5;
 }
 
 .previewSelect {
@@ -210,6 +352,7 @@
     border-left: 3px solid var(--interactive-accent);
     color: var(--paper-text-muted);
     background: color-mix(in srgb, var(--interactive-accent) 7%, transparent);
+    line-height: 1.5;
 }
 
 .contextGroup {
@@ -274,13 +417,280 @@
     margin-top: 0.75rem;
 }
 
+.summaryPage {
+    min-width: 0;
+    color: var(--canvas-text-main);
+}
+
+.summaryHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.summaryTitleBlock {
+    min-width: 0;
+    max-width: 54rem;
+}
+
+.summaryEyebrow {
+    margin-bottom: 0.35rem;
+    color: var(--canvas-text-muted) !important;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.summaryTitle {
+    margin: 0;
+    letter-spacing: -0.025em;
+}
+
+.summaryLead {
+    max-width: 58rem;
+    margin-top: 0.6rem;
+    color: var(--canvas-text-muted) !important;
+    line-height: 1.55;
+}
+
+.summaryToolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.summaryStatus {
+    white-space: normal;
+}
+
+.editorToggle {
+    padding: 0.55rem 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--canvas-text-main) 14%, transparent);
+    border-radius: 0.55rem;
+    background: var(--surface-bg);
+}
+
+.summaryNotice {
+    border-color: color-mix(in srgb, var(--status-warning) 38%, transparent) !important;
+    color: var(--surface-text-main);
+    background: color-mix(in srgb, var(--status-warning) 9%, var(--surface-bg)) !important;
+    line-height: 1.5;
+}
+
+.metricGrid {
+    min-width: 0;
+}
+
+.metric {
+    min-width: 0;
+    padding: 0.9rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--canvas-text-main) 14%, transparent);
+    border-radius: 0.6rem;
+    background: var(--surface-bg);
+}
+
+.metricValue {
+    color: var(--canvas-text-main);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: clamp(1.2rem, 2vw, 1.65rem);
+    font-weight: 750;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.metricLabel {
+    margin-top: 0.35rem;
+    color: var(--canvas-text-muted) !important;
+    font-size: 0.75rem;
+}
+
+.summarySection {
+    min-width: 0;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.sectionDescription {
+    max-width: 48rem;
+    color: var(--canvas-text-muted) !important;
+    line-height: 1.5;
+}
+
+.eventList,
+.entityList {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.eventCard {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    gap: 0.8rem;
+    min-width: 0;
+    border-color: color-mix(in srgb, var(--paper-text-main) 16%, transparent) !important;
+    background: var(--paper-bg) !important;
+    color: var(--paper-text-main);
+}
+
+.eventIndex {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--interactive-accent) 38%, transparent);
+    border-radius: 50%;
+    color: var(--interactive-accent);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.eventContent {
+    min-width: 0;
+}
+
+.eventHeader {
+    min-width: 0;
+}
+
+.eventFragmentList {
+    min-width: 0;
+    padding-left: 0.85rem;
+    border-left: 1px solid color-mix(in srgb, var(--paper-text-main) 18%, transparent);
+}
+
+.eventFragment {
+    overflow-wrap: anywhere;
+    color: var(--paper-text-main);
+    line-height: 1.5;
+}
+
+.emptyState {
+    color: var(--paper-text-muted) !important;
+    font-style: italic;
+}
+
+.entityCard {
+    min-width: 0;
+    border-color: color-mix(in srgb, var(--paper-text-main) 18%, transparent) !important;
+    background: var(--paper-bg) !important;
+    color: var(--paper-text-main);
+    --mantine-color-text: var(--paper-text-main);
+    --mantine-color-dimmed: var(--paper-text-muted);
+}
+
+.entityName,
+.entitySummary {
+    overflow-wrap: anywhere;
+}
+
+.entitySummary {
+    line-height: 1.55;
+}
+
+.evidenceDetails {
+    min-width: 0;
+    border-top: 1px solid color-mix(in srgb, var(--paper-text-main) 14%, transparent);
+    padding-top: 0.6rem;
+}
+
+.evidenceItem {
+    min-width: 0;
+    border-color: color-mix(in srgb, var(--paper-text-main) 12%, transparent) !important;
+    background: color-mix(in srgb, var(--paper-bg) 92%, var(--interactive-accent)) !important;
+}
+
+.lowerEntities {
+    margin-top: 0.9rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid color-mix(in srgb, var(--canvas-text-main) 14%, transparent);
+}
+
+.lowerEntities[open] > summary {
+    margin-bottom: 0.7rem;
+}
+
+.reviewGuide {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+.guideStep {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    min-width: 0;
+    padding: 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--surface-text-main) 14%, transparent);
+    border-radius: 0.55rem;
+    background: color-mix(in srgb, var(--surface-bg) 90%, var(--interactive-accent));
+}
+
+.guideNumber {
+    color: var(--interactive-accent);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+}
+
+.review .summaryEyebrow,
+.previewPanel .summaryEyebrow {
+    color: var(--paper-text-muted) !important;
+}
+
 @media (max-width: 900px) {
     .canvas {
+        grid-template-columns: 1fr;
+    }
+
+    .previewPanel {
+        position: static;
+    }
+
+    .reviewGuide {
         grid-template-columns: 1fr;
     }
 }
 
 @media (max-width: 560px) {
+    .summaryHeader,
+    .summaryToolbar,
+    .reviewActions {
+        align-items: stretch;
+        justify-content: flex-start;
+        width: 100%;
+    }
+
+    .summaryToolbar {
+        flex-direction: column;
+    }
+
+    .editorToggle {
+        width: 100%;
+    }
+
+    .eventCard {
+        grid-template-columns: 1.8rem minmax(0, 1fr);
+        gap: 0.55rem;
+        padding: 0.75rem;
+    }
+
     .fragmentActions {
         display: grid;
         grid-template-columns: 1fr 1fr;

@@ -10,11 +10,14 @@ const isTreeV2 = (tree) => Boolean(
     && String(tree.schema_version || '').startsWith('context-tree-v2'),
 );
 
-export const contextTreeV2ArchivePath = (projectId, mode) => (
-    `/api/context/tree-v2/projects/${encode(projectId)}/${mode === 'published' ? 'latest-release' : 'latest'}`
-);
+export const contextTreeV2ArchivePath = (projectId, mode, releaseId = null) => {
+    if (mode === 'published' && releaseId) {
+        return `/api/context/tree-v2/projects/${encode(projectId)}/releases/${encode(releaseId)}`;
+    }
+    return `/api/context/tree-v2/projects/${encode(projectId)}/${mode === 'published' ? 'latest-release' : 'latest'}`;
+};
 
-export const useContextTreeV2Archive = (projectId, mode = 'published') => {
+export const useContextTreeV2Archive = (projectId, mode = 'published', releaseId = null) => {
     const [state, setState] = useState({ phase: projectId ? 'loading' : 'idle', tree: null, error: null });
     const refresh = useCallback(async () => {
         if (!projectId) {
@@ -23,7 +26,7 @@ export const useContextTreeV2Archive = (projectId, mode = 'published') => {
         }
         setState((current) => ({ ...current, phase: 'loading', error: null }));
         try {
-            const response = await api.get(contextTreeV2ArchivePath(projectId, mode));
+            const response = await api.get(contextTreeV2ArchivePath(projectId, mode, releaseId));
             const tree = response?.data || response;
             if (!isTreeV2(tree)) {
                 setState({ phase: 'empty', tree: null, error: null });
@@ -39,7 +42,7 @@ export const useContextTreeV2Archive = (projectId, mode = 'published') => {
             setState({ phase: 'error', tree: null, error: error?.message || 'context_tree_v2_load_failed' });
             return null;
         }
-    }, [mode, projectId]);
+    }, [mode, projectId, releaseId]);
 
     useEffect(() => { refresh(); }, [refresh]);
     return { ...state, refresh };
