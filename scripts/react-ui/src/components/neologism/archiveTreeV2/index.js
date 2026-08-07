@@ -1,6 +1,3 @@
-export { default as ContextArchiveTreeReview } from './ContextArchiveTreeReview';
-export { default as ContextArchiveTreeCanvas } from './ContextArchiveTreeCanvas';
-export { default as ContextArchiveTreePreview } from './ContextArchiveTreePreview';
 export { default as EntityEvidenceDetails } from './EntityEvidenceDetails';
 export { createContextArchiveTreeApi } from './contextArchiveTreeApi';
 export { useContextArchiveTree } from './useContextArchiveTree';

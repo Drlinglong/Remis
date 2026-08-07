@@ -10,7 +10,6 @@ import { filterAnalysisPreviewEntries } from './contextAnalysisPreviewModel';
 import { useContextAnalysisPreview } from './useContextAnalysisPreview';
 import styles from './ModArchive.module.css';
 import EntityEvidenceDetails from './archiveTreeV2/EntityEvidenceDetails';
-import ContextArchiveTreeReview from './archiveTreeV2/ContextArchiveTreeReview';
 import ContextTreeV2ArchiveSummary from './archiveTreeV2/ContextTreeV2ArchiveSummary';
 import { useContextTreeV2Archive } from './archiveTreeV2/useContextTreeV2Archive';
 
@@ -270,14 +269,6 @@ const PreviewContent = ({ preview, refresh, projectToolbar, t }) => {
                     )}
                 </Stack>
             </Paper>}
-            {advanced && (
-                <ContextArchiveTreeReview
-                    projectId={preview.project_id}
-                    releaseId={preview.release_id}
-                    mode="preview"
-                    treeData={preview.context_tree_v2 || preview.context_tree || preview.archive_tree || preview.tree || null}
-                />
-            )}
         </Container>
     );
 };
