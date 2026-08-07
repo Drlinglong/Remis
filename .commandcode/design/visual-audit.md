@@ -120,24 +120,21 @@
 
 ## 附录 A：模组档案馆（Context Archive Tree v2）专项（2026-08-07）
 
-> 该模块（`components/neologism/archiveTreeV2/` + `ModArchive*`）是未来一段时间的重点开发对象。其代码纪律优于老模块（`ContextArchiveTree.module.css` 仅 19 处 `!important`，`ModArchive.module.css` 62 处），骨架（缩进导线、sticky inspector、mono 序号、aria 树角色、键盘可达）值得保留。以下诊断把"感觉难受但说不出来"翻译为具体设计语言问题。
+> 该模块（`components/neologism/archiveTreeV2/` + `ModArchive*`）是未来一段时间的重点开发对象。以下诊断把"感觉难受但说不出来"翻译为具体设计语言问题。
 
-### A.1 “难受”的具体来源（按体感权重排序）
+> **2026-08-07 工作流对齐修正**：本模块曾存在两个关系编辑面——已发布工作台（`PublishedContextWorkbench/Map`，用户实际主战场）与旧草稿编辑器（`ContextArchiveTreeReview/Canvas`，"一墙文字"树，用户早已否决）。结合 `docs/zh/developer/context-archive-tree-v2-plan.md`：关系图由 #4 全局编排模型产出 AI 草稿，用户的主任务是**审核该草稿并修订故事线**（实体摘要链路已成熟、低注意力）；unresolved 仅是 repair 失败的残余例外，**不是**主工作队列。旧草稿编辑器本轮已整体删除（见 A.1 归档说明），已发布工作台的专项诊断见 A.3。
 
-1. **转场全面缺席。** 全模块仅 `.fragment` 有一条 120ms hover 过渡（其中 `transform` 从未被触发，属死代码）。4 处原生 `<details>` 瞬间开合；新建表单、空/加载态、总览↔编辑器切换均为条件渲染硬切；拖拽排序与上下移动瞬间换位。人眼把一切瞬间跳变读作"粗糙"。
-2. **拖拽反馈装死。** dropTarget 只有 `:hover`/`:focus-within` 高亮，HTML5 拖拽过程中二者都不触发——拖一个 fragment 时整个界面零反馈。
-3. **五层嵌套边框。** treePanel > story > group > dropTarget（常驻虚线框）> fragment，每个嵌套层级各画一个矩形。这是"草稿/线框感"的直接来源：边框本应表达分组，现在每层都在喊。`DESIGN.md` 第 56 行已禁止此模式。
-4. **标题常驻表单态。** story/group 标题始终渲染为 `TextInput`，整棵树读作"待填表单"而非内容作品。应为阅读态标题 + hover/点击进入编辑。
-5. **注意力预算失衡。** guide 三步条（帮助文本）用 accent 着色背景，比工作区更抢眼；每个 fragment 2 个 badge + 每组/每 story 计数 badge；grip 图标常驻。次要信息不够安静，主行动（Save draft）与 Reset/Add story 重量接近。
-6. **间距不系统。** 0.35/0.45/0.55/0.65/0.7/0.75rem 等 10+ 种随意值，未落 DESIGN.md 的 4px 基准与 8/12/16/24/32 节奏。
-7. **死代码。** `.editorToggle` 有样式定义但无 JSX 引用。
+### A.1（已归档）旧草稿编辑器删除记录
 
-### A.2 改良处方（按收益/成本排序）
+`ContextArchiveTreeReview.jsx`、`ContextArchiveTreeCanvas.jsx`、`ContextArchiveTreePreview.jsx`、其独占的 `ContextArchiveTree.module.css`（704 行）与 2 个测试文件已于 2026-08-07 整体删除。保留约束：**任何关系编辑能力只存在于已发布工作台一个表面**，不得再引入第二个编辑器。原 A.1/A.2 中仍具普适性的处方（动效系统、去框、标题阅读态化、注意力预算、间距 token 化）已并入 §4 策略与 A.3，适用于已发布工作台。
 
-1. **动效系统（最优先，直接回应"转场难受"）。** `<details>` 改可控 accordion，用 `grid-template-rows: 0fr → 1fr` 做高度动画（250ms ease-out，退场 70% 时长）；总览↔编辑器、加载→内容切换用三拍入场（0→150→250ms，scale 0.98→1 + opacity）；列表重排加 FLIP 位移动画；新建表单同高度动画展开而非闪现。仅动 `transform/opacity/grid-rows`，全部提供 `prefers-reduced-motion` 降级。折叠/切换/重排动画纯 CSS + 少量 hook 即可，无需新依赖。**拖拽直接采用 @dnd-kit 替换原生 HTML5 DnD**（2026-08-07 由"中期可评估"升级为本次必做）：项目已有 `@dnd-kit/core+sortable+utilities` 依赖，`KanbanBoard` 与本模块 `PublishedContextMap` 均在使用；原生 draggable 在 Tauri WebView 中会触发系统"禁止"反馈（首版即无法拖拽），且其 ghost 与零放置反馈是廉价感大户。@dnd-kit 的 `DragOverlay` 可同时解决功能与观感。
-2. **拖拽反馈。** 拖拽会话期间在 canvas 根加 `data-dragging`，此时才显示 dropTarget 虚线框并对悬停目标加 `data-drag-over` 高亮；被拖元素 8% 缩放 + 半透明。平时 dropTarget 收成安静的空态 hint。
-3. **去框。** story 保留卡片（它是内容锚点）；group 去边框只留左侧缩进导线 + 连接 tick；fragment 去边框改细分隔线或纯留白分隔，选中/悬停才现框。目标：5 层矩形 → 1 层卡片 + 导线。
-4. **标题阅读态化。** story/group 标题默认渲染为主题 header 字体文本，hover 显示重命名入口，点击进入编辑；删除按钮 hover 才出现（保持焦点可达）。
-5. **注意力重排。** guide 三步条去掉 accent 底色，降为安静文本行或可折叠 hint；tier/route badge 移入选中 fragment 的 inspector，树上只保留必要计数；Save draft 成为唯一 accent 填充主行动。
-6. **间距 token 化。** 收敛至 4/8/12/16/24 阶梯，模块内不再出现 0.35rem 这类随意值。
-7. **验收。** 全部改动走既有 `context-tree.spec.js` 五主题 Playwright 截图门禁 + 对比度测试；动效补 reduced-motion 变体用例。
+### A.3 已发布工作台（PublishedContextWorkbench/Map）专项——用户实际主战场
+
+该组件质量优于草稿编辑器：已在用 @dnd-kit + `DragOverlay`（6px 激活阈值）、总览（仅标题）/聚焦（含摘要）密度分层、root→story→chain 连接线语言、聚焦列 accent 竖线表达顺序、实体摘要 3 行钳制、删除两段式确认。按"注意力集中在关系图修订"的工作流，剩余问题：
+
+1. **总览↔聚焦瞬时硬切。** 这是审核循环的核心导航（扫链 → 验链 → 返回 → 下一条），`data-view` hook 已存在但无任何转场——"切换难受"的主现场。
+2. **聚焦态是孤岛。** 聚焦一条链时其他链不渲染，跨链移动必须回总览；但总览卡片只有标题——"验证内容"（聚焦，有摘要）与"修位置"（总览，无摘要）被拆在两个视图，修复闭环反复往返。处方：聚焦态保留其余链的可拖放迷你栏（collapsed rail），跨链移动一步到位。
+3. **修复能力分裂。** 重命名链、将误判 fragment 改为 reference/unresolved 只存在于草稿编辑器；按 v2 plan《前端审核边界》这些都属于树状审核页操作，应收拢进已发布工作台（选中即编辑），淘汰双编辑器。
+4. **"Needs placement" 伪列与正常链同装束。** 它是 repair 失败的例外队列，应有警示色与固定位置，而不是混在链网格里。
+5. **双拖拽系统并存。** dnd-kit 之外还挂了原生 HTML5 DnD fallback（`handleNativeDragStart/Drop`），会在 Tauri WebView 重新引入系统"禁止"反馈——删除原生路径，统一 @dnd-kit。
+6. 卡片边框/常驻把手/原生 `<details>` 等观感问题与全局一致，随视觉轮处理。
