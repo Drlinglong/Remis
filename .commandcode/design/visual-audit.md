@@ -39,6 +39,16 @@
 9. 背景材质（`GlobalStyles.css` 的多重渐变/噪点/扫描线）在部分主题下过重，与前景玻璃卡叠加后产生“纹理打架”；可在保留世界观的前提下做减法与降噪。
 10. 图表与数据可视化的主题适配停留在默认色，需与语义 token 对齐并做色盲模拟校验。
 
+### 复核增补（2026-08-07，基于五主题渲染截图与代码量化）
+
+本次复核用 Playwright 五主题截图（视觉契约夹具 + 档案树真实页面）与样式层量化扫描验证了上述判断，结论全部成立，并作如下修正与补充：
+
+- **P0-1 的根因确认——装饰权重原语缺失。** 截图眯眼测试五主题全灭：拜占庭每个面板 2px 金边、维多利亚 3px 双线黄铜、科幻全面辉光、中世纪 3px 金边。根本原因是每个主题只有**一根** `--surface-border`/`--glass-border`，面板无法"安静"。token 体系必须新增**安静/锚点两级装饰权重**（如 `--surface-border-quiet` / `--surface-border-anchor`），否则层级问题治标不本。
+- **P2-9 升级为 P0，并提前至阶段 1。** 科幻主题背景同时叠加星空 + 4px 扫描线 + 2px CRT + RGB 色散条纹四层（`GlobalStyles.css`），动画扫描线直接穿过半透明面板；拜占庭金粉颗粒在玻璃卡后呈现"屏幕脏点"感。背景降噪成本极低、视觉收益立现，每主题只保留一个背景母题。
+- **新发现：CJK 字体栈全主题缺失。** 五个主题的 `--font-body`（Lato/Georgia/Roboto/Arial/Times）均未声明中文回退；Cinzel/Orbitron/Playfair 无中文字形。中文为主的本地化工具，标题混排不可控——比行高补偿更根本。
+- **新发现：`paper` 材质隐喻跨主题互相矛盾。** 纸面在拜占庭/二战/中世纪为浅色、在维多利亚/科幻为深色。对比度契约能兜底可读性，但"纸 = 证据文档"的心智模型在主题间翻转，是长期迷惑源。
+- **量化证据：** `!important` 共 832 处、散布 40 个 CSS 文件（`definitions.css` 123、`ProjectManagement.module.css` 104、`ModArchive.module.css` 62、`JudgmentCourt.module.css` 57）；模块 CSS 硬编码圆角 10+ 种取值（0/2/3/4/6/8/10/12/14/16/999px），主题自身的圆角身份（科幻 0px、中世纪 12px）被模块随手打破；`glassCard` 模式在 27 个文件重复实现；`definitions.css` 无任何 `--space-*` 与字阶 token。
+
 ---
 
 ## 4. 改良策略（与 DESIGN.md 兼容）
@@ -83,8 +93,8 @@
 | 阶段 | 内容 | 验收 |
 |------|------|------|
 | 0 | 基线截图：`npm run test:visual` 在 1440/375 下对 `VisualReliabilityLab` 全主题留底 | 截图基线已提交 |
-| 1 | 主题收敛与清理：`definitions.css` 为主、`themes/*.css` 去功能性覆盖、清理 `App.css`/`theme.js` | 夹具五主题可读性通过，现有回归测试全绿 |
-| 2 | 间距/表面/版式 token 体系落地 | 任一页面在五主题下无硬编码间距/颜色残留 |
+| 1 | 主题收敛与清理 + 背景降噪：`definitions.css` 为主、`themes/*.css` 去功能性覆盖、清理 `App.css`/`theme.js`；每主题背景收敛为单一母题（删科幻 RGB 色散层与扫描线动画、拜占庭去金粉留晕影） | 夹具五主题可读性通过，现有回归测试全绿 |
+| 2 | 间距/表面/版式 token 体系落地，以**装饰权重两级 token**（quiet/anchor）为基石；补齐显式 CJK 字体栈 | 任一页面在五主题下无硬编码间距/颜色残留；眯眼测试可识别单一锚点 |
 | 3 | Home + 项目管理 relayout 试点 | 单锚点与主行动可一扫识别，空/加载/错误态完整 |
 | 4 | 档案上下文树与术语判决区 surface 硬化 | 长文本/长路径/超长标识符无溢出，编辑态可追溯 |
 | 5 | 动效与可访问性收尾（focus ring、触控 44px、色盲模拟） | 键盘可达、对比度 AA、动效可关闭 |
@@ -105,3 +115,29 @@
 - 若你希望先看效果，我也可以先对 **HomePage** 做一个不触及主题覆盖的**局部 `refine`**（版式+间距+层级收敛），作为审美方向的小样供你定调，再铺开系统化改造。
 
 > 提案文件位置：`.commandcode/design/visual-audit.md`；设计上下文：`.commandcode/design/brief.md`。
+
+---
+
+## 附录 A：模组档案馆（Context Archive Tree v2）专项（2026-08-07）
+
+> 该模块（`components/neologism/archiveTreeV2/` + `ModArchive*`）是未来一段时间的重点开发对象。其代码纪律优于老模块（`ContextArchiveTree.module.css` 仅 19 处 `!important`，`ModArchive.module.css` 62 处），骨架（缩进导线、sticky inspector、mono 序号、aria 树角色、键盘可达）值得保留。以下诊断把"感觉难受但说不出来"翻译为具体设计语言问题。
+
+### A.1 “难受”的具体来源（按体感权重排序）
+
+1. **转场全面缺席。** 全模块仅 `.fragment` 有一条 120ms hover 过渡（其中 `transform` 从未被触发，属死代码）。4 处原生 `<details>` 瞬间开合；新建表单、空/加载态、总览↔编辑器切换均为条件渲染硬切；拖拽排序与上下移动瞬间换位。人眼把一切瞬间跳变读作"粗糙"。
+2. **拖拽反馈装死。** dropTarget 只有 `:hover`/`:focus-within` 高亮，HTML5 拖拽过程中二者都不触发——拖一个 fragment 时整个界面零反馈。
+3. **五层嵌套边框。** treePanel > story > group > dropTarget（常驻虚线框）> fragment，每个嵌套层级各画一个矩形。这是"草稿/线框感"的直接来源：边框本应表达分组，现在每层都在喊。`DESIGN.md` 第 56 行已禁止此模式。
+4. **标题常驻表单态。** story/group 标题始终渲染为 `TextInput`，整棵树读作"待填表单"而非内容作品。应为阅读态标题 + hover/点击进入编辑。
+5. **注意力预算失衡。** guide 三步条（帮助文本）用 accent 着色背景，比工作区更抢眼；每个 fragment 2 个 badge + 每组/每 story 计数 badge；grip 图标常驻。次要信息不够安静，主行动（Save draft）与 Reset/Add story 重量接近。
+6. **间距不系统。** 0.35/0.45/0.55/0.65/0.7/0.75rem 等 10+ 种随意值，未落 DESIGN.md 的 4px 基准与 8/12/16/24/32 节奏。
+7. **死代码。** `.editorToggle` 有样式定义但无 JSX 引用。
+
+### A.2 改良处方（按收益/成本排序）
+
+1. **动效系统（最优先，直接回应"转场难受"）。** `<details>` 改可控 accordion，用 `grid-template-rows: 0fr → 1fr` 做高度动画（250ms ease-out，退场 70% 时长）；总览↔编辑器、加载→内容切换用三拍入场（0→150→250ms，scale 0.98→1 + opacity）；列表重排加 FLIP 位移动画；新建表单同高度动画展开而非闪现。仅动 `transform/opacity/grid-rows`，全部提供 `prefers-reduced-motion` 降级。折叠/切换/重排动画纯 CSS + 少量 hook 即可，无需新依赖。**拖拽直接采用 @dnd-kit 替换原生 HTML5 DnD**（2026-08-07 由"中期可评估"升级为本次必做）：项目已有 `@dnd-kit/core+sortable+utilities` 依赖，`KanbanBoard` 与本模块 `PublishedContextMap` 均在使用；原生 draggable 在 Tauri WebView 中会触发系统"禁止"反馈（首版即无法拖拽），且其 ghost 与零放置反馈是廉价感大户。@dnd-kit 的 `DragOverlay` 可同时解决功能与观感。
+2. **拖拽反馈。** 拖拽会话期间在 canvas 根加 `data-dragging`，此时才显示 dropTarget 虚线框并对悬停目标加 `data-drag-over` 高亮；被拖元素 8% 缩放 + 半透明。平时 dropTarget 收成安静的空态 hint。
+3. **去框。** story 保留卡片（它是内容锚点）；group 去边框只留左侧缩进导线 + 连接 tick；fragment 去边框改细分隔线或纯留白分隔，选中/悬停才现框。目标：5 层矩形 → 1 层卡片 + 导线。
+4. **标题阅读态化。** story/group 标题默认渲染为主题 header 字体文本，hover 显示重命名入口，点击进入编辑；删除按钮 hover 才出现（保持焦点可达）。
+5. **注意力重排。** guide 三步条去掉 accent 底色，降为安静文本行或可折叠 hint；tier/route badge 移入选中 fragment 的 inspector，树上只保留必要计数；Save draft 成为唯一 accent 填充主行动。
+6. **间距 token 化。** 收敛至 4/8/12/16/24 阶梯，模块内不再出现 0.35rem 这类随意值。
+7. **验收。** 全部改动走既有 `context-tree.spec.js` 五主题 Playwright 截图门禁 + 对比度测试；动效补 reduced-motion 变体用例。
