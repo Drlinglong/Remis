@@ -1,192 +1,17 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     closestCenter,
     DndContext,
     DragOverlay,
-    KeyboardSensor,
-    PointerSensor,
-    useDraggable,
-    useDroppable,
-    useSensor,
-    useSensors,
 } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
 import { Badge, Button, Paper, Text, TextInput, Title } from '@mantine/core';
-import { IconGripVertical, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconPlus } from '@tabler/icons-react';
 
+import PublishedContextGroupColumn from './PublishedContextGroupColumn';
 import styles from './PublishedContextWorkbench.module.css';
+import { getGroupForFragment, useFragmentDrag } from './useFragmentDrag';
 
 const text = (t, key, fallback, options = {}) => t(key, { defaultValue: fallback, ...options });
-const groupDropId = (groupId) => `group:${groupId}`;
-const fragmentDropId = (fragmentId) => `fragment:${fragmentId}`;
-
-const fragmentIdFromDropId = (value) => String(value || '').replace(/^fragment:/, '');
-
-const getGroupForFragment = (groups, fragmentId) => groups.find((group) => (
-    group.fragmentIds.includes(fragmentId)
-));
-
-const FragmentCard = ({
-    fragment,
-    index,
-    selected,
-    showSummary,
-    onSelect,
-    onNativeDragStart,
-}) => {
-    const {
-        attributes,
-        listeners,
-        setNodeRef: setDragNodeRef,
-        transform,
-        isDragging,
-    } = useDraggable({
-        id: fragment.id,
-        data: { type: 'fragment', fragmentId: fragment.id },
-    });
-    const { setNodeRef: setDropNodeRef, isOver } = useDroppable({
-        id: fragmentDropId(fragment.id),
-        data: { type: 'fragment', fragmentId: fragment.id },
-    });
-    const setNodeRef = (node) => {
-        setDragNodeRef(node);
-        setDropNodeRef(node);
-    };
-    const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
-    return (
-        <button
-            ref={setNodeRef}
-            type="button"
-            className={styles.fragmentCard}
-            style={style}
-            data-selected={selected ? 'true' : 'false'}
-            data-dragging={isDragging ? 'true' : 'false'}
-            data-drag-over={isOver ? 'true' : 'false'}
-            data-testid={`published-context-fragment-${fragment.id}`}
-            aria-label={fragment.label}
-            {...attributes}
-            {...listeners}
-            onClick={() => onSelect(fragment.id)}
-            onDragStart={(event) => onNativeDragStart(event, fragment.id)}
-        >
-            <IconGripVertical className={styles.dragHandle} size={15} aria-hidden="true" />
-            <span className={styles.fragmentOrder}>{String(index + 1).padStart(2, '0')}</span>
-            <span className={styles.fragmentBody}>
-                <span className={styles.fragmentLabel}>{fragment.label}</span>
-                {showSummary && <span className={styles.fragmentSummary}>{fragment.summary || '—'}</span>}
-            </span>
-            <Badge size="xs" variant="outline">{fragment.unitIds.length}</Badge>
-        </button>
-    );
-};
-
-const GroupColumn = ({
-    group,
-    fragments,
-    selectedFragmentId,
-    focused,
-    onSelect,
-    onSelectGroup,
-    onDeleteGroup,
-    onNativeDragStart,
-    onNativeDrop,
-    t,
-}) => {
-    const { setNodeRef, isOver } = useDroppable({
-        id: groupDropId(group.id),
-        data: { type: 'group', groupId: group.id },
-    });
-    const [nativeDragOver, setNativeDragOver] = useState(false);
-    const [confirmDelete, setConfirmDelete] = useState(false);
-    const handleNativeDrop = (event) => {
-        event.preventDefault();
-        setNativeDragOver(false);
-        onNativeDrop(event, group.id);
-    };
-    return (
-        <Paper
-            ref={setNodeRef}
-            className={`${styles.groupColumn} ${focused ? styles.focusedGroupColumn : ''}`}
-            p="sm"
-            withBorder
-            data-remis-surface="paper"
-            data-drag-over={isOver || nativeDragOver ? 'true' : 'false'}
-            data-testid={`published-context-group-${group.id}`}
-            onDragOver={(event) => {
-                event.preventDefault();
-                setNativeDragOver(true);
-            }}
-            onDragLeave={() => setNativeDragOver(false)}
-            onDrop={handleNativeDrop}
-        >
-            <div className={styles.groupHeadingRow}>
-                <button
-                    type="button"
-                    className={styles.groupHeadingButton}
-                    data-testid={`published-context-group-header-${group.id}`}
-                    onClick={() => onSelectGroup?.(group.id)}
-                >
-                    <span className={styles.groupHeadingCopy}>
-                        <span className={styles.groupKicker}>{focused ? 'EVENT CHAIN' : 'CHAIN'}</span>
-                        <span className={styles.groupTitle}>{group.label}</span>
-                        {focused && group.summary && <span className={styles.groupSummary}>{group.summary}</span>}
-                    </span>
-                    <Badge size="sm" variant={focused ? 'light' : 'outline'}>{fragments.length}</Badge>
-                </button>
-                {focused && onDeleteGroup && (
-                    confirmDelete ? (
-                        <div className={styles.groupDeleteConfirm}>
-                            <Button
-                                size="compact-xs"
-                                color="red"
-                                onClick={() => onDeleteGroup(group.id)}
-                            >
-                                {text(t, 'mod_archive.tree_v2.confirm_delete_group', 'Delete chain')}
-                            </Button>
-                            <Button
-                                size="compact-xs"
-                                variant="default"
-                                onClick={() => setConfirmDelete(false)}
-                            >
-                                {text(t, 'cancel', 'Cancel')}
-                            </Button>
-                        </div>
-                    ) : (
-                        <Button
-                            size="compact-xs"
-                            color="red"
-                            variant="subtle"
-                            aria-label={text(t, 'mod_archive.tree_v2.delete_group', 'Delete event chain')}
-                            data-testid={`published-context-delete-group-${group.id}`}
-                            onClick={() => setConfirmDelete(true)}
-                        >
-                            <IconTrash size={15} aria-hidden="true" />
-                        </Button>
-                    )
-                )}
-            </div>
-            <div className={`${styles.fragmentList} ${focused ? styles.focusedFragmentList : ''}`}>
-                {fragments.map((fragment, index) => (
-                    <FragmentCard
-                        key={fragment.id}
-                        fragment={fragment}
-                        index={index}
-                        selected={fragment.id === selectedFragmentId}
-                        showSummary={focused}
-                        onSelect={onSelect}
-                        onNativeDragStart={onNativeDragStart}
-                    />
-                ))}
-                {fragments.length === 0 && (
-                    <div className={styles.dropHint} data-drag-over={isOver ? 'true' : 'false'}>
-                        {text(t, 'mod_archive.tree_v2.empty_group', 'Drop the first card here.')}
-                    </div>
-                )}
-            </div>
-        </Paper>
-    );
-};
-
 const StoryRail = ({ story, t }) => (
     <div className={styles.storyRail}>
         <span className={styles.storyKicker}>{text(t, 'mod_archive.tree_v2.story_label', 'STORY')}</span>
@@ -206,14 +31,9 @@ const PublishedContextMap = ({
     onMoveFragment,
     t,
 }) => {
-    const nativeDragIdRef = useRef(null);
-    const [activeFragmentId, setActiveFragmentId] = useState(null);
     const [showCreateGroup, setShowCreateGroup] = useState(false);
     const [newGroupLabel, setNewGroupLabel] = useState('');
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-        useSensor(KeyboardSensor),
-    );
+    const drag = useFragmentDrag({ groups: tree.groups, onMoveFragment });
     const stories = tree.stories.length > 0 ? tree.stories : [{
         id: 'story-main',
         label: tree.title,
@@ -251,37 +71,12 @@ const PublishedContextMap = ({
         }] : []),
     ];
     const allFragments = useMemo(() => Object.values(tree.fragments), [tree.fragments]);
-    const activeFragment = activeFragmentId
-        ? allFragments.find((fragment) => fragment.id === activeFragmentId)
+    const activeFragment = drag.activeFragmentId
+        ? allFragments.find((fragment) => fragment.id === drag.activeFragmentId)
         : null;
 
-    const handleDragEnd = ({ active, over }) => {
-        setActiveFragmentId(null);
-        if (!over) return;
-        const fragmentId = String(active.id);
-        const overId = String(over.id);
-        const overFragmentId = overId.startsWith('fragment:') ? fragmentIdFromDropId(overId) : null;
-        const targetGroupId = overId.startsWith('group:')
-            ? overId.replace(/^group:/, '')
-            : getGroupForFragment(tree.groups, overFragmentId)?.id;
-        if (!targetGroupId || (overFragmentId === fragmentId && targetGroupId === getGroupForFragment(tree.groups, fragmentId)?.id)) return;
-        onMoveFragment({ fragmentId, targetGroupId, overFragmentId });
-    };
-
-    const handleNativeDragStart = (event, fragmentId) => {
-        nativeDragIdRef.current = fragmentId;
-        event.dataTransfer?.setData('text/plain', fragmentId);
-        if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
-    };
-
-    const handleNativeDrop = (event, groupId) => {
-        const fragmentId = event.dataTransfer?.getData('text/plain') || nativeDragIdRef.current;
-        if (fragmentId) onMoveFragment({ fragmentId, targetGroupId: groupId });
-        nativeDragIdRef.current = null;
-    };
-
     const renderGroup = (group, fragments, selectable = true) => (
-        <GroupColumn
+        <PublishedContextGroupColumn
             key={group.id}
             group={group}
             fragments={fragments}
@@ -290,8 +85,6 @@ const PublishedContextMap = ({
             onSelect={onSelect}
             onSelectGroup={selectable ? onSelectGroup : null}
             onDeleteGroup={selectable ? onDeleteGroup : null}
-            onNativeDragStart={handleNativeDragStart}
-            onNativeDrop={handleNativeDrop}
             t={t}
         />
     );
@@ -367,11 +160,11 @@ const PublishedContextMap = ({
                 </form>
             )}
             <DndContext
-                sensors={sensors}
+                sensors={drag.sensors}
                 collisionDetection={closestCenter}
-                onDragStart={({ active }) => setActiveFragmentId(String(active.id))}
-                onDragCancel={() => setActiveFragmentId(null)}
-                onDragEnd={handleDragEnd}
+                onDragStart={drag.handleDragStart}
+                onDragCancel={drag.handleDragCancel}
+                onDragEnd={drag.handleDragEnd}
             >
                 {focused ? (
                     <div className={styles.focusedGraph}>

@@ -53,7 +53,7 @@ describe('ContextTreeV2ArchiveSummary', () => {
         expect(screen.queryByRole('switch')).not.toBeInTheDocument();
     });
 
-    it('shows the selected fragment source detail and supports moving a card between chains', () => {
+    it('shows the selected fragment source detail and keeps dragging on dnd-kit', () => {
         renderSummary();
 
         fireEvent.click(screen.getByTestId('published-context-fragment-fragment-2'));
@@ -61,12 +61,7 @@ describe('ContextTreeV2ArchiveSummary', () => {
         expect(screen.getByTestId('published-context-detail')).toHaveTextContent('events/resolution.yml:4');
         expect(screen.getByTestId('published-context-map')).toHaveAttribute('data-view', 'focused');
 
-        const dataTransfer = { setData: vi.fn(), effectAllowed: 'none', getData: () => 'fragment-2' };
-        fireEvent.click(screen.getByRole('button', { name: 'Back to overview' }));
-        fireEvent.dragStart(screen.getByTestId('published-context-fragment-fragment-2'), { dataTransfer });
-        fireEvent.drop(screen.getByTestId('published-context-group-group-2'), { dataTransfer });
-
-        expect(screen.getByTestId('published-context-group-group-2')).toHaveTextContent('Resolves the quest');
+        expect(screen.getByTestId('published-context-fragment-fragment-2')).not.toHaveAttribute('draggable');
         expect(screen.getByTestId('published-context-map')).toHaveAttribute('data-remis-surface', 'surface');
     });
 
