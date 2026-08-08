@@ -60,6 +60,25 @@
   --interactive-accent-text: #2E1A47;
   --focus-ring: #FFD700;
   --menu-surface-bg: #FFF8E1;
+  --menu-bg: rgba(255, 248, 225, 0.98);
+  --menu-text: #3E2723;
+  --menu-muted: #6D4C41;
+  --menu-border: #B8860B;
+  --menu-hover-bg: #F0DCA2;
+  --menu-selected-bg: #E4C66A;
+  --menu-selected-text: #2E1A47;
+
+  /* Mantine dark scale compatibility */
+  --mantine-color-dark-9: #1C0F2A;
+  --mantine-color-dark-8: #2E1A47;
+  --mantine-color-dark-7: #3D2456;
+  --mantine-color-dark-6: #4D2E66;
+  --mantine-color-dark-5: #5D3876;
+  --mantine-color-dark-4: #6A0DAD;
+  --mantine-color-dark-3: #7E1BAD;
+  --mantine-color-dark-2: #9A3FC8;
+  --mantine-color-dark-1: #B766D6;
+  --mantine-color-dark-0: #F8F5E4;
 
   /* Materials */
   --glass-bg: linear-gradient(135deg, rgba(40, 0, 20, 0.9), rgba(60, 0, 30, 0.85));
@@ -70,8 +89,8 @@
   --shadow-elevation: 0 4px 12px rgba(0, 0, 0, 0.5);
 
   /* Typography */
-  --font-header: "Cinzel", serif;
-  --font-body: "Lato", sans-serif;
+  --font-header: "Cinzel", "Noto Serif SC", serif;
+  --font-body: "Lato", "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
 
   --mantine-color-anchor: var(--color-accent);
 }
@@ -113,6 +132,25 @@
   --interactive-accent-text: #1A0F08;
   --focus-ring: #FFD54F;
   --menu-surface-bg: #2A1810;
+  --menu-bg: rgba(42, 24, 16, 0.98);
+  --menu-text: #FFFFF0;
+  --menu-muted: #D8C8A8;
+  --menu-border: #B8860B;
+  --menu-hover-bg: #4A3020;
+  --menu-selected-bg: #6B4B1F;
+  --menu-selected-text: #FFF8DC;
+
+  /* Mantine dark scale compatibility */
+  --mantine-color-dark-9: #1A0F08;
+  --mantine-color-dark-8: #2C1810;
+  --mantine-color-dark-7: #3D2818;
+  --mantine-color-dark-6: #4A3020;
+  --mantine-color-dark-5: #5C3D2A;
+  --mantine-color-dark-4: #4A7C59;
+  --mantine-color-dark-3: #6B8E7A;
+  --mantine-color-dark-2: #8FA696;
+  --mantine-color-dark-1: #B5C4B8;
+  --mantine-color-dark-0: #FFFFF0;
 
   /* Materials */
   --glass-bg: rgba(20, 30, 25, 0.95);
@@ -125,8 +163,8 @@
   /* Hard shadow */
 
   /* Typography */
-  --font-header: "Playfair Display", serif;
-  --font-body: "Georgia", serif;
+  --font-header: "Playfair Display", "Noto Serif SC", serif;
+  --font-body: "Georgia", "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
 }
 
 /* =========================================
@@ -163,6 +201,25 @@
   --interactive-accent-text: #050810;
   --focus-ring: #00FFCC;
   --menu-surface-bg: #050810;
+  --menu-bg: rgba(5, 8, 16, 0.98);
+  --menu-text: #E0F7FF;
+  --menu-muted: #91B7C4;
+  --menu-border: #00D9FF;
+  --menu-hover-bg: #152B3D;
+  --menu-selected-bg: #064E61;
+  --menu-selected-text: #FFFFFF;
+
+  /* Mantine dark scale compatibility */
+  --mantine-color-dark-9: #050810;
+  --mantine-color-dark-8: #0A0E1A;
+  --mantine-color-dark-7: #121827;
+  --mantine-color-dark-6: #1A2235;
+  --mantine-color-dark-5: #232C43;
+  --mantine-color-dark-4: #2B3651;
+  --mantine-color-dark-3: #39476B;
+  --mantine-color-dark-2: #4A5E8A;
+  --mantine-color-dark-1: #6B82B0;
+  --mantine-color-dark-0: #E0F7FF;
 
   /* Materials */
   --glass-bg: rgba(10, 20, 30, 0.85);
@@ -176,8 +233,8 @@
   --shadow-glow: 0 0 10px rgba(0, 243, 255, 0.3);
 
   /* Typography */
-  --font-header: "Orbitron", monospace;
-  --font-body: "Roboto", sans-serif;
+  --font-header: "Orbitron", "Noto Sans SC", sans-serif;
+  --font-body: "Roboto", "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
 }
 
 /* =========================================
@@ -215,6 +272,25 @@
   --interactive-accent-text: #2A2A1E;
   --focus-ring: #CD5C5C;
   --menu-surface-bg: #FCF5E5;
+  --menu-bg: #FCF5E5;
+  --menu-text: #2A2A1E;
+  --menu-muted: #56563D;
+  --menu-border: #8B7355;
+  --menu-hover-bg: #E7D8BC;
+  --menu-selected-bg: #C9B68E;
+  --menu-selected-text: #1F1F16;
+
+  /* Mantine dark scale compatibility */
+  --mantine-color-dark-9: #2A2A1E;
+  --mantine-color-dark-8: #3D3D29;
+  --mantine-color-dark-7: #4A4A33;
+  --mantine-color-dark-6: #56563D;
+  --mantine-color-dark-5: #636347;
+  --mantine-color-dark-4: #6C7A89;
+  --mantine-color-dark-3: #7B8896;
+  --mantine-color-dark-2: #95A5A6;
+  --mantine-color-dark-1: #AAB7C3;
+  --mantine-color-dark-0: #F5E6D3;
 
   /* Materials */
   --glass-bg: rgba(42, 42, 30, 0.95);
@@ -227,8 +303,8 @@
   --shadow-elevation: 2px 2px 5px rgba(0, 0, 0, 0.6);
 
   /* Typography */
-  --font-header: "Courier New", monospace;
-  --font-body: "Arial", sans-serif;
+  --font-header: "Courier New", "Noto Sans SC", sans-serif;
+  --font-body: "Arial", "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
 }
 
 /* =========================================
@@ -265,6 +341,25 @@
   --interactive-accent-text: #F5E6D3;
   --focus-ring: #DAA520;
   --menu-surface-bg: #1F1810;
+  --menu-bg: rgba(31, 24, 16, 0.98);
+  --menu-text: #F5E6D3;
+  --menu-muted: #C4A875;
+  --menu-border: #B8860B;
+  --menu-hover-bg: #4A3926;
+  --menu-selected-bg: #6A321F;
+  --menu-selected-text: #FFF4D6;
+
+  /* Mantine dark scale compatibility */
+  --mantine-color-dark-9: #1F1810;
+  --mantine-color-dark-8: #2E2416;
+  --mantine-color-dark-7: #3D2F1E;
+  --mantine-color-dark-6: #4A3926;
+  --mantine-color-dark-5: #5B472E;
+  --mantine-color-dark-4: #6D5536;
+  --mantine-color-dark-3: #8A6B45;
+  --mantine-color-dark-2: #A68659;
+  --mantine-color-dark-1: #C4A875;
+  --mantine-color-dark-0: #F5E6D3;
 
   /* Materials */
   --glass-bg: rgba(30, 20, 10, 0.92);
@@ -277,9 +372,9 @@
   --shadow-elevation: 3px 3px 8px rgba(0, 0, 0, 0.5);
 
   /* Typography */
-  --font-header: "Cinzel", serif;
+  --font-header: "Cinzel", "Noto Serif SC", serif;
   /* Fallback to Cinzel or local MedievalSharp if available */
-  --font-body: "Times New Roman", serif;
+  --font-body: "Times New Roman", "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
 }
 
 /*
