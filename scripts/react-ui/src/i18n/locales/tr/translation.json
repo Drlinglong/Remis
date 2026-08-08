@@ -1224,7 +1224,15 @@
       "new_group": "Yeni olay zinciri",
       "new_group_placeholder": "Olay zinciri adı",
       "delete_group": "Olay zincirini sil",
-      "confirm_delete_group": "Zinciri sil"
+      "confirm_delete_group": "Zinciri sil",
+      "other_groups": "Diğer olay zincirleri",
+      "rename_group_input": "Olay zinciri adı",
+      "save_group_name": "Olay zinciri adını kaydet",
+      "rename_group": "Olay zincirini yeniden adlandır",
+      "delivery_role": "Teslim rolü",
+      "route_narrative": "Anlatı bağlamı olarak teslim et",
+      "route_reference": "Yalnızca referans varlığı — olay zincirlerinden çıkar",
+      "route_unresolved": "Henüz teslim etme — çözümlenmemiş olarak işaretle"
     },
     "release": {
       "no_project_title": "Choose a project first",

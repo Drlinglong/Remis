@@ -24,6 +24,8 @@ for (const themeId of themes) {
 
       await page.getByTestId('published-context-fragment-fragment-signal').click();
       await expect(page.getByTestId('published-context-detail')).toContainText('解读求救讯号');
+      await expect(page.getByTestId('published-context-mini-rail-group-arrival')).toBeVisible();
+      await expect(page.getByRole('combobox', { name: '投递角色' })).toHaveValue('narrative');
 
       await expect(page).toHaveScreenshot(`context-tree-${themeId}-${viewport.id}-focused.png`, { fullPage: true });
     });

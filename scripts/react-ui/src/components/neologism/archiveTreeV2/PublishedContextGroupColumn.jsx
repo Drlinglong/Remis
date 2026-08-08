@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Badge, Button, Paper } from '@mantine/core';
-import { IconGripVertical, IconTrash } from '@tabler/icons-react';
+import { Badge, Paper } from '@mantine/core';
+import { IconGripVertical } from '@tabler/icons-react';
 
+import PublishedContextGroupHeading from './PublishedContextGroupHeading';
 import styles from './PublishedContextWorkbench.module.css';
 import { fragmentDropId, groupDropId } from './useFragmentDrag';
 
@@ -73,6 +74,7 @@ const PublishedContextGroupColumn = ({
     focused,
     onSelect,
     onSelectGroup,
+    onRenameGroup,
     onDeleteGroup,
     kind = 'event',
     t,
@@ -81,8 +83,6 @@ const PublishedContextGroupColumn = ({
         id: groupDropId(group.id),
         data: { type: 'group', groupId: group.id },
     });
-    const [confirmDelete, setConfirmDelete] = useState(false);
-
     return (
         <Paper
             ref={setNodeRef}
@@ -94,46 +94,16 @@ const PublishedContextGroupColumn = ({
             data-group-kind={kind}
             data-testid={`published-context-group-${group.id}`}
         >
-            <div className={styles.groupHeadingRow}>
-                <button
-                    type="button"
-                    className={styles.groupHeadingButton}
-                    data-testid={`published-context-group-header-${group.id}`}
-                    onClick={() => onSelectGroup?.(group.id)}
-                >
-                    <span className={styles.groupHeadingCopy}>
-                        <span className={styles.groupKicker}>
-                            {kickerFor({ focused, kind, t })}
-                        </span>
-                        <span className={styles.groupTitle}>{group.label}</span>
-                        {focused && group.summary && <span className={styles.groupSummary}>{group.summary}</span>}
-                    </span>
-                    <Badge className={styles.groupCount} size="sm" variant={focused ? 'light' : 'outline'}>{fragments.length}</Badge>
-                </button>
-                {focused && onDeleteGroup && (
-                    confirmDelete ? (
-                        <div className={styles.groupDeleteConfirm}>
-                            <Button size="compact-xs" color="red" onClick={() => onDeleteGroup(group.id)}>
-                                {text(t, 'mod_archive.tree_v2.confirm_delete_group', 'Delete chain')}
-                            </Button>
-                            <Button size="compact-xs" variant="default" onClick={() => setConfirmDelete(false)}>
-                                {text(t, 'cancel', 'Cancel')}
-                            </Button>
-                        </div>
-                    ) : (
-                        <Button
-                            size="compact-xs"
-                            color="red"
-                            variant="subtle"
-                            aria-label={text(t, 'mod_archive.tree_v2.delete_group', 'Delete event chain')}
-                            data-testid={`published-context-delete-group-${group.id}`}
-                            onClick={() => setConfirmDelete(true)}
-                        >
-                            <IconTrash size={15} aria-hidden="true" />
-                        </Button>
-                    )
-                )}
-            </div>
+            <PublishedContextGroupHeading
+                group={group}
+                fragmentCount={fragments.length}
+                focused={focused}
+                kicker={kickerFor({ focused, kind, t })}
+                onSelectGroup={onSelectGroup}
+                onRenameGroup={onRenameGroup}
+                onDeleteGroup={onDeleteGroup}
+                t={t}
+            />
             <div className={`${styles.fragmentList} ${focused ? styles.focusedFragmentList : ''}`}>
                 {fragments.map((fragment, index) => (
                     <FragmentCard

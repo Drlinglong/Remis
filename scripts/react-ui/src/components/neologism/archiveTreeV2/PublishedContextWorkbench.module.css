@@ -302,7 +302,67 @@
 }
 
 .focusedColumn {
+    flex: 1 1 36rem;
     min-width: 0;
+}
+
+.focusedGroupStage {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.focusedMiniRails {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.miniRail {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    justify-items: center;
+    gap: 0.5rem;
+    width: clamp(3.5rem, 5vw, 4.5rem);
+    min-height: 9rem;
+    padding: 0.75rem 0.5rem;
+    border: 1px solid color-mix(in srgb, var(--surface-text-main) 24%, transparent);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--surface-bg-solid) 92%, var(--interactive-accent));
+    color: var(--surface-text-main);
+    cursor: pointer;
+    font: inherit;
+}
+
+.miniRail:hover,
+.miniRail:focus-visible,
+.miniRail[data-drag-over='true'] {
+    border-color: var(--interactive-accent);
+    background: color-mix(in srgb, var(--surface-bg-solid) 82%, var(--interactive-accent));
+}
+
+.miniRail:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.miniRailLabel {
+    display: -webkit-box;
+    min-width: 0;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    font-size: 0.75rem;
+    font-weight: 750;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.miniRailCount {
+    opacity: 0.68;
 }
 
 .focusedGroupColumn {
@@ -341,6 +401,68 @@
 
 .groupHeadingRow .groupHeadingButton {
     flex: 1 1 auto;
+}
+
+.groupRenameButton {
+    flex: 0 0 auto;
+    opacity: 0;
+    transition: opacity 140ms ease;
+}
+
+.groupHeadingRow:hover .groupRenameButton,
+.groupHeadingRow:focus-within .groupRenameButton {
+    opacity: 1;
+}
+
+.groupRenameForm {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.25rem 0.5rem;
+    min-width: 0;
+}
+
+.groupRenameForm .groupKicker,
+.groupRenameForm .groupSummary {
+    grid-column: 1 / -1;
+}
+
+.groupRenameLabel {
+    min-width: 0;
+}
+
+.groupRenameInput {
+    width: 100%;
+    min-width: 0;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--interactive-accent);
+    border-radius: 0.25rem;
+    background: var(--paper-bg);
+    color: var(--paper-text-main);
+    font: inherit;
+    font-weight: 750;
+}
+
+.groupRenameInput:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.groupRenameActions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.visuallyHidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .groupDeleteConfirm {
@@ -619,6 +741,29 @@
     line-height: 1.55;
 }
 
+.dispositionControl {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.dispositionSelect {
+    width: 100%;
+    min-width: 0;
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 24%, transparent);
+    border-radius: 0.5rem;
+    background: var(--paper-bg);
+    color: var(--paper-text-main);
+    font: inherit;
+    line-height: 1.4;
+}
+
+.dispositionSelect:focus-visible {
+    border-color: var(--interactive-accent);
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
 .sourceSection,
 .chainDetailSection {
     display: grid;
@@ -806,6 +951,7 @@ details[open] > .detailsContent {
 
     .fragmentCard,
     .dragHandle,
+    .groupRenameButton,
     .detailsContent {
         transition-duration: 0.01ms;
     }
@@ -881,5 +1027,18 @@ details[open] > .detailsContent {
 
     .groupColumn {
         margin-top: 0;
+    }
+
+    .focusedGroupStage {
+        display: grid;
+    }
+
+    .focusedMiniRails {
+        overflow-x: auto;
+        padding-bottom: 0.25rem;
+    }
+
+    .miniRail {
+        min-height: 5.5rem;
     }
 }

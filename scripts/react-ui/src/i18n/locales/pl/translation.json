@@ -1224,7 +1224,15 @@
       "new_group": "Nowy łańcuch zdarzeń",
       "new_group_placeholder": "Nazwa łańcucha zdarzeń",
       "delete_group": "Usuń łańcuch zdarzeń",
-      "confirm_delete_group": "Usuń łańcuch"
+      "confirm_delete_group": "Usuń łańcuch",
+      "other_groups": "Inne łańcuchy zdarzeń",
+      "rename_group_input": "Nazwa łańcucha zdarzeń",
+      "save_group_name": "Zapisz nazwę łańcucha",
+      "rename_group": "Zmień nazwę łańcucha zdarzeń",
+      "delivery_role": "Rola dostarczania",
+      "route_narrative": "Dostarcz jako kontekst narracyjny",
+      "route_reference": "Tylko zasób referencyjny — wyklucz z łańcuchów",
+      "route_unresolved": "Jeszcze nie dostarczaj — oznacz jako nierozstrzygnięte"
     },
     "release": {
       "no_project_title": "Choose a project first",

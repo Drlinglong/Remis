@@ -79,6 +79,7 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
                     onSelectGroup={selection.selectGroup}
                     onClearSelection={selection.clearSelection}
                     onCreateGroup={archiveState.createGroup}
+                    onRenameGroup={archiveState.renameGroup}
                     onDeleteGroup={deleteGroup}
                     onMoveFragment={archiveState.moveFragment}
                     t={t}
@@ -89,6 +90,7 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
                     selectedGroupId={selection.selectedGroupId}
                     onClearSelection={selection.clearSelection}
                     onSelectFragment={selection.selectFragment}
+                    onSetFragmentDisposition={archiveState.setFragmentDisposition}
                     t={t}
                 />
             </div>

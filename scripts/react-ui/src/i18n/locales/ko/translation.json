@@ -1229,7 +1229,15 @@
       "new_group": "새 이벤트 체인",
       "new_group_placeholder": "이벤트 체인 이름",
       "delete_group": "이벤트 체인 삭제",
-      "confirm_delete_group": "체인 삭제"
+      "confirm_delete_group": "체인 삭제",
+      "other_groups": "다른 이벤트 체인",
+      "rename_group_input": "이벤트 체인 이름",
+      "save_group_name": "이벤트 체인 이름 저장",
+      "rename_group": "이벤트 체인 이름 변경",
+      "delivery_role": "전달 역할",
+      "route_narrative": "서사 컨텍스트로 전달",
+      "route_reference": "참조 자산으로만 사용 — 이벤트 체인에서 제외",
+      "route_unresolved": "아직 전달하지 않음 — 미해결로 표시"
     },
     "release": {
       "no_project_title": "Choose a project first",

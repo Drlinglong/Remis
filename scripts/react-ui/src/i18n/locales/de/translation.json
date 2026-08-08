@@ -1228,7 +1228,15 @@
       "new_group": "Neue Ereigniskette",
       "new_group_placeholder": "Name der Ereigniskette",
       "delete_group": "Ereigniskette löschen",
-      "confirm_delete_group": "Kette löschen"
+      "confirm_delete_group": "Kette löschen",
+      "other_groups": "Andere Ereignisketten",
+      "rename_group_input": "Name der Ereigniskette",
+      "save_group_name": "Namen der Ereigniskette speichern",
+      "rename_group": "Ereigniskette umbenennen",
+      "delivery_role": "Bereitstellungsrolle",
+      "route_narrative": "Als narrativen Kontext bereitstellen",
+      "route_reference": "Nur Referenzmaterial — nicht in Ereignisketten aufnehmen",
+      "route_unresolved": "Noch nicht bereitstellen — als ungeklärt markieren"
     },
     "release": {
       "no_project_title": "Choose a project first",

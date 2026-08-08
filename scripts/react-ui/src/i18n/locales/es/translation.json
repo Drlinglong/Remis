@@ -1228,7 +1228,15 @@
       "new_group": "Nueva cadena de eventos",
       "new_group_placeholder": "Nombre de la cadena",
       "delete_group": "Eliminar cadena de eventos",
-      "confirm_delete_group": "Eliminar cadena"
+      "confirm_delete_group": "Eliminar cadena",
+      "other_groups": "Otras cadenas de eventos",
+      "rename_group_input": "Nombre de la cadena de eventos",
+      "save_group_name": "Guardar nombre de la cadena",
+      "rename_group": "Renombrar cadena de eventos",
+      "delivery_role": "Rol de entrega",
+      "route_narrative": "Entregar como contexto narrativo",
+      "route_reference": "Solo recurso de referencia — excluir de las cadenas",
+      "route_unresolved": "No entregar todavía — marcar como pendiente"
     },
     "release": {
       "no_project_title": "Choose a project first",

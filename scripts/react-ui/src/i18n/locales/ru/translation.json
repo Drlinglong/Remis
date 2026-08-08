@@ -1290,7 +1290,15 @@
       "new_group": "Новая цепочка событий",
       "new_group_placeholder": "Название цепочки событий",
       "delete_group": "Удалить цепочку событий",
-      "confirm_delete_group": "Удалить цепочку"
+      "confirm_delete_group": "Удалить цепочку",
+      "other_groups": "Другие цепочки событий",
+      "rename_group_input": "Название цепочки событий",
+      "save_group_name": "Сохранить название цепочки",
+      "rename_group": "Переименовать цепочку событий",
+      "delivery_role": "Роль доставки",
+      "route_narrative": "Передавать как повествовательный контекст",
+      "route_reference": "Только справочный ресурс — исключить из цепочек",
+      "route_unresolved": "Пока не передавать — отметить как нерешённое"
     },
     "release": {
       "no_project_title": "Choose a project first",

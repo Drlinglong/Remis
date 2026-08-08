@@ -148,4 +148,50 @@ describe('ContextTreeV2ArchiveSummary', () => {
         expect(screen.getByTestId('published-context-detail-empty')).toBeInTheDocument();
         expect(screen.getByTestId('published-context-map')).toHaveAttribute('data-view', 'overview');
     });
+
+    it('keeps other event chains available as focused droppable rails', () => {
+        renderSummary();
+
+        fireEvent.click(screen.getByTestId('published-context-group-header-group-1'));
+        const rail = screen.getByTestId('published-context-mini-rail-group-2');
+        expect(rail).toHaveAttribute('data-drop-target', 'group:group-2');
+        expect(rail).toHaveTextContent('Second quest');
+
+        fireEvent.click(rail);
+        expect(screen.getByTestId('published-context-map')).toHaveTextContent('Second quest');
+        expect(screen.getByTestId('published-context-mini-rail-group-1')).toBeInTheDocument();
+    });
+
+    it('renames the focused event chain inline and cancels a later draft with Escape', () => {
+        renderSummary();
+
+        fireEvent.click(screen.getByTestId('published-context-group-header-group-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Rename event chain' }));
+        const input = screen.getByRole('textbox', { name: 'Event chain name' });
+        fireEvent.change(input, { target: { value: 'Opening route' } });
+        fireEvent.keyDown(input, { key: 'Enter' });
+
+        expect(screen.getByTestId('published-context-group-group-1')).toHaveTextContent('Opening route');
+        expect(screen.getByText('Unsaved relationship changes')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Rename event chain' }));
+        const secondDraft = screen.getByRole('textbox', { name: 'Event chain name' });
+        fireEvent.change(secondDraft, { target: { value: 'Discarded name' } });
+        fireEvent.keyDown(secondDraft, { key: 'Escape' });
+        expect(screen.getByTestId('published-context-group-group-1')).toHaveTextContent('Opening route');
+        expect(screen.getByTestId('published-context-group-group-1')).not.toHaveTextContent('Discarded name');
+    });
+
+    it('routes the selected fragment through the existing disposition controller', () => {
+        renderSummary();
+
+        fireEvent.click(screen.getByTestId('published-context-fragment-fragment-1'));
+        fireEvent.change(screen.getByRole('combobox', { name: 'Delivery role' }), {
+            target: { value: 'reference_asset' },
+        });
+
+        expect(screen.getByTestId('published-context-group-group-support')).toHaveTextContent('Accepts the quest');
+        expect(screen.getByTestId('published-context-detail')).toHaveTextContent('reference_asset');
+        expect(screen.getByText('Unsaved relationship changes')).toBeInTheDocument();
+    });
 });

@@ -8,6 +8,7 @@ import { Badge, Button, Paper, Text, TextInput, Title } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 
 import PublishedContextGroupColumn from './PublishedContextGroupColumn';
+import PublishedContextMiniRail from './PublishedContextMiniRail';
 import styles from './PublishedContextWorkbench.module.css';
 import { getGroupForFragment, useFragmentDrag } from './useFragmentDrag';
 
@@ -28,6 +29,7 @@ const PublishedContextMap = ({
     onSelectGroup,
     onClearSelection,
     onCreateGroup,
+    onRenameGroup,
     onDeleteGroup,
     onMoveFragment,
     t,
@@ -89,6 +91,7 @@ const PublishedContextMap = ({
             focused={focused}
             onSelect={onSelect}
             onSelectGroup={selectable ? onSelectGroup : null}
+            onRenameGroup={selectable ? onRenameGroup : null}
             onDeleteGroup={selectable ? onDeleteGroup : null}
             kind={kind}
             t={t}
@@ -185,8 +188,27 @@ const PublishedContextMap = ({
                         <div className={styles.focusedStoryLine}>
                             <StoryRail story={stories.find((story) => story.groupIds.includes(focusedGroup.id))} t={t} />
                         </div>
-                        <div className={styles.focusedColumn}>
-                            {renderGroup(focusedGroup, focusedGroup.fragmentIds.map((id) => tree.fragments[id]).filter(Boolean))}
+                        <div className={styles.focusedGroupStage}>
+                            {eventGroups.length > 1 && (
+                                <aside
+                                    className={styles.focusedMiniRails}
+                                    aria-label={text(t, 'mod_archive.tree_v2.other_groups', 'Other event chains')}
+                                >
+                                    {eventGroups
+                                        .filter(({ group }) => group.id !== focusedGroup.id)
+                                        .map(({ group, fragments }) => (
+                                            <PublishedContextMiniRail
+                                                key={group.id}
+                                                group={group}
+                                                fragmentCount={fragments.length}
+                                                onSelectGroup={onSelectGroup}
+                                            />
+                                        ))}
+                                </aside>
+                            )}
+                            <div className={styles.focusedColumn}>
+                                {renderGroup(focusedGroup, focusedGroup.fragmentIds.map((id) => tree.fragments[id]).filter(Boolean))}
+                            </div>
                         </div>
                     </div>
                 ) : (

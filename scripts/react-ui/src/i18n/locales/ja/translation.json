@@ -1229,7 +1229,15 @@
       "new_group": "新しいイベントチェーン",
       "new_group_placeholder": "イベントチェーン名",
       "delete_group": "イベントチェーンを削除",
-      "confirm_delete_group": "チェーンを削除"
+      "confirm_delete_group": "チェーンを削除",
+      "other_groups": "その他のイベントチェーン",
+      "rename_group_input": "イベントチェーン名",
+      "save_group_name": "イベントチェーン名を保存",
+      "rename_group": "イベントチェーン名を変更",
+      "delivery_role": "配信ロール",
+      "route_narrative": "物語コンテキストとして配信",
+      "route_reference": "参照アセットのみ — イベントチェーンには配信しない",
+      "route_unresolved": "まだ配信しない — 未解決としてマーク"
     },
     "release": {
       "no_project_title": "Choose a project first",

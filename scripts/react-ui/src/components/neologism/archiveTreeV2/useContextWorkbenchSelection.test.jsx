@@ -52,4 +52,22 @@ describe('useContextWorkbenchSelection', () => {
         expect(result.current.selectedGroupId).toBe('group-1');
         expect(result.current.transitionPhase).toBe('idle');
     });
+
+    it('follows a selected fragment when its group membership changes', () => {
+        vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true });
+        const { result, rerender } = renderHook(
+            ({ currentGroups }) => useContextWorkbenchSelection({
+                groups: currentGroups,
+                fragments,
+                identity: 'release-1',
+            }),
+            { initialProps: { currentGroups: groups } },
+        );
+
+        act(() => result.current.selectFragment('fragment-1'));
+        rerender({ currentGroups: [{ id: 'group-1', fragmentIds: ['fragment-2'] }] });
+
+        expect(result.current.selectedFragmentId).toBe('fragment-1');
+        expect(result.current.selectedGroupId).toBeNull();
+    });
 });

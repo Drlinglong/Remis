@@ -1,6 +1,7 @@
 import React from 'react';
 import { Badge, Group, Paper, Stack, Text, Title } from '@mantine/core';
 
+import { TREE_ROUTE } from './contextArchiveTreeModel';
 import styles from './PublishedContextWorkbench.module.css';
 
 const text = (t, key, fallback, options = {}) => {
@@ -16,7 +17,15 @@ const sourceForUnit = (unit, index) => ({
     text: unit.sourceText || unit.summary || '',
 });
 
-const PublishedContextEventDetail = ({ tree, selectedFragmentId, selectedGroupId, onClearSelection, onSelectFragment, t }) => {
+const PublishedContextEventDetail = ({
+    tree,
+    selectedFragmentId,
+    selectedGroupId,
+    onClearSelection,
+    onSelectFragment,
+    onSetFragmentDisposition,
+    t,
+}) => {
     const fragment = selectedFragmentId ? tree.fragments[selectedFragmentId] : null;
     const group = (fragment && tree.groups.find((item) => item.fragmentIds.includes(fragment.id)))
         || tree.groups.find((item) => item.id === selectedGroupId);
@@ -69,6 +78,32 @@ const PublishedContextEventDetail = ({ tree, selectedFragmentId, selectedGroupId
                     <Text className={styles.detailSummary}>
                         {fragment?.summary || group?.summary || text(t, 'mod_archive.tree_v2.no_summary', 'No fragment summary is available.')}
                     </Text>
+                    {fragment && onSetFragmentDisposition && (
+                        <label className={styles.dispositionControl}>
+                            <span className={styles.sourceHeading}>
+                                {text(t, 'mod_archive.tree_v2.delivery_role', 'Delivery role')}
+                            </span>
+                            <select
+                                className={styles.dispositionSelect}
+                                value={fragment.route}
+                                onChange={(event) => onSetFragmentDisposition(
+                                    fragment.id,
+                                    event.currentTarget.value,
+                                    group ? { targetGroupId: group.id } : undefined,
+                                )}
+                            >
+                                <option value={TREE_ROUTE.NARRATIVE}>
+                                    {text(t, 'mod_archive.tree_v2.route_narrative', 'Deliver as narrative context')}
+                                </option>
+                                <option value={TREE_ROUTE.REFERENCE_ASSET}>
+                                    {text(t, 'mod_archive.tree_v2.route_reference', 'Reference asset only — exclude from event chains')}
+                                </option>
+                                <option value={TREE_ROUTE.UNRESOLVED}>
+                                    {text(t, 'mod_archive.tree_v2.route_unresolved', 'Do not deliver yet — mark unresolved')}
+                                </option>
+                            </select>
+                        </label>
+                    )}
                     {!fragment && group && (
                         <section className={styles.chainDetailSection}>
                             <Text className={styles.sourceHeading}>{text(t, 'mod_archive.tree_v2.chain_fragments', 'Chain details')}</Text>

@@ -1228,7 +1228,15 @@
       "new_group": "Nouvelle chaîne d’événements",
       "new_group_placeholder": "Nom de la chaîne",
       "delete_group": "Supprimer la chaîne d’événements",
-      "confirm_delete_group": "Supprimer la chaîne"
+      "confirm_delete_group": "Supprimer la chaîne",
+      "other_groups": "Autres chaînes d’événements",
+      "rename_group_input": "Nom de la chaîne d’événements",
+      "save_group_name": "Enregistrer le nom de la chaîne",
+      "rename_group": "Renommer la chaîne d’événements",
+      "delivery_role": "Rôle de livraison",
+      "route_narrative": "Livrer comme contexte narratif",
+      "route_reference": "Ressource de référence uniquement — exclure des chaînes",
+      "route_unresolved": "Ne pas livrer pour l’instant — marquer comme non résolu"
     },
     "release": {
       "no_project_title": "Choose a project first",

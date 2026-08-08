@@ -58,6 +58,15 @@ export const useContextWorkbenchSelection = ({ groups, fragments, identity }) =>
             commitSelection(emptySelection);
             return;
         }
+        if (selection.fragmentId) {
+            const currentGroupId = groups.find((group) => (
+                group.fragmentIds.includes(selection.fragmentId)
+            ))?.id || null;
+            if (selection.groupId !== currentGroupId) {
+                commitSelection({ fragmentId: selection.fragmentId, groupId: currentGroupId });
+                return;
+            }
+        }
         if (selection.groupId && !groups.some((group) => group.id === selection.groupId)) {
             commitSelection({ fragmentId: selection.fragmentId, groupId: null });
         }

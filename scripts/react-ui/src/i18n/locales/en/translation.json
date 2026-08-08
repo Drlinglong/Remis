@@ -1216,7 +1216,15 @@
       "new_group": "New event chain",
       "new_group_placeholder": "Event chain name",
       "delete_group": "Delete event chain",
-      "confirm_delete_group": "Delete chain"
+      "confirm_delete_group": "Delete chain",
+      "other_groups": "Other event chains",
+      "rename_group_input": "Event chain name",
+      "save_group_name": "Save event chain name",
+      "rename_group": "Rename event chain",
+      "delivery_role": "Delivery role",
+      "route_narrative": "Deliver as narrative context",
+      "route_reference": "Reference asset only — exclude from event chains",
+      "route_unresolved": "Do not deliver yet — mark unresolved"
     },
     "release": {
       "no_project_title": "Choose a project first",
