@@ -118,8 +118,10 @@ describe('PublishedArchivePanel', () => {
         await screen.findByTestId('published-context-map');
 
         fireEvent.click(screen.getByTestId('published-context-fragment-fragment-signal'));
-        expect(screen.getByTestId('published-context-detail')).toHaveTextContent('解读求救讯号');
-        expect(screen.getByTestId('published-context-detail')).toHaveTextContent('events/starport_expedition.yml:27');
+        await waitFor(() => {
+            expect(screen.getByTestId('published-context-detail')).toHaveTextContent('解读求救讯号');
+            expect(screen.getByTestId('published-context-detail')).toHaveTextContent('events/starport_expedition.yml:27');
+        });
 
         fireEvent.click(screen.getByTestId('mod-archive-remove'));
         expect(await screen.findByRole('dialog')).toHaveTextContent('Demo mod');

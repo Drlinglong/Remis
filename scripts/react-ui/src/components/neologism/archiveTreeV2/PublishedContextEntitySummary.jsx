@@ -34,12 +34,16 @@ const EntityCard = ({ entity, digest, evidence, t }) => (
         {evidence.length > 0 && (
             <details className={styles.entityDetails}>
                 <summary>{text(t, 'mod_archive.tree_v2.entity_evidence', 'View source evidence')} · {evidence.length}</summary>
-                <div className={styles.entityEvidence}>
-                    {evidence.map((item, index) => (
-                        <Text className={styles.entityEvidenceItem} key={item.evidence_id || `${entity.id}-${index}`}>
-                            {item.source_ref || item.batch_id || item.item_key || '—'}{item.full_source_text || item.excerpt ? ` · ${item.full_source_text || item.excerpt}` : ''}
-                        </Text>
-                    ))}
+                <div className={styles.detailsContent}>
+                    <div className={styles.detailsContentInner}>
+                        <div className={styles.entityEvidence}>
+                            {evidence.map((item, index) => (
+                                <Text className={styles.entityEvidenceItem} key={item.evidence_id || `${entity.id}-${index}`}>
+                                    {item.source_ref || item.batch_id || item.item_key || '—'}{item.full_source_text || item.excerpt ? ` · ${item.full_source_text || item.excerpt}` : ''}
+                                </Text>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </details>
         )}
@@ -104,10 +108,14 @@ const PublishedContextEntitySummary = ({ tree, normalizedTree, t }) => {
             {lower.length > 0 && (
                 <details className={styles.lowerEntityGroup}>
                     <summary>{text(t, 'mod_archive.tree_v2.lower_entities', 'Other entities')} · {lower.length}</summary>
-                    <div className={styles.entityGrid}>
-                        {lower.map((entity) => (
-                            <EntityCard key={entity.id} entity={entity} digest={digestById.get(entity.id)} evidence={evidenceById.get(entity.id) || []} t={t} />
-                        ))}
+                    <div className={styles.detailsContent}>
+                        <div className={styles.detailsContentInner}>
+                            <div className={styles.entityGrid}>
+                                {lower.map((entity) => (
+                                    <EntityCard key={entity.id} entity={entity} digest={digestById.get(entity.id)} evidence={evidenceById.get(entity.id) || []} t={t} />
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </details>
             )}

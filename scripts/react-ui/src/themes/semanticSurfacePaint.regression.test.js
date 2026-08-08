@@ -19,7 +19,9 @@ describe('semantic material paint regressions', () => {
     expect(definitionsCss).toContain(
       "[data-remis-surface='paper']:is(.mantine-Paper-root, .mantine-Card-root)",
     );
-    expect(definitionsCss).toContain('background: var(--paper-bg) !important;');
+    expect(definitionsCss).toContain(
+      'background: var(--remis-surface-override-bg, var(--paper-bg)) !important;',
+    );
     expect(definitionsCss).toContain('color: var(--surface-text-main);');
     expect(definitionsCss).toContain('color: var(--paper-text-main);');
   });

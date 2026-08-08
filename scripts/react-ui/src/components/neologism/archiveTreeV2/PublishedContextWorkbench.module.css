@@ -37,7 +37,7 @@
 .detailEyebrow,
 .groupKicker,
 .storyKicker {
-    color: var(--paper-text-muted) !important;
+    color: var(--workbench-kicker-color, var(--paper-text-muted)) !important;
 }
 
 .title,
@@ -51,7 +51,7 @@
 .projectSummary,
 .panelDescription {
     max-width: 56rem;
-    margin-top: 0.4rem;
+    margin-top: 0.5rem;
     color: var(--canvas-text-muted) !important;
     line-height: 1.5;
 }
@@ -65,7 +65,7 @@
     flex: 0 0 auto;
     align-items: center;
     justify-content: flex-end;
-    gap: 0.45rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
 }
 
@@ -103,6 +103,49 @@
     background: var(--surface-bg) !important;
 }
 
+.mapPanel[data-transition='exiting'] :is(.overviewGraph, .focusedGraph) {
+    pointer-events: none;
+    animation: context-view-exit 175ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.mapPanel[data-transition='entering'] :is(.overviewGraph, .focusedGraph) {
+    animation: context-view-enter 250ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes context-view-enter {
+    0% {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+
+    58% {
+        opacity: 1;
+        transform: scale(0.995);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes context-view-exit {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    70% {
+        opacity: 0.18;
+        transform: scale(0.985);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+}
+
 .detailPanel {
     position: sticky;
     top: 1rem;
@@ -118,6 +161,7 @@
     display: grid;
     min-width: 0;
     margin-top: 1.25rem;
+    transform-origin: center top;
 }
 
 .overviewGraph {
@@ -128,9 +172,9 @@
     position: relative;
     width: min(100%, 25rem);
     margin: 0 auto;
-    padding: 0.8rem 1rem;
+    padding: 0.75rem 1rem;
     border: 1px solid color-mix(in srgb, var(--interactive-accent) 50%, var(--surface-text-main));
-    border-radius: 0.55rem;
+    border-radius: 0.5rem;
     background: color-mix(in srgb, var(--surface-bg) 90%, var(--interactive-accent));
     color: var(--surface-text-main);
     text-align: center;
@@ -145,7 +189,7 @@
 }
 
 .rootTitle {
-    margin-top: 0.15rem;
+    margin-top: 0.25rem;
     overflow-wrap: anywhere;
     font-size: 1.05rem;
     font-weight: 750;
@@ -162,9 +206,9 @@
     position: relative;
     display: grid;
     justify-items: center;
-    gap: 0.18rem;
+    gap: 0.25rem;
     min-width: 0;
-    padding: 0.45rem 0 1.6rem;
+    padding: 0.5rem 0 1.5rem;
     color: var(--surface-text-main);
     text-align: center;
 }
@@ -174,7 +218,7 @@
     bottom: 0;
     left: 50%;
     width: 1px;
-    height: 1.2rem;
+    height: 1.5rem;
     background: var(--surface-border);
     content: '';
 }
@@ -190,7 +234,7 @@
     max-width: 100%;
     min-width: 0;
     overflow-x: auto;
-    padding-bottom: 0.35rem;
+    padding-bottom: 0.25rem;
 }
 
 .groupGrid {
@@ -198,8 +242,8 @@
     position: relative;
     display: grid;
     grid-template-columns: repeat(var(--chain-count), minmax(var(--chain-card-min), 1fr));
-    gap: 0.8rem;
-    min-width: max(100%, calc(var(--chain-count) * var(--chain-card-min) + (var(--chain-count) - 1) * 0.8rem));
+    gap: 0.75rem;
+    min-width: max(100%, calc(var(--chain-count) * var(--chain-card-min) + (var(--chain-count) - 1) * 0.75rem));
 }
 
 .groupGrid::before {
@@ -215,9 +259,9 @@
     position: relative;
     display: grid;
     align-content: start;
-    gap: 0.7rem;
+    gap: 0.75rem;
     min-width: 0;
-    margin-top: 1.2rem;
+    margin-top: 1.5rem;
     border-color: color-mix(in srgb, var(--paper-text-main) 18%, transparent) !important;
     background: var(--paper-bg) !important;
     color: var(--paper-text-main);
@@ -227,10 +271,10 @@
 
 .groupColumn::before {
     position: absolute;
-    top: -1.2rem;
+    top: -1.5rem;
     left: 50%;
     width: 1px;
-    height: 1.2rem;
+    height: 1.5rem;
     background: var(--surface-border);
     content: '';
 }
@@ -238,6 +282,23 @@
 .groupColumn[data-drag-over='true'] {
     border-color: var(--interactive-accent) !important;
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 16%, transparent);
+}
+
+.groupColumn[data-group-kind='needs-placement'] {
+    --remis-surface-override-border: color-mix(in srgb, var(--status-warning) 68%, var(--paper-text-main));
+    --remis-surface-override-bg: color-mix(in srgb, var(--status-warning) 7%, var(--paper-bg));
+    --workbench-kicker-color: color-mix(in srgb, var(--status-warning) 78%, var(--paper-text-main));
+}
+
+.groupColumn[data-group-kind='supporting'] {
+    --remis-surface-override-border: color-mix(in srgb, var(--paper-text-main) 9%, transparent);
+    --remis-surface-override-bg: color-mix(in srgb, var(--paper-bg) 97%, var(--surface-bg));
+    color: var(--paper-text-muted);
+}
+
+.groupCount,
+.fragmentCount {
+    opacity: 0.68;
 }
 
 .focusedColumn {
@@ -248,7 +309,7 @@
     width: min(100%, 48rem);
     margin: 0 auto;
     border-color: color-mix(in srgb, var(--interactive-accent) 42%, var(--paper-text-main)) !important;
-    box-shadow: 0 0.8rem 2rem color-mix(in srgb, var(--surface-text-main) 8%, transparent);
+    box-shadow: 0 0.75rem 2rem color-mix(in srgb, var(--surface-text-main) 8%, transparent);
 }
 
 .focusedGroupColumn::before {
@@ -259,7 +320,7 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 0.6rem;
+    gap: 0.5rem;
     width: 100%;
     min-width: 0;
     padding: 0;
@@ -274,7 +335,7 @@
 .groupHeadingRow {
     display: flex;
     align-items: flex-start;
-    gap: 0.45rem;
+    gap: 0.5rem;
     min-width: 0;
 }
 
@@ -286,17 +347,17 @@
     display: flex;
     flex: 0 0 auto;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.25rem;
 }
 
 .createGroupForm {
     display: flex;
     align-items: flex-end;
-    gap: 0.65rem;
-    margin-top: 0.9rem;
-    padding: 0.7rem;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 0.75rem;
     border: 1px solid color-mix(in srgb, var(--surface-text-main) 18%, transparent);
-    border-radius: 0.45rem;
+    border-radius: 0.5rem;
     background: color-mix(in srgb, var(--surface-bg) 90%, var(--interactive-accent));
 }
 
@@ -308,7 +369,7 @@
 .createGroupActions {
     display: flex;
     flex: 0 0 auto;
-    gap: 0.4rem;
+    gap: 0.5rem;
 }
 
 .groupHeadingButton:hover .groupTitle,
@@ -323,7 +384,7 @@
 
 .groupHeadingCopy {
     display: grid;
-    gap: 0.18rem;
+    gap: 0.25rem;
     min-width: 0;
 }
 
@@ -336,7 +397,7 @@
 }
 
 .groupSummary {
-    margin-top: 0.15rem;
+    margin-top: 0.25rem;
     color: var(--paper-text-muted) !important;
     font-size: 0.78rem;
     line-height: 1.4;
@@ -352,7 +413,7 @@
 .focusedFragmentList {
     position: relative;
     gap: 0.75rem;
-    padding-top: 0.3rem;
+    padding-top: 0.25rem;
 }
 
 .focusedFragmentList::before {
@@ -369,14 +430,14 @@
     z-index: 1;
     display: grid;
     grid-template-columns: 1rem 1.5rem minmax(0, 1fr) auto;
-    gap: 0.42rem;
+    gap: 0.5rem;
     align-items: start;
     width: 100%;
     min-width: 0;
     min-height: 2.8rem;
-    padding: 0.62rem 0.65rem;
-    border: 1px solid color-mix(in srgb, var(--paper-text-main) 17%, transparent);
-    border-radius: 0.42rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--paper-text-main) 9%, transparent);
+    border-radius: 0.5rem;
     background: var(--paper-bg);
     color: var(--paper-text-main);
     cursor: grab;
@@ -413,8 +474,14 @@
 }
 
 .dragHandle {
-    margin-top: 0.12rem;
+    margin-top: 0;
     color: var(--paper-text-muted);
+    opacity: 0;
+    transition: opacity 120ms ease;
+}
+
+.fragmentCard:is(:hover, :focus-visible, :focus-within, [data-dragging='true']) .dragHandle {
+    opacity: 0.78;
 }
 
 .fragmentOrder {
@@ -427,7 +494,7 @@
 .fragmentBody {
     display: grid;
     min-width: 0;
-    gap: 0.2rem;
+    gap: 0.25rem;
 }
 
 .fragmentLabel,
@@ -459,7 +526,7 @@
     place-items: center;
     padding: 0.5rem;
     border: 1px dashed color-mix(in srgb, var(--paper-text-main) 25%, transparent);
-    border-radius: 0.42rem;
+    border-radius: 0.5rem;
     color: var(--paper-text-muted);
     font-size: 0.75rem;
     text-align: center;
@@ -472,9 +539,9 @@
 
 .dragOverlay {
     min-width: 12rem;
-    padding: 0.7rem 0.8rem;
+    padding: 0.75rem;
     border: 1px solid var(--interactive-accent);
-    border-radius: 0.42rem;
+    border-radius: 0.5rem;
     background: var(--paper-bg);
     box-shadow: 0 1rem 2rem color-mix(in srgb, var(--surface-text-main) 18%, transparent);
     color: var(--paper-text-main);
@@ -483,9 +550,9 @@
 
 .mapBack {
     flex: 0 0 auto;
-    padding: 0.42rem 0.6rem;
+    padding: 0.5rem;
     border: 1px solid color-mix(in srgb, var(--interactive-accent) 45%, var(--paper-text-main));
-    border-radius: 0.4rem;
+    border-radius: 0.5rem;
     background: transparent;
     color: var(--interactive-accent);
     cursor: pointer;
@@ -533,7 +600,7 @@
 
 .detailBody {
     display: grid;
-    gap: 0.9rem;
+    gap: 1rem;
     min-width: 0;
 }
 
@@ -541,13 +608,13 @@
 .entityMeta {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.5rem;
 }
 
 .detailSummary {
     padding: 0.85rem;
     border: 1px solid color-mix(in srgb, var(--interactive-accent) 34%, var(--paper-text-main));
-    border-radius: 0.45rem;
+    border-radius: 0.5rem;
     background: color-mix(in srgb, var(--interactive-accent) 7%, var(--paper-bg));
     line-height: 1.55;
 }
@@ -568,18 +635,18 @@
 .sourceList,
 .chainDetailList {
     display: grid;
-    gap: 0.45rem;
+    gap: 0.5rem;
     min-width: 0;
 }
 
 .chainDetailItem {
     display: grid;
     grid-template-columns: 1.5rem minmax(0, 1fr);
-    gap: 0.45rem;
+    gap: 0.5rem;
     width: 100%;
-    padding: 0.62rem 0.65rem;
+    padding: 0.5rem 0.75rem;
     border: 1px solid color-mix(in srgb, var(--paper-text-main) 14%, transparent);
-    border-radius: 0.4rem;
+    border-radius: 0.5rem;
     background: color-mix(in srgb, var(--paper-bg) 94%, var(--interactive-accent));
     color: var(--paper-text-main);
     cursor: pointer;
@@ -599,7 +666,7 @@
 
 .chainDetailSummary {
     display: block;
-    margin-top: 0.2rem;
+    margin-top: 0.25rem;
     color: var(--paper-text-muted);
     font-size: 0.78rem;
     line-height: 1.45;
@@ -608,14 +675,14 @@
 .sourceItem {
     min-width: 0;
     border: 1px solid color-mix(in srgb, var(--paper-text-main) 14%, transparent);
-    border-radius: 0.4rem;
+    border-radius: 0.5rem;
     background: color-mix(in srgb, var(--paper-bg) 94%, var(--interactive-accent));
 }
 
 .sourceItem summary,
 .entityDetails summary,
 .lowerEntityGroup summary {
-    padding: 0.58rem 0.65rem;
+    padding: 0.5rem 0.75rem;
     cursor: pointer;
     color: var(--paper-text-main);
     font-size: 0.78rem;
@@ -630,8 +697,23 @@
     outline-offset: 2px;
 }
 
+.detailsContent {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 225ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+details[open] > .detailsContent {
+    grid-template-rows: 1fr;
+}
+
+.detailsContentInner {
+    min-height: 0;
+    overflow: hidden;
+}
+
 .sourceText {
-    padding: 0 0.65rem 0.65rem;
+    padding: 0 0.75rem 0.75rem;
     color: var(--paper-text-muted);
     font-size: 0.76rem;
     line-height: 1.45;
@@ -650,7 +732,7 @@
 .entityGrid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-    gap: 0.65rem;
+    gap: 0.75rem;
     min-width: 0;
 }
 
@@ -671,7 +753,7 @@
 .entitySummary {
     display: -webkit-box;
     overflow: hidden;
-    margin-top: 0.45rem;
+    margin-top: 0.5rem;
     color: var(--paper-text-muted);
     line-height: 1.4;
     -webkit-box-orient: vertical;
@@ -679,12 +761,12 @@
 }
 
 .entityMeta {
-    margin-top: 0.6rem;
+    margin-top: 0.5rem;
 }
 
 .entityDetails {
-    margin-top: 0.6rem;
-    padding-top: 0.55rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
     border-top: 1px solid color-mix(in srgb, var(--paper-text-main) 13%, transparent);
 }
 
@@ -696,8 +778,8 @@
 
 .entityEvidence {
     display: grid;
-    gap: 0.35rem;
-    margin-top: 0.45rem;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
 }
 
 .entityEvidenceItem {
@@ -709,12 +791,24 @@
 
 .lowerEntityGroup {
     margin-top: 0.75rem;
-    padding-top: 0.7rem;
+    padding-top: 0.75rem;
     border-top: 1px solid color-mix(in srgb, var(--surface-text-main) 15%, transparent);
 }
 
-.lowerEntityGroup[open] > summary {
-    margin-bottom: 0.7rem;
+.lowerEntityGroup .detailsContentInner {
+    padding-top: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mapPanel[data-transition] :is(.overviewGraph, .focusedGraph) {
+        animation: none;
+    }
+
+    .fragmentCard,
+    .dragHandle,
+    .detailsContent {
+        transition-duration: 0.01ms;
+    }
 }
 
 @media (max-width: 64em) {

@@ -9,6 +9,17 @@ import { fragmentDropId, groupDropId } from './useFragmentDrag';
 
 const text = (t, key, fallback, options = {}) => t(key, { defaultValue: fallback, ...options });
 
+const kickerFor = ({ focused, kind, t }) => {
+    if (focused) return 'EVENT CHAIN';
+    if (kind === 'needs-placement') {
+        return text(t, 'mod_archive.tree_v2.needs_placement_label', 'UNPLACED');
+    }
+    if (kind === 'supporting') {
+        return text(t, 'mod_archive.tree_v2.supporting_label', 'REFERENCE');
+    }
+    return 'CHAIN';
+};
+
 const FragmentCard = ({ fragment, index, selected, showSummary, onSelect }) => {
     const {
         attributes,
@@ -63,6 +74,7 @@ const PublishedContextGroupColumn = ({
     onSelect,
     onSelectGroup,
     onDeleteGroup,
+    kind = 'event',
     t,
 }) => {
     const { setNodeRef, isOver } = useDroppable({
@@ -79,6 +91,7 @@ const PublishedContextGroupColumn = ({
             withBorder
             data-remis-surface="paper"
             data-drag-over={isOver ? 'true' : 'false'}
+            data-group-kind={kind}
             data-testid={`published-context-group-${group.id}`}
         >
             <div className={styles.groupHeadingRow}>
@@ -89,11 +102,13 @@ const PublishedContextGroupColumn = ({
                     onClick={() => onSelectGroup?.(group.id)}
                 >
                     <span className={styles.groupHeadingCopy}>
-                        <span className={styles.groupKicker}>{focused ? 'EVENT CHAIN' : 'CHAIN'}</span>
+                        <span className={styles.groupKicker}>
+                            {kickerFor({ focused, kind, t })}
+                        </span>
                         <span className={styles.groupTitle}>{group.label}</span>
                         {focused && group.summary && <span className={styles.groupSummary}>{group.summary}</span>}
                     </span>
-                    <Badge size="sm" variant={focused ? 'light' : 'outline'}>{fragments.length}</Badge>
+                    <Badge className={styles.groupCount} size="sm" variant={focused ? 'light' : 'outline'}>{fragments.length}</Badge>
                 </button>
                 {focused && onDeleteGroup && (
                     confirmDelete ? (

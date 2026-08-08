@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ContextTreeV2ArchiveSummary from './ContextTreeV2ArchiveSummary';
 
@@ -39,6 +39,19 @@ const renderSummary = (value = tree) => render(
     <MantineProvider><ContextTreeV2ArchiveSummary tree={value} mode="published" /></MantineProvider>,
 );
 
+beforeEach(() => {
+    window.matchMedia.mockImplementation((query) => ({
+        matches: query === '(prefers-reduced-motion: reduce)',
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+    }));
+});
+
 describe('ContextTreeV2ArchiveSummary', () => {
     it('starts with a compact relationship map and folds the other entities', () => {
         renderSummary();
@@ -61,8 +74,33 @@ describe('ContextTreeV2ArchiveSummary', () => {
         expect(screen.getByTestId('published-context-detail')).toHaveTextContent('events/resolution.yml:4');
         expect(screen.getByTestId('published-context-map')).toHaveAttribute('data-view', 'focused');
 
+        const sourceDetails = screen.getByText('events/resolution.yml:4').closest('details');
+        expect(sourceDetails).not.toHaveAttribute('open');
+        fireEvent.click(sourceDetails.querySelector('summary'));
+        expect(sourceDetails).toHaveAttribute('open');
+
         expect(screen.getByTestId('published-context-fragment-fragment-2')).not.toHaveAttribute('draggable');
         expect(screen.getByTestId('published-context-map')).toHaveAttribute('data-remis-surface', 'surface');
+    });
+
+    it('keeps supporting text quiet and needs-placement cards last', () => {
+        const classifiedTree = {
+            ...tree,
+            fragments: [
+                ...tree.fragments,
+                { fragment_id: 'fragment-reference', label: 'Reference note', route: 'reference' },
+                { fragment_id: 'fragment-unassigned', label: 'Loose event', route: 'narrative' },
+            ],
+            reference_assets: [{ id: 'asset-reference', fragment_id: 'fragment-reference', label: 'Reference note' }],
+        };
+
+        renderSummary(classifiedTree);
+
+        const supporting = screen.getByTestId('published-context-group-group-support');
+        const needsPlacement = screen.getByTestId('published-context-group-group-unassigned');
+        expect(supporting).toHaveAttribute('data-group-kind', 'supporting');
+        expect(needsPlacement).toHaveAttribute('data-group-kind', 'needs-placement');
+        expect(needsPlacement.parentElement.lastElementChild).toBe(needsPlacement);
     });
 
     it('keeps all top-level chains on one dynamic relationship rail', () => {

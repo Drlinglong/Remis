@@ -23,6 +23,7 @@ const PublishedContextMap = ({
     tree,
     selectedFragmentId,
     selectedGroupId,
+    transitionPhase,
     onSelect,
     onSelectGroup,
     onClearSelection,
@@ -46,9 +47,10 @@ const PublishedContextMap = ({
     const unassigned = Object.values(tree.fragments).filter((fragment) => (
         fragment.route === 'narrative' && !assigned.has(fragment.id)
     ));
-    const supportFragments = useMemo(() => tree.referenceAssets
+    const supportFragments = useMemo(() => [...new Map(tree.referenceAssets
         .map((asset) => tree.fragments[asset.fragmentId || asset.id])
-        .filter(Boolean), [tree.fragments, tree.referenceAssets]);
+        .filter(Boolean)
+        .map((fragment) => [fragment.id, fragment])).values()], [tree.fragments, tree.referenceAssets]);
     const eventGroups = stories.flatMap((story) => story.groupIds
         .map((groupId) => tree.groups.find((group) => group.id === groupId))
         .filter(Boolean)
@@ -56,18 +58,21 @@ const PublishedContextMap = ({
             group,
             fragments: group.fragmentIds.map((id) => tree.fragments[id]).filter(Boolean),
             selectable: true,
+            kind: 'event',
         })));
     const overviewItems = [
         ...eventGroups,
-        ...(unassigned.length > 0 ? [{
-            group: { id: 'group-unassigned', label: text(t, 'mod_archive.tree_v2.unassigned', 'Needs placement'), fragmentIds: unassigned.map((fragment) => fragment.id) },
-            fragments: unassigned,
-            selectable: false,
-        }] : []),
         ...(supportFragments.length > 0 ? [{
             group: { id: 'group-support', label: text(t, 'mod_archive.tree_v2.supporting_text', 'Supporting text'), fragmentIds: supportFragments.map((fragment) => fragment.id) },
             fragments: supportFragments,
             selectable: false,
+            kind: 'supporting',
+        }] : []),
+        ...(unassigned.length > 0 ? [{
+            group: { id: 'group-unassigned', label: text(t, 'mod_archive.tree_v2.unassigned', 'Needs placement'), fragmentIds: unassigned.map((fragment) => fragment.id) },
+            fragments: unassigned,
+            selectable: false,
+            kind: 'needs-placement',
         }] : []),
     ];
     const allFragments = useMemo(() => Object.values(tree.fragments), [tree.fragments]);
@@ -75,7 +80,7 @@ const PublishedContextMap = ({
         ? allFragments.find((fragment) => fragment.id === drag.activeFragmentId)
         : null;
 
-    const renderGroup = (group, fragments, selectable = true) => (
+    const renderGroup = (group, fragments, selectable = true, kind = 'event') => (
         <PublishedContextGroupColumn
             key={group.id}
             group={group}
@@ -85,6 +90,7 @@ const PublishedContextMap = ({
             onSelect={onSelect}
             onSelectGroup={selectable ? onSelectGroup : null}
             onDeleteGroup={selectable ? onDeleteGroup : null}
+            kind={kind}
             t={t}
         />
     );
@@ -100,7 +106,15 @@ const PublishedContextMap = ({
     };
 
     return (
-        <Paper className={styles.mapPanel} p="md" withBorder data-remis-surface="surface" data-testid="published-context-map" data-view={focused ? 'focused' : 'overview'}>
+        <Paper
+            className={styles.mapPanel}
+            p="md"
+            withBorder
+            data-remis-surface="surface"
+            data-testid="published-context-map"
+            data-view={focused ? 'focused' : 'overview'}
+            data-transition={transitionPhase}
+        >
             <header className={styles.panelHeader}>
                 <div>
                     <Text className={styles.eyebrow}>{text(t, 'mod_archive.tree_v2.map_eyebrow', 'RELATIONSHIP MAP')}</Text>
@@ -188,7 +202,7 @@ const PublishedContextMap = ({
                                 className={styles.groupGrid}
                                 style={{ '--chain-count': Math.max(1, overviewItems.length) }}
                             >
-                                {overviewItems.map(({ group, fragments, selectable }) => renderGroup(group, fragments, selectable))}
+                                {overviewItems.map(({ group, fragments, selectable, kind }) => renderGroup(group, fragments, selectable, kind))}
                             </div>
                         </div>
                     </div>

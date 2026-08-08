@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Alert, Badge, Button, Group, Stack, Text, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
 import { createContextArchiveTreeApi } from './contextArchiveTreeApi';
 import { normalizeArchiveTree } from './contextArchiveTreeModel';
 import { useContextArchiveTree } from './useContextArchiveTree';
+import { useContextWorkbenchSelection } from './useContextWorkbenchSelection';
 import PublishedContextEntitySummary from './PublishedContextEntitySummary';
 import PublishedContextEventDetail from './PublishedContextEventDetail';
 import PublishedContextMap from './PublishedContextMap';
@@ -25,40 +26,15 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
         mode,
     });
     const normalizedTree = archiveState.tree || normalizeArchiveTree(tree);
-    const [selectedFragmentId, setSelectedFragmentId] = useState(null);
-    const [selectedGroupId, setSelectedGroupId] = useState(null);
-
-    useEffect(() => {
-        setSelectedFragmentId(null);
-        setSelectedGroupId(null);
-    }, [tree?.release_id, tree?.releaseId]);
-
-    useEffect(() => {
-        if (selectedFragmentId && !normalizedTree.fragments[selectedFragmentId]) {
-            setSelectedFragmentId(null);
-            setSelectedGroupId(null);
-        }
-        if (selectedGroupId && !normalizedTree.groups.some((group) => group.id === selectedGroupId)) {
-            setSelectedGroupId(null);
-        }
-    }, [normalizedTree.fragments, normalizedTree.groups, selectedFragmentId, selectedGroupId]);
-
-    const selectFragment = (fragmentId) => {
-        setSelectedFragmentId(fragmentId);
-        setSelectedGroupId(normalizedTree.groups.find((group) => group.fragmentIds.includes(fragmentId))?.id || null);
-    };
-    const selectGroup = (groupId) => {
-        setSelectedGroupId(groupId);
-        setSelectedFragmentId(null);
-    };
-    const clearSelection = () => {
-        setSelectedFragmentId(null);
-        setSelectedGroupId(null);
-    };
+    const selection = useContextWorkbenchSelection({
+        groups: normalizedTree.groups,
+        fragments: normalizedTree.fragments,
+        identity: tree?.release_id || tree?.releaseId,
+    });
 
     const deleteGroup = (groupId) => {
         archiveState.deleteGroup(groupId);
-        clearSelection();
+        selection.clearSelection();
     };
 
     return (
@@ -96,11 +72,12 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
             <div className={styles.workbench}>
                 <PublishedContextMap
                     tree={normalizedTree}
-                    selectedFragmentId={selectedFragmentId}
-                    selectedGroupId={selectedGroupId}
-                    onSelect={selectFragment}
-                    onSelectGroup={selectGroup}
-                    onClearSelection={clearSelection}
+                    selectedFragmentId={selection.selectedFragmentId}
+                    selectedGroupId={selection.selectedGroupId}
+                    transitionPhase={selection.transitionPhase}
+                    onSelect={selection.selectFragment}
+                    onSelectGroup={selection.selectGroup}
+                    onClearSelection={selection.clearSelection}
                     onCreateGroup={archiveState.createGroup}
                     onDeleteGroup={deleteGroup}
                     onMoveFragment={archiveState.moveFragment}
@@ -108,10 +85,10 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
                 />
                 <PublishedContextEventDetail
                     tree={normalizedTree}
-                    selectedFragmentId={selectedFragmentId}
-                    selectedGroupId={selectedGroupId}
-                    onClearSelection={clearSelection}
-                    onSelectFragment={selectFragment}
+                    selectedFragmentId={selection.selectedFragmentId}
+                    selectedGroupId={selection.selectedGroupId}
+                    onClearSelection={selection.clearSelection}
+                    onSelectFragment={selection.selectFragment}
                     t={t}
                 />
             </div>

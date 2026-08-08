@@ -97,7 +97,11 @@ const PublishedContextEventDetail = ({ tree, selectedFragmentId, selectedGroupId
                                 {sources.length > 0 ? sources.map((source) => (
                                     <details className={styles.sourceItem} key={source.id}>
                                         <summary>{source.label}</summary>
-                                        <Text className={styles.sourceText}>{source.text || text(t, 'mod_archive.tree_v2.source_unavailable', 'Source text is unavailable for this unit.')}</Text>
+                                        <div className={styles.detailsContent}>
+                                            <div className={styles.detailsContentInner}>
+                                                <Text className={styles.sourceText}>{source.text || text(t, 'mod_archive.tree_v2.source_unavailable', 'Source text is unavailable for this unit.')}</Text>
+                                            </div>
+                                        </div>
                                     </details>
                                 )) : (
                                     <Text className={styles.noSource}>{text(t, 'mod_archive.tree_v2.no_source', 'No source units are attached to this card.')}</Text>
