@@ -228,6 +228,7 @@ function PublishedArchiveVisualFixture() {
         scope="narrative_context"
         draftState={{ phase: 'idle', startDraft: () => {} }}
         refresh={() => {}}
+        showAdvanced
         t={archiveT}
       />
       <ArchiveSummary
@@ -237,6 +238,7 @@ function PublishedArchiveVisualFixture() {
         traceabilityState="ready"
         traceabilityError=""
         loadTraceability={() => {}}
+        showAdvanced
         t={archiveT}
       />
     </Box>

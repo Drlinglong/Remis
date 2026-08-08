@@ -435,7 +435,8 @@ html[data-theme] [data-remis-surface='elevated'] .mantine-Title-root {
  * alerts against the nearest semantic material instead.
  */
 html[data-theme] [data-remis-surface] .mantine-Badge-root[data-variant='light'] {
-  background: color-mix(in srgb, var(--remis-content-text) 12%, var(--remis-content-bg)) !important;
+  background: var(--remis-content-bg) !important;
+  border: 1px solid currentColor !important;
   color: var(--remis-content-text) !important;
 }
 

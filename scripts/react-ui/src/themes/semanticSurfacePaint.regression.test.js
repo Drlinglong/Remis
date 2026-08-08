@@ -38,7 +38,7 @@ describe('semantic material paint regressions', () => {
       '--remis-content-text: var(--surface-text-main) !important;',
     );
     expect(definitionsCss).toContain(
-      'background: color-mix(in srgb, var(--remis-content-text) 12%, var(--remis-content-bg)) !important;',
+      'border: 1px solid currentColor !important;',
     );
     expect(definitionsCss).toContain('background: var(--remis-content-bg) !important;');
     expect(definitionsCss).toContain('border: 1px solid var(--remis-content-border) !important;');
