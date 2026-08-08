@@ -20,8 +20,8 @@ describe('semantic material paint regressions', () => {
       "[data-remis-surface='paper']:is(.mantine-Paper-root, .mantine-Card-root)",
     );
     expect(definitionsCss).toContain('background: var(--paper-bg) !important;');
-    expect(definitionsCss).toContain('color: var(--surface-text-main) !important;');
-    expect(definitionsCss).toContain('color: var(--paper-text-main) !important;');
+    expect(definitionsCss).toContain('color: var(--surface-text-main);');
+    expect(definitionsCss).toContain('color: var(--paper-text-main);');
   });
 
   it('themes native select inputs and their operating-system option list', () => {
@@ -35,7 +35,7 @@ describe('semantic material paint regressions', () => {
   // Report: .gstack/design-reports/design-audit-127.0.0.1-2026-07-31.md
   it('binds light badges and alerts to the nearest semantic material', () => {
     expect(definitionsCss).toContain(
-      '--remis-content-text: var(--surface-text-main) !important;',
+      '--remis-content-text: var(--surface-text-main);',
     );
     expect(definitionsCss).toContain(
       'border: 1px solid currentColor !important;',

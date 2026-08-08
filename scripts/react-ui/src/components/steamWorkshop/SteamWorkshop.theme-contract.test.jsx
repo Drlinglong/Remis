@@ -81,8 +81,8 @@ describe('Steam Workshop semantic surface contract', () => {
     ].forEach((selector) => {
       expect(definitionsSource).toContain(selector);
     });
-    expect(definitionsSource).toContain('background: var(--elevated-bg) !important;');
-    expect(definitionsSource).toContain('--remis-content-text: var(--elevated-text-main) !important;');
+    expect(definitionsSource).toContain('background: var(--elevated-bg);');
+    expect(definitionsSource).toContain('--remis-content-text: var(--elevated-text-main);');
   });
 
   it('does not introduce theme-name branches in publishing components', () => {

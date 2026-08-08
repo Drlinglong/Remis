@@ -383,9 +383,9 @@
  * darker than the page background.
  */
 html[data-theme] {
-  --mantine-color-text: var(--canvas-text-main) !important;
-  --mantine-color-dimmed: var(--canvas-text-muted) !important;
-  color: var(--canvas-text-main) !important;
+  --mantine-color-text: var(--canvas-text-main);
+  --mantine-color-dimmed: var(--canvas-text-muted);
+  color: var(--canvas-text-main);
 }
 
 /*
@@ -393,12 +393,12 @@ html[data-theme] {
  * the active theme name. This keeps canvas, card, and overlay text independent.
  */
 html[data-theme] [data-remis-surface='canvas'] {
-  --mantine-color-text: var(--canvas-text-main) !important;
-  --mantine-color-dimmed: var(--canvas-text-muted) !important;
-  --remis-content-text: var(--canvas-text-main) !important;
-  --remis-content-muted: var(--canvas-text-muted) !important;
-  --remis-content-bg: var(--canvas-bg-solid) !important;
-  --remis-content-border: var(--surface-border) !important;
+  --mantine-color-text: var(--canvas-text-main);
+  --mantine-color-dimmed: var(--canvas-text-muted);
+  --remis-content-text: var(--canvas-text-main);
+  --remis-content-muted: var(--canvas-text-muted);
+  --remis-content-bg: var(--canvas-bg-solid);
+  --remis-content-border: var(--surface-border);
   color: var(--canvas-text-main);
 }
 
@@ -409,32 +409,32 @@ html[data-theme] [data-remis-surface='canvas'] {
  * let hero/banner headings opt into decoration outside this surface contract.
  */
 html[data-theme] [data-remis-surface='canvas'] .mantine-Title-root {
-  color: var(--canvas-text-main) !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
+  color: var(--canvas-text-main);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
   display: block;
   padding: 0;
-  text-shadow: none !important;
+  text-shadow: none;
 }
 
 html[data-theme] [data-remis-surface='surface'] {
-  --mantine-color-text: var(--surface-text-main) !important;
-  --mantine-color-dimmed: var(--surface-text-muted) !important;
-  --remis-content-text: var(--surface-text-main) !important;
-  --remis-content-muted: var(--surface-text-muted) !important;
-  --remis-content-bg: var(--surface-bg-solid) !important;
-  --remis-content-border: var(--surface-border) !important;
-  color: var(--surface-text-main) !important;
+  --mantine-color-text: var(--surface-text-main);
+  --mantine-color-dimmed: var(--surface-text-muted);
+  --remis-content-text: var(--surface-text-main);
+  --remis-content-muted: var(--surface-text-muted);
+  --remis-content-bg: var(--surface-bg-solid);
+  --remis-content-border: var(--surface-border);
+  color: var(--surface-text-main);
 }
 
 html[data-theme] [data-remis-surface='surface'] .mantine-Title-root {
-  color: var(--remis-content-text) !important;
-  background: transparent !important;
-  -webkit-text-fill-color: currentColor !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
+  color: var(--remis-content-text);
+  background: transparent;
+  -webkit-text-fill-color: currentColor;
+  border: 0;
+  box-shadow: none;
+  text-shadow: none;
 }
 
 /*
@@ -448,13 +448,13 @@ html[data-theme] [data-remis-surface='surface']:is(.mantine-Paper-root, .mantine
 }
 
 html[data-theme] [data-remis-surface='paper'] {
-  --mantine-color-text: var(--paper-text-main) !important;
-  --mantine-color-dimmed: var(--paper-text-muted) !important;
-  --remis-content-text: var(--paper-text-main) !important;
-  --remis-content-muted: var(--paper-text-muted) !important;
-  --remis-content-bg: var(--paper-bg) !important;
-  --remis-content-border: var(--paper-text-muted) !important;
-  color: var(--paper-text-main) !important;
+  --mantine-color-text: var(--paper-text-main);
+  --mantine-color-dimmed: var(--paper-text-muted);
+  --remis-content-text: var(--paper-text-main);
+  --remis-content-muted: var(--paper-text-muted);
+  --remis-content-bg: var(--paper-bg);
+  --remis-content-border: var(--paper-text-muted);
+  color: var(--paper-text-main);
 }
 
 /*
@@ -462,12 +462,12 @@ html[data-theme] [data-remis-surface='paper'] {
  * inner material's ink instead of inheriting the outer canvas heading color.
  */
 html[data-theme] [data-remis-surface='paper'] .mantine-Title-root {
-  color: var(--remis-content-text) !important;
-  background: transparent !important;
-  -webkit-text-fill-color: currentColor !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
+  color: var(--remis-content-text);
+  background: transparent;
+  -webkit-text-fill-color: currentColor;
+  border: 0;
+  box-shadow: none;
+  text-shadow: none;
 }
 
 html[data-theme] [data-remis-surface='paper']:is(.mantine-Paper-root, .mantine-Card-root) {
@@ -476,13 +476,13 @@ html[data-theme] [data-remis-surface='paper']:is(.mantine-Paper-root, .mantine-C
 }
 
 html[data-theme] [data-remis-surface='elevated'] {
-  --mantine-color-text: var(--elevated-text-main) !important;
-  --mantine-color-dimmed: var(--elevated-text-muted) !important;
-  --remis-content-text: var(--elevated-text-main) !important;
-  --remis-content-muted: var(--elevated-text-muted) !important;
-  --remis-content-bg: var(--elevated-bg) !important;
-  --remis-content-border: var(--surface-border) !important;
-  color: var(--elevated-text-main) !important;
+  --mantine-color-text: var(--elevated-text-main);
+  --mantine-color-dimmed: var(--elevated-text-muted);
+  --remis-content-text: var(--elevated-text-main);
+  --remis-content-muted: var(--elevated-text-muted);
+  --remis-content-bg: var(--elevated-bg);
+  --remis-content-border: var(--surface-border);
+  color: var(--elevated-text-main);
 }
 
 /*
@@ -499,29 +499,29 @@ html[data-theme] [data-remis-surface='elevated'] :is(
   .mantine-Modal-title,
   .mantine-Modal-close
 ) {
-  --mantine-color-text: var(--elevated-text-main) !important;
-  --mantine-color-dimmed: var(--elevated-text-muted) !important;
-  --remis-content-text: var(--elevated-text-main) !important;
-  --remis-content-muted: var(--elevated-text-muted) !important;
-  color: var(--elevated-text-main) !important;
+  --mantine-color-text: var(--elevated-text-main);
+  --mantine-color-dimmed: var(--elevated-text-muted);
+  --remis-content-text: var(--elevated-text-main);
+  --remis-content-muted: var(--elevated-text-muted);
+  color: var(--elevated-text-main);
 }
 
 html[data-theme] [data-remis-surface='elevated'] .mantine-Modal-content {
-  background: var(--elevated-bg) !important;
-  background-image: none !important;
+  background: var(--elevated-bg);
+  background-image: none;
 }
 
 html[data-theme] [data-remis-surface='elevated'] .mantine-Modal-header {
-  background: transparent !important;
+  background: transparent;
 }
 
 html[data-theme] [data-remis-surface='elevated'] .mantine-Title-root {
-  color: var(--remis-content-text) !important;
-  background: transparent !important;
-  -webkit-text-fill-color: currentColor !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
+  color: var(--remis-content-text);
+  background: transparent;
+  -webkit-text-fill-color: currentColor;
+  border: 0;
+  box-shadow: none;
+  text-shadow: none;
 }
 
 /*
@@ -569,61 +569,61 @@ html[data-theme] [data-remis-surface] .mantine-Alert-root
 }
 
 html[data-theme] [data-remis-action='primary'] {
-  background: var(--interactive-accent) !important;
-  border-color: var(--surface-text-muted) !important;
-  color: var(--interactive-accent-text) !important;
-  box-shadow: none !important;
+  background: var(--interactive-accent);
+  border-color: var(--surface-text-muted);
+  color: var(--interactive-accent-text);
+  box-shadow: none;
 }
 
 html[data-theme] [data-remis-action='primary']:is(:hover, :active) {
-  background: var(--interactive-accent) !important;
-  color: var(--interactive-accent-text) !important;
-  box-shadow: none !important;
+  background: var(--interactive-accent);
+  color: var(--interactive-accent-text);
+  box-shadow: none;
 }
 
 html[data-theme] [data-remis-action='secondary'],
 html[data-theme] [data-remis-action='danger-secondary'] {
-  background: transparent !important;
-  border-color: var(--surface-text-muted) !important;
-  color: var(--surface-text-main) !important;
-  box-shadow: none !important;
+  background: transparent;
+  border-color: var(--surface-text-muted);
+  color: var(--surface-text-main);
+  box-shadow: none;
 }
 
 html[data-theme] [data-remis-action='secondary']:is(:hover, :active),
 html[data-theme] [data-remis-action='danger-secondary']:is(:hover, :active) {
-  background: color-mix(in srgb, var(--surface-text-main) 9%, transparent) !important;
-  color: var(--surface-text-main) !important;
-  box-shadow: none !important;
+  background: color-mix(in srgb, var(--surface-text-main) 9%, transparent);
+  color: var(--surface-text-main);
+  box-shadow: none;
 }
 
 html[data-theme] [data-remis-action='danger-secondary']:is(:hover, :active) {
-  box-shadow: inset 3px 0 0 var(--mantine-color-red-6) !important;
+  box-shadow: inset 3px 0 0 var(--mantine-color-red-6);
 }
 
 html[data-theme] [data-remis-action='paper-primary'] {
-  background: var(--interactive-accent) !important;
-  border-color: var(--paper-text-muted) !important;
-  color: var(--interactive-accent-text) !important;
-  box-shadow: none !important;
+  background: var(--interactive-accent);
+  border-color: var(--paper-text-muted);
+  color: var(--interactive-accent-text);
+  box-shadow: none;
 }
 
 html[data-theme] [data-remis-action='paper-secondary'] {
-  background: transparent !important;
-  border-color: var(--paper-text-muted) !important;
-  color: var(--paper-text-main) !important;
-  box-shadow: none !important;
+  background: transparent;
+  border-color: var(--paper-text-muted);
+  color: var(--paper-text-main);
+  box-shadow: none;
 }
 
 html[data-theme] [data-remis-action='paper-danger'] {
-  background: var(--mantine-color-red-8) !important;
-  border-color: var(--paper-text-muted) !important;
-  color: var(--mantine-color-white) !important;
-  box-shadow: none !important;
+  background: var(--mantine-color-red-8);
+  border-color: var(--paper-text-muted);
+  color: var(--mantine-color-white);
+  box-shadow: none;
 }
 
 html[data-theme] [data-remis-action^='paper-']:is(:hover, :active) {
   filter: brightness(1.08);
-  box-shadow: none !important;
+  box-shadow: none;
 }
 
 html[data-theme] :is(button, a, input, select, textarea, [role='button']):focus-visible {

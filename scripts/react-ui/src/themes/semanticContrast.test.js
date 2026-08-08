@@ -101,7 +101,7 @@ describe('semantic modal bindings', () => {
     ].forEach((selector) => {
       expect(definitionsCss).toContain(selector);
     });
-    expect(definitionsCss).toContain('background: var(--elevated-bg) !important;');
-    expect(definitionsCss).toContain('color: var(--elevated-text-main) !important;');
+    expect(definitionsCss).toContain('background: var(--elevated-bg);');
+    expect(definitionsCss).toContain('color: var(--elevated-text-main);');
   });
 });
