@@ -109,9 +109,10 @@ for (const themeId of themes) {
     const summaryKinds = await page.locator('[class*="summarySection"]').evaluateAll((sections) => (
       sections.map((section) => section.getAttribute('data-kind'))
     ));
-    expect(summaryKinds).toEqual(['project', 'event', 'entity']);
+    expect(summaryKinds).toEqual(['project', 'event', 'entity', 'entity']);
+    await expect(page.getByTestId('mod-archive-lower-priority-entities')).not.toHaveAttribute('open', '');
 
-    const entityList = page.locator('[data-kind="entity"] [class*="entryList"]');
+    const entityList = page.locator('[data-kind="entity"] [class*="entryList"]').first();
     const entityColumns = await entityList.evaluate((element) => (
       getComputedStyle(element).gridTemplateColumns.split(' ').length
     ));
