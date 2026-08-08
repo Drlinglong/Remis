@@ -27,6 +27,7 @@ const RemoveModArchiveControl = ({
         <>
             <Button
                 className={styles.dangerSecondaryAction}
+                data-remis-action="danger-secondary"
                 leftSection={<IconTrash size={16} />}
                 onClick={removal.open}
                 disabled={disabled}

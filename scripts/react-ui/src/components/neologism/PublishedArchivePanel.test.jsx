@@ -71,7 +71,10 @@ describe('PublishedArchivePanel', () => {
         expect(screen.getByTestId('published-archive-toolbar')).toBeInTheDocument();
         expect(screen.getByTestId('published-context-map')).toBeInTheDocument();
         expect(screen.getByTestId('published-context-entities')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Delete archive data' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Delete archive data' })).toHaveAttribute(
+            'data-remis-action',
+            'danger-secondary',
+        );
         expect(screen.queryByTestId('mod-archive-advanced-toggle')).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'neologism_review.court.inspect_project_glossary' })).not.toBeInTheDocument();
         expect(api.get).toHaveBeenCalledWith('/api/context/tree-v2/projects/project-1/latest-release');
