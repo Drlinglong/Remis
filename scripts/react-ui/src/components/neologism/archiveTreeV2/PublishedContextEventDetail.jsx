@@ -35,7 +35,16 @@ const PublishedContextEventDetail = ({ tree, selectedFragmentId, selectedGroupId
                         {fragment?.label || group?.label || text(t, 'mod_archive.tree_v2.detail_title', 'Event details')}
                     </Title>
                 </div>
-                {(fragment || group) && <button type="button" className={styles.mapBack} onClick={onClearSelection}>{text(t, 'mod_archive.tree_v2.detail_back', 'Back to map')}</button>}
+                {(fragment || group) && (
+                    <button
+                        type="button"
+                        className={styles.mapBack}
+                        data-remis-action="paper-secondary"
+                        onClick={onClearSelection}
+                    >
+                        {text(t, 'mod_archive.tree_v2.detail_back', 'Back to map')}
+                    </button>
+                )}
             </header>
             {!fragment && !group ? (
                 <div className={styles.emptyDetail} data-testid="published-context-detail-empty">

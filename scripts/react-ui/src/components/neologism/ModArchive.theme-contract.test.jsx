@@ -15,6 +15,8 @@ const editorSource = readSource('ModArchiveOverrideEditor.jsx');
 const stylesSource = readSource('ModArchive.module.css');
 const toolbarSource = readSource('ProjectGlossaryToolbar.jsx');
 const toolbarStylesSource = readSource('ProjectGlossaryToolbar.module.css');
+const contextMapSource = readSource('archiveTreeV2/PublishedContextMap.jsx');
+const contextDetailSource = readSource('archiveTreeV2/PublishedContextEventDetail.jsx');
 
 describe('Mod Archive semantic workbench contract', () => {
     it('uses semantic material tokens without theme-specific selectors or raw colors', () => {
@@ -53,6 +55,8 @@ describe('Mod Archive semantic workbench contract', () => {
         expect(editorSource).toContain('data-testid="mod-archive-publish-confirm"');
         expect(releaseContentSource).toContain('data-remis-action="secondary"');
         expect(editorSource).toContain('data-remis-action="primary"');
+        expect(contextMapSource).toContain('data-remis-action="secondary"');
+        expect(contextDetailSource).toContain('data-remis-action="paper-secondary"');
     });
 
     it('leaves vertical scrolling to the page tab panels', () => {

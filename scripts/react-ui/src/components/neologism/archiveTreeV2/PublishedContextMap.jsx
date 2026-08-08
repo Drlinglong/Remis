@@ -333,7 +333,12 @@ const PublishedContextMap = ({
                         </Button>
                     )}
                     {focused ? (
-                        <button type="button" className={styles.mapBack} onClick={onClearSelection}>
+                        <button
+                            type="button"
+                            className={styles.mapBack}
+                            data-remis-action="secondary"
+                            onClick={onClearSelection}
+                        >
                             {text(t, 'mod_archive.tree_v2.back_to_overview', 'Back to overview')}
                         </button>
                     ) : (
