@@ -292,7 +292,7 @@
 
 .groupColumn[data-group-kind='supporting'] {
     --remis-surface-override-border: color-mix(in srgb, var(--paper-text-main) 9%, transparent);
-    --remis-surface-override-bg: color-mix(in srgb, var(--paper-bg) 97%, var(--surface-bg));
+    --remis-surface-override-bg: color-mix(in srgb, var(--paper-bg) 97%, var(--surface-bg-solid));
     color: var(--paper-text-muted);
 }
 
