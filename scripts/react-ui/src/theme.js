@@ -38,7 +38,6 @@ export const theme = createTheme({
   components: {
     Card: {
       defaultProps: {
-        bg: 'dark.6',
         withBorder: true,
       },
       styles: (_theme) => ({
@@ -52,21 +51,6 @@ export const theme = createTheme({
       defaultProps: {
         radius: 'md',
       },
-    },
-    AppShell: {
-      styles: (theme) => ({
-        main: {
-          backgroundColor: theme.colors.dark[7], // #1F1F1F
-        },
-        navbar: {
-          backgroundColor: theme.colors.dark[6], // #2A2A2A
-          borderColor: 'rgba(255, 255, 255, 0.1)',
-        },
-        header: {
-          backgroundColor: theme.colors.dark[6], // #2A2A2A
-          borderColor: 'rgba(255, 255, 255, 0.1)',
-        },
-      }),
     },
   },
 });

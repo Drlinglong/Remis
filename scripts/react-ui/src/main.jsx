@@ -54,7 +54,6 @@ import './i18n/i18n';
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import './themes/index.css'
 import './themes/definitions.css' // Import Centralized Design Tokens
 import App from './App.jsx'
 

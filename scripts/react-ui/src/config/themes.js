@@ -5,10 +5,9 @@
  * This array is used to dynamically generate the theme selection UI.
  *
  * To add a new theme:
- * 1. Create a new CSS file in `src/themes/`.
- * 2. Add an `@import` statement for the new CSS file in `src/themes/index.css`.
- * 3. Add a new translation key for the theme's display name in the i18n locale files.
- * 4. Add a new object to this array with the theme's details.
+ * 1. Add its semantic token block to `src/themes/definitions.css`.
+ * 2. Add a new translation key for the theme's display name in the i18n locale files.
+ * 3. Add a new object to this array with the theme's details.
  */
 export const AVAILABLE_THEMES = [
   {
