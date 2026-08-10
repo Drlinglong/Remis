@@ -2,15 +2,21 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-// Distinct colors for games
-const COLORS = ['#228be6', '#fab005', '#fa5252', '#7950f2', '#15aabf', '#82c91e', '#be4bdb'];
-// Blue, Yellow, Red, Violet, Cyan, Lime, Grape
+const COLORS = [
+    'var(--chart-series-1)',
+    'var(--chart-series-2)',
+    'var(--chart-series-3)',
+    'var(--chart-series-4)',
+    'var(--chart-series-5)',
+    'var(--chart-series-6)',
+    'var(--chart-series-7)',
+];
 
 const ProjectDistributionPieChart = ({ data: dynamicData }) => {
     const { t } = useTranslation();
 
     const defaultData = [
-        { name: 'No Projects', value: 1 },
+        { name: 'No Projects', value: 0 },
     ];
 
     // Helper to translate game names if needed, or format them nicely
@@ -43,14 +49,21 @@ const ProjectDistributionPieChart = ({ data: dynamicData }) => {
                     {data.map((entry, index) => (
                         <Cell
                             key={`cell-${index}`}
-                            fill={isDefault ? '#444' : COLORS[index % COLORS.length]}
+                            fill={isDefault ? 'var(--chart-empty)' : COLORS[index % COLORS.length]}
                             fillOpacity={isDefault ? 0.3 : 1}
                         />
                     ))}
                 </Pie>
                 <Tooltip
-                    contentStyle={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-main)', backdropFilter: 'blur(10px)' }}
-                    itemStyle={{ color: 'var(--text-main)' }}
+                    contentStyle={{
+                        background: 'var(--chart-tooltip-bg)',
+                        border: '1px solid var(--chart-tooltip-border)',
+                        borderRadius: 'var(--radius-paper)',
+                        boxShadow: 'var(--shadow-elevated)',
+                        color: 'var(--chart-tooltip-text)',
+                    }}
+                    itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+                    labelStyle={{ color: 'var(--chart-tooltip-text)' }}
                 />
                 <Legend wrapperStyle={{ paddingTop: '20px' }} />
             </PieChart>

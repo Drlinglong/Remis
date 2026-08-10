@@ -2,13 +2,12 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-// Modern Dark Theme Colors mapped by status (Matching KanbanColumn.jsx logic)
 const STATUS_COLORS = {
-  'todo': '#adb5bd',         // Gray
-  'in_progress': '#339af0',  // Blue
-  'proofreading': '#d9a300', // Yellow (Darker for visibility)
-  'paused': '#fb8c00',       // Orange
-  'done': '#40c057',         // Green
+  todo: 'var(--chart-series-1)',
+  in_progress: 'var(--chart-series-2)',
+  proofreading: 'var(--chart-series-4)',
+  paused: 'var(--chart-series-5)',
+  done: 'var(--chart-series-3)',
 };
 
 const ProjectStatusPieChart = ({ data: dynamicData }) => {
@@ -31,7 +30,7 @@ const ProjectStatusPieChart = ({ data: dynamicData }) => {
   ];
 
   const data = dynamicData && dynamicData.length > 0
-    ? dynamicData.map(d => ({ ...d, displayName: statusMap[d.name.toLowerCase()] || d.name }))
+    ? dynamicData.map(d => ({ ...d, displayName: statusMap[String(d.name).toLowerCase()] || d.name }))
     : defaultData.map(d => ({ ...d, displayName: statusMap[d.name] }));
 
   return (
@@ -49,12 +48,22 @@ const ProjectStatusPieChart = ({ data: dynamicData }) => {
           stroke="none"
         >
           {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name.toLowerCase()] || '#adb5bd'} />
+            <Cell
+              key={`cell-${index}`}
+              fill={STATUS_COLORS[String(entry.name).toLowerCase()] || 'var(--chart-empty)'}
+            />
           ))}
         </Pie>
         <Tooltip
-          contentStyle={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-main)', backdropFilter: 'blur(10px)' }}
-          itemStyle={{ color: 'var(--text-main)' }}
+          contentStyle={{
+            background: 'var(--chart-tooltip-bg)',
+            border: '1px solid var(--chart-tooltip-border)',
+            borderRadius: 'var(--radius-paper)',
+            boxShadow: 'var(--shadow-elevated)',
+            color: 'var(--chart-tooltip-text)',
+          }}
+          itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+          labelStyle={{ color: 'var(--chart-tooltip-text)' }}
         />
         <Legend wrapperStyle={{ paddingTop: '20px' }} />
       </PieChart>

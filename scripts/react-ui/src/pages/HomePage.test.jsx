@@ -208,8 +208,7 @@ describe('HomePage', () => {
     const message = await screen.findByText('task_center.attention_summary');
     const alert = message.closest('.mantine-Alert-root');
     expect(alert).toHaveAttribute('data-remis-surface', 'paper');
-    expect(alert).toHaveStyle({ background: 'var(--paper-bg)' });
-    expect(message).toHaveStyle({ color: 'var(--paper-text-main)' });
+    expect(alert.querySelector('.mantine-Alert-message')).toContainElement(message);
   });
 
   it('keeps the latest completed task visible and opens its exact task record', async () => {

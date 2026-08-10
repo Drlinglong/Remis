@@ -17,7 +17,10 @@ export function MainLayout({ children }) {
 
                     {/* Center Content */}
                     <Box style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
-                        <Box style={{ flex: 1, minHeight: 0, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' }}>
+                        <Box
+                            data-remis-scroll-owner="main-content"
+                            style={{ flex: 1, minHeight: 0, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' }}
+                        >
                             {children}
                         </Box>
                     </Box>

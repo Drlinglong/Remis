@@ -10,9 +10,10 @@ const StatCard = ({ title, value, icon, color, progress, trend, className }) => 
             p="xs"
             className={className}
             data-remis-surface="surface"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent' }}
+            data-remis-stat-card
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 0 }}
         >
-            <Group>
+            <Group wrap="nowrap" style={{ minWidth: 0 }}>
                 <RingProgress
                     size={80}
                     roundCaps
@@ -25,11 +26,11 @@ const StatCard = ({ title, value, icon, color, progress, trend, className }) => 
                     }
                 />
 
-                <div>
-                    <Text c="dimmed" size="xs" tt="uppercase" fw={700}>
+                <div style={{ minWidth: 0 }}>
+                    <Text c="dimmed" size="xs" tt="uppercase" fw={700} lineClamp={2} style={{ overflowWrap: 'anywhere' }}>
                         {title}
                     </Text>
-                    <Text fw={700} size="xl">
+                    <Text fw={700} size="xl" style={{ overflowWrap: 'anywhere' }}>
                         {value}
                     </Text>
                 </div>
@@ -37,13 +38,13 @@ const StatCard = ({ title, value, icon, color, progress, trend, className }) => 
 
             {!!trend && (
                 <Group gap={2}>
-                    <Text c={trend > 0 ? 'teal' : 'red'} fz="sm" fw={500}>
+                    <Text fz="sm" fw={500} style={{ color: trend > 0 ? 'var(--status-success)' : 'var(--status-error)' }}>
                         {trend}%
                     </Text>
                     {trend > 0 ? (
-                        <IconArrowUpRight size={16} color="var(--mantine-color-teal-6)" />
+                        <IconArrowUpRight size={16} color="var(--status-success)" />
                     ) : (
-                        <IconArrowDownRight size={16} color="var(--mantine-color-red-6)" />
+                        <IconArrowDownRight size={16} color="var(--status-error)" />
                     )}
                 </Group>
             )}

@@ -654,7 +654,7 @@ html[data-theme] [data-remis-surface='surface'] .mantine-Title-root {
  */
 html[data-theme] [data-remis-surface='surface']:is(.mantine-Paper-root, .mantine-Card-root) {
   background: var(--surface-bg-solid) !important;
-  border-color: var(--surface-border) !important;
+  border-color: var(--remis-surface-override-border, var(--surface-border)) !important;
 }
 
 html[data-theme] [data-remis-surface='paper'] {

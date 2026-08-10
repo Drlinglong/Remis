@@ -20,7 +20,7 @@ describe('canvas heading theme contract', () => {
 
   it('marks the affected workbench pages as canvas surfaces', () => {
     [
-      'src/pages/HomePage.jsx',
+      'src/pages/home/HomeDashboardView.jsx',
       'src/pages/InitialTranslation.jsx',
       'src/pages/IncrementalTranslationPage.jsx',
       'src/components/projectManagement/ProjectListView.jsx',

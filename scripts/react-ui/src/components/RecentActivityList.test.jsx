@@ -53,4 +53,24 @@ describe('RecentActivityList', () => {
     expect(screen.getByText('recent_activity_type_source_advanced')).toBeInTheDocument();
     expect(screen.queryByText(/history\.incremental_source_advanced_desc/)).not.toBeInTheDocument();
   });
+
+  it('keeps long activity content in normal page flow and caps the visible list', () => {
+    const longTitle = 'C:\\Mods\\A-very-long-unbroken-translation-output-path-with-a-stable-id-1234567890';
+    const activities = Array.from({ length: 7 }, (_, index) => ({
+      id: `activity-${index}`,
+      title: index === 0 ? longTitle : `Activity ${index}`,
+      type: 'translate',
+      description: 'Long activity description',
+      timestamp: '2026-07-22T00:00:00Z',
+    }));
+    const { container } = render(
+      <MantineProvider>
+        <RecentActivityList activities={activities} loading={false} />
+      </MantineProvider>,
+    );
+
+    expect(screen.getByText(longTitle)).toBeInTheDocument();
+    expect(container.querySelector('[data-remis-activity-list]').querySelectorAll(':scope > .mantine-Group-root')).toHaveLength(5);
+    expect(container.querySelector('[data-remis-activity-list] [style*="overflow-y"]')).not.toBeInTheDocument();
+  });
 });
