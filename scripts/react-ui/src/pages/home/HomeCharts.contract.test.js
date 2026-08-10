@@ -13,6 +13,7 @@ describe('Home chart visual contract', () => {
     expect(source).toContain('var(--chart-tooltip-border)');
     expect(source).toContain('var(--chart-tooltip-text)');
     expect(source).toContain('var(--shadow-elevated)');
+    expect(source).toContain('isAnimationActive={false}');
     expect(source).not.toMatch(/var\(--glass-/);
     expect(source).not.toMatch(/#[0-9a-f]{3,8}/i);
   });

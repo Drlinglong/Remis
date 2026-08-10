@@ -44,6 +44,7 @@ const ProjectDistributionPieChart = ({ data: dynamicData }) => {
                     outerRadius={100}
                     paddingAngle={5}
                     dataKey="value"
+                    isAnimationActive={false}
                     stroke="none"
                 >
                     {data.map((entry, index) => (

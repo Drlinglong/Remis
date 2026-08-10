@@ -45,6 +45,7 @@ const ProjectStatusPieChart = ({ data: dynamicData }) => {
           paddingAngle={5}
           dataKey="value"
           nameKey="displayName"
+          isAnimationActive={false}
           stroke="none"
         >
           {data.map((entry, index) => (
