@@ -82,7 +82,7 @@
 
 .workbench {
     display: grid;
-    grid-template-columns: minmax(0, 1.42fr) minmax(21rem, 0.78fr);
+    grid-template-columns: minmax(0, 1fr) minmax(21rem, 36rem);
     gap: 1rem;
     align-items: start;
     min-width: 0;
@@ -959,7 +959,7 @@ details[open] > .detailsContent {
 
 @media (max-width: 64em) {
     .workbench {
-        grid-template-columns: minmax(0, 1.2fr) minmax(19rem, 0.8fr);
+        grid-template-columns: minmax(0, 1fr) minmax(19rem, 32rem);
     }
 
     .groupGrid {

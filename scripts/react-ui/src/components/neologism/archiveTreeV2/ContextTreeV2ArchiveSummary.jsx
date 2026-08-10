@@ -69,7 +69,7 @@ export const ContextTreeV2ArchiveSummary = ({ tree, mode = 'published' }) => {
                     {archiveState.error}
                 </Alert>
             )}
-            <div className={styles.workbench}>
+            <div className={styles.workbench} data-testid="published-context-workbench">
                 <PublishedContextMap
                     tree={normalizedTree}
                     selectedFragmentId={selection.selectedFragmentId}

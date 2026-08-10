@@ -186,7 +186,8 @@ export default function ConfigStep({
                 <TextInput
                   label={t('form_label_project_name')}
                   value={selectedProject?.label || 'Unknown'}
-                  disabled
+                  readOnly
+                  aria-readonly="true"
                   variant="filled"
                 />
               )}
@@ -199,7 +200,8 @@ export default function ConfigStep({
                         <TextInput
                           label={t('form_label_game')}
                           value={selectedProject ? resolveGameName(config.game_profiles, selectedProject.game_id) : 'Unknown'}
-                          disabled
+                          readOnly
+                          aria-readonly="true"
                           variant="filled"
                         />
                       </div>
@@ -211,7 +213,8 @@ export default function ConfigStep({
                         <TextInput
                           label={t('form_label_source_language')}
                           value={selectedProject ? (findLanguageByCode(config.languages, selectedProject.source_language)?.name || 'Unknown') : 'Unknown'}
-                          disabled
+                          readOnly
+                          aria-readonly="true"
                           variant="filled"
                         />
                       </div>

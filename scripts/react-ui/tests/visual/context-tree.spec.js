@@ -2,8 +2,9 @@ import { expect, test } from '@playwright/test';
 
 const themes = ['victorian', 'byzantine', 'scifi', 'wwii', 'medieval'];
 const viewports = [
+  { id: 'wide', width: 1920, height: 1100 },
   { id: 'desktop', width: 1440, height: 1100 },
-  { id: 'compact', width: 720, height: 1100 },
+  { id: 'compact', width: 375, height: 900 },
 ];
 
 for (const themeId of themes) {
@@ -19,6 +20,10 @@ for (const themeId of themes) {
       await expect(page.getByTestId('published-context-map')).toBeVisible();
       await expect(page.getByTestId('published-context-detail-empty')).toBeVisible();
       await expect(page.getByTestId('published-context-entities')).toBeVisible();
+
+      const layoutBox = await page.getByTestId('published-context-layout').boundingBox();
+      expect(layoutBox.width / viewport.width).toBeGreaterThanOrEqual(0.9);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
 
       await expect(page).toHaveScreenshot(`context-tree-${themeId}-${viewport.id}-overview.png`, { fullPage: true });
 

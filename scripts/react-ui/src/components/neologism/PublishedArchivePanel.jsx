@@ -85,7 +85,7 @@ const PublishedArchivePanel = ({
     );
     if (!selectedProject) {
         return (
-            <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
+            <Container className={`${styles.page} ${styles.publishedContextPage}`} fluid py="xl" data-remis-surface="canvas">
                 {projectToolbar}
                 <StateCard
                     icon={<IconArchive size={30} />}
@@ -99,7 +99,7 @@ const PublishedArchivePanel = ({
 
     if (isDemoProject) {
         return (
-            <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
+            <Container className={`${styles.page} ${styles.publishedContextPage}`} fluid py="xl" data-remis-surface="canvas">
                 {projectToolbar}
                 <div data-testid="published-archive-workbench">
                     <ContextTreeV2ArchiveSummary tree={publishedArchiveDemoTree} mode="published" />
@@ -110,7 +110,7 @@ const PublishedArchivePanel = ({
 
     if (treeV2State.phase === 'ready' && treeV2State.tree) {
         return (
-            <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
+            <Container className={`${styles.page} ${styles.publishedContextPage}`} fluid py="xl" data-remis-surface="canvas">
                 {projectToolbar}
                 <div data-testid="published-archive-workbench">
                     <ContextTreeV2ArchiveSummary tree={treeV2State.tree} mode="published" />
@@ -122,7 +122,7 @@ const PublishedArchivePanel = ({
     if (releaseState.phase === 'idle' || releaseState.phase === 'loading'
         || treeV2State.phase === 'loading') {
         return (
-            <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
+            <Container className={`${styles.page} ${styles.publishedContextPage}`} fluid py="xl" data-remis-surface="canvas">
                 {projectToolbar}
                 <StateCard
                     icon={<Loader size="md" />}
@@ -145,7 +145,7 @@ const PublishedArchivePanel = ({
 
     if ((releaseState.phase === 'error' || treeV2State.phase === 'error') && !release) {
         return (
-            <Container className={styles.page} size="xl" py="xl" data-remis-surface="canvas">
+            <Container className={`${styles.page} ${styles.publishedContextPage}`} fluid py="xl" data-remis-surface="canvas">
                 {projectToolbar}
                 <StateCard
                     icon={<IconInfoCircle size={30} />}
@@ -164,8 +164,8 @@ const PublishedArchivePanel = ({
 
     return (
         <Container
-            className={styles.page}
-            size="xl"
+            className={`${styles.page} ${styles.publishedContextPage}`}
+            fluid
             py="xl"
             data-testid="mod-archive-release-panel"
             data-remis-surface="canvas"
