@@ -7,7 +7,34 @@
   /* Common Defaults / Fallbacks */
   --font-header: system-ui, sans-serif;
   --font-body: system-ui, sans-serif;
-  --card-radius: 4px;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+
+  /* Phase 2 fixed primitives: keep the 4px rhythm global and theme-invariant. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+
+  --type-size-label: 0.75rem;
+  --type-size-body-sm: 0.875rem;
+  --type-size-body: 1rem;
+  --type-size-section: 1.25rem;
+  --type-size-page: clamp(1.75rem, 2vw, 2.25rem);
+  --type-leading-tight: 1.2;
+  --type-leading-ui: 1.4;
+  --type-leading-body: 1.6;
+  --type-measure-body: 72ch;
+
+  /* Safe fallback radius. Themes override these four semantic roles. */
+  --radius-control: 4px;
+  --radius-panel: 4px;
+  --radius-paper: 4px;
+  --radius-pill: 999px;
+  --card-radius: var(--radius-panel);
+
   --canvas-bg-solid: #050810;
   --canvas-text-main: #E0F7FA;
   --canvas-text-muted: #91B7C4;
@@ -16,14 +43,51 @@
   --surface-text-main: #E0F7FA;
   --surface-text-muted: #91B7C4;
   --surface-border: #0099CC;
+  --surface-border-quiet: color-mix(in srgb, var(--surface-text-main) 14%, transparent);
+  --surface-border-anchor: color-mix(in srgb, var(--interactive-accent) 75%, var(--surface-border));
+  --paper-bg: #050810;
+  --paper-text-main: #E0F7FA;
+  --paper-text-muted: #91B7C4;
+  --paper-border-quiet: color-mix(in srgb, var(--paper-text-main) 12%, transparent);
+  --paper-border: color-mix(in srgb, var(--paper-text-main) 26%, transparent);
+  --paper-border-anchor: color-mix(in srgb, var(--interactive-accent) 60%, var(--paper-text-main));
   --elevated-bg: #050810;
   --elevated-text-main: #E0F7FA;
   --elevated-text-muted: #91B7C4;
   --interactive-accent: #00D9FF;
   --interactive-accent-text: #050810;
   --focus-ring: #00FFCC;
+  --status-neutral: #CED4DA;
+  --status-info: #74C0FC;
+  --status-success: #69DB7C;
   --status-warning: #F59F00;
+  --status-error: #FF8787;
+
+  --chart-series-1: #4DABF7;
+  --chart-series-2: #9775FA;
+  --chart-series-3: #63E6BE;
+  --chart-series-4: #FFD43B;
+  --chart-series-5: #FF922B;
+  --chart-series-6: #F06595;
+  --chart-series-7: #74C0FC;
+  --chart-empty: #868E96;
+  --chart-tooltip-bg: var(--elevated-bg);
+  --chart-tooltip-border: var(--surface-border);
+  --chart-tooltip-text: var(--elevated-text-main);
+
+  --shadow-elevation: 0 4px 12px rgba(0, 0, 0, 0.24);
+  --shadow-quiet: none;
+  --shadow-anchor: var(--shadow-elevation);
+  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.42);
+
   --menu-surface-bg: #050810;
+  --menu-bg: rgba(5, 8, 16, 0.98);
+  --menu-text: #E0F7FF;
+  --menu-muted: #91B7C4;
+  --menu-border: #00D9FF;
+  --menu-hover-bg: #152B3D;
+  --menu-selected-bg: #064E61;
+  --menu-selected-text: #FFFFFF;
 }
 
 /* =========================================
@@ -48,19 +112,28 @@
   --paper-bg: #FFF8E1;
   --paper-text-main: #3E2723;
   --paper-text-muted: #616161;
+  --paper-border-quiet: color-mix(in srgb, var(--paper-text-main) 12%, transparent);
+  --paper-border: color-mix(in srgb, var(--paper-text-main) 26%, transparent);
+  --paper-border-anchor: color-mix(in srgb, var(--interactive-accent) 60%, var(--paper-text-main));
   --canvas-bg-solid: #2E1A47;
   --surface-bg-solid: #36001B;
   --surface-bg: var(--glass-bg);
   --surface-text-main: #FFFDD0;
   --surface-text-muted: #D8C3C7;
   --surface-border: #D4AF37;
+  --surface-border-quiet: color-mix(in srgb, var(--surface-text-main) 14%, transparent);
+  --surface-border-anchor: color-mix(in srgb, var(--interactive-accent) 75%, var(--surface-border));
   --elevated-bg: #210012;
   --elevated-text-main: #FFFDD0;
   --elevated-text-muted: #D8C3C7;
   --interactive-accent: #FFD700;
   --interactive-accent-text: #2E1A47;
   --focus-ring: #FFD700;
+  --status-neutral: #CED4DA;
+  --status-info: #74C0FC;
+  --status-success: #69DB7C;
   --status-warning: #FFD43B;
+  --status-error: #FF8787;
   --menu-surface-bg: #FFF8E1;
   --menu-bg: rgba(255, 248, 225, 0.98);
   --menu-text: #3E2723;
@@ -69,6 +142,18 @@
   --menu-hover-bg: #F0DCA2;
   --menu-selected-bg: #E4C66A;
   --menu-selected-text: #2E1A47;
+
+  --chart-series-1: #4DABF7;
+  --chart-series-2: #9775FA;
+  --chart-series-3: #63E6BE;
+  --chart-series-4: #FFD43B;
+  --chart-series-5: #FF922B;
+  --chart-series-6: #F06595;
+  --chart-series-7: #74C0FC;
+  --chart-empty: #868E96;
+  --chart-tooltip-bg: var(--elevated-bg);
+  --chart-tooltip-border: var(--surface-border);
+  --chart-tooltip-text: var(--elevated-text-main);
 
   /* Mantine dark scale compatibility */
   --mantine-color-dark-9: #1C0F2A;
@@ -85,10 +170,17 @@
   /* Materials */
   --glass-bg: linear-gradient(135deg, rgba(40, 0, 20, 0.9), rgba(60, 0, 30, 0.85));
   --glass-border: 2px solid var(--color-accent);
-  --card-radius: 8px;
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --radius-paper: 6px;
+  --radius-pill: 999px;
+  --card-radius: var(--radius-panel);
 
   /* Effects */
   --shadow-elevation: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-quiet: none;
+  --shadow-anchor: var(--shadow-elevation);
+  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.42);
 
   /* Typography */
   --font-header: "Cinzel", "Noto Serif SC", serif;
@@ -121,19 +213,28 @@
   --paper-bg: #2A1810;
   --paper-text-main: #FFFFF0;
   --paper-text-muted: #D8C8A8;
+  --paper-border-quiet: color-mix(in srgb, var(--paper-text-main) 12%, transparent);
+  --paper-border: color-mix(in srgb, var(--paper-text-main) 26%, transparent);
+  --paper-border-anchor: color-mix(in srgb, var(--interactive-accent) 60%, var(--paper-text-main));
   --canvas-bg-solid: #3B1F10;
   --surface-bg-solid: #141E19;
   --surface-bg: var(--glass-bg);
   --surface-text-main: #FFFFF0;
   --surface-text-muted: #D8C8A8;
   --surface-border: #B8860B;
+  --surface-border-quiet: color-mix(in srgb, var(--surface-text-main) 14%, transparent);
+  --surface-border-anchor: color-mix(in srgb, var(--interactive-accent) 75%, var(--surface-border));
   --elevated-bg: #0F1713;
   --elevated-text-main: #FFFFF0;
   --elevated-text-muted: #D8C8A8;
   --interactive-accent: #DAA520;
   --interactive-accent-text: #1A0F08;
   --focus-ring: #FFD54F;
+  --status-neutral: #CED4DA;
+  --status-info: #74C0FC;
+  --status-success: #69DB7C;
   --status-warning: #FFD54F;
+  --status-error: #FF8787;
   --menu-surface-bg: #2A1810;
   --menu-bg: rgba(42, 24, 16, 0.98);
   --menu-text: #FFFFF0;
@@ -142,6 +243,18 @@
   --menu-hover-bg: #4A3020;
   --menu-selected-bg: #6B4B1F;
   --menu-selected-text: #FFF8DC;
+
+  --chart-series-1: #4DABF7;
+  --chart-series-2: #9775FA;
+  --chart-series-3: #63E6BE;
+  --chart-series-4: #FFD43B;
+  --chart-series-5: #FF922B;
+  --chart-series-6: #F06595;
+  --chart-series-7: #74C0FC;
+  --chart-empty: #868E96;
+  --chart-tooltip-bg: var(--elevated-bg);
+  --chart-tooltip-border: var(--surface-border);
+  --chart-tooltip-text: var(--elevated-text-main);
 
   /* Mantine dark scale compatibility */
   --mantine-color-dark-9: #1A0F08;
@@ -159,11 +272,18 @@
   --glass-bg: rgba(20, 30, 25, 0.95);
   /* Dark Greenish Black */
   --glass-border: 3px double var(--color-accent);
-  --card-radius: 2px;
+  --radius-control: 2px;
+  --radius-panel: 2px;
+  --radius-paper: 2px;
+  --radius-pill: 999px;
+  --card-radius: var(--radius-panel);
 
   /* Effects */
   --shadow-elevation: 4px 4px 0px rgba(0, 0, 0, 0.4);
   /* Hard shadow */
+  --shadow-quiet: none;
+  --shadow-anchor: var(--shadow-elevation);
+  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.42);
 
   /* Typography */
   --font-header: "Playfair Display", "Noto Serif SC", serif;
@@ -191,19 +311,28 @@
   --paper-bg: #050810;
   --paper-text-main: #E0F7FA;
   --paper-text-muted: #91B7C4;
+  --paper-border-quiet: color-mix(in srgb, var(--paper-text-main) 12%, transparent);
+  --paper-border: color-mix(in srgb, var(--paper-text-main) 26%, transparent);
+  --paper-border-anchor: color-mix(in srgb, var(--interactive-accent) 60%, var(--paper-text-main));
   --canvas-bg-solid: #050508;
   --surface-bg-solid: #0A141E;
   --surface-bg: var(--glass-bg);
   --surface-text-main: #E0F7FA;
   --surface-text-muted: #91B7C4;
   --surface-border: #0099CC;
+  --surface-border-quiet: color-mix(in srgb, var(--surface-text-main) 14%, transparent);
+  --surface-border-anchor: color-mix(in srgb, var(--interactive-accent) 75%, var(--surface-border));
   --elevated-bg: #050810;
   --elevated-text-main: #E0F7FA;
   --elevated-text-muted: #91B7C4;
   --interactive-accent: #00D9FF;
   --interactive-accent-text: #050810;
   --focus-ring: #00FFCC;
+  --status-neutral: #CED4DA;
+  --status-info: #74C0FC;
+  --status-success: #69DB7C;
   --status-warning: #FFB000;
+  --status-error: #FF8787;
   --menu-surface-bg: #050810;
   --menu-bg: rgba(5, 8, 16, 0.98);
   --menu-text: #E0F7FF;
@@ -212,6 +341,18 @@
   --menu-hover-bg: #152B3D;
   --menu-selected-bg: #064E61;
   --menu-selected-text: #FFFFFF;
+
+  --chart-series-1: #4DABF7;
+  --chart-series-2: #9775FA;
+  --chart-series-3: #63E6BE;
+  --chart-series-4: #FFD43B;
+  --chart-series-5: #FF922B;
+  --chart-series-6: #F06595;
+  --chart-series-7: #74C0FC;
+  --chart-empty: #868E96;
+  --chart-tooltip-bg: var(--elevated-bg);
+  --chart-tooltip-border: var(--surface-border);
+  --chart-tooltip-text: var(--elevated-text-main);
 
   /* Mantine dark scale compatibility */
   --mantine-color-dark-9: #050810;
@@ -229,12 +370,19 @@
   --glass-bg: rgba(10, 20, 30, 0.85);
   /* Void Black/Blue */
   --glass-border: 1px solid rgba(0, 243, 255, 0.4);
-  --card-radius: 0px;
+  --radius-control: 0px;
+  --radius-panel: 0px;
+  --radius-paper: 0px;
+  --radius-pill: 0px;
+  --card-radius: var(--radius-panel);
 
   /* Effects */
   --shadow-elevation: 0 0 15px rgba(0, 243, 255, 0.15);
   /* Glow */
   --shadow-glow: 0 0 10px rgba(0, 243, 255, 0.3);
+  --shadow-quiet: none;
+  --shadow-anchor: var(--shadow-elevation);
+  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.42);
 
   /* Typography */
   --font-header: "Orbitron", "Noto Sans SC", sans-serif;
@@ -263,19 +411,28 @@
   --paper-bg: #FCF5E5;
   --paper-text-main: #2A2A1E;
   --paper-text-muted: #56563D;
+  --paper-border-quiet: color-mix(in srgb, var(--paper-text-main) 12%, transparent);
+  --paper-border: color-mix(in srgb, var(--paper-text-main) 26%, transparent);
+  --paper-border-anchor: color-mix(in srgb, var(--interactive-accent) 60%, var(--paper-text-main));
   --canvas-bg-solid: #4B501B;
   --surface-bg-solid: #2A2A1E;
   --surface-bg: var(--glass-bg);
   --surface-text-main: #F5E6D3;
   --surface-text-muted: #C9C2AC;
   --surface-border: #8B7355;
+  --surface-border-quiet: color-mix(in srgb, var(--surface-text-main) 14%, transparent);
+  --surface-border-anchor: color-mix(in srgb, var(--interactive-accent) 75%, var(--surface-border));
   --elevated-bg: #171712;
   --elevated-text-main: #F5E6D3;
   --elevated-text-muted: #C9C2AC;
   --interactive-accent: #DCD0C0;
   --interactive-accent-text: #2A2A1E;
   --focus-ring: #CD5C5C;
+  --status-neutral: #CED4DA;
+  --status-info: #74C0FC;
+  --status-success: #69DB7C;
   --status-warning: #E6B566;
+  --status-error: #FF8787;
   --menu-surface-bg: #FCF5E5;
   --menu-bg: #FCF5E5;
   --menu-text: #2A2A1E;
@@ -284,6 +441,18 @@
   --menu-hover-bg: #E7D8BC;
   --menu-selected-bg: #C9B68E;
   --menu-selected-text: #1F1F16;
+
+  --chart-series-1: #4DABF7;
+  --chart-series-2: #9775FA;
+  --chart-series-3: #63E6BE;
+  --chart-series-4: #FFD43B;
+  --chart-series-5: #FF922B;
+  --chart-series-6: #F06595;
+  --chart-series-7: #74C0FC;
+  --chart-empty: #868E96;
+  --chart-tooltip-bg: var(--elevated-bg);
+  --chart-tooltip-border: var(--surface-border);
+  --chart-tooltip-text: var(--elevated-text-main);
 
   /* Mantine dark scale compatibility */
   --mantine-color-dark-9: #2A2A1E;
@@ -302,10 +471,17 @@
   /* Dark Olive Drab */
   --glass-border: 1px solid #8B7355;
   /* Gunmetal */
-  --card-radius: 0px;
+  --radius-control: 0px;
+  --radius-panel: 0px;
+  --radius-paper: 0px;
+  --radius-pill: 999px;
+  --card-radius: var(--radius-panel);
 
   /* Effects */
   --shadow-elevation: 2px 2px 5px rgba(0, 0, 0, 0.6);
+  --shadow-quiet: none;
+  --shadow-anchor: var(--shadow-elevation);
+  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.42);
 
   /* Typography */
   --font-header: "Courier New", "Noto Sans SC", sans-serif;
@@ -333,19 +509,28 @@
   --paper-bg: #F5E6D3;
   --paper-text-main: #2E2416;
   --paper-text-muted: #5B472E;
+  --paper-border-quiet: color-mix(in srgb, var(--paper-text-main) 12%, transparent);
+  --paper-border: color-mix(in srgb, var(--paper-text-main) 26%, transparent);
+  --paper-border-anchor: color-mix(in srgb, var(--interactive-accent) 60%, var(--paper-text-main));
   --canvas-bg-solid: #E5D9C0;
   --surface-bg-solid: #1E140A;
   --surface-bg: var(--glass-bg);
   --surface-text-main: #F5E6D3;
   --surface-text-muted: #CDB98F;
   --surface-border: #B8860B;
+  --surface-border-quiet: color-mix(in srgb, var(--surface-text-main) 14%, transparent);
+  --surface-border-anchor: color-mix(in srgb, var(--interactive-accent) 75%, var(--surface-border));
   --elevated-bg: #120C06;
   --elevated-text-main: #F5E6D3;
   --elevated-text-muted: #CDB98F;
   --interactive-accent: #8B0000;
   --interactive-accent-text: #F5E6D3;
   --focus-ring: #DAA520;
+  --status-neutral: #CED4DA;
+  --status-info: #74C0FC;
+  --status-success: #69DB7C;
   --status-warning: #D97706;
+  --status-error: #FF8787;
   --menu-surface-bg: #1F1810;
   --menu-bg: rgba(31, 24, 16, 0.98);
   --menu-text: #F5E6D3;
@@ -354,6 +539,18 @@
   --menu-hover-bg: #4A3926;
   --menu-selected-bg: #6A321F;
   --menu-selected-text: #FFF4D6;
+
+  --chart-series-1: #4DABF7;
+  --chart-series-2: #9775FA;
+  --chart-series-3: #63E6BE;
+  --chart-series-4: #FFD43B;
+  --chart-series-5: #FF922B;
+  --chart-series-6: #F06595;
+  --chart-series-7: #74C0FC;
+  --chart-empty: #868E96;
+  --chart-tooltip-bg: var(--elevated-bg);
+  --chart-tooltip-border: var(--surface-border);
+  --chart-tooltip-text: var(--elevated-text-main);
 
   /* Mantine dark scale compatibility */
   --mantine-color-dark-9: #1F1810;
@@ -372,10 +569,17 @@
   /* Dark Wood/Leather */
   --glass-border: 3px solid #B8860B;
   /* Gold Border */
-  --card-radius: 12px;
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --radius-paper: 8px;
+  --radius-pill: 999px;
+  --card-radius: var(--radius-panel);
 
   /* Effects */
   --shadow-elevation: 3px 3px 8px rgba(0, 0, 0, 0.5);
+  --shadow-quiet: none;
+  --shadow-anchor: var(--shadow-elevation);
+  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.42);
 
   /* Typography */
   --font-header: "Cinzel", "Noto Serif SC", serif;

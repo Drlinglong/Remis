@@ -32,6 +32,12 @@ describe('semantic material paint regressions', () => {
     expect(definitionsCss).toContain('background: var(--menu-surface-bg, var(--menu-bg));');
   });
 
+  it('keeps chart tooltips on the elevated material contract', () => {
+    expect(definitionsCss.match(/--chart-tooltip-bg:\s*var\(--elevated-bg\);/g)).toHaveLength(6);
+    expect(definitionsCss.match(/--chart-tooltip-border:\s*var\(--surface-border\);/g)).toHaveLength(6);
+    expect(definitionsCss.match(/--chart-tooltip-text:\s*var\(--elevated-text-main\);/g)).toHaveLength(6);
+  });
+
   // Regression: ISSUE-008 — light badges and alerts inherited unreadable theme ink.
   // Found by /design-review on 2026-07-31
   // Report: .gstack/design-reports/design-audit-127.0.0.1-2026-07-31.md
