@@ -2,7 +2,7 @@ import React from 'react';
 import { Paper, Group, Title, Button, Textarea } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import styles from '../../pages/ProjectManagement.module.css';
+import styles from './ProjectDetailSurfaces.module.css';
 
 const ProjectNoteList = ({ notes, setNotes, onSaveNote, onViewHistory }) => {
     const { t } = useTranslation();

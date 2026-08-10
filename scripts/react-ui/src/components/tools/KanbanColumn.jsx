@@ -5,7 +5,7 @@ import { Paper, Title, Badge, Button, Group } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { TaskCard } from './TaskCard';
-import styles from '../../pages/ProjectManagement.module.css';
+import styles from './KanbanColumn.module.css';
 
 const COLUMN_COLORS = {
     todo: 'gray',

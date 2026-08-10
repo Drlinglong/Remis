@@ -21,7 +21,7 @@ import {
 } from '@tabler/icons-react';
 
 import heroBg from '../../assets/project_hero_bg.png';
-import styles from '../../pages/ProjectManagement.module.css';
+import styles from './ProjectListView.module.css';
 import { getGameBadgeColor } from '../../utils/gamePresentation';
 import { formatCurrentLocalizedDateTime } from '../../utils/localizedDateTime';
 

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { CSS } from '@dnd-kit/utilities';
 import { Paper, Text, Group, Badge, ActionIcon, Tooltip } from '@mantine/core';
 import { IconFileText, IconNote } from '@tabler/icons-react';
-import styles from '../../pages/ProjectManagement.module.css';
+import styles from './TaskCard.module.css';
 
 export const TaskCard = ({ task, onClick }) => {
     const { t } = useTranslation();

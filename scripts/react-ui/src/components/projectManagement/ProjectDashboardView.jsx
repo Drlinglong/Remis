@@ -9,7 +9,8 @@ import ProjectValidation from '../project/ProjectValidation';
 import KanbanBoard from '../tools/KanbanBoard';
 import ProjectOverview from '../tools/ProjectOverview';
 import SteamWorkshopOverview from '../steamWorkshop/SteamWorkshopOverview';
-import styles from '../../pages/ProjectManagement.module.css';
+import surfaceStyles from '../project/ProjectDetailSurfaces.module.css';
+import styles from './ProjectDashboardView.module.css';
 
 export function ProjectDashboardView({
   activeTab,
@@ -45,13 +46,13 @@ export function ProjectDashboardView({
 
   return (
     <div data-remis-surface="canvas" className={styles.projectCanvas} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <Paper id="project-dashboard-header" data-remis-surface="paper" p="md" shadow="xs" className={styles.paperPanel} style={{ zIndex: 10 }}>
+      <Paper id="project-dashboard-header" data-remis-surface="paper" p="md" shadow="xs" className={surfaceStyles.paperPanel} style={{ zIndex: 10 }}>
         <Group justify="space-between">
           <Group>
             <Button variant="subtle" onClick={() => setSelectedProjectId(null)} leftSection={<IconArrowLeft size={16} />}>
               {t('button_back')}
             </Button>
-            <Title order={3} className={styles.paperTitle} style={{ fontFamily: 'var(--font-header)' }}>
+            <Title order={3} className={surfaceStyles.paperTitle} style={{ fontFamily: 'var(--font-header)' }}>
               {selectedProject.name}
             </Title>
             <Badge color={selectedProject.status === 'active' ? 'blue' : selectedProject.status === 'archived' ? 'orange' : 'red'}>
@@ -82,7 +83,7 @@ export function ProjectDashboardView({
                 {t('project_management.more_views')}
               </Button>
             </Menu.Target>
-            <Menu.Dropdown data-remis-surface="elevated" className={styles.projectMenuDropdown}>
+            <Menu.Dropdown data-remis-surface="elevated" className={surfaceStyles.projectMenuDropdown}>
               <Menu.Item leftSection={<IconVocabulary size={16} />} onClick={() => setActiveTab('project_glossary')}>
                 {t('project_management.tabs_project_glossary')}
               </Menu.Item>

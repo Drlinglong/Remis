@@ -4,7 +4,7 @@ import { IconFolder, IconPlus, IconTrash, IconExternalLink } from '@tabler/icons
 import { useTranslation } from 'react-i18next';
 import { open } from '@tauri-apps/plugin-dialog';
 import api from '../../utils/api';
-import styles from '../../pages/ProjectManagement.module.css';
+import styles from './ProjectDetailSurfaces.module.css';
 
 const ProjectPathManager = ({ projectDetails, onPathsUpdated }) => {
     const { t } = useTranslation();

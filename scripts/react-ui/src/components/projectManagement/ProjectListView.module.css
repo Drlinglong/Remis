@@ -1,0 +1,147 @@
+.actionCard {
+    --mantine-color-text: var(--surface-text-main) !important;
+    --mantine-color-dimmed: var(--surface-text-muted) !important;
+    --text-main: var(--surface-text-main);
+    --text-muted: var(--surface-text-muted);
+    background: var(--surface-bg, var(--glass-bg, rgba(30, 30, 30, 0.6))) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.1)) !important;
+    border-radius: var(--card-radius, 12px) !important;
+    box-shadow: var(--shadow-elevation, 0 8px 32px rgba(0, 0, 0, 0.2)) !important;
+    color: var(--surface-text-main) !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+    cursor: pointer;
+}
+
+.projectCard {
+    --mantine-color-text: var(--surface-text-main) !important;
+    --mantine-color-dimmed: var(--surface-text-muted) !important;
+    --text-main: var(--surface-text-main);
+    --text-muted: var(--surface-text-muted);
+    background: var(--surface-bg, var(--glass-bg, rgba(30, 30, 30, 0.6))) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.1)) !important;
+    border-radius: var(--card-radius, 12px) !important;
+    box-shadow: var(--shadow-elevation, 0 8px 32px rgba(0, 0, 0, 0.2)) !important;
+    color: var(--surface-text-main) !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+    cursor: pointer;
+}
+
+.projectTitle {
+    color: var(--surface-text-main);
+    font-family: var(--font-header);
+    font-weight: 600;
+}
+
+.heroSection {
+    height: 230px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.heroControls {
+    width: min(100%, 440px);
+}
+
+.heroSearch {
+    width: 100%;
+}
+
+.heroSearchInput {
+    background: rgba(0, 0, 0, 0.48) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.58) !important;
+}
+
+.heroSearchInput::placeholder {
+    color: rgba(255, 255, 255, 0.82) !important;
+    opacity: 1;
+}
+
+.projectContent {
+    flex: 1;
+    padding: 20px;
+}
+
+.actionsSection {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 4px 0 18px;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--surface-border);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.actionToolbar {
+    flex-wrap: nowrap;
+}
+
+.heroTitle {
+    color: #fff !important;
+    font-size: 3.5rem !important;
+    font-weight: 900 !important;
+    text-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(0, 0, 0, 0.3) !important;
+    font-family: var(--font-header);
+    letter-spacing: 1px;
+}
+
+.heroSubtitle {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 500 !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 12px;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+    display: inline-block;
+}
+
+@media (max-width: 700px) {
+    .heroSection {
+        height: 210px;
+    }
+
+    .heroTitle {
+        font-size: 2rem !important;
+        text-align: center;
+    }
+
+    .heroSubtitle {
+        font-size: 0.875rem !important;
+        text-align: center;
+    }
+
+    .heroControls {
+        margin-top: 12px !important;
+    }
+
+    .projectContent {
+        padding: 14px;
+    }
+
+    .actionsSection {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .actionToolbar {
+        display: grid;
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+    .actionToolbar > * {
+        width: 100%;
+        min-height: 44px;
+    }
+}

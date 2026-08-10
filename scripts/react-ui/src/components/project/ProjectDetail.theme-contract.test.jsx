@@ -9,20 +9,32 @@ const headerSource = readSource('src/components/project/ProjectHeader.jsx');
 const historySource = readSource('src/components/project/ProjectHistory.jsx');
 const validationSource = readSource('src/components/project/ProjectValidation.jsx');
 const glossarySource = readSource('src/components/project/ProjectGlossaryPanel.jsx');
-const stylesSource = readSource('src/pages/ProjectManagement.module.css');
 const definitionsSource = readSource('src/themes/definitions.css');
+const materialStylePaths = [
+  'src/components/tools/KanbanBoard.module.css',
+  'src/components/tools/KanbanColumn.module.css',
+  'src/components/tools/TaskCard.module.css',
+  'src/components/projectManagement/ProjectListView.module.css',
+  'src/components/projectManagement/ProjectDashboardView.module.css',
+  'src/components/project/ProjectDetailSurfaces.module.css',
+  'src/components/project/ProjectHeader.module.css',
+];
+const materialSources = Object.fromEntries(
+  materialStylePaths.map((path) => [path, readSource(path)]),
+);
+const stylesSource = materialSources['src/components/project/ProjectDetailSurfaces.module.css'];
 
 describe('project detail semantic surface contract', () => {
   it('keeps the page header on paper without the legacy highlighted title treatment', () => {
     expect(dashboardSource).toContain('data-remis-surface="canvas"');
     expect(dashboardSource).toContain('data-remis-surface="paper"');
-    expect(dashboardSource).toContain('className={styles.paperTitle}');
+    expect(dashboardSource).toContain('className={surfaceStyles.paperTitle}');
     expect(dashboardSource).not.toContain("color: 'var(--text-highlight)'");
   });
 
   it('keeps overview and history summary cards on explicit dark surfaces', () => {
     expect(headerSource).toContain('data-remis-surface="surface"');
-    expect(headerSource).toContain('className={styles.surfaceInset}');
+    expect(headerSource).toContain('className={surfaceStyles.surfaceInset}');
     expect(historySource).toContain('className={styles.surfacePanel}');
     expect(historySource).toContain('className={styles.surfaceInset}');
     expect(historySource).not.toContain("background: 'rgba(0,0,0,0.2)'");
@@ -54,5 +66,16 @@ describe('project detail semantic surface contract', () => {
     expect(stylesSource).toMatch(
       /\.paperPanel :global\(\.mantine-Title-root\),[\s\S]*?background:\s*transparent\s*!important;/,
     );
+  });
+
+  it('reads every ownership module that carries the project material contract', () => {
+    expect(Object.keys(materialSources)).toHaveLength(7);
+    expect(materialSources['src/components/tools/KanbanBoard.module.css']).toContain('.boardContainer');
+    expect(materialSources['src/components/tools/KanbanColumn.module.css']).toContain('.columnHeader');
+    expect(materialSources['src/components/tools/TaskCard.module.css']).toContain('.taskCardDragging');
+    expect(materialSources['src/components/projectManagement/ProjectListView.module.css']).toContain('.projectCard');
+    expect(materialSources['src/components/projectManagement/ProjectDashboardView.module.css']).toContain('.tabsPanel');
+    expect(materialSources['src/components/project/ProjectDetailSurfaces.module.css']).toContain('.paperAlert');
+    expect(materialSources['src/components/project/ProjectHeader.module.css']).toContain('.startTranslationButton');
   });
 });

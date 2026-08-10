@@ -1,0 +1,24 @@
+.projectCanvas {
+    --mantine-color-text: var(--canvas-text-main) !important;
+    --mantine-color-dimmed: var(--canvas-text-muted) !important;
+    color: var(--canvas-text-main);
+}
+
+.tabsRoot {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Consumer compatibility: the baseline had no tabsList selector. */
+.tabsList {
+}
+
+.tabsPanel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}

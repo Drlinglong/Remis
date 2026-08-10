@@ -11,7 +11,7 @@ import {
 import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import styles from '../../pages/ProjectManagement.module.css';
+import styles from './ProjectDetailSurfaces.module.css';
 import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 
 const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, onProjectDataChanged }) => {

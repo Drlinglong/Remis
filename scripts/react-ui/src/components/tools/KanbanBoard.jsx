@@ -6,7 +6,7 @@ import { useKanban } from '../../hooks/useKanban';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import { TaskDetailsPanel } from './TaskDetailsPanel';
-import styles from '../../pages/ProjectManagement.module.css';
+import styles from './KanbanBoard.module.css';
 
 const KanbanBoard = ({ projectId }) => {
     const {

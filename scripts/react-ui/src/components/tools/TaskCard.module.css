@@ -1,0 +1,43 @@
+.taskCard {
+    /* Structure */
+    position: relative;
+    padding: 12px;
+    margin-bottom: 8px;
+
+    /* Glass Style */
+    background: var(--glass-bg, rgba(30, 30, 30, 0.6));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+
+    /* Interaction */
+    cursor: grab;
+    user-select: none;
+    transition:
+        transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1),
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.taskCard:hover {
+    border-color: var(--primary-color, #1971c2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+}
+
+.taskCardDragging {
+    opacity: 0.5;
+    box-shadow: 0 0 15px var(--primary-color, #1971c2);
+    border: 1px solid var(--primary-color, #1971c2);
+    cursor: grabbing;
+    z-index: 999;
+}
+
+.fileTaskIndicator {
+    border-left: 3px solid var(--color-info, #339af0);
+}
+
+.noteTaskIndicator {
+    border-left: 3px solid var(--color-warning, #fcc419);
+}
