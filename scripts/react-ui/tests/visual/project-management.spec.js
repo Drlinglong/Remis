@@ -27,6 +27,13 @@ for (const themeId of themes) {
         if (scenario === 'active-list') {
           await expect(page.locator('#project-list-container')).toBeVisible();
           await expect(page.getByText('Expedition Demo — Project Management', { exact: true })).toBeVisible();
+          await page.locator('#project-list-container .mantine-BackgroundImage-root').evaluate(async (element) => {
+            const source = getComputedStyle(element).backgroundImage.match(/url\(["']?(.*?)["']?\)/)?.[1];
+            if (!source) throw new Error('Project hero background image is missing');
+            const image = new Image();
+            image.src = source;
+            await image.decode();
+          });
         }
 
         if (scenario === 'dashboard-detail') {
