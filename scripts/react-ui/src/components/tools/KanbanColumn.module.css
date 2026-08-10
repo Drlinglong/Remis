@@ -1,64 +1,81 @@
 .column {
-    /* Fixed width but flexible enough to shrink slightly on small screens */
-    flex: 0 0 320px;
-    /* Allow vertical resizing of the column itself to fit height */
-    max-height: 100%;
-
-    /* Glass Style */
-    background: rgba(0, 0, 0, 0.2);
-    /* Very subtle background */
-    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
-    border-radius: 12px;
-    /* var(--card-radius) usually */
-
-    /* Layout */
+    --mantine-color-text: var(--surface-text-main) !important;
+    --mantine-color-dimmed: var(--surface-text-muted) !important;
     display: flex;
+    min-width: 17rem;
+    height: 100%;
+    min-height: 0;
+    flex: 1 0 17rem;
     flex-direction: column;
+    overflow: hidden;
+    color: var(--surface-text-main);
+    background: var(--surface-bg-solid);
+    border: 1px solid var(--surface-border-quiet);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-quiet);
+    scroll-snap-align: start;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
 
-    /* Transition for drag interactions */
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+.column:focus-within {
+    border-color: var(--surface-border-anchor);
+    box-shadow: var(--shadow-anchor);
 }
 
 .columnHeader {
-    padding: 12px 16px;
     display: flex;
-    justify-content: space-between;
+    flex: 0 0 auto;
     align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    /* Make header background slightly distinct */
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 12px 12px 0 0;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface-bg-solid);
+    border-bottom: 1px solid var(--surface-border-quiet);
+}
+
+.columnTitle {
+    color: var(--surface-text-main);
+    font-family: var(--font-header);
 }
 
 .taskList {
+    display: flex;
+    min-height: 0;
     flex: 1;
+    flex-direction: column;
     overflow-y: auto;
-    padding: 12px;
-
-    /* Custom Scrollbar for Webkit */
+    padding: var(--space-3);
+    scrollbar-color: var(--surface-border) transparent;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
-.taskList::-webkit-scrollbar {
-    width: 6px;
-}
-
-.taskList::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
+.emptyColumn {
+    display: grid;
+    min-height: 5rem;
+    place-items: center;
+    padding: var(--space-3);
+    color: var(--surface-text-muted);
+    text-align: center;
+    border: 1px dashed var(--surface-border-quiet);
+    border-radius: var(--radius-control);
 }
 
 .ghostButton {
     width: 100%;
-    margin-top: 8px;
-    border: 1px dashed rgba(255, 255, 255, 0.2);
-    color: var(--text-muted);
-    transition: all 0.2s ease;
+    margin-top: var(--space-2);
+    color: var(--surface-text-muted);
+    border: 1px dashed var(--surface-border-quiet);
+    transition: border-color 160ms ease, color 160ms ease;
 }
 
 .ghostButton:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: var(--primary-color);
-    color: var(--text-main);
+    color: var(--surface-text-main);
+    border-color: var(--surface-border-anchor);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .column,
+    .ghostButton {
+        transition: none;
+    }
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { Badge, Box, Group, Text, Title } from '@mantine/core';
+import { useTranslation } from 'react-i18next';
 import { MemoryRouter } from 'react-router';
 
 import { SidebarProvider } from '../context/SidebarContext';
@@ -20,6 +21,14 @@ const translations = {
     'project_management.actions.create_new': '创建新项目',
     'project_management.actions.create_new_desc': '从本地 Mod 文件夹开始新的翻译。',
     'project_management.actions.archives': '打开档案',
+    'project_management.workspace_label': '项目档案馆',
+    'project_management.active_projects': '活动项目',
+    'project_management.project_count': '1 个项目',
+    'project_management.current_project': '当前项目',
+    'project_management.source_language': '源语言',
+    'project_management.workspace_navigation': '项目工作区导航',
+    'project_management.main_flow': '主流程',
+    'project_management.project_tools': '项目工具',
     'translation_page.search_placeholder': '搜索项目…',
     'project_management.tabs_overview': '总览',
     'project_management.tabs_validation': '验证',
@@ -51,6 +60,7 @@ const selectedProject = {
     name: 'Expedition Demo — Project Management',
     game_id: 'vic3',
     status: 'active',
+    source_language: 'English',
     last_updated: '2026-08-01T12:00:00Z',
 };
 
@@ -116,14 +126,20 @@ const kanbanTasks = [
 
 const noop = () => undefined;
 
-function FixtureFrame({ children, scenario, themeId }) {
+const normalizeFixtureLanguage = (language = 'en') => {
+    if (language.toLowerCase().startsWith('zh')) return 'zh';
+    if (language.toLowerCase() === 'pt-br') return 'pt-BR';
+    return language.split('-')[0];
+};
+
+function FixtureFrame({ children, localeReady, scenario, themeId }) {
     return (
         <Box
             className={styles.page}
             data-remis-surface="canvas"
             data-testid={`project-management-${scenario}`}
             data-theme-id={themeId}
-            data-visual-ready="true"
+            data-visual-ready={localeReady ? 'true' : 'loading'}
         >
             <Box className={styles.scenario}>
                 <Group className={styles.scenarioHeading} justify="space-between" align="flex-start">
@@ -210,6 +226,15 @@ function KanbanFixture() {
 }
 
 export default function ProjectManagementVisualFixture({ scenario = 'active-list', themeId }) {
+    const { i18n } = useTranslation();
+    const activeLanguage = i18n.resolvedLanguage || i18n.language || 'en';
+    const expectedLanguage = normalizeFixtureLanguage(
+        typeof navigator === 'undefined' ? activeLanguage : navigator.language,
+    );
+    const resolvedLanguage = normalizeFixtureLanguage(activeLanguage);
+    const localeReady = resolvedLanguage === expectedLanguage
+        && (i18n.hasResourceBundle(activeLanguage, 'translation')
+            || i18n.hasResourceBundle(resolvedLanguage, 'translation'));
     const content = scenario === 'active-list'
         ? <ActiveListFixture />
         : scenario === 'dashboard-detail'
@@ -217,7 +242,7 @@ export default function ProjectManagementVisualFixture({ scenario = 'active-list
             : <KanbanFixture />;
 
     return (
-        <FixtureFrame scenario={scenario} themeId={themeId}>
+        <FixtureFrame localeReady={localeReady} scenario={scenario} themeId={themeId}>
             {content}
         </FixtureFrame>
     );

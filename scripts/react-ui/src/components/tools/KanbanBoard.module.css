@@ -1,12 +1,27 @@
 .boardContainer {
     display: flex;
-    gap: 1rem;
-    padding: 1rem;
-    height: 100%;
-    /* Take full height of parent */
-    overflow-x: auto;
-    overflow-y: auto;
     width: 100%;
     min-width: 0;
-    align-items: flex-start;
+    height: 100%;
+    align-items: stretch;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+}
+
+@media (min-width: 2200px) {
+    .boardContainer {
+        gap: var(--space-4);
+        padding: var(--space-6);
+    }
+}
+
+@media (max-width: 700px) {
+    .boardContainer {
+        padding: var(--space-3);
+        scroll-snap-type: x proximity;
+    }
 }

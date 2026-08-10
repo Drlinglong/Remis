@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Paper, Title, Badge, Button, Group } from '@mantine/core';
+import { Title, Badge, Button, Group, Text } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { TaskCard } from './TaskCard';
@@ -23,11 +23,10 @@ export const KanbanColumn = ({ id, tasks, onCardClick, onAddNote }) => {
     const color = COLUMN_COLORS[id] || 'gray';
 
     return (
-        <div className={styles.column}>
-            {/* Header */}
+        <section className={styles.column} data-remis-surface="surface" aria-labelledby={`kanban-column-${id}`}>
             <div className={styles.columnHeader}>
                 <Group gap="xs">
-                    <Title order={5} style={{ color: 'var(--text-main)' }}>{title}</Title>
+                    <Title id={`kanban-column-${id}`} order={5} className={styles.columnTitle}>{title}</Title>
                     <Badge color={color} variant="light" size="sm" circle>
                         {tasks.length}
                     </Badge>
@@ -42,7 +41,6 @@ export const KanbanColumn = ({ id, tasks, onCardClick, onAddNote }) => {
                 </Button>
             </div>
 
-            {/* Task List Area */}
             <div ref={setNodeRef} className={styles.taskList}>
                 <SortableContext
                     id={id}
@@ -58,11 +56,12 @@ export const KanbanColumn = ({ id, tasks, onCardClick, onAddNote }) => {
                     ))}
                 </SortableContext>
 
-                {/* Empty State / Drop Target hint could go here if needed */}
                 {tasks.length === 0 && (
-                    <div style={{ height: '50px', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '8px' }} />
+                    <div className={styles.emptyColumn}>
+                        <Text size="xs">{t('project_management.kanban.empty_column', 'Drop a task here')}</Text>
+                    </div>
                 )}
             </div>
-        </div>
+        </section>
     );
 };

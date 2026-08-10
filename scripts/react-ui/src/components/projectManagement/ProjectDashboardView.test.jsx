@@ -17,6 +17,10 @@ vi.mock('../project/ProjectGlossaryPanel', () => ({
   default: () => <div>project glossary</div>,
 }));
 
+vi.mock('../project/ProjectHeader', () => ({
+  default: () => <div data-testid="project-workspace-status">project status and next action</div>,
+}));
+
 vi.mock('../tools/KanbanBoard', () => ({
   default: () => <div>kanban</div>,
 }));
@@ -118,16 +122,24 @@ describe('ProjectDashboardView', () => {
     expect(handleRefreshFiles).not.toHaveBeenCalled();
   });
 
-  it('opens project-scoped publishing assets from More views', async () => {
+  it('keeps project-scoped publishing assets in the stable tool navigation', () => {
     const setActiveTab = vi.fn();
     renderDashboard({ setActiveTab });
 
-    fireEvent.click(screen.getByRole('button', { name: 'project_management.more_views' }));
-    fireEvent.click(await screen.findByRole('menuitem', {
+    fireEvent.click(screen.getByRole('tab', {
       name: 'project_management.tabs_publishing_assets',
     }));
 
     expect(setActiveTab).toHaveBeenCalledWith('publishing_assets');
+  });
+
+  it('keeps project identity and the next-action summary above the tabs', () => {
+    renderDashboard();
+
+    const header = screen.getByRole('banner');
+    expect(header).toHaveTextContent('Demo Project');
+    expect(screen.getByTestId('project-workspace-status')).toBeInTheDocument();
+    expect(screen.getByRole('tablist', { name: 'project_management.workspace_navigation' })).toBeInTheDocument();
   });
 
   it('passes the selected project into the publishing assets panel', () => {

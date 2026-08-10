@@ -1,147 +1,204 @@
-.actionCard {
-    --mantine-color-text: var(--surface-text-main) !important;
-    --mantine-color-dimmed: var(--surface-text-muted) !important;
-    --text-main: var(--surface-text-main);
-    --text-muted: var(--surface-text-muted);
-    background: var(--surface-bg, var(--glass-bg, rgba(30, 30, 30, 0.6))) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.1)) !important;
-    border-radius: var(--card-radius, 12px) !important;
-    box-shadow: var(--shadow-elevation, 0 8px 32px rgba(0, 0, 0, 0.2)) !important;
-    color: var(--surface-text-main) !important;
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
-    cursor: pointer;
+.page {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    color: var(--canvas-text-main);
+}
+
+.workspaceHeader {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-8);
+    padding: var(--space-8) clamp(var(--space-4), 3vw, var(--space-12));
+    border-bottom: 1px solid color-mix(in srgb, var(--canvas-text-main) 18%, transparent);
+}
+
+.orientationCopy {
+    min-width: 0;
+}
+
+.kicker,
+.sectionLabel {
+    color: var(--canvas-text-muted);
+    font-size: var(--type-size-label);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.pageTitle {
+    color: var(--canvas-text-main);
+    font-family: var(--font-header);
+    font-size: var(--type-size-page);
+    line-height: var(--type-leading-tight);
+}
+
+.pageDescription {
+    max-width: var(--type-measure-body);
+    margin-top: var(--space-2);
+    color: var(--canvas-text-muted);
+    line-height: var(--type-leading-body);
+}
+
+.headerActions {
+    flex: 0 0 auto;
+}
+
+.projectContent {
+    flex: 1;
+    padding: var(--space-8) clamp(var(--space-4), 3vw, var(--space-12));
+}
+
+.listToolbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-6);
+    margin-bottom: var(--space-6);
+}
+
+.sectionTitle {
+    color: var(--canvas-text-main);
+    font-family: var(--font-header);
+    font-size: var(--type-size-section);
+}
+
+.search {
+    width: min(100%, 28rem);
+}
+
+.projectGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+    gap: var(--space-4);
 }
 
 .projectCard {
     --mantine-color-text: var(--surface-text-main) !important;
     --mantine-color-dimmed: var(--surface-text-muted) !important;
-    --text-main: var(--surface-text-main);
-    --text-muted: var(--surface-text-muted);
-    background: var(--surface-bg, var(--glass-bg, rgba(30, 30, 30, 0.6))) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.1)) !important;
-    border-radius: var(--card-radius, 12px) !important;
-    box-shadow: var(--shadow-elevation, 0 8px 32px rgba(0, 0, 0, 0.2)) !important;
+    width: 100%;
+    min-width: 0;
     color: var(--surface-text-main) !important;
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+    text-align: left;
+    background: var(--surface-bg-solid) !important;
+    border: 1px solid var(--surface-border-quiet) !important;
+    border-radius: var(--radius-panel) !important;
+    box-shadow: var(--shadow-quiet) !important;
     cursor: pointer;
+    transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.projectCard:is(:hover, :focus-visible) {
+    border-color: var(--surface-border-anchor) !important;
+    box-shadow: var(--shadow-anchor) !important;
+    transform: translateY(-2px);
+}
+
+.projectCard:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 3px;
+}
+
+.projectIdentity {
+    min-width: 0;
 }
 
 .projectTitle {
+    overflow-wrap: anywhere;
     color: var(--surface-text-main);
     font-family: var(--font-header);
-    font-weight: 600;
+    font-size: var(--type-size-section);
+    font-weight: 700;
+    line-height: var(--type-leading-tight);
 }
 
-.heroSection {
-    height: 230px;
-    position: relative;
-    flex-shrink: 0;
+.projectNotes,
+.updatedAt {
+    color: var(--surface-text-muted);
 }
 
-.heroControls {
-    width: min(100%, 440px);
+.projectNotes {
+    margin-top: var(--space-2);
+    line-height: var(--type-leading-ui);
 }
 
-.heroSearch {
-    width: 100%;
+.openIcon {
+    flex: 0 0 auto;
+    color: var(--interactive-accent);
 }
 
-.heroSearchInput {
-    background: rgba(0, 0, 0, 0.48) !important;
-    color: #fff !important;
-    border: 1px solid rgba(255, 255, 255, 0.58) !important;
+.projectMeta {
+    margin-top: var(--space-6);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--surface-border-quiet);
 }
 
-.heroSearchInput::placeholder {
-    color: rgba(255, 255, 255, 0.82) !important;
-    opacity: 1;
+.emptyState {
+    display: grid;
+    min-height: 18rem;
+    place-items: center;
+    align-content: center;
+    gap: var(--space-3);
+    padding: var(--space-8);
+    color: var(--surface-text-main);
+    text-align: center;
+    background: var(--surface-bg-solid);
+    border: 1px solid var(--surface-border-quiet);
+    border-radius: var(--radius-panel);
 }
 
-.projectContent {
-    flex: 1;
-    padding: 20px;
+.emptyState > :is(p, svg) {
+    color: var(--surface-text-muted);
 }
 
-.actionsSection {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    padding: 4px 0 18px;
-    background: transparent;
-    border: 0;
-    border-bottom: 1px solid var(--surface-border);
-    border-radius: 0;
-    box-shadow: none;
-}
+@media (min-width: 2200px) {
+    .workspaceHeader,
+    .projectContent {
+        padding-inline: var(--space-12);
+    }
 
-.actionToolbar {
-    flex-wrap: nowrap;
-}
-
-.heroTitle {
-    color: #fff !important;
-    font-size: 3.5rem !important;
-    font-weight: 900 !important;
-    text-shadow:
-        0 4px 8px rgba(0, 0, 0, 0.5),
-        0 0 40px rgba(0, 0, 0, 0.3) !important;
-    font-family: var(--font-header);
-    letter-spacing: 1px;
-}
-
-.heroSubtitle {
-    color: rgba(255, 255, 255, 0.9) !important;
-    font-weight: 500 !important;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-    background: rgba(0, 0, 0, 0.3);
-    padding: 4px 12px;
-    border-radius: 4px;
-    backdrop-filter: blur(4px);
-    display: inline-block;
+    .projectGrid {
+        grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+    }
 }
 
 @media (max-width: 700px) {
-    .heroSection {
-        height: 210px;
-    }
-
-    .heroTitle {
-        font-size: 2rem !important;
-        text-align: center;
-    }
-
-    .heroSubtitle {
-        font-size: 0.875rem !important;
-        text-align: center;
-    }
-
-    .heroControls {
-        margin-top: 12px !important;
-    }
-
-    .projectContent {
-        padding: 14px;
-    }
-
-    .actionsSection {
+    .workspaceHeader,
+    .listToolbar {
         align-items: stretch;
         flex-direction: column;
-        gap: 14px;
     }
 
-    .actionToolbar {
+    .workspaceHeader,
+    .projectContent {
+        padding: var(--space-4);
+    }
+
+    .headerActions {
         display: grid;
         grid-template-columns: 1fr;
         width: 100%;
     }
 
-    .actionToolbar > * {
+    .headerActions > *,
+    .search {
         width: 100%;
         min-height: 44px;
+    }
+
+    .projectGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .projectCard {
+        transition: none;
+    }
+
+    .projectCard:is(:hover, :focus-visible) {
+        transform: none;
     }
 }

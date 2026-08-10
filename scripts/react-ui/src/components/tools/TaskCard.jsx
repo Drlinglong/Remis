@@ -2,7 +2,7 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { useTranslation } from 'react-i18next';
 import { CSS } from '@dnd-kit/utilities';
-import { Paper, Text, Group, Badge, ActionIcon, Tooltip } from '@mantine/core';
+import { Text, Group, Badge } from '@mantine/core';
 import { IconFileText, IconNote } from '@tabler/icons-react';
 import styles from './TaskCard.module.css';
 
@@ -43,17 +43,25 @@ export const TaskCard = ({ task, onClick }) => {
             style={style}
             {...attributes}
             {...listeners}
-            onClick={() => onClick(task)}
+            onClick={() => onClick?.(task)}
+            onKeyDown={(event) => {
+                if ((event.key === 'Enter' || event.key === ' ') && onClick) {
+                    event.preventDefault();
+                    onClick(task);
+                }
+            }}
+            data-remis-surface="surface"
+            data-task-kind={task.type === 'file' ? 'file' : 'note'}
             className={`${styles.taskCard} ${isDragging ? styles.taskCardDragging : ''} ${task.type === 'file' ? styles.fileTaskIndicator : styles.noteTaskIndicator}`}
         >
             <Group justify="space-between" align="flex-start" wrap="nowrap">
-                <Group gap="xs" wrap="nowrap" style={{ flex: 1, overflow: 'hidden' }}>
+                <Group gap="xs" wrap="nowrap" className={styles.taskIdentity}>
                     {task.type === 'file' ? (
                         <IconFileText size={16} style={{ minWidth: 16 }} color="var(--color-info)" />
                     ) : (
                         <IconNote size={16} style={{ minWidth: 16 }} color="var(--color-warning)" />
                     )}
-                    <Text size="sm" fw={500} truncate title={task.title}>
+                    <Text size="sm" fw={600} truncate title={task.title}>
                         {task.title}
                     </Text>
                 </Group>

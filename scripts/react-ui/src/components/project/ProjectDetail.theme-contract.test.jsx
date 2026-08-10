@@ -25,16 +25,17 @@ const materialSources = Object.fromEntries(
 const stylesSource = materialSources['src/components/project/ProjectDetailSurfaces.module.css'];
 
 describe('project detail semantic surface contract', () => {
-  it('keeps the page header on paper without the legacy highlighted title treatment', () => {
+  it('keeps project identity on canvas and the persistent action summary on a semantic surface', () => {
     expect(dashboardSource).toContain('data-remis-surface="canvas"');
-    expect(dashboardSource).toContain('data-remis-surface="paper"');
-    expect(dashboardSource).toContain('className={surfaceStyles.paperTitle}');
+    expect(dashboardSource).toContain('<ProjectHeader');
+    expect(headerSource).toContain('data-remis-surface="surface"');
+    expect(headerSource).toContain('data-remis-action="primary"');
     expect(dashboardSource).not.toContain("color: 'var(--text-highlight)'");
   });
 
   it('keeps overview and history summary cards on explicit dark surfaces', () => {
     expect(headerSource).toContain('data-remis-surface="surface"');
-    expect(headerSource).toContain('className={surfaceStyles.surfaceInset}');
+    expect(headerSource).toContain('surfaceStyles.surfaceInset');
     expect(historySource).toContain('className={styles.surfacePanel}');
     expect(historySource).toContain('className={styles.surfaceInset}');
     expect(historySource).not.toContain("background: 'rgba(0,0,0,0.2)'");
@@ -76,6 +77,6 @@ describe('project detail semantic surface contract', () => {
     expect(materialSources['src/components/projectManagement/ProjectListView.module.css']).toContain('.projectCard');
     expect(materialSources['src/components/projectManagement/ProjectDashboardView.module.css']).toContain('.tabsPanel');
     expect(materialSources['src/components/project/ProjectDetailSurfaces.module.css']).toContain('.paperAlert');
-    expect(materialSources['src/components/project/ProjectHeader.module.css']).toContain('.startTranslationButton');
+    expect(materialSources['src/components/project/ProjectHeader.module.css']).toContain('.stageRail');
   });
 });

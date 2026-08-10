@@ -1,43 +1,63 @@
 .taskCard {
-    /* Structure */
     position: relative;
-    padding: 12px;
-    margin-bottom: 8px;
-
-    /* Glass Style */
-    background: var(--glass-bg, rgba(30, 30, 30, 0.6));
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-
-    /* Interaction */
+    margin-bottom: var(--space-2);
+    padding: var(--space-3);
+    color: var(--surface-text-main);
+    background: color-mix(in srgb, var(--surface-bg-solid) 82%, var(--canvas-bg-solid));
+    border: 1px solid var(--surface-border-quiet);
+    border-radius: var(--radius-control);
+    box-shadow: var(--shadow-quiet);
     cursor: grab;
     user-select: none;
-    transition:
-        transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1),
-        box-shadow 0.2s ease,
-        border-color 0.2s ease;
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
 
-.taskCard:hover {
-    border-color: var(--primary-color, #1971c2);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    transform: translateY(-2px);
+.taskCard:is(:hover, :focus-visible) {
+    border-color: var(--surface-border-anchor);
+    box-shadow: var(--shadow-anchor);
+    transform: translateY(-1px);
+}
+
+.taskCard:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
 }
 
 .taskCardDragging {
-    opacity: 0.5;
-    box-shadow: 0 0 15px var(--primary-color, #1971c2);
-    border: 1px solid var(--primary-color, #1971c2);
+    z-index: 10;
     cursor: grabbing;
-    z-index: 999;
+    opacity: 0.55;
+    border-color: var(--surface-border-anchor);
+    box-shadow: var(--shadow-anchor);
 }
 
-.fileTaskIndicator {
-    border-left: 3px solid var(--color-info, #339af0);
+.taskIdentity {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
 }
 
-.noteTaskIndicator {
-    border-left: 3px solid var(--color-warning, #fcc419);
+.fileTaskIndicator::before,
+.noteTaskIndicator::before {
+    position: absolute;
+    top: 0;
+    right: var(--space-3);
+    left: var(--space-3);
+    height: 2px;
+    content: '';
+    background: var(--status-info);
+}
+
+.noteTaskIndicator::before {
+    background: var(--status-warning);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .taskCard {
+        transition: none;
+    }
+
+    .taskCard:is(:hover, :focus-visible) {
+        transform: none;
+    }
 }

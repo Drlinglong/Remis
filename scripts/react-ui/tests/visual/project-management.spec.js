@@ -4,6 +4,7 @@ const themes = ['victorian', 'byzantine', 'scifi', 'wwii', 'medieval'];
 const scenarios = ['active-list', 'dashboard-detail', 'kanban-normal', 'kanban-dragging'];
 const viewports = [
   { id: 'desktop', width: 1440, height: 1100 },
+  { id: 'wide', width: 2560, height: 1440 },
   { id: 'compact', width: 375, height: 900 },
 ];
 
@@ -27,19 +28,14 @@ for (const themeId of themes) {
         if (scenario === 'active-list') {
           await expect(page.locator('#project-list-container')).toBeVisible();
           await expect(page.getByText('Expedition Demo — Project Management', { exact: true })).toBeVisible();
-          await page.locator('#project-list-container .mantine-BackgroundImage-root').evaluate(async (element) => {
-            const source = getComputedStyle(element).backgroundImage.match(/url\(["']?(.*?)["']?\)/)?.[1];
-            if (!source) throw new Error('Project hero background image is missing');
-            const image = new Image();
-            image.src = source;
-            await image.decode();
-          });
+          await expect(page.locator('#project-list-container [data-remis-action="primary"]')).toHaveCount(1);
         }
 
         if (scenario === 'dashboard-detail') {
           await expect(page.locator('#project-dashboard-tabs')).toBeVisible();
           await expect(page.locator('#project-dashboard-overview')).toBeVisible();
           await expect(page.locator('#project-dashboard-header')).toBeVisible();
+          await expect(page.getByRole('tab', { name: /发布素材/ })).toBeVisible();
         }
 
         if (scenario.startsWith('kanban-')) {
@@ -61,6 +57,15 @@ for (const themeId of themes) {
         expect(consoleErrors).toEqual([]);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBeTruthy();
 
+        if (viewport.id === 'wide' && scenario.startsWith('kanban-')) {
+          const boardBox = await page.locator('#kanban-board').boundingBox();
+          const columns = await page.locator('#kanban-board > [data-remis-surface="surface"]').evaluateAll((elements) => (
+            elements.map((element) => element.getBoundingClientRect().width)
+          ));
+          expect(boardBox.width).toBeGreaterThan(2200);
+          expect(Math.min(...columns)).toBeGreaterThan(360);
+        }
+
         await expect(page).toHaveScreenshot(
           `project-management-${scenario}-${themeId}-${viewport.id}.png`,
           { fullPage: true },
@@ -68,4 +73,30 @@ for (const themeId of themes) {
       });
     }
   }
+}
+
+for (const themeId of themes) {
+  test(`${themeId} uses a maximized 4K desktop workspace`, async ({ page }) => {
+    await page.setViewportSize({ width: 3840, height: 2160 });
+
+    await page.goto(`/visual-fixtures.html?theme=${themeId}&contract=project-management-active-list`);
+    await expect(page.getByTestId('project-management-active-list')).toHaveAttribute('data-visual-ready', 'true');
+    const listWidth = await page.locator('#project-list-container').evaluate((element) => element.getBoundingClientRect().width);
+    expect(listWidth).toBeGreaterThan(3600);
+
+    await page.goto(`/visual-fixtures.html?theme=${themeId}&contract=project-management-dashboard-detail`);
+    await expect(page.getByTestId('project-management-dashboard-detail')).toHaveAttribute('data-visual-ready', 'true');
+    await expect(page.getByRole('tab', { name: /发布素材/ })).toBeVisible();
+    const dashboardWidth = await page.locator('#project-dashboard-header').evaluate((element) => element.getBoundingClientRect().width);
+    expect(dashboardWidth).toBeGreaterThan(3500);
+
+    await page.goto(`/visual-fixtures.html?theme=${themeId}&contract=project-management-kanban-normal`);
+    await expect(page.getByTestId('project-management-kanban-normal')).toHaveAttribute('data-visual-ready', 'true');
+    const columnWidths = await page.locator('#kanban-board > [data-remis-surface="surface"]').evaluateAll((elements) => (
+      elements.map((element) => element.getBoundingClientRect().width)
+    ));
+    expect(columnWidths).toHaveLength(5);
+    expect(Math.min(...columnWidths)).toBeGreaterThan(650);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBeTruthy();
+  });
 }
