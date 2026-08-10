@@ -28,6 +28,8 @@ import {
 } from '../components/neologism/PublishedArchiveContent';
 import RemoveModArchiveControl from '../components/neologism/RemoveModArchiveControl';
 import ContextArchiveTreeVisualFixture from './ContextArchiveTreeVisualFixture';
+import HomeDashboardVisualFixture from './HomeDashboardVisualFixture';
+import ProjectManagementVisualFixture from './ProjectManagementVisualFixture';
 import styles from './VisualReliabilityLab.module.css';
 
 const longProjectName = 'Project Remis — Demo Mod — Stellaris — 超长项目身份验证';
@@ -254,6 +256,22 @@ export default function VisualReliabilityLab({ themeId, contract }) {
   }
   if (contract === 'context-tree') {
     return <ContextArchiveTreeVisualFixture />;
+  }
+  if (contract?.startsWith('home-dashboard-')) {
+    return (
+      <HomeDashboardVisualFixture
+        scenario={contract.replace('home-dashboard-', '')}
+        themeId={themeId}
+      />
+    );
+  }
+  if (contract?.startsWith('project-management-')) {
+    return (
+      <ProjectManagementVisualFixture
+        scenario={contract.replace('project-management-', '')}
+        themeId={themeId}
+      />
+    );
   }
 
   return (
