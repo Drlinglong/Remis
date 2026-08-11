@@ -1,3 +1,120 @@
+.courtRoot {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.projectToolbarSlot {
+  flex: 0 0 auto;
+  margin: 0 var(--space-4) var(--space-2);
+}
+
+.courtWorkspace {
+  display: grid;
+  grid-template-columns: clamp(18rem, 20vw, 24rem) minmax(0, 1fr);
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--surface-bg-solid) !important;
+  border: 1px solid var(--surface-border-quiet);
+  border-radius: var(--radius-panel);
+}
+
+.docketPanel,
+.reviewPanel {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.docketPanel {
+  border-right: 1px solid var(--surface-border-quiet);
+}
+
+.docketStack,
+.caseWorkspace {
+  min-height: 0;
+  min-width: 0;
+}
+
+.batchToolbar {
+  padding-block: var(--space-1);
+  border-block: 1px solid var(--surface-border-quiet);
+}
+
+.docketScroll {
+  padding: var(--space-1);
+  scrollbar-gutter: stable;
+}
+
+.candidateButton {
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-3) !important;
+  cursor: pointer;
+  color: var(--surface-text-main) !important;
+  font: inherit;
+  text-align: left;
+  background: var(--surface-bg) !important;
+  border: 1px solid var(--surface-border-quiet) !important;
+  border-radius: var(--radius-control) !important;
+  box-shadow: none !important;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.candidateButton:hover {
+  border-color: var(--surface-border) !important;
+}
+
+.candidateButton[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--interactive-accent) 10%, var(--surface-bg-solid)) !important;
+  border-color: var(--surface-border-anchor) !important;
+  box-shadow: inset 3px 0 0 var(--interactive-accent) !important;
+}
+
+.candidateButton:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.candidateName,
+.minWidthZero,
+.highlightedText,
+.evidenceColumn,
+.analysisColumn {
+  min-width: 0;
+}
+
+.reviewPanel {
+  position: relative;
+}
+
+.caseWorkspace {
+  position: relative;
+  padding: var(--space-4);
+}
+
+.caseScroll {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.caseScrollContent {
+  padding-right: var(--space-2);
+}
+
+.caseBodyGrid {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.8fr) minmax(24rem, 1.2fr);
+  align-items: start;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
 .quietToolbar,
 .secondaryPanel,
 .evidenceCard,
@@ -8,33 +125,71 @@
 
 .quietToolbar {
   background: var(--surface-bg) !important;
-  border: 1px solid color-mix(in srgb, var(--surface-border) 22%, transparent) !important;
+  border: 1px solid var(--surface-border-quiet) !important;
 }
 
 .candidateAnchor {
-  background: var(--surface-bg) !important;
-  border: 1px solid color-mix(in srgb, var(--interactive-accent) 72%, transparent) !important;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--interactive-accent) 18%, transparent) !important;
+  background: var(--surface-bg-solid) !important;
+  border: 1px solid var(--surface-border-anchor) !important;
+  border-radius: var(--radius-panel) !important;
+  box-shadow: var(--shadow-quiet) !important;
+}
+
+.caseTitle {
+  color: var(--surface-text-main);
+  font-size: var(--type-size-page);
+  overflow-wrap: anywhere;
+}
+
+.sourceBadge {
+  max-width: min(45%, 28rem);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .secondaryPanel {
   background: var(--paper-bg) !important;
-  border: 1px solid color-mix(in srgb, var(--paper-text-main) 16%, transparent) !important;
+  border: 1px solid var(--paper-border-quiet) !important;
+  border-radius: var(--radius-paper) !important;
 }
 
 .evidenceCard {
+  min-width: 0;
   background: var(--paper-bg) !important;
-  border: 1px solid color-mix(in srgb, var(--paper-text-main) 12%, transparent) !important;
+  border: 1px solid var(--paper-border-quiet) !important;
+  border-radius: var(--radius-paper) !important;
+}
+
+.evidenceSource {
+  color: var(--paper-text-muted) !important;
+  user-select: text;
+}
+
+.quoteIcon {
+  flex: 0 0 auto;
+  margin-top: var(--space-1);
+  opacity: 0.5;
+}
+
+.termMark {
+  padding-inline: var(--space-1);
+  color: var(--paper-text-main);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--paper-text-main) 10%, transparent);
+  border-radius: var(--radius-control);
 }
 
 .decisionPanel {
-  background: var(--surface-bg) !important;
-  border: 1px solid color-mix(in srgb, var(--surface-border) 38%, transparent) !important;
+  flex: 0 0 auto;
+  background: var(--surface-bg-solid) !important;
+  border: 1px solid var(--surface-border-anchor) !important;
+  border-radius: var(--radius-panel) !important;
 }
 
 .quietAlert {
   background: color-mix(in srgb, var(--surface-bg-solid) 92%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--surface-border) 24%, transparent) !important;
+  border: 1px solid var(--surface-border-quiet) !important;
   color: var(--surface-text-main) !important;
 }
 
@@ -81,6 +236,10 @@
   color: var(--surface-text-muted) !important;
 }
 
+.resetSuggestion {
+  color: var(--paper-text-muted) !important;
+}
+
 .primaryAction {
   min-width: min(15rem, 100%);
   background: var(--interactive-accent) !important;
@@ -100,7 +259,17 @@
   background: transparent !important;
   border: 1px solid var(--surface-text-muted) !important;
   color: var(--surface-text-main) !important;
-  box-shadow: inset 3px 0 0 var(--mantine-color-red-6) !important;
+  box-shadow: inset 3px 0 0 var(--status-error) !important;
+}
+
+.emptyWorkspace {
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.emptyWorkspace svg,
+.emptyIcon {
+  opacity: 0.35;
 }
 
 .batchModalContent,
@@ -144,8 +313,34 @@
   color: var(--paper-text-main) !important;
 }
 
-@media (max-width: 48em) {
+@media (max-width: 75rem) {
+  .caseBodyGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 56rem) {
+  .courtWorkspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(14rem, 36%) minmax(0, 1fr);
+  }
+
+  .docketPanel {
+    border-right: 0;
+    border-bottom: 1px solid var(--surface-border-quiet);
+  }
+
+  .caseWorkspace {
+    padding: var(--space-3);
+  }
+
   .primaryAction {
     flex: 1 1 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .candidateButton {
+    transition: none;
   }
 }
