@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
     Badge,
     Box,
@@ -45,6 +45,7 @@ const JudgmentDocket = ({
     batchSelectedIds,
     candidates,
     docketView,
+    focusRequest,
     loading,
     onBatchConfirm,
     onDocketViewChange,
@@ -54,15 +55,47 @@ const JudgmentDocket = ({
     processing,
     selectedId,
     t,
-}) => (
-    <aside
-        data-testid="neologism-docket-panel"
-        data-remis-surface="surface"
-        className={styles.docketPanel}
-    >
+}) => {
+    const candidateButtonRefs = useRef(new Map());
+    const docketRef = useRef(null);
+
+    useEffect(() => {
+        if (!focusRequest) return;
+        const selectedButton = candidateButtonRefs.current.get(selectedId);
+        (selectedButton || docketRef.current)?.focus();
+    }, [focusRequest, selectedId]);
+
+    const handleCandidateKeyDown = (event, candidateIndex) => {
+        const navigationKeys = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
+        if (!navigationKeys.includes(event.key)) return;
+        event.preventDefault();
+
+        let nextIndex = candidateIndex;
+        if (event.key === 'ArrowDown') nextIndex = Math.min(candidateIndex + 1, candidates.length - 1);
+        if (event.key === 'ArrowUp') nextIndex = Math.max(candidateIndex - 1, 0);
+        if (event.key === 'Home') nextIndex = 0;
+        if (event.key === 'End') nextIndex = candidates.length - 1;
+
+        const nextCandidate = candidates[nextIndex];
+        if (!nextCandidate) return;
+        onSelectCandidate(nextCandidate.id);
+        candidateButtonRefs.current.get(nextCandidate.id)?.focus();
+    };
+
+    return (
+        <aside
+            ref={docketRef}
+            tabIndex={-1}
+            aria-labelledby="neologism-docket-title"
+            data-testid="neologism-docket-panel"
+            data-remis-surface="surface"
+            className={styles.docketPanel}
+        >
         <Stack p="sm" gap="xs" h="100%" className={styles.docketStack}>
             <Group justify="space-between">
-                <Title order={4} c="dimmed">{t('neologism_review.court.docket')}</Title>
+                <Title id="neologism-docket-title" order={4} c="dimmed">
+                    {t('neologism_review.court.docket')}
+                </Title>
                 <Badge variant="dot" size="lg" className={styles.surfaceBadge}>
                     {candidates.length}
                 </Badge>
@@ -88,7 +121,7 @@ const JudgmentDocket = ({
                         disabled={processing || batchProcessing}
                     />
                     {batchSelectedIds.length > 0 && (
-                        <Group grow gap="xs">
+                        <Group grow gap="xs" className={styles.batchActions}>
                             {docketView === 'pending' ? (
                                 <>
                                     <Button
@@ -136,7 +169,7 @@ const JudgmentDocket = ({
                 }}
             >
                 <Stack gap="xs">
-                    {candidates.map((candidate) => (
+                    {candidates.map((candidate, candidateIndex) => (
                         <Group key={candidate.id} gap="xs" wrap="nowrap" align="center">
                             <Checkbox
                                 size="xs"
@@ -148,11 +181,18 @@ const JudgmentDocket = ({
                                 disabled={processing || batchProcessing}
                             />
                             <Paper
+                                ref={(node) => {
+                                    if (node) candidateButtonRefs.current.set(candidate.id, node);
+                                    else candidateButtonRefs.current.delete(candidate.id);
+                                }}
                                 component="button"
                                 type="button"
                                 p="sm"
                                 onClick={() => onSelectCandidate(candidate.id)}
+                                onKeyDown={(event) => handleCandidateKeyDown(event, candidateIndex)}
                                 aria-pressed={selectedId === candidate.id}
+                                aria-controls="neologism-review-panel"
+                                tabIndex={selectedId === candidate.id ? 0 : -1}
                                 data-remis-surface="surface"
                                 className={styles.candidateButton}
                             >
@@ -177,7 +217,8 @@ const JudgmentDocket = ({
                 </Stack>
             </Box>
         </Stack>
-    </aside>
-);
+        </aside>
+    );
+};
 
 export default JudgmentDocket;

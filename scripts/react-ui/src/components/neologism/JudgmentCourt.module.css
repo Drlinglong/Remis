@@ -46,6 +46,10 @@
   border-block: 1px solid var(--surface-border-quiet);
 }
 
+.batchActions {
+  animation: judgment-toolbar-enter var(--motion-duration-fast) var(--motion-ease-standard) both;
+}
+
 .docketScroll {
   padding: var(--space-1);
   scrollbar-gutter: stable;
@@ -63,7 +67,9 @@
   border: 1px solid var(--surface-border-quiet) !important;
   border-radius: var(--radius-control) !important;
   box-shadow: none !important;
-  transition: border-color 150ms ease, background-color 150ms ease;
+  transition:
+    border-color var(--motion-duration-fast) var(--motion-ease-standard),
+    background-color var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .candidateButton:hover {
@@ -96,6 +102,10 @@
 .caseWorkspace {
   position: relative;
   padding: var(--space-4);
+}
+
+.caseWorkspaceMotion {
+  animation: judgment-case-enter var(--motion-duration-standard) var(--motion-ease-emphasized) both;
 }
 
 .caseScroll {
@@ -241,6 +251,7 @@
 }
 
 .primaryAction {
+  min-block-size: var(--control-hit-target);
   min-width: min(15rem, 100%);
   background: var(--interactive-accent) !important;
   border: 1px solid var(--surface-text-muted) !important;
@@ -249,6 +260,7 @@
 }
 
 .secondaryAction {
+  min-block-size: var(--control-hit-target);
   background: transparent !important;
   border: 1px solid var(--surface-text-muted) !important;
   color: var(--surface-text-main) !important;
@@ -256,6 +268,7 @@
 }
 
 .dangerSecondaryAction {
+  min-block-size: var(--control-hit-target);
   background: transparent !important;
   border: 1px solid var(--surface-text-muted) !important;
   color: var(--surface-text-main) !important;
@@ -270,6 +283,30 @@
 .emptyWorkspace svg,
 .emptyIcon {
   opacity: 0.35;
+}
+
+@keyframes judgment-case-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-sm));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes judgment-toolbar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-distance-sm) * -1));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .batchModalContent,
@@ -340,7 +377,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .candidateButton {
+  .candidateButton,
+  .caseWorkspaceMotion,
+  .batchActions {
+    animation: none;
     transition: none;
   }
 }

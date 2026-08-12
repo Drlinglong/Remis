@@ -79,6 +79,7 @@ const JudgmentCourt = ({
                     batchSelectedIds={controller.batchSelectedIds}
                     candidates={controller.candidates}
                     docketView={controller.docketView}
+                    focusRequest={controller.docketFocusRequest}
                     loading={controller.loading}
                     onBatchConfirm={controller.setBatchConfirmOpen}
                     onDocketViewChange={controller.setDocketView}
@@ -89,7 +90,11 @@ const JudgmentCourt = ({
                     selectedId={controller.selectedId}
                     t={t}
                 />
-                <main className={styles.reviewPanel} data-remis-surface="surface">
+                <main
+                    id="neologism-review-panel"
+                    className={styles.reviewPanel}
+                    data-remis-surface="surface"
+                >
                     <JudgmentCaseWorkspace
                         batchProcessing={controller.batchProcessing}
                         candidate={controller.selectedCandidate}

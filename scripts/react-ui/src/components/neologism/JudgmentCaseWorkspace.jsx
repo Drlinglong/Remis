@@ -186,7 +186,14 @@ const JudgmentCaseWorkspace = ({
     const hasDuplicates = Boolean(candidate.duplicate_matches?.length);
 
     return (
-        <Stack h="100%" gap="sm" data-testid="neologism-review-workspace" className={styles.caseWorkspace}>
+        <Stack
+            key={candidate.id}
+            h="100%"
+            gap="sm"
+            aria-busy={processing || batchProcessing}
+            data-testid="neologism-review-workspace"
+            className={`${styles.caseWorkspace} ${styles.caseWorkspaceMotion}`}
+        >
             <LoadingOverlay visible={processing} />
             <ScrollArea
                 type="always"
@@ -200,6 +207,8 @@ const JudgmentCaseWorkspace = ({
                         data-testid="neologism-candidate-anchor"
                         data-visual-priority="primary"
                         data-remis-surface="surface"
+                        aria-live="polite"
+                        aria-atomic="true"
                         className={styles.candidateAnchor}
                     >
                         <Group align="flex-start" justify="space-between" wrap="nowrap">

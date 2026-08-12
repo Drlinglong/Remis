@@ -58,6 +58,7 @@ export const useJudgmentCourtWorkflow = ({
     const [batchConfirmOpen, setBatchConfirmOpen] = useState(null);
     const [draftSuggestions, setDraftSuggestions] = useState({});
     const [resolution, setResolution] = useState('approve_project');
+    const [docketFocusRequest, setDocketFocusRequest] = useState(0);
     const selectedDraftKey = selectedCandidate
         ? candidateDraftKey(selectedProject, selectedCandidate.id)
         : null;
@@ -136,12 +137,15 @@ export const useJudgmentCourtWorkflow = ({
                 autoClose: 3200,
             });
             removeCompletedCandidates([selectedCandidate.id]);
+            setDocketFocusRequest((current) => current + 1);
+            return true;
         } catch {
             notifications.show({
                 title: t('neologism_review.common.error'),
                 message: t('neologism_review.court.approve_failed'),
                 color: 'red',
             });
+            return false;
         } finally {
             setProcessing(false);
         }
@@ -167,12 +171,15 @@ export const useJudgmentCourtWorkflow = ({
                 autoClose: action === 'reject' ? 3200 : 4200,
             });
             removeCompletedCandidates([selectedCandidate.id]);
+            setDocketFocusRequest((current) => current + 1);
+            return true;
         } catch {
             notifications.show({
                 title: t('neologism_review.common.error'),
                 message: t(`neologism_review.court.${action}_failed`),
                 color: 'red',
             });
+            return false;
         } finally {
             setProcessing(false);
         }
@@ -231,6 +238,7 @@ export const useJudgmentCourtWorkflow = ({
     return {
         batchConfirmOpen,
         batchProcessing,
+        docketFocusRequest,
         editSuggestion,
         handleApprove,
         handleBatchApprove: () => runBatch('approve'),
