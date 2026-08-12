@@ -28,6 +28,16 @@
   --type-leading-body: 1.6;
   --type-measure-body: 72ch;
 
+  /* Phase 5 motion and accessible target primitives. */
+  --motion-duration-instant: 80ms;
+  --motion-duration-fast: 140ms;
+  --motion-duration-standard: 220ms;
+  --motion-duration-deliberate: 320ms;
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-distance-sm: 0.25rem;
+  --control-hit-target: 2.75rem;
+
   /* Safe fallback radius. Themes override these four semantic roles. */
   --radius-control: 4px;
   --radius-panel: 4px;
@@ -839,6 +849,21 @@ html[data-theme] [data-remis-action^='paper-']:is(:hover, :active) {
 html[data-theme] :is(button, a, input, select, textarea, [role='button']):focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  html[data-theme] *,
+  html[data-theme] *::before,
+  html[data-theme] *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
 }
 
 /* Mantine mounts dropdowns in a portal under body, outside page components. */

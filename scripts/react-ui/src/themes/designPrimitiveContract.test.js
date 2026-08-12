@@ -19,6 +19,17 @@ const fixedSpacing = {
   'space-12': '3rem',
 };
 
+const motionTokens = [
+  'motion-duration-instant',
+  'motion-duration-fast',
+  'motion-duration-standard',
+  'motion-duration-deliberate',
+  'motion-ease-standard',
+  'motion-ease-emphasized',
+  'motion-distance-sm',
+  'control-hit-target',
+];
+
 const themeRadius = {
   byzantine: {
     'radius-control': '6px',
@@ -88,6 +99,7 @@ const rootRequiredTokens = [
   'type-leading-ui',
   'type-leading-body',
   'type-measure-body',
+  ...motionTokens,
   'radius-control',
   'radius-panel',
   'radius-paper',
@@ -221,6 +233,14 @@ describe('phase 2 design primitive contract', () => {
     expect(rootTokens['chart-tooltip-bg']).toBe('var(--elevated-bg)');
     expect(rootTokens['chart-tooltip-border']).toBe('var(--surface-border)');
     expect(rootTokens['chart-tooltip-text']).toBe('var(--elevated-text-main)');
+  });
+
+  it('provides a global reduced-motion escape hatch', () => {
+    expect(rootTokens['control-hit-target']).toBe('2.75rem');
+    expect(definitionsCss).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(definitionsCss).toContain('animation-duration: 1ms !important');
+    expect(definitionsCss).toContain('transition-duration: 1ms !important');
+    expect(definitionsCss).toContain('scroll-behavior: auto !important');
   });
 
   it('does not make token values depend on theme classes or component selectors', () => {
