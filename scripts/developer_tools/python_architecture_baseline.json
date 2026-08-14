@@ -42,7 +42,7 @@
     "scripts/routers/tools.py::deploy_mod": 228,
     "scripts/routers/translation.py::run_translation_workflow_v2": 204,
     "scripts/run_dev_servers.py::run_servers": 155,
-    "scripts/workflows/initial_translate.py::run": 131,
+    "scripts/workflows/initial_translate.py::run": 126,
     "scripts/workflows/update_translate.py::run_incremental_update": 444
   },
   "complexity_exceptions": {

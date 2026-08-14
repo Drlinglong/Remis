@@ -31,6 +31,10 @@ class ParseDiagnostic:
     message: str
     line_number: int
     severity: str = "error"
+    key: Optional[str] = None
+    recoverable: bool = False
+    opening_quote_offset: Optional[int] = None
+    line_end_offset: Optional[int] = None
 
 
 @dataclass(frozen=True)
@@ -273,6 +277,7 @@ def parse_text(text: str) -> ParseReport:
         opening_offset = start + match.end() - 1
         closing_offset = _find_closing_quote(text, opening_offset, end)
         end_line_index = line_index
+        boundary_is_certain = True
         while closing_offset is None and end_line_index + 1 < total_lines:
             candidate_line = end_line_index + 1
             next_start = starts[candidate_line]
@@ -284,15 +289,23 @@ def parse_text(text: str) -> ParseReport:
                 or next_line.strip().startswith("#")
             ):
                 break
+            boundary_is_certain = False
             end_line_index = candidate_line
             closing_offset = _find_closing_quote(text, opening_offset, next_end)
 
         if closing_offset is None:
+            base_key = match.group("base_key").strip()
+            version_text = match.group("version").strip()
+            key = f"{base_key}:{version_text}" if version_text else base_key
             diagnostics.append(
                 ParseDiagnostic(
                     code="unterminated_value",
                     message="Localization value has no closing quote.",
                     line_number=line_index + 1,
+                    key=key,
+                    recoverable=boundary_is_certain,
+                    opening_quote_offset=opening_offset,
+                    line_end_offset=end,
                 )
             )
             line_index += 1
@@ -335,12 +348,48 @@ def patch_text(text: str, replacements: Iterable[tuple[LocalizationEntry, str]])
     return patched
 
 
+def patch_text_with_recoveries(
+    text: str,
+    replacements: Iterable[tuple[LocalizationEntry, str]],
+    recoveries: Iterable[ParseDiagnostic],
+) -> str:
+    """Patch valid values and replace recoverable malformed values with empty strings."""
+
+    edits: list[tuple[int, int, str]] = [
+        (entry.value_start_offset, entry.value_end_offset, escape_value(value))
+        for entry, value in replacements
+    ]
+    for diagnostic in recoveries:
+        if (
+            not diagnostic.recoverable
+            or diagnostic.opening_quote_offset is None
+            or diagnostic.line_end_offset is None
+        ):
+            continue
+        edits.append(
+            (
+                diagnostic.opening_quote_offset,
+                diagnostic.line_end_offset,
+                '""',
+            )
+        )
+
+    patched = text
+    for start, end, replacement in sorted(edits, key=lambda item: item[0], reverse=True):
+        patched = patched[:start] + replacement + patched[end:]
+    return patched
+
+
 def patch_lines(
-    lines: list[str], replacements: Iterable[tuple[LocalizationEntry, str]]
+    lines: list[str],
+    replacements: Iterable[tuple[LocalizationEntry, str]],
+    recoveries: Iterable[ParseDiagnostic] = (),
 ) -> list[str]:
     """Line-list adapter used by the existing file builder."""
 
-    return patch_text("".join(lines), replacements).splitlines(keepends=True)
+    return patch_text_with_recoveries(
+        "".join(lines), replacements, recoveries
+    ).splitlines(keepends=True)
 
 
 def iter_eligible(path: Path) -> Iterator[LocalizationEntry]:

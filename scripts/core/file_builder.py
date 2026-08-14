@@ -1,13 +1,18 @@
 import re
 import logging
 
-from scripts.core.paradox_localization_parser import LocalizationEntry, patch_lines
+from scripts.core.paradox_localization_parser import (
+    LocalizationEntry,
+    ParseDiagnostic,
+    patch_lines,
+)
 
 
 def _patch_canonical_spans(
     original_lines: list[str],
     translated_texts: list[str],
     key_map: dict[int, dict],
+    recovered_entries: list[dict] | None = None,
 ) -> list[str] | None:
     replacements: list[tuple[LocalizationEntry, str]] = []
     for index, translated_text in enumerate(translated_texts):
@@ -16,7 +21,12 @@ def _patch_canonical_spans(
         if not isinstance(entry, LocalizationEntry):
             return None
         replacements.append((entry, str(translated_text)))
-    return patch_lines(original_lines, replacements)
+    recoveries = [
+        item.get("diagnostic")
+        for item in (recovered_entries or [])
+        if isinstance(item.get("diagnostic"), ParseDiagnostic)
+    ]
+    return patch_lines(original_lines, replacements, recoveries)
 
 
 def _patch_legacy_lines(
@@ -79,6 +89,7 @@ def patch_file_content(
     key_map: dict[int, dict],
     source_lang_key: str,
     target_lang_key: str,
+    recovered_entries: list[dict] | None = None,
 ) -> list[str]:
     """
     Patches the original file content with translated texts.
@@ -86,7 +97,7 @@ def patch_file_content(
     Replaces the language header.
     """
     canonical_lines = _patch_canonical_spans(
-        original_lines, translated_texts, key_map
+        original_lines, translated_texts, key_map, recovered_entries
     )
     new_lines = canonical_lines or _patch_legacy_lines(
         original_lines, texts_to_translate, translated_texts, key_map
@@ -102,7 +113,8 @@ def rebuild_and_write_file(
     filename: str,
     source_lang: dict,
     target_lang: dict,
-    game_profile: dict
+    game_profile: dict,
+    recovered_entries: list[dict] | None = None,
 ) -> str:
     """
     Rebuilds the file content with translated texts and writes it to the output path.
@@ -167,7 +179,8 @@ def rebuild_and_write_file(
         cleaned_translations,
         key_map,
         source_lang_key,
-        target_lang_key
+        target_lang_key,
+        recovered_entries,
     )
     
     # 4. Write to file

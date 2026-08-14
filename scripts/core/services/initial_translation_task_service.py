@@ -22,6 +22,7 @@ def build_file_task_iterator(
     progress_callback: Optional[Any],
     run_state: LanguageRunState,
     total_batches: int,
+    version_id: Optional[int] = None,
 ) -> Iterator[FileTask]:
     for file_data in all_files_content:
         if checkpoint_manager.is_file_completed(file_data["filename"]):
@@ -44,6 +45,8 @@ def build_file_task_iterator(
                 output_folder_name,
                 mod_name,
                 proofreading_tracker,
+                version_id=version_id,
+                all_files_content=all_files_content,
             )
             checkpoint_manager.mark_file_completed(file_data["filename"])
             emit_progress(
@@ -74,4 +77,5 @@ def build_file_task_iterator(
             mod_name=mod_name,
             loc_root=file_data.get("loc_root", ""),
             file_path=file_data.get("file_path", file_data["filename"]),
+            recovered_entries=file_data.get("recovered_entries", []),
         )

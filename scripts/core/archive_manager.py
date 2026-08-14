@@ -357,11 +357,11 @@ class ArchiveManager:
         # Sort by filename to ensure consistent hash
         sorted_files = sorted(all_files_data, key=lambda x: x['filename'])
         for file_data in sorted_files:
-            # Use texts_to_translate for hash
-            for text in file_data.get('texts_to_translate', []):
+            for text in file_data.get('archive_texts', file_data.get('texts_to_translate', [])):
                 hasher.update(text.encode('utf-8'))
+            for recovered in file_data.get('recovered_entries', []):
+                hasher.update(f"\0recovered:{recovered.get('key_part')}:{recovered.get('code')}".encode('utf-8'))
         snapshot_hash = hasher.hexdigest()
-
         cursor = self.connection.cursor()
         try:
             # 2. 检查哈希是否存在 (FOR THIS MOD)
@@ -381,8 +381,8 @@ class ArchiveManager:
             for file_data in all_files_data:
                 # key_map is a dict from QuoteExtractor where keys are indices
                 # file_data['texts_to_translate'] is a list of same length
-                km = file_data.get('key_map', {})
-                texts = file_data.get('texts_to_translate', [])
+                km = file_data.get('archive_key_map', file_data.get('key_map', {}))
+                texts = file_data.get('archive_texts', file_data.get('texts_to_translate', []))
                 
                 for idx, text in enumerate(texts):
                     if isinstance(km, dict):
@@ -441,7 +441,7 @@ class ArchiveManager:
                 )
                 if not file_data or not translated_texts: continue
 
-                km = file_data.get('key_map', {})
+                km = file_data.get('archive_key_map', file_data.get('key_map', {}))
                 archive_file_path = self._normalize_archive_file_path(
                     file_data.get('file_path') or file_data.get('filename', '')
                 )

@@ -79,11 +79,19 @@ def _get_checkpoint_output_dir(mod_name: str, target_languages: List[dict]) -> s
     return _get_output_directories(mod_name, target_languages)[0]
 
 
-def finalize_task(task_id: str, status: str, log_message: Optional[str] = None, stage: Optional[str] = None):
+def finalize_task(
+    task_id: str,
+    status: str,
+    log_message: Optional[str] = None,
+    stage: Optional[str] = None,
+    error_count: Optional[int] = None,
+):
     """Persist terminal task state and force a final status push to the frontend."""
     progress = {}
-    if status == "completed":
+    if status in {"completed", "partial_failed"}:
         progress["percent"] = 100
+    if error_count is not None:
+        progress["error_count"] = error_count
     if stage:
         progress["stage"] = stage
     task_state.update_task(
@@ -93,6 +101,20 @@ def finalize_task(task_id: str, status: str, log_message: Optional[str] = None, 
         progress=progress or None,
         push=True,
     )
+
+
+def _workflow_outcome_values(outcome) -> tuple[str, str, int]:
+    status = getattr(outcome, "status", None)
+    if status not in {"completed", "partial_failed"}:
+        return "completed", "Translation workflow completed successfully.", 0
+    message = getattr(outcome, "message", None) or "Translation workflow completed successfully."
+    return status, message, int(getattr(outcome, "issue_count", 0) or 0)
+
+
+def _history_completion_description(status: str) -> str:
+    if status == "partial_failed":
+        return "Translation completed with source-file warnings"
+    return "Translation completed successfully"
 
 
 def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str, target_lang_codes: List[str], api_provider: str, mod_context: str, project_id: Optional[str] = None):
@@ -126,7 +148,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
         if not all([game_profile, source_lang, target_languages]):
             raise ValueError("Failed to resolve game profile, source language, or target languages.")
 
-        initial_translate.run(
+        outcome = initial_translate.run(
             mod_name=mod_name,
             game_profile=game_profile,
             source_lang=source_lang,
@@ -140,14 +162,15 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
             fields={"output_dirs": _get_output_directories(mod_name, target_languages)},
             push=False,
         )
-        finalize_task(task_id, "completed", "Translation workflow completed successfully.")
+        status, message, issue_count = _workflow_outcome_values(outcome)
+        finalize_task(task_id, status, message, "Completed", issue_count)
 
         if project_id:
             try:
                 _run_async(project_manager.log_history_event(
                     project_id=project_id,
                     action_type='translation_workflow',
-                    description="Translation completed successfully"
+                    description=_history_completion_description(status)
                 ))
             except Exception as e:
                 logging.error(f"Failed to log completion activity: {e}")
@@ -195,7 +218,6 @@ def run_translation_workflow_v2(
         append_log="Initializing translation workflow (V2)...",
         push=True,
     )
-
     if project_id:
         try:
             _run_async(project_manager.log_history_event(
@@ -323,7 +345,7 @@ def run_translation_workflow_v2(
                 final_glossary_ids.append(glossary_id)
 
         logging.info("Calling initial_translate.run...")
-        initial_translate.run(
+        outcome = initial_translate.run(
             mod_name=mod_name, game_profile=game_profile, source_lang=source_lang,
             target_languages=target_languages, selected_provider=api_provider,
             mod_context=mod_context, selected_glossary_ids=final_glossary_ids,
@@ -347,14 +369,15 @@ def run_translation_workflow_v2(
             },
             push=False,
         )
-        finalize_task(task_id, "completed", "Translation workflow completed successfully.", "Completed")
+        status, message, issue_count = _workflow_outcome_values(outcome)
+        finalize_task(task_id, status, message, "Completed", issue_count)
 
         if project_id:
             try:
                 _run_async(project_manager.log_history_event(
                     project_id=project_id,
                     action_type='translation_workflow',
-                    description="Translation completed successfully"
+                    description=_history_completion_description(status)
                 ))
             except Exception as e:
                 logging.error(f"Failed to log completion activity (v2): {e}")

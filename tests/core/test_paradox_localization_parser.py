@@ -81,8 +81,21 @@ def test_unterminated_value_is_not_silently_dropped():
         'l_english:\n broken:0 "unterminated\n next:0 "valid"\n'
     )
     assert [(entry.key, entry.value) for entry in report.entries] == [("next:0", "valid")]
-    assert report.diagnostics[0].code == "unterminated_value"
+    diagnostic = report.diagnostics[0]
+    assert diagnostic.code == "unterminated_value"
+    assert diagnostic.key == "broken:0"
+    assert diagnostic.line_number == 2
+    assert diagnostic.recoverable is True
     assert report.summary["parse_errors"] == 1
+
+
+def test_unterminated_value_with_ambiguous_continuation_drops_file():
+    report = parse_text(
+        'l_english:\n broken:0 "unterminated\n ambiguous continuation\n next:0 "valid"\n'
+    )
+
+    assert report.diagnostics[0].code == "unterminated_value"
+    assert report.diagnostics[0].recoverable is False
 
 
 def test_span_patch_round_trip_preserves_keys_comments_and_structure():
@@ -133,6 +146,32 @@ def test_quote_extractor_and_file_builder_use_canonical_spans(tmp_path: Path):
     assert reparsed.eligible_entries[0].value == 'Translated "name"'
     assert "# comment" in "".join(patched)
     assert "l_simp_chinese:" in "".join(patched)
+
+
+def test_file_builder_recovers_unterminated_value_without_consuming_next_key():
+    source = (
+        "l_english:\n"
+        ' broken:0 "\n'
+        ' next:0 "Translate me"\n'
+    )
+    report = parse_text(source)
+    valid_entry = report.eligible_entries[0]
+    diagnostic = report.diagnostics[0]
+
+    patched = patch_file_content(
+        source.splitlines(keepends=True),
+        [valid_entry.value],
+        ["Translated"],
+        {0: {"key_part": valid_entry.key, "entry": valid_entry}},
+        "l_english",
+        "l_simp_chinese",
+        [{"diagnostic": diagnostic}],
+    )
+
+    output = "".join(patched)
+    assert 'broken:0 ""' in output
+    assert 'next:0 "Translated"' in output
+    assert parse_text(output).diagnostics == ()
 
 
 def test_strict_quote_extractor_rejects_parse_errors(tmp_path: Path):

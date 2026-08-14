@@ -9,7 +9,11 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from scripts.core.paradox_localization_parser import LocalizationEntry, parse_text
+from scripts.core.paradox_localization_parser import (
+    LocalizationEntry,
+    ParseDiagnostic,
+    parse_text,
+)
 
 try:
     from . import i18n
@@ -79,6 +83,27 @@ class QuoteExtractor:
     ) -> Tuple[List[str], List[str], Dict[int, Dict[str, Any]]]:
         """Extract eligible values and exact source spans from a localization file."""
 
+        original_lines, texts, key_map, diagnostics = (
+            QuoteExtractor.extract_from_file_with_diagnostics(file_path)
+        )
+        if diagnostics and strict:
+            raise ValueError(
+                f"Canonical localization parse failed for {file_path}: "
+                + ", ".join(d.code for d in diagnostics)
+            )
+        return original_lines, texts, key_map
+
+    @staticmethod
+    def extract_from_file_with_diagnostics(
+        file_path: str,
+    ) -> Tuple[
+        List[str],
+        List[str],
+        Dict[int, Dict[str, Any]],
+        Tuple[ParseDiagnostic, ...],
+    ]:
+        """Extract eligible values while retaining structured syntax diagnostics."""
+
         try:
             rel_path = os.path.relpath(file_path)
         except ValueError:
@@ -96,7 +121,7 @@ class QuoteExtractor:
         )
         if is_txt:
             texts, key_map = QuoteExtractor._customizable_entries(file_path, original_lines)
-            return original_lines, texts, key_map
+            return original_lines, texts, key_map, ()
 
         report = parse_text("".join(original_lines))
         if report.diagnostics:
@@ -106,11 +131,6 @@ class QuoteExtractor:
                 rel_path,
                 ", ".join(d.code for d in report.diagnostics),
             )
-            if strict:
-                raise ValueError(
-                    f"Canonical localization parse failed for {file_path}: "
-                    + ", ".join(d.code for d in report.diagnostics)
-                )
 
         texts: List[str] = []
         key_map: Dict[int, Dict[str, Any]] = {}
@@ -123,4 +143,4 @@ class QuoteExtractor:
             rel_path,
             report.summary,
         )
-        return original_lines, texts, key_map
+        return original_lines, texts, key_map, report.diagnostics

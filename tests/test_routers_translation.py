@@ -1,4 +1,5 @@
 from unittest.mock import AsyncMock, MagicMock
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -58,6 +59,42 @@ def test_run_translation_workflow_v2_success_uses_shared_task_state(monkeypatch)
     assert task["output_dirs"]
     assert any("completed successfully" in line for line in task["log"])
     run_workflow.assert_called_once()
+
+
+def test_run_translation_workflow_v2_preserves_partial_failed_outcome(monkeypatch):
+    task_state.create_task("task-partial", status="pending")
+    monkeypatch.setattr(translation.i18n, "load_language", MagicMock())
+    monkeypatch.setattr(
+        translation.initial_translate,
+        "run",
+        MagicMock(return_value=SimpleNamespace(
+            status="partial_failed",
+            message=(
+                "Translation completed with source-file warnings: "
+                "1 invalid entries replaced with empty values; 0 files dropped."
+            ),
+            issue_count=1,
+        )),
+    )
+
+    translation.run_translation_workflow_v2(
+        "task-partial",
+        "Example Mod",
+        "stellaris",
+        "en",
+        ["zh-CN"],
+        "gemini",
+        "",
+        [],
+        None,
+        False,
+    )
+
+    task = tasks["task-partial"]
+    assert task["status"] == "partial_failed"
+    assert task["progress"]["percent"] == 100
+    assert task["progress"]["error_count"] == 1
+    assert any("source-file warnings" in line for line in task["log"])
 
 
 def test_run_translation_workflow_v2_failure_sets_failed_terminal_state(monkeypatch):

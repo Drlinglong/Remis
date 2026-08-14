@@ -31,6 +31,52 @@ def _write_text(path: Path, content: str):
     path.write_text(content, encoding="utf-8-sig")
 
 
+def test_archive_records_recovered_source_value_and_translation_as_empty(temp_archive_db):
+    file_path = "localisation/english/broken_l_english.yml"
+    files = [{
+        "filename": "broken_l_english.yml",
+        "file_path": file_path,
+        "texts_to_translate": ["Translate me"],
+        "key_map": {0: {"key_part": "valid:0"}},
+        "archive_texts": ["Translate me", ""],
+        "archive_key_map": {
+            0: {"key_part": "valid:0"},
+            1: {"key_part": "broken:0"},
+        },
+        "recovered_entries": [
+            {"key_part": "broken:0", "code": "unterminated_value"}
+        ],
+    }]
+    mod_id = temp_archive_db.get_or_create_mod_entry("BrokenMod", "local-BrokenMod")
+    version_id = temp_archive_db.create_source_version(mod_id, files)
+
+    temp_archive_db.archive_translated_results(
+        version_id,
+        {file_path: ["Translated", ""]},
+        files,
+        "zh-CN",
+    )
+
+    rows = temp_archive_db.connection.execute(
+        """
+        SELECT se.entry_key, se.source_text, te.translated_text
+        FROM source_entries se
+        LEFT JOIN translated_entries te ON te.source_entry_id = se.source_entry_id
+        WHERE se.version_id = ?
+        ORDER BY se.entry_key
+        """,
+        (version_id,),
+    ).fetchall()
+    values = {
+        row["entry_key"]: (row["source_text"], row["translated_text"])
+        for row in rows
+    }
+    assert values == {
+        "broken:0": ("", ""),
+        "valid:0": ("Translate me", "Translated"),
+    }
+
+
 def test_upload_project_translations_uses_relative_paths(temp_archive_db, tmp_path):
     source_root = tmp_path / "source_mod" / "TestMod"
     translation_root = tmp_path / "my_translation" / "zh-CN-TestMod"

@@ -22,6 +22,7 @@ class FileTask:
     mod_name: str  # 添加mod_name字段
     loc_root: str = "" # Localization root path (e.g. mod/main_menu/localization)
     file_path: str = "" # Stable archive-relative path for this source file
+    recovered_entries: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
