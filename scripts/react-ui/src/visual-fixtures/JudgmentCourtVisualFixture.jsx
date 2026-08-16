@@ -113,7 +113,11 @@ const JudgmentCourtVisualFixture = ({ themeId }) => {
                     selectedId={selectedId}
                     t={t}
                 />
-                <main className={courtStyles.reviewPanel} data-remis-surface="surface">
+                <main
+                    id="neologism-review-panel"
+                    className={courtStyles.reviewPanel}
+                    data-remis-surface="surface"
+                >
                     <JudgmentCaseWorkspace
                         batchProcessing={false}
                         candidate={selectedCandidate}

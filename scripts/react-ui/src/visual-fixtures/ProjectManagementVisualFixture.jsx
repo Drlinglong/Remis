@@ -1,5 +1,6 @@
 import React from 'react';
-import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Badge, Box, Group, Text, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { MemoryRouter } from 'react-router';
@@ -201,7 +202,13 @@ function DashboardDetailFixture() {
 }
 
 function KanbanFixture() {
-    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 1 } }));
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 1 } }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+            keyboardCodes: { start: ['Space'], cancel: ['Escape'], end: ['Space'] },
+        }),
+    );
     const columns = ['todo', 'in_progress', 'proofreading', 'paused', 'done'];
 
     return (
