@@ -21,6 +21,7 @@ export const KanbanColumn = ({ id, tasks, onCardClick, onAddNote }) => {
 
     const title = t(`project_management.kanban.columns.${id}`, id);
     const color = COLUMN_COLORS[id] || 'gray';
+    const addNoteLabel = `${t('project_management.kanban.add_note_task')} — ${title}`;
 
     return (
         <section className={styles.column} data-remis-surface="surface" aria-labelledby={`kanban-column-${id}`}>
@@ -34,10 +35,12 @@ export const KanbanColumn = ({ id, tasks, onCardClick, onAddNote }) => {
                 <Button
                     variant="subtle"
                     size="xs"
+                    className={styles.addNoteButton}
                     onClick={() => onAddNote(id)}
-                    title={t('project_management.kanban.add_note_task')}
+                    aria-label={addNoteLabel}
+                    title={addNoteLabel}
                 >
-                    <IconPlus size={16} />
+                    <IconPlus size={16} aria-hidden="true" />
                 </Button>
             </div>
 

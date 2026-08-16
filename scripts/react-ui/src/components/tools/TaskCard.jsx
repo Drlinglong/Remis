@@ -22,20 +22,18 @@ export const TaskCard = ({ task, onClick }) => {
         transition,
     };
 
-    // Determine badge content
-    let badge = null;
+    let badgeColor = 'gray';
+    let badgeLabel = t('project_management.kanban.badge_metadata');
     if (task.type === 'file') {
         if (task.meta?.file_type === 'source') {
-            badge = <Badge size="xs" color="blue" variant="light">{t('project_management.kanban.badge_source')}</Badge>;
+            badgeColor = 'blue';
+            badgeLabel = t('project_management.kanban.badge_source');
         } else if (task.meta?.file_type === 'translation') {
-            badge = <Badge size="xs" color="violet" variant="light">{t('project_management.kanban.badge_translation')}</Badge>;
-        } else if (task.meta?.file_type === 'metadata' || task.meta?.file_type === 'config') {
-            badge = <Badge size="xs" color="gray" variant="light">{t('project_management.kanban.badge_metadata')}</Badge>;
+            badgeColor = 'violet';
+            badgeLabel = t('project_management.kanban.badge_translation');
         }
-    } else {
-        // Assume note or other types are metadata related or just generic
-        badge = <Badge size="xs" color="gray" variant="light">{t('project_management.kanban.badge_metadata')}</Badge>;
     }
+    const badge = <Badge size="xs" color={badgeColor} variant="light">{badgeLabel}</Badge>;
 
     return (
         <div
@@ -43,9 +41,11 @@ export const TaskCard = ({ task, onClick }) => {
             style={style}
             {...attributes}
             {...listeners}
+            aria-label={`${task.title}; ${badgeLabel}`}
             onClick={() => onClick?.(task)}
             onKeyDown={(event) => {
-                if ((event.key === 'Enter' || event.key === ' ') && onClick) {
+                listeners?.onKeyDown?.(event);
+                if (event.key === 'Enter' && !event.defaultPrevented && onClick) {
                     event.preventDefault();
                     onClick(task);
                 }

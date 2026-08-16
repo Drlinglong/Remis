@@ -1,5 +1,6 @@
 .taskCard {
     position: relative;
+    min-height: var(--control-hit-target);
     margin-bottom: var(--space-2);
     padding: var(--space-3);
     color: var(--surface-text-main);
@@ -9,7 +10,10 @@
     box-shadow: var(--shadow-quiet);
     cursor: grab;
     user-select: none;
-    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    transition:
+        transform var(--motion-duration-fast) var(--motion-ease-standard),
+        box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
+        border-color var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .taskCard:is(:hover, :focus-visible) {

@@ -14,7 +14,9 @@
     border-radius: var(--radius-panel);
     box-shadow: var(--shadow-quiet);
     scroll-snap-align: start;
-    transition: border-color 160ms ease, box-shadow 160ms ease;
+    transition:
+        border-color var(--motion-duration-fast) var(--motion-ease-standard),
+        box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .column:focus-within {
@@ -36,6 +38,12 @@
 .columnTitle {
     color: var(--surface-text-main);
     font-family: var(--font-header);
+}
+
+.addNoteButton {
+    min-width: var(--control-hit-target);
+    min-height: var(--control-hit-target);
+    color: var(--surface-text-main);
 }
 
 .taskList {
@@ -65,7 +73,9 @@
     margin-top: var(--space-2);
     color: var(--surface-text-muted);
     border: 1px dashed var(--surface-border-quiet);
-    transition: border-color 160ms ease, color 160ms ease;
+    transition:
+        border-color var(--motion-duration-fast) var(--motion-ease-standard),
+        color var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .ghostButton:hover {
@@ -75,6 +85,7 @@
 
 @media (prefers-reduced-motion: reduce) {
     .column,
+    .addNoteButton,
     .ghostButton {
         transition: none;
     }
