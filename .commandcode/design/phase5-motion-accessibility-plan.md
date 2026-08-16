@@ -36,4 +36,3 @@
 - 键盘：Tab、方向键、Enter、Space 的职责不冲突；完成判决后不丢焦点。
 - reduced motion：系统偏好开启后，动画/过渡缩短到 1ms，滚动行为为 `auto`。
 - 全量 Vitest、ESLint、build、Playwright、文本完整性与 `git diff --check`。
-

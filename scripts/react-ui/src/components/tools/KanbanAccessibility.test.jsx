@@ -74,4 +74,3 @@ describe('Kanban keyboard and target accessibility', () => {
     expect(columnStyles).toMatch(/\.addNoteButton\s*\{[\s\S]*min-height: var\(--control-hit-target\)/);
   });
 });
-

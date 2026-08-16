@@ -69,4 +69,3 @@ describe('JudgmentDocket keyboard accessibility', () => {
     expect(screen.getByRole('button', { name: /Beta Anchor/ })).toHaveFocus();
   });
 });
-

@@ -20,4 +20,3 @@ describe('JudgmentCourt motion contract', () => {
     expect(styles).toMatch(/\.caseWorkspaceMotion,[\s\S]*\.batchActions[\s\S]*animation: none;/);
   });
 });
-
