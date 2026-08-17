@@ -90,6 +90,7 @@ def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatc
         (10, "enforce_status_contracts"),
         (11, "add_steam_workshop_assets"),
         (12, "track_bundled_seed_state"),
+        (13, "harden_bundled_seed_state"),
     ]
 
     cursor.execute("SELECT source_path, target_path FROM projects WHERE project_id = 'proj_1'")
@@ -132,6 +133,156 @@ def test_extract_bundled_demo_translations_only_replaces_bundled_children(tmp_pa
     assert (dest_root / "zh-CN-Test_Project_Remis_Vic3" / "fresh.yml").exists()
     assert not (dest_root / "zh-CN-Test_Project_Remis_Vic3" / "stale.yml").exists()
     assert (dest_root / "user-project" / "keep.yml").exists()
+
+
+def test_seed_failure_is_recorded_and_retried_without_overwriting_user_data(
+    tmp_path,
+    monkeypatch,
+):
+    app_data_dir = tmp_path / "appdata"
+    resource_dir = tmp_path / "resources"
+    db_path = app_data_dir / "remis.sqlite"
+    config_path = app_data_dir / "config.json"
+    seed_main = resource_dir / "data" / "seed_data_main.sql"
+
+    _write_file(
+        seed_main,
+        "INSERT INTO glossaries (does_not_exist) VALUES (1);",
+    )
+    _write_file(resource_dir / "data" / "seed_data_projects.sql", "-- empty")
+
+    monkeypatch.setattr(app_settings, "APP_DATA_DIR", str(app_data_dir))
+    monkeypatch.setattr(app_settings, "RESOURCE_DIR", str(resource_dir))
+    monkeypatch.setattr(app_settings, "REMIS_DB_PATH", str(db_path))
+    monkeypatch.setattr(app_settings, "PROJECTS_DB_PATH", str(db_path))
+    monkeypatch.setattr(app_settings, "DATABASE_PATH", str(db_path))
+    monkeypatch.setattr(app_settings, "CONFIG_DIR", str(app_data_dir / "config"))
+    monkeypatch.setattr(app_settings, "get_appdata_config_path", lambda: str(config_path))
+
+    initialize_database()
+
+    with sqlite3.connect(db_path) as conn:
+        failure = conn.execute(
+            """
+            SELECT status, seed_version, attempt_count, last_error
+            FROM bundled_seed_state
+            WHERE seed_key = 'main'
+            """
+        ).fetchone()
+        assert failure[0] == "failed"
+        assert failure[1] == 0
+        assert failure[2] == 1
+        assert "OperationalError" in failure[3]
+        conn.execute(
+            """
+            INSERT INTO glossaries (
+                glossary_id, game_id, name, description, version, is_main,
+                sources, raw_metadata
+            ) VALUES (1, 'eu5', 'User edit', 'kept', '1', 0, '[]', '{}')
+            """
+        )
+
+    _write_file(
+        seed_main,
+        """
+        INSERT INTO glossaries (
+            glossary_id, game_id, name, description, version, is_main,
+            sources, raw_metadata
+        ) VALUES (1, 'eu5', 'Bundled value', 'seed', '1', 1, '[]', '{}');
+        """,
+    )
+    initialize_database()
+
+    with sqlite3.connect(db_path) as conn:
+        state = conn.execute(
+            """
+            SELECT status, seed_version, attempt_count, last_error
+            FROM bundled_seed_state
+            WHERE seed_key = 'main'
+            """
+        ).fetchone()
+        assert state == ("applied", 1, 2, None)
+        assert conn.execute(
+            "SELECT name FROM glossaries WHERE glossary_id = 1"
+        ).fetchone()[0] == "User edit"
+
+
+def test_migration_retries_after_version_recording_crash_window(tmp_path):
+    db_path = tmp_path / "migration-crash-window.sqlite"
+
+    def fail_after_migration(version, _name):
+        if version == 5:
+            raise RuntimeError("injected crash after migration 5 DDL")
+
+    with pytest.raises(RuntimeError, match="injected crash"):
+        migrate_main_database(str(db_path), after_migration=fail_after_migration)
+
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute(
+            "SELECT MAX(version) FROM schema_migrations"
+        ).fetchone()[0] == 4
+        assert conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' "
+            "AND name = 'project_glossary_bindings_v2'"
+        ).fetchone() is None
+        assert conn.execute(
+            "PRAGMA table_info(project_glossary_bindings)"
+        ).fetchall()[0][1] == "project_id"
+
+    assert migrate_main_database(str(db_path)) == MAIN_DB_TARGET_VERSION
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute(
+            "SELECT name FROM schema_migrations WHERE version = 5"
+        ).fetchone()[0] == "make_glossary_bindings_many_to_many"
+        primary_key = {
+            row[1]: row[5]
+            for row in conn.execute("PRAGMA table_info(project_glossary_bindings)")
+            if row[5]
+        }
+        assert primary_key == {"project_id": 1, "glossary_id": 2}
+
+
+def test_migration_five_recovers_existing_staging_table(tmp_path):
+    db_path = tmp_path / "migration-five-staging.sqlite"
+
+    def fail_before_migration_five(version, _name):
+        if version == 4:
+            raise RuntimeError("stop before migration 5")
+
+    with pytest.raises(RuntimeError, match="stop before migration 5"):
+        migrate_main_database(
+            str(db_path),
+            after_migration=fail_before_migration_five,
+        )
+
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE project_glossary_bindings_v2 (
+                project_id TEXT NOT NULL,
+                glossary_id INTEGER NOT NULL,
+                created_at TEXT,
+                updated_at TEXT,
+                PRIMARY KEY(project_id, glossary_id),
+                FOREIGN KEY(project_id) REFERENCES projects(project_id),
+                FOREIGN KEY(glossary_id) REFERENCES glossaries(glossary_id)
+            )
+            """
+        )
+
+    assert migrate_main_database(str(db_path)) == MAIN_DB_TARGET_VERSION
+    with sqlite3.connect(db_path) as conn:
+        tables = {
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            )
+        }
+        assert "project_glossary_bindings" in tables
+        assert "project_glossary_bindings_v2" not in tables
+        assert conn.execute(
+            "SELECT name FROM schema_migrations WHERE version = 5"
+        ).fetchone()[0] == "make_glossary_bindings_many_to_many"
 
 
 def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
@@ -199,6 +350,7 @@ def test_run_projects_db_migrations_upgrades_legacy_schema(tmp_path):
         (10,),
         (11,),
         (12,),
+        (13,),
     ]
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='project_watches'")

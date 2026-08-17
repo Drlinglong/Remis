@@ -1,5 +1,6 @@
 import os
 
+import pytest
 from fastapi.testclient import TestClient
 
 from scripts.web_server import app
@@ -186,3 +187,30 @@ def test_patch_file_is_limited_to_remis_roots(monkeypatch, tmp_path):
 
     assert blocked_response.status_code == 403
     assert "Blocked" not in outside_file.read_text(encoding="utf-8-sig")
+
+
+def test_system_file_paths_reject_symlink_escape(monkeypatch, tmp_path):
+    project_root = tmp_path / "repo"
+    app_data_root = tmp_path / "appdata"
+    outside_root = tmp_path / "outside"
+    project_root.mkdir()
+    app_data_root.mkdir()
+    outside_root.mkdir()
+
+    outside_file = outside_root / "secret.txt"
+    outside_file.write_text("outside", encoding="utf-8-sig")
+    linked_file = project_root / "linked.txt"
+    try:
+        linked_file.symlink_to(outside_file)
+    except OSError as exc:
+        pytest.skip(f"Symlink creation is unavailable: {exc}")
+
+    monkeypatch.setattr(system_router, "PROJECT_ROOT", str(project_root))
+    monkeypatch.setattr(system_router, "APP_DATA_DIR", str(app_data_root))
+
+    read_response = client.post(
+        "/api/system/read_file",
+        json={"file_path": str(linked_file)},
+    )
+
+    assert read_response.status_code == 403

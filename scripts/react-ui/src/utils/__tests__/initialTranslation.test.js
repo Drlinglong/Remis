@@ -1,11 +1,28 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildTranslationDetails,
   buildTranslationPayload,
   resolvePreferredModel,
 } from '../initialTranslation';
 
 describe('initialTranslation utils', () => {
+  it('shows the actual custom target and disguise language in the completion summary', () => {
+    const details = buildTranslationDetails({
+      source_lang_code: 'en',
+      target_lang_codes: [],
+      api_provider: 'openai',
+      model_name: 'gpt-4.1-mini',
+      english_disguise: true,
+      custom_name: 'Vietnamese',
+      custom_key: 'l_english',
+    }, { value: 'proj-1', label: 'TFR', game_id: 'hoi4' }, {
+      english: { code: 'en', key: 'l_english', name: 'English' },
+    });
+
+    expect(details.targetLangs).toEqual(['Vietnamese (disguised as English)']);
+  });
+
   it('builds embedded workshop payload with primary settings stripped to nulls', () => {
     const payload = buildTranslationPayload({
       source_lang_code: 'en',

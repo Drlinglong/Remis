@@ -161,6 +161,7 @@ def configure_repository(
                         },
                     )
                 except (OSError, sqlite3.Error, ValueError, KeyError) as exc:
+                    _mark_persistence_failure(task, exc)
                     logging.error(
                         "Failed to mark non-resumable Agent Workshop task %s interrupted: %s",
                         task_id,
@@ -225,6 +226,15 @@ def _event_level(status: Optional[str], message: Optional[str]) -> str:
     return "info"
 
 
+def _mark_persistence_failure(task: Dict[str, Any], error: Exception) -> None:
+    task["persistence_failure"] = {
+        "code": "task_persistence_failed",
+        "retryable": True,
+        "error_type": type(error).__name__,
+        "last_attempt_at": task.get("updated_at") or _utc_now_iso(),
+    }
+
+
 def _persist_task(
     task: Dict[str, Any],
     *,
@@ -232,9 +242,11 @@ def _persist_task(
     event_type: str = "log",
     event_audience: str = "user",
     event_level: Optional[str] = None,
-) -> None:
+    event_metadata: Optional[Dict[str, Any]] = None,
+) -> bool:
     if _repository is None:
-        return
+        return True
+    task.pop("persistence_failure", None)
     try:
         event = None
         if event_message:
@@ -244,10 +256,14 @@ def _persist_task(
                 "event_type": event_type,
                 "audience": event_audience,
                 "message": event_message,
+                "metadata": event_metadata or {},
             }
         _repository.save_task(task, event=event)
-    except (OSError, sqlite3.Error, ValueError, KeyError) as exc:
+        return True
+    except (OSError, sqlite3.Error, ValueError, KeyError, TypeError) as exc:
+        _mark_persistence_failure(task, exc)
         logging.error("Failed to persist task %s: %s", task.get("task_id"), exc)
+        return False
 
 
 def register_task_update_listener(
@@ -484,21 +500,14 @@ def append_task_event(
         task["updated_at"] = _utc_now_iso()
         if audience == "user":
             _append_log(task, message)
-        if _repository is not None:
-            try:
-                _repository.save_task(
-                    task,
-                    event={
-                        "timestamp": task["updated_at"],
-                        "level": level,
-                        "event_type": event_type,
-                        "audience": audience,
-                        "message": message,
-                        "metadata": metadata or {},
-                    },
-                )
-            except (OSError, sqlite3.Error, ValueError, KeyError) as exc:
-                logging.error("Failed to append task event %s: %s", task_id, exc)
+        _persist_task(
+            task,
+            event_message=message,
+            event_type=event_type,
+            event_audience=audience,
+            event_level=level,
+            event_metadata=metadata,
+        )
         snapshot = deepcopy(task)
     if push:
         push_task_update(task_id)

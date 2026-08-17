@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from scripts.workflows.initial_translate import run
+from scripts.core.services.initial_translation_snapshot_service import SourceReadResult
 from scripts.utils.system_utils import slugify_to_ascii
 
 
@@ -36,7 +37,10 @@ def test_english_disguise_configuration_reaches_language_service():
         ),
         patch(
             "scripts.workflows.initial_translate.read_files_for_backup",
-            return_value=[{"path": "C:/source/test_l_english.yml", "texts_to_translate": ["text"]}],
+            return_value=SourceReadResult(files=[{
+                "path": "C:/source/test_l_english.yml",
+                "texts_to_translate": ["text"],
+            }]),
         ),
         patch("scripts.workflows.initial_translate.get_chunk_size_for_provider", return_value=20),
         patch("scripts.workflows.initial_translate.calculate_total_batches", return_value=1),

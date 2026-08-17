@@ -62,6 +62,7 @@ class IncrementalBuildService:
             filename = fd["filename"]
             full_entries = record["full_file_entries"]
             delta_indices = record["key_delta_indices"]
+            canonical_entries = fd.get("canonical_entries", ())
 
             ai_results = translated_results.get(filename, [])
             for delta_idx, trans_text in zip(delta_indices, ai_results):
@@ -70,13 +71,17 @@ class IncrementalBuildService:
             all_texts = [entry["source"] for entry in full_entries]
             all_translations = [entry["translation"] or entry["source"] for entry in full_entries]
 
-            rebuild_key_map = {
-                index: {
+            rebuild_key_map = {}
+            for index, entry in enumerate(full_entries):
+                rebuild_key_map[index] = {
                     "line_num": entry["line_num"],
                     "key_part": entry["key"],
+                    "entry": entry.get("entry") or (
+                        canonical_entries[index]
+                        if index < len(canonical_entries)
+                        else None
+                    ),
                 }
-                for index, entry in enumerate(full_entries)
-            }
 
             try:
                 dest_root = self._build_dest_root(

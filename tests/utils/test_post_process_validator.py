@@ -159,6 +159,35 @@ def test_vic3_mismatched_color_tags_still_flags_target_only_imbalance(validator)
     assert [r for r in results if r.code == "validation_format_marker_parity_mismatch"]
 
 
+def test_vic3_concept_label_must_match_the_source(validator):
+    results = validator.validate_entry(
+        "victoria3",
+        "remis_concept_test:0",
+        "有 [Concept('concept_radicals', '激进派')]。",
+        13,
+        SOURCE_LANG_EN,
+        source_value="Has [Concept('concept_radicals', 'Radicals')].",
+        target_lang="zh-CN",
+    )
+
+    assert [r for r in results if r.code == "validation_vic3_variable_parity_mismatch"]
+
+
+def test_ck3_concept_allows_a_translated_player_visible_label(validator):
+    results = validator.validate_entry(
+        "ck3",
+        "remis_concept_test:0",
+        "尊重 [Concept('faith', '宗教')|E]。",
+        14,
+        SOURCE_LANG_EN,
+        source_value="Respect [Concept('faith', 'religion')|E].",
+        target_lang="zh-CN",
+    )
+
+    assert not [r for r in results if r.code == "validation_ck3_bracket_command_non_ascii"]
+    assert not [r for r in results if r.code == "validation_ck3_concept_function_key_non_ascii"]
+
+
 def test_residual_punctuation_check_finds_japanese_issue(validator, mocker):
     """
     Tests that the check correctly identifies Japanese punctuation when source is Japanese.

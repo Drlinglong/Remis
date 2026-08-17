@@ -131,6 +131,8 @@ def handle_empty_file(
     output_folder_name,
     mod_name,
     proofreading_tracker,
+    version_id: Optional[int] = None,
+    all_files_content: Optional[List[dict]] = None,
 ):
     temp_task = FileTask(
         filename=file_info["filename"],
@@ -151,19 +153,34 @@ def handle_empty_file(
         mod_name=mod_name,
         loc_root=file_info.get("loc_root", ""),
         file_path=file_info.get("file_path", file_info["filename"]),
+        recovered_entries=file_info.get("recovered_entries", []),
     )
     dest_dir = build_dest_dir(temp_task, target_lang, output_folder_name, game_profile)
     os.makedirs(dest_dir, exist_ok=True)
 
     source_file_path = os.path.join(file_info["root"], file_info["filename"])
-    dest_file_path = file_builder.create_fallback_file(
-        source_file_path,
-        dest_dir,
-        file_info["filename"],
-        source_lang,
-        target_lang,
-        game_profile,
-    )
+    if temp_task.recovered_entries:
+        dest_file_path = file_builder.rebuild_and_write_file(
+            original_lines,
+            texts,
+            [],
+            key_map,
+            dest_dir,
+            file_info["filename"],
+            source_lang,
+            target_lang,
+            game_profile,
+            temp_task.recovered_entries,
+        )
+    else:
+        dest_file_path = file_builder.create_fallback_file(
+            source_file_path,
+            dest_dir,
+            file_info["filename"],
+            source_lang,
+            target_lang,
+            game_profile,
+        )
 
     if dest_file_path:
         proofreading_tracker.add_file_info({
@@ -173,6 +190,15 @@ def handle_empty_file(
             'filename': file_info["filename"],
             'is_custom_loc': file_info["is_custom_loc"]
         })
+
+    if version_id and temp_task.recovered_entries:
+        recovered_values = ["" for _ in temp_task.recovered_entries]
+        archive_manager.archive_translated_results(
+            version_id,
+            {temp_task.file_path or temp_task.filename: recovered_values},
+            all_files_content or [file_info],
+            target_lang.get("code"),
+        )
 
 
 def finalize_translated_file(
@@ -202,6 +228,7 @@ def finalize_translated_file(
         file_task.source_lang,
         file_task.target_lang,
         file_task.game_profile,
+        file_task.recovered_entries,
     )
 
     source_file_path = os.path.join(file_task.root, file_task.filename)
@@ -224,9 +251,11 @@ def finalize_translated_file(
 
     if version_id and not is_failed:
         try:
+            archive_values = list(translated_texts)
+            archive_values.extend("" for _ in file_task.recovered_entries)
             archive_manager.archive_translated_results(
                 version_id,
-                {file_task.file_path or file_task.filename: translated_texts},
+                {file_task.file_path or file_task.filename: archive_values},
                 all_files_content,
                 target_lang.get("code")
             )

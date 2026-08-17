@@ -53,11 +53,14 @@ def test_every_configured_default_model_is_in_its_available_catalog():
             assert config["default_model"] in available_models, provider_id
 
 
-def test_deepseek_v4_flash_is_selectable_for_context_smoke_tests():
-    assert "deepseek-v4-flash" in API_PROVIDERS["deepseek"]["available_models"]
+def test_deepseek_v4_models_are_selectable_for_context_smoke_tests():
+    assert API_PROVIDERS["deepseek"]["available_models"] == [
+        "deepseek-v4-pro",
+        "deepseek-v4-flash",
+    ]
 
 
-def test_deepseek_request_uses_explicit_v4_flash_model():
+def test_deepseek_request_uses_explicit_v4_model():
     captured = {}
 
     class Completions:
@@ -78,6 +81,22 @@ def test_deepseek_request_uses_explicit_v4_flash_model():
     assert captured["model"] == "deepseek-v4-flash"
 
 
+def test_deepseek_routes_effort_top_level_and_thinking_through_extra_body():
+    handler = DeepSeekHandler.__new__(DeepSeekHandler)
+    handler._reasoning_request_parameters = lambda: {
+        "thinking": {"type": "enabled"},
+        "reasoning_effort": "max",
+    }
+
+    kwargs = handler._apply_reasoning_to_openai_kwargs({"model": "deepseek-v4-pro"})
+
+    assert kwargs == {
+        "model": "deepseek-v4-pro",
+        "reasoning_effort": "max",
+        "extra_body": {"thinking": {"type": "enabled"}},
+    }
+
+
 def test_openrouter_adapter_uses_isolated_key_and_official_endpoint():
     with (
         patch(
@@ -88,11 +107,11 @@ def test_openrouter_adapter_uses_isolated_key_and_official_endpoint():
     ):
         handler = OpenRouterHandler(
             "openrouter",
-            model_id="deepseek/deepseek-v4-flash",
+            model_id="vendor/custom-model",
         )
 
     get_api_key.assert_called_once_with("openrouter", "OPENROUTER_API_KEY")
-    assert handler.model_id == "deepseek/deepseek-v4-flash"
+    assert handler.model_id == "vendor/custom-model"
     client_class.assert_called_once_with(
         api_key="openrouter-test-key",
         base_url="https://openrouter.ai/api/v1",
@@ -104,6 +123,26 @@ def test_openrouter_adapter_uses_isolated_key_and_official_endpoint():
     )
 
 
+def test_curated_aggregator_still_accepts_a_user_custom_model():
+    handler = OpenRouterHandler.__new__(OpenRouterHandler)
+    handler.provider_name = "openrouter"
+    handler.model_id = None
+    handler.logger = logging.getLogger("OpenRouterCustomModelTest")
+
+    with patch(
+        "scripts.app_settings.config_manager.get_value",
+        return_value={
+            "openrouter": {
+                "models": ["vendor/custom-model"],
+                "selected_model": "vendor/custom-model",
+            }
+        },
+    ):
+        config = handler.get_provider_config()
+
+    assert config["default_model"] == "vendor/custom-model"
+
+
 def test_openrouter_chat_preserves_provider_failure():
     class FailingCompletions:
         @staticmethod
@@ -112,7 +151,7 @@ def test_openrouter_chat_preserves_provider_failure():
 
     handler = OpenRouterHandler.__new__(OpenRouterHandler)
     handler.provider_name = "openrouter"
-    handler.model_id = "deepseek/deepseek-v4-flash"
+    handler.model_id = "vendor/custom-model"
     handler.logger = logging.getLogger("OpenRouterHandlerTest")
     handler.client = SimpleNamespace(
         chat=SimpleNamespace(completions=FailingCompletions())

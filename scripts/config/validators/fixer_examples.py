@@ -1,5 +1,5 @@
 # scripts/config/validators/fixer_examples.py
-from typing import Set, List
+from typing import List, Set
 
 # 针对各游戏引擎的修复 Prompt 少样本示例字典
 # 结构: ERROR_CATEGORY -> { "default": "...", "game_id": "..." }
@@ -7,14 +7,14 @@ from typing import Set, List
 FIXER_EXAMPLES = {
     "VARIABLE_PARITY": {
         "default": (
-            "Error Type: Variable Parity (Variables like $var$ or [Concept] were lost or hallucinated)\n"
+            "Error Type: Variable Parity (Protected variables or code tokens were lost or hallucinated)\n"
             "  [Bad] Source: The $pop$ grew. | Target: 人口增长了。\n"
             "  [Fixed] 人口 $pop$ 增长了。"
         ),
         "vic3": (
             "Error Type: Variable Parity (Victoria 3 uses [Concept('key', 'text')], [SCOPE...], $var$, and @icon!)\n"
             "  [Bad] Source: Has [Concept('concept_radicals', 'Radicals')]. | Target: 有激进派。\n"
-            "  [Fixed] 有 [Concept('concept_radicals', '激进派')]。"
+            "  [Fixed] 有 [Concept('concept_radicals', 'Radicals')]。"
         ),
         "stellaris": (
             "Error Type: Variable Parity (Stellaris uses [brackets], $vars$, and £icons£)\n"
@@ -33,8 +33,8 @@ FIXER_EXAMPLES = {
         ),
         "ck3": (
             "Error Type: Variable Parity (CK3 uses [Concept], [GetTrait...], $vars$, and @icon!)\n"
-            "  [Bad] Source: Gain [GetTrait('brave').GetName(GetPlayer)]. | Target: 获得勇敢特质。\n"
-            "  [Fixed] 获得 [GetTrait('brave').GetName(GetPlayer)]。"
+            "  [Bad] Source: Respect [Concept('faith', 'religion')|E]. | Target: 尊重宗教。\n"
+            "  [Fixed] 尊重 [Concept('faith', '宗教')|E]。"
         ),
         "eu5": (
             "Error Type: Variable Parity (EU5 uses [brackets], $vars$, and @icon!)\n"
@@ -81,11 +81,33 @@ FIXER_EXAMPLES = {
     },
     "BANNED_CHARS": {
         "default": (
-             "Error Type: Banned Characters in Code Blocks (Never translate strings inside formatting tags, [brackets], or $vars$ to Chinese)\n"
-             "  [Bad] Source: [GetName] | Target: [获取名字]\n"
-             "  [Fixed] [GetName]"
-         )
+            "Error Type: Banned Characters in Code Identifiers (Preserve code identifiers and non-translatable parameters; translate player-visible text according to the game's syntax)\n"
+            "  [Bad] Source: [GetName] | Target: [获取名字]\n"
+            "  [Fixed] [GetName]"
+        )
     }
+}
+
+FIXER_EXAMPLE_ORDER = (
+    "VARIABLE_PARITY",
+    "FORMATTING_TAG",
+    "BANNED_CHARS",
+)
+
+GAME_SPECIFIC_REPAIR_RULES = {
+    "vic3": (
+        "**VICTORIA 3 CONCEPTS**: Keep the entire [Concept(...)] token exactly as it appears "
+        "in the Source, including every argument. Do not translate its player-visible label."
+    ),
+    "ck3": (
+        "**CRUSADER KINGS III CONCEPTS**: Keep the first [Concept('key', 'label')|E] argument "
+        "and all syntax unchanged, but translate the second player-visible label into the target language."
+    ),
+    "hoi4": (
+        "**HEARTS OF IRON IV COLOR TAGS**: Color tags start with the section sign '§' and a "
+        "single letter (for example §Y or §g), and close with §!. Restore corrupted forms such as "
+        "%g to §g from the Source, and preserve every color code."
+    ),
 }
 
 def get_examples_for_game(game_id: str, error_categories: Set[str]) -> List[str]:
@@ -94,7 +116,9 @@ def get_examples_for_game(game_id: str, error_categories: Set[str]) -> List[str]
     """
     examples = []
     
-    for category in error_categories:
+    for category in FIXER_EXAMPLE_ORDER:
+        if category not in error_categories:
+            continue
         if category in FIXER_EXAMPLES:
             cat_dict = FIXER_EXAMPLES[category]
             # 优先匹配具体游戏，没有则取默认
@@ -106,3 +130,9 @@ def get_examples_for_game(game_id: str, error_categories: Set[str]) -> List[str]
                 examples.append(example_str)
                 
     return examples
+
+
+def get_repair_rules_for_game(game_id: str) -> List[str]:
+    """Return only the repair rules that apply to the selected game."""
+    rule = GAME_SPECIFIC_REPAIR_RULES.get(game_id)
+    return [rule] if rule else []

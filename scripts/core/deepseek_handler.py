@@ -52,3 +52,18 @@ class DeepSeekHandler(BaseApiHandler):
         except Exception as e:
             self.logger.exception(f"DeepSeek API call failed: {e}")
             raise
+
+    def _apply_reasoning_to_openai_kwargs(self, kwargs: dict) -> dict:
+        """Route DeepSeek effort at top level and thinking through extra_body."""
+        parameters = self._reasoning_request_parameters()
+        if not parameters:
+            return kwargs
+
+        extra_parameters = dict(parameters)
+        reasoning_effort = extra_parameters.pop("reasoning_effort", None)
+        if reasoning_effort is not None:
+            kwargs["reasoning_effort"] = reasoning_effort
+        if extra_parameters:
+            existing_extra_body = kwargs.get("extra_body") or {}
+            kwargs["extra_body"] = {**existing_extra_body, **extra_parameters}
+        return kwargs

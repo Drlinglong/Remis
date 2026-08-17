@@ -1,6 +1,7 @@
 import os
 
 from scripts.core.parallel_types import FileTask
+from scripts.core.paradox_localization_parser import parse_text
 from scripts.core.services import initial_translation_file_service as file_service
 
 
@@ -128,6 +129,59 @@ def test_handle_empty_file_writes_fallback_and_tracks_file(monkeypatch, tmp_path
     assert created[0][0] == os.path.join(file_info["root"], "empty_l_english.yml")
     assert tracker.files[0]["translated_lines"] == 0
     assert tracker.files[0]["is_custom_loc"] is False
+
+
+def test_handle_recoverable_only_file_writes_empty_value_and_archives_it(monkeypatch, tmp_path):
+    source_root = str(tmp_path / "source")
+    dest_root = str(tmp_path / "dest")
+    monkeypatch.setattr(file_service, "SOURCE_DIR", source_root)
+    monkeypatch.setattr(file_service, "DEST_DIR", dest_root)
+    diagnostic = parse_text('l_english:\n broken:0 "\n').diagnostics[0]
+    recovered = [{
+        "key_part": "broken:0",
+        "diagnostic": diagnostic,
+    }]
+    built = []
+    archived = []
+
+    def fake_rebuild(*args):
+        built.append(args)
+        return os.path.join(args[4], args[5])
+
+    monkeypatch.setattr(file_service.file_builder, "rebuild_and_write_file", fake_rebuild)
+    monkeypatch.setattr(
+        file_service.archive_manager,
+        "archive_translated_results",
+        lambda *args: archived.append(args),
+    )
+    tracker = FakeTracker()
+    file_info = {
+        "filename": "broken_l_english.yml",
+        "file_path": "localization/english/broken_l_english.yml",
+        "root": os.path.join(source_root, "MyMod", "localization", "english"),
+        "is_custom_loc": False,
+        "recovered_entries": recovered,
+    }
+
+    file_service.handle_empty_file(
+        file_info,
+        original_lines=['l_english:\n', ' broken:0 "\n'],
+        texts=[],
+        key_map={},
+        source_lang={"code": "en", "key": "l_english"},
+        target_lang={"code": "zh-CN", "key": "l_simp_chinese"},
+        game_profile={"source_localization_folder": "localization"},
+        output_folder_name="zh-CN-MyMod",
+        mod_name="MyMod",
+        proofreading_tracker=tracker,
+        version_id=9,
+        all_files_content=[file_info],
+    )
+
+    assert built[0][-1] == recovered
+    assert archived[0][1] == {
+        "localization/english/broken_l_english.yml": [""]
+    }
 
 
 def test_finalize_translated_file_updates_tracker_checkpoint_and_archive(monkeypatch, tmp_path):

@@ -58,8 +58,8 @@ class IncrementalPreparationService:
             texts_to_translate: List[str] = []
             key_delta_indices: List[int] = []
             full_file_entries: List[Dict[str, Any]] = []
-
-            for key, source_text, line_num in file_data["parsed_entries"]:
+            canonical_entries = file_data.get("canonical_entries", ())
+            for entry_index, (key, source_text, line_num) in enumerate(file_data["parsed_entries"]):
                 summary["total"] += 1
                 file_summary["total"] += 1
                 status, history_entry = diff_service.classify_entry(
@@ -72,8 +72,8 @@ class IncrementalPreparationService:
                     "line_num": line_num - 1,
                     "translation": None,
                     "is_dirty": False,
+                    "entry": canonical_entries[entry_index] if entry_index < len(canonical_entries) else None,
                 }
-
                 if status == "unchanged":
                     summary["unchanged"] += 1
                     file_summary["unchanged"] += 1

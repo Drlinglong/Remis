@@ -100,7 +100,7 @@ def run_language_translation(
         proofreading_tracker,
         progress_callback,
         run_state,
-        total_batches,
+        total_batches, version_id,
     )
 
     max_workers = resolve_max_workers(concurrency_limit, selected_provider)

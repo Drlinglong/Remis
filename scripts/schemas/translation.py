@@ -1,6 +1,40 @@
-from typing import List, Optional
-from pydantic import BaseModel, field_validator
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field, field_validator
 from scripts.schemas.common import LanguageCode
+
+
+class TranslationTaskResponse(BaseModel):
+    task_id: str
+    message: str
+    status: Optional[str] = None
+
+
+class SourceModResponse(BaseModel):
+    name: str
+    path: str
+    mtime: float
+
+
+class CheckpointTargetResponse(BaseModel):
+    target_lang_code: str
+    exists: bool = False
+    completed_count: int = 0
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    last_saved_at: Optional[str] = None
+    last_completed_file: Optional[str] = None
+
+
+class CheckpointStatusResponse(BaseModel):
+    exists: bool = False
+    completed_count: int = 0
+    total_files_estimate: int = 0
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    targets: List[CheckpointTargetResponse] = Field(default_factory=list)
+
+
+class CheckpointDeleteResponse(BaseModel):
+    status: str
+    message: str
 
 
 class CheckpointStatusRequest(BaseModel):
@@ -40,7 +74,7 @@ class InitialTranslationRequest(BaseModel):
     source_lang_code: LanguageCode
     target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
     api_provider: str = "gemini"
-    model: str = "gemini-3.6-flash"
+    model: str = "gemini-3.7-flash"
     batch_size_limit: Optional[int] = None
     concurrency_limit: Optional[int] = None
     rpm_limit: Optional[int] = 40
@@ -108,7 +142,7 @@ class IncrementalUpdateConfig(BaseModel):
     project_id: str
     target_lang_codes: List[LanguageCode] = [LanguageCode.ZH_CN]
     api_provider: str = "gemini"
-    model: str = "gemini-3.6-flash"
+    model: str = "gemini-3.7-flash"
     mod_context: Optional[str] = ""
     dry_run: bool = False
     custom_source_path: Optional[str] = None

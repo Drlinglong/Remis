@@ -16,6 +16,7 @@ from scripts.schemas.project import (
     ProjectFile,
     ProjectStatusActionResponse,
     ProjectSummaryResponse,
+    TranslationUploadFailureResponse,
     TranslationUploadResponse,
     UpdateProjectStatusRequest, 
     UpdateProjectNotesRequest, 
@@ -245,14 +246,18 @@ async def repair_project_metadata(project_id: str):
 @router.post(
     "/api/project/{project_id}/upload-translations",
     response_model=TranslationUploadResponse,
+    responses={422: {"model": TranslationUploadFailureResponse}},
 )
 async def upload_project_translations(project_id: str):
     """Scans and uploads existing translations to the archive."""
     try:
         result = await project_manager.upload_project_translations(project_id)
         if result.get("status") == "error":
-            raise HTTPException(status_code=500, detail=result.get("message"))
+            status_code = 422 if result.get("code") == "source_scan_failed" else 500
+            raise HTTPException(status_code=status_code, detail=result)
         return result
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:

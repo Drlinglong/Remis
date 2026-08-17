@@ -24,6 +24,10 @@ export function findLanguageByCode(languages = {}, code) {
   return Object.values(languages).find((language) => language.code === code) || null;
 }
 
+export function findLanguageByKey(languages = {}, key) {
+  return Object.values(languages).find((language) => language.key === key) || null;
+}
+
 export function resolveGameProfile(gameProfiles = {}, gameId) {
   return gameProfiles[gameId] || Object.values(gameProfiles).find((profile) => profile.id === gameId) || null;
 }
@@ -119,6 +123,8 @@ export function resolveProjectSourceLanguage(values, selectedProject) {
 
 export function buildTranslationDetails(values, selectedProject, languages = {}) {
   const sourceLangCode = resolveProjectSourceLanguage(values, selectedProject);
+  const disguiseLanguage = findLanguageByKey(languages, values.custom_key);
+  const customTargetLabel = `${values.custom_name || 'Custom'} (disguised as ${disguiseLanguage?.name || values.custom_key || 'Unknown'})`;
   return {
     projectId: selectedProject?.value,
     modName: selectedProject?.label,
@@ -126,7 +132,7 @@ export function buildTranslationDetails(values, selectedProject, languages = {})
     model: values.model_name,
     sourceLang: findLanguageByCode(languages, sourceLangCode)?.name,
     targetLangs: values.english_disguise
-      ? ['Custom (Disguise)']
+      ? [customTargetLabel]
       : values.target_lang_codes.map((code) => findLanguageByCode(languages, code)?.name),
     gameId: selectedProject?.game_id,
   };

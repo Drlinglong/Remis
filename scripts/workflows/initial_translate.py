@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 from typing import Any, Optional, List
 
 from scripts.core.services.initial_translation_discovery_service import discover_localizable_files
@@ -22,6 +23,49 @@ from scripts.core.services.initial_translation_workspace_service import (
 )
 from scripts.app_settings import SOURCE_DIR, DEST_DIR
 from scripts.utils import i18n
+
+
+@dataclass(frozen=True)
+class InitialTranslationOutcome:
+    status: str
+    issue_count: int = 0
+    recovered_entry_count: int = 0
+    dropped_file_count: int = 0
+
+    @property
+    def message(self) -> str:
+        if self.status == "completed":
+            return "Translation workflow completed successfully."
+        return (
+            "Translation completed with source-file warnings: "
+            f"{self.recovered_entry_count} invalid entries replaced with empty values; "
+            f"{self.dropped_file_count} files dropped."
+        )
+
+
+def _prepare_source_files(
+    mod_name: str,
+    game_profile: dict,
+    source_lang: dict,
+    override_path: Optional[str],
+    progress_callback: Optional[Any],
+):
+    all_file_paths = discover_files(
+        mod_name, game_profile, source_lang, override_path=override_path
+    )
+    if not all_file_paths:
+        message = i18n.t("no_localisable_files_found", lang_name=source_lang['name'])
+        logging.warning(message)
+        raise RuntimeError(message)
+
+    total_files = len(all_file_paths)
+    if progress_callback:
+        progress_callback(0, total_files, "", "Analyzing Files")
+    source_result = read_files_for_backup(all_file_paths, total_files, progress_callback)
+    if not source_result.files:
+        detail = source_result.issues[0].log_message() if source_result.issues else ""
+        raise RuntimeError(f"No usable localization files remain. {detail}".strip())
+    return source_result, total_files
 
 
 def run(mod_name: str,
@@ -61,7 +105,7 @@ def run(mod_name: str,
     resolved_model_name = resolve_provider_model(selected_provider, model_name)
     handler = create_translation_handler(selected_provider, resolved_model_name)
     if not handler:
-        return
+        raise RuntimeError("Failed to initialize the selected translation provider.")
 
     # ───────────── 2.5. 加载词典 ─────────────
     game_id = game_profile.get("id", "")
@@ -74,26 +118,14 @@ def run(mod_name: str,
     if clean_source:
         clean_source_directory(mod_name, override_path=override_path)
 
-    # ───────────── 4. 发现所有源文件 (Discovery Phase) ─────────────
-    all_file_paths = discover_files(mod_name, game_profile, source_lang, override_path=override_path)
-
-    if not all_file_paths:
-        logging.warning(i18n.t("no_localisable_files_found", lang_name=source_lang['name']))
-        return
-
-    # Update progress total
-    total_files = len(all_file_paths)
-    if progress_callback:
-        progress_callback(0, total_files, "", "Analyzing Files")
-
     # ───────────── 4.5. 强制全量备份 (Brute Force Backup) ─────────────
     # 策略变更：数据安全第一。在开始任何翻译前，强制将所有源文件读入内存并创建快照。
     # 即使是大 Mod，文本数据通常也不超过 50MB，内存不是瓶颈。
     
-    try:
-        all_files_content = read_files_for_backup(all_file_paths, total_files, progress_callback)
-    except Exception:
-        return
+    source_result, total_files = _prepare_source_files(
+        mod_name, game_profile, source_lang, override_path, progress_callback
+    )
+    all_files_content = source_result.files
 
     # Calculate Total Batches (Pre-calculation)
     effective_chunk_size = get_chunk_size_for_provider(selected_provider, batch_size_limit)
@@ -107,7 +139,7 @@ def run(mod_name: str,
         project_id,
     )
     if not mod_id or not version_id:
-        return
+        raise RuntimeError("Failed to create the source archive snapshot.")
 
     # ───────────── 5. 多语言并行翻译 (Streaming from Memory) ─────────────
     
@@ -154,6 +186,13 @@ def run(mod_name: str,
         resolved_model_name,
         target_languages,
         project_id,
+    )
+    status = "partial_failed" if source_result.issues else "completed"
+    return InitialTranslationOutcome(
+        status=status,
+        issue_count=len(source_result.issues),
+        recovered_entry_count=source_result.recovered_entry_count,
+        dropped_file_count=source_result.dropped_file_count,
     )
 
 

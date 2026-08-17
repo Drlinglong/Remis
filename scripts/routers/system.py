@@ -7,7 +7,13 @@ from pydantic import BaseModel
 
 from scripts.shared.services import project_manager, glossary_manager
 from scripts.app_settings import APP_DATA_DIR, PROJECT_ROOT, REMIS_DB_PATH, resolve_path
+from scripts.schemas.system import (
+    DatabaseFolderResponse,
+    SystemActionResponse,
+    SystemStatsResponse,
+)
 from scripts.utils.system_utils import sanitize_for_json
+from scripts.core.paradox_localization_parser import escape_value, parse_text, patch_text
 
 import webbrowser
 from scripts.utils.logger import LOGS_DIR
@@ -21,7 +27,9 @@ def _normalized_abs_path(path: str) -> str:
     resolved = resolve_path(path)
     if not os.path.isabs(resolved):
         resolved = os.path.join(PROJECT_ROOT, resolved)
-    return os.path.abspath(os.path.normpath(resolved))
+    # Resolve links before applying the root allowlist so a path inside an
+    # allowed directory cannot escape through a symlink or junction.
+    return os.path.realpath(os.path.abspath(os.path.normpath(resolved)))
 
 
 def _is_path_under(path: str, root: str) -> bool:
@@ -68,7 +76,7 @@ def _remove_sqlite_family(db_path: str):
         if os.path.exists(candidate):
             os.remove(candidate)
 
-@router.get("/stats")
+@router.get("/stats", response_model=SystemStatsResponse)
 async def get_system_stats():
     """
     Returns aggregate statistics for the homepage dashboard.
@@ -119,7 +127,11 @@ async def get_system_stats():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/reset-db")
+@router.post(
+    "/reset-db",
+    response_model=SystemActionResponse,
+    response_model_exclude_none=True,
+)
 async def reset_database():
     """
     Rebuilds the main Remis database from its default skeleton.
@@ -158,7 +170,11 @@ async def reset_database():
         raise HTTPException(status_code=500, detail=f"Failed to reset database: {str(e)}")
 
 
-@router.post("/open-database-folder")
+@router.post(
+    "/open-database-folder",
+    response_model=DatabaseFolderResponse,
+    response_model_exclude_none=True,
+)
 async def open_database_folder():
     """Open the folder containing the main Remis SQLite database."""
     database_path = os.path.abspath(REMIS_DB_PATH)
@@ -222,7 +238,11 @@ async def open_folder(request: OpenFolderRequest):
         logger.error(f"Failed to open path {path}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to open path: {str(e)}")
 
-@router.post("/open-logs")
+@router.post(
+    "/open-logs",
+    response_model=SystemActionResponse,
+    response_model_exclude_none=True,
+)
 async def open_logs_folder():
     """
     Opens the application logs directory in the file explorer.
@@ -317,81 +337,42 @@ async def patch_file(request: PatchFileRequest):
     Patches a localization file by replacing values at specific lines.
     Preserves comments and structure.
     """
-    import re
-    
     file_path = _resolve_allowed_file_path(request.file_path)
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
 
     try:
-        # Read all lines
-        with open(file_path, 'r', encoding='utf-8-sig') as f:
-            lines = f.readlines()
+        with open(file_path, "r", encoding="utf-8-sig", newline="") as handle:
+            source_text = handle.read()
+        report = parse_text(source_text)
+        if report.diagnostics:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "Localization file has syntax errors.",
+                    "diagnostics": [diagnostic.code for diagnostic in report.diagnostics],
+                },
+            )
 
-        # Regex to find the value part: key:0 "value" -> matches "value"
-        # We look for the first quote after the key (simplified) or just the last pair of quotes
-        # A robust regex for Paradox loc:  ^\s*key:0\s*"(.*)"\s*(#.*)?$
-        # But we only want to replace the content inside the quotes.
-        
-        modified_lines = lines[:]
+        replacements = []
         new_entries = []
-
         for entry in request.entries:
-            if entry.line_number is not None and 1 <= entry.line_number <= len(modified_lines):
-                # Coordinate Strike
-                idx = entry.line_number - 1
-                line = modified_lines[idx]
-                
-                # Verify key presence to be safe (optional but recommended)
-                # if entry.key not in line: logger.warning(...) 
-
-                # Replace value: look for the pattern "..."
-                # We use a non-greedy match for the content inside quotes
-                # This regex matches: (anything before first quote) " (content) " (anything after)
-                # We replace group 2 with new value.
-                
-                # Paradox loc format: key:version "value"
-                # We want to replace "value" with "new_value"
-                
-                # Escape the new value for quotes
-                safe_value = entry.value.replace('"', '\\"')
-                
-                # Regex: Find the first quote, then everything until the last quote (handling escaped quotes is hard with simple regex)
-                # Simplified approach: Paradox files usually have one pair of outer quotes.
-                # Let's assume standard format:  key:0 "VALUE" ...
-                
-                # Pattern: (.*?:\d+\s*") (.*) ("\s*.*)
-                # This might be risky if value contains quotes. 
-                # Better: Use the fact that we know the line structure.
-                
-                # Let's try to find the indices of the first and last quote
-                first_quote = line.find('"')
-                last_quote = line.rfind('"')
-                
-                if first_quote != -1 and last_quote != -1 and first_quote < last_quote:
-                    # Reconstruct line
-                    prefix = line[:first_quote+1]
-                    suffix = line[last_quote:]
-                    modified_lines[idx] = f"{prefix}{safe_value}{suffix}"
-                else:
-                    logger.warning(f"Could not find quotes in line {entry.line_number}: {line.strip()}")
-            else:
-                # New entry or invalid line number
+            target = _find_patch_entry(report.entries, entry)
+            if target is None:
                 new_entries.append(entry)
+            else:
+                replacements.append((target, entry.value))
 
-        # Append new entries
+        patched_text = patch_text(source_text, replacements)
         if new_entries:
-            if modified_lines and not modified_lines[-1].endswith('\n'):
-                modified_lines[-1] += '\n'
-            
+            if patched_text and not patched_text.endswith(("\n", "\r")):
+                patched_text += "\n"
             for entry in new_entries:
-                # Default format for new entries
-                modified_lines.append(f' {entry.key}:0 "{entry.value}"\n')
+                patched_text += f' {entry.key}:0 "{escape_value(entry.value)}"\n'
 
-        # Write back
-        with open(file_path, 'w', encoding='utf-8-sig') as f:
-            f.writelines(modified_lines)
+        with open(file_path, "w", encoding="utf-8-sig", newline="") as handle:
+            handle.write(patched_text)
 
         logger.info(f"Patched file: {file_path}")
         return {"status": "success", "message": "File patched successfully"}
@@ -401,6 +382,16 @@ async def patch_file(request: PatchFileRequest):
     except Exception as e:
         logger.error(f"Failed to patch file {file_path}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to patch file: {str(e)}")
+
+
+def _find_patch_entry(entries, requested: PatchEntry):
+    candidates = [entry for entry in entries if entry.status == "eligible"]
+    if requested.line_number is not None:
+        candidates = [entry for entry in candidates if entry.line_start == requested.line_number]
+    for entry in candidates:
+        if entry.key == requested.key or entry.base_key == requested.key.split(":", 1)[0]:
+            return entry
+    return None
 @router.get("/debug/config")
 async def debug_config():
     """

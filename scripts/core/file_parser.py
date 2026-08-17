@@ -27,6 +27,7 @@ from types import ModuleType
 from typing import Callable, List
 import logging
 
+from scripts.core.paradox_localization_parser import ParseDiagnostic
 from scripts.utils import i18n  # komunikaty wielojęzykowe
 from scripts.utils.quote_extractor import QuoteExtractor
 
@@ -51,21 +52,12 @@ except Exception as e:  # pragma: no cover – hook opcjonalny
     logging.warning(f"[parser-hook] ⚠️  Failed to load hooks: {e}")
 
 
-def extract_translatable_content(
+def _apply_hooks(
     file_path: str,
-) -> tuple[list[str], list[str], dict[int, dict]]:
-    """
-    Extracts translatable texts from a single .yml file or a .txt file
-    from a customizable_localization directory, now with improved filtering.
-
-    Returns:
-        original_lines (list[str]): The original lines of the file.
-        texts_to_translate (list[str]): A list of strings to be translated.
-        key_map (dict): A map to reconstruct the file: {index: {key_part, original_value_part, line_num}}.
-    """
-    # 使用统一的引号提取工具类
-    original_lines, texts_to_translate, key_map = QuoteExtractor.extract_from_file(file_path)
-    
+    original_lines: list[str],
+    texts_to_translate: list[str],
+    key_map: dict[int, dict],
+) -> None:
     # --- (The Hook system logic remains the same) ---
     if HOOKS:
         for hook in HOOKS:
@@ -74,6 +66,32 @@ def extract_translatable_content(
             except Exception as e:
                 logging.error(f"[parser-hook] ⚠️  {hook.__name__} failed: {e}")
 
-    # --- Final Summary ---
+
+def extract_translatable_content_with_diagnostics(
+    file_path: str,
+) -> tuple[list[str], list[str], dict[int, dict], tuple[ParseDiagnostic, ...]]:
+    """Extract content without discarding structured parser diagnostics."""
+
+    original_lines, texts_to_translate, key_map, diagnostics = (
+        QuoteExtractor.extract_from_file_with_diagnostics(file_path)
+    )
+    _apply_hooks(file_path, original_lines, texts_to_translate, key_map)
     logging.info(i18n.t("extracted_texts", count=len(texts_to_translate)))
+    return original_lines, texts_to_translate, key_map, diagnostics
+
+
+def extract_translatable_content(
+    file_path: str,
+) -> tuple[list[str], list[str], dict[int, dict]]:
+    """Extract translatable text and reject files with syntax diagnostics."""
+
+    original_lines, texts_to_translate, key_map, diagnostics = (
+        extract_translatable_content_with_diagnostics(file_path)
+    )
+    if diagnostics:
+        raise ValueError(
+            f"Canonical localization parse failed for {file_path}: "
+            + ", ".join(d.code for d in diagnostics)
+        )
+
     return original_lines, texts_to_translate, key_map

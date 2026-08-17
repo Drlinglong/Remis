@@ -133,8 +133,8 @@ describe('ApiSettingsTab Stability', () => {
             data: [{
                 id: 'openai',
                 name: 'OpenAI',
-                selected_model: 'gpt-5.6-terra',
-                available_models: ['gpt-5.6-terra'],
+                selected_model: 'gpt-5.6-luna',
+                available_models: ['gpt-5.6-luna'],
                 reasoning: {
                     supported: true,
                     builtin_enabled: true,
@@ -142,7 +142,7 @@ describe('ApiSettingsTab Stability', () => {
                     custom_parameters: {},
                 },
                 reasoning_models: {
-                    'gpt-5.6-terra': {
+                    'gpt-5.6-luna': {
                         presets: {
                             low: { reasoning_effort: 'low' },
                             high: { reasoning_effort: 'high' },

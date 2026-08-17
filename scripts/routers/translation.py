@@ -10,7 +10,16 @@ from fastapi.responses import FileResponse
 from scripts.shared.state import tasks
 from scripts.shared.services import project_manager, glossary_manager, archive_manager
 from scripts.shared import task_state
-from scripts.schemas.translation import InitialTranslationRequest, TranslationRequestV2, CustomLangConfig, CheckpointStatusRequest
+from scripts.schemas.translation import (
+    CheckpointDeleteResponse,
+    CheckpointStatusRequest,
+    CheckpointStatusResponse,
+    InitialTranslationRequest,
+    SourceModResponse,
+    TranslationRequestV2,
+    TranslationTaskResponse,
+    CustomLangConfig,
+)
 from scripts.app_settings import GAME_PROFILES, LANGUAGES, API_PROVIDERS, SOURCE_DIR, DEST_DIR
 from scripts.workflows import initial_translate
 from scripts.utils import i18n
@@ -70,11 +79,19 @@ def _get_checkpoint_output_dir(mod_name: str, target_languages: List[dict]) -> s
     return _get_output_directories(mod_name, target_languages)[0]
 
 
-def finalize_task(task_id: str, status: str, log_message: Optional[str] = None, stage: Optional[str] = None):
+def finalize_task(
+    task_id: str,
+    status: str,
+    log_message: Optional[str] = None,
+    stage: Optional[str] = None,
+    error_count: Optional[int] = None,
+):
     """Persist terminal task state and force a final status push to the frontend."""
     progress = {}
-    if status == "completed":
+    if status in {"completed", "partial_failed"}:
         progress["percent"] = 100
+    if error_count is not None:
+        progress["error_count"] = error_count
     if stage:
         progress["stage"] = stage
     task_state.update_task(
@@ -84,6 +101,20 @@ def finalize_task(task_id: str, status: str, log_message: Optional[str] = None, 
         progress=progress or None,
         push=True,
     )
+
+
+def _workflow_outcome_values(outcome) -> tuple[str, str, int]:
+    status = getattr(outcome, "status", None)
+    if status not in {"completed", "partial_failed"}:
+        return "completed", "Translation workflow completed successfully.", 0
+    message = getattr(outcome, "message", None) or "Translation workflow completed successfully."
+    return status, message, int(getattr(outcome, "issue_count", 0) or 0)
+
+
+def _history_completion_description(status: str) -> str:
+    if status == "partial_failed":
+        return "Translation completed with source-file warnings"
+    return "Translation completed successfully"
 
 
 def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str, target_lang_codes: List[str], api_provider: str, mod_context: str, project_id: Optional[str] = None):
@@ -117,7 +148,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
         if not all([game_profile, source_lang, target_languages]):
             raise ValueError("Failed to resolve game profile, source language, or target languages.")
 
-        initial_translate.run(
+        outcome = initial_translate.run(
             mod_name=mod_name,
             game_profile=game_profile,
             source_lang=source_lang,
@@ -131,14 +162,15 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
             fields={"output_dirs": _get_output_directories(mod_name, target_languages)},
             push=False,
         )
-        finalize_task(task_id, "completed", "Translation workflow completed successfully.")
+        status, message, issue_count = _workflow_outcome_values(outcome)
+        finalize_task(task_id, status, message, "Completed", issue_count)
 
         if project_id:
             try:
                 _run_async(project_manager.log_history_event(
                     project_id=project_id,
                     action_type='translation_workflow',
-                    description="Translation completed successfully"
+                    description=_history_completion_description(status)
                 ))
             except Exception as e:
                 logging.error(f"Failed to log completion activity: {e}")
@@ -186,7 +218,6 @@ def run_translation_workflow_v2(
         append_log="Initializing translation workflow (V2)...",
         push=True,
     )
-
     if project_id:
         try:
             _run_async(project_manager.log_history_event(
@@ -314,7 +345,7 @@ def run_translation_workflow_v2(
                 final_glossary_ids.append(glossary_id)
 
         logging.info("Calling initial_translate.run...")
-        initial_translate.run(
+        outcome = initial_translate.run(
             mod_name=mod_name, game_profile=game_profile, source_lang=source_lang,
             target_languages=target_languages, selected_provider=api_provider,
             mod_context=mod_context, selected_glossary_ids=final_glossary_ids,
@@ -338,14 +369,15 @@ def run_translation_workflow_v2(
             },
             push=False,
         )
-        finalize_task(task_id, "completed", "Translation workflow completed successfully.", "Completed")
+        status, message, issue_count = _workflow_outcome_values(outcome)
+        finalize_task(task_id, status, message, "Completed", issue_count)
 
         if project_id:
             try:
                 _run_async(project_manager.log_history_event(
                     project_id=project_id,
                     action_type='translation_workflow',
-                    description="Translation completed successfully"
+                    description=_history_completion_description(status)
                 ))
             except Exception as e:
                 logging.error(f"Failed to log completion activity (v2): {e}")
@@ -371,7 +403,11 @@ def run_translation_workflow_v2(
             except Exception as e:
                 logging.error(f"Failed to log failure activity (v2): {e}")
 
-@router.post("/api/translate/start")
+@router.post(
+    "/api/translate/start",
+    response_model=TranslationTaskResponse,
+    response_model_exclude_none=True,
+)
 async def start_translation_project(request: InitialTranslationRequest, background_tasks: BackgroundTasks):
     """
     Starts the initial translation workflow for a project.
@@ -464,7 +500,11 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
 
     return {"task_id": task_id, "status": "started", "message": f"Translation started for project {project['name']}"}
 
-@router.post("/api/translate")
+@router.post(
+    "/api/translate",
+    response_model=TranslationTaskResponse,
+    response_model_exclude_none=True,
+)
 async def start_translation(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -530,7 +570,11 @@ async def start_translation(
 
     return {"task_id": task_id, "message": "Translation task started."}
 
-@router.post("/api/translate_v2")
+@router.post(
+    "/api/translate_v2",
+    response_model=TranslationTaskResponse,
+    response_model_exclude_none=True,
+)
 async def start_translation_v2(
     background_tasks: BackgroundTasks,
     payload: TranslationRequestV2
@@ -585,7 +629,7 @@ async def start_translation_v2(
 
     return {"task_id": task_id, "message": "Translation task started."}
 
-@router.get("/api/source-mods")
+@router.get("/api/source-mods", response_model=List[SourceModResponse])
 def get_source_mods():
     """
     Returns a list of directories in the SOURCE_DIR.
@@ -637,7 +681,10 @@ async def websocket_status(websocket: WebSocket, task_id: str):
 def get_result(task_id: str):
     raise HTTPException(status_code=410, detail="ZIP result downloads have been removed. Open the output folder instead.")
 
-@router.post("/api/translation/checkpoint-status")
+@router.post(
+    "/api/translation/checkpoint-status",
+    response_model=CheckpointStatusResponse,
+)
 def check_checkpoint_status(payload: CheckpointStatusRequest):
     """Checks if a checkpoint exists for the given configuration."""
     try:
@@ -675,7 +722,10 @@ def check_checkpoint_status(payload: CheckpointStatusRequest):
         logging.error(f"Error checking checkpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/api/translation/checkpoint")
+@router.delete(
+    "/api/translation/checkpoint",
+    response_model=CheckpointDeleteResponse,
+)
 def delete_checkpoint(payload: CheckpointStatusRequest):
     """Deletes the checkpoint file for the given configuration."""
     try:
