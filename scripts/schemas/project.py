@@ -117,6 +117,29 @@ class TranslationUploadResponse(BaseModel):
     match_count: Optional[int] = None
     version_id: Optional[int] = None
 
+
+class TranslationUploadIssue(BaseModel):
+    file_path: str
+    code: str
+    message: str
+    line_number: Optional[int] = None
+    key: Optional[str] = None
+    error_type: Optional[str] = None
+
+
+class TranslationUploadFailureDetail(BaseModel):
+    status: Literal["error"]
+    code: Literal["source_scan_failed"]
+    message: str
+    scanned_file_count: int
+    issue_count: int
+    issues: List[TranslationUploadIssue]
+
+
+class TranslationUploadFailureResponse(BaseModel):
+    detail: TranslationUploadFailureDetail
+
+
 class EmbeddedWorkshopConfig(BaseModel):
     enabled: bool = True
     follow_primary_settings: bool = True

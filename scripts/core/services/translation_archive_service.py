@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
@@ -26,6 +27,33 @@ KNOWN_LANGUAGE_FOLDERS = {
     "korean",
     "turkish",
 }
+
+
+@dataclass(frozen=True)
+class SourceScanIssue:
+    file_path: str
+    code: str
+    message: str
+    line_number: Optional[int] = None
+    key: Optional[str] = None
+    error_type: Optional[str] = None
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "file_path": self.file_path,
+            "code": self.code,
+            "message": self.message,
+            "line_number": self.line_number,
+            "key": self.key,
+            "error_type": self.error_type,
+        }
+
+
+@dataclass
+class SourceScanResult:
+    files: List[Dict[str, Any]] = field(default_factory=list)
+    issues: List[SourceScanIssue] = field(default_factory=list)
+    scanned_file_count: int = 0
 
 
 class TranslationArchiveService:
@@ -59,7 +87,21 @@ class TranslationArchiveService:
         except ValueError:
             paradox_source_lang = "english"
 
-        source_files_data = self._scan_source_files(source_path, paradox_source_lang)
+        source_scan = self._scan_source_files(source_path, paradox_source_lang)
+        if source_scan.issues:
+            return {
+                "status": "error",
+                "code": "source_scan_failed",
+                "message": (
+                    "Source scan found invalid or unreadable files. "
+                    "No archive changes were written."
+                ),
+                "scanned_file_count": source_scan.scanned_file_count,
+                "issue_count": len(source_scan.issues),
+                "issues": [issue.as_dict() for issue in source_scan.issues],
+            }
+
+        source_files_data = source_scan.files
         if not source_files_data:
             return {"status": "warning", "message": "No source files found to archive."}
 
@@ -107,11 +149,33 @@ class TranslationArchiveService:
             "version_id": version_id,
         }
 
-    def _scan_source_files(self, source_path: str, paradox_source_lang: str) -> List[Dict[str, Any]]:
-        source_files_data: List[Dict[str, Any]] = []
+    def _scan_source_files(
+        self,
+        source_path: str,
+        paradox_source_lang: str,
+    ) -> SourceScanResult:
+        result = SourceScanResult()
 
         logger.info(f"Scanning source files in {source_path} (source language: {paradox_source_lang})")
-        for root, dirs, files in os.walk(source_path):
+
+        def record_walk_error(error: OSError) -> None:
+            failed_path = str(getattr(error, "filename", None) or source_path)
+            try:
+                relative_path = self._normalize_relpath(
+                    os.path.relpath(failed_path, source_path)
+                )
+            except ValueError:
+                relative_path = failed_path
+            result.issues.append(
+                SourceScanIssue(
+                    file_path=relative_path,
+                    code="source_directory_scan_error",
+                    message="Source directory could not be scanned.",
+                    error_type=type(error).__name__,
+                )
+            )
+
+        for root, dirs, files in os.walk(source_path, onerror=record_walk_error):
             path_parts = [part.lower() for part in Path(root).parts]
             current_folder = os.path.basename(root).lower()
             if "localization" in path_parts or "localisation" in path_parts:
@@ -132,6 +196,10 @@ class TranslationArchiveService:
                     continue
 
                 full_path = Path(os.path.join(root, file_name))
+                relative_file_path = self._normalize_relpath(
+                    os.path.relpath(full_path, source_path)
+                )
+                result.scanned_file_count += 1
                 try:
                     report = parse_loc_file_report(full_path)
                     if report.diagnostics:
@@ -140,24 +208,41 @@ class TranslationArchiveService:
                             full_path,
                             ", ".join(d.code for d in report.diagnostics),
                         )
+                        result.issues.extend(
+                            SourceScanIssue(
+                                file_path=relative_file_path,
+                                code=diagnostic.code,
+                                message=diagnostic.message,
+                                line_number=diagnostic.line_number,
+                                key=diagnostic.key,
+                            )
+                            for diagnostic in report.diagnostics
+                        )
                         continue
                     entries = [(entry.key, entry.value) for entry in report.eligible_entries]
                 except Exception as e:
                     logger.error(f"Failed to parse source file {full_path}: {e}")
+                    result.issues.append(
+                        SourceScanIssue(
+                            file_path=relative_file_path,
+                            code="source_read_error",
+                            message="Source file could not be read or parsed.",
+                            error_type=type(e).__name__,
+                        )
+                    )
                     continue
 
                 if not entries:
                     continue
 
-                relative_file_path = self._normalize_relpath(os.path.relpath(full_path, source_path))
-                source_files_data.append({
+                result.files.append({
                     "filename": os.path.basename(full_path),
                     "file_path": relative_file_path,
                     "key_map": [{"key_part": key} for key, _ in entries],
                     "texts_to_translate": [text for _, text in entries],
                 })
 
-        return source_files_data
+        return result
 
     def _scan_translation_dirs(
         self,

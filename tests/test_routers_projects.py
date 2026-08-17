@@ -25,6 +25,7 @@ def mock_project_manager():
             "warnings": [],
         })
         mock.repair_project_metadata = AsyncMock()
+        mock.upload_project_translations = AsyncMock()
         mock.update_project_files_to_db = AsyncMock()
         mock.update_file_status_with_kanban_sync = AsyncMock()
         mock.update_project_metadata = AsyncMock()
@@ -61,6 +62,33 @@ def test_refresh_returns_transient_manifest(mock_project_manager):
         "warnings": [],
     }
     mock_project_manager.refresh_project_files.assert_awaited_once_with("proj-1")
+
+
+def test_upload_translations_returns_structured_source_scan_failure(
+    mock_project_manager,
+):
+    failure = {
+        "status": "error",
+        "code": "source_scan_failed",
+        "message": "Source scan found invalid or unreadable files. No archive changes were written.",
+        "scanned_file_count": 2,
+        "issue_count": 1,
+        "issues": [{
+            "file_path": "localization/english/broken_l_english.yml",
+            "code": "unterminated_value",
+            "message": "Localization value has no closing quote.",
+            "line_number": 2,
+            "key": "broken.key:0",
+            "error_type": None,
+        }],
+    }
+    mock_project_manager.upload_project_translations.return_value = failure
+
+    response = TestClient(app).post("/api/project/proj-1/upload-translations")
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": failure}
+    mock_project_manager.upload_project_translations.assert_awaited_once_with("proj-1")
 
 def test_create_project_invalid_path(mock_project_manager):
     # The router checks os.path.exists before calling manager.create_project (synchronously)

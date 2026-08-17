@@ -31,6 +31,119 @@ def _write_text(path: Path, content: str):
     path.write_text(content, encoding="utf-8-sig")
 
 
+def _write_project_config(source_root: Path, translation_dirs=None):
+    (source_root / ".remis_project.json").write_text(
+        json.dumps({"config": {"translation_dirs": translation_dirs or []}}),
+        encoding="utf-8",
+    )
+
+
+def test_upload_rejects_mixed_invalid_source_before_archive_write(
+    temp_archive_db,
+    tmp_path,
+):
+    source_root = tmp_path / "source_mod" / "BrokenMod"
+    valid = source_root / "localization" / "english" / "valid_l_english.yml"
+    broken = source_root / "localization" / "english" / "broken_l_english.yml"
+    _write_text(valid, 'l_english:\n valid.key:0 "Valid"\n')
+    _write_text(broken, 'l_english:\n broken.key:0 "unterminated\n')
+    _write_project_config(source_root)
+
+    result = TranslationArchiveService(am=temp_archive_db).upload_project_translations(
+        project_id="broken-project",
+        project_name="BrokenMod",
+        source_path=str(source_root),
+        source_lang_code="en",
+    )
+
+    assert result["status"] == "error"
+    assert result["code"] == "source_scan_failed"
+    assert result["scanned_file_count"] == 2
+    assert result["issue_count"] == 1
+    assert result["issues"][0]["file_path"] == (
+        "localization/english/broken_l_english.yml"
+    )
+    assert result["issues"][0]["code"] == "unterminated_value"
+    assert temp_archive_db.connection.execute(
+        "SELECT COUNT(*) FROM mods"
+    ).fetchone()[0] == 0
+    assert temp_archive_db.connection.execute(
+        "SELECT COUNT(*) FROM source_versions"
+    ).fetchone()[0] == 0
+
+
+def test_upload_rejects_unreadable_source_before_archive_write(
+    temp_archive_db,
+    tmp_path,
+    monkeypatch,
+):
+    source_root = tmp_path / "source_mod" / "UnreadableMod"
+    source = source_root / "localization" / "english" / "source_l_english.yml"
+    _write_text(source, 'l_english:\n source.key:0 "Valid"\n')
+    _write_project_config(source_root)
+
+    def fail_parse(_path):
+        raise OSError("injected unreadable source")
+
+    monkeypatch.setattr(
+        "scripts.core.services.translation_archive_service.parse_loc_file_report",
+        fail_parse,
+    )
+    result = TranslationArchiveService(am=temp_archive_db).upload_project_translations(
+        project_id="unreadable-project",
+        project_name="UnreadableMod",
+        source_path=str(source_root),
+        source_lang_code="en",
+    )
+
+    assert result["code"] == "source_scan_failed"
+    assert result["issues"] == [{
+        "file_path": "localization/english/source_l_english.yml",
+        "code": "source_read_error",
+        "message": "Source file could not be read or parsed.",
+        "line_number": None,
+        "key": None,
+        "error_type": "OSError",
+    }]
+    assert temp_archive_db.connection.execute(
+        "SELECT COUNT(*) FROM source_versions"
+    ).fetchone()[0] == 0
+
+
+def test_upload_rejects_source_directory_scan_error_before_archive_write(
+    temp_archive_db,
+    tmp_path,
+    monkeypatch,
+):
+    source_root = tmp_path / "source_mod" / "UnavailableMod"
+    source_root.mkdir(parents=True)
+    _write_project_config(source_root)
+
+    def fail_walk(path, onerror=None):
+        error = PermissionError("injected directory denial")
+        error.filename = str(path)
+        onerror(error)
+        return iter(())
+
+    monkeypatch.setattr(
+        "scripts.core.services.translation_archive_service.os.walk",
+        fail_walk,
+    )
+    result = TranslationArchiveService(am=temp_archive_db).upload_project_translations(
+        project_id="unavailable-project",
+        project_name="UnavailableMod",
+        source_path=str(source_root),
+        source_lang_code="en",
+    )
+
+    assert result["code"] == "source_scan_failed"
+    assert result["issues"][0]["code"] == "source_directory_scan_error"
+    assert result["issues"][0]["error_type"] == "PermissionError"
+    assert temp_archive_db.connection.execute(
+        "SELECT COUNT(*) FROM source_versions"
+    ).fetchone()[0] == 0
+
+
 def test_archive_records_recovered_source_value_and_translation_as_empty(temp_archive_db):
     file_path = "localisation/english/broken_l_english.yml"
     files = [{
@@ -206,7 +319,9 @@ def test_source_scans_only_project_source_language(tmp_path):
     _write_text(french_file, 'l_french:\n key.one:0 "Bonjour"\n')
 
     archive_service = TranslationArchiveService()
-    source_files = archive_service._scan_source_files(str(source_root), "english")
+    source_files = archive_service._scan_source_files(
+        str(source_root), "english"
+    ).files
     assert [entry["file_path"] for entry in source_files] == ["localization/english/test_l_english.yml"]
 
     snapshot_service = IncrementalSnapshotService()
