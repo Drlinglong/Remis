@@ -9,8 +9,8 @@ const copy = {
   en: {
     eyebrow: 'AVENTINE / TRANSLATION RECIPE BENCHMARK',
     title: 'Which LLM actually translates best?',
-    intro: 'Nine API recipes. One frozen Remis workload. Three runs per model, blinded pairwise judging, hard validation, and costs measured beside quality.',
-    updated: 'Pilot Score v0.1 · 01 AUG 2026',
+    intro: 'Eleven translation recipes. One frozen Remis workload. Three runs per model, blinded pairwise judging, hard validation, and costs measured beside quality.',
+    updated: 'Versioned Pilot Score · 02 AUG 2026',
     recipes: 'RECIPES',
     cases: 'HARD TASKS / RECIPE',
     matchups: 'PAIRWISE REPORTS',
@@ -19,6 +19,7 @@ const copy = {
     exploreIntro: 'Select any model to inspect the exact recipe, reliability, coverage, tokens, cost, and pilot interpretation behind its rank.',
     selected: 'SELECTED RECIPE',
     qualityScore: 'PILOT QUALITY SCORE',
+    provisionalPlacement: 'PROVISIONAL PLACEMENT',
     softPreference: 'Soft preference',
     winRate: 'Raw win rate',
     hardReliability: 'Hard reliability',
@@ -34,6 +35,7 @@ const copy = {
     throughput: 'Tasks per hour',
     outputTokens: 'Output tokens',
     reasoningTokens: 'Reasoning tokens',
+    notRecorded: 'Not recorded',
     hardPass: 'Hard passes',
     voice: 'Translation style / pilot interpretation',
     parameterModel: 'Model ID',
@@ -53,7 +55,7 @@ const copy = {
     principleProduction: 'Production-grounded',
     principleProductionBody: 'Recipes execute the frozen Remis translation and repair workflow rather than isolated chat prompts.',
     principleComparable: 'Directly comparable',
-    principleComparableBody: 'Every recipe receives the same 21 hard samples and the same blinded decision contract.',
+    principleComparableBody: 'Every recipe receives the same 21 hard samples and a versioned blinded decision contract.',
     principleOperational: 'Operationally measurable',
     principleOperationalBody: 'Quality remains separate from speed, cost, token use, failures, and decision coverage.',
     principleVersioned: 'Versioned evidence',
@@ -67,8 +69,8 @@ const copy = {
   zh: {
     eyebrow: 'AVENTINE / 翻译方案基准测试',
     title: '哪一个大模型，真的更会翻译？',
-    intro: '九套 API 翻译方案，同一份冻结 Remis 工作负载。每个模型正式运行三轮，盲化成对裁决、硬校验、成本与质量同时记录。',
-    updated: 'Pilot Score v0.1 · 2026 年 8 月 1 日',
+    intro: '十一套翻译方案，同一份冻结 Remis 工作负载。每个模型正式运行三轮，盲化成对裁决、硬校验、成本与质量同时记录。',
+    updated: '版本化 Pilot Score · 2026 年 8 月 2 日',
     recipes: '参赛方案',
     cases: '每套方案硬样本',
     matchups: '成对裁决报告',
@@ -77,6 +79,7 @@ const copy = {
     exploreIntro: '选择任意模型，检查其排名背后的 recipe、可靠性、覆盖率、Tokens、成本与本轮评价。',
     selected: '当前方案',
     qualityScore: 'PILOT QUALITY SCORE',
+    provisionalPlacement: '暂定锚点排名',
     softPreference: '软偏好得分',
     winRate: '真实胜率',
     hardReliability: '硬可靠性',
@@ -92,6 +95,7 @@ const copy = {
     throughput: '每小时任务数',
     outputTokens: '输出 Tokens',
     reasoningTokens: '推理 Tokens',
+    notRecorded: '未记录',
     hardPass: '硬通过样本',
     voice: '翻译风格 / 本轮评价',
     parameterModel: '模型 ID',
@@ -111,7 +115,7 @@ const copy = {
     principleProduction: '来自真实生产',
     principleProductionBody: '参赛方案执行冻结的 Remis 翻译与修复工作流，而不是孤立聊天提示词。',
     principleComparable: '可以直接比较',
-    principleComparableBody: '每套方案面对相同的 21 个硬样本与同一套盲化裁决规则。',
+    principleComparableBody: '每套方案面对相同的 21 个硬样本与版本化的盲化裁决规则。',
     principleOperational: '记录运行表现',
     principleOperationalBody: '质量与速度、成本、Token、失败类型和裁决覆盖率保持独立。',
     principleVersioned: '版本化证据',
@@ -130,7 +134,8 @@ function formatDuration(seconds) {
   return `${minutes}m ${remainder.toString().padStart(2, '0')}s`
 }
 
-function formatTokens(tokens) {
+function formatTokens(tokens, fallback) {
+  if (tokens === null) return fallback
   return new Intl.NumberFormat('en-US').format(tokens)
 }
 
@@ -161,7 +166,7 @@ export function AventinePage() {
                 <p>{labels.eyebrow}</p>
                 <h1>{labels.title}</h1>
                 <span>{labels.intro}</span>
-                <small className="benchmark-title__version">{labels.updated} · {pilotMeta.aggregateId}</small>
+                <small className="benchmark-title__version">{labels.updated} · {pilotMeta.recipes} recipes</small>
               </div>
               <div className="benchmark-facts" aria-label="Benchmark parameters">
                 <div><strong>{pilotMeta.recipes}</strong><span>{labels.recipes}</span></div>
@@ -200,7 +205,7 @@ export function AventinePage() {
 
             <div className="recipe-dashboard">
               <div className="recipe-summary">
-                <span>{labels.selected} / 0{selected.rank}</span>
+                <span>{labels.selected} / {selected.rank.toString().padStart(2, '0')}</span>
                 <div className="recipe-summary__name">
                   <AventineBrandMark recipe={selected} />
                   <div><h2>{selected.model}</h2><p>{selected.provider} · {selected.reasoning}</p></div>
@@ -208,6 +213,7 @@ export function AventinePage() {
                 <div className="recipe-score">
                   <strong style={{ color: selected.color }}>{selected.score.toFixed(2)}</strong>
                   <span>{labels.qualityScore}</span>
+                  <small>{selected.scoreVersion}{selected.anchoredPlacement ? ` · ${labels.provisionalPlacement}` : ''}</small>
                 </div>
                 <dl>
                   <div><dt>{labels.wins}</dt><dd>{selected.wins}</dd></div>
@@ -240,15 +246,15 @@ export function AventinePage() {
               <div className="recipe-diagnostics">
                 <div className="recipe-diagnostics__head">
                   <h3>{labels.runSignals}</h3>
-                  <span>{pilotMeta.scoreVersion} · {pilotMeta.stagePolicy}</span>
+                  <span>{selected.scoreVersion}{selected.anchoredPlacement ? ` · ${selected.placementStatus}` : ''} · {pilotMeta.stagePolicy}</span>
                 </div>
                 <div className="recipe-kpis">
                   {[
                     [labels.elapsed, formatDuration(selected.elapsedSeconds)],
-                    [labels.estimatedCost, formatPilotCost(selected)],
+                    [labels.estimatedCost, formatPilotCost(selected, false, locale)],
                     [labels.throughput, selected.tasksPerHour.toFixed(1)],
-                    [labels.outputTokens, formatTokens(selected.outputTokens)],
-                    [labels.reasoningTokens, formatTokens(selected.reasoningTokens)],
+                    [labels.outputTokens, formatTokens(selected.outputTokens, labels.notRecorded)],
+                    [labels.reasoningTokens, formatTokens(selected.reasoningTokens, labels.notRecorded)],
                     [labels.hardPass, `${selected.hardPass}/${selected.hardSamples}`],
                   ].map(([label, value]) => (
                     <div key={label}><span>{label}</span><strong>{value}</strong></div>
@@ -293,7 +299,7 @@ export function AventinePage() {
               <p>{labels.methodologyBody}</p>
             </div>
             <div className="benchmark-method__links">
-              <ButtonLink href={links.aventinePilotAggregate} tone="accent" external>{labels.aggregate}</ButtonLink>
+              <ButtonLink href={selected.anchoredPlacement ? links.aventineAnchoredAggregate : links.aventinePilotAggregate} tone="accent" external>{labels.aggregate}</ButtonLink>
               <TextLink href={links.aventine} external>{labels.source}</TextLink>
               <TextLink href={links.aventineScoringRoadmap} external>{labels.roadmap}</TextLink>
             </div>
