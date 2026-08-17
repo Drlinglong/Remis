@@ -27,7 +27,9 @@ def _normalized_abs_path(path: str) -> str:
     resolved = resolve_path(path)
     if not os.path.isabs(resolved):
         resolved = os.path.join(PROJECT_ROOT, resolved)
-    return os.path.abspath(os.path.normpath(resolved))
+    # Resolve links before applying the root allowlist so a path inside an
+    # allowed directory cannot escape through a symlink or junction.
+    return os.path.realpath(os.path.abspath(os.path.normpath(resolved)))
 
 
 def _is_path_under(path: str, root: str) -> bool:

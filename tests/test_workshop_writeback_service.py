@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.core.services import embedded_workshop_service
 from scripts.core.services import workshop_writeback_service as writeback
@@ -33,6 +35,30 @@ def test_project_target_must_stay_inside_registered_translation_directory(tmp_pa
         project,
         str(source_file),
         str(source_file),
+    ) is None
+
+
+def test_project_target_rejects_symlink_escape(tmp_path):
+    project_root = tmp_path / "project"
+    translation_root = tmp_path / "translation"
+    outside_file = tmp_path / "outside" / "demo_l_english.yml"
+    project_root.mkdir()
+    translation_root.mkdir()
+    _write_loc_file(outside_file, "outside")
+    linked_file = translation_root / "demo_l_english.yml"
+    try:
+        linked_file.symlink_to(outside_file)
+    except OSError as exc:
+        pytest.skip(f"Symlink creation is unavailable: {exc}")
+
+    ProjectJsonManager(str(project_root)).update_config({
+        "translation_dirs": [str(translation_root)],
+    })
+
+    assert writeback.resolve_project_translation_target(
+        {"source_path": str(project_root)},
+        str(linked_file),
+        linked_file.name,
     ) is None
 
 
