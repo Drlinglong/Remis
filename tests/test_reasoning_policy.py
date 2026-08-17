@@ -40,6 +40,81 @@ def test_gemini_25_family_is_removed_from_the_presets():
     )
 
 
+def test_approved_provider_catalogs_and_defaults_are_locked():
+    expected = {
+        "gemini": (
+            "gemini-3.7-flash",
+            ["gemini-3.7-flash", "gemini-3.6-flash"],
+        ),
+        "anthropic": (
+            "claude-sonnet-5",
+            ["claude-opus-5", "claude-opus-4-6", "claude-sonnet-5"],
+        ),
+        "openai": (
+            "gpt-5.6-luna",
+            ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+        ),
+        "qwen": ("qwen3.8-max", ["qwen3.8-max"]),
+        "grok": ("grok-4.6", ["grok-4.6"]),
+        "deepseek": (
+            "deepseek-v4-flash",
+            ["deepseek-v4-pro", "deepseek-v4-flash"],
+        ),
+        "kimi": ("kimi-k3", ["kimi-k3", "kimi-k2.7-code"]),
+        "minimax": (
+            "MiniMax-M3",
+            ["MiniMax-M3", "MiniMax-M2.7", "MiniMax-M2.7-highspeed"],
+        ),
+        "zhipu": ("glm-5.3", ["glm-5.3"]),
+    }
+
+    for provider_id, (default_model, models) in expected.items():
+        assert API_PROVIDERS[provider_id]["default_model"] == default_model
+        assert API_PROVIDERS[provider_id]["available_models"] == models
+
+
+def test_curated_aggregator_catalogs_never_infer_reasoning():
+    expected = {
+        "modelscope": (
+            "deepseek-ai/DeepSeek-V4-Flash",
+            [
+                "deepseek-ai/DeepSeek-V4-Pro",
+                "deepseek-ai/DeepSeek-V4-Flash",
+            ],
+        ),
+        "siliconflow": (
+            "deepseek-ai/DeepSeek-V4-Flash",
+            [
+                "deepseek-ai/DeepSeek-V4-Flash",
+                "deepseek-ai/DeepSeek-V4-Pro",
+            ],
+        ),
+        "openrouter": (
+            "openai/gpt-5.6-luna",
+            [
+                "openai/gpt-5.6-luna",
+                "google/gemini-3.7-flash",
+                "qwen/qwen3.8-max",
+                "meta/muse-spark-1.2",
+            ],
+        ),
+        "nvidia": (
+            "deepseek-ai/deepseek-v4-flash",
+            [
+                "deepseek-ai/deepseek-v4-flash",
+                "deepseek-ai/deepseek-v4-pro",
+                "minimaxai/minimax-m3",
+            ],
+        ),
+    }
+
+    for provider_id, (default_model, models) in expected.items():
+        config = API_PROVIDERS[provider_id]
+        assert config["default_model"] == default_model
+        assert config["available_models"] == models
+        assert config["reasoning"]["models"] == dict.fromkeys(models)
+
+
 def test_unknown_custom_model_never_receives_builtin_reasoning_parameters():
     config = {
         **API_PROVIDERS["openai"],
@@ -56,26 +131,77 @@ def test_unknown_custom_model_never_receives_builtin_reasoning_parameters():
     assert resolution.parameters == {"thinking": {"type": "enabled"}}
 
 
-def test_custom_parameters_override_builtin_fields_without_losing_siblings():
+@pytest.mark.parametrize("model", ["qwen3.8-max"])
+def test_qwen_verified_builtin_is_a_single_thinking_toggle(model):
     config = {
-        **API_PROVIDERS["openrouter"],
+        **API_PROVIDERS["qwen"],
+        "default_model": model,
         "reasoning_builtin_enabled": True,
         "reasoning_preset": "high",
-        "custom_parameters": {"reasoning": {"effort": "low", "exclude": True}},
+    }
+
+    resolution = resolve_reasoning_parameters(config)
+
+    assert resolution.available_presets == ("high",)
+    assert resolution.parameters == {"enable_thinking": True}
+
+
+@pytest.mark.parametrize(
+    ("preset", "effort"),
+    [
+        ("low", "high"),
+        ("medium", "high"),
+        ("high", "high"),
+        ("xhigh", "max"),
+        ("max", "max"),
+    ],
+)
+def test_deepseek_v4_reasoning_presets_match_current_official_mapping(
+    preset,
+    effort,
+):
+    config = {
+        **API_PROVIDERS["deepseek"],
+        "reasoning_builtin_enabled": True,
+        "reasoning_preset": preset,
     }
 
     resolution = resolve_reasoning_parameters(config)
 
     assert resolution.parameters == {
-        "reasoning": {"effort": "low", "exclude": True}
+        "thinking": {"type": "enabled"},
+        "reasoning_effort": effort,
     }
-    assert resolution.overridden_paths == ("reasoning.effort",)
 
 
-def test_requested_model_falls_back_to_nearest_supported_reasoning_preset():
+def test_custom_parameters_override_builtin_fields_without_losing_siblings():
+    config = {
+        **API_PROVIDERS["gemini"],
+        "reasoning_builtin_enabled": True,
+        "reasoning_preset": "high",
+        "custom_parameters": {
+            "thinking_config": {
+                "thinking_level": "low",
+                "include_thoughts": False,
+            }
+        },
+    }
+
+    resolution = resolve_reasoning_parameters(config)
+
+    assert resolution.parameters == {
+        "thinking_config": {
+            "thinking_level": "low",
+            "include_thoughts": False,
+        }
+    }
+    assert resolution.overridden_paths == ("thinking_config.thinking_level",)
+
+
+def test_current_openai_model_supports_xhigh_reasoning_preset():
     config = {
         **API_PROVIDERS["openai"],
-        "default_model": "gpt-5.4",
+        "default_model": "gpt-5.6-luna",
         "reasoning_builtin_enabled": True,
         "reasoning_preset": "xhigh",
     }
@@ -83,14 +209,14 @@ def test_requested_model_falls_back_to_nearest_supported_reasoning_preset():
     resolution = resolve_reasoning_parameters(config)
 
     assert resolution.selected_preset == "xhigh"
-    assert resolution.effective_preset == "high"
-    assert resolution.builtin_parameters == {"reasoning_effort": "high"}
+    assert resolution.effective_preset == "xhigh"
+    assert resolution.builtin_parameters == {"reasoning_effort": "xhigh"}
 
 
-def test_handler_warns_when_requested_model_uses_a_preset_fallback(caplog):
+def test_handler_uses_current_openai_max_preset_without_fallback(caplog):
     handler = OpenAIHandler.__new__(OpenAIHandler)
     handler.provider_name = "openai"
-    handler.model_id = "gpt-5.4"
+    handler.model_id = "gpt-5.6-luna"
     handler.logger = logging.getLogger("reasoning-preset-fallback-test")
 
     with (
@@ -107,8 +233,31 @@ def test_handler_warns_when_requested_model_uses_a_preset_fallback(caplog):
     ):
         parameters = handler._reasoning_request_parameters()
 
-    assert parameters == {"reasoning_effort": "high"}
-    assert "using 'high'" in caplog.text
+    assert parameters == {"reasoning_effort": "max"}
+    assert "using '" not in caplog.text
+
+
+def test_retired_catalog_ids_do_not_reappear():
+    retired = {
+        "gemini-3.5-flash",
+        "claude-opus-4-1",
+        "claude-sonnet-4",
+        "gpt-5-mini",
+        "qwen-plus",
+        "grok-4.3",
+        "kimi-k2.6",
+        "MiniMax-M2.5",
+        "glm-4.7",
+        "z-ai/glm-5.2",
+        "qwen/qwen3.5-397b-a17b",
+    }
+
+    configured = {
+        model
+        for config in API_PROVIDERS.values()
+        for model in config.get("available_models", [])
+    }
+    assert retired.isdisjoint(configured)
 
 
 @pytest.mark.parametrize(
@@ -133,7 +282,7 @@ def test_openai_handler_sends_verified_reasoning_mapping_through_extra_body():
 
     handler = OpenAIHandler.__new__(OpenAIHandler)
     handler.provider_name = "openai"
-    handler.model_id = "gpt-5.6-terra"
+    handler.model_id = "gpt-5.6-luna"
     handler.logger = logging.getLogger("reasoning-openai-test")
     handler._reasoning_request_parameters = lambda: {"reasoning_effort": "medium"}
 
@@ -146,7 +295,7 @@ def test_openai_handler_sends_verified_reasoning_mapping_through_extra_body():
     assert captured["extra_body"] == {"reasoning_effort": "medium"}
 
 
-def test_anthropic_handler_uses_current_output_config_effort_contract():
+def test_anthropic_handler_preserves_user_supplied_output_config():
     response = MagicMock()
     response.json.return_value = {"content": [{"type": "text", "text": "done"}]}
     session = MagicMock()

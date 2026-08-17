@@ -19,7 +19,7 @@ PROTECTED_CUSTOM_PARAMETER_KEYS = {
     "system",
 }
 MAX_CUSTOM_PARAMETERS_BYTES = 16_384
-REASONING_PRESET_ORDER = ("low", "medium", "high", "xhigh", "max")
+REASONING_PRESET_ORDER = ("minimal", "low", "medium", "high", "xhigh", "max")
 
 
 @dataclass(frozen=True)

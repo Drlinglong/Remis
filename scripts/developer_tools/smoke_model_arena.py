@@ -59,7 +59,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--sample-size", type=int, default=3)
     parser.add_argument("--seed", default="remis-real-smoke-v1")
     parser.add_argument("--local-model", default="google/gemma-4-31b-qat")
-    parser.add_argument("--cloud-model", default="deepseek-v4-pro")
+    parser.add_argument("--cloud-model", default="deepseek-v4-flash")
     return parser.parse_args()
 
 

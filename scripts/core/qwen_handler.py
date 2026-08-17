@@ -25,7 +25,7 @@ class QwenHandler(BaseApiHandler):
                 base_url=base_url
             )
             
-            model_name = provider_config.get("default_model", "qwen3.7-plus")
+            model_name = provider_config.get("default_model", "qwen3.8-max")
             self.logger.info(f"Qwen client initialized successfully, using model: {model_name}")
             self.logger.info(f"Using base URL: {base_url}")
             return client
@@ -36,7 +36,7 @@ class QwenHandler(BaseApiHandler):
     def _call_api(self, client: OpenAI, prompt: str) -> str:
         """【必须由子类实现】执行对Qwen API的调用并返回原始文本响应。"""
         provider_config = self.get_provider_config()
-        model_name = provider_config.get("default_model", "qwen3.7-plus")
+        model_name = provider_config.get("default_model", "qwen3.8-max")
         try:
             request_kwargs = {
                 "model": model_name,

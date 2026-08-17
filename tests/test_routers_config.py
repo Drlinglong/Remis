@@ -39,6 +39,17 @@ MOCK_API_PROVIDERS = {
         # 无 api_key_env 表示不需要 Key
         "available_models": ["llama3"],
         "default_model": "llama3",
+    },
+    "openrouter": {
+        "name": "OpenRouter",
+        "api_key_env": "OPENROUTER_API_KEY",
+        "available_models": [],
+        "default_model": "",
+        "reasoning": {
+            "default_enabled": False,
+            "default_preset": "medium",
+            "models": {},
+        },
     }
 }
 
@@ -154,6 +165,26 @@ class TestPostProviderConfig:
         assert saved["custom_parameters"] == {
             "thinking_config": {"include_thoughts": False}
         }
+
+    def test_aggregator_accepts_full_custom_model_and_json_without_builtin_reasoning(
+        self,
+        mock_config_env,
+    ):
+        client = TestClient(app)
+        response = client.post("/api/providers/config", json={
+            "provider_id": "openrouter",
+            "models": ["vendor/model-id"],
+            "selected_model": "vendor/model-id",
+            "reasoning_builtin_enabled": False,
+            "custom_parameters": {"reasoning": {"effort": "high"}},
+        })
+
+        assert response.status_code == 200
+        saved = mock_config_env.set_value.call_args.args[1]["openrouter"]
+        assert saved["models"] == ["vendor/model-id"]
+        assert saved["selected_model"] == "vendor/model-id"
+        assert saved["reasoning_builtin_enabled"] is False
+        assert saved["custom_parameters"] == {"reasoning": {"effort": "high"}}
 
     def test_rejects_builtin_reasoning_for_an_unverified_custom_model(self, mock_config_env):
         client = TestClient(app)
