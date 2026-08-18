@@ -30,6 +30,8 @@ describe('Mod Archive semantic workbench contract', () => {
         expect(stylesSource).toContain('.mantine-Radio-label');
         expect(stylesSource).toMatch(/\.traceabilitySummary\s*\{[^}]*var\(--paper-text-main\)/s);
         expect(stylesSource).toMatch(/\.traceabilityRow\s*\{[^}]*var\(--paper-bg\)/s);
+        expect(stylesSource).toMatch(/\.dangerSecondaryAction\s*\{[^}]*border:[^;]*var\(--surface-text-muted\)/s);
+        expect(stylesSource).toMatch(/\.dangerSecondaryAction\s*\{[^}]*color:\s*var\(--surface-text-main\)/s);
         expect(stylesSource).not.toMatch(/data-theme|\.byzantine|\.victorian|\.scifi|\.wwii|\.medieval/);
         expect(stylesSource).not.toMatch(/#[0-9a-f]{3,8}\b/i);
         expect(toolbarStylesSource).not.toMatch(/data-theme|\.byzantine|\.victorian|\.scifi|\.wwii|\.medieval/);

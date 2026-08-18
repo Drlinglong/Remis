@@ -122,8 +122,8 @@
     margin-left: auto;
     flex: 0 0 auto;
     background: transparent !important;
-    border: 1px solid var(--canvas-text-muted) !important;
-    color: var(--canvas-text-main) !important;
+    border: 1px solid var(--surface-text-muted) !important;
+    color: var(--surface-text-main) !important;
     box-shadow: inset 3px 0 0 var(--mantine-color-red-6) !important;
 }
 
