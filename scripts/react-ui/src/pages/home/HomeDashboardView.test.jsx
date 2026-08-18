@@ -51,7 +51,10 @@ describe('HomeDashboardView', () => {
 
     expect(screen.getByText('dashboard offline')).toBeInTheDocument();
     expect(screen.getByTestId('live-work')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toHaveAttribute(
+      'data-remis-action',
+      'paper-secondary',
+    );
     expect(screen.getAllByTestId('stat-card').every((card) => card.textContent.endsWith('—'))).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(retryMock).toHaveBeenCalledTimes(1);

@@ -78,6 +78,19 @@ for (const themeId of themes) {
         await expect(page.locator('[data-remis-action="primary"]')).toHaveCount(1);
         await expect(page.locator('[data-remis-scroll-owner="main-content"]')).toHaveCount(1);
 
+        const paperActions = page.locator(
+          '[data-remis-surface="paper"] [data-remis-action]',
+        );
+        const paperActionCount = await paperActions.count();
+        expect(paperActionCount).toBeGreaterThan(0);
+        const paperActionValues = await paperActions.evaluateAll((elements) => (
+          elements.map((element) => element.getAttribute('data-remis-action'))
+        ));
+        expect(paperActionValues.filter((value) => !value?.startsWith('paper-'))).toEqual([]);
+        for (let index = 0; index < paperActionCount; index += 1) {
+          expect(await renderedContrast(paperActions.nth(index))).toBeGreaterThanOrEqual(4.5);
+        }
+
         if (scenario === 'active-partial') {
           await expect(page.getByText('项目组合概览', { exact: true })).toBeVisible();
           await expect(page.getByText('星港远征：失落航道与群星彼端的超长项目名称验证', { exact: false }).first()).toBeVisible();
@@ -86,9 +99,6 @@ for (const themeId of themes) {
           );
           const taskActionCount = await taskActions.count();
           expect(taskActionCount).toBeGreaterThan(0);
-          await expect(page.locator(
-            '[data-remis-task-summary="true"] [data-remis-action="secondary"]',
-          )).toHaveCount(0);
           for (let index = 0; index < taskActionCount; index += 1) {
             expect(await renderedContrast(taskActions.nth(index))).toBeGreaterThanOrEqual(4.5);
           }

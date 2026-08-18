@@ -54,7 +54,7 @@ export default function HomeDashboardView({ dashboard, greeting, liveWork, t }) 
               <Button
                 variant="default"
                 size="compact-sm"
-                data-remis-action="secondary"
+                data-remis-action="paper-secondary"
                 style={{ '--button-color': 'var(--paper-text-main)', '--button-hover-color': 'var(--paper-text-main)' }}
                 styles={{ label: { color: 'var(--paper-text-main)', WebkitTextFillColor: 'currentColor' } }}
                 onClick={dashboard.refresh}

@@ -405,10 +405,10 @@ const AgentWorkshopPage = () => {
               })}
             </Text>
             <Group justify="flex-end">
-              <Button variant="subtle" color="gray" onClick={() => setApprovalOpen(false)} data-remis-action="secondary" className={styles.approvalSecondary}>
+              <Button variant="subtle" color="gray" onClick={() => setApprovalOpen(false)} data-remis-action="paper-secondary" className={styles.approvalSecondary}>
                 {t('cancel')}
               </Button>
-              <Button color="orange" leftSection={<IconPlayerPlay size={16} />} onClick={executeFixRun} data-remis-action="primary" disabled={executing}>
+              <Button color="orange" leftSection={<IconPlayerPlay size={16} />} onClick={executeFixRun} data-remis-action="paper-primary" disabled={executing}>
                 {t('agent_workshop.start_fix')}
               </Button>
             </Group>
