@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -91,7 +91,9 @@ describe('JudgmentCourt action focus continuity', () => {
     fireEvent.click(screen.getByTestId('neologism-approve-action'));
     expect(screen.getByTestId('neologism-review-workspace')).toHaveAttribute('aria-busy', 'true');
 
-    resolvePost({ data: { status: 'success' } });
+    await act(async () => {
+      resolvePost({ data: { status: 'success' } });
+    });
     await waitFor(() => {
       expect(screen.getByTestId('neologism-review-workspace')).toHaveAttribute('aria-busy', 'false');
     });
