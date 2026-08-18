@@ -7,6 +7,55 @@ const viewports = [
   { id: 'compact', width: 375, height: 900 },
 ];
 
+async function renderedContrast(locator) {
+  return locator.evaluate((element) => {
+    const parseColor = (value) => {
+      const channels = value.match(/[\d.]+/g)?.map(Number) ?? [];
+      return {
+        r: channels[0] ?? 0,
+        g: channels[1] ?? 0,
+        b: channels[2] ?? 0,
+        a: channels[3] ?? 1,
+      };
+    };
+    const composite = (foreground, background) => {
+      const alpha = foreground.a + background.a * (1 - foreground.a);
+      if (alpha === 0) return { r: 255, g: 255, b: 255, a: 1 };
+      return {
+        r: (foreground.r * foreground.a
+          + background.r * background.a * (1 - foreground.a)) / alpha,
+        g: (foreground.g * foreground.a
+          + background.g * background.a * (1 - foreground.a)) / alpha,
+        b: (foreground.b * foreground.a
+          + background.b * background.a * (1 - foreground.a)) / alpha,
+        a: alpha,
+      };
+    };
+    const luminance = ({ r, g, b }) => {
+      const linear = [r, g, b].map((channel) => {
+        const normalized = channel / 255;
+        return normalized <= 0.04045
+          ? normalized / 12.92
+          : ((normalized + 0.055) / 1.055) ** 2.4;
+      });
+      return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+    };
+
+    const backgrounds = [];
+    for (let node = element; node; node = node.parentElement) {
+      backgrounds.push(parseColor(getComputedStyle(node).backgroundColor));
+    }
+    const background = backgrounds.reverse().reduce(
+      (underlay, layer) => composite(layer, underlay),
+      { r: 255, g: 255, b: 255, a: 1 },
+    );
+    const foreground = composite(parseColor(getComputedStyle(element).color), background);
+    const brighter = Math.max(luminance(foreground), luminance(background));
+    const darker = Math.min(luminance(foreground), luminance(background));
+    return (brighter + 0.05) / (darker + 0.05);
+  });
+}
+
 for (const themeId of themes) {
   for (const scenario of scenarios) {
     for (const viewport of viewports) {
@@ -32,6 +81,17 @@ for (const themeId of themes) {
         if (scenario === 'active-partial') {
           await expect(page.getByText('项目组合概览', { exact: true })).toBeVisible();
           await expect(page.getByText('星港远征：失落航道与群星彼端的超长项目名称验证', { exact: false }).first()).toBeVisible();
+          const taskActions = page.locator(
+            '[data-remis-task-summary="true"] [data-remis-action="paper-secondary"]',
+          );
+          const taskActionCount = await taskActions.count();
+          expect(taskActionCount).toBeGreaterThan(0);
+          await expect(page.locator(
+            '[data-remis-task-summary="true"] [data-remis-action="secondary"]',
+          )).toHaveCount(0);
+          for (let index = 0; index < taskActionCount; index += 1) {
+            expect(await renderedContrast(taskActions.nth(index))).toBeGreaterThanOrEqual(4.5);
+          }
         } else {
           await expect(page.getByText('项目组合服务暂时离线；当前任务区仍然可用。')).toBeVisible();
           await expect(page.getByRole('button', { name: '继续项目' })).toBeVisible();

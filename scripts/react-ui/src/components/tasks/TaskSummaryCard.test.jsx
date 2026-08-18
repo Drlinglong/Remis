@@ -65,15 +65,20 @@ describe('TaskSummaryCard', () => {
             kind: 'initial_translation',
             title: 'Paper surface task',
             status: 'completed',
+            allowed_actions: ['archive_task'],
             created_by: { type: 'user' },
           }}
+          onHandle={vi.fn()}
           onOpen={vi.fn()}
         />
       </MantineProvider>,
     );
 
-    expect(container.querySelector('[data-remis-surface="paper"]')).toBeInTheDocument();
+    const paper = container.querySelector('[data-remis-task-summary="true"]');
+    expect(paper).toHaveAttribute('data-remis-surface', 'paper');
     expect(container.querySelector('[data-remis-surface="surface"]')).not.toBeInTheDocument();
+    expect(paper.querySelectorAll('[data-remis-action="paper-secondary"]')).toHaveLength(2);
+    expect(paper.querySelector('[data-remis-action="secondary"]')).not.toBeInTheDocument();
   });
 
   it('localizes glossary health task identity and known local-model failures', () => {

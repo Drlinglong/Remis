@@ -62,7 +62,13 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
   );
 
   return (
-    <Paper withBorder radius="md" p={compact ? 'sm' : 'md'} data-remis-surface="paper">
+    <Paper
+      withBorder
+      radius="md"
+      p={compact ? 'sm' : 'md'}
+      data-remis-surface="paper"
+      data-remis-task-summary="true"
+    >
       <Stack gap={compact ? 6 : 'sm'}>
         <Group justify="space-between" align="flex-start" wrap="nowrap" style={{ minWidth: 0 }}>
           <div style={{ minWidth: 0 }}>
@@ -119,7 +125,7 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
                 color="gray"
                 size="compact-sm"
                 loading={handling}
-                data-remis-action="secondary"
+                data-remis-action="paper-secondary"
                 onClick={() => onHandle(task)}
               >
                 {t('task_center.mark_handled')}
@@ -129,7 +135,7 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
               variant="subtle"
               size="compact-sm"
               rightSection={<IconArrowRight size={14} />}
-              data-remis-action="secondary"
+              data-remis-action="paper-secondary"
               onClick={() => onOpen(task)}
             >
               {t('task_center.view_task')}
