@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import { Badge, Group, Paper, Stack, Text, Title } from '@mantine/core';
+import { IconChevronDown } from '@tabler/icons-react';
 
 import styles from './PublishedContextWorkbench.module.css';
 
@@ -52,6 +53,8 @@ const EntityCard = ({ entity, digest, evidence, t }) => (
 );
 
 const PublishedContextEntitySummary = ({ tree, normalizedTree, t }) => {
+    const [expanded, setExpanded] = useState(true);
+    const contentId = useId();
     const digestById = useMemo(() => new Map(list(tree.entity_digests).map((item) => [item.entity_id || item.id, item])), [tree.entity_digests]);
     const evidenceById = useMemo(() => {
         const result = new Map();
@@ -88,37 +91,61 @@ const PublishedContextEntitySummary = ({ tree, normalizedTree, t }) => {
     const lower = ordered.filter((entity) => entity.tier === 'C');
     return (
         <Paper className={styles.entitySection} p="md" withBorder data-remis-surface="surface" data-testid="published-context-entities">
-            <header className={styles.panelHeader}>
+            <header className={`${styles.panelHeader} ${styles.entitySectionHeading}`}>
                 <div>
                     <Text className={styles.eyebrow}>{text(t, 'mod_archive.tree_v2.entity_eyebrow', 'ENTITY SUMMARY')}</Text>
                     <Title order={2} className={styles.panelTitle}>{text(t, 'mod_archive.tree_v2.entities', 'Entities')}</Title>
                     <Text className={styles.panelDescription} size="sm">{text(t, 'mod_archive.tree_v2.entities_desc', 'Important entities are ranked by tier and occurrence. Source evidence stays available on demand.')}</Text>
                 </div>
-                <Badge variant="outline">{ordered.length}</Badge>
+                <button
+                    type="button"
+                    className={styles.entitySectionToggle}
+                    aria-label={text(t, 'mod_archive.tree_v2.entities', 'Entities')}
+                    aria-expanded={expanded}
+                    aria-controls={contentId}
+                    onClick={() => setExpanded((current) => !current)}
+                >
+                    <span className={styles.entitySectionMeta}>
+                        <Badge variant="outline">{ordered.length}</Badge>
+                        <IconChevronDown className={styles.entitySectionChevron} size={18} aria-hidden="true" />
+                    </span>
+                </button>
             </header>
-            {primary.length > 0 ? (
-                <div className={styles.entityGrid}>
-                    {primary.map((entity) => (
-                        <EntityCard key={entity.id} entity={entity} digest={digestById.get(entity.id)} evidence={evidenceById.get(entity.id) || []} t={t} />
-                    ))}
-                </div>
-            ) : (
-                <Text className={styles.noSource} mt="md">{text(t, 'mod_archive.tree_v2.no_entities', 'No ranked entities are available in this release.')}</Text>
-            )}
-            {lower.length > 0 && (
-                <details className={styles.lowerEntityGroup}>
-                    <summary>{text(t, 'mod_archive.tree_v2.lower_entities', 'Other entities')} · {lower.length}</summary>
-                    <div className={styles.detailsContent}>
-                        <div className={styles.detailsContentInner}>
+            <div
+                id={contentId}
+                className={styles.entitySectionContent}
+                data-expanded={expanded ? 'true' : 'false'}
+                aria-hidden={!expanded}
+                inert={!expanded}
+            >
+                <div className={styles.entitySectionContentInner}>
+                    <div className={styles.entitySectionContentBody}>
+                        {primary.length > 0 ? (
                             <div className={styles.entityGrid}>
-                                {lower.map((entity) => (
+                                {primary.map((entity) => (
                                     <EntityCard key={entity.id} entity={entity} digest={digestById.get(entity.id)} evidence={evidenceById.get(entity.id) || []} t={t} />
                                 ))}
                             </div>
-                        </div>
+                        ) : (
+                            <Text className={styles.noSource}>{text(t, 'mod_archive.tree_v2.no_entities', 'No ranked entities are available in this release.')}</Text>
+                        )}
+                        {lower.length > 0 && (
+                            <details className={styles.lowerEntityGroup}>
+                                <summary>{text(t, 'mod_archive.tree_v2.lower_entities', 'Other entities')} · {lower.length}</summary>
+                                <div className={styles.detailsContent}>
+                                    <div className={styles.detailsContentInner}>
+                                        <div className={styles.entityGrid}>
+                                            {lower.map((entity) => (
+                                                <EntityCard key={entity.id} entity={entity} digest={digestById.get(entity.id)} evidence={evidenceById.get(entity.id) || []} t={t} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
+                        )}
                     </div>
-                </details>
-            )}
+                </div>
+            </div>
         </Paper>
     );
 };

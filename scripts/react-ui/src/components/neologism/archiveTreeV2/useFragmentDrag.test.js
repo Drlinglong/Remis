@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
-import { resolveFragmentMove } from './useFragmentDrag';
+import { resolveFragmentMove, useFragmentDrag } from './useFragmentDrag';
 
 const groups = [
     { id: 'group-1', fragmentIds: ['fragment-1', 'fragment-2'] },
@@ -14,6 +15,24 @@ describe('resolveFragmentMove', () => {
             overId: 'group:group-2',
             groups,
         })).toEqual({
+            fragmentId: 'fragment-2',
+            targetGroupId: 'group-2',
+            overFragmentId: null,
+        });
+    });
+
+    it('reports a group rail drop without an insertion fragment', () => {
+        const onMoveFragment = vi.fn();
+        const { result } = renderHook(() => useFragmentDrag({ groups, onMoveFragment }));
+
+        act(() => {
+            result.current.handleDragEnd({
+                active: { id: 'fragment-2' },
+                over: { id: 'group:group-2' },
+            });
+        });
+
+        expect(onMoveFragment).toHaveBeenCalledWith({
             fragmentId: 'fragment-2',
             targetGroupId: 'group-2',
             overFragmentId: null,

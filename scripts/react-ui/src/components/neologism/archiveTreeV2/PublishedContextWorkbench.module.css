@@ -285,9 +285,16 @@
 }
 
 .groupColumn[data-group-kind='needs-placement'] {
-    --remis-surface-override-border: color-mix(in srgb, var(--status-warning) 68%, var(--paper-text-main));
-    --remis-surface-override-bg: color-mix(in srgb, var(--status-warning) 7%, var(--paper-bg));
+    --remis-surface-override-border: color-mix(in srgb, var(--status-warning) 42%, var(--paper-text-main));
+    --remis-surface-override-bg: color-mix(in srgb, var(--status-warning) 14%, var(--paper-bg));
     --workbench-kicker-color: color-mix(in srgb, var(--status-warning) 78%, var(--paper-text-main));
+}
+
+.groupColumn[data-group-kind='needs-placement'] .groupCount {
+    border-color: color-mix(in srgb, var(--status-warning) 56%, var(--paper-text-main));
+    background: color-mix(in srgb, var(--status-warning) 18%, var(--paper-bg));
+    color: color-mix(in srgb, var(--status-warning) 68%, var(--paper-text-main));
+    opacity: 1;
 }
 
 .groupColumn[data-group-kind='supporting'] {
@@ -326,7 +333,8 @@
     grid-template-rows: minmax(0, 1fr) auto;
     justify-items: center;
     gap: 0.5rem;
-    width: clamp(3.5rem, 5vw, 4.5rem);
+    flex: 0 0 72px;
+    width: 72px;
     min-height: 9rem;
     padding: 0.75rem 0.5rem;
     border: 1px solid color-mix(in srgb, var(--surface-text-main) 24%, transparent);
@@ -354,7 +362,8 @@
     min-width: 0;
     overflow: hidden;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 4;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     font-size: 0.75rem;
     font-weight: 750;
     line-height: 1.35;
@@ -874,6 +883,68 @@ details[open] > .detailsContent {
     background: var(--surface-bg) !important;
 }
 
+.entitySectionToggle {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    min-width: var(--control-hit-target);
+    min-height: var(--control-hit-target);
+    padding: 0.25rem;
+    color: inherit;
+    font: inherit;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-control);
+    cursor: pointer;
+}
+
+.entitySectionToggle:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 4px;
+}
+
+.entitySectionHeading {
+    width: 100%;
+}
+
+.entitySectionMeta {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.entitySectionChevron {
+    transition: transform var(--motion-duration-standard) var(--motion-ease-emphasized);
+}
+
+.entitySectionToggle[aria-expanded='false'] .entitySectionChevron {
+    transform: rotate(-90deg);
+}
+
+.entitySectionContent {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+        grid-template-rows var(--motion-duration-standard) var(--motion-ease-emphasized),
+        opacity var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.entitySectionContent[data-expanded='true'] {
+    grid-template-rows: 1fr;
+    opacity: 1;
+}
+
+.entitySectionContentInner {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.entitySectionContentBody {
+    padding-top: 1rem;
+}
+
 .entityGrid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
@@ -952,12 +1023,18 @@ details[open] > .detailsContent {
     .fragmentCard,
     .dragHandle,
     .groupRenameButton,
+    .entitySectionChevron,
+    .entitySectionContent,
     .detailsContent {
         transition-duration: 0.01ms;
     }
 }
 
 @media (max-width: 64em) {
+    .focusedMiniRails {
+        display: none;
+    }
+
     .workbench {
         grid-template-columns: minmax(0, 1fr) minmax(19rem, 32rem);
     }
@@ -1033,12 +1110,4 @@ details[open] > .detailsContent {
         display: grid;
     }
 
-    .focusedMiniRails {
-        overflow-x: auto;
-        padding-bottom: 0.25rem;
-    }
-
-    .miniRail {
-        min-height: 5.5rem;
-    }
 }

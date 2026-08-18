@@ -21,4 +21,10 @@ describe('Published context workbench motion contract', () => {
         expect(styles).toContain('details[open] > .detailsContent');
         expect(styles).toContain('grid-template-rows: 1fr');
     });
+
+    it('keeps focused chain rails fixed, compact, and hidden below the desktop threshold', () => {
+        expect(styles).toMatch(/\.miniRail\s*\{[\s\S]*flex:\s*0 0 72px;[\s\S]*width:\s*72px;/);
+        expect(styles).toMatch(/\.miniRailLabel\s*\{[\s\S]*-webkit-line-clamp:\s*2;[\s\S]*line-clamp:\s*2;/);
+        expect(styles).toMatch(/@media \(max-width: 64em\)\s*\{[\s\S]*\.focusedMiniRails\s*\{[\s\S]*display:\s*none;/);
+    });
 });

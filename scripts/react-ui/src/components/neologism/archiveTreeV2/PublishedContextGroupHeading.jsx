@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Badge, Button } from '@mantine/core';
 import { IconCheck, IconPencil, IconTrash, IconX } from '@tabler/icons-react';
 
@@ -19,14 +19,18 @@ const PublishedContextGroupHeading = ({
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(group.label);
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const renameFinishedRef = useRef(false);
 
     const cancelRename = () => {
+        renameFinishedRef.current = true;
         setDraft(group.label);
         setEditing(false);
     };
     const commitRename = () => {
+        if (renameFinishedRef.current) return;
         const label = draft.trim();
         if (!label) return;
+        renameFinishedRef.current = true;
         if (label !== group.label) onRenameGroup?.(group.id, label);
         setEditing(false);
     };
@@ -62,6 +66,8 @@ const PublishedContextGroupHeading = ({
                             aria-label={text(t, 'mod_archive.tree_v2.rename_group_input', 'Event chain name')}
                             value={draft}
                             onChange={(event) => setDraft(event.currentTarget.value)}
+                            onBlur={commitRename}
+                            onFocus={(event) => event.currentTarget.select()}
                             onKeyDown={handleRenameKeyDown}
                             autoFocus
                         />
@@ -82,6 +88,9 @@ const PublishedContextGroupHeading = ({
                             size="compact-xs"
                             variant="default"
                             aria-label={text(t, 'cancel', 'Cancel')}
+                            onMouseDown={() => {
+                                renameFinishedRef.current = true;
+                            }}
                             onClick={cancelRename}
                         >
                             <IconX size={15} aria-hidden="true" />
@@ -110,6 +119,7 @@ const PublishedContextGroupHeading = ({
                     variant="subtle"
                     aria-label={text(t, 'mod_archive.tree_v2.rename_group', 'Rename event chain')}
                     onClick={() => {
+                        renameFinishedRef.current = false;
                         setDraft(group.label);
                         setEditing(true);
                     }}

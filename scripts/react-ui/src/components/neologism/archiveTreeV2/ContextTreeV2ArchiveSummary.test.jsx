@@ -62,8 +62,31 @@ describe('ContextTreeV2ArchiveSummary', () => {
         expect(screen.getByTestId('published-context-group-group-1')).toHaveTextContent('First quest');
         expect(screen.getByTestId('published-context-map')).not.toHaveTextContent('Resolution summary.');
         expect(screen.getByText('A/B entity summary.')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Entities/ })).toHaveAttribute('aria-expanded', 'true');
         expect(screen.getByText(/Other entities/).closest('details')).not.toHaveAttribute('open');
         expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    });
+
+    it('collapses and restores the entity section without persisting hidden state', () => {
+        const { unmount } = renderSummary();
+        const toggle = screen.getByRole('button', { name: /Entities/ });
+        const content = document.getElementById(toggle.getAttribute('aria-controls'));
+
+        fireEvent.click(toggle);
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        expect(content).toHaveAttribute('data-expanded', 'false');
+        expect(content).toHaveAttribute('aria-hidden', 'true');
+        expect(content).toHaveAttribute('inert');
+
+        fireEvent.click(toggle);
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        expect(content).toHaveAttribute('data-expanded', 'true');
+        expect(content).toHaveAttribute('aria-hidden', 'false');
+        expect(content).not.toHaveAttribute('inert');
+
+        unmount();
+        renderSummary();
+        expect(screen.getByRole('button', { name: /Entities/ })).toHaveAttribute('aria-expanded', 'true');
     });
 
     it('shows the selected fragment source detail and keeps dragging on dnd-kit', () => {
