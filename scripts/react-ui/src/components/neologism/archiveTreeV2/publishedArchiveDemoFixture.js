@@ -87,6 +87,7 @@ export const publishedArchiveDemoTree = {
         { fragment_id: 'fragment-map', label: '发现内环坐标', summary: '讯号中藏着一组未标记的内环坐标。', unit_ids: ['unit-signal'], route: 'narrative' },
         { fragment_id: 'fragment-vote', label: '返航表决', summary: '顾沉让全员在返航与继续探索之间表决。', unit_ids: ['unit-vote'], route: 'narrative' },
         { fragment_id: 'fragment-relic', label: '跃迁罗盘', summary: '一件可复用的航道遗物。', unit_ids: ['unit-relic'], route: 'reference_asset', tier: 'A' },
+        { fragment_id: 'fragment-unresolved', label: '未归位航标', summary: '这条航标告警尚未确认所属事件链。', unit_ids: ['unit-signal'], route: 'unresolved' },
     ],
     reference_assets: [
         { asset_id: 'asset-compass', label: '跃迁罗盘', summary: '指向失落航道内环的旧式导航遗物。', tier: 'A', unit_ids: ['unit-relic'] },

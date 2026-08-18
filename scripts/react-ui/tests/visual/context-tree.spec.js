@@ -20,12 +20,24 @@ for (const themeId of themes) {
       await expect(page.getByTestId('published-context-map')).toBeVisible();
       await expect(page.getByTestId('published-context-detail-empty')).toBeVisible();
       await expect(page.getByTestId('published-context-entities')).toBeVisible();
+      await expect(page.getByTestId('published-context-group-group-unassigned')).toHaveAttribute(
+        'data-group-kind',
+        'needs-placement',
+      );
 
       const layoutBox = await page.getByTestId('published-context-layout').boundingBox();
       expect(layoutBox.width / viewport.width).toBeGreaterThanOrEqual(0.9);
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
 
       await expect(page).toHaveScreenshot(`context-tree-${themeId}-${viewport.id}-overview.png`, { fullPage: true });
+
+      if (viewport.id === 'wide') {
+        await page.getByTestId('published-context-overview-rail').evaluate((rail) => {
+          rail.scrollLeft = rail.scrollWidth;
+        });
+        await expect(page.getByTestId('published-context-group-group-unassigned')).toBeInViewport();
+        await expect(page).toHaveScreenshot(`context-tree-${themeId}-${viewport.id}-exceptions.png`, { fullPage: true });
+      }
 
       await page.getByTestId('published-context-fragment-fragment-signal').click();
       await expect(page.getByTestId('published-context-detail')).toContainText('解读求救讯号');

@@ -113,6 +113,7 @@ describe('ContextTreeV2ArchiveSummary', () => {
                 ...tree.fragments,
                 { fragment_id: 'fragment-reference', label: 'Reference note', route: 'reference' },
                 { fragment_id: 'fragment-unassigned', label: 'Loose event', route: 'narrative' },
+                { fragment_id: 'fragment-unresolved', label: 'Unresolved event', route: 'unresolved' },
             ],
             reference_assets: [{ id: 'asset-reference', fragment_id: 'fragment-reference', label: 'Reference note' }],
         };
@@ -123,6 +124,8 @@ describe('ContextTreeV2ArchiveSummary', () => {
         const needsPlacement = screen.getByTestId('published-context-group-group-unassigned');
         expect(supporting).toHaveAttribute('data-group-kind', 'supporting');
         expect(needsPlacement).toHaveAttribute('data-group-kind', 'needs-placement');
+        expect(needsPlacement).toHaveTextContent('Loose event');
+        expect(needsPlacement).toHaveTextContent('Unresolved event');
         expect(needsPlacement.parentElement.lastElementChild).toBe(needsPlacement);
     });
 

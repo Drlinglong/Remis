@@ -9,6 +9,7 @@ import { IconPlus } from '@tabler/icons-react';
 
 import PublishedContextGroupColumn from './PublishedContextGroupColumn';
 import PublishedContextMiniRail from './PublishedContextMiniRail';
+import { TREE_ROUTE } from './contextArchiveTreeModel';
 import styles from './PublishedContextWorkbench.module.css';
 import { getGroupForFragment, useFragmentDrag } from './useFragmentDrag';
 
@@ -45,10 +46,9 @@ const PublishedContextMap = ({
     const selectedGroup = tree.groups.find((group) => group.id === selectedGroupId);
     const focusedGroup = selectedGroup || getGroupForFragment(tree.groups, selectedFragmentId);
     const focused = Boolean(focusedGroup);
-    const assigned = new Set(tree.groups.flatMap((group) => group.fragmentIds));
-    const unassigned = Object.values(tree.fragments).filter((fragment) => (
-        fragment.route === 'narrative' && !assigned.has(fragment.id)
-    ));
+    const unassigned = tree.unresolvedFragmentIds
+        .map((fragmentId) => tree.fragments[fragmentId])
+        .filter((fragment) => fragment && fragment.route !== TREE_ROUTE.REFERENCE_ASSET);
     const supportFragments = useMemo(() => [...new Map(tree.referenceAssets
         .map((asset) => tree.fragments[asset.fragmentId || asset.id])
         .filter(Boolean)
@@ -219,7 +219,7 @@ const PublishedContextMap = ({
                         </div>
                         <div className={styles.rootConnector} aria-hidden="true" />
                         <StoryRail story={stories[0]} t={t} />
-                        <div className={styles.overviewRailViewport}>
+                        <div className={styles.overviewRailViewport} data-testid="published-context-overview-rail">
                             <div
                                 className={styles.groupGrid}
                                 style={{ '--chain-count': Math.max(1, overviewItems.length) }}
