@@ -19,7 +19,7 @@
   min-height: 0;
   min-width: 0;
   overflow: hidden;
-  background: var(--surface-bg-solid) !important;
+  background: var(--surface-bg-solid);
   border: 1px solid var(--surface-border-quiet);
   border-radius: var(--radius-panel);
 }
@@ -58,28 +58,28 @@
 .candidateButton {
   width: 100%;
   min-width: 0;
-  padding: var(--space-3) !important;
+  padding: var(--space-3);
   cursor: pointer;
-  color: var(--surface-text-main) !important;
+  color: var(--surface-text-main);
   font: inherit;
   text-align: left;
-  background: var(--surface-bg) !important;
-  border: 1px solid var(--surface-border-quiet) !important;
-  border-radius: var(--radius-control) !important;
-  box-shadow: none !important;
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border-quiet);
+  border-radius: var(--radius-control);
+  box-shadow: none;
   transition:
     border-color var(--motion-duration-fast) var(--motion-ease-standard),
     background-color var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .candidateButton:hover {
-  border-color: var(--surface-border) !important;
+  border-color: var(--surface-border);
 }
 
 .candidateButton[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--interactive-accent) 10%, var(--surface-bg-solid)) !important;
-  border-color: var(--surface-border-anchor) !important;
-  box-shadow: inset 3px 0 0 var(--interactive-accent) !important;
+  background: color-mix(in srgb, var(--interactive-accent) 10%, var(--surface-bg-solid));
+  border-color: var(--surface-border-anchor);
+  box-shadow: inset 3px 0 0 var(--interactive-accent);
 }
 
 .candidateButton:focus-visible {
@@ -130,19 +130,19 @@
 .evidenceCard,
 .decisionPanel,
 .quietAlert {
-  box-shadow: none !important;
+  box-shadow: none;
 }
 
 .quietToolbar {
-  background: var(--surface-bg) !important;
-  border: 1px solid var(--surface-border-quiet) !important;
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border-quiet);
 }
 
 .candidateAnchor {
-  background: var(--surface-bg-solid) !important;
-  border: 1px solid var(--surface-border-anchor) !important;
-  border-radius: var(--radius-panel) !important;
-  box-shadow: var(--shadow-quiet) !important;
+  background: var(--surface-bg-solid);
+  border: 1px solid var(--surface-border-anchor);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-quiet);
 }
 
 .caseTitle {
@@ -159,20 +159,20 @@
 }
 
 .secondaryPanel {
-  background: var(--paper-bg) !important;
-  border: 1px solid var(--paper-border-quiet) !important;
-  border-radius: var(--radius-paper) !important;
+  background: var(--paper-bg);
+  border: 1px solid var(--paper-border-quiet);
+  border-radius: var(--radius-paper);
 }
 
 .evidenceCard {
   min-width: 0;
-  background: var(--paper-bg) !important;
-  border: 1px solid var(--paper-border-quiet) !important;
-  border-radius: var(--radius-paper) !important;
+  background: var(--paper-bg);
+  border: 1px solid var(--paper-border-quiet);
+  border-radius: var(--radius-paper);
 }
 
 .evidenceSource {
-  color: var(--paper-text-muted) !important;
+  color: var(--paper-text-muted);
   user-select: text;
 }
 
@@ -192,44 +192,44 @@
 
 .decisionPanel {
   flex: 0 0 auto;
-  background: var(--surface-bg-solid) !important;
-  border: 1px solid var(--surface-border-anchor) !important;
-  border-radius: var(--radius-panel) !important;
+  background: var(--surface-bg-solid);
+  border: 1px solid var(--surface-border-anchor);
+  border-radius: var(--radius-panel);
 }
 
 .quietAlert {
-  background: color-mix(in srgb, var(--surface-bg-solid) 92%, transparent) !important;
-  border: 1px solid var(--surface-border-quiet) !important;
-  color: var(--surface-text-main) !important;
+  background: color-mix(in srgb, var(--surface-bg-solid) 92%, transparent);
+  border: 1px solid var(--surface-border-quiet);
+  color: var(--surface-text-main);
 }
 
 .quietAlert :global(.mantine-Alert-title),
 .quietAlert :global(.mantine-Alert-message) {
-  color: var(--surface-text-main) !important;
+  color: var(--surface-text-main);
 }
 
 .surfaceBadge {
-  background: color-mix(in srgb, var(--surface-text-main) 9%, transparent) !important;
-  border-color: color-mix(in srgb, var(--surface-text-main) 32%, transparent) !important;
-  color: var(--surface-text-main) !important;
+  background: color-mix(in srgb, var(--surface-text-main) 9%, transparent);
+  border-color: color-mix(in srgb, var(--surface-text-main) 32%, transparent);
+  color: var(--surface-text-main);
 }
 
 .paperBadge,
 .paperIcon {
-  background: color-mix(in srgb, var(--paper-text-main) 9%, var(--paper-bg)) !important;
-  border-color: color-mix(in srgb, var(--paper-text-main) 24%, transparent) !important;
-  color: var(--paper-text-main) !important;
+  background: color-mix(in srgb, var(--paper-text-main) 9%, var(--paper-bg));
+  border-color: color-mix(in srgb, var(--paper-text-main) 24%, transparent);
+  color: var(--paper-text-main);
 }
 
 .semanticField {
-  background: var(--paper-bg) !important;
-  border: 1px solid color-mix(in srgb, var(--paper-text-main) 38%, transparent) !important;
-  color: var(--paper-text-main) !important;
-  box-shadow: none !important;
+  background: var(--paper-bg);
+  border: 1px solid color-mix(in srgb, var(--paper-text-main) 38%, transparent);
+  color: var(--paper-text-main);
+  box-shadow: none;
 }
 
 .semanticField::placeholder {
-  color: var(--paper-text-muted) !important;
+  color: var(--paper-text-muted);
   opacity: 1;
 }
 
@@ -239,40 +239,40 @@
 }
 
 .semanticFieldLabel {
-  color: var(--surface-text-main) !important;
+  color: var(--surface-text-main);
 }
 
 .semanticFieldDescription {
-  color: var(--surface-text-muted) !important;
+  color: var(--surface-text-muted);
 }
 
 .resetSuggestion {
-  color: var(--paper-text-muted) !important;
+  color: var(--paper-text-muted);
 }
 
 .primaryAction {
   min-block-size: var(--control-hit-target);
   min-width: min(15rem, 100%);
-  background: var(--interactive-accent) !important;
-  border: 1px solid var(--surface-text-muted) !important;
-  color: var(--interactive-accent-text) !important;
-  box-shadow: none !important;
+  background: var(--interactive-accent);
+  border: 1px solid var(--surface-text-muted);
+  color: var(--interactive-accent-text);
+  box-shadow: none;
 }
 
 .secondaryAction {
   min-block-size: var(--control-hit-target);
-  background: transparent !important;
-  border: 1px solid var(--surface-text-muted) !important;
-  color: var(--surface-text-main) !important;
-  box-shadow: none !important;
+  background: transparent;
+  border: 1px solid var(--surface-text-muted);
+  color: var(--surface-text-main);
+  box-shadow: none;
 }
 
 .dangerSecondaryAction {
   min-block-size: var(--control-hit-target);
-  background: transparent !important;
-  border: 1px solid var(--surface-text-muted) !important;
-  color: var(--surface-text-main) !important;
-  box-shadow: inset 3px 0 0 var(--status-error) !important;
+  background: transparent;
+  border: 1px solid var(--surface-text-muted);
+  color: var(--surface-text-main);
+  box-shadow: inset 3px 0 0 var(--status-error);
 }
 
 .emptyWorkspace {
@@ -312,42 +312,42 @@
 .batchModalContent,
 .batchModalHeader,
 .batchModalBody {
-  --mantine-color-text: var(--paper-text-main) !important;
-  --mantine-color-dimmed: var(--paper-text-muted) !important;
-  background: var(--paper-bg) !important;
-  color: var(--paper-text-main) !important;
+  --mantine-color-text: var(--paper-text-main);
+  --mantine-color-dimmed: var(--paper-text-muted);
+  background: var(--paper-bg);
+  color: var(--paper-text-main);
 }
 
 .batchModalContent {
-  border: 1px solid var(--paper-text-muted) !important;
+  border: 1px solid var(--paper-text-muted);
 }
 
 .batchModalTitle {
-  color: var(--paper-text-main) !important;
+  color: var(--paper-text-main);
 }
 
 .batchModalClose {
-  background: transparent !important;
-  border: 1px solid transparent !important;
-  color: var(--paper-text-main) !important;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--paper-text-main);
 }
 
 .batchModalClose:hover {
-  background: color-mix(in srgb, var(--paper-text-main) 9%, var(--paper-bg)) !important;
-  border-color: var(--paper-text-muted) !important;
+  background: color-mix(in srgb, var(--paper-text-main) 9%, var(--paper-bg));
+  border-color: var(--paper-text-muted);
 }
 
 .batchModalAlert {
-  background: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg)) !important;
-  border: 1px solid var(--paper-text-muted) !important;
-  color: var(--paper-text-main) !important;
-  box-shadow: none !important;
+  background: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg));
+  border: 1px solid var(--paper-text-muted);
+  color: var(--paper-text-main);
+  box-shadow: none;
 }
 
 .batchModalAlert :global(.mantine-Alert-icon),
 .batchModalAlert :global(.mantine-Alert-title),
 .batchModalAlert :global(.mantine-Alert-message) {
-  color: var(--paper-text-main) !important;
+  color: var(--paper-text-main);
 }
 
 @media (max-width: 75rem) {
