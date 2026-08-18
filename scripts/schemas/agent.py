@@ -124,6 +124,7 @@ class AgentJobResponse(BaseModel):
         "running",
         "awaiting_approval",
         "completed",
+        "partial_failed",
         "failed",
         "cancelled",
         "interrupted",

@@ -430,7 +430,7 @@ async def test_repair_requires_approval_before_loading_issues(isolated_registry)
 def test_agent_repair_status_and_actions_preserve_workshop_governance():
     validation = AgentValidationSummary(available=True)
 
-    assert agent_router._normalize_status("partial_failed") == "failed"
+    assert agent_router._normalize_status("partial_failed") == "partial_failed"
     assert agent_router._normalize_status("interrupted") == "interrupted"
     assert agent_router._job_allowed_actions(
         "completed",
@@ -527,7 +527,7 @@ async def test_approved_agent_repair_forwards_governed_workshop_contract(
     assert forwarded.created_by.type == "remis_agent"
     assert forwarded.idempotency_key.startswith("agent-repair:")
     assert response.job_id == "repair-child"
-    assert response.status == "failed"
+    assert response.status == "partial_failed"
     assert response.parent_task_id == "job-parent"
     assert response.output_paths == ["reports/repair-child.json"]
     assert response.result.summary == "One repair still needs review."

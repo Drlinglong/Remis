@@ -322,7 +322,7 @@ def _normalize_status(raw_status: Optional[str], *, recovered: bool = False) -> 
         "processing": "running",
         "completed": "completed",
         "failed": "failed",
-        "partial_failed": "failed",
+        "partial_failed": "partial_failed",
         "cancelled": "cancelled",
         "interrupted": "interrupted",
     }.get(str(raw_status or "").lower(), "unknown")
@@ -336,7 +336,7 @@ def _job_allowed_actions(
     kind: str,
 ) -> list[str]:
     actions = ["poll"] if status in {"queued", "running"} else []
-    if status in {"failed", "interrupted"}:
+    if status in {"failed", "partial_failed", "interrupted"}:
         actions.append("retry")
     if status == "completed":
         if validation.available:
