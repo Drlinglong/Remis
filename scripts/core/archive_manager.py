@@ -8,6 +8,7 @@ import json
 
 from scripts.utils import i18n
 from scripts.app_settings import PROJECT_ROOT, MODS_CACHE_DB_PATH
+from scripts.core.archive_translation_updates import update_archive_translations
 
 class ArchiveManager:
     """
@@ -799,46 +800,18 @@ class ArchiveManager:
             logging.error(f"Global archive lookup failed: {e}")
             return None
 
-    def update_translations(self, mod_name: str, file_path: str, entries: List[Dict[str, Any]], language: str = "zh-CN"):
-        """
-        Updates translations for specific keys.
-        """
-        if not self.connection: return
-        cursor = self.connection.cursor()
-
-        # Get Mod/Version (Similar to get_entries)
-        cursor.execute("SELECT mod_id FROM mods WHERE name = ?", (mod_name,))
-        mod_row = cursor.fetchone()
-        if not mod_row: return
-        mod_id = mod_row['mod_id']
-
-        cursor.execute("SELECT version_id FROM source_versions WHERE mod_id = ? ORDER BY created_at DESC LIMIT 1", (mod_id,))
-        ver_row = cursor.fetchone()
-        if not ver_row: return
-        version_id = ver_row['version_id']
-
-        normalized_file_path = self._normalize_archive_file_path(file_path)
-        file_path_candidates = self._build_file_path_candidates(normalized_file_path)
-
-        for entry in entries:
-            key = entry['key']
-            translation = entry.get('translation', '')
-
-            # Find source entry ID
-            row = self._find_source_entry_id(cursor, version_id, key, file_path_candidates)
-
-            if row:
-                source_entry_id = row['source_entry_id']
-                # Upsert translation
-                cursor.execute('''
-                    INSERT INTO translated_entries (source_entry_id, language_code, translated_text)
-                    VALUES (?, ?, ?)
-                    ON CONFLICT(source_entry_id, language_code) DO UPDATE SET
-                    translated_text=excluded.translated_text,
-                    last_translated_at=CURRENT_TIMESTAMP
-                ''', (source_entry_id, language, translation))
-
-        self.connection.commit()
+    def update_translations(
+        self,
+        mod_name: str,
+        file_path: str,
+        entries: List[Dict[str, Any]],
+        language: str = "zh-CN",
+        project_id: str = None,
+    ) -> int:
+        """Update proofreading entries in the active incremental baseline."""
+        return update_archive_translations(
+            self, mod_name, file_path, entries, language, project_id
+        )
 
     def _normalize_archive_file_path(self, file_path: str) -> str:
         normalized = (file_path or "").strip().replace("\\", "/")

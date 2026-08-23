@@ -9,6 +9,7 @@ from scripts.core.services.proofreading_service import (
     _atomic_write_lines,
     _file_revision,
 )
+from scripts.core.archive_manager import ArchiveManager
 
 
 class FakeProjectManager:
@@ -17,6 +18,7 @@ class FakeProjectManager:
         self.project = project or {}
         self.get_project_files_calls = 0
         self.get_project_calls = 0
+        self.status_updates = []
 
     async def get_project_files(self, project_id):
         self.get_project_files_calls += 1
@@ -25,6 +27,23 @@ class FakeProjectManager:
     async def get_project(self, project_id):
         self.get_project_calls += 1
         return self.project
+
+    async def update_file_status_with_kanban_sync(self, project_id, file_id, status):
+        self.status_updates.append((project_id, file_id, status))
+
+
+class FakeArchiveManager:
+    def __init__(self, *, error=None):
+        self.error = error
+        self.updates = []
+
+    def update_translations(
+        self, mod_name, file_path, entries, language="zh-CN", project_id=None
+    ):
+        if self.error:
+            raise self.error
+        self.updates.append((mod_name, file_path, entries, language, project_id))
+        return len(entries)
 
 
 @pytest.mark.asyncio
@@ -340,3 +359,136 @@ async def test_save_rejects_stale_document_revision_without_writing(tmp_path):
         )
 
     assert target.read_text(encoding="utf-8-sig") == original
+
+
+@pytest.mark.asyncio
+async def test_save_updates_disk_and_incremental_archive_baseline(tmp_path, monkeypatch):
+    import scripts.core.archive_manager as archive_module
+
+    monkeypatch.setattr(archive_module, "MODS_CACHE_DB_PATH", str(tmp_path / "archive.sqlite"))
+    source_dir = tmp_path / "localization" / "english"
+    target_dir = tmp_path / "localization" / "simp_chinese"
+    source_dir.mkdir(parents=True)
+    target_dir.mkdir(parents=True)
+    source = source_dir / "demo_l_english.yml"
+    target = target_dir / "demo_l_simp_chinese.yml"
+    source.write_text('l_english:\n demo.key:0 "Original"\n', encoding="utf-8-sig")
+    target.write_text('l_simp_chinese:\n demo.key:0 "Draft"\n', encoding="utf-8-sig")
+    manager = FakeProjectManager(
+        files=[{"file_id": "file-1", "file_path": str(target)}],
+        project={"name": "Demo", "source_language": "en", "source_path": str(tmp_path)},
+    )
+    archive = ArchiveManager()
+    mod_id = archive.get_or_create_mod_entry("Demo", "project-1")
+    version_id = archive.create_source_version(
+        mod_id,
+        [{
+            "filename": source.name,
+            "file_path": str(source),
+            "texts_to_translate": ["Original"],
+            "key_map": {0: {"key_part": "demo.key:0"}},
+        }],
+    )
+    archive.archive_translated_results(
+        version_id,
+        {str(source): ["Draft"]},
+        [{
+            "filename": source.name,
+            "file_path": str(source),
+            "texts_to_translate": ["Original"],
+            "key_map": [{"key_part": "demo.key:0"}],
+        }],
+        "zh-CN",
+    )
+    service = ProofreadingService(manager, archive)
+
+    result = await service.save_proofread_data(
+        "project-1",
+        "file-1",
+        [{"key": "demo.key:0", "translation": "Polished"}],
+        [],
+        _file_revision(str(target)),
+    )
+
+    assert result["status"] == "success"
+    assert target.read_text(encoding="utf-8-sig").endswith('demo.key:0 "Polished"\n')
+    entries = archive.get_entries(
+        project_id="project-1",
+        file_path=str(source),
+        language="zh-CN",
+    )
+    assert entries[0]["translation"] == "Polished"
+    assert manager.status_updates == [("project-1", "file-1", "done")]
+    archive.close()
+
+
+@pytest.mark.asyncio
+async def test_save_restores_disk_when_archive_update_fails(tmp_path):
+    target = tmp_path / "demo_l_english.yml"
+    original = 'l_english:\n demo.key:0 "Original"\n'
+    target.write_text(original, encoding="utf-8-sig")
+    manager = FakeProjectManager(
+        files=[{"file_id": "file-1", "file_path": str(target)}],
+        project={"name": "Demo", "source_language": "en", "source_path": str(tmp_path)},
+    )
+    archive = FakeArchiveManager(error=RuntimeError("database unavailable"))
+    service = ProofreadingService(manager, archive)
+
+    result = await service.save_proofread_data(
+        "project-1",
+        "file-1",
+        [{"key": "demo.key:0", "translation": "Polished"}],
+        [],
+        _file_revision(str(target)),
+    )
+
+    assert result is False
+    assert target.read_text(encoding="utf-8-sig") == original
+    assert manager.status_updates == []
+
+
+def test_archive_baseline_update_rolls_back_when_any_key_is_missing(tmp_path, monkeypatch):
+    import scripts.core.archive_manager as archive_module
+
+    monkeypatch.setattr(archive_module, "MODS_CACHE_DB_PATH", str(tmp_path / "archive.sqlite"))
+    archive = ArchiveManager()
+    mod_id = archive.get_or_create_mod_entry("AtomicUpdateMod", "atomic-update-project")
+    version_id = archive.create_source_version(
+        mod_id,
+        [{
+            "filename": "sample_l_english.yml",
+            "file_path": "localization/english/sample_l_english.yml",
+            "texts_to_translate": ["Alpha"],
+            "key_map": {0: {"key_part": "present.key"}},
+        }],
+    )
+    archive.archive_translated_results(
+        version_id,
+        {"localization/english/sample_l_english.yml": ["Before"]},
+        [{
+            "filename": "sample_l_english.yml",
+            "file_path": "localization/english/sample_l_english.yml",
+            "texts_to_translate": ["Alpha"],
+            "key_map": [{"key_part": "present.key"}],
+        }],
+        "zh-CN",
+    )
+
+    with pytest.raises(LookupError, match="missing.key"):
+        archive.update_translations(
+            "AtomicUpdateMod",
+            "localization/english/sample_l_english.yml",
+            [
+                {"key": "present.key", "translation": "After"},
+                {"key": "missing.key", "translation": "Missing"},
+            ],
+            "zh-CN",
+        )
+
+    entries = archive.get_entries(
+        project_id="atomic-update-project",
+        file_path="localization/english/sample_l_english.yml",
+        language="zh-CN",
+    )
+    assert entries[0]["translation"] == "Before"
+    archive.close()

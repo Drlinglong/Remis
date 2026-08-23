@@ -62,6 +62,32 @@ class ProofreadingService:
         self.project_manager = project_manager
         self.archive_manager = archive_manager
 
+    def _sync_archive_baseline(
+        self,
+        project: Dict[str, Any],
+        template_file_path: str,
+        target_file_path: str,
+        target_lines: List[str],
+        entries_list: List[Dict[str, Any]],
+        current_lang: str,
+        project_id: str,
+    ) -> None:
+        try:
+            updated_count = self.archive_manager.update_translations(
+                project['name'],
+                template_file_path,
+                entries_list,
+                LanguageCode.from_str(current_lang).value,
+                project_id=project_id,
+            )
+            if updated_count != len(entries_list):
+                raise RuntimeError("Proofreading archive update did not persist every entry.")
+        except Exception:
+            # Filesystem and SQLite cannot share a transaction. Restore the
+            # exact pre-save document state when the baseline update fails.
+            _atomic_write_lines(target_file_path, target_lines)
+            raise
+
     def _classify_structure_line(self, line: str) -> str:
         stripped = line.strip()
         if not stripped:
@@ -597,6 +623,17 @@ class ProofreadingService:
             patched_lines = self._apply_structure_patches(patched_lines, list(merged_patches.values()))
             
             _atomic_write_lines(target_file_path, patched_lines)
+
+            # Incremental translation reads this archive baseline, not the file.
+            self._sync_archive_baseline(
+                project,
+                template_file_path,
+                target_file_path,
+                target_lines,
+                entries_list,
+                current_lang,
+                project_id,
+            )
 
             # 5. Update project-local workflow state
             await self.project_manager.update_file_status_with_kanban_sync(

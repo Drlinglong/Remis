@@ -6,7 +6,7 @@
     "complexity": 20
   },
   "module_line_exceptions": {
-    "scripts/core/archive_manager.py": 899,
+    "scripts/core/archive_manager.py": 872,
     "scripts/core/glossary_manager.py": 1647,
     "scripts/core/project_manager.py": 1063,
     "scripts/core/services/model_arena_execution_service.py": 1163,
