@@ -9,7 +9,7 @@ import MiningDashboard from './MiningDashboard';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key, fallback) => fallback || key,
+    t: (key, fallback) => (typeof fallback === 'string' ? fallback : key),
     i18n: { language: 'zh-CN', resolvedLanguage: 'zh-CN' },
   }),
 }));
@@ -113,6 +113,40 @@ describe('MiningDashboard', () => {
     expect(startButton).toBeEnabled();
     expect(api.get).toHaveBeenCalledWith('/api/neologisms/status/project-1');
     expect(api.get.mock.calls.filter(([url]) => url === '/api/neologisms/status/project-1')).toHaveLength(1);
+  });
+
+  it('reconciles a completed mining task through REST when websocket stays silent', async () => {
+    const defaultGet = api.get.getMockImplementation();
+    let statusRequestCount = 0;
+    api.get.mockImplementation((url) => {
+      if (url === '/api/neologisms/status/project-1') {
+        statusRequestCount += 1;
+        return Promise.resolve({
+          data: statusRequestCount === 1
+            ? { status: 'idle' }
+            : { status: 'completed', task_id: 'task-1', processed_files: 3, total_files: 3 },
+        });
+      }
+      return defaultGet(url);
+    });
+    const onMiningComplete = vi.fn();
+    render(
+      <MantineProvider>
+        <MiningDashboard
+          selectedProject="project-1"
+          onSelectedProjectChange={vi.fn()}
+          onMiningComplete={onMiningComplete}
+        />
+      </MantineProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole('button', {
+      name: 'neologism_review.mining.start_mining',
+    }));
+
+    await waitFor(() => expect(api.post).toHaveBeenCalled());
+    await waitFor(() => expect(onMiningComplete).toHaveBeenCalledOnce(), { timeout: 1600 });
+    expect(statusRequestCount).toBeGreaterThan(1);
   });
 
   it('uses a scoped localized model label', async () => {

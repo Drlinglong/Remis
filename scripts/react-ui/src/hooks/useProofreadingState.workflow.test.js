@@ -83,6 +83,29 @@ describe('useProofreadingState workflow', () => {
     expect(result.current.validationResults[0].key).toBe('demo.key:0');
   });
 
+  it('normalizes wrapped validation issues and ignores malformed issue records', async () => {
+    api.post.mockResolvedValue({
+      data: {
+        issues: [null, { level: 'warning', message: 'Issue', line_number: 1 }],
+      },
+    });
+    const { result } = renderHook(() => useProofreadingState());
+
+    await act(async () => result.current.handleValidate());
+    await waitFor(() => expect(result.current.validationResults).toHaveLength(1));
+    expect(result.current.validationResults[0].key).toBe('demo.key:0');
+  });
+
+  it('treats a malformed validation payload as an empty issue list', async () => {
+    api.post.mockResolvedValue({ data: null });
+    const { result } = renderHook(() => useProofreadingState());
+
+    await act(async () => result.current.handleValidate());
+
+    await waitFor(() => expect(result.current.validationResults).toEqual([]));
+    expect(result.current.stats).toEqual({ error: 0, warning: 0 });
+  });
+
   it('marks the exact loaded project file as reviewed', async () => {
     api.put.mockResolvedValue({ data: { status: 'success' } });
     const { result } = renderHook(() => useProofreadingState());

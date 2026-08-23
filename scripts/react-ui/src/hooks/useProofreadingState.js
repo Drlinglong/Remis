@@ -6,11 +6,14 @@ import { toParadoxLang } from '../utils/paradoxMapping';
 import { getBracketVariableWarnings } from '../components/proofreading/proofreadingEntryState';
 import { useFileNavigation } from './useFileNavigation';
 import { useEditorContent } from './useEditorContent';
+import { normalizeArrayPayload } from '../utils/payload';
 import {
     createProofreadingSessionSnapshot,
     readProofreadingSession,
     writeProofreadingSession,
 } from './proofreadingSession';
+
+const isObjectRecord = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
 /** Lean coordinator for navigation, document state, validation, and save flow. */
 const useProofreadingState = () => {
@@ -149,7 +152,10 @@ const useProofreadingState = () => {
                 content: virtualContent,
                 source_lang_code: 'en_US',
             });
-            const issues = (response.data || []).map(issue => {
+            const issues = normalizeArrayPayload(
+                response.data,
+                ['issues', 'items', 'data', 'results'],
+            ).filter(isObjectRecord).map(issue => {
                 const lineIndex = Math.max(0, Number(issue.line_number || 1) - 1);
                 return { ...issue, key: issue.key || entries[lineIndex]?.key || null };
             });

@@ -4,6 +4,17 @@ import api from '../utils/api';
 import { groupFiles as performGrouping } from '../utils/fileGrouping';
 import { usePersistentState } from './usePersistentState';
 import { readProofreadingSession } from './proofreadingSession';
+import { normalizeArrayPayload } from '../utils/payload';
+
+const isObjectRecord = (value) => value && typeof value === 'object' && !Array.isArray(value);
+const normalizeProjects = (payload) => normalizeArrayPayload(
+    payload,
+    ['projects', 'items', 'data', 'results'],
+).filter(isObjectRecord);
+const normalizeProjectFiles = (payload) => normalizeArrayPayload(
+    payload,
+    ['files', 'items', 'data', 'results'],
+).filter(file => isObjectRecord(file) && typeof file.file_path === 'string');
 
 /**
  * Hook for managing project and file navigation in the Proofreading page.
@@ -45,7 +56,7 @@ export const useFileNavigation = () => {
     const fetchProjects = useCallback(async () => {
         try {
             const res = await api.get('/api/projects?status=active');
-            setProjects(res.data);
+            setProjects(normalizeProjects(res.data));
         } catch (error) {
             console.error("Failed to load projects", error);
         }
@@ -62,8 +73,8 @@ export const useFileNavigation = () => {
         const requestId = ++projectFilesRequestRef.current;
         try {
             const res = await api.get(`/api/project/${projectId}/files`);
-            if (requestId === projectFilesRequestRef.current && res.data) {
-                groupFiles(res.data, project);
+            if (requestId === projectFilesRequestRef.current) {
+                groupFiles(normalizeProjectFiles(res.data), project);
             }
         } catch (error) {
             if (requestId === projectFilesRequestRef.current) {

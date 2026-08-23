@@ -103,6 +103,46 @@ describe('useFileNavigation', () => {
     });
   });
 
+  it('normalizes wrapped collections and ignores malformed project/file records', async () => {
+    api.get.mockImplementation((url) => {
+      if (url === '/api/projects?status=active') {
+        return Promise.resolve({
+          data: { projects: [null, { project_id: 'proj-1', name: 'Demo Project' }] },
+        });
+      }
+      if (url === '/api/project/proj-1/files') {
+        return Promise.resolve({
+          data: { files: [null, { file_id: 'source-1', file_path: 'events_l_english.yml' }] },
+        });
+      }
+      return Promise.reject(new Error(`unexpected GET ${url}`));
+    });
+
+    const { result } = renderHook(() => useFileNavigation());
+
+    await waitFor(() => {
+      expect(result.current.projects).toHaveLength(1);
+      expect(result.current.sourceFiles).toEqual([{
+        file_id: 'source-1',
+        file_path: 'events_l_english.yml',
+      }]);
+    });
+  });
+
+  it('falls back to empty navigation collections for null or malformed API payloads', async () => {
+    api.get.mockImplementation((url) => {
+      if (url === '/api/projects?status=active') return Promise.resolve({ data: null });
+      if (url === '/api/project/proj-1/files') return Promise.resolve({ data: { results: null } });
+      return Promise.reject(new Error(`unexpected GET ${url}`));
+    });
+
+    const { result } = renderHook(() => useFileNavigation());
+
+    await waitFor(() => expect(result.current.projects).toEqual([]));
+    expect(result.current.sourceFiles).toEqual([]);
+    expect(result.current.targetFilesMap).toEqual({});
+  });
+
   it('updates URL params when selecting a project manually', async () => {
     const { result } = renderHook(() => useFileNavigation());
 

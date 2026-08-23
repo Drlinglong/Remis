@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Container, Grid, Paper, Title, Text, Stack, Group, Button,
@@ -10,9 +10,9 @@ import {
 } from '@tabler/icons-react';
 import api from '../../utils/api';
 import { normalizeArrayPayload } from '../../utils/payload';
+import { useNeologismMiningTaskMonitor } from '../../hooks/useNeologismMiningTaskMonitor';
 
 const API_BASE_URL = '/api';
-const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '1453';
 
 const getProjectFilePath = (file) => file.file_path || file.path || '';
 const getProjectFileLabel = (file) => file.relative_path || file.rel_path || file.file_path || file.path || '';
@@ -67,10 +67,6 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
     const [reviewLanguage, setReviewLanguage] = useState(interfaceLanguage);
     const [scanning, setScanning] = useState(false);
     const [miningStatus, setMiningStatus] = useState(null);
-    const wsRef = useRef(null);
-    const reconnectTimerRef = useRef(null);
-    const connectSocketRef = useRef(null);
-    const terminalHandledRef = useRef(false);
 
     useEffect(() => {
         const provider = providers.find((item) => item.value === apiProvider);
@@ -81,97 +77,24 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
         setReviewLanguage(interfaceLanguage);
     }, [interfaceLanguage]);
 
-    const closeMiningSocket = useCallback(() => {
-        if (reconnectTimerRef.current) {
-            clearTimeout(reconnectTimerRef.current);
-            reconnectTimerRef.current = null;
-        }
-        if (wsRef.current) {
-            wsRef.current.onclose = null;
-            wsRef.current.onerror = null;
-            wsRef.current.close();
-            wsRef.current = null;
-        }
-    }, []);
+    const handleMiningTerminal = useCallback((status) => {
+        if (status.status === 'completed') onMiningComplete?.();
+    }, [onMiningComplete]);
 
-    const handleTerminalStatus = useCallback((status) => {
-        if (!['completed', 'failed'].includes(status) || terminalHandledRef.current) return;
-        terminalHandledRef.current = true;
-        closeMiningSocket();
-        if (status === 'completed') onMiningComplete?.();
-    }, [closeMiningSocket, onMiningComplete]);
+    const handleWebSocketError = useCallback(() => {
+        setMiningStatus((current) => ({
+            ...(current || {}),
+            status: current?.status || 'running',
+            error: t('neologism_review.mining.websocket_failed'),
+        }));
+    }, [t]);
 
-    const applyProjectStatus = useCallback((status) => {
-        setMiningStatus(status);
-        handleTerminalStatus(status?.status);
-    }, [handleTerminalStatus]);
-
-    const updateMiningStatusFromTask = useCallback((taskData) => {
-        const progress = taskData.progress || {};
-        const summary = taskData.summary || {};
-        const status = {
-            status: taskData.status === 'processing' ? 'running' : taskData.status,
-            processed_files: progress.current || 0,
-            total_files: progress.total || 0,
-            new_terms: summary.new_terms || 0,
-            duplicate_terms: summary.duplicate_terms || 0,
-            current_file: progress.current_file || null,
-            error: summary.error || taskData.error || null,
-        };
-        applyProjectStatus(status);
-    }, [applyProjectStatus]);
-
-    const connectMiningSocket = useCallback((taskId, projectId, attempt = 0) => {
-        closeMiningSocket();
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const backendHost = `127.0.0.1:${BACKEND_PORT}`;
-        const ws = new WebSocket(`${protocol}//${backendHost}/api/ws/status/${taskId}`);
-        wsRef.current = ws;
-
-        ws.onmessage = (event) => {
-            try {
-                updateMiningStatusFromTask(JSON.parse(event.data));
-            } catch (error) {
-                console.error('Failed to parse neologism mining WebSocket message', error);
-                ws.close();
-            }
-        };
-        ws.onerror = () => {
-            setMiningStatus((current) => ({
-                ...(current || {}),
-                status: current?.status || 'running',
-                error: t('neologism_review.mining.websocket_failed'),
-            }));
-            ws.close();
-        };
-        ws.onclose = () => {
-            if (wsRef.current === ws) wsRef.current = null;
-            if (terminalHandledRef.current) return;
-            const nextAttempt = attempt + 1;
-            const delay = Math.min(1000 * (2 ** attempt), 5000);
-            reconnectTimerRef.current = window.setTimeout(() => {
-                connectSocketRef.current?.(taskId, projectId, nextAttempt);
-            }, delay);
-        };
-    }, [closeMiningSocket, t, updateMiningStatusFromTask]);
-
-    useEffect(() => {
-        connectSocketRef.current = connectMiningSocket;
-    }, [connectMiningSocket]);
-
-    const fetchMiningStatus = useCallback(async (projectId) => {
-        try {
-            const response = await api.get(`${API_BASE_URL}/neologisms/status/${encodeURIComponent(projectId)}`);
-            if (response.data?.status && response.data.status !== 'idle') {
-                applyProjectStatus(response.data);
-                if (['starting', 'running'].includes(response.data.status) && response.data.task_id) {
-                    connectSocketRef.current?.(response.data.task_id, projectId);
-                }
-            }
-        } catch (error) {
-            console.error('Failed to restore mining status', error);
-        }
-    }, [applyProjectStatus]);
+    const { startMiningTask } = useNeologismMiningTaskMonitor({
+        projectId: selectedProject,
+        onStatus: setMiningStatus,
+        onTerminal: handleMiningTerminal,
+        onWebSocketError: handleWebSocketError,
+    });
 
     const fetchProjects = useCallback(async () => {
         try {
@@ -222,23 +145,15 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
 
     useEffect(() => {
         if (selectedProject) {
-            terminalHandledRef.current = false;
             setMiningStatus(null);
             setSelectedFiles([]);
             fetchFiles(selectedProject);
-            closeMiningSocket();
-            fetchMiningStatus(selectedProject);
         } else {
             setFiles([]);
             setSelectedFiles([]);
             setMiningStatus(null);
-            closeMiningSocket();
         }
-    }, [closeMiningSocket, fetchFiles, fetchMiningStatus, selectedProject]);
-
-    useEffect(() => () => {
-        closeMiningSocket();
-    }, [closeMiningSocket]);
+    }, [fetchFiles, selectedProject]);
 
     const currentProject = projects.find((project) => project.value === selectedProject);
     const availableTargetLanguages = useMemo(
@@ -264,7 +179,6 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
             || normalizeLanguageCode(targetLang) === currentProject?.sourceLanguage
         ) return;
         setScanning(true);
-        terminalHandledRef.current = false;
         try {
             const response = await api.post(`${API_BASE_URL}/neologisms/mine`, {
                 project_id: selectedProject,
@@ -282,9 +196,7 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
                 current_file: null,
                 error: null,
             });
-            if (response.data?.task_id) {
-                connectMiningSocket(response.data.task_id, selectedProject);
-            }
+            startMiningTask(response.data?.task_id || null);
             notifications.show({
                 title: t('neologism_review.mining.start_mining'),
                 message: t('neologism_review.mining.started_message'),
@@ -368,7 +280,7 @@ const MiningDashboard = ({ selectedProject, onSelectedProjectChange, onMiningCom
                                 !selectedProject
                                 || !targetLang
                                 || normalizeLanguageCode(targetLang) === currentProject?.sourceLanguage
-                                || ['starting', 'running'].includes(miningStatus?.status)
+                                || ['pending', 'starting', 'running'].includes(miningStatus?.status)
                             }
                             variant="gradient"
                             gradient={{ from: 'blue', to: 'cyan', deg: 90 }}
