@@ -265,7 +265,7 @@ class VanillaReferenceService:
                     replace_existing=force_rebuild,
                 )
             except Exception:
-                logger.exception("Failed to rebuild vanilla reference index for %s", root)
+                logger.exception("Failed to rebuild vanilla reference index")
                 if not allow_stale_fallback:
                     raise
                 with self._connect() as connection:
