@@ -20,6 +20,7 @@ from typing import Callable, Iterable, Iterator, Optional
 from scripts.app_settings import LANGUAGES, VANILLA_REFERENCE_DB_PATH
 from scripts.core.paradox_localization_parser import parse_text
 from scripts.core.services.paradox_installation_discovery import official_localization_roots
+from scripts.core.services.trusted_reference_paths import resolve_trusted_reference_root
 from scripts.core.services.vanilla_reference_version import detect_reference_game_version
 
 
@@ -177,8 +178,14 @@ class VanillaReferenceResolver:
 class VanillaReferenceService:
     """Build and open versioned multilingual SQLite reference sets."""
 
-    def __init__(self, db_path: str | Path = VANILLA_REFERENCE_DB_PATH) -> None:
+    def __init__(
+        self,
+        db_path: str | Path = VANILLA_REFERENCE_DB_PATH,
+        *,
+        trusted_roots: Optional[Iterable[str | Path]] = None,
+    ) -> None:
         self.db_path = Path(db_path)
+        self._trusted_roots = tuple(trusted_roots) if trusted_roots is not None else None
 
     def open_resolver(
         self,
@@ -495,9 +502,11 @@ class VanillaReferenceService:
         localization_root: str | Path,
         localization_globs: Optional[Iterable[str]] = None,
     ) -> Path:
-        # This local desktop feature intentionally opens the directory selected
-        # by the user; strict official-layout validation immediately follows.
-        root = Path(localization_root).expanduser().resolve(strict=True)  # lgtm[py/path-injection]
+        root = resolve_trusted_reference_root(
+            localization_root,
+            db_path=self.db_path,
+            trusted_roots=self._trusted_roots,
+        )
         if not root.is_dir():
             raise ValueError(f"Reference localization path is not a directory: {root}")
         if localization_globs:

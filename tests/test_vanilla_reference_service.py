@@ -459,3 +459,16 @@ def test_preview_surfaces_invalid_reference_path(tmp_path):
             target_languages=[{"code": "zh-CN", "key": "l_simp_chinese"}],
             localization_path=str(tmp_path / "missing-localization"),
         )
+
+
+def test_build_index_rejects_paths_outside_trusted_roots(tmp_path):
+    outside = tmp_path.parent / f"{tmp_path.name}-outside" / "game" / "localization"
+    outside.mkdir(parents=True)
+    service = VanillaReferenceService(tmp_path / "reference.sqlite")
+
+    with pytest.raises(ValueError, match="trusted Steam library"):
+        service.build_index(
+            game_id="victoria3",
+            localization_root=outside,
+            supported_language_keys=["1", "2"],
+        )
