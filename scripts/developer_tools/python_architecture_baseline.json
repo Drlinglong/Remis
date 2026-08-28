@@ -6,12 +6,12 @@
     "complexity": 20
   },
   "module_line_exceptions": {
-    "scripts/core/archive_manager.py": 872,
+    "scripts/core/archive_manager.py": 867,
     "scripts/core/glossary_manager.py": 1647,
     "scripts/core/project_manager.py": 1063,
     "scripts/core/services/model_arena_execution_service.py": 1163,
     "scripts/core/services/model_arena_service.py": 1036,
-    "scripts/routers/agent.py": 1139,
+    "scripts/routers/agent.py": 1123,
     "scripts/routers/agent_workshop.py": 1392
   },
   "function_line_exceptions": {
@@ -24,7 +24,7 @@
     "scripts/core/glossary_manager.py::GlossaryManager.merge_glossaries": 145,
     "scripts/core/glossary_manager.py::GlossaryManager.update_glossary_metadata": 149,
     "scripts/core/neologism_manager.py::NeologismManager.run_mining_workflow": 198,
-    "scripts/core/parallel_processor.py::ParallelProcessor.process_files_stream": 160,
+    "scripts/core/parallel_processor.py::ParallelProcessor.process_files_stream": 158,
     "scripts/core/project_manager.py::ProjectManager.promote_incremental_source": 123,
     "scripts/core/project_manager.py::ProjectManager.repair_project_metadata": 126,
     "scripts/core/services/embedded_workshop_service.py::run_embedded_workshop": 155,
@@ -39,7 +39,7 @@
     "scripts/routers/agent_workshop.py::_scan_project_issues": 240,
     "scripts/routers/projects.py::run_incremental_update_background": 170,
     "scripts/routers/tools.py::deploy_mod": 228,
-    "scripts/routers/translation.py::run_translation_workflow_v2": 204,
+    "scripts/routers/translation.py::run_translation_workflow_v2": 164,
     "scripts/run_dev_servers.py::run_servers": 155,
     "scripts/workflows/initial_translate.py::run": 126,
     "scripts/workflows/update_translate.py::run_incremental_update": 439
@@ -48,11 +48,11 @@
     "scripts/build_pipeline.py::main": 30,
     "scripts/core/copilot/service.py::run_copilot_chat": 23,
     "scripts/core/db_initializer.py::fix_demo_paths": 26,
-    "scripts/core/db_initializer.py::initialize_database": 31,
+    "scripts/core/db_initializer.py::initialize_database": 26,
     "scripts/core/deploy_manager.py::ModDeployer.detect_steam_workshop_path": 24,
     "scripts/core/services/proofreading_service.py::ProofreadingService.find_source_template": 24,
     "scripts/routers/tools.py::deploy_mod": 21,
-    "scripts/routers/translation.py::run_translation_workflow_v2": 29,
+    "scripts/routers/translation.py::run_translation_workflow_v2": 27,
     "scripts/run_dev_servers.py::run_servers": 28,
     "scripts/utils/system_utils.py::force_free_port": 23,
     "scripts/workflows/update_translate.py::run_incremental_update": 26
