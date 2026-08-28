@@ -78,13 +78,14 @@ class ValidationIssue(BaseModel):
     details_code: Optional[str] = None
     details_params: Optional[Dict[str, Any]] = None
     severity: Optional[str] = None
+    requires_human_review: bool = False
     text_sample: Optional[str] = None
     workflow: Optional[str] = None
     game_id: Optional[str] = None
     project_name: Optional[str] = None
     target_lang: Optional[str] = None
     generated_at: Optional[str] = None
-    status: Optional[str] = "detected" # New: status tracking
+    status: Optional[str] = "detected"  # Status tracking.
     failure_reason: Optional[str] = None
     failure_details: Optional[str] = None
     last_suggested_fix: Optional[str] = None
@@ -719,7 +720,6 @@ async def _scan_project_issues(
         source_root,
     )
     
-    # Select rules
     validator = PostProcessValidator()
     dynamic_valid_tags = resolve_dynamic_valid_tags(game_profile, source_root)
     

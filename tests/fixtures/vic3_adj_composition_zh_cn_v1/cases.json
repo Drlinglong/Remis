@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "fixture_id": "vic3-adj-composition-zh-cn-v1",
+  "name": "Victoria 3 TAG_ADJ definition-reference composition companion v1",
+  "description": "A small Simplified Chinese companion fixture for checking that a reusable TAG_ADJ definition and its consuming references compose into a natural rendered value. This is deliberately separate from the frozen multilingual v1 fixture.",
+  "game_id": "victoria3",
+  "source_language": "english",
+  "target_language": "zh-CN",
+  "source_fixture": {
+    "fixture_id": "vic3-adj-multilingual-v1",
+    "role": "official provenance anchor for copied Victoria 3 examples",
+    "frozen": true
+  },
+  "prompt_policy": {
+    "scope": "shared_by_all_arms",
+    "text": "For Simplified Chinese, a recognized country TAG_ADJ definition is a reusable country-related stem that denotes the country entity. Keep contextual person, possessive, and other morphology out of that reusable definition. In a string that consumes a protected TAG_ADJ variable, preserve the variable and every modifier exactly, then decide from the surrounding Chinese syntax whether a linker or particle belongs at the use site. Do not copy use-site morphology back into the definition. Return only the required value JSON."
+  },
+  "lexical_control": {
+    "scope": "shared_by_all_arms",
+    "description": "A frozen two-entry lexical control shared by every benchmark arm; it is not a composition instruction and does not vary with prompt treatment.",
+    "entries": [
+      {
+        "id": "lexical_control_american",
+        "source_value": "American",
+        "target_value": "美利坚",
+        "provenance": {
+          "kind": "official_victoria3_snapshot",
+          "source_fixture": "vic3-adj-multilingual-v1",
+          "fixture_case_id": "definition_usa_adj",
+          "target_language": "simp_chinese"
+        }
+      },
+      {
+        "id": "lexical_control_british",
+        "source_value": "British",
+        "target_value": "不列颠",
+        "provenance": {
+          "kind": "official_victoria3_snapshot",
+          "source_fixture": "vic3-adj-multilingual-v1",
+          "fixture_case_id": "definition_gbr_adj",
+          "target_language": "simp_chinese"
+        }
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": "official_por_adj_connection",
+      "synthetic": false,
+      "definition": {
+        "key": "POR_ADJ",
+        "source_value": "Portuguese",
+        "gold": "葡萄牙",
+        "provenance": {
+          "kind": "official_victoria3_snapshot",
+          "source_fixture": "vic3-adj-multilingual-v1",
+          "fixture_case_id": "definition_por_adj",
+          "source_file": "english/countries_l_english.yml",
+          "source_line": 624,
+          "target_file": "simp_chinese/countries_l_simp_chinese.yml",
+          "target_line": 624
+        }
+      },
+      "reference": {
+        "key": "lusofonia.2.t",
+        "source_value": "The $POR_ADJ$ Connection",
+        "gold": "$POR_ADJ$的关系",
+        "provenance": {
+          "kind": "official_victoria3_snapshot",
+          "source_fixture": "vic3-adj-multilingual-v1",
+          "fixture_case_id": "reference_portuguese_connection",
+          "source_file": "english/ip4_misc_01_l_english.yml",
+          "source_line": 570,
+          "target_file": "simp_chinese/ip4_misc_01_l_simp_chinese.yml",
+          "target_line": 465
+        }
+      },
+      "variables": [
+        {
+          "raw": "$POR_ADJ$",
+          "base_key": "POR_ADJ",
+          "modifiers": []
+        }
+      ],
+      "modifiers": [],
+      "rendered": {
+        "substitutions": {
+          "POR_ADJ": "葡萄牙"
+        },
+        "expected": "葡萄牙的关系"
+      },
+      "grammar_expectation": {
+        "requires_linker": true,
+        "reason_abstract": "The consuming noun phrase requires a Chinese relationship linker between the country entity and the noun."
+      }
+    },
+    {
+      "id": "official_bht_adj_uprising",
+      "synthetic": false,
+      "definition": {
+        "key": "BHT_ADJ",
+        "source_value": "Indian",
+        "gold": "印度",
+        "provenance": {
+          "kind": "official_victoria3_snapshot",
+          "source_fixture": "vic3-adj-multilingual-v1",
+          "fixture_case_id": "reference_bharat_uprising",
+          "source_file": "english/countries_l_english.yml",
+          "source_line": 839,
+          "source_file_sha256": "477ea89d1b5c821a7f287899f6f7ec16b51d6749b603ae721b65d54e7819679e",
+          "target_file": "simp_chinese/countries_l_simp_chinese.yml",
+          "target_line": 838,
+          "target_file_sha256": "d1475201b4ccc10a07df381c21e236d6a7eac376b229efdce1e8a2ee8200ca33",
+          "note": "The official BHT_ADJ definition was verified directly in the same Victoria 3 corpus snapshot; it was not one of the five definition rows selected for multilingual v1."
+        }
+      },
+      "reference": {
+        "key": "generic_revolt_india_pan_national",
+        "source_value": "$BHT_ADJ$ Uprising",
+        "gold": "$BHT_ADJ$起义",
+        "provenance": {
+          "kind": "official_victoria3_snapshot",
+          "source_fixture": "vic3-adj-multilingual-v1",
+          "fixture_case_id": "reference_bharat_uprising",
+          "source_file": "english/content_1_l_english.yml",
+          "source_line": 1771,
+          "target_file": "simp_chinese/content_1_l_simp_chinese.yml",
+          "target_line": 1697
+        }
+      },
+      "variables": [
+        {
+          "raw": "$BHT_ADJ$",
+          "base_key": "BHT_ADJ",
+          "modifiers": []
+        }
+      ],
+      "modifiers": [],
+      "rendered": {
+        "substitutions": {
+          "BHT_ADJ": "印度"
+        },
+        "expected": "印度起义"
+      },
+      "grammar_expectation": {
+        "requires_linker": false,
+        "reason_abstract": "The country stem forms a direct Chinese compound with the consuming noun."
+      }
+    },
+    {
+      "id": "synthetic_hun_adj_power",
+      "synthetic": true,
+      "definition": {
+        "key": "HUN_ADJ",
+        "source_value": "Hungarian",
+        "gold": "匈牙利",
+        "provenance": {
+          "kind": "official_victoria3_snapshot",
+          "source_fixture": "vic3-adj-multilingual-v1",
+          "source_file": "english/countries_l_english.yml",
+          "source_line": 328,
+          "source_file_sha256": "477ea89d1b5c821a7f287899f6f7ec16b51d6749b603ae721b65d54e7819679e",
+          "target_file": "simp_chinese/countries_l_simp_chinese.yml",
+          "target_line": 328,
+          "target_file_sha256": "d1475201b4ccc10a07df381c21e236d6a7eac376b229efdce1e8a2ee8200ca33",
+          "note": "The definition is official; only the paired power reference is synthetic."
+        }
+      },
+      "reference": {
+        "key": "synthetic_hungarian_power",
+        "source_value": "$HUN_ADJ$ power",
+        "gold": "$HUN_ADJ$的实力",
+        "provenance": {
+          "kind": "synthetic_minimal_pair",
+          "source_fixture": null,
+          "note": "User-provided synthetic consuming-string example; it is not claimed as an official Victoria 3 row."
+        }
+      },
+      "variables": [
+        {
+          "raw": "$HUN_ADJ$",
+          "base_key": "HUN_ADJ",
+          "modifiers": []
+        }
+      ],
+      "modifiers": [],
+      "rendered": {
+        "substitutions": {
+          "HUN_ADJ": "匈牙利"
+        },
+        "expected": "匈牙利的实力"
+      },
+      "grammar_expectation": {
+        "requires_linker": true,
+        "reason_abstract": "The consuming noun phrase requires a Chinese relationship linker at the use site."
+      }
+    },
+    {
+      "id": "synthetic_bht_adj_modifier_control",
+      "synthetic": true,
+      "definition": {
+        "key": "BHT_ADJ",
+        "source_value": "Indian",
+        "gold": "印度",
+        "provenance": {
+          "kind": "official_victoria3_snapshot",
+          "source_fixture": "vic3-adj-multilingual-v1",
+          "source_file": "english/countries_l_english.yml",
+          "source_line": 839,
+          "source_file_sha256": "477ea89d1b5c821a7f287899f6f7ec16b51d6749b603ae721b65d54e7819679e",
+          "target_file": "simp_chinese/countries_l_simp_chinese.yml",
+          "target_line": 838,
+          "target_file_sha256": "d1475201b4ccc10a07df381c21e236d6a7eac376b229efdce1e8a2ee8200ca33",
+          "note": "The definition is official; only the modifier-bearing consuming reference is synthetic."
+        }
+      },
+      "reference": {
+        "key": "synthetic_bharat_uprising_modifier",
+        "source_value": "$BHT_ADJ|l$ Uprising",
+        "gold": "$BHT_ADJ|l$起义",
+        "provenance": {
+          "kind": "synthetic_modifier_control",
+          "source_fixture": "vic3-adj-composition-zh-cn-v1",
+          "source_case_id": "official_bht_adj_uprising",
+          "note": "Synthetic modifier-bearing variant; the |l modifier is deliberately retained in the target token."
+        }
+      },
+      "variables": [
+        {
+          "raw": "$BHT_ADJ|l$",
+          "base_key": "BHT_ADJ",
+          "modifiers": ["l"]
+        }
+      ],
+      "modifiers": ["l"],
+      "rendered": {
+        "substitutions": {
+          "BHT_ADJ": "印度"
+        },
+        "expected": "印度起义"
+      },
+      "grammar_expectation": {
+        "requires_linker": false,
+        "reason_abstract": "The direct compound remains valid; a token modifier must not force unrelated morphology into the rendered value."
+      }
+    }
+  ]
+}

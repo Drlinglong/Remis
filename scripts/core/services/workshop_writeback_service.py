@@ -13,6 +13,10 @@ INVALID_KEY_ERROR_CODE = "validation_invalid_key_format"
 
 
 def is_repairable_workshop_issue(issue: Dict[str, Any]) -> bool:
+    if issue.get("requires_human_review") is True:
+        return False
+    if str(issue.get("severity") or "").strip().lower() == "human_review":
+        return False
     error_code = str(issue.get("error_code") or "").strip()
     error_type = str(issue.get("error_type") or "").strip()
     return INVALID_KEY_ERROR_CODE not in {error_code, error_type}

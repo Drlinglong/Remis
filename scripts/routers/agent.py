@@ -324,7 +324,7 @@ def _job_allowed_actions(
     if status == "completed":
         if validation.available:
             actions.append("inspect_validation")
-        if validation.errors or validation.human_review_items:
+        if validation.errors:
             actions.append("repair")
         if kind == "dry_run":
             actions.append("create_translation_plan")

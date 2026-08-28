@@ -19,12 +19,18 @@ class FakeHandler:
     client = object()
 
 
-def _build_iterator(files, checkpoint=None, progress_events=None):
+def _build_iterator(
+    files,
+    checkpoint=None,
+    progress_events=None,
+    source_lang=None,
+    target_lang=None,
+):
     return task_service.build_file_task_iterator(
         files,
         checkpoint or FakeCheckpoint(),
-        source_lang={"code": "zh-CN", "key": "l_simp_chinese"},
-        target_lang={"code": "en", "key": "l_english"},
+        source_lang=source_lang or {"code": "zh-CN", "key": "l_simp_chinese"},
+        target_lang=target_lang or {"code": "en", "key": "l_english"},
         game_profile={"id": "victoria3", "source_localization_folder": "localization"},
         mod_context="demo context",
         handler=FakeHandler(),
@@ -110,3 +116,28 @@ def test_build_file_task_iterator_wraps_file_data(monkeypatch):
     assert task.source_dir == "J:/source"
     assert task.dest_dir == "J:/dest"
     assert task.file_path == "localization/simp_chinese/loc.yml"
+
+
+def test_build_file_task_iterator_attaches_vic3_h2_hints():
+    files = [
+        {
+            "filename": "loc.yml",
+            "root": "root",
+            "texts_to_translate": ["Chinese", "$CHI_ADJ$ power"],
+            "original_lines": [],
+            "key_map": {
+                0: {"key_part": "CHI_ADJ"},
+                1: {"key_part": "demo.key"},
+            },
+            "is_custom_loc": False,
+        }
+    ]
+
+    [task] = list(_build_iterator(
+        files,
+        source_lang={"code": "en", "key": "l_english"},
+        target_lang={"code": "zh-CN", "key": "l_simp_chinese"},
+    ))
+
+    assert "country_adjective_definition" in task.semantic_hints[0]
+    assert "country_adjective_reference" in task.semantic_hints[1]

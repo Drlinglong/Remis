@@ -1,0 +1,9 @@
+l_english:
+ CHI_ADJ:0 "Chinese"
+ mixed_chinese_culture:0 "$CHI_ADJ$ culture"
+ mixed_chinese_power:0 "$CHI_ADJ$ power"
+ mixed_chinese_people:0 "$CHI_ADJ$ people"
+ mixed_popular_support:0 "Popular Support"
+ mixed_new_order:0 "A New Order"
+ mixed_chinese_delegation:0 "The Chinese delegation arrived yesterday."
+ mixed_chinese_language:0 "Chinese is the selected language."

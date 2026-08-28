@@ -47,6 +47,8 @@ def classify_issues(
 
 
 def _issue_category(issue: dict[str, Any]) -> str:
+    if issue.get("requires_human_review") is True:
+        return "human_review"
     if not is_repairable_workshop_issue(issue):
         return "human_review"
     severity = str(issue.get("severity") or "").strip().lower()

@@ -10,9 +10,109 @@ from scripts.core.archive_manager import archive_manager
 from scripts.core.loc_parser import parse_loc_file, parse_loc_file_with_lines
 from scripts.utils.i18n_utils import iso_to_paradox
 from scripts.utils.post_process_validator import PostProcessValidator
+from scripts.core.vic3_country_adjective_context import is_country_adj_reference
 from scripts.utils.validation_logger import ValidationLogger
 
 logger = logging.getLogger(__name__)
+
+VIC3_ADJ_REFERENCE_REVIEW_CODE = "vic3_country_adjective_reference_review"
+
+
+def _vic3_reference_review_issue(
+    *,
+    game_id: str,
+    source_value: str,
+    base_issue: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    """Create a non-repairable review signal without changing validator results."""
+
+    if game_id != "victoria3" or not is_country_adj_reference(source_value):
+        return None
+    return {
+        **base_issue,
+        "error_type": VIC3_ADJ_REFERENCE_REVIEW_CODE,
+        "error_code": VIC3_ADJ_REFERENCE_REVIEW_CODE,
+        "details": (
+            "Review the target-language grammar around the preserved country "
+            "adjective runtime token. The token must remain intact, but its "
+            "surrounding word order, particles, or inflection may need review."
+        ),
+        "details_code": VIC3_ADJ_REFERENCE_REVIEW_CODE,
+        "details_params": {},
+        "severity": "human_review",
+        "requires_human_review": True,
+    }
+
+
+def _base_issue(
+    *,
+    translated_file: Path,
+    rel_output_path: str,
+    source_file: Optional[Path],
+    source_root: Path,
+    key: str,
+    line_number: int,
+    source_value: str,
+    source_lookup: Dict[str, Any],
+    target_value: str,
+    metadata: Dict[str, Any],
+) -> Dict[str, Any]:
+    return {
+        "file_name": rel_output_path,
+        "file_path": str(translated_file),
+        "source_file": (
+            str(source_file.relative_to(source_root)).replace("\\", "/")
+            if source_file and source_file.exists()
+            else ""
+        ),
+        "key": key,
+        "line_number": line_number,
+        "source_str": source_value,
+        "source_context_status": source_lookup["status"],
+        "source_context_origin": source_lookup["origin"],
+        "source_context_warning": source_lookup.get("warning", ""),
+        "target_str": target_value,
+        "status": "detected",
+        "text_sample": target_value[:100],
+        **metadata,
+    }
+
+
+def _issue_metadata(
+    *,
+    workflow: str,
+    project_id: str,
+    run_id: str,
+    source_version_id: Optional[int],
+    game_id: str,
+    project_name: str,
+    target_lang: str,
+    generated_at: str,
+) -> Dict[str, Any]:
+    return {
+        "workflow": workflow,
+        "project_id": project_id,
+        "run_id": run_id,
+        "source_version_id": source_version_id,
+        "game_id": game_id,
+        "project_name": project_name,
+        "target_lang": target_lang,
+        "generated_at": generated_at,
+    }
+
+
+def _validator_issue(base_issue: Dict[str, Any], result: Any, value: str):
+    return {
+        **base_issue,
+        "line_number": result.line_number,
+        "error_type": result.message,
+        "error_code": result.code or result.message,
+        "details": result.details or "",
+        "details_code": result.details_code or "",
+        "details_params": result.details_params or {},
+        "severity": result.level.value,
+        "text_sample": result.text_sample or value[:100],
+    }
 
 
 def resolve_dynamic_valid_tags(game_profile: Dict[str, Any], source_root: str | Path) -> Optional[List[str]]:
@@ -69,6 +169,16 @@ class WorkshopIssueExportService:
         target_paradox = iso_to_paradox(target_lang_info.get("code", ""))
         source_paradox = iso_to_paradox(source_lang_info.get("code", ""))
         game_id = game_profile.get("id", "")
+        issue_metadata = _issue_metadata(
+            workflow=workflow,
+            project_id=project_id,
+            run_id=run_id,
+            source_version_id=source_version_id,
+            game_id=game_id,
+            project_name=project_name,
+            target_lang=target_lang_info.get("code", ""),
+            generated_at=generated_at,
+        )
 
         if not output_root.exists():
             return self._write_exports(output_root, issues, generated_at)
@@ -105,6 +215,18 @@ class WorkshopIssueExportService:
                     project_id=project_id,
                 )
                 source_value = source_lookup["source_str"]
+                base_issue = _base_issue(
+                    translated_file=translated_file,
+                    rel_output_path=rel_output_path,
+                    source_file=source_file,
+                    source_root=source_root,
+                    key=key,
+                    line_number=line_number,
+                    source_value=source_value,
+                    source_lookup=source_lookup,
+                    target_value=value,
+                    metadata=issue_metadata,
+                )
                 try:
                     results = self.validator.validate_entry(
                         game_id=game_id,
@@ -123,35 +245,15 @@ class WorkshopIssueExportService:
                 for result in results:
                     if result.level.value not in {"error", "warning"}:
                         continue
+                    issues.append(_validator_issue(base_issue, result, value))
 
-                    issues.append({
-                        "file_name": rel_output_path,
-                        "file_path": str(translated_file),
-                        "source_file": self._normalize_relpath(source_file.relative_to(source_root)) if source_file and source_file.exists() else "",
-                        "key": key,
-                        "line_number": result.line_number,
-                        "source_str": source_value,
-                        "source_context_status": source_lookup["status"],
-                        "source_context_origin": source_lookup["origin"],
-                        "source_context_warning": source_lookup.get("warning", ""),
-                        "target_str": value,
-                        "error_type": result.message,
-                        "error_code": result.code or result.message,
-                        "details": result.details or "",
-                        "details_code": result.details_code or "",
-                        "details_params": result.details_params or {},
-                        "severity": result.level.value,
-                        "status": "detected",
-                        "workflow": workflow,
-                        "project_id": project_id,
-                        "run_id": run_id,
-                        "source_version_id": source_version_id,
-                        "game_id": game_id,
-                        "project_name": project_name,
-                        "target_lang": target_lang_info.get("code", ""),
-                        "text_sample": result.text_sample or value[:100],
-                        "generated_at": generated_at,
-                    })
+                review_issue = _vic3_reference_review_issue(
+                    game_id=game_id,
+                    source_value=source_value,
+                    base_issue=base_issue,
+                )
+                if review_issue:
+                    issues.append(review_issue)
 
         export_result = self._write_exports(
             output_root,

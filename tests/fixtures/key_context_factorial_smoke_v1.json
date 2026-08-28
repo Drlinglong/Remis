@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "name": "Remis key-context factorial harness smoke fixture v1",
+  "description": "Harness-only smoke data derived from official Victoria 3 morphology. Replace with the independently reviewed multilingual fixture for real conclusions.",
+  "language_policies": {
+    "zh-CN": "For Simplified Chinese, a recognized country TAG_ADJ localization entry is a reusable country-name stem, not a demonym and not a completed possessive phrase. When a visible input key ends in _ADJ and is a valid country-tag adjective slot, output only the reusable country-name form; do not append 人, 人的, 的, 式, or similar morphology. Ordinary prose that is not such a slot must still be translated according to its sentence context.",
+    "de": "For German, a recognized country TAG_ADJ localization entry stores the official composable adjective base used by Victoria 3. When a visible input key is a valid country-tag adjective slot, do not add a contextual inflection ending that belongs to a consuming localization string. Ordinary prose must still use grammatically inflected German appropriate to its sentence.",
+    "ru": "For Russian, a recognized country TAG_ADJ localization entry stores the official composable adjective stem without the gender, number, or case ending supplied by a consuming localization string. When a visible input key is a valid country-tag adjective slot, return that stem only. Ordinary prose must still use fully inflected Russian appropriate to its sentence."
+  },
+  "translation_cases": [
+    {
+      "id": "smoke_egyptian_zh_cn",
+      "game_id": "victoria3",
+      "source_lang": "en",
+      "target_lang": "zh-CN",
+      "source_file": "tests/fixtures/key_context_factorial_smoke_l_english.yml",
+      "keys": [
+        "EGY_ADJ:0",
+        "key_context_egyptian_person:0",
+        "key_context_egyptian_culture:0"
+      ],
+      "focus": ["country adjective slot", "demonym control", "culture phrase control"],
+      "mod_context": "Victoria 3 key-context factorial harness smoke case. This is not benchmark gold.",
+      "semantic_hints": {
+        "EGY_ADJ": "semantic_type=country_adjective_slot; target_contract=reusable_country_name_stem",
+        "key_context_egyptian_person": "semantic_type=ordinary_sentence; referent=person_from_Egypt",
+        "key_context_egyptian_culture": "semantic_type=ordinary_noun_phrase; referent=culture_of_Egypt"
+      },
+      "expectations": [
+        {
+          "key": "EGY_ADJ",
+          "category": "country_adjective_slot",
+          "accepted_outputs": ["埃及"],
+          "forbidden_substrings": ["埃及人", "埃及的"]
+        },
+        {
+          "key": "key_context_egyptian_person",
+          "category": "demonym_control",
+          "required_substrings": ["埃及人"]
+        },
+        {
+          "key": "key_context_egyptian_culture",
+          "category": "ordinary_phrase_control",
+          "required_substrings": ["埃及", "文化"],
+          "forbidden_substrings": ["埃及人", "的的"]
+        }
+      ]
+    },
+    {
+      "id": "smoke_egyptian_de",
+      "game_id": "victoria3",
+      "source_lang": "en",
+      "target_lang": "de",
+      "source_file": "tests/fixtures/key_context_factorial_smoke_l_english.yml",
+      "keys": [
+        "EGY_ADJ:0",
+        "key_context_egyptian_person:0",
+        "key_context_egyptian_culture:0"
+      ],
+      "focus": ["country adjective base", "inflection controls"],
+      "mod_context": "Victoria 3 key-context factorial harness smoke case. This is not benchmark gold.",
+      "semantic_hints": {
+        "EGY_ADJ": "semantic_type=country_adjective_slot; target_contract=composable_adjective_base",
+        "key_context_egyptian_person": "semantic_type=ordinary_sentence; referent=person_from_Egypt",
+        "key_context_egyptian_culture": "semantic_type=ordinary_noun_phrase; noun_gender=feminine"
+      },
+      "expectations": [
+        {
+          "key": "EGY_ADJ",
+          "category": "country_adjective_slot",
+          "accepted_outputs": ["Ägyptisch"],
+          "forbidden_substrings": ["Ägypter"]
+        }
+      ]
+    },
+    {
+      "id": "smoke_egyptian_ru",
+      "game_id": "victoria3",
+      "source_lang": "en",
+      "target_lang": "ru",
+      "source_file": "tests/fixtures/key_context_factorial_smoke_l_english.yml",
+      "keys": [
+        "EGY_ADJ:0",
+        "key_context_egyptian_person:0",
+        "key_context_egyptian_culture:0"
+      ],
+      "focus": ["country adjective stem", "gender-number-case controls"],
+      "mod_context": "Victoria 3 key-context factorial harness smoke case. This is not benchmark gold.",
+      "semantic_hints": {
+        "EGY_ADJ": "semantic_type=country_adjective_slot; target_contract=uninflected_adjective_stem",
+        "key_context_egyptian_person": "semantic_type=ordinary_sentence; referent=person_from_Egypt",
+        "key_context_egyptian_culture": "semantic_type=ordinary_noun_phrase; require=contextual_inflection"
+      },
+      "expectations": [
+        {
+          "key": "EGY_ADJ",
+          "category": "country_adjective_slot",
+          "accepted_outputs": ["Египетск"],
+          "forbidden_substrings": ["Египтянин", "Египетский", "Египетская"]
+        }
+      ]
+    }
+  ],
+  "manual_review_rubric": {
+    "primary_dimension": "Does the output satisfy the target-language morphology contract for the localization key while remaining natural in ordinary controls?",
+    "secondary_dimensions": [
+      "semantic fidelity",
+      "grammar and naturalness",
+      "key leakage",
+      "format preservation"
+    ],
+    "method": "Review candidates blind to arm identity; reveal the mapping only after judgments are frozen.",
+    "warning": "The bundled smoke fixture validates the harness only and must not be reported as multilingual benchmark evidence."
+  }
+}

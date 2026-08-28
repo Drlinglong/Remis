@@ -3,9 +3,18 @@ from typing import Any, Iterator, List, Optional
 
 from scripts.core.checkpoint_manager import CheckpointManager
 from scripts.core.parallel_types import FileTask
+from scripts.core.vic3_country_adjective_context import build_file_hints
 from scripts.core.services.initial_translation_file_service import handle_empty_file
 from scripts.core.services.initial_translation_progress_service import LanguageRunState, emit_progress
 from scripts.app_settings import SOURCE_DIR, DEST_DIR
+
+
+def _key_info_at(key_map: Any, index: int) -> Any:
+    if isinstance(key_map, dict):
+        return key_map.get(index)
+    if isinstance(key_map, list) and index < len(key_map):
+        return key_map[index]
+    return None
 
 
 def build_file_task_iterator(
@@ -58,6 +67,13 @@ def build_file_task_iterator(
             )
             continue
 
+        semantic_hints = build_file_hints(
+            game_id=game_profile.get("id", ""),
+            target_lang=target_lang.get("code", ""),
+            texts=texts,
+            key_infos=(_key_info_at(key_map, index) for index in range(len(texts))),
+        )
+
         yield FileTask(
             filename=file_data["filename"],
             root=file_data["root"],
@@ -78,4 +94,5 @@ def build_file_task_iterator(
             loc_root=file_data.get("loc_root", ""),
             file_path=file_data.get("file_path", file_data["filename"]),
             recovered_entries=file_data.get("recovered_entries", []),
+            semantic_hints=semantic_hints,
         )

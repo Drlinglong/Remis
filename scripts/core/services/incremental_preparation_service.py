@@ -2,6 +2,59 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from scripts.core.parallel_types import FileTask
+from scripts.core.vic3_country_adjective_context import build_file_hints
+
+
+def _semantic_hints_for_dirty_entries(
+    game_profile: Dict[str, Any],
+    target_lang_code: str,
+    texts: List[str],
+    key_infos: List[Dict[str, Any]],
+) -> List[Optional[str]]:
+    return build_file_hints(
+        game_id=game_profile.get("id", ""),
+        target_lang=target_lang_code,
+        texts=texts,
+        key_infos=key_infos,
+    )
+
+
+def _build_incremental_file_task(
+    *,
+    filename: str,
+    file_data: Dict[str, Any],
+    texts: List[str],
+    key_delta_indices: List[int],
+    dirty_key_infos: List[Dict[str, Any]],
+    target_lang_info: Dict[str, Any],
+    source_lang_info: Dict[str, Any],
+    game_profile: Dict[str, Any],
+    mod_context: str,
+    selected_provider: str,
+    source_path: str,
+    lang_dest_dir: Path,
+) -> FileTask:
+    return FileTask(
+        filename=filename,
+        root=file_data["root"],
+        original_lines=file_data["original_lines"],
+        texts_to_translate=texts,
+        key_map={"indices": key_delta_indices},
+        is_custom_loc=False,
+        target_lang=target_lang_info,
+        source_lang=source_lang_info,
+        game_profile=game_profile,
+        mod_context=mod_context,
+        provider_name=selected_provider,
+        output_folder_name=f"IncrementalUpdate_{target_lang_info['code']}",
+        source_dir=source_path,
+        dest_dir=str(lang_dest_dir),
+        client=None,
+        mod_name="",
+        semantic_hints=_semantic_hints_for_dirty_entries(
+            game_profile, target_lang_info["code"], texts, dirty_key_infos
+        ),
+    )
 
 
 class IncrementalPreparationService:
@@ -56,6 +109,7 @@ class IncrementalPreparationService:
                 })
 
             texts_to_translate: List[str] = []
+            dirty_key_infos: List[Dict[str, Any]] = []
             key_delta_indices: List[int] = []
             full_file_entries: List[Dict[str, Any]] = []
             canonical_entries = file_data.get("canonical_entries", ())
@@ -83,6 +137,7 @@ class IncrementalPreparationService:
                     file_summary[status] += 1
                     entry_info["is_dirty"] = True
                     texts_to_translate.append(source_text)
+                    dirty_key_infos.append({"key_part": key})
                     key_delta_indices.append(len(full_file_entries))
                     file_summary["dirty_entries"].append({
                         "key": key,
@@ -101,23 +156,19 @@ class IncrementalPreparationService:
             file_summaries.append(file_summary)
 
             if texts_to_translate:
-                file_tasks_for_ai.append(FileTask(
+                file_tasks_for_ai.append(_build_incremental_file_task(
                     filename=filename,
-                    root=file_data["root"],
-                    original_lines=file_data["original_lines"],
-                    texts_to_translate=texts_to_translate,
-                    key_map={"indices": key_delta_indices},
-                    is_custom_loc=False,
-                    target_lang=target_lang_info,
-                    source_lang=source_lang_info,
+                    file_data=file_data,
+                    texts=texts_to_translate,
+                    key_delta_indices=key_delta_indices,
+                    dirty_key_infos=dirty_key_infos,
+                    target_lang_info=target_lang_info,
+                    source_lang_info=source_lang_info,
                     game_profile=game_profile,
                     mod_context=mod_context,
-                    provider_name=selected_provider,
-                    output_folder_name=f"IncrementalUpdate_{target_lang_code}",
-                    source_dir=source_path,
-                    dest_dir=str(lang_dest_dir),
-                    client=None,
-                    mod_name="",
+                    selected_provider=selected_provider,
+                    source_path=source_path,
+                    lang_dest_dir=lang_dest_dir,
                 ))
 
         return {

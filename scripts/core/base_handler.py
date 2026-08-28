@@ -12,6 +12,41 @@ from scripts.core.glossary_manager import glossary_manager
 from scripts.utils.structured_parser import parse_response
 from scripts.utils.text_clean import mask_special_tokens
 from scripts.core.prompt_manager import prompt_manager
+from scripts.core.vic3_country_adjective_context import prompt_policy
+
+
+def _build_numbered_input(task: BatchTask, masked_chunk: list[str]):
+    semantic_hints = getattr(task.file_task, "semantic_hints", [])
+    batch_hints = semantic_hints[task.start_index:task.end_index]
+    if len(batch_hints) != len(masked_chunk):
+        batch_hints = [None] * len(masked_chunk)
+    if not any(batch_hints):
+        numbered = "\n".join(
+            f'{index + 1}. "{text}"'
+            for index, text in enumerate(masked_chunk)
+        )
+        return numbered, batch_hints
+    numbered = "\n".join(
+        (
+            f'{index + 1}. Semantic hint: "{hint}"; Source value: "{text}"'
+            if hint
+            else f'{index + 1}. Source value: "{text}"'
+        )
+        for index, (text, hint) in enumerate(zip(masked_chunk, batch_hints))
+    )
+    return numbered, batch_hints
+
+
+def _build_language_policy_part(target_lang: str, hints: list[str | None]) -> str:
+    language_policy = prompt_policy(target_lang, hints)
+    if not language_policy:
+        return ""
+    return (
+        "\nTARGET-LANGUAGE MORPHOLOGY POLICY:\n"
+        f"{language_policy}\n"
+        "Apply this policy only to entries carrying matching semantic metadata. "
+        "Do not echo the metadata or change the value-only JSON output contract.\n"
+    )
 
 
 class BaseApiHandler(ABC):
@@ -155,7 +190,7 @@ class BaseApiHandler(ABC):
 
         # Apply Token Masking (Newlines & Quotes)
         masked_chunk = [mask_special_tokens(txt) for txt in chunk]
-        numbered_list = "\n".join(f'{j + 1}. "{txt}"' for j, txt in enumerate(masked_chunk))
+        numbered_list, batch_hints = _build_numbered_input(task, masked_chunk)
 
         effective_target_lang_name = target_lang.get("custom_name", target_lang["name"]) if target_lang.get("is_shell") else target_lang["name"]
 
@@ -217,6 +252,9 @@ class BaseApiHandler(ABC):
             )
 
         punctuation_prompt_part = f"\nPUNCTUATION CONVERSION:\n{punctuation_prompt}\n" if punctuation_prompt else ""
+        language_policy_part = _build_language_policy_part(
+            target_lang["code"], batch_hints
+        )
         
         # Add a "Final Warning" section for Victoria 3 specifically
         final_warning = ""
@@ -233,6 +271,7 @@ class BaseApiHandler(ABC):
             + context_prompt_part
             + custom_global_prompt_part
             + glossary_prompt_part
+            + language_policy_part
             + format_prompt_part
             + punctuation_prompt_part
             + final_warning

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "rubric_id": "remis-reference-preservation-v1",
+  "task_success_definition": "Preserve complete meaning across all runtime substitutions, produce natural and grammatical target-language localization, and retain every variable and modifier that Remis cannot safely rewrite.",
+  "grades": {
+    "FULL": {
+      "meaning_complete": true,
+      "natural_and_grammatical": true,
+      "runtime_information_preserved": true,
+      "remis_auto_accept": true
+    },
+    "PARTIAL": {
+      "meaning_complete_for_current_static_reference": true,
+      "natural_and_grammatical": true,
+      "runtime_information_preserved": false,
+      "dynamic_variable_loss_allowed": false,
+      "remis_auto_accept": false,
+      "requires_human_review": true
+    },
+    "FAIL": {
+      "conditions": [
+        "meaning is incorrect or incomplete",
+        "target-language syntax or fluency is unacceptable",
+        "format or protected-token structure is invalid",
+        "a dynamic variable is deleted, substituted, or hardcoded"
+      ],
+      "remis_auto_accept": false
+    }
+  },
+  "decision_order": [
+    "If meaning, grammar, or format fails, assign FAIL.",
+    "If a dynamic variable such as FIRST_ADJ or SECOND_ADJ is lost, assign FAIL.",
+    "If all variables and modifiers are preserved, the candidate is eligible for FULL.",
+    "If only a static variable is hardcoded, deleted, or substituted while current meaning remains correct and natural, assign PARTIAL."
+  ],
+  "official_reference_boundary": "Official localization is linguistic evidence, not automatic permission for Remis to hardcode or substitute runtime variables."
+}
