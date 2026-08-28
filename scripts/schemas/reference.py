@@ -22,6 +22,7 @@ class ReferenceReusePreviewRequest(BaseModel):
     source_lang_code: LanguageCode
     target_lang_codes: List[LanguageCode]
     localization_path: Optional[str] = None
+    custom_source_path: Optional[str] = None
 
 
 class ReferenceLibraryBuildRequest(BaseModel):

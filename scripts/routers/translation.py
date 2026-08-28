@@ -106,9 +106,13 @@ async def preview_reference_reuse(request: ReferenceReusePreviewRequest):
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    source_path = request.custom_source_path or project["source_path"]
+    if not os.path.isdir(source_path):
+        raise HTTPException(status_code=400, detail="Source path is not a directory")
+
     try:
         return ReferenceReusePreviewService().preview(
-            source_path=project["source_path"],
+            source_path=source_path,
             game_profile=game_profile,
             source_lang=source_lang,
             target_languages=target_languages,

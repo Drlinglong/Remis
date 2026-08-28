@@ -28,12 +28,16 @@ describe('useReferenceReuseSettings', () => {
     await act(() => result.current.previewReferenceReuse({
       projectId: 'demo',
       sourceLangCode: 'en',
+      sourcePath: 'J:/mod/new-version',
       targetLangCodes: ['zh-CN'],
     }));
     act(() => result.current.toggleReferenceEntry(match, false));
 
     expect(result.current.referencePreviewEntries).toEqual([match]);
     expect(result.current.referenceReuseExcludedEntries).toHaveLength(1);
+    expect(translationService.previewReferenceReuse).toHaveBeenCalledWith(
+      expect.objectContaining({ custom_source_path: 'J:/mod/new-version' }),
+    );
 
     act(() => result.current.resetReferencePreview());
 

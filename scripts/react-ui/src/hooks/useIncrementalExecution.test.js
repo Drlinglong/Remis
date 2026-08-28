@@ -24,6 +24,7 @@ const buildOptions = () => ({
   notificationStyle: {},
   preScanInFlightRef: { current: false },
   referenceLocalizationPath: 'I:/Victoria 3/game/localization',
+  referenceReuseBypassed: false,
   referenceReuseEnabled: true,
   referenceReuseExcludedEntries: [],
   selectedLangs: ['zh-CN'],
@@ -63,5 +64,19 @@ describe('useIncrementalExecution', () => {
       }),
     );
     expect(input.setCurrentTaskId).toHaveBeenCalledWith('task-2');
+  });
+
+  it('keeps reference reuse disabled after the user bypasses the library prompt', async () => {
+    const input = { ...buildOptions(), referenceReuseBypassed: true };
+    const { result } = renderHook(() => useIncrementalExecution(input));
+
+    await act(() => result.current());
+
+    expect(translationService.startIncrementalUpdate).toHaveBeenCalledWith(
+      'demo',
+      expect.objectContaining({
+        reference_reuse: expect.objectContaining({ enabled: false }),
+      }),
+    );
   });
 });

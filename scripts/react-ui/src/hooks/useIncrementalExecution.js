@@ -10,6 +10,7 @@ export function useIncrementalExecution(options) {
   const {
     addLog, archiveInfo, completionSourceRef, connectWebSocket, executing, executionInFlightRef,
     i18n, loading, notificationStyle, preScanInFlightRef, selectedLangs, selectedProject,
+    referenceReuseBypassed,
     setActive, setConflictingTaskId, setCurrentTaskId, setCurrentTaskMode, setExecuting,
     setFinalSummary, setLogs, setProgress, setProgressInfo, t,
   } = options;
@@ -47,6 +48,7 @@ export function useIncrementalExecution(options) {
           ...options,
           dryRun: false,
           projectId: selectedProject.project_id,
+          referenceReuseEnabled: options.referenceReuseEnabled && !referenceReuseBypassed,
           targetLangCodes,
         }),
       );
@@ -73,7 +75,8 @@ export function useIncrementalExecution(options) {
     }
   }, [
     addLog, archiveInfo, completionSourceRef, connectWebSocket, executing, executionInFlightRef,
-    i18n, loading, notificationStyle, options, preScanInFlightRef, selectedLangs, selectedProject,
+    i18n, loading, notificationStyle, options, preScanInFlightRef, referenceReuseBypassed,
+    selectedLangs, selectedProject,
     setActive, setConflictingTaskId, setCurrentTaskId, setCurrentTaskMode, setExecuting,
     setFinalSummary, setLogs, setProgress, setProgressInfo, t,
   ]);

@@ -46,6 +46,7 @@ export const IncrementalTranslationPage = () => {
     const previewReferenceReuse = () => state.previewReferenceReuse({
         projectId: selectedProject?.project_id,
         sourceLangCode: selectedProject?.source_language || 'en',
+        sourcePath: state.customSourcePath,
         targetLangCodes: safeSelectedLangs.length > 0
             ? safeSelectedLangs
             : getArchivedTargetLanguages(state.archiveInfo),

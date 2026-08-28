@@ -20,7 +20,9 @@ export const useReferenceReuseSettings = (t) => {
     setReferencePreviewLoading(false);
   }, []);
 
-  const previewReferenceReuse = useCallback(async ({ projectId, sourceLangCode, targetLangCodes }) => {
+  const previewReferenceReuse = useCallback(async ({
+    projectId, sourceLangCode, sourcePath = null, targetLangCodes,
+  }) => {
     const requestId = ++previewRequestRef.current;
     setReferencePreviewLoading(true);
     setReferencePreviewError('');
@@ -30,6 +32,7 @@ export const useReferenceReuseSettings = (t) => {
         source_lang_code: sourceLangCode,
         target_lang_codes: targetLangCodes,
         localization_path: referenceLocalizationPath || null,
+        custom_source_path: sourcePath || null,
       });
       if (previewRequestRef.current === requestId) {
         setReferencePreviewEntries(response.data?.matches || []);
