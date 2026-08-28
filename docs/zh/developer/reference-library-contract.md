@@ -43,6 +43,8 @@ Steam 库中没有某个受支持游戏的 `appmanifest` 是正常的负匹配�
 
 任务 `kind` 为 `reference_library_maintenance`，全局 dedupe key 为 `reference-library-maintenance`。`task_state` 和 `background_tasks` 保存任务快照；重复启动返回已有 `task_id`。页面挂载时先查活动任务，因此 React 局部 `loading` 状态不是互斥或恢复机制。
 
+应用进程退出后，daemon worker 不可恢复；下次启动 hydration 必须把仍处于活动状态的 `reference_library_maintenance` 孤儿任务持久化为 `interrupted`，释放 dedupe，让用户可以安全重试。
+
 逐文件进度更新属于高频传输事件：成功推送或没有订阅者时只允许写 DEBUG，连接建立／断开可写 INFO，真实发送异常写 ERROR。不得让一次大型索引用正常进度记录淹没桌面诊断日志。
 
 ## 进度与终态

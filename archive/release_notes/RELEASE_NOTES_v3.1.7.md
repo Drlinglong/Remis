@@ -39,6 +39,9 @@ semantic context, and strengthens long-running desktop maintenance workflows.
 - Reference-library jobs use a single persisted background task with
   cross-page recovery, per-game success or failure states, and protection
   against concurrent SQLite writers.
+- If the desktop app exits during maintenance, the orphaned task is marked as
+  interrupted on the next launch so it cannot permanently block rebuilding or
+  removing a library.
 - Removing a library deletes its binding, reference sets, and indexed entries,
   then compacts SQLite to return freed space to the operating system. A failed
   compaction is reported instead of being silently hidden.
@@ -87,6 +90,8 @@ semantic context, and strengthens long-running desktop maintenance workflows.
   多个目录中的本地化模块。
 - 官方参考语料库使用唯一且持久化的后台任务，支持跨页面恢复、逐游戏成功／失败
   结果，并防止多个任务同时写入 SQLite。
+- 如果桌面应用在维护期间退出，下次启动时会把失去执行线程的任务标记为已中断，
+  避免它永久阻止后续重建或删除。
 - 删除语料库会移除绑定、参考集合与全部索引条目，并压缩 SQLite，将释放的空间
   归还操作系统；如果空间回收失败，任务会明确报告，而不是静默隐藏。
 - 桌面日志不再为每次成功或跳过的进度推送写入一条 INFO；Steam 库中不存在某款
