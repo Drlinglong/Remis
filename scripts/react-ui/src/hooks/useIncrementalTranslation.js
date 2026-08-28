@@ -7,7 +7,6 @@ import translationService from '../services/translationService';
 import notificationService from '../services/notificationService';
 import { open } from '@tauri-apps/plugin-dialog';
 import {
-    buildIncrementalUpdatePayload,
     getArchivedTargetLanguages,
     INCREMENTAL_STATE_STORAGE_KEY,
     normalizeArrayPayload,
@@ -27,6 +26,7 @@ import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../utils/lo
 import { useReferenceReuseSettings } from './useReferenceReuseSettings';
 import { useReferenceLibraryGate } from './useReferenceLibraryGate';
 import { useIncrementalPreScan } from './useIncrementalPreScan';
+import { useIncrementalExecution } from './useIncrementalExecution';
 export const useIncrementalTranslation = (notificationStyle) => {
     const { t, i18n } = useTranslation();
     const location = useLocation();
@@ -301,85 +301,16 @@ export const useIncrementalTranslation = (notificationStyle) => {
         selectedProject, selectedProvider, setActive, setConflictingTaskId, setCurrentTaskId,
         setCurrentTaskMode, setLoading, setLogs, setProgress, setProgressInfo, setScanResults, t, useResume,
     });
-    const startTranslation = useCallback(async () => {
-        if (loading || executing || preScanInFlightRef.current || executionInFlightRef.current) return;
-        const targetLangCodes = selectedLangs.length > 0 ? selectedLangs : getArchivedTargetLanguages(archiveInfo);
-        if (!selectedProject || targetLangCodes.length === 0) {
-            notificationService.error(t('incremental_translation.no_archived_target_languages'), notificationStyle);
-            return;
-        }
-        executionInFlightRef.current = true;
-        setExecuting(true);
-        setActive(3);
-        setLogs([`[${formatLocalizedDateTime(Date.now(), getResolvedInterfaceLocale(i18n), { timeStyle: 'medium' })}] ${t('incremental_translation.status_ws_initializing')}`]);
-        setFinalSummary(null);
-        setProgress(0);
-        setProgressInfo({ percent: 0, stage_code: 'initializing', stage: t('incremental_translation.progress_stage_initializing') });
-        completionSourceRef.current = null;
-        try {
-            const res = await translationService.startIncrementalUpdate(
-                selectedProject.project_id,
-                buildIncrementalUpdatePayload({
-                    batchSizeLimit,
-                    concurrencyLimit,
-                    customSourcePath,
-                    dryRun: false,
-                    embeddedWorkshopBatchSize,
-                    embeddedWorkshopConcurrency,
-                    embeddedWorkshopEnabled,
-                    embeddedWorkshopFollowPrimary,
-                    embeddedWorkshopModel,
-                    embeddedWorkshopProvider,
-                    embeddedWorkshopRpm,
-                    projectId: selectedProject.project_id,
-                    referenceLocalizationPath,
-                    referenceReuseEnabled: referenceReuseEnabled && !referenceReuseBypassed,
-                    referenceReuseExcludedEntries,
-                    rpmLimit,
-                    selectedModel,
-                    selectedProvider,
-                    targetLangCodes,
-                    useResume,
-                })
-            );
-            const taskId = res.data.task_id;
-            if (!taskId) {
-                throw new Error(t('incremental_translation.task_id_missing'));
-            }
-            setConflictingTaskId(null);
-            setCurrentTaskId(taskId);
-            setCurrentTaskMode('execution');
-            connectWebSocket(taskId);
-            notificationService.info(
-                t('incremental_translation.background_task_notice'),
-                notificationStyle,
-            );
-        } catch (err) {
-            const detail = err?.response?.data?.detail;
-            const duplicateTaskId = detail?.code === 'duplicate_task'
-                ? detail.existing_task_id
-                : null;
-            if (duplicateTaskId) {
-                setConflictingTaskId(duplicateTaskId);
-                setCurrentTaskId(duplicateTaskId);
-                notificationService.info(
-                    t('incremental_translation.conflicting_task_notice'),
-                    notificationStyle,
-                );
-            } else {
-                addLog(t('incremental_translation.critical_error', { message: err.message }));
-            }
-            setExecuting(false);
-            executionInFlightRef.current = false;
-        }
-    }, [
-        loading, executing, selectedLangs, archiveInfo, selectedProject,
-        selectedProvider, selectedModel, batchSizeLimit, concurrencyLimit, rpmLimit, customSourcePath,
-        useResume, embeddedWorkshopEnabled, embeddedWorkshopFollowPrimary, embeddedWorkshopProvider,
-        embeddedWorkshopModel, embeddedWorkshopBatchSize, embeddedWorkshopConcurrency, embeddedWorkshopRpm,
-        referenceLocalizationPath, referenceReuseEnabled, referenceReuseBypassed, referenceReuseExcludedEntries,
-        completionSourceRef, connectWebSocket, addLog, notificationStyle, t, i18n
-    ]);
+    const startTranslation = useIncrementalExecution({
+        addLog, archiveInfo, batchSizeLimit, completionSourceRef, concurrencyLimit,
+        connectWebSocket, customSourcePath, embeddedWorkshopBatchSize, embeddedWorkshopConcurrency,
+        embeddedWorkshopEnabled, embeddedWorkshopFollowPrimary, embeddedWorkshopModel,
+        embeddedWorkshopProvider, embeddedWorkshopRpm, executing, executionInFlightRef, i18n, loading,
+        notificationStyle, preScanInFlightRef, referenceLocalizationPath, referenceReuseBypassed,
+        referenceReuseEnabled, referenceReuseExcludedEntries, rpmLimit, selectedLangs, selectedModel,
+        selectedProject, selectedProvider, setActive, setConflictingTaskId, setCurrentTaskId,
+        setCurrentTaskMode, setExecuting, setFinalSummary, setLogs, setProgress, setProgressInfo, t, useResume,
+    });
     const openOutputFolder = useCallback(async () => {
         const folderPath = finalSummary?.output_dir;
         if (!folderPath) return;
