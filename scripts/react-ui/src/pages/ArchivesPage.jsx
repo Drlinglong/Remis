@@ -3,6 +3,7 @@ import { Container, Title, Text, Paper, Group, Badge, Button, ScrollArea, Box, L
 import { IconArchive, IconArrowLeft, IconRefresh } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import api from '../utils/api';
+import { normalizeRecordArrayPayload } from '../utils/payload';
 
 const API_BASE = '/api';
 
@@ -15,7 +16,10 @@ export default function ArchivesPage() {
     setLoading(true);
     try {
       const res = await api.get(`${API_BASE}/projects/archives`);
-      setProjects(res.data);
+      setProjects(normalizeRecordArrayPayload(
+        res.data,
+        ['archives', 'projects', 'items', 'data', 'results'],
+      ).filter((project) => project.project_id && project.name));
     } catch (error) {
       console.error("Failed to load archived projects", error);
     } finally {

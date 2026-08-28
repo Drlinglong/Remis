@@ -125,4 +125,60 @@ describe('modelArenaService', () => {
       vote: expect.objectContaining({ verdict: 'tie' }),
     }));
   });
+
+  it('keeps malformed collection fields safe while preserving valid sample joins', () => {
+    const malformedCollections = normalizeModelArenaRun({
+      contestants: null,
+      samples: { sample_id: 'not-an-array' },
+      outputs: { output_id: 'not-an-array' },
+      votes: 'not-an-array',
+      requests: { request_id: 'not-an-array' },
+      events: 'not-an-array',
+      results: { contestants: 'not-an-array' },
+    });
+
+    expect(malformedCollections.contestants).toEqual([]);
+    expect(malformedCollections.samples).toEqual([]);
+    expect(malformedCollections.outputs).toEqual([]);
+    expect(malformedCollections.votes).toEqual([]);
+    expect(malformedCollections.requests).toEqual([]);
+    expect(malformedCollections.events).toEqual([]);
+    expect(malformedCollections.results.contestants).toEqual([]);
+
+    const normalized = normalizeModelArenaRun({
+      run_id: 'run-malformed',
+      contestants: 'not-an-array',
+      samples: [{
+        sample_id: 'sample-1',
+        source_text: 'Hello',
+        outputs: { output_id: 'not-an-array' },
+        vote: null,
+      }, {
+        sample_id: 'sample-2',
+        source_text: 'Goodbye',
+      }],
+      outputs: [{
+        output_id: 'output-1',
+        sample_id: 'sample-1',
+        candidate_id: 'candidate-1',
+      }, {
+        output_id: 'output-2',
+        sample_id: 'sample-2',
+        candidate_id: 'candidate-1',
+      }],
+      votes: { sample_id: 'sample-1', verdict: 'tie' },
+      results: { contestants: null },
+    });
+
+    expect(normalized.contestants).toEqual([]);
+    expect(normalized.results.contestants).toEqual([]);
+    expect(normalized.samples).toHaveLength(2);
+    expect(normalized.samples[0].outputs).toEqual([]);
+    expect(normalized.samples[0].vote).toBeNull();
+    expect(normalized.samples[1].outputs).toEqual([
+      expect.objectContaining({ output_id: 'output-2' }),
+    ]);
+    expect(normalized.outputs).toHaveLength(2);
+    expect(normalized.votes).toEqual([]);
+  });
 });

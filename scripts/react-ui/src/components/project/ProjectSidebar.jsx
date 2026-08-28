@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../../utils/api';
 import { useSidebar } from '../../context/SidebarContextCore';
 import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
+import { normalizeRecordArrayPayload } from '../../utils/payload';
 
 const ProjectSidebar = ({ projectId, onDeleteNote }) => {
     const { t, i18n } = useTranslation();
@@ -14,7 +15,10 @@ const ProjectSidebar = ({ projectId, onDeleteNote }) => {
     const fetchHistory = useCallback(async () => {
         try {
             const res = await api.get(`/api/project/${projectId}/notes`);
-            setHistory(res.data);
+            setHistory(normalizeRecordArrayPayload(
+                res.data,
+                ['notes', 'history', 'items', 'data', 'results'],
+            ).filter((note) => note.id));
         } catch (error) {
             console.error("Failed to load notes history", error);
         }

@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import styles from '../../pages/ProjectManagement.module.css';
 import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
+import { normalizeRecordArrayPayload } from '../../utils/payload';
 
 const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, onProjectDataChanged }) => {
     const { t, i18n } = useTranslation();
@@ -25,7 +26,12 @@ const ProjectHistoryComponent = ({ projectId, projectDetails, refreshToken = 0, 
         try {
             setLoading(true);
             const res = await api.get(`/api/project/${projectId}/history`);
-            setHistory(res.data);
+            setHistory(normalizeRecordArrayPayload(
+                res.data,
+                ['history', 'items', 'data', 'results'],
+            ).filter((event) => (
+                event.history_id && typeof event.action_type === 'string' && event.action_type
+            )));
         } catch (error) {
             console.error("Failed to fetch history", error);
         } finally {
