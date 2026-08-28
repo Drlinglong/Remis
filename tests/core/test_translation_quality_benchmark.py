@@ -246,6 +246,39 @@ def test_hunyuan_prompt_keeps_context_global_prompt_and_contextual_glossary(
     assert "only when the source context matches those Remarks" in prompt
 
 
+def test_hunyuan_prompt_treats_semantic_hint_as_metadata(monkeypatch):
+    raw_case = next(
+        case
+        for case in load_fixture()["translation_cases"]
+        if case["game_id"] == "victoria3"
+    )
+    case = resolve_case(raw_case)
+    task = make_task(case, "hunyuan")
+    task.texts = ["Chinese"]
+    task.start_index = 0
+    task.end_index = 1
+    task.file_task.target_lang = {"code": "zh-CN", "name": "简体中文"}
+    task.file_task.semantic_hints = [
+        "country_adjective_definition: render the country form"
+    ]
+    handler = object.__new__(HunyuanHandler)
+    handler.provider_name = "hunyuan"
+    handler.model_id = "semantic-hint-test-model"
+    handler.logger = logging.getLogger("semantic-hint-hunyuan-test")
+    monkeypatch.setattr(
+        prompt_manager,
+        "get_custom_global_prompt",
+        lambda: "",
+    )
+
+    prompt = handler._build_prompt(task)
+
+    assert 'Source value: "Chinese"' in prompt
+    assert "the Semantic hint is context, not source text" in prompt
+    assert "Do not translate or echo the metadata" in prompt
+    assert "Preserve one output line per input line" in prompt
+
+
 def test_contextual_glossary_scoring_rewards_following_and_disambiguation():
     raw_case = next(
         case

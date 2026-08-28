@@ -121,7 +121,8 @@ class HunyuanHandler(OpenAIHandler):
             "TARGET-LANGUAGE MORPHOLOGY POLICY:\n"
             f"{language_policy}\n"
             "Apply this policy only to entries carrying matching semantic metadata. "
-            "Do not echo the metadata.\n\n"
+            "For annotated lines, translate only the Source value; the Semantic hint is context, not source text. "
+            "Do not translate or echo the metadata. Preserve one output line per input line.\n\n"
             if language_policy
             else ""
         )
