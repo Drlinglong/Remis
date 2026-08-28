@@ -27,3 +27,13 @@ class ReferenceReusePreviewRequest(BaseModel):
 class ReferenceLibraryBuildRequest(BaseModel):
     game_id: str
     localization_path: str
+
+
+class ReferenceLibraryOperation(BaseModel):
+    game_id: str
+    localization_path: str
+    action: str = "build"
+
+
+class ReferenceLibraryJobRequest(BaseModel):
+    operations: List[ReferenceLibraryOperation] = Field(default_factory=list)

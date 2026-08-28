@@ -20,6 +20,8 @@
 - [Model Arena 开发契约](developer/model-arena-contract.md) - 抽样、匿名投票、历史与导出边界
 - [Task Center 产品意图](product-intent-task-center.md) - 任务收件箱、结果找回与主页边界
 - [Task Center 开发契约](developer/task-center-contract.md) - 状态、持久化、已处理语义与 Agent 读取边界
+- [官方参考语料库产品意图](product-intent-reference-library.md) - 官方译文复用、维护交互与禁止副作用
+- [官方参考语料库开发契约](developer/reference-library-contract.md) - 精确匹配、SQLite、后台任务与删除边界
 - [智能工坊产品意图](product-intent-agent-workshop.md) - 格式安全护栏、自动写回与禁止语义重写
 - [智能工坊开发契约](developer/agent-workshop-contract.md) - 扫描、有限重试、逐条写回与当前高风险差距
 - [Mod 监控产品意图](product-intent-project-tracking.md) - 只读本地化变化探测与 Agent 边界
@@ -49,6 +51,7 @@
 - [词典与词汇表](user-guides/glossary.md) - 主词典 / 额外词典 / 项目词典与翻译启用
 - [模型竞技场](user-guides/model-arena.md) - 正式翻译前比较 2 或 3 个候选模型
 - [任务中心](user-guides/task-center.md) - 查看后台进度、失败、结果和全部日志
+- [官方参考语料库](user-guides/reference-library.md) - 检测游戏、建立、更新和删除本地官方译文索引
 - [常见问题解答 (FAQ)](user-guides/faq.md) - 常见问题和解决方案
 - [工厂工作原理](user-guides/how_the_factory_works.md) - 原理向流水线说明
 - [日志与诊断](user-guides/logs-and-diagnostics.md) - 日志在哪、怎么看、如何反馈

@@ -13,7 +13,7 @@ from pathlib import Path
 import re
 import sqlite3
 from contextlib import contextmanager
-from typing import Iterable, Iterator, Optional
+from typing import Callable, Iterable, Iterator, Optional
 
 from scripts.app_settings import LANGUAGES, VANILLA_REFERENCE_DB_PATH
 from scripts.core.paradox_localization_parser import parse_text
@@ -22,6 +22,15 @@ from scripts.core.services.vanilla_reference_version import detect_reference_gam
 
 logger = logging.getLogger(__name__)
 _VERSION_SUFFIX_RE = re.compile(r":\d+$")
+
+
+def _report_progress(callback: Optional[Callable[[dict], None]], **updates: object) -> None:
+    if callback is None:
+        return
+    try:
+        callback(updates)
+    except Exception:
+        logger.debug("Reference progress callback failed", exc_info=True)
 
 def normalize_reference_key(key: str) -> str:
     """Return the semantic Paradox key without its translation revision."""
@@ -192,11 +201,21 @@ class VanillaReferenceService:
         localization_root: str | Path,
         supported_language_keys: Optional[Iterable[str]] = None,
         encoding: str = "utf-8-sig",
+        progress_callback: Optional[Callable[[dict], None]] = None,
+        allow_stale_fallback: bool = True,
+        force_rebuild: bool = False,
     ) -> ReferenceIndexInfo:
         """Build and activate a multilingual index for an explicit source tree."""
 
         root = self._validate_root(localization_root)
+        _report_progress(progress_callback, stage="scanning", files_current=0)
         files_by_language = self._collect_language_files(root, supported_language_keys)
+        _report_progress(
+            progress_callback,
+            stage="scanning",
+            files_current=0,
+            files_total=sum(len(files) for files in files_by_language.values()),
+        )
         game_version = self._detect_game_version(root)
         stat_fingerprint = self._stat_fingerprint(root, files_by_language, game_version)
 
@@ -214,7 +233,7 @@ class VanillaReferenceService:
             ).fetchone()
 
         stale = False
-        if row is None:
+        if row is None or force_rebuild:
             try:
                 row = self._build_reference_set(
                     game_id=game_id,
@@ -223,9 +242,13 @@ class VanillaReferenceService:
                     files_by_language=files_by_language,
                     stat_fingerprint=stat_fingerprint,
                     encoding=encoding,
+                    progress_callback=progress_callback,
+                    replace_existing=force_rebuild,
                 )
             except Exception:
                 logger.exception("Failed to rebuild vanilla reference index for %s", root)
+                if not allow_stale_fallback:
+                    raise
                 with self._connect() as connection:
                     self._ensure_schema(connection)
                     row = connection.execute(
@@ -241,7 +264,21 @@ class VanillaReferenceService:
                 stale = True
 
         info = self._row_to_info(row, stale=stale)
+        _report_progress(
+            progress_callback,
+            stage="activating",
+            files_current=sum(len(files) for files in files_by_language.values()),
+            files_total=sum(len(files) for files in files_by_language.values()),
+            entries_current=self.count_entries(info.reference_set_id),
+        )
         self.activate_reference_set(info.reference_set_id, game_id)
+        _report_progress(
+            progress_callback,
+            stage="completed",
+            files_current=sum(len(files) for files in files_by_language.values()),
+            files_total=sum(len(files) for files in files_by_language.values()),
+            entries_current=self.count_entries(info.reference_set_id),
+        )
         return info
 
     def open_active_resolver(
@@ -321,6 +358,36 @@ class VanillaReferenceService:
                 (reference_set_id,),
             ).fetchone()
         return int(row["count"])
+
+    def delete_game_reference(self, game_id: str) -> dict[str, int]:
+        """Atomically remove a game's binding, sets, and all indexed entries."""
+
+        if not self.db_path.is_file():
+            return {"reference_sets_deleted": 0, "entries_deleted": 0}
+        with self._connect() as connection:
+            self._ensure_schema(connection)
+            set_ids = [
+                row["reference_set_id"]
+                for row in connection.execute(
+                    "SELECT reference_set_id FROM reference_sets_v2 WHERE game_id = ?",
+                    (game_id,),
+                )
+            ]
+            entries_deleted = 0
+            if set_ids:
+                placeholders = ", ".join("?" for _ in set_ids)
+                entries_deleted = connection.execute(
+                    f"DELETE FROM reference_entries_v2 WHERE reference_set_id IN ({placeholders})",
+                    set_ids,
+                ).rowcount
+            connection.execute("DELETE FROM active_reference_sets WHERE game_id = ?", (game_id,))
+            sets_deleted = connection.execute(
+                "DELETE FROM reference_sets_v2 WHERE game_id = ?", (game_id,)
+            ).rowcount
+        return {
+            "reference_sets_deleted": int(sets_deleted),
+            "entries_deleted": int(entries_deleted),
+        }
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -453,10 +520,15 @@ class VanillaReferenceService:
         files_by_language: dict[str, tuple[Path, ...]],
         stat_fingerprint: str,
         encoding: str,
+        progress_callback: Optional[Callable[[dict], None]] = None,
+        replace_existing: bool = False,
     ) -> sqlite3.Row:
         content_digest = hashlib.sha256()
         entries: dict[tuple[str, str, str], tuple[Optional[str], bool, str]] = {}
 
+        files_total = sum(len(files) for files in files_by_language.values())
+        files_current = 0
+        entries_current = 0
         for language_code in sorted(files_by_language):
             for path in files_by_language[language_code]:
                 raw = path.read_bytes()
@@ -475,16 +547,34 @@ class VanillaReferenceService:
                         path,
                     )
                 for entry in report.entries:
+                    entries_current += 1
                     identity = (language_code, file_identity, entry.base_key)
                     previous = entries.get(identity)
                     if previous is None:
                         entries[identity] = (entry.value, False, relative_path)
                     elif previous[0] != entry.value:
                         entries[identity] = (None, True, relative_path)
+                files_current += 1
+                _report_progress(
+                    progress_callback,
+                    stage="indexing",
+                    current_file=str(path),
+                    files_current=files_current,
+                    files_total=files_total,
+                    entries_current=entries_current,
+                )
 
         created_at = datetime.now(timezone.utc).isoformat()
         with self._connect() as connection:
             self._ensure_schema(connection)
+            if replace_existing:
+                self._remove_matching_reference_set(
+                    connection,
+                    game_id=game_id,
+                    game_version=game_version,
+                    root_path=str(root),
+                    stat_fingerprint=stat_fingerprint,
+                )
             cursor = connection.execute(
                 """
                 INSERT OR IGNORE INTO reference_sets_v2 (
@@ -530,6 +620,39 @@ class VanillaReferenceService:
                 (reference_set_id,),
             ).fetchone()
         return row
+
+    @staticmethod
+    def _remove_matching_reference_set(
+        connection: sqlite3.Connection,
+        *,
+        game_id: str,
+        game_version: str,
+        root_path: str,
+        stat_fingerprint: str,
+    ) -> None:
+        existing = connection.execute(
+            """
+            SELECT reference_set_id FROM reference_sets_v2
+            WHERE game_id = ? AND game_version = ?
+              AND root_path = ? AND stat_fingerprint = ?
+            """,
+            (game_id, game_version, root_path, stat_fingerprint),
+        ).fetchone()
+        if existing is None:
+            return
+        existing_id = existing["reference_set_id"]
+        connection.execute(
+            "DELETE FROM active_reference_sets WHERE reference_set_id = ?",
+            (existing_id,),
+        )
+        connection.execute(
+            "DELETE FROM reference_entries_v2 WHERE reference_set_id = ?",
+            (existing_id,),
+        )
+        connection.execute(
+            "DELETE FROM reference_sets_v2 WHERE reference_set_id = ?",
+            (existing_id,),
+        )
 
     def _load_language_pair(
         self,

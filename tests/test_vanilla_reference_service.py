@@ -164,6 +164,57 @@ def test_active_index_opens_without_rescanning_source_tree(tmp_path, monkeypatch
     assert resolver.lookup("TRK:0", "Turkana").translation == "图尔卡纳"
 
 
+def test_delete_game_reference_removes_binding_sets_and_entries_atomically(tmp_path):
+    root = _build_root(tmp_path)
+    service = VanillaReferenceService(tmp_path / "reference.sqlite")
+    first = service.build_index(
+        game_id="victoria3",
+        localization_root=root,
+        supported_language_keys=["1", "2"],
+    )
+
+    result = service.delete_game_reference("victoria3")
+
+    assert result["reference_sets_deleted"] == 1
+    assert result["entries_deleted"] > 0
+    assert service.get_active_index("victoria3") is None
+    assert service.count_entries(first.reference_set_id) == 0
+
+
+def test_force_rebuild_repairs_same_fingerprint_index(tmp_path):
+    root = _build_root(tmp_path)
+    service = VanillaReferenceService(tmp_path / "reference.sqlite")
+    first = service.build_index(
+        game_id="victoria3",
+        localization_root=root,
+        supported_language_keys=["1", "2"],
+    )
+    original_count = service.count_entries(first.reference_set_id)
+    with service._connect() as connection:
+        connection.execute(
+            """
+            DELETE FROM reference_entries_v2
+            WHERE rowid = (
+                SELECT rowid FROM reference_entries_v2
+                WHERE reference_set_id = ? LIMIT 1
+            )
+            """,
+            (first.reference_set_id,),
+        )
+    assert service.count_entries(first.reference_set_id) == original_count - 1
+
+    rebuilt = service.build_index(
+        game_id="victoria3",
+        localization_root=root,
+        supported_language_keys=["1", "2"],
+        force_rebuild=True,
+        allow_stale_fallback=False,
+    )
+
+    assert service.count_entries(rebuilt.reference_set_id) == original_count
+    assert service.get_active_index("victoria3").reference_set_id == rebuilt.reference_set_id
+
+
 def test_game_version_is_stored_and_part_of_the_index_identity(tmp_path):
     root = _build_root(tmp_path)
     launcher_path = root.parent / "launcher-settings.json"

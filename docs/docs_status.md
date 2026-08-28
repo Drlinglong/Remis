@@ -66,6 +66,8 @@ Model Arena、Task Center、智能工坊，以及 Agent / Copilot 隐藏预览�
 - `docs/zh/developer/model-arena-contract.md` — 抽样、执行、匿名、历史、导出与当前边界
 - `docs/zh/product-intent-task-center.md` — 后台任务收件箱、处理语义与主页信息架构边界
 - `docs/zh/developer/task-center-contract.md` — 持久化状态、详情摘要、历史与 Agent 消费契约
+- `docs/zh/product-intent-reference-library.md` — 官方译文复用、维护交互与数据删除边界
+- `docs/zh/developer/reference-library-contract.md` — 精确匹配、SQLite 索引、进度任务与回归门禁
 - `docs/zh/product-intent-agent-workshop.md` — 格式安全护栏、自动写回、有限重试与明确非目标
 - `docs/zh/developer/agent-workshop-contract.md` — 扫描、模型修复、逐条写回、实现差距与测试门禁
 - `docs/zh/product-intent-project-tracking.md` — 本地化文件只读监控、告警与 Agent 边界
@@ -111,6 +113,7 @@ Model Arena、Task Center、智能工坊，以及 Agent / Copilot 隐藏预览�
 - `docs/zh/user-guides/glossary.md`
 - `docs/zh/user-guides/model-arena.md`
 - `docs/zh/user-guides/task-center.md`
+- `docs/zh/user-guides/reference-library.md`
 - `docs/zh/user-guides/remis-assistant.md`
 - `docs/zh/user-guides/project-tracking.md`
 - `docs/zh/user-guides/tools-thumbnail-generator.md`

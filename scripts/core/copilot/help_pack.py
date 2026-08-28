@@ -88,6 +88,11 @@ HELP_SKILLS: dict[str, dict[str, Any]] = {
         "description": "查看后台任务进度、结果、失败范围、任务详情和历史记录。",
         "resources": ("zh/user-guides/task-center.md",),
     },
+    "reference_library": {
+        "title": "官方参考语料库",
+        "description": "检测 Paradox 游戏，建立、更新或删除本地官方译文索引。",
+        "resources": ("zh/user-guides/reference-library.md",),
+    },
     "remis_assistant": {
         "title": "Remis 小助手",
         "description": "在同一聊天框提问、生成工作流计划、确认执行并判断真实完成。",

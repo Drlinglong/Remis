@@ -6,14 +6,21 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from scripts.shared.services import project_manager, glossary_manager
+from scripts.shared import task_state
 from scripts.app_settings import APP_DATA_DIR, PROJECT_ROOT, REMIS_DB_PATH, resolve_path
 from scripts.schemas.system import (
     DatabaseFolderResponse,
     SystemActionResponse,
     SystemStatsResponse,
 )
-from scripts.schemas.reference import ReferenceLibraryBuildRequest
-from scripts.core.services.reference_library_service import ReferenceLibraryService
+from scripts.schemas.reference import (
+    ReferenceLibraryBuildRequest,
+    ReferenceLibraryJobRequest,
+)
+from scripts.core.services.reference_library_service import (
+    REFERENCE_LIBRARY_DEDUPE_KEY,
+    ReferenceLibraryService,
+)
 from scripts.utils.system_utils import sanitize_for_json
 from scripts.core.paradox_localization_parser import escape_value, parse_text, patch_text
 
@@ -82,7 +89,11 @@ def _remove_sqlite_family(db_path: str):
 
 @router.get("/reference-library")
 def get_reference_library_status():
-    return reference_library_service.status()
+    payload = reference_library_service.status()
+    active_task = task_state.find_active_task_by_dedupe_key(REFERENCE_LIBRARY_DEDUPE_KEY)
+    if active_task is not None:
+        payload["task"] = active_task
+    return payload
 
 
 @router.post("/reference-library/discover")
@@ -98,6 +109,32 @@ def auto_build_reference_libraries():
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.get("/reference-library/jobs/active")
+def get_active_reference_library_job():
+    task = task_state.find_active_task_by_dedupe_key(REFERENCE_LIBRARY_DEDUPE_KEY)
+    if task is None:
+        raise HTTPException(status_code=404, detail="No active reference library task")
+    return reference_library_service.get_task(task["task_id"]) or task
+
+
+@router.get("/reference-library/jobs/{task_id}")
+def get_reference_library_job(task_id: str):
+    task = reference_library_service.get_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Reference library task not found")
+    return task
+
+
+@router.post("/reference-library/jobs")
+def start_reference_library_job(request: ReferenceLibraryJobRequest):
+    try:
+        return reference_library_service.start_operations(
+            [operation.model_dump() for operation in request.operations]
+        )
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.post("/reference-library/build")
 def build_reference_library(request: ReferenceLibraryBuildRequest):
     try:
@@ -105,6 +142,14 @@ def build_reference_library(request: ReferenceLibraryBuildRequest):
             request.game_id,
             request.localization_path,
         )
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/reference-library/libraries/{game_id}")
+def delete_reference_library(game_id: str):
+    try:
+        return reference_library_service.delete(game_id)
     except (OSError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
