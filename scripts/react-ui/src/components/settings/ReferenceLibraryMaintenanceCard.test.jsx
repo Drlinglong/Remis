@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ReferenceLibraryMaintenanceCard from './ReferenceLibraryMaintenanceCard';
 import translationService from '../../services/translationService';
+import { referenceLibraryTaskIsActive } from '../../hooks/useReferenceLibraryMaintenance';
 
 vi.mock('@tauri-apps/plugin-dialog', () => ({ open: vi.fn() }));
 vi.mock('../../services/translationService', () => ({
@@ -53,6 +54,13 @@ describe('ReferenceLibraryMaintenanceCard', () => {
     translationService.getReferenceLibraryJob.mockResolvedValue({
       data: { task_id: 'task-1', status: 'queued', progress: {} },
     });
+  });
+
+  it('treats a maintenance task interrupted by an app restart as terminal', () => {
+    expect(referenceLibraryTaskIsActive({
+      task_id: 'task-interrupted',
+      status: 'interrupted',
+    })).toBe(false);
   });
 
   it('discovers first, shows paths, and starts only selected games after confirmation', async () => {

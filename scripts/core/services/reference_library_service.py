@@ -13,13 +13,16 @@ from scripts.core.services.paradox_installation_discovery import (
     discover_paradox_localizations,
     official_localization_roots,
 )
-from scripts.core.services.vanilla_reference_service import VanillaReferenceService
+from scripts.core.services.vanilla_reference_service import (
+    REFERENCE_DB_WRITE_LOCK,
+    VanillaReferenceService,
+)
 from scripts.shared import task_state
 
 
 REFERENCE_LIBRARY_TASK_KIND = "reference_library_maintenance"
 REFERENCE_LIBRARY_DEDUPE_KEY = "reference-library-maintenance"
-_REFERENCE_WRITE_LOCK = threading.Lock()
+_REFERENCE_WRITE_LOCK = REFERENCE_DB_WRITE_LOCK
 
 
 class ReferenceLibraryService:

@@ -1,4 +1,6 @@
 from pathlib import Path
+import threading
+import time
 
 import pytest
 
@@ -76,6 +78,57 @@ def test_build_index_aggregates_multiple_official_localization_roots(tmp_path):
     assert info.root_path == str(install_root.resolve())
     assert resolver.lookup("TRK", "Turkana").translation == "图尔卡纳"
     assert resolver.lookup("START", "Start").translation == "开始"
+
+
+def test_concurrent_reference_builds_share_one_process_write_lock(tmp_path, monkeypatch):
+    root = _build_root(tmp_path)
+    services = [
+        VanillaReferenceService(tmp_path / "reference.sqlite"),
+        VanillaReferenceService(tmp_path / "reference.sqlite"),
+    ]
+    active_writers = 0
+    max_active_writers = 0
+    counter_lock = threading.Lock()
+    original_build = VanillaReferenceService._build_reference_set
+
+    def tracked_build(self, *args, **kwargs):
+        nonlocal active_writers, max_active_writers
+        with counter_lock:
+            active_writers += 1
+            max_active_writers = max(max_active_writers, active_writers)
+        try:
+            time.sleep(0.05)
+            return original_build(self, *args, **kwargs)
+        finally:
+            with counter_lock:
+                active_writers -= 1
+
+    monkeypatch.setattr(VanillaReferenceService, "_build_reference_set", tracked_build)
+    barrier = threading.Barrier(2)
+    errors = []
+
+    def build(service):
+        try:
+            barrier.wait(timeout=2)
+            service.build_index(
+                game_id="victoria3",
+                localization_root=root,
+                supported_language_keys=["1", "2"],
+                force_rebuild=True,
+                allow_stale_fallback=False,
+            )
+        except Exception as exc:  # pragma: no cover - assertion below reports it
+            errors.append(exc)
+
+    threads = [threading.Thread(target=build, args=(service,)) for service in services]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=5)
+
+    assert all(not thread.is_alive() for thread in threads)
+    assert not errors
+    assert max_active_writers == 1
 
 
 def test_build_index_supports_eu4_flat_utf8_bom_language_files(tmp_path):

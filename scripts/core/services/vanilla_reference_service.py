@@ -7,11 +7,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from functools import wraps
 import hashlib
 import logging
 from pathlib import Path
 import re
 import sqlite3
+import threading
 from contextlib import contextmanager
 from typing import Callable, Iterable, Iterator, Optional
 
@@ -22,6 +24,18 @@ from scripts.core.services.vanilla_reference_version import detect_reference_gam
 
 logger = logging.getLogger(__name__)
 _VERSION_SUFFIX_RE = re.compile(r":\d+$")
+REFERENCE_DB_WRITE_LOCK = threading.RLock()
+
+
+def _serialized_reference_write(method):
+    """Run a reference database mutation under the process-wide write lock."""
+
+    @wraps(method)
+    def locked(*args, **kwargs):
+        with REFERENCE_DB_WRITE_LOCK:
+            return method(*args, **kwargs)
+
+    return locked
 
 
 def _report_progress(callback: Optional[Callable[[dict], None]], **updates: object) -> None:
@@ -194,6 +208,7 @@ class VanillaReferenceService:
             excluded_entries,
         )
 
+    @_serialized_reference_write
     def build_index(
         self,
         *,
@@ -307,19 +322,20 @@ class VanillaReferenceService:
         return VanillaReferenceResolver(rows, info, target_lang_code, excluded_entries)
 
     def activate_reference_set(self, reference_set_id: int, game_id: str) -> None:
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        with self._connect() as connection:
-            self._ensure_schema(connection)
-            connection.execute(
-                """
-                INSERT INTO active_reference_sets (game_id, reference_set_id, activated_at)
-                VALUES (?, ?, ?)
-                ON CONFLICT(game_id) DO UPDATE SET
-                    reference_set_id = excluded.reference_set_id,
-                    activated_at = excluded.activated_at
-                """,
-                (game_id, reference_set_id, datetime.now(timezone.utc).isoformat()),
-            )
+        with REFERENCE_DB_WRITE_LOCK:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            with self._connect() as connection:
+                self._ensure_schema(connection)
+                connection.execute(
+                    """
+                    INSERT INTO active_reference_sets (game_id, reference_set_id, activated_at)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(game_id) DO UPDATE SET
+                        reference_set_id = excluded.reference_set_id,
+                        activated_at = excluded.activated_at
+                    """,
+                    (game_id, reference_set_id, datetime.now(timezone.utc).isoformat()),
+                )
 
     def get_active_index(self, game_id: str) -> Optional[ReferenceIndexInfo]:
         if not self.db_path.is_file():
@@ -367,53 +383,55 @@ class VanillaReferenceService:
     def delete_game_reference(self, game_id: str) -> dict[str, int | bool]:
         """Atomically remove a game's binding, sets, and all indexed entries."""
 
-        if not self.db_path.is_file():
-            return {
-                "reference_sets_deleted": 0,
-                "entries_deleted": 0,
-                "database_compacted": True,
-            }
-        with self._connect() as connection:
-            self._ensure_schema(connection)
-            set_ids = [
-                row["reference_set_id"]
-                for row in connection.execute(
-                    "SELECT reference_set_id FROM reference_sets_v2 WHERE game_id = ?",
-                    (game_id,),
-                )
-            ]
-            entries_deleted = 0
-            if set_ids:
-                placeholders = ", ".join("?" for _ in set_ids)
-                entries_deleted = connection.execute(
-                    f"DELETE FROM reference_entries_v2 WHERE reference_set_id IN ({placeholders})",
-                    set_ids,
+        with REFERENCE_DB_WRITE_LOCK:
+            if not self.db_path.is_file():
+                return {
+                    "reference_sets_deleted": 0,
+                    "entries_deleted": 0,
+                    "database_compacted": True,
+                }
+            with self._connect() as connection:
+                self._ensure_schema(connection)
+                set_ids = [
+                    row["reference_set_id"]
+                    for row in connection.execute(
+                        "SELECT reference_set_id FROM reference_sets_v2 WHERE game_id = ?",
+                        (game_id,),
+                    )
+                ]
+                entries_deleted = 0
+                if set_ids:
+                    placeholders = ", ".join("?" for _ in set_ids)
+                    entries_deleted = connection.execute(
+                        f"DELETE FROM reference_entries_v2 WHERE reference_set_id IN ({placeholders})",
+                        set_ids,
+                    ).rowcount
+                connection.execute("DELETE FROM active_reference_sets WHERE game_id = ?", (game_id,))
+                sets_deleted = connection.execute(
+                    "DELETE FROM reference_sets_v2 WHERE game_id = ?", (game_id,)
                 ).rowcount
-            connection.execute("DELETE FROM active_reference_sets WHERE game_id = ?", (game_id,))
-            sets_deleted = connection.execute(
-                "DELETE FROM reference_sets_v2 WHERE game_id = ?", (game_id,)
-            ).rowcount
-        database_compacted = self._compact_database()
-        return {
-            "reference_sets_deleted": int(sets_deleted),
-            "entries_deleted": int(entries_deleted),
-            "database_compacted": database_compacted,
-        }
+            database_compacted = self._compact_database()
+            return {
+                "reference_sets_deleted": int(sets_deleted),
+                "entries_deleted": int(entries_deleted),
+                "database_compacted": database_compacted,
+            }
 
     def _compact_database(self) -> bool:
         """Return freed reference-library pages to the filesystem after deletion."""
 
-        try:
-            with sqlite3.connect(self.db_path, timeout=30, isolation_level=None) as connection:
-                connection.execute("VACUUM")
-        except sqlite3.Error:
-            logger.warning(
-                "Reference entries were deleted, but SQLite space reclamation failed for %s",
-                self.db_path,
-                exc_info=True,
-            )
-            return False
-        return True
+        with REFERENCE_DB_WRITE_LOCK:
+            try:
+                with sqlite3.connect(self.db_path, timeout=30, isolation_level=None) as connection:
+                    connection.execute("VACUUM")
+            except sqlite3.Error:
+                logger.warning(
+                    "Reference entries were deleted, but SQLite space reclamation failed for %s",
+                    self.db_path,
+                    exc_info=True,
+                )
+                return False
+            return True
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -425,7 +443,10 @@ class VanillaReferenceService:
         finally:
             connection.close()
 
+    @_serialized_reference_write
     def _ensure_schema(self, connection: sqlite3.Connection) -> None:
+        """Serialize schema DDL with reference database writes and VACUUM."""
+
         connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS reference_sets_v2 (

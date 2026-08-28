@@ -6,7 +6,7 @@ const ACTIVE_STATUSES = new Set([
   'queued', 'pending', 'running', 'discovering', 'scanning', 'indexing', 'activating',
 ]);
 const TERMINAL_STATUSES = new Set([
-  'completed', 'success', 'failed', 'partial_failed', 'cancelled', 'canceled',
+  'completed', 'success', 'failed', 'partial_failed', 'cancelled', 'canceled', 'interrupted',
 ]);
 
 const unwrap = (payload) => {
