@@ -49,9 +49,13 @@ export default function ReferenceLibraryDiscoveryModal({
                             {t(`settings_reference_${status}`)}
                           </Badge>
                         </Group>
-                        <Code fz="xs" style={{ whiteSpace: 'normal', wordBreak: 'break-all' }}>
-                          {candidate.localization_path || candidate.root_path}
-                        </Code>
+                        {(candidate.localization_paths || [candidate.localization_path || candidate.root_path])
+                          .filter(Boolean)
+                          .map((localizationPath) => (
+                            <Code key={localizationPath} fz="xs" style={{ whiteSpace: 'normal', wordBreak: 'break-all' }}>
+                              {localizationPath}
+                            </Code>
+                          ))}
                         {candidate.game_version && (
                           <Text size="xs" c="dimmed">
                             {t('settings_reference_version')}: {candidate.game_version}
@@ -66,7 +70,7 @@ export default function ReferenceLibraryDiscoveryModal({
           </ScrollArea.Autosize>
         )}
         <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>{t('common.cancel')}</Button>
+          <Button variant="default" onClick={onClose}>{t('cancel')}</Button>
           <Button loading={loading} disabled={selectedCount === 0} onClick={onConfirm}>
             {t('settings_reference_start_selected', { count: selectedCount })}
           </Button>

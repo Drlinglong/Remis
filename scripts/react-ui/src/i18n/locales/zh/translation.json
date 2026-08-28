@@ -41,7 +41,7 @@
   "settings_reference_discovery_notice": "请确认检测到的官方本地化目录，再选择要建立或更新的语料库。任务会在后台继续，你可以关闭此窗口。",
   "settings_reference_start_selected": "建立已选的 {{count}} 个",
   "settings_reference_task_title": "官方参考语料库进度",
-  "settings_reference_task_background_notice": "请耐心等待。任务可能需要几分钟，并会在后台继续运行。",
+  "settings_reference_task_background_notice": "请耐心等待。任务可能需要几分钟。\n\n您可以关闭窗口或切换到其他页面，任务将在后台继续运行。",
   "settings_reference_task_failed": "语料库维护失败",
   "settings_reference_overall_progress": "总体进度",
   "settings_reference_stage_discovering": "正在检测游戏",

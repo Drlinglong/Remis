@@ -16,6 +16,7 @@
             "11"
         ],
         "source_localization_folder": "localization",
+        "official_localization_globs": ["game/localization"],
         "protected_items": [
             ".metadata",
             "localization",
@@ -43,6 +44,7 @@
             "10"
         ],
         "source_localization_folder": "localisation",
+        "official_localization_globs": ["localisation"],
         "protected_items": [
             ".descriptor.mod",
             "localisation",
@@ -64,6 +66,7 @@
             "5"
         ],
         "source_localization_folder": "localisation",
+        "official_localization_globs": ["localisation"],
         "protected_items": [
             ".descriptor.mod",
             "localisation",
@@ -90,6 +93,7 @@
             "10"
         ],
         "source_localization_folder": "localisation",
+        "official_localization_globs": ["localisation"],
         "protected_items": [
             "descriptor.mod",
             "localisation",
@@ -115,6 +119,7 @@
             "10"
         ],
         "source_localization_folder": "localization",
+        "official_localization_globs": ["game/localization"],
         "protected_items": [
             "descriptor.mod",
             "localisation",
@@ -143,6 +148,11 @@
             "11"
         ],
         "source_localization_folder": "localization",
+        "official_localization_globs": [
+            "clausewitz/**/localization",
+            "game/**/localization",
+            "jomini/**/localization"
+        ],
         "protected_items": [
             ".metadata",
             "localization",

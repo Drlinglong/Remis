@@ -18,7 +18,7 @@ lookup(key, source_language, canonical_source_text, target_language)
 
 ## 游戏档案与目录发现
 
-Steam app id、安装目录名和本地化目录拼写属于游戏档案元数据，不得在不同模块复制第二份常量。当前支持的游戏既有 `game/localization`，也有 `game/localisation`。
+Steam app id、安装目录名和官方本地化布局属于游戏档案元数据，不得在不同模块复制第二份常量。`official_localization_globs` 与 Mod 使用的 `source_localization_folder` 是不同概念：Victoria 3／CK3 使用 `game/localization`，Stellaris／HOI4／EU4 使用安装根目录的 `localisation`，EU5 则聚合 `game`、`jomini`、`clausewitz` 下的多个 `localization` 模块。
 
 自动发现只解析 Windows Steam 注册表、`libraryfolders.vdf` 和对应 `appmanifest_*.acf`，验证安装目录与游戏档案规定的本地化目录。它不得启动 Steam、遍历整块磁盘或接受任意 Mod localization 目录。`POST /api/system/reference-library/discover` 只读并返回候选，不启动建库。
 
@@ -68,11 +68,11 @@ Steam app id、安装目录名和本地化目录拼写属于游戏档案元数�
 - 任务弹窗按游戏显示路径、阶段、文件／条目进度和错误；
 - 切页再回来恢复活动任务，不自动重新 discover 或 start；
 - 删除使用独立确认弹窗，明确“删除 Remis 本地索引，不碰游戏文件”；
-- 手动选择仍按游戏档案验证 `localization` / `localisation`，不能在 UI 假设统一路径。
+- 手动选择仍按游戏档案验证 Steam 游戏根目录及全部官方 localization roots，不能在 UI 假设统一路径或只显示 EU5 的一个模块。
 
 ## 测试门禁
 
-1. 自动发现覆盖 Steam library 转义、非 ASCII 路径、manifest 缺失／损坏、重复 app id 和两种本地化拼写。
+1. 自动发现覆盖 Steam library 转义、非 ASCII 路径、manifest 缺失／损坏、重复 app id、安装根目录 `localisation` 和 EU5 多模块聚合。
 2. 页面挂载不自动扫描；点击检测先出候选，确认后才启动任务。
 3. 一次 jobs 请求处理所有选中游戏。
 4. 并发重复请求返回同一活动 `task_id`，只运行一个写入 worker。

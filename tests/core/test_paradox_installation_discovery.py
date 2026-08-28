@@ -14,25 +14,68 @@ def _write_manifest(steamapps: Path, app_id: str, install_dir: str) -> None:
     )
 
 
-def test_discovers_localization_and_localisation_from_profile_rules(tmp_path):
+def test_discovers_official_layouts_without_assuming_a_game_subdirectory(tmp_path):
     steam_root = tmp_path / "Steam"
     steamapps = steam_root / "steamapps"
     _write_manifest(steamapps, "529340", "Victoria 3")
     _write_manifest(steamapps, "281990", "Stellaris")
     (steamapps / "common" / "Victoria 3" / "game" / "localization").mkdir(parents=True)
-    (steamapps / "common" / "Stellaris" / "game" / "localisation").mkdir(parents=True)
+    (steamapps / "common" / "Stellaris" / "localisation").mkdir(parents=True)
     profiles = {
-        "1": {"id": "victoria3", "name": "Victoria 3", "source_localization_folder": "localization"},
-        "2": {"id": "stellaris", "name": "Stellaris", "source_localization_folder": "localisation"},
+        "1": {
+            "id": "victoria3",
+            "name": "Victoria 3",
+            "official_localization_globs": ["game/localization"],
+        },
+        "2": {
+            "id": "stellaris",
+            "name": "Stellaris",
+            "official_localization_globs": ["localisation"],
+        },
     }
 
     results = discover_paradox_localizations(profiles, [steam_root])
 
     assert {item["game_id"] for item in results} == {"victoria3", "stellaris"}
     assert {Path(item["localization_path"]).name for item in results} == {
-        "localization",
-        "localisation",
+        "Victoria 3",
+        "Stellaris",
     }
+    stellaris = next(item for item in results if item["game_id"] == "stellaris")
+    assert stellaris["localization_paths"] == [
+        str((steamapps / "common" / "Stellaris" / "localisation").resolve())
+    ]
+
+
+def test_discovers_all_eu5_official_localization_modules(tmp_path):
+    steam_root = tmp_path / "Steam"
+    steamapps = steam_root / "steamapps"
+    _write_manifest(steamapps, "3450310", "Europa Universalis V")
+    install_root = steamapps / "common" / "Europa Universalis V"
+    expected = [
+        install_root / "clausewitz" / "loading_screen" / "localization",
+        install_root / "game" / "main_menu" / "localization",
+        install_root / "game" / "dlc" / "D001" / "main_menu" / "localization",
+        install_root / "jomini" / "in_game" / "localization",
+    ]
+    for root in expected:
+        root.mkdir(parents=True)
+    profiles = {
+        "6": {
+            "id": "eu5",
+            "name": "Europa Universalis V",
+            "official_localization_globs": [
+                "clausewitz/**/localization",
+                "game/**/localization",
+                "jomini/**/localization",
+            ],
+        }
+    }
+
+    [candidate] = discover_paradox_localizations(profiles, [steam_root])
+
+    assert candidate["localization_path"] == str(install_root.resolve())
+    assert set(candidate["localization_paths"]) == {str(path.resolve()) for path in expected}
 
 
 def test_libraryfolders_adds_non_default_steam_library(tmp_path):

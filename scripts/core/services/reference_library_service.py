@@ -9,7 +9,10 @@ import uuid
 from typing import Callable, Optional
 
 from scripts.app_settings import GAME_PROFILES, GAME_PROFILES_BY_ID
-from scripts.core.services.paradox_installation_discovery import discover_paradox_localizations
+from scripts.core.services.paradox_installation_discovery import (
+    discover_paradox_localizations,
+    official_localization_roots,
+)
 from scripts.core.services.vanilla_reference_service import VanillaReferenceService
 from scripts.shared import task_state
 
@@ -53,10 +56,11 @@ class ReferenceLibraryService:
         profile = GAME_PROFILES_BY_ID.get(game_id)
         if profile is None:
             raise ValueError(f"Unsupported game: {game_id}")
-        self._validate_profile_path(profile, localization_path)
+        install_root = self._validate_profile_path(profile, localization_path)
         info = self.reference_service.build_index(
             game_id=game_id,
-            localization_root=localization_path,
+            localization_root=install_root,
+            localization_globs=profile.get("official_localization_globs"),
             supported_language_keys=profile.get("supported_language_keys"),
             encoding=profile.get("encoding", "utf-8-sig"),
             progress_callback=progress_callback,
@@ -305,13 +309,25 @@ class ReferenceLibraryService:
         game["indexed_entries"] = game["entries_current"]
         return {"game_id": game_id, **result}
 
-    def _validate_profile_path(self, profile: dict, localization_path: str) -> None:
+    def _validate_profile_path(self, profile: dict, localization_path: str) -> Path:
         path = Path(localization_path).expanduser().resolve(strict=True)
-        expected = profile.get("source_localization_folder", "localization").casefold()
-        if path.name.casefold() != expected:
-            raise ValueError(f"Expected the game's {expected} directory")
-        if path.parent.name.casefold() != "game":
-            raise ValueError("Reference path must be located directly under the game's game directory")
+        install_root = next(
+            (
+                candidate
+                for candidate in (path, *path.parents)
+                if candidate.parent.name.casefold() == "common"
+                and candidate.parent.parent.name.casefold() == "steamapps"
+            ),
+            None,
+        )
+        if install_root is None:
+            raise ValueError("Reference path must belong to a Steam game installation")
+        official_roots = official_localization_roots(install_root, profile)
+        if not official_roots:
+            raise ValueError("No official localization directories were found for this game")
+        if path != install_root and path not in official_roots:
+            raise ValueError("Selected path is not an official localization directory for this game")
+        return install_root
 
     def _serialize_info(self, info) -> dict:
         payload = asdict(info)

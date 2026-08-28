@@ -91,21 +91,32 @@ def discover_paradox_localizations(
             match = _ACF_INSTALL_DIR_RE.search(_read_text(manifest))
             if not match:
                 continue
-            localization_path = (
-                steamapps
-                / "common"
-                / match.group("name")
-                / "game"
-                / profile.get("source_localization_folder", "localization")
-            ).resolve(strict=False)
-            identity = (game_id, os.path.normcase(str(localization_path)))
-            if identity in seen or not localization_path.is_dir():
+            install_root = (steamapps / "common" / match.group("name")).resolve(strict=False)
+            localization_roots = official_localization_roots(install_root, profile)
+            identity = (game_id, os.path.normcase(str(install_root)))
+            if identity in seen or not localization_roots:
                 continue
             seen.add(identity)
             results.append({
                 "game_id": game_id,
                 "game_name": profile.get("name", game_id),
                 "app_id": app_id,
-                "localization_path": str(localization_path),
+                "localization_path": str(install_root),
+                "localization_paths": [str(path) for path in localization_roots],
             })
     return results
+
+
+def official_localization_roots(install_root: Path, profile: dict) -> list[Path]:
+    """Resolve the official layout declared by a game profile."""
+
+    patterns = profile.get("official_localization_globs") or [
+        f"game/{profile.get('source_localization_folder', 'localization')}"
+    ]
+    roots: dict[str, Path] = {}
+    for pattern in patterns:
+        for candidate in install_root.glob(str(pattern)):
+            if candidate.is_dir():
+                resolved = candidate.resolve(strict=False)
+                roots.setdefault(os.path.normcase(str(resolved)), resolved)
+    return sorted(roots.values(), key=lambda item: os.path.normcase(str(item)))

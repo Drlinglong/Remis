@@ -18,7 +18,7 @@ export default function ReferenceLibraryDeleteModal({
         </Text>
         <Text size="sm" c="dimmed">{t('settings_reference_delete_warning')}</Text>
         <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>{t('common.cancel')}</Button>
+          <Button variant="default" onClick={onClose}>{t('cancel')}</Button>
           <Button color="red" loading={loading} onClick={onConfirm}>
             {t('settings_reference_delete_confirm')}
           </Button>

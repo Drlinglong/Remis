@@ -51,6 +51,33 @@ def test_detect_reference_game_version_uses_matching_steam_manifest(tmp_path):
     assert detect_reference_game_version(root) == "steam-build-24799966"
 
 
+def test_build_index_aggregates_multiple_official_localization_roots(tmp_path):
+    install_root = tmp_path / "SteamLibrary" / "steamapps" / "common" / "Europa Universalis V"
+    in_game = install_root / "game" / "in_game" / "localization"
+    main_menu = install_root / "game" / "main_menu" / "localization"
+    _write_loc(in_game, "english", "l_english", "countries_l_english.yml", ' TRK:0 "Turkana"\n')
+    _write_loc(in_game, "simp_chinese", "l_simp_chinese", "countries_l_simp_chinese.yml", ' TRK:0 "图尔卡纳"\n')
+    _write_loc(main_menu, "english", "l_english", "menu_l_english.yml", ' START:0 "Start"\n')
+    _write_loc(main_menu, "simp_chinese", "l_simp_chinese", "menu_l_simp_chinese.yml", ' START:0 "开始"\n')
+    service = VanillaReferenceService(tmp_path / "reference.sqlite")
+
+    info = service.build_index(
+        game_id="eu5",
+        localization_root=install_root,
+        localization_globs=["game/**/localization"],
+        supported_language_keys=["1", "2"],
+    )
+    resolver = service.open_active_resolver(
+        game_id="eu5",
+        source_lang_code="en",
+        target_lang_code="zh-CN",
+    )
+
+    assert info.root_path == str(install_root.resolve())
+    assert resolver.lookup("TRK", "Turkana").translation == "图尔卡纳"
+    assert resolver.lookup("START", "Start").translation == "开始"
+
+
 def test_exact_key_and_canonical_source_hit_skips_api(tmp_path):
     root = _build_root(tmp_path)
     service = VanillaReferenceService(tmp_path / "reference.sqlite")

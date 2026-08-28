@@ -199,6 +199,7 @@ class VanillaReferenceService:
         *,
         game_id: str,
         localization_root: str | Path,
+        localization_globs: Optional[Iterable[str]] = None,
         supported_language_keys: Optional[Iterable[str]] = None,
         encoding: str = "utf-8-sig",
         progress_callback: Optional[Callable[[dict], None]] = None,
@@ -207,9 +208,13 @@ class VanillaReferenceService:
     ) -> ReferenceIndexInfo:
         """Build and activate a multilingual index for an explicit source tree."""
 
-        root = self._validate_root(localization_root)
+        root = self._validate_root(localization_root, localization_globs)
         _report_progress(progress_callback, stage="scanning", files_current=0)
-        files_by_language = self._collect_language_files(root, supported_language_keys)
+        files_by_language = self._collect_language_files(
+            root,
+            supported_language_keys,
+            localization_globs,
+        )
         _report_progress(
             progress_callback,
             stage="scanning",
@@ -442,10 +447,18 @@ class VanillaReferenceService:
                 "ALTER TABLE reference_sets_v2 ADD COLUMN game_version TEXT NOT NULL DEFAULT 'unknown'"
             )
 
-    def _validate_root(self, localization_root: str | Path) -> Path:
+    def _validate_root(
+        self,
+        localization_root: str | Path,
+        localization_globs: Optional[Iterable[str]] = None,
+    ) -> Path:
         root = Path(localization_root).expanduser().resolve(strict=True)
         if not root.is_dir():
             raise ValueError(f"Reference localization path is not a directory: {root}")
+        if localization_globs:
+            if not any(candidate.is_dir() for pattern in localization_globs for candidate in root.glob(pattern)):
+                raise ValueError(f"No configured official localization directories found under {root}")
+            return root
         if root.name.lower() not in {"localization", "localisation"}:
             raise ValueError("Reference path must be the game's localization/localisation directory")
         if root.parent.name.lower() != "game":
@@ -456,16 +469,27 @@ class VanillaReferenceService:
         self,
         root: Path,
         supported_language_keys: Optional[Iterable[str]],
+        localization_globs: Optional[Iterable[str]] = None,
     ) -> dict[str, tuple[Path, ...]]:
         allowed = set(str(key) for key in (supported_language_keys or ()))
+        localization_roots = [root]
+        if localization_globs:
+            localization_roots = sorted({
+                candidate.resolve(strict=False)
+                for pattern in localization_globs
+                for candidate in root.glob(pattern)
+                if candidate.is_dir()
+            })
         files_by_language: dict[str, tuple[Path, ...]] = {}
         for language_id, language in LANGUAGES.items():
             if allowed and language_id not in allowed:
                 continue
-            folder = root / language["key"][2:]
-            if not folder.is_dir():
-                continue
-            files = tuple(sorted(path for path in folder.rglob("*.yml") if path.is_file()))
+            files = tuple(sorted(
+                path
+                for localization_dir in localization_roots
+                for path in (localization_dir / language["key"][2:]).rglob("*.yml")
+                if path.is_file()
+            ))
             if files:
                 files_by_language[language["code"]] = files
         if not files_by_language:
@@ -500,8 +524,7 @@ class VanillaReferenceService:
         )
         language_folder = str(language.get("key", ""))[2:]
         parts = relative_path.replace("\\", "/").split("/")
-        if parts and parts[0].casefold() == language_folder.casefold():
-            parts = parts[1:]
+        parts = [part for part in parts if part.casefold() != language_folder.casefold()]
         if parts:
             parts[-1] = re.sub(
                 rf"_l_{re.escape(language_folder)}(?=\.ya?ml$)",

@@ -31,6 +31,21 @@ const stageKey = (stage) => {
     .includes(normalized) ? normalized : 'running';
 };
 
+const STAGE_TRANSLATION_KEYS = {
+  discovering: 'settings_reference_stage_discovering',
+  scanning: 'settings_reference_stage_scanning',
+  indexing: 'settings_reference_stage_indexing',
+  activating: 'settings_reference_stage_activating',
+  deleting: 'settings_reference_delete_confirm',
+  queued: 'settings_reference_stage_queued',
+  completed: 'settings_reference_stage_completed',
+  failed: 'settings_reference_stage_failed',
+  partial_failed: 'settings_reference_task_failed',
+  running: 'settings_reference_stage_running',
+};
+
+const stageLabel = (t, stage) => t(STAGE_TRANSLATION_KEYS[stageKey(stage)]);
+
 export default function ReferenceLibraryTaskModal({ t, opened, task, onClose }) {
   const progress = task?.progress || {};
   const games = gameProgressEntries(progress);
@@ -48,10 +63,16 @@ export default function ReferenceLibraryTaskModal({ t, opened, task, onClose }) 
       closeOnClickOutside={!active}
     >
       <Stack gap="md">
-        {active && <Alert color="blue">{t('settings_reference_task_background_notice')}</Alert>}
+        {active && (
+          <Alert color="blue">
+            <Text size="sm" style={{ whiteSpace: 'pre-line' }}>
+              {t('settings_reference_task_background_notice')}
+            </Text>
+          </Alert>
+        )}
         {(status === 'failed' || status === 'partial_failed') && (
           <Alert color="red" title={t('settings_reference_task_failed')}>
-            {task.error || task.message || t('notification.error_generic')}
+            {task.error || task.message || t('settings_reference_task_failed')}
           </Alert>
         )}
         <Group justify="space-between">
@@ -60,7 +81,7 @@ export default function ReferenceLibraryTaskModal({ t, opened, task, onClose }) 
         </Group>
         <Progress value={percent} aria-label={t('settings_reference_overall_progress')} />
         {games.length === 0 ? (
-          <Text size="sm" c="dimmed">{t(`settings_reference_stage_${stageKey(progress.stage || status)}`)}</Text>
+          <Text size="sm" c="dimmed">{stageLabel(t, progress.stage || status)}</Text>
         ) : (
           <Stack gap="xs">
             {games.map((game) => {
@@ -75,7 +96,7 @@ export default function ReferenceLibraryTaskModal({ t, opened, task, onClose }) 
                     <Group justify="space-between" wrap="nowrap">
                       <Text size="sm" fw={600}>{game.game_name || game.game_id}</Text>
                       <Badge color={gameStatus === 'completed' ? 'green' : gameStatus === 'failed' ? 'red' : 'blue'}>
-                        {t(`settings_reference_stage_${stageKey(game.stage || gameStatus)}`)}
+                        {stageLabel(t, game.stage || gameStatus)}
                       </Badge>
                     </Group>
                     {game.localization_path && (
@@ -105,7 +126,7 @@ export default function ReferenceLibraryTaskModal({ t, opened, task, onClose }) 
           </Stack>
         )}
         <Group justify="flex-end">
-          <Button onClick={onClose}>{t('common.close')}</Button>
+          <Button onClick={onClose}>{t('button_close')}</Button>
         </Group>
       </Stack>
     </Modal>
