@@ -117,7 +117,25 @@ def official_localization_roots(install_root: Path, profile: dict) -> list[Path]
     ]
     roots: dict[str, Path] = {}
     for pattern in patterns:
-        for candidate in install_root.glob(str(pattern)):
+        normalized_pattern = str(pattern).replace("\\", "/")
+        if normalized_pattern == "game/localization":
+            candidates = (install_root / "game" / "localization",)
+        elif normalized_pattern == "game/localisation":
+            candidates = (install_root / "game" / "localisation",)
+        elif normalized_pattern == "localisation":
+            candidates = (install_root / "localisation",)
+        elif normalized_pattern == "clausewitz/**/localization":
+            base = install_root / "clausewitz"
+            candidates = base.rglob("localization") if base.is_dir() else ()
+        elif normalized_pattern == "game/**/localization":
+            base = install_root / "game"
+            candidates = base.rglob("localization") if base.is_dir() else ()
+        elif normalized_pattern == "jomini/**/localization":
+            base = install_root / "jomini"
+            candidates = base.rglob("localization") if base.is_dir() else ()
+        else:
+            raise ValueError(f"Unsupported official localization layout: {normalized_pattern}")
+        for candidate in candidates:
             if candidate.is_dir():
                 resolved = candidate.resolve(strict=False)
                 roots.setdefault(os.path.normcase(str(resolved)), resolved)

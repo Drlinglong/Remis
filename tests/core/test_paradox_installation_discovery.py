@@ -1,9 +1,11 @@
 from pathlib import Path
 import logging
+import pytest
 
 from scripts.core.services.paradox_installation_discovery import (
     discover_paradox_localizations,
     discover_steam_library_roots,
+    official_localization_roots,
 )
 
 
@@ -77,6 +79,14 @@ def test_discovers_all_eu5_official_localization_modules(tmp_path):
 
     assert candidate["localization_path"] == str(install_root.resolve())
     assert set(candidate["localization_paths"]) == {str(path.resolve()) for path in expected}
+
+
+def test_official_layout_rejects_unconfigured_glob_patterns(tmp_path):
+    with pytest.raises(ValueError, match="Unsupported official localization layout"):
+        official_localization_roots(
+            tmp_path,
+            {"official_localization_globs": ["../**/localization"]},
+        )
 
 
 def test_libraryfolders_adds_non_default_steam_library(tmp_path):

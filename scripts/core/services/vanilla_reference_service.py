@@ -19,6 +19,7 @@ from typing import Callable, Iterable, Iterator, Optional
 
 from scripts.app_settings import LANGUAGES, VANILLA_REFERENCE_DB_PATH
 from scripts.core.paradox_localization_parser import parse_text
+from scripts.core.services.paradox_installation_discovery import official_localization_roots
 from scripts.core.services.vanilla_reference_version import detect_reference_game_version
 
 
@@ -498,7 +499,10 @@ class VanillaReferenceService:
         if not root.is_dir():
             raise ValueError(f"Reference localization path is not a directory: {root}")
         if localization_globs:
-            if not any(candidate.is_dir() for pattern in localization_globs for candidate in root.glob(pattern)):
+            if not official_localization_roots(
+                root,
+                {"official_localization_globs": list(localization_globs)},
+            ):
                 raise ValueError(f"No configured official localization directories found under {root}")
             return root
         if root.name.lower() not in {"localization", "localisation"}:
@@ -516,12 +520,10 @@ class VanillaReferenceService:
         allowed = set(str(key) for key in (supported_language_keys or ()))
         localization_roots = [root]
         if localization_globs:
-            localization_roots = sorted({
-                candidate.resolve(strict=False)
-                for pattern in localization_globs
-                for candidate in root.glob(pattern)
-                if candidate.is_dir()
-            })
+            localization_roots = official_localization_roots(
+                root,
+                {"official_localization_globs": list(localization_globs)},
+            )
         all_localization_files = tuple(
             path
             for localization_dir in localization_roots

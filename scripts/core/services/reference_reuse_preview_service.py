@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Any, Dict, List
 
 from scripts.core.services.incremental_snapshot_service import IncrementalSnapshotService
@@ -64,10 +63,8 @@ class ReferenceReusePreviewService:
         ))
         return {
             "status": "success",
-            "source_path": str(Path(source_path).resolve()),
-            "localization_path": (
-                str(Path(localization_path).resolve()) if localization_path else None
-            ),
+            "source_path": source_path,
+            "localization_path": localization_path,
             "total_source_entries": total_source_entries,
             "matched_count": len(matches),
             "matches": matches,
