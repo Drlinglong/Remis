@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  ActionIcon,
   Badge,
   Button,
   Card,
@@ -11,23 +10,16 @@ import {
   Switch,
   Text,
   TextInput,
-  Tooltip,
 } from '@mantine/core';
-import { IconFolderOpen } from '@tabler/icons-react';
 import { referenceEntryIdentity } from '../../utils/referenceReuse';
 
 /**
- * Shared settings for reusing translations from a user-selected vanilla
- * localization folder. The backend deliberately ignores the setting when
- * the path is empty, so the path remains editable even when the switch is off.
+ * Shared review controls for the persistent official reference library.
  */
 export default function ReferenceReuseSettingsCard({
   enabled,
-  localizationPath,
   onEnabledChange,
-  onLocalizationPathChange,
   onPreview = () => {},
-  onSelectFolder = () => {},
   onToggleEntry = () => {},
   previewEntries = [],
   previewError = '',
@@ -62,24 +54,6 @@ export default function ReferenceReuseSettingsCard({
           label={t('translation_config.reference_reuse')}
           description={t('translation_config.reference_reuse_desc')}
         />
-        <TextInput
-          label={t('translation_config.reference_localization_path')}
-          placeholder={t('translation_config.reference_localization_path_placeholder')}
-          value={localizationPath || ''}
-          onChange={(event) => onLocalizationPathChange(event.currentTarget.value)}
-          rightSection={(
-            <Tooltip label={t('translation_config.reference_select_folder')} withArrow>
-              <ActionIcon
-                aria-label={t('translation_config.reference_select_folder')}
-                variant="subtle"
-                color="blue"
-                onClick={onSelectFolder}
-              >
-                <IconFolderOpen size={16} />
-              </ActionIcon>
-            </Tooltip>
-          )}
-        />
         <Group justify="space-between" align="center">
           <Group gap="xs">
             <Badge variant="light">
@@ -101,7 +75,7 @@ export default function ReferenceReuseSettingsCard({
             size="xs"
             variant="light"
             loading={previewLoading}
-            disabled={!enabled || !localizationPath}
+            disabled={!enabled}
             onClick={onPreview}
           >
             {t('translation_config.reference_preview', { defaultValue: 'Scan exact matches' })}

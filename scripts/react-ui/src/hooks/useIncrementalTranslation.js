@@ -7,6 +7,7 @@ import translationService from '../services/translationService';
 import notificationService from '../services/notificationService';
 import { open } from '@tauri-apps/plugin-dialog';
 import {
+    buildIncrementalUpdatePayload,
     getArchivedTargetLanguages,
     INCREMENTAL_STATE_STORAGE_KEY,
     normalizeArrayPayload,
@@ -24,7 +25,7 @@ import { resyncIncrementalTask, shouldResyncIncrementalTask } from './incrementa
 import { useIncrementalTaskMonitor } from './useIncrementalTaskMonitor';
 import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../utils/localizedDateTime';
 import { useReferenceReuseSettings } from './useReferenceReuseSettings';
-import { useIncrementalExecution } from './useIncrementalExecution';
+import { useReferenceLibraryGate } from './useReferenceLibraryGate';
 import { useIncrementalPreScan } from './useIncrementalPreScan';
 export const useIncrementalTranslation = (notificationStyle) => {
     const { t, i18n } = useTranslation();
@@ -49,12 +50,10 @@ export const useIncrementalTranslation = (notificationStyle) => {
     const { referenceLocalizationPath, referenceReuseEnabled, referenceReuseExcludedEntries,
         resetReferencePreview, setReferenceLocalizationPath, setReferenceReuseEnabled,
         setReferenceReuseExcludedEntries } = referenceReuse;
-
     const [archiveInfo, setArchiveInfo] = useState(null);
     const [scanResults, setScanResults] = useState(null);
     const [error, setError] = useState(null);
     const [errorKey, setErrorKey] = useState(null);
-
     const [executing, setExecuting] = useState(false);
     const [progress, setProgress] = useState(0);
     const [progressInfo, setProgressInfo] = useState({});
@@ -63,12 +62,10 @@ export const useIncrementalTranslation = (notificationStyle) => {
     const [currentTaskId, setCurrentTaskId] = useState(null);
     const [currentTaskMode, setCurrentTaskMode] = useState(null);
     const [conflictingTaskId, setConflictingTaskId] = useState(null);
-    
     const [checkpointFound, setCheckpointFound] = useState(false);
     const [checkpointInfo, setCheckpointInfo] = useState(null);
     const [useResume, setUseResume] = useState(false);
     const [showResumeDetails, setShowResumeDetails] = useState(false);
-
     const [embeddedWorkshopEnabled, setEmbeddedWorkshopEnabled] = useState(true);
     const [embeddedWorkshopFollowPrimary, setEmbeddedWorkshopFollowPrimary] = useState(true);
     const [embeddedWorkshopProvider, setEmbeddedWorkshopProvider] = useState('');
@@ -77,6 +74,14 @@ export const useIncrementalTranslation = (notificationStyle) => {
     const [embeddedWorkshopConcurrency, setEmbeddedWorkshopConcurrency] = useState('1');
     const [embeddedWorkshopRpm, setEmbeddedWorkshopRpm] = useState('40');
     const [showWorkshopSettings, setShowWorkshopSettings] = useState(false);
+    const referenceGate = useReferenceLibraryGate({
+        enabled: referenceReuseEnabled,
+        explicitPath: referenceLocalizationPath,
+        gameId: selectedProject?.game_id,
+    });
+    const { bypassed: referenceReuseBypassed, check: checkReferenceLibrary,
+        continueWithoutReference: bypassReferenceLibrary, promptOpen: referencePromptOpen,
+        reset: resetReferenceGate, setPromptOpen: setReferencePromptOpen } = referenceGate;
 
     const preScanInFlightRef = useRef(false);
     const executionInFlightRef = useRef(false);
@@ -226,6 +231,7 @@ export const useIncrementalTranslation = (notificationStyle) => {
         const nextSourcePath = sourcePathOverride || project.source_path;
         resetReferencePreview();
         setSelectedProject(project);
+        resetReferenceGate();
         setCustomSourcePath(nextSourcePath);
         setError(null);
         setArchiveInfo(null);
@@ -281,36 +287,102 @@ export const useIncrementalTranslation = (notificationStyle) => {
         currentTaskId,
         currentTaskMode,
         notificationStyle,
+        resetReferenceGate,
         resetReferencePreview,
         t,
     ]);
-
     const runPreScan = useIncrementalPreScan({
-        archiveInfo, batchSizeLimit, concurrencyLimit, connectWebSocket, customSourcePath,
-        embeddedWorkshopBatchSize, embeddedWorkshopConcurrency, embeddedWorkshopEnabled,
-        embeddedWorkshopFollowPrimary, embeddedWorkshopModel, embeddedWorkshopProvider,
-        embeddedWorkshopRpm, executing, executionInFlightRef, loading, notificationStyle,
-        preScanInFlightRef, referenceLocalizationPath, referenceReuseEnabled,
-        referenceReuseExcludedEntries, rpmLimit, selectedLangs, selectedModel, selectedProject,
-        selectedProvider, setActive, setConflictingTaskId, setCurrentTaskId, setCurrentTaskMode,
-        setLoading, setLogs, setProgress, setProgressInfo, setScanResults, t, useResume,
-    });
-
-    const startTranslation = useIncrementalExecution({
-        addLog, archiveInfo, batchSizeLimit, completionSourceRef, concurrencyLimit,
-        connectWebSocket, customSourcePath, embeddedWorkshopBatchSize, embeddedWorkshopConcurrency,
+        archiveInfo, batchSizeLimit, checkReferenceLibrary, concurrencyLimit, connectWebSocket,
+        customSourcePath, embeddedWorkshopBatchSize, embeddedWorkshopConcurrency,
         embeddedWorkshopEnabled, embeddedWorkshopFollowPrimary, embeddedWorkshopModel,
-        embeddedWorkshopProvider, embeddedWorkshopRpm, executing, executionInFlightRef, i18n, loading,
-        notificationStyle, preScanInFlightRef, referenceLocalizationPath, referenceReuseEnabled,
-        referenceReuseExcludedEntries, rpmLimit, selectedLangs, selectedModel, selectedProject,
-        selectedProvider, setActive, setConflictingTaskId, setCurrentTaskId, setCurrentTaskMode,
-        setExecuting, setFinalSummary, setLogs, setProgress, setProgressInfo, t, useResume,
+        embeddedWorkshopProvider, embeddedWorkshopRpm, executing, executionInFlightRef, loading,
+        notificationStyle, preScanInFlightRef, referenceLocalizationPath, referenceReuseBypassed,
+        referenceReuseEnabled, referenceReuseExcludedEntries, rpmLimit, selectedLangs, selectedModel,
+        selectedProject, selectedProvider, setActive, setConflictingTaskId, setCurrentTaskId,
+        setCurrentTaskMode, setLoading, setLogs, setProgress, setProgressInfo, setScanResults, t, useResume,
     });
-
+    const startTranslation = useCallback(async () => {
+        if (loading || executing || preScanInFlightRef.current || executionInFlightRef.current) return;
+        const targetLangCodes = selectedLangs.length > 0 ? selectedLangs : getArchivedTargetLanguages(archiveInfo);
+        if (!selectedProject || targetLangCodes.length === 0) {
+            notificationService.error(t('incremental_translation.no_archived_target_languages'), notificationStyle);
+            return;
+        }
+        executionInFlightRef.current = true;
+        setExecuting(true);
+        setActive(3);
+        setLogs([`[${formatLocalizedDateTime(Date.now(), getResolvedInterfaceLocale(i18n), { timeStyle: 'medium' })}] ${t('incremental_translation.status_ws_initializing')}`]);
+        setFinalSummary(null);
+        setProgress(0);
+        setProgressInfo({ percent: 0, stage_code: 'initializing', stage: t('incremental_translation.progress_stage_initializing') });
+        completionSourceRef.current = null;
+        try {
+            const res = await translationService.startIncrementalUpdate(
+                selectedProject.project_id,
+                buildIncrementalUpdatePayload({
+                    batchSizeLimit,
+                    concurrencyLimit,
+                    customSourcePath,
+                    dryRun: false,
+                    embeddedWorkshopBatchSize,
+                    embeddedWorkshopConcurrency,
+                    embeddedWorkshopEnabled,
+                    embeddedWorkshopFollowPrimary,
+                    embeddedWorkshopModel,
+                    embeddedWorkshopProvider,
+                    embeddedWorkshopRpm,
+                    projectId: selectedProject.project_id,
+                    referenceLocalizationPath,
+                    referenceReuseEnabled: referenceReuseEnabled && !referenceReuseBypassed,
+                    referenceReuseExcludedEntries,
+                    rpmLimit,
+                    selectedModel,
+                    selectedProvider,
+                    targetLangCodes,
+                    useResume,
+                })
+            );
+            const taskId = res.data.task_id;
+            if (!taskId) {
+                throw new Error(t('incremental_translation.task_id_missing'));
+            }
+            setConflictingTaskId(null);
+            setCurrentTaskId(taskId);
+            setCurrentTaskMode('execution');
+            connectWebSocket(taskId);
+            notificationService.info(
+                t('incremental_translation.background_task_notice'),
+                notificationStyle,
+            );
+        } catch (err) {
+            const detail = err?.response?.data?.detail;
+            const duplicateTaskId = detail?.code === 'duplicate_task'
+                ? detail.existing_task_id
+                : null;
+            if (duplicateTaskId) {
+                setConflictingTaskId(duplicateTaskId);
+                setCurrentTaskId(duplicateTaskId);
+                notificationService.info(
+                    t('incremental_translation.conflicting_task_notice'),
+                    notificationStyle,
+                );
+            } else {
+                addLog(t('incremental_translation.critical_error', { message: err.message }));
+            }
+            setExecuting(false);
+            executionInFlightRef.current = false;
+        }
+    }, [
+        loading, executing, selectedLangs, archiveInfo, selectedProject,
+        selectedProvider, selectedModel, batchSizeLimit, concurrencyLimit, rpmLimit, customSourcePath,
+        useResume, embeddedWorkshopEnabled, embeddedWorkshopFollowPrimary, embeddedWorkshopProvider,
+        embeddedWorkshopModel, embeddedWorkshopBatchSize, embeddedWorkshopConcurrency, embeddedWorkshopRpm,
+        referenceLocalizationPath, referenceReuseEnabled, referenceReuseBypassed, referenceReuseExcludedEntries,
+        completionSourceRef, connectWebSocket, addLog, notificationStyle, t, i18n
+    ]);
     const openOutputFolder = useCallback(async () => {
         const folderPath = finalSummary?.output_dir;
         if (!folderPath) return;
-
         try {
             await translationService.openFolder(folderPath);
         } catch (err) {
@@ -318,11 +390,9 @@ export const useIncrementalTranslation = (notificationStyle) => {
             notificationService.error(t('notification.error_generic'), notificationStyle);
         }
     }, [finalSummary?.output_dir, notificationStyle, t]);
-
     // RESTORE STATE FROM SESSION STORAGE
     useEffect(() => {
         if (restorationAppliedRef.current || !projectsLoaded || !configLoaded) return;
-
         const routeState = location.state || {};
         if (!routeSelectionAppliedRef.current && routeState.projectId) {
             const routeProject = projects.find((project) => project.project_id === routeState.projectId);
@@ -351,13 +421,11 @@ export const useIncrementalTranslation = (notificationStyle) => {
                 return;
             }
         }
-
         const persistedState = persistedStateRef.current;
         if (!persistedState) {
             restorationAppliedRef.current = true;
             return;
         }
-
         applyIncrementalStateSnapshot(persistedState, {
             setActive,
             setArchiveInfo,
@@ -391,7 +459,6 @@ export const useIncrementalTranslation = (notificationStyle) => {
             completionSourceRef,
             projects,
         });
-
         applyProviderSelection(
             persistedState.selectedProvider || 'gemini',
             persistedState.selectedModel || '',
@@ -401,14 +468,11 @@ export const useIncrementalTranslation = (notificationStyle) => {
             setBatchSizeLimit(String(persistedState.batchSizeLimit));
         }
         if (persistedState.rpmLimit) setRpmLimit(String(persistedState.rpmLimit));
-
         restorationAppliedRef.current = true;
     }, [completionSourceRef, configLoaded, handleSelectProject, location.state, projects, projectsLoaded, applyProviderSelection, resetPersistedState, setReferenceLocalizationPath, setReferenceReuseEnabled, setReferenceReuseExcludedEntries]);
-
     // SYNC STATE TO SESSION STORAGE
     useEffect(() => {
         if (!restorationAppliedRef.current) return;
-
         const stateToPersist = buildIncrementalStateSnapshot({
             active,
             archiveInfo,
@@ -537,6 +601,10 @@ export const useIncrementalTranslation = (notificationStyle) => {
         embeddedWorkshopConcurrency, setEmbeddedWorkshopConcurrency,
         embeddedWorkshopRpm, setEmbeddedWorkshopRpm,
         ...referenceReuse,
+        referencePromptOpen, setReferencePromptOpen,
+        continueWithoutReference: () => bypassReferenceLibrary(
+            () => runPreScan({ skipReferenceReuse: true }),
+        ),
         showWorkshopSettings, setShowWorkshopSettings,
         runPreScan, startTranslation, openOutputFolder,
         handleSelectFolder,

@@ -18,7 +18,7 @@ class ReferenceReusePreviewService:
         game_profile: Dict[str, Any],
         source_lang: Dict[str, Any],
         target_languages: List[Dict[str, Any]],
-        localization_path: str,
+        localization_path: str | None = None,
     ) -> Dict[str, Any]:
         source_files = IncrementalSnapshotService().build_snapshot(source_path, source_lang)
         matches: List[Dict[str, Any]] = []
@@ -65,7 +65,9 @@ class ReferenceReusePreviewService:
         return {
             "status": "success",
             "source_path": str(Path(source_path).resolve()),
-            "localization_path": str(Path(localization_path).resolve()),
+            "localization_path": (
+                str(Path(localization_path).resolve()) if localization_path else None
+            ),
             "total_source_entries": total_source_entries,
             "matched_count": len(matches),
             "matches": matches,

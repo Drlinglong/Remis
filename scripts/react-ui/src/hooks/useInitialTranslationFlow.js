@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import api from '../utils/api';
+import translationService from '../services/translationService';
 import notificationService from '../services/notificationService';
 import {
   buildTranslationDetails,
@@ -22,11 +23,34 @@ export function useInitialTranslationFlow({
   const [resumeModalOpen, setResumeModalOpen] = useState(false);
   const [checkpointInfo, setCheckpointInfo] = useState(null);
   const [pendingFormValues, setPendingFormValues] = useState(null);
+  const [referencePromptOpen, setReferencePromptOpen] = useState(false);
+  const [pendingReferenceValues, setPendingReferenceValues] = useState(null);
 
-  const startTranslation = async (values) => {
+  const startTranslation = async (values, { skipReferenceCheck = false } = {}) => {
     if (!selectedProjectId) {
       notificationService.error('Please select a project first.', notificationStyle);
       return;
+    }
+
+    if (
+      !skipReferenceCheck
+      && values.reference_reuse_enabled !== false
+      && !values.reference_localization_path
+    ) {
+      try {
+        const response = await translationService.getReferenceLibraryStatus();
+        const gameId = selectedProject?.game_id;
+        const available = response.data?.libraries?.some(
+          (library) => library.game_id === gameId && library.available,
+        );
+        if (!available) {
+          setPendingReferenceValues(values);
+          setReferencePromptOpen(true);
+          return;
+        }
+      } catch (error) {
+        console.warn('Failed to check reference library status; continuing without prompt.', error);
+      }
     }
 
     setTranslationDetails(buildTranslationDetails(values, selectedProject, config.languages));
@@ -51,6 +75,18 @@ export function useInitialTranslationFlow({
       setIsProcessing(false);
       setStatus('failed');
     }
+  };
+
+  const continueWithoutReference = async () => {
+    if (!pendingReferenceValues) return;
+    const values = {
+      ...pendingReferenceValues,
+      reference_reuse_enabled: false,
+      reference_localization_path: '',
+    };
+    setReferencePromptOpen(false);
+    setPendingReferenceValues(null);
+    await startTranslation(values, { skipReferenceCheck: true });
   };
 
   const handleStartClick = async (values) => {
@@ -117,6 +153,9 @@ export function useInitialTranslationFlow({
     handleStartClick,
     handleStartOver,
     resumeModalOpen,
+    referencePromptOpen,
+    continueWithoutReference,
+    setReferencePromptOpen,
     setResumeModalOpen,
   };
 }

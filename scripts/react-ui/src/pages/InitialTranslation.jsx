@@ -14,6 +14,7 @@ import {
   Button,
   Group,
   Alert,
+  Modal,
   Title,
 } from '@mantine/core';
 import { IconActivity, IconArrowLeft, IconInfoCircle, IconPlayerPlay } from '@tabler/icons-react';
@@ -379,7 +380,10 @@ const InitialTranslation = () => {
     handleResume,
     handleStartClick,
     handleStartOver,
+    referencePromptOpen,
+    continueWithoutReference,
     resumeModalOpen,
+    setReferencePromptOpen,
     setResumeModalOpen,
   } = useInitialTranslationFlow({
     config,
@@ -467,8 +471,6 @@ const InitialTranslation = () => {
                 onSubmit={handleStartClick}
                 selectedProject={selectedProject}
                 selectedProjectId={selectedProjectId}
-                onSelectReferenceFolder={referenceReuse.selectFolder}
-                onReferencePathChange={referenceReuse.changePath}
                 onPreviewReferenceReuse={referenceReuse.preview}
                 onToggleReferenceEntry={referenceReuse.toggleEntry}
                 referencePreviewEntries={referenceReuse.previewEntries}
@@ -515,6 +517,25 @@ const InitialTranslation = () => {
         opened={resumeModalOpen}
         t={t}
       />
+
+      <Modal
+        opened={referencePromptOpen}
+        onClose={() => setReferencePromptOpen(false)}
+        title={t('reference_prompt_title')}
+        centered
+      >
+        <Stack>
+          <Text size="sm">{t('reference_prompt_desc')}</Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={continueWithoutReference}>
+              {t('reference_prompt_continue')}
+            </Button>
+            <Button onClick={() => navigate('/settings')}>
+              {t('reference_prompt_settings')}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       {active === 1 && (
         <TranslationActionBar

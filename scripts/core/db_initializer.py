@@ -235,6 +235,46 @@ def sync_development_demo_sources(source_mod_root, persistent_demo_root):
     return synced
 
 
+def merge_missing_files(source_root, target_root):
+    """Copy only absent bundled files, preserving an existing user demo copy."""
+    if not os.path.isdir(source_root):
+        return False
+
+    copied = False
+    for current_root, _, filenames in os.walk(source_root):
+        relative_root = os.path.relpath(current_root, source_root)
+        target_dir = target_root if relative_root == "." else os.path.join(target_root, relative_root)
+        os.makedirs(target_dir, exist_ok=True)
+        for filename in filenames:
+            source_path = os.path.join(current_root, filename)
+            target_path = os.path.join(target_dir, filename)
+            if os.path.exists(target_path):
+                continue
+            shutil.copy2(source_path, target_path)
+            copied = True
+    return copied
+
+
+def extract_bundled_demo_directory(src_dir, dst_dir, label, force=False):
+    """Extract a demo tree, or fill only files missing from an existing tree."""
+    if not os.path.isdir(src_dir) or not os.path.isdir(dst_dir) and os.path.exists(dst_dir):
+        return False
+    try:
+        if not os.path.exists(dst_dir) or force:
+            if os.path.exists(dst_dir):
+                shutil.rmtree(dst_dir)
+            shutil.copytree(src_dir, dst_dir)
+            init_logger.info("%s extracted (Force=%s).", label, force)
+            return True
+        copied = merge_missing_files(src_dir, dst_dir)
+        if copied:
+            init_logger.info("%s missing files filled without overwriting user files.", label)
+        return copied
+    except Exception as e:
+        init_logger.error("Failed to extract or fill %s: %s", label, e)
+        return False
+
+
 def hydrate_json_configs(app_data_dir):
     """Recursively finds all .remis_project.json files and fixes hardcoded paths."""
     init_logger.info("[JSON] Hydrating .remis_project.json files (Targeted Scan)...")
@@ -380,18 +420,6 @@ def initialize_database():
     p_trans = os.path.join(app_data_dir, "my_translation")
     b_trans = os.path.join(resource_dir, "my_translation")
 
-    def extract(src_dir, dst_dir, label, force=False):
-        if os.path.exists(src_dir) and (not os.path.exists(dst_dir) or force):
-            try:
-                if os.path.exists(dst_dir):
-                    shutil.rmtree(dst_dir)
-                shutil.copytree(src_dir, dst_dir)
-                init_logger.info("%s extracted (Force=%s).", label, force)
-                return True
-            except Exception as e:
-                init_logger.error("Failed to extract %s: %s", label, e)
-        return False
-
     def safe_extract_configs(src_dir, dst_dir):
         if not os.path.exists(src_dir):
             return
@@ -411,7 +439,9 @@ def initialize_database():
                 except Exception as e:
                     init_logger.error("[CONFIG] Failed to extract %s: %s", filename, e)
 
-    demo_extracted = extract(b_demos, p_demos, "Demos", force=main_db_is_fresh)
+    demo_extracted = extract_bundled_demo_directory(
+        b_demos, p_demos, "Demos", force=main_db_is_fresh
+    )
     if not demo_extracted and not os.path.exists(b_demos):
         demo_extracted = sync_development_demo_sources(os.path.join(resource_dir, "source_mod"), p_demos)
     trans_extracted = extract_bundled_demo_translations(b_trans, p_trans, force=main_db_is_fresh)

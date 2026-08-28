@@ -10,10 +10,7 @@ const t = (key) => key;
 const renderCard = (overrides = {}) => {
   const props = {
     enabled: true,
-    localizationPath: '',
     onEnabledChange: vi.fn(),
-    onLocalizationPathChange: vi.fn(),
-    onSelectFolder: vi.fn(),
     t,
     ...overrides,
   };
@@ -26,29 +23,20 @@ const renderCard = (overrides = {}) => {
 };
 
 describe('ReferenceReuseSettingsCard', () => {
-  it('renders enabled by default and sends controlled changes', () => {
+  it('renders enabled by default and sends the controlled toggle', () => {
     const props = renderCard();
     const toggle = screen.getByRole('switch', { name: /translation_config\.reference_reuse/ });
 
     expect(toggle).toBeChecked();
     fireEvent.click(toggle);
-    fireEvent.change(screen.getByRole('textbox', {
-      name: 'translation_config.reference_localization_path',
-    }), { target: { value: 'J:/vanilla/localization' } });
-    fireEvent.click(screen.getByRole('button', {
-      name: 'translation_config.reference_select_folder',
-    }));
 
     expect(props.onEnabledChange).toHaveBeenCalledWith(false);
-    expect(props.onLocalizationPathChange).toHaveBeenCalledWith('J:/vanilla/localization');
-    expect(props.onSelectFolder).toHaveBeenCalledOnce();
   });
 
   it('previews exact matches and lets the user deselect one', () => {
     const onPreview = vi.fn();
     const onToggleEntry = vi.fn();
     renderCard({
-      localizationPath: 'J:/vanilla/localization',
       onPreview,
       onToggleEntry,
       previewEntries: [{

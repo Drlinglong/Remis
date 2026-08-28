@@ -21,6 +21,8 @@ export const translationService = {
 
     previewReferenceReuse: (payload) => api.post('/api/reference-reuse/preview', payload),
 
+    getReferenceLibraryStatus: () => api.get('/api/system/reference-library'),
+
     /**
      * Request backend system to open a local folder directory.
      * @param {string} folderPath Local directory path

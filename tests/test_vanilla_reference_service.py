@@ -139,6 +139,31 @@ def test_unchanged_file_stats_reuse_the_cached_reference_set(tmp_path):
     assert second.info.content_fingerprint == first.info.content_fingerprint
 
 
+def test_active_index_opens_without_rescanning_source_tree(tmp_path, monkeypatch):
+    root = _build_root(tmp_path)
+    service = VanillaReferenceService(tmp_path / "reference.sqlite")
+    built = service.build_index(
+        game_id="victoria3",
+        localization_root=root,
+        supported_language_keys=["1", "2"],
+    )
+    monkeypatch.setattr(
+        service,
+        "_collect_language_files",
+        lambda *_args, **_kwargs: pytest.fail("active lookup rescanned the source tree"),
+    )
+
+    resolver = service.open_active_resolver(
+        game_id="victoria3",
+        source_lang_code="en",
+        target_lang_code="zh-CN",
+    )
+
+    assert resolver is not None
+    assert resolver.info.reference_set_id == built.reference_set_id
+    assert resolver.lookup("TRK:0", "Turkana").translation == "图尔卡纳"
+
+
 def test_game_version_is_stored_and_part_of_the_index_identity(tmp_path):
     root = _build_root(tmp_path)
     launcher_path = root.parent / "launcher-settings.json"

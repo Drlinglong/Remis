@@ -181,9 +181,6 @@ export const IncrementalTranslationPage = () => {
                         setRpmLimit={state.setRpmLimit}
                         referenceReuseEnabled={state.referenceReuseEnabled}
                         setReferenceReuseEnabled={state.setReferenceReuseEnabled}
-                        referenceLocalizationPath={state.referenceLocalizationPath}
-                        setReferenceLocalizationPath={state.changeReferenceLocalizationPath}
-                        onSelectReferenceFolder={state.handleSelectReferenceFolder}
                         referencePreviewEntries={state.referencePreviewEntries}
                         referencePreviewError={state.referencePreviewError}
                         referencePreviewLoading={state.referencePreviewLoading}
@@ -317,6 +314,25 @@ export const IncrementalTranslationPage = () => {
                             }}
                         >
                             {t('tutorial.auto_start_prompt.confirm')}
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
+
+            <Modal
+                opened={state.referencePromptOpen}
+                onClose={() => state.setReferencePromptOpen(false)}
+                title={t('reference_prompt_title')}
+                centered
+            >
+                <Stack>
+                    <Text size="sm">{t('reference_prompt_desc')}</Text>
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={state.continueWithoutReference}>
+                            {t('reference_prompt_continue')}
+                        </Button>
+                        <Button onClick={() => navigate('/settings')}>
+                            {t('reference_prompt_settings')}
                         </Button>
                     </Group>
                 </Stack>

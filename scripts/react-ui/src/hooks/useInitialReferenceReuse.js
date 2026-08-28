@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { open } from '@tauri-apps/plugin-dialog';
 import translationService from '../services/translationService';
 import { toggleReferenceExclusion } from '../utils/referenceReuse';
 
@@ -33,20 +32,6 @@ export const useInitialReferenceReuse = ({
     resetPreview();
   }, [contextKey, resetPreview]);
 
-  const changePath = useCallback((value) => {
-    setFieldValue('reference_localization_path', value);
-    resetPreview();
-  }, [resetPreview, setFieldValue]);
-
-  const selectFolder = useCallback(async () => {
-    const selected = await open({
-      directory: true,
-      multiple: false,
-      title: t('translation_config.reference_select_folder'),
-    });
-    if (selected && typeof selected === 'string') changePath(selected);
-  }, [changePath, t]);
-
   const preview = useCallback(async () => {
     const requestId = ++previewRequestRef.current;
     setPreviewLoading(true);
@@ -56,7 +41,7 @@ export const useInitialReferenceReuse = ({
         project_id: projectId,
         source_lang_code: sourceLangCode,
         target_lang_codes: targetLangCodes,
-        localization_path: localizationPath,
+        localization_path: localizationPath || null,
       });
       if (previewRequestRef.current === requestId) {
         setPreviewEntries(response.data?.matches || []);
@@ -79,12 +64,10 @@ export const useInitialReferenceReuse = ({
   }, [excludedEntries, setFieldValue]);
 
   return {
-    changePath,
     preview,
     previewEntries,
     previewError,
     previewLoading,
-    selectFolder,
     toggleEntry,
   };
 };

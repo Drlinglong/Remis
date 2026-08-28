@@ -63,9 +63,6 @@ export const ConfigStep = ({
     setRpmLimit,
     referenceReuseEnabled,
     setReferenceReuseEnabled,
-    referenceLocalizationPath,
-    setReferenceLocalizationPath,
-    onSelectReferenceFolder,
     referencePreviewEntries = [],
     referencePreviewError = '',
     referencePreviewLoading = false,
@@ -359,10 +356,7 @@ export const ConfigStep = ({
                                 <Accordion.Panel>
                                     <ReferenceReuseSettingsCard
                                         enabled={referenceReuseEnabled}
-                                        localizationPath={referenceLocalizationPath}
                                         onEnabledChange={setReferenceReuseEnabled}
-                                        onLocalizationPathChange={setReferenceLocalizationPath}
-                                        onSelectFolder={onSelectReferenceFolder}
                                         onPreview={onPreviewReferenceReuse}
                                         onToggleEntry={onToggleReferenceEntry}
                                         previewEntries={referencePreviewEntries}

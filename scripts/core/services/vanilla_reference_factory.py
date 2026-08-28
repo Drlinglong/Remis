@@ -22,9 +22,17 @@ def create_reference_resolver_strict(
     """Open a resolver while surfacing invalid paths and index failures."""
 
     config = reference_config or {}
-    if not config.get("enabled", True) or not config.get("localization_path"):
+    if not config.get("enabled", True):
         return None
-    return VanillaReferenceService().open_resolver(
+    service = VanillaReferenceService()
+    if not config.get("localization_path"):
+        return service.open_active_resolver(
+            game_id=game_profile.get("id", ""),
+            source_lang_code=source_lang.get("code", ""),
+            target_lang_code=target_lang.get("code", ""),
+            excluded_entries=config.get("excluded_entries"),
+        )
+    return service.open_resolver(
         game_id=game_profile.get("id", ""),
         localization_root=config["localization_path"],
         source_lang_code=source_lang.get("code", ""),

@@ -7,15 +7,17 @@ import { buildIncrementalUpdatePayload, getArchivedTargetLanguages } from './inc
 
 export function useIncrementalPreScan(options) {
   const {
-    archiveInfo, connectWebSocket, executing, executionInFlightRef, loading, notificationStyle,
-    preScanInFlightRef, selectedLangs, selectedProject, setActive, setConflictingTaskId,
-    setCurrentTaskId, setCurrentTaskMode, setLoading, setLogs, setProgress, setProgressInfo,
-    setScanResults, t,
+    archiveInfo, checkReferenceLibrary, connectWebSocket, executionInFlightRef,
+    loading, executing, notificationStyle, preScanInFlightRef, referenceReuseBypassed,
+    selectedLangs, selectedProject, setActive, setConflictingTaskId, setCurrentTaskId,
+    setCurrentTaskMode, setLoading, setLogs, setProgress, setProgressInfo, setScanResults,
+    t,
   } = options;
 
-  return useCallback(async () => {
+  return useCallback(async (actionOptions = {}) => {
     const busy = loading || executing || preScanInFlightRef.current || executionInFlightRef.current;
     if (!selectedProject || !options.customSourcePath || busy) return;
+    const skipReferenceReuse = actionOptions?.skipReferenceReuse === true;
     const targetLangCodes = selectedLangs.length > 0
       ? selectedLangs
       : getArchivedTargetLanguages(archiveInfo);
@@ -23,6 +25,7 @@ export function useIncrementalPreScan(options) {
       notificationService.error(t('incremental_translation.no_archived_target_languages'), notificationStyle);
       return;
     }
+    if (await checkReferenceLibrary({ skip: skipReferenceReuse })) return;
 
     preScanInFlightRef.current = true;
     try {
@@ -34,14 +37,18 @@ export function useIncrementalPreScan(options) {
         stage: t('incremental_translation.progress_stage_initializing'),
       });
       setLogs([t('incremental_translation.pre_scan_bootstrap_log')]);
+      const payload = buildIncrementalUpdatePayload({
+        ...options,
+        dryRun: true,
+        projectId: selectedProject.project_id,
+        referenceReuseEnabled: options.referenceReuseEnabled
+          && !referenceReuseBypassed
+          && !skipReferenceReuse,
+        targetLangCodes,
+      });
       const response = await translationService.startIncrementalUpdate(
         selectedProject.project_id,
-        buildIncrementalUpdatePayload({
-          ...options,
-          dryRun: true,
-          projectId: selectedProject.project_id,
-          targetLangCodes,
-        }),
+        payload,
       );
       const taskId = response.data.task_id;
       if (taskId) {
@@ -79,9 +86,9 @@ export function useIncrementalPreScan(options) {
       preScanInFlightRef.current = false;
     }
   }, [
-    archiveInfo, connectWebSocket, executing, executionInFlightRef, loading, notificationStyle,
-    options, preScanInFlightRef, selectedLangs, selectedProject, setActive, setConflictingTaskId,
-    setCurrentTaskId, setCurrentTaskMode, setLoading, setLogs, setProgress, setProgressInfo,
-    setScanResults, t,
+    archiveInfo, checkReferenceLibrary, connectWebSocket, executing, executionInFlightRef,
+    loading, notificationStyle, options, preScanInFlightRef, referenceReuseBypassed,
+    selectedLangs, selectedProject, setActive, setConflictingTaskId, setCurrentTaskId,
+    setCurrentTaskMode, setLoading, setLogs, setProgress, setProgressInfo, setScanResults, t,
   ]);
 }

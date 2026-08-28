@@ -12,6 +12,8 @@ from scripts.schemas.system import (
     SystemActionResponse,
     SystemStatsResponse,
 )
+from scripts.schemas.reference import ReferenceLibraryBuildRequest
+from scripts.core.services.reference_library_service import ReferenceLibraryService
 from scripts.utils.system_utils import sanitize_for_json
 from scripts.core.paradox_localization_parser import escape_value, parse_text, patch_text
 
@@ -21,6 +23,7 @@ from scripts.utils.logger import LOGS_DIR
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/system", tags=["System"])
+reference_library_service = ReferenceLibraryService()
 
 
 def _normalized_abs_path(path: str) -> str:
@@ -75,6 +78,35 @@ def _remove_sqlite_family(db_path: str):
         candidate = f"{db_path}{suffix}"
         if os.path.exists(candidate):
             os.remove(candidate)
+
+
+@router.get("/reference-library")
+def get_reference_library_status():
+    return reference_library_service.status()
+
+
+@router.post("/reference-library/discover")
+def discover_reference_libraries():
+    return reference_library_service.discover()
+
+
+@router.post("/reference-library/auto-build")
+def auto_build_reference_libraries():
+    try:
+        return reference_library_service.discover_and_build()
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/reference-library/build")
+def build_reference_library(request: ReferenceLibraryBuildRequest):
+    try:
+        return reference_library_service.build(
+            request.game_id,
+            request.localization_path,
+        )
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 @router.get("/stats", response_model=SystemStatsResponse)
 async def get_system_stats():

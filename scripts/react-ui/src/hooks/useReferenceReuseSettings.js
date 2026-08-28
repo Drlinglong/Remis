@@ -1,5 +1,4 @@
 import { useCallback, useRef, useState } from 'react';
-import { open } from '@tauri-apps/plugin-dialog';
 import translationService from '../services/translationService';
 import { toggleReferenceExclusion } from '../utils/referenceReuse';
 
@@ -21,21 +20,6 @@ export const useReferenceReuseSettings = (t) => {
     setReferencePreviewLoading(false);
   }, []);
 
-  const handleSelectReferenceFolder = useCallback(async () => {
-    try {
-      const selected = await open({
-        directory: true,
-        multiple: false,
-        title: t('translation_config.reference_select_folder'),
-      });
-      if (selected && typeof selected === 'string') {
-        changeReferenceLocalizationPath(selected);
-      }
-    } catch (err) {
-      console.error('Failed to select reference localization folder:', err);
-    }
-  }, [changeReferenceLocalizationPath, t]);
-
   const previewReferenceReuse = useCallback(async ({ projectId, sourceLangCode, targetLangCodes }) => {
     const requestId = ++previewRequestRef.current;
     setReferencePreviewLoading(true);
@@ -45,7 +29,7 @@ export const useReferenceReuseSettings = (t) => {
         project_id: projectId,
         source_lang_code: sourceLangCode,
         target_lang_codes: targetLangCodes,
-        localization_path: referenceLocalizationPath,
+        localization_path: referenceLocalizationPath || null,
       });
       if (previewRequestRef.current === requestId) {
         setReferencePreviewEntries(response.data?.matches || []);
@@ -76,7 +60,6 @@ export const useReferenceReuseSettings = (t) => {
 
   return {
     changeReferenceLocalizationPath,
-    handleSelectReferenceFolder,
     referenceLocalizationPath,
     referencePreviewEntries,
     referencePreviewError,

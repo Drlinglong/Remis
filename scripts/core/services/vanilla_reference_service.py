@@ -167,6 +167,34 @@ class VanillaReferenceService:
         excluded_entries: Optional[Iterable[dict]] = None,
         encoding: str = "utf-8-sig",
     ) -> VanillaReferenceResolver:
+        info = self.build_index(
+            game_id=game_id,
+            localization_root=localization_root,
+            supported_language_keys=supported_language_keys,
+            encoding=encoding,
+        )
+        rows = self._load_language_pair(
+            info.reference_set_id,
+            source_lang_code,
+            target_lang_code,
+        )
+        return VanillaReferenceResolver(
+            rows,
+            info,
+            target_lang_code,
+            excluded_entries,
+        )
+
+    def build_index(
+        self,
+        *,
+        game_id: str,
+        localization_root: str | Path,
+        supported_language_keys: Optional[Iterable[str]] = None,
+        encoding: str = "utf-8-sig",
+    ) -> ReferenceIndexInfo:
+        """Build and activate a multilingual index for an explicit source tree."""
+
         root = self._validate_root(localization_root)
         files_by_language = self._collect_language_files(root, supported_language_keys)
         game_version = self._detect_game_version(root)
@@ -213,17 +241,85 @@ class VanillaReferenceService:
                 stale = True
 
         info = self._row_to_info(row, stale=stale)
+        self.activate_reference_set(info.reference_set_id, game_id)
+        return info
+
+    def open_active_resolver(
+        self,
+        *,
+        game_id: str,
+        source_lang_code: str,
+        target_lang_code: str,
+        excluded_entries: Optional[Iterable[dict]] = None,
+    ) -> Optional[VanillaReferenceResolver]:
+        """Open the explicitly built active index without rescanning source files."""
+
+        info = self.get_active_index(game_id)
+        if info is None:
+            return None
         rows = self._load_language_pair(
             info.reference_set_id,
             source_lang_code,
             target_lang_code,
         )
-        return VanillaReferenceResolver(
-            rows,
-            info,
-            target_lang_code,
-            excluded_entries,
-        )
+        return VanillaReferenceResolver(rows, info, target_lang_code, excluded_entries)
+
+    def activate_reference_set(self, reference_set_id: int, game_id: str) -> None:
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        with self._connect() as connection:
+            self._ensure_schema(connection)
+            connection.execute(
+                """
+                INSERT INTO active_reference_sets (game_id, reference_set_id, activated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(game_id) DO UPDATE SET
+                    reference_set_id = excluded.reference_set_id,
+                    activated_at = excluded.activated_at
+                """,
+                (game_id, reference_set_id, datetime.now(timezone.utc).isoformat()),
+            )
+
+    def get_active_index(self, game_id: str) -> Optional[ReferenceIndexInfo]:
+        if not self.db_path.is_file():
+            return None
+        with self._connect() as connection:
+            self._ensure_schema(connection)
+            row = connection.execute(
+                """
+                SELECT reference_sets_v2.*
+                FROM active_reference_sets
+                JOIN reference_sets_v2 USING(reference_set_id)
+                WHERE active_reference_sets.game_id = ?
+                """,
+                (game_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        current_version = self._detect_game_version(Path(row["root_path"]))
+        stale = current_version not in {"unknown", row["game_version"]}
+        return self._row_to_info(row, stale=stale)
+
+    def list_active_indexes(self) -> list[ReferenceIndexInfo]:
+        if not self.db_path.is_file():
+            return []
+        with self._connect() as connection:
+            self._ensure_schema(connection)
+            game_ids = [
+                row["game_id"]
+                for row in connection.execute(
+                    "SELECT game_id FROM active_reference_sets ORDER BY game_id"
+                )
+            ]
+        return [info for game_id in game_ids if (info := self.get_active_index(game_id))]
+
+    def count_entries(self, reference_set_id: int) -> int:
+        with self._connect() as connection:
+            self._ensure_schema(connection)
+            row = connection.execute(
+                "SELECT COUNT(*) AS count FROM reference_entries_v2 WHERE reference_set_id = ?",
+                (reference_set_id,),
+            ).fetchone()
+        return int(row["count"])
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -261,6 +357,12 @@ class VanillaReferenceService:
             );
             CREATE INDEX IF NOT EXISTS idx_reference_lookup_v2
                 ON reference_entries_v2(reference_set_id, language_code, entry_key);
+            CREATE TABLE IF NOT EXISTS active_reference_sets (
+                game_id TEXT PRIMARY KEY,
+                reference_set_id INTEGER NOT NULL,
+                activated_at TEXT NOT NULL,
+                FOREIGN KEY(reference_set_id) REFERENCES reference_sets_v2(reference_set_id)
+            );
             """
         )
         columns = {
