@@ -1,4 +1,5 @@
 from pathlib import Path
+import logging
 
 from scripts.core.services.paradox_installation_discovery import (
     discover_paradox_localizations,
@@ -93,3 +94,33 @@ def test_libraryfolders_adds_non_default_steam_library(tmp_path):
 
     assert steam_root.resolve() in libraries
     assert second_root.resolve() in libraries
+
+
+def test_missing_manifests_are_not_reported_as_read_failures(tmp_path, caplog):
+    steam_root = tmp_path / "Steam"
+    (steam_root / "steamapps").mkdir(parents=True)
+    profiles = {
+        "1": {
+            "id": "victoria3",
+            "name": "Victoria 3",
+            "official_localization_globs": ["game/localization"],
+        }
+    }
+
+    with caplog.at_level(logging.WARNING):
+        results = discover_paradox_localizations(profiles, [steam_root])
+
+    assert results == []
+    assert "Unable to read Steam metadata" not in caplog.text
+
+
+def test_existing_unreadable_metadata_is_reported(tmp_path, caplog):
+    steam_root = tmp_path / "Steam"
+    metadata = steam_root / "steamapps" / "libraryfolders.vdf"
+    metadata.mkdir(parents=True)
+
+    with caplog.at_level(logging.WARNING):
+        libraries = discover_steam_library_roots([steam_root])
+
+    assert libraries == [steam_root.resolve()]
+    assert f"Unable to read Steam metadata: {metadata}" in caplog.text

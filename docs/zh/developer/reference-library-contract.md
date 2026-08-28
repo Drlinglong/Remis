@@ -24,6 +24,8 @@ Steam app id、安装目录名和官方本地化布局属于游戏档案元数�
 
 自动发现只解析 Windows Steam 注册表、`libraryfolders.vdf` 和对应 `appmanifest_*.acf`，验证安装目录与游戏档案规定的本地化目录。它不得启动 Steam、遍历整块磁盘或接受任意 Mod localization 目录。`POST /api/system/reference-library/discover` 只读并返回候选，不启动建库。
 
+Steam 库中没有某个受支持游戏的 `appmanifest` 是正常的负匹配，必须静默跳过；只有元数据路径实际存在但无法读取或解码时才记录警告。
+
 ## 维护任务 API
 
 当前主要契约：
@@ -40,6 +42,8 @@ Steam app id、安装目录名和官方本地化布局属于游戏档案元数�
 旧的 `/auto-build` 和 `/build` 路由暂时保留，但必须进入同一个任务锁，不能绕过并发保护。
 
 任务 `kind` 为 `reference_library_maintenance`，全局 dedupe key 为 `reference-library-maintenance`。`task_state` 和 `background_tasks` 保存任务快照；重复启动返回已有 `task_id`。页面挂载时先查活动任务，因此 React 局部 `loading` 状态不是互斥或恢复机制。
+
+逐文件进度更新属于高频传输事件：成功推送或没有订阅者时只允许写 DEBUG，连接建立／断开可写 INFO，真实发送异常写 ERROR。不得让一次大型索引用正常进度记录淹没桌面诊断日志。
 
 ## 进度与终态
 
@@ -59,7 +63,7 @@ Steam app id、安装目录名和官方本地化布局属于游戏档案元数�
 
 建立新指纹集合后才切换活动绑定。显式强制重建同一指纹时，旧集合的删除与新集合写入在同一个 SQLite 事务内完成，失败应回滚，不能把半成品激活。
 
-删除操作在事务中按以下范围执行：活动绑定、该 `game_id` 的所有 `reference_entries_v2`、该游戏的所有 `reference_sets_v2`。不得根据用户提供的路径删除磁盘文件；游戏目录只读。
+删除操作在事务中按以下范围执行：活动绑定、该 `game_id` 的所有 `reference_entries_v2`、该游戏的所有 `reference_sets_v2`。事务提交后执行 SQLite `VACUUM`，将空闲页归还文件系统。若数据删除成功但压缩失败，必须保留真实警告并把维护任务标记为失败，不能假装已完成完整空间回收。不得根据用户提供的路径删除磁盘文件；游戏目录只读。
 
 数据库写操作共享进程级全局锁，同时由持久化任务 dedupe 拒绝第二个活动任务。两层保护分别防止并发请求竞态和 SQLite 双写。
 

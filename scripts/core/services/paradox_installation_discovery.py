@@ -20,6 +20,8 @@ _ACF_INSTALL_DIR_RE = re.compile(r'"installdir"\s+"(?P<name>[^"]+)"', re.IGNOREC
 def _read_text(path: Path) -> str:
     try:
         return path.read_text(encoding="utf-8-sig")
+    except FileNotFoundError:
+        return ""
     except (OSError, UnicodeError):
         logger.warning("Unable to read Steam metadata: %s", path)
         return ""

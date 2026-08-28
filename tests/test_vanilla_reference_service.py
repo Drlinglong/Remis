@@ -234,8 +234,11 @@ def test_delete_game_reference_removes_binding_sets_and_entries_atomically(tmp_p
 
     assert result["reference_sets_deleted"] == 1
     assert result["entries_deleted"] > 0
+    assert result["database_compacted"] is True
     assert service.get_active_index("victoria3") is None
     assert service.count_entries(first.reference_set_id) == 0
+    with service._connect() as connection:
+        assert connection.execute("PRAGMA freelist_count").fetchone()[0] == 0
 
 
 def test_force_rebuild_repairs_same_fingerprint_index(tmp_path):

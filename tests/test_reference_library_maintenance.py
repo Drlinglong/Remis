@@ -96,6 +96,32 @@ def test_partial_reference_maintenance_is_not_reported_as_success(monkeypatch):
     assert task["result"]["results"][0]["library"]["game_id"] == "ck3"
 
 
+def test_delete_reports_failed_compaction_instead_of_hiding_it():
+    class FakeReferenceService:
+        @staticmethod
+        def delete_game_reference(_game_id):
+            return {
+                "reference_sets_deleted": 1,
+                "entries_deleted": 5,
+                "database_compacted": False,
+            }
+
+    service = ReferenceLibraryService(reference_service=FakeReferenceService())
+    result = service._start_task(
+        operation="delete",
+        candidates=[{
+            "game_id": "victoria3",
+            "game_name": "Victoria 3",
+            "localization_path": "I:/v3",
+            "entries_total": 5,
+        }],
+    )
+    task = _wait_for_terminal(result["task_id"])
+
+    assert task["status"] == "failed"
+    assert "could not reclaim" in task["result"]["errors"][0]["error"]
+
+
 def test_discover_does_not_start_a_maintenance_task(monkeypatch):
     candidates = [{"game_id": "victoria3", "localization_path": "I:/v3"}]
     monkeypatch.setattr(service_module, "discover_paradox_localizations", lambda *_args: candidates)

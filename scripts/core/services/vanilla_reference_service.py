@@ -364,11 +364,15 @@ class VanillaReferenceService:
             ).fetchone()
         return int(row["count"])
 
-    def delete_game_reference(self, game_id: str) -> dict[str, int]:
+    def delete_game_reference(self, game_id: str) -> dict[str, int | bool]:
         """Atomically remove a game's binding, sets, and all indexed entries."""
 
         if not self.db_path.is_file():
-            return {"reference_sets_deleted": 0, "entries_deleted": 0}
+            return {
+                "reference_sets_deleted": 0,
+                "entries_deleted": 0,
+                "database_compacted": True,
+            }
         with self._connect() as connection:
             self._ensure_schema(connection)
             set_ids = [
@@ -389,10 +393,27 @@ class VanillaReferenceService:
             sets_deleted = connection.execute(
                 "DELETE FROM reference_sets_v2 WHERE game_id = ?", (game_id,)
             ).rowcount
+        database_compacted = self._compact_database()
         return {
             "reference_sets_deleted": int(sets_deleted),
             "entries_deleted": int(entries_deleted),
+            "database_compacted": database_compacted,
         }
+
+    def _compact_database(self) -> bool:
+        """Return freed reference-library pages to the filesystem after deletion."""
+
+        try:
+            with sqlite3.connect(self.db_path, timeout=30, isolation_level=None) as connection:
+                connection.execute("VACUUM")
+        except sqlite3.Error:
+            logger.warning(
+                "Reference entries were deleted, but SQLite space reclamation failed for %s",
+                self.db_path,
+                exc_info=True,
+            )
+            return False
+        return True
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:

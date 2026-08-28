@@ -307,6 +307,10 @@ class ReferenceLibraryService:
         result = self.reference_service.delete_game_reference(game_id)
         game["entries_current"] = game.get("entries_total") or 0
         game["indexed_entries"] = game["entries_current"]
+        if not result.get("database_compacted", False):
+            raise OSError(
+                "Reference data was deleted, but SQLite could not reclaim the freed disk space"
+            )
         return {"game_id": game_id, **result}
 
     def _validate_profile_path(self, profile: dict, localization_path: str) -> Path:
