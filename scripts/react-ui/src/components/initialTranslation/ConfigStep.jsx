@@ -24,6 +24,7 @@ import {
 } from '@tabler/icons-react';
 
 import EmbeddedWorkshopSettingsCard from './EmbeddedWorkshopSettingsCard';
+import ReferenceReuseSettingsCard from '../shared/ReferenceReuseSettingsCard';
 import LanguageTargetSelector from './LanguageTargetSelector';
 import ResumeSettingsCard from './ResumeSettingsCard';
 import CollapsibleSettingsCard from './CollapsibleSettingsCard';
@@ -41,6 +42,13 @@ export default function ConfigStep({
   onSubmit,
   selectedProject,
   selectedProjectId,
+  onSelectReferenceFolder,
+  onReferencePathChange,
+  onPreviewReferenceReuse,
+  onToggleReferenceEntry,
+  referencePreviewEntries = [],
+  referencePreviewError = '',
+  referencePreviewLoading = false,
   t,
 }) {
   const translationBatchOptions = [
@@ -381,6 +389,21 @@ export default function ConfigStep({
               <ResumeSettingsCard
                 checkpointHintInfo={checkpointHintInfo}
                 form={form}
+                t={t}
+              />
+
+              <ReferenceReuseSettingsCard
+                enabled={form.values.reference_reuse_enabled}
+                localizationPath={form.values.reference_localization_path}
+                onEnabledChange={(value) => form.setFieldValue('reference_reuse_enabled', value)}
+                onLocalizationPathChange={onReferencePathChange || ((value) => form.setFieldValue('reference_localization_path', value))}
+                onSelectFolder={onSelectReferenceFolder}
+                onPreview={onPreviewReferenceReuse}
+                onToggleEntry={onToggleReferenceEntry}
+                previewEntries={referencePreviewEntries}
+                previewError={referencePreviewError}
+                previewLoading={referencePreviewLoading}
+                excludedEntries={form.values.reference_reuse_excluded_entries}
                 t={t}
               />
 

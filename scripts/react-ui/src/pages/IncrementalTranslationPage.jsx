@@ -16,6 +16,7 @@ import { useCopilotStallReminder } from '../hooks/useCopilotStallReminder';
 import { sanitizeCopilotLogLine } from '../services/copilotPageContext';
 import { buildProofreadingUrl } from '../utils/proofreadingLinks';
 import { taskDetailRoute } from '../utils/taskRoutes';
+import { getArchivedTargetLanguages } from '../hooks/incrementalTranslationPayload';
 
 const EMPTY_ARRAY = [];
 
@@ -42,6 +43,13 @@ export const IncrementalTranslationPage = () => {
         active,
         selectedProject,
     } = state;
+    const previewReferenceReuse = () => state.previewReferenceReuse({
+        projectId: selectedProject?.project_id,
+        sourceLangCode: selectedProject?.source_language || 'en',
+        targetLangCodes: safeSelectedLangs.length > 0
+            ? safeSelectedLangs
+            : getArchivedTargetLanguages(state.archiveInfo),
+    });
 
     const contextSignature = JSON.stringify({
         active,
@@ -171,6 +179,17 @@ export const IncrementalTranslationPage = () => {
                         setConcurrencyLimit={state.setConcurrencyLimit}
                         rpmLimit={state.rpmLimit}
                         setRpmLimit={state.setRpmLimit}
+                        referenceReuseEnabled={state.referenceReuseEnabled}
+                        setReferenceReuseEnabled={state.setReferenceReuseEnabled}
+                        referenceLocalizationPath={state.referenceLocalizationPath}
+                        setReferenceLocalizationPath={state.changeReferenceLocalizationPath}
+                        onSelectReferenceFolder={state.handleSelectReferenceFolder}
+                        referencePreviewEntries={state.referencePreviewEntries}
+                        referencePreviewError={state.referencePreviewError}
+                        referencePreviewLoading={state.referencePreviewLoading}
+                        referenceReuseExcludedEntries={state.referenceReuseExcludedEntries}
+                        onPreviewReferenceReuse={previewReferenceReuse}
+                        onToggleReferenceEntry={state.toggleReferenceEntry}
                         
                         // Embedded Workshop Configuration
                         embeddedWorkshopEnabled={state.embeddedWorkshopEnabled}

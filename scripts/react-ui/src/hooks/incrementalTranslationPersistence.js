@@ -25,6 +25,9 @@ export const buildIncrementalStateSnapshot = ({
   logs,
   progress,
   progressInfo,
+  referenceLocalizationPath = '',
+  referenceReuseEnabled = true,
+  referenceReuseExcludedEntries = [],
   rpmLimit,
   scanResults,
   selectedLangs,
@@ -51,6 +54,9 @@ export const buildIncrementalStateSnapshot = ({
   executing,
   progress,
   progressInfo,
+  referenceLocalizationPath,
+  referenceReuseEnabled,
+  referenceReuseExcludedEntries,
   logs,
   finalSummary,
   checkpointFound,
@@ -110,6 +116,9 @@ export const applyIncrementalStateSnapshot = (snapshot, setters, refs = {}) => {
   if (typeof snapshot.executing === 'boolean') setters.setExecuting(snapshot.executing);
   if (typeof snapshot.progress === 'number') setters.setProgress(snapshot.progress);
   if (snapshot.progressInfo) setters.setProgressInfo(snapshot.progressInfo);
+  if (typeof snapshot.referenceReuseEnabled === 'boolean') setters.setReferenceReuseEnabled(snapshot.referenceReuseEnabled);
+  if (typeof snapshot.referenceLocalizationPath === 'string') setters.setReferenceLocalizationPath(snapshot.referenceLocalizationPath);
+  if (Array.isArray(snapshot.referenceReuseExcludedEntries)) setters.setReferenceReuseExcludedEntries(snapshot.referenceReuseExcludedEntries);
   if (Array.isArray(snapshot.logs)) setters.setLogs(snapshot.logs);
   if (snapshot.finalSummary) setters.setFinalSummary(snapshot.finalSummary);
   if (typeof snapshot.checkpointFound === 'boolean') setters.setCheckpointFound(snapshot.checkpointFound);

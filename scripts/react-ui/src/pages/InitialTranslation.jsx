@@ -39,6 +39,7 @@ import {
 } from '../utils/initialTranslation';
 import api from '../utils/api';
 import { useTaskCenter } from '../context/TaskCenterContextCore';
+import { useInitialReferenceReuse } from '../hooks/useInitialReferenceReuse';
 
 const formatModelSummary = (modelName = '') => {
   const knownModels = {
@@ -201,6 +202,9 @@ const InitialTranslation = () => {
       embedded_workshop_batch_size_limit: '10',
       embedded_workshop_concurrency_limit: '1',
       embedded_workshop_rpm_limit: '40',
+      reference_reuse_enabled: true,
+      reference_localization_path: '',
+      reference_reuse_excluded_entries: [],
       // Custom Language Fields
       custom_name: '',
       custom_key: 'l_english',
@@ -236,6 +240,15 @@ const InitialTranslation = () => {
   const checkpointTargetSignature = form.values.english_disguise
     ? 'custom'
     : form.values.target_lang_codes.join('|');
+  const referenceReuse = useInitialReferenceReuse({
+    excludedEntries: form.values.reference_reuse_excluded_entries,
+    localizationPath: form.values.reference_localization_path,
+    projectId: selectedProjectId,
+    setFieldValue: form.setFieldValue,
+    sourceLangCode: form.values.source_lang_code,
+    t,
+    targetLangCodes: getTargetLangCodes(form.values),
+  });
 
   const handleProjectSelect = useCallback((projectId) => {
     const project = findProjectById(projects, projectId);
@@ -454,6 +467,13 @@ const InitialTranslation = () => {
                 onSubmit={handleStartClick}
                 selectedProject={selectedProject}
                 selectedProjectId={selectedProjectId}
+                onSelectReferenceFolder={referenceReuse.selectFolder}
+                onReferencePathChange={referenceReuse.changePath}
+                onPreviewReferenceReuse={referenceReuse.preview}
+                onToggleReferenceEntry={referenceReuse.toggleEntry}
+                referencePreviewEntries={referenceReuse.previewEntries}
+                referencePreviewError={referenceReuse.previewError}
+                referencePreviewLoading={referenceReuse.previewLoading}
                 t={t}
               />
             )

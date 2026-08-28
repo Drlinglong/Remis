@@ -45,6 +45,9 @@ describe('incrementalTranslationPersistence', () => {
       logs: ['started'],
       progress: 55,
       progressInfo: { percent: 55 },
+      referenceLocalizationPath: 'J:/vanilla/localization',
+      referenceReuseEnabled: false,
+      referenceReuseExcludedEntries: [],
       rpmLimit: '40',
       scanResults: { changed: 1 },
       selectedLangs: ['zh-CN'],
@@ -79,6 +82,9 @@ describe('incrementalTranslationPersistence', () => {
       logs: ['started'],
       progress: 55,
       progressInfo: { percent: 55 },
+      referenceLocalizationPath: 'J:/vanilla/localization',
+      referenceReuseEnabled: false,
+      referenceReuseExcludedEntries: [],
       rpmLimit: '40',
       scanResults: { changed: 1 },
       selectedLangs: ['zh-CN'],
@@ -154,6 +160,9 @@ describe('incrementalTranslationPersistence', () => {
       setLogs: vi.fn(),
       setProgress: vi.fn(),
       setProgressInfo: vi.fn(),
+      setReferenceLocalizationPath: vi.fn(),
+      setReferenceReuseEnabled: vi.fn(),
+      setReferenceReuseExcludedEntries: vi.fn(),
       setScanResults: vi.fn(),
       setSelectedLangs: vi.fn(),
       setSelectedProject: vi.fn(),
@@ -187,6 +196,9 @@ describe('incrementalTranslationPersistence', () => {
       logs: ['done'],
       progress: 100,
       progressInfo: { percent: 100 },
+      referenceLocalizationPath: 'J:/vanilla/localization',
+      referenceReuseEnabled: false,
+      referenceReuseExcludedEntries: [{ key: 'TRK:0' }],
       scanResults: { changed: 1 },
       selectedLangs: ['zh-CN'],
       selectedProject: { project_id: 7, name: 'stale' },
@@ -201,6 +213,9 @@ describe('incrementalTranslationPersistence', () => {
     expect(setters.setSelectedProject).toHaveBeenCalledWith(currentProject);
     expect(setters.setActive).toHaveBeenCalledWith(2);
     expect(setters.setCustomSourcePath).toHaveBeenCalledWith('J:/mod');
+    expect(setters.setReferenceLocalizationPath).toHaveBeenCalledWith('J:/vanilla/localization');
+    expect(setters.setReferenceReuseEnabled).toHaveBeenCalledWith(false);
+    expect(setters.setReferenceReuseExcludedEntries).toHaveBeenCalledWith([{ key: 'TRK:0' }]);
     expect(setters.setEmbeddedWorkshopBatchSize).toHaveBeenCalledWith('5');
     expect(setters.setEmbeddedWorkshopConcurrency).toHaveBeenCalledWith('2');
     expect(setters.setEmbeddedWorkshopRpm).toHaveBeenCalledWith('20');

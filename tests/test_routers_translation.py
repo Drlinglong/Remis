@@ -235,3 +235,37 @@ def test_run_translation_workflow_v2_gives_explicit_glossary_highest_priority(mo
     )
 
     assert run_workflow.call_args.kwargs["selected_glossary_ids"] == [10, 20, 30]
+
+
+def test_reference_reuse_preview_resolves_project_and_languages(monkeypatch):
+    monkeypatch.setattr(
+        translation.project_manager,
+        "get_project",
+        AsyncMock(return_value={
+            "project_id": "demo",
+            "game_id": "victoria3",
+            "source_path": "C:/demo",
+        }),
+    )
+    preview_service = MagicMock()
+    preview_service.preview.return_value = {
+        "status": "success",
+        "matched_count": 1,
+        "matches": [{"key": "TRK:0"}],
+    }
+    monkeypatch.setattr(
+        translation,
+        "ReferenceReusePreviewService",
+        MagicMock(return_value=preview_service),
+    )
+
+    response = TestClient(app).post("/api/reference-reuse/preview", json={
+        "project_id": "demo",
+        "source_lang_code": "en",
+        "target_lang_codes": ["zh-CN"],
+        "localization_path": "C:/Victoria 3/game/localization",
+    })
+
+    assert response.status_code == 200
+    assert response.json()["matches"] == [{"key": "TRK:0"}]
+    preview_service.preview.assert_called_once()

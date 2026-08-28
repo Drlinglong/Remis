@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, field_validator
 from scripts.schemas.common import LanguageCode
+from scripts.schemas.reference import ReferenceReuseConfig
 
 
 class TranslationTaskResponse(BaseModel):
@@ -85,6 +86,7 @@ class InitialTranslationRequest(BaseModel):
     use_resume: bool = True
     custom_lang_config: Optional[CustomLangConfig] = None
     embedded_workshop: Optional[EmbeddedWorkshopConfig] = None
+    reference_reuse: Optional[ReferenceReuseConfig] = None
 
     @field_validator('source_lang_code', mode='before')
     @classmethod
@@ -120,6 +122,7 @@ class TranslationRequestV2(BaseModel):
     use_resume: bool = True
     custom_lang_config: Optional[CustomLangConfig] = None
     embedded_workshop: Optional[EmbeddedWorkshopConfig] = None
+    reference_reuse: Optional[ReferenceReuseConfig] = None
 
     @field_validator('source_lang_code', mode='before')
     @classmethod

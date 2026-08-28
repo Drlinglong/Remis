@@ -30,6 +30,9 @@ export const buildIncrementalUpdatePayload = ({
   embeddedWorkshopProvider,
   embeddedWorkshopRpm,
   projectId,
+  referenceLocalizationPath = '',
+  referenceReuseExcludedEntries = [],
+  referenceReuseEnabled = true,
   rpmLimit,
   selectedModel,
   selectedProvider,
@@ -46,6 +49,11 @@ export const buildIncrementalUpdatePayload = ({
   rpm_limit: Number(rpmLimit),
   custom_source_path: customSourcePath,
   use_resume: useResume,
+  reference_reuse: {
+    enabled: referenceReuseEnabled !== false,
+    localization_path: referenceLocalizationPath || '',
+    excluded_entries: referenceReuseExcludedEntries,
+  },
   embedded_workshop: {
     enabled: embeddedWorkshopEnabled,
     follow_primary_settings: embeddedWorkshopFollowPrimary,

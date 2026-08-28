@@ -1,6 +1,7 @@
 from typing import Optional, List, Literal
 from pydantic import BaseModel, ConfigDict, field_validator
 from scripts.schemas.common import LanguageCode
+from scripts.schemas.reference import ReferenceReuseConfig
 
 class CreateProjectRequest(BaseModel):
     name: str
@@ -163,6 +164,7 @@ class IncrementalUpdateRequest(BaseModel):
     custom_source_path: Optional[str] = None
     use_resume: bool = True
     embedded_workshop: Optional[EmbeddedWorkshopConfig] = None
+    reference_reuse: Optional[ReferenceReuseConfig] = None
 
     @field_validator('target_lang_codes', mode='before')
     @classmethod

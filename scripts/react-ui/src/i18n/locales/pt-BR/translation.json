@@ -1657,7 +1657,17 @@
     "target_languages": "Idiomas de Destino",
     "api_provider": "Provedor de API",
     "api_model": "Modelo disponível na API",
-    "select_path_tooltip": "Selecionar a pasta da nova versão do mod"
+    "select_path_tooltip": "Selecionar a pasta da nova versão do mod",
+    "reference_reuse": "Reutilizar traduções oficiais de referência (vanilla)",
+    "reference_reuse_desc": "Reutiliza traduções correspondentes de uma pasta de localização vanilla antes de chamar o modelo.",
+    "reference_localization_path": "Pasta de localização vanilla",
+    "reference_localization_path_placeholder": "Selecione uma pasta de localização vanilla (opcional)",
+    "reference_select_folder": "Selecionar pasta de localização vanilla",
+    "reference_preview": "Buscar correspondências exatas",
+    "reference_filter": "Filtrar por chave, arquivo ou texto",
+    "reference_matched_count": "{{count}} correspondências exatas",
+    "reference_deselected_count": "{{count}} desmarcadas",
+    "reference_selected_count": "{{selected}} de {{total}} usarão traduções oficiais"
   },
   "common": {
     "browse": "Navegar",

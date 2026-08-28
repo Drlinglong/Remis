@@ -30,6 +30,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 import PerformanceControlPanel from '../shared/PerformanceControlPanel';
+import ReferenceReuseSettingsCard from '../shared/ReferenceReuseSettingsCard';
 import { resolveProviderModels } from '../../hooks/incrementalTranslationProviders';
 import styles from '../../pages/Translation.module.css';
 
@@ -60,6 +61,17 @@ export const ConfigStep = ({
     setConcurrencyLimit,
     rpmLimit,
     setRpmLimit,
+    referenceReuseEnabled,
+    setReferenceReuseEnabled,
+    referenceLocalizationPath,
+    setReferenceLocalizationPath,
+    onSelectReferenceFolder,
+    referencePreviewEntries = [],
+    referencePreviewError = '',
+    referencePreviewLoading = false,
+    referenceReuseExcludedEntries = [],
+    onPreviewReferenceReuse,
+    onToggleReferenceEntry,
     
     // Embedded Workshop
     embeddedWorkshopEnabled,
@@ -334,8 +346,35 @@ export const ConfigStep = ({
                             />
                         </Card>
 
-                        {/* --- Embedded Workshop Settings (Accordion) --- */}
                         <Accordion variant="separated" radius="md">
+                            <Accordion.Item value="reference-reuse">
+                                <Accordion.Control>
+                                    <Box>
+                                        <Text fw={600}>{t('translation_config.reference_reuse')}</Text>
+                                        <Text size="xs" c="dimmed">
+                                            {t('translation_config.reference_reuse_desc')}
+                                        </Text>
+                                    </Box>
+                                </Accordion.Control>
+                                <Accordion.Panel>
+                                    <ReferenceReuseSettingsCard
+                                        enabled={referenceReuseEnabled}
+                                        localizationPath={referenceLocalizationPath}
+                                        onEnabledChange={setReferenceReuseEnabled}
+                                        onLocalizationPathChange={setReferenceLocalizationPath}
+                                        onSelectFolder={onSelectReferenceFolder}
+                                        onPreview={onPreviewReferenceReuse}
+                                        onToggleEntry={onToggleReferenceEntry}
+                                        previewEntries={referencePreviewEntries}
+                                        previewError={referencePreviewError}
+                                        previewLoading={referencePreviewLoading}
+                                        excludedEntries={referenceReuseExcludedEntries}
+                                        t={t}
+                                    />
+                                </Accordion.Panel>
+                            </Accordion.Item>
+
+                            {/* --- Embedded Workshop Settings --- */}
                             <Accordion.Item value="embedded-workshop">
                                 <Accordion.Control>
                                     <Group justify="space-between" wrap="nowrap">

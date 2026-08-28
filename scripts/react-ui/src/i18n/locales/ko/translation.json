@@ -1662,7 +1662,17 @@
     "target_languages": "대상 언어",
     "api_provider": "API 제공자",
     "api_model": "AI 모델",
-    "select_path_tooltip": "새 Mod 버전 폴더 선택"
+    "select_path_tooltip": "새 Mod 버전 폴더 선택",
+    "reference_reuse": "공식(vanilla) 참고 번역 재사용",
+    "reference_reuse_desc": "모델을 호출하기 전에 vanilla localization 폴더의 일치하는 번역을 재사용합니다.",
+    "reference_localization_path": "Vanilla localization 폴더",
+    "reference_localization_path_placeholder": "Vanilla localization 폴더 선택(선택 사항)",
+    "reference_select_folder": "Vanilla localization 폴더 선택",
+    "reference_preview": "정확한 일치 검색",
+    "reference_filter": "키, 파일 또는 텍스트로 필터링",
+    "reference_matched_count": "정확한 일치 {{count}}개",
+    "reference_deselected_count": "{{count}}개 선택 해제",
+    "reference_selected_count": "{{total}}개 중 {{selected}}개에 공식 번역 재사용"
   },
   "common": {
     "browse": "찾아보기",

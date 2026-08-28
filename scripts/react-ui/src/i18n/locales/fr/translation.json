@@ -1661,7 +1661,17 @@
     "target_languages": "Langues cibles",
     "api_provider": "Fournisseur d'API",
     "api_model": "Modèle d'IA",
-    "select_path_tooltip": "Sélectionner le dossier de la nouvelle version du mod"
+    "select_path_tooltip": "Sélectionner le dossier de la nouvelle version du mod",
+    "reference_reuse": "Réutiliser les traductions officielles de référence (vanilla)",
+    "reference_reuse_desc": "Réutilise les traductions correspondantes d’un dossier de localisation vanilla avant l’appel au modèle.",
+    "reference_localization_path": "Dossier de localisation vanilla",
+    "reference_localization_path_placeholder": "Sélectionner un dossier de localisation vanilla (facultatif)",
+    "reference_select_folder": "Sélectionner le dossier de localisation vanilla",
+    "reference_preview": "Rechercher les correspondances exactes",
+    "reference_filter": "Filtrer par clé, fichier ou texte",
+    "reference_matched_count": "{{count}} correspondances exactes",
+    "reference_deselected_count": "{{count}} désélectionnées",
+    "reference_selected_count": "{{selected}} sur {{total}} utiliseront les traductions officielles"
   },
   "common": {
     "browse": "Parcourir",

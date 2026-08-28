@@ -28,7 +28,6 @@
     "scripts/core/project_manager.py::ProjectManager.promote_incremental_source": 123,
     "scripts/core/project_manager.py::ProjectManager.repair_project_metadata": 126,
     "scripts/core/services/embedded_workshop_service.py::run_embedded_workshop": 155,
-    "scripts/core/services/incremental_preparation_service.py::IncrementalPreparationService.prepare_language_update": 122,
     "scripts/core/services/initial_translation_language_service.py::run_language_translation": 163,
     "scripts/core/services/model_arena_execution_service.py::ModelArenaExecutionService._execute_contestant": 323,
     "scripts/core/services/model_arena_service.py::ModelArenaService._execute_bundle": 130,
@@ -43,7 +42,7 @@
     "scripts/routers/translation.py::run_translation_workflow_v2": 204,
     "scripts/run_dev_servers.py::run_servers": 155,
     "scripts/workflows/initial_translate.py::run": 126,
-    "scripts/workflows/update_translate.py::run_incremental_update": 444
+    "scripts/workflows/update_translate.py::run_incremental_update": 439
   },
   "complexity_exceptions": {
     "scripts/build_pipeline.py::main": 30,
@@ -56,6 +55,6 @@
     "scripts/routers/translation.py::run_translation_workflow_v2": 29,
     "scripts/run_dev_servers.py::run_servers": 28,
     "scripts/utils/system_utils.py::force_free_port": 23,
-    "scripts/workflows/update_translate.py::run_incremental_update": 27
+    "scripts/workflows/update_translate.py::run_incremental_update": 26
   }
 }

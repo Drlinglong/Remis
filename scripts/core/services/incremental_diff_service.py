@@ -37,13 +37,15 @@ class IncrementalDiffService:
         if not history_entry:
             return "new", None
 
-        # Empty or exact source-text reuse should be reprocessed instead of copied forward.
+        # Only absent/empty translations are invalid. A target translation may
+        # legitimately equal the source text (names, acronyms, or official
+        # vanilla wording), and failed source fallbacks are no longer archived.
         translation = history_entry.get("translation")
         is_invalid_translation = False
         if translation is None:
             is_invalid_translation = True
         elif isinstance(translation, str):
-            if translation.strip() == "" or translation == source_text:
+            if translation.strip() == "":
                 is_invalid_translation = True
 
         if is_invalid_translation:

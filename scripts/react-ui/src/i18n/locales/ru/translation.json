@@ -1734,7 +1734,17 @@
     "target_languages": "Целевые языки",
     "api_provider": "Провайдер API",
     "api_model": "Модель ИИ",
-    "select_path_tooltip": "Выбрать папку новой версии мода"
+    "select_path_tooltip": "Выбрать папку новой версии мода",
+    "reference_reuse": "Использовать официальные справочные переводы (vanilla)",
+    "reference_reuse_desc": "Перед вызовом модели использовать совпадающие переводы из папки локализации vanilla.",
+    "reference_localization_path": "Папка локализации vanilla",
+    "reference_localization_path_placeholder": "Выберите папку локализации vanilla (необязательно)",
+    "reference_select_folder": "Выбрать папку локализации vanilla",
+    "reference_preview": "Найти точные совпадения",
+    "reference_filter": "Фильтр по ключу, файлу или тексту",
+    "reference_matched_count": "Точных совпадений: {{count}}",
+    "reference_deselected_count": "Снято: {{count}}",
+    "reference_selected_count": "{{selected}} из {{total}} будут использовать официальные переводы"
   },
   "incremental_translation": {
     "description": "Пошаговый workflow: анализируйте изменения в исходниках и переводите только новый или измененный контент.",

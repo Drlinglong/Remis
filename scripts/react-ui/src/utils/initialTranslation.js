@@ -150,6 +150,11 @@ export function buildTranslationPayload(values, selectedProjectId, selectedProje
     use_main_glossary: values.use_main_glossary,
     clean_source: values.clean_source,
     use_resume: values.use_resume,
+    reference_reuse: {
+      enabled: values.reference_reuse_enabled !== false,
+      localization_path: values.reference_localization_path || '',
+      excluded_entries: values.reference_reuse_excluded_entries || [],
+    },
     batch_size_limit: values.translation_batch_size_limit ? Number(values.translation_batch_size_limit) : null,
     concurrency_limit: values.translation_concurrency_limit ? Number(values.translation_concurrency_limit) : null,
     rpm_limit: values.translation_rpm_limit ? Number(values.translation_rpm_limit) : null,
