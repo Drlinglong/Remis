@@ -78,6 +78,36 @@ def test_build_index_aggregates_multiple_official_localization_roots(tmp_path):
     assert resolver.lookup("START", "Start").translation == "开始"
 
 
+def test_build_index_supports_eu4_flat_utf8_bom_language_files(tmp_path):
+    install_root = tmp_path / "SteamLibrary" / "steamapps" / "common" / "Europa Universalis IV"
+    localization_root = install_root / "localisation"
+    localization_root.mkdir(parents=True)
+    (localization_root / "countries_l_english.yml").write_text(
+        'l_english:\n TRK:0 "Turkana"\n',
+        encoding="utf-8-sig",
+    )
+    (localization_root / "countries_l_french.yml").write_text(
+        'l_french:\n TRK:0 "Turkana français"\n',
+        encoding="utf-8-sig",
+    )
+    service = VanillaReferenceService(tmp_path / "reference.sqlite")
+
+    service.build_index(
+        game_id="eu4",
+        localization_root=install_root,
+        localization_globs=["localisation"],
+        supported_language_keys=["1", "3"],
+        encoding="utf-8-sig",
+    )
+    resolver = service.open_active_resolver(
+        game_id="eu4",
+        source_lang_code="en",
+        target_lang_code="fr",
+    )
+
+    assert resolver.lookup("TRK", "Turkana").translation == "Turkana français"
+
+
 def test_exact_key_and_canonical_source_hit_skips_api(tmp_path):
     root = _build_root(tmp_path)
     service = VanillaReferenceService(tmp_path / "reference.sqlite")

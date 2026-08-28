@@ -480,16 +480,29 @@ class VanillaReferenceService:
                 for candidate in root.glob(pattern)
                 if candidate.is_dir()
             })
+        all_localization_files = tuple(
+            path
+            for localization_dir in localization_roots
+            for path in localization_dir.rglob("*.yml")
+            if path.is_file()
+        )
         files_by_language: dict[str, tuple[Path, ...]] = {}
         for language_id, language in LANGUAGES.items():
             if allowed and language_id not in allowed:
                 continue
-            files = tuple(sorted(
+            language_folder = language["key"][2:]
+            flat_suffix = re.compile(
+                rf"_l_{re.escape(language_folder)}\.yml$",
+                flags=re.IGNORECASE,
+            )
+            files = tuple(sorted({
                 path
                 for localization_dir in localization_roots
-                for path in (localization_dir / language["key"][2:]).rglob("*.yml")
+                for path in (localization_dir / language_folder).rglob("*.yml")
                 if path.is_file()
-            ))
+            } | {
+                path for path in all_localization_files if flat_suffix.search(path.name)
+            }))
             if files:
                 files_by_language[language["code"]] = files
         if not files_by_language:

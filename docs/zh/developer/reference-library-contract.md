@@ -20,6 +20,8 @@ lookup(key, source_language, canonical_source_text, target_language)
 
 Steam app id、安装目录名和官方本地化布局属于游戏档案元数据，不得在不同模块复制第二份常量。`official_localization_globs` 与 Mod 使用的 `source_localization_folder` 是不同概念：Victoria 3／CK3 使用 `game/localization`，Stellaris／HOI4／EU4 使用安装根目录的 `localisation`，EU5 则聚合 `game`、`jomini`、`clausewitz` 下的多个 `localization` 模块。
 
+语言文件布局也不能假设统一：较新的游戏通常使用 `localization/<language>/*.yml`，EU4 则把 UTF-8 BOM 文件平铺在 `localisation` 根目录，并以 `*_l_<language>.yml` 区分语言。索引器必须同时支持两种布局，且不得以宽松解码掩盖错误的游戏档案编码。
+
 自动发现只解析 Windows Steam 注册表、`libraryfolders.vdf` 和对应 `appmanifest_*.acf`，验证安装目录与游戏档案规定的本地化目录。它不得启动 Steam、遍历整块磁盘或接受任意 Mod localization 目录。`POST /api/system/reference-library/discover` 只读并返回候选，不启动建库。
 
 ## 维护任务 API

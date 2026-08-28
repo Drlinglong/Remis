@@ -73,7 +73,7 @@
             "thumbnail.png"
         ],
         "metadata_file": "descriptor.mod",
-        "encoding": "cp1252",
+        "encoding": "utf-8-sig",
         "strip_pl_diacritics": true,
         "prompt_preset": "EU4",
         "official_tags_codex": "scripts/config/validators/eu4_official_tags.json"
