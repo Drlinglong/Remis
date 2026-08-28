@@ -40,7 +40,11 @@ const steamWorkshopKeyPattern = /t\(\s*['"]((?:steam_workshop|tutorial\.steam_wo
 const referenceLibraryRoot = path.resolve(__dirname, '../../components/settings');
 const referenceLibraryUiSources = readdirSync(referenceLibraryRoot)
   .filter((relativePath) => /^ReferenceLibrary.*\.jsx$/.test(relativePath))
-  .map((relativePath) => path.resolve(referenceLibraryRoot, relativePath));
+  .map((relativePath) => path.resolve(referenceLibraryRoot, relativePath))
+  .concat(path.resolve(
+    __dirname,
+    '../../components/initialTranslation/ReferenceLibraryAvailabilityNotice.jsx',
+  ));
 const referenceLibraryKeyPattern = /['"]((?:settings_reference_[\w]+|common\.[\w.]+|button_close|cancel))['"]/g;
 
 const flattenKeys = (value, prefix = '') => {

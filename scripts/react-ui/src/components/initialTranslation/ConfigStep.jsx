@@ -25,6 +25,7 @@ import {
 } from '@tabler/icons-react';
 
 import EmbeddedWorkshopSettingsCard from './EmbeddedWorkshopSettingsCard';
+import ReferenceLibraryAvailabilityNotice from './ReferenceLibraryAvailabilityNotice';
 import ReferenceReuseSettingsCard from '../shared/ReferenceReuseSettingsCard';
 import LanguageTargetSelector from './LanguageTargetSelector';
 import ResumeSettingsCard from './ResumeSettingsCard';
@@ -41,6 +42,7 @@ export default function ConfigStep({
   embeddedWorkshopModels,
   form,
   onSubmit,
+  onOpenReferenceSettings,
   selectedProject,
   selectedProjectId,
   onPreviewReferenceReuse,
@@ -388,6 +390,13 @@ export default function ConfigStep({
               <ResumeSettingsCard
                 checkpointHintInfo={checkpointHintInfo}
                 form={form}
+                t={t}
+              />
+
+              <ReferenceLibraryAvailabilityNotice
+                enabled={form.values.reference_reuse_enabled}
+                gameId={selectedProject?.game_id}
+                onOpenSettings={onOpenReferenceSettings}
                 t={t}
               />
 

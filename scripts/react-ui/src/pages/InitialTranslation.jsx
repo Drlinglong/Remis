@@ -472,6 +472,7 @@ const InitialTranslation = () => {
                 selectedProject={selectedProject}
                 selectedProjectId={selectedProjectId}
                 onPreviewReferenceReuse={referenceReuse.preview}
+                onOpenReferenceSettings={() => navigate('/settings')}
                 onToggleReferenceEntry={referenceReuse.toggleEntry}
                 referencePreviewEntries={referenceReuse.previewEntries}
                 referencePreviewError={referenceReuse.previewError}
