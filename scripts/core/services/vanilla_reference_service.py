@@ -23,7 +23,7 @@ from scripts.core.services.reference_db_lock import (
     REFERENCE_DB_WRITE_LOCK,
     serialized_reference_write,
 )
-from scripts.core.services.trusted_reference_paths import trusted_reference_roots
+from scripts.core.services.trusted_reference_paths import trusted_reference_candidates
 from scripts.core.services.vanilla_reference_version import detect_reference_game_version
 
 
@@ -176,7 +176,7 @@ class VanillaReferenceService:
         trusted_roots: Optional[Iterable[str | Path]] = None,
     ) -> None:
         self.db_path = Path(db_path)
-        self._trusted_roots = trusted_reference_roots(self.db_path, trusted_roots)
+        self._trusted_roots = trusted_reference_candidates(self.db_path, trusted_roots)
 
     def open_resolver(
         self,
@@ -495,12 +495,12 @@ class VanillaReferenceService:
     ) -> Path:
         candidate = os.path.realpath(os.path.expanduser(os.fspath(localization_root)))
         candidate_key = os.path.normcase(candidate)
-        if not any(
-            candidate_key == trusted or candidate_key.startswith(trusted.rstrip(os.sep) + os.sep)
-            for trusted in self._trusted_roots
-        ):
+        root = next(
+            (trusted for trusted in self._trusted_roots if os.path.normcase(os.fspath(trusted)) == candidate_key),
+            None,
+        )
+        if root is None:
             raise ValueError("Reference path must belong to a trusted Steam library")
-        root = Path(candidate)
         if not root.is_dir():
             raise ValueError(f"Reference localization path is not a directory: {root}")
         if localization_globs:

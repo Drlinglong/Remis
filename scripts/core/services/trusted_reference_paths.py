@@ -6,23 +6,30 @@ import os
 from pathlib import Path
 from typing import Iterable
 
-from scripts.app_settings import VANILLA_REFERENCE_DB_PATH
-from scripts.core.services.paradox_installation_discovery import discover_steam_library_roots
+from scripts.app_settings import GAME_PROFILES, VANILLA_REFERENCE_DB_PATH
+from scripts.core.services.paradox_installation_discovery import discover_paradox_localizations
 
 
-def trusted_reference_roots(
+def trusted_reference_candidates(
     db_path: Path,
-    trusted_roots: Iterable[str | Path] | None = None,
-) -> tuple[str, ...]:
-    """Return normalized Steam roots accepted by the reference indexer."""
+    explicit: Iterable[str | Path] | None = None,
+) -> tuple[Path, ...]:
+    """Return an exact allowlist of official roots accepted by the indexer."""
 
-    roots = tuple(trusted_roots) if trusted_roots is not None else tuple(
-        library / "steamapps" / "common"
-        for library in discover_steam_library_roots()
-    )
-    if trusted_roots is None and db_path != Path(VANILLA_REFERENCE_DB_PATH):
-        roots = (db_path.parent, *roots)
-    return tuple(
-        os.path.normcase(os.path.realpath(os.path.expanduser(os.fspath(root))))
-        for root in roots
-    )
+    if explicit is not None:
+        candidates = tuple(Path(root) for root in explicit)
+    elif db_path != Path(VANILLA_REFERENCE_DB_PATH):
+        candidates = (db_path.parent, *db_path.parent.rglob("*"))
+    else:
+        installations = discover_paradox_localizations(GAME_PROFILES)
+        candidates = tuple(
+            Path(path)
+            for item in installations
+            for path in (item["localization_path"], *item["localization_paths"])
+        )
+    unique = {
+        os.path.normcase(os.path.realpath(os.fspath(path))): Path(path)
+        for path in candidates
+        if path.is_dir()
+    }
+    return tuple(unique.values())
