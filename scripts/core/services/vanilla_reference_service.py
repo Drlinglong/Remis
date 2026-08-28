@@ -495,7 +495,9 @@ class VanillaReferenceService:
         localization_root: str | Path,
         localization_globs: Optional[Iterable[str]] = None,
     ) -> Path:
-        root = Path(localization_root).expanduser().resolve(strict=True)
+        # This local desktop feature intentionally opens the directory selected
+        # by the user; strict official-layout validation immediately follows.
+        root = Path(localization_root).expanduser().resolve(strict=True)  # lgtm[py/path-injection]
         if not root.is_dir():
             raise ValueError(f"Reference localization path is not a directory: {root}")
         if localization_globs:
