@@ -137,6 +137,36 @@ class ParallelProcessor:
             return LOCAL_LLM_CHUNK_SIZE
         return CHUNK_SIZE
 
+    def _notify_batch_progress(
+        self,
+        callback: Optional[Callable[[BatchTask], None]],
+        processed_task: BatchTask,
+    ) -> None:
+        if not callback:
+            return
+        try:
+            callback(processed_task)
+        except Exception as e:
+            self.logger.error(f"Error in batch progress callback: {e}")
+
+    def _resolve_batch_future(
+        self,
+        future: concurrent.futures.Future,
+        batch_task: BatchTask,
+        filename: str,
+        batch_index: int,
+    ) -> Tuple[BatchTask, List[Dict[str, Any]]]:
+        try:
+            return future.result()
+        except Exception as e:
+            self.logger.error(
+                f"Critical error in batch processing thread for {filename} "
+                f"batch {batch_index}: {e}"
+            )
+            batch_task.failed = True
+            batch_task.translated_texts = batch_task.texts
+            return batch_task, []
+
     def _process_single_batch(
         self,
         batch_task: BatchTask,
@@ -178,7 +208,8 @@ class ParallelProcessor:
     def process_files_stream(
         self,
         file_tasks_generator: Any, # Iterator[FileTask]
-        translation_function: Callable
+        translation_function: Callable,
+        batch_progress_callback: Optional[Callable[[BatchTask], None]] = None,
     ) -> Any: # Iterator[Tuple[str, List[str], List[Dict[str, Any]]]]
         """
         Stream processing of files.
@@ -290,14 +321,11 @@ class ParallelProcessor:
                         pending_batches_count -= 1
                         warnings = []
                         
-                        try:
-                            processed_task, warnings = future.result()
-                        except Exception as e:
-                            self.logger.error(f"Critical error in batch processing thread for {filename} batch {batch_index}: {e}")
-                            # Create a fatal task result so the file logic can progress
-                            batch_task.failed = True
-                            batch_task.translated_texts = batch_task.texts
-                            processed_task = batch_task
+                        processed_task, warnings = self._resolve_batch_future(
+                            future, batch_task, filename, batch_index
+                        )
+
+                        self._notify_batch_progress(batch_progress_callback, processed_task)
 
                         if filename not in file_buffers:
                             continue

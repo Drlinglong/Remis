@@ -81,3 +81,32 @@ def validation_allowed_actions(
     if total == 0:
         return ["approve_export"]
     return []
+
+
+def job_allowed_actions(
+    status: str,
+    validation: AgentValidationSummary,
+    output_paths: list[str],
+    *,
+    kind: str,
+    agent_managed: bool = True,
+) -> list[str]:
+    """Expose only actions backed by an Agent registry record."""
+    actions = ["poll"] if status in {"queued", "running"} else []
+    if agent_managed and status in {"failed", "interrupted"}:
+        actions.append("retry")
+    if status == "completed":
+        if validation.available:
+            actions.append("inspect_validation")
+        if agent_managed and validation.errors:
+            actions.append("repair")
+        if agent_managed and kind == "dry_run":
+            actions.append("create_translation_plan")
+        elif (
+            agent_managed
+            and kind in {"translation", "initial_translation", "incremental_translation"}
+            and output_paths
+            and validation.errors == validation.human_review_items == 0
+        ):
+            actions.append("approve_export")
+    return actions

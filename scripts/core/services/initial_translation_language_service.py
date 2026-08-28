@@ -45,17 +45,23 @@ def _process_file_tasks(
     all_files_content: List[dict],
 ) -> None:
     def translation_wrapper(batch_task):
-        result = handler.translate_batch(batch_task)
+        return handler.translate_batch(batch_task)
+
+    def on_batch_completed(batch_task):
         with progress_lock:
             run_state.completed_batches += 1
+            if batch_task.failed or batch_task.fell_back_to_source:
+                run_state.failed_batches += 1
+            else:
+                run_state.successful_batches += 1
             update_progress(batch_task.file_task.filename)
-        return result
 
     with temporary_rpm_limit(rpm_limit):
         with progress_log_bridge(update_progress):
             for file_task, translated_texts, warnings, is_failed in processor.process_files_stream(
                 file_task_generator,
                 translation_wrapper,
+                batch_progress_callback=on_batch_completed,
             ):
                 if is_failed:
                     run_state.error_count += 1

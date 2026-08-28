@@ -12,21 +12,49 @@ class FakeFileTask:
     filename = "demo.yml"
 
 
+class FakeBatchTask:
+    def __init__(self, *, failed=False, fell_back_to_source=False):
+        self.file_task = FakeFileTask()
+        self.failed = failed
+        self.fell_back_to_source = fell_back_to_source
+
+
 class FakeProcessor:
     def __init__(self, max_workers, chunk_size_override):
         self.max_workers = max_workers
         self.chunk_size_override = chunk_size_override
 
-    def process_files_stream(self, file_task_generator, translation_function):
+    def process_files_stream(
+        self,
+        file_task_generator,
+        translation_function,
+        batch_progress_callback=None,
+    ):
+        if batch_progress_callback:
+            batch_progress_callback(FakeBatchTask())
         yield (FakeFileTask(), ["translated"], [], False)
 
 
 class FailingProcessor(FakeProcessor):
-    def process_files_stream(self, file_task_generator, translation_function):
+    def process_files_stream(
+        self,
+        file_task_generator,
+        translation_function,
+        batch_progress_callback=None,
+    ):
+        if batch_progress_callback:
+            batch_progress_callback(
+                FakeBatchTask(failed=True, fell_back_to_source=True)
+            )
         yield (FakeFileTask(), ["source"], [{"type": "api_error"}], True)
 
 
-def _run_language(monkeypatch, calls, processor_cls=FakeProcessor):
+def _run_language(
+    monkeypatch,
+    calls,
+    processor_cls=FakeProcessor,
+    progress_callback=None,
+):
     monkeypatch.setattr(language_service, "create_proofreading_tracker", lambda *args: "tracker")
     monkeypatch.setattr(language_service, "build_checkpoint_manager", lambda *args, **kwargs: "checkpoint")
     monkeypatch.setattr(language_service, "build_file_task_iterator", lambda *args, **kwargs: iter(["task"]))
@@ -54,7 +82,7 @@ def _run_language(monkeypatch, calls, processor_cls=FakeProcessor):
         all_files_content=[{"filename": "demo.yml"}],
         total_batches=1,
         effective_chunk_size=30,
-        progress_callback=None,
+        progress_callback=progress_callback,
         project_id="project-1",
         version_id=9,
         override_path=None,
@@ -102,3 +130,39 @@ def test_run_language_translation_failure_raises_before_postprocess(monkeypatch)
     assert "warnings" in names
     assert "postprocess" not in names
     assert "workshop" not in names
+
+
+def test_run_language_translation_reports_successful_batch_count(monkeypatch):
+    progress_events = []
+
+    _run_language(
+        monkeypatch,
+        [],
+        progress_callback=lambda **payload: progress_events.append(payload),
+    )
+
+    assert any(
+        event["successful_batches"] == 1
+        and event["failed_batches"] == 0
+        and event["current_batch"] == 1
+        for event in progress_events
+    )
+
+
+def test_run_language_translation_reports_failed_batch_count(monkeypatch):
+    progress_events = []
+
+    with pytest.raises(RuntimeError):
+        _run_language(
+            monkeypatch,
+            [],
+            processor_cls=FailingProcessor,
+            progress_callback=lambda **payload: progress_events.append(payload),
+        )
+
+    assert any(
+        event["successful_batches"] == 0
+        and event["failed_batches"] == 1
+        and event["current_batch"] == 1
+        for event in progress_events
+    )

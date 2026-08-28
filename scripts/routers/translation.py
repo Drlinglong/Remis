@@ -31,6 +31,7 @@ from scripts.app_settings import (
     SOURCE_DIR,
 )
 from scripts.core.services.reference_reuse_preview_service import ReferenceReusePreviewService
+from scripts.core.services.translation_progress_callback import build_translation_progress_callback
 from scripts.workflows import initial_translate
 from scripts.utils import i18n
 from scripts.utils.system_utils import slugify_to_ascii
@@ -283,50 +284,10 @@ def run_translation_workflow_v2(
             logging.error(f"Failed to log activity (v2): {e}")
 
     task_state.init_progress(task_id)
-    last_update_time = [0]
-    def progress_callback(current, total, current_file, stage="Translating",
-                          current_batch=0, total_batches=0,
-                          error_count=0, glossary_issues=0, format_issues=0,
-                          format_repair=None, workshop_progress=None,
-                          log_message: str = None):
-        import time
-        current_time = time.time()
-        is_final = stage in ("Completed", "Failed") or (total > 0 and current >= total)
-        should_push = is_final or (current_time - last_update_time[0] >= 0.2)
-        if should_push:
-            last_update_time[0] = current_time
-
-        task_state.update_progress(
-            task_id,
-            current=current,
-            total=total,
-            current_file=current_file,
-            stage=stage,
-            current_batch=current_batch,
-            total_batches=total_batches,
-            error_count=error_count,
-            glossary_issues=glossary_issues,
-            format_issues=format_issues,
-            format_repair=format_repair,
-            workshop_progress=workshop_progress,
-            log_message=log_message,
-            push=should_push,
-            fields={
-                "checkpoint": {
-                    "available": bool(use_resume and current > 0 and not is_final),
-                    "resume_supported": bool(use_resume),
-                    "stage": stage,
-                    "cursor": current_file or str(current),
-                    "updated_at": task_state.utc_now_iso(),
-                    "metadata": {
-                        "completed": current,
-                        "total": total,
-                        "current_batch": current_batch,
-                        "total_batches": total_batches,
-                    },
-                },
-            },
-        )
+    progress_callback = build_translation_progress_callback(
+        task_id,
+        use_resume=use_resume,
+    )
     try:
         logging.info(f"Starting V2 Workflow for Task {task_id}")
         logging.info(f"Params: game_profile_id={game_profile_id}, source={source_lang_code}, targets={target_lang_codes}")

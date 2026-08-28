@@ -73,6 +73,52 @@ def test_stream_processor_treats_source_fallback_as_file_failure():
     assert is_failed is True
 
 
+def test_stream_processor_reports_successful_batch_after_processing():
+    processor = ParallelProcessor(max_workers=1, chunk_size_override=1)
+    file_task = _file_task()
+    completed = []
+
+    def successful_translation(task: BatchTask) -> BatchTask:
+        task.translated_texts = ["你好"]
+        return task
+
+    results = list(
+        processor.process_files_stream(
+            iter([file_task]),
+            successful_translation,
+            batch_progress_callback=completed.append,
+        )
+    )
+
+    assert len(completed) == 1
+    assert completed[0].failed is False
+    assert completed[0].fell_back_to_source is False
+    assert results[0][3] is False
+
+
+def test_stream_processor_reports_failed_batch_after_processing():
+    processor = ParallelProcessor(max_workers=1, chunk_size_override=1)
+    file_task = _file_task()
+    completed = []
+
+    def fallback_translation(task: BatchTask) -> BatchTask:
+        task.fell_back_to_source = True
+        task.translated_texts = task.texts
+        return task
+
+    results = list(
+        processor.process_files_stream(
+            iter([file_task]),
+            fallback_translation,
+            batch_progress_callback=completed.append,
+        )
+    )
+
+    assert len(completed) == 1
+    assert completed[0].fell_back_to_source is True
+    assert results[0][3] is True
+
+
 def test_parallel_processor_surfaces_local_connection_failure_message():
     processor = ParallelProcessor(max_workers=1, chunk_size_override=1)
     file_task = _file_task()

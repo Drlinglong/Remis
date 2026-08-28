@@ -23,6 +23,7 @@ from scripts.core.copilot.workflow import create_translation_plan
 from scripts.core.copilot.workflow import inspect_mod_folder
 from scripts.core.services.agent_validation_policy import (
     classify_issues as _classify_issues,
+    job_allowed_actions as _job_allowed_actions,
     repairable_issues,
     validation_allowed_actions,
 )
@@ -311,32 +312,6 @@ def _normalize_status(raw_status: Optional[str], *, recovered: bool = False) -> 
     }.get(str(raw_status or "").lower(), "unknown")
 
 
-def _job_allowed_actions(
-    status: str,
-    validation: AgentValidationSummary,
-    output_paths: list[str],
-    *,
-    kind: str,
-) -> list[str]:
-    actions = ["poll"] if status in {"queued", "running"} else []
-    if status in {"failed", "interrupted"}:
-        actions.append("retry")
-    if status == "completed":
-        if validation.available:
-            actions.append("inspect_validation")
-        if validation.errors:
-            actions.append("repair")
-        if kind == "dry_run":
-            actions.append("create_translation_plan")
-        elif (
-            kind in {"translation", "initial_translation", "incremental_translation"}
-            and output_paths
-            and validation.errors == 0
-        ):
-            actions.append("approve_export")
-    return actions
-
-
 async def _build_job_response(job_id: str) -> AgentJobResponse:
     metadata = agent_registry.get_job(job_id)
     live_task = task_state.get_task(job_id)
@@ -369,6 +344,7 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
     if live_task.get("result_path") and live_task["result_path"] not in output_paths:
         output_paths.append(str(live_task["result_path"]))
     status = _normalize_status(live_task.get("status"), recovered=recovered)
+    agent_managed = metadata is not None
     checkpoint = live_task.get("checkpoint") or {}
     resume_supported = checkpoint.get("resume_supported")
     if resume_supported is None:
@@ -392,7 +368,11 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
         },
         validation=validation,
         allowed_actions=_job_allowed_actions(
-            status, validation, output_paths, kind=kind
+            status,
+            validation,
+            output_paths,
+            kind=kind,
+            agent_managed=agent_managed,
         ),
         output_paths=output_paths,
         result=result,
@@ -407,7 +387,8 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
             "validation": f"/api/agent/jobs/{job_id}/validation",
             **(
                 {"export_preview": f"/api/agent/jobs/{job_id}/export-preview"}
-                if kind in {"translation", "initial_translation", "incremental_translation"}
+                if agent_managed
+                and kind in {"translation", "initial_translation", "incremental_translation"}
                 else {}
             ),
         },
@@ -820,6 +801,12 @@ async def get_agent_job_validation(job_id: str):
     if not project_id:
         raise _error(404, "job_not_found", "Agent job not found")
     payload = await _validation_payload(project_id, include_items=True)
+    allowed_actions = validation_allowed_actions(
+        payload.get("_raw_items", []),
+        total=payload["summary"].total,
+    )
+    if not metadata:
+        allowed_actions = []
     return {
         "job_id": job_id,
         "project_id": project_id,
@@ -827,10 +814,7 @@ async def get_agent_job_validation(job_id: str):
         "items": payload["items"],
         "last_updated_at": payload.get("last_updated_at"),
         "scope": payload.get("scope"),
-        "allowed_actions": validation_allowed_actions(
-            payload.get("_raw_items", []),
-            total=payload["summary"].total,
-        ),
+        "allowed_actions": allowed_actions,
     }
 
 
