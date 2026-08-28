@@ -295,8 +295,9 @@ class VanillaReferenceService:
             ).fetchone()
         if row is None:
             return None
-        current_version = self._detect_game_version(Path(row["root_path"]))
-        stale = current_version not in {"unknown", row["game_version"]}
+        root = Path(row["root_path"])
+        current_version = self._detect_game_version(root)
+        stale = not root.is_dir() or current_version not in {"unknown", row["game_version"]}
         return self._row_to_info(row, stale=stale)
 
     def list_active_indexes(self) -> list[ReferenceIndexInfo]:

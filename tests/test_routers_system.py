@@ -30,6 +30,49 @@ class _FakeArchiveManager:
         self.closed = True
 
 
+def test_reference_library_status_and_manual_build_endpoints(monkeypatch):
+    status_payload = {
+        "status": "success",
+        "libraries": [{"game_id": "victoria3", "available": True}],
+    }
+    build_calls = []
+    monkeypatch.setattr(system_router.reference_library_service, "status", lambda: status_payload)
+    monkeypatch.setattr(
+        system_router.reference_library_service,
+        "build",
+        lambda game_id, path: build_calls.append((game_id, path)) or {
+            "status": "success",
+            "library": {"game_id": game_id, "available": True},
+        },
+    )
+
+    status_response = client.get("/api/system/reference-library")
+    build_response = client.post(
+        "/api/system/reference-library/build",
+        json={"game_id": "victoria3", "localization_path": "I:/game/localization"},
+    )
+
+    assert status_response.json() == status_payload
+    assert build_response.status_code == 200
+    assert build_calls == [("victoria3", "I:/game/localization")]
+
+
+def test_reference_library_manual_build_rejects_invalid_path(monkeypatch):
+    monkeypatch.setattr(
+        system_router.reference_library_service,
+        "build",
+        lambda *_args: (_ for _ in ()).throw(ValueError("wrong localization spelling")),
+    )
+
+    response = client.post(
+        "/api/system/reference-library/build",
+        json={"game_id": "stellaris", "localization_path": "I:/game/localization"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "wrong localization spelling"
+
+
 def test_reset_db_endpoint_rebuilds_main_database(monkeypatch):
     removed_paths = []
     initialize_called = {"value": False}
