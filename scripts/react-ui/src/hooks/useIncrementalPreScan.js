@@ -7,7 +7,7 @@ import { buildIncrementalUpdatePayload, getArchivedTargetLanguages } from './inc
 
 export function useIncrementalPreScan(options) {
   const {
-    archiveInfo, checkReferenceLibrary, connectWebSocket, executionInFlightRef,
+    archiveInfo, checkReferenceLibrary = async () => false, connectWebSocket, executionInFlightRef,
     loading, executing, notificationStyle, preScanInFlightRef, referenceReuseBypassed,
     selectedLangs, selectedProject, setActive, setConflictingTaskId, setCurrentTaskId,
     setCurrentTaskMode, setLoading, setLogs, setProgress, setProgressInfo, setScanResults,

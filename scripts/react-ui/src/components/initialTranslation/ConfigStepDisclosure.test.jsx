@@ -92,16 +92,12 @@ describe('ConfigStep advanced disclosure', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Advanced Options' }));
 
     expect(promptField.closest('[data-collapsed]')).toBeNull();
-    expect(screen.queryByRole('textbox', {
-      name: 'translation_config.reference_localization_path',
-    })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Scan exact matches' })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', {
       name: /translation_config\.reference_reuse/,
     }));
 
-    expect(await screen.findByRole('textbox', {
-      name: 'translation_config.reference_localization_path',
-    })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Scan exact matches' })).toBeInTheDocument();
   });
 });
