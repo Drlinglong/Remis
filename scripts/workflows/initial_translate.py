@@ -31,6 +31,7 @@ class InitialTranslationOutcome:
     issue_count: int = 0
     recovered_entry_count: int = 0
     dropped_file_count: int = 0
+    reference_metrics: tuple[dict, ...] = ()
 
     @property
     def message(self) -> str:
@@ -87,7 +88,8 @@ def run(mod_name: str,
         batch_size_limit: Optional[int] = None,
         concurrency_limit: Optional[int] = None,
         rpm_limit: Optional[int] = 40,
-        embedded_workshop: Optional[dict] = None):
+        embedded_workshop: Optional[dict] = None,
+        reference_reuse: Optional[dict] = None):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info("Entered initial_translate.run")
     logging.info(f"--- Starting 'Initial Translation' workflow for: {mod_name} ---")
@@ -95,18 +97,15 @@ def run(mod_name: str,
     run_plan = build_run_plan(mod_name, target_languages)
     output_folder_name = run_plan.output_folder_name
     primary_target_lang = run_plan.primary_target_lang
-
     logging.info(i18n.t("start_workflow",
                  workflow_name=i18n.t("workflow_initial_translate_name"),
                  mod_name=mod_name))
     logging.info(i18n.t("log_selected_provider", provider=selected_provider))
-
     # ───────────── 2. 初始化客户端 ─────────────
     resolved_model_name = resolve_provider_model(selected_provider, model_name)
     handler = create_translation_handler(selected_provider, resolved_model_name)
     if not handler:
         raise RuntimeError("Failed to initialize the selected translation provider.")
-
     # ───────────── 2.5. 加载词典 ─────────────
     game_id = game_profile.get("id", "")
     load_glossaries_for_run(game_id, use_glossary, selected_glossary_ids)
@@ -117,7 +116,6 @@ def run(mod_name: str,
     # ───────────── 3.5. [NEW] 清理源文件 (如果启用) ─────────────
     if clean_source:
         clean_source_directory(mod_name, override_path=override_path)
-
     # ───────────── 4.5. 强制全量备份 (Brute Force Backup) ─────────────
     # 策略变更：数据安全第一。在开始任何翻译前，强制将所有源文件读入内存并创建快照。
     # 即使是大 Mod，文本数据通常也不超过 50MB，内存不是瓶颈。
@@ -144,9 +142,10 @@ def run(mod_name: str,
     # ───────────── 5. 多语言并行翻译 (Streaming from Memory) ─────────────
     
     last_target_lang = None
+    reference_metrics = []
     for target_lang in target_languages:
         last_target_lang = target_lang
-        run_language_translation(
+        reference_metrics.append(run_language_translation(
             mod_name=mod_name,
             source_lang=source_lang,
             target_lang=target_lang,
@@ -169,7 +168,8 @@ def run(mod_name: str,
             rpm_limit=rpm_limit,
             batch_size_limit=batch_size_limit,
             embedded_workshop=embedded_workshop,
-        )
+            reference_reuse=reference_reuse,
+        ))
 
     finalize_workflow_run(
         run_plan.is_batch_mode,
@@ -193,6 +193,7 @@ def run(mod_name: str,
         issue_count=len(source_result.issues),
         recovered_entry_count=source_result.recovered_entry_count,
         dropped_file_count=source_result.dropped_file_count,
+        reference_metrics=tuple(reference_metrics),
     )
 
 

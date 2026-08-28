@@ -1661,7 +1661,17 @@
     "target_languages": "Zielsprachen",
     "api_provider": "API-Anbieter",
     "api_model": "KI-Modell",
-    "select_path_tooltip": "Ordner der neuen Mod-Version auswählen"
+    "select_path_tooltip": "Ordner der neuen Mod-Version auswählen",
+    "reference_reuse": "Offizielle (Vanilla-)Referenzübersetzungen wiederverwenden",
+    "reference_reuse_desc": "Passende Übersetzungen aus einem Vanilla-Lokalisierungsordner vor dem Modellaufruf wiederverwenden.",
+    "reference_localization_path": "Vanilla-Lokalisierungsordner",
+    "reference_localization_path_placeholder": "Vanilla-Lokalisierungsordner auswählen (optional)",
+    "reference_select_folder": "Vanilla-Lokalisierungsordner auswählen",
+    "reference_preview": "Exakte Treffer suchen",
+    "reference_filter": "Nach Schlüssel, Datei oder Text filtern",
+    "reference_matched_count": "{{count}} exakte Treffer",
+    "reference_deselected_count": "{{count}} abgewählt",
+    "reference_selected_count": "{{selected}} von {{total}} verwenden offizielle Übersetzungen"
   },
   "common": {
     "browse": "Durchsuchen",

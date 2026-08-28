@@ -244,6 +244,49 @@ def test_finalize_translated_file_updates_tracker_checkpoint_and_archive(monkeyp
     ]
 
 
+def test_finalize_translated_file_merges_reference_and_model_results(monkeypatch, tmp_path):
+    source_root = str(tmp_path / "source")
+    monkeypatch.setattr(file_service, "DEST_DIR", str(tmp_path / "dest"))
+    task = _file_task(
+        source_root,
+        texts_to_translate=["Turkey"],
+        all_source_texts=["Turkana", "Turkey"],
+        all_key_map={0: {"key_part": "TRK:0"}, 1: {"key_part": "TRK:0"}},
+        model_result_positions=[1],
+        reference_translations={0: "图尔卡纳"},
+    )
+    rebuilt = []
+    archived = []
+    monkeypatch.setattr(
+        file_service.file_builder,
+        "rebuild_and_write_file",
+        lambda *args: rebuilt.append(args) or os.path.join(args[4], args[5]),
+    )
+    monkeypatch.setattr(
+        file_service.archive_manager,
+        "archive_translated_results",
+        lambda *args: archived.append(args),
+    )
+
+    file_service.finalize_translated_file(
+        task,
+        translated_texts=["土耳其"],
+        is_failed=False,
+        target_lang={"code": "zh-CN", "key": "l_simp_chinese"},
+        output_folder_name="zh-CN-MyMod",
+        game_profile={"source_localization_folder": "localization"},
+        proofreading_tracker=FakeTracker(),
+        checkpoint_manager=FakeCheckpoint(),
+        project_id=None,
+        version_id=9,
+        all_files_content=[{"filename": task.filename}],
+    )
+
+    assert rebuilt[0][1] == ["Turkana", "Turkey"]
+    assert rebuilt[0][2] == ["图尔卡纳", "土耳其"]
+    assert archived[0][1][task.file_path] == ["图尔卡纳", "土耳其"]
+
+
 def test_finalize_failed_file_writes_fallback_without_success_side_effects(monkeypatch, tmp_path):
     source_root = str(tmp_path / "source")
     dest_root = str(tmp_path / "dest")
@@ -292,3 +335,39 @@ def test_finalize_failed_file_writes_fallback_without_success_side_effects(monke
     assert checkpoint.completed == []
     assert synced_paths == []
     assert archive_calls == []
+
+
+def test_finalize_failed_model_batch_preserves_reference_hits(monkeypatch, tmp_path):
+    source_root = str(tmp_path / "source")
+    monkeypatch.setattr(file_service, "SOURCE_DIR", source_root)
+    monkeypatch.setattr(file_service, "DEST_DIR", str(tmp_path / "dest"))
+    task = _file_task(
+        source_root,
+        texts_to_translate=["Turkey"],
+        all_source_texts=["Turkana", "Turkey"],
+        all_key_map={0: {"key_part": "TRK:0"}, 1: {"key_part": "TUR:0"}},
+        model_result_positions=[1],
+        reference_translations={0: "图尔卡纳"},
+    )
+    rebuilt = []
+    monkeypatch.setattr(
+        file_service.file_builder,
+        "rebuild_and_write_file",
+        lambda *args: rebuilt.append(args) or os.path.join(args[4], args[5]),
+    )
+
+    file_service.finalize_translated_file(
+        task,
+        translated_texts=["Turkey"],
+        is_failed=True,
+        target_lang={"code": "zh-CN", "key": "l_simp_chinese"},
+        output_folder_name="zh-CN-MyMod",
+        game_profile={"source_localization_folder": "localization"},
+        proofreading_tracker=FakeTracker(),
+        checkpoint_manager=FakeCheckpoint(),
+        project_id=None,
+        version_id=None,
+        all_files_content=[{"filename": task.filename}],
+    )
+
+    assert rebuilt[0][2] == ["图尔卡纳", "Turkey"]

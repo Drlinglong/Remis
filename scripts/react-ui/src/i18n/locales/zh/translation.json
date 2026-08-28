@@ -1922,7 +1922,17 @@
     "target_languages": "目标语言",
     "api_provider": "API 供应商",
     "api_model": "AI 模型",
-    "select_path_tooltip": "选择新版本 Mod 文件夹"
+    "select_path_tooltip": "选择新版本 Mod 文件夹",
+    "reference_reuse": "复用官方（vanilla）参考译文",
+    "reference_reuse_desc": "在调用模型前，优先复用 vanilla localization 文件夹中的匹配译文。",
+    "reference_localization_path": "Vanilla localization 文件夹",
+    "reference_localization_path_placeholder": "选择 vanilla localization 文件夹（可选）",
+    "reference_select_folder": "选择官方本地化文件夹",
+    "reference_preview": "扫描精确匹配",
+    "reference_filter": "按键名、文件或文本筛选",
+    "reference_matched_count": "精确匹配 {{count}} 条",
+    "reference_deselected_count": "已取消 {{count}} 条",
+    "reference_selected_count": "将复用 {{selected}} / {{total}} 条官方译文"
   },
   "page_title_agent_workshop": "格式修复台",
   "agent_workshop": {

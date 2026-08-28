@@ -215,14 +215,25 @@ def finalize_translated_file(
     all_files_content: List[dict],
 ):
     """Write translated content, update trackers, and archive the result."""
+    source_texts = file_task.all_source_texts or file_task.texts_to_translate
+    key_map = file_task.all_key_map or file_task.key_map
+    if file_task.all_source_texts is not None:
+        assembled = list(source_texts)
+        for index, translation in file_task.reference_translations.items():
+            assembled[index] = translation
+        if not is_failed:
+            for index, translation in zip(file_task.model_result_positions, translated_texts):
+                assembled[index] = translation
+        translated_texts = assembled
+
     dest_dir = build_dest_dir(file_task, target_lang, output_folder_name, game_profile)
     os.makedirs(dest_dir, exist_ok=True)
 
     dest_file_path = file_builder.rebuild_and_write_file(
         file_task.original_lines,
-        file_task.texts_to_translate,
+        source_texts,
         translated_texts,
-        file_task.key_map,
+        key_map,
         dest_dir,
         file_task.filename,
         file_task.source_lang,

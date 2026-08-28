@@ -42,7 +42,7 @@
     "scripts/routers/translation.py::run_translation_workflow_v2": 204,
     "scripts/run_dev_servers.py::run_servers": 155,
     "scripts/workflows/initial_translate.py::run": 126,
-    "scripts/workflows/update_translate.py::run_incremental_update": 444
+    "scripts/workflows/update_translate.py::run_incremental_update": 439
   },
   "complexity_exceptions": {
     "scripts/build_pipeline.py::main": 30,
@@ -55,6 +55,6 @@
     "scripts/routers/translation.py::run_translation_workflow_v2": 29,
     "scripts/run_dev_servers.py::run_servers": 28,
     "scripts/utils/system_utils.py::force_free_port": 23,
-    "scripts/workflows/update_translate.py::run_incremental_update": 27
+    "scripts/workflows/update_translate.py::run_incremental_update": 26
   }
 }

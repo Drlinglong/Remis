@@ -87,6 +87,61 @@ def test_preparation_summary_counts_changed_entries(tmp_path):
     assert result["file_tasks_for_ai"][0].texts_to_translate == ["Alpha changed"]
 
 
+def test_preparation_resolves_exact_reference_hit_before_model_batch(tmp_path):
+    class Match:
+        hit = True
+        translation = "图尔卡纳"
+
+    class Resolver:
+        def __init__(self):
+            self.calls = []
+
+        def lookup(self, key, source_text, source_file=""):
+            self.calls.append((key, source_text, source_file))
+            return Match()
+
+        def metrics(self):
+            return {"reference_enabled": True, "reference_matched": 1, "api_skipped": 1}
+
+    source_root = tmp_path / "source_mod" / "TestMod"
+    source_file = source_root / "localization" / "english" / "countries_l_english.yml"
+    _write_text(source_file, 'l_english:\n TRK:0 "Turkana"\n')
+    current_files_data = IncrementalSnapshotService().build_snapshot(
+        str(source_root),
+        {"name_en": "English", "key": "l_english", "code": "en"},
+    )
+    resolver = Resolver()
+
+    result = IncrementalPreparationService().prepare_language_update(
+        current_files_data=current_files_data,
+        history_index={},
+        diff_service=IncrementalDiffService(),
+        target_lang_info={"code": "zh-CN", "key": "l_simp_chinese"},
+        source_lang_info={"code": "en", "key": "l_english"},
+        game_profile={"id": "victoria3"},
+        mod_context="",
+        selected_provider="gemini",
+        source_path=str(source_root),
+        base_output_dir=tmp_path / "out",
+        total_targets=1,
+        reference_resolver=resolver,
+    )
+
+    assert resolver.calls == [(
+        "TRK:0",
+        "Turkana",
+        "localization/english/countries_l_english.yml",
+    )]
+    assert result["file_tasks_for_ai"] == []
+    assert result["processing_records"][0]["full_file_entries"][0]["translation"] == "图尔卡纳"
+    assert result["file_summaries"][0]["dirty_entries"][0]["resolution"] == "reference"
+    assert result["reference_metrics"]["api_skipped"] == 1
+    assert result["reference_protected_entries"] == [{
+        "source_file": "localization/english/countries_l_english.yml",
+        "key": "TRK:0",
+    }]
+
+
 def test_build_output_reuses_old_translation_and_applies_ai_result(tmp_path):
     source_root = tmp_path / "source_mod" / "TestMod"
     source_file = source_root / "localization" / "english" / "sample_l_english.yml"

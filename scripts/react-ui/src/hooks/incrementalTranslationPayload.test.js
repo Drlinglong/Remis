@@ -35,6 +35,14 @@ describe('incrementalTranslationPayload', () => {
       embeddedWorkshopProvider: 'secondary-provider',
       embeddedWorkshopRpm: '20',
       projectId: 7,
+      referenceLocalizationPath: 'J:/vanilla/localization',
+      referenceReuseExcludedEntries: [{
+        file_path: 'localization/english/countries.yml',
+        key: 'TRK:0',
+        source_text: 'Turkana',
+        target_lang_code: 'zh-CN',
+      }],
+      referenceReuseEnabled: true,
       rpmLimit: '40',
       selectedModel: 'primary-model',
       selectedProvider: 'gemini',
@@ -51,6 +59,16 @@ describe('incrementalTranslationPayload', () => {
       rpm_limit: 40,
       custom_source_path: 'J:/mod',
       use_resume: false,
+      reference_reuse: {
+        enabled: true,
+        localization_path: 'J:/vanilla/localization',
+        excluded_entries: [{
+          file_path: 'localization/english/countries.yml',
+          key: 'TRK:0',
+          source_text: 'Turkana',
+          target_lang_code: 'zh-CN',
+        }],
+      },
       embedded_workshop: {
         enabled: true,
         follow_primary_settings: true,
@@ -77,6 +95,8 @@ describe('incrementalTranslationPayload', () => {
       embeddedWorkshopProvider: 'ollama',
       embeddedWorkshopRpm: '20',
       projectId: 7,
+      referenceLocalizationPath: '',
+      referenceReuseEnabled: false,
       rpmLimit: '40',
       selectedModel: 'primary-model',
       selectedProvider: 'gemini',
@@ -96,5 +116,10 @@ describe('incrementalTranslationPayload', () => {
     expect(payload.batch_size_limit).toBe(12);
     expect(payload.dry_run).toBe(false);
     expect(payload.use_resume).toBe(true);
+    expect(payload.reference_reuse).toEqual({
+      enabled: false,
+      localization_path: '',
+      excluded_entries: [],
+    });
   });
 });

@@ -239,6 +239,7 @@ REMIS_DB_PATH = os.path.join(APP_DATA_DIR, "remis.sqlite")
 
 PROJECTS_DB_PATH = REMIS_DB_PATH
 MODS_CACHE_DB_PATH = os.path.join(APP_DATA_DIR, "mods_cache.sqlite") # Keep separate? Yes, cache is cache.
+VANILLA_REFERENCE_DB_PATH = os.path.join(APP_DATA_DIR, "vanilla_reference.sqlite")
 TRANSLATION_PROGRESS_DB_PATH = os.path.join(APP_DATA_DIR, "translation_progress.sqlite")
 # The main glossary database
 DATABASE_PATH = REMIS_DB_PATH

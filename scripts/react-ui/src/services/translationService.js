@@ -19,6 +19,8 @@ export const translationService = {
      */
     startIncrementalUpdate: (projectId, payload) => api.post(`/api/project/${projectId}/incremental-update`, payload),
 
+    previewReferenceReuse: (payload) => api.post('/api/reference-reuse/preview', payload),
+
     /**
      * Request backend system to open a local folder directory.
      * @param {string} folderPath Local directory path

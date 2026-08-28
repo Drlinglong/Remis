@@ -13,6 +13,7 @@ from scripts.core.services.workshop_writeback_service import (
     is_repairable_workshop_issue,
     resolve_output_translation_target,
 )
+from scripts.core.services.vanilla_reference_service import normalize_reference_key
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,27 @@ def _resolve_model_config(
     return provider_name, model_name
 
 
-def _load_issues(sidecar_path: Path) -> List[Dict[str, Any]]:
+def _normalize_relpath(value: Any) -> str:
+    return str(value or "").replace("\\", "/").strip("/").casefold()
+
+
+def _protected_issue_identities(protected_entries: Any) -> set[tuple[str, str]]:
+    if not isinstance(protected_entries, list):
+        return set()
+    return {
+        (
+            _normalize_relpath(entry.get("source_file")),
+            normalize_reference_key(entry.get("key")),
+        )
+        for entry in protected_entries
+        if isinstance(entry, dict)
+    }
+
+
+def _load_issues(
+    sidecar_path: Path,
+    protected_entries: Any = None,
+) -> List[Dict[str, Any]]:
     if not sidecar_path.exists():
         return []
 
@@ -51,10 +72,15 @@ def _load_issues(sidecar_path: Path) -> List[Dict[str, Any]]:
         return []
 
     issues = payload.get("issues", []) if isinstance(payload, dict) else payload if isinstance(payload, list) else []
+    protected_identities = _protected_issue_identities(protected_entries)
     return [
         issue for issue in issues
         if isinstance(issue, dict) and str(issue.get("status", "detected")).lower() not in {"fixed", "ignored"}
         and is_repairable_workshop_issue(issue)
+        and (
+            _normalize_relpath(issue.get("source_file")),
+            normalize_reference_key(issue.get("key")),
+        ) not in protected_identities
     ]
 
 
@@ -119,9 +145,10 @@ async def run_embedded_workshop(
     progress_callback: Optional[Any] = None,
     dynamic_valid_tags: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
+    config = dict(config or {})
     output_root = Path(output_root)
     sidecar_path = output_root / WorkshopIssueExportService.OUTPUT_FILENAME
-    issues = _load_issues(sidecar_path)
+    issues = _load_issues(sidecar_path, config.get("protected_entries"))
     initial_issue_count = len(issues)
     if initial_issue_count == 0:
         return {
@@ -136,7 +163,6 @@ async def run_embedded_workshop(
             "issues_path": str(sidecar_path),
         }
 
-    config = dict(config or {})
     provider_name, model_name = _resolve_model_config(
         requested_provider=None if config.get("follow_primary_settings", True) else config.get("api_provider"),
         requested_model=None if config.get("follow_primary_settings", True) else config.get("api_model"),

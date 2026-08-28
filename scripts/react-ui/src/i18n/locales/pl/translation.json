@@ -1657,7 +1657,17 @@
     "target_languages": "Języki docelowe",
     "api_provider": "Dostawca API",
     "api_model": "Model AI",
-    "select_path_tooltip": "Wybierz folder nowej wersji moda"
+    "select_path_tooltip": "Wybierz folder nowej wersji moda",
+    "reference_reuse": "Używaj oficjalnych tłumaczeń referencyjnych (vanilla)",
+    "reference_reuse_desc": "Przed wywołaniem modelu używaj pasujących tłumaczeń z folderu lokalizacji vanilla.",
+    "reference_localization_path": "Folder lokalizacji vanilla",
+    "reference_localization_path_placeholder": "Wybierz folder lokalizacji vanilla (opcjonalnie)",
+    "reference_select_folder": "Wybierz folder lokalizacji vanilla",
+    "reference_preview": "Skanuj dokładne dopasowania",
+    "reference_filter": "Filtruj według klucza, pliku lub tekstu",
+    "reference_matched_count": "Dokładne dopasowania: {{count}}",
+    "reference_deselected_count": "Odznaczono: {{count}}",
+    "reference_selected_count": "{{selected}} z {{total}} użyje oficjalnych tłumaczeń"
   },
   "common": {
     "browse": "Przeglądaj",

@@ -20,7 +20,17 @@ from scripts.schemas.translation import (
     TranslationTaskResponse,
     CustomLangConfig,
 )
-from scripts.app_settings import GAME_PROFILES, LANGUAGES, API_PROVIDERS, SOURCE_DIR, DEST_DIR
+from scripts.schemas.reference import ReferenceReusePreviewRequest
+from scripts.app_settings import (
+    API_PROVIDERS,
+    DEST_DIR,
+    GAME_ID_ALIASES,
+    GAME_PROFILES,
+    GAME_PROFILES_BY_ID,
+    LANGUAGES,
+    SOURCE_DIR,
+)
+from scripts.core.services.reference_reuse_preview_service import ReferenceReusePreviewService
 from scripts.workflows import initial_translate
 from scripts.utils import i18n
 from scripts.utils.system_utils import slugify_to_ascii
@@ -62,6 +72,49 @@ def _reject_source_language_targets(source_lang_code: str, target_languages: Lis
             "Target language must be different from the source language. "
             f"source={source_lang_code}, targets={target_codes}"
         )
+
+
+@router.post("/api/reference-reuse/preview")
+async def preview_reference_reuse(request: ReferenceReusePreviewRequest):
+    project = await project_manager.get_project(request.project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    game_id = str(project.get("game_id") or "victoria3")
+    normalized_game_id = GAME_ID_ALIASES.get(game_id.casefold(), game_id)
+    game_profile = GAME_PROFILES_BY_ID.get(normalized_game_id) or GAME_PROFILES.get(game_id)
+    source_lang_code = request.source_lang_code.value
+    source_lang = next(
+        (lang for lang in LANGUAGES.values() if lang["code"] == source_lang_code),
+        None,
+    )
+    target_languages = _resolve_target_languages([
+        target.value for target in request.target_lang_codes
+    ])
+    if (
+        not game_profile
+        or not source_lang
+        or len(target_languages) != len(request.target_lang_codes)
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to resolve game profile, source language, or target languages",
+        )
+    try:
+        _reject_source_language_targets(source_lang_code, target_languages)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        return ReferenceReusePreviewService().preview(
+            source_path=project["source_path"],
+            game_profile=game_profile,
+            source_lang=source_lang,
+            target_languages=target_languages,
+            localization_path=request.localization_path,
+        )
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 def _get_output_folder_name(mod_name: str, target_lang: dict) -> str:
@@ -210,6 +263,7 @@ def run_translation_workflow_v2(
     concurrency_limit: Optional[int] = None,
     rpm_limit: Optional[int] = 40,
     embedded_workshop: Optional[dict] = None,
+    reference_reuse: Optional[dict] = None,
 ):
     i18n.load_language('en_US')
     task_state.update_task(
@@ -229,9 +283,7 @@ def run_translation_workflow_v2(
             logging.error(f"Failed to log activity (v2): {e}")
 
     task_state.init_progress(task_id)
-
     last_update_time = [0]
-
     def progress_callback(current, total, current_file, stage="Translating",
                           current_batch=0, total_batches=0,
                           error_count=0, glossary_issues=0, format_issues=0,
@@ -275,7 +327,6 @@ def run_translation_workflow_v2(
                 },
             },
         )
-
     try:
         logging.info(f"Starting V2 Workflow for Task {task_id}")
         logging.info(f"Params: game_profile_id={game_profile_id}, source={source_lang_code}, targets={target_lang_codes}")
@@ -353,13 +404,15 @@ def run_translation_workflow_v2(
             override_path=override_path, project_id=project_id, use_resume=use_resume,
             clean_source=clean_source, batch_size_limit=batch_size_limit,
             concurrency_limit=concurrency_limit, rpm_limit=rpm_limit,
-            embedded_workshop=embedded_workshop
+            embedded_workshop=embedded_workshop,
+            reference_reuse=reference_reuse,
         )
         logging.info("Returned from initial_translate.run")
         task_state.update_task(
             task_id,
             fields={
                 "output_dirs": _get_output_directories(mod_name, target_languages),
+                "reference_metrics": list(getattr(outcome, "reference_metrics", ())),
                 "checkpoint": {
                     "available": False,
                     "resume_supported": bool(use_resume),
@@ -483,6 +536,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         concurrency_limit=request.concurrency_limit,
         rpm_limit=request.rpm_limit,
         embedded_workshop=request.embedded_workshop.model_dump() if request.embedded_workshop else None,
+        reference_reuse=request.reference_reuse.model_dump() if request.reference_reuse else None,
     )
 
     # Auto-register translation path (Optimistic registration)
@@ -625,6 +679,7 @@ async def start_translation_v2(
         use_resume=payload.use_resume,
         clean_source=payload.clean_source,
         embedded_workshop=payload.embedded_workshop.model_dump() if payload.embedded_workshop else None,
+        reference_reuse=payload.reference_reuse.model_dump() if payload.reference_reuse else None,
     )
 
     return {"task_id": task_id, "message": "Translation task started."}

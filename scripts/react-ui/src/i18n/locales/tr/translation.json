@@ -1657,7 +1657,17 @@
     "target_languages": "Hedef Diller",
     "api_provider": "API Sağlayıcısı",
     "api_model": "Yapay Zeka Modeli",
-    "select_path_tooltip": "Yeni mod sürümü klasörünü seç"
+    "select_path_tooltip": "Yeni mod sürümü klasörünü seç",
+    "reference_reuse": "Resmi (vanilla) referans çevirilerini yeniden kullan",
+    "reference_reuse_desc": "Modeli çağırmadan önce vanilla yerelleştirme klasöründeki eşleşen çevirileri yeniden kullan.",
+    "reference_localization_path": "Vanilla yerelleştirme klasörü",
+    "reference_localization_path_placeholder": "Vanilla yerelleştirme klasörü seç (isteğe bağlı)",
+    "reference_select_folder": "Vanilla yerelleştirme klasörünü seç",
+    "reference_preview": "Tam eşleşmeleri tara",
+    "reference_filter": "Anahtar, dosya veya metne göre filtrele",
+    "reference_matched_count": "{{count}} tam eşleşme",
+    "reference_deselected_count": "{{count}} seçim kaldırıldı",
+    "reference_selected_count": "{{total}} girdiden {{selected}} tanesi resmî çevirileri kullanacak"
   },
   "common": {
     "browse": "Gözat",
