@@ -7,37 +7,28 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from functools import wraps
 import hashlib
 import logging
+import os
 from pathlib import Path
 import re
 import sqlite3
-import threading
 from contextlib import contextmanager
 from typing import Callable, Iterable, Iterator, Optional
 
 from scripts.app_settings import LANGUAGES, VANILLA_REFERENCE_DB_PATH
 from scripts.core.paradox_localization_parser import parse_text
 from scripts.core.services.paradox_installation_discovery import official_localization_roots
-from scripts.core.services.trusted_reference_paths import resolve_trusted_reference_root
+from scripts.core.services.reference_db_lock import (
+    REFERENCE_DB_WRITE_LOCK,
+    serialized_reference_write,
+)
+from scripts.core.services.trusted_reference_paths import trusted_reference_roots
 from scripts.core.services.vanilla_reference_version import detect_reference_game_version
 
 
 logger = logging.getLogger(__name__)
 _VERSION_SUFFIX_RE = re.compile(r":\d+$")
-REFERENCE_DB_WRITE_LOCK = threading.RLock()
-
-
-def _serialized_reference_write(method):
-    """Run a reference database mutation under the process-wide write lock."""
-
-    @wraps(method)
-    def locked(*args, **kwargs):
-        with REFERENCE_DB_WRITE_LOCK:
-            return method(*args, **kwargs)
-
-    return locked
 
 
 def _report_progress(callback: Optional[Callable[[dict], None]], **updates: object) -> None:
@@ -185,7 +176,7 @@ class VanillaReferenceService:
         trusted_roots: Optional[Iterable[str | Path]] = None,
     ) -> None:
         self.db_path = Path(db_path)
-        self._trusted_roots = tuple(trusted_roots) if trusted_roots is not None else None
+        self._trusted_roots = trusted_reference_roots(self.db_path, trusted_roots)
 
     def open_resolver(
         self,
@@ -216,7 +207,7 @@ class VanillaReferenceService:
             excluded_entries,
         )
 
-    @_serialized_reference_write
+    @serialized_reference_write
     def build_index(
         self,
         *,
@@ -451,7 +442,7 @@ class VanillaReferenceService:
         finally:
             connection.close()
 
-    @_serialized_reference_write
+    @serialized_reference_write
     def _ensure_schema(self, connection: sqlite3.Connection) -> None:
         """Serialize schema DDL with reference database writes and VACUUM."""
 
@@ -502,11 +493,14 @@ class VanillaReferenceService:
         localization_root: str | Path,
         localization_globs: Optional[Iterable[str]] = None,
     ) -> Path:
-        root = resolve_trusted_reference_root(
-            localization_root,
-            db_path=self.db_path,
-            trusted_roots=self._trusted_roots,
-        )
+        candidate = os.path.realpath(os.path.expanduser(os.fspath(localization_root)))
+        candidate_key = os.path.normcase(candidate)
+        if not any(
+            candidate_key == trusted or candidate_key.startswith(trusted.rstrip(os.sep) + os.sep)
+            for trusted in self._trusted_roots
+        ):
+            raise ValueError("Reference path must belong to a trusted Steam library")
+        root = Path(candidate)
         if not root.is_dir():
             raise ValueError(f"Reference localization path is not a directory: {root}")
         if localization_globs:
