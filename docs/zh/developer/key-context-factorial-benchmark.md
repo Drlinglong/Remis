@@ -1,6 +1,6 @@
 # Key context 与目标语言规则的因子实验
 
-本工具为 Issue #207 一类 `*_ADJ` 组合式本地化问题提供可复现的测试场地。它不会默认调用模型；只有显式加入 `--confirm-model-usage` 才会执行模型请求。
+本工具为 Issue #207 一类 `*_ADJ` 组合式本地化问题提供可复现的测试场地。它不会默认调用模型；只有显式加入 `--confirm-model-usage` 才会执行模型请求。生产行为、适用边界和维护方法见 [Victoria 3 国家形容词语义上下文](vic3-country-adjective-context.md)；本文只记录实验协议与证据。
 
 ## 主实验设计
 

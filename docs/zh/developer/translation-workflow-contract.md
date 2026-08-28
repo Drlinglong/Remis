@@ -17,6 +17,11 @@
 [部署开发契约](deployment-contract.md)。本文件只约束部分完成结果交给部署之前必须
 携带的信息。
 
+Victoria 3 官方国家 `TAG_ADJ` 定义与引用的语义路由、目标语言 morphology policy、
+人工复核和 fail-open 边界见
+[Victoria 3 国家形容词语义上下文](vic3-country-adjective-context.md)。该能力属于翻译
+任务构造与 prompt 组装的一部分，但不会改变本文件规定的输出、失败和基线语义。
+
 ## 当前公共入口
 
 | 能力 | 当前入口 | 主要结果 |
