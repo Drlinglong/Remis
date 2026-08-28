@@ -38,11 +38,19 @@ class FakeArchiveManager:
         self.updates = []
 
     def update_translations(
-        self, mod_name, file_path, entries, language="zh-CN", project_id=None
+        self,
+        mod_name,
+        file_path,
+        entries,
+        language="zh-CN",
+        project_id=None,
+        allow_missing=False,
     ):
         if self.error:
             raise self.error
-        self.updates.append((mod_name, file_path, entries, language, project_id))
+        self.updates.append(
+            (mod_name, file_path, entries, language, project_id, allow_missing)
+        )
         return len(entries)
 
 
@@ -419,6 +427,74 @@ async def test_save_updates_disk_and_incremental_archive_baseline(tmp_path, monk
     )
     assert entries[0]["translation"] == "Polished"
     assert manager.status_updates == [("project-1", "file-1", "done")]
+    archive.close()
+
+
+@pytest.mark.asyncio
+async def test_save_keeps_file_when_archive_lacks_new_source_keys(tmp_path, monkeypatch):
+    import scripts.core.archive_manager as archive_module
+
+    monkeypatch.setattr(archive_module, "MODS_CACHE_DB_PATH", str(tmp_path / "archive.sqlite"))
+    source_dir = tmp_path / "localization" / "english"
+    target_dir = tmp_path / "localization" / "simp_chinese"
+    source_dir.mkdir(parents=True)
+    target_dir.mkdir(parents=True)
+    source = source_dir / "demo_l_english.yml"
+    target = target_dir / "demo_l_simp_chinese.yml"
+    source.write_text(
+        'l_english:\n demo.key:0 "Original"\n new.key:0 "New source"\n',
+        encoding="utf-8-sig",
+    )
+    target.write_text('l_simp_chinese:\n demo.key:0 "Draft"\n', encoding="utf-8-sig")
+    manager = FakeProjectManager(
+        files=[{"file_id": "file-1", "file_path": str(target)}],
+        project={"name": "Demo", "source_language": "en", "source_path": str(tmp_path)},
+    )
+    archive = ArchiveManager()
+    mod_id = archive.get_or_create_mod_entry("Demo", "project-1")
+    version_id = archive.create_source_version(
+        mod_id,
+        [{
+            "filename": source.name,
+            "file_path": str(source),
+            "texts_to_translate": ["Original"],
+            "key_map": {0: {"key_part": "demo.key:0"}},
+        }],
+    )
+    archive.archive_translated_results(
+        version_id,
+        {str(source): ["Draft"]},
+        [{
+            "filename": source.name,
+            "file_path": str(source),
+            "texts_to_translate": ["Original"],
+            "key_map": [{"key_part": "demo.key:0"}],
+        }],
+        "zh-CN",
+    )
+    service = ProofreadingService(manager, archive)
+
+    result = await service.save_proofread_data(
+        "project-1",
+        "file-1",
+        [
+            {"key": "demo.key:0", "translation": "Polished"},
+            {"key": "new.key:0", "translation": "New polished"},
+        ],
+        [],
+        _file_revision(str(target)),
+    )
+
+    assert result["status"] == "success"
+    saved = target.read_text(encoding="utf-8-sig")
+    assert 'demo.key:0 "Polished"' in saved
+    assert 'new.key:0 "New polished"' in saved
+    entries = archive.get_entries(
+        project_id="project-1",
+        file_path=str(source),
+        language="zh-CN",
+    )
+    assert entries[0]["translation"] == "Polished"
     archive.close()
 
 

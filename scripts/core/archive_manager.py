@@ -799,18 +799,13 @@ class ArchiveManager:
         except Exception as e:
             logging.error(f"Global archive lookup failed: {e}")
             return None
-
     def update_translations(
-        self,
-        mod_name: str,
-        file_path: str,
-        entries: List[Dict[str, Any]],
-        language: str = "zh-CN",
-        project_id: str = None,
+        self, mod_name: str, file_path: str, entries: List[Dict[str, Any]],
+        language: str = "zh-CN", project_id: str = None, allow_missing: bool = False
     ) -> int:
         """Update proofreading entries in the active incremental baseline."""
         return update_archive_translations(
-            self, mod_name, file_path, entries, language, project_id
+            self, mod_name, file_path, entries, language, project_id, allow_missing
         )
 
     def _normalize_archive_file_path(self, file_path: str) -> str:

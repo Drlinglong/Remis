@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List
 
 
@@ -8,6 +9,7 @@ def update_archive_translations(
     entries: List[Dict[str, Any]],
     language: str,
     project_id: str | None = None,
+    allow_missing: bool = False,
 ) -> int:
     """Atomically update proofreading entries in the active archive baseline."""
     if not entries:
@@ -53,22 +55,30 @@ def update_archive_translations(
             else:
                 missing_keys.append(key)
 
-        if missing_keys:
+        if missing_keys and not allow_missing:
             raise LookupError(
                 "Archive entries not found for proofreading keys: "
                 + ", ".join(missing_keys[:5])
             )
 
-        cursor.executemany(
-            """
-            INSERT INTO translated_entries (source_entry_id, language_code, translated_text)
-            VALUES (?, ?, ?)
-            ON CONFLICT(source_entry_id, language_code) DO UPDATE SET
-                translated_text = excluded.translated_text,
-                last_translated_at = CURRENT_TIMESTAMP
-            """,
-            upserts,
-        )
+        if missing_keys:
+            logging.warning(
+                "Skipping %s proofreading keys missing from the archive baseline: %s",
+                len(missing_keys),
+                ", ".join(missing_keys[:5]),
+            )
+
+        if upserts:
+            cursor.executemany(
+                """
+                INSERT INTO translated_entries (source_entry_id, language_code, translated_text)
+                VALUES (?, ?, ?)
+                ON CONFLICT(source_entry_id, language_code) DO UPDATE SET
+                    translated_text = excluded.translated_text,
+                    last_translated_at = CURRENT_TIMESTAMP
+                """,
+                upserts,
+            )
         connection.commit()
         return len(upserts)
     except Exception:
