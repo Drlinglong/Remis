@@ -97,6 +97,10 @@ def test_release_date_is_current_and_visible_in_version_info():
             encoding="utf-8",
         )
     )
+    backend_release_date = _read_python_constant(
+        REPO_ROOT / "scripts" / "app_settings.py",
+        "LAST_UPDATE_DATE",
+    )
     release_date = dt.date.fromisoformat(package_json["releaseDate"])
     release_note = (
         REPO_ROOT
@@ -114,4 +118,5 @@ def test_release_date_is_current_and_visible_in_version_info():
     ).read_text(encoding="utf-8")
 
     assert f"Released on {release_date.isoformat()}." in release_note
+    assert backend_release_date == release_date.isoformat()
     assert "const lastUpdated = __APP_RELEASE_DATE__" in version_info

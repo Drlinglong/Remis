@@ -19,6 +19,19 @@ export const translationService = {
      */
     startIncrementalUpdate: (projectId, payload) => api.post(`/api/project/${projectId}/incremental-update`, payload),
 
+    previewReferenceReuse: (payload) => api.post('/api/reference-reuse/preview', payload),
+
+    getReferenceLibraryStatus: () => api.get('/api/system/reference-library'),
+    discoverReferenceLibraries: () => api.post('/api/system/reference-library/discover'),
+    getActiveReferenceLibraryJob: () => api.get('/api/system/reference-library/jobs/active'),
+    getReferenceLibraryJob: (taskId) => api.get(
+        `/api/system/reference-library/jobs/${encodeURIComponent(taskId)}`,
+    ),
+    startReferenceLibraryJob: (payload) => api.post('/api/system/reference-library/jobs', payload),
+    deleteReferenceLibrary: (gameId) => api.delete(
+        `/api/system/reference-library/libraries/${encodeURIComponent(gameId)}`,
+    ),
+
     /**
      * Request backend system to open a local folder directory.
      * @param {string} folderPath Local directory path

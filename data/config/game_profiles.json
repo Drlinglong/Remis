@@ -16,6 +16,7 @@
             "11"
         ],
         "source_localization_folder": "localization",
+        "official_localization_globs": ["game/localization"],
         "protected_items": [
             ".metadata",
             "localization",
@@ -43,6 +44,7 @@
             "10"
         ],
         "source_localization_folder": "localisation",
+        "official_localization_globs": ["localisation"],
         "protected_items": [
             ".descriptor.mod",
             "localisation",
@@ -64,13 +66,14 @@
             "5"
         ],
         "source_localization_folder": "localisation",
+        "official_localization_globs": ["localisation"],
         "protected_items": [
             ".descriptor.mod",
             "localisation",
             "thumbnail.png"
         ],
         "metadata_file": "descriptor.mod",
-        "encoding": "cp1252",
+        "encoding": "utf-8-sig",
         "strip_pl_diacritics": true,
         "prompt_preset": "EU4",
         "official_tags_codex": "scripts/config/validators/eu4_official_tags.json"
@@ -90,6 +93,7 @@
             "10"
         ],
         "source_localization_folder": "localisation",
+        "official_localization_globs": ["localisation"],
         "protected_items": [
             "descriptor.mod",
             "localisation",
@@ -115,6 +119,7 @@
             "10"
         ],
         "source_localization_folder": "localization",
+        "official_localization_globs": ["game/localization"],
         "protected_items": [
             "descriptor.mod",
             "localisation",
@@ -143,6 +148,11 @@
             "11"
         ],
         "source_localization_folder": "localization",
+        "official_localization_globs": [
+            "clausewitz/**/localization",
+            "game/**/localization",
+            "jomini/**/localization"
+        ],
         "protected_items": [
             ".metadata",
             "localization",

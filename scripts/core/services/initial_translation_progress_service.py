@@ -9,6 +9,8 @@ from scripts.core.checkpoint_manager import CheckpointManager
 @dataclass
 class LanguageRunState:
     completed_batches: int = 0
+    successful_batches: int = 0
+    failed_batches: int = 0
     error_count: int = 0
     glossary_issues: int = 0
     format_issues: int = 0
@@ -61,6 +63,8 @@ def emit_progress(
             stage=stage,
             current_batch=run_state.completed_batches,
             total_batches=total_batches,
+            successful_batches=run_state.successful_batches,
+            failed_batches=run_state.failed_batches,
             error_count=run_state.error_count,
             glossary_issues=run_state.glossary_issues,
             format_issues=run_state.format_issues,

@@ -23,6 +23,11 @@ class FileTask:
     loc_root: str = "" # Localization root path (e.g. mod/main_menu/localization)
     file_path: str = "" # Stable archive-relative path for this source file
     recovered_entries: List[Dict[str, Any]] = field(default_factory=list)
+    semantic_hints: List[Optional[str]] = field(default_factory=list)
+    all_source_texts: Optional[List[str]] = None
+    all_key_map: Optional[Dict[int, Dict[str, Any]]] = None
+    model_result_positions: List[int] = field(default_factory=list)
+    reference_translations: Dict[int, str] = field(default_factory=dict)
 
 
 @dataclass

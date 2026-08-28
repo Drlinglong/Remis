@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Alert,
+  Accordion,
   Box,
   Button,
   Card,
@@ -24,6 +25,8 @@ import {
 } from '@tabler/icons-react';
 
 import EmbeddedWorkshopSettingsCard from './EmbeddedWorkshopSettingsCard';
+import ReferenceLibraryAvailabilityNotice from './ReferenceLibraryAvailabilityNotice';
+import ReferenceReuseSettingsCard from '../shared/ReferenceReuseSettingsCard';
 import LanguageTargetSelector from './LanguageTargetSelector';
 import ResumeSettingsCard from './ResumeSettingsCard';
 import CollapsibleSettingsCard from './CollapsibleSettingsCard';
@@ -39,8 +42,14 @@ export default function ConfigStep({
   embeddedWorkshopModels,
   form,
   onSubmit,
+  onOpenReferenceSettings,
   selectedProject,
   selectedProjectId,
+  onPreviewReferenceReuse,
+  onToggleReferenceEntry,
+  referencePreviewEntries = [],
+  referencePreviewError = '',
+  referencePreviewLoading = false,
   t,
 }) {
   const translationBatchOptions = [
@@ -383,6 +392,39 @@ export default function ConfigStep({
                 form={form}
                 t={t}
               />
+
+              <ReferenceLibraryAvailabilityNotice
+                enabled={form.values.reference_reuse_enabled}
+                gameId={selectedProject?.game_id}
+                onOpenSettings={onOpenReferenceSettings}
+                t={t}
+              />
+
+              <Accordion variant="separated" radius="md">
+                <Accordion.Item value="reference-reuse">
+                  <Accordion.Control>
+                    <Box>
+                      <Text fw={600}>{t('translation_config.reference_reuse')}</Text>
+                      <Text size="xs" c="dimmed">
+                        {t('translation_config.reference_reuse_desc')}
+                      </Text>
+                    </Box>
+                  </Accordion.Control>
+                  <Accordion.Panel>
+                    <ReferenceReuseSettingsCard
+                      enabled={form.values.reference_reuse_enabled}
+                      onEnabledChange={(value) => form.setFieldValue('reference_reuse_enabled', value)}
+                      onPreview={onPreviewReferenceReuse}
+                      onToggleEntry={onToggleReferenceEntry}
+                      previewEntries={referencePreviewEntries}
+                      previewError={referencePreviewError}
+                      previewLoading={referencePreviewLoading}
+                      excludedEntries={form.values.reference_reuse_excluded_entries}
+                      t={t}
+                    />
+                  </Accordion.Panel>
+                </Accordion.Item>
+              </Accordion>
 
               <EmbeddedWorkshopSettingsCard
                 config={config}

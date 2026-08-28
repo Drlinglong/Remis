@@ -20,12 +20,16 @@ VICTORIA3_FORMAT_PROMPT = """Output Logic:
 2. If an input line is empty/placeholder (e.g. "TODO", "..."), translate it as: "WARNING: Source localization entry is incomplete".
 3. Do NOT translate internal keys (underscored_words) or special tokens ([[_NL_]], [[_QT_]]).
 4. Translate ALL content inside formatting tags (e.g. #bold Text#! -> #bold 文本#!). Do NOT skip long descriptions.
-5. Keep the translation on a single line. Do not split the output into multiple lines.
+5. Preserve every formatting opener and matching #! together with the same protected variables, functions, concepts, and icons that it originally encloses. You may move the complete formatted span for target-language grammar, but NEVER move a formatting boundary across a protected token or rebind it to different content. Do not add any formatting marker that is absent from the source.
+6. Keep the translation on a single line. Do not split the output into multiple lines.
+7. Treat every numbered input item as independent. NEVER resolve, expand, replace, or hardcode a protected variable in one item by using the source text, localization key, semantic hint, or translated value of another item. Preserve protected variables for runtime evaluation.
+8. Preserve each protected concept/function token in its original syntactic form and with its original modifiers. For example, do not change [concept_key] into [Concept('concept_key', 'Label')] or add a modifier such as |l unless it already exists in the source.
 
 Syntax Rules (Examples):
 
 - **Script Variables**: "Gain $MONEY|+$" -> "获得 $MONEY|+$" (Keep exactly as is - DO NOT TRANSLATE)
 - **Formatting Tags**: "#bold Good#! Job" -> "#bold 干得好#! 工作" (ALWAYS translate content inside tags)
+- **Formatting Scope**: "#v $COUNTRY_ADJ$#! [concept_flagship]" -> "#v $COUNTRY_ADJ$#! [concept_flagship]" (Keep the formatted span bound to the same protected token)
 - **Complex Formatting**: "#v #b Data#! #!" -> "#v #b 数据#! #!" (Translate content even if nested)
 - **Functions**: "[GetDate]" -> "[GetDate]" (Do not translate functions)
 - **Concepts**: "[Concept('war', 'attack')]" -> "[Concept('war', 'attack')]" (NEVER translate keys inside Concept)

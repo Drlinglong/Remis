@@ -632,6 +632,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         config.custom_source_path = None
         config.use_resume = True
         config.embedded_workshop = None
+        config.reference_reuse = None
 
         with patch.dict(
             app_settings.LANGUAGE_BY_CODE,
@@ -668,6 +669,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
             custom_source_path=None,
             use_resume=True,
             embedded_workshop=None,
+            reference_reuse=None,
             progress_callback=None,
         )
 
@@ -699,6 +701,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         config.custom_source_path = "C:/fixtures/new-version"
         config.use_resume = True
         config.embedded_workshop = None
+        config.reference_reuse = None
 
         with patch.dict(
             app_settings.LANGUAGE_BY_CODE,

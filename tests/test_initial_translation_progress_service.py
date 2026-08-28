@@ -56,7 +56,13 @@ def test_build_checkpoint_manager_clears_checkpoint_when_resume_disabled(tmp_pat
 
 def test_emit_progress_keeps_callback_payload_contract():
     events = []
-    state = LanguageRunState(completed_batches=3, error_count=1, glossary_issues=2)
+    state = LanguageRunState(
+        completed_batches=3,
+        successful_batches=2,
+        failed_batches=1,
+        error_count=1,
+        glossary_issues=2,
+    )
 
     emit_progress(
         lambda **payload: events.append(payload),
@@ -79,6 +85,8 @@ def test_emit_progress_keeps_callback_payload_contract():
             "stage": "Verifying",
             "current_batch": 3,
             "total_batches": 7,
+            "successful_batches": 2,
+            "failed_batches": 1,
             "error_count": 1,
             "glossary_issues": 2,
             "format_issues": 4,

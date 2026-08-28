@@ -1,0 +1,941 @@
+{
+  "schema_version": 1,
+  "fixture_id": "vic3-adj-multilingual-v1",
+  "game_id": "victoria3",
+  "corpus": "Official Victoria 3 game/localization snapshot",
+  "source_language": "english",
+  "target_languages": [
+    "simp_chinese",
+    "japanese",
+    "korean",
+    "german",
+    "french",
+    "spanish",
+    "braz_por",
+    "polish",
+    "russian",
+    "turkish"
+  ],
+  "case_count": 10,
+  "target_example_count": 100,
+  "selection": {
+    "adj_definition_count": 5,
+    "adj_reference_count": 5,
+    "policy": "Same ten keys aligned across English and every official non-English localization shipped in this corpus snapshot."
+  },
+  "corpus_fingerprint_sha256": "0bbf695b5e0e907dcf1b735ab92ac4c9490f42893e14f66b03ffeccb9ca55000",
+  "cases": [
+    {
+      "id": "definition_chi_adj",
+      "kind": "adj_definition",
+      "key": "CHI_ADJ",
+      "referenced_adj_tokens": [],
+      "focus": [
+        "country adjective slot",
+        "country-name stem",
+        "Chinese ambiguity"
+      ],
+      "source": {
+        "language": "english",
+        "value": "Chinese",
+        "source_file": "english/countries_l_english.yml",
+        "source_line": 164,
+        "source_file_sha256": "477ea89d1b5c821a7f287899f6f7ec16b51d6749b603ae721b65d54e7819679e"
+      },
+      "official_targets": {
+        "simp_chinese": {
+          "language": "simp_chinese",
+          "value": "中国",
+          "source_file": "simp_chinese/countries_l_simp_chinese.yml",
+          "source_line": 164,
+          "source_file_sha256": "d1475201b4ccc10a07df381c21e236d6a7eac376b229efdce1e8a2ee8200ca33"
+        },
+        "japanese": {
+          "language": "japanese",
+          "value": "中国",
+          "source_file": "japanese/countries_l_japanese.yml",
+          "source_line": 164,
+          "source_file_sha256": "a15c1c7169502c46001147d749ede61e257dcb9f38ca9599cd188346a7fbe8ae"
+        },
+        "korean": {
+          "language": "korean",
+          "value": "중국",
+          "source_file": "korean/countries_l_korean.yml",
+          "source_line": 164,
+          "source_file_sha256": "2d6ddc689657618ecc77b95176704c5545b796133adcad6b7da5292b67846b47"
+        },
+        "german": {
+          "language": "german",
+          "value": "Chinesisch",
+          "source_file": "german/countries_l_german.yml",
+          "source_line": 164,
+          "source_file_sha256": "d777ceb476e7f5459863a642a29692e0e1d5e6adce826b1ce7fa3aed3fa9e7c3"
+        },
+        "french": {
+          "language": "french",
+          "value": "Chinois",
+          "source_file": "french/countries_l_french.yml",
+          "source_line": 164,
+          "source_file_sha256": "0073c4ac1f9f7d47be13465b37a25fee8d57aaddc4fe4496aaca50a2c6e95320"
+        },
+        "spanish": {
+          "language": "spanish",
+          "value": "chino",
+          "source_file": "spanish/countries_l_spanish.yml",
+          "source_line": 164,
+          "source_file_sha256": "fcaf5be9ebae34c3da71035a16de57f426ee261484b7a427f9bb9b0fc8195974"
+        },
+        "braz_por": {
+          "language": "braz_por",
+          "value": "Chinês",
+          "source_file": "braz_por/countries_l_braz_por.yml",
+          "source_line": 164,
+          "source_file_sha256": "2743c22ccaf2d21fdce19abcfcb458b6341852fdf7ea86b404daed3f7ed8cc44"
+        },
+        "polish": {
+          "language": "polish",
+          "value": "Chińska",
+          "source_file": "polish/countries_l_polish.yml",
+          "source_line": 164,
+          "source_file_sha256": "c0df7278579b4626c2cad5a2001492c584f2df66c661cfbe77aebc30dbb091b8"
+        },
+        "russian": {
+          "language": "russian",
+          "value": "Китайск",
+          "source_file": "russian/countries_l_russian.yml",
+          "source_line": 164,
+          "source_file_sha256": "12445f2229452c4acbad176497f016e278ac03832e481350cd319e0b2e7d5ce8"
+        },
+        "turkish": {
+          "language": "turkish",
+          "value": "Çin",
+          "source_file": "turkish/countries_l_turkish.yml",
+          "source_line": 164,
+          "source_file_sha256": "a10b578beb11c9dc06e63e7b07864b1e15c6ba11fc1bd0d8fbd925ee919c246a"
+        }
+      }
+    },
+    {
+      "id": "definition_egy_adj",
+      "kind": "adj_definition",
+      "key": "EGY_ADJ",
+      "referenced_adj_tokens": [],
+      "focus": [
+        "country adjective slot",
+        "demonym ambiguity",
+        "Issue 207 anchor"
+      ],
+      "source": {
+        "language": "english",
+        "value": "Egyptian",
+        "source_file": "english/countries_l_english.yml",
+        "source_line": 232,
+        "source_file_sha256": "477ea89d1b5c821a7f287899f6f7ec16b51d6749b603ae721b65d54e7819679e"
+      },
+      "official_targets": {
+        "simp_chinese": {
+          "language": "simp_chinese",
+          "value": "埃及",
+          "source_file": "simp_chinese/countries_l_simp_chinese.yml",
+          "source_line": 232,
+          "source_file_sha256": "d1475201b4ccc10a07df381c21e236d6a7eac376b229efdce1e8a2ee8200ca33"
+        },
+        "japanese": {
+          "language": "japanese",
+          "value": "エジプト",
+          "source_file": "japanese/countries_l_japanese.yml",
+          "source_line": 232,
+          "source_file_sha256": "a15c1c7169502c46001147d749ede61e257dcb9f38ca9599cd188346a7fbe8ae"
+        },
+        "korean": {
+          "language": "korean",
+          "value": "이집트",
+          "source_file": "korean/countries_l_korean.yml",
+          "source_line": 232,
+          "source_file_sha256": "2d6ddc689657618ecc77b95176704c5545b796133adcad6b7da5292b67846b47"
+        },
+        "german": {
+          "language": "german",
+          "value": "Ägyptisch",
+          "source_file": "german/countries_l_german.yml",
+          "source_line": 232,
+          "source_file_sha256": "d777ceb476e7f5459863a642a29692e0e1d5e6adce826b1ce7fa3aed3fa9e7c3"
+        },
+        "french": {
+          "language": "french",
+          "value": "Égyptien",
+          "source_file": "french/countries_l_french.yml",
+          "source_line": 232,
+          "source_file_sha256": "0073c4ac1f9f7d47be13465b37a25fee8d57aaddc4fe4496aaca50a2c6e95320"
+        },
+        "spanish": {
+          "language": "spanish",
+          "value": "egipcio",
+          "source_file": "spanish/countries_l_spanish.yml",
+          "source_line": 232,
+          "source_file_sha256": "fcaf5be9ebae34c3da71035a16de57f426ee261484b7a427f9bb9b0fc8195974"
+        },
+        "braz_por": {
+          "language": "braz_por",
+          "value": "Egípcio",
+          "source_file": "braz_por/countries_l_braz_por.yml",
+          "source_line": 232,
+          "source_file_sha256": "2743c22ccaf2d21fdce19abcfcb458b6341852fdf7ea86b404daed3f7ed8cc44"
+        },
+        "polish": {
+          "language": "polish",
+          "value": "Egipska",
+          "source_file": "polish/countries_l_polish.yml",
+          "source_line": 232,
+          "source_file_sha256": "c0df7278579b4626c2cad5a2001492c584f2df66c661cfbe77aebc30dbb091b8"
+        },
+        "russian": {
+          "language": "russian",
+          "value": "Египетск",
+          "source_file": "russian/countries_l_russian.yml",
+          "source_line": 232,
+          "source_file_sha256": "12445f2229452c4acbad176497f016e278ac03832e481350cd319e0b2e7d5ce8"
+        },
+        "turkish": {
+          "language": "turkish",
+          "value": "Mısır",
+          "source_file": "turkish/countries_l_turkish.yml",
+          "source_line": 232,
+          "source_file_sha256": "a10b578beb11c9dc06e63e7b07864b1e15c6ba11fc1bd0d8fbd925ee919c246a"
+        }
+      }
+    },
+    {
+      "id": "definition_usa_adj",
+      "kind": "adj_definition",
+      "key": "USA_ADJ",
+      "referenced_adj_tokens": [],
+      "focus": [
+        "country adjective slot",
+        "official exonym",
+        "language-specific form"
+      ],
+      "source": {
+        "language": "english",
+        "value": "American",
+        "source_file": "english/countries_l_english.yml",
+        "source_line": 757,
+        "source_file_sha256": "477ea89d1b5c821a7f287899f6f7ec16b51d6749b603ae721b65d54e7819679e"
+      },
+      "official_targets": {
+        "simp_chinese": {
+          "language": "simp_chinese",
+          "value": "美利坚",
+          "source_file": "simp_chinese/countries_l_simp_chinese.yml",
+          "source_line": 757,
+          "source_file_sha256": "d1475201b4ccc10a07df381c21e236d6a7eac376b229efdce1e8a2ee8200ca33"
+        },
+        "japanese": {
+          "language": "japanese",
+          "value": "アメリカ",
+          "source_file": "japanese/countries_l_japanese.yml",
+          "source_line": 757,
+          "source_file_sha256": "a15c1c7169502c46001147d749ede61e257dcb9f38ca9599cd188346a7fbe8ae"
+        },
+        "korean": {
+          "language": "korean",
+          "value": "미국",
+          "source_file": "korean/countries_l_korean.yml",
+          "source_line": 757,
+          "source_file_sha256": "2d6ddc689657618ecc77b95176704c5545b796133adcad6b7da5292b67846b47"
+        },
+        "german": {
+          "language": "german",
+          "value": "Amerikanisch",
+          "source_file": "german/countries_l_german.yml",
+          "source_line": 757,
+          "source_file_sha256": "d777ceb476e7f5459863a642a29692e0e1d5e6adce826b1ce7fa3aed3fa9e7c3"
+        },
+        "french": {
+          "language": "french",
+          "value": "Américain",
+          "source_file": "french/countries_l_french.yml",
+          "source_line": 757,
+          "source_file_sha256": "0073c4ac1f9f7d47be13465b37a25fee8d57aaddc4fe4496aaca50a2c6e95320"
+        },
+        "spanish": {
+          "language": "spanish",
+          "value": "americano",
+          "source_file": "spanish/countries_l_spanish.yml",
+          "source_line": 757,
+          "source_file_sha256": "fcaf5be9ebae34c3da71035a16de57f426ee261484b7a427f9bb9b0fc8195974"
+        },
+        "braz_por": {
+          "language": "braz_por",
+          "value": "Americano",
+          "source_file": "braz_por/countries_l_braz_por.yml",
+          "source_line": 757,
+          "source_file_sha256": "2743c22ccaf2d21fdce19abcfcb458b6341852fdf7ea86b404daed3f7ed8cc44"
+        },
+        "polish": {
+          "language": "polish",
+          "value": "Amerykańska",
+          "source_file": "polish/countries_l_polish.yml",
+          "source_line": 757,
+          "source_file_sha256": "c0df7278579b4626c2cad5a2001492c584f2df66c661cfbe77aebc30dbb091b8"
+        },
+        "russian": {
+          "language": "russian",
+          "value": "Североамериканск",
+          "source_file": "russian/countries_l_russian.yml",
+          "source_line": 757,
+          "source_file_sha256": "12445f2229452c4acbad176497f016e278ac03832e481350cd319e0b2e7d5ce8"
+        },
+        "turkish": {
+          "language": "turkish",
+          "value": "Amerikan",
+          "source_file": "turkish/countries_l_turkish.yml",
+          "source_line": 757,
+          "source_file_sha256": "a10b578beb11c9dc06e63e7b07864b1e15c6ba11fc1bd0d8fbd925ee919c246a"
+        }
+      }
+    },
+    {
+      "id": "definition_gbr_adj",
+      "kind": "adj_definition",
+      "key": "GBR_ADJ",
+      "referenced_adj_tokens": [],
+      "focus": [
+        "country adjective slot",
+        "TAG differs from TAG_ADJ",
+        "morphology"
+      ],
+      "source": {
+        "language": "english",
+        "value": "British",
+        "source_file": "english/countries_l_english.yml",
+        "source_line": 266,
+        "source_file_sha256": "477ea89d1b5c821a7f287899f6f7ec16b51d6749b603ae721b65d54e7819679e"
+      },
+      "official_targets": {
+        "simp_chinese": {
+          "language": "simp_chinese",
+          "value": "不列颠",
+          "source_file": "simp_chinese/countries_l_simp_chinese.yml",
+          "source_line": 266,
+          "source_file_sha256": "d1475201b4ccc10a07df381c21e236d6a7eac376b229efdce1e8a2ee8200ca33"
+        },
+        "japanese": {
+          "language": "japanese",
+          "value": "イギリス",
+          "source_file": "japanese/countries_l_japanese.yml",
+          "source_line": 266,
+          "source_file_sha256": "a15c1c7169502c46001147d749ede61e257dcb9f38ca9599cd188346a7fbe8ae"
+        },
+        "korean": {
+          "language": "korean",
+          "value": "영국",
+          "source_file": "korean/countries_l_korean.yml",
+          "source_line": 266,
+          "source_file_sha256": "2d6ddc689657618ecc77b95176704c5545b796133adcad6b7da5292b67846b47"
+        },
+        "german": {
+          "language": "german",
+          "value": "Britisch",
+          "source_file": "german/countries_l_german.yml",
+          "source_line": 266,
+          "source_file_sha256": "d777ceb476e7f5459863a642a29692e0e1d5e6adce826b1ce7fa3aed3fa9e7c3"
+        },
+        "french": {
+          "language": "french",
+          "value": "Britannique",
+          "source_file": "french/countries_l_french.yml",
+          "source_line": 266,
+          "source_file_sha256": "0073c4ac1f9f7d47be13465b37a25fee8d57aaddc4fe4496aaca50a2c6e95320"
+        },
+        "spanish": {
+          "language": "spanish",
+          "value": "británico",
+          "source_file": "spanish/countries_l_spanish.yml",
+          "source_line": 266,
+          "source_file_sha256": "fcaf5be9ebae34c3da71035a16de57f426ee261484b7a427f9bb9b0fc8195974"
+        },
+        "braz_por": {
+          "language": "braz_por",
+          "value": "Britânico",
+          "source_file": "braz_por/countries_l_braz_por.yml",
+          "source_line": 266,
+          "source_file_sha256": "2743c22ccaf2d21fdce19abcfcb458b6341852fdf7ea86b404daed3f7ed8cc44"
+        },
+        "polish": {
+          "language": "polish",
+          "value": "Brytyjska",
+          "source_file": "polish/countries_l_polish.yml",
+          "source_line": 266,
+          "source_file_sha256": "c0df7278579b4626c2cad5a2001492c584f2df66c661cfbe77aebc30dbb091b8"
+        },
+        "russian": {
+          "language": "russian",
+          "value": "Британск",
+          "source_file": "russian/countries_l_russian.yml",
+          "source_line": 266,
+          "source_file_sha256": "12445f2229452c4acbad176497f016e278ac03832e481350cd319e0b2e7d5ce8"
+        },
+        "turkish": {
+          "language": "turkish",
+          "value": "Britanya",
+          "source_file": "turkish/countries_l_turkish.yml",
+          "source_line": 266,
+          "source_file_sha256": "a10b578beb11c9dc06e63e7b07864b1e15c6ba11fc1bd0d8fbd925ee919c246a"
+        }
+      }
+    },
+    {
+      "id": "definition_por_adj",
+      "kind": "adj_definition",
+      "key": "POR_ADJ",
+      "referenced_adj_tokens": [],
+      "focus": [
+        "country adjective slot",
+        "Romance-language gender",
+        "morphology"
+      ],
+      "source": {
+        "language": "english",
+        "value": "Portuguese",
+        "source_file": "english/countries_l_english.yml",
+        "source_line": 624,
+        "source_file_sha256": "477ea89d1b5c821a7f287899f6f7ec16b51d6749b603ae721b65d54e7819679e"
+      },
+      "official_targets": {
+        "simp_chinese": {
+          "language": "simp_chinese",
+          "value": "葡萄牙",
+          "source_file": "simp_chinese/countries_l_simp_chinese.yml",
+          "source_line": 624,
+          "source_file_sha256": "d1475201b4ccc10a07df381c21e236d6a7eac376b229efdce1e8a2ee8200ca33"
+        },
+        "japanese": {
+          "language": "japanese",
+          "value": "ポルトガル",
+          "source_file": "japanese/countries_l_japanese.yml",
+          "source_line": 624,
+          "source_file_sha256": "a15c1c7169502c46001147d749ede61e257dcb9f38ca9599cd188346a7fbe8ae"
+        },
+        "korean": {
+          "language": "korean",
+          "value": "포르투갈",
+          "source_file": "korean/countries_l_korean.yml",
+          "source_line": 624,
+          "source_file_sha256": "2d6ddc689657618ecc77b95176704c5545b796133adcad6b7da5292b67846b47"
+        },
+        "german": {
+          "language": "german",
+          "value": "Portugiesisch",
+          "source_file": "german/countries_l_german.yml",
+          "source_line": 624,
+          "source_file_sha256": "d777ceb476e7f5459863a642a29692e0e1d5e6adce826b1ce7fa3aed3fa9e7c3"
+        },
+        "french": {
+          "language": "french",
+          "value": "Portugais",
+          "source_file": "french/countries_l_french.yml",
+          "source_line": 624,
+          "source_file_sha256": "0073c4ac1f9f7d47be13465b37a25fee8d57aaddc4fe4496aaca50a2c6e95320"
+        },
+        "spanish": {
+          "language": "spanish",
+          "value": "portugués",
+          "source_file": "spanish/countries_l_spanish.yml",
+          "source_line": 624,
+          "source_file_sha256": "fcaf5be9ebae34c3da71035a16de57f426ee261484b7a427f9bb9b0fc8195974"
+        },
+        "braz_por": {
+          "language": "braz_por",
+          "value": "Português",
+          "source_file": "braz_por/countries_l_braz_por.yml",
+          "source_line": 624,
+          "source_file_sha256": "2743c22ccaf2d21fdce19abcfcb458b6341852fdf7ea86b404daed3f7ed8cc44"
+        },
+        "polish": {
+          "language": "polish",
+          "value": "Portugalska",
+          "source_file": "polish/countries_l_polish.yml",
+          "source_line": 624,
+          "source_file_sha256": "c0df7278579b4626c2cad5a2001492c584f2df66c661cfbe77aebc30dbb091b8"
+        },
+        "russian": {
+          "language": "russian",
+          "value": "Португальск",
+          "source_file": "russian/countries_l_russian.yml",
+          "source_line": 624,
+          "source_file_sha256": "12445f2229452c4acbad176497f016e278ac03832e481350cd319e0b2e7d5ce8"
+        },
+        "turkish": {
+          "language": "turkish",
+          "value": "Portekiz",
+          "source_file": "turkish/countries_l_turkish.yml",
+          "source_line": 624,
+          "source_file_sha256": "a10b578beb11c9dc06e63e7b07864b1e15c6ba11fc1bd0d8fbd925ee919c246a"
+        }
+      }
+    },
+    {
+      "id": "reference_british_flagship",
+      "kind": "adj_reference",
+      "key": "destroyed_british_flagship_tt",
+      "referenced_adj_tokens": [
+        "GBR_ADJ"
+      ],
+      "focus": [
+        "single ADJ reference",
+        "particle or suffix",
+        "variable preservation"
+      ],
+      "source": {
+        "language": "english",
+        "value": "Has destroyed the #v $GBR_ADJ$#! [concept_flagship]",
+        "source_file": "english/achievements_l_english.yml",
+        "source_line": 430,
+        "source_file_sha256": "847584390ab47a0c0fcc1bcebc7be808351489569f3c61b4a9445a1fbf61f0c5"
+      },
+      "official_targets": {
+        "simp_chinese": {
+          "language": "simp_chinese",
+          "value": "已摧毁#v $GBR_ADJ$#![concept_flagship]",
+          "source_file": "simp_chinese/achievements_l_simp_chinese.yml",
+          "source_line": 358,
+          "source_file_sha256": "92d919d2b9403122fa48865132e3bfe00e40ca6fb61d9bb9bb0ca3e5959b1b27"
+        },
+        "japanese": {
+          "language": "japanese",
+          "value": "#v $GBR_ADJ$#!の[concept_flagship]を破壊した",
+          "source_file": "japanese/achievements_l_japanese.yml",
+          "source_line": 358,
+          "source_file_sha256": "6ea61c3b7a17731f8716afa2eec1a953f2d328a7e7b49ebb2ad578c7b20d46c2"
+        },
+        "korean": {
+          "language": "korean",
+          "value": "#v $GBR_ADJ$#! [concept_flagship]을 파괴했음",
+          "source_file": "korean/achievements_l_korean.yml",
+          "source_line": 358,
+          "source_file_sha256": "cf8e6b14d806f177164cb8768803ab31883537c646217f8e56b8880b8cb5dc97"
+        },
+        "german": {
+          "language": "german",
+          "value": "Hat das #v britische#! [concept_flagship] zerstört",
+          "source_file": "german/achievements_l_german.yml",
+          "source_line": 358,
+          "source_file_sha256": "38ec69b67c1f39526b63ef60ff9ce470b80282b810979c5e8a1f0a9f66f851bd"
+        },
+        "french": {
+          "language": "french",
+          "value": "A détruit le [concept_flagship|l] #v britannique#!",
+          "source_file": "french/achievements_l_french.yml",
+          "source_line": 358,
+          "source_file_sha256": "79e3668a4e4af65abf20d93d8b2d1125a5fd4d87ec41c9f6a48c22e91eb3e325"
+        },
+        "spanish": {
+          "language": "spanish",
+          "value": "Ha destruido el [concept_flagship|l] #v $GBR_ADJ$#!",
+          "source_file": "spanish/achievements_l_spanish.yml",
+          "source_line": 358,
+          "source_file_sha256": "81edcf4cea1db048bba5a26e071a5c968d2eec197452a71a6e8c028f931831cf"
+        },
+        "braz_por": {
+          "language": "braz_por",
+          "value": "Destruiu o [concept_flagship] #v $GBR_ADJ$#!",
+          "source_file": "braz_por/achievements_l_braz_por.yml",
+          "source_line": 358,
+          "source_file_sha256": "9949c8d34ea46576930ee6455acc058fa5f6d12012993c29684a55f2f75a21ef"
+        },
+        "polish": {
+          "language": "polish",
+          "value": "#v $GBR_ADJ$#! flota traci [concept_flagship|l]",
+          "source_file": "polish/achievements_l_polish.yml",
+          "source_line": 358,
+          "source_file_sha256": "46deb58ba9a9b95d0d60b26b4cae9a6c1203bdbd8eb37732a4ef9606e9d949e3"
+        },
+        "russian": {
+          "language": "russian",
+          "value": "Уничтожает #v $GBR_ADJ$ий#! [Concept('concept_flagship', 'флагман')]",
+          "source_file": "russian/achievements_l_russian.yml",
+          "source_line": 358,
+          "source_file_sha256": "d2160d002e0e83ea8135f832f67b91e58f98a5c0451be8ad93583ec10075f094"
+        },
+        "turkish": {
+          "language": "turkish",
+          "value": "#v $GBR_ADJ$#! [Concept('concept_flagship', 'Amiral Gemisini')] yok etti",
+          "source_file": "turkish/achievements_l_turkish.yml",
+          "source_line": 358,
+          "source_file_sha256": "4c15d07f7760be988e695dda8f7446c915de4b125ea5afcb67efce596ddbd71c"
+        }
+      }
+    },
+    {
+      "id": "reference_portuguese_connection",
+      "kind": "adj_reference",
+      "key": "lusofonia.2.t",
+      "referenced_adj_tokens": [
+        "POR_ADJ"
+      ],
+      "focus": [
+        "short title",
+        "gender agreement",
+        "official hard-coded rewrite"
+      ],
+      "source": {
+        "language": "english",
+        "value": "The $POR_ADJ$ Connection",
+        "source_file": "english/ip4_misc_01_l_english.yml",
+        "source_line": 570,
+        "source_file_sha256": "0d5315f101325de58b721f25e6afd6bc950a69a220ec5d78076c2039ec82f8d2"
+      },
+      "official_targets": {
+        "simp_chinese": {
+          "language": "simp_chinese",
+          "value": "$POR_ADJ$的关系",
+          "source_file": "simp_chinese/ip4_misc_01_l_simp_chinese.yml",
+          "source_line": 465,
+          "source_file_sha256": "194a4675ac163e30246464a89da46b7da3294fd483e6dc986777a5ed827f924e"
+        },
+        "japanese": {
+          "language": "japanese",
+          "value": "$POR_ADJ$の絆",
+          "source_file": "japanese/ip4_misc_01_l_japanese.yml",
+          "source_line": 465,
+          "source_file_sha256": "83a3147cbe7c2ec547ae01630928a9fb6a8d7dcc86c17689ab869ca3535ad62a"
+        },
+        "korean": {
+          "language": "korean",
+          "value": "$POR_ADJ$ 연결",
+          "source_file": "korean/ip4_misc_01_l_korean.yml",
+          "source_line": 465,
+          "source_file_sha256": "a9d938fe18c66ae4f2a16208ad751e5498974c41ffeb2eb2392939b715558d59"
+        },
+        "german": {
+          "language": "german",
+          "value": "Die portugiesische Verbindung",
+          "source_file": "german/ip4_misc_01_l_german.yml",
+          "source_line": 465,
+          "source_file_sha256": "710a4e7836d20c2a884b8c77ea61615e2ee3912b5a5e45543a35d7dbffc9cb16"
+        },
+        "french": {
+          "language": "french",
+          "value": "La connexion portugaise",
+          "source_file": "french/ip4_misc_01_l_french.yml",
+          "source_line": 465,
+          "source_file_sha256": "7e8819c9e05c27fef7c1dc1bc42e26c0f8926b73cd90dda13a8d4fbc4116b8a0"
+        },
+        "spanish": {
+          "language": "spanish",
+          "value": "El vínculo $POR_ADJ$",
+          "source_file": "spanish/ip4_misc_01_l_spanish.yml",
+          "source_line": 465,
+          "source_file_sha256": "0e8124de7bab13deb7b38e06d19eb9a1045b831966c31d2034287516a96e359b"
+        },
+        "braz_por": {
+          "language": "braz_por",
+          "value": "A Conexão do Povo $POR_ADJ$",
+          "source_file": "braz_por/ip4_misc_01_l_braz_por.yml",
+          "source_line": 465,
+          "source_file_sha256": "e8e4d26999a846de9d7a8233edfd32e6467bdcfd601b16062a9f3f8548aff317"
+        },
+        "polish": {
+          "language": "polish",
+          "value": "$POR_ADJ$ więź",
+          "source_file": "polish/ip4_misc_01_l_polish.yml",
+          "source_line": 465,
+          "source_file_sha256": "85b53a7f29af0a3760bc6f3bed013a3f8b233f9e57033e9761d6b9936db80668"
+        },
+        "russian": {
+          "language": "russian",
+          "value": "Португальский связной",
+          "source_file": "russian/ip4_misc_01_l_russian.yml",
+          "source_line": 465,
+          "source_file_sha256": "5b85042f53dbb6bd55df9b6b54d5da45756a820e9a3a48dd97b95caa1acbda9c"
+        },
+        "turkish": {
+          "language": "turkish",
+          "value": "$POR_ADJ$ Bağlantısı",
+          "source_file": "turkish/ip4_misc_01_l_turkish.yml",
+          "source_line": 465,
+          "source_file_sha256": "cb7886400cbab3d98b409f3bcb7425a44cb3a3a4438a22347c79710ea33b7881"
+        }
+      }
+    },
+    {
+      "id": "reference_bharat_uprising",
+      "kind": "adj_reference",
+      "key": "generic_revolt_india_pan_national",
+      "referenced_adj_tokens": [
+        "BHT_ADJ"
+      ],
+      "focus": [
+        "ADJ plus noun",
+        "German/Russian suffix",
+        "variable preservation"
+      ],
+      "source": {
+        "language": "english",
+        "value": "$BHT_ADJ$ Uprising",
+        "source_file": "english/content_1_l_english.yml",
+        "source_line": 1771,
+        "source_file_sha256": "02241456487324b318f9c269a725b57027c5baaff2b36597e77412cf21fd9a84"
+      },
+      "official_targets": {
+        "simp_chinese": {
+          "language": "simp_chinese",
+          "value": "$BHT_ADJ$起义",
+          "source_file": "simp_chinese/content_1_l_simp_chinese.yml",
+          "source_line": 1697,
+          "source_file_sha256": "e78fcbefbf17d53384b75fcb94f312afe43f4e0800fff5de6e7cf26422a4076f"
+        },
+        "japanese": {
+          "language": "japanese",
+          "value": "$BHT_ADJ$蜂起",
+          "source_file": "japanese/content_1_l_japanese.yml",
+          "source_line": 1697,
+          "source_file_sha256": "9e063942391701709b091f9fc30b0e78e7e03209f7d91ad469fb707c8e981fa6"
+        },
+        "korean": {
+          "language": "korean",
+          "value": "$BHT_ADJ$ 봉기",
+          "source_file": "korean/content_1_l_korean.yml",
+          "source_line": 1697,
+          "source_file_sha256": "cb0e72ac156f13fa9bab3f48869b6b21814fbe422a3122a5d804ef69ec078879"
+        },
+        "german": {
+          "language": "german",
+          "value": "$BHT_ADJ$er Aufstand",
+          "source_file": "german/content_1_l_german.yml",
+          "source_line": 1697,
+          "source_file_sha256": "9942be4dbdbc5b101f7b79a8a2bb5c79fd8938c32063743c2a6903eb2f588ff3"
+        },
+        "french": {
+          "language": "french",
+          "value": "Soulèvement $BHT_ADJ|l$",
+          "source_file": "french/content_1_l_french.yml",
+          "source_line": 1697,
+          "source_file_sha256": "802336a570741dcdc4128299d3055f176ad01657bc4b666db6b05894f94fa3e6"
+        },
+        "spanish": {
+          "language": "spanish",
+          "value": "Levantamiento $BHT_ADJ$",
+          "source_file": "spanish/content_1_l_spanish.yml",
+          "source_line": 1697,
+          "source_file_sha256": "91a259c2c9940978db510ee6d8dbaf709e615123bd6ae62be9aa1a60a513ffca"
+        },
+        "braz_por": {
+          "language": "braz_por",
+          "value": "Revolta do Povo $BHT_ADJ$",
+          "source_file": "braz_por/content_1_l_braz_por.yml",
+          "source_line": 1697,
+          "source_file_sha256": "4f9f26857fa0aa1a773466e44860140678f88c73e48b30affe429d2ba0b83701"
+        },
+        "polish": {
+          "language": "polish",
+          "value": "$BHT_ADJ$ akcja powstańcza",
+          "source_file": "polish/content_1_l_polish.yml",
+          "source_line": 1697,
+          "source_file_sha256": "2d7c6564e694ca425a0098dd5afb9da3f93caf89eb36b35f9150f1fe2f97bfcb"
+        },
+        "russian": {
+          "language": "russian",
+          "value": "$BHT_ADJ$ое восстание",
+          "source_file": "russian/content_1_l_russian.yml",
+          "source_line": 1697,
+          "source_file_sha256": "3f5708d6172f67ac8f18cb789ac06c162c6219e346316d0f3cea923cd77f99e8"
+        },
+        "turkish": {
+          "language": "turkish",
+          "value": "$BHT_ADJ$ Ayaklanması",
+          "source_file": "turkish/content_1_l_turkish.yml",
+          "source_line": 1697,
+          "source_file_sha256": "f1bca2fcf1436a94279539ee0ab70ae7f20ffb3cb01a23c13634c25fb20d0199"
+        }
+      }
+    },
+    {
+      "id": "reference_portugal_brazil_union",
+      "kind": "adj_reference",
+      "key": "por_restoring_union_tt",
+      "referenced_adj_tokens": [
+        "POR_ADJ",
+        "BRZ_ADJ"
+      ],
+      "focus": [
+        "two ADJ references",
+        "hyphenated compound",
+        "agreement"
+      ],
+      "source": {
+        "language": "english",
+        "value": "Is seeking a forceful restoration of the $POR_ADJ$-$BRZ_ADJ$ Union",
+        "source_file": "english/ip4_misc_01_l_english.yml",
+        "source_line": 554,
+        "source_file_sha256": "0d5315f101325de58b721f25e6afd6bc950a69a220ec5d78076c2039ec82f8d2"
+      },
+      "official_targets": {
+        "simp_chinese": {
+          "language": "simp_chinese",
+          "value": "正在寻求以强制手段恢复$POR_ADJ$‑$BRZ_ADJ$共主邦联",
+          "source_file": "simp_chinese/ip4_misc_01_l_simp_chinese.yml",
+          "source_line": 453,
+          "source_file_sha256": "194a4675ac163e30246464a89da46b7da3294fd483e6dc986777a5ed827f924e"
+        },
+        "japanese": {
+          "language": "japanese",
+          "value": "$POR_ADJ$-$BRZ_ADJ$連合の武力による復活を目指している",
+          "source_file": "japanese/ip4_misc_01_l_japanese.yml",
+          "source_line": 453,
+          "source_file_sha256": "83a3147cbe7c2ec547ae01630928a9fb6a8d7dcc86c17689ab869ca3535ad62a"
+        },
+        "korean": {
+          "language": "korean",
+          "value": "$POR_ADJ$-$BRZ_ADJ$ 연합의 강제적인 복원을 추구함",
+          "source_file": "korean/ip4_misc_01_l_korean.yml",
+          "source_line": 453,
+          "source_file_sha256": "a9d938fe18c66ae4f2a16208ad751e5498974c41ffeb2eb2392939b715558d59"
+        },
+        "german": {
+          "language": "german",
+          "value": "Strebt nach einer gewaltsamen Wiederherstellung der portugiesisch-brasilianischen Personalunion",
+          "source_file": "german/ip4_misc_01_l_german.yml",
+          "source_line": 453,
+          "source_file_sha256": "710a4e7836d20c2a884b8c77ea61615e2ee3912b5a5e45543a35d7dbffc9cb16"
+        },
+        "french": {
+          "language": "french",
+          "value": "Cherche à rétablir l’Union entre le $POR$ et le $BRZ$",
+          "source_file": "french/ip4_misc_01_l_french.yml",
+          "source_line": 453,
+          "source_file_sha256": "7e8819c9e05c27fef7c1dc1bc42e26c0f8926b73cd90dda13a8d4fbc4116b8a0"
+        },
+        "spanish": {
+          "language": "spanish",
+          "value": "Busca la restauración a la fuerza de la unión de los pueblos $POR_ADJ$y $BRZ_ADJ$",
+          "source_file": "spanish/ip4_misc_01_l_spanish.yml",
+          "source_line": 453,
+          "source_file_sha256": "0e8124de7bab13deb7b38e06d19eb9a1045b831966c31d2034287516a96e359b"
+        },
+        "braz_por": {
+          "language": "braz_por",
+          "value": "Está buscando forçar uma restauração da união entre os povos $POR_ADJ$ e $BRZ_ADJ$",
+          "source_file": "braz_por/ip4_misc_01_l_braz_por.yml",
+          "source_line": 453,
+          "source_file_sha256": "e8e4d26999a846de9d7a8233edfd32e6467bdcfd601b16062a9f3f8548aff317"
+        },
+        "polish": {
+          "language": "polish",
+          "value": "Dąży do siłowego przywrócenia unii pomiędzy państwami znanymi jako $POR$ i $BRZ$",
+          "source_file": "polish/ip4_misc_01_l_polish.yml",
+          "source_line": 453,
+          "source_file_sha256": "85b53a7f29af0a3760bc6f3bed013a3f8b233f9e57033e9761d6b9936db80668"
+        },
+        "russian": {
+          "language": "russian",
+          "value": "Желает насильственного восстановления $POR_ADJ$о-$BRZ_ADJ$ого союза",
+          "source_file": "russian/ip4_misc_01_l_russian.yml",
+          "source_line": 453,
+          "source_file_sha256": "5b85042f53dbb6bd55df9b6b54d5da45756a820e9a3a48dd97b95caa1acbda9c"
+        },
+        "turkish": {
+          "language": "turkish",
+          "value": "$POR_ADJ$-$BRZ_ADJ$ Birliği'ni zorla yeniden kurmayı amaçlıyor",
+          "source_file": "turkish/ip4_misc_01_l_turkish.yml",
+          "source_line": 453,
+          "source_file_sha256": "cb7886400cbab3d98b409f3bcb7425a44cb3a3a4438a22347c79710ea33b7881"
+        }
+      }
+    },
+    {
+      "id": "reference_bilateral_trade_value",
+      "kind": "adj_reference",
+      "key": "COUNTRY_TO_COUNTRY_TRADE_VALUE_DESC",
+      "referenced_adj_tokens": [
+        "FIRST_ADJ",
+        "SECOND_ADJ"
+      ],
+      "focus": [
+        "dynamic ADJ slots",
+        "two-party compound",
+        "format preservation"
+      ],
+      "source": {
+        "language": "english",
+        "value": "#header $FIRST_ADJ$ - $SECOND_ADJ$ [concept_trade] Value: @money!$VALUE|vD$#!\\n$TOOLTIP_DELIMITER$\\n$DETAILS$",
+        "source_file": "english/interfaces_l_english.yml",
+        "source_line": 4602,
+        "source_file_sha256": "ac156654e033a496966ddf17e0b728df67695fcf5ef1bd7b66646a47b967647b"
+      },
+      "official_targets": {
+        "simp_chinese": {
+          "language": "simp_chinese",
+          "value": "#header $FIRST_ADJ$-$SECOND_ADJ$[concept_trade]额：@money!$VALUE|vD$#!\\n$TOOLTIP_DELIMITER$\\n$DETAILS$",
+          "source_file": "simp_chinese/interfaces_l_simp_chinese.yml",
+          "source_line": 3956,
+          "source_file_sha256": "0fada4eaf30a05b4ddbd47cfe1882a691818174fc85fb5cc7ddb89c11b202c36"
+        },
+        "japanese": {
+          "language": "japanese",
+          "value": "#header $FIRST_ADJ$と$SECOND_ADJ$間の[concept_trade]額: @money!$VALUE|vD$#!\\n$TOOLTIP_DELIMITER$\\n$DETAILS$",
+          "source_file": "japanese/interfaces_l_japanese.yml",
+          "source_line": 3956,
+          "source_file_sha256": "819b541fe9e049687f7e88c9721660d476ef673ffa9cf73651698d674b984f68"
+        },
+        "korean": {
+          "language": "korean",
+          "value": "#header $FIRST_ADJ$ - $SECOND_ADJ$ [concept_trade] 가치: @money!$VALUE|vD$#!\\n$TOOLTIP_DELIMITER$\\n$DETAILS$",
+          "source_file": "korean/interfaces_l_korean.yml",
+          "source_line": 3956,
+          "source_file_sha256": "166e559feb2c70c1e4e090aa35dac64fac29f3f9dd9152a75615e043e09e22e6"
+        },
+        "german": {
+          "language": "german",
+          "value": "#header $FIRST_ADJ$-$SECOND_ADJ$er [Concept('concept_trade', 'Handelswert')]: @money!$VALUE|vD$#!\\n$TOOLTIP_DELIMITER$\\n$DETAILS$",
+          "source_file": "german/interfaces_l_german.yml",
+          "source_line": 3956,
+          "source_file_sha256": "bb6c186f23cbda4b5cf59e257b7aaf6162acce5256aa7981a52365d648e9bbd2"
+        },
+        "french": {
+          "language": "french",
+          "value": "#header Valeur [Concept('concept_trade','commerciale')] $FIRST_ADJ$ - $SECOND_ADJ$ : $VALUE|vD$@money!#!\\n$TOOLTIP_DELIMITER$\\n$DETAILS$",
+          "source_file": "french/interfaces_l_french.yml",
+          "source_line": 3956,
+          "source_file_sha256": "a30b72e5e3c382199cb243b362db92c661449ef66d74dd331cbe7a6ca126dd2c"
+        },
+        "spanish": {
+          "language": "spanish",
+          "value": "#header Valor de [concept_trade|l] $FIRST_ADJ$ - $SECOND_ADJ$: $VALUE|vD$ @money!#!\\n$TOOLTIP_DELIMITER$\\n$DETAILS$",
+          "source_file": "spanish/interfaces_l_spanish.yml",
+          "source_line": 3956,
+          "source_file_sha256": "400c78ddeeb4f0bed8b8f162759864342cdbdd9a9628d9cfef69a997bfcbcca6"
+        },
+        "braz_por": {
+          "language": "braz_por",
+          "value": "#header $FIRST_ADJ$ - $SECOND_ADJ$ de valor de [concept_trade]: @money!$VALUE|vD$#!\\n$TOOLTIP_DELIMITER$\\n$DETAILS$",
+          "source_file": "braz_por/interfaces_l_braz_por.yml",
+          "source_line": 3956,
+          "source_file_sha256": "887e4aa0a317eb87f99c6e213fac9c0d58c8e69ac70b6f86b249634548a92d7e"
+        },
+        "polish": {
+          "language": "polish",
+          "value": "#header $FIRST_ADJ$ i $SECOND_ADJ$ więź [Concept('concept_trade', 'handlowa')] ma następującą wartość: $VALUE|vD$ @money!#!\\n$TOOLTIP_DELIMITER$\\n$DETAILS$",
+          "source_file": "polish/interfaces_l_polish.yml",
+          "source_line": 3956,
+          "source_file_sha256": "550cdf756a23675a55d87cf1bcae31a2eba0e1334cbe7cb9d3c1326e3879a187"
+        },
+        "russian": {
+          "language": "russian",
+          "value": "#header Ценность $FIRST_ADJ$о-$SECOND_ADJ$ой [Concept('concept_trade', 'торговли')]: @money!$VALUE|vD$#!\\n$TOOLTIP_DELIMITER$\\n$DETAILS$",
+          "source_file": "russian/interfaces_l_russian.yml",
+          "source_line": 3956,
+          "source_file_sha256": "3496cf5171c38a9febed42e9dbafab7086134dec623addb9cb70246826446820"
+        },
+        "turkish": {
+          "language": "turkish",
+          "value": "#header $FIRST_ADJ$ - $SECOND_ADJ$ [concept_trade] Değeri: @money!$VALUE|vD$#!\\n$TOOLTIP_DELIMITER$\\n$DETAILS$",
+          "source_file": "turkish/interfaces_l_turkish.yml",
+          "source_line": 3956,
+          "source_file_sha256": "c7a0cd72d84327c1dae05b1038afbd1388241d86372a9b2e75a44c35da3e3bee"
+        }
+      }
+    }
+  ]
+}

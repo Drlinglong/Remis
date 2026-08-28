@@ -130,25 +130,11 @@ def configure_repository(
             task_id = str(task.get("task_id") or "")
             if not task_id:
                 continue
-            checkpoint = task.get("checkpoint") or {}
-            if (
-                task.get("kind") in {"agent_workshop", "agent_workshop_batch"}
-                and checkpoint.get("resume_supported") is False
-            ):
-                now = _utc_now_iso()
-                task["status"] = "interrupted"
-                task["updated_at"] = now
-                task["finished_at"] = now
-                task["message"] = "The app restarted before this repair task finished."
-                task["attention_reason"] = (
-                    "This Agent Workshop task cannot resume automatically. "
-                    "Return to the workflow and review current validation results before retrying."
-                )
-                task.setdefault("progress", {})["stage"] = "Interrupted"
-                checkpoint["available"] = False
-                checkpoint["stage"] = "interrupted"
-                checkpoint["updated_at"] = now
-                task["checkpoint"] = checkpoint
+            recovery = _restart_recovery(task)
+            if recovery is not None:
+                message, attention_reason = recovery
+                _mark_restart_interrupted(task, message, attention_reason)
+                now = task["updated_at"]
                 try:
                     repository.save_task(
                         task,
@@ -157,13 +143,13 @@ def configure_repository(
                             "level": "warning",
                             "event_type": "recovery_interrupted",
                             "audience": "user",
-                            "message": task["attention_reason"],
+                            "message": attention_reason,
                         },
                     )
                 except (OSError, sqlite3.Error, ValueError, KeyError) as exc:
                     _mark_persistence_failure(task, exc)
                     logging.error(
-                        "Failed to mark non-resumable Agent Workshop task %s interrupted: %s",
+                        "Failed to mark persisted task %s interrupted: %s",
                         task_id,
                         exc,
                     )
@@ -233,6 +219,41 @@ def _mark_persistence_failure(task: Dict[str, Any], error: Exception) -> None:
         "error_type": type(error).__name__,
         "last_attempt_at": task.get("updated_at") or _utc_now_iso(),
     }
+
+
+def _restart_recovery(task: Dict[str, Any]) -> Optional[tuple[str, str]]:
+    """Return restart interruption messaging for work that has no live worker."""
+
+    kind = task.get("kind")
+    checkpoint = task.get("checkpoint") or {}
+    if kind == "reference_library_maintenance":
+        return (
+            "The app restarted before official reference library maintenance finished.",
+            "This reference library task cannot resume automatically. Review the current library state before retrying.",
+        )
+    if (
+        kind in {"agent_workshop", "agent_workshop_batch"}
+        and checkpoint.get("resume_supported") is False
+    ):
+        return (
+            "The app restarted before this repair task finished.",
+            "This Agent Workshop task cannot resume automatically. Return to the workflow and review current validation results before retrying.",
+        )
+    return None
+
+
+def _mark_restart_interrupted(task: Dict[str, Any], message: str, attention_reason: str) -> None:
+    now = _utc_now_iso()
+    task["status"] = "interrupted"
+    task["updated_at"] = now
+    task["finished_at"] = now
+    task["message"] = message
+    task["attention_reason"] = attention_reason
+    task.setdefault("progress", {})["stage"] = "Interrupted"
+    checkpoint = task.setdefault("checkpoint", {})
+    checkpoint["available"] = False
+    checkpoint["stage"] = "interrupted"
+    checkpoint["updated_at"] = now
 
 
 def _persist_task(

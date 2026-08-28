@@ -235,3 +235,70 @@ def test_run_translation_workflow_v2_gives_explicit_glossary_highest_priority(mo
     )
 
     assert run_workflow.call_args.kwargs["selected_glossary_ids"] == [10, 20, 30]
+
+
+def test_reference_reuse_preview_resolves_project_and_languages(monkeypatch, tmp_path):
+    source_path = tmp_path / "source"
+    source_path.mkdir()
+    monkeypatch.setattr(
+        translation.project_manager,
+        "get_project",
+        AsyncMock(return_value={
+            "project_id": "demo",
+            "game_id": "victoria3",
+            "source_path": str(source_path),
+        }),
+    )
+    preview_service = MagicMock()
+    preview_service.preview.return_value = {
+        "status": "success",
+        "matched_count": 1,
+        "matches": [{"key": "TRK:0"}],
+    }
+    monkeypatch.setattr(
+        translation,
+        "ReferenceReusePreviewService",
+        MagicMock(return_value=preview_service),
+    )
+
+    response = TestClient(app).post("/api/reference-reuse/preview", json={
+        "project_id": "demo",
+        "source_lang_code": "en",
+        "target_lang_codes": ["zh-CN"],
+        "localization_path": "C:/Victoria 3/game/localization",
+    })
+
+    assert response.status_code == 200
+    assert response.json()["matches"] == [{"key": "TRK:0"}]
+    preview_service.preview.assert_called_once()
+
+
+def test_reference_reuse_preview_uses_custom_incremental_source(monkeypatch, tmp_path):
+    custom_source = tmp_path / "new-version"
+    custom_source.mkdir()
+    monkeypatch.setattr(
+        translation.project_manager,
+        "get_project",
+        AsyncMock(return_value={
+            "project_id": "demo",
+            "game_id": "victoria3",
+            "source_path": str(tmp_path / "old-version"),
+        }),
+    )
+    preview_service = MagicMock()
+    preview_service.preview.return_value = {"status": "success", "matches": []}
+    monkeypatch.setattr(
+        translation,
+        "ReferenceReusePreviewService",
+        MagicMock(return_value=preview_service),
+    )
+
+    response = TestClient(app).post("/api/reference-reuse/preview", json={
+        "project_id": "demo",
+        "source_lang_code": "en",
+        "target_lang_codes": ["zh-CN"],
+        "custom_source_path": str(custom_source),
+    })
+
+    assert response.status_code == 200
+    assert preview_service.preview.call_args.kwargs["source_path"] == str(custom_source)

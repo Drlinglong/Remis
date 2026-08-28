@@ -30,6 +30,97 @@ class _FakeArchiveManager:
         self.closed = True
 
 
+def test_reference_library_status_and_manual_build_endpoints(monkeypatch):
+    status_payload = {
+        "status": "success",
+        "libraries": [{"game_id": "victoria3", "available": True}],
+    }
+    build_calls = []
+    monkeypatch.setattr(system_router.reference_library_service, "status", lambda: status_payload)
+    monkeypatch.setattr(
+        system_router.reference_library_service,
+        "build",
+        lambda game_id, path: build_calls.append((game_id, path)) or {
+            "status": "success",
+            "library": {"game_id": game_id, "available": True},
+        },
+    )
+
+    status_response = client.get("/api/system/reference-library")
+    build_response = client.post(
+        "/api/system/reference-library/build",
+        json={"game_id": "victoria3", "localization_path": "I:/game/localization"},
+    )
+
+    assert status_response.json() == status_payload
+    assert build_response.status_code == 200
+    assert build_calls == [("victoria3", "I:/game/localization")]
+
+
+def test_reference_library_manual_build_rejects_invalid_path(monkeypatch):
+    monkeypatch.setattr(
+        system_router.reference_library_service,
+        "build",
+        lambda *_args: (_ for _ in ()).throw(ValueError("wrong localization spelling")),
+    )
+
+    response = client.post(
+        "/api/system/reference-library/build",
+        json={"game_id": "stellaris", "localization_path": "I:/game/localization"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "wrong localization spelling"
+
+
+def test_reference_library_job_routes_expose_persisted_task(monkeypatch):
+    accepted = {"status": "accepted", "task_id": "reference-library-1"}
+    task = {"task_id": "reference-library-1", "kind": "reference_library_maintenance", "status": "running"}
+    calls = []
+    monkeypatch.setattr(
+        system_router.reference_library_service,
+        "start_operations",
+        lambda operations: calls.extend(operations) or accepted,
+    )
+    monkeypatch.setattr(system_router.reference_library_service, "get_task", lambda task_id: task if task_id == task["task_id"] else None)
+    monkeypatch.setattr(task_state, "find_active_task_by_dedupe_key", lambda _key: task)
+
+    start_response = client.post(
+        "/api/system/reference-library/jobs",
+        json={"operations": [{
+            "game_id": "victoria3",
+            "localization_path": "I:/game/localization",
+            "action": "update",
+        }]},
+    )
+    active_response = client.get("/api/system/reference-library/jobs/active")
+    task_response = client.get("/api/system/reference-library/jobs/reference-library-1")
+
+    assert start_response.json() == accepted
+    assert calls == [{
+        "game_id": "victoria3",
+        "localization_path": "I:/game/localization",
+        "action": "update",
+    }]
+    assert active_response.json() == task
+    assert task_response.json() == task
+
+
+def test_reference_library_delete_route_queues_scoped_removal(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        system_router.reference_library_service,
+        "delete",
+        lambda game_id: calls.append(game_id) or {"status": "accepted", "task_id": "delete-1"},
+    )
+
+    response = client.delete("/api/system/reference-library/libraries/ck3")
+
+    assert response.status_code == 200
+    assert response.json()["task_id"] == "delete-1"
+    assert calls == ["ck3"]
+
+
 def test_reset_db_endpoint_rebuilds_main_database(monkeypatch):
     removed_paths = []
     initialize_called = {"value": False}

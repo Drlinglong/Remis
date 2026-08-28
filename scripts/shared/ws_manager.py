@@ -4,6 +4,8 @@ from fastapi import WebSocket
 
 import asyncio
 
+logger = logging.getLogger(__name__)
+
 class ConnectionManager:
     def __init__(self):
         # task_id -> list of WebSockets
@@ -32,7 +34,7 @@ class ConnectionManager:
 
     async def send_task_update(self, task_id: str, data: dict):
         if task_id in self.active_connections:
-            logging.info(
+            logger.debug(
                 f"WebSocket push for task {task_id}: status={data.get('status')} "
                 f"connections={len(self.active_connections[task_id])}"
             )
@@ -41,10 +43,10 @@ class ConnectionManager:
                 try:
                     await connection.send_json(data)
                 except Exception as e:
-                    logging.error(f"Error sending WebSocket update for task {task_id}: {e}")
+                    logger.error(f"Error sending WebSocket update for task {task_id}: {e}")
                     self.disconnect(connection, task_id)
         else:
-            logging.info(
+            logger.debug(
                 f"WebSocket push skipped for task {task_id}: no active connections, "
                 f"status={data.get('status')}"
             )

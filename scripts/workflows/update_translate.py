@@ -17,6 +17,7 @@ from scripts.core.services.incremental_preparation_service import IncrementalPre
 from scripts.core.services.incremental_translation_service import IncrementalTranslationService
 from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService, resolve_dynamic_valid_tags
 from scripts.core.services.embedded_workshop_service import run_embedded_workshop
+from scripts.core.services.vanilla_reference_factory import create_reference_resolver
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,84 @@ def _build_aggregated_progress(
     progress_data["total_target_langs"] = total_langs
     return progress_data
 
+
+def _prepare_language_translation(
+    *,
+    preparation_service: IncrementalPreparationService,
+    reference_reuse: Optional[Dict[str, Any]],
+    game_profile: Dict[str, Any],
+    source_lang_info: Dict[str, Any],
+    target_lang_info: Dict[str, Any],
+    current_files_data: List[Dict[str, Any]],
+    history_index: Dict[Any, Any],
+    diff_service: IncrementalDiffService,
+    mod_context: str,
+    selected_provider: str,
+    source_path: str,
+    lang_output_dir: Path,
+    lang_index: int,
+    total_target_langs: int,
+    target_lang_code: str,
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]],
+    lang_telemetry: Dict[str, Any],
+    project_name: str,
+) -> tuple[Dict[str, Any], List[Dict[str, Any]], List[Any], List[Dict[str, Any]], List[Dict[str, str]], Path]:
+    reference_resolver = create_reference_resolver(
+        reference_reuse,
+        game_profile=game_profile,
+        source_lang=source_lang_info,
+        target_lang=target_lang_info,
+    )
+    preparation_started_at = perf_counter()
+    result = preparation_service.prepare_language_update(
+        current_files_data=current_files_data,
+        history_index=history_index,
+        diff_service=diff_service,
+        target_lang_info=target_lang_info,
+        source_lang_info=source_lang_info,
+        game_profile=game_profile,
+        mod_context=mod_context,
+        selected_provider=selected_provider,
+        source_path=source_path,
+        base_output_dir=lang_output_dir,
+        total_targets=1,
+        progress_callback=(
+            (lambda data: progress_callback(_build_aggregated_progress(
+                data, lang_index, total_target_langs, target_lang_code
+            ))) if progress_callback else None
+        ),
+        reference_resolver=reference_resolver,
+    )
+    summary = result["summary"]
+    file_tasks_for_ai = result["file_tasks_for_ai"]
+    lang_telemetry.update({
+        "prepare_ms": round((perf_counter() - preparation_started_at) * 1000, 1),
+        "source_files": len(current_files_data),
+        "dirty_files": len(file_tasks_for_ai),
+        "dirty_entries": summary["new"] + summary["changed"],
+        "model_submitted": sum(len(task.texts_to_translate) for task in file_tasks_for_ai),
+        **result["reference_metrics"],
+    })
+    for task in file_tasks_for_ai:
+        task.mod_name = project_name
+    logger.info(
+        "Prepared language update for %s (%s): summary=%s, processing_records=%s, file_tasks_for_ai=%s",
+        project_name,
+        target_lang_code,
+        summary,
+        len(result["processing_records"]),
+        len(file_tasks_for_ai),
+    )
+    return (
+        summary,
+        result["processing_records"],
+        file_tasks_for_ai,
+        result["file_summaries"],
+        result["reference_protected_entries"],
+        result["lang_output_dir"],
+    )
+
+
 async def run_incremental_update(
     project_id: str, 
     target_lang_infos: List[Dict[str, Any]], 
@@ -54,6 +133,7 @@ async def run_incremental_update(
     custom_source_path: Optional[str] = None,
     use_resume: bool = True,
     embedded_workshop: Optional[Dict[str, Any]] = None,
+    reference_reuse: Optional[Dict[str, Any]] = None,
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None
 ) -> Dict[str, Any]:
     """
@@ -189,41 +269,33 @@ async def run_incremental_update(
                 "translated_count": baseline_info.get("translated_count"),
             }
         history_index = diff_service.build_history_index(all_entries)
-        preparation_started_at = perf_counter()
-        preparation_result = preparation_service.prepare_language_update(
+        (
+            summary,
+            processing_records,
+            file_tasks_for_ai,
+            file_summaries,
+            reference_protected_entries,
+            lang_output_dir,
+        ) = _prepare_language_translation(
+            preparation_service=preparation_service,
+            reference_reuse=reference_reuse,
+            game_profile=game_profile,
+            source_lang_info=source_lang_info,
+            target_lang_info=target_lang_info,
             current_files_data=current_files_data,
             history_index=history_index,
             diff_service=diff_service,
-            target_lang_info=target_lang_info,
-            source_lang_info=source_lang_info,
-            game_profile=game_profile,
             mod_context=mod_context,
             selected_provider=selected_provider,
             source_path=source_path,
-            base_output_dir=lang_output_dir,
-            total_targets=1,
-            progress_callback=(
-                (lambda data, idx=lang_index, total=total_target_langs, code=target_lang_code:
-                    progress_callback(_build_aggregated_progress(data, idx, total, code)))
-                if progress_callback else None
-            ),
+            lang_output_dir=lang_output_dir,
+            lang_index=lang_index,
+            total_target_langs=total_target_langs,
+            target_lang_code=target_lang_code,
+            progress_callback=progress_callback,
+            lang_telemetry=lang_telemetry,
+            project_name=project_name,
         )
-        summary = preparation_result["summary"]
-        processing_records = preparation_result["processing_records"]
-        file_tasks_for_ai = preparation_result["file_tasks_for_ai"]
-        file_summaries = preparation_result["file_summaries"]
-        lang_output_dir = preparation_result["lang_output_dir"]
-        lang_telemetry["prepare_ms"] = round((perf_counter() - preparation_started_at) * 1000, 1)
-        lang_telemetry["source_files"] = len(current_files_data)
-        lang_telemetry["dirty_files"] = len(file_tasks_for_ai)
-        lang_telemetry["dirty_entries"] = summary["new"] + summary["changed"]
-        logger.info(
-            f"Prepared language update for {project_name} ({target_lang_code}): "
-            f"summary={summary}, processing_records={len(processing_records)}, file_tasks_for_ai={len(file_tasks_for_ai)}"
-        )
-
-        for task in file_tasks_for_ai:
-            task.mod_name = project_name
 
         # Aggregate summaries
         overall_summary["total"] += summary["total"]
@@ -300,6 +372,8 @@ async def run_incremental_update(
         if embedded_workshop and embedded_workshop.get("enabled", True):
             try:
                 embedded_workshop_started_at = perf_counter()
+                workshop_config = dict(embedded_workshop)
+                workshop_config["protected_entries"] = reference_protected_entries
                 workshop_summary = await run_embedded_workshop(
                     output_root=lang_output_dir,
                     source_root=source_path,
@@ -310,7 +384,7 @@ async def run_incremental_update(
                     game_profile=game_profile,
                     workflow="incremental",
                     run_id=run_id,
-                    config=embedded_workshop,
+                    config=workshop_config,
                     fallback_provider=selected_provider,
                     fallback_model=model_name,
                     fallback_concurrency=concurrency_limit,

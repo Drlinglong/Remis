@@ -22,7 +22,71 @@ from scripts.core.services.initial_translation_workshop_service import (
     export_workshop_issues_for_language,
     run_embedded_workshop_for_language,
 )
+from scripts.core.services.vanilla_reference_factory import create_reference_resolver
 from scripts.utils import i18n
+
+
+def _process_file_tasks(
+    *,
+    processor: ParallelProcessor,
+    file_task_generator: Any,
+    handler: Any,
+    progress_lock: threading.Lock,
+    run_state: LanguageRunState,
+    update_progress: Any,
+    rpm_limit: Optional[int],
+    target_lang: dict,
+    output_folder_name: str,
+    game_profile: dict,
+    proofreading_tracker: Any,
+    checkpoint_manager: Any,
+    project_id: Optional[str],
+    version_id: Optional[int],
+    all_files_content: List[dict],
+) -> None:
+    def translation_wrapper(batch_task):
+        return handler.translate_batch(batch_task)
+
+    def on_batch_completed(batch_task):
+        with progress_lock:
+            run_state.completed_batches += 1
+            if batch_task.failed or batch_task.fell_back_to_source:
+                run_state.failed_batches += 1
+            else:
+                run_state.successful_batches += 1
+            update_progress(batch_task.file_task.filename)
+
+    with temporary_rpm_limit(rpm_limit):
+        with progress_log_bridge(update_progress):
+            for file_task, translated_texts, warnings, is_failed in processor.process_files_stream(
+                file_task_generator,
+                translation_wrapper,
+                batch_progress_callback=on_batch_completed,
+            ):
+                if is_failed:
+                    run_state.error_count += 1
+                    logging.error(f"File {file_task.filename} failed to translate (partially or fully). Using fallback.")
+                    update_progress(
+                        file_task.filename,
+                        "Failed",
+                        log_message=f"ERROR: File {file_task.filename} failed to translate. Rolled back to original text.",
+                    )
+                else:
+                    update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
+                log_batch_warnings(file_task.filename, warnings)
+                finalize_translated_file(
+                    file_task,
+                    translated_texts,
+                    is_failed,
+                    target_lang,
+                    output_folder_name,
+                    game_profile,
+                    proofreading_tracker,
+                    checkpoint_manager,
+                    project_id,
+                    version_id,
+                    all_files_content,
+                )
 
 
 def run_language_translation(
@@ -49,13 +113,12 @@ def run_language_translation(
     rpm_limit: Optional[int],
     batch_size_limit: Optional[int],
     embedded_workshop: Optional[dict],
-) -> None:
+    reference_reuse: Optional[dict] = None,
+) -> dict:
     logging.info(i18n.t("translating_to_language", lang_name=target_lang["name"]))
-
     proofreading_tracker = create_proofreading_tracker(
         mod_name, output_folder_name, target_lang.get("code", "zh-CN")
     )
-
     checkpoint_manager = build_checkpoint_manager(
         output_dir_path,
         selected_provider,
@@ -66,7 +129,12 @@ def run_language_translation(
     )
     run_state = LanguageRunState()
     progress_lock = threading.Lock()
-
+    reference_resolver = create_reference_resolver(
+        reference_reuse,
+        game_profile=game_profile,
+        source_lang=source_lang,
+        target_lang=target_lang,
+    )
     def update_progress(
         current_file_name="",
         stage="Translating",
@@ -86,7 +154,8 @@ def run_language_translation(
             format_repair,
             workshop_progress,
         )
-
+    reference_protected_entries: List[dict] = []
+    reference_run_metrics = {"model_submitted": 0}
     file_task_generator = build_file_task_iterator(
         all_files_content,
         checkpoint_manager,
@@ -101,50 +170,30 @@ def run_language_translation(
         progress_callback,
         run_state,
         total_batches, version_id,
+        reference_resolver=reference_resolver,
+        reference_protected_entries=reference_protected_entries,
+        reference_run_metrics=reference_run_metrics,
     )
 
     max_workers = resolve_max_workers(concurrency_limit, selected_provider)
     processor = ParallelProcessor(max_workers=max_workers, chunk_size_override=effective_chunk_size)
-
-    def translation_wrapper(batch_task):
-        result = handler.translate_batch(batch_task)
-        with progress_lock:
-            run_state.completed_batches += 1
-            update_progress(batch_task.file_task.filename)
-        return result
-
-    with temporary_rpm_limit(rpm_limit):
-        with progress_log_bridge(update_progress):
-            for file_task, translated_texts, warnings, is_failed in processor.process_files_stream(
-                file_task_generator,
-                translation_wrapper,
-            ):
-                if is_failed:
-                    run_state.error_count += 1
-                    logging.error(f"File {file_task.filename} failed to translate (partially or fully). Using fallback.")
-                    update_progress(
-                        file_task.filename,
-                        "Failed",
-                        log_message=f"ERROR: File {file_task.filename} failed to translate. Rolled back to original text.",
-                    )
-                else:
-                    update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
-
-                log_batch_warnings(file_task.filename, warnings)
-
-                finalize_translated_file(
-                    file_task,
-                    translated_texts,
-                    is_failed,
-                    target_lang,
-                    output_folder_name,
-                    game_profile,
-                    proofreading_tracker,
-                    checkpoint_manager,
-                    project_id,
-                    version_id,
-                    all_files_content,
-                )
+    _process_file_tasks(
+        processor=processor,
+        file_task_generator=file_task_generator,
+        handler=handler,
+        progress_lock=progress_lock,
+        run_state=run_state,
+        update_progress=update_progress,
+        rpm_limit=rpm_limit,
+        target_lang=target_lang,
+        output_folder_name=output_folder_name,
+        game_profile=game_profile,
+        proofreading_tracker=proofreading_tracker,
+        checkpoint_manager=checkpoint_manager,
+        project_id=project_id,
+        version_id=version_id,
+        all_files_content=all_files_content,
+    )
 
     if run_state.error_count:
         message = f"Translation failed for {run_state.error_count} file(s) while translating to {target_lang['name']}."
@@ -171,8 +220,10 @@ def run_language_translation(
         game_profile,
         dynamic_valid_tags=dynamic_valid_tags,
     )
+    workshop_config = dict(embedded_workshop or {})
+    workshop_config["protected_entries"] = reference_protected_entries
     run_embedded_workshop_for_language(
-        embedded_workshop,
+        workshop_config,
         output_dir_path,
         override_path,
         mod_name,
@@ -188,3 +239,16 @@ def run_language_translation(
         dynamic_valid_tags=dynamic_valid_tags,
         update_progress_callback=update_progress,
     )
+    reference_metrics = (
+        reference_resolver.metrics()
+        if reference_resolver is not None
+        else {
+            "reference_enabled": False,
+            "reference_matched": 0,
+            "api_skipped": 0,
+        }
+    )
+    reference_metrics["target_lang"] = target_lang.get("code")
+    reference_metrics.update(reference_run_metrics)
+    logging.info("Vanilla reference reuse metrics: %s", reference_metrics)
+    return reference_metrics

@@ -57,7 +57,7 @@ function createForm() {
 }
 
 describe('ConfigStep advanced disclosure', () => {
-  it('keeps advanced fields mounted but visually collapsed until expanded', () => {
+  it('keeps advanced fields mounted but visually collapsed until expanded', async () => {
     render(
       <MantineProvider>
         <ConfigStep
@@ -92,5 +92,16 @@ describe('ConfigStep advanced disclosure', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Advanced Options' }));
 
     expect(promptField.closest('[data-collapsed]')).toBeNull();
+    expect(screen.queryByRole('switch', {
+      name: /translation_config\.reference_reuse/,
+    })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', {
+      name: /translation_config\.reference_reuse/,
+    }));
+
+    expect(await screen.findByRole('switch', {
+      name: /translation_config\.reference_reuse/,
+    })).toBeInTheDocument();
   });
 });

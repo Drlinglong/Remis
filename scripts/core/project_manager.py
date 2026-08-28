@@ -550,7 +550,6 @@ class ProjectManager:
         if not source_lang_info:
              if source_lang_code.lower() == 'english': source_lang_info = LANGUAGE_BY_CODE.get("en")
              else: source_lang_info = LANGUAGE_BY_CODE.get("en") # Ultimate fallback
-
         # Target language handling (from config list)
         target_lang_infos = []
         for code in config.target_lang_codes:
@@ -586,6 +585,7 @@ class ProjectManager:
             custom_source_path=config.custom_source_path,
             use_resume=config.use_resume,
             embedded_workshop=config.embedded_workshop.model_dump() if config.embedded_workshop else None,
+            reference_reuse=config.reference_reuse.model_dump() if config.reference_reuse else None,
             progress_callback=progress_callback
         )
         if (

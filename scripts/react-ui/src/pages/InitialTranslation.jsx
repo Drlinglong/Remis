@@ -14,6 +14,7 @@ import {
   Button,
   Group,
   Alert,
+  Modal,
   Title,
 } from '@mantine/core';
 import { IconActivity, IconArrowLeft, IconInfoCircle, IconPlayerPlay } from '@tabler/icons-react';
@@ -39,6 +40,7 @@ import {
 } from '../utils/initialTranslation';
 import api from '../utils/api';
 import { useTaskCenter } from '../context/TaskCenterContextCore';
+import { useInitialReferenceReuse } from '../hooks/useInitialReferenceReuse';
 
 const formatModelSummary = (modelName = '') => {
   const knownModels = {
@@ -201,6 +203,9 @@ const InitialTranslation = () => {
       embedded_workshop_batch_size_limit: '10',
       embedded_workshop_concurrency_limit: '1',
       embedded_workshop_rpm_limit: '40',
+      reference_reuse_enabled: true,
+      reference_localization_path: '',
+      reference_reuse_excluded_entries: [],
       // Custom Language Fields
       custom_name: '',
       custom_key: 'l_english',
@@ -236,6 +241,15 @@ const InitialTranslation = () => {
   const checkpointTargetSignature = form.values.english_disguise
     ? 'custom'
     : form.values.target_lang_codes.join('|');
+  const referenceReuse = useInitialReferenceReuse({
+    excludedEntries: form.values.reference_reuse_excluded_entries,
+    localizationPath: form.values.reference_localization_path,
+    projectId: selectedProjectId,
+    setFieldValue: form.setFieldValue,
+    sourceLangCode: form.values.source_lang_code,
+    t,
+    targetLangCodes: getTargetLangCodes(form.values),
+  });
 
   const handleProjectSelect = useCallback((projectId) => {
     const project = findProjectById(projects, projectId);
@@ -366,7 +380,10 @@ const InitialTranslation = () => {
     handleResume,
     handleStartClick,
     handleStartOver,
+    referencePromptOpen,
+    continueWithoutReference,
     resumeModalOpen,
+    setReferencePromptOpen,
     setResumeModalOpen,
   } = useInitialTranslationFlow({
     config,
@@ -454,6 +471,12 @@ const InitialTranslation = () => {
                 onSubmit={handleStartClick}
                 selectedProject={selectedProject}
                 selectedProjectId={selectedProjectId}
+                onPreviewReferenceReuse={referenceReuse.preview}
+                onOpenReferenceSettings={() => navigate('/settings')}
+                onToggleReferenceEntry={referenceReuse.toggleEntry}
+                referencePreviewEntries={referenceReuse.previewEntries}
+                referencePreviewError={referenceReuse.previewError}
+                referencePreviewLoading={referenceReuse.previewLoading}
                 t={t}
               />
             )
@@ -495,6 +518,25 @@ const InitialTranslation = () => {
         opened={resumeModalOpen}
         t={t}
       />
+
+      <Modal
+        opened={referencePromptOpen}
+        onClose={() => setReferencePromptOpen(false)}
+        title={t('reference_prompt_title')}
+        centered
+      >
+        <Stack>
+          <Text size="sm">{t('reference_prompt_desc')}</Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={continueWithoutReference}>
+              {t('reference_prompt_continue')}
+            </Button>
+            <Button onClick={() => navigate('/settings')}>
+              {t('reference_prompt_settings')}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       {active === 1 && (
         <TranslationActionBar

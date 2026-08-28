@@ -37,6 +37,15 @@ const steamWorkshopUiSources = readdirSync(steamWorkshopRoot, { recursive: true 
   ]);
 
 const steamWorkshopKeyPattern = /t\(\s*['"]((?:steam_workshop|tutorial\.steam_workshop)\.[\w.]+)/g;
+const referenceLibraryRoot = path.resolve(__dirname, '../../components/settings');
+const referenceLibraryUiSources = readdirSync(referenceLibraryRoot)
+  .filter((relativePath) => /^ReferenceLibrary.*\.jsx$/.test(relativePath))
+  .map((relativePath) => path.resolve(referenceLibraryRoot, relativePath))
+  .concat(path.resolve(
+    __dirname,
+    '../../components/initialTranslation/ReferenceLibraryAvailabilityNotice.jsx',
+  ));
+const referenceLibraryKeyPattern = /['"]((?:settings_reference_[\w]+|common\.[\w.]+|button_close|cancel))['"]/g;
 
 const flattenKeys = (value, prefix = '') => {
   if (Array.isArray(value) || value === null || typeof value !== 'object') {
@@ -181,6 +190,28 @@ describe('locale consistency', () => {
     expect(missing, missing.join('\n')).toEqual([]);
     expect(copiedChinese, copiedChinese.join('\n')).toEqual([]);
     expect(copiedEnglish, copiedEnglish.join('\n')).toEqual([]);
+  });
+
+  it('does not allow the reference library UI to reference missing locale entries', () => {
+    const localeEntries = Object.fromEntries(
+      Object.entries(localeFiles).map(([locale, filePath]) => [
+        locale,
+        Object.fromEntries(flattenEntries(loadLocale(filePath))),
+      ]),
+    );
+    const referencedKeys = new Set(referenceLibraryUiSources.flatMap((filePath) => (
+      Array.from(
+        readFileSync(filePath, 'utf8').matchAll(referenceLibraryKeyPattern),
+        ([, key]) => key,
+      )
+    )));
+    const missing = Array.from(referencedKeys).flatMap((key) => (
+      Object.entries(localeEntries)
+        .filter(([, entries]) => typeof entries[key] !== 'string' || entries[key].trim() === '')
+        .map(([locale]) => `${locale}.${key} missing from release locale`)
+    ));
+
+    expect(missing, missing.join('\n')).toEqual([]);
   });
 
   it('keeps every release locale key populated and avoids identical values across all locales', () => {

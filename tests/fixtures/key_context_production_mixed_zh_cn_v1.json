@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "fixture_id": "vic3-adj-production-mixed-zh-cn-v1",
+  "name": "Victoria 3 Simplified Chinese production-like mixed batch v1",
+  "description": "A production-like mixed batch that removes definition/reference track hints and tests a reusable CHI_ADJ value together with consuming references and unrelated distractors.",
+  "language_policies": {
+    "zh-CN": "For Simplified Chinese, a recognized country TAG_ADJ definition must be a reusable country-entity stem without 人, 人的, 的, 式, or other use-site morphology. In strings containing a protected $TAG_ADJ$ token, preserve the complete token and any surrounding formatting, then add 人, 的, or no linker outside the token according to the meaning and natural Chinese syntax. Ordinary prose must be translated normally. Apply each rule only when the input itself provides enough evidence that the condition matches."
+  },
+  "translation_cases": [
+    {
+      "id": "vic3_adj_zh_cn_production_mixed",
+      "track": "mixed_production",
+      "game_id": "victoria3",
+      "source_lang": "en",
+      "target_lang": "zh-CN",
+      "source_file": "tests/fixtures/key_context_production_mixed_zh_cn_v1_l_english.yml",
+      "keys": [
+        "CHI_ADJ:0",
+        "mixed_popular_support:0",
+        "mixed_chinese_culture:0",
+        "mixed_new_order:0",
+        "mixed_chinese_power:0",
+        "mixed_chinese_delegation:0",
+        "mixed_chinese_people:0",
+        "mixed_chinese_language:0"
+      ],
+      "focus": [
+        "production-like value-only ambiguity",
+        "country adjective definition",
+        "definition-reference composition",
+        "ordinary-language distractors"
+      ],
+      "mod_context": "Victoria 3 production-like localization sample.",
+      "language_instruction": "For Simplified Chinese, a recognized country TAG_ADJ definition must be a reusable country-entity stem without 人, 人的, 的, 式, or other use-site morphology. In strings containing a protected $TAG_ADJ$ token, preserve the complete token and any surrounding formatting, then add 人, 的, or no linker outside the token according to the meaning and natural Chinese syntax. Ordinary prose must be translated normally. Apply each rule only when the input itself provides enough evidence that the condition matches.",
+      "semantic_hints": {
+        "CHI_ADJ": "semantic_type=country_adjective_definition; required_form=reusable_country_entity_stem; contextual_morphology_owner=use_site",
+        "mixed_chinese_culture": "semantic_type=country_adjective_reference; preserve_runtime_token=true; relation=direct_compound",
+        "mixed_chinese_power": "semantic_type=country_adjective_reference; preserve_runtime_token=true; relation=possessive",
+        "mixed_chinese_people": "semantic_type=country_adjective_reference; preserve_runtime_token=true; relation=person_demonym",
+        "mixed_popular_support": "semantic_type=ordinary_ui_label",
+        "mixed_new_order": "semantic_type=ordinary_ui_label",
+        "mixed_chinese_delegation": "semantic_type=ordinary_sentence; Chinese=country_modifier",
+        "mixed_chinese_language": "semantic_type=ordinary_sentence; Chinese=language_name"
+      },
+      "expectations": [
+        {
+          "key": "CHI_ADJ",
+          "category": "country_adjective_definition",
+          "accepted_outputs": ["中国"],
+          "forbidden_substrings": ["中国人", "中国的"]
+        },
+        {
+          "key": "mixed_chinese_culture",
+          "category": "direct_compound_reference",
+          "accepted_outputs": ["$CHI_ADJ$文化", "$CHI_ADJ$的文化"]
+        },
+        {
+          "key": "mixed_chinese_power",
+          "category": "possessive_reference",
+          "accepted_outputs": ["$CHI_ADJ$的实力", "$CHI_ADJ$的力量"]
+        },
+        {
+          "key": "mixed_chinese_people",
+          "category": "demonym_reference",
+          "accepted_outputs": ["$CHI_ADJ$人", "$CHI_ADJ$人民"]
+        },
+        {
+          "key": "mixed_chinese_delegation",
+          "category": "ordinary_country_modifier",
+          "required_substrings": ["中国", "代表团"],
+          "forbidden_substrings": ["$CHI_ADJ$"]
+        },
+        {
+          "key": "mixed_chinese_language",
+          "category": "ordinary_language_name",
+          "required_substrings": ["中文", "语言"],
+          "forbidden_substrings": ["$CHI_ADJ$"]
+        }
+      ]
+    }
+  ],
+  "composition_pairs": [
+    {
+      "id": "mixed_chinese_culture_pair",
+      "synthetic": true,
+      "definition": {"key": "CHI_ADJ", "source_value": "Chinese", "gold": "中国"},
+      "reference": {"key": "mixed_chinese_culture", "source_value": "$CHI_ADJ$ culture", "gold": "$CHI_ADJ$文化"},
+      "rendered": {"expected": "中国文化"},
+      "grammar_expectation": {"requires_linker": false}
+    },
+    {
+      "id": "mixed_chinese_power_pair",
+      "synthetic": true,
+      "definition": {"key": "CHI_ADJ", "source_value": "Chinese", "gold": "中国"},
+      "reference": {"key": "mixed_chinese_power", "source_value": "$CHI_ADJ$ power", "gold": "$CHI_ADJ$的实力"},
+      "rendered": {"expected": "中国的实力"},
+      "grammar_expectation": {"requires_linker": true}
+    },
+    {
+      "id": "mixed_chinese_people_pair",
+      "synthetic": true,
+      "definition": {"key": "CHI_ADJ", "source_value": "Chinese", "gold": "中国"},
+      "reference": {"key": "mixed_chinese_people", "source_value": "$CHI_ADJ$ people", "gold": "$CHI_ADJ$人"},
+      "rendered": {"expected": "中国人"},
+      "grammar_expectation": {"requires_linker": false}
+    }
+  ],
+  "manual_review_rubric": {
+    "definition": "The reusable CHI_ADJ output is 中国, without contextual morphology.",
+    "reference": "Every runtime token is preserved and use-site morphology produces natural Simplified Chinese after expansion.",
+    "ordinary_controls": "Literal Chinese must still distinguish country, people, and language senses from sentence context."
+  }
+}

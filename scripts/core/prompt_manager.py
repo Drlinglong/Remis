@@ -1,7 +1,33 @@
 import logging
-from scripts.app_settings import GAME_PROFILES, config_manager
+from scripts.app_settings import GAME_PROFILES, GAME_PROFILES_BY_ID, config_manager
 
 logger = logging.getLogger(__name__)
+
+
+def _profile_and_storage_key(game_id: str):
+    """Resolve either the persisted numeric key or the canonical game id."""
+    if game_id in GAME_PROFILES:
+        return GAME_PROFILES[game_id], game_id
+
+    profile = GAME_PROFILES_BY_ID.get(game_id)
+    if profile is None:
+        return None, None
+
+    storage_key = next(
+        (key for key, candidate in GAME_PROFILES.items() if candidate is profile),
+        game_id,
+    )
+    return profile, storage_key
+
+
+def _get_override(overrides, game_id: str, storage_key: str):
+    """Read new canonical-id overrides while retaining legacy numeric ones."""
+    if game_id in overrides:
+        return overrides[game_id]
+    if storage_key in overrides:
+        return overrides[storage_key]
+    return None
+
 
 class PromptManager:
     """
@@ -43,20 +69,20 @@ class PromptManager:
     def get_effective_prompt(game_id: str) -> str:
         """Returns the effective prompt for a game (override or default)."""
         overrides = config_manager.get_value("prompt_overrides", {})
-        if game_id in overrides:
-            return overrides[game_id]
-        
-        profile = GAME_PROFILES.get(game_id)
+        profile, storage_key = _profile_and_storage_key(game_id)
+        override = _get_override(overrides, game_id, storage_key)
+        if override is not None:
+            return override
         return profile.get("prompt_template", "") if profile else ""
 
     @staticmethod
     def get_effective_format_prompt(game_id: str) -> str:
         """Returns the effective format prompt for a game (override or default)."""
         overrides = config_manager.get_value("format_prompt_overrides", {})
-        if game_id in overrides:
-            return overrides[game_id]
-        
-        profile = GAME_PROFILES.get(game_id)
+        profile, storage_key = _profile_and_storage_key(game_id)
+        override = _get_override(overrides, game_id, storage_key)
+        if override is not None:
+            return override
         if not profile:
             return ""
         

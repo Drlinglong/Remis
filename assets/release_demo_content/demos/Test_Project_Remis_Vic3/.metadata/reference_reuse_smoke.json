@@ -1,0 +1,16 @@
+{
+  "fixture": "issue-208-vic3-vanilla-reference-reuse",
+  "source_language": "zh-CN",
+  "target_language": "en",
+  "source_file": "localization/simp_chinese/remis_demo_l_simp_chinese.yml",
+  "expected_reused": {
+    "FRA": "France",
+    "GBR": "Great Britain",
+    "TRK": "Turkana",
+    "TUR": "Turkey",
+    "USA": "America"
+  },
+  "expected_model_submitted": [
+    "remis_reference_key_only_control"
+  ]
+}

@@ -3,6 +3,7 @@ from scripts.core.parallel_types import BatchTask
 from scripts.core.openai_handler import OpenAIHandler
 from scripts.core.glossary_manager import glossary_manager
 from scripts.utils import i18n
+from scripts.core.vic3_country_adjective_context import prompt_policy
 # from scripts.utils.text_clean import mask_special_tokens, restore_special_tokens # REMOVED
 
 class HunyuanHandler(OpenAIHandler):
@@ -54,7 +55,19 @@ class HunyuanHandler(OpenAIHandler):
         # [MODIFIED] Direct input without masking to preserve variable context (e.g. [Root.GetName])
         # The user explicitly requested to trust the LLM with raw Paradox variables 
         # instead of masking them, to allow context-aware translation.
-        source_text = "\n".join(chunk)
+        semantic_hints = getattr(task.file_task, "semantic_hints", [])
+        batch_hints = semantic_hints[task.start_index:task.end_index]
+        if len(batch_hints) != len(chunk):
+            batch_hints = [None] * len(chunk)
+        source_lines = []
+        for text, hint in zip(chunk, batch_hints):
+            if hint:
+                source_lines.append(
+                    f'Semantic hint: "{hint}"; Source value: "{text}"'
+                )
+            else:
+                source_lines.append(text)
+        source_text = "\n".join(source_lines)
 
         # 2. Select Template
         # Template for ZH<=>XX (Target is ZH or Source is ZH)
@@ -103,10 +116,22 @@ class HunyuanHandler(OpenAIHandler):
                     + "\n\n"
                 )
 
+        language_policy = prompt_policy(target_lang_code, batch_hints)
+        language_policy_part = (
+            "TARGET-LANGUAGE MORPHOLOGY POLICY:\n"
+            f"{language_policy}\n"
+            "Apply this policy only to entries carrying matching semantic metadata. "
+            "For annotated lines, translate only the Source value; the Semantic hint is context, not source text. "
+            "Do not translate or echo the metadata. Preserve one output line per input line.\n\n"
+            if language_policy
+            else ""
+        )
+
         prompt = (
             context_prompt_part
             + custom_global_prompt_part
             + glossary_prompt_part
+            + language_policy_part
             + prompt
         )
         return self._apply_model_prompt_adapter(prompt)

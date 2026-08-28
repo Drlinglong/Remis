@@ -82,8 +82,8 @@ DEFAULT_BACKEND_PORT = 1453
 # --- 项目信息 ----------------------------------------------------
 PROJECT_NAME = "Paradox Mod 本地化工厂 - Paradox Mod Localization Factory"
 PROJECT_DISPLAY_NAME = "蕾姆丝计划 - Project Remis "
-VERSION = "3.1.6"
-LAST_UPDATE_DATE = "2026-08-18"
+VERSION = "3.1.7"
+LAST_UPDATE_DATE = "2026-08-29"
 COPYRIGHT = "© 2026 Project Remis Team"
 
 # --- 项目信息显示配置 --------------------------------------------
@@ -239,6 +239,7 @@ REMIS_DB_PATH = os.path.join(APP_DATA_DIR, "remis.sqlite")
 
 PROJECTS_DB_PATH = REMIS_DB_PATH
 MODS_CACHE_DB_PATH = os.path.join(APP_DATA_DIR, "mods_cache.sqlite") # Keep separate? Yes, cache is cache.
+VANILLA_REFERENCE_DB_PATH = os.path.join(APP_DATA_DIR, "vanilla_reference.sqlite")
 TRANSLATION_PROGRESS_DB_PATH = os.path.join(APP_DATA_DIR, "translation_progress.sqlite")
 # The main glossary database
 DATABASE_PATH = REMIS_DB_PATH

@@ -149,3 +149,60 @@ def test_export_writes_project_run_and_source_version_metadata(tmp_path):
     assert issue["project_id"] == "project-1"
     assert issue["run_id"] == "run-1"
     assert issue["source_version_id"] == 42
+
+
+def test_vic3_country_adjective_reference_is_exported_for_human_review(tmp_path):
+    source_root = tmp_path / "source"
+    output_root = tmp_path / "output"
+    _write_loc(
+        source_root / "localization" / "english" / "sample_l_english.yml",
+        'l_english:\n demo.key:0 "$BHT_ADJ$ Uprising"\n',
+    )
+    _write_loc(
+        output_root / "localization" / "simp_chinese" / "sample_l_simp_chinese.yml",
+        'l_simp_chinese:\n demo.key:0 "$BHT_ADJ$起义"\n',
+    )
+
+    result = WorkshopIssueExportService().export_for_output(
+        output_root=output_root,
+        source_root=source_root,
+        source_lang_info={"code": "en", "key": "l_english"},
+        target_lang_info={"code": "zh-CN", "key": "l_simp_chinese"},
+        game_profile={"id": "victoria3"},
+        workflow="test",
+        project_name="Demo",
+    )
+
+    issue = next(
+        item for item in result["issues"]
+        if item["error_code"] == "vic3_country_adjective_reference_review"
+    )
+    assert issue["severity"] == "human_review"
+    assert issue["requires_human_review"] is True
+
+
+def test_vic3_country_adjective_definition_does_not_create_reference_review(tmp_path):
+    source_root = tmp_path / "source"
+    output_root = tmp_path / "output"
+    _write_loc(
+        source_root / "localization" / "english" / "sample_l_english.yml",
+        'l_english:\n BHT_ADJ:0 "Indian"\n',
+    )
+    _write_loc(
+        output_root / "localization" / "simp_chinese" / "sample_l_simp_chinese.yml",
+        'l_simp_chinese:\n BHT_ADJ:0 "印度"\n',
+    )
+
+    result = WorkshopIssueExportService().export_for_output(
+        output_root=output_root,
+        source_root=source_root,
+        source_lang_info={"code": "en", "key": "l_english"},
+        target_lang_info={"code": "zh-CN", "key": "l_simp_chinese"},
+        game_profile={"id": "victoria3"},
+        workflow="test",
+    )
+
+    assert not any(
+        item["error_code"] == "vic3_country_adjective_reference_review"
+        for item in result["issues"]
+    )

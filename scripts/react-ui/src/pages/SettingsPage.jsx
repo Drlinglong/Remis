@@ -8,6 +8,7 @@ import { AVAILABLE_THEMES } from '../config/themes';
 import ApiSettingsTab from '../components/ApiSettingsTab';
 import PromptSettingsTab from '../components/PromptSettingsTab';
 import VersionInfoTab from '../components/VersionInfoTab';
+import ReferenceLibraryMaintenanceCard from '../components/settings/ReferenceLibraryMaintenanceCard';
 import { useTutorial, getTutorialKey } from '../context/TutorialContextCore';
 
 import styles from './SettingsPage.module.css';
@@ -162,6 +163,8 @@ const SettingsPage = () => {
                                 </Group>
 
                                 <Divider my="xl" label={t('settings_system_maintenance')} labelPosition="center" />
+
+                                <ReferenceLibraryMaintenanceCard t={t} />
 
                                 <Group justify="space-between" align="flex-start">
                                     <Box>

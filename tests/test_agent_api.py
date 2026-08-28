@@ -319,6 +319,90 @@ def test_starting_job_is_pollable():
     assert actions == ["poll"]
 
 
+def test_completed_job_with_manual_review_cannot_be_approved_for_export():
+    validation = AgentValidationSummary(
+        available=True,
+        human_review_items=1,
+        total=1,
+    )
+
+    actions = agent_router._job_allowed_actions(
+        "completed",
+        validation,
+        ["reports/translation.json"],
+        kind="translation",
+    )
+
+    assert actions == ["inspect_validation"]
+
+
+def test_legacy_translation_job_does_not_advertise_agent_mutations():
+    validation = AgentValidationSummary(available=True)
+
+    assert agent_router._job_allowed_actions(
+        "completed",
+        validation,
+        ["reports/translation.json"],
+        kind="translation",
+        agent_managed=False,
+    ) == ["inspect_validation"]
+
+
+@pytest.mark.asyncio
+async def test_legacy_translation_job_hides_agent_export_link(
+    monkeypatch,
+):
+    job_id = "legacy-translation-without-agent-record"
+    task_state.create_task(
+        job_id,
+        status="completed",
+        fields={
+            "project_id": "project-legacy",
+            "agent_job_kind": "initial_translation",
+            "output_dirs": ["C:/output"],
+            "progress": {"current": 1, "total": 1, "percent": 100},
+        },
+    )
+
+    async def fake_validation(_project_id, include_items=False):
+        return {
+            "summary": AgentValidationSummary(available=True),
+            "items": [],
+            "_raw_items": [],
+        }
+
+    monkeypatch.setattr(agent_router, "_validation_payload", fake_validation)
+    response = await agent_router.get_agent_job(job_id)
+
+    assert response.status == "completed"
+    assert response.allowed_actions == ["inspect_validation"]
+    assert "export_preview" not in response.links
+    task_state.tasks.pop(job_id, None)
+
+
+@pytest.mark.asyncio
+async def test_legacy_translation_validation_has_no_agent_actions(monkeypatch):
+    job_id = "legacy-translation-validation-without-agent-record"
+    task_state.create_task(
+        job_id,
+        status="completed",
+        fields={"project_id": "project-legacy"},
+    )
+
+    async def fake_validation(_project_id, include_items=False):
+        return {
+            "summary": AgentValidationSummary(available=True),
+            "items": [],
+            "_raw_items": [],
+        }
+
+    monkeypatch.setattr(agent_router, "_validation_payload", fake_validation)
+    response = await agent_router.get_agent_job_validation(job_id)
+
+    assert response["allowed_actions"] == []
+    task_state.tasks.pop(job_id, None)
+
+
 def test_project_import_path_rejects_home_directory():
     with pytest.raises(HTTPException) as exc_info:
         agent_router._validate_agent_import_path(str(Path.home()))

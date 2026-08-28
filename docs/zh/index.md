@@ -9,6 +9,7 @@
 - [项目管理开发契约](developer/project-management-contract.md) - 数据边界、删除语义与当前差距
 - [初次翻译与增量翻译产品意图](product-intent-translation-workflows.md) - 用户目标、失败语义与基线边界
 - [翻译主流程开发契约](developer/translation-workflow-contract.md) - 当前实现、差异与回归测试
+- [Victoria 3 国家形容词语义上下文](developer/vic3-country-adjective-context.md) - `TAG_ADJ` 定义/引用协同、语言契约、人工复核与扩展边界
 - [部署产品意图](product-intent-deployment.md) - 文件复制、用户确认与启动器边界
 - [Steam 工坊产品意图](product-intent-steam-workshop.md) - 发布素材、可选项目绑定、版本记录与上传边界
 - [部署开发契约](developer/deployment-contract.md) - 预览、覆盖、文件写入与当前差距
@@ -20,6 +21,8 @@
 - [Model Arena 开发契约](developer/model-arena-contract.md) - 抽样、匿名投票、历史与导出边界
 - [Task Center 产品意图](product-intent-task-center.md) - 任务收件箱、结果找回与主页边界
 - [Task Center 开发契约](developer/task-center-contract.md) - 状态、持久化、已处理语义与 Agent 读取边界
+- [官方参考语料库产品意图](product-intent-reference-library.md) - 官方译文复用、维护交互与禁止副作用
+- [官方参考语料库开发契约](developer/reference-library-contract.md) - 精确匹配、SQLite、后台任务与删除边界
 - [智能工坊产品意图](product-intent-agent-workshop.md) - 格式安全护栏、自动写回与禁止语义重写
 - [智能工坊开发契约](developer/agent-workshop-contract.md) - 扫描、有限重试、逐条写回与当前高风险差距
 - [Mod 监控产品意图](product-intent-project-tracking.md) - 只读本地化变化探测与 Agent 边界
@@ -49,6 +52,7 @@
 - [词典与词汇表](user-guides/glossary.md) - 主词典 / 额外词典 / 项目词典与翻译启用
 - [模型竞技场](user-guides/model-arena.md) - 正式翻译前比较 2 或 3 个候选模型
 - [任务中心](user-guides/task-center.md) - 查看后台进度、失败、结果和全部日志
+- [官方参考语料库](user-guides/reference-library.md) - 检测游戏、建立、更新和删除本地官方译文索引
 - [常见问题解答 (FAQ)](user-guides/faq.md) - 常见问题和解决方案
 - [工厂工作原理](user-guides/how_the_factory_works.md) - 原理向流水线说明
 - [日志与诊断](user-guides/logs-and-diagnostics.md) - 日志在哪、怎么看、如何反馈
@@ -78,6 +82,8 @@
 - [发布构建脚本指南](developer/build-release-script-guide.md) - `build_release.bat` 脚本的使用说明
 - [Feature Flags 说明](developer/feature_flags.md) - 前端实验功能开关
 - [动态标签验证器与工具](developer/dynamic_tag_validator_and_tools.md) - 当前验证器相关说明
+- [Victoria 3 国家形容词语义上下文](developer/vic3-country-adjective-context.md) - Issue #207 生产 MVP、版本化资源与维护门禁
+- [Key context 因子实验](developer/key-context-factorial-benchmark.md) - 试验组、fixture、成本估算与质量评审方法
 - [多文件并行处理架构说明](developer/parallel-processing.md) - 并行处理技术详解
 - [Workshop 描述生成器指南](developer/workshop_description_generator_guide.md) - 工具说明
 - [Steam 工坊与发布素材](user-guides/steam-workshop.md) - 工作区、封面图、工坊描述与版本历史

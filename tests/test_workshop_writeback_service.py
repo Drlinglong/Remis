@@ -107,3 +107,28 @@ def test_embedded_workshop_excludes_invalid_keys_before_batching(tmp_path):
     }), encoding="utf-8")
 
     assert [issue["key"] for issue in embedded_workshop_service._load_issues(sidecar)] == ["valid.key:0"]
+
+
+def test_embedded_workshop_excludes_reference_protected_entries(tmp_path):
+    sidecar = tmp_path / "issues.json"
+    sidecar.write_text(json.dumps({
+        "issues": [
+            {
+                "source_file": "localization/english/countries_l_english.yml",
+                "key": "TRK:0",
+                "error_code": "validation_variable_parity_mismatch",
+            },
+            {
+                "source_file": "localization/english/countries_l_english.yml",
+                "key": "OTHER:0",
+                "error_code": "validation_variable_parity_mismatch",
+            },
+        ],
+    }), encoding="utf-8")
+
+    issues = embedded_workshop_service._load_issues(sidecar, [{
+        "source_file": "localization\\english\\countries_l_english.yml",
+        "key": "TRK",
+    }])
+
+    assert [issue["key"] for issue in issues] == ["OTHER:0"]

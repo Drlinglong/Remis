@@ -157,7 +157,7 @@ def test_diff_service_matches_unique_key_fallbacks():
     assert entry is None
 
 
-def test_diff_service_reprocesses_exact_source_text_translation():
+def test_diff_service_reuses_legitimate_translation_equal_to_source():
     service = IncrementalDiffService()
     history_entry = {
         "file_path": "localization/english/sample_l_english.yml",
@@ -175,7 +175,7 @@ def test_diff_service_reprocesses_exact_source_text_translation():
         target_lang_code="zh-CN",
     )
 
-    assert status == "changed"
+    assert status == "unchanged"
     assert entry is history_entry
 
 

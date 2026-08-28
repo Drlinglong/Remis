@@ -223,6 +223,43 @@ def test_hydration_interrupts_only_explicitly_non_resumable_workshop_tasks(tmp_p
         task_state.tasks.update(previous_tasks)
 
 
+def test_hydration_interrupts_persisted_reference_maintenance_and_releases_dedupe(tmp_path):
+    db_path = tmp_path / "reference-task-recovery.sqlite"
+    migrate_main_database(str(db_path))
+    repository = TaskRepository(str(db_path))
+    previous_tasks = dict(task_state.tasks)
+    try:
+        task_state.tasks.clear()
+        for task_id, status in (("reference-queued", "queued"), ("reference-running", "running")):
+            repository.save_task({
+                "task_id": task_id,
+                "kind": "reference_library_maintenance",
+                "title": "Official reference library maintenance",
+                "status": status,
+                "dedupe_key": "reference-library-maintenance",
+                "created_at": "2026-07-24T00:00:00Z",
+                "updated_at": "2026-07-24T00:01:00Z",
+                "progress": {"stage": "indexing"},
+            })
+
+        task_state.configure_repository(repository, hydrate=True, replace=True)
+
+        recovered = [task_state.get_task(task_id) for task_id in ("reference-queued", "reference-running")]
+        assert all(task["status"] == "interrupted" for task in recovered)
+        assert all(task["finished_at"] for task in recovered)
+        assert all(task["progress"]["stage"] == "Interrupted" for task in recovered)
+        assert task_state.find_active_task_by_dedupe_key("reference-library-maintenance") is None
+        assert all(
+            repository.get_task(task_id)["status"] == "interrupted"
+            for task_id in ("reference-queued", "reference-running")
+        )
+        assert task_state.get_task_events("reference-running")[0]["event_type"] == "recovery_interrupted"
+    finally:
+        task_state.configure_repository(None)
+        task_state.tasks.clear()
+        task_state.tasks.update(previous_tasks)
+
+
 def test_retention_prunes_only_old_or_excess_terminal_tasks_and_cascades_events(tmp_path):
     db_path = tmp_path / "task-retention.sqlite"
     migrate_main_database(str(db_path))

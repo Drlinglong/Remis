@@ -5,21 +5,57 @@ import { normalizeArrayPayload } from '../utils/payload';
 
 const unwrapRunPayload = (payload) => payload?.run || payload?.data?.run || payload?.data || payload;
 
+const isRecord = (value) => value !== null
+  && typeof value === 'object'
+  && !Array.isArray(value);
+
+const normalizeRecords = (value) => (
+  Array.isArray(value) ? value.filter(isRecord) : []
+);
+
+const normalizeResults = (results) => {
+  if (!isRecord(results) || !Object.prototype.hasOwnProperty.call(results, 'contestants')) {
+    return results;
+  }
+  return { ...results, contestants: normalizeRecords(results.contestants) };
+};
+
 export const normalizeModelArenaRun = (payload) => {
   const run = unwrapRunPayload(payload);
-  if (!run || typeof run !== 'object') return run;
-  const outputs = Array.isArray(run.outputs) ? run.outputs : [];
-  const votes = Array.isArray(run.votes) ? run.votes : [];
+  if (!isRecord(run)) return run;
+  const outputs = normalizeRecords(run.outputs);
+  const votes = normalizeRecords(run.votes);
+  const samples = normalizeRecords(run.samples);
+  const contestants = normalizeRecords(run.contestants);
+  const requests = normalizeRecords(run.requests);
+  const events = normalizeRecords(run.events);
+  const fallbackOutputs = (sample) => outputs.filter(
+    (output) => output.sample_id === sample.sample_id,
+  );
+  const normalizeSampleOutputs = (sample) => {
+    if (Array.isArray(sample.outputs)) return sample.outputs.filter(isRecord);
+    return sample.outputs ? [] : fallbackOutputs(sample);
+  };
+  const normalizeSampleVote = (sample) => {
+    if (isRecord(sample.vote)) return sample.vote;
+    return sample.vote ? null : votes.find(
+      (vote) => vote.sample_id === sample.sample_id,
+    ) || null;
+  };
   return {
     ...run,
-    samples: (run.samples || []).map((sample) => ({
+    contestants,
+    results: normalizeResults(run.results),
+    requests,
+    events,
+    outputs,
+    votes,
+    samples: samples.map((sample) => ({
       ...sample,
-      outputs: [...(sample.outputs || outputs.filter(
-        (output) => output.sample_id === sample.sample_id,
-      ))].sort((left, right) => String(left.candidate_id || '').localeCompare(
+      outputs: normalizeSampleOutputs(sample).sort((left, right) => String(left.candidate_id || '').localeCompare(
           String(right.candidate_id || ''),
         )),
-      vote: sample.vote || votes.find((vote) => vote.sample_id === sample.sample_id) || null,
+      vote: normalizeSampleVote(sample),
     })),
   };
 };

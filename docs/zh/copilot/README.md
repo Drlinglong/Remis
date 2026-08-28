@@ -58,6 +58,7 @@ Copilot 回答如何使用 Remis，Agent 把自然语言目标整理成待批准
    - [词典与词汇表](../user-guides/glossary.md)
    - [模型竞技场](../user-guides/model-arena.md)
    - [任务中心](../user-guides/task-center.md)
+   - [官方参考语料库](../user-guides/reference-library.md)
    - [Remis 小助手](../user-guides/remis-assistant.md)
    - [项目追踪](../user-guides/project-tracking.md)
    - [新词审判庭](../user-guides/neologism-tribunal.md)
