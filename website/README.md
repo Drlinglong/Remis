@@ -32,7 +32,7 @@ The site is a true multi-page Vite build. Each public route has its own HTML ent
 
 - `/Remis/`
 - `/Remis/engineering/`
-- `/Remis/aventine/`
+- `/Remis/aventine/` (redirects to the standalone Aventine benchmark site)
 - `/Remis/guide/`
 - `/Remis/roadmap/`
 

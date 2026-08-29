@@ -6,12 +6,14 @@ import {
   aventineRanking,
   aventineRecipeStages,
   links,
+  navigationHref,
   pageFromPath,
   productLayers,
   roadmapPhases,
   SITE_BASE,
   workflowDiagrams,
   pages,
+  proofPoints,
 } from './site'
 
 describe('pageFromPath', () => {
@@ -45,6 +47,20 @@ describe('Codex product entry', () => {
     expect(links.agentSkill).toBe(
       'https://github.com/Drlinglong/Remis/tree/main/.agents/skills/remis-agent',
     )
+  })
+})
+
+describe('public evidence and navigation', () => {
+  it('publishes the current release evidence snapshot', () => {
+    expect(proofPoints.find((point) => point.label === 'Public releases')?.value).toBe('38')
+    expect(proofPoints.find((point) => point.label === 'Installer downloads')?.value).toBe('600+')
+  })
+
+  it('routes Aventine navigation to the standalone benchmark site', () => {
+    const aventinePage = pages.find((page) => page.key === 'aventine')
+
+    expect(links.aventineSite).toBe('https://drlinglong.github.io/remis-aventine/')
+    expect(navigationHref(aventinePage)).toBe(links.aventineSite)
   })
 })
 

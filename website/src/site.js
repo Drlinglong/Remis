@@ -3,6 +3,7 @@ export const SITE_BASE = '/Remis/'
 export const links = {
   github: 'https://github.com/Drlinglong/Remis',
   aventine: 'https://github.com/Drlinglong/remis-aventine',
+  aventineSite: 'https://drlinglong.github.io/remis-aventine/',
   aventinePilotAggregate: 'https://github.com/Drlinglong/Remis/blob/main/website/src/aventinePilotAggregate.json',
   aventineAnchoredAggregate: 'https://github.com/Drlinglong/Remis/blob/main/website/src/aventineAnchoredPlacement.json',
   aventineScoringRoadmap: 'https://github.com/Drlinglong/remis-aventine/issues/6',
@@ -23,13 +24,17 @@ export const pages = [
   { key: 'home', label: 'Product', path: '' },
   { key: 'codex', label: 'Use with Codex', path: 'codex/' },
   { key: 'engineering', label: 'AI Engineering', path: 'engineering/' },
-  { key: 'aventine', label: 'Aventine', path: 'aventine/' },
+  { key: 'aventine', label: 'Aventine', href: links.aventineSite },
   { key: 'guide', label: 'Beginner Guide', path: 'guide/' },
   { key: 'roadmap', label: 'Roadmap', path: 'roadmap/' },
 ]
 
 export function sitePath(path = '') {
   return `${import.meta.env?.BASE_URL ?? SITE_BASE}${path}`
+}
+
+export function navigationHref(page) {
+  return page.href ?? sitePath(page.path)
 }
 
 export function assetPath(fileName) {
@@ -52,10 +57,12 @@ export function pageFromPath(pathname, base = SITE_BASE) {
   return segment === '' || segment === 'index.html' ? 'home' : 'notFound'
 }
 
+// Verified 2026-08-30 via the GitHub Releases API: 38 public releases and
+// 616 cumulative public release-asset downloads. Downloads use a durable band.
 export const proofPoints = [
   { value: '8,000+', label: 'Workshop reach', note: 'users and subscribers reached by released localization work' },
-  { value: '29', label: 'Public releases', note: 'a maintained Windows desktop product, not a one-off demo' },
-  { value: '500+', label: 'Installer downloads', note: 'public GitHub release downloads across shipped versions' },
+  { value: '38', label: 'Public releases', note: 'a maintained Windows desktop product, not a one-off demo' },
+  { value: '600+', label: 'Installer downloads', note: 'public GitHub release downloads across shipped versions' },
   { value: '120+', label: 'Tracked test files', note: 'backend, workflow, validation, and frontend regression coverage' },
 ]
 

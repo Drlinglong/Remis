@@ -1,4 +1,4 @@
-import { pages, sitePath, links } from '../site'
+import { links, navigationHref, pages, sitePath } from '../site'
 import { useI18n } from '../i18n/context'
 
 function BrandMark() {
@@ -82,7 +82,7 @@ function Header({ activePage }) {
             <a
               key={page.key}
               className={activePage === page.key ? 'is-active' : ''}
-              href={sitePath(page.path)}
+              href={navigationHref(page)}
               aria-current={activePage === page.key ? 'page' : undefined}
             >
               {t(page.label)}
@@ -100,7 +100,7 @@ function Header({ activePage }) {
           <summary aria-label={t('Open navigation')}>{t('Menu')}</summary>
           <nav aria-label={t('Mobile navigation')}>
             {pages.map((page) => (
-              <a key={page.key} href={sitePath(page.path)}>{t(page.label)}</a>
+              <a key={page.key} href={navigationHref(page)}>{t(page.label)}</a>
             ))}
             <a href={links.github} target="_blank" rel="noreferrer">{t('GitHub')} ↗</a>
           </nav>
@@ -123,7 +123,7 @@ function Footer() {
           <span className="footer-label">{t('Explore')}</span>
           <a href={sitePath('engineering/')}>{t('AI Engineering')}</a>
           <a href={sitePath('codex/')}>{t('Use with Codex')}</a>
-          <a href={sitePath('aventine/')}>{t('Aventine')}</a>
+          <a href={links.aventineSite}>{t('Aventine')}</a>
           <a href={sitePath('guide/')}>{t('Beginner Guide')}</a>
           <a href={sitePath('roadmap/')}>{t('Roadmap')}</a>
         </div>
