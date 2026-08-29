@@ -70,8 +70,14 @@
 }
 
 .assistantMessage .bubble {
+  --remis-content-text: #f8f9fa;
   background: color-mix(in srgb, var(--mantine-color-dark-6, #2c2e33) 55%, transparent);
   border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  color: #f8f9fa;
+}
+
+.assistantMessage .markdown a {
+  color: #74c0fc;
 }
 
 .markdown {
@@ -116,6 +122,52 @@
 .actionBar {
   border-top: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
   padding-top: 0.55rem;
+}
+
+.assistantMessage .metadataBadge {
+  color: #f8f9fa;
+}
+
+.thinkingBubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--remis-content-text, #f8f9fa);
+}
+
+.thinkingDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+}
+
+.thinkingDots i {
+  width: 0.34rem;
+  height: 0.34rem;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+  animation: copilot-thinking-pulse 1.15s ease-in-out infinite;
+}
+
+.thinkingDots i:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.thinkingDots i:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@keyframes copilot-thinking-pulse {
+  0%, 70%, 100% { transform: translateY(0); opacity: 0.3; }
+  35% { transform: translateY(-0.2rem); opacity: 0.95; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thinkingDots i {
+    animation: none;
+    opacity: 0.65;
+  }
 }
 
 .composer {

@@ -8,11 +8,13 @@ import re
 import time
 from typing import Any, Optional
 
+from scripts.app_settings import API_PROVIDERS, config_manager
 from scripts.core.api_handler import get_handler
 from scripts.core.copilot.actions import filter_suggested_actions
 from scripts.core.copilot.context_budget import (
     DEFAULT_INPUT_TOKEN_BUDGET,
     apply_context_budget,
+    resolve_input_budget,
 )
 from scripts.core.copilot.help_pack import (
     build_skill_router_prompt,
@@ -133,20 +135,111 @@ def _filter_sources_for_grounding(
     return [CopilotSource(**s) for s in allowed]
 
 
+def _is_context_length_error(error: Exception) -> bool:
+    text = str(error).lower()
+    return any(
+        marker in text
+        for marker in (
+            "context length",
+            "context size",
+            "maximum context",
+            "prompt is too long",
+            "too many tokens",
+            "token limit",
+        )
+    )
+
+
+def _provider_error_reply(provider: str, model: str | None, error: Exception) -> str:
+    if _is_context_length_error(error):
+        return (
+            f"供应商 {provider} / {model or '默认模型'} 拒绝了当前上下文长度。\n\n"
+            "这是可恢复的上下文长度错误：请重试以丢弃更早的聊天消息，或在“设置 → 小助手设置”中选择"
+            "已知上下文更大的模型；Remis 不会要求您粘贴 API Key。"
+        )
+    return (
+        f"调用 {provider} / {model or '默认模型'} 时出错：{error}\n\n"
+        "请检查“小助手设置”中的供应商与模型、对应 API 配置，或查看日志。"
+    )
+
+
+def resolve_copilot_context_budget(
+    provider: str,
+    model: str | None,
+    requested_budget: int | None,
+) -> int:
+    provider_config = dict(API_PROVIDERS.get(provider, {}))
+    provider_overrides = config_manager.get_value("provider_config", {}) or {}
+    if isinstance(provider_overrides, dict):
+        provider_config.update(provider_overrides.get(provider, {}) or {})
+    return resolve_input_budget(
+        requested_budget,
+        provider_config=provider_config,
+        model_name=model or provider_config.get("selected_model") or provider_config.get("default_model"),
+    )
+
+
+def _help_agent_error_reply(provider: str, model: str | None, error: Exception) -> str:
+    if _is_context_length_error(error):
+        return _provider_error_reply(provider, model, error)
+    return f"小助手暂时无法完成这次回答：{error}"
+
+
+def _connection_error_reply(provider: str, model: str | None, error: Exception) -> str:
+    if _is_context_length_error(error):
+        return _provider_error_reply(provider, model, error)
+    return (
+        f"无法连接本地模型服务（{provider}）。\n\n"
+        f"{error}\n\n"
+        "请确认 LM Studio 已启动并加载了模型，Base URL 一般为 "
+        "`http://localhost:1234/v1`。之后可在小助手页面选择其他供应商。"
+    )
+
+
+def _capability_response(
+    capability: Any,
+    query: str,
+    provider: str,
+    model: str | None,
+    budget: int,
+) -> CopilotChatResponse:
+    return CopilotChatResponse(
+        reply=build_capability_reply(capability, query),
+        suggested_actions=[SuggestedAction(**a) for a in capability.suggested_actions],
+        confidence=capability.confidence,  # type: ignore[arg-type]
+        provider=provider,
+        model=model,
+        grounding="policy",
+        grounding_score=100,
+        context=CopilotContextInfo(
+            budget_tokens=budget,
+            strategy="capability_short_circuit",
+            warnings=["answered_from_agent_policy_without_llm"],
+        ),
+    )
+
+
 def run_copilot_chat(
     messages: list[CopilotChatMessage],
     provider: str = "lm_studio",
     model: Optional[str] = None,
     locale: str = "zh",
     context_budget_tokens: int = DEFAULT_INPUT_TOKEN_BUDGET,
-    page_context: Optional[dict[str, Any]] = None,
+    page_context: Optional[dict[str, Any]] = None, reasoning_override: Optional[dict[str, Any]] = None,
 ) -> CopilotChatResponse:
+    provider_name = (provider or "lm_studio").strip() or "lm_studio"
+    model_name = (model or "").strip() or None
+    effective_budget = resolve_copilot_context_budget(
+        provider_name,
+        model_name,
+        context_budget_tokens,
+    )
     if not messages:
         return CopilotChatResponse(
             reply="请先输入您的问题。",
             confidence="low",
-            provider=provider,
-            model=model,
+            provider=provider_name,
+            model=model_name,
             parse_mode="fallback_text",
             grounding="none",
         )
@@ -157,35 +250,15 @@ def run_copilot_chat(
     # keyword-doc routing and without the "文档未覆盖" path.
     capability = detect_capability_intent(user_query)
     if capability is not None:
-        reply = build_capability_reply(capability, user_query)
-        return CopilotChatResponse(
-            reply=reply,
-            suggested_actions=[SuggestedAction(**a) for a in capability.suggested_actions],
-            sources=[],
-            confidence=capability.confidence,  # type: ignore[arg-type]
-            provider=(provider or "lm_studio").strip() or "lm_studio",
-            model=(model or "").strip() or None,
-            parse_mode="structured",
-            grounding="policy",
-            grounding_score=100,
-            context=CopilotContextInfo(
-                estimated_input_tokens=0,
-                budget_tokens=context_budget_tokens or DEFAULT_INPUT_TOKEN_BUDGET,
-                dropped_message_count=0,
-                truncated_system=False,
-                strategy="capability_short_circuit",
-                warnings=["answered_from_agent_policy_without_llm"],
-                history_message_count=0,
-            ),
+        return _capability_response(
+            capability, user_query, provider_name, model_name, effective_budget
         )
 
     history = _history_for_model(messages)
-    provider_name = (provider or "lm_studio").strip() or "lm_studio"
-    model_name = (model or "").strip() or None
     grounding = "none"
     grounding_score = 0
     context_info = CopilotContextInfo(
-        budget_tokens=context_budget_tokens or DEFAULT_INPUT_TOKEN_BUDGET,
+        budget_tokens=effective_budget,
         strategy="agent_skill_routing",
         history_message_count=len(history),
     )
@@ -193,9 +266,13 @@ def run_copilot_chat(
 
     if provider_name == "lm_studio":
         try:
+            budgeted = apply_context_budget("", history, budget_tokens=effective_budget)
             started = time.perf_counter()
             agent_result = run_pydantic_help_agent(
-                history, model_name=model_name, page_context=page_context
+                budgeted.history,
+                model_name=model_name,
+                page_context=page_context,
+                reasoning_override=reasoning_override,
             )
             answer = agent_result["answer"]
             excerpts = agent_result["excerpts"]
@@ -213,6 +290,12 @@ def run_copilot_chat(
             reply = answer.reply
             if grounding == "none" and not reply.startswith("【文档未覆盖】"):
                 reply = "【文档未覆盖】" + reply
+            context_info = CopilotContextInfo(**budgeted.as_dict())
+            context_info.strategy = "pydantic_ai_help_agent"
+            context_info.routing_mode = "pydantic_ai_tools"
+            context_info.routing_ms = round((time.perf_counter() - started) * 1000)
+            context_info.selected_skill_ids = selected_skill_ids
+            context_info.loaded_source_count = len(sources)
             return CopilotChatResponse(
                 reply=reply,
                 suggested_actions=[SuggestedAction(**item) for item in actions],
@@ -223,34 +306,27 @@ def run_copilot_chat(
                 parse_mode="structured",
                 grounding=grounding,  # type: ignore[arg-type]
                 grounding_score=grounding_score,
-                context=CopilotContextInfo(
-                    budget_tokens=context_budget_tokens or DEFAULT_INPUT_TOKEN_BUDGET,
-                    strategy="pydantic_ai_help_agent",
-                    history_message_count=len(history),
-                    routing_mode="pydantic_ai_tools",
-                    routing_ms=round((time.perf_counter() - started) * 1000),
-                    selected_skill_ids=selected_skill_ids,
-                    loaded_source_count=len(sources),
-                ),
+                context=context_info,
             )
         except Exception as exc:
             logger.exception("PydanticAI Help Copilot failed")
             return CopilotChatResponse(
-                reply=f"小助手暂时无法完成这次回答：{exc}",
+                reply=_help_agent_error_reply(provider_name, model_name, exc),
                 confidence="low",
                 provider=provider_name,
                 model=model_name,
                 parse_mode="fallback_text",
                 grounding="none",
                 context=CopilotContextInfo(
+                    budget_tokens=effective_budget,
                     strategy="pydantic_ai_help_agent_failed",
-                    warnings=[type(exc).__name__],
+                    warnings=(budgeted.warnings if budgeted else []) + [type(exc).__name__],
                     history_message_count=len(history),
                 ),
             )
 
     try:
-        handler = get_handler(provider_name, model_name=model_name)
+        handler = get_handler(provider_name, model_name=model_name, reasoning_override=reasoning_override)
         route_started = time.perf_counter()
         router_messages = [
             {"role": "system", "content": build_skill_router_prompt(history, locale)},
@@ -267,7 +343,7 @@ def run_copilot_chat(
         budgeted = apply_context_budget(
             system_prompt,
             history,
-            budget_tokens=context_budget_tokens or DEFAULT_INPUT_TOKEN_BUDGET,
+            budget_tokens=effective_budget,
         )
         context_info = CopilotContextInfo(**budgeted.as_dict())
         context_info.routing_mode = routing_mode
@@ -287,12 +363,7 @@ def run_copilot_chat(
     except ConnectionError as exc:
         logger.error("Copilot LLM connection failed: %s", exc)
         return CopilotChatResponse(
-            reply=(
-                f"无法连接本地模型服务（{provider_name}）。\n\n"
-                f"{exc}\n\n"
-                "请确认 LM Studio 已启动并加载了模型，Base URL 一般为 "
-                "`http://localhost:1234/v1`。之后可在小助手页面选择其他供应商。"
-            ),
+            reply=_connection_error_reply(provider_name, model_name, exc),
             suggested_actions=[
                 SuggestedAction(
                     action="open_api_settings",
@@ -317,7 +388,7 @@ def run_copilot_chat(
     except Exception as exc:
         logger.exception("Copilot LLM call failed")
         return CopilotChatResponse(
-            reply=f"调用模型时出错：{exc}\n\n请检查本地 LM Studio 是否正常，或查看日志。",
+            reply=_provider_error_reply(provider_name, model_name, exc),
             suggested_actions=[
                 SuggestedAction(
                     action="open_log_folder",
@@ -420,7 +491,7 @@ def run_copilot_chat(
             ]
 
     if budgeted is not None and budgeted.dropped_message_count > 0:
-        # Non-intrusive note for long threads (32k safety).
+        # Non-intrusive note for long threads after the 200k/default budget.
         note = (
             f"\n\n---\n_（上下文预算：已省略较早的 {budgeted.dropped_message_count} 条消息，"
             f"约 {budgeted.estimated_input_tokens}/{budgeted.budget_tokens} tokens）_"

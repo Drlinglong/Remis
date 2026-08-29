@@ -37,6 +37,8 @@ vi.mock('react-i18next', () => ({
 vi.mock('../components/ApiSettingsTab', () => ({ default: () => <div /> }));
 vi.mock('../components/PromptSettingsTab', () => ({ default: () => <div /> }));
 vi.mock('../components/VersionInfoTab', () => ({ default: () => <div /> }));
+vi.mock('../components/settings/CopilotSettingsTab', () => ({ default: () => <div>shared-copilot-settings</div> }));
+vi.mock('../config/features', () => ({ FEATURES: { ENABLE_REMIS_COPILOT: true } }));
 
 describe('SettingsPage database recovery controls', () => {
   beforeEach(() => {
@@ -81,5 +83,18 @@ describe('SettingsPage database recovery controls', () => {
 
     expect(await screen.findByText('modal_reset_db_impact_2')).toBeInTheDocument();
     expect(screen.getByText('modal_reset_db_safe_3')).toBeInTheDocument();
+  });
+
+  it('exposes a dedicated Copilot settings tab in Agent Preview', async () => {
+    render(
+      <MantineProvider>
+        <ThemeContext.Provider value={{ theme: 'scifi', toggleTheme: vi.fn() }}>
+          <SettingsPage />
+        </ThemeContext.Provider>
+      </MantineProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole('tab', { name: '小助手设置' }));
+    expect(screen.getByText('shared-copilot-settings')).toBeInTheDocument();
   });
 });

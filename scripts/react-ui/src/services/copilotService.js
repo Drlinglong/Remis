@@ -2,27 +2,30 @@ import api from '../utils/api';
 
 /**
  * Phase 1 Help Copilot API.
- * provider defaults to lm_studio on the backend for local testing.
- * provider/model are already accepted so a UI picker can be added later.
+ * Provider/model are resolved from the server-owned shared Copilot settings.
  */
 export async function sendCopilotChat({
   messages,
-  provider = 'lm_studio',
-  model = null,
   locale = 'zh',
   pageContext = null,
   signal,
 } = {}) {
   const payload = {
     messages,
-    provider,
     locale,
   };
   if (pageContext) payload.page_context = pageContext;
-  if (model) {
-    payload.model = model;
-  }
   const response = await api.post('/api/copilot/chat', payload, { signal });
+  return response.data;
+}
+
+export async function fetchCopilotSettings() {
+  const response = await api.get('/api/copilot/settings');
+  return response.data;
+}
+
+export async function saveCopilotSettings(payload) {
+  const response = await api.put('/api/copilot/settings', payload);
   return response.data;
 }
 

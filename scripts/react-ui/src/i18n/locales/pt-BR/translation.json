@@ -2319,7 +2319,7 @@
     "page_subtitle": "Respostas de ajuda e sugestões seguras de navegação. Nos testes o padrão é o LM Studio local.",
     "provider_label": "Provedor",
     "picker_later": "Seletor de modelo: em breve",
-    "phase1_notice": "As sessões ficam neste navegador. Sem cobertura na documentação a confiança fica baixa. Em modelos locais ~32k, mensagens antigas são descartadas em vez de falhar.",
+    "phase1_notice": "As sessões ficam neste navegador. Sem cobertura na documentação a confiança fica baixa. O orçamento de entrada padrão é de 200000 tokens; mensagens antigas são descartadas primeiro e a última mensagem do usuário é protegida. Um erro de tamanho de contexto mostra como recuperar.",
     "status_error": "Falha ao carregar o status do assistente",
     "empty_title": "Assistente Remis",
     "empty_desc": "Pergunte como usar o Remis. Os testes usam LM Studio local. Explico fluxos e ofereço saltos de página clicáveis.",

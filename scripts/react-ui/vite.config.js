@@ -9,7 +9,10 @@ import { configDefaults } from 'vitest/config'
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const packageJson = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf-8'));
 const backendPort = process.env.VITE_BACKEND_PORT || process.env.REMIS_BACKEND_PORT || process.env.BACKEND_PORT || 1453;
+const buildChannel = process.env.VITE_REMIS_BUILD_CHANNEL || 'stable';
+const appVersion = process.env.VITE_REMIS_APP_VERSION || packageJson.version;
 console.log(`[Vite Config] Proxying /api to http://127.0.0.1:${backendPort}`);
+console.log(`[Vite Config] Build channel: ${buildChannel}`);
 
 export default defineConfig({
   plugins: [
@@ -17,7 +20,7 @@ export default defineConfig({
   ],
   base: './',
   define: {
-    __APP_VERSION__: JSON.stringify(packageJson.version),
+    __APP_VERSION__: JSON.stringify(appVersion),
     __APP_RELEASE_DATE__: JSON.stringify(packageJson.releaseDate),
   },
   server: {

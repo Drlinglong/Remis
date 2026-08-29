@@ -18,4 +18,15 @@ describe('Tauri sidecar configuration', () => {
     expect(developmentConfig.bundle.active).toBe(false);
     expect(developmentConfig.bundle.externalBin).toEqual([]);
   });
+
+  it('gives Agent Preview its own install and application identity', () => {
+    const stable = readConfig('tauri.conf.json');
+    const preview = readConfig('tauri.agent-preview.conf.json');
+
+    expect(preview.productName).toBe('Remis Agent Preview');
+    expect(preview.version).toBe('3.1.7-agent-preview.1');
+    expect(preview.productName).not.toBe(stable.productName);
+    expect(preview.identifier).not.toBe(stable.identifier);
+    expect(preview.bundle.targets).toEqual(['nsis']);
+  });
 });

@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { FEATURES } from '../../config/features';
 import { AppSider } from './AppSider';
 
 const navigateMock = vi.fn();
@@ -98,13 +99,28 @@ describe('AppSider', () => {
     expect(await screen.findByText('nav_mod_monitor')).toBeInTheDocument();
   });
 
-  it('keeps the in-development Remis Copilot entry hidden', () => {
+  it('matches Copilot navigation visibility to the active build profile', () => {
     renderWithProvider(<AppSider />);
 
     const sidebar = document.getElementById('sidebar-nav');
     fireEvent.mouseEnter(sidebar);
 
-    expect(screen.queryByText('page_title_copilot')).not.toBeInTheDocument();
+    const copilotEntry = screen.queryByText('page_title_copilot');
+    if (FEATURES.ENABLE_REMIS_COPILOT) {
+      expect(copilotEntry).toBeInTheDocument();
+    } else {
+      expect(copilotEntry).not.toBeInTheDocument();
+    }
+  });
+
+  it('shows a dedicated Copilot entry in the Agent Preview profile', () => {
+    renderWithProvider(<AppSider features={{ ENABLE_REMIS_COPILOT: true }} />);
+
+    const sidebar = document.getElementById('sidebar-nav');
+    fireEvent.mouseEnter(sidebar);
+    fireEvent.click(screen.getByText('page_title_copilot'));
+
+    expect(navigateMock).toHaveBeenCalledWith('/copilot');
   });
 
   it('localizes the sidebar pin toggle tooltip', () => {

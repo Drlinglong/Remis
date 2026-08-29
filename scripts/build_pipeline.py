@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 import shutil
@@ -10,6 +11,11 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+try:
+    from scripts.build_profile import PROFILES, write_profile_manifest
+except ModuleNotFoundError:
+    from build_profile import PROFILES, write_profile_manifest
 
 MIN_GOOGLE_GENAI_VERSION = (1, 68, 0)
 STEAM_WORKSHOP_DEMO_WORKSPACE_ID = "7e492e06-823d-4343-998e-f121db6e0ee1"
@@ -63,6 +69,12 @@ RELEASE_DEMO_TRANSLATION_FILES = {
         "main_menu/localization/simp_chinese/remis_demo_eu5_l_simp_chinese.yml",
     ),
 }
+
+AGENT_PREVIEW_DEMO_FILES = (
+    "descriptor.mod",
+    ".metadata/metadata.json",
+    "localization/english/remis_agent_preview_l_english.yml",
+)
 
 
 def _sanitize_demo_json(value):
@@ -118,6 +130,26 @@ def prepare_release_demo_assets(project_root, build_dir):
     return staging_root
 
 
+def add_agent_preview_demo(project_root, staging_root):
+    source_root = (
+        Path(project_root)
+        / "assets"
+        / "agent_preview_demo"
+        / "Vic3_Agent_Preview_Demo"
+    )
+    target_root = Path(staging_root) / "demos" / source_root.name
+    for relative_file in AGENT_PREVIEW_DEMO_FILES:
+        source_path = source_root / Path(relative_file)
+        if not source_path.is_file():
+            raise FileNotFoundError(
+                f"Required Agent Preview demo file not found: {source_path}"
+            )
+        target_path = target_root / Path(relative_file)
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, target_path)
+    return target_root
+
+
 def steam_workshop_demo_add_data_arg(project_root):
     """Return the required PyInstaller data argument for publishing demo copy."""
     demo_dir = Path(project_root) / "data" / "steam_workshop_demo"
@@ -142,10 +174,10 @@ def print_step(step_name):
     print(f"[INFO] {step_name}")
     print(f"{'='*60}")
 
-def run_command(command, cwd=None, shell=True):
+def run_command(command, cwd=None, shell=True, env=None):
     try:
         print(f"[EXEC] {command}")
-        subprocess.check_call(command, cwd=cwd, shell=shell)
+        subprocess.check_call(command, cwd=cwd, shell=shell, env=env)
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] Command failed: {command}")
         sys.exit(1)
@@ -225,13 +257,29 @@ def _verify_frozen_steam_workshop_demo(port, request_timeout_seconds=15):
         raise RuntimeError("Packaged backend publishing demo descriptions are incomplete.")
 
 
-def verify_frozen_backend(executable, timeout_seconds=90):
+def _verify_copilot_registration(port, *, enabled, request_timeout_seconds=15):
+    url = f"http://127.0.0.1:{port}/api/copilot/status"
+    try:
+        with urllib.request.urlopen(url, timeout=request_timeout_seconds) as response:
+            status = response.status
+    except urllib.error.HTTPError as exc:
+        status = exc.code
+
+    expected = 200 if enabled else 404
+    if status != expected:
+        raise RuntimeError(
+            f"Packaged Copilot registration mismatch: expected HTTP {expected}, got {status}."
+        )
+
+
+def verify_frozen_backend(executable, profile, timeout_seconds=90):
     """Fail the release build if the packaged backend cannot serve its health API."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
 
     env = os.environ.copy()
+    env.pop("REMIS_BUILD_CHANNEL", None)
     env["REMIS_BACKEND_PORT"] = str(port)
     smoke_appdata = tempfile.mkdtemp(prefix="remis-frozen-smoke-")
     env["APPDATA"] = smoke_appdata
@@ -267,6 +315,22 @@ def verify_frozen_backend(executable, timeout_seconds=90):
             try:
                 with urllib.request.urlopen(health_url, timeout=1) as response:
                     if response.status == 200:
+                        health = json.load(response)
+                        if health.get("build_channel") != profile.channel:
+                            raise RuntimeError(
+                                "Packaged backend loaded the wrong build channel: "
+                                f"{health.get('build_channel')!r}."
+                            )
+                        normalized_data_dir = str(health.get("app_data_dir", "")).replace("\\", "/")
+                        if not normalized_data_dir.endswith(f"/{profile.app_data_folder}"):
+                            raise RuntimeError(
+                                "Packaged backend loaded the wrong AppData folder: "
+                                f"{normalized_data_dir!r}."
+                            )
+                        _verify_copilot_registration(
+                            port,
+                            enabled=profile.copilot_enabled,
+                        )
                         _verify_frozen_steam_workshop_demo(port)
                         print(f"[SUCCESS] Packaged backend health check passed on port {port}.")
                         return
@@ -333,12 +397,83 @@ def resolve_conda_env_path(env_name):
 
     return os.path.join(os.path.expanduser("~"), "miniconda3", "envs", env_name)
 
-def main():
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description="Build a governed Remis desktop profile.")
+    parser.add_argument(
+        "--channel",
+        choices=tuple(PROFILES),
+        default="stable",
+        help="Build channel shared by the frontend, frozen backend, and desktop identity.",
+    )
+    return parser.parse_args(argv)
+
+
+def prepare_profile_demo_assets(project_root, build_dir, profile):
+    staged_demo_root = prepare_release_demo_assets(project_root, build_dir)
+    if profile.channel == "agent-preview":
+        add_agent_preview_demo(project_root, staged_demo_root)
+    return staged_demo_root
+
+
+def frontend_build_environment(profile):
+    environment = os.environ.copy()
+    environment["VITE_REMIS_BUILD_CHANNEL"] = profile.channel
+    environment["VITE_REMIS_APP_VERSION"] = profile.version
+    environment["VITE_BACKEND_PORT"] = str(profile.backend_port)
+    return environment
+
+
+def tauri_build_details(src_tauri_dir, profile):
+    config = os.path.join(src_tauri_dir, "tauri.conf.json")
+    command = "npm run tauri build"
+    if profile.channel == "agent-preview":
+        config = os.path.join(src_tauri_dir, "tauri.agent-preview.conf.json")
+        command += " -- --config src-tauri/tauri.agent-preview.conf.json"
+    return config, command
+
+
+def copy_nsis_artifact(project_root, src_tauri_dir, tauri_config, target_triple, profile):
+    release_dir = os.path.join(project_root, "archive", "release", profile.channel)
+    os.makedirs(release_dir, exist_ok=True)
+    nsis_dir = os.path.join(src_tauri_dir, "target", "release", "bundle", "nsis")
+    if not os.path.exists(nsis_dir):
+        print(f"[WARNING] NSIS directory not found at {nsis_dir}")
+        sys.exit(1)
+
+    installer_name = resolve_nsis_artifact_name(tauri_config, target_triple)
+    src_file = os.path.join(nsis_dir, installer_name)
+    dst_file = os.path.join(release_dir, installer_name)
+    if not os.path.exists(src_file):
+        print(f"[ERROR] Expected NSIS artifact not found: {src_file}")
+        sys.exit(1)
+    if os.path.exists(dst_file):
+        print(f"[CLEAN] Removing old artifact: {dst_file}")
+        os.remove(dst_file)
+
+    print(f"[COPY] {src_file} -> {dst_file}")
+    try:
+        shutil.copy2(src_file, dst_file)
+    except Exception as exc:
+        print(f"[ERROR] Failed to copy artifact: {exc}")
+        sys.exit(1)
+    if os.path.getsize(dst_file) != os.path.getsize(src_file):
+        print(f"[ERROR] Copy verification failed for {dst_file}")
+        sys.exit(1)
+    print(
+        f"[SUCCESS] Artifact copied and verified: {dst_file} "
+        f"({os.path.getsize(dst_file)/1024/1024:.2f} MB)"
+    )
+    return dst_file
+
+
+def main(argv=None):
+    profile = PROFILES[parse_args(argv).channel]
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     scripts_dir = os.path.join(project_root, "scripts")
     react_ui_dir = os.path.join(scripts_dir, "react-ui")
     src_tauri_dir = os.path.join(react_ui_dir, "src-tauri")
     binaries_dir = os.path.join(src_tauri_dir, "binaries")
+    print(f"[INFO] Build channel: {profile.channel}")
 
     # Resolved paths to the dedicated conda env's executables
     conda_env_path = resolve_conda_env_path(CONDA_ENV_NAME)
@@ -373,6 +508,9 @@ def main():
     if not os.path.exists(binaries_dir):
         print(f"[INIT] Creating {binaries_dir}")
         os.makedirs(binaries_dir)
+
+    profile_manifest = os.path.join(project_root, "build", "build_profile.json")
+    write_profile_manifest(profile, profile_manifest)
 
     # Step 1.5: Export reviewed release seed data.
     # Never read the developer's live AppData databases during a release build.
@@ -419,6 +557,7 @@ def main():
     # --add-data: Include seed data and demos
     
     add_data_args = backend_seed_add_data_args(project_root, seed_main, seed_projects)
+    add_data_args += f' --add-data "{profile_manifest};data"'
 
     # Help Copilot skills are runtime resources, not repository reads. Bundle the
     # allowlisted user guides so RESOURCE_DIR/docs is available in frozen builds.
@@ -453,9 +592,10 @@ def main():
          print(f"[WARNING] Mods Cache Skeleton DB not found at {cache_skeleton_db}")
 
     try:
-        staged_demo_root = prepare_release_demo_assets(
+        staged_demo_root = prepare_profile_demo_assets(
             project_root,
             os.path.join(project_root, "build"),
+            profile,
         )
     except (FileNotFoundError, json.JSONDecodeError) as exc:
         print(f"[ERROR] {exc}")
@@ -499,7 +639,7 @@ def main():
         f'--hidden-import scripts.config.prompts '
         # AI SDKs
         f'--hidden-import google.genai --hidden-import openai '
-        f'--collect-submodules pydantic_ai --collect-submodules pydantic_graph '
+        f'--collect-submodules pydantic_ai --collect-submodules pydantic_graph --copy-metadata pydantic-ai-slim '
         f'--collect-data genai_prices --copy-metadata genai_prices '
         # Phonetics libraries used inside functions (PyInstaller can't detect these statically)
         f'--hidden-import pypinyin --hidden-import pypinyin.seg --hidden-import pypinyin.style '
@@ -555,7 +695,7 @@ def main():
 
     print_step("Step 3.5: Smoke Test Frozen Backend")
     try:
-        verify_frozen_backend(target_path)
+        verify_frozen_backend(target_path, profile)
     except RuntimeError as exc:
         print(f"[ERROR] {exc}")
         sys.exit(1)
@@ -567,55 +707,16 @@ def main():
     run_command("npm install", cwd=react_ui_dir)
     
     # Build React App
-    run_command("npm run build", cwd=react_ui_dir)
+    build_env = frontend_build_environment(profile)
+    run_command("npm run build", cwd=react_ui_dir, env=build_env)
     
     # Build Tauri App
-    run_command("npm run tauri build", cwd=react_ui_dir)
+    tauri_config, tauri_command = tauri_build_details(src_tauri_dir, profile)
+    run_command(tauri_command, cwd=react_ui_dir, env=build_env)
     
     # Step 5: Move Artifacts
     print_step("Step 5: Move Artifacts")
-    
-    release_dir = os.path.join(project_root, "archive", "release")
-    if not os.path.exists(release_dir):
-        print(f"[INIT] Creating {release_dir}")
-        os.makedirs(release_dir)
-        
-    # Standard Tauri NSIS output path
-    # output is in src-tauri/target/release/bundle/nsis/
-    nsis_dir = os.path.join(src_tauri_dir, "target", "release", "bundle", "nsis")
-    
-    if not os.path.exists(nsis_dir):
-        print(f"[WARNING] NSIS directory not found at {nsis_dir}")
-        sys.exit(1)
-
-    tauri_config = os.path.join(src_tauri_dir, "tauri.conf.json")
-    installer_name = resolve_nsis_artifact_name(tauri_config, target_triple)
-    src_file = os.path.join(nsis_dir, installer_name)
-    dst_file = os.path.join(release_dir, installer_name)
-
-    if not os.path.exists(src_file):
-        print(f"[ERROR] Expected NSIS artifact not found: {src_file}")
-        sys.exit(1)
-
-    if os.path.exists(dst_file):
-        print(f"[CLEAN] Removing old artifact: {dst_file}")
-        os.remove(dst_file)
-
-    print(f"[COPY] {src_file} -> {dst_file}")
-    try:
-        shutil.copy2(src_file, dst_file)
-    except Exception as exc:
-        print(f"[ERROR] Failed to copy artifact: {exc}")
-        sys.exit(1)
-
-    if os.path.getsize(dst_file) != os.path.getsize(src_file):
-        print(f"[ERROR] Copy verification failed for {dst_file}")
-        sys.exit(1)
-
-    print(
-        f"[SUCCESS] Artifact copied and verified: {dst_file} "
-        f"({os.path.getsize(dst_file)/1024/1024:.2f} MB)"
-    )
+    copy_nsis_artifact(project_root, src_tauri_dir, tauri_config, target_triple, profile)
 
     print_step("Build Pipeline Completed Successfully!")
 

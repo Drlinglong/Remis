@@ -81,15 +81,19 @@ def get_backend_fingerprint() -> str:
 def get_backend_identity() -> Dict[str, Any]:
     root = _project_root()
     try:
-        from scripts.app_settings import VERSION
+        from scripts.app_settings import APP_DATA_DIR, BUILD_PROFILE, VERSION
     except Exception:
         VERSION = "unknown"
+        APP_DATA_DIR = "unknown"
+        BUILD_PROFILE = None
 
     return {
         "status": "ok",
         "app": "remis",
         "pid": os.getpid(),
         "version": VERSION,
+        "build_channel": getattr(BUILD_PROFILE, "channel", "unknown"),
+        "app_data_dir": str(APP_DATA_DIR).replace("\\", "/"),
         "api_contract": API_CONTRACT_VERSION,
         "is_frozen": bool(getattr(sys, "frozen", False)),
         "app_root": root.replace("\\", "/"),

@@ -75,8 +75,6 @@ export default function CopilotFloatingWidget() {
               sessionId={activeSession.id}
               initialMessages={initialMessages}
               onMessagesChange={handleMessagesChange}
-              provider="lm_studio"
-              model={null}
               locale={locale}
               pageContext={pageContext}
             />

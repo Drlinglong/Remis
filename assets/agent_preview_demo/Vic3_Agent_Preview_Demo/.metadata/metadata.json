@@ -1,0 +1,11 @@
+{
+  "name": "Remis Agent Preview Interview Demo",
+  "id": "remis-agent-preview-interview-demo",
+  "version": "1.0.0",
+  "short_description": "A small, public-safe Victoria 3 localization fixture for an interview demonstration.",
+  "tags": ["Utilities"],
+  "relationships": [],
+  "game_custom_data": {
+    "multiplayer_synchronized": true
+  }
+}

@@ -6,10 +6,24 @@ from unittest.mock import patch
 import pytest
 
 from scripts.build_pipeline import (
+    AGENT_PREVIEW_DEMO_FILES,
+    add_agent_preview_demo,
     STEAM_WORKSHOP_DEMO_WORKSPACE_ID,
     _verify_frozen_steam_workshop_demo,
     steam_workshop_demo_add_data_arg,
 )
+
+
+def test_agent_preview_demo_is_small_public_safe_and_utf8_bom(tmp_path: Path):
+    target = add_agent_preview_demo(Path.cwd(), tmp_path)
+
+    assert {path.relative_to(target).as_posix() for path in target.rglob("*") if path.is_file()} == set(
+        AGENT_PREVIEW_DEMO_FILES
+    )
+    localization = target / "localization/english/remis_agent_preview_l_english.yml"
+    payload = localization.read_bytes()
+    assert payload.startswith(b"\xef\xbb\xbf")
+    assert b"api_key" not in payload.lower()
 
 
 def test_steam_workshop_demo_resources_are_required_by_frozen_backend(tmp_path: Path):

@@ -170,7 +170,7 @@ function NavbarMenu({ active, expanded, icon, items, label, navigate, pathname }
     );
 }
 
-export function AppSider() {
+export function AppSider({ features = FEATURES } = {}) {
     const navigate = useNavigate();
     const location = useLocation();
     const { startTour } = useTutorial();
@@ -182,10 +182,10 @@ export function AppSider() {
     const taskQueueCount = tasks.filter((task) => (
         ['queued', 'running', 'awaiting_approval', 'failed', 'interrupted'].includes(task.status)
     )).length;
-    const navigationSections = getNavigationSections(FEATURES);
+    const navigationSections = getNavigationSections(features);
     const settingsItem = toNavigationItem(getPageById('settings'));
     const documentationPage = getPageById('documentation');
-    const documentationItem = isPageEnabled(documentationPage, FEATURES)
+    const documentationItem = isPageEnabled(documentationPage, features)
         ? toNavigationItem(documentationPage)
         : null;
 
@@ -309,7 +309,7 @@ export function AppSider() {
             </Stack>
 
             <Stack gap="xs" mt="md" pt="md" style={{ borderTop: '1px solid var(--glass-border)' }}>
-                {FEATURES.ENABLE_EXPERIMENTAL_FEATURES && devLinks}
+                {features.ENABLE_EXPERIMENTAL_FEATURES && devLinks}
                 {documentationItem && (
                     <NavbarLink
                         {...documentationItem}

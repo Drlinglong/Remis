@@ -2320,7 +2320,7 @@
     "page_subtitle": "Hilfeantworten plus sichere klickbare Navigationsvorschläge. Tests nutzen standardmäßig lokales LM Studio.",
     "provider_label": "Anbieter",
     "picker_later": "Modellauswahl: kommt später",
-    "phase1_notice": "Chats bleiben im Browser erhalten. Ohne Dokumentgrundlage gilt niedrige Konfidenz. Bei ~32k lokalen Modellen werden ältere Nachrichten verworfen statt abzubrechen.",
+    "phase1_notice": "Chats bleiben im Browser erhalten. Ohne Dokumentgrundlage gilt niedrige Konfidenz. Das Standard-Eingabebudget beträgt 200000 Tokens; ältere Nachrichten werden zuerst entfernt und die letzte Nutzernachricht geschützt. Bei einem Kontextlängenfehler wird eine wiederherstellbare Meldung angezeigt.",
     "status_error": "Assistentenstatus konnte nicht geladen werden",
     "empty_title": "Remis-Assistent",
     "empty_desc": "Fragen Sie, wie Remis funktioniert. Tests nutzen lokales LM Studio. Ich erkläre Abläufe und biete klickbare Seitensprünge.",

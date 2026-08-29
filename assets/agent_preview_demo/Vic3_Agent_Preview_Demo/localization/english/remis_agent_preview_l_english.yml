@@ -1,0 +1,8 @@
+﻿l_english:
+ remis_preview.1.t:0 "A Workshop Opens"
+ remis_preview.1.d:0 "A small team has prepared a safe localization workshop for [ROOT.GetCountry.GetName]."
+ remis_preview.1.a:0 "Review the plan first."
+ remis_preview.2.t:0 "The Translator's Ledger"
+ remis_preview.2.d:0 "Every approved task receives an identifier, a saved state, and a clear handoff."
+ remis_preview.2.a:0 "Send it to the Task Center."
+ remis_preview_status:0 "Ready for human review"

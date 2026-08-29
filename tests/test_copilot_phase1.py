@@ -2,8 +2,15 @@
 
 from pathlib import Path
 
+import pytest
+
 from scripts.core.copilot.actions import filter_suggested_actions, list_actions
-from scripts.core.copilot.context_budget import apply_context_budget, estimate_tokens
+from scripts.core.copilot.context_budget import (
+    DEFAULT_INPUT_TOKEN_BUDGET,
+    apply_context_budget,
+    estimate_tokens,
+    resolve_input_budget,
+)
 from scripts.core.copilot.help_pack import (
     build_skill_router_prompt,
     build_system_prompt,
@@ -266,6 +273,59 @@ def test_lm_studio_help_agent_failure_is_visible_and_recoverable(monkeypatch):
     assert "暂时无法" in result.reply
 
 
+def test_cloud_copilot_uses_provider_handler_instead_of_lm_studio_agent(monkeypatch):
+    class FakeHandler:
+        def __init__(self):
+            self.calls = 0
+
+        def generate_with_messages(self, _messages, temperature=0.2):
+            self.calls += 1
+            if self.calls == 1:
+                return '{"tool_calls":[{"name":"read_help_skill","arguments":{"skill_id":"provider_setup"}}]}'
+            return '{"reply":"Cloud route used.","suggested_actions":[],"confidence":"high"}'
+
+    fake = FakeHandler()
+    captured = {}
+    monkeypatch.setattr(
+        copilot_service,
+        "run_pydantic_help_agent",
+        lambda *args, **kwargs: pytest.fail("LM Studio agent must not handle OpenRouter"),
+    )
+    monkeypatch.setattr(
+        copilot_service,
+        "get_handler",
+        lambda provider, **kwargs: captured.update({"provider": provider, **kwargs}) or fake,
+    )
+
+    result = run_copilot_chat(
+        [CopilotChatMessage(role="user", content="How do I configure a provider?")],
+        provider="openrouter",
+        model="openai/gpt-5.6-luna",
+    )
+
+    assert result.reply == "Cloud route used."
+    assert captured["provider"] == "openrouter"
+    assert captured["model_name"] == "openai/gpt-5.6-luna"
+
+
+def test_context_length_failure_is_explicitly_recoverable(monkeypatch):
+    class FakeHandler:
+        def generate_with_messages(self, _messages, temperature=0.2):
+            raise RuntimeError("maximum context length exceeded")
+
+    monkeypatch.setattr(copilot_service, "get_handler", lambda *args, **kwargs: FakeHandler())
+
+    result = run_copilot_chat(
+        [CopilotChatMessage(role="user", content="请回答这个问题")],
+        provider="openrouter",
+        model="openai/gpt-5.6-luna",
+    )
+
+    assert result.confidence == "low"
+    assert "可恢复" in result.reply
+    assert "上下文长度" in result.reply
+
+
 def test_every_packaged_user_guide_is_agent_selectable():
     assert validate_help_skill_manifest() == []
 
@@ -280,6 +340,7 @@ def test_release_and_debug_builds_bundle_help_skill_resources():
     assert "docs/zh/user-guides" in pipeline
     assert "docs\\zh\\user-guides;docs/zh/user-guides" in debug_build
     assert "--collect-submodules pydantic_ai" in pipeline
+    assert "--copy-metadata pydantic-ai-slim" in pipeline
     assert "--collect-submodules pydantic_ai" in debug_build
     requirements = (root / "requirements.txt").read_text(encoding="utf-8")
     assert "pydantic-ai-slim[openai]==2.9.0" in requirements
@@ -309,6 +370,44 @@ def test_context_budget_drops_oldest_instead_of_error():
     assert len(result.history) >= 1
     assert result.history[-1]["role"] in ("user", "assistant")
     assert "drop" in result.strategy or result.dropped_message_count > 0
+
+
+def test_context_budget_default_is_200k_and_protects_latest_user_after_assistant_tail():
+    history = [
+        {"role": "user", "content": "最重要的最后用户问题"},
+        *[
+            {"role": "assistant", "content": f"旧的持久化回答 {index} " + ("文本。" * 50)}
+            for index in range(30)
+        ],
+    ]
+
+    result = apply_context_budget("", history, budget_tokens=2_000, max_history_messages=6)
+
+    assert DEFAULT_INPUT_TOKEN_BUDGET == 200_000
+    assert any(message["content"] == "最重要的最后用户问题" for message in result.history)
+    assert result.history[0]["role"] == "user"
+
+
+def test_context_budget_drops_oldest_messages_before_newer_messages():
+    history = [
+        {"role": "user", "content": f"message-{index} " + ("x" * 5000)}
+        for index in range(8)
+    ]
+
+    result = apply_context_budget("", history, budget_tokens=1_500, max_history_messages=20)
+
+    assert result.dropped_message_count > 0
+    assert result.history[-1]["content"].startswith("message-7")
+    assert all("message-0" not in item["content"] for item in result.history)
+
+
+def test_context_budget_uses_only_explicit_provider_limit():
+    assert resolve_input_budget(200_000, provider_config={"name": "OpenAI"}) == 200_000
+    assert resolve_input_budget(
+        200_000,
+        provider_config={"context_limits": {"known-model": 32_000}},
+        model_name="known-model",
+    ) == 32_000
 
 
 def test_estimate_tokens_positive():

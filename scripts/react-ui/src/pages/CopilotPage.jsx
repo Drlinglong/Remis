@@ -18,7 +18,7 @@ import styles from './CopilotPage.module.css';
 
 /**
  * Help Copilot page: multi-session local persistence + assistant-ui thread.
- * Provider/model picker will be added later.
+ * Provider/model/reasoning are resolved from the shared server settings.
  */
 export default function CopilotPage() {
   const { t, i18n } = useTranslation();
@@ -81,13 +81,13 @@ export default function CopilotPage() {
             <IconRobot size={28} stroke={1.5} />
             <Title order={2}>{t('page_title_copilot', 'Remis 小助手')}</Title>
             <Badge variant="light" color="grape">
-              Phase 1.1
+              Agent Preview
             </Badge>
           </Group>
           <Text c="dimmed" size="sm">
             {t(
-              'copilot.page_subtitle',
-              '帮助说明 + 可点击的安全操作建议。测试阶段默认使用本地 LM Studio。',
+              'copilot.preview_subtitle',
+              '基于白名单用户文档和当前页面上下文回答，并提供 approval-gated Workflow Agent。',
             )}
           </Text>
         </div>
@@ -95,20 +95,24 @@ export default function CopilotPage() {
           <Badge variant="outline" color="cyan">
             {t('copilot.provider_label', '供应商')}: {status?.default_provider || 'lm_studio'}
           </Badge>
-          <Badge variant="outline" color="gray">
-            {t('copilot.context_budget_badge', '上下文预算')}:{' '}
-            {status?.context_budget_tokens || 24000} tokens
+          <Badge variant="outline" color="blue">
+            {t('copilot.model_label', '模型')}: {status?.default_model || 'local-model'}
+          </Badge>
+          <Badge variant="outline" color={status?.reasoning_enabled ? 'grape' : 'gray'}>
+            {t('copilot.reasoning_label', '推理')}:{' '}
+            {status?.reasoning_enabled ? status.reasoning_preset : t('copilot.reasoning_off', '关闭')}
           </Badge>
           <Badge variant="outline" color="gray">
-            {t('copilot.picker_later', '模型选择器：后续版本')}
+            {t('copilot.context_budget_badge', '上下文预算')}:{' '}
+            {status?.context_budget_tokens || 200000} tokens
           </Badge>
         </Group>
       </Group>
 
       <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light">
         {t(
-          'copilot.phase1_notice',
-          '会话会保存在本机浏览器中，切换页面不会丢失。文档未覆盖的问题会强制低置信，避免瞎猜。本地模型约 32k 窗口时，过长历史会自动丢弃较早消息而不是直接报错。',
+          'copilot.preview_notice',
+          '会话保存在本机。供应商、模型和推理强度由“设置 → 小助手设置”统一管理；文档未覆盖的问题会强制低置信，批准前不会执行付费或写入操作。',
         )}
       </Alert>
 
@@ -134,8 +138,6 @@ export default function CopilotPage() {
                 sessionId={activeSession.id}
                 initialMessages={initialMessages}
                 onMessagesChange={handleMessagesChange}
-                provider="lm_studio"
-                model={null}
                 locale={locale}
               />
             )}

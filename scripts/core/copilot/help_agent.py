@@ -15,6 +15,7 @@ from pydantic_ai.usage import UsageLimits
 
 from scripts.app_settings import API_PROVIDERS, config_manager
 from scripts.core.copilot.help_pack import AGENT_OPS_SUMMARY, HELP_SKILLS, read_help_skills
+from scripts.core.copilot.settings import pydantic_reasoning_settings
 
 HelpSkillId = Enum("HelpSkillId", {skill_id.upper(): skill_id for skill_id in HELP_SKILLS}, type=str)
 
@@ -45,7 +46,11 @@ def _lm_studio_config(model_name: str | None) -> tuple[str, str]:
     return base_url, str(selected_model)
 
 
-def build_help_agent(model_name: str | None = None) -> Agent[HelpDeps, HelpAnswer]:
+def build_help_agent(
+    model_name: str | None = None,
+    *,
+    reasoning_override: dict[str, Any] | None = None,
+) -> Agent[HelpDeps, HelpAnswer]:
     base_url, selected_model = _lm_studio_config(model_name)
     model = OpenAIResponsesModel(
         selected_model,
@@ -69,7 +74,12 @@ def build_help_agent(model_name: str | None = None) -> Agent[HelpDeps, HelpAnswe
             max_tokens=1200,
             timeout=90,
             parallel_tool_calls=True,
-            openai_previous_response_id="auto",
+            **pydantic_reasoning_settings(
+                provider="lm_studio",
+                model=selected_model,
+                enabled=bool((reasoning_override or {}).get("reasoning_builtin_enabled")),
+                preset=str((reasoning_override or {}).get("reasoning_preset") or "medium"),
+            ),
         ),
         retries=1,
         tool_timeout=10,
@@ -110,9 +120,13 @@ def run_pydantic_help_agent(
     *,
     model_name: str | None = None,
     page_context: dict[str, Any] | None = None,
+    reasoning_override: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     deps = HelpDeps()
-    agent = build_help_agent(model_name)
+    agent = build_help_agent(
+        model_name,
+        reasoning_override=reasoning_override,
+    )
     result = agent.run_sync(
         "结合以下对话和只读页面上下文回答最后一个用户问题。不得声称已执行页面操作。\n"
         + json.dumps({"history": history[-12:], "page_context": page_context or {}}, ensure_ascii=False),

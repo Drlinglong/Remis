@@ -139,7 +139,7 @@ class ProofreadingTracker:
             with open(output_file_path, mode, encoding="utf-8-sig", newline='') as f:
                 f.write(csv_content)
 
-            logging.info(i18n.t("proofreading_table_generated", path=output_file_path))
+            logging.info(i18n.t("proofreading_table_generated", path=os.path.basename(output_file_path)))
             return True
             
         except Exception as e:

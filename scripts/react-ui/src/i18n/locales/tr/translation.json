@@ -2318,7 +2318,7 @@
     "page_subtitle": "Yardım yanıtları ve güvenli tıklanabilir gezinme önerileri. Testlerde varsayılan yerel LM Studio’dur.",
     "provider_label": "Sağlayıcı",
     "picker_later": "Model seçici: sonra eklenecek",
-    "phase1_notice": "Oturumlar bu tarayıcıda saklanır. Belgelerde yoksa güven düşük zorlanır. ~32k yerel modellerde eski iletiler hata yerine atılır.",
+    "phase1_notice": "Oturumlar bu tarayıcıda saklanır. Belgelerde yoksa güven düşük zorlanır. Varsayılan giriş bütçesi 200000 token'dır; eski iletiler önce atılır ve son kullanıcı iletisi korunur. Bağlam uzunluğu hatasında kurtarma yolu gösterilir.",
     "status_error": "Asistan durumu yüklenemedi",
     "empty_title": "Remis Asistan",
     "empty_desc": "Remis’i nasıl kullanacağınızı sorun. Testler yerel LM Studio kullanır. İş akışlarını anlatır ve tıklanabilir sayfa atlamaları öneririm.",

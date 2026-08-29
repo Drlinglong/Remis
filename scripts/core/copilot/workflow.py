@@ -11,7 +11,10 @@ from pathlib import Path
 from typing import Any
 
 from scripts.shared.services import project_manager
-from scripts.app_settings import API_PROVIDERS, PROJECT_ROOT
+from scripts.app_settings import API_PROVIDERS, APP_DATA_DIR, PROJECT_ROOT
+from scripts.core.copilot.provider_readiness import (
+    check_provider_readiness,
+)
 
 PLAN_TTL_SECONDS = 30 * 60
 MAX_SCAN_FILES = 5000
@@ -33,9 +36,13 @@ def _resolve_allowed_mod_folder(folder_path: str) -> Path:
     normalized = os.path.normcase(
         os.path.realpath(os.path.expanduser(folder_path))
     )
+    bundled_demo_root = os.path.normcase(
+        os.path.realpath(os.path.join(APP_DATA_DIR, "demos"))
+    )
     allowed_roots = {
         os.path.normcase(os.path.realpath(str(Path.home()))),
         os.path.normcase(os.path.realpath(str(PROJECT_ROOT))),
+        bundled_demo_root,
     }
     configured_roots = os.environ.get("REMIS_AGENT_IMPORT_ROOTS", "")
     for configured in configured_roots.split(os.pathsep):
@@ -79,7 +86,12 @@ def _resolve_allowed_mod_folder(folder_path: str) -> Path:
             protected_roots.add(os.path.normcase(os.path.realpath(value)))
     for protected_root in protected_roots:
         protected_prefix = protected_root.rstrip("\\/") + os.sep
-        if normalized == protected_root or normalized.startswith(protected_prefix):
+        inside_bundled_demos = normalized.startswith(
+            bundled_demo_root.rstrip("\\/") + os.sep
+        )
+        if not inside_bundled_demos and (
+            normalized == protected_root or normalized.startswith(protected_prefix)
+        ):
             raise ValueError("Mod folder is inside a protected system root")
 
     if normalized == matched_root or os.path.dirname(normalized) == normalized:
@@ -398,3 +410,44 @@ def get_localization_translation_args(plan_id: str) -> dict[str, Any]:
         if stored.payload.get("workflow_type") != "localize_mod_v1":
             raise ValueError("Workflow plan is not a localization plan")
         return dict(stored.payload.get("translation_args") or {})
+
+
+async def ensure_localization_provider_ready(plan_id: str) -> dict[str, Any] | None:
+    """Run provider checks immediately before a guided project is created.
+
+    The optional ``None`` result is intentional for compatibility with callers
+    that replace the project approval function in tests. Real localization
+    plans are always checked; no project write happens in this function.
+    """
+    with _plans_lock:
+        stored = _plans.get(plan_id)
+        if not stored:
+            return None
+        if stored.payload.get("workflow_type") != "localize_mod_v1":
+            raise ValueError("Workflow plan is not a localization plan")
+        translation_args = dict(stored.payload.get("translation_args") or {})
+    readiness = await check_provider_readiness(
+        str(translation_args.get("api_provider") or ""),
+        str(translation_args.get("model") or ""),
+    )
+    return readiness
+
+
+async def ensure_translation_provider_ready(plan_id: str) -> dict[str, Any]:
+    """Fail closed on external readiness before reserving a translation plan."""
+    with _plans_lock:
+        stored = _plans.get(plan_id)
+        if not stored:
+            raise KeyError("Workflow plan was not found or the app restarted")
+        if stored.expires_at < time.time():
+            _plans.pop(plan_id, None)
+            raise TimeoutError("Workflow plan expired; inspect the project again")
+        if stored.payload.get("workflow_type") != "initial_translation_v1":
+            raise ValueError("Workflow plan is not an initial translation plan")
+        if stored.executed:
+            raise RuntimeError("Workflow plan has already been executed")
+        args = dict(stored.payload.get("execution_args") or {})
+    return await check_provider_readiness(
+        str(args.get("api_provider") or ""),
+        str(args.get("model") or ""),
+    )

@@ -198,7 +198,7 @@ export const PAGE_REGISTRY = Object.freeze([
     match: /^\/copilot$/,
     domain: PAGE_DOMAINS.ASSISTANT,
     enabledBy: 'ENABLE_REMIS_COPILOT',
-    navigation: { entryMode: ENTRY_MODES.GLOBAL },
+    navigation: { entryMode: ENTRY_MODES.PRIMARY, section: 'assistant', label: 'page_title_copilot', icon: 'robot', order: 0 },
     copilot: { pageName: 'Remis 小助手 / Copilot', helpSkillId: 'remis_assistant' },
   },
   {
@@ -245,6 +245,7 @@ export const NAVIGATION_SECTIONS = Object.freeze([
   { id: 'projects', type: 'menu', label: 'nav_projects', icon: 'briefcase', pageIds: ['project-management', 'project-tracking'] },
   { id: 'translation', type: 'menu', label: 'nav_translation_workflow', icon: 'language', pageIds: ['initial-translation', 'incremental-translation', 'model-arena'] },
   { id: 'quality', type: 'menu', label: 'nav_quality_terminology', icon: 'shield-check', pageIds: ['proofreading', 'glossary-manager', 'neologism-review', 'agent-workshop'] },
+  { id: 'assistant', type: 'link', pageIds: ['copilot'] },
   { id: 'task-center', type: 'task-center', pageIds: [] },
   { id: 'steam-workshop', type: 'link', pageIds: ['steam-workshop'] },
   { id: 'tools', type: 'link', pageIds: ['tools'] },

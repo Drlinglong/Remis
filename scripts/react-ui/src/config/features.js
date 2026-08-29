@@ -3,6 +3,8 @@
  * Keep this false for normal user-facing builds.
  */
 const ENABLE_EXPERIMENTAL_FEATURES = false;
+export const BUILD_CHANNEL = import.meta.env.VITE_REMIS_BUILD_CHANNEL || 'stable';
+export const IS_AGENT_PREVIEW = BUILD_CHANNEL === 'agent-preview';
 
 export const FEATURES = {
     // Master switch for unfinished or internal-only features
@@ -16,8 +18,8 @@ export const FEATURES = {
     // Mature workflow pages
     ENABLE_NEOLOGISM_TRIBUNAL: true,
 
-    // Help Copilot remains in development and is hidden from normal user builds.
-    ENABLE_REMIS_COPILOT: false,
+    // Help Copilot is visible only in the explicit Agent Preview build channel.
+    ENABLE_REMIS_COPILOT: IS_AGENT_PREVIEW,
 
     // Developer-only pages and tools
     ENABLE_DOCS: ENABLE_EXPERIMENTAL_FEATURES,
