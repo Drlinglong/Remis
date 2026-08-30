@@ -5,6 +5,7 @@ import net from 'net';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { loadTauriDevConfig, resolveTauriDevProfile } from './tauriDevProfile.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,16 +40,14 @@ function ensureNoRunningTauriDevApp() {
     process.exit(1);
 }
 
-// Helper to find a free port starting from a default port
-function findFreePort(startPort) {
-    return new Promise((resolve) => {
+function assertPortAvailable(port) {
+    return new Promise((resolve, reject) => {
         const server = net.createServer();
-        server.listen(startPort, '127.0.0.1', () => {
-            const port = server.address().port;
+        server.listen(port, '127.0.0.1', () => {
             server.close(() => resolve(port));
         });
-        server.on('error', () => {
-            resolve(findFreePort(startPort + 1));
+        server.on('error', (error) => {
+            reject(new Error(`Frontend port ${port} is unavailable: ${error.message}`));
         });
     });
 }
@@ -56,10 +55,14 @@ function findFreePort(startPort) {
 async function main() {
     ensureNoRunningTauriDevApp();
 
-    const startPort = 5174;
-    const port = await findFreePort(startPort);
+    const profile = resolveTauriDevProfile(
+        process.env.VITE_REMIS_BUILD_CHANNEL,
+        process.env.REMIS_FRONTEND_PORT,
+    );
+    const port = await assertPortAvailable(profile.port);
     console.log(`\n=================================================================`);
-    console.log(`[Remis Port Finder] Dynamically allocated port: ${port}`);
+    console.log(`[Remis Dev] Build channel: ${profile.channel}`);
+    console.log(`[Remis Dev] Fixed frontend port: ${port}`);
     console.log(`=================================================================\n`);
 
     // 1. Start Vite dev server on the allocated port
@@ -70,27 +73,8 @@ async function main() {
         shell: true
     });
 
-    // 2. Start Tauri dev, pointing to the dynamically allocated port
-    // We also read src-tauri/tauri.dev.conf.json to merge any custom configuration
-    let devConfig = {};
-    const devConfigPath = path.join(__dirname, 'src-tauri', 'tauri.dev.conf.json');
-    if (fs.existsSync(devConfigPath)) {
-        try {
-            devConfig = JSON.parse(fs.readFileSync(devConfigPath, 'utf-8'));
-        } catch (e) {
-            console.error('[Remis Dev] Failed to parse tauri.dev.conf.json:', e);
-        }
-    }
-
     console.log(`[Remis Dev] Launching Tauri desktop shell connected to http://127.0.0.1:${port}...`);
-    const mergedConfig = {
-        ...devConfig,
-        build: {
-            ...devConfig.build,
-            devUrl: `http://127.0.0.1:${port}`,
-            beforeDevCommand: null
-        }
-    };
+    const mergedConfig = loadTauriDevConfig(__dirname, profile);
     const tauriConfigOverride = JSON.stringify(mergedConfig);
     const tauriConfigPath = path.join(os.tmpdir(), `remis-tauri-dev-${process.pid}.json`);
     fs.writeFileSync(tauriConfigPath, tauriConfigOverride, 'utf-8');
