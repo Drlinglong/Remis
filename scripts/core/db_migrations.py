@@ -19,6 +19,7 @@ from scripts.core.db_models import (
     SteamWorkshopAssetVersion,
     SteamWorkshopWorkspace,
 )
+from scripts.core.context_db_migrations import CONTEXT_DB_MIGRATIONS
 logger = logging.getLogger("remis_init")
 
 MAIN_DB_TARGET_VERSION = 22
@@ -704,41 +705,6 @@ def _migration_013_harden_bundled_seed_state(db_path: str) -> None:
         conn.commit()
 
 
-def _migration_014_add_context_release_storage(db_path: str) -> None:
-    from scripts.core.context_migration import migrate_context_release_storage
-    migrate_context_release_storage(db_path)
-
-
-def _migration_015_add_context_analysis_batch_storage(db_path: str) -> None:
-    from scripts.core.context_analysis_migration import migrate_context_analysis_batch_storage
-    migrate_context_analysis_batch_storage(db_path)
-
-
-def _migration_016_add_context_delivery_memberships(db_path: str) -> None:
-    from scripts.core.context_migration import migrate_context_release_storage
-    migrate_context_release_storage(db_path)
-
-
-def _migration_017_add_context_aggregation_phase(db_path: str) -> None:
-    from scripts.core.context_analysis_migration import migrate_context_analysis_aggregation_phase
-    migrate_context_analysis_aggregation_phase(db_path)
-def _migration_018_add_context_release_manifests(db_path: str) -> None:
-    from scripts.core.context_release_manifest_migration import migrate_context_release_manifest_storage
-    migrate_context_release_manifest_storage(db_path)
-def _migration_019_add_atomic_context_publication(db_path: str) -> None:
-    from scripts.core.context_publication_migration import migrate_context_publication_storage
-    migrate_context_publication_storage(db_path)
-def _migration_020_add_context_synthesis_checkpoints(db_path: str) -> None:
-    from scripts.core.context_analysis_migration import migrate_context_analysis_synthesis_phase
-    migrate_context_analysis_synthesis_phase(db_path)
-def _migration_021_add_context_tree_v2_storage(db_path: str) -> None:
-    from scripts.core.context_tree_v2_migration import migrate_context_tree_v2_storage
-    migrate_context_tree_v2_storage(db_path)
-def _migration_022_extend_context_tree_v2_results(db_path: str) -> None:
-    from scripts.core.context_tree_v2_migration import migrate_context_tree_v2_storage
-    migrate_context_tree_v2_storage(db_path)
-
-
 MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (1, "establish_managed_main_schema", _migration_001_establish_managed_main_schema),
     (2, "add_project_watches", _migration_002_add_project_watches),
@@ -753,16 +719,7 @@ MAIN_DB_MIGRATIONS: list[tuple[int, str, Callable[[str], None]]] = [
     (11, "add_steam_workshop_assets", _migration_011_add_steam_workshop_assets),
     (12, "track_bundled_seed_state", _migration_012_track_bundled_seed_state),
     (13, "harden_bundled_seed_state", _migration_013_harden_bundled_seed_state),
-    (14, "add_context_release_storage", _migration_014_add_context_release_storage),
-    (15, "add_context_analysis_batch_storage", _migration_015_add_context_analysis_batch_storage),
-    (16, "add_context_delivery_memberships", _migration_016_add_context_delivery_memberships),
-    (17, "add_context_aggregation_phase", _migration_017_add_context_aggregation_phase),
-    (18, "add_context_release_manifests", _migration_018_add_context_release_manifests),
-    (19, "add_atomic_context_publication", _migration_019_add_atomic_context_publication),
-    (20, "add_context_synthesis_checkpoints", _migration_020_add_context_synthesis_checkpoints),
-    (21, "add_context_tree_v2_storage", _migration_021_add_context_tree_v2_storage),
-    (22, "extend_context_tree_v2_results", _migration_022_extend_context_tree_v2_results),
-]
+] + CONTEXT_DB_MIGRATIONS
 
 
 def migrate_main_database(

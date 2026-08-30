@@ -32,6 +32,11 @@ from scripts.app_settings import (
 )
 from scripts.core.services.reference_reuse_preview_service import ReferenceReusePreviewService
 from scripts.core.services.translation_progress_callback import build_translation_progress_callback
+from scripts.core.services.translation_workflow_outcome import (
+    history_completion_description as _history_completion_description,
+    record_context_metadata as _record_context_metadata,
+    workflow_outcome_values as _workflow_outcome_values,
+)
 from scripts.workflows import initial_translate
 from scripts.utils import i18n
 from scripts.utils.system_utils import slugify_to_ascii
@@ -168,43 +173,6 @@ def finalize_task(
         append_log=log_message,
         progress=progress or None,
         push=True,
-    )
-
-
-def _workflow_outcome_values(outcome) -> tuple[str, str, int]:
-    status = getattr(outcome, "status", None)
-    if status not in {"completed", "partial_failed"}:
-        return "completed", "Translation workflow completed successfully.", 0
-    message = getattr(outcome, "message", None) or "Translation workflow completed successfully."
-    return status, message, int(getattr(outcome, "issue_count", 0) or 0)
-
-
-def _history_completion_description(status: str) -> str:
-    if status == "partial_failed":
-        return "Translation completed with source-file warnings"
-    return "Translation completed successfully"
-
-
-def _record_context_metadata(task_id: str, workflow_result: object) -> None:
-    context_metadata = (
-        workflow_result.get("context")
-        if isinstance(workflow_result, dict)
-        else getattr(workflow_result, "context_metadata", None)
-    )
-    if not context_metadata:
-        return
-    warning = context_metadata.get("warning") or {}
-    task_state.update_task(
-        task_id,
-        fields={
-            "context": context_metadata,
-            "result": {"metadata": {"context": context_metadata}},
-        },
-        append_log=(
-            f"Project context warning: {warning.get('code')}."
-            if warning.get("code") else None
-        ),
-        push=False,
     )
 
 

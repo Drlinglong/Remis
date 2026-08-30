@@ -329,32 +329,6 @@ def _normalize_status(raw_status: Optional[str], *, recovered: bool = False) -> 
     }.get(str(raw_status or "").lower(), "unknown")
 
 
-def _job_allowed_actions(
-    status: str,
-    validation: AgentValidationSummary,
-    output_paths: list[str],
-    *,
-    kind: str,
-) -> list[str]:
-    actions = ["poll"] if status in {"queued", "running"} else []
-    if status in {"failed", "partial_failed", "interrupted"}:
-        actions.append("retry")
-    if status == "completed":
-        if validation.available:
-            actions.append("inspect_validation")
-        if validation.errors or validation.human_review_items:
-            actions.append("repair")
-        if kind == "dry_run":
-            actions.append("create_translation_plan")
-        elif (
-            kind in {"translation", "initial_translation", "incremental_translation"}
-            and output_paths
-            and validation.errors == 0
-        ):
-            actions.append("approve_export")
-    return actions
-
-
 async def _build_job_response(job_id: str) -> AgentJobResponse:
     metadata = agent_registry.get_job(job_id)
     live_task = task_state.get_task(job_id)

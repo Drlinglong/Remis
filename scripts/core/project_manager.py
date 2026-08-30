@@ -524,14 +524,12 @@ class ProjectManager:
         logger.info(f"Deleted history event {history_id}")
 
     # --- Workflows ---
-
     async def run_incremental_update_workflow(self, config: Any, progress_callback: Optional[Callable] = None):
         """Orchestrates the incremental update workflow."""
         from scripts.workflows.update_translate import run_incremental_update
         from scripts.core.services.translation_context_service import context_workflow_kwargs
         from scripts.app_settings import LANGUAGE_BY_CODE, GAME_PROFILES, GAME_PROFILES_BY_ID
         
-        # Handle case where frontend sends api_provider instead of provider
         provider = config.api_provider or config.provider or "gemini"
         model = config.model
         

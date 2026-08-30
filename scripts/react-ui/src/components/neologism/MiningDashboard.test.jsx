@@ -117,14 +117,15 @@ describe('MiningDashboard', () => {
 
   it('reconciles a completed mining task through REST when websocket stays silent', async () => {
     const defaultGet = api.get.getMockImplementation();
-    let statusRequestCount = 0;
+    let taskStatusRequestCount = 0;
     api.get.mockImplementation((url) => {
       if (url === '/api/neologisms/status/project-1') {
-        statusRequestCount += 1;
+        return Promise.resolve({ data: { status: 'idle' } });
+      }
+      if (url === '/api/status/task-1') {
+        taskStatusRequestCount += 1;
         return Promise.resolve({
-          data: statusRequestCount === 1
-            ? { status: 'idle' }
-            : { status: 'completed', task_id: 'task-1', processed_files: 3, total_files: 3 },
+          data: { status: 'completed', task_id: 'task-1', processed_files: 3, total_files: 3 },
         });
       }
       return defaultGet(url);
@@ -141,12 +142,12 @@ describe('MiningDashboard', () => {
     );
 
     fireEvent.click(await screen.findByRole('button', {
-      name: 'neologism_review.mining.start_mining',
+      name: 'mod_archive.analysis.start_analysis',
     }));
 
     await waitFor(() => expect(api.post).toHaveBeenCalled());
     await waitFor(() => expect(onMiningComplete).toHaveBeenCalledOnce(), { timeout: 1600 });
-    expect(statusRequestCount).toBeGreaterThan(1);
+    expect(taskStatusRequestCount).toBe(1);
   });
 
   it('uses a scoped localized model label', async () => {

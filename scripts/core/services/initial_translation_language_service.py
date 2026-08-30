@@ -98,30 +98,28 @@ def _build_parallel_processor(max_workers, chunk_size, source_context_overlap, c
     return ParallelProcessor(**processor_kwargs)
 
 
+def _prepare_reference_run(reference_reuse, game_profile, source_lang, target_lang):
+    resolver = create_reference_resolver(
+        reference_reuse,
+        game_profile=game_profile,
+        source_lang=source_lang,
+        target_lang=target_lang,
+    )
+    return resolver, [], {"model_submitted": 0}
+
+
 def run_language_translation(
     *,
-    mod_name: str,
-    source_lang: dict,
-    target_lang: dict,
-    game_profile: dict,
-    mod_context: str,
-    handler: Any,
-    output_folder_name: str,
-    output_dir_path: str,
-    selected_provider: str,
-    model_name: Optional[str],
-    all_files_content: List[dict],
-    total_batches: int,
-    effective_chunk_size: int,
-    progress_callback: Optional[Any],
-    project_id: Optional[str],
-    version_id: Optional[int],
-    override_path: Optional[str],
-    use_resume: bool,
-    concurrency_limit: Optional[int],
-    rpm_limit: Optional[int],
-    batch_size_limit: Optional[int],
-    embedded_workshop: Optional[dict],
+    mod_name: str, source_lang: dict, target_lang: dict,
+    game_profile: dict, mod_context: str, handler: Any,
+    output_folder_name: str, output_dir_path: str,
+    selected_provider: str, model_name: Optional[str],
+    all_files_content: List[dict], total_batches: int,
+    effective_chunk_size: int, progress_callback: Optional[Any],
+    project_id: Optional[str], version_id: Optional[int],
+    override_path: Optional[str], use_resume: bool,
+    concurrency_limit: Optional[int], rpm_limit: Optional[int],
+    batch_size_limit: Optional[int], embedded_workshop: Optional[dict],
     reference_reuse: Optional[dict] = None,
     source_context_overlap: int = 0,
     context_selection: Optional[Any] = None,
@@ -140,11 +138,12 @@ def run_language_translation(
     )
     run_state = LanguageRunState()
     progress_lock = threading.Lock()
-    reference_resolver = create_reference_resolver(
-        reference_reuse,
-        game_profile=game_profile,
-        source_lang=source_lang,
-        target_lang=target_lang,
+    (
+        reference_resolver,
+        reference_protected_entries,
+        reference_run_metrics,
+    ) = _prepare_reference_run(
+        reference_reuse, game_profile, source_lang, target_lang
     )
     def update_progress(
         current_file_name="",
@@ -165,8 +164,6 @@ def run_language_translation(
             format_repair,
             workshop_progress,
         )
-    reference_protected_entries: List[dict] = []
-    reference_run_metrics = {"model_submitted": 0}
     file_task_generator = build_file_task_iterator(
         all_files_content,
         checkpoint_manager,

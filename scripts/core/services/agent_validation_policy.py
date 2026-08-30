@@ -93,7 +93,7 @@ def job_allowed_actions(
 ) -> list[str]:
     """Expose only actions backed by an Agent registry record."""
     actions = ["poll"] if status in {"queued", "running"} else []
-    if agent_managed and status in {"failed", "interrupted"}:
+    if agent_managed and status in {"failed", "partial_failed", "interrupted"}:
         actions.append("retry")
     if status == "completed":
         if validation.available:

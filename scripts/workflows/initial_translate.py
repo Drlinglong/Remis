@@ -74,34 +74,38 @@ def _prepare_source_files(
     return source_result, total_files
 
 
-def run(mod_name: str,
-        source_lang: dict,
-        target_languages: list[dict],
-        game_profile: dict,
-        mod_context: str,
-        selected_provider: str = "gemini",
-        selected_glossary_ids: Optional[List[int]] = None,
-        mod_id_for_archive: Optional[int] = None,
-        model_name: Optional[str] = None,
-        use_glossary: bool = True,
-        project_id: Optional[str] = None,
-        custom_lang_config: Optional[dict] = None,
-        progress_callback: Optional[Any] = None,
-        override_path: Optional[str] = None,
-        use_resume: bool = True,
-        clean_source: bool = False,
-        batch_size_limit: Optional[int] = None,
-        source_context_overlap: int = 0,
-        concurrency_limit: Optional[int] = None,
-        rpm_limit: Optional[int] = 40,
-        embedded_workshop: Optional[dict] = None,
-        reference_reuse: Optional[dict] = None,
-        use_project_context: bool = False,
-        context_release_id: Optional[str] = None,
-        context_character_budget: int = 4000,
-        context_service: Any = None,
-        snapshot_service: Any = None,
-        translation_context_mode: Optional[str] = None):
+def _prepare_context_selection(
+    project_id, files, use_project_context, context_release_id,
+    context_character_budget, context_service, snapshot_service,
+    translation_context_mode,
+):
+    return prepare_and_require_workflow_context(
+        prepare_workflow_context,
+        (
+            project_id, files, use_project_context,
+            context_release_id, context_character_budget,
+            context_service, snapshot_service,
+        ),
+        translation_context_mode,
+    )
+
+
+def run(
+    mod_name: str, source_lang: dict, target_languages: list[dict],
+    game_profile: dict, mod_context: str, selected_provider: str = "gemini",
+    selected_glossary_ids: Optional[List[int]] = None, mod_id_for_archive: Optional[int] = None,
+    model_name: Optional[str] = None, use_glossary: bool = True,
+    project_id: Optional[str] = None, custom_lang_config: Optional[dict] = None,
+    progress_callback: Optional[Any] = None,
+    override_path: Optional[str] = None, use_resume: bool = True,
+    clean_source: bool = False, batch_size_limit: Optional[int] = None,
+    source_context_overlap: int = 0, concurrency_limit: Optional[int] = None,
+    rpm_limit: Optional[int] = 40, embedded_workshop: Optional[dict] = None,
+    reference_reuse: Optional[dict] = None, use_project_context: bool = False,
+    context_release_id: Optional[str] = None, context_character_budget: int = 4000,
+    context_service: Any = None, snapshot_service: Any = None,
+    translation_context_mode: Optional[str] = None,
+):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info("Entered initial_translate.run")
     logging.info(f"--- Starting 'Initial Translation' workflow for: {mod_name} ---")
@@ -133,34 +137,20 @@ def run(mod_name: str,
     # 即使是大 Mod，文本数据通常也不超过 50MB，内存不是瓶颈。
     
     source_result, total_files = _prepare_source_files(
-        mod_name, game_profile, source_lang, override_path, progress_callback
-    )
+        mod_name, game_profile, source_lang, override_path, progress_callback)
     all_files_content = source_result.files
 
-    context_selection = prepare_and_require_workflow_context(
-        prepare_workflow_context,
-        (
-            project_id,
-            all_files_content,
-            use_project_context or translation_context_mode == "archive",
-            context_release_id,
-            context_character_budget,
-            context_service,
-            snapshot_service,
-        ),
+    context_selection = _prepare_context_selection(
+        project_id, all_files_content, use_project_context or translation_context_mode == "archive",
+        context_release_id, context_character_budget, context_service, snapshot_service,
         translation_context_mode,
     )
     # Calculate Total Batches (Pre-calculation)
     effective_chunk_size = get_chunk_size_for_provider(selected_provider, batch_size_limit)
     total_batches = calculate_total_batches(all_files_content, effective_chunk_size)
     mod_id, version_id = create_source_snapshot(
-        mod_name,
-        all_files_content,
-        total_files,
-        total_batches,
-        progress_callback,
-        project_id,
-    )
+        mod_name, all_files_content, total_files, total_batches,
+        progress_callback, project_id)
     if not mod_id or not version_id:
         raise RuntimeError("Failed to create the source archive snapshot.")
     # ───────────── 5. 多语言并行翻译 (Streaming from Memory) ─────────────

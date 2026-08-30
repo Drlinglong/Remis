@@ -11,7 +11,7 @@
     "scripts/core/project_manager.py": 1063,
     "scripts/core/services/model_arena_execution_service.py": 1163,
     "scripts/core/services/model_arena_service.py": 1036,
-    "scripts/routers/agent.py": 1123,
+    "scripts/routers/agent.py": 1097,
     "scripts/routers/agent_workshop.py": 1392
   },
   "function_line_exceptions": {
@@ -28,7 +28,7 @@
     "scripts/core/project_manager.py::ProjectManager.promote_incremental_source": 123,
     "scripts/core/project_manager.py::ProjectManager.repair_project_metadata": 126,
     "scripts/core/services/embedded_workshop_service.py::run_embedded_workshop": 155,
-    "scripts/core/services/initial_translation_language_service.py::run_language_translation": 163,
+    "scripts/core/services/initial_translation_language_service.py::run_language_translation": 157,
     "scripts/core/services/model_arena_execution_service.py::ModelArenaExecutionService._execute_contestant": 323,
     "scripts/core/services/model_arena_service.py::ModelArenaService._execute_bundle": 130,
     "scripts/core/services/model_arena_service.py::ModelArenaService.create_run": 134,
@@ -39,10 +39,10 @@
     "scripts/routers/agent_workshop.py::_scan_project_issues": 240,
     "scripts/routers/projects.py::run_incremental_update_background": 170,
     "scripts/routers/tools.py::deploy_mod": 228,
-    "scripts/routers/translation.py::run_translation_workflow_v2": 164,
+    "scripts/routers/translation.py::run_translation_workflow_v2": 160,
     "scripts/run_dev_servers.py::run_servers": 155,
-    "scripts/workflows/initial_translate.py::run": 126,
-    "scripts/workflows/update_translate.py::run_incremental_update": 439
+    "scripts/workflows/initial_translate.py::run": 123,
+    "scripts/workflows/update_translate.py::run_incremental_update": 436
   },
   "complexity_exceptions": {
     "scripts/build_pipeline.py::main": 23,
@@ -52,7 +52,6 @@
     "scripts/core/deploy_manager.py::ModDeployer.detect_steam_workshop_path": 24,
     "scripts/core/services/proofreading_service.py::ProofreadingService.find_source_template": 24,
     "scripts/routers/tools.py::deploy_mod": 21,
-    "scripts/routers/translation.py::run_translation_workflow_v2": 27,
     "scripts/run_dev_servers.py::run_servers": 28,
     "scripts/utils/system_utils.py::force_free_port": 23,
     "scripts/workflows/update_translate.py::run_incremental_update": 26
