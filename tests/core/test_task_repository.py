@@ -179,6 +179,30 @@ def test_task_events_default_to_user_audience_and_can_include_diagnostics(tmp_pa
         task_state.tasks.update(previous_tasks)
 
 
+def test_progress_event_uses_explicit_logging_level(tmp_path):
+    db_path = tmp_path / "task-event-level.sqlite"
+    migrate_main_database(str(db_path))
+    repository = TaskRepository(str(db_path))
+    previous_tasks = dict(task_state.tasks)
+    try:
+        task_state.tasks.clear()
+        task_state.configure_repository(repository)
+        task_state.create_task("task-level", status="running")
+
+        task_state.update_progress(
+            "task-level",
+            log_message="Final file format validation found 0 error(s).",
+            event_level="info",
+        )
+
+        events = task_state.get_task_events("task-level")
+        assert events[-1]["level"] == "info"
+    finally:
+        task_state.configure_repository(None)
+        task_state.tasks.clear()
+        task_state.tasks.update(previous_tasks)
+
+
 def test_hydration_interrupts_only_explicitly_non_resumable_workshop_tasks(tmp_path):
     db_path = tmp_path / "task-recovery.sqlite"
     migrate_main_database(str(db_path))

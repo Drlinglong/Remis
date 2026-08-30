@@ -1,5 +1,6 @@
 import logging
 from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import Iterable, Optional
 
 from scripts.app_settings import RECOMMENDED_MAX_WORKERS
@@ -15,6 +16,57 @@ LOCAL_SERIAL_PROVIDERS = {
     "oobabooga",
     "hunyuan",
 }
+
+RECOVERABLE_BATCH_WARNING_CODES = {"api_error", "context_exceeded"}
+
+
+@dataclass
+class BatchWarningClassification:
+    final_warnings: list
+    glossary_evidence: list[dict]
+    recovered_retries: list
+
+
+def classify_batch_warnings(filename: str, warnings: Iterable, *, file_succeeded: bool) -> BatchWarningClassification:
+    """Separate potential glossary issues from retries that ultimately recovered."""
+    final_warnings = []
+    glossary_evidence = []
+    recovered_retries = []
+    for warning in list(warnings or []):
+        code = get_batch_warning_code(warning)
+        if file_succeeded and code in RECOVERABLE_BATCH_WARNING_CODES:
+            recovered_retries.append(warning)
+            continue
+        final_warnings.append(warning)
+        if code == "glossary_mismatch":
+            glossary_evidence.append(_glossary_evidence(filename, warning))
+    return BatchWarningClassification(final_warnings, glossary_evidence, recovered_retries)
+
+
+def _glossary_evidence(filename: str, warning) -> dict:
+    raw = warning if isinstance(warning, dict) else {}
+    return {
+        "requires_human_review": True,
+        "severity": "warning",
+        "error_code": "glossary_mismatch",
+        "file_name": filename,
+        "details": str(raw.get("message") or warning),
+        "source_term": raw.get("source_term"),
+        "target_term": raw.get("target_term"),
+        "batch_id": raw.get("batch_id"),
+    }
+
+
+def log_recovered_retries(filename: str, warnings: Iterable) -> None:
+    warnings = list(warnings or [])
+    for index, warning in enumerate(warnings, start=1):
+        logging.info(
+            "Recovered batch retry %s/%s for %s: %s",
+            index,
+            len(warnings),
+            filename,
+            format_batch_warning_detail(warning, index, len(warnings)),
+        )
 
 
 def resolve_max_workers(concurrency_limit: Optional[int], selected_provider: str) -> int:

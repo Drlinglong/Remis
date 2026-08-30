@@ -12,13 +12,33 @@ export default function InlineLocalizationWorkflow({
   const workflow = useInlineLocalizationWorkflow({ initialArgs, onStarted, onRecoveryAction });
   const {
     approve, availableTargetLanguages, batchSize, browse, buildPlan, busy, changeProvider,
-    concurrency, error, folderPath, gameLabel, inferredName, model, modelOptions, plan,
-    projectName, provider, providerOptions, resolvedProject, resolvingProject, rpm,
+    concurrency, error, folderPath, gameLabel, inferredName, loadingSettings, model, modelOptions, plan,
+    preparationError, projectName, provider, providerOptions, resolvedProject, resolvingProject, rpm,
     openRecoveredProject, partialSuccess, planInvalidation, regeneratePlan, resetPlan,
     setBatchSize, setConcurrency, setModel, setRpm, setTargetLanguages,
     setUseMainGlossary, setUseResume, setWorkshopEnabled, sourceLanguage,
     sourceLanguageLabel, targetLanguages, useMainGlossary, useResume, workshopEnabled,
   } = workflow;
+
+  if (resolvingProject || loadingSettings) {
+    return (
+      <div className={styles.card} role="status" aria-live="polite">
+        <Text fw={700}>正在准备汉化计划</Text>
+        <Text size="sm" c="dimmed">正在读取已有项目和小助手设置，确认完成后才会显示审批参数。</Text>
+      </div>
+    );
+  }
+
+  if (preparationError) {
+    return (
+      <div className={styles.card}>
+        <Stack gap="sm">
+          <Alert color="red" title="无法准备汉化计划">{preparationError}</Alert>
+          <Group justify="flex-end"><Button variant="default" onClick={onClose}>关闭</Button></Group>
+        </Stack>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.card}>

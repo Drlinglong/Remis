@@ -22,6 +22,19 @@ const mocks = vi.hoisted(() => ({
   setTaskId: vi.fn(),
   setTranslationDetails: vi.fn(),
   threadIsRunning: false,
+  suggestedActions: [{
+    action: 'start_localization_workflow',
+    label: '开始汉化',
+    args: {
+      project_mode: 'new',
+      folder_path: 'J:/mods/demo',
+      game_id: 'vic3',
+      source_language: 'en',
+      target_languages: ['zh-CN'],
+      api_provider: 'lm_studio',
+      model: 'local-model',
+    },
+  }],
 }));
 
 vi.mock('react-i18next', () => ({
@@ -60,19 +73,6 @@ vi.mock('../../context/TranslationContextCore', () => ({
 vi.mock('@assistant-ui/react', async () => {
   const ReactModule = await import('react');
   const passthrough = ({ children }) => ReactModule.createElement(ReactModule.Fragment, null, children);
-  const message = {
-    role: 'assistant',
-    metadata: {
-      custom: {
-        suggested_actions: [{
-          action: 'start_localization_workflow',
-          label: '开始汉化',
-          args: { folder_path: 'J:/mods/demo' },
-        }],
-      },
-    },
-  };
-
   return {
     AssistantRuntimeProvider: passthrough,
     ComposerPrimitive: {
@@ -91,7 +91,10 @@ vi.mock('@assistant-ui/react', async () => {
       Messages: ({ components }) => ReactModule.createElement(components.AssistantMessage),
     },
     useLocalRuntime: () => ({ thread: { append: mocks.append } }),
-    useMessage: (selector) => selector(message),
+    useMessage: (selector) => selector({
+      role: 'assistant',
+      metadata: { custom: { suggested_actions: mocks.suggestedActions } },
+    }),
     useThread: (selector) => selector({ messages: [], isRunning: mocks.threadIsRunning }),
   };
 });
@@ -102,6 +105,19 @@ describe('Copilot localization workflow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.threadIsRunning = false;
+    mocks.suggestedActions = [{
+      action: 'start_localization_workflow',
+      label: '开始汉化',
+      args: {
+        project_mode: 'new',
+        folder_path: 'J:/mods/demo',
+        game_id: 'vic3',
+        source_language: 'en',
+        target_languages: ['zh-CN'],
+        api_provider: 'lm_studio',
+        model: 'local-model',
+      },
+    }];
     fetchCopilotSettings.mockResolvedValue({
       settings: { provider: 'lm_studio', model: 'local-model' },
       providers: [{ id: 'lm_studio', name: 'LM Studio', models: ['local-model'], default_model: 'local-model' }],
@@ -117,6 +133,22 @@ describe('Copilot localization workflow', () => {
     );
 
     expect(screen.getByRole('status', { name: '模型正在思考' })).toBeInTheDocument();
+  });
+
+  it('refuses to open a workflow card when the typed action is incomplete', async () => {
+    mocks.suggestedActions = [{
+      action: 'start_localization_workflow',
+      label: '开始汉化',
+      args: {},
+    }];
+
+    renderWithMantine(
+      <RemisCopilotThread sessionId="session-incomplete" onMessagesChange={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '开始汉化' }));
+
+    expect(screen.queryByText('在对话中规划汉化')).not.toBeInTheDocument();
+    expect(await screen.findByText(/缺少Mod 路径、游戏、源语言、目标语言/)).toBeInTheDocument();
   });
 
   it('resolves an existing project, locks server-owned fields and allows multiple targets', async () => {
@@ -152,7 +184,7 @@ describe('Copilot localization workflow', () => {
 
     fireEvent.click(screen.getAllByLabelText('目标语言')[0]);
     fireEvent.click(await screen.findByText('日本語'));
-    fireEvent.click(screen.getByRole('button', { name: '只读检查并预览' }));
+    fireEvent.click(await screen.findByRole('button', { name: '只读检查并预览' }));
 
     await waitFor(() => expect(planInitialTranslationWorkflow).toHaveBeenCalledWith(expect.objectContaining({
       project_id: 'project-existing',
@@ -166,6 +198,47 @@ describe('Copilot localization workflow', () => {
       targetLanguages: ['zh-CN', 'ja'],
     }));
     expect(executeGuidedLocalizationWorkflow).not.toHaveBeenCalled();
+  });
+
+  it('safely resolves a unique existing project when the model omits its game suffix', async () => {
+    projectService.getActiveProjects.mockResolvedValue({ data: [{
+      project_id: 'project-stellaris-demo',
+      name: 'Project Remis - Demo Mod - Stellaris',
+      source_path: 'J:/mods/stellaris-demo',
+      game_id: 'stellaris',
+      source_language: 'en',
+    }] });
+    fetchCopilotSettings.mockResolvedValue({
+      settings: { provider: 'openrouter', model: 'openai/gpt-5.6-luna' },
+      providers: [{
+        id: 'openrouter',
+        name: 'OpenRouter',
+        models: ['openai/gpt-5.6-luna'],
+        default_model: 'openai/gpt-5.6-luna',
+      }],
+    });
+
+    renderWithMantine(
+      <InlineLocalizationWorkflow
+        initialArgs={{
+          project_mode: 'existing',
+          project_name: 'Project Remis - Demo Mod',
+          game_id: 'stellaris',
+          target_languages: ['zh-CN'],
+          api_provider: 'openrouter',
+          model: 'openai/gpt-5.6-luna',
+        }}
+        onStarted={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent('正在准备汉化计划');
+    expect(screen.queryByLabelText('Mod 路径')).not.toBeInTheDocument();
+    expect(await screen.findByDisplayValue('J:/mods/stellaris-demo')).toHaveAttribute('readonly');
+    expect(screen.getByDisplayValue('Project Remis - Demo Mod - Stellaris')).toHaveAttribute('readonly');
+    expect(screen.getByDisplayValue('OpenRouter')).toBeInTheDocument();
+    expect(screen.getAllByDisplayValue('openai/gpt-5.6-luna')[0]).toBeInTheDocument();
   });
 
   it('shows the persisted source language and blocks selecting it as a target', async () => {
@@ -213,7 +286,7 @@ describe('Copilot localization workflow', () => {
     );
 
     expect(executeGuidedLocalizationWorkflow).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '只读检查并预览' }));
+    fireEvent.click(await screen.findByRole('button', { name: '只读检查并预览' }));
 
     expect(await screen.findByText('Two files found')).toBeInTheDocument();
     expect(planLocalizationWorkflow).toHaveBeenCalledWith(expect.objectContaining({
@@ -253,7 +326,7 @@ describe('Copilot localization workflow', () => {
       project: { project_id: 'project-2', name: 'Copilot Demo' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: '只读检查并预览' }));
+    fireEvent.click(await screen.findByRole('button', { name: '只读检查并预览' }));
     await screen.findByText('One file found');
     fireEvent.click(screen.getByRole('button', { name: '批准并启动翻译' }));
 
@@ -304,7 +377,7 @@ describe('Copilot localization workflow', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '只读检查并预览' }));
+    fireEvent.click(await screen.findByRole('button', { name: '只读检查并预览' }));
     expect(await screen.findByText('Old scan')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '批准并启动翻译' }));
 
@@ -355,7 +428,7 @@ describe('Copilot localization workflow', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '只读检查并预览' }));
+    fireEvent.click(await screen.findByRole('button', { name: '只读检查并预览' }));
     fireEvent.click(await screen.findByRole('button', { name: '批准并启动翻译' }));
 
     expect(await screen.findByText('项目已创建，但翻译尚未启动')).toBeInTheDocument();

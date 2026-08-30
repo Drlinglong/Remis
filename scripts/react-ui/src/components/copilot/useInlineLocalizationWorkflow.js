@@ -11,6 +11,7 @@ import {
 import projectService from '../../services/projectService';
 import { normalizeRecordArrayPayload } from '../../utils/payload';
 import { getCopilotWorkflowError } from './copilotWorkflowErrors';
+import { resolveCopilotProject } from './localizationWorkflowReadiness';
 
 const GAMES = [
   { value: 'stellaris', label: 'Stellaris' },
@@ -37,14 +38,20 @@ export default function useInlineLocalizationWorkflow({ initialArgs, onStarted, 
   const [gameId, setGameId] = useState(initialArgs.game_id || 'vic3');
   const [sourceLanguage, setSourceLanguage] = useState(initialArgs.source_language || 'en');
   const [targetLanguages, setTargetLanguages] = useState(() => (
-    initialArgs.target_lang_codes || [initialArgs.target_language || 'zh-CN']
+    initialArgs.target_languages
+    || initialArgs.target_lang_codes
+    || [initialArgs.target_language || 'zh-CN']
   ));
   const [provider, setProvider] = useState(initialArgs.api_provider || 'lm_studio');
   const [model, setModel] = useState(initialArgs.model || 'local-model');
   const [assistantProviders, setAssistantProviders] = useState([]);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [preparationError, setPreparationError] = useState('');
   const [resolvedProject, setResolvedProject] = useState(null);
   const shouldResolveProject = Boolean(
-    initialArgs.project_id || (initialArgs.project_name && !initialArgs.folder_path),
+    initialArgs.project_mode === 'existing'
+    || initialArgs.project_id
+    || (initialArgs.project_name && !initialArgs.folder_path),
   );
   const [resolvingProject, setResolvingProject] = useState(shouldResolveProject);
   const [batchSize, setBatchSize] = useState(10);
@@ -65,11 +72,16 @@ export default function useInlineLocalizationWorkflow({ initialArgs, onStarted, 
   }, [folderPath]);
 
   useEffect(() => {
+    setLoadingSettings(true);
     fetchCopilotSettings().then((data) => {
       setAssistantProviders(data.providers || []);
       if (!initialArgs.api_provider) setProvider(data.settings?.provider || 'lm_studio');
       if (!initialArgs.model) setModel(data.settings?.model || 'local-model');
-    }).catch(() => undefined);
+    }).catch((err) => {
+      if (!initialArgs.api_provider || !initialArgs.model) {
+        setPreparationError(`无法读取小助手的 Provider / 模型设置：${errorMessage(err)}`);
+      }
+    }).finally(() => setLoadingSettings(false));
   }, [initialArgs.api_provider, initialArgs.model]);
 
   useEffect(() => {
@@ -78,18 +90,19 @@ export default function useInlineLocalizationWorkflow({ initialArgs, onStarted, 
     setResolvingProject(true);
     projectService.getActiveProjects().then((response) => {
       const projects = normalizeRecordArrayPayload(response.data, ['projects', 'items', 'data', 'results']);
-      const matches = projects.filter((project) => (
-        (initialArgs.project_id && project.project_id === initialArgs.project_id)
-        || (!initialArgs.project_id && project.name === initialArgs.project_name)
-      ));
+      const resolution = resolveCopilotProject(projects, {
+        game_id: initialArgs.game_id,
+        project_id: initialArgs.project_id,
+        project_name: initialArgs.project_name,
+      });
       if (cancelled) return;
-      if (matches.length !== 1) {
-        setError(matches.length
-          ? '找到多个同名项目，无法安全确定要使用哪一个。请从项目页面重新发起。'
+      if (!resolution.project) {
+        setPreparationError(resolution.matchCount
+          ? '找到多个可能的项目，无法安全确定要使用哪一个。请提供完整项目名称，或从项目页面重新发起。'
           : '找不到对话中指定的已有项目。请确认项目仍处于启用状态。');
         return;
       }
-      const project = matches[0];
+      const project = resolution.project;
       setResolvedProject(project);
       setFolderPath(project.source_path || '');
       setProjectName(project.name || '');
@@ -97,12 +110,13 @@ export default function useInlineLocalizationWorkflow({ initialArgs, onStarted, 
       setSourceLanguage(project.source_language || '');
       setTargetLanguages((current) => current.filter((code) => code !== project.source_language));
     }).catch((err) => {
-      if (!cancelled) setError(errorMessage(err));
+      if (!cancelled) setPreparationError(errorMessage(err));
     }).finally(() => {
       if (!cancelled) setResolvingProject(false);
     });
     return () => { cancelled = true; };
-  }, [initialArgs.project_id, initialArgs.project_name, shouldResolveProject]);
+  }, [initialArgs.game_id, initialArgs.project_id, initialArgs.project_mode,
+    initialArgs.project_name, shouldResolveProject]);
 
   const providerOptions = assistantProviders.length
     ? assistantProviders.map((item) => ({ value: item.id, label: item.name }))
@@ -260,7 +274,8 @@ export default function useInlineLocalizationWorkflow({ initialArgs, onStarted, 
     approve, availableTargetLanguages, batchSize, browse, buildPlan, busy, changeProvider,
     concurrency, error, folderPath, gameLabel, inferredName, model, modelOptions, plan,
     openRecoveredProject, partialSuccess, planInvalidation, regeneratePlan, resetPlan,
-    projectName, provider, providerOptions, resolvedProject, resolvingProject, rpm,
+    loadingSettings, preparationError, projectName, provider, providerOptions, resolvedProject,
+    resolvingProject, rpm,
     setBatchSize, setConcurrency, setModel, setPlan, setRpm, setTargetLanguages,
     setUseMainGlossary, setUseResume, setWorkshopEnabled, sourceLanguage,
     sourceLanguageLabel, targetLanguages, useMainGlossary, useResume, workshopEnabled,

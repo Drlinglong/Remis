@@ -63,6 +63,47 @@ def test_log_batch_warnings_skips_empty_warnings(caplog):
     assert not caplog.records
 
 
+def test_classify_successful_file_keeps_glossary_evidence_and_recovers_retry():
+    warnings = [
+        {"type": "api_error", "attempt": 1, "message": "Response parsing failed."},
+        {
+            "batch_id": 0,
+            "source_term": "天空",
+            "target_term": "Himmel",
+            "message": "Community glossary term was not used.",
+        },
+        {
+            "batch_id": 2,
+            "source_term": "建筑师",
+            "target_term": "Architect",
+            "message": "Expected glossary term was not used.",
+        },
+    ]
+
+    result = batch_service.classify_batch_warnings(
+        "remis_demo.yml", warnings, file_succeeded=True
+    )
+
+    assert len(result.final_warnings) == 2
+    assert result.recovered_retries == [warnings[0]]
+    assert [item["error_code"] for item in result.glossary_evidence] == [
+        "glossary_mismatch",
+        "glossary_mismatch",
+    ]
+    assert all(item["requires_human_review"] for item in result.glossary_evidence)
+
+
+def test_failed_file_does_not_hide_api_error_as_recovered_retry():
+    warning = {"type": "api_error", "message": "All attempts failed."}
+
+    result = batch_service.classify_batch_warnings(
+        "failed.yml", [warning], file_succeeded=False
+    )
+
+    assert result.final_warnings == [warning]
+    assert result.recovered_retries == []
+
+
 def test_temporary_rpm_limit_restores_previous_value(monkeypatch):
     class FakeRateLimiter:
         rpm = 40

@@ -346,6 +346,40 @@ def test_validation_items_are_split_into_error_warning_and_human_review():
     ]
 
 
+def test_task_glossary_evidence_is_merged_as_human_review():
+    payload = {
+        "summary": AgentValidationSummary(),
+        "items": [],
+        "_raw_items": [],
+    }
+    task = {
+        "progress": {
+            "glossary_issue_details": [
+                {
+                    "requires_human_review": True,
+                    "severity": "warning",
+                    "error_code": "glossary_mismatch",
+                    "file_name": "demo.yml",
+                    "source_term": "建筑师",
+                    "target_term": "Architect",
+                    "batch_id": 2,
+                }
+            ]
+        }
+    }
+
+    merged = agent_router.merge_task_validation_payload(
+        payload, task, include_items=True
+    )
+
+    assert merged["summary"].human_review_items == 1
+    assert merged["summary"].total == 1
+    assert merged["items"][0]["code"] == "glossary_mismatch"
+    assert agent_router.validation_allowed_actions(
+        merged["_raw_items"], total=merged["summary"].total
+    ) == []
+
+
 def test_starting_job_is_pollable():
     status = agent_router._normalize_status("starting")
     actions = agent_router._job_allowed_actions(

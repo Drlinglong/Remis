@@ -49,6 +49,24 @@ class FailingProcessor(FakeProcessor):
         yield (FakeFileTask(), ["source"], [{"type": "api_error"}], True)
 
 
+class RecoveredWarningProcessor(FakeProcessor):
+    def process_files_stream(
+        self,
+        file_task_generator,
+        translation_function,
+        batch_progress_callback=None,
+    ):
+        if batch_progress_callback:
+            batch_progress_callback(FakeBatchTask())
+        warnings = [
+            {"type": "api_error", "attempt": 1, "message": "Parsing failed."},
+            {"batch_id": 0, "source_term": "天空", "target_term": "Himmel"},
+            {"batch_id": 2, "source_term": "建筑师", "target_term": "Architect"},
+            {"batch_id": 2, "source_term": "天空", "target_term": "Himmel"},
+        ]
+        yield (FakeFileTask(), ["translated"], warnings, False)
+
+
 def _run_language(
     monkeypatch,
     calls,
@@ -63,6 +81,7 @@ def _run_language(
     monkeypatch.setattr(language_service, "temporary_rpm_limit", lambda rpm: _null_context(calls, "rpm"))
     monkeypatch.setattr(language_service, "progress_log_bridge", lambda logger: _null_context(calls, "progress_log"))
     monkeypatch.setattr(language_service, "log_batch_warnings", lambda *args: calls.append(("warnings", args)))
+    monkeypatch.setattr(language_service, "log_recovered_retries", lambda *args: calls.append(("retries", args)))
     monkeypatch.setattr(language_service, "finalize_translated_file", lambda *args: calls.append(("finalize_file", args)))
     monkeypatch.setattr(language_service, "finalize_language_run", lambda *args, **kwargs: calls.append(("postprocess", args)) or ["tag"])
     monkeypatch.setattr(language_service, "export_workshop_issues_for_language", lambda *args, **kwargs: calls.append(("export", args, kwargs)))
@@ -166,3 +185,24 @@ def test_run_language_translation_reports_failed_batch_count(monkeypatch):
         and event["current_batch"] == 1
         for event in progress_events
     )
+
+
+def test_success_persists_glossary_evidence_and_separates_recovered_retry(monkeypatch):
+    calls = []
+    progress_events = []
+
+    _run_language(
+        monkeypatch,
+        calls,
+        processor_cls=RecoveredWarningProcessor,
+        progress_callback=lambda **payload: progress_events.append(payload),
+    )
+
+    final = progress_events[-1]
+    assert final["glossary_issues"] == 3
+    assert len(final["glossary_issue_details"]) == 3
+    assert final["recovered_retries"] == 1
+    warning_call = next(call for call in calls if call[0] == "warnings")
+    retry_call = next(call for call in calls if call[0] == "retries")
+    assert len(warning_call[1][1]) == 3
+    assert len(retry_call[1][1]) == 1

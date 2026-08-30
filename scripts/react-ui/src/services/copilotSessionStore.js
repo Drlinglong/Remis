@@ -119,6 +119,30 @@ export function upsertSessionMessages(state, sessionId, messages, { titleFromFir
   return saveCopilotState({ ...state, sessions });
 }
 
+/** Add/update a session without stealing the full-page active selection. */
+export function upsertBackgroundSessionMessages(state, session, messages) {
+  if (!session?.id) {
+    return state;
+  }
+  const exists = getSession(state, session.id);
+  if (exists) {
+    return upsertSessionMessages(state, session.id, messages);
+  }
+  const retainedSessions = (state.sessions || [])
+    .filter((storedSession) => (storedSession.messages || []).length > 0);
+  const activeSessionSurvives = retainedSessions
+    .some((storedSession) => storedSession.id === state.activeSessionId);
+  const seeded = {
+    ...state,
+    activeSessionId: activeSessionSurvives ? state.activeSessionId : session.id,
+    sessions: [
+      { ...session, messages: [] },
+      ...retainedSessions,
+    ],
+  };
+  return upsertSessionMessages(seeded, session.id, messages);
+}
+
 export function createSessionInState(state) {
   const session = createEmptySession();
   const sessions = [session, ...(state.sessions || [])].slice(0, MAX_SESSIONS);
@@ -193,14 +217,19 @@ export function toInitialMessages(storedMessages) {
   }
   return storedMessages
     .filter((m) => m && m.content && (m.role === 'user' || m.role === 'assistant'))
-    .map((m) => ({
-      id: m.id,
-      role: m.role,
-      content: m.content,
-      ...(m.metadata?.custom
-        ? { metadata: { custom: m.metadata.custom } }
-        : {}),
-    }));
+    .map((m) => {
+      const restoredCreatedAt = m.createdAt ? new Date(m.createdAt) : null;
+      const hasValidCreatedAt = restoredCreatedAt && Number.isFinite(restoredCreatedAt.getTime());
+      return {
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        ...(hasValidCreatedAt ? { createdAt: restoredCreatedAt } : {}),
+        ...(m.metadata?.custom
+          ? { metadata: { custom: m.metadata.custom } }
+          : {}),
+      };
+    });
 }
 
 export function buildWorkflowCompletionMessage(workflow) {

@@ -189,7 +189,7 @@ AGENT_OPS_SUMMARY = """
 - open_github_issue_132
 - open_project_management
 - open_create_project
-- start_localization_workflow（在对话中确认路径、游戏、源语言和目标语言；批准前只读）
+- start_localization_workflow（仅在对话已收齐完整规划输入后打开审批工作流；批准前只读）
 - open_initial_translation
 - open_proofreading
 - open_agent_workshop
@@ -205,10 +205,17 @@ AGENT_OPS_SUMMARY = """
 5. 校对 / 智能工坊 / 词典（可选）
 
 不要让用户一上来只点「初次翻译」却没有任何项目。
-用户明确说想开始汉化一个 Mod 时，优先建议 start_localization_workflow，而不是只解释或只跳转页面。
+用户询问首次汉化或表达模糊意向时，先问用户希望「手动操作指导」还是「由 Agent 规划」。在用户明确选择 Agent 规划之前，不要建议 start_localization_workflow。
+选择手动操作时，解释流程并建议安全的页面导航 action；不要建议 start_localization_workflow。
+选择 Agent 规划后，必须先通过自然对话收齐规划输入。资料不完整时只追问缺失项，suggested_actions 必须为空。
+已有项目：必须确认用户指的是 Remis 中已有项目，并原样保留用户给出的完整项目名；如果上下文提供 project_id，优先使用 project_id。项目路径、游戏和源语言由客户端从该项目只读解析，不要猜测或要求用户重复填写。
+新项目：必须收齐 Mod 路径、项目名称、游戏和源语言。
+两种模式都必须收齐至少一个目标语言。翻译 provider 和 model 使用当前小助手设置；若上下文没有可靠设置，则继续追问或引导设置，不得猜测。
+只有所有必需信息齐全时才建议 start_localization_workflow。参数必须包含 project_mode（existing 或 new）、target_languages、api_provider 和 model；已有项目还要包含 project_id 或完整 project_name；新项目还要包含 folder_path、project_name、game_id、source_language。
 用户询问「这个页面有什么作用」等当前页面问题时，必须先读取 page_context；若其中包含 helpSkillId，优先调用同名 Help Skill，不要要求用户重复说明页面标题。
 先明确告诉用户：「我可以引导您在程序中逐步操作，也可以帮您规划并启动完整汉化流程。」
-如果用户已经给出 Mod 路径、游戏、源语言或目标语言，把已知值放进 start_localization_workflow 的 args；不要让用户在割裂的弹窗里重复填写。
+LLM 可以结合对话理解用户指向哪个项目，但数据库项目解析必须由客户端按 project_id 或唯一、完整项目名确定完成；不要缩写、改写项目名，也不要把语义猜测伪装成已解析的项目。
+不要提前弹出留有空白项的工作流面板；完整 action 参数应让客户端只读解析后直接展示待审批计划。
 在执行任何写操作前，必须在对话内展示完整参数和风险，并由用户点击批准按钮。
 """.strip()
 
@@ -330,6 +337,7 @@ def build_system_prompt(
     selected_skill_ids: list[str],
     locale: str = "zh",
     page_context: dict | None = None,
+    workflow_entity_catalog: dict[str, Any] | None = None,
 ) -> tuple[str, list[dict[str, str]], GroundingLevel, int]:
     excerpts = read_help_skills(selected_skill_ids)
     sources = [{"title": e["title"], "path": e["path"]} for e in excerpts]
@@ -349,6 +357,10 @@ def build_system_prompt(
         )
 
     page_context_section = json.dumps(page_context, ensure_ascii=False, indent=2) if page_context else "（未提供）"
+    workflow_entities_section = (
+        json.dumps(workflow_entity_catalog, ensure_ascii=False, indent=2)
+        if workflow_entity_catalog else "（未提供）"
+    )
     system = f"""你是 Remis（Paradox Mod 本地化工厂）的产品帮助助手。
 用通俗中文回答（若用户用英文提问可用英文）。面向新手，少用内部模块名。
 
@@ -357,6 +369,12 @@ def build_system_prompt(
 ## 当前 Remis 页面上下文
 这是 Remis 生成的只读状态快照。可以用它解释用户当前所在步骤和下一步，但不得声称已经替用户执行操作。
 {page_context_section}
+
+## Remis 只读工作流实体目录
+这是服务端从项目数据库和 Provider 配置生成的安全快照，不包含路径或 API Key。
+理解用户的潦草表达后，只能从这里选择已有项目、Provider 和模型，并在 action 中返回目录里的规范 ID/名称。
+找不到唯一候选时继续追问，不得把近似名称直接当成已解析实体。
+{workflow_entities_section}
 
 ## Grounding 规则
 {grounding_rules}
@@ -368,7 +386,7 @@ def build_system_prompt(
 只输出一个 JSON 对象，不要 Markdown 代码围栏：
 {{
   "reply": "给用户看的 Markdown 说明",
-  "suggested_actions": [{{"action": "start_localization_workflow", "args": {{"folder_path": "用户给出的路径", "game_id": "vic3", "source_language": "en", "target_language": "zh-CN"}}}}],
+  "suggested_actions": [{{"action": "start_localization_workflow", "args": {{"project_mode": "existing", "project_id": "页面上下文中的项目 ID", "project_name": "用户原样给出的完整项目名", "target_languages": ["zh-CN"], "api_provider": "当前小助手设置中的 provider", "model": "当前小助手设置中的 model"}}}}],
   "sources": [{{"title": "从零开始", "path": "zh/user-guides/getting-started.md"}}],
   "confidence": "low|medium|high"
 }}

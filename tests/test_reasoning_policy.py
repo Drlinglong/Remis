@@ -54,7 +54,7 @@ def test_approved_provider_catalogs_and_defaults_are_locked():
             "gpt-5.6-luna",
             ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
         ),
-        "qwen": ("qwen3.8-max", ["qwen3.8-max"]),
+        "qwen": ("qwen3.8-max", ["qwen3.8-max", "qwen3.8-flash-next"]),
         "grok": ("grok-4.6", ["grok-4.6"]),
         "deepseek": (
             "deepseek-v4-flash",
@@ -65,7 +65,7 @@ def test_approved_provider_catalogs_and_defaults_are_locked():
             "MiniMax-M3",
             ["MiniMax-M3", "MiniMax-M2.7", "MiniMax-M2.7-highspeed"],
         ),
-        "zhipu": ("glm-5.3", ["glm-5.3"]),
+        "zhipu": ("glm-5.3-flash", ["glm-5.3-flash"]),
     }
 
     for provider_id, (default_model, models) in expected.items():

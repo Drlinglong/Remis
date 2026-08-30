@@ -41,8 +41,9 @@ def run_post_processing(
         if update_progress_callback:
             update_progress_callback(
                 log_message=(
-                    "Validation completed. "
-                    f"Found {total_issues} issue(s): {total_errors} error(s), {total_warnings} warning(s)."
+                    "Final file format validation completed. "
+                    f"Found {total_issues} format issue(s): {total_errors} error(s), "
+                    f"{total_warnings} warning(s)."
                 ),
                 format_issues_override=total_issues,
             )

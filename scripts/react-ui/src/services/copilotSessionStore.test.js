@@ -63,6 +63,18 @@ describe('copilotSessionStore', () => {
     ]);
   });
 
+  it('restores persisted message timestamps without replacing them with the current time', () => {
+    const createdAt = '2026-08-31T01:40:00.000Z';
+    const [restored, invalid] = toInitialMessages([
+      { id: 'old-message', role: 'user', content: '旧消息', createdAt },
+      { id: 'invalid-time', role: 'assistant', content: '旧回复', createdAt: 'not-a-date' },
+    ]);
+
+    expect(restored.createdAt).toBeInstanceOf(Date);
+    expect(restored.createdAt.toISOString()).toBe(createdAt);
+    expect(invalid).not.toHaveProperty('createdAt');
+  });
+
   it('createEmptySession yields unique ids', () => {
     const a = createEmptySession();
     const b = createEmptySession();

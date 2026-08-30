@@ -54,7 +54,10 @@ def test_run_post_processing_updates_progress_and_attaches_results(monkeypatch, 
     assert tracker.attached is True
     assert progress_events == [
         {
-            "log_message": "Validation completed. Found 5 issue(s): 2 error(s), 3 warning(s).",
+            "log_message": (
+                "Final file format validation completed. Found 5 format issue(s): "
+                "2 error(s), 3 warning(s)."
+            ),
             "format_issues_override": 5,
         }
     ]

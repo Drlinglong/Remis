@@ -1,6 +1,6 @@
 import logging
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from scripts.core.checkpoint_manager import CheckpointManager
@@ -13,6 +13,8 @@ class LanguageRunState:
     failed_batches: int = 0
     error_count: int = 0
     glossary_issues: int = 0
+    glossary_issue_details: list[dict] = field(default_factory=list)
+    recovered_retries: int = 0
     format_issues: int = 0
 
 
@@ -55,6 +57,7 @@ def emit_progress(
     format_issues_override: Optional[int] = None,
     format_repair: Optional[dict] = None,
     workshop_progress: Optional[dict] = None,
+    event_level: Optional[str] = None,
 ):
     if format_issues_override is not None:
         run_state.format_issues = format_issues_override
@@ -71,11 +74,45 @@ def emit_progress(
             failed_batches=run_state.failed_batches,
             error_count=run_state.error_count,
             glossary_issues=run_state.glossary_issues,
+            glossary_issue_details=run_state.glossary_issue_details,
+            recovered_retries=run_state.recovered_retries,
             format_issues=run_state.format_issues,
             format_repair=format_repair,
             workshop_progress=workshop_progress,
             log_message=log_message,
+            event_level=event_level,
         )
+
+
+def build_progress_emitter(
+    progress_callback: Optional[Any],
+    run_state: LanguageRunState,
+    total_batches: int,
+):
+    """Bind run-scoped state to the callback contract."""
+    def update_progress(
+        current_file_name="",
+        stage="Translating",
+        log_message=None,
+        format_issues_override=None,
+        format_repair=None,
+        workshop_progress=None,
+        event_level=None,
+    ):
+        emit_progress(
+            progress_callback,
+            run_state,
+            total_batches,
+            current_file_name,
+            stage,
+            log_message,
+            format_issues_override,
+            format_repair,
+            workshop_progress,
+            event_level,
+        )
+
+    return update_progress
 
 
 @contextmanager
@@ -86,7 +123,7 @@ def progress_log_bridge(progress_logger):
                 msg = self.format(record)
                 if "GET /api/status" in msg:
                     return
-                progress_logger(log_message=msg)
+                progress_logger(log_message=msg, event_level=record.levelname.lower())
             except Exception:
                 self.handleError(record)
 

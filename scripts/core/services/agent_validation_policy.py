@@ -11,6 +11,61 @@ from scripts.core.services.workshop_writeback_service import (
 from scripts.schemas.agent import AgentValidationSummary
 
 
+def persisted_task_validation_issues(task: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Return bounded validation evidence persisted by the authoritative task."""
+    progress = (task or {}).get("progress") or {}
+    issues = progress.get("glossary_issue_details") or []
+    return [dict(issue) for issue in issues[:100] if isinstance(issue, dict)]
+
+
+def merge_persisted_task_issues(
+    issues: Iterable[dict[str, Any]],
+    task: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Merge task evidence without duplicating an identical validation item."""
+    merged = [dict(issue) for issue in issues]
+    identities = {_issue_identity(issue) for issue in merged}
+    for issue in persisted_task_validation_issues(task):
+        identity = _issue_identity(issue)
+        if identity not in identities:
+            merged.append(issue)
+            identities.add(identity)
+    return merged
+
+
+def merge_task_validation_payload(
+    payload: dict[str, Any],
+    task: dict[str, Any],
+    *,
+    include_items: bool = False,
+) -> dict[str, Any]:
+    """Attach persisted task evidence to a sidecar validation payload."""
+    if not persisted_task_validation_issues(task):
+        return payload
+    raw_items = merge_persisted_task_issues(payload.get("_raw_items", []), task)
+    public_items, summary = classify_issues(raw_items)
+    if len(public_items) > 100:
+        public_items = public_items[:100]
+        summary.truncated = True
+    return {
+        **payload,
+        "summary": summary,
+        "items": public_items if include_items else [],
+        "_raw_items": raw_items,
+    }
+
+
+def _issue_identity(issue: dict[str, Any]) -> tuple:
+    return (
+        issue.get("error_code") or issue.get("error_type"),
+        issue.get("file_id") or issue.get("file_name"),
+        issue.get("key"),
+        issue.get("batch_id"),
+        issue.get("source_term"),
+        issue.get("target_term"),
+    )
+
+
 def classify_issues(
     issues: Iterable[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], AgentValidationSummary]:
