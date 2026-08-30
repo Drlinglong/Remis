@@ -1,3 +1,4 @@
+import logging
 import os
 
 from scripts.core.services.file_service import FileService
@@ -46,6 +47,24 @@ def test_scan_dir_filters_source_to_requested_language(tmp_path):
         "localization/french/ut_l_french.yml",
         "localization/german/replace/overwriting_l_german.yml",
     }
+
+
+def test_scan_logs_counts_without_absolute_paths(tmp_path, caplog):
+    source_root = tmp_path / "private-mod-name"
+    _write_loc(
+        source_root / "localization" / "english" / "safe_l_english.yml",
+        "l_english",
+        "safe.key",
+        "Hello",
+    )
+
+    with caplog.at_level(logging.INFO):
+        FileService().scan_dir(
+            str(source_root), "source", "english", "project-1", [".yml"]
+        )
+
+    assert "Discovered 1 source file(s)" in caplog.text
+    assert str(source_root) not in caplog.text
 
 
 def test_discovery_is_transient_and_reports_unavailable_roots(tmp_path):

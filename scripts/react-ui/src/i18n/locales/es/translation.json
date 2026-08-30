@@ -2678,7 +2678,7 @@
     "page_subtitle": "Respuestas de ayuda y sugerencias de navegación seguras. En pruebas usa LM Studio local por defecto.",
     "provider_label": "Proveedor",
     "picker_later": "Selector de modelo: próximamente",
-    "phase1_notice": "Las sesiones permanecen en el navegador. Sin cobertura documental la confianza es baja. En modelos locales ~32k se omiten mensajes antiguos en lugar de fallar.",
+    "phase1_notice": "Las sesiones permanecen en el navegador. Sin cobertura documental la confianza es baja. El presupuesto de entrada predeterminado es de 200000 tokens; primero se omiten los mensajes antiguos y se protege el último mensaje del usuario. Un error de longitud de contexto muestra cómo recuperarse.",
     "status_error": "No se pudo cargar el estado del asistente",
     "empty_title": "Asistente Remis",
     "empty_desc": "Pregunte cómo usar Remis. Las pruebas usan LM Studio local. Explico flujos y ofrezco saltos de página clicables.",

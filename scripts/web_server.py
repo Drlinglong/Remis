@@ -27,13 +27,13 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+from scripts.build_profile import get_build_profile, runtime_app_data_folder
+
 def panic_log(msg):
     try:
         appdata = os.getenv('APPDATA')
         if appdata:
-             # Check if we are checking frozen status
-             is_frozen = getattr(sys, 'frozen', False)
-             folder_name = "RemisModFactory" if is_frozen else "RemisModFactoryDev"
+             folder_name = runtime_app_data_folder(get_build_profile())
              path = os.path.join(appdata, folder_name, "startup_panic.log")
              os.makedirs(os.path.dirname(path), exist_ok=True)
              with open(path, "a", encoding="utf-8") as f:
@@ -193,7 +193,9 @@ def copilot_router_enabled():
     configured = os.getenv("REMIS_ENABLE_COPILOT")
     if configured is not None:
         return configured.strip().lower() in {"1", "true", "yes", "on"}
-    return not getattr(sys, "frozen", False)
+    if getattr(sys, "frozen", False):
+        return get_build_profile().copilot_enabled
+    return True
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -244,8 +246,7 @@ def get_frozen_log_config():
     """
     appdata = os.getenv('APPDATA')
     if appdata:
-         is_frozen = getattr(sys, 'frozen', False)
-         folder_name = "RemisModFactory" if is_frozen else "RemisModFactoryDev"
+         folder_name = runtime_app_data_folder(get_build_profile())
          log_file = os.path.join(appdata, folder_name, "logs", "uvicorn_frozen.log")
          os.makedirs(os.path.dirname(log_file), exist_ok=True)
     else:

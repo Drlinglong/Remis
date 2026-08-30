@@ -2675,7 +2675,7 @@
     "page_subtitle": "Odpowiedzi pomocy i bezpieczne sugestie nawigacji. Testy domyślnie używają lokalnego LM Studio.",
     "provider_label": "Dostawca",
     "picker_later": "Wybór modelu: wkrótce",
-    "phase1_notice": "Sesje zostają w przeglądarce. Bez pokrycia w dokumentacji wymuszana jest niska pewność. Przy lokalnych modelach ~32k starsze wiadomości są usuwane zamiast błędu.",
+    "phase1_notice": "Sesje zostają w przeglądarce. Bez pokrycia w dokumentacji wymuszana jest niska pewność. Domyślny budżet wejściowy to 200000 tokenów; starsze wiadomości są usuwane najpierw, a ostatnia wiadomość użytkownika jest chroniona. Błąd długości kontekstu pokazuje sposób odzyskania.",
     "status_error": "Nie udało się wczytać statusu asystenta",
     "empty_title": "Asystent Remis",
     "empty_desc": "Zapytaj, jak używać Remis. Testy korzystają z lokalnego LM Studio. Wyjaśniam przepływy i proponuję klikalne przejścia stron.",

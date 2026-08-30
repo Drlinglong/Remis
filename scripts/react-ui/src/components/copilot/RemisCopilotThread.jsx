@@ -18,6 +18,7 @@ import { useCopilotActions } from '../../hooks/useCopilotActions';
 import { useTranslationContext } from '../../context/TranslationContextCore';
 import styles from './RemisCopilotThread.module.css';
 import InlineLocalizationWorkflow from './InlineLocalizationWorkflow';
+import { toAssistantUiAbortError } from './copilotAbort';
 
 function extractTextFromParts(parts) {
   if (!Array.isArray(parts)) {
@@ -76,6 +77,7 @@ function MessageActionsBar({ onAction }) {
         <Group gap="xs" wrap="wrap">
           {confidence && (
             <Badge
+              className={styles.metadataBadge}
               size="sm"
               variant="outline"
               color={confidence === 'low' ? 'orange' : confidence === 'high' ? 'green' : 'gray'}
@@ -85,6 +87,7 @@ function MessageActionsBar({ onAction }) {
           )}
           {grounding && (
             <Badge
+              className={styles.metadataBadge}
               size="sm"
               variant="light"
               color={
@@ -101,7 +104,7 @@ function MessageActionsBar({ onAction }) {
             </Badge>
           )}
           {sources.slice(0, 3).map((src) => (
-            <Badge key={src.path || src.title} size="sm" variant="dot" color="blue">
+            <Badge className={styles.metadataBadge} key={src.path || src.title} size="sm" variant="dot" color="blue">
               {src.title || src.path}
             </Badge>
           ))}
@@ -137,6 +140,28 @@ function AssistantMessage({ onAction }) {
         <MessageActionsBar onAction={onAction} />
       </div>
     </MessagePrimitive.Root>
+  );
+}
+
+function ThinkingIndicator() {
+  const { t } = useTranslation();
+  const isRunning = useThread((thread) => Boolean(thread.isRunning));
+  if (!isRunning) return null;
+
+  return (
+    <div
+      className={`${styles.message} ${styles.assistantMessage}`}
+      role="status"
+      aria-live="polite"
+      aria-label={t('copilot.thinking', '模型正在思考')}
+    >
+      <div className={`${styles.bubble} ${styles.thinkingBubble}`}>
+        <span>{t('copilot.thinking', '模型正在思考')}</span>
+        <span className={styles.thinkingDots} aria-hidden="true">
+          <i /><i /><i />
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -203,8 +228,6 @@ export default function RemisCopilotThread({
   sessionId,
   initialMessages = [],
   onMessagesChange,
-  provider = 'lm_studio',
-  model = null,
   locale = 'zh',
   pageContext = null,
 }) {
@@ -225,14 +248,17 @@ export default function RemisCopilotThread({
     () => ({
       async run({ messages, abortSignal }) {
         const apiMessages = threadMessagesToApi(messages);
-        const data = await sendCopilotChat({
-          messages: apiMessages,
-          provider,
-          model,
-          locale,
-          pageContext,
-          signal: abortSignal,
-        });
+        let data;
+        try {
+          data = await sendCopilotChat({
+            messages: apiMessages,
+            locale,
+            pageContext,
+            signal: abortSignal,
+          });
+        } catch (error) {
+          throw toAssistantUiAbortError(error, abortSignal);
+        }
 
         const reply = data?.reply || t('copilot.empty_reply', '（没有回复）');
         const dropped = data?.context?.dropped_message_count || 0;
@@ -261,7 +287,7 @@ export default function RemisCopilotThread({
         };
       },
     }),
-    [locale, model, pageContext, provider, t],
+    [locale, pageContext, t],
   );
 
   const runtime = useLocalRuntime(chatModel, {
@@ -301,7 +327,7 @@ export default function RemisCopilotThread({
       provider: workflow.provider,
       model: workflow.model,
       sourceLang: workflow.sourceLanguage,
-      targetLangs: [workflow.targetLanguage],
+      targetLangs: workflow.targetLanguages || [workflow.targetLanguage],
       gameId: workflow.gameId,
     });
     setIsProcessing(true);
@@ -325,6 +351,7 @@ export default function RemisCopilotThread({
                 AssistantMessage: () => <AssistantMessage onAction={handleAction} />,
               }}
             />
+            <ThinkingIndicator />
           </ThreadPrimitive.Viewport>
 
           {workflowArgs && (
@@ -332,6 +359,7 @@ export default function RemisCopilotThread({
               initialArgs={workflowArgs}
               onClose={() => setWorkflowArgs(null)}
               onStarted={handleWorkflowStarted}
+              onRecoveryAction={handleAction}
             />
           )}
 

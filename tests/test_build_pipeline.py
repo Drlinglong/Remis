@@ -1,3 +1,4 @@
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -55,7 +56,11 @@ def test_verify_frozen_backend_fails_when_packaged_process_exits():
     with patch("scripts.build_pipeline.subprocess.Popen", return_value=process), pytest.raises(
         RuntimeError, match="exited before health check"
     ):
-        build_pipeline.verify_frozen_backend("C:/release/web_server.exe", timeout_seconds=1)
+        build_pipeline.verify_frozen_backend(
+            "C:/release/web_server.exe",
+            build_pipeline.PROFILES["stable"],
+            timeout_seconds=1,
+        )
 
 
 def test_verify_frozen_backend_accepts_healthy_packaged_process():
@@ -70,10 +75,25 @@ def test_verify_frozen_backend_accepts_healthy_packaged_process():
     ) as popen, patch(
         "scripts.build_pipeline.urllib.request.urlopen", return_value=response
     ), patch(
+        "scripts.build_pipeline._verify_copilot_registration"
+    ) as verify_copilot, patch(
         "scripts.build_pipeline._verify_frozen_steam_workshop_demo"
     ) as verify_demo, patch("scripts.build_pipeline.subprocess.run") as run:
-        build_pipeline.verify_frozen_backend("C:/release/web_server.exe", timeout_seconds=1)
+        response.read.return_value = json.dumps({
+            "build_channel": "stable",
+            "app_data_dir": "C:/smoke/RemisModFactory",
+        }).encode("utf-8")
+        build_pipeline.verify_frozen_backend(
+            "C:/release/web_server.exe",
+            build_pipeline.PROFILES["stable"],
+            timeout_seconds=1,
+        )
 
+    assert verify_copilot.call_count == 1
+    assert verify_copilot.call_args.kwargs == {"enabled": False}
+    assert verify_copilot.call_args.args[0] == int(
+        popen.call_args.kwargs["env"]["REMIS_BACKEND_PORT"]
+    )
     verify_demo.assert_called_once()
     assert popen.call_args.kwargs["stdout"] is not build_pipeline.subprocess.PIPE
     assert popen.call_args.kwargs["stderr"] is build_pipeline.subprocess.STDOUT
@@ -105,6 +125,11 @@ def test_resolve_nsis_artifact_name_uses_current_tauri_version(
     assert build_pipeline.resolve_nsis_artifact_name(config_path, target_triple) == (
         f"remis-mod-factory_3.0.7_{expected_arch}-setup.exe"
     )
+
+
+def test_build_channel_parser_defaults_to_stable_and_accepts_preview():
+    assert build_pipeline.parse_args([]).channel == "stable"
+    assert build_pipeline.parse_args(["--channel", "agent-preview"]).channel == "agent-preview"
 
 
 def test_resolve_conda_env_path_prefers_explicit_override(monkeypatch):

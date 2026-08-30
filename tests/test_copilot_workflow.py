@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 from fastapi import BackgroundTasks
+from pydantic import ValidationError
 
 from scripts.core.copilot import workflow
 from scripts.core.copilot import agent_planner, read_tools
@@ -47,6 +48,20 @@ def test_inspection_resolves_only_server_enumerated_children(tmp_path, monkeypat
     assert Path(result["folder_path"]).resolve() == mod.resolve()
 
 
+def test_bundled_appdata_demo_is_allowed_but_other_appdata_is_protected(
+    tmp_path, monkeypatch
+):
+    appdata = tmp_path / "AppData" / "Roaming" / "RemisAgentPreview"
+    demo = _make_mod(appdata / "demos")
+    private_mod = _make_mod(appdata / "private")
+    monkeypatch.setattr(workflow, "APP_DATA_DIR", str(appdata))
+    monkeypatch.setenv("APPDATA", str(tmp_path / "AppData" / "Roaming"))
+
+    assert workflow.inspect_mod_folder(str(demo))["read_only"] is True
+    with pytest.raises(ValueError, match="protected system root"):
+        workflow.inspect_mod_folder(str(private_mod))
+
+
 def test_async_read_tools_do_not_use_blocking_requests():
     source = Path(read_tools.__file__).read_text(encoding="utf-8")
     assert "requests.get" not in source
@@ -85,6 +100,33 @@ async def test_plan_requires_approval_and_executes_exactly_once(tmp_path, monkey
 
     with pytest.raises(RuntimeError, match="already been executed"):
         await workflow.approve_and_execute_plan(plan["plan_id"])
+
+
+@pytest.mark.asyncio
+async def test_expired_or_unknown_plan_cannot_execute(tmp_path):
+    mod = _make_mod(tmp_path)
+    plan = workflow.create_localization_plan(
+        folder_path=str(mod),
+        project_name="Expired",
+        game_id="stellaris",
+        source_language="en",
+        import_mode="reference",
+    )
+    workflow._plans[plan["plan_id"]].expires_at = 0
+
+    with pytest.raises(TimeoutError, match="expired"):
+        await workflow.approve_and_execute_plan(plan["plan_id"])
+    with pytest.raises(KeyError, match="not found"):
+        await workflow.approve_and_execute_plan("unknown-plan")
+
+
+def test_approval_rejects_parameter_replacement():
+    with pytest.raises(ValidationError, match="extra_forbidden"):
+        CopilotWorkflowApprovalRequest.model_validate({
+            "plan_id": "server-owned-plan",
+            "folder_path": "J:/replacement",
+            "model": "replacement-model",
+        })
 
 
 def test_plan_rejects_missing_folder_without_writes(tmp_path):
@@ -214,10 +256,38 @@ async def test_read_tools_bind_project_id_server_side(monkeypatch):
     )
     assert result["project_id"] == "approved-project"
     assert result["read_only"] is True
+    assert result["source_path_available"] is True
+    assert "source_path" not in result
+
+    files = await read_tools.execute_workflow_read_tool(
+        "list_project_files", {}, project_id="approved-project", target_lang_codes=["zh-CN"]
+    )
+    assert files["sample_metrics"] == [{"original_key_count": 12, "line_count": 14}]
+    assert "C:/demo" not in str({"project": result, "files": files})
+    assert "file_path" not in str(files)
     with pytest.raises(ValueError, match="not allowlisted"):
         await read_tools.execute_workflow_read_tool(
             "write_file", {}, project_id="approved-project", target_lang_codes=["zh-CN"]
         )
+
+
+def test_planner_checkpoint_summary_removes_paths_and_arbitrary_metadata():
+    result = read_tools._safe_checkpoint_summary({
+        "exists": True,
+        "completed_count": 1,
+        "total_files_estimate": 2,
+        "metadata": {"private_path": "C:/Users/private/mod"},
+        "targets": [{
+            "target_lang_code": "zh-CN",
+            "exists": True,
+            "completed_count": 1,
+            "last_saved_at": "2026-08-30T09:00:00",
+            "last_completed_file": "C:/Users/private/mod/a.yml",
+        }],
+    })
+
+    assert "C:/Users" not in str(result)
+    assert result["targets"][0]["last_completed_file_name"] == "a.yml"
 
 
 @pytest.mark.asyncio

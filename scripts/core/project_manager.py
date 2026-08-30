@@ -825,7 +825,7 @@ class ProjectManager:
         if abs_path not in translation_dirs:
             translation_dirs.append(abs_path)
             json_manager.update_config({"translation_dirs": translation_dirs})
-            logger.info(f"Added translation path {abs_path} to project {project_id}")
+            logger.info("Registered translation output path for project %s", project_id)
             
             await self.log_history_event(
                 project_id=project_id,
@@ -833,7 +833,7 @@ class ProjectManager:
                 description="history.path_registered_desc"
             )
         else:
-            logger.info(f"Translation path {abs_path} already exists for project {project_id}")
+            logger.info("Translation output path already registered for project %s", project_id)
 
         # Incremental packages reuse the same date-based output directory. Even
         # when the directory is already registered, its files may have been

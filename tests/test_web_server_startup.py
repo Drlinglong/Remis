@@ -99,3 +99,11 @@ def test_copilot_router_can_be_explicitly_enabled(monkeypatch):
     monkeypatch.setenv("REMIS_ENABLE_COPILOT", "true")
 
     assert web_server.copilot_router_enabled() is True
+
+
+def test_agent_preview_frozen_build_enables_copilot_from_profile(monkeypatch):
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.delenv("REMIS_ENABLE_COPILOT", raising=False)
+    monkeypatch.setenv("REMIS_BUILD_CHANNEL", "agent-preview")
+
+    assert web_server.copilot_router_enabled() is True

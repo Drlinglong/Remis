@@ -55,12 +55,18 @@ class BaseApiHandler(ABC):
 
     """【基类】API Handler 抽象基类，封装通用逻辑。"""
 
-    def __init__(self, provider_name: str, model_id: str = None):
+    def __init__(
+        self,
+        provider_name: str,
+        model_id: str = None,
+        reasoning_override: dict | None = None,
+    ):
         """
         通用的构造函数。
         """
         self.provider_name = provider_name
         self.model_id = model_id
+        self.reasoning_override = reasoning_override or {}
         self.logger = logging.getLogger(self.__class__.__name__)
         self._model_call_records = []
         self.client = self.initialize_client()
@@ -192,6 +198,8 @@ class BaseApiHandler(ABC):
             # If no overrides but we have a request model, use it
             base_config["default_model"] = self.model_id
             
+        if self.reasoning_override:
+            base_config.update(self.reasoning_override)
         return base_config
 
     def _reasoning_request_parameters(self) -> dict:

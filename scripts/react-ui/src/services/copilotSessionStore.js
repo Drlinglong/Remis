@@ -205,7 +205,7 @@ export function toInitialMessages(storedMessages) {
 
 export function buildWorkflowCompletionMessage(workflow) {
   const projectName = workflow.projectName || '未命名项目';
-  const targetLanguage = workflow.targetLanguage || '未指定';
+  const targetLanguage = (workflow.targetLanguages || [workflow.targetLanguage]).filter(Boolean).join('、') || '未指定';
   const sourceLanguage = workflow.sourceLanguage || '未指定';
   const enhancements = [
     workflow.useResume && '断点续传',

@@ -74,7 +74,7 @@ async def _inspect_project(project_id: str) -> dict[str, Any]:
         "name": project.get("name"),
         "game_id": project.get("game_id"),
         "source_language": project.get("source_language"),
-        "source_path": project.get("source_path"),
+        "source_path_available": bool(project.get("source_path")),
         "file_count": len(files),
         "read_only": True,
     }
@@ -86,9 +86,8 @@ async def _list_project_files(project_id: str) -> dict[str, Any]:
     return {
         "total": len(files),
         "status_counts": dict(statuses),
-        "samples": [
+        "sample_metrics": [
             {
-                "file_path": item.get("file_path"),
                 "original_key_count": item.get("original_key_count"),
                 "line_count": item.get("line_count"),
             }
@@ -178,10 +177,33 @@ async def _get_glossary_bindings(project_id: str) -> dict[str, Any]:
 
     available_rows, bound_row = await asyncio.to_thread(read_glossaries)
     available = [dict(row) for row in available_rows]
-    bound = dict(bound_row) if bound_row else None
     return {
-        "available": [{"glossary_id": item.get("glossary_id"), "name": item.get("name"), "is_main": item.get("is_main", False)} for item in available],
-        "project_glossary": ({"glossary_id": bound.get("glossary_id"), "name": bound.get("name")} if bound else None),
+        "available_count": len(available),
+        "main_glossary_available": any(bool(item.get("is_main")) for item in available),
+        "project_glossary_bound": bound_row is not None,
+        "read_only": True,
+    }
+
+
+def _safe_checkpoint_summary(payload: dict[str, Any]) -> dict[str, Any]:
+    """Keep planning signals while excluding stored paths and arbitrary metadata."""
+    targets = []
+    for item in payload.get("targets") or []:
+        if not isinstance(item, dict):
+            continue
+        last_file = item.get("last_completed_file")
+        targets.append({
+            "target_lang_code": item.get("target_lang_code"),
+            "exists": bool(item.get("exists")),
+            "completed_count": int(item.get("completed_count") or 0),
+            "last_saved_at": item.get("last_saved_at"),
+            "last_completed_file_name": os.path.basename(str(last_file)) if last_file else None,
+        })
+    return {
+        "exists": bool(payload.get("exists")),
+        "completed_count": int(payload.get("completed_count") or 0),
+        "total_files_estimate": int(payload.get("total_files_estimate") or 0),
+        "targets": targets,
         "read_only": True,
     }
 
@@ -227,5 +249,8 @@ async def execute_workflow_read_tool(
                 mod_name=os.path.basename(project.get("source_path") or project.get("name") or ""),
                 target_lang_codes=target_lang_codes,
         )
-        return await asyncio.to_thread(check_checkpoint_status, payload)
+        status = await asyncio.to_thread(check_checkpoint_status, payload)
+        if hasattr(status, "model_dump"):
+            status = status.model_dump()
+        return _safe_checkpoint_summary(dict(status))
     raise ValueError(f"Tool is not allowlisted: {name}")

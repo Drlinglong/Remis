@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CopilotChatMessage(BaseModel):
@@ -14,11 +14,11 @@ class CopilotChatMessage(BaseModel):
 
 class CopilotChatRequest(BaseModel):
     messages: list[CopilotChatMessage] = Field(..., min_length=1)
-    # Test default: local LM Studio. UI provider/model picker comes later.
-    provider: str = Field(default="lm_studio")
+    # Omitted values use the server-owned shared Copilot settings.
+    provider: Optional[str] = Field(default=None)
     model: Optional[str] = Field(default=None)
     locale: str = Field(default="zh")
-    # Optional override; default targets ~32k local models with output headroom.
+    # Optional override; omitted requests use the shared 200k input budget.
     context_budget_tokens: Optional[int] = Field(default=None, ge=2000, le=200000)
     # Sanitized UI snapshot supplied by Remis, never arbitrary application state.
     page_context: Optional[dict[str, Any]] = Field(default=None)
@@ -39,7 +39,7 @@ class CopilotSource(BaseModel):
 
 class CopilotContextInfo(BaseModel):
     estimated_input_tokens: int = 0
-    budget_tokens: int = 24000
+    budget_tokens: int = 200000
     dropped_message_count: int = 0
     truncated_system: bool = False
     strategy: str = "keep_recent"
@@ -78,15 +78,19 @@ class CopilotStatusResponse(BaseModel):
     enabled: bool = True
     phase: int = 2
     default_provider: str = "lm_studio"
-    context_budget_tokens: int = 24000
+    default_model: Optional[str] = None
+    reasoning_enabled: bool = False
+    reasoning_preset: str = "medium"
+    context_budget_tokens: int = 200000
     context_policy: str = (
-        "For ~32k local models: estimate tokens, drop oldest history first, "
-        "optionally trim system docs; do not throw solely because the chat is long."
+        "Use a default 200000-token input budget; drop oldest history first and "
+        "protect the latest user message. If no verified provider/model limit is "
+        "available, surface a recoverable context-length error instead of guessing."
     )
     notes: str = (
-        "Help Copilot: LM Studio by default for local testing. "
+        "Help Copilot uses the shared server-owned Copilot settings. "
         "Chats persist in the browser (localStorage). "
-        "Provider/model picker will be added on the helper page later."
+        "Provider, model, and verified reasoning strength are configured in Settings."
     )
 
 
@@ -108,6 +112,8 @@ class CopilotWorkflowPlanRequest(BaseModel):
 
 
 class CopilotWorkflowApprovalRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     plan_id: str = Field(..., min_length=1)
 
 
@@ -128,5 +134,14 @@ class CopilotAgentRecommendationRequest(BaseModel):
     project_id: str = Field(..., min_length=1)
     target_lang_codes: list[str] = Field(default_factory=lambda: ["zh-CN"], min_length=1)
     preferred_provider: str = Field(default="lm_studio", min_length=1)
-    planner_provider: str = Field(default="lm_studio", min_length=1)
+    planner_provider: Optional[str] = Field(default=None, min_length=1)
     planner_model: Optional[str] = None
+
+
+class CopilotSettingsUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    provider: str = Field(..., min_length=1)
+    model: str = Field(..., min_length=1)
+    reasoning_enabled: bool = False
+    reasoning_preset: Literal["minimal", "low", "medium", "high", "xhigh", "max"] = "medium"

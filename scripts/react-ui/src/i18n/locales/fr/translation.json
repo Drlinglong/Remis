@@ -2677,7 +2677,7 @@
     "page_subtitle": "Réponses d’aide et suggestions de navigation sûres. Les tests utilisent LM Studio local par défaut.",
     "provider_label": "Fournisseur",
     "picker_later": "Sélecteur de modèle : à venir",
-    "phase1_notice": "Les sessions restent dans le navigateur. Sans couverture documentaire, confiance basse. Sur modèles locaux ~32k, les anciens messages sont écartés au lieu d’échouer.",
+    "phase1_notice": "Les sessions restent dans le navigateur. Sans couverture documentaire, confiance basse. Le budget d’entrée par défaut est de 200000 tokens ; les anciens messages sont supprimés en premier et le dernier message utilisateur est protégé. Une erreur de longueur de contexte indique comment récupérer.",
     "status_error": "Impossible de charger l’état de l’assistant",
     "empty_title": "Assistant Remis",
     "empty_desc": "Demandez comment utiliser Remis. Les tests passent par LM Studio local. J’explique les flux et propose des sauts de page cliquables.",

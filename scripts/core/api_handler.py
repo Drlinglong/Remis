@@ -60,7 +60,11 @@ SUPPORTED_PROVIDER_IDS = (
 )
 
 
-def get_handler(provider_name: str, model_name: str = None) -> 'BaseApiHandler':
+def get_handler(
+    provider_name: str,
+    model_name: str = None,
+    reasoning_override: dict | None = None,
+) -> 'BaseApiHandler':
     """
     【工厂函数】根据名称返回对应的API处理器实例。
     """
@@ -70,13 +74,13 @@ def get_handler(provider_name: str, model_name: str = None) -> 'BaseApiHandler':
                 "The Gemini CLI provider has been removed. Use the Gemini API provider with GEMINI_API_KEY instead."
             )
         if provider_name in OPENAI_COMPATIBLE_PROVIDER_IDS:
-            return OpenAIHandler(provider_name, model_id=model_name)
+            return OpenAIHandler(provider_name, model_id=model_name, reasoning_override=reasoning_override)
         if provider_name in LOCAL_PROVIDER_IDS:
-            return LocalLLMHandler(provider_name, model_id=model_name)
+            return LocalLLMHandler(provider_name, model_id=model_name, reasoning_override=reasoning_override)
         handler_class = PROVIDER_HANDLER_CLASSES.get(provider_name)
         if handler_class is None:
             raise ValueError(f"Unknown API provider: {provider_name}")
-        return handler_class(provider_name, model_id=model_name)
+        return handler_class(provider_name, model_id=model_name, reasoning_override=reasoning_override)
     except Exception as e:
         logging.error(f"Failed to instantiate handler for {provider_name}: {e}", exc_info=True)
         raise

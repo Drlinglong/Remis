@@ -48,12 +48,23 @@ describe('pageRegistry', () => {
     });
   });
 
-  it('keeps Copilot global instead of treating it as a navigation bucket', () => {
+  it('exposes Copilot as a dedicated primary entry only when its feature is enabled', () => {
     const copilot = PAGE_REGISTRY.find((page) => page.id === 'copilot');
+    const stableSections = getNavigationSections({
+      ...FEATURES,
+      ENABLE_REMIS_COPILOT: false,
+    });
+    const previewSections = getNavigationSections({
+      ...FEATURES,
+      ENABLE_REMIS_COPILOT: true,
+    });
 
     expect(copilot.domain).toBe(PAGE_DOMAINS.ASSISTANT);
-    expect(copilot.navigation.entryMode).toBe(ENTRY_MODES.GLOBAL);
-    expect(NAVIGATION_SECTIONS.flatMap((section) => section.pageIds)).not.toContain('copilot');
+    expect(copilot.navigation.entryMode).toBe(ENTRY_MODES.PRIMARY);
+    expect(copilot.navigation.section).toBe('assistant');
+    expect(NAVIGATION_SECTIONS.flatMap((section) => section.pageIds)).toContain('copilot');
+    expect(stableSections.find((section) => section.id === 'assistant')?.pages).toHaveLength(0);
+    expect(previewSections.find((section) => section.id === 'assistant')?.pages.map((page) => page.id)).toEqual(['copilot']);
   });
 
   it('builds routes from the same page identities used by navigation', () => {

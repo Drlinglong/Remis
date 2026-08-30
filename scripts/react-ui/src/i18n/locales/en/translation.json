@@ -2776,7 +2776,7 @@
     "page_subtitle": "Help answers plus safe clickable navigation suggestions. Testing defaults to local LM Studio.",
     "provider_label": "Provider",
     "picker_later": "Model picker: coming later",
-    "phase1_notice": "Sessions stay in this browser so leaving the page will not wipe the chat. Uncovered topics are forced to low confidence. On ~32k local models, older messages are dropped instead of hard-failing.",
+    "phase1_notice": "Sessions stay in this browser so leaving the page will not wipe the chat. Uncovered topics are forced to low confidence. The default input budget is 200000 tokens; older messages are dropped first and the latest user message is protected. If a provider still reports a context-length error, the message explains how to recover.",
     "status_error": "Failed to load copilot status",
     "empty_title": "Remis Helper",
     "empty_desc": "Ask how to use Remis. Testing uses local LM Studio. I explain workflows and offer clickable page jumps.",

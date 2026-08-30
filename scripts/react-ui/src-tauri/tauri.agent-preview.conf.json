@@ -1,0 +1,23 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Remis Agent Preview",
+  "version": "3.1.7-agent-preview.1",
+  "identifier": "com.remis.modfactory.agent-preview",
+  "app": {
+    "windows": [
+      {
+        "title": "Remis Agent Preview",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 1024,
+        "minHeight": 720,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ]
+  },
+  "bundle": {
+    "targets": ["nsis"]
+  }
+}

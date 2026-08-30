@@ -434,7 +434,7 @@ class PostProcessingManager:
                             'Text Sample': result.text_sample or ''
                         })
             
-            self.logger.info(i18n.t("post_processing_csv_generated", path=csv_path))
+            self.logger.info(i18n.t("post_processing_csv_generated", path=os.path.basename(csv_path)))
             
         except Exception as e:
             self.logger.error(i18n.t("post_processing_csv_generation_failed", error=str(e)))

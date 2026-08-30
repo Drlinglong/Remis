@@ -6,13 +6,18 @@ import re
 import hashlib
 import socket
 from typing import Optional, Any
+from scripts.build_profile import get_build_profile, runtime_app_data_folder
 
 def panic_log(message: str):
     """Fallback logging to a local file in AppData."""
     try:
         appdata = os.getenv('APPDATA')
         if not appdata: return
-        log_dir = os.path.join(appdata, "RemisModFactory", "logs")
+        log_dir = os.path.join(
+            appdata,
+            runtime_app_data_folder(get_build_profile()),
+            "logs",
+        )
         os.makedirs(log_dir, exist_ok=True)
         with open(os.path.join(log_dir, "port_check.log"), "a", encoding="utf-8") as f:
             f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")

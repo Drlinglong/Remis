@@ -5,6 +5,7 @@ import sys
 import multiprocessing
 from enum import Enum
 from scripts.config import prompts
+from scripts.build_profile import get_build_profile, runtime_app_data_folder
 import json
 
 def get_appdata_config_path():
@@ -78,11 +79,14 @@ ARCHIVE_RESULTS_AFTER_TRANSLATION = True
 # --- API Configuration Default ---
 DEFAULT_RPM_LIMIT = 40
 DEFAULT_BACKEND_PORT = 1453
+BUILD_PROFILE = get_build_profile()
 
 # --- 项目信息 ----------------------------------------------------
 PROJECT_NAME = "Paradox Mod 本地化工厂 - Paradox Mod Localization Factory"
 PROJECT_DISPLAY_NAME = "蕾姆丝计划 - Project Remis "
 VERSION = "3.1.7"
+if BUILD_PROFILE.channel == "agent-preview":
+    VERSION = BUILD_PROFILE.version
 LAST_UPDATE_DATE = "2026-08-29"
 COPYRIGHT = "© 2026 Project Remis Team"
 
@@ -126,10 +130,7 @@ def get_app_data_dir():
     """Returns the user data directory (AppData)."""
     appdata = os.getenv('APPDATA')
     
-    # [FIX] Differentiate between Dev and Production to prevent data collision
-    # Frozen (EXE/Installer) -> RemisModFactory
-    # Not Frozen (python scripts/web_server.py) -> RemisModFactoryDev
-    app_folder = "RemisModFactory" if getattr(sys, 'frozen', False) else "RemisModFactoryDev"
+    app_folder = runtime_app_data_folder(BUILD_PROFILE)
     
     if not appdata:
         # Fallback for non-standard environments
@@ -228,9 +229,10 @@ OUTPUT_DIR = os.path.join(APP_DATA_DIR, 'output') if getattr(sys, 'frozen', Fals
 
 def get_backend_port() -> int:
     try:
-        return int(os.getenv("REMIS_BACKEND_PORT", DEFAULT_BACKEND_PORT))
+        configured = os.getenv("REMIS_BACKEND_PORT")
+        return int(configured) if configured is not None else BUILD_PROFILE.backend_port
     except ValueError:
-        return DEFAULT_BACKEND_PORT
+        return BUILD_PROFILE.backend_port
 
 # --- Database Paths ---
 # All user databases live in AppData

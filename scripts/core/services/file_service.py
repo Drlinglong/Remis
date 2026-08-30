@@ -102,7 +102,11 @@ class FileService:
                     with open(full_path, "r", encoding="utf-8", errors="ignore") as handle:
                         line_count = sum(1 for _ in handle)
                 except OSError as exc:
-                    logger.warning("FileService: Could not read %s: %s", full_path, exc)
+                    logger.warning(
+                        "FileService: Could not read a %s file (%s)",
+                        file_type,
+                        type(exc).__name__,
+                    )
                     line_count = 0
                     if issues is not None:
                         issues.append(
@@ -130,7 +134,7 @@ class FileService:
                     }
                 )
 
-        logger.info("FileService: Discovered %s file(s) under %s", len(files_found), root_path)
+        logger.info("FileService: Discovered %s %s file(s)", len(files_found), file_type)
         return files_found
 
     def discover_files(

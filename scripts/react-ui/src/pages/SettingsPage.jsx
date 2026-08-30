@@ -2,13 +2,15 @@ import React, { useContext, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Select, Group, Title, Text, Container, Paper, Stack, Divider, Tabs, Box, Button, Modal, Code } from '@mantine/core';
 import api from '../utils/api';
-import { IconLanguage, IconPalette, IconSettings, IconKey, IconMessage, IconInfoCircle } from '@tabler/icons-react';
+import { IconLanguage, IconPalette, IconSettings, IconKey, IconMessage, IconInfoCircle, IconRobot } from '@tabler/icons-react';
 import ThemeContext from '../ThemeContext';
 import { AVAILABLE_THEMES } from '../config/themes';
 import ApiSettingsTab from '../components/ApiSettingsTab';
 import PromptSettingsTab from '../components/PromptSettingsTab';
 import VersionInfoTab from '../components/VersionInfoTab';
 import ReferenceLibraryMaintenanceCard from '../components/settings/ReferenceLibraryMaintenanceCard';
+import CopilotSettingsTab from '../components/settings/CopilotSettingsTab';
+import { FEATURES } from '../config/features';
 import { useTutorial, getTutorialKey } from '../context/TutorialContextCore';
 
 import styles from './SettingsPage.module.css';
@@ -86,6 +88,11 @@ const SettingsPage = () => {
                             <Tabs.Tab id="settings-tab-api" value="api" leftSection={<IconKey size={16} />}>
                                 {t('settings_api') || 'API Settings'}
                             </Tabs.Tab>
+                            {FEATURES.ENABLE_REMIS_COPILOT && (
+                                <Tabs.Tab id="settings-tab-copilot" value="copilot" leftSection={<IconRobot size={16} />}>
+                                    小助手设置
+                                </Tabs.Tab>
+                            )}
                             <Tabs.Tab value="prompts" leftSection={<IconMessage size={16} />}>
                                 {t('settings_prompts') || 'Prompt Settings'}
                             </Tabs.Tab>
@@ -205,6 +212,12 @@ const SettingsPage = () => {
                         <Tabs.Panel value="api">
                             <ApiSettingsTab />
                         </Tabs.Panel>
+
+                        {FEATURES.ENABLE_REMIS_COPILOT && (
+                            <Tabs.Panel value="copilot">
+                                <CopilotSettingsTab />
+                            </Tabs.Panel>
+                        )}
 
                         <Tabs.Panel value="prompts">
                             <PromptSettingsTab />
