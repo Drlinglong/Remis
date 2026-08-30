@@ -9,7 +9,7 @@ import uuid
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 from scripts.utils.post_process_validator import PostProcessValidator
 from scripts.config.validators.hoi4_rules import RULES as HOI4_RULES
@@ -26,6 +26,13 @@ from scripts.core.services.validation_sidecar_service import ValidationSidecarSe
 from scripts.core.services.agent_workshop_run_service import (
     AgentWorkshopRunCoordinator,
 )
+from scripts.core.copilot.runtime_bridge import (
+    agent_workshop_task_fields,
+    bind_runtime,
+    handler_for_runtime,
+    runtime_for_selection,
+)
+from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService, resolve_dynamic_valid_tags
 from scripts.core.services.workshop_writeback_service import (
     apply_translation_fix_to_file,
@@ -41,24 +48,6 @@ RELAXED_INVALID_ENTRY_RE = re.compile(
     r'^\s*(?P<key>.+?)\s*:\s*(?P<version>[0-9]*)\s*"(?P<value>.*)"\s*$'
 )
 
-
-def _resolve_workshop_model_config(
-    requested_provider: Optional[str] = None,
-    requested_model: Optional[str] = None,
-) -> tuple[str, Optional[str]]:
-    from scripts.app_settings import API_PROVIDERS, DEFAULT_API_PROVIDER, config_manager
-
-    provider_name = requested_provider or DEFAULT_API_PROVIDER
-    provider_config = API_PROVIDERS.get(provider_name, {})
-    provider_overrides = config_manager.get_value("provider_config", {}).get(provider_name, {})
-
-    model_name = requested_model
-    if not model_name:
-        model_name = provider_overrides.get("selected_model")
-    if not model_name:
-        model_name = provider_config.get("default_model")
-
-    return provider_name, model_name
 
 class ValidationIssue(BaseModel):
     file_name: str
@@ -108,6 +97,10 @@ class WorkshopRepairApproval(BaseModel):
         min_length=1,
         description="Model identifier shown in the approval prompt.",
     )
+    provider_profile_id: Optional[str] = Field(
+        default=None,
+        description="Stable provider profile identity, when the selection is a saved custom profile.",
+    )
 
 
 class FixRequest(BaseModel):
@@ -147,6 +140,7 @@ class FixBatchRequest(BaseModel):
         default=None,
         description="Approval snapshot bound to this batch request.",
     )
+    _provider_runtime: ProviderRuntimeSnapshot | None = PrivateAttr(default=None)
 
 class BatchAttemptSummary(BaseModel):
     attempt: int
@@ -194,6 +188,7 @@ class FixRunRequest(BaseModel):
         default_factory=TaskCreator,
         description="Structured actor identity for user, Remis Agent, or automation callers.",
     )
+    _provider_runtime: ProviderRuntimeSnapshot | None = PrivateAttr(default=None)
 
 class FixRunResponse(BaseModel):
     task_id: str
@@ -224,6 +219,7 @@ def _validate_repair_approval(
     issue_count: int,
     api_provider: str,
     api_model: str,
+    runtime: ProviderRuntimeSnapshot | None = None,
 ) -> None:
     if (
         approval is None
@@ -231,6 +227,11 @@ def _validate_repair_approval(
         or approval.issue_count != issue_count
         or approval.api_provider != api_provider
         or approval.api_model != api_model
+        or (
+            approval.provider_profile_id is not None
+            and runtime is not None
+            and approval.provider_profile_id != runtime.selection_id
+        )
     ):
         raise HTTPException(
             status_code=409,
@@ -243,6 +244,7 @@ def _validate_repair_approval(
                     "issue_count": issue_count,
                     "api_provider": api_provider,
                     "api_model": api_model,
+                    "provider_profile_id": runtime.selection_id if runtime else None,
                     "writes_project_files": True,
                     "may_incur_model_cost": True,
                 },
@@ -1036,10 +1038,8 @@ async def fix_issue(request: FixRequest):
     """
     from scripts.core.api_handler import get_handler
     
-    provider_name, model_name = _resolve_workshop_model_config(
-        requested_provider=request.api_provider,
-        requested_model=request.api_model,
-    )
+    runtime = runtime_for_selection(request.api_provider, request.api_model)
+    provider_name, model_name = runtime.selection_id, runtime.model_id
     _reject_unsupported_repair_issues([request.model_dump()])
     _validate_repair_approval(
         request.approval,
@@ -1047,10 +1047,11 @@ async def fix_issue(request: FixRequest):
         issue_count=1,
         api_provider=provider_name,
         api_model=model_name or request.api_model,
+        runtime=runtime,
     )
     
     project = await _require_repairable_project(request.project_id)
-    handler = get_handler(provider_name, model_name=model_name)
+    handler = handler_for_runtime(runtime, get_handler)
     game_id = project.get('game_id', 'vic3')
     
     agent = ReflexionFixAgent(handler)
@@ -1130,14 +1131,13 @@ async def fix_issue(request: FixRequest):
 
 async def _run_fix_batch(request: FixBatchRequest) -> FixBatchResponse:
     from scripts.core.api_handler import get_handler
-    
-    provider_name, model_name = _resolve_workshop_model_config(
-        requested_provider=request.api_provider,
-        requested_model=request.api_model,
+
+    runtime = request._provider_runtime or runtime_for_selection(
+        request.api_provider,
+        request.api_model,
     )
-    
     project = await _require_repairable_project(request.project_id)
-    handler = get_handler(provider_name, model_name=model_name)
+    handler = handler_for_runtime(runtime, get_handler)
     game_id = project.get('game_id', 'vic3')
     
     agent = ReflexionFixAgent(handler)
@@ -1246,10 +1246,8 @@ async def fix_batch(request: FixBatchRequest):
     """
     Initiates the Reflexion Fix Workflow for a batch of issues.
     """
-    provider_name, model_name = _resolve_workshop_model_config(
-        requested_provider=request.api_provider,
-        requested_model=request.api_model,
-    )
+    runtime = runtime_for_selection(request.api_provider, request.api_model)
+    provider_name, model_name = runtime.selection_id, runtime.model_id
     _reject_unsupported_repair_issues(request.issues)
     _validate_repair_approval(
         request.approval,
@@ -1257,7 +1255,9 @@ async def fix_batch(request: FixBatchRequest):
         issue_count=len(request.issues),
         api_provider=provider_name,
         api_model=model_name or request.api_model or "",
+        runtime=runtime,
     )
+    bind_runtime(request, runtime)
     return await _run_fix_batch(request)
 
 
@@ -1265,17 +1265,24 @@ async def _run_agent_workshop_fix_task(
     task_id: str,
     request: FixRunRequest,
 ) -> None:
+    runtime = request._provider_runtime or runtime_for_selection(
+        request.api_provider,
+        request.api_model,
+    )
     coordinator = AgentWorkshopRunCoordinator(
         task_id=task_id,
         request=request,
         task_store=task_state,
         batch_runner=_run_fix_batch,
-        batch_request_factory=lambda batch, max_retries: FixBatchRequest(
-            project_id=request.project_id,
-            api_provider=request.api_provider,
-            api_model=request.api_model,
-            max_retries=max_retries,
-            issues=batch,
+        batch_request_factory=lambda batch, max_retries: bind_runtime(
+            FixBatchRequest(
+                project_id=request.project_id,
+                api_provider=request.api_provider,
+                api_model=request.api_model,
+                max_retries=max_retries,
+                issues=batch,
+            ),
+            runtime,
         ),
     )
     await coordinator.run()
@@ -1297,6 +1304,8 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
     """
     if not request.issues:
         raise HTTPException(status_code=400, detail="No issues supplied for Format Repair.")
+    runtime = runtime_for_selection(request.api_provider, request.api_model)
+    bind_runtime(request, runtime)
     _reject_unsupported_repair_issues(request.issues)
     _validate_repair_approval(
         request.approval,
@@ -1304,6 +1313,7 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
         issue_count=len(request.issues),
         api_provider=request.api_provider,
         api_model=request.api_model,
+        runtime=runtime,
     )
     operation_fingerprint = _fix_run_fingerprint(request)
     existing = task_state.find_task_by_idempotency_key(request.idempotency_key)
@@ -1331,34 +1341,7 @@ async def start_fix_run(request: FixRunRequest, background_tasks: BackgroundTask
             task_id,
             status="pending",
             log_message="Format Repair run queued.",
-            fields={
-                "kind": "agent_workshop",
-                "project_id": request.project_id,
-                "title": "Format Repair",
-                "source_route": "/agent-workshop",
-                "created_by": request.created_by.model_dump(),
-                "blocking": True,
-                "blocking_reason": "Format Repair is repairing project files. Conflicting writes are blocked until it finishes.",
-                "idempotency_key": request.idempotency_key,
-                "operation_fingerprint": operation_fingerprint,
-                "workflow_context": {
-                    "mode": "repair",
-                    "project_id": request.project_id,
-                    "issue_count": len(request.issues),
-                    "api_provider": request.api_provider,
-                    "api_model": request.api_model,
-                },
-                "checkpoint": {
-                    "available": False,
-                    "resume_supported": False,
-                    "stage": "queued",
-                    "metadata": {
-                        "issue_count": len(request.issues),
-                        "api_provider": request.api_provider,
-                        "api_model": request.api_model,
-                    },
-                },
-            },
+            fields=agent_workshop_task_fields(request, operation_fingerprint, runtime),
             dedupe_key=f"project_translation_write:{request.project_id}",
             reject_duplicate=True,
         )

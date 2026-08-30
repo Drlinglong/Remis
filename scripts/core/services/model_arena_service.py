@@ -22,24 +22,19 @@ from scripts.core.repositories.model_arena_repository import ModelArenaRepositor
 from scripts.core.services.model_arena_execution_service import (
     ArenaContestant,
     ArenaExecutionConfig,
-    ArenaHandlerCompletion,
     ArenaSample,
     ModelArenaExecutionService,
 )
 from scripts.core.services.model_arena_export_service import build_model_arena_export
+from scripts.core.services.model_arena_runtime import (
+    build_handler_factory,
+    safe_provider_snapshot,
+)
 from scripts.core.services.model_arena_sampling_service import ModelArenaSamplingService
 from scripts.schemas.model_arena import CreateModelArenaRunRequest, ModelArenaVoteRequest
 
 
 SYSTEM_INSTRUCTION = "You are a professional translator for game mods."
-LOCAL_PROVIDER_IDS = {
-    "ollama",
-    "lm_studio",
-    "vllm",
-    "koboldcpp",
-    "oobabooga",
-    "text-generation-webui",
-}
 ALLOWED_REASON_CODES = {
     "faithful",
     "natural",
@@ -94,39 +89,6 @@ def _count_glossary_matches(
     )
 
 
-def _safe_provider_snapshot(provider_id: str, model_id: str) -> dict[str, Any]:
-    base = dict(app_settings.API_PROVIDERS.get(provider_id, {}))
-    overrides = dict(
-        app_settings.config_manager.get_value("provider_config", {}).get(provider_id, {})
-    )
-    allowed = {
-        "enable_thinking",
-        "max_tokens",
-        "reasoning_effort",
-        "temperature",
-        "top_p",
-    }
-    parameters = {
-        key: value
-        for key, value in {**base, **overrides}.items()
-        if key in allowed and isinstance(value, (bool, int, float, str))
-    }
-    # Gemini's production adapter sends the complete translation prompt as
-    # ``contents`` without a separate system instruction. OpenAI-compatible
-    # adapters use the shared instruction below. Local adapters additionally
-    # honor the configured suffix.
-    system_instruction = "" if provider_id == "gemini" else SYSTEM_INSTRUCTION
-    suffix = str(overrides.get("system_prompt_suffix") or "").strip()
-    if suffix and provider_id in LOCAL_PROVIDER_IDS:
-        system_instruction = f"{system_instruction.rstrip()} {suffix}"
-    return {
-        "provider_id": provider_id,
-        "model_id": model_id,
-        "parameters": parameters,
-        "system_instruction": system_instruction,
-    }
-
-
 def _record_to_dict(value: Any) -> Any:
     if dataclasses.is_dataclass(value):
         return {
@@ -138,52 +100,6 @@ def _record_to_dict(value: Any) -> Any:
     if isinstance(value, (list, tuple, set, frozenset)):
         return [_record_to_dict(item) for item in value]
     return value
-
-
-class _ProductionArenaHandler:
-    """Adapter that records the exact production prompt before parsing."""
-
-    def __init__(
-        self,
-        handler: Any,
-        prompt_text: str,
-        system_instruction: str,
-        effective_parameters: Mapping[str, Any],
-    ) -> None:
-        self._handler = handler
-        self._prompt_text = prompt_text
-        self._system_instruction = system_instruction
-        self._effective_parameters = dict(effective_parameters)
-
-    def execute_model_arena_request(
-        self,
-        *,
-        system_instruction: Optional[str],
-        user_prompt: str,
-        effective_parameters: Mapping[str, Any],
-    ) -> ArenaHandlerCompletion:
-        del user_prompt
-        prompt = self._prompt_text
-        completion = self._handler._call_api(self._handler.client, prompt)
-        return ArenaHandlerCompletion(
-            completion_text_before_parse=completion,
-            completion_source=getattr(
-                self._handler, "last_completion_source", "assistant_content"
-            ),
-            system_instruction=system_instruction or self._system_instruction,
-            user_prompt=prompt,
-            effective_parameters={
-                **self._effective_parameters,
-                **dict(effective_parameters),
-            },
-        )
-
-    def _parse_response(
-        self, completion: str, source_texts: list[str], target_lang_code: str
-    ) -> Any:
-        return self._handler._parse_response(
-            completion, source_texts, target_lang_code
-        )
 
 
 class _NeutralPromptBuilder:
@@ -368,7 +284,7 @@ class ModelArenaService:
         run_id = str(uuid.uuid4())
         contestants: list[dict[str, Any]] = []
         for order, selection in enumerate(request.contestants):
-            snapshot = _safe_provider_snapshot(
+            snapshot = safe_provider_snapshot(
                 selection.provider_id, selection.model_id
             )
             contestant_id = str(
@@ -699,6 +615,10 @@ class ModelArenaService:
             )
             for item in contestant_rows
         ]
+        snapshot_by_contestant_id = {
+            item["contestant_id"]: dict(item.get("config_snapshot") or {})
+            for item in contestant_rows
+        }
         source_lang = _language(run["source_lang_code"])
         prompt_task = self._make_batch_task(
             run,
@@ -724,22 +644,15 @@ class ModelArenaService:
             batch_ordinal=batch_ordinal,
         )
 
-        def factory(contestant: ArenaContestant) -> _ProductionArenaHandler:
-            handler = self.handler_factory(
-                contestant.provider_name, model_name=contestant.model_id
-            )
-            return _ProductionArenaHandler(
-                handler,
-                shared_prompt,
-                contestant.system_instruction or SYSTEM_INSTRUCTION,
-                contestant.effective_parameters,
-            )
-
         result = self.executor.execute(
             config=execution_config,
             samples=samples,
             contestants=contestants,
-            handler_factory=factory,
+            handler_factory=build_handler_factory(
+                self.handler_factory,
+                snapshot_by_contestant_id,
+                shared_prompt,
+            ),
             retry_subset=retry_subset,
         )
         self.repository.insert_requests(

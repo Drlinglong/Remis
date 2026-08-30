@@ -19,6 +19,7 @@ from scripts.core.copilot.help_pack import (
     validate_help_skill_manifest,
 )
 from scripts.core.copilot.intents import build_capability_reply, detect_capability_intent
+from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 from scripts.core.copilot import service as copilot_service
 from scripts.core.copilot.service import _clamp_confidence, _extract_json_object, run_copilot_chat
 from scripts.schemas.copilot import CopilotChatMessage
@@ -286,6 +287,21 @@ def test_cloud_copilot_uses_provider_handler_instead_of_lm_studio_agent(monkeypa
 
     fake = FakeHandler()
     captured = {}
+    runtime = ProviderRuntimeSnapshot(
+        selection_id="custom-profile-a",
+        adapter_id="your_favourite_api",
+        display_name="Provider A",
+        model_id="model-a",
+        config={"base_url": "https://a.example/v1", "default_model": "model-a"},
+        api_key="secret-a",
+        secret_ref="api_keys.custom_provider_profile:custom-profile-a",
+    )
+    resolver_calls = []
+    monkeypatch.setattr(
+        copilot_service,
+        "resolve_provider_runtime_snapshot",
+        lambda *args, **kwargs: resolver_calls.append((args, kwargs)) or runtime,
+    )
     monkeypatch.setattr(
         copilot_service,
         "run_pydantic_help_agent",
@@ -299,13 +315,16 @@ def test_cloud_copilot_uses_provider_handler_instead_of_lm_studio_agent(monkeypa
 
     result = run_copilot_chat(
         [CopilotChatMessage(role="user", content="How do I configure a provider?")],
-        provider="openrouter",
-        model="openai/gpt-5.6-luna",
+        provider="custom-profile-a",
+        model="model-a",
     )
 
     assert result.reply == "Cloud route used."
-    assert captured["provider"] == "openrouter"
-    assert captured["model_name"] == "openai/gpt-5.6-luna"
+    assert captured["provider"] == "your_favourite_api"
+    assert captured["model_name"] == "model-a"
+    assert captured["provider_config_snapshot"] == runtime.config
+    assert captured["api_key_override"] == "secret-a"
+    assert len(resolver_calls) == 1
 
 
 def test_context_length_failure_is_explicitly_recoverable(monkeypatch):

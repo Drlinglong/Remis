@@ -2,6 +2,7 @@ import json
 
 import pytest
 from fastapi.testclient import TestClient
+from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 from scripts.web_server import app
 from scripts.routers import glossary as glossary_router
 from scripts.routers.glossary import (
@@ -329,6 +330,16 @@ def test_health_check_ai_uses_dynamic_batches_and_persists_entry_advice(monkeypa
         "mutations_applied": False,
     }
     updated_tasks = []
+    runtime = ProviderRuntimeSnapshot(
+        selection_id="custom-profile-a",
+        adapter_id="your_favourite_api",
+        display_name="Provider A",
+        model_id="model-a",
+        config={"base_url": "https://a.example/v1", "default_model": "model-a"},
+        api_key="secret-a",
+        secret_ref="api_keys.custom_provider_profile:custom-profile-a",
+    )
+    handler_call = {}
 
     async def fake_health(_glossary_ids, *, target_lang=None):
         assert target_lang == "en"
@@ -356,7 +367,16 @@ def test_health_check_ai_uses_dynamic_batches_and_persists_entry_advice(monkeypa
             ], ensure_ascii=False)
 
     monkeypatch.setattr(glossary_manager, "check_glossary_health", fake_health)
-    monkeypatch.setattr(glossary_router, "get_handler", lambda *_args, **_kwargs: FakeHandler())
+    monkeypatch.setattr(
+        glossary_router,
+        "resolve_provider_runtime_snapshot",
+        lambda *_args, **_kwargs: runtime,
+    )
+    monkeypatch.setattr(
+        glossary_router,
+        "get_handler",
+        lambda *args, **kwargs: handler_call.update(args=args, kwargs=kwargs) or FakeHandler(),
+    )
     monkeypatch.setattr(task_state, "create_task", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(task_state, "init_progress", lambda *_args, **_kwargs: {})
     monkeypatch.setattr(
@@ -385,6 +405,10 @@ def test_health_check_ai_uses_dynamic_batches_and_persists_entry_advice(monkeypa
     )
     metadata = completed["fields"]["result"]["metadata"]
     assert metadata["ai_review_plan"]["batch_count"] == 1
+    assert metadata["ai_provider_runtime"] == runtime.safe_metadata()
+    assert handler_call["args"] == ("your_favourite_api",)
+    assert handler_call["kwargs"]["provider_config_snapshot"] == runtime.config
+    assert handler_call["kwargs"]["api_key_override"] == "secret-a"
     assert [item["entry_id"] for item in metadata["ai_advice"]] == [
         "term-1",
         "term-2",

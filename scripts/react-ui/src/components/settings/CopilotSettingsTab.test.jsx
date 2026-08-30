@@ -1,10 +1,12 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
+import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CopilotSettingsTab from './CopilotSettingsTab';
 import { applyReasoningToggle } from './copilotSettingsForm';
 import { fetchCopilotSettings, saveCopilotSettings } from '../../services/copilotService';
+import { UnsavedChangesGuardProvider } from '../../hooks/useUnsavedChangesGuard';
 
 vi.mock('../../services/copilotService', () => ({
   fetchCopilotSettings: vi.fn(),
@@ -12,6 +14,24 @@ vi.mock('../../services/copilotService', () => ({
 }));
 
 vi.mock('@mantine/notifications', () => ({ notifications: { show: vi.fn() } }));
+
+const LocationMarker = () => <div data-testid="location">{useLocation().pathname}</div>;
+
+const renderGuarded = () => {
+  const router = createMemoryRouter([
+    {
+      path: '/settings',
+      element: (
+        <UnsavedChangesGuardProvider>
+          <CopilotSettingsTab />
+        </UnsavedChangesGuardProvider>
+      ),
+    },
+    { path: '/home', element: <LocationMarker /> },
+  ], { initialEntries: ['/settings'] });
+  render(<MantineProvider><RouterProvider router={router} /></MantineProvider>);
+  return router;
+};
 
 describe('CopilotSettingsTab', () => {
   beforeEach(() => {
@@ -62,5 +82,38 @@ describe('CopilotSettingsTab', () => {
       reasoning_enabled: true,
       reasoning_preset: 'low',
     });
+  });
+
+  it('warns before route navigation and allows exactly the requested discard', async () => {
+    const router = renderGuarded();
+    expect(await screen.findByText('小助手设置')).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByLabelText('供应商')[0]);
+    fireEvent.click(await screen.findByText('OpenAI'));
+
+    const beforeUnloadEvent = new Event('beforeunload', { cancelable: true });
+    const preventDefault = vi.spyOn(beforeUnloadEvent, 'preventDefault');
+    window.dispatchEvent(beforeUnloadEvent);
+    expect(preventDefault).toHaveBeenCalled();
+
+    router.navigate('/home');
+    expect(await screen.findByRole('button', { name: '返回并检查' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '放弃改动并离开' }));
+    expect(await screen.findByTestId('location')).toHaveTextContent('/home');
+  });
+
+  it('clears the dirty baseline after a successful save', async () => {
+    renderGuarded();
+    expect(await screen.findByText('小助手设置')).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByLabelText('供应商')[0]);
+    fireEvent.click(await screen.findByText('OpenAI'));
+    fireEvent.click(screen.getByRole('button', { name: '保存小助手设置' }));
+    await waitFor(() => expect(saveCopilotSettings).toHaveBeenCalled());
+
+    const beforeUnloadEvent = new Event('beforeunload', { cancelable: true });
+    const preventDefault = vi.spyOn(beforeUnloadEvent, 'preventDefault');
+    window.dispatchEvent(beforeUnloadEvent);
+    expect(preventDefault).not.toHaveBeenCalled();
   });
 });

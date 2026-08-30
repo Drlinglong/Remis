@@ -7,6 +7,10 @@ from typing import Any, Callable, Sequence
 from scripts.core.neologism_extraction import AnalysisScope, StructuredNeologismExtraction
 from scripts.core.services.context_chunking_policy import ContextUnitChunk
 from scripts.core.services.context_parallel_execution_service import map_context_calls_ordered
+from scripts.core.services.provider_runtime import (
+    ProviderRuntimeSnapshot,
+    handler_from_runtime,
+)
 
 
 class ContextExtractionExecutionService:
@@ -41,6 +45,7 @@ class ContextExtractionExecutionService:
         api_provider: str,
         model_name: str | None,
         concurrency: int,
+        runtime: ProviderRuntimeSnapshot | None = None,
     ) -> list[StructuredNeologismExtraction]:
         results: list[StructuredNeologismExtraction | None] = [None] * len(chunks)
         pending = self._restore_completed(
@@ -49,7 +54,7 @@ class ContextExtractionExecutionService:
 
         def worker(item: tuple[int, ContextUnitChunk]) -> StructuredNeologismExtraction:
             _, chunk = item
-            handler = self.handler_factory(api_provider, model_name=model_name)
+            handler = self._handler(api_provider, model_name, runtime)
             miner = self.miner_factory(handler)
             try:
                 return miner.extract_structured(
@@ -100,6 +105,16 @@ class ContextExtractionExecutionService:
         if errors:
             raise errors[0]
         return [result for result in results if result is not None]
+
+    def _handler(
+        self,
+        api_provider: str,
+        model_name: str | None,
+        runtime: ProviderRuntimeSnapshot | None,
+    ) -> Any:
+        if runtime is None:
+            return self.handler_factory(api_provider, model_name=model_name)
+        return handler_from_runtime(runtime, self.handler_factory)
 
     def _restore_completed(
         self,

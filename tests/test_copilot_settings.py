@@ -45,6 +45,36 @@ def test_unverified_reasoning_mapping_is_rejected(config_store):
         )
 
 
+def test_custom_profile_is_selectable_by_stable_profile_id(config_store):
+    config_store["custom_provider_profiles"] = [{
+        "profile_id": "profile-a",
+        "adapter_id": "your_favourite_api",
+        "secret_ref": "api_keys.custom_provider_profile:profile-a",
+        "display_name": "Provider A",
+        "api_url": "http://127.0.0.1:9000/v1",
+        "models": ["model-a"],
+        "selected_model": "model-a",
+        "prompt_prefix": "",
+        "system_prompt_suffix": "",
+        "reasoning_builtin_enabled": False,
+        "reasoning_preset": None,
+        "custom_parameters": {},
+    }]
+
+    providers = settings.list_copilot_providers()
+    saved = settings.update_copilot_settings(
+        provider="profile-a",
+        model="model-a",
+        reasoning_enabled=False,
+        reasoning_preset="medium",
+    )
+
+    assert any(item["id"] == "profile-a" and item["name"] == "Provider A" for item in providers)
+    assert all(item["id"] != "your_favourite_api" for item in providers)
+    assert saved["provider"] == "profile-a"
+    assert config_store[settings.CONFIG_KEY]["provider"] == "profile-a"
+
+
 def test_chat_uses_server_settings_when_request_omits_model(config_store, monkeypatch):
     config_store[settings.CONFIG_KEY] = {
         "provider": "openai",

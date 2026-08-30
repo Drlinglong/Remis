@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 
 from scripts.app_settings import API_PROVIDERS, config_manager, get_api_key
+from scripts.core.copilot.runtime import resolve_provider_runtime_snapshot
 
 
 LOCAL_PROVIDER_IDS = {
@@ -41,11 +42,20 @@ class ProviderReadinessError(Exception):
 def _provider_config(provider_id: str) -> dict[str, Any]:
     provider = API_PROVIDERS.get(provider_id)
     if provider is None:
-        raise ProviderReadinessError(
-            "invalid_provider",
-            "Unknown API provider.",
-            checks={"provider": provider_id, "provider_configured": False},
-        )
+        try:
+            runtime = resolve_provider_runtime_snapshot(provider_id)
+        except KeyError as exc:
+            raise ProviderReadinessError(
+                "invalid_provider",
+                "Unknown API provider.",
+                checks={"provider": provider_id, "provider_configured": False},
+            ) from exc
+        return {
+            **runtime.config,
+            "available_models": [runtime.model_id] if runtime.model_id else [],
+            "api_key_env": "profile_secret",
+            "_credential_configured": bool(runtime.api_key),
+        }
     overrides = config_manager.get_value("provider_config", {}).get(provider_id, {}) or {}
     config = dict(provider)
     config.update({key: value for key, value in overrides.items() if key != "api_key"})
@@ -103,7 +113,11 @@ async def check_provider_readiness(provider_id: str, model: str) -> dict[str, An
     local = provider_id in LOCAL_PROVIDER_IDS
     env_name = config.get("api_key_env")
     credential_required = bool(env_name)
-    credential_configured = bool(get_api_key(provider_id, env_name)) if env_name else True
+    credential_configured = (
+        bool(config.get("_credential_configured"))
+        if env_name == "profile_secret"
+        else (bool(get_api_key(provider_id, env_name)) if env_name else True)
+    )
     base_url = _base_url(provider_id, config)
     checks: dict[str, Any] = {
         "provider": provider_id,

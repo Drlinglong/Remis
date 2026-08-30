@@ -43,6 +43,7 @@ from scripts.utils.system_utils import slugify_to_ascii
 from scripts.core.checkpoint_manager import CheckpointManager
 from scripts.core.services.translation_context_service import context_workflow_kwargs
 from scripts.core.services.translation_resource_policy import resolve_translation_run_resources
+from scripts.routers.provider_runtime import provider_task_fields, resolve_runtime_or_400
 from scripts.core.services.translation_context_readiness_service import (
     TranslationContextReadinessService,
 )
@@ -176,7 +177,7 @@ def finalize_task(
     )
 
 
-def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str, target_lang_codes: List[str], api_provider: str, mod_context: str, project_id: Optional[str] = None):
+def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str, target_lang_codes: List[str], api_provider: str, mod_context: str, project_id: Optional[str] = None, provider_runtime=None):
     """
     A wrapper for the core translation logic to be run in the background.
     """
@@ -214,6 +215,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
             target_languages=target_languages,
             selected_provider=api_provider,
             mod_context=mod_context,
+            provider_runtime=provider_runtime,
         )
 
         task_state.update_task(
@@ -275,6 +277,7 @@ def run_translation_workflow_v2(
     context_release_id: Optional[str] = None,
     context_character_budget: int = 4000,
     translation_context_mode: Optional[str] = None,
+    provider_runtime=None,
 ):
     i18n.load_language('en_US')
     task_state.update_task(
@@ -299,12 +302,10 @@ def run_translation_workflow_v2(
     )
     try:
         logging.info(f"Starting V2 Workflow for Task {task_id}"); logging.info(f"Params: game_profile_id={game_profile_id}, source={source_lang_code}, targets={target_lang_codes}")
-
         normalized_game_id = game_profile_id
         if game_profile_id == 'vic3':
             normalized_game_id = 'victoria3'
             logging.info(f"Normalized game_id 'vic3' to '{normalized_game_id}'")
-
         game_profile = GAME_PROFILES.get(normalized_game_id)
         if not game_profile:
             game_profile = next((p for p in GAME_PROFILES.values() if p['id'] == normalized_game_id), None)
@@ -362,6 +363,7 @@ def run_translation_workflow_v2(
             concurrency_limit=concurrency_limit, rpm_limit=rpm_limit,
             embedded_workshop=embedded_workshop,
             reference_reuse=reference_reuse,
+            provider_runtime=provider_runtime,
             **context_workflow_kwargs({
                 "use_project_context": resource_policy.include_project_context,
                 "context_release_id": context_release_id,
@@ -430,7 +432,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     project = await project_manager.get_project(request.project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-
+    provider_runtime = resolve_runtime_or_400(request.api_provider, request.model)
     if request.translation_context_mode == "archive":
         readiness = await translation_context_readiness.inspect(
             request.project_id,
@@ -454,7 +456,6 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
                     "context_readiness": readiness,
                 },
             )
-
     task_id = str(uuid.uuid4())
     try:
         task_state.create_task(
@@ -475,6 +476,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
                     "stage": "Queued",
                 },
                 "translation_context_mode": request.translation_context_mode,
+                **provider_task_fields(provider_runtime),
             },
             dedupe_key=f"project_translation_write:{request.project_id}",
             reject_duplicate=True,
@@ -489,8 +491,6 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
             },
         ) from exc
 
-    # Prepare arguments for the workflow
-    # Use the actual folder name from source_path to ensure it matches the directory on disk
     mod_name = os.path.basename(project['source_path'])
     # Ensure source path exists
     if not os.path.exists(project['source_path']):
@@ -525,6 +525,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         rpm_limit=request.rpm_limit,
         embedded_workshop=request.embedded_workshop.model_dump() if request.embedded_workshop else None,
         reference_reuse=request.reference_reuse.model_dump() if request.reference_reuse else None,
+        **({"provider_runtime": provider_runtime} if provider_runtime else {}),
         **context_workflow_kwargs(request),
     )
 
@@ -557,11 +558,16 @@ async def start_translation(
     api_provider: str = Form(...),
     mod_context: str = Form("")
 ):
+    provider_runtime = resolve_runtime_or_400(api_provider)
     task_id = str(uuid.uuid4())
     task_state.create_task(
         task_id,
         status="pending",
-        fields={"kind": "initial_translation", "title": "Uploaded Mod translation", "source_route": "/translation"},
+        fields={
+            "kind": "initial_translation", "title": "Uploaded Mod translation",
+            "source_route": "/translation",
+            **provider_task_fields(provider_runtime),
+        },
     )
     try:
         mod_name = file.filename.replace(".zip", "")
@@ -608,7 +614,8 @@ async def start_translation(
         target_codes,
         api_provider,
         mod_context,
-        project_id=None # Zip upload has no project ID
+        project_id=None,
+        **({"provider_runtime": provider_runtime} if provider_runtime else {}),
     )
 
     return {"task_id": task_id, "message": "Translation task started."}
@@ -622,11 +629,16 @@ async def start_translation_v2(
     background_tasks: BackgroundTasks,
     payload: TranslationRequestV2
 ):
+    provider_runtime = resolve_runtime_or_400(payload.api_provider, payload.model_name)
     task_id = str(uuid.uuid4())
     task_state.create_task(
         task_id,
         status="pending",
-        fields={"kind": "initial_translation", "title": "Mod translation", "source_route": "/translation"},
+        fields={
+            "kind": "initial_translation", "title": "Mod translation",
+            "source_route": "/translation",
+            **provider_task_fields(provider_runtime),
+        },
     )
 
     if not os.path.exists(payload.project_path) or not os.path.isdir(payload.project_path):
@@ -669,6 +681,7 @@ async def start_translation_v2(
         clean_source=payload.clean_source,
         embedded_workshop=payload.embedded_workshop.model_dump() if payload.embedded_workshop else None,
         reference_reuse=payload.reference_reuse.model_dump() if payload.reference_reuse else None,
+        **({"provider_runtime": provider_runtime} if provider_runtime else {}),
     )
 
     return {"task_id": task_id, "message": "Translation task started."}

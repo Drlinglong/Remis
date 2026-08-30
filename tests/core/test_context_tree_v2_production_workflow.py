@@ -13,6 +13,7 @@ from scripts.core.services.context_tree_v2_extraction_execution_service import (
 from scripts.core.services.context_tree_v2_production_workflow import (
     ContextTreeV2ProductionWorkflowService,
 )
+from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 
 
 class CandidateStore:
@@ -195,3 +196,49 @@ def test_v2_extraction_reuses_checkpoints_and_runs_pending_batches_concurrently(
     assert status.batches[0][0][3] == "tree-v2-extraction-0"
     assert status.batches[0][1]["resumed"] is True
     assert status.completed == [(("project-1", "task-1", "extracting"), {})]
+
+
+def test_v2_extraction_reuses_the_runtime_snapshot_for_each_pending_batch():
+    checkpoints = Checkpoints()
+    status = StatusService()
+    calls = []
+
+    class ProbeExtractionService:
+        def __init__(self, _handler):
+            pass
+
+        def extract_structured(self, items, **_kwargs):
+            return ContextTreeV2Extraction(
+                diagnostics={"source_id": items[0].source_item_id},
+            )
+
+    execution = ContextTreeV2ExtractionExecutionService(
+        handler_factory=lambda provider, model_name=None, **kwargs: calls.append(
+            (provider, model_name, kwargs)
+        ) or SimpleNamespace(),
+        checkpoints=checkpoints,
+        status_service=status,
+        usage_ledger=ContextModelUsageLedger(),
+    )
+    runtime = ProviderRuntimeSnapshot(
+        selection_id="profile-1", adapter_id="your_favourite_api",
+        display_name="Provider A", model_id="model-a",
+        config={"base_url": "https://provider-a.example"},
+    )
+    target = (
+        "scripts.core.services.context_tree_v2_extraction_execution_service."
+        "ContextTreeV2ExtractionService"
+    )
+    with patch(target, ProbeExtractionService):
+        execution.execute(
+            _chunks(2), scope=AnalysisScope.NARRATIVE_CONTEXT,
+            game_name="Stellaris", project_id="project-1", task_id="task-1",
+            target_language="zh-CN", reasoning_language="zh-CN",
+            analysis_run=SimpleNamespace(run_id="run-1"),
+            api_provider="legacy-provider", model_name="legacy-model",
+            concurrency=2, runtime=runtime,
+        )
+
+    assert len(calls) == 2
+    assert all(call[0:2] == ("your_favourite_api", "model-a") for call in calls)
+    assert all(call[2]["provider_config_snapshot"] == runtime.config for call in calls)

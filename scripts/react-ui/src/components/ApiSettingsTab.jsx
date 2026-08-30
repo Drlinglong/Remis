@@ -1,30 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Paper,
-    Title,
     Text,
     Group,
     Stack,
     Button,
-    PasswordInput,
-    Badge,
     Loader,
-    ActionIcon,
-    Tooltip,
-    Box,
-    ThemeIcon,
-    Collapse,
-    TagsInput,
-    TextInput,
-    Textarea,
-    Divider,
-    Select,
     Accordion
 } from '@mantine/core';
 import {
-    IconCheck, IconX, IconEdit, IconKey, IconInfoCircle, IconServer, IconRobot,
-    IconWorld, IconHome, IconBuildingSkyscraper, IconSchool, IconAlertTriangle,
-    IconChevronDown, IconChevronRight, IconMessage
+    IconWorld, IconHome, IconBuildingSkyscraper
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
@@ -34,6 +18,9 @@ import styles from './ApiSettingsTab.module.css';
 import ProviderReasoningSettings from './apiSettings/ProviderReasoningSettings';
 import { parseCustomParameters } from './apiSettings/reasoningForm';
 import ApiResourceGuides from './apiSettings/ApiResourceGuides';
+import CustomProviderProfiles from './apiSettings/CustomProviderProfiles';
+import BuiltInProviderCard from './apiSettings/BuiltInProviderCard';
+import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 
 // Group Definitions
 const PROVIDER_GROUPS = {
@@ -54,43 +41,37 @@ const PROVIDER_GROUPS = {
     }
 };
 
-const GLOBAL_CUSTOM_PROVIDER_ID = 'your_favourite_api';
-const URL_EDITABLE_PROVIDER_IDS = ['lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui', 'ollama'];
-const LOCAL_OPENAI_PROVIDER_IDS = ['lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui'];
-const OLLAMA_PROVIDER_ID = 'ollama';
-const CONCRETE_OPENAI_ENDPOINTS = ['/responses', '/chat/completions'];
+const EMPTY_PROVIDER_FORM = {
+    apiKey: '',
+    models: [],
+    apiUrl: '',
+    selectedModel: '',
+    promptPrefix: '',
+    systemPromptSuffix: '',
+    reasoningBuiltinEnabled: false,
+    reasoningPreset: 'medium',
+    customParametersText: ''
+};
 
+const LOCAL_OPENAI_PROVIDER_IDS = ['lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'text-generation-webui'];
+const CONCRETE_OPENAI_ENDPOINTS = ['/responses', '/chat/completions'];
 const isConcreteOpenAIEndpoint = (providerId, apiUrl) => {
     if (!LOCAL_OPENAI_PROVIDER_IDS.includes(providerId) || !apiUrl) return false;
     const normalized = apiUrl.trim().replace(/\/+$/, '').toLowerCase();
     return CONCRETE_OPENAI_ENDPOINTS.some((endpoint) => normalized.endsWith(endpoint));
 };
 
-const getApiUrlPlaceholder = (providerId) => {
-    if (providerId === OLLAMA_PROVIDER_ID) return 'http://localhost:11434';
-    if (LOCAL_OPENAI_PROVIDER_IDS.includes(providerId)) return 'http://localhost:1234/v1';
-    return 'https://api.example.com/v1';
-};
-
-
-const ApiSettingsTab = () => {
+const ApiSettingsContent = () => {
     const { t } = useTranslation();
     const [providers, setProviders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState(null);
 
     // Edit form state
-    const [editForm, setEditForm] = useState({
-        apiKey: '',
-        models: [],
-        apiUrl: '',
-        selectedModel: '',
-        promptPrefix: '',
-        systemPromptSuffix: '',
-        reasoningBuiltinEnabled: false,
-        reasoningPreset: 'medium',
-        customParametersText: ''
-    });
+    const [editForm, setEditForm] = useState(EMPTY_PROVIDER_FORM);
+    const [initialEditForm, setInitialEditForm] = useState(EMPTY_PROVIDER_FORM);
+    const [profilesDirty, setProfilesDirty] = useState(false);
+    const [discardToken, setDiscardToken] = useState(0);
 
     const [submitting, setSubmitting] = useState(false);
     const [testingConnection, setTestingConnection] = useState(false);
@@ -116,8 +97,7 @@ const ApiSettingsTab = () => {
     }, [fetchProviders]);
 
     const handleEditClick = (provider) => {
-        setEditingId(provider.id);
-        setEditForm({
+        const nextForm = {
             apiKey: '', // Always start empty for security
             models: provider.custom_models || [],
             apiUrl: provider.api_url || '',
@@ -129,12 +109,16 @@ const ApiSettingsTab = () => {
             customParametersText: Object.keys(provider.reasoning?.custom_parameters || {}).length
                 ? JSON.stringify(provider.reasoning.custom_parameters, null, 2)
                 : ''
-        });
+        };
+        setEditingId(provider.id);
+        setEditForm(nextForm);
+        setInitialEditForm(nextForm);
     };
 
     const handleCancelEdit = () => {
         setEditingId(null);
-        setEditForm({ apiKey: '', models: [], apiUrl: '', selectedModel: '', promptPrefix: '', systemPromptSuffix: '', reasoningBuiltinEnabled: false, reasoningPreset: 'medium', customParametersText: '' });
+        setEditForm(EMPTY_PROVIDER_FORM);
+        setInitialEditForm(EMPTY_PROVIDER_FORM);
     };
 
     const handleSave = async (providerId) => {
@@ -174,6 +158,8 @@ const ApiSettingsTab = () => {
                 color: 'green'
             });
             setEditingId(null);
+            setEditForm(EMPTY_PROVIDER_FORM);
+            setInitialEditForm(EMPTY_PROVIDER_FORM);
             fetchProviders(); // Refresh
         } catch (_error) {
             console.error('Error updating API settings:', _error);
@@ -186,6 +172,22 @@ const ApiSettingsTab = () => {
             setSubmitting(false);
         }
     };
+
+    const discardChanges = useCallback(() => {
+        setEditingId(null);
+        setEditForm(EMPTY_PROVIDER_FORM);
+        setInitialEditForm(EMPTY_PROVIDER_FORM);
+        setProfilesDirty(false);
+        setDiscardToken((current) => current + 1);
+    }, []);
+    const providerFormDirty = Boolean(
+        editingId && JSON.stringify(editForm) !== JSON.stringify(initialEditForm),
+    );
+    useUnsavedChangesGuard({
+        id: 'api-settings-provider-forms',
+        isDirty: providerFormDirty || profilesDirty,
+        onDiscard: discardChanges,
+    });
 
     const handleTestConnection = async (providerId) => {
         if (isConcreteOpenAIEndpoint(providerId, editForm.apiUrl)) {
@@ -215,256 +217,9 @@ const ApiSettingsTab = () => {
         }
     };
 
-    // Helper to render a single provider card
-    const renderProviderCard = (provider) => {
-        if (!provider) return null;
-
-        const isEditing = editingId === provider.id;
-        const canEditUrl = provider.id === GLOBAL_CUSTOM_PROVIDER_ID || URL_EDITABLE_PROVIDER_IDS.includes(provider.id);
-        const isLocalOpenAIProvider = LOCAL_OPENAI_PROVIDER_IDS.includes(provider.id);
-        const isOllamaProvider = provider.id === OLLAMA_PROVIDER_ID;
-        const apiUrlError = isConcreteOpenAIEndpoint(provider.id, editForm.apiUrl)
-            ? t('api_url_endpoint_error')
-            : null;
-        const apiUrlHelp = isOllamaProvider
-            ? t('api_url_ollama_help')
-            : isLocalOpenAIProvider
-                ? t('api_url_openai_compatible_help')
-                : t('api_url_generic_help');
-        const selectedReasoningCapability = provider.reasoning_models?.[editForm.selectedModel];
-        const reasoningPresets = selectedReasoningCapability?.presets || {};
-        const effectiveReasoning = {
-            ...provider.reasoning,
-            supported: Boolean(selectedReasoningCapability),
-            available_presets: Object.keys(reasoningPresets),
-            mapping_preview: reasoningPresets[editForm.reasoningPreset] || {},
-        };
-
-        return (
-            <div key={provider.id} id={`api-provider-card-${provider.id}`} className={styles.card}>
-                <div className={styles.header}>
-                    <Text className={styles.title}>{provider.name}</Text>
-                    {provider.is_keyless && (
-                        <Badge color="blue" variant="light" className={styles.statusBadge}>{t('api_key_no_required') || 'No Key Needed'}</Badge>
-                    )}
-                    {!provider.is_keyless && provider.has_key && (
-                        <Badge color="green" variant="light" className={styles.statusBadge}>{t('api_key_active')}</Badge>
-                    )}
-                    {!provider.is_keyless && !provider.has_key && (
-                        <Badge color="gray" variant="light" className={styles.statusBadge}>{t('api_key_not_configured')}</Badge>
-                    )}
-                </div>
-
-                <Text className={styles.description}>{t(provider.description_key)}</Text>
-
-                <div className={styles.actions}>
-                    {isEditing ? (
-                        <Stack gap="sm">
-                            <Divider label={t('settings_api_label_configuration')} labelPosition="center" />
-
-                            {!provider.is_keyless && (
-                                <PasswordInput
-                                    label={t('api_key_label', 'API Key')}
-                                    placeholder={t('api_key_placeholder')}
-                                    value={editForm.apiKey}
-                                    onChange={(e) => setEditForm({ ...editForm, apiKey: e.currentTarget.value })}
-                                    size="xs"
-                                    leftSection={<IconKey size={14} />}
-                                />
-                            )}
-
-                            {/* Show URL edit for Custom OR Local models */}
-                            {canEditUrl && (
-                                <>
-                                <TextInput
-                                    label={t('api_url_label', 'API Base URL')}
-                                    placeholder={getApiUrlPlaceholder(provider.id)}
-                                    value={editForm.apiUrl}
-                                    onChange={(e) => setEditForm({ ...editForm, apiUrl: e.currentTarget.value })}
-                                    error={apiUrlError}
-                                    size="xs"
-                                    leftSection={<IconServer size={14} />}
-                                    rightSectionPointerEvents="auto"
-                                    rightSection={
-                                        <Tooltip label={apiUrlHelp} multiline w={280} withArrow>
-                                            <ActionIcon variant="subtle" size="sm" aria-label={t('api_url_help_label', 'API URL format help')}>
-                                                <IconInfoCircle size={14} />
-                                            </ActionIcon>
-                                        </Tooltip>
-                                    }
-                                />
-                                {LOCAL_OPENAI_PROVIDER_IDS.includes(provider.id) || isOllamaProvider ? (
-                                    <Button
-                                        variant="light"
-                                        size="xs"
-                                        onClick={() => handleTestConnection(provider.id)}
-                                        loading={testingConnection}
-                                        disabled={!editForm.apiUrl.trim() || Boolean(apiUrlError)}
-                                    >
-                                        {t('api_test_connection')}
-                                    </Button>
-                                ) : null}
-                                </>
-                            )}
-
-                            <Select
-                                label={t('api_model_select_label', 'Active Translation Model')}
-                                placeholder={t('api_model_select_placeholder', 'Choose a model to use')}
-                                description={t('api_model_select_description', 'Select which model will perform the translations')}
-                                data={[
-                                    ...(provider.available_models || []),
-                                    ...(editForm.models || []),
-                                    ...(editForm.selectedModel ? [editForm.selectedModel] : [])
-                                ].filter((val, index, self) => val && self.indexOf(val) === index).map(m => ({ value: m, label: m }))}
-                                value={editForm.selectedModel}
-                                onChange={(val) => {
-                                    const capability = provider.reasoning_models?.[val];
-                                    const presets = Object.keys(capability?.presets || {});
-                                    setEditForm({
-                                        ...editForm,
-                                        selectedModel: val,
-                                        reasoningBuiltinEnabled: capability ? editForm.reasoningBuiltinEnabled : false,
-                                        reasoningPreset: presets.includes(editForm.reasoningPreset)
-                                            ? editForm.reasoningPreset
-                                            : (presets[0] || 'medium'),
-                                    });
-                                }}
-                                size="xs"
-                                leftSection={<IconRobot size={14} />}
-                                searchable
-                                clearable
-                            />
-
-                            <TagsInput
-                                label={t('api_models_label', 'Custom Models')}
-                                placeholder={t('api_models_placeholder', 'Type and press Enter to add models')}
-                                description={t('api_models_description', 'Models defined here will appear in the selector above')}
-                                value={editForm.models}
-                                onChange={(val) => {
-                                    const isAdded = val.length > editForm.models.length;
-                                    setEditForm(prev => ({
-                                        ...prev,
-                                        models: val,
-                                        selectedModel: isAdded ? val[val.length - 1] : prev.selectedModel
-                                    }));
-                                }}
-                                size="xs"
-                                leftSection={<IconRobot size={14} />}
-                                clearable
-                            />
-
-                            <Divider label={t('api_prompt_controls_label', 'Prompt Controls')} labelPosition="center" />
-
-                            <TextInput
-                                label={t('api_prompt_prefix_label', 'User Prompt Prefix')}
-                                placeholder="/no_think"
-                                description={t('api_prompt_prefix_description', 'Prepended to every user prompt for this provider. Leave blank for model defaults.')}
-                                value={editForm.promptPrefix}
-                                onChange={(e) => setEditForm({ ...editForm, promptPrefix: e.currentTarget.value })}
-                                size="xs"
-                                leftSection={<IconMessage size={14} />}
-                            />
-
-                            <Textarea
-                                label={t('api_system_prompt_suffix_label', 'System Prompt Suffix')}
-                                placeholder="/no_think"
-                                description={t('api_system_prompt_suffix_description', 'Appended to local provider system prompts. Useful for prompt-controlled thinking modes.')}
-                                value={editForm.systemPromptSuffix}
-                                onChange={(e) => setEditForm({ ...editForm, systemPromptSuffix: e.currentTarget.value })}
-                                size="xs"
-                                autosize
-                                minRows={2}
-                            />
-
-                            <Divider label={t('api_reasoning_controls_label')} labelPosition="center" />
-                            <ProviderReasoningSettings
-                                reasoning={effectiveReasoning}
-                                form={editForm}
-                                onChange={(changes) => setEditForm((current) => ({ ...current, ...changes }))}
-                            />
-
-                            <Group grow mt="xs">
-                                <Button
-                                    size="xs"
-                                    onClick={() => handleSave(provider.id)}
-                                    loading={submitting}
-                                    leftSection={<IconCheck size={14} />}
-                                >
-                                    {t('save')}
-                                </Button>
-                                <Button
-                                    variant="subtle"
-                                    color="gray"
-                                    size="xs"
-                                    onClick={handleCancelEdit}
-                                    disabled={submitting}
-                                >
-                                    {t('cancel')}
-                                </Button>
-                            </Group>
-                        </Stack>
-                    ) : (
-                        <Stack gap="xs">
-                            {!provider.is_keyless && (
-                                <Group justify="space-between">
-                                    <Text size="xs" c="dimmed">{t('settings_api_label_key')}</Text>
-                                    <Text family="monospace" size="xs">
-                                        {provider.has_key ? provider.masked_key : t('api_key_none_set')}
-                                    </Text>
-                                </Group>
-                            )}
-
-                            <Group justify="space-between">
-                                <Text size="xs" c="dimmed">{t('settings_api_label_model')}</Text>
-                                <Text size="xs" fw={500}>{provider.selected_model || 'N/A'}</Text>
-                            </Group>
-
-                            {provider.api_url && (
-                                <Group justify="space-between">
-                                    <Text size="xs" c="dimmed">{t('settings_api_label_url')}</Text>
-                                    <Text size="xs" truncate style={{ maxWidth: '150px' }} title={provider.api_url}>
-                                        {provider.api_url}
-                                    </Text>
-                                </Group>
-                            )}
-
-                            {provider.custom_models && provider.custom_models.length > 0 && (
-                                <Group justify="space-between">
-                                    <Text size="xs" c="dimmed">Models:</Text>
-                                    <Badge size="xs" variant="outline">{provider.custom_models.length} custom</Badge>
-                                </Group>
-                            )}
-
-                            {(provider.prompt_prefix || provider.system_prompt_suffix) && (
-                                <Group justify="space-between">
-                                    <Text size="xs" c="dimmed">{t('api_prompt_controls_label', 'Prompt Controls')}</Text>
-                                    <Badge size="xs" color="violet" variant="light">enabled</Badge>
-                                </Group>
-                            )}
-
-                            <Button
-                                variant="light"
-                                size="xs"
-                                leftSection={<IconEdit size={14} />}
-                                onClick={() => handleEditClick(provider)}
-                                fullWidth
-                                mt="xs"
-                            >
-                                {t('settings_api_label_configure')}
-                            </Button>
-                        </Stack>
-                    )}
-                </div>
-            </div>
-        );
-    };
-
     if (loading) {
         return <Loader size="sm" />;
     }
-
-    // Identify the "Custom" provider object
-    const customProvider = providers.find(p => p.id === GLOBAL_CUSTOM_PROVIDER_ID);
 
     return (
         <Stack data-remis-surface="surface" gap="md">
@@ -483,28 +238,35 @@ const ApiSettingsTab = () => {
                         <Accordion.Panel>
                             <div className={styles.grid}>
                                 {/* Render providers explicitly defined in this group */}
-                                {groupDef.providers.map(providerId => {
-                                    const provider = providers.find(p => p.id === providerId);
-                                    return renderProviderCard(provider);
-                                })}
+                                {groupDef.providers.map((providerId) => (
+                                    <BuiltInProviderCard
+                                        key={providerId}
+                                        provider={providers.find((item) => item.id === providerId)}
+                                        editing={editingId === providerId}
+                                        editForm={editForm}
+                                        submitting={submitting}
+                                        testingConnection={testingConnection}
+                                        t={t}
+                                        setEditForm={setEditForm}
+                                        handleSave={handleSave}
+                                        handleCancelEdit={handleCancelEdit}
+                                        handleEditClick={handleEditClick}
+                                        handleTestConnection={handleTestConnection}
+                                    />
+                                ))}
 
-                                {/* Special: Always render the "Custom API" card at the end of EACH group */}
-                                {customProvider && (
-                                    <div className={styles.customCardWrapper}>
-                                        <div className={styles.customLabel}>
-                                            <ThemeIcon size="xs" radius="xl" color="gray" variant="light"><IconEdit size={10} /></ThemeIcon>
-                                            <Text size="xs" c="dimmed">Custom API (Global)</Text>
-                                        </div>
-                                        {renderProviderCard(customProvider)}
-                                    </div>
-                                )}
                             </div>
                         </Accordion.Panel>
                     </Accordion.Item>
                 ))}
             </Accordion>
+
+            <CustomProviderProfiles
+                onDirtyChange={setProfilesDirty}
+                discardToken={discardToken}
+            />
         </Stack>
     );
 };
 
-export default ApiSettingsTab;
+export default ApiSettingsContent;

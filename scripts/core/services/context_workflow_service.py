@@ -54,6 +54,10 @@ from scripts.core.services.context_synthesis_execution_service import (
     ContextSynthesisExecutionService,
 )
 from scripts.core.services.context_workflow_status_service import ContextWorkflowStatusService
+from scripts.core.services.provider_runtime import (
+    ProviderRuntimeSnapshot,
+    handler_from_runtime,
+)
 from scripts.core.repositories.context_tree_v2_repository import ContextTreeV2Repository
 from scripts.core.services.context_tree_v2_production_workflow import (
     ContextTreeV2ProductionWorkflowService,
@@ -77,6 +81,7 @@ class ContextWorkflowService:
     SCHEMA_VERSION = "context-v4"
     PROMPT_VERSION = "context-archive-v10"
     CHECKPOINT_COMPATIBILITY_VERSION = "context-analysis-v3"
+    TREE_V2_CHECKPOINT_OVERRIDES = {"workflow_version": "context-tree-v2", "schema_version": "context-tree-v2", "prompt_version": "context-archive-tree-v2", "checkpoint_compatibility_version": "context-analysis-tree-v2"}
     ACTIVE_STATUSES = ContextWorkflowStatusService.ACTIVE_STATUSES
 
     def __init__(
@@ -180,8 +185,10 @@ class ContextWorkflowService:
         analysis_config: dict[str, Any] | None = None,
         concurrency_limit: int | None = None,
         project_title: str = "",
+        runtime: ProviderRuntimeSnapshot | None = None,
     ) -> dict[str, Any]:
         scope = AnalysisScope(analysis_scope)
+        api_provider, model_name = ((runtime.adapter_id, runtime.model_id) if runtime else (api_provider, model_name))
         effective_description_language = description_language or review_language
         parsed_files: tuple[ParsedSourceFile, ...] = ()
         processed_files = 0
@@ -217,17 +224,13 @@ class ContextWorkflowService:
                 concurrency_limit,
             )
             workflow_context.update(self._chunk_diagnostics(local_units, chunks))
+            if runtime is not None:
+                workflow_context["provider_runtime"] = runtime.safe_metadata()
             checkpoint_config = self._checkpoint_config(
                 api_provider, model_name, source_lang, target_lang,
                 effective_description_language, game_name, chunk_config,
+                self.workflow_version,
             )
-            if self.workflow_version == "tree_v2":
-                checkpoint_config.update({
-                    "workflow_version": "context-tree-v2",
-                    "schema_version": "context-tree-v2",
-                    "prompt_version": "context-archive-tree-v2",
-                    "checkpoint_compatibility_version": "context-analysis-tree-v2",
-                })
             analysis_run = self.analysis_checkpoints.start(
                 project_id,
                 task_id,
@@ -263,6 +266,7 @@ class ContextWorkflowService:
                 model_name,
                 effective_concurrency,
                 usage_ledger,
+                runtime,
             )
             result = self._finish_scope(
                 project_id, task_id, scope, parsed_files, snapshot, diff, parent,
@@ -271,6 +275,7 @@ class ContextWorkflowService:
                 duplicate_index or {}, workflow_context, analysis_run, upstream_version,
                 analysis_config, chunk_config, effective_concurrency,
                 usage_ledger,
+                runtime,
             )
             if analysis_run is not None:
                 self._finalize_analysis_run(analysis_run, result)
@@ -296,6 +301,7 @@ class ContextWorkflowService:
             duplicate_index=values["duplicate_index"] or {},
             analysis_run=values["analysis_run"], usage_ledger=values["usage_ledger"],
             concurrency=values["effective_concurrency"],
+            runtime=values.get("runtime"),
         )
         if values["analysis_run"] is not None:
             self._finalize_analysis_run(values["analysis_run"], result)
@@ -341,6 +347,7 @@ class ContextWorkflowService:
         chunk_config: dict[str, int],
         effective_concurrency: int,
         usage_ledger: ContextModelUsageLedger,
+        runtime: ProviderRuntimeSnapshot | None = None,
     ) -> dict[str, Any]:
         reconciled = None
         final_extractions = list(extractions)
@@ -348,10 +355,14 @@ class ContextWorkflowService:
             reconciled = self._reconcile_events(
                 project_id, task_id, local_units, extractions, api_provider,
                 model_name, description_language, analysis_run, effective_concurrency,
-                usage_ledger,
+                usage_ledger, runtime,
             )
             final_extractions = self._replace_local_events(extractions, reconciled)
-        review_miner = self.miner_factory(self.handler_factory(api_provider, model_name=model_name))
+        review_miner = self.miner_factory(
+            handler_from_runtime(runtime, self.handler_factory)
+            if runtime is not None
+            else self.handler_factory(api_provider, model_name=model_name)
+        )
         governance, terms = self.governance_flow.govern_and_process_terms(
             governance_kwargs={
                 "project_id": project_id, "extractions": final_extractions,
@@ -395,6 +406,7 @@ class ContextWorkflowService:
             analysis_run=analysis_run,
             analysis_run_id=analysis_run.run_id if analysis_run is not None else None,
             expected_local_unit_ids=[unit.unit_id for unit in local_units],
+            runtime=runtime,
         )
         result["analysis_report"] = analysis_report
         result.update({
@@ -418,6 +430,7 @@ class ContextWorkflowService:
         model_name: str | None,
         concurrency: int,
         usage_ledger: ContextModelUsageLedger,
+        runtime: ProviderRuntimeSnapshot | None = None,
     ) -> list[StructuredNeologismExtraction]:
         return ContextExtractionExecutionService(
             handler_factory=self.handler_factory,
@@ -437,6 +450,7 @@ class ContextWorkflowService:
             api_provider=api_provider,
             model_name=model_name,
             concurrency=concurrency,
+            runtime=runtime,
         )
 
     def _reconcile_events(
@@ -451,6 +465,7 @@ class ContextWorkflowService:
         analysis_run: Any | None,
         concurrency: int,
         usage_ledger: ContextModelUsageLedger,
+        runtime: ProviderRuntimeSnapshot | None = None,
     ) -> EventReconciliationResult:
         return ContextEventReconciliationExecutionService(
             handler_factory=self.handler_factory,
@@ -468,6 +483,7 @@ class ContextWorkflowService:
             model_name=model_name,
             description_language=description_language,
             concurrency=concurrency,
+            runtime=runtime,
         )
 
     @staticmethod
@@ -529,6 +545,7 @@ class ContextWorkflowService:
         analysis_run: Any | None = None,
         analysis_run_id: str | None = None,
         expected_local_unit_ids: Sequence[str] | None = None,
+        runtime: ProviderRuntimeSnapshot | None = None,
     ) -> dict[str, Any]:
         sources = self.release_assembler.persist_sources(
             project_id, parsed_files, snapshot.source_snapshot_hash,
@@ -569,6 +586,7 @@ class ContextWorkflowService:
             aggregates, contributions, sources, governance, description_language,
             project_id, task_id, analysis_run, api_provider, model_name, concurrency,
             source_item_ids,
+            runtime=runtime,
         )
         model_execution = usage_ledger.summary()
         analysis_report["model_execution"] = model_execution
@@ -733,6 +751,7 @@ class ContextWorkflowService:
         description_language: str,
         game_name: str,
         chunk_config: dict[str, int],
+        workflow_version: str | None = None,
     ) -> dict[str, Any]:
         return {
             "provider": provider,
@@ -745,6 +764,7 @@ class ContextWorkflowService:
             "schema_version": cls.SCHEMA_VERSION,
             "prompt_version": cls.PROMPT_VERSION,
             "checkpoint_compatibility_version": cls.CHECKPOINT_COMPATIBILITY_VERSION,
+            **(cls.TREE_V2_CHECKPOINT_OVERRIDES if workflow_version == "tree_v2" else {}),
         }
 
     _chunks = ContextChunkingPolicy.chunks

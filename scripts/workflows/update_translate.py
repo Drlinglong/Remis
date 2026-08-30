@@ -6,7 +6,6 @@ from pathlib import Path
 from time import perf_counter
 
 from scripts.app_settings import DEST_DIR
-from scripts.core import api_handler
 from scripts.shared.services import project_manager
 from scripts.core.services.incremental_snapshot_service import IncrementalSnapshotService
 from scripts.core.services.incremental_diff_service import IncrementalDiffService
@@ -22,6 +21,7 @@ from scripts.core.services.translation_context_service import prepare_context_wi
 from scripts.core.services.translation_context_gate import (
     prepare_and_require_workflow_context,
 )
+from scripts.core.services.provider_runtime import handler_for_selection
 
 logger = logging.getLogger(__name__)
 
@@ -137,10 +137,9 @@ async def run_incremental_update(
     context_character_budget: int = 4000, context_service: Any = None,
     snapshot_service: Any = None,
     translation_context_mode: Optional[str] = None,
+    provider_runtime: Any = None,
 ) -> Dict[str, Any]:
-    """
-    Runs the incremental translation workflow for multiple target languages.
-    """
+    """Run the incremental translation workflow for multiple target languages."""
     project = await project_manager.get_project(project_id)
     if not project:
         return {"status": "error", "message": f"Project {project_id} not found"}
@@ -334,7 +333,7 @@ async def run_incremental_update(
                     (lambda data, idx=lang_index, total=total_target_langs, code=target_lang_code:
                         progress_callback(_build_aggregated_progress(data, idx, total, code)))
                     if progress_callback else None
-                ), context_selection=context_selection,
+                ), context_selection=context_selection, provider_runtime=provider_runtime,
             )
             lang_telemetry["translation_ms"] = round((perf_counter() - translation_started_at) * 1000, 1)
             overall_warnings.extend(warnings)
@@ -430,7 +429,7 @@ async def run_incremental_update(
             f"{project_name} ({target_lang_code}) to {export_result.get('issues_path')}"
         )
 
-        metadata_handler = api_handler.get_handler(selected_provider, model_name=model_name)
+        metadata_handler = handler_for_selection(selected_provider, model_name, provider_runtime)
         if metadata_handler and metadata_handler.client and (not is_multilang or target_lang_info == target_lang_infos[0]):
             metadata_started_at = perf_counter()
             package_service.process_metadata(

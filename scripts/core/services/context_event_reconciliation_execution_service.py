@@ -21,6 +21,10 @@ from scripts.core.services.context_parallel_execution_service import (
     ContextParallelResult,
     map_context_calls_ordered,
 )
+from scripts.core.services.provider_runtime import (
+    ProviderRuntimeSnapshot,
+    handler_from_runtime,
+)
 
 
 @dataclass(frozen=True)
@@ -59,6 +63,7 @@ class ContextEventReconciliationExecutionService:
         model_name: str | None,
         description_language: str,
         concurrency: int,
+        runtime: ProviderRuntimeSnapshot | None = None,
     ) -> EventReconciliationResult:
         units = list(local_units)
         assignment_batches = ContextAssignmentBatchingPolicy.batches(units)
@@ -78,6 +83,7 @@ class ContextEventReconciliationExecutionService:
             analysis_run=analysis_run,
             api_provider=api_provider,
             model_name=model_name,
+            runtime=runtime,
             description_language=description_language,
         )
         results = self._assignment_results(
@@ -88,6 +94,7 @@ class ContextEventReconciliationExecutionService:
             analysis_run=analysis_run,
             api_provider=api_provider,
             model_name=model_name,
+            runtime=runtime,
             description_language=description_language,
             concurrency=concurrency,
         )
@@ -113,7 +120,9 @@ class ContextEventReconciliationExecutionService:
             )
             return saved
         try:
-            service = self._service(context["api_provider"], context["model_name"])
+            service = self._service(
+                context["api_provider"], context["model_name"], context.get("runtime")
+            )
             try:
                 catalog = service.build_catalog(
                     units,
@@ -159,7 +168,9 @@ class ContextEventReconciliationExecutionService:
             )
 
         def worker(item: _PendingAssignmentBatch) -> EventAssignmentBatchResult:
-            service = self._service(context["api_provider"], context["model_name"])
+            service = self._service(
+                context["api_provider"], context["model_name"], context.get("runtime")
+            )
             try:
                 return service.assign_batch(
                     item.units,
@@ -216,8 +227,16 @@ class ContextEventReconciliationExecutionService:
             raise RuntimeError("Event assignment barrier completed with missing batch results")
         return [result for result in results if result is not None]
 
-    def _service(self, api_provider: str, model_name: str | None) -> Any:
-        handler = self.handler_factory(api_provider, model_name=model_name)
+    def _service(
+        self,
+        api_provider: str,
+        model_name: str | None,
+        runtime: ProviderRuntimeSnapshot | None = None,
+    ) -> Any:
+        if runtime is None:
+            handler = self.handler_factory(api_provider, model_name=model_name)
+        else:
+            handler = handler_from_runtime(runtime, self.handler_factory)
         return self.reconciler_factory(handler)
 
     def _record(

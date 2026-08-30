@@ -31,6 +31,7 @@ from scripts.core.services.agent_translation_plan_service import (
     AgentTranslationPlanError,
     build_agent_translation_plan,
 )
+from scripts.core.services.agent_provider_catalog_service import agent_key_resolver, agent_provider_catalog, agent_provider_setup
 from scripts.core.services.translation_context_readiness_service import (
     TranslationContextReadinessService,
 )
@@ -151,39 +152,9 @@ def _version_key(value: str) -> tuple[int, ...]:
 
 
 def _provider_setup(provider_id: Optional[str] = None) -> Dict[str, Any]:
-    configured_cloud = []
-    for item_id, config in API_PROVIDERS.items():
-        env_name = config.get("api_key_env")
-        if env_name and get_api_key(item_id, env_name):
-            configured_cloud.append(item_id)
-
-    selected = API_PROVIDERS.get(provider_id) if provider_id else None
-    selected_requires_key = bool(selected and selected.get("api_key_env"))
-    selected_ready = None
-    if selected is not None:
-        selected_ready = (
-            not selected_requires_key
-            or provider_id in configured_cloud
-        )
-
-    return {
-        "api_key_configured": bool(configured_cloud),
-        "configured_cloud_providers": configured_cloud,
-        "selected_provider": provider_id,
-        "selected_provider_ready": selected_ready,
-        "keyless_local_providers_available": sorted(LOCAL_PROVIDER_IDS),
-        "setup_required": selected_ready is False or (
-            selected is None and not configured_cloud
-        ),
-        "settings_location": "Remis Settings > API Settings",
-        "explanation_available": True,
-        "explanation": (
-            "An API key is a secret credential issued by a model provider. "
-            "It lets Remis authenticate model requests and may be tied to billing. "
-            "Store it in Remis Settings; never paste it into an Agent chat. "
-            "A deliberately selected local provider can be keyless."
-        ),
-    }
+    catalog = agent_provider_catalog(API_PROVIDERS)
+    resolver = lambda pid, env: agent_key_resolver(pid, env, API_PROVIDERS, get_api_key)
+    return agent_provider_setup(provider_id, LOCAL_PROVIDER_IDS, catalog, resolver)
 
 
 def _release_check() -> Dict[str, Any]:
@@ -638,8 +609,8 @@ async def plan_agent_job(request: AgentJobPlanRequest):
     try:
         return await build_agent_translation_plan(
             request,
-            api_providers=API_PROVIDERS,
-            key_resolver=get_api_key,
+            api_providers=agent_provider_catalog(API_PROVIDERS),
+            key_resolver=lambda pid, env: agent_key_resolver(pid, env, API_PROVIDERS, get_api_key),
             plan_factory=create_translation_plan,
             readiness_service=translation_context_readiness,
             registry=agent_registry,

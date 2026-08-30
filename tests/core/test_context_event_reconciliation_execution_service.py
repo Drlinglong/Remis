@@ -14,6 +14,7 @@ from scripts.core.services.context_event_reconciliation_service import (
     EventChainCatalogResult,
     EventChainDefinition,
 )
+from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 
 
 class FakeCheckpoints:
@@ -170,6 +171,36 @@ def test_execution_uses_catalog_barrier_parallel_assignment_batches_and_resume()
     assert len(second.delivery_assignments) == 95
     assert len(handler_calls) == 4
     assert all(record[4]["resumed"] for record in status.records)
+
+
+def test_all_event_reconciliation_stages_receive_the_same_runtime_snapshot():
+    checkpoints = FakeCheckpoints()
+    status = FakeStatus()
+    handler_calls = []
+    executor = ContextEventReconciliationExecutionService(
+        handler_factory=lambda provider, model_name=None, **kwargs: handler_calls.append(
+            (provider, model_name, kwargs)
+        ) or object(),
+        reconciler_factory=ConcurrentFakeReconciler,
+        checkpoints=checkpoints,
+        status_service=status,
+    )
+    runtime = ProviderRuntimeSnapshot(
+        selection_id="profile-1", adapter_id="your_favourite_api",
+        display_name="Provider A", model_id="model-a",
+        config={"base_url": "https://provider-a.example"},
+    )
+
+    executor.execute(
+        _units(2), [], project_id="project", task_id="task",
+        analysis_run=SimpleNamespace(run_id="run"),
+        api_provider="legacy-provider", model_name="legacy-model",
+        description_language="zh-CN", concurrency=2, runtime=runtime,
+    )
+
+    assert len(handler_calls) == 2
+    assert all(call[0:2] == ("your_favourite_api", "model-a") for call in handler_calls)
+    assert all(call[2]["provider_config_snapshot"] == runtime.config for call in handler_calls)
 
 
 def test_retry_reuses_successful_assignment_batches_and_only_reruns_failure():

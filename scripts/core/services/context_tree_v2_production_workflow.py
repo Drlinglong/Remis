@@ -46,6 +46,10 @@ from scripts.core.services.context_tree_v2_term_only import (
 from scripts.core.services.context_tree_v2_workflow_service import (
     ContextTreeV2WorkflowResult,
 )
+from scripts.core.services.provider_runtime import (
+    ProviderRuntimeSnapshot,
+    handler_from_runtime,
+)
 from scripts.schemas.context_tree_v2_entity_digest import DigestLocalUnit
 
 
@@ -88,6 +92,7 @@ class ContextTreeV2ProductionWorkflowService:
         analysis_run: Any | None,
         usage_ledger: ContextModelUsageLedger,
         concurrency: int,
+        runtime: ProviderRuntimeSnapshot | None = None,
     ) -> dict[str, Any]:
         scope = AnalysisScope(scope)
         extractions = ContextTreeV2ExtractionExecutionService(
@@ -106,6 +111,7 @@ class ContextTreeV2ProductionWorkflowService:
             analysis_run=analysis_run,
             api_provider=api_provider,
             model_name=model_name,
+            runtime=runtime,
             concurrency=concurrency,
         )
         term_result = self._term_result(extractions, source_language)
@@ -132,6 +138,7 @@ class ContextTreeV2ProductionWorkflowService:
             term_result=term_result,
             api_provider=api_provider,
             model_name=model_name,
+            runtime=runtime,
             source_language=source_language,
             target_language=target_language,
             description_language=description_language,
@@ -244,7 +251,9 @@ class ContextTreeV2ProductionWorkflowService:
         catalog = self.checkpoints.restore_catalog(values["analysis_run"], source_ids)
         resumed = catalog is not None
         if catalog is None:
-            handler = self.handler_factory(values["api_provider"], model_name=values["model_name"])
+            handler = self._handler(
+                values["api_provider"], values["model_name"], values.get("runtime")
+            )
             try:
                 catalog = ContextTreeV2CatalogService(handler).build_catalog(
                     fragments,
@@ -303,7 +312,9 @@ class ContextTreeV2ProductionWorkflowService:
         result = self.checkpoints.restore_digests(values["analysis_run"], source_ids)
         resumed = result is not None
         if result is None:
-            handler = self.handler_factory(values["api_provider"], model_name=values["model_name"])
+            handler = self._handler(
+                values["api_provider"], values["model_name"], values.get("runtime")
+            )
             try:
                 result = ContextTreeV2EntityDigestService(handler).run(
                     governance.candidates, digest_units,
@@ -427,6 +438,16 @@ class ContextTreeV2ProductionWorkflowService:
                 "model_execution": values["usage_ledger"].summary(),
             },
         }
+
+    def _handler(
+        self,
+        api_provider: str,
+        model_name: str | None,
+        runtime: ProviderRuntimeSnapshot | None,
+    ) -> Any:
+        if runtime is None:
+            return self.handler_factory(api_provider, model_name=model_name)
+        return handler_from_runtime(runtime, self.handler_factory)
 
 
 __all__ = ["ContextTreeV2ProductionWorkflowService"]

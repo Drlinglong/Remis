@@ -5,6 +5,7 @@ import pytest
 from scripts.core import neologism_manager as neologism_module
 from scripts.core.neologism_manager import Candidate, NeologismManager
 from scripts.core.neologism_miner import NeologismMiningError, NeologismReview, NeologismTerm
+from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 
 
 class FakeGlossaryManager:
@@ -255,6 +256,54 @@ def test_mining_uses_grounded_evidence_and_marks_glossary_duplicates(tmp_path, m
     assert candidates[0].suggestion == "以太相引擎"
     assert candidates[0].duplicate_matches[0]["entry_id"] == "main-entry-1"
     assert manager.get_mining_status("project-1")["duplicate_terms"] == 1
+
+
+def test_mining_uses_runtime_snapshot_and_masks_task_metadata(tmp_path, monkeypatch):
+    monkeypatch.setattr(neologism_module, "CACHE_DIR", str(tmp_path / "cache"))
+    calls = []
+
+    def handler_factory(provider, model_name=None, **kwargs):
+        calls.append((provider, model_name, kwargs))
+        return object()
+
+    class TaskBackend:
+        def __init__(self):
+            self.updates = []
+
+        def update_task(self, task_id, **payload):
+            self.updates.append((task_id, payload))
+
+    task_backend = TaskBackend()
+    monkeypatch.setattr(neologism_module, "task_state", task_backend)
+    monkeypatch.setattr(neologism_module, "get_handler", handler_factory)
+    monkeypatch.setattr(neologism_module, "NeologismMiner", FakeMiner)
+    source_file = tmp_path / "source.yml"
+    source_file.write_text(
+        'l_english:\n test_key:0 "Aetherophasic Engine powers the crisis."\n',
+        encoding="utf-8",
+    )
+    runtime = ProviderRuntimeSnapshot(
+        selection_id="profile-1",
+        adapter_id="your_favourite_api",
+        display_name="Provider A",
+        model_id="model-a",
+        config={"base_url": "https://provider-a.example", "api_key": "do-not-leak"},
+        api_key="do-not-leak",
+        secret_ref="secret-provider-a",
+    )
+
+    manager = NeologismManager()
+    manager.run_mining_workflow(
+        "project-1", [str(source_file)], "legacy-provider", task_id="task-1",
+        runtime=runtime,
+    )
+
+    assert calls[0][0:2] == ("your_favourite_api", "model-a")
+    assert calls[0][2]["api_key_override"] == "do-not-leak"
+    metadata = task_backend.updates[0][1]["fields"]["provider_runtime"]
+    assert metadata["profile_id"] == "profile-1"
+    assert "api_key" not in metadata["config"]
+    assert "do-not-leak" not in repr(metadata)
 
 
 class FailingMiner(FakeMiner):

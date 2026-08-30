@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Group, Loader, Paper, Select, Stack, Switch, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconBrain, IconRobot } from '@tabler/icons-react';
 import { fetchCopilotSettings, saveCopilotSettings } from '../../services/copilotService';
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import { applyReasoningToggle } from './copilotSettingsForm';
 
 const presetLabels = {
@@ -14,9 +15,19 @@ const presetLabels = {
   max: '最大',
 };
 
+const editableSettings = (settings) => ({
+  provider: settings?.provider || '',
+  model: settings?.model || '',
+  reasoning_enabled: Boolean(settings?.reasoning_enabled),
+  reasoning_preset: settings?.reasoning_preset || 'medium',
+});
+
+const settingsFingerprint = (settings) => JSON.stringify(editableSettings(settings));
+
 export default function CopilotSettingsTab() {
   const [providers, setProviders] = useState([]);
   const [form, setForm] = useState(null);
+  const [savedForm, setSavedForm] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -25,6 +36,7 @@ export default function CopilotSettingsTab() {
       .then((data) => {
         setProviders(data.providers || []);
         setForm(data.settings);
+        setSavedForm(data.settings);
       })
       .catch((error) => notifications.show({
         title: '无法读取小助手设置',
@@ -33,6 +45,14 @@ export default function CopilotSettingsTab() {
       }))
       .finally(() => setLoading(false));
   }, []);
+
+  const isDirty = Boolean(
+    form && savedForm && settingsFingerprint(form) !== settingsFingerprint(savedForm),
+  );
+  const discardChanges = useCallback(() => {
+    setForm(savedForm);
+  }, [savedForm]);
+  useUnsavedChangesGuard({ id: 'copilot-settings', isDirty, onDiscard: discardChanges });
 
   const selectedProvider = useMemo(
     () => providers.find((item) => item.id === form?.provider),
@@ -80,6 +100,7 @@ export default function CopilotSettingsTab() {
         reasoning_preset: form.reasoning_preset,
       });
       setForm(saved);
+      setSavedForm(saved);
       notifications.show({ title: '已保存', message: '所有 Remis 小助手入口将使用这套设置。', color: 'green' });
     } catch (error) {
       notifications.show({

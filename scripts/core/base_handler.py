@@ -1,5 +1,6 @@
 # scripts/core/base_handler.py
 import asyncio
+import copy
 import json
 import time
 import logging
@@ -60,6 +61,8 @@ class BaseApiHandler(ABC):
         provider_name: str,
         model_id: str = None,
         reasoning_override: dict | None = None,
+        provider_config_snapshot: dict | None = None,
+        api_key_override: str | None = None,
     ):
         """
         通用的构造函数。
@@ -67,6 +70,12 @@ class BaseApiHandler(ABC):
         self.provider_name = provider_name
         self.model_id = model_id
         self.reasoning_override = reasoning_override or {}
+        self._provider_config_snapshot = (
+            copy.deepcopy(provider_config_snapshot)
+            if provider_config_snapshot is not None
+            else None
+        )
+        self._api_key_override = api_key_override
         self.logger = logging.getLogger(self.__class__.__name__)
         self._model_call_records = []
         self.client = self.initialize_client()
@@ -149,6 +158,16 @@ class BaseApiHandler(ABC):
         """
         获取提供商的配置，合并默认配置和用户覆盖配置。
         """
+        provider_snapshot = getattr(self, "_provider_config_snapshot", None)
+        if provider_snapshot is not None:
+            resolved = copy.deepcopy(provider_snapshot)
+            if self.model_id:
+                resolved["default_model"] = self.model_id
+            reasoning_override = getattr(self, "reasoning_override", None)
+            if reasoning_override:
+                resolved.update(reasoning_override)
+            return resolved
+
         from scripts.app_settings import API_PROVIDERS
         from scripts.app_settings import config_manager
         
@@ -198,8 +217,9 @@ class BaseApiHandler(ABC):
             # If no overrides but we have a request model, use it
             base_config["default_model"] = self.model_id
             
-        if self.reasoning_override:
-            base_config.update(self.reasoning_override)
+        reasoning_override = getattr(self, "reasoning_override", None)
+        if reasoning_override:
+            base_config.update(reasoning_override)
         return base_config
 
     def _reasoning_request_parameters(self) -> dict:

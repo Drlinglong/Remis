@@ -20,6 +20,15 @@ vi.mock('@mantine/notifications', () => ({
     },
 }));
 
+vi.mock('../hooks/useUnsavedChangesGuard', () => ({
+    UnsavedChangesGuardProvider: ({ children }) => children,
+    useUnsavedChangesGuard: vi.fn(),
+}));
+
+vi.mock('./apiSettings/CustomProviderProfiles', () => ({
+    default: () => React.createElement('div', { 'data-testid': 'custom-provider-profiles' }),
+}));
+
 // Mock i18next
 vi.mock('react-i18next', () => ({
     useTranslation: () => ({

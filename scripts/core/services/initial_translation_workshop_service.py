@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from scripts.core.services.embedded_workshop_service import run_embedded_workshop
 from scripts.core.services.initial_translation_snapshot_service import resolve_archive_mod_name
@@ -56,6 +56,7 @@ def run_embedded_workshop_for_language(
     rpm_limit: Optional[int] = None,
     dynamic_valid_tags: Optional[List[str]] = None,
     update_progress_callback=None,
+    provider_runtime: Any = None,
 ):
     if embedded_workshop is None:
         embedded_workshop = {"enabled": True, "follow_primary_settings": True}
@@ -95,6 +96,7 @@ def run_embedded_workshop_for_language(
             fallback_rpm=rpm_limit,
             dynamic_valid_tags=dynamic_valid_tags,
             progress_callback=embedded_progress,
+            provider_runtime=provider_runtime,
         ))
         if workshop_summary.get("detected_count", 0) == 0:
             logging.info("Embedded workshop skipped for %s: no fixable validation issues in sidecar.", target_lang.get("code"))

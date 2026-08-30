@@ -1,6 +1,7 @@
 import os
 
 from scripts.core.services import initial_translation_workshop_service as workshop_service
+from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 
 
 def test_export_workshop_issues_uses_initial_workflow_contract(monkeypatch, tmp_path):
@@ -135,3 +136,46 @@ def test_run_embedded_workshop_bridges_progress_and_completion(monkeypatch, tmp_
             },
         },
     ]
+
+
+def test_run_embedded_workshop_for_language_forwards_primary_runtime(
+    monkeypatch, tmp_path
+):
+    run_calls = []
+
+    async def fake_run_embedded_workshop(**kwargs):
+        run_calls.append(kwargs)
+        return {"detected_count": 0}
+
+    monkeypatch.setattr(workshop_service, "SOURCE_DIR", str(tmp_path / "source"))
+    monkeypatch.setattr(
+        workshop_service,
+        "resolve_archive_mod_name",
+        lambda mod_name, project_id=None: "Project Name",
+    )
+    monkeypatch.setattr(workshop_service, "run_embedded_workshop", fake_run_embedded_workshop)
+    runtime = ProviderRuntimeSnapshot(
+        selection_id="primary-profile",
+        adapter_id="your_favourite_api",
+        display_name="Provider A",
+        model_id="snapshot-model",
+        config={"base_url": "https://snapshot.example/v1", "default_model": "snapshot-model"},
+        api_key="in-memory-secret",
+        secret_ref="custom_provider_profile:primary-profile",
+    )
+
+    workshop_service.run_embedded_workshop_for_language(
+        embedded_workshop={"enabled": True, "follow_primary_settings": True},
+        output_dir_path=str(tmp_path / "dest"),
+        override_path=None,
+        mod_name="MyMod",
+        project_id="project-1",
+        source_lang={"code": "en"},
+        target_lang={"code": "zh-CN"},
+        game_profile={"id": "vic3"},
+        selected_provider="edited-provider",
+        model_name="edited-model",
+        provider_runtime=runtime,
+    )
+
+    assert run_calls[0]["provider_runtime"] is runtime

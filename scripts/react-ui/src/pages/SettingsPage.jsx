@@ -12,11 +12,15 @@ import ReferenceLibraryMaintenanceCard from '../components/settings/ReferenceLib
 import CopilotSettingsTab from '../components/settings/CopilotSettingsTab';
 import { FEATURES } from '../config/features';
 import { useTutorial, getTutorialKey } from '../context/TutorialContextCore';
+import {
+    UnsavedChangesGuardProvider,
+    useUnsavedChangesGuardContext,
+} from '../hooks/useUnsavedChangesGuard';
 
 import styles from './SettingsPage.module.css';
 
 
-const SettingsPage = () => {
+const SettingsPageContent = () => {
     const { t, i18n } = useTranslation();
     const { theme, toggleTheme } = useContext(ThemeContext);
     const { startTour, setPageContext } = useTutorial();
@@ -25,6 +29,7 @@ const SettingsPage = () => {
     const [activeTab, setActiveTab] = React.useState('general');
     const [rpmLimit, setRpmLimit] = React.useState('40');
     const [databaseFile, setDatabaseFile] = React.useState('remis.sqlite');
+    const { requestNavigation } = useUnsavedChangesGuardContext();
 
     useEffect(() => {
         const savedLanguage = localStorage.getItem('language');
@@ -80,7 +85,12 @@ const SettingsPage = () => {
                 <Paper data-remis-surface="surface" withBorder p="xl" radius="md" className={styles.glassCard}>
                     <Title order={2} mb="xl" className={styles.headerTitle}>{t('page_title_settings')}</Title>
 
-                    <Tabs value={activeTab} onChange={setActiveTab}>
+                    <Tabs
+                        value={activeTab}
+                        onChange={(nextTab) => {
+                            if (nextTab) requestNavigation(() => setActiveTab(nextTab));
+                        }}
+                    >
                         <Tabs.List mb="lg">
                             <Tabs.Tab id="settings-tab-general" value="general" leftSection={<IconSettings size={16} />}>
                                 {t('settings_general') || 'General'}
@@ -312,5 +322,11 @@ const SettingsPage = () => {
         </Box >
     );
 };
+
+const SettingsPage = () => (
+    <UnsavedChangesGuardProvider>
+        <SettingsPageContent />
+    </UnsavedChangesGuardProvider>
+);
 
 export default SettingsPage;

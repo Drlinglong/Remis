@@ -29,6 +29,7 @@ from scripts.core.services.validation_sidecar_service import ValidationSidecarSe
 from scripts.core.services.translation_context_readiness_service import (
     TranslationContextReadinessService,
 )
+from scripts.routers.provider_runtime import provider_task_fields, resolve_runtime_or_400
 from scripts.core.neologism_manager import neologism_manager
 from scripts.utils.system_utils import sanitize_for_json
 from scripts.utils.validation_logger import ValidationLogger
@@ -429,7 +430,15 @@ async def get_project_validation_status(project_id: str, sidecar_path: Optional[
         "report_dir": report_dir if os.path.isdir(report_dir) else None,
     }
 
-def run_incremental_update_background(task_id: str, project_id: str, request: IncrementalUpdateRequest):
+async def _run_incremental_workflow(request, progress_callback, provider_runtime):
+    if provider_runtime is None:
+        return await project_manager.run_incremental_update_workflow(request, progress_callback)
+    return await project_manager.run_incremental_update_workflow(
+        request, progress_callback, provider_runtime
+    )
+
+
+def run_incremental_update_background(task_id: str, project_id: str, request: IncrementalUpdateRequest, provider_runtime=None):
     from scripts.shared import task_state
     import asyncio
 
@@ -455,7 +464,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
 
     try:
         # Run the async workflow in this thread's event loop
-        result = asyncio.run(project_manager.run_incremental_update_workflow(request, progress_callback))
+        result = asyncio.run(_run_incremental_workflow(request, progress_callback, provider_runtime))
         
         if result.get("status") == "error":
             failure_message = str(result.get("message") or "Unknown incremental translation error")
@@ -604,6 +613,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
 async def run_incremental_update(project_id: str, request: IncrementalUpdateRequest, background_tasks: BackgroundTasks):
     """Triggers the incremental update workflow in background."""
     import uuid
+    provider_runtime = resolve_runtime_or_400(request.api_provider, request.model)
 
     if request.translation_context_mode == "archive":
         project = await project_manager.get_project(project_id)
@@ -649,6 +659,7 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
                     "mode": "pre_scan" if request.dry_run else "execution",
                     "project_id": project_id,
                 },
+                **provider_task_fields(provider_runtime),
             },
             dedupe_key=f"project_translation_write:{project_id}",
             reject_duplicate=True,
@@ -666,6 +677,9 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
     if request.project_id != project_id:
         request.project_id = project_id
         
-    background_tasks.add_task(run_incremental_update_background, task_id, project_id, request)
+    background_args = [task_id, project_id, request]
+    if provider_runtime is not None:
+        background_args.append(provider_runtime)
+    background_tasks.add_task(run_incremental_update_background, *background_args)
     
     return {"task_id": task_id, "status": "started"}

@@ -16,6 +16,7 @@ from pydantic_ai.usage import UsageLimits
 from scripts.app_settings import API_PROVIDERS, config_manager
 from scripts.core.copilot.help_pack import AGENT_OPS_SUMMARY, HELP_SKILLS, read_help_skills
 from scripts.core.copilot.settings import pydantic_reasoning_settings
+from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 
 HelpSkillId = Enum("HelpSkillId", {skill_id.upper(): skill_id for skill_id in HELP_SKILLS}, type=str)
 
@@ -50,11 +51,22 @@ def build_help_agent(
     model_name: str | None = None,
     *,
     reasoning_override: dict[str, Any] | None = None,
+    provider_runtime: ProviderRuntimeSnapshot | None = None,
 ) -> Agent[HelpDeps, HelpAnswer]:
-    base_url, selected_model = _lm_studio_config(model_name)
+    if provider_runtime is None:
+        base_url, selected_model = _lm_studio_config(model_name)
+        provider_id = "lm_studio"
+        provider_config = None
+        api_key = "local-no-key-required"
+    else:
+        base_url = str(provider_runtime.config.get("base_url") or "http://localhost:1234/v1")
+        selected_model = provider_runtime.model_id or model_name or "local-model"
+        provider_id = provider_runtime.adapter_id
+        provider_config = provider_runtime.config
+        api_key = provider_runtime.api_key or "local-no-key-required"
     model = OpenAIResponsesModel(
         selected_model,
-        provider=OpenAIProvider(base_url=base_url, api_key="local-no-key-required"),
+        provider=OpenAIProvider(base_url=base_url, api_key=api_key),
     )
     catalog = "\n".join(
         f"- {skill_id}: {meta['title']}，{meta['description']}"
@@ -75,10 +87,11 @@ def build_help_agent(
             timeout=90,
             parallel_tool_calls=True,
             **pydantic_reasoning_settings(
-                provider="lm_studio",
+                provider=provider_id,
                 model=selected_model,
                 enabled=bool((reasoning_override or {}).get("reasoning_builtin_enabled")),
                 preset=str((reasoning_override or {}).get("reasoning_preset") or "medium"),
+                provider_config=provider_config,
             ),
         ),
         retries=1,
@@ -121,11 +134,13 @@ def run_pydantic_help_agent(
     model_name: str | None = None,
     page_context: dict[str, Any] | None = None,
     reasoning_override: dict[str, Any] | None = None,
+    provider_runtime: ProviderRuntimeSnapshot | None = None,
 ) -> dict[str, Any]:
     deps = HelpDeps()
     agent = build_help_agent(
         model_name,
         reasoning_override=reasoning_override,
+        provider_runtime=provider_runtime,
     )
     result = agent.run_sync(
         "结合以下对话和只读页面上下文回答最后一个用户问题。不得声称已执行页面操作。\n"

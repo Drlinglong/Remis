@@ -14,6 +14,10 @@ from scripts.core.services.context_tree_v2_contract import ContextTreeV2Extracti
 from scripts.core.services.context_tree_v2_extraction_service import (
     ContextTreeV2ExtractionService,
 )
+from scripts.core.services.provider_runtime import (
+    ProviderRuntimeSnapshot,
+    handler_from_runtime,
+)
 
 
 class ContextTreeV2ExtractionExecutionService:
@@ -46,6 +50,7 @@ class ContextTreeV2ExtractionExecutionService:
         api_provider: str,
         model_name: str | None,
         concurrency: int,
+        runtime: ProviderRuntimeSnapshot | None = None,
     ) -> tuple[ContextTreeV2Extraction, ...]:
         self.status_service.begin_stage(
             project_id, task_id, "extracting", len(chunks),
@@ -57,7 +62,7 @@ class ContextTreeV2ExtractionExecutionService:
 
         def worker(item: tuple[int, ContextUnitChunk]) -> ContextTreeV2Extraction:
             _, chunk = item
-            handler = self.handler_factory(api_provider, model_name=model_name)
+            handler = self._handler(api_provider, model_name, runtime)
             try:
                 return ContextTreeV2ExtractionService(handler).extract_structured(
                     list(chunk.source_items),
@@ -87,6 +92,16 @@ class ContextTreeV2ExtractionExecutionService:
             raise RuntimeError("Context tree v2 extraction produced an incomplete batch set")
         self.status_service.complete_stage(project_id, task_id, "extracting")
         return tuple(result for result in results if result is not None)
+
+    def _handler(
+        self,
+        api_provider: str,
+        model_name: str | None,
+        runtime: ProviderRuntimeSnapshot | None,
+    ) -> Any:
+        if runtime is None:
+            return self.handler_factory(api_provider, model_name=model_name)
+        return handler_from_runtime(runtime, self.handler_factory)
 
     def _restore_completed(
         self,

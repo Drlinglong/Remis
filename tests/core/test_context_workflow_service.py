@@ -38,6 +38,7 @@ from scripts.core.services.context_synthesis_execution_service import (
 from scripts.core.services.context_model_usage import ContextModelUsageLedger
 from scripts.core.services.context_workflow_service import ContextWorkflowService
 from scripts.core.services.context_workflow_status_service import ContextWorkflowStatusService
+from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 from scripts.core.services.initial_translation_task_service import _build_source_entries
 from scripts.schemas.context import (
     ContextAggregate,
@@ -592,6 +593,53 @@ def test_terms_only_uses_one_extraction_call_and_creates_no_release(tmp_path):
     assert len(miner.calls) == 1
     assert len(candidate_store.items) == 1
     assert any(update[1].get("status") == "completed" for update in task_backend.updates)
+
+
+def test_runtime_snapshot_is_reused_and_written_as_safe_task_metadata(tmp_path):
+    root = tmp_path / "mod"
+    root.mkdir()
+    source = root / "main.yml"
+    source.write_text('l_english:\n key:0 "The Republic appoints a consul."\n', encoding="utf-8")
+    calls = []
+    task_backend = FakeTaskBackend()
+
+    def handler_factory(provider, model_name=None, **kwargs):
+        calls.append((provider, model_name, kwargs))
+        return FakeHandler()
+
+    runtime = ProviderRuntimeSnapshot(
+        selection_id="profile-1",
+        adapter_id="your_favourite_api",
+        display_name="Provider A",
+        model_id="model-a",
+        config={"base_url": "https://provider-a.example", "api_key": "do-not-leak"},
+        api_key="do-not-leak",
+        secret_ref="secret-provider-a",
+    )
+    service = ContextWorkflowService(
+        FakeRepository(),
+        handler_factory=handler_factory,
+        candidate_store=FakeCandidateStore(),
+        task_backend=task_backend,
+        miner_factory=FakeMiner,
+        context_service=FakeContextService(FakeRepository()),
+    )
+
+    service.run(
+        "project-1", [str(source)], str(root), "local", task_id="task-1",
+        analysis_scope="terms_only", runtime=runtime,
+    )
+
+    assert len(calls) == 2
+    assert all(provider == "your_favourite_api" for provider, _, _ in calls)
+    assert all(model == "model-a" for _, model, _ in calls)
+    assert all(kwargs["provider_config_snapshot"] == {"base_url": "https://provider-a.example", "api_key": "do-not-leak"} for _, _, kwargs in calls)
+    running = next(update for _, update in task_backend.updates if update.get("status") == "running")
+    metadata = running["fields"]["workflow_context"]["provider_runtime"]
+    assert metadata["profile_id"] == "profile-1"
+    assert metadata["secret_ref"] == "secret-provider-a"
+    assert "api_key" not in metadata["config"]
+    assert "do-not-leak" not in repr(metadata)
 
 
 def test_failed_extraction_retry_reuses_successful_sqlite_batches(tmp_path):

@@ -20,6 +20,10 @@ from scripts.core.services.context_tree_v2_contract import (
 from scripts.core.services.context_tree_v2_context_service import ContextTreeV2ContextService
 from scripts.core.services.context_tree_v2_extraction_service import ContextTreeV2ExtractionService
 from scripts.core.services.context_tree_v2_projection_service import ContextTreeV2ProjectionService
+from scripts.core.services.provider_runtime import (
+    ProviderRuntimeSnapshot,
+    handler_from_runtime,
+)
 
 
 @dataclass(frozen=True)
@@ -66,6 +70,7 @@ class ContextTreeV2WorkflowService:
         reasoning_language: str = "the configured review language",
         description_language: str = "en",
         project_summary: str = "",
+        runtime: ProviderRuntimeSnapshot | None = None,
     ) -> ContextTreeV2WorkflowResult:
         scope = AnalysisScope(scope)
         extraction_results = tuple(
@@ -77,6 +82,7 @@ class ContextTreeV2WorkflowService:
                 game_name=game_name,
                 target_language=target_language,
                 reasoning_language=reasoning_language,
+                runtime=runtime,
             )
             for chunk in chunks
         )
@@ -127,6 +133,7 @@ class ContextTreeV2WorkflowService:
             chunks,
             api_provider=api_provider,
             model_name=model_name,
+            runtime=runtime,
             description_language=description_language,
         )
         projection = ContextTreeV2ProjectionService.project(
@@ -180,8 +187,9 @@ class ContextTreeV2WorkflowService:
         game_name: str,
         target_language: str,
         reasoning_language: str,
+        runtime: ProviderRuntimeSnapshot | None,
     ) -> ContextTreeV2Extraction:
-        handler = self.handler_factory(api_provider, model_name=model_name)
+        handler = self._handler(api_provider, model_name, runtime)
         try:
             return self.extractor_factory(handler).extract_structured(
                 list(chunk.source_items),
@@ -205,8 +213,9 @@ class ContextTreeV2WorkflowService:
         api_provider: str,
         model_name: str | None,
         description_language: str,
+        runtime: ProviderRuntimeSnapshot | None,
     ) -> TreeCatalogResult:
-        handler = self.handler_factory(api_provider, model_name=model_name)
+        handler = self._handler(api_provider, model_name, runtime)
         metadata = [chunk.edge_metadata for chunk in chunks]
         try:
             return self.catalog_factory(handler).build_catalog(
@@ -217,3 +226,13 @@ class ContextTreeV2WorkflowService:
         finally:
             if self.usage_ledger is not None:
                 self.usage_ledger.capture(handler, "tree_v2_catalog")
+
+    def _handler(
+        self,
+        api_provider: str,
+        model_name: str | None,
+        runtime: ProviderRuntimeSnapshot | None,
+    ) -> Any:
+        if runtime is None:
+            return self.handler_factory(api_provider, model_name=model_name)
+        return handler_from_runtime(runtime, self.handler_factory)

@@ -12,6 +12,7 @@ from scripts.core.repositories.context_analysis_batch_repository import (
     ContextAnalysisBatchRepository,
 )
 from scripts.core.services.context_workflow_service import ContextWorkflowService
+from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 from scripts.core.services.context_analysis_preview_service import (
     ContextAnalysisPreviewService,
 )
@@ -26,7 +27,8 @@ from scripts.schemas.neologism import (
     MineNeologismsRequest,
 )
 from scripts.schemas.common import LanguageCode
-from scripts.app_settings import API_PROVIDERS, GAME_PROFILES_BY_ID, PROJECTS_DB_PATH
+from scripts.app_settings import GAME_PROFILES_BY_ID, PROJECTS_DB_PATH
+from scripts.routers.provider_runtime import provider_task_fields, resolve_runtime_or_400
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +49,16 @@ context_workflow_service = ContextWorkflowService(
 SUPPORTED_MINING_SUFFIXES = {".txt", ".yml", ".yaml", ".csv", ".json"}
 
 
-def _run_context_workflow_background(*args, **kwargs):
+def _run_context_workflow_background(
+    *args,
+    runtime: ProviderRuntimeSnapshot | None = None,
+    **kwargs,
+):
     """Keep an already-persisted workflow failure out of the ASGI response path."""
 
     try:
+        if runtime is not None:
+            kwargs["runtime"] = runtime
         return context_workflow_service.run(*args, **kwargs)
     except Exception as exc:
         logger.error(
@@ -354,8 +362,7 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
         project.get("source_language") or "en",
         payload.target_lang,
     )
-    if payload.api_provider not in API_PROVIDERS:
-        raise HTTPException(status_code=400, detail=f"Unknown API provider: {payload.api_provider}")
+    runtime = resolve_runtime_or_400(payload.api_provider, payload.model_name)
     files = await _resolve_project_mining_files(project, payload.file_paths)
     
     logger.info(f"Triggering neologism mining for project {payload.project_id} with {len(files)} files.")
@@ -397,6 +404,7 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
                 "created_by": {"type": "user"},
                 "blocking": True,
                 "workflow_context": {"analysis_scope": payload.analysis_scope},
+                **provider_task_fields(runtime),
             },
             dedupe_key=f"neologism_mining:{payload.project_id}",
             reject_duplicate=True,
@@ -454,6 +462,7 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
         upstream_version=payload.upstream_version,
         concurrency_limit=payload.concurrency_limit,
         project_title=project.get("name") or payload.project_id,
+        runtime=runtime,
     )
     return {
         "task_id": task_id,

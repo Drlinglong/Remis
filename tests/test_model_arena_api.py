@@ -122,8 +122,10 @@ def arena_client(tmp_path, monkeypatch):
             ("project-1", "Vic3 Demo", "vic3", str(tmp_path / "mod"), "en", "active"),
         )
     handlers = []
+    snapshots = []
 
-    def handler_factory(provider_name, model_name=None):
+    def handler_factory(provider_name, model_name=None, **kwargs):
+        snapshots.append(kwargs.get("provider_config_snapshot"))
         handler = _Handler(provider_name, model_name)
         handlers.append(handler)
         return handler
@@ -141,7 +143,7 @@ def arena_client(tmp_path, monkeypatch):
     app = FastAPI()
     app.include_router(model_arena_router.router)
     with TestClient(app) as client:
-        yield client, service, handlers
+        yield client, service, handlers, snapshots
     tasks.clear()
 
 
@@ -164,7 +166,7 @@ def _draft(client):
 
 
 def test_draft_does_not_call_models_and_start_requires_confirmation(arena_client):
-    client, _service, handlers = arena_client
+    client, _service, handlers, _snapshots = arena_client
     draft = _draft(client)
     assert draft["status"] == "draft"
     assert draft["request_batch_count"] == 1
@@ -179,7 +181,7 @@ def test_draft_does_not_call_models_and_start_requires_confirmation(arena_client
 
 
 def test_draft_freezes_initial_translation_glossary_stack(arena_client):
-    client, _service, handlers = arena_client
+    client, _service, handlers, _snapshots = arena_client
     draft = _draft(client)
 
     snapshot = draft["settings"]["glossary_snapshot"]
@@ -225,7 +227,7 @@ async def test_glossary_stack_uses_the_selected_projects_game_without_fallback()
 
 
 def test_unknown_provider_is_rejected_without_silent_substitution(arena_client):
-    client, _service, handlers = arena_client
+    client, _service, handlers, _snapshots = arena_client
     response = client.post(
         "/api/model-arena/runs",
         json={
@@ -244,7 +246,7 @@ def test_unknown_provider_is_rejected_without_silent_substitution(arena_client):
 
 
 def test_anonymous_vote_complete_reveal_and_safe_export(arena_client):
-    client, service, handlers = arena_client
+    client, service, handlers, snapshots = arena_client
     draft = _draft(client)
     run_id = draft["run_id"]
     started = client.post(
@@ -253,6 +255,10 @@ def test_anonymous_vote_complete_reveal_and_safe_export(arena_client):
     )
     assert started.status_code == 200, started.text
     assert len(handlers) == 2
+    assert snapshots == [
+        draft["contestants"][0]["config_snapshot"],
+        draft["contestants"][1]["config_snapshot"],
+    ]
     assert sum(handler.calls for handler in handlers) == 2
     assert all("'Argentum-9' → '秘银-9'" in handler.prompts[0] for handler in handlers)
     assert all("'Court' → '宫廷'" in handler.prompts[0] for handler in handlers)
@@ -317,7 +323,7 @@ def test_anonymous_vote_complete_reveal_and_safe_export(arena_client):
 
 
 def test_start_is_idempotent_and_delete_requires_confirmation(arena_client):
-    client, _service, handlers = arena_client
+    client, _service, handlers, _snapshots = arena_client
     draft = _draft(client)
     run_id = draft["run_id"]
     body = {"confirmed_model_calls": True, "idempotency_key": "same-key"}
@@ -339,7 +345,7 @@ def test_start_is_idempotent_and_delete_requires_confirmation(arena_client):
 def test_retry_calls_only_the_failed_contestant_after_fresh_confirmation(
     arena_client,
 ):
-    client, service, _handlers = arena_client
+    client, service, _handlers, _snapshots = arena_client
     attempts = {"lm_studio": 0, "deepseek": 0}
 
     class _FlakyHandler(_Handler):
@@ -350,7 +356,7 @@ def test_retry_calls_only_the_failed_contestant_after_fresh_confirmation(
             return super()._call_api(client, prompt)
 
     service.handler_factory = (
-        lambda provider_name, model_name=None: _FlakyHandler(
+        lambda provider_name, model_name=None, **_kwargs: _FlakyHandler(
             provider_name, model_name
         )
     )

@@ -5,9 +5,11 @@ import logging
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from typing import Dict, List
 
-from scripts.app_settings import API_PROVIDERS
 from scripts.core.api_handler import get_handler
 from scripts.core.glossary_health_reviewer import GlossaryHealthReviewer
+from scripts.core.copilot.runtime import resolve_provider_runtime_snapshot
+from scripts.core.copilot.runtime_bridge import handler_for_runtime
+from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 from scripts.shared import task_state
 from scripts.shared.services import glossary_manager
 from scripts.schemas.glossary import (
@@ -26,6 +28,15 @@ from scripts.schemas.glossary import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _resolve_glossary_runtime(
+    payload: Dict,
+) -> ProviderRuntimeSnapshot:
+    return resolve_provider_runtime_snapshot(
+        payload.get("api_provider"),
+        payload.get("model_name"),
+    )
 
 
 async def _run_glossary_merge_task(task_id: str, payload: Dict) -> None:
@@ -69,7 +80,11 @@ async def _run_glossary_merge_task(task_id: str, payload: Dict) -> None:
         )
 
 
-async def _run_glossary_health_task(task_id: str, payload: Dict) -> None:
+async def _run_glossary_health_task(
+    task_id: str,
+    payload: Dict,
+    provider_runtime: ProviderRuntimeSnapshot | None = None,
+) -> None:
     task_state.update_task(
         task_id,
         status="running",
@@ -92,17 +107,19 @@ async def _run_glossary_health_task(task_id: str, payload: Dict) -> None:
         )
 
         if payload.get("include_ai_advice"):
+            runtime = provider_runtime or _resolve_glossary_runtime(payload)
             task_state.update_task(
                 task_id,
                 message="Requesting advisory model review. No glossary data will be changed.",
                 append_log="Explicitly approved advisory model review started.",
                 progress={"stage": "AI advice"},
             )
-            report["ai_provider"] = payload["api_provider"]
-            report["ai_model"] = payload.get("model_name")
+            report["ai_provider"] = runtime.selection_id
+            report["ai_model"] = runtime.model_id
+            report["ai_provider_runtime"] = runtime.safe_metadata()
             report["ai_concurrency_limit"] = payload.get("concurrency_limit", 1)
             try:
-                handler = get_handler(payload["api_provider"], model_name=payload.get("model_name"))
+                handler = handler_for_runtime(runtime, get_handler)
                 reviewer = GlossaryHealthReviewer(handler)
                 report["ai_review_plan"] = reviewer.plan(report)
                 report["ai_advice"] = await asyncio.to_thread(
@@ -470,8 +487,17 @@ async def start_glossary_health_check(
     background_tasks: BackgroundTasks,
 ):
     request_data = payload.model_dump()
-    if payload.include_ai_advice and payload.api_provider not in API_PROVIDERS:
-        raise HTTPException(status_code=400, detail=f"Unknown API provider: {payload.api_provider}")
+    provider_runtime = None
+    runtime_metadata = None
+    if payload.include_ai_advice:
+        try:
+            provider_runtime = resolve_provider_runtime_snapshot(
+                payload.api_provider,
+                payload.model_name,
+            )
+        except (KeyError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        runtime_metadata = provider_runtime.safe_metadata()
     try:
         deterministic_preview = await glossary_manager.check_glossary_health(
             payload.glossary_ids,
@@ -481,7 +507,10 @@ async def start_glossary_health_check(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     task_id = str(uuid.uuid4())
-    dedupe_payload = json.dumps(request_data, sort_keys=True, ensure_ascii=True)
+    dedupe_data = dict(request_data)
+    if runtime_metadata is not None:
+        dedupe_data["provider_runtime"] = runtime_metadata
+    dedupe_payload = json.dumps(dedupe_data, sort_keys=True, ensure_ascii=True)
     try:
         task_state.create_task(
             task_id,
@@ -507,6 +536,7 @@ async def start_glossary_health_check(
                         "ai_model": (
                             payload.model_name if payload.include_ai_advice else None
                         ),
+                        "ai_provider_runtime": runtime_metadata,
                     },
                 },
             },
@@ -527,7 +557,12 @@ async def start_glossary_health_check(
         "percent": 0,
         "stage": "Queued",
     })
-    background_tasks.add_task(_run_glossary_health_task, task_id, request_data)
+    background_tasks.add_task(
+        _run_glossary_health_task,
+        task_id,
+        request_data,
+        provider_runtime,
+    )
     ai_review_plan = (
         GlossaryHealthReviewer.plan(deterministic_preview)
         if payload.include_ai_advice

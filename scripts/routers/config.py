@@ -7,9 +7,16 @@ from fastapi import APIRouter, HTTPException
 from dotenv import load_dotenv
 
 from scripts.app_settings import API_PROVIDERS, get_api_key, get_appdata_config_path, GAME_PROFILES, LANGUAGES
-from scripts.schemas.config import TestProviderConnectionRequest, UpdateApiKeyRequest, UpdateProviderConfigRequest
+from scripts.schemas.config import (
+    CustomProviderProfileCreateRequest,
+    CustomProviderProfileUpdateRequest,
+    TestProviderConnectionRequest,
+    UpdateApiKeyRequest,
+    UpdateProviderConfigRequest,
+)
 from scripts.app_settings import config_manager
 from scripts.utils.system_utils import sanitize_for_json
+from scripts.core.services.custom_provider_profile_service import CustomProviderProfileService
 from scripts.core.reasoning_policy import (
     describe_reasoning_settings,
     resolve_reasoning_parameters,
@@ -21,6 +28,11 @@ router = APIRouter()
 LOCAL_OPENAI_COMPATIBLE_PROVIDERS = {"lm_studio", "vllm", "koboldcpp", "oobabooga", "text-generation-webui"}
 OPENAI_ENDPOINT_SUFFIXES = ("/chat/completions", "/responses")
 LOCAL_PROVIDER_IDS = LOCAL_OPENAI_COMPATIBLE_PROVIDERS | {"ollama"}
+
+
+def _profile_service() -> CustomProviderProfileService:
+    """Resolve dependencies per request so tests and runtime config stay isolated."""
+    return CustomProviderProfileService(config_manager, API_PROVIDERS)
 
 
 def _validate_local_openai_base_url(provider_id: str, api_url: str) -> None:
@@ -45,8 +57,7 @@ def _local_provider_display_name(provider_id: str) -> str:
 @router.get("/api/config")
 def get_config():
     """Returns the global configuration for the frontend."""
-    # Convert API_PROVIDERS dict to list for frontend select
-    # Convert API_PROVIDERS dict to list for frontend select
+    profiles = _profile_service().list_profiles()
     api_providers_list = []
     
     # Load overrides from AppData
@@ -55,6 +66,8 @@ def get_config():
     logging.info(f"[CONFIG] API_PROVIDERS count: {len(API_PROVIDERS)}")
 
     for pid, pconf in API_PROVIDERS.items():
+        if pid == "your_favourite_api":
+            continue
         # Merge overrides
         override = provider_overrides.get(pid, {})
         
@@ -79,10 +92,30 @@ def get_config():
 
         api_providers_list.append(provider_data)
 
+    for profile in profiles:
+        api_providers_list.append({
+            "value": profile["profile_id"],
+            "profile_id": profile["profile_id"],
+            "adapter_id": profile["adapter_id"],
+            "label": profile["display_name"],
+            "available_models": profile["models"],
+            "default_model": profile["selected_model"],
+            "selected_model": profile["selected_model"],
+            "custom_models": profile["models"],
+            "api_url": profile["api_url"],
+            "prompt_prefix": profile["prompt_prefix"],
+            "system_prompt_suffix": profile["system_prompt_suffix"],
+            "reasoning_builtin_enabled": profile["reasoning_builtin_enabled"],
+            "reasoning_preset": profile["reasoning_preset"],
+            "custom_parameters": profile["custom_parameters"],
+            "has_key": profile["has_key"],
+        })
+
     return sanitize_for_json({
         "game_profiles": GAME_PROFILES,
         "languages": LANGUAGES,
         "api_providers": api_providers_list,
+        "profiles": profiles,
         "rpm_limit": config_manager.get_value("rpm_limit", 40)
     })
 
@@ -96,6 +129,8 @@ def get_api_keys():
     provider_overrides = config_manager.get_value("provider_config", {})
     
     for provider_id, config in API_PROVIDERS.items():
+        if provider_id == "your_favourite_api":
+            continue
         env_var = config.get("api_key_env")
         is_keyless = env_var is None
         
@@ -140,6 +175,62 @@ def get_api_keys():
             "reasoning_models": (config.get("reasoning") or {}).get("models", {}),
         })
     return sanitize_for_json(providers)
+
+
+def _profile_payload_dict(payload):
+    if hasattr(payload, "model_dump"):
+        return payload.model_dump(exclude_unset=True)
+    return payload.dict(exclude_unset=True)
+
+
+@router.get("/api/providers/profiles")
+def get_custom_provider_profiles():
+    return sanitize_for_json(_profile_service().list_profiles())
+
+
+@router.post("/api/providers/profiles", status_code=201)
+def create_custom_provider_profile(payload: CustomProviderProfileCreateRequest):
+    try:
+        profile = _profile_service().create_profile(_profile_payload_dict(payload))
+        return sanitize_for_json(profile)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logging.exception("Failed to create custom provider profile")
+        raise HTTPException(status_code=500, detail="Failed to save provider profile") from exc
+
+
+@router.patch("/api/providers/profiles/{profile_id}")
+def update_custom_provider_profile(profile_id: str, payload: CustomProviderProfileUpdateRequest):
+    try:
+        profile = _profile_service().update_profile(profile_id, _profile_payload_dict(payload))
+        return sanitize_for_json(profile)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Provider profile not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logging.exception("Failed to update custom provider profile")
+        raise HTTPException(status_code=500, detail="Failed to save provider profile") from exc
+
+
+@router.delete("/api/providers/profiles/{profile_id}")
+def delete_custom_provider_profile(profile_id: str):
+    try:
+        _profile_service().delete_profile(profile_id)
+        # The selector must explicitly be cleared by the caller; no fallback
+        # profile is selected implicitly after deletion.
+        return {
+            "status": "deleted",
+            "profile_id": profile_id,
+            "selected_profile_id": None,
+            "selection_required": True,
+        }
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Provider profile not found") from exc
+    except Exception as exc:
+        logging.exception("Failed to delete custom provider profile")
+        raise HTTPException(status_code=500, detail="Failed to delete provider profile") from exc
 
 @router.post("/api/api-keys")
 def update_api_key(payload: UpdateApiKeyRequest):

@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from scripts.shared.services import project_manager
-from scripts.app_settings import API_PROVIDERS, APP_DATA_DIR, PROJECT_ROOT
+from scripts.app_settings import APP_DATA_DIR, PROJECT_ROOT
+from scripts.core.services.provider_runtime import provider_selection_exists
 from scripts.core.copilot.provider_readiness import (
     check_provider_readiness,
 )
@@ -200,7 +201,7 @@ def create_localization_plan(
         raise ValueError("Import mode must be copy or reference")
     if target_language == source_language:
         raise ValueError("Target language must differ from the source language")
-    if api_provider not in API_PROVIDERS:
+    if not provider_selection_exists(api_provider):
         raise ValueError(f"Unknown API provider: {api_provider}")
     if not model.strip():
         raise ValueError("Model is required")
@@ -322,7 +323,7 @@ async def create_translation_plan(
         raise ValueError("At least one target language is required")
     if source_language in targets:
         raise ValueError("Target language must differ from the project source language")
-    if api_provider not in API_PROVIDERS:
+    if not provider_selection_exists(api_provider):
         raise ValueError(f"Unknown API provider: {api_provider}")
     if not model.strip():
         raise ValueError("Model is required")

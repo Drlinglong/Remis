@@ -1,10 +1,9 @@
 # scripts/core/yourfavourite_handler.py
-import os
 import openai
 from openai import OpenAI
 import logging
 
-from scripts.app_settings import API_PROVIDERS
+from scripts.app_settings import get_api_key
 from scripts.core.base_handler import BaseApiHandler
 
 class YourFavouriteHandler(BaseApiHandler):
@@ -12,7 +11,10 @@ class YourFavouriteHandler(BaseApiHandler):
 
     def initialize_client(self):
         """【必须由子类实现】初始化并返回一个通用的、兼容OAI的API客户端。"""
-        api_key = os.getenv("YOUR_FAVOURITE_API_KEY")
+        api_key = self._api_key_override or get_api_key(
+            self.provider_name,
+            "YOUR_FAVOURITE_API_KEY",
+        )
         if not api_key:
             self.logger.error("API Key 'YOUR_FAVOURITE_API_KEY' not found in environment variables.")
             raise ValueError("YOUR_FAVOURITE_API_KEY not set")
@@ -30,7 +32,6 @@ class YourFavouriteHandler(BaseApiHandler):
             
             model_name = provider_config.get("default_model")
             self.logger.info(f"Custom API client initialized successfully, using model: {model_name}")
-            self.logger.info(f"Using base URL: {base_url}")
             return client
         except Exception as e:
             self.logger.exception(f"Error initializing Custom API client: {e}")

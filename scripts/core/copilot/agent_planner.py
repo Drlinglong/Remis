@@ -11,9 +11,10 @@ from pydantic_ai.models.openai import OpenAIResponsesModel, OpenAIResponsesModel
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.usage import UsageLimits
 
-from scripts.app_settings import API_PROVIDERS, config_manager, get_api_key
 from scripts.core.copilot.read_tools import execute_workflow_read_tool
 from scripts.core.copilot.settings import pydantic_reasoning_settings
+from scripts.core.copilot.runtime import resolve_provider_runtime_snapshot
+from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 
 
 class TranslationRecommendation(BaseModel):
@@ -44,13 +45,13 @@ def _build_agent(
     model_name: str | None,
     reasoning_enabled: bool,
     reasoning_preset: str,
+    provider_runtime: ProviderRuntimeSnapshot | None = None,
 ) -> Agent[PlannerDeps, TranslationRecommendation]:
-    provider_config = API_PROVIDERS.get(provider, {})
-    overrides = config_manager.get_value("provider_config", {}).get(provider, {}) or {}
-    base_url = str(overrides.get("api_url") or provider_config.get("base_url") or "http://localhost:1234/v1")
-    selected_model = model_name or str(overrides.get("selected_model") or provider_config.get("default_model") or "local-model")
-    env_var = provider_config.get("api_key_env")
-    api_key = get_api_key(provider, env_var) if env_var else "local-no-key-required"
+    runtime = provider_runtime or resolve_provider_runtime_snapshot(provider, model_name)
+    provider_config = runtime.config
+    base_url = str(provider_config.get("base_url") or "http://localhost:1234/v1")
+    selected_model = runtime.model_id or model_name or "local-model"
+    api_key = runtime.api_key or "local-no-key-required"
     responses_model = OpenAIResponsesModel(
         selected_model,
         provider=OpenAIProvider(base_url=base_url, api_key=api_key or "missing-api-key"),
@@ -70,10 +71,11 @@ def _build_agent(
             timeout=90,
             parallel_tool_calls=False,
             **pydantic_reasoning_settings(
-                provider=provider,
+                provider=runtime.adapter_id,
                 model=selected_model,
                 enabled=reasoning_enabled,
                 preset=reasoning_preset,
+                provider_config=provider_config,
             ),
         ),
         retries=1,
@@ -118,17 +120,20 @@ async def recommend_initial_translation(
     model: str | None = None,
     reasoning_enabled: bool = False,
     reasoning_preset: str = "medium",
+    provider_runtime: ProviderRuntimeSnapshot | None = None,
 ) -> dict[str, Any]:
     deps = PlannerDeps(
         project_id=project_id,
         target_lang_codes=target_lang_codes,
         preferred_provider=preferred_provider,
     )
+    runtime = provider_runtime or resolve_provider_runtime_snapshot(provider, model)
     agent = _build_agent(
         provider=provider,
-        model_name=model,
+        model_name=runtime.model_id,
         reasoning_enabled=reasoning_enabled,
         reasoning_preset=reasoning_preset,
+        provider_runtime=runtime,
     )
     result = await agent.run(
         f"为项目制定初次翻译建议。目标语言：{target_lang_codes}；preferred_provider：{preferred_provider}。",

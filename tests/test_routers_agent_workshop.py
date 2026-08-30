@@ -6,7 +6,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 from scripts.core.project_json_manager import ProjectJsonManager
+from scripts.routers import agent_workshop as agent_router
 from scripts.routers.agent_workshop import apply_translation_fix_to_file
 from scripts.routers.agent_workshop import _resolve_source_entries_for_translation
 from scripts.routers.agent_workshop import BatchResultItem, FixBatchResponse
@@ -1062,13 +1064,18 @@ def test_fix_run_creates_backend_managed_task():
     assert tasks[task_id]["summary"]["failedCount"] == 0
     assert tasks[task_id]["summary"]["results"][0]["suggested_fix"] == "修复"
     assert tasks[task_id]["dedupe_key"] == "project_translation_write:p-run"
-    assert tasks[task_id]["workflow_context"] == {
+    workflow_context = tasks[task_id]["workflow_context"]
+    assert {
         "mode": "repair",
         "project_id": "p-run",
         "issue_count": 1,
         "api_provider": "gemini",
         "api_model": "gemini-3-flash-preview",
-    }
+    }.items() <= workflow_context.items()
+    runtime_metadata = workflow_context["provider_runtime"]
+    assert runtime_metadata["profile_id"] == "gemini"
+    assert runtime_metadata["adapter_id"] == "gemini"
+    assert tasks[task_id]["approval_snapshot"]["provider_runtime"] == runtime_metadata
     child = tasks[f"{task_id}:batch:1"]
     assert child["parent_task_id"] == task_id
     assert child["status"] == "completed"
@@ -1081,6 +1088,105 @@ def test_fix_run_background_entrypoint_is_synchronous_for_threadpool_execution()
     from scripts.routers.agent_workshop import _run_agent_workshop_fix_task_in_worker
 
     assert inspect.iscoroutinefunction(_run_agent_workshop_fix_task_in_worker) is False
+
+
+def test_fix_run_binds_approval_metadata_to_the_runtime_snapshot(monkeypatch):
+    tasks.clear()
+    runtime = ProviderRuntimeSnapshot(
+        selection_id="custom-profile-a",
+        adapter_id="your_favourite_api",
+        display_name="Provider A",
+        model_id="model-a",
+        config={"base_url": "https://a.example/v1", "default_model": "model-a"},
+        api_key="secret-a",
+        secret_ref="api_keys.custom_provider_profile:custom-profile-a",
+    )
+    captured = {}
+
+    monkeypatch.setattr(agent_router, "runtime_for_selection", lambda *_args: runtime)
+    monkeypatch.setattr(
+        agent_router,
+        "_require_repairable_project",
+        AsyncMock(return_value={"project_id": "p-runtime-snapshot", "status": "active"}),
+    )
+    monkeypatch.setattr(
+        agent_router,
+        "_run_agent_workshop_fix_task_in_worker",
+        lambda task_id, request: captured.update(task_id=task_id, request=request),
+    )
+    response = client.post("/api/agent-workshop/fix-run", json={
+        "project_id": "p-runtime-snapshot",
+        "api_provider": "custom-profile-a",
+        "api_model": "model-a",
+        "approval": {
+            "approved": True,
+            "issue_count": 1,
+            "api_provider": "custom-profile-a",
+            "api_model": "model-a",
+            "provider_profile_id": "custom-profile-a",
+        },
+        "idempotency_key": "runtime-snapshot-test-1",
+        "issues": [{
+            "file_name": "events/test_l_simp_chinese.yml",
+            "key": "demo.one:0",
+            "source_str": "Hello",
+            "target_str": "坏译文",
+            "error_type": "validation_error",
+            "details": "broken",
+        }],
+    })
+
+    assert response.status_code == 200
+    task = tasks[captured["task_id"]]
+    assert captured["request"]._provider_runtime is runtime
+    assert task["approval_snapshot"]["provider_runtime"] == runtime.safe_metadata()
+
+
+@pytest.mark.asyncio
+async def test_fix_batch_constructs_handler_from_bound_runtime(monkeypatch):
+    runtime = ProviderRuntimeSnapshot(
+        selection_id="custom-profile-a",
+        adapter_id="your_favourite_api",
+        display_name="Provider A",
+        model_id="model-a",
+        config={"base_url": "https://a.example/v1", "default_model": "model-a"},
+        api_key="secret-a",
+        secret_ref="api_keys.custom_provider_profile:custom-profile-a",
+    )
+    request = agent_router.FixBatchRequest(
+        project_id="p-runtime-handler",
+        api_provider="custom-profile-a",
+        api_model="model-a",
+        issues=[],
+    )
+    request._provider_runtime = runtime
+    fake_handler = object()
+    captured = {}
+
+    monkeypatch.setattr(
+        agent_router,
+        "_require_repairable_project",
+        AsyncMock(return_value={"project_id": request.project_id, "game_id": "vic3"}),
+    )
+    monkeypatch.setattr(
+        "scripts.core.api_handler.get_handler",
+        lambda *args, **kwargs: captured.update(args=args, kwargs=kwargs) or fake_handler,
+    )
+
+    class FakeFixAgent:
+        def __init__(self, handler):
+            assert handler is fake_handler
+
+        async def fix_batch_loop(self, **_kwargs):
+            return {"results": [], "attempts": [], "max_retries": 1}
+
+    monkeypatch.setattr(agent_router, "ReflexionFixAgent", FakeFixAgent)
+    await agent_router._run_fix_batch(request)
+
+    assert captured["args"] == ("your_favourite_api",)
+    assert captured["kwargs"]["model_name"] == "model-a"
+    assert captured["kwargs"]["provider_config_snapshot"] == runtime.config
+    assert captured["kwargs"]["api_key_override"] == "secret-a"
 
 
 def test_fix_run_requires_approval_for_exact_scope():

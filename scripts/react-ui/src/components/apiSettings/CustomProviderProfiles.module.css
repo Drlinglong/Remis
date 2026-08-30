@@ -1,0 +1,91 @@
+.section {
+    border: 1px solid var(--surface-border);
+    border-radius: var(--card-radius, 8px);
+    padding: 1rem;
+    background: var(--surface-bg-solid);
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.card {
+    min-width: 0;
+    border: 1px solid var(--surface-border);
+    border-radius: var(--card-radius, 8px);
+    padding: 1rem;
+    background: var(--surface-bg-solid);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.cardTitle {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.cardActions {
+    display: flex;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.summary {
+    display: grid;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.summaryValue {
+    min-width: 0;
+    max-width: 65%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.form {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.formActions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.formActions > * {
+    flex: 1;
+}
+
+@media (max-width: 640px) {
+    .sectionHeader {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+}

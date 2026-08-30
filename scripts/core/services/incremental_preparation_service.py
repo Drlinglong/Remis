@@ -25,7 +25,7 @@ def _build_incremental_file_task(
     file_data: Dict[str, Any],
     texts: List[str],
     key_delta_indices: List[int],
-    full_file_entries: List[Dict[str, Any]],
+    full_file_entries: Optional[List[Dict[str, Any]]] = None,
     dirty_key_infos: List[Dict[str, Any]],
     target_lang_info: Dict[str, Any],
     source_lang_info: Dict[str, Any],
@@ -57,7 +57,7 @@ def _build_incremental_file_task(
         ),
         source_entries=[
             {"key": entry["key"], "source": entry["source"]}
-            for entry in full_file_entries
+            for entry in (full_file_entries or [])
         ],
         translation_entry_indices=key_delta_indices,
     )

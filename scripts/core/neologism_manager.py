@@ -14,6 +14,10 @@ from pydantic import BaseModel, Field
 
 from scripts.app_settings import PROJECT_ROOT
 from scripts.core.api_handler import get_handler
+from scripts.core.services.provider_runtime import (
+    ProviderRuntimeSnapshot,
+    handler_from_runtime,
+)
 from scripts.core.file_parser import extract_translatable_content
 from scripts.core.glossary_manager import glossary_manager
 from scripts.core.neologism_miner import NeologismMiner
@@ -111,6 +115,16 @@ class NeologismManager:
         with self._status_lock:
             return dict(self._mining_status.get(project_id, self._default_status()))
 
+    @staticmethod
+    def _mining_handler(
+        api_provider: str,
+        model_name: Optional[str],
+        runtime: ProviderRuntimeSnapshot | None,
+    ) -> Any:
+        return handler_from_runtime(runtime, get_handler) if runtime else get_handler(
+            api_provider, model_name=model_name
+        )
+
     def _push_task_status(
         self,
         task_id: Optional[str],
@@ -125,6 +139,7 @@ class NeologismManager:
         duplicate_terms: Optional[int] = None,
         error: Optional[str] = None,
         log_message: Optional[str] = None,
+        runtime: ProviderRuntimeSnapshot | None = None,
     ) -> None:
         if not task_id:
             return
@@ -148,13 +163,16 @@ class NeologismManager:
         if error is not None:
             summary["error"] = error
 
+        fields = {"kind": "neologism_mining"}
+        if runtime is not None:
+            fields["provider_runtime"] = runtime.safe_metadata()
         task_state.update_task(
             task_id,
             status=status,
             append_log=log_message,
             progress=progress or None,
             summary=summary,
-            fields={"kind": "neologism_mining"},
+            fields=fields,
             push=True,
         )
 
@@ -492,9 +510,9 @@ class NeologismManager:
         duplicate_index: Optional[Dict[str, List[Dict[str, Any]]]] = None,
         model_name: Optional[str] = None,
         review_language: str = "en",
+        runtime: ProviderRuntimeSnapshot | None = None,
     ) -> int:
-        total_files = len(file_paths)
-        processed_files = 0
+        total_files, processed_files = len(file_paths), 0
         self._set_mining_status(
             project_id,
             status="running",
@@ -516,12 +534,12 @@ class NeologismManager:
             new_terms=0,
             duplicate_terms=0,
             log_message="Neologism mining started.",
+            runtime=runtime,
         )
-
         try:
             if not file_paths:
                 raise ValueError("No supported project files were selected for mining")
-            handler = get_handler(api_provider, model_name=model_name)
+            handler = self._mining_handler(api_provider, model_name, runtime)
             miner = NeologismMiner(handler)
             file_texts: Dict[str, List[str]] = {}
             aggregates: Dict[str, Dict[str, Any]] = {}

@@ -5,6 +5,7 @@ from typing import Any, Optional, List
 from scripts.core.services.initial_translation_discovery_service import discover_localizable_files
 from scripts.core.services.initial_translation_completion_service import finalize_workflow_run
 from scripts.core.services.initial_translation_snapshot_service import (
+    SourceReadResult,
     calculate_total_batches,
     create_source_snapshot,
     get_chunk_size_for_provider,
@@ -68,6 +69,8 @@ def _prepare_source_files(
     if progress_callback:
         progress_callback(0, total_files, "", "Analyzing Files")
     source_result = read_files_for_backup(all_file_paths, total_files, progress_callback)
+    if isinstance(source_result, list):
+        source_result = SourceReadResult(files=source_result)
     if not source_result.files:
         detail = source_result.issues[0].log_message() if source_result.issues else ""
         raise RuntimeError(f"No usable localization files remain. {detail}".strip())
@@ -104,7 +107,7 @@ def run(
     reference_reuse: Optional[dict] = None, use_project_context: bool = False,
     context_release_id: Optional[str] = None, context_character_budget: int = 4000,
     context_service: Any = None, snapshot_service: Any = None,
-    translation_context_mode: Optional[str] = None,
+    translation_context_mode: Optional[str] = None, provider_runtime: Any = None,
 ):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info("Entered initial_translate.run")
@@ -119,7 +122,7 @@ def run(
     logging.info(i18n.t("log_selected_provider", provider=selected_provider))
     # ───────────── 2. 初始化客户端 ─────────────
     resolved_model_name = resolve_provider_model(selected_provider, model_name)
-    handler = create_translation_handler(selected_provider, resolved_model_name)
+    handler = create_translation_handler(selected_provider, resolved_model_name, provider_runtime)
     if not handler:
         raise RuntimeError("Failed to initialize the selected translation provider.")
     # ───────────── 2.5. 加载词典 ─────────────
@@ -184,7 +187,7 @@ def run(
             embedded_workshop=embedded_workshop,
             reference_reuse=reference_reuse,
             source_context_overlap=source_context_overlap,
-            context_selection=context_selection,
+            context_selection=context_selection, provider_runtime=provider_runtime,
         )
         )
 

@@ -64,6 +64,8 @@ def get_handler(
     provider_name: str,
     model_name: str = None,
     reasoning_override: dict | None = None,
+    provider_config_snapshot: dict | None = None,
+    api_key_override: str | None = None,
 ) -> 'BaseApiHandler':
     """
     【工厂函数】根据名称返回对应的API处理器实例。
@@ -73,14 +75,21 @@ def get_handler(
             raise ValueError(
                 "The Gemini CLI provider has been removed. Use the Gemini API provider with GEMINI_API_KEY instead."
             )
+        handler_kwargs = {"model_id": model_name}
+        if reasoning_override is not None:
+            handler_kwargs["reasoning_override"] = reasoning_override
+        if provider_config_snapshot is not None:
+            handler_kwargs["provider_config_snapshot"] = provider_config_snapshot
+        if api_key_override is not None:
+            handler_kwargs["api_key_override"] = api_key_override
         if provider_name in OPENAI_COMPATIBLE_PROVIDER_IDS:
-            return OpenAIHandler(provider_name, model_id=model_name, reasoning_override=reasoning_override)
+            return OpenAIHandler(provider_name, **handler_kwargs)
         if provider_name in LOCAL_PROVIDER_IDS:
-            return LocalLLMHandler(provider_name, model_id=model_name, reasoning_override=reasoning_override)
+            return LocalLLMHandler(provider_name, **handler_kwargs)
         handler_class = PROVIDER_HANDLER_CLASSES.get(provider_name)
         if handler_class is None:
             raise ValueError(f"Unknown API provider: {provider_name}")
-        return handler_class(provider_name, model_id=model_name, reasoning_override=reasoning_override)
+        return handler_class(provider_name, **handler_kwargs)
     except Exception as e:
         logging.error(f"Failed to instantiate handler for {provider_name}: {e}", exc_info=True)
         raise

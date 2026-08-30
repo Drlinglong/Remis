@@ -25,7 +25,18 @@ def _resolve_model_config(
     requested_model: Optional[str],
     fallback_provider: Optional[str],
     fallback_model: Optional[str],
+    provider_runtime: Any = None,
 ) -> tuple[str, Optional[str]]:
+    if provider_runtime is not None:
+        provider_name = getattr(provider_runtime, "adapter_id", None)
+        model_name = getattr(provider_runtime, "model_id", None)
+        if isinstance(provider_runtime, dict):
+            provider_name = provider_runtime.get("adapter_id")
+            model_name = provider_runtime.get("model_id")
+        if not provider_name:
+            raise ValueError("Embedded workshop runtime has no provider adapter")
+        return str(provider_name), model_name
+
     from scripts.app_settings import API_PROVIDERS, DEFAULT_API_PROVIDER, config_manager
 
     provider_name = requested_provider or fallback_provider or DEFAULT_API_PROVIDER
@@ -126,62 +137,16 @@ def _apply_validated_results(
     return fixed_count, failed_count
 
 
-async def run_embedded_workshop(
-    output_root: str | Path,
-    source_root: str | Path,
-    project_id: Optional[str],
-    project_name: str,
-    source_lang_info: Dict[str, Any],
-    target_lang_info: Dict[str, Any],
+async def _run_embedded_batches(
+    agent: ReflexionFixAgent,
+    batches: List[List[Dict[str, Any]]],
+    concurrency: int,
+    dispatch_interval: float,
     game_profile: Dict[str, Any],
-    workflow: str,
-    run_id: str = "",
-    config: Optional[Dict[str, Any]] = None,
-    fallback_provider: Optional[str] = None,
-    fallback_model: Optional[str] = None,
-    fallback_concurrency: Optional[int] = None,
-    fallback_batch_size: Optional[int] = None,
-    fallback_rpm: Optional[int] = None,
-    progress_callback: Optional[Any] = None,
-    dynamic_valid_tags: Optional[List[str]] = None,
-) -> Dict[str, Any]:
-    config = dict(config or {})
-    output_root = Path(output_root)
-    sidecar_path = output_root / WorkshopIssueExportService.OUTPUT_FILENAME
-    issues = _load_issues(sidecar_path, config.get("protected_entries"))
-    initial_issue_count = len(issues)
-    if initial_issue_count == 0:
-        return {
-            "enabled": True,
-            "provider": fallback_provider,
-            "model": fallback_model,
-            "detected_count": 0,
-            "fixed_count": 0,
-            "failed_count": 0,
-            "remaining_count": 0,
-            "issues": [],
-            "issues_path": str(sidecar_path),
-        }
-
-    provider_name, model_name = _resolve_model_config(
-        requested_provider=None if config.get("follow_primary_settings", True) else config.get("api_provider"),
-        requested_model=None if config.get("follow_primary_settings", True) else config.get("api_model"),
-        fallback_provider=fallback_provider,
-        fallback_model=fallback_model,
-    )
-
-    follow_primary = config.get("follow_primary_settings", True)
-    batch_size = max(1, int((None if follow_primary else config.get("batch_size_limit")) or fallback_batch_size or (3 if provider_name in LOCAL_PROVIDERS else 10)))
-    concurrency = max(1, int((None if follow_primary else config.get("concurrency_limit")) or fallback_concurrency or 1))
-    rpm_limit = max(1, int((None if follow_primary else config.get("rpm_limit")) or fallback_rpm or 40))
-    dispatch_interval = 60.0 / rpm_limit
-
-    handler = get_handler(provider_name, model_name=model_name)
-    if not handler or not handler.client:
-        raise RuntimeError(f"Embedded workshop could not initialize provider '{provider_name}'.")
-
-    agent = ReflexionFixAgent(handler)
-    batches = _chunked(issues, batch_size)
+    target_lang_info: Dict[str, Any],
+    initial_issue_count: int,
+    progress_callback: Optional[Any],
+) -> List[Dict[str, Any]]:
     total_batches = len(batches)
     next_batch_index = 0
     next_dispatch_time = asyncio.get_running_loop().time()
@@ -208,7 +173,6 @@ async def run_embedded_workshop(
             claimed = await claim_batch()
             if not claimed:
                 return
-
             batch_number, batch = claimed
             logger.info(
                 "Embedded workshop worker %s processing batch %s/%s (%s issues)",
@@ -222,9 +186,7 @@ async def run_embedded_workshop(
                 game_id=game_profile.get("id", ""),
                 target_lang_code=target_lang_info.get("code"),
             )
-            for item in batch_result.get("results", []):
-                results.append(item)
-
+            results.extend(batch_result.get("results", []))
             if progress_callback and initial_issue_count > 0:
                 progress_percent = int((len(results) / initial_issue_count) * 100)
                 progress_callback({
@@ -235,14 +197,91 @@ async def run_embedded_workshop(
                     "workshop_progress": {
                         "detected_count": initial_issue_count,
                         "processed_count": len(results),
-                        "fixed_count": sum(1 for result in results if result.get("status") == "fixed"),
-                        "failed_count": sum(1 for result in results if result.get("status") == "failed"),
+                        "fixed_count": sum(result.get("status") == "fixed" for result in results),
+                        "failed_count": sum(result.get("status") == "failed" for result in results),
                         "reflection_round": 1,
                     },
                 })
 
     await asyncio.gather(*(worker(worker_id + 1) for worker_id in range(max(1, concurrency))))
+    return results
 
+
+async def run_embedded_workshop(
+    output_root: str | Path,
+    source_root: str | Path,
+    project_id: Optional[str],
+    project_name: str,
+    source_lang_info: Dict[str, Any],
+    target_lang_info: Dict[str, Any],
+    game_profile: Dict[str, Any],
+    workflow: str,
+    run_id: str = "",
+    config: Optional[Dict[str, Any]] = None,
+    fallback_provider: Optional[str] = None,
+    fallback_model: Optional[str] = None,
+    fallback_concurrency: Optional[int] = None,
+    fallback_batch_size: Optional[int] = None,
+    fallback_rpm: Optional[int] = None,
+    progress_callback: Optional[Any] = None,
+    dynamic_valid_tags: Optional[List[str]] = None,
+    provider_runtime: Any = None,
+) -> Dict[str, Any]:
+    config = dict(config or {})
+    output_root = Path(output_root)
+    sidecar_path = output_root / WorkshopIssueExportService.OUTPUT_FILENAME
+    issues = _load_issues(sidecar_path, config.get("protected_entries"))
+    initial_issue_count = len(issues)
+    if initial_issue_count == 0:
+        return {
+            "enabled": True,
+            "provider": fallback_provider,
+            "model": fallback_model,
+            "detected_count": 0,
+            "fixed_count": 0,
+            "failed_count": 0,
+            "remaining_count": 0,
+            "issues": [],
+            "issues_path": str(sidecar_path),
+        }
+
+    provider_name, model_name = _resolve_model_config(
+        requested_provider=None if config.get("follow_primary_settings", True) else config.get("api_provider"),
+        requested_model=None if config.get("follow_primary_settings", True) else config.get("api_model"),
+        fallback_provider=fallback_provider,
+        fallback_model=fallback_model,
+        provider_runtime=provider_runtime,
+    )
+
+    follow_primary = config.get("follow_primary_settings", True)
+    batch_size = max(1, int((None if follow_primary else config.get("batch_size_limit")) or fallback_batch_size or (3 if provider_name in LOCAL_PROVIDERS else 10)))
+    concurrency = max(1, int((None if follow_primary else config.get("concurrency_limit")) or fallback_concurrency or 1))
+    rpm_limit = max(1, int((None if follow_primary else config.get("rpm_limit")) or fallback_rpm or 40))
+    dispatch_interval = 60.0 / rpm_limit
+
+    handler_kwargs = {}
+    if provider_runtime is not None:
+        handler_kwargs = provider_runtime.handler_kwargs()
+    handler = get_handler(
+        provider_name,
+        model_name=model_name,
+        **handler_kwargs,
+    )
+    if not handler or not handler.client:
+        raise RuntimeError(f"Embedded workshop could not initialize provider '{provider_name}'.")
+
+    agent = ReflexionFixAgent(handler)
+    batches = _chunked(issues, batch_size)
+    results = await _run_embedded_batches(
+        agent,
+        batches,
+        concurrency,
+        dispatch_interval,
+        game_profile,
+        target_lang_info,
+        initial_issue_count,
+        progress_callback,
+    )
     fixed_count, failed_count = _apply_validated_results(
         output_root,
         results,

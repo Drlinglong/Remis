@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from scripts.core.api_handler import get_handler
+from scripts.core.services.provider_runtime import handler_for_selection
 from scripts.core.parallel_processor import ParallelProcessor
 from scripts.core.parallel_types import FileTask
 from scripts.app_settings import RECOMMENDED_MAX_WORKERS
@@ -31,6 +31,7 @@ class IncrementalTranslationService:
         rpm_limit: Optional[int] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
         context_selection: Optional[Any] = None,
+        provider_runtime: Any = None,
     ) -> Tuple[Dict[str, List[str]], List[Dict[str, Any]]]:
         if not file_tasks_for_ai:
             if progress_callback:
@@ -42,7 +43,7 @@ class IncrementalTranslationService:
                 })
             return {}, []
 
-        handler = get_handler(selected_provider, model_name=model_name)
+        handler = handler_for_selection(selected_provider, model_name, provider_runtime)
         if not handler or not handler.client:
             raise RuntimeError(f"API Provider {selected_provider} not configured.")
 

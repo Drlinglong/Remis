@@ -5,6 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 from scripts.app_settings import API_PROVIDERS, config_manager
+from scripts.core.services.custom_provider_profile_service import (
+    CUSTOM_ADAPTER_ID,
+    LEGACY_PROFILE_ID,
+    CustomProviderProfileService,
+)
 from scripts.core.reasoning_policy import describe_reasoning_settings
 from scripts.core.reasoning_policy import resolve_reasoning_parameters
 
@@ -13,27 +18,48 @@ CONFIG_KEY = "copilot_settings"
 DEFAULT_PROVIDER = "lm_studio"
 
 
+def _profile_service() -> CustomProviderProfileService:
+    return CustomProviderProfileService(config_manager, API_PROVIDERS)
+
+
+def _provider_config(provider_id: str) -> dict[str, Any]:
+    if provider_id in API_PROVIDERS and provider_id != CUSTOM_ADAPTER_ID:
+        provider = dict(API_PROVIDERS[provider_id])
+        overrides = config_manager.get_value("provider_config", {}).get(provider_id, {}) or {}
+        provider.update(overrides)
+        return provider
+    profile = _profile_service().resolve_profile_selection(provider_id)
+    return {
+        **profile,
+        "name": profile["display_name"],
+        "available_models": profile["models"],
+        "default_model": profile["selected_model"],
+    }
+
+
+def _normalize_provider_id(provider_id: str) -> str:
+    return LEGACY_PROFILE_ID if provider_id == CUSTOM_ADAPTER_ID else provider_id
+
+
 def _provider_models(provider_id: str) -> list[str]:
-    provider = API_PROVIDERS[provider_id]
-    overrides = config_manager.get_value("provider_config", {}).get(provider_id, {}) or {}
+    provider = _provider_config(provider_id)
     models = [
         *provider.get("available_models", []),
-        *overrides.get("models", []),
+        *provider.get("models", []),
     ]
-    default_model = overrides.get("selected_model") or provider.get("default_model")
+    default_model = provider.get("selected_model") or provider.get("default_model")
     if default_model:
         models.append(default_model)
     return list(dict.fromkeys(str(model) for model in models if model))
 
 
 def _default_model(provider_id: str) -> str:
-    provider = API_PROVIDERS[provider_id]
-    overrides = config_manager.get_value("provider_config", {}).get(provider_id, {}) or {}
-    return str(overrides.get("selected_model") or provider.get("default_model") or "")
+    provider = _provider_config(provider_id)
+    return str(provider.get("selected_model") or provider.get("default_model") or "")
 
 
 def _reasoning(provider_id: str, model: str, enabled: bool, preset: str) -> dict[str, Any]:
-    provider_config = dict(API_PROVIDERS[provider_id])
+    provider_config = _provider_config(provider_id)
     provider_config.update({
         "default_model": model,
         "reasoning_builtin_enabled": enabled,
@@ -45,8 +71,10 @@ def _reasoning(provider_id: str, model: str, enabled: bool, preset: str) -> dict
 
 def get_copilot_settings() -> dict[str, Any]:
     stored = config_manager.get_value(CONFIG_KEY, {}) or {}
-    provider = str(stored.get("provider") or DEFAULT_PROVIDER)
-    if provider not in API_PROVIDERS:
+    provider = _normalize_provider_id(str(stored.get("provider") or DEFAULT_PROVIDER))
+    try:
+        _provider_config(provider)
+    except KeyError:
         provider = DEFAULT_PROVIDER
     models = _provider_models(provider)
     model = str(stored.get("model") or _default_model(provider))
@@ -73,8 +101,11 @@ def get_copilot_settings() -> dict[str, Any]:
 def update_copilot_settings(
     *, provider: str, model: str, reasoning_enabled: bool, reasoning_preset: str
 ) -> dict[str, Any]:
-    if provider not in API_PROVIDERS:
-        raise ValueError("Unknown API provider")
+    provider = _normalize_provider_id(provider)
+    try:
+        _provider_config(provider)
+    except KeyError as exc:
+        raise ValueError("Unknown API provider") from exc
     models = _provider_models(provider)
     if not model or (models and model not in models):
         raise ValueError("The selected model is not configured for this provider")
@@ -96,6 +127,8 @@ def update_copilot_settings(
 def list_copilot_providers() -> list[dict[str, Any]]:
     result = []
     for provider_id, provider in API_PROVIDERS.items():
+        if provider_id == CUSTOM_ADAPTER_ID:
+            continue
         models = _provider_models(provider_id)
         result.append({
             "id": provider_id,
@@ -103,6 +136,16 @@ def list_copilot_providers() -> list[dict[str, Any]]:
             "models": models,
             "default_model": _default_model(provider_id),
             "reasoning_models": (provider.get("reasoning") or {}).get("models", {}),
+        })
+    for profile in _profile_service().list_profiles():
+        provider_id = profile["profile_id"]
+        models = _provider_models(provider_id)
+        result.append({
+            "id": provider_id,
+            "name": profile["display_name"],
+            "models": models,
+            "default_model": _default_model(provider_id),
+            "reasoning_models": {},
         })
     return result
 
@@ -116,17 +159,22 @@ def reasoning_override(settings: dict[str, Any]) -> dict[str, Any]:
 
 
 def pydantic_reasoning_settings(
-    *, provider: str, model: str, enabled: bool, preset: str
+    *,
+    provider: str,
+    model: str,
+    enabled: bool,
+    preset: str,
+    provider_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Translate the verified Remis mapping to PydanticAI OpenAI settings."""
-    provider_config = dict(API_PROVIDERS[provider])
-    provider_config.update({
+    resolved_config = dict(provider_config or API_PROVIDERS[provider])
+    resolved_config.update({
         "default_model": model,
         "reasoning_builtin_enabled": enabled,
         "reasoning_preset": preset,
         "custom_parameters": {},
     })
-    parameters = dict(resolve_reasoning_parameters(provider_config).parameters)
+    parameters = dict(resolve_reasoning_parameters(resolved_config).parameters)
     result: dict[str, Any] = {}
     effort = parameters.pop("reasoning_effort", None)
     if effort:

@@ -122,7 +122,7 @@ def run_language_translation(
     batch_size_limit: Optional[int], embedded_workshop: Optional[dict],
     reference_reuse: Optional[dict] = None,
     source_context_overlap: int = 0,
-    context_selection: Optional[Any] = None,
+    context_selection: Optional[Any] = None, provider_runtime: Any = None,
 ) -> dict:
     logging.info(i18n.t("translating_to_language", lang_name=target_lang["name"]))
     proofreading_tracker = create_proofreading_tracker(
@@ -250,7 +250,7 @@ def run_language_translation(
         batch_size_limit=batch_size_limit,
         rpm_limit=rpm_limit,
         dynamic_valid_tags=dynamic_valid_tags,
-        update_progress_callback=update_progress,
+        update_progress_callback=update_progress, provider_runtime=provider_runtime,
     )
     reference_metrics = (
         reference_resolver.metrics()

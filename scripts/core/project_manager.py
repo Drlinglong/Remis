@@ -524,12 +524,11 @@ class ProjectManager:
         logger.info(f"Deleted history event {history_id}")
 
     # --- Workflows ---
-    async def run_incremental_update_workflow(self, config: Any, progress_callback: Optional[Callable] = None):
+    async def run_incremental_update_workflow(self, config: Any, progress_callback: Optional[Callable] = None, provider_runtime: Any = None):
         """Orchestrates the incremental update workflow."""
         from scripts.workflows.update_translate import run_incremental_update
         from scripts.core.services.translation_context_service import context_workflow_kwargs
         from scripts.app_settings import LANGUAGE_BY_CODE, GAME_PROFILES, GAME_PROFILES_BY_ID
-        
         provider = config.api_provider or config.provider or "gemini"
         model = config.model
         
@@ -586,6 +585,7 @@ class ProjectManager:
             embedded_workshop=config.embedded_workshop.model_dump() if config.embedded_workshop else None,
             reference_reuse=config.reference_reuse.model_dump() if config.reference_reuse else None,
             progress_callback=progress_callback,
+            **({"provider_runtime": provider_runtime} if provider_runtime is not None else {}),
             **context_workflow_kwargs(config),
         )
         if (

@@ -8,6 +8,10 @@ from scripts.core.services.context_model_usage import ContextModelUsageLedger
 from scripts.core.services.context_parallel_execution_service import (
     map_context_calls_ordered,
 )
+from scripts.core.services.provider_runtime import (
+    ProviderRuntimeSnapshot,
+    handler_from_runtime,
+)
 
 
 class ContextSynthesisExecutionService:
@@ -46,9 +50,10 @@ class ContextSynthesisExecutionService:
         model_name: str | None,
         concurrency: int,
         source_item_ids: Sequence[str],
+        runtime: ProviderRuntimeSnapshot | None = None,
     ) -> list[Any]:
         synthesizer = self.synthesizer_factory(
-            self.handler_factory(api_provider, model_name=model_name)
+            self._handler(api_provider, model_name, runtime)
         )
         eligible = self.governance_flow.synthesis_eligible_aggregates(
             aggregates, governance,
@@ -63,6 +68,7 @@ class ContextSynthesisExecutionService:
         return self.execute_batches(
             batches, contributions, sources, description_language,
             project_id, task_id, analysis_run, api_provider, model_name, concurrency,
+            runtime=runtime,
         )
 
     def execute_batches(
@@ -77,6 +83,7 @@ class ContextSynthesisExecutionService:
         api_provider: str,
         model_name: str | None,
         concurrency: int,
+        runtime: ProviderRuntimeSnapshot | None = None,
     ) -> list[Any]:
         indexed_batches = list(enumerate([list(batch) for batch in batches]))
 
@@ -90,7 +97,7 @@ class ContextSynthesisExecutionService:
             )
             if restored is not None:
                 return restored
-            handler = self.handler_factory(api_provider, model_name=model_name)
+            handler = self._handler(api_provider, model_name, runtime)
             synthesizer = self.synthesizer_factory(handler)
             try:
                 generated = synthesizer.synthesize(
@@ -132,3 +139,13 @@ class ContextSynthesisExecutionService:
         if errors:
             raise errors[0]
         return [item for outcome in outcomes for item in (outcome.value or [])]
+
+    def _handler(
+        self,
+        api_provider: str,
+        model_name: str | None,
+        runtime: ProviderRuntimeSnapshot | None,
+    ) -> Any:
+        if runtime is None:
+            return self.handler_factory(api_provider, model_name=model_name)
+        return handler_from_runtime(runtime, self.handler_factory)

@@ -23,6 +23,8 @@ from scripts.core.copilot.help_pack import (
 )
 from scripts.core.copilot.intents import build_capability_reply, detect_capability_intent
 from scripts.core.copilot.help_agent import run_pydantic_help_agent
+from scripts.core.copilot.runtime import resolve_provider_runtime_snapshot
+from scripts.core.services.provider_runtime import ProviderRuntimeSnapshot
 from scripts.schemas.copilot import (
     CopilotChatMessage,
     CopilotChatResponse,
@@ -167,11 +169,15 @@ def resolve_copilot_context_budget(
     provider: str,
     model: str | None,
     requested_budget: int | None,
+    provider_runtime: ProviderRuntimeSnapshot | None = None,
 ) -> int:
-    provider_config = dict(API_PROVIDERS.get(provider, {}))
-    provider_overrides = config_manager.get_value("provider_config", {}) or {}
-    if isinstance(provider_overrides, dict):
-        provider_config.update(provider_overrides.get(provider, {}) or {})
+    if provider_runtime is not None:
+        provider_config = provider_runtime.config
+    else:
+        provider_config = dict(API_PROVIDERS.get(provider, {}))
+        provider_overrides = config_manager.get_value("provider_config", {}) or {}
+        if isinstance(provider_overrides, dict):
+            provider_config.update(provider_overrides.get(provider, {}) or {})
     return resolve_input_budget(
         requested_budget,
         provider_config=provider_config,
@@ -219,33 +225,66 @@ def _capability_response(
     )
 
 
+def _empty_chat_response(
+    provider: str,
+    model: str | None,
+) -> CopilotChatResponse:
+    return CopilotChatResponse(
+        reply="请先输入您的问题。",
+        confidence="low",
+        provider=provider,
+        model=model,
+        parse_mode="fallback_text",
+        grounding="none",
+    )
+
+
+def _prepare_copilot_request(
+    provider: str,
+    model: str | None,
+    context_budget_tokens: int,
+    reasoning_override: dict[str, Any] | None,
+    provider_runtime: ProviderRuntimeSnapshot | None,
+) -> tuple[ProviderRuntimeSnapshot, str, str | None, int]:
+    requested_provider = (provider or "lm_studio").strip() or "lm_studio"
+    requested_model = (model or "").strip() or None
+    runtime = provider_runtime or resolve_provider_runtime_snapshot(
+        requested_provider,
+        requested_model,
+        reasoning_override=reasoning_override,
+    )
+    provider_name = runtime.selection_id
+    model_name = runtime.model_id
+    budget = resolve_copilot_context_budget(
+        provider_name,
+        model_name,
+        context_budget_tokens,
+        provider_runtime=runtime,
+    )
+    return runtime, provider_name, model_name, budget
+
+
 def run_copilot_chat(
     messages: list[CopilotChatMessage],
     provider: str = "lm_studio",
     model: Optional[str] = None,
     locale: str = "zh",
     context_budget_tokens: int = DEFAULT_INPUT_TOKEN_BUDGET,
-    page_context: Optional[dict[str, Any]] = None, reasoning_override: Optional[dict[str, Any]] = None,
+    page_context: Optional[dict[str, Any]] = None,
+    reasoning_override: Optional[dict[str, Any]] = None,
+    provider_runtime: ProviderRuntimeSnapshot | None = None,
 ) -> CopilotChatResponse:
-    provider_name = (provider or "lm_studio").strip() or "lm_studio"
-    model_name = (model or "").strip() or None
-    effective_budget = resolve_copilot_context_budget(
-        provider_name,
-        model_name,
+    runtime, provider_name, model_name, effective_budget = _prepare_copilot_request(
+        provider,
+        model,
         context_budget_tokens,
+        reasoning_override,
+        provider_runtime,
     )
     if not messages:
-        return CopilotChatResponse(
-            reply="请先输入您的问题。",
-            confidence="low",
-            provider=provider_name,
-            model=model_name,
-            parse_mode="fallback_text",
-            grounding="none",
-        )
+        return _empty_chat_response(provider_name, model_name)
 
     user_query = _last_user_text(messages)
-
     # Capability / permission questions are product policy — answer without
     # keyword-doc routing and without the "文档未覆盖" path.
     capability = detect_capability_intent(user_query)
@@ -273,6 +312,7 @@ def run_copilot_chat(
                 model_name=model_name,
                 page_context=page_context,
                 reasoning_override=reasoning_override,
+                provider_runtime=runtime,
             )
             answer = agent_result["answer"]
             excerpts = agent_result["excerpts"]
@@ -326,7 +366,12 @@ def run_copilot_chat(
             )
 
     try:
-        handler = get_handler(provider_name, model_name=model_name, reasoning_override=reasoning_override)
+        handler = get_handler(
+            runtime.adapter_id,
+            model_name=runtime.model_id,
+            reasoning_override=reasoning_override,
+            **runtime.handler_kwargs(),
+        )
         route_started = time.perf_counter()
         router_messages = [
             {"role": "system", "content": build_skill_router_prompt(history, locale)},
