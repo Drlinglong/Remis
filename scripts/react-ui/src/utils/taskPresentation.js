@@ -1,6 +1,10 @@
 import { formatLocalizedDateTime } from './localizedDateTime';
 
 const TERMINAL_STATUSES = new Set(['completed', 'partial_failed', 'failed', 'interrupted', 'cancelled']);
+const ARCHIVE_STAGE_CODES = new Set([
+  'idle', 'queued', 'starting', 'running', 'extracting', 'reviewing',
+  'aggregating', 'synthesizing', 'publishing', 'completed', 'failed',
+]);
 
 const numeric = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -20,9 +24,12 @@ export const getTaskStageLabel = (task, t) => {
   if (TERMINAL_STATUSES.has(task.status)) return statusLabel;
 
   const raw = String(task.stage || task.message || '').trim();
+  const stageCode = task.stage_code || task.progress?.stage_code;
+  if (['neologism_mining', 'context_archive_analysis'].includes(task.kind) && ARCHIVE_STAGE_CODES.has(stageCode)) {
+    return t(`mod_archive.status.stage.${stageCode}`);
+  }
   if (task.kind !== 'incremental_translation') return raw || statusLabel;
 
-  const stageCode = task.stage_code || task.progress?.stage_code;
   const stageCodeKeys = {
     initializing: 'preparing',
     scanning_source: 'scanning',

@@ -4,7 +4,6 @@ import { MantineProvider } from '@mantine/core';
 
 import '@mantine/core/styles.css';
 import '../index.css';
-import '../themes/index.css';
 import '../themes/definitions.css';
 import '../i18n/i18n';
 import { theme as customTheme } from '../theme';
@@ -20,8 +19,6 @@ const activeStep = ['project', 'config', 'prescan', 'execution'].includes(params
 const rootElement = window.document.documentElement;
 
 rootElement.setAttribute('data-theme', activeTheme);
-rootElement.classList.remove('victorian', 'byzantine', 'scifi', 'wwii', 'medieval');
-rootElement.classList.add(activeTheme);
 
 createRoot(document.getElementById('root')).render(
   <MantineProvider theme={customTheme} defaultColorScheme="dark">

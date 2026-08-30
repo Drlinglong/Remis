@@ -12,6 +12,8 @@ const translations = {
   'project_management.actions.create_new': '创建新项目',
   'project_management.actions.create_new_desc': '从本地 Mod 文件夹开始新的翻译。',
   'project_management.actions.archives': '档案馆',
+  'project_management.active_projects': '活动项目',
+  'project_management.project_count': '项目数量',
   'translation_page.search_placeholder': '搜索项目...',
 };
 
@@ -50,10 +52,10 @@ describe('ProjectListView', () => {
     expect(screen.getByPlaceholderText('搜索项目...')).toBeInTheDocument();
   });
 
-  it('uses the canvas contrast contract for the transparent action description', () => {
+  it('uses the canvas contrast contract for the workspace description', () => {
     renderView();
 
-    const description = screen.getByText('从本地 Mod 文件夹开始新的翻译。');
+    const description = screen.getByText('管理本地化项目');
     expect(description.closest('[data-remis-surface]')).toHaveAttribute(
       'data-remis-surface',
       'canvas',
@@ -72,5 +74,17 @@ describe('ProjectListView', () => {
     expect(screen.getByText('hoi4').closest('[data-game-color]')).toHaveAttribute('data-game-color', 'olive');
     expect(screen.getByText('eu5').closest('[data-game-color]')).toHaveAttribute('data-game-color', 'orange');
     expect(screen.getByText('stellaris').closest('[data-game-color]')).toHaveAttribute('data-game-color', 'grape');
+  });
+
+  it('renders project cards as keyboard-focusable project actions', () => {
+    const { props } = renderView({
+      projects: [
+        { project_id: 'demo', name: 'Demo project', game_id: 'stellaris', status: 'active' },
+      ],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'project_management.open_project' }));
+
+    expect(props.setSelectedProjectId).toHaveBeenCalledWith('demo');
   });
 });

@@ -25,6 +25,10 @@ const definitionsCss = readFileSync(
   resolve(process.cwd(), 'src/themes/definitions.css'),
   'utf8',
 );
+const judgmentCourtCss = readFileSync(
+  resolve(process.cwd(), 'src/components/neologism/JudgmentCourt.module.css'),
+  'utf8',
+);
 const reviewPageSource = readFileSync(
   resolve(process.cwd(), 'src/pages/NeologismReviewPage.jsx'),
   'utf8',
@@ -119,6 +123,10 @@ describe('JudgmentCourt semantic surfaces', () => {
       }
       throw new Error(`Unexpected GET ${url}`);
     });
+  });
+
+  it('keeps the local surface contract free of specificity overrides', () => {
+    expect(judgmentCourtCss).not.toContain('!important');
   });
 
   it('assigns canvas, surface, paper, and action contracts to the rendered workspace', async () => {

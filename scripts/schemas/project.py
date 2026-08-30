@@ -1,5 +1,5 @@
 from typing import Optional, List, Literal
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from scripts.schemas.common import LanguageCode
 from scripts.schemas.reference import ReferenceReuseConfig
 
@@ -157,6 +157,11 @@ class IncrementalUpdateRequest(BaseModel):
     provider: Optional[str] = None # Alias for api_provider (for legacy/frontend compatibility)
     model: str = "gemini-3.7-flash"
     batch_size_limit: Optional[int] = None
+    source_context_overlap: int = Field(default=0, ge=0, le=100)
+    use_project_context: bool = True
+    translation_context_mode: Optional[Literal["none", "glossaries", "archive"]] = None
+    context_release_id: Optional[str] = None
+    context_character_budget: int = Field(default=4000, ge=0, le=20000)
     concurrency_limit: Optional[int] = None
     rpm_limit: Optional[int] = None
     mod_context: Optional[str] = ""

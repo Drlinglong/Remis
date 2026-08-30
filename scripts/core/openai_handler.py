@@ -51,6 +51,7 @@ class OpenAIHandler(BaseApiHandler):
             response = client.chat.completions.create(
                 **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
+            self._record_model_response(response)
             return response.choices[0].message.content.strip()
         except openai.NotFoundError as e:
             # 捕获 404 错误 (Model Not Found) - 特别针对本地 LLM 用户
@@ -87,6 +88,7 @@ class OpenAIHandler(BaseApiHandler):
             response = self.client.chat.completions.create(
                 **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
+            self._record_model_response(response)
             return response.choices[0].message.content.strip()
         except Exception as e:
             self.logger.exception(f"OpenAI chat generation failed: {e}")

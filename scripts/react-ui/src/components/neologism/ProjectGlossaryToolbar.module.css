@@ -1,0 +1,27 @@
+.toolbar {
+    background: var(--surface-bg) !important;
+    border: 1px solid var(--surface-border) !important;
+    color: var(--surface-text-main);
+    --mantine-color-text: var(--surface-text-main);
+    --mantine-color-dimmed: var(--surface-text-muted);
+}
+
+.field {
+    background: var(--surface-bg) !important;
+    border-color: var(--surface-border) !important;
+    color: var(--surface-text-main) !important;
+}
+
+.field::placeholder {
+    color: var(--surface-text-muted) !important;
+}
+
+.glossaryName {
+    color: var(--surface-text-main) !important;
+}
+
+.secondaryAction {
+    background: transparent !important;
+    border: 1px solid var(--surface-border) !important;
+    color: var(--surface-text-main) !important;
+}

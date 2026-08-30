@@ -1,5 +1,6 @@
 # scripts/core/base_handler.py
 import asyncio
+import json
 import time
 import logging
 from abc import ABC, abstractmethod
@@ -61,7 +62,82 @@ class BaseApiHandler(ABC):
         self.provider_name = provider_name
         self.model_id = model_id
         self.logger = logging.getLogger(self.__class__.__name__)
+        self._model_call_records = []
         self.client = self.initialize_client()
+
+    def _record_model_response(self, response) -> None:
+        """Retain bounded provider usage metadata for the owning workflow."""
+
+        response_mapping = response if isinstance(response, dict) else {}
+        usage = (
+            response_mapping.get("usage")
+            or response_mapping.get("usage_metadata")
+            or getattr(response, "usage", None)
+            or getattr(response, "usage_metadata", None)
+        )
+        if not usage and response_mapping:
+            usage = {
+                "prompt_tokens": response_mapping.get("prompt_eval_count"),
+                "completion_tokens": response_mapping.get("eval_count"),
+            }
+        if hasattr(usage, "model_dump"):
+            usage = usage.model_dump()
+        elif usage is not None and not isinstance(usage, dict):
+            try:
+                usage = vars(usage)
+            except TypeError:
+                usage = {
+                    key: getattr(usage, key, None)
+                    for key in (
+                        "prompt_tokens", "input_tokens", "prompt_token_count",
+                        "completion_tokens", "output_tokens", "candidates_token_count",
+                        "reasoning_tokens", "thoughts_token_count", "total_tokens",
+                        "total_token_count", "cost", "completion_tokens_details",
+                    )
+                }
+        usage = {key: value for key, value in dict(usage or {}).items() if value is not None}
+        details = usage.get("completion_tokens_details") or {}
+        if hasattr(details, "model_dump"):
+            details = details.model_dump()
+        record = {
+            "model": (
+                response_mapping.get("model")
+                or getattr(response, "model", None)
+                or getattr(response, "model_version", None)
+            ),
+            "input_tokens": self._first_usage_value(
+                usage, "prompt_tokens", "input_tokens", "prompt_token_count"
+            ),
+            "output_tokens": self._first_usage_value(
+                usage, "completion_tokens", "output_tokens", "candidates_token_count"
+            ),
+            "reasoning_tokens": self._first_usage_value(
+                details if isinstance(details, dict) else {}, "reasoning_tokens"
+            ) or self._first_usage_value(usage, "reasoning_tokens", "thoughts_token_count"),
+            "total_tokens": self._first_usage_value(usage, "total_tokens", "total_token_count"),
+            "cost": usage.get("cost"),
+            "usage_reported": bool(usage),
+        }
+        if not record["total_tokens"] and usage:
+            record["total_tokens"] = record["input_tokens"] + record["output_tokens"]
+        records = getattr(self, "_model_call_records", None)
+        if records is None:
+            records = []
+            self._model_call_records = records
+        records.append(record)
+
+    @staticmethod
+    def _first_usage_value(usage, *keys):
+        for key in keys:
+            if usage.get(key) is not None:
+                return int(usage[key])
+        return 0
+
+    def consume_model_call_records(self):
+        stored = getattr(self, "_model_call_records", [])
+        records = list(stored)
+        stored.clear()
+        return records
 
     def get_provider_config(self) -> dict:
         """
@@ -255,6 +331,8 @@ class BaseApiHandler(ABC):
         language_policy_part = _build_language_policy_part(
             target_lang["code"], batch_hints
         )
+        source_context_prompt = self._build_source_context_prompt(task)
+        release_context_prompt = self._build_context_release_prompt(task)
         
         # Add a "Final Warning" section for Victoria 3 specifically
         final_warning = ""
@@ -272,11 +350,64 @@ class BaseApiHandler(ABC):
             + custom_global_prompt_part
             + glossary_prompt_part
             + language_policy_part
+            + source_context_prompt
+            + release_context_prompt
             + format_prompt_part
             + punctuation_prompt_part
             + final_warning
         )
         return self._apply_model_prompt_adapter(prompt)
+
+    @staticmethod
+    def _build_source_context_prompt(task: BatchTask) -> str:
+        if not task.context_entries:
+            return ""
+
+        context_lines = []
+        for entry in task.context_entries:
+            key = entry.get("key", "")
+            source = mask_special_tokens(entry.get("source", ""))
+            context_lines.append(f'- {key}: "{source}"')
+        return (
+            "\nSOURCE-ONLY NEIGHBOR CONTEXT:\n"
+            "The following entries are context only. Do not translate them, do not include them in the output, "
+            "and do not change the required output count.\n"
+            + "\n".join(context_lines)
+            + "\nEND SOURCE-ONLY NEIGHBOR CONTEXT\n"
+        )
+
+    @staticmethod
+    def _build_context_release_prompt(task: BatchTask) -> str:
+        if not task.context_summaries:
+            return ""
+        metadata = task.context_metadata
+        metadata_line = json.dumps(
+            {
+                "context_release_id": metadata.get("context_release_id"),
+                "source_snapshot_hash": metadata.get("source_snapshot_hash"),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        lines = [
+            "\nPROJECT CONTEXT RELEASE (context only; do not translate as output):",
+            f"Release metadata: {metadata_line}",
+            "Use the following effective published context to resolve terminology and narrative references. "
+            "It does not change the required output count or key mapping.",
+        ]
+        for item in task.context_summaries:
+            summary = json.dumps(
+                item.get("summary", {}),
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            lines.append(
+                f"- {item.get('context_key', '')} ({item.get('aggregate_type', '')}): {summary}"
+            )
+        lines.append("END PROJECT CONTEXT RELEASE\n")
+        return "\n".join(lines)
 
     def _parse_response(self, response: str, original_texts: list[str], target_lang_code: str) -> list[str] | None:
         """
@@ -469,4 +600,4 @@ class BaseApiHandler(ABC):
             return self._call_api(self.client, full_prompt)
         except Exception as e:
             self.logger.exception(f"Generate with messages failed: {e}")
-            return ""
+            raise

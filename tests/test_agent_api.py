@@ -218,6 +218,7 @@ async def test_real_translation_plan_requires_explicit_approval(
             target_lang_codes=["zh-CN"],
             api_provider="openai",
             model="gpt-test",
+            translation_context_mode="none",
         )
     )
 
@@ -231,6 +232,45 @@ async def test_real_translation_plan_requires_explicit_approval(
     assert exc_info.value.detail["code"] == "approval_required"
 
 
+@pytest.mark.asyncio
+async def test_agent_archive_plan_blocks_when_context_readiness_is_false(
+    monkeypatch,
+    isolated_registry,
+):
+    async def fake_create_translation_plan(**kwargs):
+        return {
+            "execution_args": {
+                "project_id": kwargs["project_id"],
+                "translation_context_mode": kwargs["translation_context_mode"],
+            },
+            "inspection": {"game_id": "stellaris"},
+        }
+
+    readiness = AsyncMock()
+    readiness.inspect.return_value = {
+        "requested_mode": "archive",
+        "status": "blocked",
+        "can_start": False,
+        "warnings": ["context_release_missing"],
+    }
+    monkeypatch.setattr(agent_router, "create_translation_plan", fake_create_translation_plan)
+    monkeypatch.setattr(agent_router, "translation_context_readiness", readiness)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await agent_router.plan_agent_job(
+            AgentJobPlanRequest(
+                project_id="project-1",
+                api_provider="lm_studio",
+                model="local-model",
+                translation_context_mode="archive",
+            )
+        )
+
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.detail["code"] == "project_context_not_ready"
+    assert exc_info.value.detail["context_readiness"]["warnings"] == [
+        "context_release_missing"
+    ]
 @pytest.mark.asyncio
 async def test_cloud_translation_plan_requires_provider_setup(monkeypatch):
     monkeypatch.setattr(
@@ -474,7 +514,7 @@ async def test_repair_requires_approval_before_loading_issues(isolated_registry)
 def test_agent_repair_status_and_actions_preserve_workshop_governance():
     validation = AgentValidationSummary(available=True)
 
-    assert agent_router._normalize_status("partial_failed") == "failed"
+    assert agent_router._normalize_status("partial_failed") == "partial_failed"
     assert agent_router._normalize_status("interrupted") == "interrupted"
     assert agent_router._job_allowed_actions(
         "completed",
@@ -571,7 +611,7 @@ async def test_approved_agent_repair_forwards_governed_workshop_contract(
     assert forwarded.created_by.type == "remis_agent"
     assert forwarded.idempotency_key.startswith("agent-repair:")
     assert response.job_id == "repair-child"
-    assert response.status == "failed"
+    assert response.status == "partial_failed"
     assert response.parent_task_id == "job-parent"
     assert response.output_paths == ["reports/repair-child.json"]
     assert response.result.summary == "One repair still needs review."
@@ -816,6 +856,8 @@ def test_openapi_exposes_agent_contract():
     assert "parent_task_id" in job_properties
     assert "result" in job_properties
     assert "workflow_context" in job_properties
+    plan_properties = schema["components"]["schemas"]["AgentPlanResponse"]["properties"]
+    assert "context_readiness" in plan_properties
 
 
 def test_agent_api_cors_allows_localhost_and_rejects_remote_origins():

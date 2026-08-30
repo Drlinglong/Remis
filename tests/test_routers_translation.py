@@ -302,3 +302,47 @@ def test_reference_reuse_preview_uses_custom_incremental_source(monkeypatch, tmp
 
     assert response.status_code == 200
     assert preview_service.preview.call_args.kwargs["source_path"] == str(custom_source)
+
+
+def test_run_translation_workflow_v2_none_mode_mounts_no_context_resources(
+    monkeypatch,
+    tmp_path,
+):
+    task_state.create_task("task-no-context", status="pending")
+    monkeypatch.setattr(translation.i18n, "load_language", MagicMock())
+    run_workflow = MagicMock()
+    monkeypatch.setattr(translation.initial_translate, "run", run_workflow)
+
+    project_manager = MagicMock()
+    project_manager.log_history_event = AsyncMock()
+    project_manager.get_project = AsyncMock(
+        return_value={"source_path": str(tmp_path), "name": "Example Mod"}
+    )
+    monkeypatch.setattr(translation, "project_manager", project_manager)
+    glossary_manager = MagicMock()
+    glossary_manager.get_available_glossaries = AsyncMock()
+    glossary_manager.get_project_glossary = AsyncMock()
+    monkeypatch.setattr(translation, "glossary_manager", glossary_manager)
+
+    translation.run_translation_workflow_v2(
+        "task-no-context",
+        "Example Mod",
+        "stellaris",
+        "en",
+        ["zh-CN"],
+        "gemini",
+        "",
+        [30],
+        None,
+        True,
+        project_id="project-1",
+        translation_context_mode="none",
+    )
+
+    call = run_workflow.call_args.kwargs
+    assert call["selected_glossary_ids"] == []
+    assert call["use_glossary"] is False
+    assert call["use_project_context"] is False
+    assert call["override_path"] == str(tmp_path)
+    glossary_manager.get_available_glossaries.assert_not_awaited()
+    glossary_manager.get_project_glossary.assert_not_awaited()

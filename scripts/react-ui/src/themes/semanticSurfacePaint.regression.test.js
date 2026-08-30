@@ -19,9 +19,11 @@ describe('semantic material paint regressions', () => {
     expect(definitionsCss).toContain(
       "[data-remis-surface='paper']:is(.mantine-Paper-root, .mantine-Card-root)",
     );
-    expect(definitionsCss).toContain('background: var(--paper-bg) !important;');
-    expect(definitionsCss).toContain('color: var(--surface-text-main) !important;');
-    expect(definitionsCss).toContain('color: var(--paper-text-main) !important;');
+    expect(definitionsCss).toContain(
+      'background: var(--remis-surface-override-bg, var(--paper-bg)) !important;',
+    );
+    expect(definitionsCss).toContain('color: var(--surface-text-main);');
+    expect(definitionsCss).toContain('color: var(--paper-text-main);');
   });
 
   it('themes native select inputs and their operating-system option list', () => {
@@ -30,15 +32,21 @@ describe('semantic material paint regressions', () => {
     expect(definitionsCss).toContain('background: var(--menu-surface-bg, var(--menu-bg));');
   });
 
+  it('keeps chart tooltips on the elevated material contract', () => {
+    expect(definitionsCss.match(/--chart-tooltip-bg:\s*var\(--elevated-bg\);/g)).toHaveLength(6);
+    expect(definitionsCss.match(/--chart-tooltip-border:\s*var\(--surface-border\);/g)).toHaveLength(6);
+    expect(definitionsCss.match(/--chart-tooltip-text:\s*var\(--elevated-text-main\);/g)).toHaveLength(6);
+  });
+
   // Regression: ISSUE-008 — light badges and alerts inherited unreadable theme ink.
   // Found by /design-review on 2026-07-31
   // Report: .gstack/design-reports/design-audit-127.0.0.1-2026-07-31.md
   it('binds light badges and alerts to the nearest semantic material', () => {
     expect(definitionsCss).toContain(
-      '--remis-content-text: var(--surface-text-main) !important;',
+      '--remis-content-text: var(--surface-text-main);',
     );
     expect(definitionsCss).toContain(
-      'background: color-mix(in srgb, var(--remis-content-text) 12%, var(--remis-content-bg)) !important;',
+      'border: 1px solid currentColor !important;',
     );
     expect(definitionsCss).toContain('background: var(--remis-content-bg) !important;');
     expect(definitionsCss).toContain('border: 1px solid var(--remis-content-border) !important;');

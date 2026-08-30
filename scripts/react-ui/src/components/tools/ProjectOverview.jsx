@@ -4,13 +4,12 @@ import { useTranslation } from 'react-i18next';
 import api from '../../utils/api';
 import { useSidebar } from '../../context/SidebarContextCore';
 
-import ProjectHeader from '../project/ProjectHeader';
 import ProjectNoteList from '../project/ProjectNoteList';
 import ProjectPathManager from '../project/ProjectPathManager';
 import ProjectFileList from '../project/ProjectFileList';
 import ProjectSidebar from '../project/ProjectSidebar';
 
-const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, onFileStatusChange, onPathsUpdated, onDeleteForever, onManageProject, onRefresh, onRepairMetadata, repairingMetadata }) => {
+const ProjectOverview = ({ projectDetails, handleProofread, onFileStatusChange, onPathsUpdated }) => {
     const { t } = useTranslation();
     const [notes, setNotes] = useState(''); // Current input for new note
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -94,18 +93,7 @@ const ProjectOverview = ({ projectDetails, handleStatusChange, handleProofread, 
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', width: '100%', overflow: 'visible', gap: '1rem' }}>
-            {/* Header section with stats */}
             <div style={{ flexShrink: 0 }}>
-                <ProjectHeader
-                    projectDetails={projectDetails}
-                    handleStatusChange={handleStatusChange}
-                    onDeleteForever={onDeleteForever}
-                    onManageProject={onManageProject}
-                    onRefresh={onRefresh}
-                    onRepairMetadata={onRepairMetadata}
-                    repairingMetadata={repairingMetadata}
-                />
-
                 <ProjectNoteList
                     notes={notes}
                     setNotes={setNotes}

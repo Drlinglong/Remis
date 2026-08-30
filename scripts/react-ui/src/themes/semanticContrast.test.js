@@ -70,6 +70,19 @@ describe.each(themeIds)('%s semantic contrast contract', (themeId) => {
     ).toBeGreaterThanOrEqual(4.5);
   });
 
+  it.each([
+    'status-neutral',
+    'status-info',
+    'status-success',
+    'status-warning',
+    'status-error',
+  ])('%s remains readable as a status foreground on the surface', (statusToken) => {
+    expect(
+      contrastRatio(tokens[statusToken], tokens['surface-bg-solid']),
+      `${themeId}: ${statusToken} on surface-bg-solid`,
+    ).toBeGreaterThanOrEqual(4.5);
+  });
+
   it('keeps the surface boundary distinguishable', () => {
     expect(
       contrastRatio(tokens['surface-border'], tokens['surface-bg-solid']),
@@ -101,7 +114,7 @@ describe('semantic modal bindings', () => {
     ].forEach((selector) => {
       expect(definitionsCss).toContain(selector);
     });
-    expect(definitionsCss).toContain('background: var(--elevated-bg) !important;');
-    expect(definitionsCss).toContain('color: var(--elevated-text-main) !important;');
+    expect(definitionsCss).toContain('background: var(--elevated-bg);');
+    expect(definitionsCss).toContain('color: var(--elevated-text-main);');
   });
 });

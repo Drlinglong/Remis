@@ -20,14 +20,7 @@ export const ThemeProvider = ({ children }) => {
   // Effect to apply the theme data attribute to the html element
   useEffect(() => {
     const root = window.document.documentElement;
-    // Remove legacy classes to avoid conflicts
-    root.classList.remove('light', 'dark', 'theme-victorian', 'theme-byzantine', 'victorian', 'byzantine', 'scifi', 'wwii', 'medieval');
-
-    // Set the data-theme attribute for the new system
     root.setAttribute('data-theme', theme);
-    // ALSO add the class for CSS selectors like .byzantine .mantine-Button-root
-    root.classList.add(theme);
-
     localStorage.setItem('theme', theme);
   }, [theme]);
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { Paper, Group, Title, Table, Tooltip, Text, Badge, Button, Select } from '@mantine/core';
 import { IconClock, IconCheck, IconX, IconPlayerPlay, IconEdit, IconPlayerPause } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import styles from '../../pages/ProjectManagement.module.css';
+import styles from './ProjectDetailSurfaces.module.css';
 
 const ProjectFileList = ({ projectDetails, handleProofread, onFileStatusChange }) => {
     const { t } = useTranslation();

@@ -6,8 +6,18 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 
 from scripts.core.neologism_manager import neologism_manager
+from scripts.core.context_service import ContextService
+from scripts.core.repositories.context_repository import ContextRepository
+from scripts.core.repositories.context_analysis_batch_repository import (
+    ContextAnalysisBatchRepository,
+)
+from scripts.core.services.context_workflow_service import ContextWorkflowService
+from scripts.core.services.context_analysis_preview_service import (
+    ContextAnalysisPreviewService,
+)
 from scripts.shared.services import project_manager, glossary_manager
 from scripts.shared import task_state
+from scripts.shared.task_state import DuplicateTaskError
 from scripts.schemas.neologism import (
     ApproveNeologismRequest,
     ProjectGlossaryBindingRequest,
@@ -16,12 +26,61 @@ from scripts.schemas.neologism import (
     MineNeologismsRequest,
 )
 from scripts.schemas.common import LanguageCode
-from scripts.app_settings import API_PROVIDERS, GAME_PROFILES_BY_ID
+from scripts.app_settings import API_PROVIDERS, GAME_PROFILES_BY_ID, PROJECTS_DB_PATH
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+context_repository = ContextRepository(PROJECTS_DB_PATH)
+context_analysis_batch_repository = ContextAnalysisBatchRepository(PROJECTS_DB_PATH)
+context_service = ContextService(context_repository)
+context_analysis_preview_service = ContextAnalysisPreviewService(
+    context_repository,
+    context_analysis_batch_repository,
+)
+context_workflow_service = ContextWorkflowService(
+    context_repository,
+    candidate_store=neologism_manager,
+    analysis_batch_repository=context_analysis_batch_repository,
+    workflow_version="tree_v2",
+)
 SUPPORTED_MINING_SUFFIXES = {".txt", ".yml", ".yaml", ".csv", ".json"}
+
+
+def _run_context_workflow_background(*args, **kwargs):
+    """Keep an already-persisted workflow failure out of the ASGI response path."""
+
+    try:
+        return context_workflow_service.run(*args, **kwargs)
+    except Exception as exc:
+        logger.error(
+            "Context archive analysis ended in a persisted failed state: %s",
+            exc,
+            exc_info=True,
+        )
+        return None
+
+
+def _context_release_presentation(release):
+    payload = release.model_dump()
+    metadata = payload["metadata"]
+    config = metadata.get("analysis_config") or {}
+    metadata["prompt_example"] = ContextWorkflowService.prompt_example(
+        str(config.get("description_language") or "en")
+    )
+    return payload
+
+
+def _context_release_version_summary(release):
+    metadata = release.metadata
+    return {
+        "release_id": release.release_id,
+        "project_id": release.project_id,
+        "created_at": metadata.created_at,
+        "parent_release_id": metadata.parent_release_id,
+        "upstream_version": metadata.upstream_version,
+        "analysis_scope": metadata.analysis_scope,
+    }
 
 
 def _normalize_language_code(value: str) -> str:
@@ -47,6 +106,13 @@ def _is_supported_mining_path(path: Path) -> bool:
 
 def _normalize_term(term: str) -> str:
     return " ".join((term or "").casefold().split())
+
+
+def _mining_task_identity(payload: MineNeologismsRequest, project: dict) -> tuple[str, str]:
+    project_name = project.get("name") or payload.project_id
+    if payload.analysis_scope == "narrative_context":
+        return "context_archive_analysis", f"Build project archive for {project_name}"
+    return "neologism_mining", f"Mine neologisms for {project_name}"
 
 async def _build_glossary_duplicate_index(
     game_id: str,
@@ -237,13 +303,26 @@ async def reject_neologism(candidate_id: str, payload: dict):
 
 @router.patch("/api/neologisms/{candidate_id}")
 async def update_neologism_suggestion(candidate_id: str, payload: UpdateNeologismRequest):
-    """Update a candidate's suggestion."""
+    """Update a candidate manually or select one retained AI variant."""
     if not await project_manager.get_project(payload.project_id):
         raise HTTPException(status_code=404, detail="Project not found")
-    if neologism_manager.update_candidate_suggestion(payload.project_id, candidate_id, payload.suggestion):
+    updated = (
+        neologism_manager.select_candidate_variant(
+            payload.project_id,
+            candidate_id,
+            payload.variant_id,
+        )
+        if payload.variant_id is not None
+        else neologism_manager.update_candidate_suggestion(
+            payload.project_id,
+            candidate_id,
+            payload.suggestion or "",
+        )
+    )
+    if updated:
         logger.info(f"Updated neologism candidate {candidate_id} suggestion for project {payload.project_id}")
         return {"status": "success"}
-    raise HTTPException(status_code=404, detail="Candidate not found")
+    raise HTTPException(status_code=404, detail="Candidate or variant not found")
 
 @router.post("/api/neologisms/{candidate_id}/restore")
 async def restore_neologism(candidate_id: str, payload: RestoreNeologismRequest):
@@ -298,23 +377,43 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
     )
 
     task_id = str(uuid.uuid4())
-    if not neologism_manager.reserve_mining(payload.project_id, task_id, len(files)):
-        raise HTTPException(status_code=409, detail="A neologism mining run is already active for this project")
-    task_state.create_task(
+    task_kind, task_title = _mining_task_identity(payload, project)
+    if not context_workflow_service.reserve(
+        payload.project_id,
         task_id,
-        status="pending",
-        log_message="Neologism mining queued.",
-        fields={
-            "kind": "neologism_mining",
-            "project_id": payload.project_id,
-            "title": f"Mine neologisms for {project.get('name') or payload.project_id}",
-            "source_route": "/neologism-review",
-            "created_by": {"type": "user"},
-            "blocking": True,
-        },
-        dedupe_key=f"neologism_mining:{payload.project_id}",
-        reject_duplicate=True,
-    )
+        payload.analysis_scope,
+    ):
+        raise HTTPException(status_code=409, detail="A neologism mining run is already active for this project")
+    try:
+        task_state.create_task(
+            task_id,
+            status="queued",
+            log_message="Neologism mining queued.",
+            fields={
+                "kind": task_kind,
+                "project_id": payload.project_id,
+                "title": task_title,
+                "source_route": "/neologism-review",
+                "created_by": {"type": "user"},
+                "blocking": True,
+                "workflow_context": {"analysis_scope": payload.analysis_scope},
+            },
+            dedupe_key=f"neologism_mining:{payload.project_id}",
+            reject_duplicate=True,
+        )
+    except DuplicateTaskError as exc:
+        context_workflow_service.release_reservation(payload.project_id, task_id)
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "duplicate_task",
+                "message": "A neologism mining run is already active for this project",
+                "existing_task_id": exc.existing_task.get("task_id"),
+            },
+        ) from exc
+    except Exception:
+        context_workflow_service.release_reservation(payload.project_id, task_id)
+        raise
     task_state.init_progress(task_id, {
         "total": len(files),
         "current": 0,
@@ -324,29 +423,37 @@ async def trigger_mining(payload: MineNeologismsRequest, background_tasks: Backg
     })
     task_state.update_task(
         task_id,
-        status="starting",
+        status="queued",
         summary={
             "project_id": payload.project_id,
             "project_glossary_id": project_glossary["glossary_id"],
             "project_glossary_name": project_glossary.get("name"),
             "new_terms": 0,
             "duplicate_terms": 0,
+            "analysis_scope": payload.analysis_scope,
+            "description_language": payload.effective_description_language,
         },
-        fields={"kind": "neologism_mining"},
+        fields={"kind": task_kind, "stage_code": "queued"},
         push=True,
     )
     background_tasks.add_task(
-        neologism_manager.run_mining_workflow,
+        _run_context_workflow_background,
         payload.project_id,
         files,
+        project["source_path"],
         payload.api_provider,
-        project.get("source_language") or "en",
-        payload.target_lang,
-        game_name,
-        task_id,
-        duplicate_index,
-        payload.model_name,
-        payload.review_language,
+        source_lang=project.get("source_language") or "en",
+        target_lang=payload.target_lang,
+        game_name=game_name,
+        task_id=task_id,
+        duplicate_index=duplicate_index,
+        model_name=payload.model_name,
+        review_language=payload.effective_description_language,
+        description_language=payload.effective_description_language,
+        analysis_scope=payload.analysis_scope,
+        upstream_version=payload.upstream_version,
+        concurrency_limit=payload.concurrency_limit,
+        project_title=project.get("name") or payload.project_id,
     )
     return {
         "task_id": task_id,
@@ -424,4 +531,52 @@ async def unbind_project_neologism_glossary(project_id: str):
 @router.get("/api/neologisms/status/{project_id}")
 def get_mining_status(project_id: str):
     """Return the latest neologism mining status for a project."""
-    return neologism_manager.get_mining_status(project_id)
+    return context_workflow_service.get_status(project_id)
+
+
+@router.get("/api/context/releases/{project_id}/latest")
+def get_latest_context_release(project_id: str, optional: bool = False):
+    release = context_repository.list_releases(project_id)
+    if not release:
+        if optional:
+            return {"release": None}
+        raise HTTPException(status_code=404, detail="No context release exists for this project")
+    payload = _context_release_presentation(release[0])
+    payload["versions"] = [_context_release_version_summary(item) for item in release]
+    return payload
+
+
+@router.get("/api/context/releases/{release_id}")
+def get_context_release(release_id: str):
+    release = context_repository.get_release(release_id)
+    if release is None:
+        raise HTTPException(status_code=404, detail="Context release not found")
+    return _context_release_presentation(release)
+
+
+@router.get("/api/context/projects/{project_id}/analysis-preview")
+def get_context_analysis_preview(project_id: str, optional: bool = False):
+    preview = context_analysis_preview_service.latest(project_id)
+    if preview is None:
+        if optional:
+            return {"preview": None}
+        raise HTTPException(
+            status_code=404,
+            detail="No persisted context analysis preview exists for this project",
+        )
+    return preview.model_dump()
+
+
+@router.get("/api/context/releases/{release_id}/effective")
+def get_effective_context(release_id: str):
+    effective = context_service.effective_context(release_id)
+    if effective is None:
+        raise HTTPException(status_code=404, detail="Context release not found")
+    return effective.model_dump()
+
+
+@router.get("/api/context/releases/{release_id}/traceability")
+def get_context_traceability(release_id: str):
+    if context_repository.get_release(release_id) is None:
+        raise HTTPException(status_code=404, detail="Context release not found")
+    return context_service.traceability(release_id)

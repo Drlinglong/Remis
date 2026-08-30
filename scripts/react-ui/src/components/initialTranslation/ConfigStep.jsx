@@ -32,7 +32,12 @@ import ResumeSettingsCard from './ResumeSettingsCard';
 import CollapsibleSettingsCard from './CollapsibleSettingsCard';
 import layoutStyles from '../layout/Layout.module.css';
 import { FEATURES } from '../../config/features';
-import { buildModelOptions, findLanguageByCode, resolveGameName } from '../../utils/initialTranslation';
+import {
+  buildModelOptions,
+  findLanguageByCode,
+  resolveGameName,
+  TRANSLATION_CONTEXT_MODES,
+} from '../../utils/initialTranslation';
 
 export default function ConfigStep({
   availableGlossaries,
@@ -86,13 +91,15 @@ export default function ConfigStep({
     </Group>
   );
 
-  const renderNativeSelect = ({ label, value, onChange, options, description }) => (
+  const renderNativeSelect = ({
+    label, value, onChange, options, description, allowEmpty = true,
+  }) => (
     <NativeSelect
       label={label}
       value={value}
       onChange={onChange}
       data={[
-        { value: '', label: t('common.select', 'Select') },
+        ...(allowEmpty ? [{ value: '', label: t('common.select', 'Select') }] : []),
         ...options.map(o => ({ value: o.value, label: o.label }))
       ]}
       description={description}
@@ -132,6 +139,20 @@ export default function ConfigStep({
     value: glossary.value,
     label: glossary.label,
   }));
+  const contextModeOptions = [
+    {
+      value: TRANSLATION_CONTEXT_MODES.NONE,
+      label: t('translation_context_mode.none'),
+    },
+    {
+      value: TRANSLATION_CONTEXT_MODES.GLOSSARIES,
+      label: t('translation_context_mode.glossaries'),
+    },
+    {
+      value: TRANSLATION_CONTEXT_MODES.ARCHIVE,
+      label: t('translation_context_mode.archive'),
+    },
+  ];
 
   const resolvedWorkshopModels = form.values.embedded_workshop_follow_primary_settings
     ? embeddedWorkshopModels
@@ -174,7 +195,8 @@ export default function ConfigStep({
                 <TextInput
                   label={t('form_label_project_name')}
                   value={selectedProject?.label || 'Unknown'}
-                  disabled
+                  readOnly
+                  aria-readonly="true"
                   variant="filled"
                 />
               )}
@@ -187,7 +209,8 @@ export default function ConfigStep({
                         <TextInput
                           label={t('form_label_game')}
                           value={selectedProject ? resolveGameName(config.game_profiles, selectedProject.game_id) : 'Unknown'}
-                          disabled
+                          readOnly
+                          aria-readonly="true"
                           variant="filled"
                         />
                       </div>
@@ -199,7 +222,8 @@ export default function ConfigStep({
                         <TextInput
                           label={t('form_label_source_language')}
                           value={selectedProject ? (findLanguageByCode(config.languages, selectedProject.source_language)?.name || 'Unknown') : 'Unknown'}
-                          disabled
+                          readOnly
+                          aria-readonly="true"
                           variant="filled"
                         />
                       </div>
@@ -317,13 +341,20 @@ export default function ConfigStep({
                 </Box>
               </SimpleGrid>
 
+              {renderNativeSelect({
+                label: t('translation_context_mode.label'),
+                description: t('translation_context_mode.description'),
+                value: form.values.translation_context_mode,
+                options: contextModeOptions,
+                allowEmpty: false,
+                onChange: (event) => form.setFieldValue(
+                  'translation_context_mode',
+                  event.currentTarget.value,
+                ),
+              })}
+
               <Group grow align="flex-start">
                 <Stack gap="xs">
-                  <Switch
-                    label={t('form_label_use_main_glossary')}
-                    description={t('form_desc_use_main_glossary')}
-                    {...form.getInputProps('use_main_glossary', { type: 'checkbox' })}
-                  />
                   <Tooltip
                     label={t('tooltip_clean_source', 'WARNING: This will DELETE all files in the uploaded mod folder except for localization files (.yml), Customizable Localization (.txt) and metadata (.mod, .json, .png) to save disk space. Use with caution!')}
                     multiline
@@ -353,6 +384,7 @@ export default function ConfigStep({
                     onChange={(values) => form.setFieldValue('selected_glossary_ids', values.map(Number))}
                     searchable
                     clearable
+                    disabled={form.values.translation_context_mode === TRANSLATION_CONTEXT_MODES.NONE}
                     styles={{
                       input: {
                         minHeight: 40,

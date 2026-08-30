@@ -20,9 +20,17 @@ class ParallelProcessor:
 
     """批次级全局并行处理器 - 实现真正的批次级并行调度"""
 
-    def __init__(self, max_workers: int = 24, chunk_size_override: Optional[int] = None):
+    def __init__(
+        self,
+        max_workers: int = 24,
+        chunk_size_override: Optional[int] = None,
+        source_context_overlap: int = 0,
+        context_selector: Optional[Any] = None,
+    ):
         self.max_workers = max_workers
         self.chunk_size_override = max(1, int(chunk_size_override)) if chunk_size_override else None
+        self.source_context_overlap = max(0, int(source_context_overlap or 0))
+        self.context_selector = context_selector
         self.logger = logging.getLogger(__name__)
 
     def process_files_parallel(
@@ -53,21 +61,103 @@ class ParallelProcessor:
                 continue
 
             chunk_size = self._resolve_chunk_size(file_task.provider_name)
-            
             texts = file_task.texts_to_translate
+            translation_indices = self._translation_entry_indices(file_task, len(texts))
             for i in range(0, len(texts), chunk_size):
                 batch_texts = texts[i:i + chunk_size]
-                batch_task = BatchTask(
-                    file_task=file_task,
-                    batch_index=global_batch_index,
-                    start_index=i,
-                    end_index=i + len(batch_texts),
-                    texts=batch_texts
+                batch_task = self._make_batch_task(
+                    file_task, global_batch_index, i, batch_texts, translation_indices[i:]
                 )
                 batch_tasks.append(batch_task)
                 global_batch_index += 1
         
         return batch_tasks
+
+    def _make_batch_task(
+        self,
+        file_task: FileTask,
+        batch_index: int,
+        start_index: int,
+        texts: List[str],
+        translation_indices: List[int],
+    ) -> BatchTask:
+        batch_task = BatchTask(
+            file_task=file_task,
+            batch_index=batch_index,
+            start_index=start_index,
+            end_index=start_index + len(texts),
+            texts=texts,
+            context_entries=self._build_source_context(
+                file_task, translation_indices[:len(texts)]
+            ),
+        )
+        if self.context_selector is not None:
+            source_entries = self._source_entries(file_task)
+            requested_entries = [
+                source_entries[index]
+                for index in translation_indices[:len(texts)]
+                if 0 <= index < len(source_entries)
+            ]
+            summaries, metadata = self.context_selector.select_for_batch(
+                file_task.file_path or file_task.filename,
+                requested_entries,
+            )
+            batch_task.context_summaries = summaries
+            batch_task.context_metadata = metadata
+        return batch_task
+
+    @staticmethod
+    def _translation_entry_indices(file_task: FileTask, text_count: int) -> List[int]:
+        indices = list(file_task.translation_entry_indices)
+        if len(indices) != text_count:
+            return list(range(text_count))
+        return indices
+
+    @staticmethod
+    def _source_entries(file_task: FileTask) -> List[Dict[str, str]]:
+        if file_task.source_entries:
+            return [
+                {
+                    "key": str(entry.get("key", entry.get("key_part", ""))),
+                    "source": str(entry.get("source", "")),
+                }
+                for entry in file_task.source_entries
+            ]
+
+        key_map = file_task.key_map
+        entries = []
+        for index, source in enumerate(file_task.texts_to_translate):
+            key_info = key_map.get(index, {}) if isinstance(key_map, dict) else {}
+            if isinstance(key_map, list) and index < len(key_map):
+                key_info = key_map[index]
+            entries.append({
+                "key": str(key_info.get("key", key_info.get("key_part", ""))),
+                "source": source,
+            })
+        return entries
+
+    def _build_source_context(
+        self,
+        file_task: FileTask,
+        translation_indices: List[int],
+    ) -> List[Dict[str, str]]:
+        if self.source_context_overlap <= 0 or not translation_indices:
+            return []
+
+        source_entries = self._source_entries(file_task)
+        requested_indices = set(translation_indices)
+        context_indices = set()
+        for source_index in translation_indices:
+            for distance in range(1, self.source_context_overlap + 1):
+                for candidate in (source_index - distance, source_index + distance):
+                    if 0 <= candidate < len(source_entries) and candidate not in requested_indices:
+                        context_indices.add(candidate)
+
+        return [
+            source_entries[index]
+            for index in range(len(source_entries))
+            if index in context_indices
+        ]
 
     def _process_batches_parallel(
         self,
@@ -249,6 +339,7 @@ class ParallelProcessor:
                 
                 chunk_size = self._resolve_chunk_size(file_task.provider_name)
                 texts = file_task.texts_to_translate
+                translation_indices = self._translation_entry_indices(file_task, len(texts))
                 total_batches = (len(texts) + chunk_size - 1) // chunk_size
                 file_batch_counts[file_task.filename] = total_batches
                 file_buffers[file_task.filename] = {}
@@ -258,14 +349,13 @@ class ParallelProcessor:
                     batch_texts = texts[i:i + chunk_size]
                     batch_index = i // chunk_size
                     
-                    batch_task = BatchTask(
-                        file_task=file_task,
-                        batch_index=batch_index,
-                        start_index=i,
-                        end_index=i + len(batch_texts),
-                        texts=batch_texts
+                    batch_task = self._make_batch_task(
+                        file_task,
+                        batch_index,
+                        i,
+                        batch_texts,
+                        translation_indices[i:],
                     )
-                    
                     future = executor.submit(self._process_single_batch, batch_task, translation_function)
                     future_to_info[future] = (file_task.filename, batch_index, batch_task)
                 return False, None

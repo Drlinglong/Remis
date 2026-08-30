@@ -43,6 +43,7 @@ BLOCKING_KINDS = {
     "agent_workshop",
     "repair",
     "neologism_mining",
+    "context_archive_analysis",
 }
 TERMINAL_STATUS_MAP = {
     "completed": "completed",
@@ -62,6 +63,7 @@ ROUTE_BY_KIND = {
     "agent_workshop_scan": "/agent-workshop",
     "repair": "/agent-workshop",
     "neologism_mining": "/neologism-review",
+    "context_archive_analysis": "/neologism-review",
     "dry_run": "/project-management",
 }
 TITLE_BY_KIND = {
@@ -73,6 +75,7 @@ TITLE_BY_KIND = {
     "agent_workshop_batch": "Format Repair batch",
     "repair": "Format repair",
     "neologism_mining": "Neologism mining",
+    "context_archive_analysis": "Project archive analysis",
     "dry_run": "Agent dry run",
 }
 
@@ -141,7 +144,7 @@ def _from_live_task(task: Dict[str, Any], agent_job: Optional[Dict[str, Any]]) -
             "types": ["change_summary"],
             "summary": f"{len(task.get('results') or [])} change(s) recorded",
         }
-    if not result and kind == "neologism_mining" and task.get("summary"):
+    if not result and kind in {"neologism_mining", "context_archive_analysis"} and task.get("summary"):
         summary = task.get("summary") or {}
         result = {
             "types": ["glossary_entries"],

@@ -89,6 +89,15 @@ def _process_file_tasks(
                 )
 
 
+def _build_parallel_processor(max_workers, chunk_size, source_context_overlap, context_selection):
+    processor_kwargs = {"max_workers": max_workers, "chunk_size_override": chunk_size}
+    if source_context_overlap:
+        processor_kwargs["source_context_overlap"] = source_context_overlap
+    if context_selection is not None:
+        processor_kwargs["context_selector"] = context_selection
+    return ParallelProcessor(**processor_kwargs)
+
+
 def run_language_translation(
     *,
     mod_name: str,
@@ -114,6 +123,8 @@ def run_language_translation(
     batch_size_limit: Optional[int],
     embedded_workshop: Optional[dict],
     reference_reuse: Optional[dict] = None,
+    source_context_overlap: int = 0,
+    context_selection: Optional[Any] = None,
 ) -> dict:
     logging.info(i18n.t("translating_to_language", lang_name=target_lang["name"]))
     proofreading_tracker = create_proofreading_tracker(
@@ -125,7 +136,7 @@ def run_language_translation(
         model_name,
         source_lang,
         target_lang,
-        use_resume,
+        use_resume, context_metadata=context_selection.metadata if context_selection else None,
     )
     run_state = LanguageRunState()
     progress_lock = threading.Lock()
@@ -176,7 +187,12 @@ def run_language_translation(
     )
 
     max_workers = resolve_max_workers(concurrency_limit, selected_provider)
-    processor = ParallelProcessor(max_workers=max_workers, chunk_size_override=effective_chunk_size)
+    processor = _build_parallel_processor(
+        max_workers,
+        effective_chunk_size,
+        source_context_overlap,
+        context_selection,
+    )
     _process_file_tasks(
         processor=processor,
         file_task_generator=file_task_generator,

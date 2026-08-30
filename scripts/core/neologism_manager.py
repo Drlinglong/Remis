@@ -56,6 +56,10 @@ class Candidate(BaseModel):
     frequency: int = 0
     category: str = "other"
     confidence: float = 0.5
+    tier: Literal["A", "B", "C"] | None = None
+    local_unit_coverage: int = 0
+    mention_count: int = 0
+    suggestion_variants: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class NeologismManager:
@@ -349,6 +353,27 @@ class NeologismManager:
             if not candidate:
                 return False
             candidate.suggestion = suggestion.strip()
+            self._save_candidates_unlocked(project_id, candidates)
+        return True
+
+    def select_candidate_variant(self, project_id: str, candidate_id: str, variant_id: str) -> bool:
+        """Select one retained AI variant and keep its translation and explanation together."""
+        with self._candidate_lock(project_id):
+            candidates = self._load_candidates_unlocked(project_id)
+            candidate = next((item for item in candidates if item.id == candidate_id), None)
+            if not candidate:
+                return False
+            selected = next(
+                (
+                    variant for variant in candidate.suggestion_variants
+                    if str(variant.get("variant_id") or "") == variant_id
+                ),
+                None,
+            )
+            if selected is None:
+                return False
+            candidate.suggestion = str(selected.get("suggestion") or "").strip()
+            candidate.reasoning = str(selected.get("reasoning") or "").strip()
             self._save_candidates_unlocked(project_id, candidates)
         return True
 

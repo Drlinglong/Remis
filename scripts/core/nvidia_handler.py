@@ -52,6 +52,7 @@ class NvidiaHandler(BaseApiHandler):
             response = client.chat.completions.create(
                 **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
+            self._record_model_response(response)
             
             # Robust extraction of content
             message = response.choices[0].message

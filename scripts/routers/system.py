@@ -86,7 +86,6 @@ def _remove_sqlite_family(db_path: str):
         if os.path.exists(candidate):
             os.remove(candidate)
 
-
 @router.get("/reference-library")
 def get_reference_library_status():
     payload = reference_library_service.status()

@@ -6,7 +6,7 @@ import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
 import { buildProofreadingUrl } from '../../utils/proofreadingLinks';
 import { formatLocalizedDateTime, getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
-import styles from '../../pages/ProjectManagement.module.css';
+import styles from './ProjectDetailSurfaces.module.css';
 
 const ProjectValidation = ({ projectId }) => {
   const { t, i18n } = useTranslation();

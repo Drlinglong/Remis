@@ -1,4 +1,3 @@
-import hashlib
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -6,6 +5,7 @@ from typing import Any, Dict, List, Optional
 from scripts.app_settings import GAME_PROFILES_BY_ID
 from scripts.core.repositories.project_repository import ProjectRepository
 from scripts.core.repositories.project_watch_repository import ProjectWatchRepository
+from scripts.core.services.source_snapshot_service import sha256_file
 from scripts.shared import task_state
 
 
@@ -456,11 +456,7 @@ class ProjectWatchService:
         return unique
 
     def _sha256(self, path: Path) -> str:
-        digest = hashlib.sha256()
-        with path.open("rb") as handle:
-            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                digest.update(chunk)
-        return digest.hexdigest()
+        return sha256_file(path)
 
     def _public_snapshot(self, item: Dict[str, Any]) -> Dict[str, Any]:
         return {

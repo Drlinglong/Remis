@@ -2,9 +2,9 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { useTranslation } from 'react-i18next';
 import { CSS } from '@dnd-kit/utilities';
-import { Paper, Text, Group, Badge, ActionIcon, Tooltip } from '@mantine/core';
+import { Text, Group, Badge } from '@mantine/core';
 import { IconFileText, IconNote } from '@tabler/icons-react';
-import styles from '../../pages/ProjectManagement.module.css';
+import styles from './TaskCard.module.css';
 
 export const TaskCard = ({ task, onClick }) => {
     const { t } = useTranslation();
@@ -22,20 +22,18 @@ export const TaskCard = ({ task, onClick }) => {
         transition,
     };
 
-    // Determine badge content
-    let badge = null;
+    let badgeColor = 'gray';
+    let badgeLabel = t('project_management.kanban.badge_metadata');
     if (task.type === 'file') {
         if (task.meta?.file_type === 'source') {
-            badge = <Badge size="xs" color="blue" variant="light">{t('project_management.kanban.badge_source')}</Badge>;
+            badgeColor = 'blue';
+            badgeLabel = t('project_management.kanban.badge_source');
         } else if (task.meta?.file_type === 'translation') {
-            badge = <Badge size="xs" color="violet" variant="light">{t('project_management.kanban.badge_translation')}</Badge>;
-        } else if (task.meta?.file_type === 'metadata' || task.meta?.file_type === 'config') {
-            badge = <Badge size="xs" color="gray" variant="light">{t('project_management.kanban.badge_metadata')}</Badge>;
+            badgeColor = 'violet';
+            badgeLabel = t('project_management.kanban.badge_translation');
         }
-    } else {
-        // Assume note or other types are metadata related or just generic
-        badge = <Badge size="xs" color="gray" variant="light">{t('project_management.kanban.badge_metadata')}</Badge>;
     }
+    const badge = <Badge size="xs" color={badgeColor} variant="light">{badgeLabel}</Badge>;
 
     return (
         <div
@@ -43,17 +41,27 @@ export const TaskCard = ({ task, onClick }) => {
             style={style}
             {...attributes}
             {...listeners}
-            onClick={() => onClick(task)}
+            aria-label={`${task.title}; ${badgeLabel}`}
+            onClick={() => onClick?.(task)}
+            onKeyDown={(event) => {
+                listeners?.onKeyDown?.(event);
+                if (event.key === 'Enter' && !event.defaultPrevented && onClick) {
+                    event.preventDefault();
+                    onClick(task);
+                }
+            }}
+            data-remis-surface="surface"
+            data-task-kind={task.type === 'file' ? 'file' : 'note'}
             className={`${styles.taskCard} ${isDragging ? styles.taskCardDragging : ''} ${task.type === 'file' ? styles.fileTaskIndicator : styles.noteTaskIndicator}`}
         >
             <Group justify="space-between" align="flex-start" wrap="nowrap">
-                <Group gap="xs" wrap="nowrap" style={{ flex: 1, overflow: 'hidden' }}>
+                <Group gap="xs" wrap="nowrap" className={styles.taskIdentity}>
                     {task.type === 'file' ? (
                         <IconFileText size={16} style={{ minWidth: 16 }} color="var(--color-info)" />
                     ) : (
                         <IconNote size={16} style={{ minWidth: 16 }} color="var(--color-warning)" />
                     )}
-                    <Text size="sm" fw={500} truncate title={task.title}>
+                    <Text size="sm" fw={600} truncate title={task.title}>
                         {task.title}
                     </Text>
                 </Group>

@@ -1,0 +1,154 @@
+.projectCanvas {
+    --mantine-color-text: var(--canvas-text-main) !important;
+    --mantine-color-dimmed: var(--canvas-text-muted) !important;
+    display: flex;
+    min-width: 0;
+    height: 100%;
+    flex-direction: column;
+    overflow: hidden;
+    color: var(--canvas-text-main);
+}
+
+.identityBar {
+    display: grid;
+    flex: 0 0 auto;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) clamp(var(--space-4), 2vw, var(--space-8));
+    border-bottom: 1px solid color-mix(in srgb, var(--canvas-text-main) 16%, transparent);
+}
+
+.backButton {
+    align-self: center;
+}
+
+.projectIdentity {
+    min-width: 0;
+}
+
+.kicker,
+.navLabel {
+    color: var(--canvas-text-muted);
+    font-size: var(--type-size-label);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.projectTitle {
+    overflow-wrap: anywhere;
+    color: var(--canvas-text-main);
+    font-family: var(--font-header);
+    font-size: clamp(1.35rem, 2vw, 1.75rem);
+    line-height: var(--type-leading-tight);
+}
+
+.identityMeta {
+    margin-top: var(--space-1);
+    color: var(--canvas-text-muted);
+}
+
+.statusBadge[data-status='active'] {
+    color: var(--status-success);
+    border-color: var(--status-success);
+}
+
+.statusBadge[data-status='archived'] {
+    color: var(--status-warning);
+    border-color: var(--status-warning);
+}
+
+.statusBadge[data-status='deleted'] {
+    color: var(--status-error);
+    border-color: var(--status-error);
+}
+
+.headerLoading {
+    flex: 0 0 auto;
+    margin: 0 clamp(var(--space-4), 2vw, var(--space-8)) var(--space-3);
+    padding: var(--space-4);
+    color: var(--surface-text-muted);
+    background: var(--surface-bg-solid);
+    border: 1px solid var(--surface-border-quiet);
+    border-radius: var(--radius-panel);
+}
+
+.tabsRoot {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.tabsList {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: var(--space-1);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: var(--space-2) clamp(var(--space-4), 2vw, var(--space-8)) 0;
+    background: color-mix(in srgb, var(--canvas-bg-solid) 84%, transparent);
+    scrollbar-width: thin;
+}
+
+.tabsList :global(.mantine-Tabs-tab) {
+    min-height: 42px;
+    flex: 0 0 auto;
+}
+
+.navLabel {
+    align-self: center;
+    flex: 0 0 auto;
+    padding-inline: var(--space-2);
+}
+
+.navSeparator {
+    width: 1px;
+    height: 24px;
+    align-self: center;
+    flex: 0 0 auto;
+    margin-inline: var(--space-2);
+    background: color-mix(in srgb, var(--canvas-text-main) 22%, transparent);
+}
+
+.tabsPanel {
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+}
+
+.scrollPanel {
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-4) clamp(var(--space-4), 2vw, var(--space-8));
+}
+
+.kanbanPanel {
+    overflow: hidden;
+    padding: 0;
+}
+
+@media (max-width: 700px) {
+    .identityBar {
+        grid-template-columns: 1fr;
+    }
+
+    .backButton {
+        justify-self: start;
+    }
+
+    .navLabel,
+    .navSeparator {
+        display: none;
+    }
+
+    .tabsList {
+        padding-inline: var(--space-2);
+    }
+
+    .scrollPanel {
+        padding: var(--space-3);
+    }
+}

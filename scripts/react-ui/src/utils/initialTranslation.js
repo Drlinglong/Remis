@@ -1,3 +1,19 @@
+export const TRANSLATION_CONTEXT_MODES = Object.freeze({
+  NONE: 'none',
+  GLOSSARIES: 'glossaries',
+  ARCHIVE: 'archive',
+});
+
+export function resolveTranslationContextMode(values = {}) {
+  const validModes = new Set(Object.values(TRANSLATION_CONTEXT_MODES));
+  if (validModes.has(values.translation_context_mode)) {
+    return values.translation_context_mode;
+  }
+  return values.use_main_glossary === false
+    ? TRANSLATION_CONTEXT_MODES.NONE
+    : TRANSLATION_CONTEXT_MODES.ARCHIVE;
+}
+
 export function normalizeProjects(projects = []) {
   return projects.map((project) => ({
     value: project.project_id,
@@ -140,14 +156,18 @@ export function buildTranslationDetails(values, selectedProject, languages = {})
 
 export function buildTranslationPayload(values, selectedProjectId, selectedProject = null) {
   const sourceLangCode = resolveProjectSourceLanguage(values, selectedProject);
+  const translationContextMode = resolveTranslationContextMode(values);
+  const useGlossaries = translationContextMode !== TRANSLATION_CONTEXT_MODES.NONE;
   const payload = {
     project_id: selectedProjectId,
     source_lang_code: sourceLangCode,
     api_provider: values.api_provider,
     model: values.model_name,
     mod_context: values.mod_context,
-    selected_glossary_ids: values.selected_glossary_ids,
-    use_main_glossary: values.use_main_glossary,
+    selected_glossary_ids: useGlossaries ? values.selected_glossary_ids : [],
+    translation_context_mode: translationContextMode,
+    use_main_glossary: useGlossaries,
+    use_project_context: translationContextMode === TRANSLATION_CONTEXT_MODES.ARCHIVE,
     clean_source: values.clean_source,
     use_resume: values.use_resume,
     reference_reuse: {

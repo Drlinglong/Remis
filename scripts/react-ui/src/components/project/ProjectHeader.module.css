@@ -1,0 +1,67 @@
+.header {
+    flex: 0 0 auto;
+    margin: 0 clamp(var(--space-4), 2vw, var(--space-8)) var(--space-3);
+    background: var(--surface-bg-solid) !important;
+    border-color: var(--surface-border-anchor) !important;
+    border-radius: var(--radius-panel) !important;
+    box-shadow: var(--shadow-anchor) !important;
+}
+
+.stageRail {
+    display: grid;
+    grid-template-columns: minmax(8rem, 0.7fr) minmax(15rem, 1.5fr) minmax(10rem, 0.8fr) minmax(10rem, 0.8fr);
+    gap: var(--space-2);
+}
+
+.stageCard {
+    min-width: 0;
+    padding: var(--space-3) !important;
+    box-shadow: var(--shadow-quiet) !important;
+}
+
+.stageCard[data-stage-state='active'] {
+    border-color: var(--surface-border-anchor) !important;
+}
+
+.stageCard[data-stage-state='blocked'] {
+    border-color: var(--status-error) !important;
+}
+
+.stageLabel {
+    color: var(--surface-text-muted);
+    font-size: var(--type-size-label);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.projectFacts {
+    margin-top: var(--space-3);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--surface-border-quiet);
+}
+
+@media (max-width: 980px) {
+    .stageRail {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .header {
+        margin-inline: var(--space-3);
+    }
+
+    .stageRail {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x proximity;
+        scrollbar-width: thin;
+    }
+
+    .stageCard {
+        min-width: 13rem;
+        flex: 0 0 13rem;
+        scroll-snap-align: start;
+    }
+}

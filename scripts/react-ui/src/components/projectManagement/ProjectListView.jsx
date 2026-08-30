@@ -1,27 +1,24 @@
 import React from 'react';
 import {
-  BackgroundImage,
   Badge,
   Box,
   Button,
   Card,
-  Center,
   Group,
   Input,
-  Overlay,
-  SimpleGrid,
   Text,
   Title,
 } from '@mantine/core';
 import {
   IconArchive,
   IconArrowLeft,
+  IconArrowRight,
+  IconFolderOff,
   IconPlus,
   IconSearch,
 } from '@tabler/icons-react';
 
-import heroBg from '../../assets/project_hero_bg.png';
-import styles from '../../pages/ProjectManagement.module.css';
+import styles from './ProjectListView.module.css';
 import { getGameBadgeColor } from '../../utils/gamePresentation';
 import { formatCurrentLocalizedDateTime } from '../../utils/localizedDateTime';
 
@@ -35,116 +32,136 @@ export function ProjectListView({
   t,
   viewMode,
 }) {
+  const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredProjects = projects.filter((project) => (
-    project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    project.game_id.toLowerCase().includes(searchQuery.toLowerCase())
+    String(project.name || '').toLowerCase().includes(normalizedQuery)
+    || String(project.game_id || '').toLowerCase().includes(normalizedQuery)
   ));
+  const isArchive = viewMode === 'archives';
 
   return (
-    <div id="project-list-container" style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box className={styles.heroSection}>
-        <BackgroundImage src={heroBg} radius="md" style={{ height: '100%' }}>
-          <Overlay color="#000" opacity={0.6} zIndex={1} radius="md" />
-          <Center p="md" style={{ height: '100%', position: 'relative', zIndex: 2, flexDirection: 'column' }}>
-            <Title order={1} className={styles.heroTitle}>
-              {viewMode === 'active' ? t('page_title_project_management') : t('project_management.archives_title')}
+    <div id="project-list-container" className={styles.page} data-remis-surface="canvas">
+      <header className={styles.workspaceHeader}>
+        <Box className={styles.orientationCopy}>
+          <Text className={styles.kicker}>
+            {t('project_management.workspace_label', 'Project library')}
+          </Text>
+          <Group gap="sm" align="center" wrap="wrap">
+            <Title order={1} className={styles.pageTitle}>
+              {isArchive ? t('project_management.archives_title') : t('page_title_project_management')}
             </Title>
-            <Text size="lg" mt="sm" className={styles.heroSubtitle}>
-              {viewMode === 'active' ? t('project_management.hero_desc') : t('project_management.actions.archives_desc')}
+            <Badge size="lg" variant="outline">{projects.length}</Badge>
+          </Group>
+          <Text className={styles.pageDescription}>
+            {isArchive
+              ? t('project_management.actions.archives_desc')
+              : t('project_management.hero_desc')}
+          </Text>
+        </Box>
+
+        <Group className={styles.headerActions} align="center" wrap="wrap">
+          {!isArchive && (
+            <Button
+              id="create-project-btn"
+              data-remis-action="primary"
+              leftSection={<IconPlus size={18} />}
+              onClick={() => setIsCreateModalOpen(true)}
+            >
+              {t('project_management.actions.create_new')}
+            </Button>
+          )}
+          <Button
+            variant="default"
+            leftSection={isArchive ? <IconArrowLeft size={18} /> : <IconArchive size={18} />}
+            onClick={() => setViewMode(isArchive ? 'active' : 'archives')}
+          >
+            {isArchive ? t('button_back') : t('project_management.actions.archives')}
+          </Button>
+        </Group>
+      </header>
+
+      <section className={styles.projectContent} aria-labelledby="project-list-heading">
+        <div className={styles.listToolbar}>
+          <Box>
+            <Text className={styles.sectionLabel}>
+              {isArchive
+                ? t('project_management.archived_projects', 'Archived projects')
+                : t('project_management.active_projects', 'Active projects')}
             </Text>
+            <Title id="project-list-heading" order={2} className={styles.sectionTitle}>
+              {t('project_management.project_count', '{{count}} projects', { count: filteredProjects.length })}
+            </Title>
+          </Box>
+          <Input
+            leftSection={<IconSearch size={16} />}
+            placeholder={t('translation_page.search_placeholder')}
+            size="md"
+            className={styles.search}
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.currentTarget.value)}
+          />
+        </div>
 
-            <Group mt="lg" className={styles.heroControls}>
-              {viewMode === 'archives' && (
-                <Button variant="outline" color="gray" leftSection={<IconArrowLeft />} onClick={() => setViewMode('active')}>
-                  {t('button_back')}
-                </Button>
-              )}
-              <Input
-                icon={<IconSearch size={16} />}
-                placeholder={t('translation_page.search_placeholder')}
-                radius="xl"
-                size="md"
-                className={styles.heroSearch}
-                classNames={{ input: styles.heroSearchInput }}
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.currentTarget.value)}
-              />
-            </Group>
-          </Center>
-        </BackgroundImage>
-      </Box>
-
-      <Box className={styles.projectContent} data-remis-surface="canvas">
-        {viewMode === 'active' && (
-          <Box className={styles.actionsSection} data-remis-surface="canvas">
-            <Box>
-              <Title order={3}>
-                {t('project_management.file_list.table.actions')}
-              </Title>
-              <Text size="sm" c="dimmed" mt={4}>
-                {t('project_management.actions.create_new_desc')}
-              </Text>
-            </Box>
-            <Group className={styles.actionToolbar}>
-              <Button
-                id="create-project-btn"
-                leftSection={<IconPlus size={18} />}
-                onClick={() => setIsCreateModalOpen(true)}
+        {filteredProjects.length > 0 ? (
+          <div className={styles.projectGrid}>
+            {filteredProjects.map((project) => (
+              <Card
+                component="button"
+                type="button"
+                key={project.project_id}
+                padding="lg"
+                onClick={() => setSelectedProjectId(project.project_id)}
+                className={styles.projectCard}
+                data-remis-surface="surface"
+                aria-label={t('project_management.open_project', 'Open {{name}}', { name: project.name })}
               >
-                {t('project_management.actions.create_new')}
-              </Button>
+                <Group justify="space-between" align="flex-start" wrap="nowrap">
+                  <Box className={styles.projectIdentity}>
+                    <Text className={styles.projectTitle}>{project.name}</Text>
+                    <Text size="sm" className={styles.projectNotes} lineClamp={2}>
+                      {project.notes || t('project_management.no_notes', 'No notes')}
+                    </Text>
+                  </Box>
+                  <IconArrowRight className={styles.openIcon} size={20} aria-hidden="true" />
+                </Group>
 
-              <Button
-                variant="subtle"
-                color="gray"
-                leftSection={<IconArchive size={18} />}
-                onClick={() => setViewMode('archives')}
-              >
-                {t('project_management.actions.archives')}
-              </Button>
-            </Group>
+                <Group className={styles.projectMeta} justify="space-between" align="center" wrap="wrap">
+                  <Group gap="xs">
+                    <Badge
+                      color={getGameBadgeColor(project.game_id)}
+                      data-game-color={getGameBadgeColor(project.game_id)}
+                      variant="filled"
+                    >
+                      {project.game_id}
+                    </Badge>
+                    <Badge variant="outline">
+                      {t(`project_management.status.${project.status}`, project.status)}
+                    </Badge>
+                  </Group>
+                  <Text size="xs" className={styles.updatedAt}>
+                    {t('project_management.last_updated', 'Last updated')}: {' '}
+                    {formatCurrentLocalizedDateTime(project.last_updated || Date.now(), { dateStyle: 'short' })}
+                  </Text>
+                </Group>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Box className={styles.emptyState} data-remis-surface="surface">
+            <IconFolderOff size={32} aria-hidden="true" />
+            <Title order={3}>
+              {normalizedQuery
+                ? t('project_management.no_search_results', 'No matching projects')
+                : t('project_management.no_projects', 'No projects here yet')}
+            </Title>
+            <Text size="sm">
+              {normalizedQuery
+                ? t('project_management.no_search_results_hint', 'Try a project name or game identifier.')
+                : t('project_management.no_projects_hint', 'Create a project from a local mod folder to begin.')}
+            </Text>
           </Box>
         )}
-
-        <Title order={3} mt="xl" mb="md">
-          {viewMode === 'active' ? t('page_title_project_management') : t('project_management.archives_title')}
-          <Badge ml="md" size="lg" variant="outline">
-            {filteredProjects.length}
-          </Badge>
-        </Title>
-
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} gap="lg">
-          {filteredProjects.map((project) => (
-            <Card
-              key={project.project_id}
-              padding="lg"
-              radius="md"
-              onClick={() => setSelectedProjectId(project.project_id)}
-              className={styles.projectCard}
-              data-remis-surface="surface"
-            >
-              <Group justify="space-between" mb="xs">
-                <Text fw={500} className={styles.projectTitle}>{project.name}</Text>
-                <Badge
-                  color={getGameBadgeColor(project.game_id)}
-                  data-game-color={getGameBadgeColor(project.game_id)}
-                  variant="filled"
-                >
-                  {project.game_id}
-                </Badge>
-              </Group>
-              <Text size="sm" color="dimmed" lineClamp={2}>
-                {project.notes || t('project_management.no_notes', 'No notes')}
-              </Text>
-              <Group mt="md">
-                <Text size="xs" color="dimmed">
-                  {t('project_management.last_updated', 'Last updated')}: {formatCurrentLocalizedDateTime(project.last_updated || Date.now(), { dateStyle: 'short' })}
-                </Text>
-              </Group>
-            </Card>
-          ))}
-        </SimpleGrid>
-      </Box>
+      </section>
     </div>
   );
 }

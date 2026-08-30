@@ -44,6 +44,19 @@ def _split_reference_hits(texts, key_map, reference_resolver, source_file=""):
     return model_texts, model_positions, reference_translations
 
 
+def _build_source_entries(texts: List[str], key_map: Any) -> List[dict]:
+    entries = []
+    for index, text in enumerate(texts):
+        key_info = key_map[index] if isinstance(key_map, list) and index < len(key_map) else {}
+        if isinstance(key_map, dict):
+            key_info = key_map.get(index, {})
+        entries.append({
+            "key": str(key_info.get("key", key_info.get("key_part", ""))),
+            "source": text,
+        })
+    return entries
+
+
 def build_file_task_iterator(
     all_files_content: List[dict],
     checkpoint_manager: CheckpointManager,
@@ -152,4 +165,6 @@ def build_file_task_iterator(
             ),
             model_result_positions=model_positions,
             reference_translations=reference_translations,
+            source_entries=file_data.get("source_entries") or _build_source_entries(texts, key_map),
+            translation_entry_indices=model_positions,
         )

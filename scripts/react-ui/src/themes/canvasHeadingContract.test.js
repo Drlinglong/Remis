@@ -13,14 +13,14 @@ describe('canvas heading theme contract', () => {
     const contract = definitions.slice(contractStart, contractStart + 420);
 
     expect(contractStart).toBeGreaterThan(-1);
-    expect(contract).toContain('color: var(--canvas-text-main) !important');
-    expect(contract).toContain('text-shadow: none !important');
-    expect(contract).toContain('background: transparent !important');
+    expect(contract).toContain('color: var(--canvas-text-main);');
+    expect(contract).toContain('text-shadow: none;');
+    expect(contract).toContain('background: transparent;');
   });
 
   it('marks the affected workbench pages as canvas surfaces', () => {
     [
-      'src/pages/HomePage.jsx',
+      'src/pages/home/HomeDashboardView.jsx',
       'src/pages/InitialTranslation.jsx',
       'src/pages/IncrementalTranslationPage.jsx',
       'src/components/projectManagement/ProjectListView.jsx',

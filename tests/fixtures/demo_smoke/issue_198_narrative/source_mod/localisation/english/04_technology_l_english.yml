@@ -1,0 +1,13 @@
+l_english:
+ # Batch 04: Remis reforms the failing system instead of admiring its ruins.
+ tech_accord_lattice:0 "Echo Lattice"
+ tech_accord_lattice_desc:0 "The Echo Lattice converts the Accord of Echoes into a navigable signal for Meridian Gate. Remis warns that the lattice remembers every route, including the route by which the Ledger-Breaker first found Kestrel Reach."
+ tech_echo_beacon:0 "Meridian Echo Beacon"
+ tech_echo_beacon_desc:0 "A beacon tuned to Kestrel Reach can carry the Meridian Seal without exposing the Cartographers' Guild's full map. The Mercy Protocol requires the beacon to answer before it opens."
+ building_meridian_archive:0 "Meridian Archive"
+ building_meridian_archive_desc:0 "The Meridian Archive stores the Echo Lattice records beneath the Meridian Council chamber, where Remis can compare the Watch of Quiet Stars' warnings with the Guild's maps."
+ policy_mercy_protocol:0 "Mercy Protocol"
+ tech_ledger_index:0 "Red Ledger Index"
+ tech_ledger_index_desc:0 "Remis teaches the Meridian Archive to index names before tonnage. \"A system that can count ships but not children is not efficient,\" she says. \"It is lazy.\""
+ tech_meridian_lock:0 "Meridian Lock"
+ tech_meridian_lock_desc:0 "The Meridian Lock can seal the gate without destroying its route memory, leaving a later government able to reopen what the Watch of Quiet Stars closes."

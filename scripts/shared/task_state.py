@@ -231,6 +231,11 @@ def _restart_recovery(task: Dict[str, Any]) -> Optional[tuple[str, str]]:
             "The app restarted before official reference library maintenance finished.",
             "This reference library task cannot resume automatically. Review the current library state before retrying.",
         )
+    if kind in {"neologism_mining", "context_archive_analysis"}:
+        return (
+            "The app restarted before this context-analysis task finished.",
+            "This context-analysis task cannot resume automatically. Start it again.",
+        )
     if (
         kind in {"agent_workshop", "agent_workshop_batch"}
         and checkpoint.get("resume_supported") is False

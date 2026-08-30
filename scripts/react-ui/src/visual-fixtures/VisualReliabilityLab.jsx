@@ -22,6 +22,15 @@ import {
   IconX,
 } from '@tabler/icons-react';
 
+import {
+  ArchiveSummary,
+  ReleaseMetadata,
+} from '../components/neologism/PublishedArchiveContent';
+import RemoveModArchiveControl from '../components/neologism/RemoveModArchiveControl';
+import ContextArchiveTreeVisualFixture from './ContextArchiveTreeVisualFixture';
+import HomeDashboardVisualFixture from './HomeDashboardVisualFixture';
+import JudgmentCourtVisualFixture from './JudgmentCourtVisualFixture';
+import ProjectManagementVisualFixture from './ProjectManagementVisualFixture';
 import styles from './VisualReliabilityLab.module.css';
 
 const longProjectName = 'Project Remis — Demo Mod — Stellaris — 超长项目身份验证';
@@ -90,9 +99,183 @@ function ProjectGlossaryContrastFixture({ themeId }) {
   );
 }
 
+const archiveTranslations = {
+  'mod_archive.release.read_only': '只读发布版本，人工修订将写入新草稿。',
+  'mod_archive.release.start_draft': '从此版本开始草稿',
+  'mod_archive.release.refresh': '刷新',
+  'mod_archive.release.created_at': '发布时间',
+  'mod_archive.release.provider': '供应商',
+  'mod_archive.release.model': '模型',
+  'mod_archive.release.metadata_title': '版本元数据',
+  'mod_archive.release.release_id': '版本 ID',
+  'mod_archive.release.project_id': '项目 ID',
+  'mod_archive.release.analysis_scope': '范围',
+  'mod_archive.release.analysis_scopes.narrative_context': '完整档案分析',
+  'mod_archive.release.schema_version': '档案格式版本',
+  'mod_archive.release.prompt_example': '分析提示词示例',
+  'mod_archive.release.prompt_example_unavailable': '此旧版本没有可用的提示词示例。',
+  'mod_archive.release.source_snapshot': '源快照',
+  'mod_archive.release.upstream_version': '上游版本',
+  'mod_archive.release.parent_release': '父版本',
+  'mod_archive.release.not_available': '未记录',
+  'mod_archive.release.summary_title': '有效档案摘要',
+  'mod_archive.release.summary_desc': '这些值合并了生成摘要，以及版本中保留的人工覆盖值。',
+  'mod_archive.release.project_summary': '项目摘要',
+  'mod_archive.release.event_summary': '事件摘要',
+  'mod_archive.release.entity_summary': '实体摘要',
+  'mod_archive.release.no_project_summary': '暂无项目摘要。',
+  'mod_archive.release.no_event_summary': '暂无事件摘要。',
+  'mod_archive.release.no_entity_summary': '暂无实体摘要。',
+  'mod_archive.release.override_badge': '人工覆盖',
+  'mod_archive.release.effective_override': '有效覆盖值',
+  'mod_archive.release.term_status.approved': '项目词典',
+  'mod_archive.release.term_status.suggested': '待审建议',
+  'mod_archive.release.provenance.text_inferred': '文本推断',
+  'mod_archive.release.provenance.script_derived': '脚本结构推导',
+  'mod_archive.release.contribution_type.fact': '事实',
+  'mod_archive.release.contribution_type.event': '事件',
+  'mod_archive.release.traceability_title': '源文件来源依据与可追溯性',
+  'mod_archive.release.traceability_desc': '按项目、事件与实体检查每个展示对象的来源证据。',
+  'mod_archive.release.evidence_membership_count': '摘要证据：{{count}}',
+  'mod_archive.release.delivery_membership_count': '翻译覆盖：{{count}}',
+  'mod_archive.release.traceability_empty': '此版本没有可用的追踪记录。',
+  'mod_archive.release.removal.open': '移除项目档案',
+  'mod_archive.release.removal.title': '移除项目档案',
+  'mod_archive.release.removal.warning_title': '这会移除所有已生成的档案数据',
+  'mod_archive.release.removal.warning_desc': '该项目的发布版本、草稿、证据聚合和可续传分析检查点都会被永久移除。',
+  'mod_archive.release.removal.confirm': '确定移除“{{project}}”的完整档案吗？之后可以重新运行完整档案分析来重建。',
+  'mod_archive.release.removal.preserved': 'Mod 源文件、项目、项目词典和新词候选会保留。',
+  'mod_archive.release.removal.cancel': '保留档案',
+  'mod_archive.release.removal.confirm_action': '确认移除档案',
+  'mod_archive.release.removal.error': '无法移除项目档案。',
+};
+
+const archiveT = (key, options = {}) => String(archiveTranslations[key] || key).replace(
+  /\{\{(\w+)\}\}/g,
+  (_match, name) => String(options[name] ?? `{{${name}}}`),
+);
+
+function PublishedArchiveVisualFixture() {
+  const entries = [
+    {
+      key: 'project:summary', kind: 'project', label: 'summary',
+      value: { summary: '一个围绕瑞米斯女皇与银河共和国危机展开的叙事型模组。' },
+    },
+    {
+      key: 'event:remis_crisis', kind: 'event', label: 'remis_crisis',
+      value: { summary: '瑞米斯夺取最高权力，旧共和国在忠诚与反抗之间分裂。' },
+    },
+    {
+      key: 'entity:empress remis', kind: 'entity', label: 'empress remis',
+      termReference: { translation: '瑞米斯女皇', status: 'suggested' },
+      value: { summary: '原为最高议长，后通过武力夺权并重组银河共和国。' },
+    },
+    {
+      key: 'entity:galactic republic', kind: 'entity', label: 'galactic republic',
+      termReference: { translation: '银河共和国', status: 'approved' },
+      value: { summary: '横跨多个星区的政体，也是危机事件链的主要舞台。' },
+    },
+    {
+      key: 'entity:watch of quiet stars', kind: 'entity', label: 'watch of quiet stars',
+      termReference: { translation: '寂星守望者', status: 'suggested' },
+      value: { summary: '秘密监视政局变化并保存旧共和国记录的组织。' },
+    },
+    {
+      key: 'entity:the exceptionally long unbroken localization identifier',
+      kind: 'entity',
+      label: 'the exceptionally long unbroken localization identifier',
+      value: { summary: '用于验证长名称在并列实体卡片中仍能换行且不产生横向滚动。' },
+    },
+  ];
+  const rows = entries.flatMap((entry, index) => ([{
+    aggregateKey: entry.key,
+    aggregateType: entry.kind,
+    contributionType: entry.kind === 'event' ? 'event' : 'fact',
+    provenance: index % 2 === 0 ? 'text_inferred' : 'script_derived',
+    sourceRef: `localisation/english/remis_crisis_l_english.yml::${index + 1}:${entry.label}`,
+    sourceContent: `Source evidence for ${entry.label}.`,
+    deliveryMembershipCount: entry.kind === 'event' ? 42 : 0,
+  }]));
+  return (
+    <Box
+      className={styles.page}
+      data-remis-surface="canvas"
+      data-testid="published-archive-visual-fixture"
+      data-visual-ready="true"
+    >
+      <Group justify="flex-end" mb="md">
+        <RemoveModArchiveControl
+          projectId="project-remis-demo"
+          projectName={longProjectName}
+          onRemoved={() => {}}
+          t={archiveT}
+        />
+      </Group>
+      <ReleaseMetadata
+        release={{
+          release_id: 'release-2026-08-03',
+          project_id: 'project-remis-demo',
+          metadata: {
+            created_at: '2026-08-03T11:25:00',
+            provider_id: 'openrouter',
+            model_id: 'openai/gpt-5.6-luna',
+            source_snapshot_hash: 'a5b118aa79b335e36bb456a19f4e8300d484b2ca0d8d1288ef6136aa51c737ba',
+            schema_version: 'context-v2',
+            prompt_version: 'context-synthesis-v3',
+            analysis_config: { description_language: 'zh-CN', temperature: 0 },
+            prompt_example: 'System message:\nSummarize source-grounded localization context in Simplified Chinese.\n\nUser message:\nExample source evidence.',
+            upstream_version: '3.1.1',
+          },
+        }}
+        selectedProject="project-remis-demo"
+        scope="narrative_context"
+        draftState={{ phase: 'idle', startDraft: () => {} }}
+        refresh={() => {}}
+        showAdvanced
+        t={archiveT}
+      />
+      <ArchiveSummary
+        entries={entries}
+        counts={{ project: 1, event: 1, entity: 4 }}
+        rows={rows}
+        traceabilityState="ready"
+        traceabilityError=""
+        loadTraceability={() => {}}
+        showAdvanced
+        t={archiveT}
+      />
+    </Box>
+  );
+}
+
 export default function VisualReliabilityLab({ themeId, contract }) {
   if (contract === 'project-glossary') {
     return <ProjectGlossaryContrastFixture themeId={themeId} />;
+  }
+  if (contract === 'published-archive') {
+    return <PublishedArchiveVisualFixture />;
+  }
+  if (contract === 'context-tree') {
+    return <ContextArchiveTreeVisualFixture />;
+  }
+  if (contract?.startsWith('home-dashboard-')) {
+    return (
+      <HomeDashboardVisualFixture
+        scenario={contract.replace('home-dashboard-', '')}
+        themeId={themeId}
+      />
+    );
+  }
+  if (contract?.startsWith('project-management-')) {
+    return (
+      <ProjectManagementVisualFixture
+        scenario={contract.replace('project-management-', '')}
+        themeId={themeId}
+      />
+    );
+  }
+  if (contract === 'judgment-court') {
+    return <JudgmentCourtVisualFixture themeId={themeId} />;
   }
 
   return (

@@ -1,0 +1,33 @@
+.page {
+    min-height: 100vh;
+    padding: 24px;
+    background: var(--canvas-bg-solid);
+    color: var(--canvas-text-main);
+}
+
+.scenario {
+    min-height: calc(100vh - 48px);
+}
+
+.scenarioHeading {
+    margin-bottom: 1rem;
+}
+
+.kanbanFrame {
+    height: calc(100vh - 110px);
+    overflow: hidden;
+}
+
+@media (max-width: 700px) {
+    .page {
+        padding: 12px;
+    }
+
+    .scenario {
+        min-height: calc(100vh - 24px);
+    }
+
+    .kanbanFrame {
+        height: calc(100vh - 86px);
+    }
+}

@@ -1,89 +1,98 @@
 .pageScroll {
-    overflow-y: auto;
-    overflow-x: hidden;
+    min-width: 0;
+    min-height: 100%;
+}
+
+.content {
+    min-width: 0;
+    width: 100%;
+}
+
+.headerCopy,
+.minWidthZero,
+.taskRow {
+    min-width: 0;
 }
 
 .pageTitle {
     color: var(--text-highlight);
     font-family: var(--font-header);
-    line-height: 1.15;
-    margin-top: 4px;
+    font-size: var(--type-size-page);
+    line-height: var(--type-leading-tight);
+    margin-top: var(--space-1);
+    overflow-wrap: anywhere;
 }
 
-.welcomeBanner {
-    position: relative;
-    border-radius: 16px;
-    overflow: hidden;
-    background: linear-gradient(135deg, rgba(28, 126, 214, 0.15) 0%, rgba(34, 139, 230, 0.05) 100%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    transition: all 0.3s ease;
+.bodyMeasure {
+    max-width: var(--type-measure-body);
 }
 
-.welcomeBanner:hover {
-    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.2);
+.liveWork {
+    --remis-surface-override-border: var(--surface-border-anchor);
+    min-width: 0;
+    height: 100%;
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-anchor);
 }
 
-.welcomeBanner::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at top right, rgba(50, 150, 255, 0.1), transparent 60%);
-    z-index: 1;
-    pointer-events: none;
+.attentionAlert,
+.dashboardError {
+    --remis-surface-override-border: var(--paper-border-anchor);
+    color: var(--paper-text-main);
 }
 
-.bannerContent {
-    position: relative;
-    z-index: 2;
+.attentionAlert :global(.mantine-Alert-message),
+.attentionAlert :global(.mantine-Alert-icon),
+.dashboardError :global(.mantine-Alert-message),
+.dashboardError :global(.mantine-Alert-icon) {
+    color: var(--paper-text-main);
 }
 
-.glassCard {
-    background: var(--glass-bg) !important;
-    border: 1px solid var(--glass-border) !important;
-    border-radius: var(--card-radius) !important;
-    box-shadow: var(--shadow-elevation) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    color: var(--surface-text-main) !important;
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+.statsRail {
+    min-width: 0;
+    height: 100%;
 }
 
-.glassCard:hover {
-    border-color: var(--surface-border, var(--glass-border)) !important;
+.statCard,
+.portfolio,
+.activity {
+    --remis-surface-override-border: var(--surface-border-quiet);
+    min-width: 0;
+    border-radius: var(--radius-paper);
+    box-shadow: var(--shadow-quiet);
 }
 
-.cardTitle {
-    font-family: var(--font-header);
-    color: var(--text-highlight);
-    margin-bottom: 16px;
-    letter-spacing: 0.5px;
+.portfolio {
+    min-height: 100%;
 }
 
-.actionButton {
-    backdrop-filter: blur(4px);
-    transition: all 0.2s ease;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.chartFrame {
+    min-height: 300px;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
 }
 
-.actionButton:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    background-color: rgba(255, 255, 255, 0.1);
+.emptyState {
+    min-width: 0;
 }
 
-@keyframes float {
-    0% { transform: translateY(0px) rotate(-15deg); }
-    50% { transform: translateY(-15px) rotate(-12deg); }
-    100% { transform: translateY(0px) rotate(-15deg); }
+.longText {
+    max-width: var(--type-measure-body);
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
-.floatingIcon {
-    animation: float 6s ease-in-out infinite;
+@media (max-width: 48rem) {
+    .content {
+        padding-inline: var(--space-3);
+    }
+
+    .liveWork {
+        height: auto;
+    }
+
+    .chartFrame {
+        min-height: 240px;
+    }
 }

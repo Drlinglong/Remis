@@ -1,0 +1,204 @@
+.page {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    color: var(--canvas-text-main);
+}
+
+.workspaceHeader {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-8);
+    padding: var(--space-8) clamp(var(--space-4), 3vw, var(--space-12));
+    border-bottom: 1px solid color-mix(in srgb, var(--canvas-text-main) 18%, transparent);
+}
+
+.orientationCopy {
+    min-width: 0;
+}
+
+.kicker,
+.sectionLabel {
+    color: var(--canvas-text-muted);
+    font-size: var(--type-size-label);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.pageTitle {
+    color: var(--canvas-text-main);
+    font-family: var(--font-header);
+    font-size: var(--type-size-page);
+    line-height: var(--type-leading-tight);
+}
+
+.pageDescription {
+    max-width: var(--type-measure-body);
+    margin-top: var(--space-2);
+    color: var(--canvas-text-muted);
+    line-height: var(--type-leading-body);
+}
+
+.headerActions {
+    flex: 0 0 auto;
+}
+
+.projectContent {
+    flex: 1;
+    padding: var(--space-8) clamp(var(--space-4), 3vw, var(--space-12));
+}
+
+.listToolbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-6);
+    margin-bottom: var(--space-6);
+}
+
+.sectionTitle {
+    color: var(--canvas-text-main);
+    font-family: var(--font-header);
+    font-size: var(--type-size-section);
+}
+
+.search {
+    width: min(100%, 28rem);
+}
+
+.projectGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+    gap: var(--space-4);
+}
+
+.projectCard {
+    --mantine-color-text: var(--surface-text-main) !important;
+    --mantine-color-dimmed: var(--surface-text-muted) !important;
+    width: 100%;
+    min-width: 0;
+    color: var(--surface-text-main) !important;
+    text-align: left;
+    background: var(--surface-bg-solid) !important;
+    border: 1px solid var(--surface-border-quiet) !important;
+    border-radius: var(--radius-panel) !important;
+    box-shadow: var(--shadow-quiet) !important;
+    cursor: pointer;
+    transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.projectCard:is(:hover, :focus-visible) {
+    border-color: var(--surface-border-anchor) !important;
+    box-shadow: var(--shadow-anchor) !important;
+    transform: translateY(-2px);
+}
+
+.projectCard:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 3px;
+}
+
+.projectIdentity {
+    min-width: 0;
+}
+
+.projectTitle {
+    overflow-wrap: anywhere;
+    color: var(--surface-text-main);
+    font-family: var(--font-header);
+    font-size: var(--type-size-section);
+    font-weight: 700;
+    line-height: var(--type-leading-tight);
+}
+
+.projectNotes,
+.updatedAt {
+    color: var(--surface-text-muted);
+}
+
+.projectNotes {
+    margin-top: var(--space-2);
+    line-height: var(--type-leading-ui);
+}
+
+.openIcon {
+    flex: 0 0 auto;
+    color: var(--interactive-accent);
+}
+
+.projectMeta {
+    margin-top: var(--space-6);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--surface-border-quiet);
+}
+
+.emptyState {
+    display: grid;
+    min-height: 18rem;
+    place-items: center;
+    align-content: center;
+    gap: var(--space-3);
+    padding: var(--space-8);
+    color: var(--surface-text-main);
+    text-align: center;
+    background: var(--surface-bg-solid);
+    border: 1px solid var(--surface-border-quiet);
+    border-radius: var(--radius-panel);
+}
+
+.emptyState > :is(p, svg) {
+    color: var(--surface-text-muted);
+}
+
+@media (min-width: 2200px) {
+    .workspaceHeader,
+    .projectContent {
+        padding-inline: var(--space-12);
+    }
+
+    .projectGrid {
+        grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .workspaceHeader,
+    .listToolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .workspaceHeader,
+    .projectContent {
+        padding: var(--space-4);
+    }
+
+    .headerActions {
+        display: grid;
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+    .headerActions > *,
+    .search {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .projectGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .projectCard {
+        transition: none;
+    }
+
+    .projectCard:is(:hover, :focus-visible) {
+        transform: none;
+    }
+}

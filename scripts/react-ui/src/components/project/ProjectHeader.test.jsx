@@ -57,6 +57,9 @@ describe('ProjectHeader', () => {
     expect(handleStatusChange).toHaveBeenCalledWith('archived');
     expect(onManageProject).not.toHaveBeenCalled();
     expect(navigateMock).toHaveBeenCalledWith('/translation?projectId=proj-42');
+    expect(screen.getByLabelText('Project progress')).toBeInTheDocument();
+    expect(screen.getByText('Scan')).toBeInTheDocument();
+    expect(screen.getByText('Validation')).toBeInTheDocument();
   });
 
   it('shows archived project actions for restore and soft delete', async () => {

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, Callable, List
 from datetime import datetime, timezone
 
-from scripts.shared.services import project_manager
+from scripts.shared.services import glossary_manager, project_manager
 from scripts.shared import task_state
 from scripts.core.project_json_manager import ProjectJsonManager
 from scripts.schemas.project import (
@@ -26,11 +26,19 @@ from scripts.schemas.project import (
 )
 from scripts.schemas.config import UpdateConfigRequest
 from scripts.core.services.validation_sidecar_service import ValidationSidecarService
+from scripts.core.services.translation_context_readiness_service import (
+    TranslationContextReadinessService,
+)
+from scripts.core.neologism_manager import neologism_manager
 from scripts.utils.system_utils import sanitize_for_json
 from scripts.utils.validation_logger import ValidationLogger
 
 router = APIRouter()
 validation_sidecars = ValidationSidecarService()
+translation_context_readiness = TranslationContextReadinessService(
+    glossary_manager,
+    neologism_manager,
+)
 
 
 def _write_incremental_logs(output_dirs: list[str], log_lines: list[str], telemetry: Optional[Dict[str, Any]] = None):
@@ -485,7 +493,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
                 "warnings": result.get("warnings", []),
                 "warning_count": result.get("warning_count", 0),
                 "workshop_issue_exports": result.get("workshop_issue_exports", []),
-                "source_advancement": result.get("source_advancement"),
+                "source_advancement": result.get("source_advancement"), "context": result.get("context"),
             }
             task_state.update_task(
                 task_id,
@@ -553,7 +561,7 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
                             "processed_file_count": len(fields["file_summaries"]),
                             "workflow_log_paths": workflow_log_paths,
                             "warning_count": fields["warning_count"],
-                            "source_advancement": fields["source_advancement"],
+                            "source_advancement": fields["source_advancement"], "context": fields["context"],
                         },
                     },
                 },
@@ -596,7 +604,34 @@ def run_incremental_update_background(task_id: str, project_id: str, request: In
 async def run_incremental_update(project_id: str, request: IncrementalUpdateRequest, background_tasks: BackgroundTasks):
     """Triggers the incremental update workflow in background."""
     import uuid
-    
+
+    if request.translation_context_mode == "archive":
+        project = await project_manager.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        readiness = await translation_context_readiness.inspect(
+            project_id,
+            request.translation_context_mode,
+            {
+                "project_id": project_id,
+                "project_name": project.get("name"),
+                "game_id": project.get("game_id"),
+                "source_path": request.custom_source_path or project.get("source_path"),
+                "source_language": project.get("source_language"),
+            },
+            requested_release_id=request.context_release_id,
+        )
+        if not readiness["can_start"]:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "project_context_not_ready",
+                    "message": "The requested translation context is not ready for translation.",
+                    "retryable": False,
+                    "context_readiness": readiness,
+                },
+            )
+
     task_id = str(uuid.uuid4())
     try:
         task_state.create_task(

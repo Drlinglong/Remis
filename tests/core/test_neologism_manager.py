@@ -36,6 +36,29 @@ def make_candidate(**overrides):
     return Candidate(**data)
 
 
+def test_select_candidate_variant_updates_translation_and_explanation_together(tmp_path, monkeypatch):
+    monkeypatch.setattr(neologism_module, "CACHE_DIR", str(tmp_path))
+    manager = NeologismManager()
+    manager.save_candidates("project-1", [make_candidate(suggestion_variants=[
+        {
+            "variant_id": "variant-1",
+            "suggestion": "第一译法",
+            "reasoning": "第一份解释",
+        },
+        {
+            "variant_id": "variant-2",
+            "suggestion": "第二译法",
+            "reasoning": "第二份解释",
+        },
+    ])])
+
+    assert manager.select_candidate_variant("project-1", "candidate-1", "variant-2") is True
+    selected = manager.load_candidates("project-1")[0]
+    assert selected.suggestion == "第二译法"
+    assert selected.reasoning == "第二份解释"
+    assert manager.select_candidate_variant("project-1", "candidate-1", "missing") is False
+
+
 @pytest.mark.asyncio
 async def test_approve_candidate_is_idempotent_and_preserves_languages(tmp_path, monkeypatch):
     monkeypatch.setattr(neologism_module, "CACHE_DIR", str(tmp_path))

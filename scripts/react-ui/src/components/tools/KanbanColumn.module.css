@@ -1,0 +1,92 @@
+.column {
+    --mantine-color-text: var(--surface-text-main) !important;
+    --mantine-color-dimmed: var(--surface-text-muted) !important;
+    display: flex;
+    min-width: 17rem;
+    height: 100%;
+    min-height: 0;
+    flex: 1 0 17rem;
+    flex-direction: column;
+    overflow: hidden;
+    color: var(--surface-text-main);
+    background: var(--surface-bg-solid);
+    border: 1px solid var(--surface-border-quiet);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-quiet);
+    scroll-snap-align: start;
+    transition:
+        border-color var(--motion-duration-fast) var(--motion-ease-standard),
+        box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.column:focus-within {
+    border-color: var(--surface-border-anchor);
+    box-shadow: var(--shadow-anchor);
+}
+
+.columnHeader {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface-bg-solid);
+    border-bottom: 1px solid var(--surface-border-quiet);
+}
+
+.columnTitle {
+    color: var(--surface-text-main);
+    font-family: var(--font-header);
+}
+
+.addNoteButton {
+    min-width: var(--control-hit-target);
+    min-height: var(--control-hit-target);
+    color: var(--surface-text-main);
+}
+
+.taskList {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: var(--space-3);
+    scrollbar-color: var(--surface-border) transparent;
+    scrollbar-width: thin;
+}
+
+.emptyColumn {
+    display: grid;
+    min-height: 5rem;
+    place-items: center;
+    padding: var(--space-3);
+    color: var(--surface-text-muted);
+    text-align: center;
+    border: 1px dashed var(--surface-border-quiet);
+    border-radius: var(--radius-control);
+}
+
+.ghostButton {
+    width: 100%;
+    margin-top: var(--space-2);
+    color: var(--surface-text-muted);
+    border: 1px dashed var(--surface-border-quiet);
+    transition:
+        border-color var(--motion-duration-fast) var(--motion-ease-standard),
+        color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.ghostButton:hover {
+    color: var(--surface-text-main);
+    border-color: var(--surface-border-anchor);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .column,
+    .addNoteButton,
+    .ghostButton {
+        transition: none;
+    }
+}

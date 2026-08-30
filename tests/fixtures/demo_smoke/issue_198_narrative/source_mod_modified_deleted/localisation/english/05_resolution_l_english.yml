@@ -1,0 +1,14 @@
+l_english:
+ # Batch 05: the branch is chosen, but the text keeps its condition visible.
+ resolution.400.t:0 "The Reach Answers"
+ resolution.400.desc:0 "From the last charted approach, Meridian Gate answers across the route to §Y Kestrel Reach§! with two tones. Remis holds the Meridian Seal in one hand and the Cartographers' Guild ledger in the other, waiting for the Meridian Council's final order. The Red Archivist says the signal sounds like people; the Watch of Quiet Stars hears a fleet and the archive hears a child."
+ resolution.400.a:0 "Let the Concord speak through the Accord of Echoes and the Mercy Protocol."
+ resolution.400.b:0 "Let the Watch of Quiet Stars speak through silence at Meridian Gate."
+ remis198_epilogue_concord:0 "If the Concord reading is true, the Meridian Council opens Meridian Gate, and Remis becomes keeper of the Accord of Echoes at Kestrel Reach. The Mercy Protocol answers before the guns do."
+ remis198_epilogue_warden:0 "If the Warden reading is true, the Watch of Quiet Stars closes Meridian Gate, and Remis becomes silent warden of Kestrel Reach. The Ledger-Breaker keeps the Meridian Seal until the signal can be proved."
+ resolution.401.t:0 "The Price of Being Right"
+ resolution.401.desc:0 "The gate opens or locks according to the council's choice. Neither result changes the evidence that made the other side afraid. Remis orders both transcripts sealed, not because she trusts both stories, but because she remembers what certainty costs."
+ resolution.401.concord:0 "Concord consequence: forty-eight life signs cross into Kestrel Reach before the corridor collapses."
+ resolution.401.warden:0 "Warden consequence: the stolen signatures burn out against the Meridian Lock, leaving no ship to interrogate."
+ remis_resolution_action:0 "Remis signs the order with the red ledger's broken clasp."
+ remis_resolution_consequence:0 "The clasp had been her only key. Now it is evidence that she chose a side."

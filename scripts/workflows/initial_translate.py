@@ -21,6 +21,10 @@ from scripts.core.services.initial_translation_workspace_service import (
     load_glossaries_for_run,
     prepare_output_workspace,
 )
+from scripts.core.services.translation_context_service import prepare_workflow_context
+from scripts.core.services.translation_context_gate import (
+    prepare_and_require_workflow_context,
+)
 from scripts.app_settings import SOURCE_DIR, DEST_DIR
 from scripts.utils import i18n
 
@@ -32,6 +36,7 @@ class InitialTranslationOutcome:
     recovered_entry_count: int = 0
     dropped_file_count: int = 0
     reference_metrics: tuple[dict, ...] = ()
+    context_metadata: dict = None
 
     @property
     def message(self) -> str:
@@ -86,10 +91,17 @@ def run(mod_name: str,
         use_resume: bool = True,
         clean_source: bool = False,
         batch_size_limit: Optional[int] = None,
+        source_context_overlap: int = 0,
         concurrency_limit: Optional[int] = None,
         rpm_limit: Optional[int] = 40,
         embedded_workshop: Optional[dict] = None,
-        reference_reuse: Optional[dict] = None):
+        reference_reuse: Optional[dict] = None,
+        use_project_context: bool = False,
+        context_release_id: Optional[str] = None,
+        context_character_budget: int = 4000,
+        context_service: Any = None,
+        snapshot_service: Any = None,
+        translation_context_mode: Optional[str] = None):
     """【最终版】初次翻译工作流（多语言 & 多游戏兼容）- 流式处理 & 断点续传版"""
     logging.info("Entered initial_translate.run")
     logging.info(f"--- Starting 'Initial Translation' workflow for: {mod_name} ---")
@@ -125,6 +137,19 @@ def run(mod_name: str,
     )
     all_files_content = source_result.files
 
+    context_selection = prepare_and_require_workflow_context(
+        prepare_workflow_context,
+        (
+            project_id,
+            all_files_content,
+            use_project_context or translation_context_mode == "archive",
+            context_release_id,
+            context_character_budget,
+            context_service,
+            snapshot_service,
+        ),
+        translation_context_mode,
+    )
     # Calculate Total Batches (Pre-calculation)
     effective_chunk_size = get_chunk_size_for_provider(selected_provider, batch_size_limit)
     total_batches = calculate_total_batches(all_files_content, effective_chunk_size)
@@ -138,7 +163,6 @@ def run(mod_name: str,
     )
     if not mod_id or not version_id:
         raise RuntimeError("Failed to create the source archive snapshot.")
-
     # ───────────── 5. 多语言并行翻译 (Streaming from Memory) ─────────────
     
     last_target_lang = None
@@ -169,7 +193,10 @@ def run(mod_name: str,
             batch_size_limit=batch_size_limit,
             embedded_workshop=embedded_workshop,
             reference_reuse=reference_reuse,
-        ))
+            source_context_overlap=source_context_overlap,
+            context_selection=context_selection,
+        )
+        )
 
     finalize_workflow_run(
         run_plan.is_batch_mode,
@@ -194,6 +221,7 @@ def run(mod_name: str,
         recovered_entry_count=source_result.recovered_entry_count,
         dropped_file_count=source_result.dropped_file_count,
         reference_metrics=tuple(reference_metrics),
+        context_metadata=context_selection.metadata,
     )
 
 

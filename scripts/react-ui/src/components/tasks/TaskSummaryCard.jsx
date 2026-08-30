@@ -62,18 +62,28 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
   );
 
   return (
-    <Paper withBorder radius="md" p={compact ? 'sm' : 'md'} data-remis-surface="paper">
+    <Paper
+      withBorder
+      radius="md"
+      p={compact ? 'sm' : 'md'}
+      data-remis-surface="paper"
+      data-remis-task-summary="true"
+    >
       <Stack gap={compact ? 6 : 'sm'}>
-        <Group justify="space-between" align="flex-start" wrap="nowrap">
+        <Group justify="space-between" align="flex-start" wrap="nowrap" style={{ minWidth: 0 }}>
           <div style={{ minWidth: 0 }}>
-            <Text fw={700} lineClamp={1}>{kindLabel}</Text>
+            <Text fw={700} lineClamp={1} title={kindLabel} style={{ overflowWrap: 'anywhere' }}>{kindLabel}</Text>
             {localizedDetail && (
-              <Text size="sm" c="dimmed" lineClamp={compact ? 1 : 2}>
+              <Text size="sm" c="dimmed" lineClamp={compact ? 1 : 2} style={{ overflowWrap: 'anywhere' }}>
                 {localizedDetail}
               </Text>
             )}
           </div>
-          <Badge color={isPartialGlossaryHealth ? 'orange' : (STATUS_COLORS[task.status] || 'gray')} variant="light">
+          <Badge
+            color={isPartialGlossaryHealth ? 'orange' : (STATUS_COLORS[task.status] || 'gray')}
+            variant="light"
+            style={{ flexShrink: 0, maxWidth: '42%', whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+          >
             {statusLabel}
           </Badge>
         </Group>
@@ -87,18 +97,20 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
               : task.attention_reason}
           </Text>
         )}
-        <Group gap="xs">
-          <Text size="xs" c="dimmed">{t('task_center.created_by', { creator: creatorLabel })}</Text>
+        <Group gap="xs" wrap="wrap" style={{ minWidth: 0 }}>
+          <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>
+            {t('task_center.created_by', { creator: creatorLabel })}
+          </Text>
           {task.blocking && ['queued', 'running', 'awaiting_approval'].includes(task.status) && (
             <Badge size="xs" color="orange" variant="outline">{t('task_center.blocking')}</Badge>
           )}
         </Group>
-        <Group justify="space-between">
-          <Stack gap={2}>
+        <Group justify="space-between" align="flex-end" wrap="wrap" style={{ minWidth: 0 }}>
+          <Stack gap={2} style={{ minWidth: 0 }}>
             <Text size="xs" c="dimmed">
               {t('task_center.started_at', { time: startedAt })}
             </Text>
-            <Group gap={6} c="dimmed" title={t('task_detail.elapsed')}>
+            <Group gap={6} c="dimmed" title={t('task_detail.elapsed')} wrap="wrap" style={{ minWidth: 0 }}>
               <IconClock size={14} />
               <Text size="xs" ff="monospace">
                 {formatTaskDuration(taskDurationMs(task, now))}
@@ -113,6 +125,7 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
                 color="gray"
                 size="compact-sm"
                 loading={handling}
+                data-remis-action="paper-secondary"
                 onClick={() => onHandle(task)}
               >
                 {t('task_center.mark_handled')}
@@ -122,6 +135,7 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
               variant="subtle"
               size="compact-sm"
               rightSection={<IconArrowRight size={14} />}
+              data-remis-action="paper-secondary"
               onClick={() => onOpen(task)}
             >
               {t('task_center.view_task')}

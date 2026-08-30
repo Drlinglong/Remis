@@ -129,6 +129,8 @@ async def test_translation_plan_is_read_only_until_reserved(monkeypatch):
     args = workflow.reserve_translation_plan(plan["plan_id"])
     assert args == plan["execution_args"]
     assert args["project_id"] == "project-1"
+    assert args["translation_context_mode"] == "archive"
+    assert args["use_project_context"] is True
     assert args["embedded_workshop"]["follow_primary_settings"] is True
     with pytest.raises(RuntimeError, match="already been executed"):
         workflow.reserve_translation_plan(plan["plan_id"])

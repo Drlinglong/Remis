@@ -19,6 +19,7 @@ class AgentJobPlanRequest(BaseModel):
     rpm_limit: Optional[int] = 40
     use_resume: bool = True
     use_main_glossary: bool = True
+    translation_context_mode: Literal["none", "glossaries", "archive"] = "archive"
     embedded_workshop_enabled: bool = True
     dry_run: bool = False
 
@@ -123,6 +124,7 @@ class AgentJobResponse(BaseModel):
         "running",
         "awaiting_approval",
         "completed",
+        "partial_failed",
         "failed",
         "cancelled",
         "interrupted",
@@ -151,6 +153,7 @@ class AgentPlanResponse(BaseModel):
     risk: Dict[str, Any] = Field(default_factory=dict)
     summary: str
     allowed_actions: List[str] = Field(default_factory=list)
+    context_readiness: Dict[str, Any] = Field(default_factory=dict)
     expires_at: str
 
 

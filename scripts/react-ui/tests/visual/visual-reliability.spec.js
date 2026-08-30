@@ -69,6 +69,105 @@ async function renderedContrast(locator) {
 }
 
 for (const themeId of themes) {
+  test(`${themeId} published archive preserves hierarchy and readability`, async ({ page }) => {
+    await page.goto(`/visual-fixtures.html?theme=${themeId}&contract=published-archive`);
+    const fixture = page.getByTestId('published-archive-visual-fixture');
+    await expect(fixture).toHaveAttribute('data-visual-ready', 'true');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', themeId);
+
+    const metadataDetails = page.getByTestId('mod-archive-metadata-details');
+    const traceability = page.getByTestId('mod-archive-traceability');
+    await expect(metadataDetails).not.toHaveAttribute('open', '');
+    await expect(traceability).not.toHaveAttribute('open', '');
+    await expect(page.getByText('2026-08-03 11:25', { exact: true })).toBeVisible();
+    await expect(page.getByText('openrouter', { exact: true })).toBeVisible();
+    await expect(page.getByText('openai/gpt-5.6-luna', { exact: true })).toBeVisible();
+
+    await page.getByTestId('mod-archive-remove').click();
+    const removalDialog = page.getByRole('dialog');
+    await expect(removalDialog).toBeVisible();
+    const removalSamples = [
+      removalDialog.getByText('移除项目档案', { exact: true }),
+      removalDialog.getByText('这会移除所有已生成的档案数据', { exact: true }),
+      removalDialog.getByText('Mod 源文件、项目、项目词典和新词候选会保留。', { exact: true }),
+    ];
+    for (const sample of removalSamples) {
+      await expect(sample).toBeVisible();
+      expect(await renderedContrast(sample)).toBeGreaterThanOrEqual(4.5);
+    }
+    await expect(page).toHaveScreenshot(`published-archive-removal-${themeId}.png`, { fullPage: true });
+    await removalDialog.getByRole('button', { name: '保留档案' }).click();
+    await expect(removalDialog).toBeHidden();
+
+    await metadataDetails.locator('summary').click();
+    await expect(page.getByText('完整档案分析', { exact: true })).toBeVisible();
+    await expect(page.getByText('v0.0.2', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('mod-archive-prompt-example')).toContainText('System message:');
+    await expect(page.getByText('context-synthesis-v3', { exact: true })).toHaveCount(0);
+    await metadataDetails.locator('summary').click();
+
+    const summaryKinds = await page.locator('[class*="summarySection"]').evaluateAll((sections) => (
+      sections.map((section) => section.getAttribute('data-kind'))
+    ));
+    expect(summaryKinds).toEqual(['project', 'event', 'entity', 'entity']);
+    await expect(page.getByTestId('mod-archive-lower-priority-entities')).not.toHaveAttribute('open', '');
+
+    const entityList = page.locator('[data-kind="entity"] [class*="entryList"]').first();
+    const entityColumns = await entityList.evaluate((element) => (
+      getComputedStyle(element).gridTemplateColumns.split(' ').length
+    ));
+    expect(entityColumns).toBe(2);
+
+    await traceability.locator('summary').first().click();
+    const evidenceGroups = traceability.locator('details[class*="evidenceGroup"]');
+    await expect(evidenceGroups).toHaveCount(6);
+    for (const group of await evidenceGroups.all()) {
+      await expect(group).not.toHaveAttribute('open', '');
+    }
+    await evidenceGroups.nth(1).locator('summary').click();
+    await expect(page.getByText('翻译覆盖：42', { exact: true })).toBeVisible();
+
+    const readableSamples = [
+      page.getByText('源文件来源依据与可追溯性', { exact: true }),
+      page.getByText('按项目、事件与实体检查每个展示对象的来源证据。', { exact: true }),
+      page.getByText('remis_crisis', { exact: true }).first(),
+    ];
+    for (const sample of readableSamples) {
+      await expect(sample).toBeVisible();
+      expect(await renderedContrast(sample)).toBeGreaterThanOrEqual(4.5);
+    }
+
+    const overflowOffenders = await fixture.evaluate((root) => (
+      [...root.querySelectorAll('*')]
+        .filter((element) => {
+          const style = getComputedStyle(element);
+          const clipsOrScrolls = ['auto', 'scroll', 'hidden', 'clip'].includes(style.overflowX);
+          return !clipsOrScrolls && element.scrollWidth > element.clientWidth + 1;
+        })
+        .map((element) => ({
+          tag: element.tagName,
+          className: typeof element.className === 'string' ? element.className : '',
+          clientWidth: element.clientWidth,
+          scrollWidth: element.scrollWidth,
+        }))
+    ));
+    expect(overflowOffenders).toEqual([]);
+
+    await expect(page).toHaveScreenshot(`published-archive-${themeId}.png`, { fullPage: true });
+
+    await page.setViewportSize({ width: 720, height: 1100 });
+    await page.getByTestId('mod-archive-remove').click();
+    await expect(removalDialog).toBeVisible();
+    const dialogBox = await removalDialog.boundingBox();
+    expect(dialogBox.x).toBeGreaterThanOrEqual(0);
+    expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(720);
+    await expect(page).toHaveScreenshot(
+      `published-archive-removal-${themeId}-compact.png`,
+      { fullPage: true },
+    );
+    await removalDialog.getByRole('button', { name: '保留档案' }).click();
+  });
+
   test(`${themeId} project glossary paper content remains readable`, async ({ page }) => {
     await page.goto(`/visual-fixtures.html?theme=${themeId}&contract=project-glossary`);
     const fixture = page.getByTestId('project-glossary-contrast-fixture');

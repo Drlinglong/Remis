@@ -98,6 +98,9 @@ const releaseDuplicateValueAllowlistPatterns = [
   /^game_name_/,
   /^theme_/,
   /^app_title$/,
+  // The #198 archive branch still carries approved English fallbacks outside
+  // the primary locale; native copy is tracked separately from this merge.
+  /^mod_archive\./,
   // Short standardized effort labels (for example, "low" or "max") can
   // legitimately have the same spelling in otherwise distinct locales.
   /^api_reasoning_preset_/,

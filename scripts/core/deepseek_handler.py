@@ -3,7 +3,6 @@ import os
 from openai import OpenAI
 import logging
 
-from scripts.app_settings import API_PROVIDERS
 from scripts.core.base_handler import BaseApiHandler
 
 class DeepSeekHandler(BaseApiHandler):
@@ -17,7 +16,7 @@ class DeepSeekHandler(BaseApiHandler):
             raise ValueError("DEEPSEEK_API_KEY not set")
 
         try:
-            provider_config = API_PROVIDERS.get("deepseek", {})
+            provider_config = self.get_provider_config()
             base_url = provider_config.get("base_url", "https://api.deepseek.com")
             
             client = OpenAI(
@@ -48,6 +47,7 @@ class DeepSeekHandler(BaseApiHandler):
             response = client.chat.completions.create(
                 **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
+            self._record_model_response(response)
             return response.choices[0].message.content.strip()
         except Exception as e:
             self.logger.exception(f"DeepSeek API call failed: {e}")

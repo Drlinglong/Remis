@@ -23,12 +23,16 @@ def build_checkpoint_manager(
     source_lang: dict,
     target_lang: dict,
     use_resume: bool,
+    context_metadata: Optional[dict] = None,
 ) -> CheckpointManager:
     current_config = {
         "model_name": model_name or selected_provider,
         "source_lang": source_lang.get("code"),
         "target_lang_code": target_lang.get("code"),
     }
+    if context_metadata:
+        current_config["context_release_id"] = context_metadata.get("context_release_id")
+        current_config["source_snapshot_hash"] = context_metadata.get("source_snapshot_hash")
     checkpoint_filename = f".remis_checkpoint_{target_lang.get('code', 'unknown')}.json"
     checkpoint_manager = CheckpointManager(
         output_dir_path,

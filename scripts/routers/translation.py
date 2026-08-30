@@ -36,9 +36,19 @@ from scripts.workflows import initial_translate
 from scripts.utils import i18n
 from scripts.utils.system_utils import slugify_to_ascii
 from scripts.core.checkpoint_manager import CheckpointManager
+from scripts.core.services.translation_context_service import context_workflow_kwargs
+from scripts.core.services.translation_resource_policy import resolve_translation_run_resources
+from scripts.core.services.translation_context_readiness_service import (
+    TranslationContextReadinessService,
+)
+from scripts.core.neologism_manager import neologism_manager
 import asyncio
 from scripts.shared.ws_manager import ws_manager
 router = APIRouter()
+translation_context_readiness = TranslationContextReadinessService(
+    glossary_manager,
+    neologism_manager,
+)
 
 
 def _run_async(coro):
@@ -175,6 +185,29 @@ def _history_completion_description(status: str) -> str:
     return "Translation completed successfully"
 
 
+def _record_context_metadata(task_id: str, workflow_result: object) -> None:
+    context_metadata = (
+        workflow_result.get("context")
+        if isinstance(workflow_result, dict)
+        else getattr(workflow_result, "context_metadata", None)
+    )
+    if not context_metadata:
+        return
+    warning = context_metadata.get("warning") or {}
+    task_state.update_task(
+        task_id,
+        fields={
+            "context": context_metadata,
+            "result": {"metadata": {"context": context_metadata}},
+        },
+        append_log=(
+            f"Project context warning: {warning.get('code')}."
+            if warning.get("code") else None
+        ),
+        push=False,
+    )
+
+
 def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, source_lang_code: str, target_lang_codes: List[str], api_provider: str, mod_context: str, project_id: Optional[str] = None):
     """
     A wrapper for the core translation logic to be run in the background.
@@ -265,10 +298,15 @@ def run_translation_workflow_v2(
     use_resume: bool = True,
     clean_source: bool = False,
     batch_size_limit: Optional[int] = None,
+    source_context_overlap: int = 0,
     concurrency_limit: Optional[int] = None,
     rpm_limit: Optional[int] = 40,
     embedded_workshop: Optional[dict] = None,
     reference_reuse: Optional[dict] = None,
+    use_project_context: bool = True,
+    context_release_id: Optional[str] = None,
+    context_character_budget: int = 4000,
+    translation_context_mode: Optional[str] = None,
 ):
     i18n.load_language('en_US')
     task_state.update_task(
@@ -286,15 +324,13 @@ def run_translation_workflow_v2(
             ))
         except Exception as e:
             logging.error(f"Failed to log activity (v2): {e}")
-
     task_state.init_progress(task_id)
     progress_callback = build_translation_progress_callback(
         task_id,
         use_resume=use_resume,
     )
     try:
-        logging.info(f"Starting V2 Workflow for Task {task_id}")
-        logging.info(f"Params: game_profile_id={game_profile_id}, source={source_lang_code}, targets={target_lang_codes}")
+        logging.info(f"Starting V2 Workflow for Task {task_id}"); logging.info(f"Params: game_profile_id={game_profile_id}, source={source_lang_code}, targets={target_lang_codes}")
 
         normalized_game_id = game_profile_id
         if game_profile_id == 'vic3':
@@ -322,56 +358,49 @@ def run_translation_workflow_v2(
             raise ValueError("Failed to resolve game profile, source language, or target languages.")
         _reject_source_language_targets(source_lang_code, target_languages)
 
-        # Glossaries are ordered from low to high priority. Explicit user
-        # selection is the final override: selected > project > main/global.
-        final_glossary_ids = []
-        if use_main_glossary:
-            available = _run_async(glossary_manager.get_available_glossaries(game_profile["id"]))
-            main_glossary = next((g for g in available if g.get('is_main')), None)
-            if main_glossary and main_glossary['glossary_id'] not in final_glossary_ids:
-                final_glossary_ids.append(main_glossary['glossary_id'])
-
-        override_path = None
-        project = None
-        if project_id:
-            try:
-                project = _run_async(project_manager.get_project(project_id))
-                if project and 'source_path' in project:
-                    override_path = project['source_path']
-                    logging.info(f"Using override source path from project: {override_path}")
-            except Exception as e:
-                logging.error(f"Failed to fetch override path: {e}")
-
-        if project_id:
-            project_glossary = _run_async(glossary_manager.get_project_glossary(
-                game_profile["id"],
+        resources = resolve_translation_run_resources(
+            game_id=game_profile["id"],
+            project_id=project_id,
+            selected_glossary_ids=selected_glossary_ids,
+            mode=translation_context_mode,
+            legacy_use_main_glossary=use_main_glossary,
+            legacy_use_project_context=use_project_context,
+            project_manager=project_manager,
+            glossary_manager=glossary_manager,
+            run_async=_run_async,
+        )
+        resource_policy = resources.policy
+        final_glossary_ids = list(resources.glossary_ids)
+        override_path = resources.override_path
+        if override_path:
+            logging.info("Using override source path from project: %s", override_path)
+        if resources.project_glossary_id:
+            logging.info(
+                "Mounted project neologism glossary %s for project %s",
+                resources.project_glossary_id,
                 project_id,
-                (project or {}).get("name"),
-            ))
-            if project_glossary and project_glossary.get('glossary_id') not in final_glossary_ids:
-                final_glossary_ids.append(project_glossary['glossary_id'])
-                logging.info(
-                    "Mounted project neologism glossary %s for project %s",
-                    project_glossary['glossary_id'],
-                    project_id,
-                )
-
-        for glossary_id in selected_glossary_ids or []:
-            if glossary_id not in final_glossary_ids:
-                final_glossary_ids.append(glossary_id)
+            )
 
         logging.info("Calling initial_translate.run...")
         outcome = initial_translate.run(
             mod_name=mod_name, game_profile=game_profile, source_lang=source_lang,
             target_languages=target_languages, selected_provider=api_provider,
             mod_context=mod_context, selected_glossary_ids=final_glossary_ids,
-            model_name=model_name, use_glossary=True, progress_callback=progress_callback,
+            model_name=model_name, use_glossary=resource_policy.use_glossaries,
+            progress_callback=progress_callback,
             override_path=override_path, project_id=project_id, use_resume=use_resume,
             clean_source=clean_source, batch_size_limit=batch_size_limit,
+            source_context_overlap=source_context_overlap,
             concurrency_limit=concurrency_limit, rpm_limit=rpm_limit,
             embedded_workshop=embedded_workshop,
             reference_reuse=reference_reuse,
+            **context_workflow_kwargs({
+                "use_project_context": resource_policy.include_project_context,
+                "context_release_id": context_release_id,
+                "context_character_budget": context_character_budget,
+            }, translation_context_mode=translation_context_mode),
         )
+        _record_context_metadata(task_id, outcome)
         logging.info("Returned from initial_translate.run")
         task_state.update_task(
             task_id,
@@ -434,6 +463,30 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    if request.translation_context_mode == "archive":
+        readiness = await translation_context_readiness.inspect(
+            request.project_id,
+            request.translation_context_mode,
+            {
+                "project_id": request.project_id,
+                "project_name": project.get("name"),
+                "game_id": project.get("game_id"),
+                "source_path": project.get("source_path"),
+                "source_language": request.source_lang_code,
+            },
+            requested_release_id=request.context_release_id,
+        )
+        if not readiness["can_start"]:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "project_context_not_ready",
+                    "message": "The requested translation context is not ready for translation.",
+                    "retryable": False,
+                    "context_readiness": readiness,
+                },
+            )
+
     task_id = str(uuid.uuid4())
     try:
         task_state.create_task(
@@ -453,6 +506,7 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
                     "resume_supported": request.use_resume,
                     "stage": "Queued",
                 },
+                "translation_context_mode": request.translation_context_mode,
             },
             dedupe_key=f"project_translation_write:{request.project_id}",
             reject_duplicate=True,
@@ -498,10 +552,12 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
         use_resume=request.use_resume,
         clean_source=request.clean_source,
         batch_size_limit=request.batch_size_limit,
+        source_context_overlap=request.source_context_overlap,
         concurrency_limit=request.concurrency_limit,
         rpm_limit=request.rpm_limit,
         embedded_workshop=request.embedded_workshop.model_dump() if request.embedded_workshop else None,
         reference_reuse=request.reference_reuse.model_dump() if request.reference_reuse else None,
+        **context_workflow_kwargs(request),
     )
 
     # Auto-register translation path (Optimistic registration)

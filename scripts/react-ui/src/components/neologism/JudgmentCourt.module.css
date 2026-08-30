@@ -1,70 +1,235 @@
+.courtRoot {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.projectToolbarSlot {
+  flex: 0 0 auto;
+  margin: 0 var(--space-4) var(--space-2);
+}
+
+.courtWorkspace {
+  display: grid;
+  grid-template-columns: clamp(18rem, 20vw, 24rem) minmax(0, 1fr);
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--surface-bg-solid);
+  border: 1px solid var(--surface-border-quiet);
+  border-radius: var(--radius-panel);
+}
+
+.docketPanel,
+.reviewPanel {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.docketPanel {
+  border-right: 1px solid var(--surface-border-quiet);
+}
+
+.docketStack,
+.caseWorkspace {
+  min-height: 0;
+  min-width: 0;
+}
+
+.batchToolbar {
+  padding-block: var(--space-1);
+  border-block: 1px solid var(--surface-border-quiet);
+}
+
+.batchActions {
+  animation: judgment-toolbar-enter var(--motion-duration-fast) var(--motion-ease-standard) both;
+}
+
+.docketScroll {
+  padding: var(--space-1);
+  scrollbar-gutter: stable;
+}
+
+.candidateButton {
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-3);
+  cursor: pointer;
+  color: var(--surface-text-main);
+  font: inherit;
+  text-align: left;
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border-quiet);
+  border-radius: var(--radius-control);
+  box-shadow: none;
+  transition:
+    border-color var(--motion-duration-fast) var(--motion-ease-standard),
+    background-color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.candidateButton:hover {
+  border-color: var(--surface-border);
+}
+
+.candidateButton[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--interactive-accent) 10%, var(--surface-bg-solid));
+  border-color: var(--surface-border-anchor);
+  box-shadow: inset 3px 0 0 var(--interactive-accent);
+}
+
+.candidateButton:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.candidateName,
+.minWidthZero,
+.highlightedText,
+.evidenceColumn,
+.analysisColumn {
+  min-width: 0;
+}
+
+.reviewPanel {
+  position: relative;
+}
+
+.caseWorkspace {
+  position: relative;
+  padding: var(--space-4);
+}
+
+.caseWorkspaceMotion {
+  animation: judgment-case-enter var(--motion-duration-standard) var(--motion-ease-emphasized) both;
+}
+
+.caseScroll {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.caseScrollContent {
+  padding-right: var(--space-2);
+}
+
+.caseBodyGrid {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.8fr) minmax(24rem, 1.2fr);
+  align-items: start;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
 .quietToolbar,
 .secondaryPanel,
 .evidenceCard,
 .decisionPanel,
 .quietAlert {
-  box-shadow: none !important;
+  box-shadow: none;
 }
 
 .quietToolbar {
-  background: var(--surface-bg) !important;
-  border: 1px solid color-mix(in srgb, var(--surface-border) 22%, transparent) !important;
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border-quiet);
 }
 
 .candidateAnchor {
-  background: var(--surface-bg) !important;
-  border: 1px solid color-mix(in srgb, var(--interactive-accent) 72%, transparent) !important;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--interactive-accent) 18%, transparent) !important;
+  background: var(--surface-bg-solid);
+  border: 1px solid var(--surface-border-anchor);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-quiet);
+}
+
+.caseTitle {
+  color: var(--surface-text-main);
+  font-size: var(--type-size-page);
+  overflow-wrap: anywhere;
+}
+
+.sourceBadge {
+  max-width: min(45%, 28rem);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .secondaryPanel {
-  background: var(--paper-bg) !important;
-  border: 1px solid color-mix(in srgb, var(--paper-text-main) 16%, transparent) !important;
+  background: var(--paper-bg);
+  border: 1px solid var(--paper-border-quiet);
+  border-radius: var(--radius-paper);
 }
 
 .evidenceCard {
-  background: var(--paper-bg) !important;
-  border: 1px solid color-mix(in srgb, var(--paper-text-main) 12%, transparent) !important;
+  min-width: 0;
+  background: var(--paper-bg);
+  border: 1px solid var(--paper-border-quiet);
+  border-radius: var(--radius-paper);
+}
+
+.evidenceSource {
+  color: var(--paper-text-muted);
+  user-select: text;
+}
+
+.quoteIcon {
+  flex: 0 0 auto;
+  margin-top: var(--space-1);
+  opacity: 0.5;
+}
+
+.termMark {
+  padding-inline: var(--space-1);
+  color: var(--paper-text-main);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--paper-text-main) 10%, transparent);
+  border-radius: var(--radius-control);
 }
 
 .decisionPanel {
-  background: var(--surface-bg) !important;
-  border: 1px solid color-mix(in srgb, var(--surface-border) 38%, transparent) !important;
+  flex: 0 0 auto;
+  background: var(--surface-bg-solid);
+  border: 1px solid var(--surface-border-anchor);
+  border-radius: var(--radius-panel);
 }
 
 .quietAlert {
-  background: color-mix(in srgb, var(--surface-bg-solid) 92%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--surface-border) 24%, transparent) !important;
-  color: var(--surface-text-main) !important;
+  background: color-mix(in srgb, var(--surface-bg-solid) 92%, transparent);
+  border: 1px solid var(--surface-border-quiet);
+  color: var(--surface-text-main);
 }
 
 .quietAlert :global(.mantine-Alert-title),
 .quietAlert :global(.mantine-Alert-message) {
-  color: var(--surface-text-main) !important;
+  color: var(--surface-text-main);
 }
 
 .surfaceBadge {
-  background: color-mix(in srgb, var(--surface-text-main) 9%, transparent) !important;
-  border-color: color-mix(in srgb, var(--surface-text-main) 32%, transparent) !important;
-  color: var(--surface-text-main) !important;
+  background: color-mix(in srgb, var(--surface-text-main) 9%, transparent);
+  border-color: color-mix(in srgb, var(--surface-text-main) 32%, transparent);
+  color: var(--surface-text-main);
 }
 
 .paperBadge,
 .paperIcon {
-  background: color-mix(in srgb, var(--paper-text-main) 9%, var(--paper-bg)) !important;
-  border-color: color-mix(in srgb, var(--paper-text-main) 24%, transparent) !important;
-  color: var(--paper-text-main) !important;
+  background: color-mix(in srgb, var(--paper-text-main) 9%, var(--paper-bg));
+  border-color: color-mix(in srgb, var(--paper-text-main) 24%, transparent);
+  color: var(--paper-text-main);
 }
 
 .semanticField {
-  background: var(--paper-bg) !important;
-  border: 1px solid color-mix(in srgb, var(--paper-text-main) 38%, transparent) !important;
-  color: var(--paper-text-main) !important;
-  box-shadow: none !important;
+  background: var(--paper-bg);
+  border: 1px solid color-mix(in srgb, var(--paper-text-main) 38%, transparent);
+  color: var(--paper-text-main);
+  box-shadow: none;
 }
 
 .semanticField::placeholder {
-  color: var(--paper-text-muted) !important;
+  color: var(--paper-text-muted);
   opacity: 1;
 }
 
@@ -74,78 +239,148 @@
 }
 
 .semanticFieldLabel {
-  color: var(--surface-text-main) !important;
+  color: var(--surface-text-main);
 }
 
 .semanticFieldDescription {
-  color: var(--surface-text-muted) !important;
+  color: var(--surface-text-muted);
+}
+
+.resetSuggestion {
+  color: var(--paper-text-muted);
 }
 
 .primaryAction {
+  min-block-size: var(--control-hit-target);
   min-width: min(15rem, 100%);
-  background: var(--interactive-accent) !important;
-  border: 1px solid var(--surface-text-muted) !important;
-  color: var(--interactive-accent-text) !important;
-  box-shadow: none !important;
+  background: var(--interactive-accent);
+  border: 1px solid var(--surface-text-muted);
+  color: var(--interactive-accent-text);
+  box-shadow: none;
 }
 
 .secondaryAction {
-  background: transparent !important;
-  border: 1px solid var(--surface-text-muted) !important;
-  color: var(--surface-text-main) !important;
-  box-shadow: none !important;
+  min-block-size: var(--control-hit-target);
+  background: transparent;
+  border: 1px solid var(--surface-text-muted);
+  color: var(--surface-text-main);
+  box-shadow: none;
 }
 
 .dangerSecondaryAction {
-  background: transparent !important;
-  border: 1px solid var(--surface-text-muted) !important;
-  color: var(--surface-text-main) !important;
-  box-shadow: inset 3px 0 0 var(--mantine-color-red-6) !important;
+  min-block-size: var(--control-hit-target);
+  background: transparent;
+  border: 1px solid var(--surface-text-muted);
+  color: var(--surface-text-main);
+  box-shadow: inset 3px 0 0 var(--status-error);
+}
+
+.emptyWorkspace {
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.emptyWorkspace svg,
+.emptyIcon {
+  opacity: 0.35;
+}
+
+@keyframes judgment-case-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-sm));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes judgment-toolbar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-distance-sm) * -1));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .batchModalContent,
 .batchModalHeader,
 .batchModalBody {
-  --mantine-color-text: var(--paper-text-main) !important;
-  --mantine-color-dimmed: var(--paper-text-muted) !important;
-  background: var(--paper-bg) !important;
-  color: var(--paper-text-main) !important;
+  --mantine-color-text: var(--paper-text-main);
+  --mantine-color-dimmed: var(--paper-text-muted);
+  background: var(--paper-bg);
+  color: var(--paper-text-main);
 }
 
 .batchModalContent {
-  border: 1px solid var(--paper-text-muted) !important;
+  border: 1px solid var(--paper-text-muted);
 }
 
 .batchModalTitle {
-  color: var(--paper-text-main) !important;
+  color: var(--paper-text-main);
 }
 
 .batchModalClose {
-  background: transparent !important;
-  border: 1px solid transparent !important;
-  color: var(--paper-text-main) !important;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--paper-text-main);
 }
 
 .batchModalClose:hover {
-  background: color-mix(in srgb, var(--paper-text-main) 9%, var(--paper-bg)) !important;
-  border-color: var(--paper-text-muted) !important;
+  background: color-mix(in srgb, var(--paper-text-main) 9%, var(--paper-bg));
+  border-color: var(--paper-text-muted);
 }
 
 .batchModalAlert {
-  background: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg)) !important;
-  border: 1px solid var(--paper-text-muted) !important;
-  color: var(--paper-text-main) !important;
-  box-shadow: none !important;
+  background: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg));
+  border: 1px solid var(--paper-text-muted);
+  color: var(--paper-text-main);
+  box-shadow: none;
 }
 
 .batchModalAlert :global(.mantine-Alert-icon),
 .batchModalAlert :global(.mantine-Alert-title),
 .batchModalAlert :global(.mantine-Alert-message) {
-  color: var(--paper-text-main) !important;
+  color: var(--paper-text-main);
 }
 
-@media (max-width: 48em) {
+@media (max-width: 75rem) {
+  .caseBodyGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 56rem) {
+  .courtWorkspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(14rem, 36%) minmax(0, 1fr);
+  }
+
+  .docketPanel {
+    border-right: 0;
+    border-bottom: 1px solid var(--surface-border-quiet);
+  }
+
+  .caseWorkspace {
+    padding: var(--space-3);
+  }
+
   .primaryAction {
     flex: 1 1 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .candidateButton,
+  .caseWorkspaceMotion,
+  .batchActions {
+    animation: none;
+    transition: none;
   }
 }

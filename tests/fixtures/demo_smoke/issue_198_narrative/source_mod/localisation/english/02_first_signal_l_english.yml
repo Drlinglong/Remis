@@ -1,0 +1,14 @@
+l_english:
+ # Batch 02: Remis acts before the council has finished naming the problem.
+ first_contact.220.t:0 "A Signal at Meridian Gate"
+ first_contact.220.desc:0 "At §H [Root.GetCapitalName]§!, Remis hears a reply hidden inside the Accord of Echoes. The Cartographers' Guild calls it a route; the Watch of Quiet Stars calls it a threat. Remis, the Red Archivist, asks why a distress call would know her name.\n\n\"The signal is not a throne,\" says the Ledger-Breaker. \"It is a door.\""
+ remis198_signal_choice.a:0 "Ask the Meridian Council to open the route under the Mercy Protocol."
+ remis198_signal_choice.b:0 "Ask the Watch of Quiet Stars to seal Meridian Gate before the signal answers."
+ meridian_gate.221.t:0 "The Ledger That Remembers"
+ meridian_gate.221.desc:0 "The ledger places Kestrel Reach beyond the next jump from Meridian Gate, yet its margin bears Remis's other title: the Ledger-Breaker. The Cartographers' Guild denies drawing it, while Remis says the Accord of Echoes has been keeping accounts."
+ meridian_gate.221.a:0 "Follow the Accord of Echoes into Kestrel Reach."
+ meridian_gate.221.b:0 "Hold Meridian Gate until the Meridian Council agrees."
+ remis_gate_action:0 "Remis opens the maintenance hatch with a hairpin."
+ remis_gate_action_desc:0 "She crawls through the relay's service spine, tears out a dead regulator, and bridges the circuit with the clasp from her red ledger. The gate wakes long enough to show forty-eight life signs."
+ remis198_signal_log:0 "The Ledger-Breaker writes: NOT A THRONE. A DOOR."
+ remis198_signal_log_desc:0 "The joke earns no laughter in the control room. Remis underlines the words, then orders the Cartographers' Guild to map the route before the Watch of Quiet Stars can erase it."

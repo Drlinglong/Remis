@@ -28,6 +28,8 @@ class FileTask:
     all_key_map: Optional[Dict[int, Dict[str, Any]]] = None
     model_result_positions: List[int] = field(default_factory=list)
     reference_translations: Dict[int, str] = field(default_factory=dict)
+    source_entries: List[Dict[str, str]] = field(default_factory=list)
+    translation_entry_indices: List[int] = field(default_factory=list)
 
 
 @dataclass
@@ -42,3 +44,6 @@ class BatchTask:
     failed: bool = field(default=False, init=False)
     fell_back_to_source: bool = field(default=False, init=False)
     warnings: List[Dict[str, Any]] = field(default_factory=list, init=False)
+    context_entries: List[Dict[str, str]] = field(default_factory=list)
+    context_summaries: List[Dict[str, Any]] = field(default_factory=list)
+    context_metadata: Dict[str, Any] = field(default_factory=dict)

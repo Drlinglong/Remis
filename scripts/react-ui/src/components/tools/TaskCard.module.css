@@ -1,0 +1,67 @@
+.taskCard {
+    position: relative;
+    min-height: var(--control-hit-target);
+    margin-bottom: var(--space-2);
+    padding: var(--space-3);
+    color: var(--surface-text-main);
+    background: color-mix(in srgb, var(--surface-bg-solid) 82%, var(--canvas-bg-solid));
+    border: 1px solid var(--surface-border-quiet);
+    border-radius: var(--radius-control);
+    box-shadow: var(--shadow-quiet);
+    cursor: grab;
+    user-select: none;
+    transition:
+        transform var(--motion-duration-fast) var(--motion-ease-standard),
+        box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
+        border-color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.taskCard:is(:hover, :focus-visible) {
+    border-color: var(--surface-border-anchor);
+    box-shadow: var(--shadow-anchor);
+    transform: translateY(-1px);
+}
+
+.taskCard:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.taskCardDragging {
+    z-index: 10;
+    cursor: grabbing;
+    opacity: 0.55;
+    border-color: var(--surface-border-anchor);
+    box-shadow: var(--shadow-anchor);
+}
+
+.taskIdentity {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+}
+
+.fileTaskIndicator::before,
+.noteTaskIndicator::before {
+    position: absolute;
+    top: 0;
+    right: var(--space-3);
+    left: var(--space-3);
+    height: 2px;
+    content: '';
+    background: var(--status-info);
+}
+
+.noteTaskIndicator::before {
+    background: var(--status-warning);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .taskCard {
+        transition: none;
+    }
+
+    .taskCard:is(:hover, :focus-visible) {
+        transform: none;
+    }
+}

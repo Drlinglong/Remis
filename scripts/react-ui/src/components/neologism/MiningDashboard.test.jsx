@@ -91,7 +91,7 @@ describe('MiningDashboard', () => {
   it('renders a backend terminal failure delivered by websocket', async () => {
     renderDashboard();
 
-    const startButton = await screen.findByRole('button', { name: 'neologism_review.mining.start_mining' });
+    const startButton = await screen.findByRole('button', { name: 'mod_archive.analysis.start_analysis' });
     fireEvent.click(startButton);
 
     await waitFor(() => expect(api.post).toHaveBeenCalled());
@@ -156,6 +156,13 @@ describe('MiningDashboard', () => {
     expect(screen.queryByText('form_label_model')).not.toBeInTheDocument();
   });
 
+  it('shows automatic archive-analysis concurrency by default', async () => {
+    renderDashboard();
+
+    const concurrency = await screen.findByTestId('mod-archive-concurrency');
+    expect(concurrency).toHaveValue('mod_archive.analysis.concurrency_auto');
+  });
+
   it('excludes the project source language and corrects an invalid default target', async () => {
     projectSourceLanguage = 'zh-CN';
     renderDashboard();
@@ -173,13 +180,15 @@ describe('MiningDashboard', () => {
     })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', {
-      name: 'neologism_review.mining.start_mining',
+      name: 'mod_archive.analysis.start_analysis',
     }));
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/api/neologisms/mine', expect.objectContaining({
         project_id: 'project-1',
         target_lang: 'zh-TW',
         review_language: 'zh-CN',
+        description_language: 'zh-CN',
+        analysis_scope: 'terms_only',
       }));
     });
   });

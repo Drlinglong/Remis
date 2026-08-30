@@ -30,8 +30,10 @@ describe('Agent Workshop visual reliability contract', () => {
 
   it('binds the approval overlay and actions to paper surface semantics', () => {
     expect(pageSource).toContain('content: styles.approvalModalContent');
-    expect(pageSource).toContain('data-remis-action="primary"');
-    expect(pageSource).toContain('data-remis-action="secondary"');
+    expect(pageSource).toContain('data-remis-action="paper-primary"');
+    expect(pageSource).toContain('data-remis-action="paper-secondary"');
+    expect(pageSource).not.toContain('data-remis-action="primary"');
+    expect(pageSource).not.toContain('data-remis-action="secondary"');
     expect(pageCss).toContain('.approvalModalHeader');
     expect(pageCss).toContain('.approvalWarning');
   });

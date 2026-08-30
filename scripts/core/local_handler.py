@@ -182,6 +182,7 @@ class LocalLLMHandler(BaseApiHandler):
             response = self.client.chat.completions.create(
                 **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
+            self._record_model_response(response)
             return self._extract_chat_content(response, model_name, self.base_url)
         except APIConnectionError as exc:
             message = self._connection_error_message()
@@ -228,7 +229,9 @@ class LocalLLMHandler(BaseApiHandler):
                  except: pass
 
             response.raise_for_status()
-            return response.json().get("response", "").strip()
+            response_payload = response.json()
+            self._record_model_response(response_payload)
+            return response_payload.get("response", "").strip()
 
         except requests.ConnectionError as e:
             message = self._connection_error_message()
@@ -262,6 +265,7 @@ class LocalLLMHandler(BaseApiHandler):
             response = client.chat.completions.create(
                 **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
+            self._record_model_response(response)
             return self._extract_chat_content(response, model_name, self.base_url)
         except APIConnectionError as e:
             message = self._connection_error_message()

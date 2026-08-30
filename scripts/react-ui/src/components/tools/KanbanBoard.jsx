@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
-import { DndContext, DragOverlay, defaultDropAnimationSideEffects, useSensor, useSensors, PointerSensor, closestCorners } from '@dnd-kit/core';
+import {
+    DndContext,
+    DragOverlay,
+    KeyboardSensor,
+    PointerSensor,
+    closestCorners,
+    defaultDropAnimationSideEffects,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { createPortal } from 'react-dom';
 import { useSidebar } from '../../context/SidebarContextCore';
 import { useKanban } from '../../hooks/useKanban';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import { TaskDetailsPanel } from './TaskDetailsPanel';
-import styles from '../../pages/ProjectManagement.module.css';
+import styles from './KanbanBoard.module.css';
 
 const KanbanBoard = ({ projectId }) => {
     const {
@@ -27,7 +37,15 @@ const KanbanBoard = ({ projectId }) => {
             activationConstraint: {
                 distance: 5, // Avoid accidental drags when clicking
             },
-        })
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+            keyboardCodes: {
+                start: ['Space'],
+                cancel: ['Escape'],
+                end: ['Space'],
+            },
+        }),
     );
 
     const handleDragStart = (event) => {

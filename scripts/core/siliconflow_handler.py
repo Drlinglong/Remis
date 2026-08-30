@@ -49,6 +49,7 @@ class SiliconFlowHandler(BaseApiHandler):
             response = client.chat.completions.create(
                 **self._apply_reasoning_to_openai_kwargs(request_kwargs)
             )
+            self._record_model_response(response)
             return response.choices[0].message.content.strip()
         except Exception as e:
             self.logger.exception(f"SiliconFlow API call failed: {e}")

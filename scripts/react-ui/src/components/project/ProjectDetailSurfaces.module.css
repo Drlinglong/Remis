@@ -1,0 +1,127 @@
+.glassCard {
+    --mantine-color-text: var(--surface-text-main) !important;
+    --mantine-color-dimmed: var(--surface-text-muted) !important;
+    --text-main: var(--surface-text-main);
+    --text-muted: var(--surface-text-muted);
+    background: var(--surface-bg, var(--glass-bg, rgba(30, 30, 30, 0.6))) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.1)) !important;
+    border-radius: var(--card-radius, 12px) !important;
+    box-shadow: var(--shadow-elevation, 0 8px 32px rgba(0, 0, 0, 0.2)) !important;
+    color: var(--surface-text-main) !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+}
+
+.glassCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.paperPanel {
+    --mantine-color-text: var(--paper-text-main) !important;
+    --mantine-color-dimmed: var(--paper-text-muted) !important;
+    background: var(--paper-bg) !important;
+    color: var(--paper-text-main) !important;
+    border-color: color-mix(in srgb, var(--paper-text-main) 34%, transparent) !important;
+}
+
+.surfacePanel {
+    --mantine-color-text: var(--surface-text-main) !important;
+    --mantine-color-dimmed: var(--surface-text-muted) !important;
+    background: var(--surface-bg-solid) !important;
+    color: var(--surface-text-main) !important;
+    border-color: var(--surface-border) !important;
+}
+
+.paperPanel :global(.mantine-Title-root),
+.surfacePanel :global(.mantine-Title-root),
+.canvasTitle,
+.paperTitle {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    display: block;
+    padding: 0 !important;
+    text-shadow: none !important;
+}
+
+.paperPanel :global(.mantine-Title-root),
+.paperTitle {
+    color: var(--paper-text-main) !important;
+}
+
+.surfacePanel :global(.mantine-Title-root) {
+    color: var(--surface-text-main) !important;
+}
+
+.canvasTitle {
+    color: var(--canvas-text-main) !important;
+}
+
+.surfaceInset {
+    --mantine-color-text: var(--surface-text-main) !important;
+    --mantine-color-dimmed: var(--surface-text-muted) !important;
+    background: var(--surface-bg-solid) !important;
+    color: var(--surface-text-main) !important;
+    border-color: color-mix(in srgb, var(--surface-text-muted) 42%, transparent) !important;
+    box-shadow: none !important;
+}
+
+.surfaceInset :global(.mantine-Title-root) {
+    background: transparent !important;
+    color: var(--surface-text-main) !important;
+    padding: 0 !important;
+    text-shadow: none !important;
+}
+
+.paperInset {
+    --mantine-color-text: var(--paper-text-main) !important;
+    --mantine-color-dimmed: var(--paper-text-muted) !important;
+    background: color-mix(in srgb, var(--paper-text-main) 4%, var(--paper-bg)) !important;
+    color: var(--paper-text-main) !important;
+    border-color: color-mix(in srgb, var(--paper-text-main) 32%, transparent) !important;
+    box-shadow: none !important;
+}
+
+.paperAlert,
+.surfaceAlert {
+    box-shadow: none !important;
+}
+
+.paperAlert {
+    background: color-mix(in srgb, var(--paper-text-main) 8%, var(--paper-bg)) !important;
+    border-color: color-mix(in srgb, var(--paper-text-main) 28%, transparent) !important;
+    color: var(--paper-text-main) !important;
+}
+
+.paperAlert :global(.mantine-Alert-icon),
+.paperAlert :global(.mantine-Alert-title),
+.paperAlert :global(.mantine-Alert-message) {
+    color: var(--paper-text-main) !important;
+}
+
+.surfaceAlert {
+    background: color-mix(in srgb, var(--surface-text-main) 9%, var(--surface-bg-solid)) !important;
+    border-color: color-mix(in srgb, var(--surface-text-main) 28%, transparent) !important;
+    color: var(--surface-text-main) !important;
+}
+
+.surfaceAlert :global(.mantine-Alert-icon),
+.surfaceAlert :global(.mantine-Alert-title),
+.surfaceAlert :global(.mantine-Alert-message) {
+    color: var(--surface-text-main) !important;
+}
+
+.projectMenuDropdown {
+  --mantine-color-text: var(--elevated-text-main, var(--surface-text-main)) !important;
+  background: var(--elevated-bg, var(--surface-bg)) !important;
+  border: 1px solid var(--elevated-border, var(--surface-border)) !important;
+  color: var(--elevated-text-main, var(--surface-text-main)) !important;
+  backdrop-filter: none !important;
+}
+
+/* Consumer compatibility: the baseline had no table selector. */
+.table {
+}

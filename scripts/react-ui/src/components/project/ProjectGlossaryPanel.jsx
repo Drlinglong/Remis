@@ -4,7 +4,7 @@ import { Alert, Badge, Button, Group, Paper, Select, Stack, Text, Title } from '
 import { notifications } from '@mantine/notifications';
 import { IconBook2, IconExternalLink, IconInfoCircle, IconLink, IconPlus, IconUnlink } from '@tabler/icons-react';
 
-import styles from '../../pages/ProjectManagement.module.css';
+import styles from './ProjectDetailSurfaces.module.css';
 import api from '../../utils/api';
 import { normalizeArrayPayload } from '../../utils/payload';
 

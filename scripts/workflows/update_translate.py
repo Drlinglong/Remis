@@ -18,6 +18,10 @@ from scripts.core.services.incremental_translation_service import IncrementalTra
 from scripts.core.services.workshop_issue_export_service import WorkshopIssueExportService, resolve_dynamic_valid_tags
 from scripts.core.services.embedded_workshop_service import run_embedded_workshop
 from scripts.core.services.vanilla_reference_factory import create_reference_resolver
+from scripts.core.services.translation_context_service import prepare_context_with_warnings
+from scripts.core.services.translation_context_gate import (
+    prepare_and_require_workflow_context,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +130,7 @@ async def run_incremental_update(
     selected_provider: str = "gemini",
     model_name: Optional[str] = None,
     batch_size_limit: Optional[int] = None,
+    source_context_overlap: int = 0,
     concurrency_limit: Optional[int] = None,
     rpm_limit: Optional[int] = None,
     mod_context: str = "",
@@ -134,7 +139,13 @@ async def run_incremental_update(
     use_resume: bool = True,
     embedded_workshop: Optional[Dict[str, Any]] = None,
     reference_reuse: Optional[Dict[str, Any]] = None,
-    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    use_project_context: bool = False,
+    context_release_id: Optional[str] = None,
+    context_character_budget: int = 4000,
+    context_service: Any = None,
+    snapshot_service: Any = None,
+    translation_context_mode: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Runs the incremental translation workflow for multiple target languages.
@@ -145,13 +156,11 @@ async def run_incremental_update(
 
     source_path = custom_source_path or project['source_path']
     project_name = project['name']
-
     target_codes_str = ", ".join([lang['code'] for lang in target_lang_infos])
     logger.info(f"Starting incremental update for: {project_name} -> [{target_codes_str}]")
     logger.info(f"Scanning source path: {source_path}")
     workflow_started_at = perf_counter()
-
-    snapshot_service = IncrementalSnapshotService()
+    incremental_snapshot_service = IncrementalSnapshotService()
     diff_service = IncrementalDiffService()
     build_service = IncrementalBuildService()
     incremental_archive_service = IncrementalArchiveService()
@@ -161,7 +170,7 @@ async def run_incremental_update(
     workshop_issue_exporter = WorkshopIssueExportService()
     run_id = str(uuid.uuid4())
     snapshot_started_at = perf_counter()
-    current_files_data = snapshot_service.build_snapshot(source_path, source_lang_info, progress_callback)
+    current_files_data = incremental_snapshot_service.build_snapshot(source_path, source_lang_info, progress_callback)
     snapshot_elapsed_ms = round((perf_counter() - snapshot_started_at) * 1000, 1)
     logger.info(f"Snapshot build completed for {project_name}: {len(current_files_data)} source files detected.")
 
@@ -173,6 +182,7 @@ async def run_incremental_update(
             "summary": {"total": 0, "new": 0, "changed": 0, "unchanged": 0}
         }
 
+    context_selection, overall_warnings = prepare_and_require_workflow_context(prepare_context_with_warnings, (project_id, current_files_data, use_project_context or translation_context_mode == "archive", context_release_id, context_character_budget, context_service, snapshot_service), translation_context_mode)
     is_multilang = len(target_lang_infos) > 1
     shared_output_dir = None
     shared_output_folder_name = None
@@ -198,7 +208,6 @@ async def run_incremental_update(
 
     # Initialize overall summary
     overall_summary = {"total": 0, "new": 0, "changed": 0, "unchanged": 0}
-    overall_warnings = []
     all_written_files = []
     output_dirs = output_dirs if not dry_run and is_multilang else []
     overall_file_summaries = []
@@ -327,13 +336,14 @@ async def run_incremental_update(
                 model_name=model_name,
                 target_lang_code=target_lang_code,
                 batch_size_limit=batch_size_limit,
+                source_context_overlap=source_context_overlap,
                 concurrency_limit=concurrency_limit,
                 rpm_limit=rpm_limit,
                 progress_callback=(
                     (lambda data, idx=lang_index, total=total_target_langs, code=target_lang_code:
                         progress_callback(_build_aggregated_progress(data, idx, total, code)))
                     if progress_callback else None
-                ),
+                ), context_selection=context_selection,
             )
             lang_telemetry["translation_ms"] = round((perf_counter() - translation_started_at) * 1000, 1)
             overall_warnings.extend(warnings)
@@ -541,7 +551,7 @@ async def run_incremental_update(
             "summary": overall_summary,
             "file_summaries": overall_file_summaries,
             "telemetry": telemetry,
-            "workshop_issue_exports": workshop_issue_exports,
+            "workshop_issue_exports": workshop_issue_exports, "context": context_selection.metadata,
         }
 
     telemetry["total_ms"] = round((perf_counter() - workflow_started_at) * 1000, 1)
@@ -554,6 +564,6 @@ async def run_incremental_update(
         "file_summaries": overall_file_summaries,
         "telemetry": telemetry,
         "workshop_issue_exports": workshop_issue_exports,
-        "warning_count": len(overall_warnings),
+        "warning_count": len(overall_warnings), "context": context_selection.metadata,
         "history_desc": f"Built incremental updates for {len(target_lang_infos)} languages."
     }

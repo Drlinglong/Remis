@@ -13,6 +13,8 @@ from scripts.core.repositories.project_watch_repository import ProjectWatchRepos
 from scripts.core.repositories.model_arena_repository import ModelArenaRepository
 from scripts.core.services.model_arena_service import ModelArenaService
 from scripts.core.services.project_watch_service import ProjectWatchService
+from scripts.core.repositories.context_archive_repository import ContextArchiveRepository
+from scripts.core.services.context_archive_removal_service import ContextArchiveRemovalService
 
 # Initialize Managers/Services
 # Order matters for dependency injection
@@ -46,6 +48,9 @@ model_arena_service = ModelArenaService(
     project_manager=project_manager,
     glossary_manager=glossary_manager,
 )
+
+context_archive_repository = ContextArchiveRepository(app_settings.REMIS_DB_PATH)
+context_archive_removal_service = ContextArchiveRemovalService(context_archive_repository)
 
 proofreading_service = ProofreadingService(
     project_manager=project_manager,

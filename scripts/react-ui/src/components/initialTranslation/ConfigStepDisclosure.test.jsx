@@ -29,6 +29,7 @@ function createForm() {
     target_lang_codes: [],
     translation_batch_size_limit: '',
     translation_concurrency_limit: '',
+    translation_context_mode: 'archive',
     translation_rpm_limit: '40',
     use_main_glossary: true,
     use_resume: false,
@@ -58,6 +59,7 @@ function createForm() {
 
 describe('ConfigStep advanced disclosure', () => {
   it('keeps advanced fields mounted but visually collapsed until expanded', async () => {
+    const form = createForm();
     render(
       <MantineProvider>
         <ConfigStep
@@ -73,7 +75,7 @@ describe('ConfigStep advanced disclosure', () => {
             },
           }}
           embeddedWorkshopModels={[]}
-          form={createForm()}
+          form={form}
           onSubmit={vi.fn()}
           selectedProject={{
             game_id: 'vic3',
@@ -103,5 +105,14 @@ describe('ConfigStep advanced disclosure', () => {
     expect(await screen.findByRole('switch', {
       name: /translation_config\.reference_reuse/,
     })).toBeInTheDocument();
+
+    const contextMode = screen.getByLabelText('translation_context_mode.label');
+    expect(Array.from(contextMode.options).map((option) => option.value)).toEqual([
+      'none',
+      'glossaries',
+      'archive',
+    ]);
+    fireEvent.change(contextMode, { target: { value: 'none' } });
+    expect(form.setFieldValue).toHaveBeenCalledWith('translation_context_mode', 'none');
   });
 });

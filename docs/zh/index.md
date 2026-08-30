@@ -85,6 +85,7 @@
 - [Victoria 3 国家形容词语义上下文](developer/vic3-country-adjective-context.md) - Issue #207 生产 MVP、版本化资源与维护门禁
 - [Key context 因子实验](developer/key-context-factorial-benchmark.md) - 试验组、fixture、成本估算与质量评审方法
 - [多文件并行处理架构说明](developer/parallel-processing.md) - 并行处理技术详解
+- [Context Archive Demo 金标评分](developer/context-archive-demo-benchmark.md) - 一条命令复跑视界信号与毒圣骑士评分
 - [Workshop 描述生成器指南](developer/workshop_description_generator_guide.md) - 工具说明
 - [Steam 工坊与发布素材](user-guides/steam-workshop.md) - 工作区、封面图、工坊描述与版本历史
 - [Steam 工坊开发契约](developer/steam-workshop-contract.md) - 发布工作区、资产版本与 3.2.x 上传预留

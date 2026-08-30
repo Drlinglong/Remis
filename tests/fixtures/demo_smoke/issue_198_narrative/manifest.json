@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "fixture_id": "remis_issue_198_narrative_v1",
+  "issue": 198,
+  "game_id": "stellaris",
+  "source_language": "en",
+  "localization_header": "l_english:",
+  "encoding": "utf-8",
+  "baseline_root": "source_mod",
+  "variant_root": "source_mod_modified_deleted",
+  "source_provenance": [
+    {
+      "path": "localisation/english/01_context_l_english.yml",
+      "batch": "batch_01_context",
+      "role": "people, places, organizations, aliases, and concepts"
+    },
+    {
+      "path": "localisation/english/02_first_signal_l_english.yml",
+      "batch": "batch_02_first_signal",
+      "role": "inciting event and first response"
+    },
+    {
+      "path": "localisation/english/03_council_split_l_english.yml",
+      "batch": "batch_03_council_split",
+      "role": "branch-dependent council facts and decisions"
+    },
+    {
+      "path": "localisation/english/04_technology_l_english.yml",
+      "batch": "batch_04_technology",
+      "role": "technology, building, and policy context"
+    },
+    {
+      "path": "localisation/english/05_resolution_l_english.yml",
+      "batch": "batch_05_resolution",
+      "role": "branch-aware resolution and epilogue"
+    },
+    {
+      "path": "localisation/english/06_aftershock_l_english.yml",
+      "batch": "batch_06_aftershock",
+      "role": "branch-specific consequences and institutional reform"
+    },
+    {
+      "path": "localisation/english/07_ledger_finale_l_english.yml",
+      "batch": "batch_07_ledger_finale",
+      "role": "late callback, conditional truth, and unresolved afterword"
+    }
+  ],
+  "expected_baseline": {
+    "file_count": 7,
+    "entry_count": 84,
+    "minimum_event_files": 5,
+    "minimum_batches": 7
+  },
+  "recurring_terms": [
+    {"term": "Remis", "category": "person", "minimum_occurrences": 15},
+    {"term": "the Red Archivist", "category": "alias", "minimum_occurrences": 3},
+    {"term": "the Ledger-Breaker", "category": "alias", "minimum_occurrences": 3},
+    {"term": "Meridian Gate", "category": "place", "minimum_occurrences": 9},
+    {"term": "Kestrel Reach", "category": "place", "minimum_occurrences": 8},
+    {"term": "Cartographers' Guild", "category": "organization", "minimum_occurrences": 4},
+    {"term": "Meridian Council", "category": "organization", "minimum_occurrences": 5},
+    {"term": "Watch of Quiet Stars", "category": "organization", "minimum_occurrences": 4},
+    {"term": "Accord of Echoes", "category": "concept", "minimum_occurrences": 7},
+    {"term": "Echo Lattice", "category": "technology", "minimum_occurrences": 3},
+    {"term": "Mercy Protocol", "category": "concept", "minimum_occurrences": 6},
+    {"term": "Meridian Seal", "category": "concept", "minimum_occurrences": 4},
+    {"term": "Red Ledger", "category": "prop", "minimum_occurrences": 3},
+    {"term": "Kestrel Convoy", "category": "branch label", "minimum_occurrences": 2},
+    {"term": "Echo Decoy", "category": "branch label", "minimum_occurrences": 2}
+  ],
+  "aliases": [
+    {"canonical": "Remis", "aliases": ["the Red Archivist", "the Ledger-Breaker"]}
+  ],
+  "spatial_contract": {
+    "distinct_places": ["Meridian Gate", "Kestrel Reach"],
+    "relationship_keys": [
+      {"key": "place_meridian_gate_desc:0", "required_terms": ["Meridian Gate", "Kestrel Reach", "approach"]},
+      {"key": "meridian_gate.221.desc:0", "required_terms": ["Kestrel Reach", "Meridian Gate", "beyond", "jump"]},
+      {"key": "resolution.400.desc:0", "required_terms": ["Kestrel Reach", "Meridian Gate", "from", "route"]}
+    ],
+    "forbidden_patterns": ["at §y kestrel reach§!, meridian gate", "at kestrel reach, meridian gate"]
+  },
+  "event_chain": [
+    {
+      "id": "signal_reaches_gate",
+      "batch": "batch_02_first_signal",
+      "file": "localisation/english/02_first_signal_l_english.yml",
+      "keys": ["first_contact.220.t:0", "first_contact.220.desc:0", "remis198_signal_choice.a:0", "remis198_signal_choice.b:0"],
+      "links_to": ["council_hears_remis"]
+    },
+    {
+      "id": "council_hears_remis",
+      "batch": "batch_03_council_split",
+      "file": "localisation/english/03_council_split_l_english.yml",
+      "keys": ["council.310.t:0", "council.310.desc:0", "remis198_concord_branch:0", "remis198_warden_branch:0"],
+      "links_to": ["seal_or_watch"]
+    },
+    {
+      "id": "seal_or_watch",
+      "batch": "batch_03_council_split",
+      "file": "localisation/english/03_council_split_l_english.yml",
+      "keys": ["council.311.t:0", "council.311.desc:0", "decision_meridian_seal:0", "decision_meridian_watch:0"],
+      "links_to": ["reform_the_gate"]
+    },
+    {
+      "id": "reform_the_gate",
+      "batch": "batch_04_technology",
+      "file": "localisation/english/04_technology_l_english.yml",
+      "keys": ["tech_accord_lattice:0", "tech_ledger_index:0", "tech_meridian_lock:0"],
+      "links_to": ["resolution_of_reach"]
+    },
+    {
+      "id": "resolution_of_reach",
+      "batch": "batch_05_resolution",
+      "file": "localisation/english/05_resolution_l_english.yml",
+      "keys": ["resolution.400.t:0", "resolution.400.desc:0", "resolution.400.a:0", "resolution.400.b:0", "resolution.401.t:0", "resolution.401.desc:0"],
+      "links_to": ["aftershock_choice"]
+    },
+    {
+      "id": "aftershock_choice",
+      "batch": "batch_06_aftershock",
+      "file": "localisation/english/06_aftershock_l_english.yml",
+      "keys": ["aftershock.410.t:0", "aftershock.410.desc:0", "aftershock.410.concord:0", "aftershock.410.warden:0", "aftershock.410.a:0", "aftershock.410.b:0"],
+      "links_to": ["ledger_finale"]
+    },
+    {
+      "id": "ledger_finale",
+      "batch": "batch_07_ledger_finale",
+      "file": "localisation/english/07_ledger_finale_l_english.yml",
+      "keys": ["epilogue.420.t:0", "epilogue.420.desc:0", "epilogue.420.concord:0", "epilogue.420.warden:0", "remis_final_verdict:0", "remis_ledger_reveal_desc:0"],
+      "links_to": []
+    }
+  ],
+  "event_groups": [
+    {
+      "id": "meridian_chain",
+      "description": "One narrative chain grouped across semantic links, not a shared key prefix.",
+      "keys": ["first_contact.220.desc:0", "council.310.desc:0", "decision_meridian_seal:0", "resolution.400.desc:0", "aftershock.410.desc:0", "epilogue.420.desc:0"],
+      "minimum_distinct_files": 5,
+      "minimum_distinct_key_prefixes": 5
+    }
+  ],
+  "branch_facts": [
+    {
+      "branch": "concord",
+      "keys": ["remis198_concord_branch:0", "decision_meridian_seal:0", "resolution.401.concord:0", "aftershock.410.concord:0", "epilogue.420.concord:0"],
+      "required_facts": ["forty-eight refugees", "Meridian Seal", "Mercy Protocol", "Remis", "Kestrel Reach"]
+    },
+    {
+      "branch": "warden",
+      "keys": ["remis198_warden_branch:0", "decision_meridian_watch:0", "resolution.401.warden:0", "aftershock.410.warden:0", "epilogue.420.warden:0"],
+      "required_facts": ["forty-eight stolen clearance signatures", "Watch of Quiet Stars", "Meridian Gate", "Remis", "Kestrel Reach"]
+    }
+  ],
+  "mutually_exclusive_facts": [
+    {
+      "concord_key": "remis198_concord_branch:0",
+      "concord_fact": "genuine roster of forty-eight refugees",
+      "warden_key": "remis198_warden_branch:0",
+      "warden_fact": "forty-eight stolen clearance signatures"
+    },
+    {
+      "concord_key": "resolution.401.concord:0",
+      "concord_fact": "forty-eight life signs cross",
+      "warden_key": "resolution.401.warden:0",
+      "warden_fact": "no ship to interrogate"
+    }
+  ],
+  "long_distance_callbacks": [
+    {
+      "term": "Red Ledger",
+      "early_key": "remis_red_ledger_desc:0",
+      "late_key": "remis_ledger_reveal_desc:0",
+      "minimum_file_distance": 4
+    },
+    {
+      "term": "Ledger-Breaker",
+      "early_key": "remis198_signal_log:0",
+      "late_key": "remis_final_verdict:0",
+      "minimum_file_distance": 3
+    }
+  ],
+  "variant_delta": {
+    "changed_keys": ["first_contact.220.desc:0", "council.310.desc:0", "resolution.400.desc:0", "aftershock.410.desc:0", "remis_ledger_reveal_desc:0"],
+    "deleted_files": ["localisation/english/04_technology_l_english.yml"],
+    "deleted_keys": ["tech_accord_lattice:0", "tech_accord_lattice_desc:0", "tech_echo_beacon:0", "tech_echo_beacon_desc:0", "building_meridian_archive:0", "building_meridian_archive_desc:0", "policy_mercy_protocol:0", "tech_ledger_index:0", "tech_ledger_index_desc:0", "tech_meridian_lock:0", "tech_meridian_lock_desc:0"]
+  }
+}

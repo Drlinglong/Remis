@@ -626,6 +626,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         config.api_provider = "test-provider"
         config.model = "test-model"
         config.batch_size_limit = None
+        config.source_context_overlap = 0
         config.concurrency_limit = None
         config.rpm_limit = None
         config.dry_run = False
@@ -633,6 +634,10 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
         config.use_resume = True
         config.embedded_workshop = None
         config.reference_reuse = None
+        config.use_project_context = False
+        config.translation_context_mode = None
+        config.context_release_id = None
+        config.context_character_budget = 4000
 
         with patch.dict(
             app_settings.LANGUAGE_BY_CODE,
@@ -663,6 +668,7 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
             selected_provider="test-provider",
             model_name="test-model",
             batch_size_limit=None,
+            source_context_overlap=0,
             concurrency_limit=None,
             rpm_limit=None,
             dry_run=False,
@@ -670,6 +676,10 @@ class TestProjectManager(unittest.IsolatedAsyncioTestCase):
             use_resume=True,
             embedded_workshop=None,
             reference_reuse=None,
+            use_project_context=False,
+            translation_context_mode=None,
+            context_release_id=None,
+            context_character_budget=4000,
             progress_callback=None,
         )
 

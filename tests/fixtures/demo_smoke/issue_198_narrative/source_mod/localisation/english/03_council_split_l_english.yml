@@ -1,0 +1,15 @@
+l_english:
+ # Batch 03: the same chain branches on evidence, not on a common key prefix.
+ council.310.t:0 "Two Readings of the Accord"
+ council.310.desc:0 "The Meridian Council gathers at Meridian Gate. Remis presents the ledger from Kestrel Reach, while the Watch of Quiet Stars counts ships and the Cartographers' Guild counts omissions. The Red Archivist refuses to call either count proof."
+ remis198_concord_branch:0 "The Concord faction says the Accord of Echoes carries a genuine roster of forty-eight refugees, and Remis should carry the Meridian Seal to Kestrel Reach under the Mercy Protocol."
+ remis198_warden_branch:0 "The Warden faction says the Accord of Echoes carries forty-eight stolen clearance signatures, and the Watch of Quiet Stars must guard Meridian Gate until Kestrel Reach is quiet."
+ council.311.t:0 "The Vote Beneath the Gate"
+ council.311.desc:0 "The Meridian Council votes while Remis waits beneath the relay. The Cartographers' Guild asks for a name; the Watch of Quiet Stars asks for a lock; the Ledger-Breaker asks who benefits from the silence."
+ decision_meridian_seal:0 "Grant Remis the Meridian Seal and open the path to Kestrel Reach under the Mercy Protocol."
+ decision_meridian_watch:0 "Give the Watch of Quiet Stars authority to close Meridian Gate until Remis can verify the signal."
+ remis198_branch_warning:0 "Whichever reading prevails, the Accord of Echoes will be remembered by both sides."
+ concord_argument:0 "The Concord argues that no raider would spend a military cipher spelling out children's names."
+ warden_argument:0 "The Warden replies that a good decoy begins with the names everyone is desperate to save."
+ remis_interrupts_vote:0 "Remis drops the red ledger onto the council table. \"You can vote after you decide whether these are people or ammunition.\""
+ council_ledger_entry:0 "The Meridian Council records both readings, because Remis refuses to let a conditional truth become a convenient fact."

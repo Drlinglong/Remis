@@ -25,6 +25,7 @@ def _build_incremental_file_task(
     file_data: Dict[str, Any],
     texts: List[str],
     key_delta_indices: List[int],
+    full_file_entries: List[Dict[str, Any]],
     dirty_key_infos: List[Dict[str, Any]],
     target_lang_info: Dict[str, Any],
     source_lang_info: Dict[str, Any],
@@ -54,6 +55,11 @@ def _build_incremental_file_task(
         semantic_hints=_semantic_hints_for_dirty_entries(
             game_profile, target_lang_info["code"], texts, dirty_key_infos
         ),
+        source_entries=[
+            {"key": entry["key"], "source": entry["source"]}
+            for entry in full_file_entries
+        ],
+        translation_entry_indices=key_delta_indices,
     )
 
 
@@ -174,7 +180,6 @@ class IncrementalPreparationService:
                     "total_files": num_files,
                     "target_lang": target_lang_code,
                 })
-
             (
                 texts_to_translate,
                 key_delta_indices,
@@ -197,13 +202,13 @@ class IncrementalPreparationService:
                 "key_delta_indices": key_delta_indices,
             })
             file_summaries.append(file_summary)
-
             if texts_to_translate:
                 file_tasks_for_ai.append(_build_incremental_file_task(
                     filename=filename,
                     file_data=file_data,
                     texts=texts_to_translate,
                     key_delta_indices=key_delta_indices,
+                    full_file_entries=full_file_entries,
                     dirty_key_infos=dirty_key_infos,
                     target_lang_info=target_lang_info,
                     source_lang_info=source_lang_info,

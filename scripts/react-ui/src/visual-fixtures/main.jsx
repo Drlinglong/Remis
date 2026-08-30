@@ -4,8 +4,8 @@ import { MantineProvider } from '@mantine/core';
 
 import '@mantine/core/styles.css';
 import '../index.css';
-import '../themes/index.css';
 import '../themes/definitions.css';
+import '../i18n/i18n';
 import { theme as customTheme } from '../theme';
 import VisualReliabilityLab from './VisualReliabilityLab';
 
@@ -17,8 +17,6 @@ const activeTheme = supportedThemes.has(requestedTheme) ? requestedTheme : 'scif
 const rootElement = window.document.documentElement;
 
 rootElement.setAttribute('data-theme', activeTheme);
-rootElement.classList.remove('victorian', 'byzantine', 'scifi', 'wwii', 'medieval');
-rootElement.classList.add(activeTheme);
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

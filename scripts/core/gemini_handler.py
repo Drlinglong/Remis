@@ -52,6 +52,7 @@ class GeminiHandler(BaseApiHandler):
                 contents=prompt,
                 config=types.GenerateContentConfig(**generation_config) if generation_config else None,
             )
+            self._record_model_response(response)
             
             # SAFE EXTRACTION: Avoid the 'thought_signature' warning by extracting only text parts
             # Response parts can contain Text, Thought, Call, etc.
@@ -105,6 +106,7 @@ class GeminiHandler(BaseApiHandler):
                     **{"temperature": temperature, **self._reasoning_request_parameters()}
                 ),
             )
+            self._record_model_response(response)
             return response.text.strip()
         except Exception as e:
             self.logger.exception(f"Gemini chat generation failed: {e}")
