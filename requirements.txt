@@ -15,7 +15,8 @@ flake8
 
 # Refactoring Dependencies
 pydantic
-pydantic-ai-slim[openai]==2.9.0
+pydantic-ai-slim[anthropic,google,openai,openrouter]==2.9.0
+anthropic>=0.108.0,<1
 json-repair
 python-dotenv
 requests

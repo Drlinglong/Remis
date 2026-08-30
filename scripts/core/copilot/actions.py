@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
-from pydantic import BaseModel, ConfigDict, ValidationError
+from typing import Any, Literal
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+
+from scripts.core.copilot.workflow_entities import canonicalize_workflow_entities
 
 
 class _NoActionArgs(BaseModel):
@@ -16,19 +18,74 @@ class _ProjectNavigationArgs(BaseModel):
     task_id: str | None = None
 
 
-class _LocalizationWorkflowArgs(BaseModel):
-    """Conversation-derived hints only; the user still approves the server plan."""
+class LocalizationWorkflowArgs(BaseModel):
+    """Complete conversation-derived inputs for opening the approval workflow."""
 
     model_config = ConfigDict(extra="forbid")
+    project_mode: Literal["existing", "new"]
+    project_id: str | None = None
     folder_path: str | None = None
     project_name: str | None = None
     game_id: str | None = None
     source_language: str | None = None
-    target_language: str | None = None
+    target_languages: list[str] = Field(min_length=1)
+    api_provider: str
+    model: str
+
+    @model_validator(mode="after")
+    def validate_project_reference(self) -> "LocalizationWorkflowArgs":
+        if not _nonempty(self.api_provider) or not _nonempty(self.model):
+            raise ValueError("Provider and model are required")
+        if self.project_mode == "existing":
+            if not _nonempty(self.project_id) and not _nonempty(self.project_name):
+                raise ValueError("An existing project requires project_id or project_name")
+            return self
+        required = (
+            self.folder_path,
+            self.project_name,
+            self.game_id,
+            self.source_language,
+        )
+        if not all(_nonempty(value) for value in required):
+            raise ValueError("A new project requires path, name, game, and source language")
+        return self
+
+
+def _nonempty(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _workflow_args(
+    raw_args: dict[str, Any],
+    defaults: dict[str, str] | None,
+    entity_catalog: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Validate a complete workflow handoff; incomplete model proposals fail closed."""
+    candidate = dict(raw_args)
+    legacy_target = candidate.pop("target_language", None)
+    if "target_languages" not in candidate and _nonempty(legacy_target):
+        candidate["target_languages"] = [legacy_target.strip()]
+    for field in ("api_provider", "model"):
+        if not _nonempty(candidate.get(field)) and defaults:
+            candidate[field] = defaults.get(field)
+    candidate = canonicalize_workflow_entities(candidate, entity_catalog)
+    if candidate is None:
+        return None
+    try:
+        parsed = LocalizationWorkflowArgs.model_validate(candidate)
+    except ValidationError:
+        return None
+    args = parsed.model_dump(exclude_none=True)
+    args["target_languages"] = list(dict.fromkeys(
+        value.strip() for value in args["target_languages"] if _nonempty(value)
+    ))
+    if not args["target_languages"]:
+        return None
+    return args
 
 
 ACTION_ARG_MODELS: dict[str, type[BaseModel]] = {
-    "start_localization_workflow": _LocalizationWorkflowArgs,
+    "start_localization_workflow": LocalizationWorkflowArgs,
     "open_initial_translation": _ProjectNavigationArgs,
     "open_proofreading": _ProjectNavigationArgs,
     "open_agent_workshop": _ProjectNavigationArgs,
@@ -187,7 +244,12 @@ def list_actions(phase: int | None = 1) -> list[dict[str, Any]]:
     return items
 
 
-def filter_suggested_actions(raw_actions: list[Any] | None) -> list[dict[str, Any]]:
+def filter_suggested_actions(
+    raw_actions: list[Any] | None,
+    *,
+    workflow_defaults: dict[str, str] | None = None,
+    workflow_entity_catalog: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     """Keep only whitelist actions; drop unknown / none."""
     if not raw_actions:
         return []
@@ -205,15 +267,32 @@ def filter_suggested_actions(raw_actions: list[Any] | None) -> list[dict[str, An
             continue
         if action_id in seen:
             continue
-        seen.add(action_id)
 
         meta = ACTION_REGISTRY[action_id]
         raw_args = item.get("args") if isinstance(item.get("args"), dict) else {}
+        if action_id == "start_localization_workflow":
+            args = _workflow_args(raw_args, workflow_defaults, workflow_entity_catalog)
+            if args is None:
+                continue
+            seen.add(action_id)
+            cleaned.append(
+                {
+                    "action": action_id,
+                    "label": meta["label"],
+                    "args": args,
+                    "requires_confirmation": bool(meta.get("requires_confirmation", False)),
+                    "risk": meta.get("risk", "safe_ui_navigation"),
+                }
+            )
+            if len(cleaned) >= 4:
+                break
+            continue
         args_model = ACTION_ARG_MODELS.get(action_id, _NoActionArgs)
         try:
             args = args_model.model_validate(raw_args).model_dump(exclude_none=True)
         except ValidationError:
             args = {}
+        seen.add(action_id)
         cleaned.append(
             {
                 "action": action_id,

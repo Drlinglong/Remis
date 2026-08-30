@@ -6,10 +6,10 @@ import { useTranslation } from 'react-i18next';
 import RemisCopilotThread from './RemisCopilotThread';
 import { useRemisCopilotContext } from '../../context/CopilotContext';
 import {
-  getSession,
+  createEmptySession,
   loadCopilotState,
   toInitialMessages,
-  upsertSessionMessages,
+  upsertBackgroundSessionMessages,
 } from '../../services/copilotSessionStore';
 import styles from './CopilotFloatingWidget.module.css';
 
@@ -18,15 +18,10 @@ export default function CopilotFloatingWidget() {
   const location = useLocation();
   const { pageContext } = useRemisCopilotContext();
   const [opened, setOpened] = useState(false);
-  const [store, setStore] = useState(() => loadCopilotState());
+  const [draftSession, setDraftSession] = useState(null);
   const [dismissedFingerprint, setDismissedFingerprint] = useState('');
 
-  const activeSession = useMemo(() => getSession(store, store.activeSessionId), [store]);
-  const initialMessages = useMemo(
-    () => toInitialMessages(activeSession?.messages || []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [store.activeSessionId],
-  );
+  const initialMessages = useMemo(() => toInitialMessages(draftSession?.messages || []), [draftSession]);
   const reminder = pageContext?.reminder || null;
   const fingerprint = reminder ? `${pageContext.pageId}:${reminder.reason}:${reminder.detectedAt}` : '';
   const hasReminder = Boolean(reminder && fingerprint !== dismissedFingerprint);
@@ -36,15 +31,25 @@ export default function CopilotFloatingWidget() {
   }, [reminder]);
 
   const handleMessagesChange = useCallback((sessionId, messages) => {
-    setStore((prev) => upsertSessionMessages(prev, sessionId, messages));
-  }, []);
+    const hasUserMessage = (messages || []).some((message) => message.role === 'user' && message.content);
+    if (!hasUserMessage) return;
+    const latestStore = loadCopilotState();
+    upsertBackgroundSessionMessages(
+      latestStore,
+      { ...draftSession, id: sessionId },
+      messages,
+    );
+  }, [draftSession]);
 
   const handleOpen = useCallback(() => {
+    // Temporary containment until Copilot sessions move to a durable per-session store:
+    // floating entry points always start an ephemeral draft and persist only after user input.
+    setDraftSession(createEmptySession());
     setOpened(true);
     if (fingerprint) setDismissedFingerprint(fingerprint);
   }, [fingerprint]);
 
-  if (location.pathname === '/copilot' || !activeSession) return null;
+  if (location.pathname === '/copilot') return null;
 
   const locale = (i18n.language || 'zh').startsWith('zh') ? 'zh' : 'en';
   const tooltip = hasReminder
@@ -53,7 +58,7 @@ export default function CopilotFloatingWidget() {
 
   return (
     <div className={styles.root}>
-      {opened && (
+      {opened && draftSession && (
         <Paper className={styles.panel} shadow="xl" radius="lg" withBorder>
           <div className={styles.header}>
             <div>
@@ -71,8 +76,8 @@ export default function CopilotFloatingWidget() {
           )}
           <div className={styles.thread}>
             <RemisCopilotThread
-              key={activeSession.id}
-              sessionId={activeSession.id}
+              key={draftSession.id}
+              sessionId={draftSession.id}
               initialMessages={initialMessages}
               onMessagesChange={handleMessagesChange}
               locale={locale}

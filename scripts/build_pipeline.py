@@ -17,7 +17,7 @@ try:
 except ModuleNotFoundError:
     from build_profile import PROFILES, write_profile_manifest
 
-MIN_GOOGLE_GENAI_VERSION = (1, 68, 0)
+MIN_GOOGLE_GENAI_VERSION = (2, 11, 0)
 STEAM_WORKSHOP_DEMO_WORKSPACE_ID = "7e492e06-823d-4343-998e-f121db6e0ee1"
 
 RELEASE_DEMO_SOURCE_FILES = {
@@ -204,7 +204,7 @@ def ensure_min_google_genai(env_python):
         print("[ERROR] google-genai is not installed in the build environment.")
         print(
             "[ERROR] Run: "
-            f"conda activate {CONDA_ENV_NAME} && pip install \"google-genai>={'.'.join(map(str, MIN_GOOGLE_GENAI_VERSION))},<2\""
+            f"conda activate {CONDA_ENV_NAME} && pip install \"google-genai>={'.'.join(map(str, MIN_GOOGLE_GENAI_VERSION))},<3\""
         )
         sys.exit(1)
 
@@ -217,7 +217,7 @@ def ensure_min_google_genai(env_python):
         )
         print(
             "[ERROR] Run: "
-            f"conda activate {CONDA_ENV_NAME} && pip install --upgrade \"google-genai>={'.'.join(map(str, MIN_GOOGLE_GENAI_VERSION))},<2\""
+            f"conda activate {CONDA_ENV_NAME} && pip install --upgrade \"google-genai>={'.'.join(map(str, MIN_GOOGLE_GENAI_VERSION))},<3\""
         )
         sys.exit(1)
 

@@ -47,6 +47,8 @@ DEFAULT_PROGRESS = {
     "failed_batches": 0,
     "error_count": 0,
     "glossary_issues": 0,
+    "glossary_issue_details": [],
+    "recovered_retries": 0,
     "format_issues": 0,
     "format_repair": None,
     "workshop_progress": None,
@@ -401,6 +403,7 @@ def update_task(
     clear_result_path: bool = False,
     push: bool = True,
     event_audience: str = "user",
+    event_level: Optional[str] = None,
 ) -> Dict[str, Any]:
     with _LOCK:
         task = _ensure_task(task_id)
@@ -434,6 +437,7 @@ def update_task(
             event_message=append_log or message,
             event_type="status_changed" if status is not None else "log",
             event_audience=event_audience,
+            event_level=event_level,
         )
         snapshot = deepcopy(task)
     _notify_task_update_listeners(task_id, snapshot)
@@ -455,12 +459,15 @@ def update_progress(
     failed_batches: Optional[int] = None,
     error_count: Optional[int] = None,
     glossary_issues: Optional[int] = None,
+    glossary_issue_details: Optional[list[Dict[str, Any]]] = None,
+    recovered_retries: Optional[int] = None,
     format_issues: Optional[int] = None,
     format_repair: Optional[Dict[str, Any]] = None,
     workshop_progress: Optional[Dict[str, Any]] = None,
     log_message: Optional[str] = None,
     push: bool = False,
     event_audience: str = "user",
+    event_level: Optional[str] = None,
     fields: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     progress_updates: Dict[str, Any] = {}
@@ -484,6 +491,10 @@ def update_progress(
         progress_updates["error_count"] = error_count
     if glossary_issues is not None:
         progress_updates["glossary_issues"] = glossary_issues
+    if glossary_issue_details is not None:
+        progress_updates["glossary_issue_details"] = glossary_issue_details
+    if recovered_retries is not None:
+        progress_updates["recovered_retries"] = recovered_retries
     if format_issues is not None:
         progress_updates["format_issues"] = format_issues
     if format_repair is not None:
@@ -500,6 +511,7 @@ def update_progress(
         append_log=log_message,
         push=push,
         event_audience=event_audience,
+        event_level=event_level,
         fields=fields,
     )
 

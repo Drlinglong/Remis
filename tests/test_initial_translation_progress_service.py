@@ -89,27 +89,38 @@ def test_emit_progress_keeps_callback_payload_contract():
             "failed_batches": 1,
             "error_count": 1,
             "glossary_issues": 2,
+            "glossary_issue_details": [],
+            "recovered_retries": 0,
             "format_issues": 4,
             "format_repair": {"detected_count": 4, "fixed_count": 3, "remaining_count": 1},
             "workshop_progress": {"detected_count": 4, "processed_count": 2, "reflection_round": 1},
             "log_message": "validation complete",
+            "event_level": None,
         }
     ]
 
 
-def test_progress_log_bridge_filters_status_poll_noise():
+def test_progress_log_bridge_filters_status_poll_noise_and_preserves_level():
     messages = []
     logger = logging.getLogger()
     original_level = logger.level
 
     try:
         logger.setLevel(logging.INFO)
-        with progress_log_bridge(lambda **payload: messages.append(payload["log_message"])):
+        with progress_log_bridge(lambda **payload: messages.append(payload)):
             logging.info("translation heartbeat")
+            logging.warning("potential glossary issue")
             logging.info("GET /api/status HTTP/1.1")
     finally:
         logger.setLevel(original_level)
 
-    assert any("translation heartbeat" in message for message in messages)
-    assert not any("GET /api/status" in message for message in messages)
+    assert any(
+        "translation heartbeat" in item["log_message"] and item["event_level"] == "info"
+        for item in messages
+    )
+    assert any(
+        "potential glossary issue" in item["log_message"] and item["event_level"] == "warning"
+        for item in messages
+    )
+    assert not any("GET /api/status" in item["log_message"] for item in messages)
     assert all(logger_handler.__class__.__name__ != "CallbackHandler" for logger_handler in logger.handlers)

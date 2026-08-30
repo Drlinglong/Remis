@@ -19,6 +19,7 @@ import { useTranslationContext } from '../../context/TranslationContextCore';
 import styles from './RemisCopilotThread.module.css';
 import InlineLocalizationWorkflow from './InlineLocalizationWorkflow';
 import { toAssistantUiAbortError } from './copilotAbort';
+import { getLocalizationWorkflowMissingInputs } from './localizationWorkflowReadiness';
 
 function extractTextFromParts(parts) {
   if (!Array.isArray(parts)) {
@@ -299,7 +300,15 @@ export default function RemisCopilotThread({
       setActionError('');
       try {
         if (item.action === 'start_localization_workflow') {
-          setWorkflowArgs(item.args || {});
+          const args = item.args || {};
+          const missing = getLocalizationWorkflowMissingInputs(args);
+          if (missing.length > 0) {
+            setActionError(
+              `还不能安全生成汉化预览：缺少${missing.join('、')}。请先在对话中补充这些信息。`,
+            );
+            return;
+          }
+          setWorkflowArgs(args);
           return;
         }
         await runAction(item.action, item.args || {});

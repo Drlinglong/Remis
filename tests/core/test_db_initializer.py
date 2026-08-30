@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from pathlib import Path
 
 import pytest
 
@@ -21,6 +22,26 @@ def _write_file(path, content):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(content)
+
+
+def test_bundled_vic3_demo_glossary_contains_only_remis(tmp_path):
+    db_path = tmp_path / "seed-contract.sqlite"
+    migrate_main_database(str(db_path))
+    seed_path = Path(__file__).parents[2] / "data" / "seed_data_main.sql"
+    with sqlite3.connect(db_path) as conn:
+        conn.executescript(seed_path.read_text(encoding="utf-8"))
+        rows = conn.execute(
+            "SELECT entry_id, translations, raw_metadata FROM entries "
+            "WHERE glossary_id = 289 ORDER BY entry_id"
+        ).fetchall()
+
+    assert rows == [
+        (
+            "remis_demo_vic3_remis",
+            '{"en": "Remis", "zh-CN": "\\u857e\\u59c6\\u4e1d"}',
+            '{"remarks":"project remis的看板娘，也是demo mod的核心角色"}',
+        )
+    ]
 
 
 def test_initialize_database_builds_schema_and_imports_seed(tmp_path, monkeypatch):

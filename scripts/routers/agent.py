@@ -24,8 +24,7 @@ from scripts.core.copilot.workflow import inspect_mod_folder
 from scripts.core.services.agent_validation_policy import (
     classify_issues as _classify_issues,
     job_allowed_actions as _job_allowed_actions,
-    repairable_issues,
-    validation_allowed_actions,
+    merge_task_validation_payload, repairable_issues, validation_allowed_actions,
 )
 from scripts.core.services.validation_sidecar_service import ValidationSidecarService
 from scripts.routers.agent_workshop import FixRunRequest, start_fix_run
@@ -329,7 +328,7 @@ async def _build_job_response(job_id: str) -> AgentJobResponse:
     kind = live_task.get("agent_job_kind") or (metadata or {}).get(
         "kind", "translation"
     )
-    validation_payload = await _validation_payload(project_id)
+    validation_payload = merge_task_validation_payload(await _validation_payload(project_id), live_task)
     validation = validation_payload["summary"]
     progress = live_task.get("progress") or {}
     output_paths = [
@@ -800,7 +799,7 @@ async def get_agent_job_validation(job_id: str):
     project_id = task.get("project_id") or (metadata or {}).get("project_id")
     if not project_id:
         raise _error(404, "job_not_found", "Agent job not found")
-    payload = await _validation_payload(project_id, include_items=True)
+    payload = merge_task_validation_payload(await _validation_payload(project_id, include_items=True), task, include_items=True)
     allowed_actions = validation_allowed_actions(
         payload.get("_raw_items", []),
         total=payload["summary"].total,

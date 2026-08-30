@@ -22,7 +22,8 @@ from scripts.core.copilot.help_pack import (
     parse_skill_tool_calls,
 )
 from scripts.core.copilot.intents import build_capability_reply, detect_capability_intent
-from scripts.core.copilot.help_agent import run_pydantic_help_agent
+from scripts.core.copilot.help_agent import run_pydantic_help_agent, supports_pydantic_help_agent
+from scripts.core.copilot.workflow_entities import build_workflow_entity_catalog
 from scripts.schemas.copilot import (
     CopilotChatMessage,
     CopilotChatResponse,
@@ -150,6 +151,18 @@ def _is_context_length_error(error: Exception) -> bool:
     )
 
 
+def _is_tool_support_error(error: Exception) -> bool:
+    text = str(error).lower()
+    return any(marker in text for marker in (
+        "tools are not supported",
+        "tool use is not supported",
+        "tool_choice is not supported",
+        "function calling is not supported",
+        "does not support tools",
+        "unsupported tool",
+    ))
+
+
 def _provider_error_reply(provider: str, model: str | None, error: Exception) -> str:
     if _is_context_length_error(error):
         return (
@@ -182,11 +195,23 @@ def resolve_copilot_context_budget(
 def _help_agent_error_reply(provider: str, model: str | None, error: Exception) -> str:
     if _is_context_length_error(error):
         return _provider_error_reply(provider, model, error)
+    if "provider_not_configured" in str(error):
+        return (
+            f"{provider} 尚未配置可用凭据。请到“设置 → API 设置”保存该供应商的 API Key，"
+            "然后重试；Remis 不会在聊天或日志中显示密钥。"
+        )
+    if _is_tool_support_error(error):
+        return (
+            f"{provider} / {model or '默认模型'} 当前不支持 Remis 小助手所需的工具调用。"
+            "请在“小助手设置”中换用该供应商下支持 tool calling 的模型；Remis 没有降级执行或生成不完整计划。"
+        )
     return f"小助手暂时无法完成这次回答：{error}"
 
 
 def _connection_error_reply(provider: str, model: str | None, error: Exception) -> str:
     if _is_context_length_error(error):
+        return _provider_error_reply(provider, model, error)
+    if provider not in {"lm_studio", "ollama", "vllm", "koboldcpp", "oobabooga", "hunyuan"}:
         return _provider_error_reply(provider, model, error)
     return (
         f"无法连接本地模型服务（{provider}）。\n\n"
@@ -219,6 +244,19 @@ def _capability_response(
     )
 
 
+def _filter_actions_for_model(
+    raw_actions: list[Any] | None,
+    provider_name: str,
+    model_name: str | None,
+    workflow_entity_catalog: dict[str, Any],
+) -> list[dict[str, Any]]:
+    return filter_suggested_actions(
+        raw_actions,
+        workflow_defaults={"api_provider": provider_name, "model": model_name or ""},
+        workflow_entity_catalog=workflow_entity_catalog,
+    )
+
+
 def run_copilot_chat(
     messages: list[CopilotChatMessage],
     provider: str = "lm_studio",
@@ -243,18 +281,14 @@ def run_copilot_chat(
             parse_mode="fallback_text",
             grounding="none",
         )
-
     user_query = _last_user_text(messages)
-
-    # Capability / permission questions are product policy — answer without
-    # keyword-doc routing and without the "文档未覆盖" path.
     capability = detect_capability_intent(user_query)
     if capability is not None:
         return _capability_response(
             capability, user_query, provider_name, model_name, effective_budget
         )
-
     history = _history_for_model(messages)
+    workflow_entity_catalog = build_workflow_entity_catalog()
     grounding = "none"
     grounding_score = 0
     context_info = CopilotContextInfo(
@@ -263,16 +297,17 @@ def run_copilot_chat(
         history_message_count=len(history),
     )
     budgeted = None
-
-    if provider_name == "lm_studio":
+    if supports_pydantic_help_agent(provider_name):
         try:
             budgeted = apply_context_budget("", history, budget_tokens=effective_budget)
             started = time.perf_counter()
             agent_result = run_pydantic_help_agent(
                 budgeted.history,
+                provider=provider_name,
                 model_name=model_name,
                 page_context=page_context,
                 reasoning_override=reasoning_override,
+                workflow_entity_catalog=workflow_entity_catalog,
             )
             answer = agent_result["answer"]
             excerpts = agent_result["excerpts"]
@@ -280,8 +315,9 @@ def run_copilot_chat(
             default_sources = [{"title": item["title"], "path": item["path"]} for item in excerpts]
             grounding = "strong" if excerpts else "none"
             grounding_score = 100 if excerpts else 0
-            actions = filter_suggested_actions(
-                [item.model_dump() for item in answer.suggested_actions]
+            actions = _filter_actions_for_model(
+                [item.model_dump() for item in answer.suggested_actions], provider_name, model_name,
+                workflow_entity_catalog,
             )
             sources = [CopilotSource(**item) for item in default_sources]
             confidence = _clamp_confidence(
@@ -324,7 +360,6 @@ def run_copilot_chat(
                     history_message_count=len(history),
                 ),
             )
-
     try:
         handler = get_handler(provider_name, model_name=model_name, reasoning_override=reasoning_override)
         route_started = time.perf_counter()
@@ -338,7 +373,8 @@ def run_copilot_chat(
         routing_ms = round((time.perf_counter() - route_started) * 1000)
 
         system_prompt, default_sources, grounding, grounding_score = build_system_prompt(
-            selected_skill_ids, locale=locale, page_context=page_context
+            selected_skill_ids, locale=locale, page_context=page_context,
+            workflow_entity_catalog=workflow_entity_catalog,
         )
         budgeted = apply_context_budget(
             system_prompt,
@@ -405,7 +441,6 @@ def run_copilot_chat(
             grounding_score=grounding_score,
             context=context_info,
         )
-
     parsed = _extract_json_object(raw or "")
     if not parsed:
         reply = (raw or "").strip() or "模型没有返回有效内容。请确认模型已加载。"
@@ -437,12 +472,13 @@ def run_copilot_chat(
             grounding_score=grounding_score,
             context=context_info,
         )
-
     reply = str(parsed.get("reply") or "").strip()
     if not reply:
         reply = (raw or "").strip() or "（空回复）"
 
-    actions = filter_suggested_actions(parsed.get("suggested_actions"))
+    actions = _filter_actions_for_model(
+        parsed.get("suggested_actions"), provider_name, model_name, workflow_entity_catalog
+    )
     sources_raw = parsed.get("sources")
     sources: list[CopilotSource] = []
     if isinstance(sources_raw, list):

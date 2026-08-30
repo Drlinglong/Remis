@@ -40,12 +40,12 @@ def test_ensure_min_google_genai_exits_when_version_too_old(capsys):
 def test_ensure_min_google_genai_accepts_supported_version(capsys):
     with patch(
         "scripts.build_pipeline.subprocess.check_output",
-        return_value="1.68.0\n",
+        return_value="2.11.0\n",
     ):
         build_pipeline.ensure_min_google_genai("C:/env/python.exe")
 
     captured = capsys.readouterr()
-    assert "version OK: 1.68.0" in captured.out
+    assert "version OK: 2.11.0" in captured.out
 
 
 def test_verify_frozen_backend_fails_when_packaged_process_exits():

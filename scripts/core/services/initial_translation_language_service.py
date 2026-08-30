@@ -5,7 +5,9 @@ from typing import Any, List, Optional
 from scripts.core.parallel_processor import ParallelProcessor
 from scripts.core.proofreading_tracker import create_proofreading_tracker
 from scripts.core.services.initial_translation_batch_service import (
+    classify_batch_warnings,
     log_batch_warnings,
+    log_recovered_retries,
     resolve_max_workers,
     temporary_rpm_limit,
 )
@@ -14,7 +16,7 @@ from scripts.core.services.initial_translation_postprocess_service import finali
 from scripts.core.services.initial_translation_progress_service import (
     LanguageRunState,
     build_checkpoint_manager,
-    emit_progress,
+    build_progress_emitter,
     progress_log_bridge,
 )
 from scripts.core.services.initial_translation_task_service import build_file_task_iterator
@@ -63,6 +65,15 @@ def _process_file_tasks(
                 translation_wrapper,
                 batch_progress_callback=on_batch_completed,
             ):
+                classification = classify_batch_warnings(
+                    file_task.filename,
+                    warnings,
+                    file_succeeded=not is_failed,
+                )
+                run_state.glossary_issues += len(classification.glossary_evidence)
+                evidence_capacity = max(0, 100 - len(run_state.glossary_issue_details))
+                run_state.glossary_issue_details.extend(classification.glossary_evidence[:evidence_capacity])
+                run_state.recovered_retries += len(classification.recovered_retries)
                 if is_failed:
                     run_state.error_count += 1
                     logging.error(f"File {file_task.filename} failed to translate (partially or fully). Using fallback.")
@@ -73,7 +84,8 @@ def _process_file_tasks(
                     )
                 else:
                     update_progress(file_task.filename, log_message=f"SUCCESS: {file_task.filename} translated.")
-                log_batch_warnings(file_task.filename, warnings)
+                log_recovered_retries(file_task.filename, classification.recovered_retries)
+                log_batch_warnings(file_task.filename, classification.final_warnings)
                 finalize_translated_file(
                     file_task,
                     translated_texts,
@@ -135,25 +147,7 @@ def run_language_translation(
         source_lang=source_lang,
         target_lang=target_lang,
     )
-    def update_progress(
-        current_file_name="",
-        stage="Translating",
-        log_message=None,
-        format_issues_override=None,
-        format_repair=None,
-        workshop_progress=None,
-    ):
-        emit_progress(
-            progress_callback,
-            run_state,
-            total_batches,
-            current_file_name,
-            stage,
-            log_message,
-            format_issues_override,
-            format_repair,
-            workshop_progress,
-        )
+    update_progress = build_progress_emitter(progress_callback, run_state, total_batches)
     reference_protected_entries: List[dict] = []
     reference_run_metrics = {"model_submitted": 0}
     file_task_generator = build_file_task_iterator(

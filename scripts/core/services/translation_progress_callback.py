@@ -25,10 +25,13 @@ def build_translation_progress_callback(
         failed_batches=0,
         error_count=0,
         glossary_issues=0,
+        glossary_issue_details=None,
+        recovered_retries=0,
         format_issues=0,
         format_repair=None,
         workshop_progress=None,
         log_message: Optional[str] = None,
+        event_level: Optional[str] = None,
     ):
         current_time = time.time()
         is_final = stage in ("Completed", "Failed") or (
@@ -50,10 +53,13 @@ def build_translation_progress_callback(
             failed_batches=failed_batches,
             error_count=error_count,
             glossary_issues=glossary_issues,
+            glossary_issue_details=glossary_issue_details,
+            recovered_retries=recovered_retries,
             format_issues=format_issues,
             format_repair=format_repair,
             workshop_progress=workshop_progress,
             log_message=log_message,
+            event_level=event_level,
             push=should_push,
             fields={
                 "checkpoint": {
