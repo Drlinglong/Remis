@@ -159,3 +159,30 @@ async def test_new_localization_file_marks_archive_stale(tmp_path):
     assert stale["can_start"] is False
     assert "context_release_stale" in stale["warnings"]
     assert stale["archive"]["source_inventory_file_count"] == 2
+
+    resolution = await service.resolve_mode("project-1", "archive", project)
+
+    assert resolution.requested_mode == "archive"
+    assert resolution.effective_mode == "glossaries"
+    assert resolution.degraded is True
+    assert resolution.warning == {
+        "code": "project_context_degraded",
+        "reason_code": "context_release_stale",
+        "requested_mode": "archive",
+        "effective_mode": "glossaries",
+        "warnings": ["context_release_stale"],
+    }
+
+
+@pytest.mark.asyncio
+async def test_non_archive_mode_does_not_inspect_archive_resources():
+    service = TranslationContextReadinessService(
+        SimpleNamespace(),
+        FakeCandidateStore(),
+    )
+
+    resolution = await service.resolve_mode("project-1", "glossaries", None)
+
+    assert resolution.effective_mode == "glossaries"
+    assert resolution.degraded is False
+    assert resolution.warning is None

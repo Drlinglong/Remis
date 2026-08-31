@@ -87,7 +87,7 @@ describe('AppSider', () => {
     expect(screen.getByText('Format Repair')).toBeInTheDocument();
     expect(screen.queryByText('nav_more')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('mod_archive.title'));
+    fireEvent.click(screen.getByText('neologism_review.title'));
     expect(navigateMock).toHaveBeenCalledWith('/neologism-review');
   });
 

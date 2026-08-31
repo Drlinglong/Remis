@@ -1,12 +1,26 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildTranslationContextModeOptions,
   buildTranslationDetails,
   buildTranslationPayload,
   resolvePreferredModel,
+  resolveTranslationContextMode,
 } from '../initialTranslation';
 
 describe('initialTranslation utils', () => {
+  it('defaults legacy settings to glossaries and exposes archive only when requested', () => {
+    const t = (key) => key;
+
+    expect(resolveTranslationContextMode({ use_main_glossary: true })).toBe('glossaries');
+    expect(buildTranslationContextModeOptions(t).map((item) => item.value)).toEqual([
+      'none',
+      'glossaries',
+    ]);
+    expect(buildTranslationContextModeOptions(t, { includeArchive: true })
+      .map((item) => item.value)).toEqual(['none', 'glossaries', 'archive']);
+  });
+
   it('shows the actual custom target and disguise language in the completion summary', () => {
     const details = buildTranslationDetails({
       source_lang_code: 'en',

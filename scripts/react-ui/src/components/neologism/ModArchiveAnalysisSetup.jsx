@@ -39,7 +39,23 @@ const translateStatus = (t, category, code) => {
     return translated === key ? code : translated;
 };
 
-const ModArchiveAnalysisSetup = ({ controller }) => {
+const getSetupCopy = (allowArchiveAnalysis) => allowArchiveAnalysis
+    ? {
+        ariaLabel: 'mod_archive.title',
+        title: 'mod_archive.analysis.title',
+        subtitle: 'mod_archive.analysis.subtitle',
+        setupTitle: 'mod_archive.analysis.setup_title',
+        setupDescription: 'mod_archive.analysis.setup_desc',
+    }
+    : {
+        ariaLabel: 'neologism_review.title',
+        title: 'neologism_review.mining.setup_title',
+        subtitle: 'neologism_review.mining.setup_desc',
+        setupTitle: 'neologism_review.mining.setup_title',
+        setupDescription: 'neologism_review.mining.setup_desc',
+    };
+
+const ModArchiveAnalysisSetup = ({ allowArchiveAnalysis = true, controller }) => {
     const { t } = useTranslation();
     const {
         projects,
@@ -82,6 +98,7 @@ const ModArchiveAnalysisSetup = ({ controller }) => {
         ? Math.min(100, Math.max(0, status.overallPercent))
         : 0;
     const provider = providers.find((item) => item.value === apiProvider);
+    const copy = getSetupCopy(allowArchiveAnalysis);
 
     return (
         <Container
@@ -96,14 +113,16 @@ const ModArchiveAnalysisSetup = ({ controller }) => {
                     className={styles.headerIcon}
                     size="xl"
                     radius="sm"
-                    aria-label={t('mod_archive.title')}
+                    aria-label={t(copy.ariaLabel)}
                 >
-                    <IconArchive size={22} />
+                    {allowArchiveAnalysis ? <IconArchive size={22} /> : <IconRadar2 size={22} />}
                 </Badge>
                 <Stack gap={2} style={{ minWidth: 0 }}>
-                    <Title order={2}>{t('mod_archive.analysis.title')}</Title>
+                    <Title order={2}>
+                        {t(copy.title)}
+                    </Title>
                     <Text className={styles.subtitle} size="sm">
-                        {t('mod_archive.analysis.subtitle')}
+                        {t(copy.subtitle)}
                     </Text>
                 </Stack>
             </Group>
@@ -124,9 +143,11 @@ const ModArchiveAnalysisSetup = ({ controller }) => {
                 <Paper className={styles.surface} p="lg" withBorder data-remis-surface="surface">
                     <Stack gap="md">
                         <div>
-                            <Title order={3}>{t('mod_archive.analysis.setup_title')}</Title>
+                            <Title order={3}>
+                                {t(copy.setupTitle)}
+                            </Title>
                             <Text className={styles.muted} size="sm" mt={4}>
-                                {t('mod_archive.analysis.setup_desc')}
+                                {t(copy.setupDescription)}
                             </Text>
                         </div>
 
@@ -139,7 +160,7 @@ const ModArchiveAnalysisSetup = ({ controller }) => {
                             searchable
                         />
 
-                        <Radio.Group
+                        {allowArchiveAnalysis && <Radio.Group
                             label={t('mod_archive.analysis.scope_label')}
                             value={analysisScope}
                             onChange={setAnalysisScope}
@@ -176,18 +197,18 @@ const ModArchiveAnalysisSetup = ({ controller }) => {
                                     </Text>
                                 </Box>
                             </Stack>
-                        </Radio.Group>
+                        </Radio.Group>}
 
-                        <Text className={styles.muted} size="xs">
+                        {allowArchiveAnalysis && <Text className={styles.muted} size="xs">
                             {t('mod_archive.analysis.scope_switch_note')}
-                        </Text>
+                        </Text>}
 
-                        <TextInput
+                        {allowArchiveAnalysis && <TextInput
                             label={t('mod_archive.analysis.upstream_version')}
                             placeholder={t('mod_archive.analysis.upstream_version_placeholder')}
                             value={upstreamVersion}
                             onChange={(event) => setUpstreamVersion(event.currentTarget.value)}
-                        />
+                        />}
 
                         <Select
                             label={t('neologism_review.mining.target_language')}

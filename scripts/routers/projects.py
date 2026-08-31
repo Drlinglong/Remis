@@ -163,8 +163,12 @@ async def update_project_metadata(project_id: str, request: UpdateProjectMetadat
 @router.post("/api/project/{project_id}/notes")
 async def update_project_notes(project_id: str, request: UpdateProjectNotesRequest):
     """Adds a new note to the project."""
-    project = await project_manager.get_project(project_id)
-    if not project:
+    project = (
+        await project_manager.get_project(project_id)
+        if request.translation_context_mode == "archive"
+        else None
+    )
+    if request.translation_context_mode == "archive" and not project:
         raise HTTPException(status_code=404, detail="Project not found")
     try:
         # Also update the summary in DB for backward compatibility
@@ -615,32 +619,22 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
     import uuid
     provider_runtime = resolve_runtime_or_400(request.api_provider, request.model)
 
-    if request.translation_context_mode == "archive":
-        project = await project_manager.get_project(project_id)
-        if not project:
-            raise HTTPException(status_code=404, detail="Project not found")
-        readiness = await translation_context_readiness.inspect(
-            project_id,
-            request.translation_context_mode,
-            {
-                "project_id": project_id,
-                "project_name": project.get("name"),
-                "game_id": project.get("game_id"),
-                "source_path": request.custom_source_path or project.get("source_path"),
-                "source_language": project.get("source_language"),
-            },
-            requested_release_id=request.context_release_id,
-        )
-        if not readiness["can_start"]:
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "code": "project_context_not_ready",
-                    "message": "The requested translation context is not ready for translation.",
-                    "retryable": False,
-                    "context_readiness": readiness,
-                },
-            )
+    project = await project_manager.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    context_resolution = await translation_context_readiness.resolve_mode(
+        project_id,
+        request.translation_context_mode,
+        {
+            "project_id": project_id,
+            "project_name": (project or {}).get("name"),
+            "game_id": (project or {}).get("game_id"),
+            "source_path": request.custom_source_path or (project or {}).get("source_path"),
+            "source_language": (project or {}).get("source_language"),
+        } if project else None,
+        requested_release_id=request.context_release_id,
+    )
+    request.translation_context_mode = context_resolution.effective_mode
 
     task_id = str(uuid.uuid4())
     try:
@@ -658,6 +652,8 @@ async def run_incremental_update(project_id: str, request: IncrementalUpdateRequ
                 "workflow_context": {
                     "mode": "pre_scan" if request.dry_run else "execution",
                     "project_id": project_id,
+                    **({"context_resolution": context_resolution.warning}
+                       if context_resolution.warning else {}),
                 },
                 **provider_task_fields(provider_runtime),
             },

@@ -433,34 +433,25 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     provider_runtime = resolve_runtime_or_400(request.api_provider, request.model)
-    if request.translation_context_mode == "archive":
-        readiness = await translation_context_readiness.inspect(
-            request.project_id,
-            request.translation_context_mode,
-            {
-                "project_id": request.project_id,
-                "project_name": project.get("name"),
-                "game_id": project.get("game_id"),
-                "source_path": project.get("source_path"),
-                "source_language": request.source_lang_code,
-            },
-            requested_release_id=request.context_release_id,
-        )
-        if not readiness["can_start"]:
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "code": "project_context_not_ready",
-                    "message": "The requested translation context is not ready for translation.",
-                    "retryable": False,
-                    "context_readiness": readiness,
-                },
-            )
+    context_resolution = await translation_context_readiness.resolve_mode(
+        request.project_id,
+        request.translation_context_mode,
+        {
+            "project_id": request.project_id,
+            "project_name": project.get("name"),
+            "game_id": project.get("game_id"),
+            "source_path": project.get("source_path"),
+            "source_language": request.source_lang_code,
+        },
+        requested_release_id=request.context_release_id,
+    )
+    request.translation_context_mode = context_resolution.effective_mode
     task_id = str(uuid.uuid4())
     try:
         task_state.create_task(
             task_id,
             status="pending",
+            log_message=context_resolution.user_message,
             fields={
                 "kind": "initial_translation",
                 "project_id": request.project_id,
@@ -476,6 +467,9 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
                     "stage": "Queued",
                 },
                 "translation_context_mode": request.translation_context_mode,
+                **({
+                    "workflow_context": {"context_resolution": context_resolution.warning},
+                } if context_resolution.warning else {}),
                 **provider_task_fields(provider_runtime),
             },
             dedupe_key=f"project_translation_write:{request.project_id}",
@@ -542,7 +536,12 @@ async def start_translation_project(request: InitialTranslationRequest, backgrou
     except Exception as e:
         logging.error(f"Failed to auto-register translation path: {e}")
 
-    return {"task_id": task_id, "status": "started", "message": f"Translation started for project {project['name']}"}
+    return {
+        "task_id": task_id,
+        "status": "started",
+        "message": f"Translation started for project {project['name']}",
+        "warning": context_resolution.warning,
+    }
 
 @router.post(
     "/api/translate",

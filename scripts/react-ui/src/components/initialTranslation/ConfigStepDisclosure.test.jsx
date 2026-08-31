@@ -83,6 +83,7 @@ describe('ConfigStep advanced disclosure', () => {
             source_language: 'zh-CN',
           }}
           selectedProjectId="project-1"
+          showModArchive
           t={t}
         />
       </MantineProvider>,
@@ -114,5 +115,34 @@ describe('ConfigStep advanced disclosure', () => {
     ]);
     fireEvent.change(contextMode, { target: { value: 'none' } });
     expect(form.setFieldValue).toHaveBeenCalledWith('translation_context_mode', 'none');
+  });
+
+  it('hides the unfinished archive mode in a stable user-facing build', () => {
+    const form = createForm();
+    form.values.translation_context_mode = 'glossaries';
+    render(
+      <MantineProvider>
+        <ConfigStep
+          availableGlossaries={[]}
+          availableModels={[]}
+          checkpointHintInfo={null}
+          config={{ api_providers: [], game_profiles: {}, languages: {} }}
+          embeddedWorkshopModels={[]}
+          form={form}
+          onSubmit={vi.fn()}
+          selectedProject={null}
+          selectedProjectId="project-1"
+          showModArchive={false}
+          t={t}
+        />
+      </MantineProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Advanced Options' }));
+    const contextMode = screen.getByLabelText('translation_context_mode.label');
+    expect(Array.from(contextMode.options).map((option) => option.value)).toEqual([
+      'none',
+      'glossaries',
+    ]);
   });
 });

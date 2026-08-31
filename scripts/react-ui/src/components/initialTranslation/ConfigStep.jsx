@@ -32,11 +32,13 @@ import ResumeSettingsCard from './ResumeSettingsCard';
 import CollapsibleSettingsCard from './CollapsibleSettingsCard';
 import layoutStyles from '../layout/Layout.module.css';
 import {
+  buildTranslationContextModeOptions,
   buildModelOptions,
   findLanguageByCode,
   resolveGameName,
   TRANSLATION_CONTEXT_MODES,
 } from '../../utils/initialTranslation';
+import { FEATURES } from '../../config/features';
 
 export default function ConfigStep({
   availableGlossaries,
@@ -54,6 +56,7 @@ export default function ConfigStep({
   referencePreviewEntries = [],
   referencePreviewError = '',
   referencePreviewLoading = false,
+  showModArchive = FEATURES.ENABLE_MOD_ARCHIVE,
   t,
 }) {
   const translationBatchOptions = [
@@ -136,20 +139,10 @@ export default function ConfigStep({
     value: glossary.value,
     label: glossary.label,
   }));
-  const contextModeOptions = [
-    {
-      value: TRANSLATION_CONTEXT_MODES.NONE,
-      label: t('translation_context_mode.none'),
-    },
-    {
-      value: TRANSLATION_CONTEXT_MODES.GLOSSARIES,
-      label: t('translation_context_mode.glossaries'),
-    },
-    {
-      value: TRANSLATION_CONTEXT_MODES.ARCHIVE,
-      label: t('translation_context_mode.archive'),
-    },
-  ];
+  const contextModeOptions = buildTranslationContextModeOptions(
+    t,
+    { includeArchive: showModArchive },
+  );
 
   const resolvedWorkshopModels = form.values.embedded_workshop_follow_primary_settings
     ? embeddedWorkshopModels

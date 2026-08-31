@@ -89,4 +89,21 @@ describe('NeologismReviewPage', () => {
       name: 'neologism_review.tab_court',
     })).toHaveAttribute('aria-selected', 'true');
   });
+
+  it('keeps mining and the tribunal visible while hiding archive publication', () => {
+    render(
+      <MemoryRouter>
+        <MantineProvider>
+          <NeologismReviewPage showModArchive={false} />
+        </MantineProvider>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('neologism_review.title')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'neologism_review.tab_mining' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'neologism_review.tab_court' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'mod_archive.tab_published' })).toBeNull();
+    expect(screen.queryByTestId('mod-archive-scope')).toBeNull();
+    expect(screen.queryByText('mod_archive.analysis.upstream_version')).toBeNull();
+  });
 });

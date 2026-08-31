@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from scripts.app_settings import PROJECTS_DB_PATH
@@ -16,6 +17,40 @@ from scripts.core.services.translation_context_gate import (
 from scripts.core.services.translation_context_service import (
     build_translation_source_snapshot,
 )
+
+
+@dataclass(frozen=True)
+class TranslationContextModeResolution:
+    requested_mode: str | None
+    effective_mode: str | None
+    readiness: dict[str, Any] | None = None
+
+    @property
+    def degraded(self) -> bool:
+        return self.requested_mode != self.effective_mode
+
+    @property
+    def warning(self) -> dict[str, Any] | None:
+        if not self.degraded or self.readiness is None:
+            return None
+        archive = self.readiness.get("archive") or {}
+        archive_readiness = archive.get("readiness") or {}
+        return {
+            "code": "project_context_degraded",
+            "reason_code": archive_readiness.get("reason_code"),
+            "requested_mode": self.requested_mode,
+            "effective_mode": self.effective_mode,
+            "warnings": list(self.readiness.get("warnings") or []),
+        }
+
+    @property
+    def user_message(self) -> str | None:
+        if not self.degraded:
+            return None
+        return (
+            "The project archive is unavailable or stale. "
+            "Translation will continue with glossaries only."
+        )
 
 
 class TranslationContextReadinessService:
@@ -33,6 +68,30 @@ class TranslationContextReadinessService:
         self.context_service = ContextService(self.repository)
         self.snapshot_service = SourceSnapshotService()
         self.source_inventory_service = source_inventory_service or IncrementalSnapshotService()
+
+    async def resolve_mode(
+        self,
+        project_id: str,
+        requested_mode: str | None,
+        inspection: dict[str, Any] | None,
+        requested_release_id: str | None = None,
+    ) -> TranslationContextModeResolution:
+        """Turn an unavailable archive into a glossary-only soft fallback."""
+
+        if requested_mode != "archive":
+            return TranslationContextModeResolution(requested_mode, requested_mode)
+        readiness = await self.inspect(
+            project_id,
+            requested_mode,
+            inspection,
+            requested_release_id=requested_release_id,
+        )
+        effective_mode = "archive" if readiness["can_start"] else "glossaries"
+        return TranslationContextModeResolution(
+            requested_mode,
+            effective_mode,
+            readiness,
+        )
 
     async def inspect(
         self,

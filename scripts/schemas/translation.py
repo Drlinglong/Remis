@@ -8,6 +8,7 @@ class TranslationTaskResponse(BaseModel):
     task_id: str
     message: str
     status: Optional[str] = None
+    warning: Optional[Dict[str, Any]] = None
 
 
 class SourceModResponse(BaseModel):

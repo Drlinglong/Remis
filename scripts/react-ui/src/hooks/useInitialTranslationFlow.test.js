@@ -10,7 +10,7 @@ vi.mock('../services/translationService', () => ({
   default: { getReferenceLibraryStatus: vi.fn() },
 }));
 vi.mock('../services/notificationService', () => ({
-  default: { error: vi.fn(), success: vi.fn() },
+  default: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
 }));
 
 const values = {
@@ -62,5 +62,37 @@ describe('useInitialTranslationFlow reference gate', () => {
       '/api/translate/start',
       expect.objectContaining({ reference_reuse: expect.objectContaining({ enabled: false }) }),
     );
+  });
+
+  it('returns to configuration instead of staying on Initializing after a 409', async () => {
+    api.post.mockRejectedValueOnce({
+      response: { data: { detail: { code: 'duplicate_task' } } },
+    });
+    const setActive = vi.fn();
+    const setIsProcessing = vi.fn();
+    const setStatus = vi.fn();
+    const setTaskId = vi.fn();
+    const { result } = renderHook(() => useInitialTranslationFlow({
+      config: { languages: [] },
+      notificationStyle: {},
+      selectedProject: { game_id: 'victoria3', label: 'Demo', source_language: 'en' },
+      selectedProjectId: 'demo',
+      setActive,
+      setIsProcessing,
+      setStatus,
+      setTaskId,
+      setTranslationDetails: vi.fn(),
+      t: (key) => key,
+    }));
+
+    await act(() => result.current.handleStartClick({
+      ...values,
+      reference_reuse_enabled: false,
+    }));
+
+    expect(setActive).toHaveBeenLastCalledWith(1);
+    expect(setIsProcessing).toHaveBeenLastCalledWith(false);
+    expect(setStatus).toHaveBeenLastCalledWith('failed');
+    expect(setTaskId).toHaveBeenLastCalledWith(null);
   });
 });

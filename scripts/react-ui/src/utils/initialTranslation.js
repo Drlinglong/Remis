@@ -4,6 +4,20 @@ export const TRANSLATION_CONTEXT_MODES = Object.freeze({
   ARCHIVE: 'archive',
 });
 
+export function buildTranslationContextModeOptions(t, { includeArchive = false } = {}) {
+  const options = [
+    { value: TRANSLATION_CONTEXT_MODES.NONE, label: t('translation_context_mode.none') },
+    { value: TRANSLATION_CONTEXT_MODES.GLOSSARIES, label: t('translation_context_mode.glossaries') },
+  ];
+  if (includeArchive) {
+    options.push({
+      value: TRANSLATION_CONTEXT_MODES.ARCHIVE,
+      label: t('translation_context_mode.archive'),
+    });
+  }
+  return options;
+}
+
 export function resolveTranslationContextMode(values = {}) {
   const validModes = new Set(Object.values(TRANSLATION_CONTEXT_MODES));
   if (validModes.has(values.translation_context_mode)) {
@@ -11,7 +25,7 @@ export function resolveTranslationContextMode(values = {}) {
   }
   return values.use_main_glossary === false
     ? TRANSLATION_CONTEXT_MODES.NONE
-    : TRANSLATION_CONTEXT_MODES.ARCHIVE;
+    : TRANSLATION_CONTEXT_MODES.GLOSSARIES;
 }
 
 export function normalizeProjects(projects = []) {

@@ -257,6 +257,13 @@ def test_incremental_failure_replaces_stale_translating_stage(monkeypatch):
 def test_incremental_task_records_exact_workflow_context(mock_project_manager, monkeypatch):
     client = TestClient(app)
     tasks.clear()
+    mock_project_manager.get_project.return_value = {
+        "project_id": "project-1",
+        "name": "Test Project",
+        "game_id": "stellaris",
+        "source_path": "C:/Mods/Test Project",
+        "source_language": "en",
+    }
     monkeypatch.setattr(projects_router, "run_incremental_update_background", MagicMock())
 
     response = client.post(

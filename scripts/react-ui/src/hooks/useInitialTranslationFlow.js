@@ -19,6 +19,7 @@ export function useInitialTranslationFlow({
   setTaskId,
   setTranslationDetails,
   setStatus,
+  t = (_key, fallback) => fallback,
 }) {
   const [resumeModalOpen, setResumeModalOpen] = useState(false);
   const [checkpointInfo, setCheckpointInfo] = useState(null);
@@ -65,15 +66,29 @@ export function useInitialTranslationFlow({
     try {
       const response = await api.post('/api/translate/start', payload);
       setTaskId(response.data.task_id);
-      notificationService.success('Translation started!', notificationStyle);
+      if (response.data.warning?.code === 'project_context_degraded') {
+        notificationService.info(
+          t('initial_translation_context_degraded', 'Project archive was skipped; translation will continue with glossaries.'),
+          notificationStyle,
+        );
+      } else {
+        notificationService.success(t('initial_translation_started', 'Translation started!'), notificationStyle);
+      }
       setStatus('processing');
       setIsProcessing(true);
       setActive(2);
     } catch (error) {
-      notificationService.error('Failed to start translation.', notificationStyle);
+      const detail = error?.response?.data?.detail;
+      const errorCode = typeof detail === 'object' ? detail?.code : null;
+      const message = errorCode === 'duplicate_task'
+        ? t('initial_translation_duplicate_task', 'This project already has a translation task in progress.')
+        : t('initial_translation_start_failed', 'Failed to start translation.');
+      notificationService.error(message, notificationStyle);
       console.error('Translate API error:', error);
+      setTaskId(null);
       setIsProcessing(false);
       setStatus('failed');
+      setActive(1);
     }
   };
 

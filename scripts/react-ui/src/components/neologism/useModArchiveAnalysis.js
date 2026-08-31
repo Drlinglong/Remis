@@ -54,6 +54,7 @@ const getSocketErrorStatus = (message) => normalizeAnalysisStatus({
 });
 
 export const useModArchiveAnalysis = ({
+    allowArchiveAnalysis = true,
     selectedProject,
     onSelectedProjectChange,
     onMiningComplete,
@@ -87,6 +88,9 @@ export const useModArchiveAnalysis = ({
     const [targetLang, setTargetLang] = useState('zh-CN');
     const [descriptionLanguage, setDescriptionLanguage] = useState(interfaceLanguage);
     const [analysisScope, setAnalysisScope] = useState(ANALYSIS_SCOPES.TERMS_ONLY);
+    const effectiveAnalysisScope = allowArchiveAnalysis
+        ? analysisScope
+        : ANALYSIS_SCOPES.TERMS_ONLY;
     const [upstreamVersion, setUpstreamVersion] = useState('');
     const [concurrencyLimit, setConcurrencyLimit] = useState('auto');
     const [scanning, setScanning] = useState(false);
@@ -210,7 +214,9 @@ export const useModArchiveAnalysis = ({
             );
             applyStatus(response.data || { status: 'idle' }, false);
             const normalized = normalizeAnalysisStatus(response.data || { status: 'idle' });
-            if (normalized.analysisScope) setAnalysisScope(normalized.analysisScope);
+            if (normalized.analysisScope && (
+                allowArchiveAnalysis || normalized.analysisScope === ANALYSIS_SCOPES.TERMS_ONLY
+            )) setAnalysisScope(normalized.analysisScope);
             if (['starting', 'running', 'queued'].includes(normalized.status) && normalized.taskId) {
                 terminalHandledRef.current = false;
                 connectSocketRef.current?.(normalized.taskId);
@@ -219,7 +225,7 @@ export const useModArchiveAnalysis = ({
             console.error('Failed to restore Mod Archive status', error);
             setLoadError(translate('mod_archive.analysis.status_load_failed'));
         }
-    }, [applyStatus, translate]);
+    }, [allowArchiveAnalysis, applyStatus, translate]);
 
     const fetchProjects = useCallback(async () => {
         try {
@@ -332,7 +338,7 @@ export const useModArchiveAnalysis = ({
             targetLang,
             descriptionLanguage,
             selectedFiles,
-            analysisScope,
+            analysisScope: effectiveAnalysisScope,
             upstreamVersion,
             concurrencyLimit,
         });
@@ -342,7 +348,7 @@ export const useModArchiveAnalysis = ({
                 status: 'running',
                 task_id: response.data?.task_id,
                 total_files: response.data?.total_files || selectedFiles.length || files.length,
-                analysis_scope: analysisScope,
+                analysis_scope: effectiveAnalysisScope,
             });
             setStatus(initialStatus);
             callbacksRef.current.onMiningStatusChange?.(initialStatus);
@@ -362,7 +368,7 @@ export const useModArchiveAnalysis = ({
             setScanning(false);
         }
     }, [
-        analysisScope,
+        effectiveAnalysisScope,
         apiProvider,
         connectMiningSocket,
         currentProject?.sourceLanguage,
@@ -393,7 +399,7 @@ export const useModArchiveAnalysis = ({
         setTargetLang,
         descriptionLanguage,
         setDescriptionLanguage,
-        analysisScope,
+        analysisScope: effectiveAnalysisScope,
         setAnalysisScope,
         upstreamVersion,
         setUpstreamVersion,

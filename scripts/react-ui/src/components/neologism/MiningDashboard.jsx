@@ -10,7 +10,12 @@ import { useModArchiveAnalysis } from './useModArchiveAnalysis';
  */
 const MiningDashboard = (props) => {
     const controller = useModArchiveAnalysis(props);
-    return <ModArchiveAnalysisSetup controller={controller} />;
+    return (
+        <ModArchiveAnalysisSetup
+            allowArchiveAnalysis={props.allowArchiveAnalysis}
+            controller={controller}
+        />
+    );
 };
 
 export default MiningDashboard;

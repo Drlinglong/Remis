@@ -41,7 +41,6 @@ import {
 import api from '../utils/api';
 import { useTaskCenter } from '../context/TaskCenterContextCore';
 import { useInitialReferenceReuse } from '../hooks/useInitialReferenceReuse';
-
 const formatModelSummary = (modelName = '') => {
   const knownModels = {
     'gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
@@ -188,7 +187,7 @@ const InitialTranslation = () => {
       model_name: 'gemini-3.7-flash',
       mod_context: '',
       selected_glossary_ids: [],
-      translation_context_mode: 'archive',
+      translation_context_mode: 'glossaries',
       clean_source: false,
       use_resume: false,
       translation_batch_size_limit: '',
@@ -393,6 +392,7 @@ const InitialTranslation = () => {
     setStatus,
     setTaskId,
     setTranslationDetails,
+    t,
   });
 
   const handleBack = () => {
@@ -499,7 +499,7 @@ const InitialTranslation = () => {
                 ) : (
                   <Stack align="center" p="xl">
                     <Loader size="xl" type="dots" />
-                    <Text size="lg" mt="md">Initializing...</Text>
+                    <Text size="lg" mt="md">{t('initial_translation_initializing')}</Text>
                   </Stack>
                 )}
               </Card>
