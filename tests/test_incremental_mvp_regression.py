@@ -9,7 +9,10 @@ from scripts.core.services.incremental_build_service import IncrementalBuildServ
 from scripts.core.services.incremental_diff_service import IncrementalDiffService
 from scripts.core.services.incremental_package_service import IncrementalPackageService
 from scripts.core.services.incremental_preparation_service import IncrementalPreparationService
-from scripts.core.services.incremental_snapshot_service import IncrementalSnapshotService
+from scripts.core.services.incremental_snapshot_service import (
+    IncrementalSnapshotError,
+    IncrementalSnapshotService,
+)
 
 
 def _write_text(path: Path, content: str):
@@ -85,6 +88,29 @@ def test_preparation_summary_counts_changed_entries(tmp_path):
     assert len(result["processing_records"]) == 1
     assert len(result["file_tasks_for_ai"]) == 1
     assert result["file_tasks_for_ai"][0].texts_to_translate == ["Alpha changed"]
+
+
+def test_snapshot_rejects_partial_results_when_any_source_file_is_invalid(tmp_path):
+    source_root = tmp_path / "source_mod" / "BrokenMod"
+    _write_text(
+        source_root / "localization" / "english" / "valid_l_english.yml",
+        'l_english:\n valid.key:0 "Valid"\n',
+    )
+    _write_text(
+        source_root / "localization" / "english" / "broken_l_english.yml",
+        'l_english:\n broken.key:0 "unterminated\n next.key:0 "Next"\n',
+    )
+
+    with pytest.raises(IncrementalSnapshotError) as exc_info:
+        IncrementalSnapshotService().build_snapshot(
+            str(source_root),
+            {"name_en": "English", "key": "l_english", "code": "en"},
+        )
+
+    assert exc_info.value.issues == ({
+        "file_path": "localization/english/broken_l_english.yml",
+        "error": "Canonical localization parse errors: unterminated_value",
+    },)
 
 
 def test_preparation_resolves_exact_reference_hit_before_model_batch(tmp_path):

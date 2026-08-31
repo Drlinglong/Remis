@@ -25,6 +25,18 @@ KNOWN_LANGUAGE_FOLDERS = {
 }
 
 
+class IncrementalSnapshotError(ValueError):
+    """Raised when a source snapshot would omit one or more invalid files."""
+
+    def __init__(self, issues: List[Dict[str, str]]) -> None:
+        self.issues = tuple(dict(issue) for issue in issues)
+        details = ", ".join(
+            f"{issue['file_path']}: {issue['error']}"
+            for issue in self.issues[:3]
+        )
+        super().__init__(f"Incremental source snapshot failed: {details}")
+
+
 class IncrementalSnapshotService:
     def build_snapshot(
         self,
@@ -34,6 +46,7 @@ class IncrementalSnapshotService:
     ) -> List[Dict[str, Any]]:
         filter_lang_string = self._resolve_source_lang_folder(source_lang_info)
         files_data: List[Dict[str, Any]] = []
+        issues: List[Dict[str, str]] = []
         last_reported_count = -1
 
         for root, dirs, files in os.walk(source_path):
@@ -57,6 +70,7 @@ class IncrementalSnapshotService:
                     continue
 
                 full_path = Path(os.path.join(root, file_name))
+                relative_file_path = os.path.relpath(full_path, source_path).replace("\\", "/")
                 try:
                     report = parse_loc_file_report(full_path)
                     if report.diagnostics:
@@ -71,8 +85,6 @@ class IncrementalSnapshotService:
 
                     raw_content = read_text_bom(full_path)
                     original_lines = raw_content.splitlines(keepends=True)
-                    relative_file_path = os.path.relpath(full_path, source_path).replace("\\", "/")
-
                     files_data.append({
                         "filename": os.path.basename(full_path),
                         "file_path": relative_file_path,
@@ -85,6 +97,10 @@ class IncrementalSnapshotService:
                     })
                 except Exception as e:
                     logger.error(f"Failed to parse {full_path}: {e}")
+                    issues.append({
+                        "file_path": relative_file_path,
+                        "error": str(e),
+                    })
 
             if progress_callback and len(files_data) != last_reported_count:
                 progress_callback({
@@ -96,6 +112,8 @@ class IncrementalSnapshotService:
                 })
                 last_reported_count = len(files_data)
 
+        if issues:
+            raise IncrementalSnapshotError(issues)
         return files_data
 
     def _resolve_source_lang_folder(self, source_lang_info: Dict[str, Any]) -> str:

@@ -431,7 +431,7 @@ async def test_save_updates_disk_and_incremental_archive_baseline(tmp_path, monk
 
 
 @pytest.mark.asyncio
-async def test_save_keeps_file_when_archive_lacks_new_source_keys(tmp_path, monkeypatch):
+async def test_save_restores_file_when_archive_lacks_new_source_keys(tmp_path, monkeypatch):
     import scripts.core.archive_manager as archive_module
 
     monkeypatch.setattr(archive_module, "MODS_CACHE_DB_PATH", str(tmp_path / "archive.sqlite"))
@@ -485,16 +485,15 @@ async def test_save_keeps_file_when_archive_lacks_new_source_keys(tmp_path, monk
         _file_revision(str(target)),
     )
 
-    assert result["status"] == "success"
-    saved = target.read_text(encoding="utf-8-sig")
-    assert 'demo.key:0 "Polished"' in saved
-    assert 'new.key:0 "New polished"' in saved
+    assert result is False
+    assert target.read_text(encoding="utf-8-sig") == 'l_simp_chinese:\n demo.key:0 "Draft"\n'
     entries = archive.get_entries(
         project_id="project-1",
         file_path=str(source),
         language="zh-CN",
     )
-    assert entries[0]["translation"] == "Polished"
+    assert entries[0]["translation"] == "Draft"
+    assert manager.status_updates == []
     archive.close()
 
 

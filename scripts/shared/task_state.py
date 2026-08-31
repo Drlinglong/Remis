@@ -35,6 +35,14 @@ class DuplicateTaskError(RuntimeError):
         self.existing_task = deepcopy(existing_task)
         super().__init__(f"Task {existing_task.get('task_id')} already owns this operation")
 
+
+class TaskPersistenceError(RuntimeError):
+    def __init__(self, task_id: str, failure: Dict[str, Any]):
+        self.task_id = task_id
+        self.failure = deepcopy(failure)
+        super().__init__(f"Task {task_id} could not be persisted")
+
+
 DEFAULT_PROGRESS = {
     "total": 0,
     "current": 0,
@@ -320,6 +328,7 @@ def create_task(
     dedupe_key: Optional[str] = None,
     reject_duplicate: bool = False,
     event_audience: str = "user",
+    require_persistence: bool = False,
 ) -> Dict[str, Any]:
     with _LOCK:
         idempotency_key = str((fields or {}).get("idempotency_key") or "").strip() or None
@@ -373,12 +382,15 @@ def create_task(
             tasks[task_id]["started_at"] = now
         if normalized_status in TERMINAL_TASK_STATUSES:
             tasks[task_id]["finished_at"] = now
-        _persist_task(
+        persisted = _persist_task(
             tasks[task_id],
             event_message=log_message,
             event_type="task_created",
             event_audience=event_audience,
         )
+        if require_persistence and not persisted:
+            failed_task = tasks.pop(task_id)
+            raise TaskPersistenceError(task_id, failed_task["persistence_failure"])
         return deepcopy(tasks[task_id])
 
 

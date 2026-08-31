@@ -79,9 +79,8 @@ class ProofreadingService:
                 entries_list,
                 LanguageCode.from_str(current_lang).value,
                 project_id=project_id,
-                allow_missing=True,
             )
-            if updated_count > len(entries_list):
+            if updated_count != len(entries_list):
                 raise RuntimeError("Proofreading archive update did not persist every entry.")
         except Exception:
             # Filesystem and SQLite cannot share a transaction. Restore the

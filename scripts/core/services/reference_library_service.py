@@ -165,6 +165,7 @@ class ReferenceLibraryService:
                 dedupe_key=REFERENCE_LIBRARY_DEDUPE_KEY,
                 reject_duplicate=True,
                 log_message="Official reference library maintenance queued.",
+                require_persistence=True,
             )
         except task_state.DuplicateTaskError as exc:
             existing = exc.existing_task

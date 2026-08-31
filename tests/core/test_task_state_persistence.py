@@ -14,6 +14,9 @@ class FailingTaskRepository:
             raise OSError("task ledger is read-only")
         self.saved.append((dict(task), event))
 
+    def find_active_by_dedupe_key(self, *_args, **_kwargs):
+        return None
+
 
 def test_task_persistence_failure_is_structured_and_visible_to_api_projection():
     previous_repository = task_state.get_repository()
@@ -67,6 +70,30 @@ def test_task_persistence_failure_clears_after_ledger_recovers():
         assert updated["status"] == "completed"
         assert "persistence_failure" not in updated
         assert repository.saved[-1][0]["status"] == "completed"
+    finally:
+        task_state.configure_repository(previous_repository)
+        task_state.tasks.clear()
+        task_state.tasks.update(previous_tasks)
+
+
+def test_required_task_persistence_rejects_admission_and_releases_task_id():
+    previous_repository = task_state.get_repository()
+    previous_tasks = dict(task_state.tasks)
+    try:
+        task_state.tasks.clear()
+        task_state.configure_repository(FailingTaskRepository())
+
+        with pytest.raises(task_state.TaskPersistenceError) as exc_info:
+            task_state.create_task(
+                "durable-task",
+                status="pending",
+                dedupe_key="durable-operation",
+                require_persistence=True,
+            )
+
+        assert exc_info.value.failure["code"] == "task_persistence_failed"
+        assert "durable-task" not in task_state.tasks
+        assert task_state.find_active_task_by_dedupe_key("durable-operation") is None
     finally:
         task_state.configure_repository(previous_repository)
         task_state.tasks.clear()

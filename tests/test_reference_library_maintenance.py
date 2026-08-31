@@ -1,3 +1,4 @@
+import sqlite3
 import threading
 import time
 
@@ -128,3 +129,46 @@ def test_discover_does_not_start_a_maintenance_task(monkeypatch):
     service = ReferenceLibraryService(reference_service=object())
 
     assert service.discover() == {"status": "success", "candidates": candidates}
+
+
+def test_maintenance_does_not_start_when_task_ledger_admission_fails(monkeypatch):
+    class FailingRepository:
+        @staticmethod
+        def find_active_by_dedupe_key(*_args, **_kwargs):
+            return None
+
+        @staticmethod
+        def save_task(*_args, **_kwargs):
+            raise sqlite3.OperationalError("task ledger unavailable")
+
+    previous_repository = task_state.get_repository()
+    previous_tasks = dict(task_state.tasks)
+    started = False
+
+    class ForbiddenThread:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def start(self):
+            nonlocal started
+            started = True
+
+    try:
+        task_state.tasks.clear()
+        task_state.configure_repository(FailingRepository())
+        monkeypatch.setattr(service_module.threading, "Thread", ForbiddenThread)
+
+        with pytest.raises(task_state.TaskPersistenceError):
+            ReferenceLibraryService(reference_service=object()).build(
+                "victoria3",
+                "I:/game/localization",
+            )
+
+        assert started is False
+        assert task_state.find_active_task_by_dedupe_key(
+            service_module.REFERENCE_LIBRARY_DEDUPE_KEY
+        ) is None
+    finally:
+        task_state.configure_repository(previous_repository)
+        task_state.tasks.clear()
+        task_state.tasks.update(previous_tasks)

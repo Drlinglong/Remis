@@ -86,6 +86,19 @@ def _remove_sqlite_family(db_path: str):
         if os.path.exists(candidate):
             os.remove(candidate)
 
+def _run_reference_maintenance(action):
+    try:
+        return action()
+    except task_state.TaskPersistenceError as exc:
+        raise HTTPException(status_code=503, detail={
+            "code": "task_persistence_failed",
+            "message": "The task ledger is unavailable. Reference library maintenance was not started.",
+            "retryable": True,
+        }) from exc
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.get("/reference-library")
 def get_reference_library_status():
     payload = reference_library_service.status()
@@ -102,10 +115,7 @@ def discover_reference_libraries():
 
 @router.post("/reference-library/auto-build")
 def auto_build_reference_libraries():
-    try:
-        return reference_library_service.discover_and_build()
-    except OSError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _run_reference_maintenance(reference_library_service.discover_and_build)
 
 
 @router.get("/reference-library/jobs/active")
@@ -126,31 +136,27 @@ def get_reference_library_job(task_id: str):
 
 @router.post("/reference-library/jobs")
 def start_reference_library_job(request: ReferenceLibraryJobRequest):
-    try:
-        return reference_library_service.start_operations(
-            [operation.model_dump() for operation in request.operations]
-        )
-    except (OSError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    operations = [operation.model_dump() for operation in request.operations]
+    return _run_reference_maintenance(
+        lambda: reference_library_service.start_operations(operations)
+    )
 
 
 @router.post("/reference-library/build")
 def build_reference_library(request: ReferenceLibraryBuildRequest):
-    try:
-        return reference_library_service.build(
+    return _run_reference_maintenance(
+        lambda: reference_library_service.build(
             request.game_id,
             request.localization_path,
         )
-    except (OSError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    )
 
 
 @router.delete("/reference-library/libraries/{game_id}")
 def delete_reference_library(game_id: str):
-    try:
-        return reference_library_service.delete(game_id)
-    except (OSError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _run_reference_maintenance(
+        lambda: reference_library_service.delete(game_id)
+    )
 
 @router.get("/stats", response_model=SystemStatsResponse)
 async def get_system_stats():

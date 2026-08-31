@@ -73,6 +73,33 @@ def test_reference_library_manual_build_rejects_invalid_path(monkeypatch):
     assert response.json()["detail"] == "wrong localization spelling"
 
 
+def test_reference_library_build_reports_retryable_ledger_failure(monkeypatch):
+    failure = {
+        "code": "task_persistence_failed",
+        "retryable": True,
+        "error_type": "OperationalError",
+    }
+    monkeypatch.setattr(
+        system_router.reference_library_service,
+        "build",
+        lambda *_args: (_ for _ in ()).throw(
+            task_state.TaskPersistenceError("reference-library-1", failure)
+        ),
+    )
+
+    response = client.post(
+        "/api/system/reference-library/build",
+        json={"game_id": "victoria3", "localization_path": "I:/game/localization"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == {
+        "code": "task_persistence_failed",
+        "message": "The task ledger is unavailable. Reference library maintenance was not started.",
+        "retryable": True,
+    }
+
+
 def test_reference_library_job_routes_expose_persisted_task(monkeypatch):
     accepted = {"status": "accepted", "task_id": "reference-library-1"}
     task = {"task_id": "reference-library-1", "kind": "reference_library_maintenance", "status": "running"}
