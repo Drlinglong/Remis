@@ -58,6 +58,13 @@ const normalizeTask = (payload, fallbackTaskId = null) => {
   return { ...task, task_id: taskId, progress: task.progress || {} };
 };
 
+const deleteGameIdFrom = (task) => {
+  if (task?.operation !== 'delete') return null;
+  const games = task.progress?.games || task.progress?.per_game || [];
+  const firstGame = Array.isArray(games) ? games[0] : Object.values(games)[0];
+  return firstGame?.game_id || task.candidates?.[0]?.game_id || null;
+};
+
 export const referenceLibraryTaskIsActive = isActiveTask;
 
 export default function useReferenceLibraryMaintenance() {
@@ -67,9 +74,12 @@ export default function useReferenceLibraryMaintenance() {
   const [task, setTask] = useState(null);
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
+  const [deletingGameId, setDeletingGameId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const generationRef = useRef(0);
+  const activeTaskId = task?.task_id;
+  const activeTaskStatus = task?.status;
 
   const refresh = useCallback(async () => {
     const response = await translationService.getReferenceLibraryStatus();
@@ -92,7 +102,9 @@ export default function useReferenceLibraryMaintenance() {
       const nextTask = normalizeTask(response);
       if (nextTask && isActiveTask(nextTask)) {
         setTask(nextTask);
-        setTaskOpen(true);
+        const restoredDeleteGameId = deleteGameIdFrom(nextTask);
+        setDeletingGameId(restoredDeleteGameId);
+        if (!restoredDeleteGameId) setTaskOpen(true);
         return nextTask;
       }
     } catch (restoreError) {
@@ -113,22 +125,33 @@ export default function useReferenceLibraryMaintenance() {
   }, [refresh, restoreActiveTask]);
 
   useEffect(() => {
-    if (!isActiveTask(task)) return undefined;
+    if (!isActiveTask({ task_id: activeTaskId, status: activeTaskStatus })) return undefined;
     const generation = generationRef.current;
+    let timer;
+    let cancelled = false;
     const poll = async () => {
       try {
-        const nextTask = await refreshTask(task.task_id);
-        if (generation !== generationRef.current || !nextTask) return;
-        if (!isActiveTask(nextTask)) await refresh();
+        const nextTask = await refreshTask(activeTaskId);
+        if (cancelled || generation !== generationRef.current || !nextTask) return;
+        if (!isActiveTask(nextTask)) {
+          await refresh();
+          if (!cancelled) setDeletingGameId(null);
+          return;
+        }
+        timer = window.setTimeout(() => { void poll(); }, 1000);
       } catch (pollError) {
         if (generation === generationRef.current) {
           setError(pollError?.response?.data?.detail || pollError.message);
         }
+        if (!cancelled) timer = window.setTimeout(() => { void poll(); }, 1000);
       }
     };
-    const timer = window.setInterval(() => { void poll(); }, 1000);
-    return () => window.clearInterval(timer);
-  }, [refresh, refreshTask, task]);
+    timer = window.setTimeout(() => { void poll(); }, 1000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [activeTaskId, activeTaskStatus, refresh, refreshTask]);
 
   const openDiscovery = useCallback(async (manualCandidate = null) => {
     setError(null);
@@ -209,18 +232,20 @@ export default function useReferenceLibraryMaintenance() {
   const deleteLibrary = useCallback(async (gameId) => {
     setError(null);
     setLoading(true);
+    setDeletingGameId(gameId);
     try {
       const response = await translationService.deleteReferenceLibrary(gameId);
       const nextTask = normalizeTask(response, taskIdFrom(response));
       if (nextTask) {
         setTask(nextTask);
-        setTaskOpen(true);
       } else {
         await refresh();
+        setDeletingGameId(null);
       }
       return nextTask;
     } catch (deleteError) {
       setError(deleteError?.response?.data?.detail || deleteError.message);
+      setDeletingGameId(null);
       return null;
     } finally {
       setLoading(false);
@@ -234,6 +259,7 @@ export default function useReferenceLibraryMaintenance() {
     task,
     discoveryOpen,
     taskOpen,
+    deletingGameId,
     loading,
     error,
     setDiscoveryOpen,

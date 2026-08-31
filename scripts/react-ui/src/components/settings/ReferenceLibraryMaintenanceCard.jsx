@@ -27,6 +27,7 @@ export default function ReferenceLibraryMaintenanceCard({ t }) {
     task,
     discoveryOpen,
     taskOpen,
+    deletingGameId,
     loading,
     error,
     setDiscoveryOpen,
@@ -103,50 +104,54 @@ export default function ReferenceLibraryMaintenanceCard({ t }) {
         )}
 
         <Stack gap="xs">
-          {libraries.map((library) => (
-            <Card key={library.game_id} withBorder padding="sm" radius="sm">
-              <Group justify="space-between" align="flex-start" wrap="nowrap">
-                <div style={{ minWidth: 0 }}>
-                  <Group gap="xs">
-                    <Text size="sm" fw={600}>{library.game_name}</Text>
-                    <Badge color={library.available ? (library.stale ? 'orange' : 'green') : 'gray'}>
-                      {t(statusKey(library))}
-                    </Badge>
-                  </Group>
-                  <Stack gap={2} mt={4}>
-                    {library.game_version && (
-                      <Text size="xs" c="dimmed">
-                        {t('settings_reference_version')}: {library.game_version}
-                        {library.entry_count != null && ` · ${t('settings_reference_entries', { count: library.entry_count })}`}
-                      </Text>
-                    )}
-                    {(library.root_path || library.localization_path) && (
-                      <Code fz="xs" style={{ whiteSpace: 'normal', wordBreak: 'break-all' }}>
-                        {library.root_path || library.localization_path}
-                      </Code>
-                    )}
-                  </Stack>
-                </div>
-                {library.available && (
-                  <Group gap="xs" wrap="nowrap">
-                    <Button size="compact-sm" variant="light" disabled={taskActive} onClick={() => handleUpdate(library)}>
-                      {t('settings_reference_update')}
-                    </Button>
-                    <Button
-                      size="compact-sm"
-                      variant="subtle"
-                      color="red"
-                      disabled={taskActive}
-                      aria-label={t('settings_reference_delete_for', { game: library.game_name })}
-                      onClick={() => setDeleteTarget(library)}
-                    >
-                      <IconTrash size={16} />
-                    </Button>
-                  </Group>
-                )}
-              </Group>
-            </Card>
-          ))}
+          {libraries.map((library) => {
+            const deleting = deletingGameId === library.game_id;
+            return (
+              <Card key={library.game_id} withBorder padding="sm" radius="sm">
+                <Group justify="space-between" align="flex-start" wrap="nowrap">
+                  <div style={{ minWidth: 0 }}>
+                    <Group gap="xs">
+                      <Text size="sm" fw={600}>{library.game_name}</Text>
+                      <Badge color={library.available ? (library.stale ? 'orange' : 'green') : 'gray'}>
+                        {t(statusKey(library))}
+                      </Badge>
+                    </Group>
+                    <Stack gap={2} mt={4}>
+                      {library.game_version && (
+                        <Text size="xs" c="dimmed">
+                          {t('settings_reference_version')}: {library.game_version}
+                          {library.entry_count != null && ` · ${t('settings_reference_entries', { count: library.entry_count })}`}
+                        </Text>
+                      )}
+                      {(library.root_path || library.localization_path) && (
+                        <Code fz="xs" style={{ whiteSpace: 'normal', wordBreak: 'break-all' }}>
+                          {library.root_path || library.localization_path}
+                        </Code>
+                      )}
+                    </Stack>
+                  </div>
+                  {library.available && (
+                    <Group gap="xs" wrap="nowrap">
+                      <Button size="compact-sm" variant="light" disabled={taskActive} onClick={() => handleUpdate(library)}>
+                        {t('settings_reference_update')}
+                      </Button>
+                      <Button
+                        size="compact-sm"
+                        variant="subtle"
+                        color="red"
+                        loading={deleting}
+                        disabled={taskActive && !deleting}
+                        aria-label={t('settings_reference_delete_for', { game: library.game_name })}
+                        onClick={() => setDeleteTarget(library)}
+                      >
+                        <IconTrash size={16} />
+                      </Button>
+                    </Group>
+                  )}
+                </Group>
+              </Card>
+            );
+          })}
         </Stack>
 
         <Group align="flex-end">

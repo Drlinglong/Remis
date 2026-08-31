@@ -20,15 +20,33 @@ vi.mock('../../services/translationService', () => ({
 }));
 
 const status = {
-  libraries: [{
-    game_id: 'victoria3',
-    game_name: 'Victoria 3',
-    available: true,
-    stale: false,
-    game_version: '1.9.8',
-    entry_count: 42,
-    root_path: 'I:/SteamLibrary/steamapps/common/Victoria 3/game/localization',
-  }],
+  libraries: [
+    {
+      game_id: 'victoria3',
+      game_name: 'Victoria 3',
+      available: true,
+      stale: false,
+      game_version: '1.9.8',
+      entry_count: 42,
+      root_path: 'I:/SteamLibrary/steamapps/common/Victoria 3/game/localization',
+    },
+    {
+      game_id: 'hoi4',
+      game_name: 'Hearts of Iron IV',
+      available: true,
+      stale: false,
+      entry_count: 84,
+      root_path: 'I:/SteamLibrary/steamapps/common/Hearts of Iron IV/localisation',
+    },
+    {
+      game_id: 'ck3',
+      game_name: 'Crusader Kings III',
+      available: true,
+      stale: false,
+      entry_count: 126,
+      root_path: 'I:/SteamLibrary/steamapps/common/Crusader Kings III/game/localization',
+    },
+  ],
 };
 
 const t = (key, values) => values ? `${key}:${JSON.stringify(values)}` : key;
@@ -101,7 +119,19 @@ describe('ReferenceLibraryMaintenanceCard', () => {
   });
 
   it('requires explicit confirmation before deleting a game corpus', async () => {
-    translationService.deleteReferenceLibrary.mockResolvedValue({ data: { status: 'success' } });
+    translationService.deleteReferenceLibrary.mockResolvedValue({
+      data: {
+        task_id: 'task-delete',
+        task: {
+          task_id: 'task-delete',
+          operation: 'delete',
+          status: 'running',
+          progress: {
+            games: [{ game_id: 'victoria3', game_name: 'Victoria 3', status: 'running' }],
+          },
+        },
+      },
+    });
     render(<MantineProvider><ReferenceLibraryMaintenanceCard t={t} /></MantineProvider>);
 
     await screen.findAllByText('Victoria 3');
@@ -110,6 +140,10 @@ describe('ReferenceLibraryMaintenanceCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'settings_reference_delete_confirm' }));
 
     await waitFor(() => expect(translationService.deleteReferenceLibrary).toHaveBeenCalledWith('victoria3'));
+    expect(screen.queryByText('settings_reference_task_title')).not.toBeInTheDocument();
+    expect(screen.getByText('settings_reference_task_running')).toBeInTheDocument();
+    expect(screen.getAllByText('Hearts of Iron IV').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Crusader Kings III').length).toBeGreaterThan(0);
   });
 
   it('shows a per-game error for a partially failed maintenance task', async () => {
