@@ -82,7 +82,8 @@
         "api_key_env": "DASHSCOPE_API_KEY",
         "default_model": "qwen3.8-max",
         "available_models": [
-            "qwen3.8-max"
+            "qwen3.8-max",
+            "qwen3.8-flash-next"
         ],
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "region": "beijing",
@@ -91,7 +92,8 @@
             "default_enabled": false,
             "default_preset": "medium",
             "models": {
-                "qwen3.8-max": {"presets": {"high": {"enable_thinking": true}}, "source_url": "https://help.aliyun.com/en/model-studio/deep-thinking", "reviewed_at": "2026-08-18"}
+                "qwen3.8-max": {"presets": {"high": {"enable_thinking": true}}, "source_url": "https://help.aliyun.com/en/model-studio/deep-thinking", "reviewed_at": "2026-08-18"},
+                "qwen3.8-flash-next": null
             }
         },
         "description_key": "api_desc_qwen"
@@ -253,12 +255,12 @@
     "zhipu": {
         "api_key_env": "ZHIPU_API_KEY",
         "base_url": "https://open.bigmodel.cn/api/paas/v4/",
-        "default_model": "glm-5.3",
+        "default_model": "glm-5.3-flash",
         "available_models": [
-            "glm-5.3"
+            "glm-5.3-flash"
         ],
         "name": "ChatGLM (Zhipu AI)",
-        "reasoning": {"default_enabled": false, "default_preset": "high", "models": {"glm-5.3": null}},
+        "reasoning": {"default_enabled": true, "default_preset": "max", "models": {"glm-5.3-flash": {"presets": {"max": {"reasoning_effort": "max"}}, "source_url": "https://docs.z.ai/guides/vlm/glm-5.3-flash", "reviewed_at": "2026-08-31"}}},
         "description_key": "api_desc_zhipu"
     },
     "nvidia": {
