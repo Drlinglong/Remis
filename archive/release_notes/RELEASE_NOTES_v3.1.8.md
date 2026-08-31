@@ -51,6 +51,8 @@ channel.
   cannot silently switch endpoints halfway through a running translation.
 - Provider selectors store stable profile identifiers. Deleting the selected
   profile never silently chooses an unrelated replacement.
+- Invalid or incomplete Custom Provider profiles now show actionable validation
+  guidance instead of exposing a raw settings-page error.
 - API keys continue through the existing protected secret-storage path and remain
   masked in UI, logs, exports, and diagnostics.
 - Cancellation is cooperative and terminal: a cancelling task cannot be changed
@@ -58,6 +60,8 @@ channel.
   retained until cancellation is acknowledged.
 - Stable translation requests cannot re-enable checkpoint resume or Project
   Archive by bypassing the UI.
+- Removing one official reference corpus keeps the other game entries visible
+  while SQLite cleanup continues in the background.
 
 ## 中文
 
@@ -92,7 +96,10 @@ channel.
 - 翻译任务启动时会保存 Provider 配置快照，因此运行过程中编辑配置不会让同一任务
   中途静默切换到另一个端点。
 - Provider 选择器保存稳定的配置 ID；删除当前选中的配置后，不会静默切换到无关配置。
+- Custom Provider 配置不完整或端点格式无效时，会显示可操作的校验提示，不再直接
+  暴露设置页错误。
 - API Key 继续沿用既有受保护密钥存储路径，并在 UI、日志、导出和诊断信息中保持掩码。
 - 取消采用协作式终态处理：进入“正在取消”的任务不会被迟到的工作线程改回运行中或
   已完成，并且只有在取消得到确认后才释放项目锁。
 - 即使绕过前端，稳定版翻译请求也无法重新启用断点续传或项目档案馆。
+- 删除单个官方参考语料库时，其他游戏条目会在 SQLite 后台清理期间保持可见。
