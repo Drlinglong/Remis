@@ -116,6 +116,12 @@
     "result": "Résultat", "output_paths": "Chemins de sortie", "child_tasks": "Sous-tâches", "repair_item_results": "Éléments de ce lot", "repair_item_fixed": "Corrigés", "repair_item_needs_review": "À vérifier", "repair_item_reason": "Raison", "back_to_workflow": "Retour au flux de travail"
   },
   "task_presentation": {
+    "provider_failure": {
+      "invalid_model": { "title": "Le modèle sélectionné est invalide ou indisponible", "action": "Choisissez un modèle chargé ou pris en charge dans les paramètres API, puis réessayez." },
+      "authentication_failed": { "title": "Échec de l’authentification auprès du fournisseur", "action": "Vérifiez la clé API du fournisseur dans les paramètres Remis, puis réessayez." },
+      "forbidden": { "title": "Le fournisseur a refusé l’accès", "action": "Vérifiez que ce compte peut accéder au modèle sélectionné, puis réessayez." },
+      "invalid_request": { "title": "Le fournisseur a rejeté la requête", "action": "Vérifiez l’URL du fournisseur, le modèle et les paramètres de requête avant de réessayer." }
+    },
     "incremental": {
       "preparing": "Préparation de la mise à jour incrémentale",
       "scanning": "Analyse des fichiers source",

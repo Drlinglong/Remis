@@ -262,6 +262,24 @@
     "back_to_workflow": "返回工作流"
   },
   "task_presentation": {
+    "provider_failure": {
+      "invalid_model": {
+        "title": "所选模型无效或不可用",
+        "action": "请在 API 设置中选择已加载或受支持的模型，然后重试任务。"
+      },
+      "authentication_failed": {
+        "title": "Provider 身份验证失败",
+        "action": "请在 Remis 设置中检查该 Provider 的 API Key，然后重试任务。"
+      },
+      "forbidden": {
+        "title": "Provider 拒绝访问",
+        "action": "请确认当前账户有权访问所选模型，然后重试任务。"
+      },
+      "invalid_request": {
+        "title": "Provider 拒绝了请求",
+        "action": "请检查 Provider 地址、模型和请求设置，然后重试任务。"
+      }
+    },
     "incremental": {
       "preparing": "正在准备增量更新",
       "scanning": "正在扫描源码文件",

@@ -119,6 +119,12 @@
     "newest_first": "新しい順"
   },
   "task_presentation": {
+    "provider_failure": {
+      "invalid_model": { "title": "選択したモデルは無効か利用できません", "action": "API 設定で読み込み済みまたは対応モデルを選択し、再試行してください。" },
+      "authentication_failed": { "title": "プロバイダーの認証に失敗しました", "action": "Remis 設定でプロバイダーの API キーを確認し、再試行してください。" },
+      "forbidden": { "title": "プロバイダーにアクセスを拒否されました", "action": "このアカウントが選択したモデルへアクセスできるか確認し、再試行してください。" },
+      "invalid_request": { "title": "プロバイダーがリクエストを拒否しました", "action": "再試行する前に、プロバイダー URL、モデル、リクエスト設定を確認してください。" }
+    },
     "incremental": {
       "preparing": "増分更新を準備中",
       "scanning": "ソースファイルをスキャン中",

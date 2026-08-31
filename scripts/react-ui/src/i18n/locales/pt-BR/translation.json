@@ -114,6 +114,12 @@
     "result": "Resultado da tarefa", "output_paths": "Caminhos de saída", "child_tasks": "Tarefas filhas", "repair_item_results": "Itens deste lote", "repair_item_fixed": "Corrigidos", "repair_item_needs_review": "Precisam de revisão", "repair_item_reason": "Justificativa", "back_to_workflow": "Voltar ao fluxo de trabalho"
   },
   "task_presentation": {
+    "provider_failure": {
+      "invalid_model": { "title": "O modelo selecionado é inválido ou não está disponível", "action": "Escolha um modelo carregado ou compatível nas configurações da API e tente novamente." },
+      "authentication_failed": { "title": "Falha na autenticação com o provedor", "action": "Verifique a chave de API do provedor nas configurações do Remis e tente novamente." },
+      "forbidden": { "title": "O provedor negou o acesso", "action": "Verifique se esta conta tem acesso ao modelo selecionado e tente novamente." },
+      "invalid_request": { "title": "O provedor rejeitou a solicitação", "action": "Verifique a URL do provedor, o modelo e as configurações da solicitação antes de tentar novamente." }
+    },
     "incremental": {
       "preparing": "Preparando a atualização incremental",
       "scanning": "Verificando os arquivos de origem",

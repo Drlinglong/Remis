@@ -6,7 +6,6 @@ import traceback
 from typing import List, Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form, WebSocket
 from fastapi.responses import FileResponse
-
 from scripts.shared.state import tasks
 from scripts.shared.services import project_manager, glossary_manager, archive_manager
 from scripts.shared import task_state
@@ -41,6 +40,7 @@ from scripts.workflows import initial_translate
 from scripts.utils import i18n
 from scripts.utils.system_utils import slugify_to_ascii
 from scripts.core.checkpoint_manager import CheckpointManager
+from scripts.core.provider_errors import provider_failure_task_fields
 from scripts.core.services.translation_context_service import context_workflow_kwargs
 from scripts.core.services.translation_resource_policy import resolve_translation_run_resources
 from scripts.routers.provider_runtime import provider_task_fields, resolve_runtime_or_400
@@ -56,11 +56,9 @@ translation_context_readiness = TranslationContextReadinessService(
     neologism_manager,
 )
 
-
 def _run_async(coro):
     """Run async project services from the synchronous background workflow thread."""
     return asyncio.run(coro)
-
 
 def _resolve_target_languages(target_lang_codes: List[str]):
     resolved = []
@@ -159,6 +157,7 @@ def finalize_task(
     log_message: Optional[str] = None,
     stage: Optional[str] = None,
     error_count: Optional[int] = None,
+    error: Optional[BaseException] = None,
 ):
     """Persist terminal task state and force a final status push to the frontend."""
     progress = {}
@@ -173,6 +172,7 @@ def finalize_task(
         status=status,
         append_log=log_message,
         progress=progress or None,
+        fields=provider_failure_task_fields(error) if error else None,
         push=True,
     )
 
@@ -240,7 +240,7 @@ def run_translation_workflow(task_id: str, mod_name: str, game_profile_id: str, 
         tb_str = traceback.format_exc()
         user_error = f"Translation workflow failed: {e}"
         logging.error(f"Task {task_id} failed: {user_error}\n{tb_str}")
-        finalize_task(task_id, "failed", user_error, "Failed")
+        finalize_task(task_id, "failed", user_error, "Failed", error=e)
         task_state.append_task_event(
             task_id,
             tb_str,
@@ -402,7 +402,7 @@ def run_translation_workflow_v2(
         tb_str = traceback.format_exc()
         user_error = f"Translation workflow failed: {e}"
         logging.error(f"{user_error}\n{tb_str}")
-        finalize_task(task_id, "failed", user_error, "Failed")
+        finalize_task(task_id, "failed", user_error, "Failed", error=e)
         task_state.append_task_event(
             task_id,
             tb_str,

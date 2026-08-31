@@ -3,7 +3,11 @@ import pytest
 from scripts.core.base_handler import BaseApiHandler
 from scripts.core.parallel_processor import ParallelProcessor
 from scripts.core.parallel_types import BatchTask, FileTask
-from scripts.core.provider_errors import ProviderFatalError, classify_provider_fatal_error
+from scripts.core.provider_errors import (
+    ProviderFatalError,
+    classify_provider_fatal_error,
+    provider_failure_task_fields,
+)
 
 
 def _file_task() -> FileTask:
@@ -126,6 +130,36 @@ def test_invalid_model_message_is_run_fatal_without_status_code():
     )
 
     assert isinstance(fatal, ProviderFatalError)
+    assert fatal.reason_code == "provider_invalid_model"
+    assert provider_failure_task_fields(fatal) == {
+        "attention_reason_code": "provider_invalid_model",
+        "attention_reason": (
+            "The selected model is invalid or unavailable. "
+            "Select a loaded or supported model."
+        ),
+    }
+
+
+@pytest.mark.parametrize(
+    ("status_code", "message", "reason_code"),
+    [
+        (401, "request rejected", "provider_authentication_failed"),
+        (403, "request rejected", "provider_forbidden"),
+        (422, "invalid request payload", "provider_invalid_request"),
+    ],
+)
+def test_fatal_provider_errors_have_stable_user_facing_reason_codes(
+    status_code,
+    message,
+    reason_code,
+):
+    error = RuntimeError(message)
+    error.status_code = status_code
+
+    fatal = classify_provider_fatal_error(error, provider="test")
+
+    assert fatal.reason_code == reason_code
+    assert provider_failure_task_fields(fatal)["attention_reason_code"] == reason_code
 
 
 def test_stream_processor_stops_queued_batches_after_provider_fatal_error():

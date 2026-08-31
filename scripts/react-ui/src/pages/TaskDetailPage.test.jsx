@@ -32,6 +32,8 @@ const translateMock = (key, options) => {
   if (key === 'glossary_health_completed_title') return 'Localized inspection completed';
   if (key === 'task_detail.blocking_description') return 'Localized project write lock';
   if (key === 'glossary_health_no_model_loaded') return 'Load a local model before retrying.';
+  if (key === 'task_presentation.provider_failure.forbidden.title') return 'Provider access was forbidden';
+  if (key === 'task_presentation.provider_failure.forbidden.action') return 'Check account model access, then retry.';
   return options?.defaultValue || key;
 };
 
@@ -133,6 +135,20 @@ describe('TaskDetailPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'context_sidebar.project_details: Remis Plan - Demo Mod' }));
     expect(navigateMock).toHaveBeenCalledWith('/project-management/project-demo');
+  });
+
+  it('shows an explicit forbidden error with a corrective next step', async () => {
+    api.get.mockResolvedValue({
+      data: {
+        ...failedTask,
+        attention_reason_code: 'provider_forbidden',
+      },
+    });
+
+    render(<MantineProvider><TaskDetailPage /></MantineProvider>);
+
+    expect(await screen.findByText('Provider access was forbidden')).toBeInTheDocument();
+    expect(screen.getAllByText('Check account model access, then retry.')).toHaveLength(2);
   });
 
   it('loads diagnostics by default and expands failed task logs', async () => {

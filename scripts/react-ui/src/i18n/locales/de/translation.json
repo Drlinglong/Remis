@@ -116,6 +116,12 @@
     "result": "Ergebnis", "output_paths": "Ausgabepfade", "child_tasks": "Unteraufgaben", "repair_item_results": "Elemente in diesem Stapel", "repair_item_fixed": "Behoben", "repair_item_needs_review": "Überprüfung erforderlich", "repair_item_reason": "Grund", "back_to_workflow": "Zurück zum Arbeitsablauf"
   },
   "task_presentation": {
+    "provider_failure": {
+      "invalid_model": { "title": "Das ausgewählte Modell ist ungültig oder nicht verfügbar", "action": "Wählen Sie in den API-Einstellungen ein geladenes oder unterstütztes Modell aus und versuchen Sie es erneut." },
+      "authentication_failed": { "title": "Anmeldung beim Anbieter fehlgeschlagen", "action": "Prüfen Sie den API-Schlüssel des Anbieters in den Remis-Einstellungen und versuchen Sie es erneut." },
+      "forbidden": { "title": "Der Anbieter hat den Zugriff verweigert", "action": "Prüfen Sie, ob dieses Konto auf das ausgewählte Modell zugreifen darf, und versuchen Sie es erneut." },
+      "invalid_request": { "title": "Der Anbieter hat die Anfrage abgelehnt", "action": "Prüfen Sie Anbieter-URL, Modell und Anfrageeinstellungen, bevor Sie es erneut versuchen." }
+    },
     "incremental": {
       "preparing": "Inkrementelle Aktualisierung wird vorbereitet",
       "scanning": "Quelldateien werden durchsucht",

@@ -114,6 +114,12 @@
     "result": "Sonuç", "output_paths": "Çıktı yolları", "child_tasks": "Alt görevler", "repair_item_results": "Bu gruptaki öğeler", "repair_item_fixed": "Düzeltildi", "repair_item_needs_review": "İnceleme gerekiyor", "repair_item_reason": "Neden", "back_to_workflow": "İş akışına dön"
   },
   "task_presentation": {
+    "provider_failure": {
+      "invalid_model": { "title": "Seçilen model geçersiz veya kullanılamıyor", "action": "API Ayarları'nda yüklenmiş ya da desteklenen bir model seçip görevi yeniden deneyin." },
+      "authentication_failed": { "title": "Sağlayıcı kimlik doğrulaması başarısız oldu", "action": "Remis Ayarları'nda sağlayıcının API anahtarını kontrol edip görevi yeniden deneyin." },
+      "forbidden": { "title": "Sağlayıcı erişimi reddetti", "action": "Bu hesabın seçilen modele erişebildiğini kontrol edip görevi yeniden deneyin." },
+      "invalid_request": { "title": "Sağlayıcı isteği reddetti", "action": "Yeniden denemeden önce sağlayıcı URL'sini, modeli ve istek ayarlarını kontrol edin." }
+    },
     "incremental": {
       "preparing": "Artımlı güncelleme hazırlanıyor",
       "scanning": "Kaynak dosyalar taranıyor",

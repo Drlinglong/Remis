@@ -56,6 +56,7 @@ import {
   getTaskStageLabel,
   sortTaskEventsNewestFirst,
 } from '../utils/taskPresentation';
+import { TaskFailureAlert } from '../components/tasks/TaskFailureAlert';
 import { glossaryHealthReviewRoute, taskDetailRoute, taskWorkflowTarget } from '../utils/taskRoutes';
 import styles from './TaskDetailPage.module.css';
 const STATUS_COLORS = {
@@ -369,11 +370,7 @@ export default function TaskDetailPage() {
           </Group>
         </Group>
 
-        {!isPartialGlossaryHealth && (task.attention_reason || ['failed', 'interrupted'].includes(task.status)) && (
-          <Alert color="red" icon={<IconAlertTriangle size={18} />} mb="md">
-            {localizedNextStep}
-          </Alert>
-        )}
+        <TaskFailureAlert hidden={isPartialGlossaryHealth} task={task} />
         {actionError && (
           <Alert color="red" icon={<IconAlertTriangle size={18} />} mb="md" withCloseButton onClose={() => setActionError('')}>
             {actionError}

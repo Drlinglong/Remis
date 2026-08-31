@@ -114,6 +114,12 @@
     "result": "Wynik", "output_paths": "Ścieżki wyjściowe", "child_tasks": "Zadania podrzędne", "repair_item_results": "Elementy w tej partii", "repair_item_fixed": "Naprawione", "repair_item_needs_review": "Wymagają sprawdzenia", "repair_item_reason": "Powód", "back_to_workflow": "Wróć do przepływu pracy"
   },
   "task_presentation": {
+    "provider_failure": {
+      "invalid_model": { "title": "Wybrany model jest nieprawidłowy lub niedostępny", "action": "Wybierz załadowany lub obsługiwany model w ustawieniach API i spróbuj ponownie." },
+      "authentication_failed": { "title": "Uwierzytelnianie u dostawcy nie powiodło się", "action": "Sprawdź klucz API dostawcy w ustawieniach Remis i spróbuj ponownie." },
+      "forbidden": { "title": "Dostawca odmówił dostępu", "action": "Sprawdź, czy to konto ma dostęp do wybranego modelu, i spróbuj ponownie." },
+      "invalid_request": { "title": "Dostawca odrzucił żądanie", "action": "Przed ponowieniem sprawdź adres dostawcy, model i ustawienia żądania." }
+    },
     "incremental": {
       "preparing": "Przygotowywanie aktualizacji przyrostowej",
       "scanning": "Skanowanie plików źródłowych",

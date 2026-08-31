@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from scripts.routers import translation
+from scripts.core.provider_errors import ProviderFatalError
 from scripts.shared.state import tasks
 from scripts.shared import task_state
 from scripts.web_server import app
@@ -124,6 +125,39 @@ def test_run_translation_workflow_v2_failure_sets_failed_terminal_state(monkeypa
     assert task["progress"]["stage"] == "Failed"
     assert any("boom" in line for line in task["log"])
     assert all("Traceback (most recent call last)" not in line for line in task["log"])
+
+
+def test_run_translation_workflow_v2_projects_fatal_provider_reason(monkeypatch):
+    task_state.create_task("task-invalid-model", status="pending")
+    monkeypatch.setattr(translation.i18n, "load_language", MagicMock())
+    monkeypatch.setattr(
+        translation.initial_translate,
+        "run",
+        MagicMock(side_effect=ProviderFatalError(
+            "model not found",
+            provider="lm_studio",
+            status_code=404,
+            reason_code="provider_invalid_model",
+        )),
+    )
+
+    translation.run_translation_workflow_v2(
+        "task-invalid-model",
+        "Example Mod",
+        "stellaris",
+        "en",
+        ["zh-CN"],
+        "lm_studio",
+        "",
+        [],
+        "missing-model",
+        False,
+    )
+
+    task = tasks["task-invalid-model"]
+    assert task["status"] == "failed"
+    assert task["attention_reason_code"] == "provider_invalid_model"
+    assert task["attention_reason"].startswith("The selected model is invalid")
 
 
 def test_run_translation_workflow_v2_tracks_recovery_checkpoint(monkeypatch):

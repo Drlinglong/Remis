@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getTaskEventPresentation,
+  getTaskFailurePresentation,
   getTaskNextStep,
   getTaskResultSummary,
   getTaskStageLabel,
@@ -57,6 +58,20 @@ describe('task presentation', () => {
       expect(label).not.toContain('Reconciling event chains');
     },
   );
+
+  it('presents fatal provider failures with an explicit category and action', () => {
+    const task = {
+      status: 'failed',
+      attention_reason: 'opaque provider response',
+      attention_reason_code: 'provider_invalid_model',
+    };
+
+    expect(getTaskFailurePresentation(task, t)).toEqual({
+      title: 'task_presentation.provider_failure.invalid_model.title:{}',
+      message: 'task_presentation.provider_failure.invalid_model.action:{}',
+    });
+    expect(getTaskNextStep(task, t)).not.toContain('review_failure');
+  });
 
   it('localizes persisted incremental summaries and deterministic format scans', () => {
     expect(getTaskResultSummary({

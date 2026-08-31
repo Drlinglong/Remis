@@ -5,6 +5,12 @@ const ARCHIVE_STAGE_CODES = new Set([
   'idle', 'queued', 'starting', 'running', 'extracting', 'reviewing',
   'aggregating', 'synthesizing', 'publishing', 'completed', 'failed',
 ]);
+const PROVIDER_FAILURE_KEYS = {
+  provider_invalid_model: 'invalid_model',
+  provider_authentication_failed: 'authentication_failed',
+  provider_forbidden: 'forbidden',
+  provider_invalid_request: 'invalid_request',
+};
 
 const numeric = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -100,6 +106,9 @@ export const getTaskResultSummary = (task, t) => {
 
 export const getTaskNextStep = (task, t) => {
   if (!task) return '';
+  if (PROVIDER_FAILURE_KEYS[task.attention_reason_code]) {
+    return t(`task_presentation.provider_failure.${PROVIDER_FAILURE_KEYS[task.attention_reason_code]}.action`);
+  }
   if (task.attention_reason_code === 'incremental_translation_internal_error') {
     return t('task_presentation.next_step.internal_error');
   }
@@ -122,6 +131,15 @@ export const getTaskNextStep = (task, t) => {
   }
   if (task.status === 'completed') return t('task_presentation.next_step.completed');
   return t('task_presentation.next_step.wait');
+};
+
+export const getTaskFailurePresentation = (task, t) => {
+  const key = PROVIDER_FAILURE_KEYS[task?.attention_reason_code];
+  if (!key) return null;
+  return {
+    title: t(`task_presentation.provider_failure.${key}.title`),
+    message: getTaskNextStep(task, t),
+  };
 };
 
 export const getTaskEventPresentation = (event, task, t) => {

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { ACTIVE_TASK_STATUSES, formatTaskDuration, taskDurationMs } from '../../utils/taskTime';
 import { getResolvedInterfaceLocale } from '../../utils/localizedDateTime';
 import {
+  getTaskFailurePresentation,
   formatTaskTimestamp,
   getTaskStageLabel,
 } from '../../utils/taskPresentation';
@@ -60,6 +61,7 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
     task.started_at || task.created_at,
     getResolvedInterfaceLocale(i18n),
   );
+  const failurePresentation = getTaskFailurePresentation(task, t);
 
   return (
     <Paper
@@ -92,9 +94,9 @@ export function TaskSummaryCard({ compact = false, handling = false, onHandle, o
         )}
         {task.attention_reason && !isPartialGlossaryHealth && (
           <Text size="sm" c="orange">
-            {['failed', 'interrupted'].includes(task.status)
+            {failurePresentation?.title || (['failed', 'interrupted'].includes(task.status)
               ? t('task_presentation.next_step.review_failure')
-              : task.attention_reason}
+              : task.attention_reason)}
           </Text>
         )}
         <Group gap="xs" wrap="wrap" style={{ minWidth: 0 }}>

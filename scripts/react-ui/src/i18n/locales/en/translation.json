@@ -215,6 +215,24 @@
     "back_to_workflow": "Back to workflow"
   },
   "task_presentation": {
+    "provider_failure": {
+      "invalid_model": {
+        "title": "Selected model is invalid or unavailable",
+        "action": "Choose a loaded or supported model in API Settings, then retry the task."
+      },
+      "authentication_failed": {
+        "title": "Provider authentication failed",
+        "action": "Check the provider API key in Remis Settings, then retry the task."
+      },
+      "forbidden": {
+        "title": "Provider access was forbidden",
+        "action": "Check whether this account can access the selected model, then retry the task."
+      },
+      "invalid_request": {
+        "title": "Provider rejected the request",
+        "action": "Check the provider URL, model, and request settings before retrying."
+      }
+    },
     "incremental": {
       "preparing": "Preparing the incremental update",
       "scanning": "Scanning source files",

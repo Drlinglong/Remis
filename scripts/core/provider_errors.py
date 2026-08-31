@@ -41,10 +41,62 @@ FATAL_MESSAGE_MARKERS = (
 class ProviderFatalError(RuntimeError):
     """A provider/configuration failure that must abort the translation run."""
 
-    def __init__(self, message: str, *, provider: str, status_code: Optional[int] = None):
+    def __init__(
+        self,
+        message: str,
+        *,
+        provider: str,
+        status_code: Optional[int] = None,
+        reason_code: str = "provider_invalid_request",
+    ):
         self.provider = provider
         self.status_code = status_code
+        self.reason_code = reason_code
         super().__init__(message)
+
+
+def _reason_code(status_code: Optional[int], error_code: str, message: str) -> str:
+    if status_code == 401 or error_code in {"authentication_error", "invalid_api_key"} or any(
+        marker in message
+        for marker in ("api key is invalid", "authentication failed", "incorrect api key", "invalid api key")
+    ):
+        return "provider_authentication_failed"
+    if status_code == 403 or error_code in {"forbidden", "permission_denied"} or any(
+        marker in message for marker in ("forbidden", "permission denied", "permission_denied")
+    ):
+        return "provider_forbidden"
+    if error_code in {"invalid_model", "model_not_found", "unknown_model", "unsupported_model"} or any(
+        marker in message
+        for marker in (
+            "invalid model",
+            "model does not exist",
+            "model is not available",
+            "model not found",
+            "model_not_found",
+            "no such model",
+            "unknown model",
+            "unsupported model",
+        )
+    ):
+        return "provider_invalid_model"
+    return "provider_invalid_request"
+
+
+def provider_failure_task_fields(error: BaseException) -> dict[str, str]:
+    """Return stable user-facing task metadata for a fatal provider failure."""
+
+    if not isinstance(error, ProviderFatalError):
+        return {}
+    messages = {
+        "provider_authentication_failed": "Provider authentication failed. Check the API key in Remis Settings.",
+        "provider_forbidden": "Provider access was forbidden. Check account and model permissions.",
+        "provider_invalid_model": "The selected model is invalid or unavailable. Select a loaded or supported model.",
+        "provider_invalid_request": "The provider rejected this request as non-recoverable. Check provider settings.",
+    }
+    return {
+        "attention_reason_code": error.reason_code,
+        "attention_reason": messages[error.reason_code],
+    }
 
 
 def _status_code(error: BaseException) -> Optional[int]:
@@ -98,4 +150,5 @@ def classify_provider_fatal_error(
         message,
         provider=provider,
         status_code=status_code,
+        reason_code=_reason_code(status_code, error_code, normalized_message),
     )

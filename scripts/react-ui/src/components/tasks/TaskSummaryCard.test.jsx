@@ -13,6 +13,7 @@ const translations = {
   glossary_health_no_model_loaded: '所选本地提供商尚未加载模型。',
   glossary_health_partial_status: '部分完成',
   glossary_health_partial_message: '确定性健康检查已完成；可选 AI 建议暂不可用。',
+  'task_presentation.provider_failure.invalid_model.title': '所选模型无效或不可用',
 };
 const translateMock = (key, options) => (
   (translations[key] || options?.defaultValue || key)
@@ -150,5 +151,27 @@ describe('TaskSummaryCard', () => {
     expect(screen.getByText('Format Repair')).toBeInTheDocument();
     expect(screen.getByText('Created by Remis Agent')).toBeInTheDocument();
     expect(screen.queryByText('Legacy Agent Workshop title')).not.toBeInTheDocument();
+  });
+
+  it('shows an explicit invalid-model failure instead of a generic retry message', () => {
+    render(
+      <MantineProvider>
+        <TaskSummaryCard
+          task={{
+            task_id: 'invalid-model-task',
+            kind: 'initial_translation',
+            title: 'Failed translation',
+            status: 'failed',
+            attention_reason: 'provider payload omitted',
+            attention_reason_code: 'provider_invalid_model',
+            created_by: { type: 'user' },
+          }}
+          onOpen={vi.fn()}
+        />
+      </MantineProvider>,
+    );
+
+    expect(screen.getByText('所选模型无效或不可用')).toBeInTheDocument();
+    expect(screen.queryByText('provider payload omitted')).not.toBeInTheDocument();
   });
 });

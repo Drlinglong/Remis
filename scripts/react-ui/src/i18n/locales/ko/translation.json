@@ -119,6 +119,12 @@
     "newest_first": "최신순"
   },
   "task_presentation": {
+    "provider_failure": {
+      "invalid_model": { "title": "선택한 모델이 잘못되었거나 사용할 수 없습니다", "action": "API 설정에서 로드되었거나 지원되는 모델을 선택한 뒤 다시 시도하세요." },
+      "authentication_failed": { "title": "공급자 인증에 실패했습니다", "action": "Remis 설정에서 공급자의 API 키를 확인한 뒤 다시 시도하세요." },
+      "forbidden": { "title": "공급자가 접근을 거부했습니다", "action": "현재 계정이 선택한 모델에 접근할 수 있는지 확인한 뒤 다시 시도하세요." },
+      "invalid_request": { "title": "공급자가 요청을 거부했습니다", "action": "다시 시도하기 전에 공급자 URL, 모델 및 요청 설정을 확인하세요." }
+    },
     "incremental": {
       "preparing": "증분 업데이트 준비 중",
       "scanning": "소스 파일 스캔 중",
