@@ -73,13 +73,15 @@ describe('CustomProviderProfiles', () => {
         renderProfiles();
         await screen.findAllByText('Provider A');
         fireEvent.click(screen.getByRole('button', { name: 'custom_profiles_add' }));
-        fireEvent.change(screen.getByLabelText('api_url_label'), {
+        expect(screen.getByRole('button', { name: 'save' })).toBeDisabled();
+        fireEvent.change(screen.getByLabelText(/^api_url_label/), {
             target: { value: 'https://provider-b.example/v1' },
         });
         const modelsInput = screen.getAllByLabelText('api_models_label')
             .find((element) => element.tagName === 'INPUT');
         fireEvent.change(modelsInput, { target: { value: 'model-b' } });
         fireEvent.keyDown(modelsInput, { key: 'Enter', code: 'Enter' });
+        expect(screen.getByRole('button', { name: 'save' })).toBeEnabled();
         fireEvent.click(screen.getByRole('button', { name: 'save' }));
 
         await waitFor(() => {
@@ -89,6 +91,53 @@ describe('CustomProviderProfiles', () => {
                 display_name: 'custom_profiles_new_name',
             }));
         });
+    });
+
+    it('rejects malformed provider URLs in the form without sending a request', async () => {
+        renderProfiles();
+        await screen.findAllByText('Provider A');
+        fireEvent.click(screen.getByRole('button', { name: 'custom_profiles_add' }));
+        fireEvent.change(screen.getByLabelText(/^api_url_label/), {
+            target: { value: 'not-a-provider-endpoint' },
+        });
+        const modelsInput = screen.getAllByLabelText('api_models_label')
+            .find((element) => element.tagName === 'INPUT');
+        fireEvent.change(modelsInput, { target: { value: 'model-b' } });
+        fireEvent.keyDown(modelsInput, { key: 'Enter', code: 'Enter' });
+
+        expect(screen.getByText('api_url_openai_compatible_help')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'save' })).toBeDisabled();
+        expect(api.post).not.toHaveBeenCalled();
+    });
+
+    it('renders FastAPI validation errors as text instead of React children', async () => {
+        api.post.mockRejectedValue({
+            response: {
+                data: {
+                    detail: [
+                        { loc: ['body', 'api_url'], msg: 'Invalid URL', input: 'hidden-input' },
+                        { loc: ['body', 'selected_model'], msg: 'Invalid model' },
+                    ],
+                },
+            },
+        });
+
+        renderProfiles();
+        await screen.findAllByText('Provider A');
+        fireEvent.click(screen.getByRole('button', { name: 'custom_profiles_add' }));
+        fireEvent.change(screen.getByLabelText(/^api_url_label/), {
+            target: { value: 'https://provider-b.example/v1' },
+        });
+        const modelsInput = screen.getAllByLabelText('api_models_label')
+            .find((element) => element.tagName === 'INPUT');
+        fireEvent.change(modelsInput, { target: { value: 'model-b' } });
+        fireEvent.keyDown(modelsInput, { key: 'Enter', code: 'Enter' });
+        fireEvent.click(screen.getByRole('button', { name: 'save' }));
+
+        await waitFor(() => expect(notifications.show).toHaveBeenCalledWith(expect.objectContaining({
+            message: 'api_url: Invalid URL; selected_model: Invalid model',
+        })));
+        expect(notifications.show.mock.calls.at(-1)[0].message).not.toContain('hidden-input');
     });
 
     it('updates the profile and omits an empty API key so the saved key is retained', async () => {

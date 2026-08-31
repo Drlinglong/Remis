@@ -22,6 +22,8 @@ import { parseCustomParameters } from './reasoningForm';
 import {
     useCustomProviderProfiles,
 } from './useCustomProviderProfiles';
+import { isValidProviderBaseUrl } from './customProviderProfileForm';
+import { formatApiError } from '../../utils/apiErrors';
 import styles from './CustomProviderProfiles.module.css';
 
 const ADAPTER_ID = 'your_favourite_api';
@@ -73,6 +75,7 @@ const CustomProviderProfileCard = ({
     onDelete,
     t,
 }) => {
+    const apiUrlValid = isValidProviderBaseUrl(form.apiUrl);
     const reasoningCapability = profile.reasoning_models?.[form.selectedModel];
     const reasoningPresets = reasoningCapability?.presets || {};
     const effectiveReasoning = {
@@ -131,6 +134,8 @@ const CustomProviderProfileCard = ({
                         value={form.apiUrl}
                         onChange={(event) => onChange({ apiUrl: event.currentTarget.value })}
                         leftSection={<IconServer size={14} />}
+                        required
+                        error={form.apiUrl && !apiUrlValid ? t('api_url_openai_compatible_help') : null}
                     />
                     <PasswordInput
                         label={t('api_key_label', 'API Key')}
@@ -157,6 +162,7 @@ const CustomProviderProfileCard = ({
                         searchable
                         clearable
                         leftSection={<IconRobot size={14} />}
+                        required
                     />
                     <TagsInput
                         label={t('api_models_label', 'Custom Models')}
@@ -187,7 +193,12 @@ const CustomProviderProfileCard = ({
                         onChange={onChange}
                     />
                     <div className={styles.formActions}>
-                        <Button size="xs" loading={submitting} onClick={onSave}>
+                        <Button
+                            size="xs"
+                            loading={submitting}
+                            disabled={!apiUrlValid || !form.selectedModel.trim()}
+                            onClick={onSave}
+                        >
                             {t('save')}
                         </Button>
                         <Button size="xs" variant="subtle" color="gray" disabled={submitting} onClick={onCancel}>
@@ -274,7 +285,7 @@ const CustomProviderProfiles = ({ onDirtyChange = noop, discardToken = 0 }) => {
     const notifyError = (requestError) => {
         notifications.show({
             title: t('error'),
-            message: requestError.response?.data?.detail || requestError.message,
+            message: formatApiError(requestError, t('notification.error_generic')),
             color: 'red',
         });
     };
