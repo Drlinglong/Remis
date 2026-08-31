@@ -14,7 +14,6 @@ LOCAL_SERIAL_PROVIDERS = {
     "vllm",
     "koboldcpp",
     "oobabooga",
-    "hunyuan",
 }
 
 RECOVERABLE_BATCH_WARNING_CODES = {"api_error", "context_exceeded"}

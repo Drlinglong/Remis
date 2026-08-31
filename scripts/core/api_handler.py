@@ -19,7 +19,6 @@ from .local_handler import LocalLLMHandler
 from .modelscope_handler import ModelScopeHandler
 from .siliconflow_handler import SiliconFlowHandler
 from .nvidia_handler import NvidiaHandler
-from .hunyuan_handler import HunyuanHandler
 from .yourfavourite_handler import YourFavouriteHandler
 
 
@@ -49,7 +48,6 @@ PROVIDER_HANDLER_CLASSES = {
     "modelscope": ModelScopeHandler,
     "siliconflow": SiliconFlowHandler,
     "nvidia": NvidiaHandler,
-    "hunyuan": HunyuanHandler,
     "your_favourite_api": YourFavouriteHandler,
 }
 

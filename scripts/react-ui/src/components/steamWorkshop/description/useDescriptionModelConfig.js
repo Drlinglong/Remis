@@ -1,18 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import i18n from '../../../i18n/i18n';
 
-import { FEATURES } from '../../../config/features';
 import api from '../../../utils/api';
 import {
   buildModelOptions,
   resolvePreferredModel,
 } from '../../../utils/initialTranslation';
-
-function visibleProviders(apiProviders = []) {
-  return apiProviders.filter(
-    (provider) => provider.value !== 'hunyuan' || FEATURES.ENABLE_HUNYUAN_PROVIDER,
-  );
-}
 
 export function useDescriptionModelConfig() {
   const [apiProviders, setApiProviders] = useState([]);
@@ -43,7 +36,7 @@ export function useDescriptionModelConfig() {
         ? configResult.value.data.api_providers
         : [];
       const configuredLanguages = configResult.value.data?.languages;
-      setApiProviders(visibleProviders(providers));
+      setApiProviders(providers);
       setLanguages(
         configuredLanguages && typeof configuredLanguages === 'object'
           ? configuredLanguages

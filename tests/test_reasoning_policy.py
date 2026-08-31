@@ -19,7 +19,6 @@ LOCAL_PROVIDER_IDS = {
     "vllm",
     "koboldcpp",
     "oobabooga",
-    "hunyuan",
     "your_favourite_api",
 }
 

@@ -15,6 +15,7 @@ from scripts.utils.structured_parser import parse_response
 from scripts.utils.text_clean import mask_special_tokens
 from scripts.core.prompt_manager import prompt_manager
 from scripts.core.vic3_country_adjective_context import prompt_policy
+from scripts.core.provider_errors import classify_provider_fatal_error
 
 
 def _build_numbered_input(task: BatchTask, masked_chunk: list[str]):
@@ -482,6 +483,19 @@ class BaseApiHandler(ABC):
             except Exception as e:
                 self.logger.exception(f"API call failed for batch {batch_num} on attempt {attempt + 1}: {e}")
                 error_text = str(e)
+                fatal_error = classify_provider_fatal_error(
+                    e,
+                    provider=self.provider_name,
+                )
+                if fatal_error is not None:
+                    task.warnings.append({
+                        "type": "provider_fatal",
+                        "batch_num": batch_num,
+                        "attempt": attempt + 1,
+                        "provider": self.provider_name,
+                        "message": error_text,
+                    })
+                    raise fatal_error from e
                 warning_code = "api_error"
                 if "context size has been exceeded" in error_text.lower() or "context length" in error_text.lower():
                     warning_code = "context_exceeded"

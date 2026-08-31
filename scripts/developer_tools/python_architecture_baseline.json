@@ -11,7 +11,7 @@
     "scripts/core/project_manager.py": 1063,
     "scripts/core/services/model_arena_execution_service.py": 1163,
     "scripts/core/services/model_arena_service.py": 949,
-    "scripts/routers/agent.py": 1067,
+    "scripts/routers/agent.py": 1066,
     "scripts/routers/agent_workshop.py": 1375
   },
   "function_line_exceptions": {

@@ -71,7 +71,7 @@
 
 ### 4. 插件式 AI 翻译适配层 (`core/*_handler.py`)
 系统建立在统一的基类 `base_handler.py` 之上，提供极其丰富的 AI 服务商接入：
-*   **闭源/商用 API**：`gemini_handler.py`, `openai_handler.py`, `deepseek_handler.py`, `grok_handler.py`, `qwen_handler.py`, `hunyuan_handler.py`。
+*   **闭源/商用 API**：`gemini_handler.py`, `openai_handler.py`, `deepseek_handler.py`, `grok_handler.py`, `qwen_handler.py`。
 *   **代理与中转**：`modelscope_handler.py`, `siliconflow_handler.py`, `nvidia_handler.py`。
 *   **本地算力**：`local_handler.py`，支持无缝桥接本地的 Ollama/vLLM 推理端。
 

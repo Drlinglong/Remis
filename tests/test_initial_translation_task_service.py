@@ -1,4 +1,5 @@
 from scripts.core.services import initial_translation_task_service as task_service
+from scripts.core.checkpoint_manager import CheckpointManager
 from scripts.core.services.initial_translation_progress_service import LanguageRunState
 
 
@@ -64,6 +65,34 @@ def test_build_file_task_iterator_skips_completed_files():
     result = list(_build_iterator(files, checkpoint=FakeCheckpoint(completed={"done.yml"})))
 
     assert result == []
+
+
+def test_resume_after_restart_does_not_resubmit_completed_file(tmp_path):
+    checkpoint = CheckpointManager(
+        str(tmp_path),
+        checkpoint_filename=".remis_checkpoint_zh-CN.json",
+    )
+    checkpoint.mark_file_completed("done.yml")
+    reloaded_checkpoint = CheckpointManager(
+        str(tmp_path),
+        checkpoint_filename=".remis_checkpoint_zh-CN.json",
+    )
+    files = [
+        {
+            "filename": filename,
+            "root": "root",
+            "texts_to_translate": [filename],
+            "original_lines": [],
+            "key_map": {0: {"key_part": filename}},
+            "is_custom_loc": False,
+        }
+        for filename in ("done.yml", "pending.yml")
+    ]
+
+    resumed = list(_build_iterator(files, checkpoint=reloaded_checkpoint))
+
+    assert [task.filename for task in resumed] == ["pending.yml"]
+    assert reloaded_checkpoint.is_file_completed("done.yml") is True
 
 
 def test_build_file_task_iterator_handles_empty_files(monkeypatch):

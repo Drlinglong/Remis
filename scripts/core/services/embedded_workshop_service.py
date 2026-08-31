@@ -17,7 +17,7 @@ from scripts.core.services.vanilla_reference_service import normalize_reference_
 
 logger = logging.getLogger(__name__)
 
-LOCAL_PROVIDERS = {"ollama", "lm_studio", "vllm", "koboldcpp", "oobabooga", "text-generation-webui", "hunyuan"}
+LOCAL_PROVIDERS = {"ollama", "lm_studio", "vllm", "koboldcpp", "oobabooga", "text-generation-webui"}
 
 
 def _resolve_model_config(

@@ -1,10 +1,8 @@
 import json
-import logging
 import sys
 from pathlib import Path
 
 from scripts.app_settings import PROJECT_ROOT, config_manager
-from scripts.core.hunyuan_handler import HunyuanHandler
 from scripts.core.prompt_manager import prompt_manager
 from scripts.developer_tools.evaluate_translation_quality import (
     DEFAULT_FIXTURE,
@@ -215,68 +213,6 @@ def test_custom_global_prompt_reaches_production_prompt_without_replacing_task_c
     deduplicated_prompt = handler._build_prompt(task)
 
     assert deduplicated_prompt.count("ISSUE_161_GLOBAL_PROMPT") == 1
-
-
-def test_hunyuan_prompt_keeps_context_global_prompt_and_contextual_glossary(
-    monkeypatch,
-):
-    raw_case = next(
-        case
-        for case in load_fixture()["translation_cases"]
-        if case["id"] == "victoria3_contextual_glossary"
-    )
-    case = resolve_case(raw_case)
-    task = make_task(case, "hunyuan")
-    task.file_task.mod_context = "ISSUE_161_HUNYUAN_CONTEXT"
-    handler = object.__new__(HunyuanHandler)
-    handler.provider_name = "hunyuan"
-    handler.model_id = "issue-161-test-model"
-    handler.logger = logging.getLogger("issue-161-hunyuan-test")
-    monkeypatch.setattr(
-        prompt_manager,
-        "get_custom_global_prompt",
-        lambda: "ISSUE_161_HUNYUAN_GLOBAL_PROMPT",
-    )
-
-    prompt = build_translation_prompt(case, handler, task)
-
-    assert "ISSUE_161_HUNYUAN_CONTEXT" in prompt
-    assert "ISSUE_161_HUNYUAN_GLOBAL_PROMPT" in prompt
-    assert "'silo' → '发射井'" in prompt
-    assert "only when the source context matches those Remarks" in prompt
-
-
-def test_hunyuan_prompt_treats_semantic_hint_as_metadata(monkeypatch):
-    raw_case = next(
-        case
-        for case in load_fixture()["translation_cases"]
-        if case["game_id"] == "victoria3"
-    )
-    case = resolve_case(raw_case)
-    task = make_task(case, "hunyuan")
-    task.texts = ["Chinese"]
-    task.start_index = 0
-    task.end_index = 1
-    task.file_task.target_lang = {"code": "zh-CN", "name": "简体中文"}
-    task.file_task.semantic_hints = [
-        "country_adjective_definition: render the country form"
-    ]
-    handler = object.__new__(HunyuanHandler)
-    handler.provider_name = "hunyuan"
-    handler.model_id = "semantic-hint-test-model"
-    handler.logger = logging.getLogger("semantic-hint-hunyuan-test")
-    monkeypatch.setattr(
-        prompt_manager,
-        "get_custom_global_prompt",
-        lambda: "",
-    )
-
-    prompt = handler._build_prompt(task)
-
-    assert 'Source value: "Chinese"' in prompt
-    assert "the Semantic hint is context, not source text" in prompt
-    assert "Do not translate or echo the metadata" in prompt
-    assert "Preserve one output line per input line" in prompt
 
 
 def test_contextual_glossary_scoring_rewards_following_and_disambiguation():

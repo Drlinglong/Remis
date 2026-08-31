@@ -8,15 +8,17 @@
 import os
 import logging
 import concurrent.futures
+import threading
 from typing import List, Dict, Any, Callable, Optional, Tuple
 from scripts.core.parallel_types import FileTask, BatchTask
+from scripts.core.provider_errors import ProviderFatalError
 from scripts.core.glossary_manager import glossary_manager
 from scripts.utils import i18n
 from scripts.app_settings import CHUNK_SIZE, LOCAL_LLM_CHUNK_SIZE, OLLAMA_CHUNK_SIZE
 
 
 class ParallelProcessor:
-    LOCAL_PROVIDERS = {"ollama", "lm_studio", "vllm", "koboldcpp", "oobabooga", "text-generation-webui", "hunyuan"}
+    LOCAL_PROVIDERS = {"ollama", "lm_studio", "vllm", "koboldcpp", "oobabooga", "text-generation-webui"}
 
     """批次级全局并行处理器 - 实现真正的批次级并行调度"""
 
@@ -172,8 +174,14 @@ class ParallelProcessor:
         all_warnings = []
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            abort_event = threading.Event()
             future_to_batch = {
-                executor.submit(self._process_single_batch, batch, translation_function): batch
+                executor.submit(
+                    self._process_single_batch_guarded,
+                    batch,
+                    translation_function,
+                    abort_event,
+                ): batch
                 for batch in batch_tasks
             }
 
@@ -182,7 +190,12 @@ class ParallelProcessor:
             
             for future in concurrent.futures.as_completed(future_to_batch):
                 batch_task = future_to_batch[future]
-                processed_task, warnings = future.result()
+                try:
+                    processed_task, warnings = future.result()
+                except ProviderFatalError:
+                    abort_event.set()
+                    self._cancel_pending(future_to_batch)
+                    raise
                 batch_key = (batch_task.file_task.filename, batch_task.batch_index)
                 batch_results[batch_key] = processed_task
                 if warnings:
@@ -248,6 +261,8 @@ class ParallelProcessor:
     ) -> Tuple[BatchTask, List[Dict[str, Any]]]:
         try:
             return future.result()
+        except ProviderFatalError:
+            raise
         except Exception as e:
             self.logger.error(
                 f"Critical error in batch processing thread for {filename} "
@@ -295,6 +310,55 @@ class ParallelProcessor:
 
         return processed_task, warnings
 
+    def _process_single_batch_guarded(
+        self,
+        batch_task: BatchTask,
+        translation_function: Callable,
+        abort_event: threading.Event,
+    ) -> Tuple[BatchTask, List[Dict[str, Any]]]:
+        if abort_event.is_set():
+            raise concurrent.futures.CancelledError()
+        try:
+            return self._process_single_batch(batch_task, translation_function)
+        except ProviderFatalError:
+            abort_event.set()
+            raise
+
+    @staticmethod
+    def _cancel_pending(futures: Any) -> None:
+        for future in futures:
+            future.cancel()
+
+    def _submit_guarded_batch(
+        self,
+        executor: concurrent.futures.ThreadPoolExecutor,
+        batch_task: BatchTask,
+        translation_function: Callable,
+        abort_event: threading.Event,
+    ) -> concurrent.futures.Future:
+        return executor.submit(
+            self._process_single_batch_guarded,
+            batch_task,
+            translation_function,
+            abort_event,
+        )
+
+    def _resolve_stream_batch_future(
+        self,
+        future: concurrent.futures.Future,
+        batch_task: BatchTask,
+        filename: str,
+        batch_index: int,
+        abort_event: threading.Event,
+        pending_futures: Any,
+    ) -> Tuple[BatchTask, List[Dict[str, Any]]]:
+        try:
+            return self._resolve_batch_future(future, batch_task, filename, batch_index)
+        except ProviderFatalError:
+            abort_event.set()
+            self._cancel_pending(pending_futures)
+            raise
+
     def process_files_stream(
         self,
         file_tasks_generator: Any, # Iterator[FileTask]
@@ -320,6 +384,7 @@ class ParallelProcessor:
         # For now, assuming the generator yields all files, but we want to process them in parallel and yield results ASAP.
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            abort_event = threading.Event()
             # We need to manage submission and completion simultaneously.
             # Since we can't easily "select" on both generator and futures, 
             # we can submit all tasks (if memory allows) or use a separate thread for submission.
@@ -356,7 +421,7 @@ class ParallelProcessor:
                         batch_texts,
                         translation_indices[i:],
                     )
-                    future = executor.submit(self._process_single_batch, batch_task, translation_function)
+                    future = self._submit_guarded_batch(executor, batch_task, translation_function, abort_event)
                     future_to_info[future] = (file_task.filename, batch_index, batch_task)
                 return False, None
 
@@ -411,9 +476,8 @@ class ParallelProcessor:
                         pending_batches_count -= 1
                         warnings = []
                         
-                        processed_task, warnings = self._resolve_batch_future(
-                            future, batch_task, filename, batch_index
-                        )
+                        processed_task, warnings = self._resolve_stream_batch_future(
+                            future, batch_task, filename, batch_index, abort_event, future_to_info)
 
                         self._notify_batch_progress(batch_progress_callback, processed_task)
 

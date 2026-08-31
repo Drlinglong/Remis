@@ -166,7 +166,7 @@ python scripts/developer_tools/evaluate_key_context_factorial.py `
   --confirm-model-usage
 ```
 
-非 dry-run 默认最多执行 500 次模型调用；超过时必须显式提高 `--max-model-calls`。runner 会在首个请求前渲染检查全部 case × arm 组合，遇到 Hunyuan 等自定义、不兼容的 prompt 结构会零调用退出。执行请求时沿用生产侧的全局限流与重试次数，报告会保留每次成功所需的 attempt 数。
+非 dry-run 默认最多执行 500 次模型调用；超过时必须显式提高 `--max-model-calls`。runner 会在首个请求前渲染检查全部 case × arm 组合，遇到自定义且不兼容的 prompt 结构会零调用退出。执行请求时沿用生产侧的全局限流与重试次数，报告会保留每次成功所需的 attempt 数。
 
 运行后会生成三份文件：原始结果、隐藏 arm 身份的人工评审文件，以及单独保存的解盲映射。盲评文件使用匿名 item id，不显示自动硬约束分数；人工判断冻结后才应读取映射。若模型直接在译文中泄漏原始 key，候选本身仍可能暴露处理组，因此 key 泄漏必须单独报告，不能声称这种候选保持了完全盲态。
 

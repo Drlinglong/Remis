@@ -72,7 +72,6 @@ LOCAL_PROVIDER_IDS = {
     "vllm",
     "koboldcpp",
     "oobabooga",
-    "hunyuan",
 }
 TERMINAL_TASK_STATUSES = {"completed", "failed", "cancelled"}
 LATEST_RELEASE_URL = "https://api.github.com/repos/Drlinglong/Remis/releases/latest"

@@ -41,7 +41,7 @@ example_power:0 "$HUN_ADJ$的实力"
   → 对官方 TAG_ADJ 引用额外创建不可自动修复的人工复核项
 ```
 
-初次翻译和增量翻译都会在构造 `FileTask` 时生成与 source value 一一对齐的 `semantic_hints`。普通 provider 由 `BaseApiHandler` 消费；使用自定义 prompt 结构的 Hunyuan handler 有等价接入。模型仍只返回 value JSON，Remis 不要求模型回显 metadata。
+初次翻译和增量翻译都会在构造 `FileTask` 时生成与 source value 一一对齐的 `semantic_hints`，并由 `BaseApiHandler` 消费。模型仍只返回 value JSON，Remis 不要求模型回显 metadata。
 
 ### 发送给模型的内容
 
@@ -170,7 +170,6 @@ MVP 发布后至少应分目标语言持续观察：
 - 初次翻译接入：`scripts/core/services/initial_translation_task_service.py`
 - 增量翻译接入：`scripts/core/services/incremental_preparation_service.py`
 - 通用 prompt 接入：`scripts/core/base_handler.py`
-- Hunyuan prompt 接入：`scripts/core/hunyuan_handler.py`
 - 人工复核导出：`scripts/core/services/workshop_issue_export_service.py`
 - 自动修复排除：`scripts/core/services/workshop_writeback_service.py`
 - Agent 分类：`scripts/core/services/agent_validation_policy.py`

@@ -298,6 +298,63 @@ def test_hydration_interrupts_persisted_reference_maintenance_and_releases_dedup
         task_state.tasks.update(previous_tasks)
 
 
+def test_hydration_interrupts_initial_translation_preserves_checkpoint_and_releases_dedupe(tmp_path):
+    db_path = tmp_path / "initial-translation-recovery.sqlite"
+    migrate_main_database(str(db_path))
+    repository = TaskRepository(str(db_path))
+    previous_tasks = dict(task_state.tasks)
+    checkpoint = {
+        "available": True,
+        "resume_supported": True,
+        "stage": "Translating",
+        "cursor": "localization/events_l_english.yml",
+        "metadata": {"completed": 2, "total": 5},
+    }
+    statuses = sorted(task_state.ACTIVE_TASK_STATUSES)
+    try:
+        task_state.tasks.clear()
+        for status in statuses:
+            repository.save_task({
+                "task_id": f"translation-{status}",
+                "kind": "initial_translation",
+                "title": "Initial translation",
+                "status": status,
+                "dedupe_key": f"project_translation_write:project-212-{status}",
+                "created_at": "2026-08-31T00:00:00Z",
+                "updated_at": "2026-08-31T00:01:00Z",
+                "progress": {"stage": "Translating"},
+                "checkpoint": checkpoint,
+            })
+
+        task_state.configure_repository(repository, hydrate=True, replace=True)
+
+        for status in statuses:
+            task_id = f"translation-{status}"
+            recovered = task_state.get_task(task_id)
+            assert recovered["status"] == "interrupted"
+            assert recovered["checkpoint"] == checkpoint
+            assert recovered["progress"]["stage"] == "Interrupted"
+            assert recovered["finished_at"]
+            assert repository.get_task(task_id)["status"] == "interrupted"
+
+        dedupe_key = "project_translation_write:project-212-processing"
+        assert task_state.find_active_task_by_dedupe_key(dedupe_key) is None
+
+        replacement = task_state.create_task(
+            "translation-restarted",
+            status="pending",
+            fields={"kind": "initial_translation"},
+            dedupe_key=dedupe_key,
+            reject_duplicate=True,
+        )
+        assert replacement["status"] == "pending"
+        assert task_state.get_task_events("translation-processing")[0]["event_type"] == "recovery_interrupted"
+    finally:
+        task_state.configure_repository(None)
+        task_state.tasks.clear()
+        task_state.tasks.update(previous_tasks)
+
+
 def test_retention_prunes_only_old_or_excess_terminal_tasks_and_cascades_events(tmp_path):
     db_path = tmp_path / "task-retention.sqlite"
     migrate_main_database(str(db_path))

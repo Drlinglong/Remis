@@ -142,8 +142,13 @@ def configure_repository(
                 continue
             recovery = _restart_recovery(task)
             if recovery is not None:
-                message, attention_reason = recovery
-                _mark_restart_interrupted(task, message, attention_reason)
+                message, attention_reason, preserve_checkpoint = recovery
+                _mark_restart_interrupted(
+                    task,
+                    message,
+                    attention_reason,
+                    preserve_checkpoint=preserve_checkpoint,
+                )
                 now = task["updated_at"]
                 try:
                     repository.save_task(
@@ -231,20 +236,28 @@ def _mark_persistence_failure(task: Dict[str, Any], error: Exception) -> None:
     }
 
 
-def _restart_recovery(task: Dict[str, Any]) -> Optional[tuple[str, str]]:
+def _restart_recovery(task: Dict[str, Any]) -> Optional[tuple[str, str, bool]]:
     """Return restart interruption messaging for work that has no live worker."""
 
     kind = task.get("kind")
     checkpoint = task.get("checkpoint") or {}
+    if kind == "initial_translation":
+        return (
+            "The app restarted before this initial translation finished.",
+            "The previous translation worker is no longer running. Resume from the saved checkpoint or start a new translation.",
+            checkpoint.get("resume_supported") is True,
+        )
     if kind == "reference_library_maintenance":
         return (
             "The app restarted before official reference library maintenance finished.",
             "This reference library task cannot resume automatically. Review the current library state before retrying.",
+            False,
         )
     if kind in {"neologism_mining", "context_archive_analysis"}:
         return (
             "The app restarted before this context-analysis task finished.",
             "This context-analysis task cannot resume automatically. Start it again.",
+            False,
         )
     if (
         kind in {"agent_workshop", "agent_workshop_batch"}
@@ -253,11 +266,18 @@ def _restart_recovery(task: Dict[str, Any]) -> Optional[tuple[str, str]]:
         return (
             "The app restarted before this repair task finished.",
             "This Agent Workshop task cannot resume automatically. Return to the workflow and review current validation results before retrying.",
+            False,
         )
     return None
 
 
-def _mark_restart_interrupted(task: Dict[str, Any], message: str, attention_reason: str) -> None:
+def _mark_restart_interrupted(
+    task: Dict[str, Any],
+    message: str,
+    attention_reason: str,
+    *,
+    preserve_checkpoint: bool = False,
+) -> None:
     now = _utc_now_iso()
     task["status"] = "interrupted"
     task["updated_at"] = now
@@ -265,10 +285,11 @@ def _mark_restart_interrupted(task: Dict[str, Any], message: str, attention_reas
     task["message"] = message
     task["attention_reason"] = attention_reason
     task.setdefault("progress", {})["stage"] = "Interrupted"
-    checkpoint = task.setdefault("checkpoint", {})
-    checkpoint["available"] = False
-    checkpoint["stage"] = "interrupted"
-    checkpoint["updated_at"] = now
+    if not preserve_checkpoint:
+        checkpoint = task.setdefault("checkpoint", {})
+        checkpoint["available"] = False
+        checkpoint["stage"] = "interrupted"
+        checkpoint["updated_at"] = now
 
 
 def _persist_task(

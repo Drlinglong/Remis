@@ -31,7 +31,6 @@ import LanguageTargetSelector from './LanguageTargetSelector';
 import ResumeSettingsCard from './ResumeSettingsCard';
 import CollapsibleSettingsCard from './CollapsibleSettingsCard';
 import layoutStyles from '../layout/Layout.module.css';
-import { FEATURES } from '../../config/features';
 import {
   buildModelOptions,
   findLanguageByCode,
@@ -123,12 +122,10 @@ export default function ConfigStep({
   );
 
   const sourceLanguageCode = selectedProject?.source_language;
-  const providerOptions = config.api_providers
-    .filter((provider) => provider.value !== 'hunyuan' || FEATURES.ENABLE_HUNYUAN_PROVIDER)
-    .map((provider) => ({
-      value: provider.value,
-      label: provider.label,
-    }));
+  const providerOptions = config.api_providers.map((provider) => ({
+    value: provider.value,
+    label: provider.label,
+  }));
 
   const modelOptions = availableModels.map((model) => ({
     value: model.value,
@@ -248,7 +245,7 @@ export default function ConfigStep({
                 onChange: (event) => form.setFieldValue('api_provider', event.currentTarget.value),
               })}
 
-              {!['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga', 'hunyuan'].includes(form.values.api_provider) && (
+              {!['ollama', 'lm_studio', 'vllm', 'koboldcpp', 'oobabooga'].includes(form.values.api_provider) && (
                 <Tooltip label={t('tutorial.api_key_warning_tooltip')} multiline w={340} withArrow>
                   <Group gap={4} mt={-6} style={{ width: 'fit-content', cursor: 'help' }}>
                     <IconAlertCircle size={14} color="orange" />

@@ -3,6 +3,7 @@ import pytest
 from scripts.core.base_handler import BaseApiHandler
 from scripts.core.parallel_processor import ParallelProcessor
 from scripts.core.parallel_types import BatchTask, FileTask
+from scripts.core.provider_errors import ProviderFatalError, classify_provider_fatal_error
 
 
 def _file_task() -> FileTask:
@@ -37,6 +38,26 @@ class AlwaysFailHandler(BaseApiHandler):
         raise RuntimeError("api unavailable")
 
 
+class FatalProviderResponse(RuntimeError):
+    status_code = 401
+
+
+class FatalHandler(BaseApiHandler):
+    def __init__(self, provider_name: str):
+        self.calls = 0
+        super().__init__(provider_name)
+
+    def initialize_client(self):
+        return object()
+
+    def _build_prompt(self, task: BatchTask) -> str:
+        return "prompt"
+
+    def _call_api(self, client, prompt: str) -> str:
+        self.calls += 1
+        raise FatalProviderResponse("authentication failed")
+
+
 def test_translate_batch_marks_retry_exhaustion_as_failed():
     task = BatchTask(
         file_task=_file_task(),
@@ -65,6 +86,78 @@ def test_generate_with_messages_preserves_provider_failure():
             ],
             temperature=0.0,
         )
+
+
+def test_translate_batch_aborts_immediately_for_fatal_provider_error():
+    task = BatchTask(
+        file_task=_file_task(),
+        batch_index=0,
+        start_index=0,
+        end_index=1,
+        texts=["Hello"],
+    )
+    handler = FatalHandler("test")
+
+    with pytest.raises(ProviderFatalError, match="authentication failed"):
+        handler.translate_batch(task)
+
+    assert handler.calls == 1
+    assert task.warnings == [{
+        "type": "provider_fatal",
+        "batch_num": 1,
+        "attempt": 1,
+        "provider": "test",
+        "message": "authentication failed",
+    }]
+
+
+@pytest.mark.parametrize("status_code", [429, 500, 503])
+def test_transient_provider_status_remains_retryable(status_code):
+    error = RuntimeError("temporary provider failure")
+    error.status_code = status_code
+
+    assert classify_provider_fatal_error(error, provider="test") is None
+
+
+def test_invalid_model_message_is_run_fatal_without_status_code():
+    fatal = classify_provider_fatal_error(
+        RuntimeError("The requested model is not available"),
+        provider="test",
+    )
+
+    assert isinstance(fatal, ProviderFatalError)
+
+
+def test_stream_processor_stops_queued_batches_after_provider_fatal_error():
+    processor = ParallelProcessor(max_workers=1, chunk_size_override=1)
+    file_task = _file_task()
+    file_task.texts_to_translate = ["one", "two", "three", "four"]
+    calls = []
+
+    def fatal_translation(task: BatchTask) -> BatchTask:
+        calls.append(task.batch_index)
+        raise ProviderFatalError("invalid model", provider="test", status_code=404)
+
+    with pytest.raises(ProviderFatalError, match="invalid model"):
+        list(processor.process_files_stream(iter([file_task]), fatal_translation))
+
+    assert calls == [0]
+
+
+def test_parallel_processor_stops_queued_batches_after_provider_fatal_error():
+    processor = ParallelProcessor(max_workers=1, chunk_size_override=1)
+    file_task = _file_task()
+    file_task.texts_to_translate = ["one", "two", "three", "four"]
+    calls = []
+
+    def fatal_translation(task: BatchTask) -> BatchTask:
+        calls.append(task.batch_index)
+        raise ProviderFatalError("invalid model", provider="test", status_code=404)
+
+    with pytest.raises(ProviderFatalError, match="invalid model"):
+        processor.process_files_parallel([file_task], fatal_translation)
+
+    assert calls == [0]
 
 
 def test_stream_processor_treats_source_fallback_as_file_failure():
